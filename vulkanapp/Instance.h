@@ -1,11 +1,17 @@
-#include <vulkan/vulkan.hpp>
+#pragma once
 
+#include <vulkan/vulkan.hpp>
+#include "utils.h"
+#include "ValidationLayer.h"
 class Instance
 {
 public:
-    Instance(const uint32_t enabledExtensionCount, const std::vector<std::string>& enabledExtension);
-    ~Instance();
-    VkInstance get()const;
+	Instance();
+	~Instance();
+	VkInstance get()const;
 private:
-    VkInstance mInstance;
+	VkInstance mInstance;
+	u32 mExtensionCount = 0;
+	std::vector<VkExtensionProperties> mExtensions;
+	ValidationLayer mValidationLayer;
 };

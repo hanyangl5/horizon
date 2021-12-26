@@ -22,10 +22,3 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${Vulkan_LIBRARIES}
 )
 
-add_subdirectory(3rd_party/spdlog)
-add_subdirectory(3rd_party/glfw)
-add_subdirectory(3rd_party/glm)
-
-target_include_directories(vulkanapp PUBLIC ../3rd_party)
-
-target_link_libraries(vulkanapp PUBLIC glm::glm glfw spdlog)
