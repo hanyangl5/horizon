@@ -1,26 +1,29 @@
+#pragma once
 #include <memory>
 #include <cstdint>
 #include <string>
 #include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "Camera.h"
 #include "Instance.h"
+#include "Device.h"
+
+
 class Renderer
 {
 public:
-	Renderer(int width,int height, GLFWwindow* window);
+	Renderer(int width, int height, GLFWwindow* window);
 	~Renderer();
 	void Update();
 	void Render();
 	//void Destroy();
 private:
+
+
 	std::unique_ptr<Camera> mCamera;
 	std::unique_ptr<Instance> mInstance;
+	std::unique_ptr<Device> mDevice;
 
-	uint32_t glfwExtensionCount = 0;
-	std::vector <std::string> glfwExtensions;
-	//std::vector<VkExtensionProperties> glfwExtensions;
 
 
 	// resource
@@ -47,7 +50,7 @@ private:
 		VkBuffer buffer;
 		VkDescriptorBufferInfo descriptor;
 	}uniformBufferVS;
-	
+
 	struct {
 		glm::mat4 projmat;
 		glm::mat4 modelmat;
@@ -66,6 +69,6 @@ private:
 	VkSemaphore render_complete_semaphore;
 	std::vector<VkFence> fences;
 
-	
+
 
 };

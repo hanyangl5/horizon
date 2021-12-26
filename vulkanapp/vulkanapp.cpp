@@ -1,9 +1,10 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
+#include "utils.h"
 #include "Window.h"
 #include <chrono>
 #include <thread>
-const uint32_t w = 1280, h = 720;
+const u32 w = 1280, h = 720;
 
 int main(int argc, char* argv[])
 {
