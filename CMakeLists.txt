@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(vulkanapp)
+project(horizon)
 
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/vulkanapp/*.cpp ${PROJECT_SOURCE_DIR}/vulkanapp/*.h)
+file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/horizon/*.cpp ${PROJECT_SOURCE_DIR}/horizon/*.h)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${PROJECT_SOURCE_DIR}/vulkanapp
+    ${PROJECT_SOURCE_DIR}/horizon
 )
 
 # find vulkan
