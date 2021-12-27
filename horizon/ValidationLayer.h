@@ -33,6 +33,6 @@ public:
      std::vector<const char*> getRequiredExtensions();
 //private:
 
-    VkDebugUtilsMessengerEXT debugMessenger;
+     VkDebugUtilsMessengerEXT debugMessenger{};
     const std::vector<const char*> validationLayers{"VK_LAYER_KHRONOS_validation"};
 };

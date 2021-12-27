@@ -9,6 +9,7 @@ public:
 	Instance();
 	~Instance();
 	VkInstance get()const;
+	const ValidationLayer& getValidationLayer()const;
 private:
 	VkInstance mInstance;
 	u32 mExtensionCount = 0;

@@ -8,10 +8,12 @@ Device::Device(std::shared_ptr<Instance> instance)
 	if (deviceCount == 0) { spdlog::error("no available device"); }
 	vkEnumeratePhysicalDevices(instance->get(), &deviceCount, mPhysicalDevices.data());
 	pickPhysicalDevice(instance->get());
+	create(instance->getValidationLayer());
 }
 
 Device::~Device()
 {
+	vkDestroyDevice(mDevice, nullptr);
 }
 
 VkPhysicalDevice Device::get() const
@@ -59,5 +61,35 @@ void Device::pickPhysicalDevice(VkInstance instance)
 void Device::setPhysicalDevice(u32 deviceIndex)
 {
 	mPhysicalDeviceIndex = deviceIndex;
+}
+
+void Device::create(const ValidationLayer& validationLayers)
+{
+	QueueFamilyIndices indices(mPhysicalDevices[mPhysicalDeviceIndex]);
+
+	VkDeviceQueueCreateInfo queueCreateInfo{};
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.queueFamilyIndex = indices.getGraphics();
+	queueCreateInfo.queueCount = 1;
+	float queuePriority = 1.0f;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	VkDeviceCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+
+	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.enabledExtensionCount = 0;
+
+	if (enableValidationLayers) {
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.validationLayers.data();
+	}
+	else {
+		createInfo.enabledLayerCount = 0;
+	}
+	VkResult res = vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &createInfo, nullptr, &mDevice);
+	PrintVkError(res, "create logical device");
 }
 

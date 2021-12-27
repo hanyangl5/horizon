@@ -52,3 +52,8 @@ VkInstance Instance::get()const
 {
     return mInstance;
 }
+
+const ValidationLayer& Instance::getValidationLayer() const
+{
+    return mValidationLayer;
+}

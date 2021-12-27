@@ -16,8 +16,11 @@ private:
     void pickPhysicalDevice(VkInstance instance);
     // use specified gpu
     void setPhysicalDevice(u32 deviceIndex);
+
+    void create(const ValidationLayer& validationLayers);
 private:
     u32 deviceCount;
     i32 mPhysicalDeviceIndex = -1;
     std::vector<VkPhysicalDevice> mPhysicalDevices;
+    VkDevice mDevice;
 };
