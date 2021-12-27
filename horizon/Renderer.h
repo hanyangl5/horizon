@@ -21,7 +21,7 @@ private:
 
 
 	std::unique_ptr<Camera> mCamera;
-	std::unique_ptr<Instance> mInstance;
+	std::shared_ptr<Instance> mInstance;
 	std::unique_ptr<Device> mDevice;
 
 
