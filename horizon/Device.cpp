@@ -1,12 +1,12 @@
 #include "Device.h"
 
+
 Device::Device(std::shared_ptr<Instance> instance)
 {
 	// enumerate vk devices
 	vkEnumeratePhysicalDevices(instance->get(), &deviceCount, nullptr);
 	if (deviceCount == 0) { spdlog::error("no available device"); }
 	vkEnumeratePhysicalDevices(instance->get(), &deviceCount, mPhysicalDevices.data());
-
 	pickPhysicalDevice(instance->get());
 }
 
@@ -21,8 +21,6 @@ VkPhysicalDevice Device::get() const
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device)
 {
-
-
 	QueueFamilyIndices indices(device);
 	if (indices.completed()) {
 		VkPhysicalDeviceProperties deviceProperties;
