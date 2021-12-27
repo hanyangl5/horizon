@@ -1,10 +1,13 @@
+#pragma once
 #include <vulkan/vulkan.hpp>
 #include "utils.h"
 #include "Instance.h"
+#include "QueueFamily.h"
+#include <memory>
 class Device
 {
 public:
-    Device(const Instance& instance);
+    Device(std::shared_ptr<Instance> instance);
     ~Device();
     VkPhysicalDevice get()const;
 private:
@@ -15,6 +18,6 @@ private:
     void setPhysicalDevice(u32 deviceIndex);
 private:
     u32 deviceCount;
-    u32 mPhysicalDeviceIndex;
+    i32 mPhysicalDeviceIndex = -1;
     std::vector<VkPhysicalDevice> mPhysicalDevices;
 };
