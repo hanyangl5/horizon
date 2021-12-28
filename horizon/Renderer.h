@@ -23,7 +23,7 @@ private:
 	std::unique_ptr<Camera> mCamera;
 	std::shared_ptr<Instance> mInstance;
 	std::unique_ptr<Device> mDevice;
-
+	std::shared_ptr<Surface> mSurface;
 
 
 	// resource

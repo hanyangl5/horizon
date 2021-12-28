@@ -7,9 +7,10 @@ class Window {
 public:
 	Window(const char* _name, uint32_t _width, uint32_t _height);
 	~Window();
-	void Run();
+	u32 getWidth()const;
+	u32 getHeight()const;
+	GLFWwindow* getWindow()const;
+private:
 	GLFWwindow* mWindow;
 	u32 width, height;
-private:
-	std::unique_ptr<Renderer> renderer;
 };

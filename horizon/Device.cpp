@@ -1,14 +1,14 @@
 #include "Device.h"
-
-
-Device::Device(std::shared_ptr<Instance> instance)
+#include <vector>
+#include <set>
+Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface):mInstance(instance),mSurface(surface)
 {
 	// enumerate vk devices
-	vkEnumeratePhysicalDevices(instance->get(), &deviceCount, nullptr);
+	vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, nullptr);
 	if (deviceCount == 0) { spdlog::error("no available device"); }
-	vkEnumeratePhysicalDevices(instance->get(), &deviceCount, mPhysicalDevices.data());
-	pickPhysicalDevice(instance->get());
-	create(instance->getValidationLayer());
+	vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, mPhysicalDevices.data());
+	pickPhysicalDevice(mInstance->get());
+	create(mInstance->getValidationLayer());
 }
 
 Device::~Device()
@@ -23,7 +23,7 @@ VkPhysicalDevice Device::get() const
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device)
 {
-	QueueFamilyIndices indices(device);
+	QueueFamilyIndices indices(device,mSurface->get());
 	if (indices.completed()) {
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -65,31 +65,33 @@ void Device::setPhysicalDevice(u32 deviceIndex)
 
 void Device::create(const ValidationLayer& validationLayers)
 {
-	QueueFamilyIndices indices(mPhysicalDevices[mPhysicalDeviceIndex]);
+	QueueFamilyIndices indices(mPhysicalDevices[mPhysicalDeviceIndex],mSurface->get());
 
-	VkDeviceQueueCreateInfo queueCreateInfo{};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = indices.getGraphics();
-	queueCreateInfo.queueCount = 1;
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+	// The queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos
+	// except that two members can share the same queueFamilyIndex if one is a protected-capable queue and one is not a protected-capable queue
+	std::set<u32> uniqueQueueFamilies  { indices.getGraphics(), indices.getPresent() };
+
 	float queuePriority = 1.0f;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
+	for (u32 queueFamily : uniqueQueueFamilies) {
+		spdlog::info(queueFamily);
+		queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO ,nullptr,0,queueFamily,1,&queuePriority});
+	}
+
 	VkPhysicalDeviceFeatures deviceFeatures{};
+
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = &queueCreateInfo;
-	createInfo.queueCreateInfoCount = 1;
-
+	createInfo.pQueueCreateInfos = queueCreateInfos.data();
+	createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
 	createInfo.pEnabledFeatures = &deviceFeatures;
 	createInfo.enabledExtensionCount = 0;
 
-	if (enableValidationLayers) {
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.validationLayers.data();
-	}
-	else {
-		createInfo.enabledLayerCount = 0;
-	}
-	VkResult res = vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &createInfo, nullptr, &mDevice);
-	PrintVkError(res, "create logical device");
+	printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &createInfo, nullptr, &mDevice), "create logical device");
+
+	vkGetDeviceQueue(mDevice, indices.getGraphics(), 0, &presentQueue);
+	vkGetDeviceQueue(mDevice, indices.getPresent(), 0, &presentQueue);
+
 }
 

@@ -6,7 +6,8 @@ Renderer::Renderer(int width, int height, GLFWwindow* window)
 {
 	mCamera = std::make_unique<Camera>();
 	mInstance = std::make_shared<Instance>();
-	mDevice = std::make_unique<Device>(mInstance);
+	mSurface = std::make_shared<Surface>(mInstance,window);
+	mDevice = std::make_unique<Device>(mInstance, mSurface);
 }
 
 Renderer::~Renderer()

@@ -3,11 +3,12 @@
 #include "utils.h"
 #include "Instance.h"
 #include "QueueFamily.h"
+#include "Surface.h"
 #include <memory>
 class Device
 {
 public:
-    Device(std::shared_ptr<Instance> instance);
+    Device(std::shared_ptr<Instance> instance,std::shared_ptr<Surface> surface);
     ~Device();
     VkPhysicalDevice get()const;
 private:
@@ -23,4 +24,7 @@ private:
     i32 mPhysicalDeviceIndex = -1;
     std::vector<VkPhysicalDevice> mPhysicalDevices;
     VkDevice mDevice;
+    VkQueue graphicsQueue, presentQueue;
+    std::shared_ptr<Instance> mInstance;
+    std::shared_ptr<Surface> mSurface;
 };

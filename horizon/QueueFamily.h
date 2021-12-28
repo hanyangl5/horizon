@@ -1,12 +1,12 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 #include "utils.h"
-
+#include <optional>
 class QueueFamilyIndices
 {
 
 public:
-	QueueFamilyIndices(VkPhysicalDevice device);
+	QueueFamilyIndices(VkPhysicalDevice device,VkSurfaceKHR surface);
 
 	~QueueFamilyIndices() = default;
 
@@ -15,13 +15,12 @@ public:
 	// this device have all required queue families (for this surface)
 	bool completed() const;
 
-	i32 getGraphics()const;
+	u32 getGraphics()const;
 
-	i32 getPresent()const;
+	u32 getPresent()const;
 
 private:
-	i32 graphics = -1;
-	i32 present = -1;
-
+	std::optional<u32> graphics;
+	std::optional<u32> present;
 };
 

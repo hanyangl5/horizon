@@ -31,7 +31,7 @@ errorcode ErrorCodes[] =
 	{ VK_ERROR_INVALID_EXTERNAL_HANDLE,	"Invalid External Handle"	},
 };
 
-void PrintVkError(VkResult result, std::string prefix)
+void printVkError(VkResult result, std::string prefix)
 {
 	bool Verbose = 1;
 	if (Verbose && result == VK_SUCCESS)

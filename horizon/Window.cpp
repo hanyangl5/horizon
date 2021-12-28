@@ -11,7 +11,7 @@ Window::Window(const char* _name, uint32_t _width, uint32_t _height) : width(_wi
 	};
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	mWindow = glfwCreateWindow(_width, _height, "Dredgen", nullptr, nullptr);
+	mWindow = glfwCreateWindow(_width, _height, _name, nullptr, nullptr);
 
 	if (!mWindow)
 	{
@@ -26,14 +26,18 @@ Window::~Window()
 	spdlog::info("window destroyed");
 }
 
-void Window::Run()
+u32 Window::getWidth() const
 {
-	renderer = std::make_unique<Renderer>(width, height, mWindow);
+	return width;
+}
 
-	while (!glfwWindowShouldClose(mWindow))
-	{
-		glfwPollEvents();
-		renderer->Update();
-		renderer->Render();
-	}
+u32 Window::getHeight() const
+{
+	return height;
+}
+
+
+GLFWwindow* Window::getWindow() const
+{
+	return mWindow;
 }

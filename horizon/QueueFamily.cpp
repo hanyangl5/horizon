@@ -2,7 +2,7 @@
 #include <vector>
 
 
-QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice device)
+QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice device,VkSurfaceKHR surface)
 {
 	u32 queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr); // get count
@@ -12,17 +12,19 @@ QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice device)
 	// loop all queue families
 	for (u32 i = 0; i < queueFamilyCount; i++)
 	{
+		// queue support graphics operation
 		if (queueFamilies[i].queueCount > 0 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			graphics = i;
 		}
 
-		//VkBool32 presentSupport = false;
-		//vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-		//if (queue_family_properties[i].queueCount > 0 && presentSupport)
-		//{
-		//	present = i;
-		//}
+		// queue support present operation
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		if (queueFamilies[i].queueCount > 0 && presentSupport)
+		{
+			present = i;
+		}
 
 		if (completed())
 		{
@@ -33,16 +35,15 @@ QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice device)
 
 bool QueueFamilyIndices::completed() const
 {
-	//return graphics >= 0 && present >= 0;
-	return graphics >= 0;
+	return graphics.has_value() && present.has_value();
 }
 
-i32 QueueFamilyIndices::getGraphics() const
+u32 QueueFamilyIndices::getGraphics() const
 {
-	return graphics >= 0 ? graphics : -1;
+	return graphics.value();
 }
 
-i32 QueueFamilyIndices::getPresent() const
+u32 QueueFamilyIndices::getPresent() const
 {
-	return present >= 0 ? present : -1;
+	return present.value();
 }
