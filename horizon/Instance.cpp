@@ -21,12 +21,12 @@ Instance::Instance()
     createInfo.pApplicationInfo = &appInfo;
     createInfo.flags = 0;
     auto extensions = mValidationLayer.getRequiredExtensions();
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(mValidationLayer.validationLayers.size());
+        createInfo.enabledLayerCount = static_cast<u32>(mValidationLayer.validationLayers.size());
         createInfo.ppEnabledLayerNames = mValidationLayer.validationLayers.data();
         mValidationLayer.populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;

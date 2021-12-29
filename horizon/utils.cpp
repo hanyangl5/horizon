@@ -34,9 +34,9 @@ errorcode ErrorCodes[] =
 void printVkError(VkResult result, std::string prefix)
 {
 	bool Verbose = 1;
-	if (Verbose && result == VK_SUCCESS)
+	if (Verbose && result == VK_SUCCESS && prefix != "")
 	{
-		spdlog::info(prefix.c_str(), ": Successful");
+		spdlog::info("{}: Successful ",prefix.c_str(), "");
 		return;
 	}
 

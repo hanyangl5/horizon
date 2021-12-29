@@ -1,6 +1,8 @@
 #include "Device.h"
 #include <vector>
 #include <set>
+#include "QueueFamilyIndices.h"
+#include "SurfaceSupportDetails.h"
 Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface):mInstance(instance),mSurface(surface)
 {
 	// enumerate vk devices
@@ -16,15 +18,21 @@ Device::~Device()
 	vkDestroyDevice(mDevice, nullptr);
 }
 
-VkPhysicalDevice Device::get() const
+VkPhysicalDevice Device::getPhysicalDevice() const
 {
 	return mPhysicalDevices[mPhysicalDeviceIndex];
+}
+
+VkDevice Device::get() const
+{
+	return mDevice;
 }
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices(device,mSurface->get());
-	if (indices.completed()) {
+	SurfaceSupportDetails details(device, mSurface->get());
+	if (indices.completed() && details.suitable()&& checkDeviceExtensionSupport(device)) {
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 		spdlog::info("using device:{}", deviceProperties.deviceName);
@@ -35,7 +43,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device)
 
 void Device::pickPhysicalDevice(VkInstance instance)
 {
-	uint32_t deviceCount = 0;
+	u32 deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
 	if (deviceCount == 0) {
@@ -71,11 +79,10 @@ void Device::create(const ValidationLayer& validationLayers)
 
 	// The queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos
 	// except that two members can share the same queueFamilyIndex if one is a protected-capable queue and one is not a protected-capable queue
-	std::set<u32> uniqueQueueFamilies  { indices.getGraphics(), indices.getPresent() };
+	std::set<u32> uniqueQueueFamilies { indices.getGraphics(), indices.getPresent() };
 
 	float queuePriority = 1.0f;
 	for (u32 queueFamily : uniqueQueueFamilies) {
-		spdlog::info(queueFamily);
 		queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO ,nullptr,0,queueFamily,1,&queuePriority});
 	}
 
@@ -86,8 +93,9 @@ void Device::create(const ValidationLayer& validationLayers)
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
 	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = 0;
-
+	createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());
+	createInfo.ppEnabledExtensionNames=deviceExtensions.data();
+	
 	printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &createInfo, nullptr, &mDevice), "create logical device");
 
 	vkGetDeviceQueue(mDevice, indices.getGraphics(), 0, &presentQueue);
@@ -95,3 +103,19 @@ void Device::create(const ValidationLayer& validationLayers)
 
 }
 
+
+bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device){
+    u32 extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+    for (const auto& extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
+}

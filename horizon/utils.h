@@ -20,7 +20,7 @@ struct errorcode
 
 errorcode ErrorCodes[];
 
-void printVkError(VkResult result, std::string prefix);
+void printVkError(VkResult result, std::string prefix="");
 
 using u8 = uint8_t;
 using u16 = uint16_t;

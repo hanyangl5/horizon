@@ -7,7 +7,7 @@
 #include "Camera.h"
 #include "Instance.h"
 #include "Device.h"
-
+#include "utils.h"
 
 class Renderer
 {
@@ -40,7 +40,7 @@ private:
 	struct {
 		VkDeviceMemory memory;
 		VkBuffer buffer;
-		uint32_t count;
+		u32 count;
 	}indices;
 
 	// uniform buffer block object

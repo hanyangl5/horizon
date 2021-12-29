@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "Window.h"
 
-Window::Window(const char* _name, uint32_t _width, uint32_t _height) : width(_width), height(_height)
+Window::Window(const char* _name, u32 _width, u32 _height) : width(_width), height(_height)
 {
 	if (glfwInit() != GLFW_TRUE)
 	{
