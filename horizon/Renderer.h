@@ -30,6 +30,7 @@ private:
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
 
+
 	// resource
 	struct Vertex {
 		glm::vec3 position;

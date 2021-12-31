@@ -11,6 +11,7 @@ Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surf
 	vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, mPhysicalDevices.data());
 	pickPhysicalDevice(mInstance->get());
 	create(mInstance->getValidationLayer());
+
 }
 
 Device::~Device()
@@ -45,6 +46,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device)
 void Device::pickPhysicalDevice(VkInstance instance)
 {
 	u32 deviceCount = 0;
+
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
 	if (deviceCount == 0) {

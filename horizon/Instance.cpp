@@ -35,7 +35,9 @@ Instance::Instance()
         createInfo.pNext = nullptr;
     }
     VkResult result = vkCreateInstance(&createInfo, nullptr, &mInstance);
+
     printVkError(result, "create vulkan instance");
+
     if(enableValidationLayers) {mValidationLayer.setupDebugMessenger(mInstance);}
 }
 
