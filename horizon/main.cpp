@@ -1,5 +1,4 @@
 #include <iostream>
-#include <spdlog/spdlog.h>
 #include "utils.h"
 #include "Window.h"
 #include <chrono>

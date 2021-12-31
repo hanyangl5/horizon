@@ -1,3 +1,5 @@
 .vscode
 build
 3rd_party
+horizon/Mesh.h
+horizon/Vertex.h

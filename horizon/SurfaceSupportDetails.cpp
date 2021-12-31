@@ -4,7 +4,7 @@
 
 SurfaceSupportDetails::SurfaceSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-	printVkError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &capabilities),"vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+	printVkError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &capabilities),"vkGetPhysicalDeviceSurfaceCapabilitiesKHR",logLevel::debug);
 
 	u32 formatCount=0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);  // get count

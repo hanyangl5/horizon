@@ -4,8 +4,8 @@
 #include <optional>
 class QueueFamilyIndices
 {
-
 public:
+	QueueFamilyIndices();
 	QueueFamilyIndices(VkPhysicalDevice device,VkSurfaceKHR surface);
 
 	~QueueFamilyIndices() = default;

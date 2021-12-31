@@ -2,10 +2,12 @@
 #include <vulkan/vulkan.hpp>
 #include "Instance.h"
 #include "utils.h"
+
+class Window;
 class Surface
 {
 public:
-	Surface(std::shared_ptr<Instance> instance, GLFWwindow * window);
+	Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
 	~Surface();
 	VkSurfaceKHR get()const;
 private:

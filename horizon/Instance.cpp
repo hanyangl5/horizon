@@ -1,7 +1,6 @@
 
 #include "Instance.h"
 #include "utils.h"
-#include <spdlog/spdlog.h>
 Instance::Instance()
 {
     if (enableValidationLayers && !mValidationLayer.checkValidationLayerSupport()) {

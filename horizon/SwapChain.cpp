@@ -1,177 +1,185 @@
-//#include "SwapChain.h"
-//#include "Image.h"
-//#include "SurfaceSupportDetails.h"
-//SwapChain::SwapChain(std::shared_ptr<Device> device, VkSurfaceKHR surface, VkExtent2D surfaceExtent)
-//{
-//	mDevice = device->get();
-//	mSurface = surface;
-//	Create(surfaceExtent);
-//	CreateImageViews();
-//}
-//
-//SwapChain::~SwapChain()
-//{
-//	cleanup();
-//}
-//
-//VkSwapchainKHR SwapChain::get() const
-//{
-//	return mSwapChain;
-//}
-//
-//
-//std::vector<VkImageView> SwapChain::getImageViews() const
-//{
-//	return imageViews;
-//}
-//
-//VkImageView SwapChain::getImageView(u32 i)const {
-//	return imageViews[i];
-//}
-//
-//VkExtent2D SwapChain::getExtent() const
-//{
-//	return extent;
-//}
-//
-//u32 SwapChain::getImageCount() const
-//{
-//	return u32(images.size());
-//}
-//
-//VkFormat SwapChain::getImageFormat() const
-//{
-//	return imageFormat;
-//}
-//
-//void SwapChain::recreate(VkExtent2D newExtent)
-//{
-//	Cleanup();
-//
-//	Create(newExtent);
-//
-//	CreateImageViews();
-//}
-//
-//// private:
-//
-//void SwapChain::create(VkExtent2D surfaceExtent)
-//{
-//	// get necessary swapchain properties
-//	const SurfaceSupportDetails details = device->GetSurfaceSupportDetails();
-//	const VkSurfaceFormatKHR surfaceFormat = ChooseSurfaceFormat(details.getFormats());
-//	const VkPresentModeKHR presentMode = ChoosePresentMode(details.getPresentModes());
-//	const VkSurfaceCapabilitiesKHR surfaceCapabilities = details.getCapabilities();
-//	const u32 minImageCount = ChooseMinImageCount(surfaceCapabilities);
-//
-//	imageFormat = surfaceFormat.format;
-//	extent = ChooseExtent(details.getCapabilities(), surfaceExtent);
-//	
-//
-//	VkSwapchainCreateInfoKHR createInfo{};
-//	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-//	createInfo.pNext=nullptr;
-//	createInfo.flags = 0;
-//	createInfo.surface = surface;
-//	createInfo.minImageCount = minImageCount;
-//	createInfo.imageFormat=surfaceFormat.format;
-//	createInfo.imageColorSpace = surfaceFormat.colorSpace;
-//	createInfo.imageExtent=extent;
-//	createInfo.imageArrayLayers = 1;
-//	createInfo.imageUsage=VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-//	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-//	createInfo.preTransform = surfaceCapabilities.currentTransform;
-//	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-//	createInfo.presentMode = presentMode;
-//	createInfo.clipped = VK_TRUE;
-//
-//	// concurrent sharing mode only when using different queue families
-//	const QueueFamilyIndices queueFamilyIndices = device->GetQueueFamilyIndices();
-//	std::vector<u32> indices{
-//		queueFamilyIndices.GetGraphics(),
-//		queueFamilyIndices.GetPresent()
-//	};
-//	if (indices[0] != indices[1])
-//	{
-//		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-//		createInfo.queueFamilyIndexCount = u32(indices.size());
-//		createInfo.pQueueFamilyIndices = indices.data();
-//	}
-//
-//	const VkResult result = vkCreateSwapchainKHR(device->Get(), &createInfo, nullptr, &swap_chain);
-//	Log::Assert(result,"failed to create swap chain");
-//
-//	SaveImages(minImageCount);
-//}
-//
-//VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const
-//{
-//	// force predefined format
-//	VkSurfaceFormatKHR ret{};
-//	if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
-//	{
-//		return PREFERRED_PRESENT_FORMAT;
-//	}
-//
-//	// try to found preferred format from available
-//	for (const auto& availableFormat : availableFormats)
-//	{
-//		if (availableFormat.format == PREFERRED_PRESENT_FORMAT.format &&
-//			availableFormat.colorSpace == PREFERRED_PRESENT_FORMAT.colorSpace)
-//		{
-//			return availableFormat;
-//		}
-//	}
-//
-//	// first available format
-//	return availableFormats[0];
-//}
-//
-//VkPresentModeKHR SwapChain::choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const
-//{
-//	for (const auto& availablePresentMode : availablePresentModes)
-//	{
-//		if (availablePresentMode == PREFERRED_PRESENT_MODE)
-//		{
-//			return availablePresentMode;
-//		}
-//	}
-//
-//	// simplest mode
-//	return VK_PRESENT_MODE_FIFO_KHR;
-//}
-//
-//VkExtent2D SwapChain::chooseExtent(VkSurfaceCapabilitiesKHR capabilities, VkExtent2D actualExtent)
-//{
-//	// can choose any extent
-//	if (capabilities.currentExtent.width != (std::numeric_limits<u32>::max)())
-//	{
-//		return capabilities.currentExtent;
-//	}
-//
-//	// extent height and width: (minAvailable <= extent <= maxAvailable) && (extent <= actualExtent)
-//	actualExtent.width = (std::max)(
-//		capabilities.minImageExtent.width,
-//		(std::min)(capabilities.maxImageExtent.width, actualExtent.width));
-//	actualExtent.height = (std::max)(
-//		capabilities.minImageExtent.height,
-//		(std::min)(capabilities.maxImageExtent.height, actualExtent.height));
-//
-//	return actualExtent;
-//}
-//
-//u32 SwapChain::chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities)
-//{
-//	u32 imageCount = capabilities.minImageCount + 1;
-//	if (capabilities.maxImageCount > 0 &&
-//		imageCount > capabilities.maxImageCount)
-//	{
-//		imageCount = capabilities.maxImageCount;
-//	}
-//
-//	return imageCount;
-//}
-//
+#include "SwapChain.h"
+#include "Device.h"
+#include "QueueFamilyIndices.h"
+#include "SurfaceSupportDetails.h"
+#include "utils.h"
+#include "Window.h"
+
+SwapChain::SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window)
+{
+	mDevice = device;
+	mSurface = surface;
+	mWindow = window;
+	create();
+	//CreateImageViews();
+}
+
+SwapChain::~SwapChain()
+{
+	cleanup();
+}
+
+VkSwapchainKHR SwapChain::get() const
+{
+	return mSwapChain;
+}
+
+
+std::vector<VkImageView> SwapChain::getImageViews() const
+{
+	return imageViews;
+}
+
+VkImageView SwapChain::getImageView(u32 i)const {
+	return imageViews[i];
+}
+
+VkExtent2D SwapChain::getExtent() const
+{
+	return mExtent;
+}
+
+u32 SwapChain::getImageCount() const
+{
+	return u32(images.size());
+}
+
+VkFormat SwapChain::getImageFormat() const
+{
+	return imageFormat;
+}
+
+void SwapChain::recreate(VkExtent2D newExtent)
+{
+	cleanup();
+
+	create();
+
+	//	CreateImageViews();
+}
+
+// private:
+
+void SwapChain::create()
+{
+	// get necessary swapchain properties
+	SurfaceSupportDetails details(mDevice->getPhysicalDevice(), mSurface->get());
+	QueueFamilyIndices indices = mDevice->getQueueFamilyIndices();
+	VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(details.getFormats());
+	VkPresentModeKHR presentMode = choosePresentMode(details.getPresentModes());
+	VkSurfaceCapabilitiesKHR surfaceCapabilities = details.getCapabilities();
+	u32 imageCount = chooseMinImageCount(details.getCapabilities()); // how many images we would like to have in swap chain
+	mExtent = chooseExtent(details.getCapabilities());
+
+	VkSwapchainCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = mSurface->get();
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = mExtent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //  the image can be used as the source of a transfer command.
+	createInfo.preTransform = surfaceCapabilities.currentTransform; // rotatioin/flip
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+
+	// handle swap chain images that will be used across multiple queue families
+	if (indices.getGraphics() != indices.getPresent())
+	{
+		std::vector<u32> queueFamilyindices{ indices.getGraphics(),indices.getPresent() };
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;  // An image is owned by one queue family at a time and ownership must be explicitly transferred before using it in another queue family. This option offers the best performance.
+		createInfo.queueFamilyIndexCount = static_cast<u32>(queueFamilyindices.size());
+		createInfo.pQueueFamilyIndices = queueFamilyindices.data();
+	}
+	else {
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // mages can be used across multiple queue families without explicit ownership transfers.
+		createInfo.queueFamilyIndexCount = 0;
+		createInfo.pQueueFamilyIndices = nullptr;
+	}
+
+	printVkError(vkCreateSwapchainKHR(mDevice->get(), &createInfo, nullptr, &mSwapChain), "create swap chain");
+
+
+	//SaveImages(minImageCount);
+}
+
+VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const
+{
+	// force predefined format
+	VkSurfaceFormatKHR ret{};
+	if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
+	{
+		return PREFERRED_PRESENT_FORMAT;
+	}
+
+	// try to found preferred format from available
+	for (const auto& availableFormat : availableFormats)
+	{
+		if (availableFormat.format == PREFERRED_PRESENT_FORMAT.format &&
+			availableFormat.colorSpace == PREFERRED_PRESENT_FORMAT.colorSpace)
+		{
+			return availableFormat;
+		}
+	}
+
+	// first available format
+	return availableFormats[0];
+}
+
+VkPresentModeKHR SwapChain::choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const
+{
+	for (const auto& availablePresentMode : availablePresentModes)
+	{
+		if (availablePresentMode == PREFERRED_PRESENT_MODE)
+		{
+			return availablePresentMode;
+		}
+	}
+
+	// simplest mode
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D SwapChain::chooseExtent(VkSurfaceCapabilitiesKHR capabilities)
+{
+	// can choose any extent
+	if (capabilities.currentExtent.width != (std::numeric_limits<u32>::max)())
+	{
+		return capabilities.currentExtent;
+	}
+	int width, height;
+	glfwGetFramebufferSize(mWindow->getWindow(), &width, &height);
+
+	VkExtent2D actualExtent = {
+	static_cast<uint32_t>(width),
+	static_cast<uint32_t>(height)
+	};
+
+	// extent height and width: (minAvailable <= extent <= maxAvailable) && (extent <= actualExtent)
+	actualExtent.width = (std::max)(
+		capabilities.minImageExtent.width,
+		(std::min)(capabilities.maxImageExtent.width, actualExtent.width));
+	actualExtent.height = (std::max)(
+		capabilities.minImageExtent.height,
+		(std::min)(capabilities.maxImageExtent.height, actualExtent.height));
+
+	return actualExtent;
+}
+
+u32 SwapChain::chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities)
+{
+	u32 imageCount = capabilities.minImageCount + 1;
+	if (capabilities.maxImageCount > 0 &&
+		imageCount > capabilities.maxImageCount)
+	{
+		imageCount = capabilities.maxImageCount;// not exceed the maximum number of images
+	}
+
+	return imageCount;
+}
+
 //void SwapChain::saveImages(u32 imageCount)
 //{
 //	// real count of images can be greater than requested
@@ -204,14 +212,14 @@
 //		Log::Assert(res, "failed to create image view");
 //	}
 //}
-//
-//void SwapChain::cleanup()
-//{
-//	for (auto imageView : imageViews)
-//	{
-//		vkDestroyImageView(mDevice, imageView, nullptr);
-//	}
-//
-//	vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
-//}
-//
+
+void SwapChain::cleanup()
+{
+	//for (auto imageView : imageViews)
+	//{
+	//	vkDestroyImageView(mDevice, imageView, nullptr);
+	//}
+
+	vkDestroySwapchainKHR(mDevice->get(), mSwapChain, nullptr);
+}
+

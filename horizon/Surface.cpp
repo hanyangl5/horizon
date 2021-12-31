@@ -1,9 +1,9 @@
 #include "Surface.h"
 #include "utils.h"
-
-Surface::Surface(std::shared_ptr<Instance> instance, GLFWwindow* window):mInstance(instance)
+#include "Window.h"
+Surface::Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window):mInstance(instance)
 {
-    printVkError(glfwCreateWindowSurface(mInstance->get(), window, nullptr, &mSurface), "create surface");
+    printVkError(glfwCreateWindowSurface(mInstance->get(), window->getWindow(), nullptr, &mSurface), "create surface");
 }
 
 Surface::~Surface()

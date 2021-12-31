@@ -37,7 +37,7 @@ u32 Window::getHeight() const
 }
 
 
-GLFWwindow* Window::getWindow() const
+GLFWwindow* Window::getWindow()
 {
 	return mWindow;
 }

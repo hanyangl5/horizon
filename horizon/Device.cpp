@@ -36,6 +36,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device)
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 		spdlog::info("using device:{}", deviceProperties.deviceName);
+		mQueueFamilyIndices = indices;
 		return true;
 	}
 	return false;
@@ -73,13 +74,12 @@ void Device::setPhysicalDevice(u32 deviceIndex)
 
 void Device::create(const ValidationLayer& validationLayers)
 {
-	QueueFamilyIndices indices(mPhysicalDevices[mPhysicalDeviceIndex],mSurface->get());
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
 	// The queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos
 	// except that two members can share the same queueFamilyIndex if one is a protected-capable queue and one is not a protected-capable queue
-	std::set<u32> uniqueQueueFamilies { indices.getGraphics(), indices.getPresent() };
+	std::set<u32> uniqueQueueFamilies { mQueueFamilyIndices.getGraphics(), mQueueFamilyIndices.getPresent() };
 
 	float queuePriority = 1.0f;
 	for (u32 queueFamily : uniqueQueueFamilies) {
@@ -98,8 +98,8 @@ void Device::create(const ValidationLayer& validationLayers)
 	
 	printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &createInfo, nullptr, &mDevice), "create logical device");
 
-	vkGetDeviceQueue(mDevice, indices.getGraphics(), 0, &presentQueue);
-	vkGetDeviceQueue(mDevice, indices.getPresent(), 0, &presentQueue);
+	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getGraphics(), 0, &presentQueue);
+	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getPresent(), 0, &presentQueue);
 
 }
 
@@ -118,4 +118,9 @@ bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device){
     }
 
     return requiredExtensions.empty();
+}
+
+QueueFamilyIndices Device::getQueueFamilyIndices()
+{
+	return mQueueFamilyIndices;
 }

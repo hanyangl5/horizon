@@ -20,7 +20,14 @@ struct errorcode
 
 errorcode ErrorCodes[];
 
-void printVkError(VkResult result, std::string prefix="");
+enum logLevel
+{
+	debug,
+	info,
+	error
+};
+
+void printVkError(VkResult result, std::string prefix = "", logLevel level = logLevel::info);
 
 using u8 = uint8_t;
 using u16 = uint16_t;

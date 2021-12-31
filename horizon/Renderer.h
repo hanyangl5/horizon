@@ -6,13 +6,17 @@
 #include <glm/glm.hpp>
 #include "Camera.h"
 #include "Instance.h"
+#include "Surface.h"
 #include "Device.h"
+#include "SwapChain.h"
 #include "utils.h"
+
+class Window;
 
 class Renderer
 {
 public:
-	Renderer(int width, int height, GLFWwindow* window);
+	Renderer(int width, int height, std::shared_ptr<Window> window);
 	~Renderer();
 	void Update();
 	void Render();
@@ -20,11 +24,11 @@ public:
 private:
 
 
-	std::unique_ptr<Camera> mCamera;
+	std::shared_ptr<Camera> mCamera;
 	std::shared_ptr<Instance> mInstance;
-	std::unique_ptr<Device> mDevice;
+	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;
-
+	std::shared_ptr<SwapChain> mSwapChain;
 
 	// resource
 	struct Vertex {

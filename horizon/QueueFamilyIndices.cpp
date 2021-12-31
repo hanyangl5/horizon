@@ -2,12 +2,36 @@
 #include <vector>
 
 
+QueueFamilyIndices::QueueFamilyIndices()
+{
+	graphics = false;
+	present = false;
+}
+
 QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice device,VkSurfaceKHR surface)
 {
 	u32 queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr); // get count
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data()); // get queue family properties
+	
+	// print queue infos
+	for (const auto& i : queueFamilies) {
+		std::string queueFlagsStr = "";
+
+		if (i.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			queueFlagsStr += "VK_QUEUE_GRAPHICS_BIT|";
+		if (i.queueFlags & VK_QUEUE_COMPUTE_BIT)
+			queueFlagsStr += "VK_QUEUE_COMPUTE_BIT|";
+		if (i.queueFlags & VK_QUEUE_TRANSFER_BIT)
+			queueFlagsStr += "VK_QUEUE_TRANSFER_BIT|";
+		if (i.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT)
+			queueFlagsStr += "VK_QUEUE_SPARSE_BINDING_BIT|";
+		if (i.queueFlags & VK_QUEUE_PROTECTED_BIT)
+			queueFlagsStr += "VK_QUEUE_PROTECTED_BIT";
+
+		spdlog::debug(" queueinfo :queueCount:{} queueFlags:{}", i.queueCount, queueFlagsStr);
+	}
 
 	// loop all queue families
 	for (u32 i = 0; i < queueFamilyCount; i++)

@@ -1,3 +1,4 @@
+#pragma once
 #include "Renderer.h"
 #include "Window.h"
 #include "utils.h"
@@ -11,6 +12,6 @@ public:
 private:
     u32 mWidth;
     u32 mHeight;
-    std::unique_ptr<Window> mWindow;
+    std::shared_ptr<Window> mWindow;
     std::unique_ptr<Renderer> mRenderer;
 };

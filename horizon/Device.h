@@ -4,6 +4,7 @@
 #include "Instance.h"
 #include "Surface.h"
 #include <memory>
+#include "QueueFamilyIndices.h"
 class Device
 {
 public:
@@ -11,6 +12,8 @@ public:
     ~Device();
     VkPhysicalDevice getPhysicalDevice() const;
     VkDevice get()const;
+
+    QueueFamilyIndices getQueueFamilyIndices();
 private:
     bool isDeviceSuitable(VkPhysicalDevice device);
     // pick the best gpu
@@ -22,12 +25,14 @@ private:
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
+
 private:
     u32 deviceCount;
     i32 mPhysicalDeviceIndex = -1;
     std::vector<VkPhysicalDevice> mPhysicalDevices;
     VkDevice mDevice{};
     VkQueue graphicsQueue, presentQueue;
+    QueueFamilyIndices mQueueFamilyIndices;
     std::shared_ptr<Instance> mInstance;
     std::shared_ptr<Surface> mSurface;
     const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
