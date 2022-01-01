@@ -41,7 +41,7 @@ private:
 
 	void saveImages(u32 imageCount);
 
-	//void createImageViews();
+	void createImageViews();
 
 	void cleanup();
 
@@ -52,12 +52,11 @@ private:
 	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<Window> mWindow;
-	VkSwapchainKHR mSwapChain;
-	// swap extent is the resolution of swap chain images
-	VkExtent2D mExtent;
+	VkSwapchainKHR mSwapChain; 
+	VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
 	VkFormat mImageFormat;
 	std::vector<VkImage> images; // handle of swapchain images
-	std::vector<VkImageView> imageViews;
+	std::vector<VkImageView> imageViews; // An image view is quite literally a view into an image. It describes how to access the image and which part of the image to access
 
 
 

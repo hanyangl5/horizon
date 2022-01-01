@@ -11,7 +11,7 @@ SwapChain::SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> su
 	mSurface = surface;
 	mWindow = window;
 	create();
-	//CreateImageViews();
+	createImageViews();
 }
 
 SwapChain::~SwapChain()
@@ -41,7 +41,7 @@ VkExtent2D SwapChain::getExtent() const
 
 u32 SwapChain::getImageCount() const
 {
-	return u32(images.size());
+	return static_cast<u32>(images.size());
 }
 
 VkFormat SwapChain::getImageFormat() const
@@ -55,7 +55,7 @@ void SwapChain::recreate(VkExtent2D newExtent)
 
 	create();
 
-	//	CreateImageViews();
+	createImageViews();
 }
 
 // private:
@@ -189,37 +189,34 @@ void SwapChain::saveImages(u32 imageCount)
 	vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, images.data());  // get images
 }
 
-//void SwapChain::createImageViews()
-//{
-//	imageViews.resize(GetImageCount());
-//
-//	for (u32 i = 0; i < GetImageCount(); i++)
-//	{
-//
-//		//Image image(device, images[i], imageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
-//
-//		VkImageViewCreateInfo create_info{};
-//		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-//		create_info.image = images[i];
-//		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-//		create_info.format = imageFormat;
-//		create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-//		create_info.subresourceRange.baseMipLevel = 0;
-//		create_info.subresourceRange.levelCount = 1;
-//		create_info.subresourceRange.baseArrayLayer = 0;
-//		create_info.subresourceRange.layerCount = 1;
-//
-//		VkResult res = vkCreateImageView(device->Get(), &create_info, nullptr, &imageViews[i]);
-//		Log::Assert(res, "failed to create image view");
-//	}
-//}
+void SwapChain::createImageViews()
+{
+	imageViews.resize(getImageCount());
+
+	for (u32 i = 0; i < getImageCount(); i++)
+	{
+		//Image image(device, images[i], imageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
+
+		VkImageViewCreateInfo imageViewCreateInfo{};
+		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		imageViewCreateInfo.image = images[i];
+		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = mImageFormat;
+		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
+		printVkError(vkCreateImageView(mDevice->get(), &imageViewCreateInfo, nullptr, &imageViews[i]),"create image views",logLevel::debug);
+	}
+}
 
 void SwapChain::cleanup()
 {
-	//for (auto imageView : imageViews)
-	//{
-	//	vkDestroyImageView(mDevice, imageView, nullptr);
-	//}
+	for (auto imageView : imageViews)
+	{
+		vkDestroyImageView(mDevice->get(), imageView, nullptr);
+	}
 
 	vkDestroySwapchainKHR(mDevice->get(), mSwapChain, nullptr);
 }
