@@ -9,8 +9,14 @@
 #include "Surface.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Pipeline.h"
 #include "utils.h"
-
+//class Instance;
+//class Device;
+//class Surface;
+//class SwapChain;
+//class Shader;
+//class Pipeline;
 class Window;
 
 class Renderer
@@ -29,6 +35,7 @@ private:
 	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
+	std::shared_ptr<Pipeline> mPipeline;
 
 	// resource
 	struct Vertex {

@@ -9,6 +9,7 @@ Renderer::Renderer(int width, int height, std::shared_ptr<Window> window)
 	mSurface = std::make_shared<Surface>(mInstance,window);
 	mDevice = std::make_shared<Device>(mInstance, mSurface);
 	mSwapChain = std::make_shared<SwapChain>(mDevice, mSurface, window);
+	mPipeline = std::make_shared<Pipeline>(mInstance,mDevice,mSurface,mSwapChain);
 }
 
 Renderer::~Renderer()
