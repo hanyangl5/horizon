@@ -11,13 +11,7 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "utils.h"
-//class Instance;
-//class Device;
-//class Surface;
-//class SwapChain;
-//class Shader;
-//class Pipeline;
-class Window;
+#include "Window.h"
 
 class Renderer
 {
@@ -30,7 +24,7 @@ public:
 private:
 
 
-	std::shared_ptr<Camera> mCamera;
+	//std::shared_ptr<Camera> mCamera;
 	std::shared_ptr<Instance> mInstance;
 	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;

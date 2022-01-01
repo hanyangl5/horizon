@@ -2,8 +2,7 @@
 #include <vulkan/vulkan.hpp>
 #include "Instance.h"
 #include "utils.h"
-
-class Window;
+#include "Window.h"
 class Surface
 {
 public:

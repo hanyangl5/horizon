@@ -1,16 +1,13 @@
+#pragma once
 #include "utils.h"
 #include <memory>
-//#include "Instance.h"
-//#include "Device.h"
-//#include "SwapChain.h"
-//#include "Surface.h"
-//#include "ShaderModule.h"
+#include <vulkan/vulkan.hpp>
+#include "Instance.h"
+#include "Device.h"
+#include "SwapChain.h"
+#include "Surface.h"
+#include "ShaderModule.h"
 
-class Instance;
-class Device;
-class Surface;
-class SwapChain;
-class Shader;
 class Pipeline
 {
 public:
@@ -25,4 +22,5 @@ private:
 	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
+	VkPipelineLayout mPipelineLayout;
 };

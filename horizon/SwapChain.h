@@ -5,7 +5,7 @@
 #include "Device.h"
 #include "Instance.h"
 #include "utils.h"
-class Window;
+#include "Window.h"
 class SwapChain {
 
 public:
