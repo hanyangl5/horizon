@@ -26,7 +26,7 @@ public:
 
      bool checkValidationLayerSupport();
 
-     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& debugUtilsMessengerCreateInfo);
 
      void setupDebugMessenger(VkInstance instance);
 

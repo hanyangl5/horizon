@@ -6,11 +6,11 @@ Shader::Shader(VkDevice device, const char* path):mDevice(device)
 	if (code.empty()) {
 		spdlog::error("open file faild");
 	}
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-	printVkError(vkCreateShaderModule(mDevice, &createInfo, nullptr, &mShaderModule),"create shader module",logLevel::debug);
+	VkShaderModuleCreateInfo shaderModuleCreateInfo{};
+	shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	shaderModuleCreateInfo.codeSize = code.size();
+	shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	printVkError(vkCreateShaderModule(mDevice, &shaderModuleCreateInfo, nullptr, &mShaderModule),"create shader module",logLevel::debug);
 
 }
 

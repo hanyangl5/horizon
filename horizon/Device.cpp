@@ -75,28 +75,28 @@ void Device::setPhysicalDevice(u32 deviceIndex)
 void Device::create(const ValidationLayer& validationLayers)
 {
 
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+	std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos{};
 
 	// The queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos
 	// except that two members can share the same queueFamilyIndex if one is a protected-capable queue and one is not a protected-capable queue
 	std::set<u32> uniqueQueueFamilies { mQueueFamilyIndices.getGraphics(), mQueueFamilyIndices.getPresent() };
 
-	float queuePriority = 1.0f;
+	f32 queuePriority = 1.0f;
 	for (u32 queueFamily : uniqueQueueFamilies) {
-		queueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO ,nullptr,0,queueFamily,1,&queuePriority});
+		deviceQueueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO ,nullptr,0,queueFamily,1,&queuePriority});
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 
-	VkDeviceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames=deviceExtensions.data();
+	VkDeviceCreateInfo deviceCreateInfo{};
+	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
+	deviceCreateInfo.queueCreateInfoCount = static_cast<u32>(deviceQueueCreateInfos.size());
+	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+	deviceCreateInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());
+	deviceCreateInfo.ppEnabledExtensionNames=deviceExtensions.data();
 	
-	printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &createInfo, nullptr, &mDevice), "create logical device");
+	printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &deviceCreateInfo, nullptr, &mDevice), "create logical device");
 
 	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getGraphics(), 0, &presentQueue);
 	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getPresent(), 0, &presentQueue);

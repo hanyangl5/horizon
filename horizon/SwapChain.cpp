@@ -71,35 +71,36 @@ void SwapChain::create()
 	u32 imageCount = chooseMinImageCount(details.getCapabilities()); // how many images we would like to have in swap chain
 	mExtent = chooseExtent(details.getCapabilities());
 	mImageFormat = surfaceFormat.format;
-	VkSwapchainCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = mSurface->get();
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = mImageFormat;
-	createInfo.imageColorSpace = surfaceFormat.colorSpace;
-	createInfo.imageExtent = mExtent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //  the image can be used as the source of a transfer command.
-	createInfo.preTransform = surfaceCapabilities.currentTransform; // rotatioin/flip
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = presentMode;
-	createInfo.clipped = VK_TRUE;
+
+	VkSwapchainCreateInfoKHR swapChainCreateInfo{};
+	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	swapChainCreateInfo.surface = mSurface->get();
+	swapChainCreateInfo.minImageCount = imageCount;
+	swapChainCreateInfo.imageFormat = mImageFormat;
+	swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+	swapChainCreateInfo.imageExtent = mExtent;
+	swapChainCreateInfo.imageArrayLayers = 1;
+	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //  the image can be used as the source of a transfer command.
+	swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform; // rotatioin/flip
+	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swapChainCreateInfo.presentMode = presentMode;
+	swapChainCreateInfo.clipped = VK_TRUE;
 
 	// handle swap chain images that will be used across multiple queue families
 	if (indices.getGraphics() != indices.getPresent())
 	{
 		std::vector<u32> queueFamilyindices{ indices.getGraphics(),indices.getPresent() };
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;  // An image is owned by one queue family at a time and ownership must be explicitly transferred before using it in another queue family. This option offers the best performance.
-		createInfo.queueFamilyIndexCount = static_cast<u32>(queueFamilyindices.size());
-		createInfo.pQueueFamilyIndices = queueFamilyindices.data();
+		swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;  // An image is owned by one queue family at a time and ownership must be explicitly transferred before using it in another queue family. This option offers the best performance.
+		swapChainCreateInfo.queueFamilyIndexCount = static_cast<u32>(queueFamilyindices.size());
+		swapChainCreateInfo.pQueueFamilyIndices = queueFamilyindices.data();
 	}
 	else {
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // mages can be used across multiple queue families without explicit ownership transfers.
-		createInfo.queueFamilyIndexCount = 0;
-		createInfo.pQueueFamilyIndices = nullptr;
+		swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // mages can be used across multiple queue families without explicit ownership transfers.
+		swapChainCreateInfo.queueFamilyIndexCount = 0;
+		swapChainCreateInfo.pQueueFamilyIndices = nullptr;
 	}
 
-	printVkError(vkCreateSwapchainKHR(mDevice->get(), &createInfo, nullptr, &mSwapChain), "create swap chain");
+	printVkError(vkCreateSwapchainKHR(mDevice->get(), &swapChainCreateInfo, nullptr, &mSwapChain), "create swap chain");
 
 	// Retrieving the swap chain images
 	saveImages(imageCount);

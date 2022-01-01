@@ -49,9 +49,9 @@ void printVkError(VkResult result, std::string prefix, logLevel level)
 		return;
 	}
 
-	const int numErrorCodes = sizeof(ErrorCodes) / sizeof(struct errorcode);
+	const u32 numErrorCodes = sizeof(ErrorCodes) / sizeof(struct errorcode);
 	std::string meaning = "";
-	for (int i = 0; i < numErrorCodes; i++)
+	for (u32 i = 0; i < numErrorCodes; i++)
 	{
 		if (result == ErrorCodes[i].resultCode)
 		{

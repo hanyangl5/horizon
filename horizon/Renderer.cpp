@@ -2,7 +2,7 @@
 #include <iostream>
 class Window;
 
-Renderer::Renderer(int width, int height, std::shared_ptr<Window> window)
+Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window)
 {
 	mCamera = std::make_shared<Camera>();
 	mInstance = std::make_shared<Instance>();

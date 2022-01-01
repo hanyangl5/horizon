@@ -22,7 +22,7 @@ class Window;
 class Renderer
 {
 public:
-	Renderer(int width, int height, std::shared_ptr<Window> window);
+	Renderer(u32 width, u32 height, std::shared_ptr<Window> window);
 	~Renderer();
 	void Update();
 	void Render();

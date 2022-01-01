@@ -15,26 +15,26 @@ Instance::Instance()
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-    createInfo.flags = 0;
+    VkInstanceCreateInfo instanceCreateInfo{};
+    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceCreateInfo.pApplicationInfo = &appInfo;
+    instanceCreateInfo.flags = 0;
     auto extensions = mValidationLayer.getRequiredExtensions();
-    createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
+    instanceCreateInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
+    instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<u32>(mValidationLayer.validationLayers.size());
-        createInfo.ppEnabledLayerNames = mValidationLayer.validationLayers.data();
+        instanceCreateInfo.enabledLayerCount = static_cast<u32>(mValidationLayer.validationLayers.size());
+        instanceCreateInfo.ppEnabledLayerNames = mValidationLayer.validationLayers.data();
         mValidationLayer.populateDebugMessengerCreateInfo(debugCreateInfo);
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+        instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
     }
     else {
-        createInfo.enabledLayerCount = 0;
-        createInfo.pNext = nullptr;
+        instanceCreateInfo.enabledLayerCount = 0;
+        instanceCreateInfo.pNext = nullptr;
     }
-    VkResult result = vkCreateInstance(&createInfo, nullptr, &mInstance);
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &mInstance);
     printVkError(result, "create vulkan instance");
     if(enableValidationLayers) {mValidationLayer.setupDebugMessenger(mInstance);}
 }
