@@ -46,7 +46,7 @@ u32 SwapChain::getImageCount() const
 
 VkFormat SwapChain::getImageFormat() const
 {
-	return imageFormat;
+	return mImageFormat;
 }
 
 void SwapChain::recreate(VkExtent2D newExtent)
@@ -70,12 +70,12 @@ void SwapChain::create()
 	VkSurfaceCapabilitiesKHR surfaceCapabilities = details.getCapabilities();
 	u32 imageCount = chooseMinImageCount(details.getCapabilities()); // how many images we would like to have in swap chain
 	mExtent = chooseExtent(details.getCapabilities());
-
+	mImageFormat = surfaceFormat.format;
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = mSurface->get();
 	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageFormat = mImageFormat;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
 	createInfo.imageExtent = mExtent;
 	createInfo.imageArrayLayers = 1;
@@ -101,8 +101,9 @@ void SwapChain::create()
 
 	printVkError(vkCreateSwapchainKHR(mDevice->get(), &createInfo, nullptr, &mSwapChain), "create swap chain");
 
+	// Retrieving the swap chain images
+	saveImages(imageCount);
 
-	//SaveImages(minImageCount);
 }
 
 VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const
@@ -180,14 +181,14 @@ u32 SwapChain::chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities)
 	return imageCount;
 }
 
-//void SwapChain::saveImages(u32 imageCount)
-//{
-//	// real count of images can be greater than requested
-//	vkGetSwapchainImagesKHR(device->Get(), swap_chain, &imageCount, nullptr);  // get count
-//	images.resize(imageCount);
-//	vkGetSwapchainImagesKHR(device->Get(), swap_chain, &imageCount, images.data());  // get images
-//}
-//
+void SwapChain::saveImages(u32 imageCount)
+{
+	// real count of images can be greater than requested
+	vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, nullptr);  // get count
+	images.resize(imageCount);
+	vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, images.data());  // get images
+}
+
 //void SwapChain::createImageViews()
 //{
 //	imageViews.resize(GetImageCount());
