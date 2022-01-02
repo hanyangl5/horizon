@@ -10,7 +10,7 @@ Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surf
 	if (deviceCount == 0) { spdlog::error("no available device"); }
 	vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, mPhysicalDevices.data());
 	pickPhysicalDevice(mInstance->get());
-	create(mInstance->getValidationLayer());
+	createDevice(mInstance->getValidationLayer());
 }
 
 Device::~Device()
@@ -72,7 +72,7 @@ void Device::setPhysicalDevice(u32 deviceIndex)
 	mPhysicalDeviceIndex = deviceIndex;
 }
 
-void Device::create(const ValidationLayer& validationLayers)
+void Device::createDevice(const ValidationLayer& validationLayers)
 {
 
 	std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos{};

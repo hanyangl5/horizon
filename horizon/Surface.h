@@ -10,7 +10,10 @@ public:
 	~Surface();
 	VkSurfaceKHR get()const;
 private:
+	void createSurface();
+private:
 	std::shared_ptr<Instance> mInstance;
+	std::shared_ptr<Window> mWindow;
 	VkSurfaceKHR mSurface;
 };
 

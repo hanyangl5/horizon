@@ -5,10 +5,81 @@
 #include "Surface.h"
 #include "ShaderModule.h"
 #include <array>
-Pipeline::Pipeline(std::shared_ptr<Instance> instance,
-	std::shared_ptr<Device> device,
-	std::shared_ptr<Surface> surface,
-	std::shared_ptr<SwapChain> swapchain) :mInstance(instance), mDevice(device), mSurface(surface), mSwapChain(swapchain)
+Pipeline::Pipeline(std::shared_ptr<Device> device,
+	std::shared_ptr<SwapChain> swapchain) : mDevice(device), mSwapChain(swapchain)
+{
+	createPipelineLayout();
+	createRenderPass();
+	createPipeline();
+}
+
+Pipeline::~Pipeline()
+{
+	vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
+}
+
+VkPipeline Pipeline::get() const
+{
+	return mGraphicsPipeline;
+}
+
+VkRenderPass Pipeline::getRenderPass() const
+{
+	return mRenderPass;
+}
+
+VkViewport Pipeline::getViewport() const
+{
+	return mViewport;
+}
+
+void Pipeline::createPipelineLayout()
+{
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = 0;
+	pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+	printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
+
+}
+
+void Pipeline::createRenderPass()
+{
+
+	// renderpass
+	VkAttachmentDescription colorAttachment{};
+	colorAttachment.format = mSwapChain->getImageFormat();
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentRef{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+
+	VkRenderPassCreateInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = 1;
+	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+
+	printVkError(vkCreateRenderPass(mDevice->get(), &renderPassInfo, nullptr, &mRenderPass), "create render pass", logLevel::debug);
+
+}
+
+void Pipeline::createPipeline()
 {
 
 	Shader vs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/basicvert.spv");
@@ -48,7 +119,7 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 	viewport.height = static_cast<f32>(mSwapChain->getExtent().height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
-
+	mViewport = viewport;
 	//Any pixels outside the scissor rectangles will be discarded by the rasterizer
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
@@ -112,42 +183,6 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 	dynamicStateCreateInfo.dynamicStateCount = static_cast<u32>(dynamicStates.size());
 	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	
-	printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
-
-	// renderpass
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = mSwapChain->getImageFormat();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-
-	printVkError(vkCreateRenderPass(mDevice->get(), &renderPassInfo, nullptr, &mRenderPass), "create render pass",logLevel::debug);
 
 	// create vk graphics pipeline
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -167,14 +202,4 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 	printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
-}
-
-Pipeline::~Pipeline()
-{
-	vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
-}
-
-VkRenderPass Pipeline::getRenderPass() const
-{
-	return mRenderPass;
 }

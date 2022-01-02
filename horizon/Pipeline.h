@@ -11,22 +11,23 @@
 class Pipeline
 {
 public:
-	Pipeline(std::shared_ptr<Instance> instance,
-		std::shared_ptr<Device> device,
-		std::shared_ptr<Surface> surface,
+	Pipeline(std::shared_ptr<Device> device,
 		std::shared_ptr<SwapChain> swapchain);
 	~Pipeline();
-
+	VkPipeline get()const;
 	VkRenderPass getRenderPass()const;
-
+	VkViewport getViewport()const;
 private:
-	std::shared_ptr<Instance> mInstance;
+	void createPipelineLayout();
+	void createRenderPass();
+	void createPipeline();
+private:
 	std::shared_ptr<Device> mDevice;
-	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
 	// handle of pipeline layout
 	VkPipelineLayout mPipelineLayout;
 	VkRenderPass mRenderPass;
 	VkPipeline mGraphicsPipeline;
+	VkViewport mViewport;
 
 };

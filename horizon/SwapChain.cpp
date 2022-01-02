@@ -5,12 +5,9 @@
 #include "utils.h"
 #include "Window.h"
 
-SwapChain::SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window)
+SwapChain::SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window) :mDevice(device), mSurface(surface), mWindow(window)
 {
-	mDevice = device;
-	mSurface = surface;
-	mWindow = window;
-	create();
+	createSwapChain();
 	createImageViews();
 }
 
@@ -53,14 +50,14 @@ void SwapChain::recreate(VkExtent2D newExtent)
 {
 	cleanup();
 
-	create();
+	createSwapChain();
 
 	createImageViews();
 }
 
 // private:
 
-void SwapChain::create()
+void SwapChain::createSwapChain()
 {
 	// get necessary swapchain properties
 	SurfaceSupportDetails details(mDevice->getPhysicalDevice(), mSurface->get());
@@ -151,12 +148,12 @@ VkExtent2D SwapChain::chooseExtent(VkSurfaceCapabilitiesKHR capabilities)
 	{
 		return capabilities.currentExtent;
 	}
-	int width, height;
+	i32 width, height;
 	glfwGetFramebufferSize(mWindow->getWindow(), &width, &height);
 
 	VkExtent2D actualExtent = {
-	static_cast<uint32_t>(width),
-	static_cast<uint32_t>(height)
+		static_cast<u32>(width),
+		static_cast<u32>(height)
 	};
 
 	// extent height and width: (minAvailable <= extent <= maxAvailable) && (extent <= actualExtent)
@@ -208,7 +205,7 @@ void SwapChain::createImageViews()
 		imageViewCreateInfo.subresourceRange.levelCount = 1;
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
-		printVkError(vkCreateImageView(mDevice->get(), &imageViewCreateInfo, nullptr, &imageViews[i]),"create image views",logLevel::debug);
+		printVkError(vkCreateImageView(mDevice->get(), &imageViewCreateInfo, nullptr, &imageViews[i]), "create image views", logLevel::debug);
 	}
 }
 

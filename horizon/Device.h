@@ -21,7 +21,7 @@ private:
     // use specified gpu
     void setPhysicalDevice(u32 deviceIndex);
 
-    void create(const ValidationLayer &validationLayers);
+    void createDevice(const ValidationLayer &validationLayers);
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 

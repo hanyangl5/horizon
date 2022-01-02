@@ -11,6 +11,8 @@ public:
 	VkInstance get()const;
 	const ValidationLayer& getValidationLayer()const;
 private:
+	void createInstance();
+private:
 	VkInstance mInstance;
 	u32 mExtensionCount = 0;
 	std::vector<VkExtensionProperties> mExtensions;

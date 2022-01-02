@@ -1,18 +1,18 @@
 #pragma once
 #include <memory>
-#include <cstdint>
 #include <string>
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
-#include "Camera.h"
+#include "utils.h"
+#include "Window.h"
+#include "CommandBuffer.h"
 #include "Instance.h"
 #include "Surface.h"
 #include "Device.h"
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
-#include "utils.h"
-#include "Window.h"
+
 
 class Renderer
 {
@@ -26,13 +26,14 @@ private:
 
 
 	//std::shared_ptr<Camera> mCamera;
+	std::shared_ptr<Window> mWindow;
 	std::shared_ptr<Instance> mInstance;
 	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
 	std::shared_ptr<Pipeline> mPipeline;
 	std::shared_ptr<Framebuffers> mFramebuffers;
-
+	std::shared_ptr<CommandBuffer> mCommandBuffer;
 	
 	// resource
 	struct Vertex {

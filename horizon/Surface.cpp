@@ -1,9 +1,9 @@
 #include "Surface.h"
 #include "utils.h"
 #include "Window.h"
-Surface::Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window):mInstance(instance)
+Surface::Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window):mInstance(instance),mWindow(window)
 {
-    printVkError(glfwCreateWindowSurface(mInstance->get(), window->getWindow(), nullptr, &mSurface), "create surface");
+    createSurface();
 }
 
 Surface::~Surface()
@@ -14,4 +14,9 @@ Surface::~Surface()
 VkSurfaceKHR Surface::get() const
 {
     return mSurface;
+}
+
+void Surface::createSurface()
+{
+    printVkError(glfwCreateWindowSurface(mInstance->get(), mWindow->getWindow(), nullptr, &mSurface), "create surface");
 }

@@ -29,7 +29,7 @@ public:
 	void recreate(VkExtent2D newExtent);
 
 private:
-	void create();
+	void createSwapChain();
 
 	VkSurfaceFormatKHR chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const;
 
