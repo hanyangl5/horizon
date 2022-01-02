@@ -173,3 +173,8 @@ Pipeline::~Pipeline()
 {
 	vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
 }
+
+VkRenderPass Pipeline::getRenderPass() const
+{
+	return mRenderPass;
+}

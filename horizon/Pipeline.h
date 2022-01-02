@@ -17,6 +17,8 @@ public:
 		std::shared_ptr<SwapChain> swapchain);
 	~Pipeline();
 
+	VkRenderPass getRenderPass()const;
+
 private:
 	std::shared_ptr<Instance> mInstance;
 	std::shared_ptr<Device> mDevice;

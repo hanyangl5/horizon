@@ -10,7 +10,7 @@ Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window)
 	mDevice = std::make_shared<Device>(mInstance, mSurface);
 	mSwapChain = std::make_shared<SwapChain>(mDevice, mSurface, window);
 	mPipeline = std::make_shared<Pipeline>(mInstance, mDevice, mSurface, mSwapChain);
-	//mRenderPass = std::make_shared<RenderPass>(mInstance, mDevice, mSurface, mSwapChain);
+	mFramebuffers = std::make_shared<Framebuffers>(mDevice, mSwapChain, mPipeline);
 }
 
 Renderer::~Renderer()
