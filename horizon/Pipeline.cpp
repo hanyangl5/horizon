@@ -12,7 +12,7 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 {
 
 	Shader vs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/basicvert.spv");
-	Shader ps(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/basicvert.spv");
+	Shader ps(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/basicfrag.spv");
 
 	std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
 
@@ -35,10 +35,10 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr; // Optional
 
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
+	inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
 
 	// A viewport basically describes the region of the framebuffer that the output will be rendered to
 	VkViewport viewport{};
@@ -107,10 +107,10 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 	VK_DYNAMIC_STATE_LINE_WIDTH
 	};
 
-	VkPipelineDynamicStateCreateInfo dynamicState{};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = static_cast<u32>(dynamicStates.size());
-	dynamicState.pDynamicStates = dynamicStates.data();
+	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
+	dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicStateCreateInfo.dynamicStateCount = static_cast<u32>(dynamicStates.size());
+	dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -119,6 +119,54 @@ Pipeline::Pipeline(std::shared_ptr<Instance> instance,
 	
 	printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
 
+	// renderpass
+	VkAttachmentDescription colorAttachment{};
+	colorAttachment.format = mSwapChain->getImageFormat();
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentRef{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+
+	VkRenderPassCreateInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = 1;
+	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+
+	printVkError(vkCreateRenderPass(mDevice->get(), &renderPassInfo, nullptr, &mRenderPass), "create render pass",logLevel::debug);
+
+	// create vk graphics pipeline
+	VkGraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = pipelineShaderStageCreateInfos.data();
+	pipelineInfo.pVertexInputState = &vertexInputStateCreateInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
+	pipelineInfo.pViewportState = &viewportStateCreateInfo;
+	pipelineInfo.pRasterizationState = &rasterizationStateCreateInfo;
+	pipelineInfo.pMultisampleState = &multisamplingStateCreateInfo;
+	pipelineInfo.pColorBlendState = &colorBlendingStateCreateInfo;
+	pipelineInfo.layout = mPipelineLayout;
+	pipelineInfo.renderPass = mRenderPass;
+	pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
+	pipelineInfo.subpass = 0;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+	printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
 }
 
 Pipeline::~Pipeline()

@@ -12,7 +12,7 @@
 #include "Pipeline.h"
 #include "utils.h"
 #include "Window.h"
-
+#include "RenderPass.h"
 class Renderer
 {
 public:
@@ -30,7 +30,8 @@ private:
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
 	std::shared_ptr<Pipeline> mPipeline;
-
+	std::shared_ptr<RenderPass> mRenderPass;
+	
 	// resource
 	struct Vertex {
 		glm::vec3 position;
