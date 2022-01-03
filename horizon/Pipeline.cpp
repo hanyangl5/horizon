@@ -15,7 +15,9 @@ Pipeline::Pipeline(std::shared_ptr<Device> device,
 
 Pipeline::~Pipeline()
 {
+	vkDestroyPipeline(mDevice->get(), mGraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
+	vkDestroyRenderPass(mDevice->get(), mRenderPass, nullptr);
 }
 
 VkPipeline Pipeline::get() const
