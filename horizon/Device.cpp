@@ -28,6 +28,16 @@ VkDevice Device::get() const
 	return mDevice;
 }
 
+VkQueue Device::getGraphicQueue() const
+{
+	return mGraphicsQueue;
+}
+
+VkQueue Device::getPresnetQueue() const
+{
+	return mPresentQueue;
+}
+
 bool Device::isDeviceSuitable(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices(device,mSurface->get());
@@ -98,8 +108,8 @@ void Device::createDevice(const ValidationLayer& validationLayers)
 	
 	printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &deviceCreateInfo, nullptr, &mDevice), "create logical device");
 
-	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getGraphics(), 0, &presentQueue);
-	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getPresent(), 0, &presentQueue);
+	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getGraphics(), 0, &mGraphicsQueue);
+	vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getPresent(), 0, &mPresentQueue);
 
 }
 

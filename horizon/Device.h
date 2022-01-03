@@ -12,7 +12,8 @@ public:
     ~Device();
     VkPhysicalDevice getPhysicalDevice() const;
     VkDevice get()const;
-
+    VkQueue getGraphicQueue()const;
+    VkQueue getPresnetQueue()const;
     QueueFamilyIndices getQueueFamilyIndices();
 private:
     bool isDeviceSuitable(VkPhysicalDevice device);
@@ -31,7 +32,7 @@ private:
     i32 mPhysicalDeviceIndex = -1;
     std::vector<VkPhysicalDevice> mPhysicalDevices;
     VkDevice mDevice{};
-    VkQueue graphicsQueue, presentQueue;
+    VkQueue mGraphicsQueue, mPresentQueue;
     QueueFamilyIndices mQueueFamilyIndices;
     std::shared_ptr<Instance> mInstance;
     std::shared_ptr<Surface> mSurface;

@@ -23,5 +23,15 @@ void Renderer::Update() {
 	// clean up 
 }
 void Renderer::Render() {
+	drawFrame();
+}
 
+void Renderer::wait()
+{
+	vkDeviceWaitIdle(mDevice->get());
+}
+
+void Renderer::drawFrame()
+{
+	mCommandBuffer->draw();
 }

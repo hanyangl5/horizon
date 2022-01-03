@@ -22,8 +22,10 @@ public:
 	void Update();
 	void Render();
 	//void Destroy();
+	void wait();
 private:
-
+	void drawFrame();
+private:
 
 	//std::shared_ptr<Camera> mCamera;
 	std::shared_ptr<Window> mWindow;

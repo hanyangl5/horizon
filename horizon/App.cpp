@@ -26,4 +26,5 @@ void App::run() {
 		mRenderer->Update();
 		mRenderer->Render();
 	}
+	mRenderer->wait();
 }

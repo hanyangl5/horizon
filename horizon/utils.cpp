@@ -37,13 +37,17 @@ void printVkError(VkResult result, std::string prefix, logLevel level)
 	bool Verbose = 1;
 	if (Verbose && result == VK_SUCCESS && prefix != "")
 	{
-		if (level == logLevel::debug)
-		{
-			spdlog::debug("{}: Successful ", prefix.c_str(), "");
-		}
-		else if (level == logLevel::info)
+		//if (level == logLevel::debug)
+		//{
+		//	spdlog::debug("{}: Successful ", prefix.c_str(), "");
+		//}
+		if (level == logLevel::info)
 		{
 			spdlog::info("{}: Successful ", prefix.c_str(), "");
+		}
+		else
+		{
+
 		}
 
 		return;
