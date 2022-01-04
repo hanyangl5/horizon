@@ -1,15 +1,16 @@
 #include "CommandBuffer.h"
-
+#include "VertexBuffer.h"
 
 CommandBuffer::CommandBuffer(std::shared_ptr<Device> device,
 	std::shared_ptr<SwapChain> swapchain,
 	std::shared_ptr<Pipeline> pipeline,
-	std::shared_ptr<Framebuffers>  framebuffers)
+	std::shared_ptr<Framebuffers>  framebuffers,
+	const Assest& assest)
 	:mDevice(device), mSwapChain(swapchain), mPipeline(pipeline), mFramebuffers(framebuffers)
 {
 	createCommandPool();
 	allocateCommandBuffers();
-	beginCommandRecording();
+	beginCommandRecording(*assest.vbuffer.get());
 	createSyncObjects();
 }
 
@@ -123,7 +124,7 @@ void CommandBuffer::allocateCommandBuffers()
 	printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 }
 
-void CommandBuffer::beginCommandRecording()
+void CommandBuffer::beginCommandRecording(VertexBuffer& vertexBuffer)
 {
 	for (u32 i = 0; i < mCommandBuffers.size(); i++) {
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
@@ -148,8 +149,12 @@ void CommandBuffer::beginCommandRecording()
 
 
 		vkCmdSetViewport(mCommandBuffers[i], 0, 1, &mPipeline->getViewport());
+		
+		VkBuffer vertexBuffers[] = { vertexBuffer.get() };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-		vkCmdDraw(mCommandBuffers[i], 3, 1, 0, 0);
+		vkCmdDraw(mCommandBuffers[i], vertexBuffer.getVerticesCount(), 1, 0, 0);
 
 		vkCmdEndRenderPass(mCommandBuffers[i]);
 

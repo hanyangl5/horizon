@@ -5,6 +5,7 @@
 #include "Surface.h"
 #include "ShaderModule.h"
 #include <array>
+#include "Vertex.h"
 Pipeline::Pipeline(std::shared_ptr<Device> device,
 	std::shared_ptr<SwapChain> swapchain) : mDevice(device), mSwapChain(swapchain)
 {
@@ -84,8 +85,8 @@ void Pipeline::createRenderPass()
 void Pipeline::createPipeline()
 {
 
-	Shader vs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/basicvert.spv");
-	Shader ps(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/basicfrag.spv");
+	Shader vs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/vertexshader.spv");
+	Shader ps(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/fragshader.spv");
 
 	std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
 
@@ -101,12 +102,15 @@ void Pipeline::createPipeline()
 	pipelineShaderStageCreateInfos[1].module = ps.get();
 	pipelineShaderStageCreateInfos[1].pName = "main";
 
+	auto bindingDescription = Vertex::getBindingDescription();
+	auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
 	VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
 	vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
-	vertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr; // Optional
-	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr; // Optional
+	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
+	vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription; // Optional
+	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<u32>(attributeDescriptions.size());;
+	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); // Optional
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
 	inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

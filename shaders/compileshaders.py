@@ -9,6 +9,8 @@ def main():
     path, _ = os.path.split(os.path.abspath(sys.argv[0]))
     glslc(os.path.join(path,"basicvert.vert"),os.path.join(path,"basicvert.spv"))
     glslc(os.path.join(path,"basicfrag.frag"),os.path.join(path,"basicfrag.spv"))
+    glslc(os.path.join(path,"vertexshader.vert"),os.path.join(path,"vertexshader.spv"))
+    glslc(os.path.join(path,"fragshader.frag"),os.path.join(path,"fragshader.spv"))
     
 if __name__ == '__main__':
     main()

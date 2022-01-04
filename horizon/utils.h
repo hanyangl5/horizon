@@ -48,3 +48,5 @@ using f64 = double;
 //std::string getDirPath() {
 //	return {};
 //}
+
+uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);

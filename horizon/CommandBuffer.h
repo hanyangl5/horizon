@@ -6,13 +6,15 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
+#include "VertexBuffer.h"
+#include "Assets.h"
 class CommandBuffer
 {
 public:
 	CommandBuffer(std::shared_ptr<Device> device,
 		std::shared_ptr<SwapChain> swapchain,
 		std::shared_ptr<Pipeline> pipeline,
-		std::shared_ptr<Framebuffers> framebuffers);
+		std::shared_ptr<Framebuffers> framebuffers,const Assest& assest);
 	~CommandBuffer();
 	VkSemaphore getImageAvailableSemaphore()const;
 	VkSemaphore getRenderFinishedSemaphore()const;
@@ -21,7 +23,7 @@ public:
 private:
 	void createCommandPool();
 	void allocateCommandBuffers();
-	void beginCommandRecording();
+	void beginCommandRecording(VertexBuffer& vertexBuffer);
 	void createSyncObjects();
 	void createSemaphores();
 	void createFences();

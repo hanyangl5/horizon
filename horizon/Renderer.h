@@ -12,7 +12,7 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
-
+#include "Assets.h"
 
 class Renderer
 {
@@ -25,6 +25,8 @@ public:
 	void wait();
 private:
 	void drawFrame();
+	void prepareAssests();
+
 private:
 
 	//std::shared_ptr<Camera> mCamera;
@@ -36,7 +38,8 @@ private:
 	std::shared_ptr<Pipeline> mPipeline;
 	std::shared_ptr<Framebuffers> mFramebuffers;
 	std::shared_ptr<CommandBuffer> mCommandBuffer;
-	
+	static Assest mAssest;
+	 ;
 	// resource
 	struct Vertex {
 		glm::vec3 position;

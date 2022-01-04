@@ -3,4 +3,4 @@ build
 3rdparty
 horizon/Camera.h
 horizon/Mesh.h
-horizon/Vertex.h
+Vertex.h
