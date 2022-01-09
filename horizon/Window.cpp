@@ -23,7 +23,7 @@ Window::~Window()
 {
 	glfwDestroyWindow(mWindow);
 	glfwTerminate();
-	spdlog::info("window destroyed");
+	//spdlog::info("window destroyed");
 }
 
 u32 Window::getWidth() const

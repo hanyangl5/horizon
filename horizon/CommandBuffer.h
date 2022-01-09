@@ -14,16 +14,17 @@ public:
 	CommandBuffer(std::shared_ptr<Device> device,
 		std::shared_ptr<SwapChain> swapchain,
 		std::shared_ptr<Pipeline> pipeline,
-		std::shared_ptr<Framebuffers> framebuffers,const Assest& assest);
+		std::shared_ptr<Framebuffers> framebuffers);
 	~CommandBuffer();
 	VkSemaphore getImageAvailableSemaphore()const;
 	VkSemaphore getRenderFinishedSemaphore()const;
 	VkCommandBuffer* get(u32 i);
 	void draw();
+	VkCommandPool getCommandpool()const;
+	void beginCommandRecording(const Assest& assest);
 private:
 	void createCommandPool();
 	void allocateCommandBuffers();
-	void beginCommandRecording(VertexBuffer& vertexBuffer);
 	void createSyncObjects();
 	void createSemaphores();
 	void createFences();

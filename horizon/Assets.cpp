@@ -10,7 +10,7 @@ Assest::~Assest()
 	;
 }
 
-void Assest::prepare(std::shared_ptr<Device> device)
+void Assest::prepare(std::shared_ptr<Device> device,VkCommandPool cmdpool)
 {
-	vbuffer = std::make_shared<VertexBuffer>(device, vertices);
+	vbuffer = std::make_shared<VertexBuffer>(device,cmdpool, vertices);
 }

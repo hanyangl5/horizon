@@ -1,35 +1,29 @@
 #include "VertexBuffer.h"
+#include "VulkanBuffer.h"
 
-
-VertexBuffer::VertexBuffer(std::shared_ptr<Device> device, const std::vector<Vertex>& vertices) :mDevice(device)
+VertexBuffer::VertexBuffer(std::shared_ptr<Device> device,VkCommandPool cmdpool, const std::vector<Vertex>& vertices) :mDevice(device)
 {
-
     mVerticesCount = vertices.size();
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	vkCreateBuffer(mDevice->get(), &bufferInfo, nullptr, &mVertexBuffer);
+    VkDeviceSize bufferSize = sizeof(vertices[0]) * mVerticesCount;
 
+    // create stage buffer
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    createBuffer(device->get(),device->getPhysicalDevice(),bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(mDevice->get(), mVertexBuffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(mDevice->getPhysicalDevice(),memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    if (vkAllocateMemory(mDevice->get(), &allocInfo, nullptr, &mVertexBufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate vertex buffer memory!");
-    }
-
-    vkBindBufferMemory(mDevice->get(), mVertexBuffer, mVertexBufferMemory, 0);
-
+    // upload cpu data
     void* data;
-    vkMapMemory(mDevice->get(), mVertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferInfo.size);
-    vkUnmapMemory(mDevice->get(), mVertexBufferMemory);
+    vkMapMemory(mDevice->get(), stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, vertices.data(), bufferSize);
+    vkUnmapMemory(mDevice->get(), stagingBufferMemory);
+
+    // create actual vertex buffer
+    createBuffer(device->get(), device->getPhysicalDevice(),bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer, mVertexBufferMemory);
+
+    copyBuffer(device,cmdpool,stagingBuffer, mVertexBuffer, bufferSize);
+
+    vkDestroyBuffer(device->get(), stagingBuffer, nullptr);
+    vkFreeMemory(device->get(), stagingBufferMemory, nullptr);
 }
 
 //VertexBuffer::VertexBuffer(const VertexBuffer&& rhs)

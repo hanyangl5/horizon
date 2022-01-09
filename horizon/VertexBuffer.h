@@ -7,7 +7,7 @@ class VertexBuffer
 {
 public:
 	VertexBuffer()=default;
-	VertexBuffer(std::shared_ptr<Device> device,const std::vector<Vertex>& vertices);
+	VertexBuffer(std::shared_ptr<Device> device, VkCommandPool cmdpool,const std::vector<Vertex>& vertices);
 	//VertexBuffer(const VertexBuffer&& rhs);
 	//VertexBuffer& operator=(VertexBuffer&& rhs);
 	~VertexBuffer();

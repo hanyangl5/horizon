@@ -4,13 +4,12 @@
 CommandBuffer::CommandBuffer(std::shared_ptr<Device> device,
 	std::shared_ptr<SwapChain> swapchain,
 	std::shared_ptr<Pipeline> pipeline,
-	std::shared_ptr<Framebuffers>  framebuffers,
-	const Assest& assest)
+	std::shared_ptr<Framebuffers>  framebuffers)
 	:mDevice(device), mSwapChain(swapchain), mPipeline(pipeline), mFramebuffers(framebuffers)
 {
 	createCommandPool();
 	allocateCommandBuffers();
-	beginCommandRecording(*assest.vbuffer.get());
+	
 	createSyncObjects();
 }
 
@@ -89,6 +88,11 @@ void CommandBuffer::draw()
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
+VkCommandPool CommandBuffer::getCommandpool() const
+{
+	return mCommandPool;
+}
+
 void CommandBuffer::createCommandPool()
 {
 	// Command buffers are executed by submitting them on one of the device queues
@@ -124,8 +128,10 @@ void CommandBuffer::allocateCommandBuffers()
 	printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 }
 
-void CommandBuffer::beginCommandRecording(VertexBuffer& vertexBuffer)
+void CommandBuffer::beginCommandRecording(const Assest& assest)
 {
+	VertexBuffer& vertexBuffer = *assest.vbuffer.get();
+	
 	for (u32 i = 0; i < mCommandBuffers.size(); i++) {
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

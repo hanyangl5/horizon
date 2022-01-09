@@ -11,8 +11,9 @@ Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window):mWindo
 	mSwapChain = std::make_shared<SwapChain>(mDevice, mSurface, mWindow);
 	mPipeline = std::make_shared<Pipeline>(mDevice, mSwapChain);
 	mFramebuffers = std::make_shared<Framebuffers>(mDevice, mSwapChain, mPipeline);
+	mCommandBuffer = std::make_shared<CommandBuffer>(mDevice, mSwapChain, mPipeline, mFramebuffers);
 	prepareAssests();
-	mCommandBuffer = std::make_shared<CommandBuffer>(mDevice, mSwapChain,mPipeline,mFramebuffers,mAssest);
+	mCommandBuffer->beginCommandRecording(mAssest);
 }
 
 Renderer::~Renderer()
@@ -39,5 +40,5 @@ void Renderer::drawFrame()
 
 void Renderer::prepareAssests()
 {
-	mAssest.prepare(mDevice);
+	mAssest.prepare(mDevice, mCommandBuffer->getCommandpool());
 }
