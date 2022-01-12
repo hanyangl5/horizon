@@ -3,17 +3,13 @@
 #include "VertexBuffer.h"
 #include <memory>
 #include "Device.h"
+#include "Mesh.h"
 class Assest
 {
 public:
 	Assest() = default;
 	~Assest();
 	void prepare(std::shared_ptr<Device> device, VkCommandPool cmdpool);
-	std::shared_ptr<VertexBuffer> vbuffer;
-
-	const std::vector<Vertex> vertices = {
-		{{0.0f, -0.5f,0.0}, {1.0f, 0.0f, 0.0f},{0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}},
-		{{0.5f, 0.5f,0.0}, {0.0f, 1.0f, 0.0f},{0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}},
-		{{-0.5f, 0.5f,0.0}, {0.0f, 0.0f, 1.0f},{0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}}
-	};
+	//std::shared_ptr<VertexBuffer> vbuffer;
+	std::vector<Mesh> meshes;
 };

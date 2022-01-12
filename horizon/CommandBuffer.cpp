@@ -130,7 +130,7 @@ void CommandBuffer::allocateCommandBuffers()
 
 void CommandBuffer::beginCommandRecording(const Assest& assest)
 {
-	VertexBuffer& vertexBuffer = *assest.vbuffer.get();
+
 	
 	for (u32 i = 0; i < mCommandBuffers.size(); i++) {
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
@@ -156,11 +156,20 @@ void CommandBuffer::beginCommandRecording(const Assest& assest)
 
 		vkCmdSetViewport(mCommandBuffers[i], 0, 1, &mPipeline->getViewport());
 		
-		VkBuffer vertexBuffers[] = { vertexBuffer.get() };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+		for (auto& mesh : assest.meshes) {
+			VkBuffer vertexBuffers = mesh.getVertexBuffer() ;
+			VkBuffer indexBuffers= mesh.getIndexBuffer() ;
+			VkDeviceSize offsets[] = { 0 };
 
-		vkCmdDraw(mCommandBuffers[i], vertexBuffer.getVerticesCount(), 1, 0, 0);
+			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, &vertexBuffers, offsets);
+
+			vkCmdBindIndexBuffer(mCommandBuffers[i], indexBuffers, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(mCommandBuffers[i], mesh.getIndexCount(), 1, 0, 0, 0);
+
+		}
+
+
 
 		vkCmdEndRenderPass(mCommandBuffers[i]);
 
