@@ -3,3 +3,6 @@ build
 3rdparty
 horizon/Camera.h
 horizon/Model.h
+horizon/Descriptors.h
+horizon/Descriptors.cpp
+horizon/UniformBuffer.h

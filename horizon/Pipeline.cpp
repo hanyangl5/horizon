@@ -84,9 +84,11 @@ void Pipeline::createRenderPass()
 
 void Pipeline::createPipeline()
 {
-
-	Shader vs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/vertexshader.spv");
-	Shader ps(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/fragshader.spv");
+	std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
+	std::string vspath = (shader_dir / "vertexshader.spv").string();
+	std::string pspath = (shader_dir / "fragshader.spv").string();
+	Shader vs(mDevice->get(), vspath.c_str());
+	Shader ps(mDevice->get(), pspath.c_str());
 
 	std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
 
