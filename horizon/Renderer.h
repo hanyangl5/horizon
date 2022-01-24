@@ -10,15 +10,17 @@
 #include "Surface.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Descriptors.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
 #include "Assets.h"
-
+#include "UniformBuffer.h"
 class Renderer
 {
 public:
 	Renderer(u32 width, u32 height, std::shared_ptr<Window> window);
 	~Renderer();
+	void Init();
 	void Update();
 	void Render();
 	//void Destroy();
@@ -35,11 +37,21 @@ private:
 	std::shared_ptr<Device> mDevice;
 	std::shared_ptr<Surface> mSurface;
 	std::shared_ptr<SwapChain> mSwapChain;
+	std::shared_ptr<Descriptors> mDescriptrors;
 	std::shared_ptr<Pipeline> mPipeline;
 	std::shared_ptr<Framebuffers> mFramebuffers;
 	std::shared_ptr<CommandBuffer> mCommandBuffer;
 	static Assest mAssest;
-	 ;
+	 
+
+	// clean up 
+	struct colorStruct {
+		float a = 1.0;
+		float b = 0.0;
+		float c = 0.0;
+	};
+	colorStruct colorubo;
+	UniformBuffer* testUBO = nullptr;
 	// resource
 	struct Vertex {
 		glm::vec3 position;

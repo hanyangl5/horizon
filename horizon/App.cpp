@@ -15,13 +15,11 @@ App::~App()
 {
 }
 
-
-
 void App::run() {
 
 	mWindow = std::make_shared<Window>("horizon", mWidth, mHeight);
 	mRenderer = std::make_unique<Renderer>(mWindow->getWidth(), mWindow->getHeight(), mWindow);
-
+	mRenderer->Init();
 	while (!glfwWindowShouldClose(mWindow->getWindow()))
 	{
 		glfwPollEvents();

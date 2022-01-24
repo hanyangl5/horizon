@@ -16,8 +16,6 @@ public:
 		std::shared_ptr<Pipeline> pipeline,
 		std::shared_ptr<Framebuffers> framebuffers);
 	~CommandBuffer();
-	VkSemaphore getImageAvailableSemaphore()const;
-	VkSemaphore getRenderFinishedSemaphore()const;
 	VkCommandBuffer* get(u32 i);
 	void draw();
 	VkCommandPool getCommandpool()const;

@@ -23,15 +23,6 @@ CommandBuffer::~CommandBuffer()
 	vkDestroyCommandPool(mDevice->get(), mCommandPool, nullptr);
 }
 
-//VkSemaphore CommandBuffer::getImageAvailableSemaphore() const
-//{
-//	return mImageAvailableSemaphore;
-//}
-//
-//VkSemaphore CommandBuffer::getRenderFinishedSemaphore() const
-//{
-//	return mRenderFinishedSemaphore;
-//}
 
 VkCommandBuffer* CommandBuffer::get(u32 i)
 {
@@ -40,6 +31,7 @@ VkCommandBuffer* CommandBuffer::get(u32 i)
 
 void CommandBuffer::draw()
 {
+	vkQueueWaitIdle(mDevice->getGraphicQueue());
 	vkWaitForFences(mDevice->get(), 1, &mInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
@@ -68,8 +60,8 @@ void CommandBuffer::draw()
 
 	vkResetFences(mDevice->get(), 1, &mInFlightFences[currentFrame]);
 
-	vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]);
-	//printVkError(vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]),"draw command buffer",logLevel::debug);
+	//vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]);
+	printVkError(vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]),"submit command buffer",logLevel::debug);
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -103,8 +95,8 @@ void CommandBuffer::createCommandPool()
 	VkCommandPoolCreateInfo commandPoolCreateInfo{};
 	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	commandPoolCreateInfo.queueFamilyIndex = mDevice->getQueueFamilyIndices().getGraphics();
-	commandPoolCreateInfo.flags = 0;
-
+	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	
 	printVkError(vkCreateCommandPool(mDevice->get(), &commandPoolCreateInfo, nullptr, &mCommandPool), "create command pool");
 
 }
@@ -131,12 +123,11 @@ void CommandBuffer::allocateCommandBuffers()
 void CommandBuffer::beginCommandRecording(const Assest& assest)
 {
 
-	
 	for (u32 i = 0; i < mCommandBuffers.size(); i++) {
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		// begin command buffer recording
-		printVkError(vkBeginCommandBuffer(mCommandBuffers[i], &commandBufferBeginInfo), "begin command buffer recording");
+		printVkError(vkBeginCommandBuffer(mCommandBuffers[i], &commandBufferBeginInfo),"begin command buffer");
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -165,15 +156,15 @@ void CommandBuffer::beginCommandRecording(const Assest& assest)
 
 			vkCmdBindIndexBuffer(mCommandBuffers[i], indexBuffers, 0, VK_INDEX_TYPE_UINT32);
 
+			vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline->getLayout(), 0, mPipeline->getDescriptorCount(), mPipeline->getDescriptorSets(), 0, nullptr);
+
 			vkCmdDrawIndexed(mCommandBuffers[i], mesh.getIndexCount(), 1, 0, 0, 0);
 
 		}
 
-
-
 		vkCmdEndRenderPass(mCommandBuffers[i]);
 
-		printVkError(vkEndCommandBuffer(mCommandBuffers[i]), "end command buffer");
+		printVkError(vkEndCommandBuffer(mCommandBuffers[i]),"end command buffer");
 	}
 }
 

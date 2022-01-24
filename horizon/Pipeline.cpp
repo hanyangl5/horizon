@@ -6,10 +6,11 @@
 #include "ShaderModule.h"
 #include <array>
 #include "Vertex.h"
+#include "Descriptors.h"
 Pipeline::Pipeline(std::shared_ptr<Device> device,
-	std::shared_ptr<SwapChain> swapchain) : mDevice(device), mSwapChain(swapchain)
+	std::shared_ptr<SwapChain> swapchain, std::shared_ptr<Descriptors> descriptors) : mDevice(device), mSwapChain(swapchain),mDescriptors(descriptors)
 {
-	createPipelineLayout();
+	createPipelineLayout(mDescriptors);
 	createRenderPass();
 	createPipeline();
 }
@@ -26,6 +27,11 @@ VkPipeline Pipeline::get() const
 	return mGraphicsPipeline;
 }
 
+VkPipelineLayout Pipeline::getLayout() const
+{
+	return mPipelineLayout;
+}
+
 VkRenderPass Pipeline::getRenderPass() const
 {
 	return mRenderPass;
@@ -36,15 +42,29 @@ VkViewport Pipeline::getViewport() const
 	return mViewport;
 }
 
-void Pipeline::createPipelineLayout()
+VkDescriptorSetLayout* Pipeline::getDescriptorSetLayouts()
+{
+	return mDescriptors->getLayouts();
+}
+
+u32 Pipeline::getDescriptorCount()
+{
+	return mDescriptors->getSetCount();
+}
+
+VkDescriptorSet* Pipeline::getDescriptorSets()
+{
+	return mDescriptors->get();
+}
+
+void Pipeline::createPipelineLayout(std::shared_ptr<Descriptors> descriptors)
 {
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
-
+	pipelineLayoutInfo.setLayoutCount = descriptors->getSetCount();
+	pipelineLayoutInfo.pSetLayouts = descriptors->getLayouts();
 	printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
-
 }
 
 void Pipeline::createRenderPass()
@@ -85,6 +105,7 @@ void Pipeline::createRenderPass()
 void Pipeline::createPipeline()
 {
 	std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
+	spdlog::info(shader_dir.string());
 	std::string vspath = (shader_dir / "vertexshader.spv").string();
 	std::string pspath = (shader_dir / "fragshader.spv").string();
 	Shader vs(mDevice->get(), vspath.c_str());
