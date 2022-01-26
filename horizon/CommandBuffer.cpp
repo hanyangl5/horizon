@@ -29,9 +29,9 @@ VkCommandBuffer* CommandBuffer::get(u32 i)
 	return &mCommandBuffers[i];
 }
 
-void CommandBuffer::draw()
+void CommandBuffer::submit()
 {
-	vkQueueWaitIdle(mDevice->getGraphicQueue());
+	//vkQueueWaitIdle(mDevice->getGraphicQueue());
 	vkWaitForFences(mDevice->get(), 1, &mInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
@@ -78,6 +78,7 @@ void CommandBuffer::draw()
 	vkQueuePresentKHR(mDevice->getPresnetQueue(), &presentInfo);
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	vkQueueWaitIdle(mDevice->getGraphicQueue());
 }
 
 VkCommandPool CommandBuffer::getCommandpool() const
@@ -120,7 +121,7 @@ void CommandBuffer::allocateCommandBuffers()
 	printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 }
 
-void CommandBuffer::beginCommandRecording(const Assest& assest)
+void CommandBuffer::draw(const Assest& assest)
 {
 
 	for (u32 i = 0; i < mCommandBuffers.size(); i++) {

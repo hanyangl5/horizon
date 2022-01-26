@@ -17,9 +17,9 @@ public:
 		std::shared_ptr<Framebuffers> framebuffers);
 	~CommandBuffer();
 	VkCommandBuffer* get(u32 i);
-	void draw();
+	void submit();
 	VkCommandPool getCommandpool()const;
-	void beginCommandRecording(const Assest& assest);
+	void draw(const Assest& assest);
 private:
 	void createCommandPool();
 	void allocateCommandBuffers();

@@ -54,8 +54,8 @@ void Renderer::wait()
 void Renderer::drawFrame()
 {
 
-	mCommandBuffer->beginCommandRecording(mAssest);
-	mCommandBuffer->draw();
+	mCommandBuffer->draw(mAssest);
+	mCommandBuffer->submit();
 }
 
 void Renderer::prepareAssests()
