@@ -17,13 +17,11 @@ App::~App()
 	delete mWindow;
 }
 
-
-
 void App::run() {
 
 	mWindow = new Window("horizon", mWidth, mHeight);
 	mRenderer = new Renderer(mWindow->getWidth(), mWindow->getHeight(), mWindow);
-
+	mRenderer->Init();
 	while (!glfwWindowShouldClose(mWindow->getWindow()))
 	{
 		glfwPollEvents();

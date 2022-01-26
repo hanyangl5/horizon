@@ -7,25 +7,30 @@
 #include "SwapChain.h"
 #include "Surface.h"
 #include "ShaderModule.h"
+#include "Descriptors.h"
 
 class Pipeline
 {
 public:
-	Pipeline(Device* device,
-		SwapChain* swapchain);
+	Pipeline(Device* device, SwapChain* swapchain, Descriptors* descriptors);
 	~Pipeline();
 	VkPipeline get()const;
+	VkPipelineLayout getLayout()const;
 	VkRenderPass getRenderPass()const;
 	VkViewport getViewport()const;
+	VkDescriptorSetLayout* getDescriptorSetLayouts();
+	u32 getDescriptorCount();
+	VkDescriptorSet* getDescriptorSets();
 private:
-	void createPipelineLayout();
+	void createPipelineLayout(Descriptors* descriptors);
 	void createRenderPass();
 	void createPipeline();
 private:
 	Device* mDevice = nullptr;
-	SwapChain* mSwapChain;
+	SwapChain* mSwapChain = nullptr;
+	Descriptors* mDescriptors = nullptr;
 	// handle of pipeline layout
-	VkPipelineLayout mPipelineLayout;
+	VkPipelineLayout mPipelineLayout = nullptr;
 	VkRenderPass mRenderPass;
 	VkPipeline mGraphicsPipeline;
 	VkViewport mViewport;

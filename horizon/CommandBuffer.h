@@ -16,12 +16,10 @@ public:
 		Pipeline* pipeline,
 		Framebuffers* framebuffers);
 	~CommandBuffer();
-	VkSemaphore getImageAvailableSemaphore()const;
-	VkSemaphore getRenderFinishedSemaphore()const;
 	VkCommandBuffer* get(u32 i);
-	void draw();
+	void submit();
 	VkCommandPool getCommandpool()const;
-	void beginCommandRecording(const Assest& assest);
+	void draw(const Assest& assest);
 private:
 	void createCommandPool();
 	void allocateCommandBuffers();

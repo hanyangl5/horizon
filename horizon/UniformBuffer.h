@@ -1,0 +1,20 @@
+#pragma once
+#include "utils.h"
+#include <vulkan/vulkan.hpp>
+#include "VulkanBuffer.h"
+#include "Device.h"
+class UniformBuffer
+{
+public:
+	UniformBuffer(Device* device);
+	~UniformBuffer();
+	void update(void* ubo, u64 bufferSize);
+	VkBuffer get()const;
+	u64 size()const;
+private:
+	Device* mDevice = nullptr;
+	VkBuffer mUniformBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory mUniformBufferMemory = VK_NULL_HANDLE;
+	u64 mSize;
+};
+

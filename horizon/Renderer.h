@@ -9,15 +9,17 @@
 #include "Surface.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Descriptors.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
 #include "Assets.h"
-
+#include "UniformBuffer.h"
 class Renderer
 {
 public:
 	Renderer(u32 width, u32 height, Window* window);
 	~Renderer();
+	void Init();
 	void Update();
 	void Render();
 	//void Destroy();
@@ -34,11 +36,21 @@ private:
 	Device* mDevice = nullptr;
 	Surface* mSurface = nullptr;
 	SwapChain* mSwapChain = nullptr;
+	Descriptors* mDescriptors = nullptr;
 	Pipeline* mPipeline = nullptr;
 	Framebuffers* mFramebuffers = nullptr;
 	CommandBuffer* mCommandBuffer = nullptr;
 	static Assest mAssest;
 
+	// ubo
+	struct colorStruct {
+		float a = 1.0;
+		float b = 0.0;
+		float c = 0.0;
+	};
+	colorStruct colorubo;
+	UniformBuffer* testUBO = nullptr;
+	
 	//sync primitives
 
 	// semaphores
