@@ -13,14 +13,16 @@ App::App(u32 width, u32 height) :mWidth(width), mHeight(height), mLogger(spdlog:
 
 App::~App()
 {
+	delete mRenderer;
+	delete mWindow;
 }
 
 
 
 void App::run() {
 
-	mWindow = std::make_shared<Window>("horizon", mWidth, mHeight);
-	mRenderer = std::make_unique<Renderer>(mWindow->getWidth(), mWindow->getHeight(), mWindow);
+	mWindow = new Window("horizon", mWidth, mHeight);
+	mRenderer = new Renderer(mWindow->getWidth(), mWindow->getHeight(), mWindow);
 
 	while (!glfwWindowShouldClose(mWindow->getWindow()))
 	{

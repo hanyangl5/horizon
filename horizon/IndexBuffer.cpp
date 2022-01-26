@@ -1,6 +1,6 @@
 #include "IndexBuffer.h"
 #include "VulkanBuffer.h"
-IndexBuffer::IndexBuffer(std::shared_ptr<Device> device, VkCommandPool cmdpool, const std::vector<Index>& indices) :mDevice(device)
+IndexBuffer::IndexBuffer(Device* device, VkCommandPool cmdpool, const std::vector<Index>& indices) :mDevice(device)
 {
     mIndicesCount = indices.size();
     VkDeviceSize bufferSize = sizeof(Index) * mIndicesCount;

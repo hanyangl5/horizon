@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "Window.h"
 
-SwapChain::SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window) :mDevice(device), mSurface(surface), mWindow(window)
+SwapChain::SwapChain(Device* device, Surface* surface, Window* window) :mDevice(device), mSurface(surface), mWindow(window)
 {
 	createSwapChain();
 	createImageViews();

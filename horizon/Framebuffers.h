@@ -10,15 +10,15 @@
 class Framebuffers
 {
 public:
-    Framebuffers(std::shared_ptr<Device> device,std::shared_ptr<SwapChain> swapchain,std::shared_ptr<Pipeline> pipeline);
+    Framebuffers(Device* device,SwapChain* swapchain,Pipeline* pipeline);
     ~Framebuffers();
     VkFramebuffer get(u32 i)const;
 private:
     void createFrameBuffers();
 private:
 
-    std::shared_ptr<SwapChain> mSwapChain;
-    std::shared_ptr<Device> mDevice;
-    std::shared_ptr<Pipeline> mPipeline;
+    SwapChain* mSwapChain;
+    Device* mDevice = nullptr;
+    Pipeline* mPipeline = nullptr;
     std::vector<VkFramebuffer> mSwapChainFrameBuffers;
 };

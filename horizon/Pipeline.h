@@ -11,8 +11,8 @@
 class Pipeline
 {
 public:
-	Pipeline(std::shared_ptr<Device> device,
-		std::shared_ptr<SwapChain> swapchain);
+	Pipeline(Device* device,
+		SwapChain* swapchain);
 	~Pipeline();
 	VkPipeline get()const;
 	VkRenderPass getRenderPass()const;
@@ -22,8 +22,8 @@ private:
 	void createRenderPass();
 	void createPipeline();
 private:
-	std::shared_ptr<Device> mDevice;
-	std::shared_ptr<SwapChain> mSwapChain;
+	Device* mDevice = nullptr;
+	SwapChain* mSwapChain;
 	// handle of pipeline layout
 	VkPipelineLayout mPipelineLayout;
 	VkRenderPass mRenderPass;

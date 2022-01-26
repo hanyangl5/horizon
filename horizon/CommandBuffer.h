@@ -11,10 +11,10 @@
 class CommandBuffer
 {
 public:
-	CommandBuffer(std::shared_ptr<Device> device,
-		std::shared_ptr<SwapChain> swapchain,
-		std::shared_ptr<Pipeline> pipeline,
-		std::shared_ptr<Framebuffers> framebuffers);
+	CommandBuffer(Device* device,
+		SwapChain* swapchain,
+		Pipeline* pipeline,
+		Framebuffers* framebuffers);
 	~CommandBuffer();
 	VkSemaphore getImageAvailableSemaphore()const;
 	VkSemaphore getRenderFinishedSemaphore()const;
@@ -30,11 +30,11 @@ private:
 	void createFences();
 private:
 
-	std::shared_ptr<Device> mDevice;
-	std::shared_ptr<SwapChain> mSwapChain;
-	std::shared_ptr<Pipeline> mPipeline;
-	std::shared_ptr<Framebuffers> mFramebuffers;
-	VkCommandPool mCommandPool;
+	Device* mDevice = nullptr;
+	SwapChain* mSwapChain;
+	Pipeline* mPipeline = nullptr;
+	Framebuffers* mFramebuffers = nullptr;
+	VkCommandPool mCommandPool = nullptr;
 	std::vector<VkCommandBuffer> mCommandBuffers;
 
 	// We'll need one semaphore to signal that an image has been acquired and is ready for rendering,

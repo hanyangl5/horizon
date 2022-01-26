@@ -1,10 +1,20 @@
 #include "Mesh.h"
 
-Mesh::Mesh(std::shared_ptr<Device> device, VkCommandPool cmdpool, std::vector<Vertex> vertices, std::vector<u32> indices)
+Mesh::Mesh(Device* device, VkCommandPool cmdpool, std::vector<Vertex> vertices, std::vector<u32> indices)
 {
-	vertexBuffer = std::make_shared<VertexBuffer>(device, cmdpool, vertices);
-	indexBuffer = std::make_shared<IndexBuffer>(device, cmdpool, indices);
+	vertexBuffer = new VertexBuffer(device, cmdpool, vertices);
+	indexBuffer = new IndexBuffer(device, cmdpool, indices);
+}
 
+Mesh::~Mesh()
+{
+
+}
+
+void Mesh::ReleaseBuffer()
+{
+	delete vertexBuffer;
+	delete indexBuffer;
 }
 
 VkBuffer Mesh::getVertexBuffer() const

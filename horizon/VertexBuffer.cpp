@@ -1,7 +1,7 @@
 #include "VertexBuffer.h"
 #include "VulkanBuffer.h"
 
-VertexBuffer::VertexBuffer(std::shared_ptr<Device> device,VkCommandPool cmdpool, const std::vector<Vertex>& vertices) :mDevice(device)
+VertexBuffer::VertexBuffer(Device* device,VkCommandPool cmdpool, const std::vector<Vertex>& vertices) :mDevice(device)
 {
     mVerticesCount = vertices.size();
     VkDeviceSize bufferSize = sizeof(vertices[0]) * mVerticesCount;

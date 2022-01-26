@@ -1,6 +1,6 @@
 #include "Framebuffers.h"
 
-Framebuffers::Framebuffers(std::shared_ptr<Device> device,std::shared_ptr<SwapChain> swapchain,std::shared_ptr<Pipeline> pipeline):mDevice(device),mSwapChain(swapchain),mPipeline(pipeline)
+Framebuffers::Framebuffers(Device* device,SwapChain* swapchain,Pipeline* pipeline):mDevice(device),mSwapChain(swapchain),mPipeline(pipeline)
 {
     createFrameBuffers();
 }

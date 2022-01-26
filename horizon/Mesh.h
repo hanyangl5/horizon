@@ -19,10 +19,11 @@
 class Mesh
 {
 public:
-  Mesh(std::shared_ptr<Device> device, VkCommandPool cmdpool,std::vector<Vertex> vertices, std::vector<u32> indices);
+  Mesh(Device* device, VkCommandPool cmdpool,std::vector<Vertex> vertices, std::vector<u32> indices);
+  ~Mesh();
   // Mesh(std::vector<Vertex> vertices, std::vector<u32> indices,
   //      std::vector<Texture> textures);
-  // void ReleaseBuffer();
+  void ReleaseBuffer();
   // //void Draw(Shader &shader, RenderMode renermode);
   // glm::mat4 GetModelMat();
   VkBuffer getVertexBuffer()const;
@@ -38,7 +39,7 @@ public:
   std::vector<u32> indices;
   std::string meshname;
 
-  std::shared_ptr<VertexBuffer> vertexBuffer;
-  std::shared_ptr<IndexBuffer> indexBuffer;
+  VertexBuffer* vertexBuffer;
+  IndexBuffer* indexBuffer;
 
 };

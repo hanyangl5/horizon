@@ -10,7 +10,7 @@ class SwapChain {
 
 public:
 
-	SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window);
+	SwapChain(Device* device, Surface* surface, Window* window);
 
 	~SwapChain();
 
@@ -49,9 +49,9 @@ private:
 
 	const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_B8G8R8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 	const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-	std::shared_ptr<Device> mDevice;
-	std::shared_ptr<Surface> mSurface;
-	std::shared_ptr<Window> mWindow;
+	Device* mDevice = nullptr;
+	Surface* mSurface = nullptr;
+	Window* mWindow = nullptr;
 	VkSwapchainKHR mSwapChain; 
 	VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
 	VkFormat mImageFormat;

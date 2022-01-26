@@ -3,7 +3,7 @@
 #include <set>
 #include "QueueFamilyIndices.h"
 #include "SurfaceSupportDetails.h"
-Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface):mInstance(instance),mSurface(surface)
+Device::Device(Instance* instance, Surface* surface):mInstance(instance),mSurface(surface)
 {
 	// enumerate vk devices
 	vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, nullptr);

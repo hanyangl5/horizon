@@ -1,15 +1,14 @@
 #include "CommandBuffer.h"
 #include "VertexBuffer.h"
 
-CommandBuffer::CommandBuffer(std::shared_ptr<Device> device,
-	std::shared_ptr<SwapChain> swapchain,
-	std::shared_ptr<Pipeline> pipeline,
-	std::shared_ptr<Framebuffers>  framebuffers)
+CommandBuffer::CommandBuffer(Device* device,
+	SwapChain* swapchain,
+	Pipeline* pipeline,
+	Framebuffers*  framebuffers)
 	:mDevice(device), mSwapChain(swapchain), mPipeline(pipeline), mFramebuffers(framebuffers)
 {
 	createCommandPool();
 	allocateCommandBuffers();
-	
 	createSyncObjects();
 }
 

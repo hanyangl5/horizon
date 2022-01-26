@@ -13,8 +13,8 @@ public:
 private:
 	u32 mWidth;
 	u32 mHeight;
-	std::shared_ptr<Window> mWindow;
-	std::unique_ptr<Renderer> mRenderer;
+	Window* mWindow = nullptr;
+	Renderer* mRenderer = nullptr;
 
-	std::shared_ptr <spdlog::logger> mLogger;
+	std::shared_ptr<spdlog::logger> mLogger;
 };

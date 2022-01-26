@@ -8,7 +8,7 @@
 class Device
 {
 public:
-    Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface);
+    Device(Instance* instance, Surface* surface);
     ~Device();
     VkPhysicalDevice getPhysicalDevice() const;
     VkDevice get()const;
@@ -34,7 +34,7 @@ private:
     VkDevice mDevice{};
     VkQueue mGraphicsQueue, mPresentQueue;
     QueueFamilyIndices mQueueFamilyIndices;
-    std::shared_ptr<Instance> mInstance;
-    std::shared_ptr<Surface> mSurface;
+    Instance* mInstance = nullptr;
+    Surface* mSurface = nullptr;
     const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 };

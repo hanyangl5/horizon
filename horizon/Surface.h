@@ -6,14 +6,14 @@
 class Surface
 {
 public:
-	Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
+	Surface(Instance* instance, Window* window);
 	~Surface();
 	VkSurfaceKHR get()const;
 private:
 	void createSurface();
 private:
-	std::shared_ptr<Instance> mInstance;
-	std::shared_ptr<Window> mWindow;
+	Instance* mInstance = nullptr;
+	Window* mWindow = nullptr;
 	VkSurfaceKHR mSurface;
 };
 

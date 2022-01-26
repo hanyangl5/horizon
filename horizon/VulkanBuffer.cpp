@@ -28,7 +28,7 @@ void createBuffer(VkDevice device, VkPhysicalDevice gpu, VkDeviceSize size, VkBu
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
-void copyBuffer(std::shared_ptr<Device> device,VkCommandPool cmdpool, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void copyBuffer(Device* device,VkCommandPool cmdpool, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;

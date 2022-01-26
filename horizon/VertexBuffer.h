@@ -7,14 +7,14 @@ class VertexBuffer
 {
 public:
 	VertexBuffer()=default;
-	VertexBuffer(std::shared_ptr<Device> device, VkCommandPool cmdpool,const std::vector<Vertex>& vertices);
+	VertexBuffer(Device* device, VkCommandPool cmdpool,const std::vector<Vertex>& vertices);
 	//VertexBuffer(const VertexBuffer&& rhs);
 	//VertexBuffer& operator=(VertexBuffer&& rhs);
 	~VertexBuffer();
 	VkBuffer get()const;
 	u64 getVerticesCount()const;
 private:
-	std::shared_ptr<Device> mDevice;
+	Device* mDevice = nullptr;
 	VkBuffer mVertexBuffer;
 	VkDeviceMemory mVertexBufferMemory;
 	u64 mVerticesCount;

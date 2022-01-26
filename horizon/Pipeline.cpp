@@ -6,8 +6,8 @@
 #include "ShaderModule.h"
 #include <array>
 #include "Vertex.h"
-Pipeline::Pipeline(std::shared_ptr<Device> device,
-	std::shared_ptr<SwapChain> swapchain) : mDevice(device), mSwapChain(swapchain)
+Pipeline::Pipeline(Device* device,
+	SwapChain* swapchain) : mDevice(device), mSwapChain(swapchain)
 {
 	createPipelineLayout();
 	createRenderPass();

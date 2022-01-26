@@ -8,13 +8,13 @@ using Index = u32;
 class IndexBuffer {
 public:
 	IndexBuffer() = default;
-	IndexBuffer(std::shared_ptr<Device> device, VkCommandPool cmdpool, const std::vector<Index>&vertices);
+	IndexBuffer(Device* device, VkCommandPool cmdpool, const std::vector<Index>&vertices);
 	~IndexBuffer();
 	VkBuffer get()const;
 	u64 getIndicesCount()const;
 private:
 	VkBuffer mIndexBuffer;
 	VkDeviceMemory mIndexBufferMemory;
-	std::shared_ptr<Device> mDevice;
+	Device* mDevice = nullptr;
 	u64 mIndicesCount;
 };

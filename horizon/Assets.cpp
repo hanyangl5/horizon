@@ -1,8 +1,8 @@
 #include "Assets.h"
 
-//Assest::Assest(std::shared_ptr<Device> device)
+//Assest::Assest(Device* device)
 //{
-//	vbuffer = std::make_shared<VertexBuffer>(device, vertices);
+//	vbuffer = new VertexBuffer>(device, vertices);
 //}
 
 Assest::~Assest()
@@ -10,7 +10,7 @@ Assest::~Assest()
 	;
 }
 
-void Assest::prepare(std::shared_ptr<Device> device,VkCommandPool cmdpool)
+void Assest::prepare(Device* device,VkCommandPool cmdpool)
 {
 
 	const std::vector<Vertex> vertices = {
