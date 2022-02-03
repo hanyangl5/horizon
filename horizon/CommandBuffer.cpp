@@ -60,7 +60,7 @@ void CommandBuffer::submit()
 	vkResetFences(mDevice->get(), 1, &mInFlightFences[currentFrame]);
 
 	//vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]);
-	printVkError(vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]),"submit command buffer");
+	printVkError(vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]),"");
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -127,7 +127,7 @@ void CommandBuffer::draw(const Assest& assest)
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		// begin command buffer recording
-		printVkError(vkBeginCommandBuffer(mCommandBuffers[i], &commandBufferBeginInfo),"begin command buffer");
+		printVkError(vkBeginCommandBuffer(mCommandBuffers[i], &commandBufferBeginInfo),"");
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -143,7 +143,6 @@ void CommandBuffer::draw(const Assest& assest)
 		vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline->get());
-
 
 		vkCmdSetViewport(mCommandBuffers[i], 0, 1, &mPipeline->getViewport());
 		
@@ -164,7 +163,7 @@ void CommandBuffer::draw(const Assest& assest)
 
 		vkCmdEndRenderPass(mCommandBuffers[i]);
 
-		printVkError(vkEndCommandBuffer(mCommandBuffers[i]),"end command buffer");
+		printVkError(vkEndCommandBuffer(mCommandBuffers[i]), "");
 	}
 }
 

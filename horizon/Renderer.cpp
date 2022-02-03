@@ -9,14 +9,15 @@ Renderer::Renderer(u32 width, u32 height, Window* window) :mWindow(window)
 
 Renderer::~Renderer()
 {
-	delete mInstance;
+	releaseAssets();
+	delete mCommandBuffer;
+	delete mFramebuffers;
+	delete mPipeline;
+	delete mDescriptors;
+	delete mSwapChain;
 	delete mSurface;
 	delete mDevice;
-	delete mSwapChain;
-	delete mPipeline;
-	delete mFramebuffers;
-	delete mCommandBuffer;
-	delete mDescriptors;
+	delete mInstance;
 }
 
 void Renderer::Init()
@@ -42,11 +43,10 @@ void Renderer::Init()
 }
 
 void Renderer::Update() {
-	
-	testUBO->update(&colorubo,sizeof(colorubo));
-	BufferDesc desc;
-	desc.ubos.push_back(testUBO);
-	mDescriptors->updateDescriptorSet(0, &desc);
+	BufferDesc bufferdesc;
+	testUBO->update(&colorubo, sizeof(colorubo));
+	bufferdesc.ubos.push_back(testUBO);
+	mDescriptors->updateDescriptorSet(0, &bufferdesc);
 }
 void Renderer::Render() {
 
@@ -69,4 +69,10 @@ void Renderer::prepareAssests()
 {
 	mAssest.prepare(mDevice, mCommandBuffer->getCommandpool());
 	testUBO = new UniformBuffer(mDevice);
+}
+
+void Renderer::releaseAssets()
+{
+	delete testUBO;
+	mAssest.ReleaseBuffer();
 }

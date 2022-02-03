@@ -27,9 +27,8 @@ public:
 private:
 	void drawFrame();
 	void prepareAssests();
-
 private:
-
+	void releaseAssets();
 	//Camera> mCamera;
 	Window* mWindow = nullptr;
 	Instance* mInstance = nullptr;

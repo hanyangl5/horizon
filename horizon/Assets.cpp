@@ -7,7 +7,13 @@
 
 Assest::~Assest()
 {
-	;
+}
+
+void Assest::ReleaseBuffer()
+{
+	for (auto& mesh : meshes) {
+		mesh.ReleaseBuffer();
+	}
 }
 
 void Assest::prepare(Device* device,VkCommandPool cmdpool)
