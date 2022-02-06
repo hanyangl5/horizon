@@ -1,9 +1,9 @@
 #include "Mesh.h"
 
-Mesh::Mesh(Device* device, VkCommandPool cmdpool, std::vector<Vertex> vertices, std::vector<u32> indices)
+Mesh::Mesh(Device* device, CommandBuffer* commandBuffer, std::vector<Vertex> vertices, std::vector<u32> indices)
 {
-	vertexBuffer = new VertexBuffer(device, cmdpool, vertices);
-	indexBuffer = new IndexBuffer(device, cmdpool, indices);
+	vertexBuffer = new VertexBuffer(device, commandBuffer, vertices);
+	indexBuffer = new IndexBuffer(device, commandBuffer, indices);
 }
 
 Mesh::~Mesh()

@@ -6,8 +6,9 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
-#include "VertexBuffer.h"
-#include "Assets.h"
+//#include "VertexBuffer.h"
+//#include "Assets.h"
+
 class CommandBuffer
 {
 public:
@@ -19,7 +20,10 @@ public:
 	VkCommandBuffer* get(u32 i);
 	void submit();
 	VkCommandPool getCommandpool()const;
-	void draw(const Assest& assest);
+	void draw(std::vector<DrawContext>& drawContexts);
+	VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(VkCommandBuffer commandbuffer);
+	u32 commandBufferCount() const noexcept { return mCommandBuffers.size(); }
 private:
 	void createCommandPool();
 	void allocateCommandBuffers();

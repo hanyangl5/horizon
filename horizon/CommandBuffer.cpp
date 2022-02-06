@@ -120,9 +120,8 @@ void CommandBuffer::allocateCommandBuffers()
 	printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 }
 
-void CommandBuffer::draw(const Assest& assest)
+void CommandBuffer::draw(std::vector<DrawContext>& drawContexts)
 {
-
 	for (u32 i = 0; i < mCommandBuffers.size(); i++) {
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -146,9 +145,9 @@ void CommandBuffer::draw(const Assest& assest)
 
 		vkCmdSetViewport(mCommandBuffers[i], 0, 1, &mPipeline->getViewport());
 		
-		for (auto& mesh : assest.meshes) {
-			VkBuffer vertexBuffers = mesh.getVertexBuffer() ;
-			VkBuffer indexBuffers= mesh.getIndexBuffer() ;
+		for (auto& mesh : drawContexts) {
+			VkBuffer vertexBuffers = mesh.vertexBuffer ;
+			VkBuffer indexBuffers= mesh.indexBuffer ;
 			VkDeviceSize offsets[] = { 0 };
 
 			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, &vertexBuffers, offsets);
@@ -157,7 +156,7 @@ void CommandBuffer::draw(const Assest& assest)
 
 			vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline->getLayout(), 0, mPipeline->getDescriptorCount(), mPipeline->getDescriptorSets(), 0, nullptr);
 
-			vkCmdDrawIndexed(mCommandBuffers[i], mesh.getIndexCount(), 1, 0, 0, 0);
+			vkCmdDrawIndexed(mCommandBuffers[i], mesh.iCount, 1, 0, 0, 0);
 
 		}
 
@@ -201,4 +200,37 @@ void CommandBuffer::createFences()
 	for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		printVkError(vkCreateFence(mDevice->get(), &fenceInfo, nullptr, &mInFlightFences[i]), "create fence",logLevel::debug);
 	}
+}
+
+VkCommandBuffer CommandBuffer::beginSingleTimeCommands() {
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = mCommandPool;
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(mDevice->get(), &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	return commandBuffer;
+}
+
+void CommandBuffer::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(mDevice->getGraphicQueue());
+
+	vkFreeCommandBuffers(mDevice->get(), mCommandPool, 1, &commandBuffer);
 }

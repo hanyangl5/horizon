@@ -61,13 +61,13 @@ void Renderer::wait()
 void Renderer::drawFrame()
 {
 
-	mCommandBuffer->draw(mAssest);
+	mAssest.draw(mDevice, mCommandBuffer);
 	mCommandBuffer->submit();
 }
 
 void Renderer::prepareAssests()
 {
-	mAssest.prepare(mDevice, mCommandBuffer->getCommandpool());
+	mAssest.prepare(mDevice, mCommandBuffer);
 	testUBO = new UniformBuffer(mDevice);
 }
 

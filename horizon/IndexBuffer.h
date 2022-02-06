@@ -2,13 +2,14 @@
 #include "Vertex.h"
 #include "utils.h"
 #include "Device.h"
+#include "CommandBuffer.h"
 #include <memory>
 
 using Index = u32;
 class IndexBuffer {
 public:
 	IndexBuffer() = default;
-	IndexBuffer(Device* device, VkCommandPool cmdpool, const std::vector<Index>&vertices);
+	IndexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Index>&vertices);
 	~IndexBuffer();
 	VkBuffer get()const;
 	u64 getIndicesCount()const;

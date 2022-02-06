@@ -50,3 +50,8 @@ using f64 = double;
 //}
 
 uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+struct DrawContext {
+	VkBuffer vertexBuffer, indexBuffer;
+	u32 vCount, iCount;
+};

@@ -1,6 +1,6 @@
 #include "IndexBuffer.h"
 #include "VulkanBuffer.h"
-IndexBuffer::IndexBuffer(Device* device, VkCommandPool cmdpool, const std::vector<Index>& indices) :mDevice(device)
+IndexBuffer::IndexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Index>& indices) :mDevice(device)
 {
     mIndicesCount = indices.size();
     VkDeviceSize bufferSize = sizeof(Index) * mIndicesCount;
@@ -8,7 +8,7 @@ IndexBuffer::IndexBuffer(Device* device, VkCommandPool cmdpool, const std::vecto
     // create stage buffer
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    vkCreateBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     // upload cpu data
     void* data;
@@ -17,9 +17,9 @@ IndexBuffer::IndexBuffer(Device* device, VkCommandPool cmdpool, const std::vecto
     vkUnmapMemory(mDevice->get(), stagingBufferMemory);
 
     // create actual vertex buffer
-    createBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer, mIndexBufferMemory);
+    vkCreateBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer, mIndexBufferMemory);
 
-    copyBuffer(device, cmdpool, stagingBuffer, mIndexBuffer, bufferSize);
+    copyBuffer(device, commandBuffer, stagingBuffer, mIndexBuffer, bufferSize);
 
     vkDestroyBuffer(device->get(), stagingBuffer, nullptr);
     vkFreeMemory(device->get(), stagingBufferMemory, nullptr);

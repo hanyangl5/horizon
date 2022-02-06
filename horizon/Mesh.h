@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "CommandBuffer.h"
 #include <memory>
 // struct Transform
 // {
@@ -19,7 +20,7 @@
 class Mesh
 {
 public:
-  Mesh(Device* device, VkCommandPool cmdpool,std::vector<Vertex> vertices, std::vector<u32> indices);
+  Mesh(Device* device, CommandBuffer* commandBuffer,std::vector<Vertex> vertices, std::vector<u32> indices);
   ~Mesh();
   // Mesh(std::vector<Vertex> vertices, std::vector<u32> indices,
   //      std::vector<Texture> textures);
