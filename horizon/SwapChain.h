@@ -18,13 +18,17 @@ public:
 
 	std::vector<VkImageView> getImageViews() const;
 
-	VkImageView getImageView(u32 i)const;
+	VkImageView getImageView(u32 i) const;
+	
+	VkImageView getDepthImageView() const;
 
 	VkExtent2D getExtent() const;
 
 	u32 getImageCount() const;
 
 	VkFormat getImageFormat() const;
+
+	VkFormat getDepthFormat() const;
 
 	void recreate(VkExtent2D newExtent);
 
@@ -43,7 +47,10 @@ private:
 
 	void createImageViews();
 
+	void createDepthResources();
+	
 	void cleanup();
+
 
 private:
 
@@ -58,7 +65,9 @@ private:
 	std::vector<VkImage> images; // handle of swapchain images
 	std::vector<VkImageView> imageViews; // An image view is quite literally a view into an image. It describes how to access the image and which part of the image to access
 
-
-
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
+	VkFormat mDepthFormat;
 };
 

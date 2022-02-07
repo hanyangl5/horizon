@@ -34,11 +34,10 @@ errorcode ErrorCodes[] =
 
 void printVkError(VkResult result, std::string prefix, logLevel level)
 {
-	bool Verbose = 1;
-	if (Verbose && result == VK_SUCCESS && prefix == "") {
+	if (result == VK_SUCCESS) {
 		return;
 	}
-	else if (Verbose && result == VK_SUCCESS && prefix != "")
+	else if (result != VK_SUCCESS && prefix != "")
 	{
 		//if (level == logLevel::debug)
 		//{

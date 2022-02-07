@@ -24,15 +24,16 @@ void Framebuffers::createFrameBuffers()
 
     for (u32 i = 0; i < mSwapChain->getImageCount(); i++)
     {
-        VkImageView attachments[] = {
-            mSwapChain->getImageView(i)
+        std::vector <VkImageView> attachments= {
+            mSwapChain->getImageView(i),
+            mSwapChain->getDepthImageView()
         };
 
         VkFramebufferCreateInfo frameBufferCreateInfo{};
         frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         frameBufferCreateInfo.renderPass = mPipeline->getRenderPass();
-        frameBufferCreateInfo.attachmentCount = 1;
-        frameBufferCreateInfo.pAttachments = attachments;
+        frameBufferCreateInfo.attachmentCount = static_cast<u32>(attachments.size());
+        frameBufferCreateInfo.pAttachments = attachments.data();
         frameBufferCreateInfo.width = mSwapChain->getExtent().width;
         frameBufferCreateInfo.height = mSwapChain->getExtent().height;
         frameBufferCreateInfo.layers = 1;
