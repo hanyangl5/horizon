@@ -13,7 +13,7 @@ UniformBuffer::~UniformBuffer()
 void UniformBuffer::update(void* ubo, u64 bufferSize)
 {
     if (!mUniformBuffer) {
-        vkCreateBuffer(mDevice->get(), mDevice->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mUniformBuffer, mUniformBufferMemory);
+        vk_createBuffer(mDevice->get(), mDevice->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mUniformBuffer, mUniformBufferMemory);
         mSize = bufferSize;
     }
     void* data;

@@ -9,7 +9,7 @@ VertexBuffer::VertexBuffer(Device* device, CommandBuffer* commandBuffer, const s
     // create stage buffer
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    vkCreateBuffer(device->get(),device->getPhysicalDevice(),bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    vk_createBuffer(device->get(),device->getPhysicalDevice(),bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	// upload cpu data
 	void* data;
@@ -18,9 +18,9 @@ VertexBuffer::VertexBuffer(Device* device, CommandBuffer* commandBuffer, const s
 	vkUnmapMemory(mDevice->get(), stagingBufferMemory);
 
 	// create actual vertex buffer
-	vkCreateBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer, mVertexBufferMemory);
+	vk_createBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer, mVertexBufferMemory);
 
-	copyBuffer(device, commandBuffer, stagingBuffer, mVertexBuffer, bufferSize);
+	vk_copyBuffer(device, commandBuffer, stagingBuffer, mVertexBuffer, bufferSize);
 
 	vkDestroyBuffer(device->get(), stagingBuffer, nullptr);
 	vkFreeMemory(device->get(), stagingBufferMemory, nullptr);

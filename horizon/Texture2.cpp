@@ -29,7 +29,7 @@ void Texture::loadFromFile(const std::string& path, VkImageUsageFlags usage, VkI
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	vkCreateBuffer(mDevice->get(),mDevice->getPhysicalDevice(),imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+	vk_createBuffer(mDevice->get(),mDevice->getPhysicalDevice(),imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	void* data;
 	vkMapMemory(mDevice->get(), stagingBufferMemory, 0, imageSize, 0, &data);

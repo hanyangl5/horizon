@@ -2,7 +2,7 @@
 
 
 // vkcreatebuffer, allocate memory and bindbuffermemory
-void vkCreateBuffer(VkDevice device, VkPhysicalDevice gpu, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+void vk_createBuffer(VkDevice device, VkPhysicalDevice gpu, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferInfo.size = size;
@@ -28,7 +28,7 @@ void vkCreateBuffer(VkDevice device, VkPhysicalDevice gpu, VkDeviceSize size, Vk
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
-void copyBuffer(Device* device,CommandBuffer* commandbuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void vk_copyBuffer(Device* device,CommandBuffer* commandbuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
 	VkCommandBuffer cmdbuf = commandbuffer->beginSingleTimeCommands();
 	VkBufferCopy copyRegion{};
 	copyRegion.size = size;
@@ -36,7 +36,7 @@ void copyBuffer(Device* device,CommandBuffer* commandbuffer, VkBuffer srcBuffer,
 	commandbuffer->endSingleTimeCommands(cmdbuf);
 }
 
-void copyBufferToImage(CommandBuffer* commandbuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void vk_copyBufferToImage(CommandBuffer* commandbuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
 {
 	VkCommandBuffer cmdbuf = commandbuffer->beginSingleTimeCommands();
 
