@@ -4,12 +4,12 @@
 #include "utils.h"
 #include "Device.h"
 
-class UniformBuffer;
-
-struct BufferDesc
+struct DescriptorSetUpdateDesc
 {
-	//void* bufferData;
-	std::vector<UniformBuffer*> ubos;
+	// sampler/ubo/sbo
+public:
+	void addBinding(u32 binding, DescriptorBuffer* buffer);
+	std::unordered_map<u32, DescriptorBuffer*> descriptorMap;
 };
 
 struct DescriptorSetInfo {
@@ -19,23 +19,23 @@ struct DescriptorSetInfo {
 	void addBinding(VkDescriptorType type, VkShaderStageFlags stage);
 };
 
-class Descriptors
+class DescriptorSet
 {
 public:
-	Descriptors(Device* device);
-	~Descriptors();
-	VkDescriptorSetLayout* getLayouts();
-	VkDescriptorSet* get();
+	/*DescriptorSet(Device* device);*/
+	DescriptorSet(Device* device, DescriptorSetInfo* setInfo);
+	~DescriptorSet();
+	VkDescriptorSetLayout getLayout();
+	VkDescriptorSet get();
 	void createDescriptorSetLayout();
 	void allocateDescriptors();
 	void createDescriptorPool();
-	void addDescriptorSet(DescriptorSetInfo* setInfo);
-	void updateDescriptorSet(u32 setIndex, BufferDesc* desc);
-	u32 getSetCount() const;
+	void updateDescriptorSet(DescriptorSetUpdateDesc* desc);
+
 private:
 	Device* mDevice = nullptr;
-	std::vector<DescriptorSetInfo> mDescriptorSetInfos;
-	std::vector<VkDescriptorSetLayout> mSetLayouts;
-	std::vector<VkDescriptorSet> mSets;
+	DescriptorSetInfo mDescriptorSetInfo;
+	VkDescriptorSetLayout mSetLayout;
+	VkDescriptorSet mSet;
 	VkDescriptorPool mDescriptorPool;
 };

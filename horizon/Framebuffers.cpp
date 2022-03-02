@@ -1,42 +1,42 @@
 #include "Framebuffers.h"
 
-Framebuffers::Framebuffers(Device* device,SwapChain* swapchain,Pipeline* pipeline):mDevice(device),mSwapChain(swapchain),mPipeline(pipeline)
+Framebuffers::Framebuffers(Device* device, SwapChain* swapchain, RenderPass* renderPass) :mDevice(device), mSwapChain(swapchain), mRenderPass(renderPass)
 {
-    createFrameBuffers();
+	createFrameBuffers();
 }
 
 Framebuffers::~Framebuffers()
 {
-    for (auto framebuffer : mSwapChainFrameBuffers)
-    {
-        vkDestroyFramebuffer(mDevice->get(), framebuffer, nullptr);
-    }
+	for (auto framebuffer : mSwapChainFrameBuffers)
+	{
+		vkDestroyFramebuffer(mDevice->get(), framebuffer, nullptr);
+	}
 }
 
 VkFramebuffer Framebuffers::get(u32 i) const
 {
-    return mSwapChainFrameBuffers[i];
+	return mSwapChainFrameBuffers[i];
 }
 
 void Framebuffers::createFrameBuffers()
 {
-    mSwapChainFrameBuffers.resize(mSwapChain->getImageCount());
+	mSwapChainFrameBuffers.resize(mSwapChain->getImageCount());
 
-    for (u32 i = 0; i < mSwapChain->getImageCount(); i++)
-    {
-        std::vector <VkImageView> attachments= {
-            mSwapChain->getImageView(i),
-            mSwapChain->getDepthImageView()
-        };
+	for (u32 i = 0; i < mSwapChain->getImageCount(); i++)
+	{
+		std::vector <VkImageView> attachments = {
+			mSwapChain->getImageView(i),
+			mSwapChain->getDepthImageView()
+		};
 
-        VkFramebufferCreateInfo frameBufferCreateInfo{};
-        frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        frameBufferCreateInfo.renderPass = mPipeline->getRenderPass();
-        frameBufferCreateInfo.attachmentCount = static_cast<u32>(attachments.size());
-        frameBufferCreateInfo.pAttachments = attachments.data();
-        frameBufferCreateInfo.width = mSwapChain->getExtent().width;
-        frameBufferCreateInfo.height = mSwapChain->getExtent().height;
-        frameBufferCreateInfo.layers = 1;
-        printVkError(vkCreateFramebuffer(mDevice->get(), &frameBufferCreateInfo, nullptr, &mSwapChainFrameBuffers[i]), "create frame buffer");
-    }
+		VkFramebufferCreateInfo frameBufferCreateInfo{};
+		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		frameBufferCreateInfo.renderPass = mRenderPass->get();
+		frameBufferCreateInfo.attachmentCount = static_cast<u32>(attachments.size());
+		frameBufferCreateInfo.pAttachments = attachments.data();
+		frameBufferCreateInfo.width = mSwapChain->getExtent().width;
+		frameBufferCreateInfo.height = mSwapChain->getExtent().height;
+		frameBufferCreateInfo.layers = 1;
+		printVkError(vkCreateFramebuffer(mDevice->get(), &frameBufferCreateInfo, nullptr, &mSwapChainFrameBuffers[i]), "create frame buffer");
+	}
 }

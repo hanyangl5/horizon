@@ -6,21 +6,20 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
-//#include "VertexBuffer.h"
-//#include "Assets.h"
 
 class CommandBuffer
 {
 public:
 	CommandBuffer(Device* device,
 		SwapChain* swapchain,
-		Pipeline* pipeline,
 		Framebuffers* framebuffers);
 	~CommandBuffer();
 	VkCommandBuffer* get(u32 i);
 	void submit();
 	VkCommandPool getCommandpool()const;
-	void draw(std::vector<DrawContext>& drawContexts);
+	void beginRenderPass(u32 index, Pipeline* pipeline);
+	void endRenderPass(u32 index);
+	//void draw(std::vector<DrawContext>& drawContexts);
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandbuffer);
 	u32 commandBufferCount() const noexcept { return mCommandBuffers.size(); }
@@ -34,7 +33,6 @@ private:
 
 	Device* mDevice = nullptr;
 	SwapChain* mSwapChain;
-	Pipeline* mPipeline = nullptr;
 	Framebuffers* mFramebuffers = nullptr;
 	VkCommandPool mCommandPool = nullptr;
 	std::vector<VkCommandBuffer> mCommandBuffers;

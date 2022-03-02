@@ -12,7 +12,7 @@
 #include "Descriptors.h"
 #include "Pipeline.h"
 #include "Framebuffers.h"
-#include "Assets.h"
+#include "Scene.h"
 #include "UniformBuffer.h"
 class Renderer
 {
@@ -35,28 +35,17 @@ private:
 	Device* mDevice = nullptr;
 	Surface* mSurface = nullptr;
 	SwapChain* mSwapChain = nullptr;
-	Descriptors* mDescriptors = nullptr;
+	RenderPass* mRenderPass = nullptr;
 	Pipeline* mPipeline = nullptr;
 	Framebuffers* mFramebuffers = nullptr;
 	CommandBuffer* mCommandBuffer = nullptr;
-	static Assest mAssest;
+	Scene* mScene;
 
-	// ubo
-	struct colorStruct {
-		float a = 1.0;
-		float b = 0.0;
-		float c = 0.0;
-	};
-	colorStruct colorubo;
-	UniformBuffer* testUBO = nullptr;
-	
 	//sync primitives
 
 	// semaphores
 	VkSemaphore presenet_complete_semaphore;
 	VkSemaphore render_complete_semaphore;
 	std::vector<VkFence> fences;
-
-
 
 };

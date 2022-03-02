@@ -3,9 +3,8 @@
 
 CommandBuffer::CommandBuffer(Device* device,
 	SwapChain* swapchain,
-	Pipeline* pipeline,
 	Framebuffers*  framebuffers)
-	:mDevice(device), mSwapChain(swapchain), mPipeline(pipeline), mFramebuffers(framebuffers)
+	:mDevice(device), mSwapChain(swapchain), mFramebuffers(framebuffers)
 {
 	createCommandPool();
 	allocateCommandBuffers();
@@ -59,7 +58,6 @@ void CommandBuffer::submit()
 
 	vkResetFences(mDevice->get(), 1, &mInFlightFences[currentFrame]);
 
-	//vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]);
 	printVkError(vkQueueSubmit(mDevice->getGraphicQueue(), 1, &submitInfo, mInFlightFences[currentFrame]),"");
 
 	VkPresentInfoKHR presentInfo{};
@@ -120,53 +118,35 @@ void CommandBuffer::allocateCommandBuffers()
 	printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 }
 
-void CommandBuffer::draw(std::vector<DrawContext>& drawContexts)
-{
-	for (u32 i = 0; i < mCommandBuffers.size(); i++) {
-		VkCommandBufferBeginInfo commandBufferBeginInfo{};
-		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		// begin command buffer recording
-		printVkError(vkBeginCommandBuffer(mCommandBuffers[i], &commandBufferBeginInfo),"");
+void CommandBuffer::beginRenderPass(u32 index, Pipeline* pipeline) {
 
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = mPipeline->getRenderPass();
-		renderPassInfo.framebuffer = mFramebuffers->get(i);
-		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = mSwapChain->getExtent();
+	VkCommandBufferBeginInfo commandBufferBeginInfo{};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	// begin command buffer recording
+	printVkError(vkBeginCommandBuffer(mCommandBuffers[index], &commandBufferBeginInfo), "");
 
-		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = pipeline->getRenderPass();
+	renderPassInfo.framebuffer = mFramebuffers->get(index);
+	renderPassInfo.renderArea.offset = { 0, 0 };
+	renderPassInfo.renderArea.extent = mSwapChain->getExtent();
 
-		renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
-		renderPassInfo.pClearValues = clearValues.data();
+	std::array<VkClearValue, 2> clearValues{};
+	clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+	clearValues[1].depthStencil = { 1.0f, 0 };
 
-		vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
+	renderPassInfo.pClearValues = clearValues.data();
 
-		vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline->get());
+	vkCmdBeginRenderPass(mCommandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdSetViewport(mCommandBuffers[index], 0, 1, &pipeline->getViewport());
+}
 
-		vkCmdSetViewport(mCommandBuffers[i], 0, 1, &mPipeline->getViewport());
-		
-		for (auto& mesh : drawContexts) {
-			VkBuffer vertexBuffers = mesh.vertexBuffer ;
-			VkBuffer indexBuffers= mesh.indexBuffer ;
-			VkDeviceSize offsets[] = { 0 };
+void CommandBuffer::endRenderPass(u32 index) {
+	vkCmdEndRenderPass(mCommandBuffers[index]);
 
-			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, &vertexBuffers, offsets);
-
-			vkCmdBindIndexBuffer(mCommandBuffers[i], indexBuffers, 0, VK_INDEX_TYPE_UINT32);
-
-			vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline->getLayout(), 0, mPipeline->getDescriptorCount(), mPipeline->getDescriptorSets(), 0, nullptr);
-
-			vkCmdDrawIndexed(mCommandBuffers[i], mesh.iCount, 1, 0, 0, 0);
-
-		}
-
-		vkCmdEndRenderPass(mCommandBuffers[i]);
-
-		printVkError(vkEndCommandBuffer(mCommandBuffers[i]), "");
-	}
+	printVkError(vkEndCommandBuffer(mCommandBuffers[index]), "");
 }
 
 void CommandBuffer::createSyncObjects()
@@ -186,8 +166,6 @@ void CommandBuffer::createSemaphores()
 		printVkError(vkCreateSemaphore(mDevice->get(), &semaphoreCreateInfo, nullptr, &mImageAvailableSemaphores[i]), "create semaphore",logLevel::debug);
 		printVkError(vkCreateSemaphore(mDevice->get(), &semaphoreCreateInfo, nullptr, &mRenderFinishedSemaphores[i]), "create semaphore",logLevel::debug);
 	}
-
-
 }
 
 void CommandBuffer::createFences()

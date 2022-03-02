@@ -8,31 +8,37 @@
 #include "Surface.h"
 #include "ShaderModule.h"
 #include "Descriptors.h"
-
+#include "RenderPass.h"
+#include <vector>
+#include <unordered_map>
 class Pipeline
 {
 public:
-	Pipeline(Device* device, SwapChain* swapchain, Descriptors* descriptors);
+	Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass);
 	~Pipeline();
+	void create(std::vector<DescriptorSet>& descriptors);
 	VkPipeline get()const;
-	VkPipelineLayout getLayout()const;
-	VkRenderPass getRenderPass()const;
-	VkViewport getViewport()const;
-	VkDescriptorSetLayout* getDescriptorSetLayouts();
-	u32 getDescriptorCount();
-	VkDescriptorSet* getDescriptorSets();
+	VkPipelineLayout getLayout() const;
+	VkViewport getViewport() const;
+	VkRenderPass getRenderPass() const;
 private:
-	void createPipelineLayout(Descriptors* descriptors);
-	void createRenderPass();
+	void createPipelineLayout(std::vector<DescriptorSet>& descriptors);
 	void createPipeline();
 private:
 	Device* mDevice = nullptr;
 	SwapChain* mSwapChain = nullptr;
-	Descriptors* mDescriptors = nullptr;
+	//DescriptorSet* mDescriptorSet = nullptr;
+	RenderPass* mRenderPass = nullptr;
 	// handle of pipeline layout
 	VkPipelineLayout mPipelineLayout = nullptr;
-	VkRenderPass mRenderPass;
 	VkPipeline mGraphicsPipeline;
 	VkViewport mViewport;
 
+	//struct PipelineKey {
+
+	//};
+	//struct PipelineVal {
+
+	//};
+	//std::unordered_map<PipelineKey, PipelineVal> mPipelineMap;
 };

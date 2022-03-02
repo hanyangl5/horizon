@@ -10,6 +10,11 @@
 
 #include <string>
 #include <filesystem>
+
+#include <iostream>
+
+#include "glm/ext.hpp"
+#include "glm/gtx/string_cast.hpp"
 // *******************************
 // HANDLING A VULKAN ERROR RETURN:
 // *******************************
@@ -51,7 +56,20 @@ using f64 = double;
 
 uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-struct DrawContext {
-	VkBuffer vertexBuffer, indexBuffer;
-	u32 vCount, iCount;
+
+
+enum DescriptorTypeFlags
+{
+	UNIFORM_BUFFER,
+	STORAGE_BUFFER,
+	COMBINDED_SAMPLER
+};
+
+using DescriptorType = u32;
+
+struct DescriptorBuffer
+{
+	//DescriptorType type;
+	VkDescriptorImageInfo imageDescriptorInfo{};
+	VkDescriptorBufferInfo bufferDescriptrInfo{};
 };

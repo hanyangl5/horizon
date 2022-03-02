@@ -1,4 +1,4 @@
-#include "Pipeline.h"
+ #include "Pipeline.h"
 #include "Instance.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -6,19 +6,22 @@
 #include "ShaderModule.h"
 #include <array>
 #include "Vertex.h"
-Pipeline::Pipeline(Device* device,
-	SwapChain* swapchain, Descriptors* descriptors) : mDevice(device), mSwapChain(swapchain), mDescriptors(descriptors)
+
+Pipeline::Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass) : mDevice(device), mSwapChain(swapchain), mRenderPass(renderpass)
 {
-	createPipelineLayout(mDescriptors);
-	createRenderPass();
-	createPipeline();
+
 }
 
 Pipeline::~Pipeline()
 {
 	vkDestroyPipeline(mDevice->get(), mGraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
-	vkDestroyRenderPass(mDevice->get(), mRenderPass, nullptr);
+}
+
+void Pipeline::create(std::vector<DescriptorSet>& descriptors)
+{
+	createPipelineLayout(descriptors);
+	createPipeline();
 }
 
 VkPipeline Pipeline::get() const
@@ -31,108 +34,39 @@ VkPipelineLayout Pipeline::getLayout() const
 	return mPipelineLayout;
 }
 
-VkRenderPass Pipeline::getRenderPass() const
-{
-	return mRenderPass;
-}
 
 VkViewport Pipeline::getViewport() const
 {
 	return mViewport;
 }
 
-VkDescriptorSetLayout* Pipeline::getDescriptorSetLayouts()
+VkRenderPass Pipeline::getRenderPass() const
 {
-	return mDescriptors->getLayouts();
+	return mRenderPass->get();
 }
 
-u32 Pipeline::getDescriptorCount()
-{
-	return mDescriptors->getSetCount();
-}
 
-VkDescriptorSet* Pipeline::getDescriptorSets()
+void Pipeline::createPipelineLayout(std::vector<DescriptorSet>& descriptors)
 {
-	return mDescriptors->get();
-}
-
-void Pipeline::createPipelineLayout(Descriptors* descriptors)
-{
+	std::vector<VkDescriptorSet> sets(descriptors.size());
+	std::vector<VkDescriptorSetLayout> setLayouts(descriptors.size());
+	for (u32 i = 0; i < descriptors.size(); i++) {
+		setLayouts[i] = descriptors[i].getLayout();
+	}
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	pipelineLayoutInfo.setLayoutCount = descriptors->getSetCount();
-	pipelineLayoutInfo.pSetLayouts = descriptors->getLayouts();
+	pipelineLayoutInfo.setLayoutCount =static_cast<u32>(setLayouts.size());
+	pipelineLayoutInfo.pSetLayouts = setLayouts.data();
 	printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
-}
-
-void Pipeline::createRenderPass()
-{
-
-	// renderpass
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = mSwapChain->getImageFormat();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = mSwapChain->getDepthFormat();
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference depthAttachmentRef{};
-	depthAttachmentRef.attachment = 1;
-	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-	subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-	std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
-
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
-	renderPassInfo.pAttachments = attachments.data();
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	printVkError(vkCreateRenderPass(mDevice->get(), &renderPassInfo, nullptr, &mRenderPass), "failed to create render pass");
-
 }
 
 void Pipeline::createPipeline()
 {
 	std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
-	spdlog::info(shader_dir.string());
-	std::string vspath = (shader_dir / "vertexshader.spv").string();
-	std::string pspath = (shader_dir / "fragshader.spv").string();
+	//spdlog::info(shader_dir.string());
+	std::string vspath = (shader_dir / "model.vert.spv").string();
+	std::string pspath = (shader_dir / "model.frag.spv").string();
 	Shader vs(mDevice->get(), vspath.c_str());
 	Shader ps(mDevice->get(), pspath.c_str());
 
@@ -258,7 +192,7 @@ void Pipeline::createPipeline()
 	pipelineInfo.pMultisampleState = &multisamplingStateCreateInfo;
 	pipelineInfo.pColorBlendState = &colorBlendingStateCreateInfo;
 	pipelineInfo.layout = mPipelineLayout;
-	pipelineInfo.renderPass = mRenderPass;
+	pipelineInfo.renderPass = mRenderPass->get();
 	pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;

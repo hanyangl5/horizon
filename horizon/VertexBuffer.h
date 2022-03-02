@@ -7,7 +7,7 @@
 class VertexBuffer
 {
 public:
-	VertexBuffer()=default;
+	VertexBuffer() = default;
 	VertexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Vertex>& vertices);
 	//VertexBuffer(const VertexBuffer&& rhs);
 	//VertexBuffer& operator=(VertexBuffer&& rhs);

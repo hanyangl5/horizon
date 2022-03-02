@@ -1,7 +1,6 @@
 #include "Renderer.h"
 #include <iostream>
 class Window;
-Assest Renderer::mAssest;
 Renderer::Renderer(u32 width, u32 height, Window* window) :mWindow(window)
 {
 
@@ -10,11 +9,14 @@ Renderer::Renderer(u32 width, u32 height, Window* window) :mWindow(window)
 Renderer::~Renderer()
 {
 	releaseAssets();
+
+	delete mPipeline;
 	delete mCommandBuffer;
 	delete mFramebuffers;
-	delete mPipeline;
-	delete mDescriptors;
+
+	delete mRenderPass;
 	delete mSwapChain;
+
 	delete mSurface;
 	delete mDevice;
 	delete mInstance;
@@ -27,26 +29,18 @@ void Renderer::Init()
 	mSurface = new Surface(mInstance, mWindow);
 	mDevice = new Device(mInstance, mSurface);
 	mSwapChain = new SwapChain(mDevice, mSurface, mWindow);
-	mDescriptors = new Descriptors(mDevice);
+	mRenderPass = new RenderPass(mDevice, mSwapChain);
+	mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
+	mCommandBuffer = new CommandBuffer(mDevice, mSwapChain, mFramebuffers);
+	mScene = new Scene(mDevice, mCommandBuffer);
+	mScene->loadModel("C:/Users/hylu/OneDrive/mycode/dredgen/resources/models/DamagedHelmet/DamagedHelmet.gltf");
+	mPipeline = new Pipeline(mDevice, mSwapChain, mRenderPass);
 
-	DescriptorSetInfo setInfo;
-	setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	mDescriptors->addDescriptorSet(&setInfo);
-	mDescriptors->createDescriptorSetLayout();
-	mDescriptors->createDescriptorPool();
-	mDescriptors->allocateDescriptors();
-
-	mPipeline = new Pipeline(mDevice, mSwapChain, mDescriptors);
-	mFramebuffers = new Framebuffers(mDevice, mSwapChain, mPipeline);
-	mCommandBuffer = new CommandBuffer(mDevice, mSwapChain, mPipeline, mFramebuffers);
-	prepareAssests();
 }
 
 void Renderer::Update() {
-	BufferDesc bufferdesc;
-	testUBO->update(&colorubo, sizeof(colorubo));
-	bufferdesc.ubos.push_back(testUBO);
-	mDescriptors->updateDescriptorSet(0, &bufferdesc);
+	mScene->prepare();
+	mPipeline->create(mScene->getDescriptors());
 }
 void Renderer::Render() {
 
@@ -60,19 +54,16 @@ void Renderer::wait()
 
 void Renderer::drawFrame()
 {
-
-	mAssest.draw(mDevice, mCommandBuffer);
+	mScene->draw(mPipeline); // default shading pipeline
 	mCommandBuffer->submit();
 }
 
 void Renderer::prepareAssests()
 {
-	mAssest.prepare(mDevice, mCommandBuffer);
-	testUBO = new UniformBuffer(mDevice);
+
 }
 
 void Renderer::releaseAssets()
 {
-	delete testUBO;
-	mAssest.ReleaseBuffer();
+
 }

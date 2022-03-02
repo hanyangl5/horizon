@@ -3,7 +3,9 @@
 #include <vulkan/vulkan.hpp>
 #include "VulkanBuffer.h"
 #include "Device.h"
-class UniformBuffer
+#include "CommandBuffer.h"
+
+class UniformBuffer: public DescriptorBuffer
 {
 public:
 	UniformBuffer(Device* device);
