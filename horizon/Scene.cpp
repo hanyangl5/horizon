@@ -10,8 +10,8 @@ Scene::Scene(Device* device, CommandBuffer* commandBuffer) :mDevice(device), mCo
 	sceneDescriptorSetInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS);
 
 	sceneDescritporSet = new DescriptorSet(mDevice, &sceneDescriptorSetInfo);
-	sceneDescritporSet->createDescriptorPool();
-	sceneDescritporSet->allocateDescriptors();
+	//sceneDescritporSet->createDescriptorPool();
+	//sceneDescritporSet->allocateDescriptors();
 
 	mCamera = new Camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	mCamera->SetProjectionMatrix(glm::perspective(75.0f, 4.0f / 3.0f, 0.01f, 1000.0f));

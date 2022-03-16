@@ -33,7 +33,7 @@ void Renderer::Init()
 	mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
 	mCommandBuffer = new CommandBuffer(mDevice, mSwapChain, mFramebuffers);
 	mScene = new Scene(mDevice, mCommandBuffer);
-	mScene->loadModel("C:/Users/hylu/OneDrive/mycode/dredgen/resources/models/DamagedHelmet/DamagedHelmet.gltf");
+	mScene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
 	mPipeline = new Pipeline(mDevice, mSwapChain, mRenderPass);
 
 }

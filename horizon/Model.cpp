@@ -1,7 +1,7 @@
 #include "Model.h"
 #include "VulkanBuffer.h"
 
-Model::Model(const std::string& path, Device* device, CommandBuffer* command, DescriptorSet* descriptors) :mDevice(device), mCommandBuffer(command), sceneDescriptorSet(descriptors)
+Model::Model(const std::string& path, Device* device, CommandBuffer* commandBuffer, DescriptorSet* sceneDescritporSet) :mDevice(device), mCommandBuffer(commandBuffer), sceneDescriptorSet(sceneDescritporSet)
 {
 	
 	tinygltf::TinyGLTF gltfContext;
@@ -27,6 +27,10 @@ Model::Model(const std::string& path, Device* device, CommandBuffer* command, De
 
 		mVertexBuffer = new VertexBuffer(mDevice, mCommandBuffer, vertices);
 		mIndexBuffer = new IndexBuffer(mDevice, mCommandBuffer, indices);
+	}
+	else
+	{
+		spdlog::error("failed to load file {} {}", error, warning);
 	}
 }
 
@@ -167,7 +171,7 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 	materials.push_back(Material());
 }
 
-void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale)
+void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, float globalscale)
 {
 	Node* newNode = new Node{};
 	newNode->index = nodeIndex;
@@ -198,7 +202,7 @@ void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeInde
 	// Node with children
 	if (node.children.size() > 0) {
 		for (size_t i = 0; i < node.children.size(); i++) {
-			loadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indexBuffer, vertexBuffer, globalscale);
+			loadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indices, vertices, globalscale);
 		}
 	}
 
@@ -208,8 +212,8 @@ void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeInde
 		Mesh* newMesh = new Mesh(mDevice, newNode->matrix);
 		for (size_t j = 0; j < mesh.primitives.size(); j++) {
 			const tinygltf::Primitive& primitive = mesh.primitives[j];
-			uint32_t indexStart = static_cast<uint32_t>(indexBuffer.size());
-			uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
+			uint32_t indexStart = static_cast<uint32_t>(indices.size());
+			uint32_t vertexStart = static_cast<uint32_t>(vertices.size());
 			uint32_t indexCount = 0;
 			uint32_t vertexCount = 0;
 			glm::vec3 posMin{};
@@ -264,7 +268,7 @@ void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeInde
 					vert.normal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : glm::vec3(0.0f)));
 					vert.uv0 = bufferTexCoordSet0 ? glm::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : glm::vec3(0.0f);
 					//vert.uv1 = bufferTexCoordSet1 ? glm::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : glm::vec3(0.0f);
-					vertexBuffer.push_back(vert);
+					vertices.push_back(vert);
 				}
 			}
 			// Indices
@@ -281,21 +285,21 @@ void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeInde
 				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
 					const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
 					for (size_t index = 0; index < accessor.count; index++) {
-						indexBuffer.push_back(buf[index] + vertexStart);
+						indices.push_back(buf[index] + vertexStart);
 					}
 					break;
 				}
 				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
 					const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
 					for (size_t index = 0; index < accessor.count; index++) {
-						indexBuffer.push_back(buf[index] + vertexStart);
+						indices.push_back(buf[index] + vertexStart);
 					}
 					break;
 				}
 				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
 					const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
 					for (size_t index = 0; index < accessor.count; index++) {
-						indexBuffer.push_back(buf[index] + vertexStart);
+						indices.push_back(buf[index] + vertexStart);
 					}
 					break;
 				}
@@ -340,24 +344,24 @@ void Model::drawNode(Node* node, Pipeline* pipeline, VkCommandBuffer commandBuff
 void Model::updateDescriptors()
 {
 	for (auto& node : nodes) {
-		if (node->mesh) {
-			node->mesh->meshDescriptorSet->createDescriptorPool();
-			node->mesh->meshDescriptorSet->allocateDescriptors();
-
-			DescriptorSetUpdateDesc desc;
-			desc.addBinding(0, node->mesh->modelMatrixUbo);
-
-			node->mesh->meshDescriptorSet->updateDescriptorSet(&desc);
-		}
-		for (auto& child : node->children) {
-			updateNodeDescriptorSet(child);
-		}
+		updateNodeDescriptorSet(node);
 	}
 
 }
 
 void Model::updateNodeDescriptorSet(Node* node) {
+	if (node->mesh) {
+		node->mesh->meshDescriptorSet->createDescriptorPool();
+		node->mesh->meshDescriptorSet->allocateDescriptors();
 
+		DescriptorSetUpdateDesc desc;
+		desc.addBinding(0, node->mesh->meshUbo);
+
+		node->mesh->meshDescriptorSet->updateDescriptorSet(&desc);
+	}
+	for (auto& child : node->children) {
+		updateNodeDescriptorSet(child);
+	}
 }
 
 DescriptorSet* Model::getDescriptorSet()
@@ -371,3 +375,61 @@ DescriptorSet* Model::getDescriptorSet()
 	return nullptr;
 }
 
+Mesh::Mesh(Device* device, glm::mat4 model) :mDevice(device), meshUboStruct({ model })
+{
+
+	meshUbo = new UniformBuffer(mDevice);
+	DescriptorSetInfo setInfo;
+	setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	meshDescriptorSet = new DescriptorSet(mDevice, &setInfo);
+
+}
+
+Mesh::~Mesh()
+{
+	for (Primitive* p : primitives)
+		delete p;
+}
+
+Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material & material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+	hasIndices = indexCount > 0;
+}
+
+Node::Node() {
+
+}
+
+Node::~Node() {
+	if (mesh) {
+		delete mesh;
+	}
+	for (auto& child : children) {
+		delete child;
+	}
+}
+
+
+glm::mat4 Node::localMatrix() {
+	return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
+}
+
+glm::mat4 Node::getMatrix() {
+	glm::mat4 m = localMatrix();
+	Node* p = parent;
+	while (p) {
+		m = p->localMatrix() * m;
+		p = p->parent;
+	}
+	return m;
+}
+void Node::update() {
+	if (mesh) {
+		glm::mat4 m = getMatrix();
+		mesh->meshUboStruct.model = m;
+		mesh->meshUbo->update(&m, sizeof(mesh->meshUboStruct));
+	}
+
+	for (auto& child : children) {
+		child->update();
+	}
+}
