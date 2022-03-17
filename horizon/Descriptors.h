@@ -8,8 +8,8 @@ struct DescriptorSetUpdateDesc
 {
 	// sampler/ubo/sbo
 public:
-	void addBinding(u32 binding, DescriptorBuffer* buffer);
-	std::unordered_map<u32, DescriptorBuffer*> descriptorMap;
+	void addBinding(u32 binding, DescriptorBase* buffer);
+	std::unordered_map<u32, DescriptorBase*> descriptorMap;
 };
 
 struct DescriptorSetInfo {

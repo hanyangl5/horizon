@@ -119,6 +119,12 @@ Texture::Texture(Device* device, CommandBuffer* commandBuffer, tinygltf::Image& 
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 	vkCreateSampler(mDevice->get(), &samplerInfo, nullptr, &mSampler);
+
+
+	// fill descriptor info
+	imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageDescriptorInfo.imageView = mImageView;
+	imageDescriptorInfo.sampler = mSampler;
 }
 
 Texture::~Texture()

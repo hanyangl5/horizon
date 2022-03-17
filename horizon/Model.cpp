@@ -116,7 +116,7 @@ void Model::loadTextures(tinygltf::Model& gltfModel)
 		//}
 
 		textures.emplace_back(Texture(mDevice, mCommandBuffer, image));
-		;
+		
 	}
 }
 
@@ -124,14 +124,13 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 {
 	for (tinygltf::Material& mat : gltfModel.materials) {
 		Material material{};
-
 		// bc
 		if (mat.values.find("baseColorTexture") != mat.values.end()) {
 			material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
 			material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
 		}
 		if (mat.values.find("baseColorFactor") != mat.values.end()) {
-			material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+			material.materialUboStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
 		}
 
 		// normal
@@ -146,10 +145,10 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 			material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
 		}
 		if (mat.values.find("roughnessFactor") != mat.values.end()) {
-			material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
+			material.materialUboStruct.metallicRoughnessFactor.y = static_cast<float>(mat.values["roughnessFactor"].Factor());
 		}
 		if (mat.values.find("metallicFactor") != mat.values.end()) {
-			material.metallicFactor = static_cast<float>(mat.values["metallicFactor"].Factor());
+			material.materialUboStruct.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
 		}
 
 		//if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
@@ -165,7 +164,18 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 		//	material.emissiveFactor = glm::vec4(0.0f);
 		//}
 
+		material.materialUbo = new UniformBuffer(mDevice);
+		DescriptorSetInfo setInfo;
+		// material parameters
+		setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		// albedo/normal/metallicroughness
+		setInfo.addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		setInfo.addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		setInfo.addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		material.materialDescriptorSet = new DescriptorSet(mDevice, &setInfo);
+
 		materials.push_back(material);
+
 	}
 	// Push a default material at the end of the list for meshes with no material assigned
 	materials.push_back(Material());
@@ -329,8 +339,7 @@ void Model::drawNode(Node* node, Pipeline* pipeline, VkCommandBuffer commandBuff
 {
 	if (node->mesh) {
 		for (Primitive* primitive : node->mesh->primitives) {
-			//primitive->material;
-			std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(), node->mesh->meshDescriptorSet->get()};
+			std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material.materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
 			vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
@@ -343,10 +352,14 @@ void Model::drawNode(Node* node, Pipeline* pipeline, VkCommandBuffer commandBuff
 
 void Model::updateDescriptors()
 {
+	
 	for (auto& node : nodes) {
 		updateNodeDescriptorSet(node);
+		// update material params and textures
+		for (auto& primitive: node->mesh->primitives) {
+			primitive->material.updateDescriptorSet();
+		}
 	}
-
 }
 
 void Model::updateNodeDescriptorSet(Node* node) {
@@ -358,13 +371,30 @@ void Model::updateNodeDescriptorSet(Node* node) {
 		desc.addBinding(0, node->mesh->meshUbo);
 
 		node->mesh->meshDescriptorSet->updateDescriptorSet(&desc);
+
+		for (auto& primitive : node->mesh->primitives) {
+			//primitive.
+		}
 	}
 	for (auto& child : node->children) {
 		updateNodeDescriptorSet(child);
 	}
 }
 
-DescriptorSet* Model::getDescriptorSet()
+DescriptorSet* Model::getMaterialDescriptorSet()
+{
+	for (auto& node : nodes) {
+		for (auto& primitive : node->mesh->primitives) {
+			if (primitive->material.materialDescriptorSet) {
+				return primitive->material.materialDescriptorSet;
+			}
+		}
+	}
+	spdlog::error("material descriptorset not found");
+	return nullptr;
+}
+
+DescriptorSet* Model::getMeshDescriptorSet()
 {
 	for (auto& node : nodes) {
 		if (node->mesh) {
@@ -390,8 +420,8 @@ Mesh::~Mesh()
 	for (Primitive* p : primitives)
 		delete p;
 }
-
-Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material & material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+ 
+Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
 	hasIndices = indexCount > 0;
 }
 

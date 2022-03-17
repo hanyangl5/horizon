@@ -5,7 +5,7 @@
 #include "Device.h"
 #include "CommandBuffer.h"
 
-class UniformBuffer: public DescriptorBuffer
+class UniformBuffer: public DescriptorBase
 {
 public:
 	UniformBuffer(Device* device);

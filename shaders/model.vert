@@ -6,7 +6,9 @@ layout(location = 2) in vec2 inTexcoord;
 // layout(location = 3) in vec3 inTangent;
 // layout(location = 4) in vec3 inBiTangent;
 
-layout(location = 0) out vec3 outNormal;
+layout(location = 0) out vec2 fragTexCoord;
+
+// scene descriptorset
 
 layout(set = 0, binding = 0) uniform SceneUb {
     mat4 view, proj;
@@ -17,13 +19,17 @@ layout(set = 0, binding = 1) uniform SceneUb2 {
     float b;
 } sceneUb2;
 
-layout(set = 1, binding = 0) uniform DrawUb {
+
+// mesh descriptorset
+
+layout(set = 2, binding = 0) uniform MeshUb {
     mat4 model;
-} drawUb;
+} meshUb;
+
+
 
 void main() {
-    outNormal = vec3(sceneUb2.a);
-    gl_Position = sceneUb.proj * sceneUb.view * drawUb.model * vec4(inPosition, 1.0);
-    
-    outNormal = inNormal;
+    fragTexCoord = inTexcoord;
+    gl_Position = sceneUb.proj * sceneUb.view * meshUb.model * vec4(inPosition, 1.0);
+
 }

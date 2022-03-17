@@ -15,13 +15,15 @@
 #include <glm/glm.hpp>
 #include "tiny_gltf.h"
 
-struct Primitive {
+class Primitive {
+public:
+	Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material& material);
 	uint32_t firstIndex;
 	uint32_t indexCount;
 	uint32_t vertexCount;
 	Material& material;
 	bool hasIndices;
-	Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material& material);
+
 };
 
 class Mesh {
@@ -71,7 +73,8 @@ public:
 	void drawNode(Node* node, Pipeline* pipeline, VkCommandBuffer commandBuffer);
 	void updateDescriptors();
 	void updateNodeDescriptorSet(Node* node);
-	DescriptorSet* getDescriptorSet();
+	DescriptorSet* getMeshDescriptorSet();
+	DescriptorSet* getMaterialDescriptorSet();
 
 private:
 	Device* mDevice;

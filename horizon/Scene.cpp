@@ -71,6 +71,6 @@ void Scene::draw(Pipeline* pipeline) {
 
 std::vector<DescriptorSet> Scene::getDescriptors()
 {
-	std::vector<DescriptorSet> sets{ *sceneDescritporSet, *mModels[0].getDescriptorSet() };
+	std::vector<DescriptorSet> sets{ *sceneDescritporSet, *mModels[0].getMaterialDescriptorSet(),*mModels[0].getMeshDescriptorSet() };
 	return sets;
 }

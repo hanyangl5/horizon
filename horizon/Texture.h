@@ -6,7 +6,7 @@
 
 #include "tiny_gltf.h"
 
-class Texture
+class Texture : public DescriptorBase
 {
 public:
 	Texture(Device* device, CommandBuffer* command);

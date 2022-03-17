@@ -40,8 +40,6 @@ void DescriptorSet::createDescriptorSetLayout()
 void DescriptorSet::updateDescriptorSet(DescriptorSetUpdateDesc* desc)
 {
 
-	std::unordered_map<u32, VkDescriptorBufferInfo> bufferDescriptorMap;
-
 	// update descriptor set
 	std::vector<VkWriteDescriptorSet> descriptorWrites(mDescriptorSetInfo.bindingCount);
 	for (u32 binding = 0; binding < mDescriptorSetInfo.bindingCount; binding++) {
@@ -134,7 +132,7 @@ void DescriptorSetInfo::addBinding(VkDescriptorType type, VkShaderStageFlags sta
 //	uboMap[binding] = VkDescriptorBufferInfo{ ubo->get(),0,ubo->size() };
 //}
 
-void DescriptorSetUpdateDesc::addBinding(u32 binding, DescriptorBuffer* buffer)
+void DescriptorSetUpdateDesc::addBinding(u32 binding, DescriptorBase* buffer)
 {
 	descriptorMap[binding] = buffer;
 }

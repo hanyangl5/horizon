@@ -67,7 +67,7 @@ enum DescriptorTypeFlags
 
 using DescriptorType = u32;
 
-struct DescriptorBuffer
+struct DescriptorBase
 {
 	//DescriptorType type;
 	VkDescriptorImageInfo imageDescriptorInfo{};
