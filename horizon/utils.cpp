@@ -21,7 +21,7 @@ errorcode ErrorCodes[] =
 	{VK_ERROR_FRAGMENTED_POOL, "Fragmented Pool"},
 	{VK_ERROR_SURFACE_LOST_KHR, "Surface Lost"},
 	{VK_ERROR_NATIVE_WINDOW_IN_USE_KHR, "Native Window in Use"},
-	{VK_SUBOPTIMAL_KHR, "Suboptimal"},
+	{VK_SUBOPTIMAL_KHR, "SUbptimal"},
 	{VK_ERROR_OUT_OF_DATE_KHR, "Error Out of Date"},
 	{VK_ERROR_INCOMPATIBLE_DISPLAY_KHR, "Incompatible Display"},
 	{VK_ERROR_VALIDATION_FAILED_EXT, "Valuidation Failed"},

@@ -1,7 +1,6 @@
  #pragma once
+#include "utils.h"
 
- #include <glm/glm.hpp>
- #include <glm/gtc/matrix_transform.hpp>
  #include <vector>
 
  // Defines several possible options for camera movement. Used as abstraction to
@@ -23,8 +22,8 @@
  const float SENSITIVITY = 0.1f;
  const float ZOOM = 90.0f;
 
- // An abstract camera class that processes input and calculates the
- // corresponding Euler Angles, Vectors and Matrices for use in OpenGL
+  //An abstract camera class that processes input and calculates the
+  //corresponding Euler Angles, Vectors and Matrices for use in OpenGL
  class Camera
  {
  public:
@@ -162,3 +161,20 @@
  		Up = glm::normalize(glm::cross(Right, Front));
  	}
  };
+
+ //namespace Horizon {
+ //    class CameraBase {
+ //    public:
+ //        CameraBase();
+ //        void setProjectionMatrix(const glm::mat4& projection);
+ //        void setProjectionMatrix(f32 fov, float aspectRatio, float near, float far);
+ //        vec3 getForwardDirection();
+ //        void set();
+ //    private:
+ //        glm::mat4 view, projection;
+ //        f32 nearPlane, farPlane;
+
+
+ //    };
+
+ //}

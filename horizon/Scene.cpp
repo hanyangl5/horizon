@@ -7,25 +7,23 @@ Scene::Scene(Device* device, CommandBuffer* commandBuffer) :mDevice(device), mCo
 	DescriptorSetInfo sceneDescriptorSetInfo{};
 	// vp mat
 	sceneDescriptorSetInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-	sceneDescriptorSetInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS);
+	// light count
+	sceneDescriptorSetInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	// light ub
+	sceneDescriptorSetInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	// camera
+	sceneDescriptorSetInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	sceneDescritporSet = new DescriptorSet(mDevice, &sceneDescriptorSetInfo);
-	//sceneDescritporSet->createDescriptorPool();
-	//sceneDescritporSet->allocateDescriptors();
 
 	mCamera = new Camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	mCamera->SetProjectionMatrix(glm::perspective(75.0f, 4.0f / 3.0f, 0.01f, 1000.0f));
 
 	// create uniform buffer
-	sceneUbo = new UniformBuffer(device);
-	sceneUbo2 = new UniformBuffer(device);
-
-	// update ubo data
-	sceneUboStruct.view = mCamera->GetViewMatrix();
-	sceneUboStruct.projection = mCamera->getProjectionMatrix();
-	sceneUboStruct2.a = 1.0;
-	sceneUboStruct2.b = 2.0;
-
+	sceneUb = new UniformBuffer(device);
+	lightCountUb = new UniformBuffer(device);
+	lightUb = new UniformBuffer(device);
+	cameraUb = new UniformBuffer(device);
 }
 
 Scene::~Scene()
@@ -34,7 +32,11 @@ Scene::~Scene()
 
 void Scene::destroy()
 {
-	delete sceneUbo; 
+	for (auto& model : mModels) {
+		
+	}
+
+	delete sceneUb; 
 	delete sceneDescritporSet;
 	delete mCamera;
 }
@@ -44,17 +46,66 @@ void Scene::loadModel(const std::string& path)
 	mModels.emplace_back(path, mDevice, mCommandBuffer, sceneDescritporSet);
 }
 
+void Scene::addDirectLight(glm::vec3 color, f32 intensity, glm::vec3 direction)
+{
+	if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
+		spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
+		return;
+	}
+	lightUbStruct.lights[lightCountUbStruct.lightCount].colorIntensity = { color, intensity };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].direction = { direction.x, direction.y, direction.z, 0.0 };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].positionType = { 0.0, 0.0, 0.0, static_cast<f32>(LightType::DIRECT_LIGHT) };
+	lightCountUbStruct.lightCount++;
+
+}
+
+void Scene::addPointLight(glm::vec3 color, f32 intensity, glm::vec3 position, f32 radius)
+{
+	if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
+		spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
+		return;
+	}
+
+	lightUbStruct.lights[lightCountUbStruct.lightCount].colorIntensity = { color, intensity };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].positionType = { position, static_cast<f32>(LightType::POINT_LIGHT) };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].radiusInnerOuter = { radius, 0.0, 0.0, 0.0 };
+	lightCountUbStruct.lightCount++;
+
+}
+
+void Scene::addSpotLight(glm::vec3 color, f32 intensity, glm::vec3 direction, glm::vec3 position, f32 innerRadius, f32 outerRadius)
+{
+	if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
+		spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
+		return;
+	}
+	lightUbStruct.lights[lightCountUbStruct.lightCount].colorIntensity = { color, intensity };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].direction = { direction, 0.0 };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].positionType = { position, static_cast<f32>(LightType::SPOT_LIGHT) };
+	lightUbStruct.lights[lightCountUbStruct.lightCount].radiusInnerOuter = { 0.0,innerRadius, outerRadius,0.0 };
+	lightCountUbStruct.lightCount++;
+}
+
 void Scene::prepare()
 {
 	sceneDescritporSet->createDescriptorPool();
 	sceneDescritporSet->allocateDescriptors();
 
-	sceneUbo->update(&sceneUboStruct, sizeof(sceneUboStruct));
-	sceneUbo2->update(&sceneUboStruct2, sizeof(sceneUboStruct2));
+	// update Ub data
+	sceneUbStruct.view = mCamera->GetViewMatrix();
+	sceneUbStruct.projection = mCamera->getProjectionMatrix();
+	camaeraUbStruct.cameraPos = mCamera->Position;
+
+	sceneUb->update(&sceneUbStruct, sizeof(SceneUbStruct));
+	lightCountUb->update(&lightCountUbStruct, sizeof(LightCountUbStruct));
+	lightUb->update(&lightUbStruct, lightCountUbStruct.lightCount > 0 ? sizeof(LightParams) * lightCountUbStruct.lightCount : sizeof(LightParams));
+	cameraUb->update(&camaeraUbStruct, sizeof(CamaeraUbStruct));
 
 	DescriptorSetUpdateDesc desc;
-	desc.addBinding(0, sceneUbo);
-	desc.addBinding(1, sceneUbo2);
+	desc.addBinding(0, sceneUb);
+	desc.addBinding(1, lightCountUb);
+	desc.addBinding(2, lightUb);
+	desc.addBinding(3, cameraUb);
 
 	sceneDescritporSet->updateDescriptorSet(&desc);
 

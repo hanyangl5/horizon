@@ -11,8 +11,6 @@
 #include "Texture.h"
 #include "Material.h"
 
-
-#include <glm/glm.hpp>
 #include "tiny_gltf.h"
 
 class Primitive {
@@ -34,10 +32,10 @@ public:
 	Device* mDevice;;
 	std::vector<Primitive*> primitives;
 
-	struct MeshUboStruct {
+	struct MeshUbStruct {
 		glm::mat4 model;
-	}meshUboStruct;
-	UniformBuffer* meshUbo = nullptr;
+	}meshUbStruct;
+	UniformBuffer* meshUb = nullptr;
 	DescriptorSet* meshDescriptorSet = nullptr;
 };
 

@@ -65,8 +65,8 @@ void Pipeline::createPipeline()
 {
 	std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
 	//spdlog::info(shader_dir.string());
-	std::string vspath = (shader_dir / "model.vert.spv").string();
-	std::string pspath = (shader_dir / "model.frag.spv").string();
+	std::string vspath = (shader_dir / "defaultlit.vert.spv").string();
+	std::string pspath = (shader_dir / "defaultlit.frag.spv").string();
 	Shader vs(mDevice->get(), vspath.c_str());
 	Shader ps(mDevice->get(), pspath.c_str());
 

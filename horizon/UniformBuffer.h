@@ -10,7 +10,7 @@ class UniformBuffer: public DescriptorBase
 public:
 	UniformBuffer(Device* device);
 	~UniformBuffer();
-	void update(void* ubo, u64 bufferSize);
+	void update(void* Ub, u64 bufferSize);
 	VkBuffer get()const;
 	u64 size()const;
 private:

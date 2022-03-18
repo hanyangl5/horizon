@@ -32,9 +32,9 @@ public:
 
 	DescriptorSet* materialDescriptorSet;
 
-	struct MaterialUboStruct {
+	struct MaterialUbStruct {
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);
 		glm::vec2 metallicRoughnessFactor = glm::vec2(1.0f);
-	}materialUboStruct;
-	UniformBuffer* materialUbo;
+	}materialUbStruct;
+	UniformBuffer* materialUb;
 };

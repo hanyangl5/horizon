@@ -127,10 +127,6 @@ void DescriptorSetInfo::addBinding(VkDescriptorType type, VkShaderStageFlags sta
 	stageFlags.push_back(stage);
 }
 
-//void BufferDesc::insertUbo(u32 binding, UniformBuffer* ubo)
-//{
-//	uboMap[binding] = VkDescriptorBufferInfo{ ubo->get(),0,ubo->size() };
-//}
 
 void DescriptorSetUpdateDesc::addBinding(u32 binding, DescriptorBase* buffer)
 {

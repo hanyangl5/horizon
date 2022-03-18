@@ -13,8 +13,13 @@
 
 #include <iostream>
 
-#include "glm/ext.hpp"
-#include "glm/gtx/string_cast.hpp"
+// gl math lib
+
+#include <glm/ext.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 // *******************************
 // HANDLING A VULKAN ERROR RETURN:
 // *******************************
@@ -48,7 +53,15 @@ using i64 = int64_t;
 using f32 = float;
 using f64 = double;
 
+using vec2 = glm::vec2;
+using vec3 = glm::vec3;
+using vec4 = glm::vec4;
+
+using mat3 = glm::mat3;
+using mat4 = glm::mat4;
+
 #define SHADER_DIR "./shaders/"
+
 //
 //std::string getDirPath() {
 //	return {};

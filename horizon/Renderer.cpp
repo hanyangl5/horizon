@@ -33,9 +33,9 @@ void Renderer::Init()
 	mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
 	mCommandBuffer = new CommandBuffer(mDevice, mSwapChain, mFramebuffers);
 	mScene = new Scene(mDevice, mCommandBuffer);
-	mScene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
 	mPipeline = new Pipeline(mDevice, mSwapChain, mRenderPass);
 
+	prepareAssests();
 }
 
 void Renderer::Update() {
@@ -60,7 +60,8 @@ void Renderer::drawFrame()
 
 void Renderer::prepareAssests()
 {
-
+	mScene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
+	mScene->addDirectLight(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, glm::vec3(0.0f, 0.0f, -1.0f));
 }
 
 void Renderer::releaseAssets()

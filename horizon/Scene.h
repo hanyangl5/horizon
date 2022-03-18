@@ -9,6 +9,9 @@
 #include "CommandBuffer.h"
 #include "Model.h"
 #include <vector>
+#include "Light.h"
+
+#define MAX_LIGHT_COUNT 1024
 
 class Scene {
 public:
@@ -16,6 +19,9 @@ public:
 	~Scene();
 	void destroy();
 	void loadModel(const std::string& path);
+	void addDirectLight(glm::vec3 color, f32 intensity, glm::vec3 direction);
+	void addPointLight(glm::vec3 color, f32 intensity, glm::vec3 position, f32 radius);
+	void addSpotLight(glm::vec3 color, f32 intensity, glm::vec3 direction, glm::vec3 position, f32 innerRadius, f32 outerRadius);
 	void prepare();
 	void draw(Pipeline* pipeline);
 	std::vector<DescriptorSet> getDescriptors();
@@ -23,23 +29,32 @@ private:
 	Camera* mCamera;
 	Device* mDevice;
 	CommandBuffer* mCommandBuffer;
+	DescriptorSet* sceneDescritporSet = nullptr;
 
 	// uniform buffers
 
-	struct SceneUboStruct {
+	// 0
+	struct SceneUbStruct {
 		glm::mat4 view;
 		glm::mat4 projection;
-	}sceneUboStruct;
-	UniformBuffer* sceneUbo = nullptr;
+	}sceneUbStruct;
+	UniformBuffer* sceneUb = nullptr;
+	// 1
+	struct LightCountUbStruct {
+		u32 lightCount = 0;
+	}lightCountUbStruct;
+	UniformBuffer* lightCountUb;
+	// 2
+	struct LightsUbStruct {
+		LightParams lights[MAX_LIGHT_COUNT];
+	}lightUbStruct;
+	UniformBuffer* lightUb;
+	// 3
+	struct CamaeraUbStruct {
+		glm::vec3 cameraPos;
+	}camaeraUbStruct;
+	UniformBuffer* cameraUb;
 
-	struct SceneUboStruct2 {
-		float a = 5.0f;
-		float b = 6.0f;
-	}sceneUboStruct2;
-	UniformBuffer* sceneUbo2 = nullptr;
-
-
-	DescriptorSet* sceneDescritporSet = nullptr;
 	// models
 	std::vector<Model> mModels;
 };

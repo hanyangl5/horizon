@@ -1,14 +1,16 @@
 #pragma once
-#include <glm/glm.hpp>
+
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include "utils.h"
+
 struct Vertex
 {
-	glm::vec3 pos;
-	glm::vec3 normal;
-	glm::vec2 uv0;
-	//glm::vec3 tangent;
-	//glm::vec3 bitangent;
+	vec3 pos;
+	vec3 normal;
+	vec2 uv0;
+	//vec3 tangent;
+	//vec3 bitangent;
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription{ 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX };

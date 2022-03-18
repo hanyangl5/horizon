@@ -6,7 +6,7 @@
 
 struct DescriptorSetUpdateDesc
 {
-	// sampler/ubo/sbo
+	// sampler/Ub/sbo
 public:
 	void addBinding(u32 binding, DescriptorBase* buffer);
 	std::unordered_map<u32, DescriptorBase*> descriptorMap;

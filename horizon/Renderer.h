@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <vulkan/vulkan.hpp>
-#include <glm/glm.hpp>
 #include "utils.h"
 #include "Window.h"
 #include "CommandBuffer.h"

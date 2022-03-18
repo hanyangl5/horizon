@@ -130,7 +130,7 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 			material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
 		}
 		if (mat.values.find("baseColorFactor") != mat.values.end()) {
-			material.materialUboStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+			material.materialUbStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
 		}
 
 		// normal
@@ -145,10 +145,10 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 			material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
 		}
 		if (mat.values.find("roughnessFactor") != mat.values.end()) {
-			material.materialUboStruct.metallicRoughnessFactor.y = static_cast<float>(mat.values["roughnessFactor"].Factor());
+			material.materialUbStruct.metallicRoughnessFactor.y = static_cast<float>(mat.values["roughnessFactor"].Factor());
 		}
 		if (mat.values.find("metallicFactor") != mat.values.end()) {
-			material.materialUboStruct.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
+			material.materialUbStruct.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
 		}
 
 		//if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
@@ -164,7 +164,7 @@ void Model::loadMaterials(tinygltf::Model& gltfModel)
 		//	material.emissiveFactor = glm::vec4(0.0f);
 		//}
 
-		material.materialUbo = new UniformBuffer(mDevice);
+		material.materialUb = new UniformBuffer(mDevice);
 		DescriptorSetInfo setInfo;
 		// material parameters
 		setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -368,7 +368,7 @@ void Model::updateNodeDescriptorSet(Node* node) {
 		node->mesh->meshDescriptorSet->allocateDescriptors();
 
 		DescriptorSetUpdateDesc desc;
-		desc.addBinding(0, node->mesh->meshUbo);
+		desc.addBinding(0, node->mesh->meshUb);
 
 		node->mesh->meshDescriptorSet->updateDescriptorSet(&desc);
 
@@ -405,10 +405,10 @@ DescriptorSet* Model::getMeshDescriptorSet()
 	return nullptr;
 }
 
-Mesh::Mesh(Device* device, glm::mat4 model) :mDevice(device), meshUboStruct({ model })
+Mesh::Mesh(Device* device, glm::mat4 model) :mDevice(device), meshUbStruct({ model })
 {
 
-	meshUbo = new UniformBuffer(mDevice);
+	meshUb = new UniformBuffer(mDevice);
 	DescriptorSetInfo setInfo;
 	setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
 	meshDescriptorSet = new DescriptorSet(mDevice, &setInfo);
@@ -455,8 +455,8 @@ glm::mat4 Node::getMatrix() {
 void Node::update() {
 	if (mesh) {
 		glm::mat4 m = getMatrix();
-		mesh->meshUboStruct.model = m;
-		mesh->meshUbo->update(&m, sizeof(mesh->meshUboStruct));
+		mesh->meshUbStruct.model = m;
+		mesh->meshUb->update(&m, sizeof(mesh->meshUbStruct));
 	}
 
 	for (auto& child : children) {
