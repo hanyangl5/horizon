@@ -6,7 +6,9 @@ layout(location = 2) in vec2 inTexcoord;
 // layout(location = 3) in vec3 inTangent;
 // layout(location = 4) in vec3 inBiTangent;
 
-layout(location = 0) out vec2 fragTexCoord;
+layout(location = 0) out vec3 worldPos;
+layout(location = 1) out vec3 worldNormal;
+layout(location = 2) out vec2 fragTexCoord;
 
 // set 0: scene
 

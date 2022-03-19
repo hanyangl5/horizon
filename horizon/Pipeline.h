@@ -1,7 +1,11 @@
 #pragma once
-#include "utils.h"
-#include <memory>
+
+#include <vector>
+#include <unordered_map>
+
 #include <vulkan/vulkan.hpp>
+
+#include "utils.h"
 #include "Instance.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -9,36 +13,39 @@
 #include "ShaderModule.h"
 #include "Descriptors.h"
 #include "RenderPass.h"
-#include <vector>
-#include <unordered_map>
-class Pipeline
-{
-public:
-	Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass);
-	~Pipeline();
-	void create(std::vector<DescriptorSet>& descriptors);
-	VkPipeline get()const;
-	VkPipelineLayout getLayout() const;
-	VkViewport getViewport() const;
-	VkRenderPass getRenderPass() const;
-private:
-	void createPipelineLayout(std::vector<DescriptorSet>& descriptors);
-	void createPipeline();
-private:
-	Device* mDevice = nullptr;
-	SwapChain* mSwapChain = nullptr;
-	//DescriptorSet* mDescriptorSet = nullptr;
-	RenderPass* mRenderPass = nullptr;
-	// handle of pipeline layout
-	VkPipelineLayout mPipelineLayout = nullptr;
-	VkPipeline mGraphicsPipeline;
-	VkViewport mViewport;
 
-	//struct PipelineKey {
+namespace Horizon {
 
-	//};
-	//struct PipelineVal {
+	class Pipeline
+	{
+	public:
+		Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass);
+		~Pipeline();
+		void create(std::vector<DescriptorSet>& descriptors);
+		VkPipeline get()const;
+		VkPipelineLayout getLayout() const;
+		VkViewport getViewport() const;
+		VkRenderPass getRenderPass() const;
+	private:
+		void createPipelineLayout(std::vector<DescriptorSet>& descriptors);
+		void createPipeline();
+	private:
+		Device* mDevice = nullptr;
+		SwapChain* mSwapChain = nullptr;
+		//DescriptorSet* mDescriptorSet = nullptr;
+		RenderPass* mRenderPass = nullptr;
+		// handle of pipeline layout
+		VkPipelineLayout mPipelineLayout = nullptr;
+		VkPipeline mGraphicsPipeline;
+		VkViewport mViewport;
 
-	//};
-	//std::unordered_map<PipelineKey, PipelineVal> mPipelineMap;
-};
+		//struct PipelineKey {
+
+		//};
+		//struct PipelineVal {
+
+		//};
+		//std::unordered_map<PipelineKey, PipelineVal> mPipelineMap;
+	};
+
+}

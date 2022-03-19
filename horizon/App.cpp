@@ -1,5 +1,8 @@
 #include "App.h"
 #include "spdlog/sinks/stdout_color_sinks.h" // or "../stdout_sinks.h" if no colors needed
+
+using namespace Horizon;
+
 App::App(u32 width, u32 height) :mWidth(width), mHeight(height), mLogger(spdlog::stdout_color_mt("horizon logger"))
 {
 
@@ -21,7 +24,7 @@ App::~App()
 void App::run() {
 
 	mWindow = new Window("horizon", mWidth, mHeight);
-	mRenderer = new Renderer(mWindow->getWidth(), mWindow->getHeight(), mWindow);
+	mRenderer = new Horizon::Renderer(mWindow->getWidth(), mWindow->getHeight(), mWindow);
 	mRenderer->Init();
 	while (!glfwWindowShouldClose(mWindow->getWindow()))
 	{

@@ -1,43 +1,44 @@
-#include <cstdint>
-#include "utils.h"
 #include "Window.h"
 
-Window::Window(const char* _name, u32 _width, u32 _height) : width(_width), height(_height)
-{
-	if (glfwInit() != GLFW_TRUE)
-	{
-		glfwTerminate();
-		spdlog::error("failed to init glfw");
-	};
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	mWindow = glfwCreateWindow(_width, _height, _name, nullptr, nullptr);
+namespace Horizon {
 
-	if (!mWindow)
+	Window::Window(const char* _name, u32 _width, u32 _height) : width(_width), height(_height)
 	{
-		glfwTerminate();
-		spdlog::error("failed to init window");
+		if (glfwInit() != GLFW_TRUE)
+		{
+			glfwTerminate();
+			spdlog::error("failed to init glfw");
+		};
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+		mWindow = glfwCreateWindow(_width, _height, _name, nullptr, nullptr);
+
+		if (!mWindow)
+		{
+			glfwTerminate();
+			spdlog::error("failed to init window");
+		}
 	}
-}
-Window::~Window()
-{
-	glfwDestroyWindow(mWindow);
-	glfwTerminate();
-	//spdlog::info("window destroyed");
-}
+	Window::~Window()
+	{
+		glfwDestroyWindow(mWindow);
+		glfwTerminate();
+	}
 
-u32 Window::getWidth() const
-{
-	return width;
-}
+	u32 Window::getWidth() const
+	{
+		return width;
+	}
 
-u32 Window::getHeight() const
-{
-	return height;
-}
+	u32 Window::getHeight() const
+	{
+		return height;
+	}
 
 
-GLFWwindow* Window::getWindow()
-{
-	return mWindow;
+	GLFWwindow* Window::getWindow()
+	{
+		return mWindow;
+	}
+
 }

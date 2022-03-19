@@ -1,8 +1,10 @@
 #version 450
 
 #define MAX_LIGHT_COUNT 512
-
-layout(location = 0) in vec2 fragTexCoord;
+#define PI 3.14159265359;
+layout(location = 0) in vec3 worldPos;
+layout(location = 1) in vec3 worldNormal;
+layout(location = 2) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
@@ -23,6 +25,9 @@ layout(set = 0, binding = 2) uniform LightUb {
     LightParams lights[MAX_LIGHT_COUNT];
 }lightUb;
 
+layout(set = 0, binding = 3) uniform CameraUb {
+    vec3 eyePos;
+}cameraUb;
 
 // set 1: material
 
@@ -36,8 +41,26 @@ layout(set = 1, binding = 2) uniform sampler2D normalTexture;
 layout(set = 1, binding = 3) uniform sampler2D mrTexture;
 // set 2: mesh
 
+float D_GGX(float a2, float NoH) {
+	// float d = ( NoH * a2 - NoH ) * NoH + 1;	// 2 mad
+	// return a2 / ( PI*d*d );					// 4 mul, 1 rcp
+    return 1.0f;
+}
+
+float G_Smith() {
+	// float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
+	// float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
+	// return rcp( Vis_SmithV * Vis_SmithL );
+    return 1.0f;
+}
+
+float F_Schilick(float VoH, vec3 F0) {
+    // return F0 + (1.0 - F0) * pow(clamp(1.0 - VoH, 0.0, 1.0), 5.0);
+    return 1.0f;
+}
+
 float brdf() {
-    return 0.0f;
+    return 1.0f;
 }
 
 vec3 radiance(LightParams light) {
@@ -60,7 +83,9 @@ vec3 radiance(LightParams light) {
 }
 
 void main() {
-
+    vec3 viewDir = normalize(worldPos-cameraUb.eyePos);
+    vec3 N = worldNormal;
+    float NoV = dot(N,viewDir);
     vec3 color = vec3(0.0f);
     
     for(uint i = 0; i < lightCountUb.lightCount; i++) {

@@ -3,7 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
-
+namespace Horizon {
 class Shader
 {
 public:
@@ -29,3 +29,4 @@ private:
     VkShaderModule mShaderModule;
     VkDevice mDevice;
 };
+}

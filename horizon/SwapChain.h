@@ -1,73 +1,80 @@
 #pragma once
+
 #include <vector>
 #include <memory>
-#include <vulkan/vulkan.hpp>	
+
+#include <vulkan/vulkan.hpp>
+
 #include "Device.h"
 #include "Instance.h"
 #include "utils.h"
 #include "Window.h"
-class SwapChain {
 
-public:
+namespace Horizon {
 
-	SwapChain(Device* device, Surface* surface, Window* window);
+	class SwapChain {
 
-	~SwapChain();
+	public:
 
-	VkSwapchainKHR get() const;
+		SwapChain(Device* device, Surface* surface, Window* window);
 
-	std::vector<VkImageView> getImageViews() const;
+		~SwapChain();
 
-	VkImageView getImageView(u32 i) const;
-	
-	VkImageView getDepthImageView() const;
+		VkSwapchainKHR get() const;
 
-	VkExtent2D getExtent() const;
+		std::vector<VkImageView> getImageViews() const;
 
-	u32 getImageCount() const;
+		VkImageView getImageView(u32 i) const;
 
-	VkFormat getImageFormat() const;
+		VkImageView getDepthImageView() const;
 
-	VkFormat getDepthFormat() const;
+		VkExtent2D getExtent() const;
 
-	void recreate(VkExtent2D newExtent);
+		u32 getImageCount() const;
 
-private:
-	void createSwapChain();
+		VkFormat getImageFormat() const;
 
-	VkSurfaceFormatKHR chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const;
+		VkFormat getDepthFormat() const;
 
-	VkPresentModeKHR choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const;
+		void recreate(VkExtent2D newExtent);
 
-	VkExtent2D chooseExtent(VkSurfaceCapabilitiesKHR capabilities);
+	private:
+		void createSwapChain();
 
-	static u32 chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities);
+		VkSurfaceFormatKHR chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const;
 
-	void saveImages(u32 imageCount);
+		VkPresentModeKHR choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const;
 
-	void createImageViews();
+		VkExtent2D chooseExtent(VkSurfaceCapabilitiesKHR capabilities);
 
-	void createDepthResources();
-	
-	void cleanup();
+		static u32 chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities);
+
+		void saveImages(u32 imageCount);
+
+		void createImageViews();
+
+		void createDepthResources();
+
+		void cleanup();
 
 
-private:
+	private:
 
-	const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_B8G8R8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-	const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-	Device* mDevice = nullptr;
-	Surface* mSurface = nullptr;
-	Window* mWindow = nullptr;
-	VkSwapchainKHR mSwapChain; 
-	VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
-	VkFormat mImageFormat;
-	std::vector<VkImage> images; // handle of swapchain images
-	std::vector<VkImageView> imageViews; // An image view is quite literally a view into an image. It describes how to access the image and which part of the image to access
+		const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_B8G8R8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+		const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
+		Device* mDevice = nullptr;
+		Surface* mSurface = nullptr;
+		Window* mWindow = nullptr;
+		VkSwapchainKHR mSwapChain;
+		VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
+		VkFormat mImageFormat;
+		std::vector<VkImage> images; // handle of swapchain images
+		std::vector<VkImageView> imageViews; // An image view is quite literally a view into an image. It describes how to access the image and which part of the image to access
 
-	VkImage depthImage;
-	VkDeviceMemory depthImageMemory;
-	VkImageView depthImageView;
-	VkFormat mDepthFormat;
-};
+		VkImage depthImage;
+		VkDeviceMemory depthImageMemory;
+		VkImageView depthImageView;
+		VkFormat mDepthFormat;
+	};
+}
 

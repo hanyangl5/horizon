@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <memory>
 #include "utils.h"
-
+namespace Horizon {
 
 class Window {
 public:
@@ -15,3 +15,4 @@ private:
 	GLFWwindow* mWindow;
 	u32 width, height;
 };
+}

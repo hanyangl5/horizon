@@ -1,5 +1,5 @@
 #include "utils.h"
-
+namespace Horizon {
 errorcode ErrorCodes[] =
 {
 	{VK_NOT_READY, "Not Ready"},
@@ -70,4 +70,6 @@ uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, Vk
 		}
 	}
 	throw std::runtime_error("failed to find suitable memory type!");
+}
+
 }

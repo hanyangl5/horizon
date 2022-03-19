@@ -1,40 +1,36 @@
+#pragma once
+
 #include "utils.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
 #include "Descriptors.h"
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 
-class Material {
-public:
-	void initDescriptorSet();
-	void updateDescriptorSet();
+namespace Horizon {
 
-	//glm::vec4 emissiveFactor = glm::vec4(1.0f);
-	Texture* baseColorTexture;
-	Texture* normalTexture;
-	Texture* metallicRoughnessTexture;
-	//Texture* occlusionTexture;
-	//Texture* emissiveTexture;
-	struct TexCoordSets {
-		uint8_t baseColor = 0;
-		uint8_t metallicRoughness = 0;
-		uint8_t normal = 0;
-		//uint8_t occlusion = 0;
-		//uint8_t emissive = 0;
-	} texCoordSets;
+	class Material {
+	public:
+		void updateDescriptorSet();
 
-	//void setupDescriptorSet(Device* device);
+		//vec4 emissiveFactor = vec4(1.0f);
+		Texture* baseColorTexture;
+		Texture* normalTexture;
+		Texture* metallicRoughnessTexture;
+		//Texture* occlusionTexture;
+		//Texture* emissiveTexture;
+		struct TexCoordSets {
+			uint8_t baseColor = 0;
+			uint8_t metallicRoughness = 0;
+			uint8_t normal = 0;
+			//uint8_t occlusion = 0;
+			//uint8_t emissive = 0;
+		} texCoordSets;
 
-	DescriptorSet* materialDescriptorSet;
+		DescriptorSet* materialDescriptorSet;
 
-	struct MaterialUbStruct {
-		glm::vec4 baseColorFactor = glm::vec4(1.0f);
-		glm::vec2 metallicRoughnessFactor = glm::vec2(1.0f);
-	}materialUbStruct;
-	UniformBuffer* materialUb;
-};
+		struct MaterialUbStruct {
+			vec4 baseColorFactor = vec4(1.0f);
+			vec2 metallicRoughnessFactor = vec2(1.0f);
+		}materialUbStruct;
+		UniformBuffer* materialUb;
+	};
+}

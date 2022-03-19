@@ -1,9 +1,13 @@
 #include <iostream>
+#include <thread>
+#include <chrono>
+
 #include "utils.h"
 #include "Window.h"
-#include <chrono>
-#include <thread>
 #include "App.h"
+
+using namespace Horizon;
+
 const u32 w = 1280, h = 720;
 
 int main(int argc, char* argv[])
