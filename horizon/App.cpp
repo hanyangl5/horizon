@@ -24,11 +24,16 @@ App::~App()
 void App::run() {
 
 	mWindow = new Window("horizon", mWidth, mHeight);
+
 	mRenderer = new Horizon::Renderer(mWindow->getWidth(), mWindow->getHeight(), mWindow);
 	mRenderer->Init();
+
+	inputManager.Init(mWindow, mRenderer->getMainCamera());
+
 	while (!glfwWindowShouldClose(mWindow->getWindow()))
 	{
 		glfwPollEvents();
+		inputManager.processInput();
 		mRenderer->Update();
 		mRenderer->Render();
 	}

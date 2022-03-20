@@ -73,7 +73,7 @@ namespace Horizon {
 
 	uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-	enum DescriptorTypeFlags
+	enum class DescriptorTypeFlags
 	{
 		UNIFORM_BUFFER,
 		STORAGE_BUFFER,

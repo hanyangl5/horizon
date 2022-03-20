@@ -18,6 +18,11 @@ namespace Horizon {
 
 	Pipeline::~Pipeline()
 	{
+		destroy();
+	}
+
+	void Pipeline::destroy()
+	{
 		vkDestroyPipeline(mDevice->get(), mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
 	}

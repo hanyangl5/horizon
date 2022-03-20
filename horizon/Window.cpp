@@ -1,5 +1,4 @@
 #include "Window.h"
-
 namespace Horizon {
 
 	Window::Window(const char* _name, u32 _width, u32 _height) : width(_width), height(_height)
@@ -39,6 +38,11 @@ namespace Horizon {
 	GLFWwindow* Window::getWindow()
 	{
 		return mWindow;
+	}
+
+	void Window::close()
+	{
+		glfwSetWindowShouldClose(mWindow, true);
 	}
 
 }

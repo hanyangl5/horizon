@@ -21,17 +21,31 @@ namespace Horizon {
 	{
 	public:
 		Renderer(u32 width, u32 height, Window* window);
+
 		~Renderer();
+
 		void Init();
+
 		void Update();
+
 		void Render();
-		//void Destroy();
+
+		void Destroy();
+
 		void wait();
+
+		Camera* getMainCamera() const;
+
 	private:
+
 		void drawFrame();
+
 		void prepareAssests();
+
 	private:
+
 		void releaseAssets();
+		u32 mWidth, mHeight;
 		Window* mWindow = nullptr;
 		Instance* mInstance = nullptr;
 		Device* mDevice = nullptr;

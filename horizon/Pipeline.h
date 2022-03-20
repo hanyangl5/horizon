@@ -21,6 +21,7 @@ namespace Horizon {
 	public:
 		Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass);
 		~Pipeline();
+		void destroy();
 		void create(std::vector<DescriptorSet>& descriptors);
 		VkPipeline get()const;
 		VkPipelineLayout getLayout() const;

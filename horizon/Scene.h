@@ -16,7 +16,7 @@ namespace Horizon {
 
 	class Scene {
 	public:
-		Scene(Device* device, CommandBuffer* commandBuffer);
+		Scene(Device* device, CommandBuffer* commandBuffer, u32 w, u32 h);
 		~Scene();
 		void destroy();
 		void loadModel(const std::string& path);
@@ -26,11 +26,14 @@ namespace Horizon {
 		void prepare();
 		void draw(Pipeline* pipeline);
 		std::vector<DescriptorSet> getDescriptors();
+		Camera* getMainCamera() const;
 	private:
-		Camera* mCamera;
+		Camera* mCamera = nullptr;
 		Device* mDevice;
 		CommandBuffer* mCommandBuffer;
 		DescriptorSet* sceneDescritporSet = nullptr;
+
+		u32 mWidth, mHeight;
 
 		// models
 		std::vector<Model> mModels;

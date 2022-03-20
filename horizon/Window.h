@@ -11,6 +11,7 @@ public:
 	u32 getWidth()const;
 	u32 getHeight()const;
 	GLFWwindow* getWindow();
+	void close();
 private:
 	GLFWwindow* mWindow;
 	u32 width, height;

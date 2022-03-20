@@ -8,7 +8,7 @@
 
 using namespace Horizon;
 
-const u32 w = 1280, h = 720;
+const u32 w = 1920, h = 1080;
 
 int main(int argc, char* argv[])
 {

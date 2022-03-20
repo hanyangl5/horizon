@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "Window.h"
 #include "Renderer.h"
-
+#include "InputManager.h"
 class App
 {
 public:
@@ -18,6 +18,6 @@ private:
 	Horizon::u32 mHeight;
 	Horizon::Window* mWindow = nullptr;
 	Horizon::Renderer* mRenderer = nullptr;
-
+	Horizon::InputManager inputManager;
 	std::shared_ptr<spdlog::logger> mLogger;
 };

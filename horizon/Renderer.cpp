@@ -4,7 +4,8 @@
 namespace Horizon {
 
 	class Window;
-	Renderer::Renderer(u32 width, u32 height, Window* window) :mWindow(window)
+
+	Renderer::Renderer(u32 width, u32 height, Window* window) :mWindow(window), mWidth(width), mHeight(height)
 	{
 
 	}
@@ -13,6 +14,7 @@ namespace Horizon {
 	{
 		releaseAssets();
 
+		delete mScene;
 		delete mPipeline;
 		delete mCommandBuffer;
 		delete mFramebuffers;
@@ -35,7 +37,7 @@ namespace Horizon {
 		mRenderPass = new RenderPass(mDevice, mSwapChain);
 		mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
 		mCommandBuffer = new CommandBuffer(mDevice, mSwapChain, mFramebuffers);
-		mScene = new Scene(mDevice, mCommandBuffer);
+		mScene = new Scene(mDevice, mCommandBuffer, mWidth, mHeight);
 		mPipeline = new Pipeline(mDevice, mSwapChain, mRenderPass);
 
 		prepareAssests();
@@ -43,6 +45,10 @@ namespace Horizon {
 
 	void Renderer::Update() {
 		mScene->prepare();
+		// TODO: pipeline map
+		//if (mPipeline->get()&&mPipeline->getLayout()) {
+		//	mPipeline->destroy();
+		//}
 		mPipeline->create(mScene->getDescriptors());
 	}
 	void Renderer::Render() {
@@ -50,9 +56,18 @@ namespace Horizon {
 		drawFrame();
 	}
 
+	void Renderer::Destroy()
+	{
+	}
+
 	void Renderer::wait()
 	{
 		vkDeviceWaitIdle(mDevice->get());
+	}
+
+	Camera* Renderer::getMainCamera() const
+	{
+		return mScene->getMainCamera();
 	}
 
 	void Renderer::drawFrame()

@@ -3,7 +3,7 @@
 
 namespace Horizon {
 
-	Scene::Scene(Device* device, CommandBuffer* commandBuffer) :mDevice(device), mCommandBuffer(commandBuffer)
+	Scene::Scene(Device* device, CommandBuffer* commandBuffer, u32 w, u32 h) :mDevice(device), mCommandBuffer(commandBuffer), mWidth(w), mHeight(h)
 	{
 
 		DescriptorSetInfo sceneDescriptorSetInfo{};
@@ -18,8 +18,9 @@ namespace Horizon {
 
 		sceneDescritporSet = new DescriptorSet(mDevice, &sceneDescriptorSetInfo);
 
-		mCamera = new Camera(vec3(0.0f, 0.0f, 5.0f),vec3(0.0f,0.0f,0.0f), vec3(0.0f, 1.0f, 0.0f));
-		mCamera->setProjectionMatrix(75.0f, 4.0f / 3.0f, 0.01f, 1000.0f);
+		mCamera = new Camera(vec3(0.0f, 0.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+		mCamera->setPerspectiveProjectionMatrix(glm::radians(90.0f), static_cast<f32>(mWidth) / static_cast<f32>(mHeight), 0.01f, 1000.0f);
+		mCamera->setCameraSpeed(0.1f);
 
 		// create uniform buffer
 		sceneUb = new UniformBuffer(device);
@@ -126,5 +127,9 @@ namespace Horizon {
 	{
 		std::vector<DescriptorSet> sets{ *sceneDescritporSet, *mModels[0].getMaterialDescriptorSet(),*mModels[0].getMeshDescriptorSet() };
 		return sets;
+	}
+	Camera* Scene::getMainCamera() const
+	{
+		return mCamera;
 	}
 }
