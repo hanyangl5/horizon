@@ -24,9 +24,9 @@ layout(set = 2, binding = 0) uniform MeshUb {
     mat4 model;
 } meshUb;
 
-
-
 void main() {
+    worldPos = (meshUb.model * vec4(inPosition, 1.0)).xyz;
+    worldNormal = (meshUb.model * vec4(inNormal, 1.0)).xyz;
     fragTexCoord = inTexcoord;
     gl_Position = sceneUb.proj * sceneUb.view * meshUb.model * vec4(inPosition, 1.0);
 

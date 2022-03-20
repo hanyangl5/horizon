@@ -1,12 +1,14 @@
 #version 450
 
 #define MAX_LIGHT_COUNT 512
-#define PI 3.14159265359;
+#define PI 3.14159265359
+#define eps 1e-6
+
 layout(location = 0) in vec3 worldPos;
 layout(location = 1) in vec3 worldNormal;
 layout(location = 2) in vec2 fragTexCoord;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec3 outColor;
 
 // set 0: scene
 
@@ -42,54 +44,119 @@ layout(set = 1, binding = 3) uniform sampler2D mrTexture;
 // set 2: mesh
 
 float D_GGX(float a2, float NoH) {
-	// float d = ( NoH * a2 - NoH ) * NoH + 1;	// 2 mad
-	// return a2 / ( PI*d*d );					// 4 mul, 1 rcp
-    return 1.0f;
+	float d = ( NoH * a2 - NoH ) * NoH + 1.0f;
+	return a2 / ( PI * d * d );
 }
 
-float G_Smith() {
-	// float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
-	// float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
-	// return rcp( Vis_SmithV * Vis_SmithL );
-    return 1.0f;
+float G_Smith(float a2, float NoV, float NoL) {
+	float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
+	float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
+	return 1.0f / sqrt( Vis_SmithV * Vis_SmithL );
 }
 
-float F_Schilick(float VoH, vec3 F0) {
-    // return F0 + (1.0 - F0) * pow(clamp(1.0 - VoH, 0.0, 1.0), 5.0);
-    return 1.0f;
+vec3 F_Schlick(float VoH, vec3 F0) {
+    return F0 + (vec3(1.0f) - F0) * pow(clamp(1.0 - VoH, 0.0, 1.0), 5.0);
 }
 
-float brdf() {
-    return 1.0f;
+struct BrdfContext{
+    float a2;
+    vec3 F0;
+    float NoV;
+    float LoH; // VoH
+    float NoH;
+    float NoL;
+};
+
+float diffuseBrdf(BrdfContext BrdfContext) {
+    return 1.0f / PI;
 }
 
-vec3 radiance(LightParams light) {
+vec3 specularBrdf(BrdfContext brdfCotext) {
+
+    float D = D_GGX(brdfCotext.a2, brdfCotext.NoH);
+    float G = G_Smith(brdfCotext.a2, brdfCotext.NoV, brdfCotext.NoL);
+    vec3 F = F_Schlick(brdfCotext.LoH, brdfCotext.F0);
+    return D * G * F / max(4.0 * max(brdfCotext.NoV, 0.0) * max(brdfCotext.NoL, 0.0), eps);
+}
+
+vec3 radiance(LightParams light, vec3 N, vec3 V) {
 
     vec3 albedo = texture(bcTexture, fragTexCoord).xyz;
     vec3 normal = texture(normalTexture, fragTexCoord).xyz;
     float metallic= texture(mrTexture, fragTexCoord).x;
     float roughness = texture(mrTexture, fragTexCoord).y;
 
+    vec3 lightRadiance;
+    vec3 L;
+
+    // direct light
     if(light.positionType.w == 0.0f) {
-
+        L = - normalize(light.direction.xyz);
+        float lightAttenuation = 1.0f;
+        lightRadiance = lightAttenuation * light.colorIntensity.xyz * light.colorIntensity.w;
     }
+    // point light
     else if(light.positionType.w == 1.0f) {
+        L = light.positionType.xyz - worldPos;
+        float dist = length(L);
+        L = normalize(L);
 
+        // Brian Karis, 2013. Real Shading in Unreal Engine 4.
+        float d2 = dist * dist;
+        float r2 = light.radiusInnerOuter.x * light.radiusInnerOuter.x;
+        float a = saturate(1.0f - (d2 * d2) / (r2 * r2));
+        float squareFalloff =  a * a / max(dist2, 1e-4);
+
+        float lightAttenuation = squareFalloff;
+        lightRadiance = lightAttenuation * light.colorIntensity.xyz * light.colorIntensity.w;
     }
+    // spot light
     else if (light.positionType.w == 2.0f) {
 
+        L = light.positionType.xyz - worldPos;
+        float dist = length(L);
+        if
+        L = normalize(L);
+
+        // Brian Karis, 2013. Real Shading in Unreal Engine 4.
+        float d2 = dist * dist;
+        float r2 = light.radiusInnerOuter.x * light.radiusInnerOuter.x;
+        float a = saturate(1.0f - (d2 * d2) / (r2 * r2));
+        float squareFalloff =  a * a / max(dist2, 1e-4);
+        
+        float angleFalloff;
+        float lightAttenuation = squareFalloff * angleFalloff;
+
+        lightRadiance = lightAttenuation * light.colorIntensity.xyz * light.colorIntensity.w;
+
     }
-    return light.colorIntensity.w * light.colorIntensity.xyz * albedo;
+
+    vec3 H = normalize(V + L);
+    BrdfContext brdfCotext;
+    brdfCotext.a2 = roughness * roughness;
+    brdfCotext.NoV = max(dot(N, V), 0.0f);
+    brdfCotext.F0 = mix(vec3(0.04f), albedo, metallic);
+    brdfCotext.LoH = max(dot(L, H), 0.0f); // VoH
+    brdfCotext.NoH = max(dot(N, H), 0.0f);
+    brdfCotext.NoL = max(dot(N, L), 0.0f);
+
+    vec3 ks = brdfCotext.F0;
+    vec3 kd = (vec3(1.0) - ks) * (1.0f - metallic);
+    vec3 brdf = (kd * albedo * diffuseBrdf(brdfCotext) + ks * specularBrdf(brdfCotext));
+    
+    return  brdf* lightRadiance * brdfCotext.NoL;
 }
 
+
 void main() {
-    vec3 viewDir = normalize(worldPos-cameraUb.eyePos);
-    vec3 N = worldNormal;
-    float NoV = dot(N,viewDir);
+
+    vec3 V = - normalize(worldPos - cameraUb.eyePos);
+    vec3 N = normalize(worldNormal);
+
     vec3 color = vec3(0.0f);
     
     for(uint i = 0; i < lightCountUb.lightCount; i++) {
-        color += radiance(lights[i]);
+        color += radiance(lightUb.lights[i], N, V);
     }
     outColor = color;
 

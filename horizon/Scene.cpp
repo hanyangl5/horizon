@@ -40,6 +40,9 @@ namespace Horizon {
 		}
 
 		delete sceneUb;
+		delete lightCountUb;
+		delete lightUb;
+		delete cameraUb;
 		delete sceneDescritporSet;
 		delete mCamera;
 	}

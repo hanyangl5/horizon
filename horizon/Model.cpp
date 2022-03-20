@@ -76,6 +76,8 @@ namespace Horizon {
 				return VK_FILTER_LINEAR;
 			case 9987:
 				return VK_FILTER_LINEAR;
+			default:
+				return VK_FILTER_NEAREST;
 			}
 		};
 
@@ -88,6 +90,8 @@ namespace Horizon {
 				return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 			case 33648:
 				return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+			default:
+				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			}
 		};
 

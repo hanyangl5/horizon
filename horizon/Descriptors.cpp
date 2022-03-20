@@ -117,6 +117,7 @@ namespace Horizon {
 		poolInfo.pPoolSizes = poolSizes.data();
 
 		printVkError(vkCreateDescriptorPool(mDevice->get(), &poolInfo, nullptr, &mDescriptorPool), "create descriptor pool", logLevel::debug);
+
 	}
 
 	void DescriptorSetInfo::addBinding(VkDescriptorType type, VkShaderStageFlags stage)
