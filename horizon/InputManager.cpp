@@ -8,13 +8,13 @@ namespace Horizon {
 		lastX = window->getWidth() / 2.0f;
 		lastY = window->getHeight() / 2.0f;
 		firstMouse = true;
-		yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-		pitch = 0.0f;
 	}
 	void InputManager::processInput()
 	{
-		//processMouseInput();
+
+		processMouseInput();
 		processKeyboardInput();
+		mCamera->updateViewMatrix();
 	}
 
 	void InputManager::processKeyboardInput()
@@ -50,8 +50,8 @@ namespace Horizon {
 		f64 xposIn, yposIn;
 		glfwGetCursorPos(mWindow->getWindow(), &xposIn, &yposIn);
 
-		float xpos = static_cast<float>(xposIn);
-		float ypos = static_cast<float>(yposIn);
+		f32 xpos = static_cast<f32>(xposIn);
+		f32 ypos = static_cast<f32>(yposIn);
 
 		if (firstMouse)
 		{
@@ -60,30 +60,23 @@ namespace Horizon {
 			firstMouse = false;
 		}
 
-		float xoffset = xpos - lastX;
-		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+		f32 xoffset = xpos - lastX;
+		f32 yoffset = ypos - lastY; // reversed since y-coordinates go from bottom to top
+		
 		lastX = xpos;
 		lastY = ypos;
-		//spdlog::info("{} {}", xoffset, yoffset);
-		float sensitivity = 0.1f; // change this value to your liking
-		xoffset *= sensitivity;
-		yoffset *= sensitivity;
 
-		yaw += xoffset;
-		pitch += yoffset;
+		if (getMouseButtonPress(MouseButton::RIGHT_BUTTON)) {
 
-		// make sure that when pitch is out of bounds, screen doesn't get flipped
-		if (pitch > 89.0f)
-			pitch = 89.0f;
-		if (pitch < -89.0f)
-			pitch = -89.0f;
+			xoffset *= mMouseSensitivityX;
+			yoffset *= mMouseSensitivityY;
 
-		glm::vec3 front;
-		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-		front.y = sin(glm::radians(pitch));
-		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-		mCamera->setLookAt(mCamera->getPosition(), mCamera->getPosition() + normalize(front));
+			mCamera->rotate(xoffset, yoffset);
 
+		}
+		else if (getMouseButtonRelease(MouseButton::RIGHT_BUTTON)) {
+			firstMouse = true;
+		}
 	}
 
 	bool InputManager::getKeyPress(Key inputKey)
@@ -116,6 +109,37 @@ namespace Horizon {
 			break;
 		default:
 			return false;
+			break;
+		}
+	}
+
+	int InputManager::getMouseButtonPress(MouseButton button)
+	{
+		switch (button)
+		{
+		case Horizon::InputManager::MouseButton::LEFT_BUTTON:
+			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+			break;
+		case Horizon::InputManager::MouseButton::RIGHT_BUTTON:
+			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+			break;
+		default:
+			break;
+		}
+
+	}
+
+	int InputManager::getMouseButtonRelease(MouseButton button)
+	{
+		switch (button)
+		{
+		case Horizon::InputManager::MouseButton::LEFT_BUTTON:
+			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
+			break;
+		case Horizon::InputManager::MouseButton::RIGHT_BUTTON:
+			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
+			break;
+		default:
 			break;
 		}
 	}

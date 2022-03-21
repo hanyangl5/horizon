@@ -43,6 +43,12 @@ layout(set = 1, binding = 2) uniform sampler2D normalTexture;
 layout(set = 1, binding = 3) uniform sampler2D mrTexture;
 // set 2: mesh
 
+// -------------------------------------------------------
+
+float saturate(float x) {
+    return clamp(x, 0.0f , 1.0f);
+}
+
 float D_GGX(float a2, float NoH) {
 	float d = ( NoH * a2 - NoH ) * NoH + 1.0f;
 	return a2 / ( PI * d * d );
@@ -79,6 +85,23 @@ vec3 specularBrdf(BrdfContext brdfCotext) {
     return D * G * F / max(4.0 * max(brdfCotext.NoV, 0.0) * max(brdfCotext.NoL, 0.0), eps);
 }
 
+float distanceFalloff(float dist, float r, vec3 L) {
+    // Brian Karis, 2013. Real Shading in Unreal Engine 4.
+    float d2 = dist * dist;
+    float r2 = r * r;
+    float a = saturate(1.0f - (d2 * d2) / (r2 * r2));
+    return a * a / max(d2, 1e-4);
+}
+float angleFalloff(float innerRadius, float outerRadius, vec3 direction, vec3 L) {
+    float cosOuter = cos(outerRadius);
+    float spotScale = 1.0 / max(cos(innerRadius) - cosOuter, 1e-4);
+    float spotOffset = -cosOuter * spotScale;
+
+    float cd = dot(normalize(-direction), L);
+    float attenuation = clamp(cd * spotScale + spotOffset, 0.0, 1.0);
+    return attenuation * attenuation;
+}
+
 vec3 radiance(LightParams light, vec3 N, vec3 V) {
 
     vec3 albedo = texture(bcTexture, fragTexCoord).xyz;
@@ -101,13 +124,8 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
         float dist = length(L);
         L = normalize(L);
 
-        // Brian Karis, 2013. Real Shading in Unreal Engine 4.
-        float d2 = dist * dist;
-        float r2 = light.radiusInnerOuter.x * light.radiusInnerOuter.x;
-        float a = saturate(1.0f - (d2 * d2) / (r2 * r2));
-        float squareFalloff =  a * a / max(dist2, 1e-4);
+        float lightAttenuation = distanceFalloff(dist, light.radiusInnerOuter.x, L);
 
-        float lightAttenuation = squareFalloff;
         lightRadiance = lightAttenuation * light.colorIntensity.xyz * light.colorIntensity.w;
     }
     // spot light
@@ -115,17 +133,9 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
 
         L = light.positionType.xyz - worldPos;
         float dist = length(L);
-        if
         L = normalize(L);
 
-        // Brian Karis, 2013. Real Shading in Unreal Engine 4.
-        float d2 = dist * dist;
-        float r2 = light.radiusInnerOuter.x * light.radiusInnerOuter.x;
-        float a = saturate(1.0f - (d2 * d2) / (r2 * r2));
-        float squareFalloff =  a * a / max(dist2, 1e-4);
-        
-        float angleFalloff;
-        float lightAttenuation = squareFalloff * angleFalloff;
+        float lightAttenuation = distanceFalloff(dist, light.radiusInnerOuter.x, L) * angleFalloff(light.radiusInnerOuter.y, light.radiusInnerOuter.z, light.direction.xyz, L);
 
         lightRadiance = lightAttenuation * light.colorIntensity.xyz * light.colorIntensity.w;
 
@@ -142,6 +152,7 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
 
     vec3 ks = brdfCotext.F0;
     vec3 kd = (vec3(1.0) - ks) * (1.0f - metallic);
+
     vec3 brdf = (kd * albedo * diffuseBrdf(brdfCotext) + ks * specularBrdf(brdfCotext));
     
     return  brdf* lightRadiance * brdfCotext.NoL;
@@ -158,6 +169,8 @@ void main() {
     for(uint i = 0; i < lightCountUb.lightCount; i++) {
         color += radiance(lightUb.lights[i], N, V);
     }
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2)); 
     outColor = color;
 
 }

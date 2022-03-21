@@ -209,4 +209,9 @@ namespace Horizon {
 		printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
 	}
 
+	void PipelinaManager::create(PipelineCreateInfo info)
+	{
+	}
+
+
 }

@@ -18,6 +18,16 @@ namespace Horizon {
 			KEY_LSHIFT
 		};
 
+		enum class MouseButton {
+			LEFT_BUTTON,
+			RIGHT_BUTTON
+		};
+
+		enum class INPUT_STATE {
+			PRESS,
+			RELEASE
+		};
+
 		void Init(Window* window, Camera* camera);
 
 		void processInput();
@@ -30,15 +40,21 @@ namespace Horizon {
 
 		bool getKeyPress(Key key);
 
+		int getMouseButtonPress(MouseButton button);
+
+		int getMouseButtonRelease(MouseButton button);
+
 	private:
 
 		Window* mWindow = nullptr;
 		Camera* mCamera = nullptr;
 
 		bool firstMouse;
-		float yaw;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-		float pitch;
-		float lastX;
-		float lastY;
+
+		f32 lastX;
+		f32 lastY;
+
+		f32 mMouseSensitivityX = 0.1f;
+		f32 mMouseSensitivityY = 0.1f;
 	};
 }

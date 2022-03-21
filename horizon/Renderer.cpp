@@ -14,7 +14,7 @@ namespace Horizon {
 	{
 		releaseAssets();
 
-		delete mScene;
+		//delete mScene;
 		delete mPipeline;
 		delete mCommandBuffer;
 		delete mFramebuffers;
@@ -29,7 +29,6 @@ namespace Horizon {
 
 	void Renderer::Init()
 	{
-		//mCamera = std::make_shared<Camera>();
 		mInstance = new Instance();
 		mSurface = new Surface(mInstance, mWindow);
 		mDevice = new Device(mInstance, mSurface);
@@ -84,6 +83,6 @@ namespace Horizon {
 
 	void Renderer::releaseAssets()
 	{
-
+		delete mScene;
 	}
 }

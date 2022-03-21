@@ -6,7 +6,8 @@ namespace Horizon
 	{
 		mForward = normalize(mAt - mEye);
 		mRight = cross(mForward, mUp);
-		setLookAt(eye, at, up);
+		updateViewMatrix();
+		//setLookAt(eye, at, up);
 	}
 	void Camera::setPerspectiveProjectionMatrix(f32 fov, float aspectRatio, float nearPlane, float farPlane)
 	{
@@ -20,13 +21,7 @@ namespace Horizon
 	{
 		return mProjection;
 	}
-	void Camera::setLookAt(vec3 eye, vec3 at, vec3 up)
-	{
-		mEye = eye;
-		mAt = at;
-		mUp = up;
-		updateViewMatrix();
-	}
+
 	vec3 Camera::getFov() const
 	{
 		return vec3();
@@ -65,11 +60,31 @@ namespace Horizon
 		default:
 			break;
 		}
-		setLookAt(mEye, mEye + mForward, mUp);
+	}
+	void Camera::rotate(f32 xoffset, f32 yoffset)
+	{
+		mYaw += xoffset;
+		mPicth += yoffset;
+
+		// prevent locked
+		if (mPicth > 89.0f)
+			mPicth = 89.0f;
+		if (mPicth < -89.0f)
+			mPicth = -89.0f;
 	}
 	void Camera::updateViewMatrix()
 	{
-		mView = glm::lookAt(mEye, mAt, mUp);
+		// calculate the new Front vector
+		glm::vec3 front;
+		front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPicth));
+		front.y = sin(glm::radians(mPicth));
+		front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPicth));
+
+		mForward = glm::normalize(front);
+		mRight = glm::normalize(glm::cross(mForward, vec3(0.0, 1.0, 0.0)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+		mUp = glm::normalize(glm::cross(mRight, mForward));
+
+		mView = glm::lookAt(mEye, mEye + mForward, mUp);
 	}
 	mat4 Camera::getViewMatrix() const
 	{

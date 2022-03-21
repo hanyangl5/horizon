@@ -31,6 +31,7 @@ namespace Horizon {
 
 	Scene::~Scene()
 	{
+
 	}
 
 	void Scene::destroy()

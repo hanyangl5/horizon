@@ -40,13 +40,22 @@ namespace Horizon {
 		VkPipeline mGraphicsPipeline;
 		VkViewport mViewport;
 
-		//struct PipelineKey {
-
-		//};
-		//struct PipelineVal {
-
-		//};
-		//std::unordered_map<PipelineKey, PipelineVal> mPipelineMap;
 	};
 
+	class PipelinaManager {
+		struct PipelineCreateInfo {
+			VkShaderModule vs, ps;
+			//VkPipelineVertexInputStateCreateInfo;
+		};
+		void create(PipelineCreateInfo info);
+
+		struct PipelineKey {
+			// descriptor
+			// vs, ps
+		};
+		struct PipelineVal {
+			Pipeline pipeline;
+		};
+		std::unordered_map<PipelineKey, PipelineVal> mPipelineMap;
+	};
 }
