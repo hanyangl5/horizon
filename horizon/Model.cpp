@@ -201,10 +201,8 @@ namespace Horizon {
 			translation = glm::make_vec3(node.translation.data());
 			newNode->translation = translation;
 		}
-		mat4 rotation = mat4(1.0f);
 		if (node.rotation.size() == 4) {
-			quat q = glm::make_quat(node.rotation.data());
-			newNode->rotation = mat4(q);
+			newNode->rotation = glm::make_quat(node.rotation.data());
 		}
 		vec3 scale = vec3(1.0f);
 		if (node.scale.size() == 3) {
@@ -280,7 +278,7 @@ namespace Horizon {
 					}
 					for (size_t v = 0; v < posAccessor.count; v++) {
 						Vertex vert;
-						vert.pos = vec4(glm::make_vec3(&bufferPos[v * posByteStride]), 1.0f);
+						vert.pos = glm::make_vec3(&bufferPos[v * posByteStride]);
 						vert.normal = glm::normalize(vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : vec3(0.0f)));
 						vert.uv0 = bufferTexCoordSet0 ? glm::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : vec3(0.0f);
 						//vert.uv1 = bufferTexCoordSet1 ? glm::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : vec3(0.0f);
@@ -345,6 +343,7 @@ namespace Horizon {
 	{
 		if (node->mesh) {
 			for (Primitive* primitive : node->mesh->primitives) {
+				//if(primitive->material)
 				std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material.materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
@@ -361,10 +360,7 @@ namespace Horizon {
 
 		for (auto& node : nodes) {
 			updateNodeDescriptorSet(node);
-			// update material params and textures
-			for (auto& primitive : node->mesh->primitives) {
-				primitive->material.updateDescriptorSet();
-			}
+
 		}
 	}
 
@@ -377,9 +373,10 @@ namespace Horizon {
 			desc.addBinding(0, node->mesh->meshUb);
 
 			node->mesh->meshDescriptorSet->updateDescriptorSet(&desc);
+			// update material params and textures
 
 			for (auto& primitive : node->mesh->primitives) {
-				//primitive.
+				primitive->material.updateDescriptorSet();
 			}
 		}
 		for (auto& child : node->children) {
@@ -387,29 +384,47 @@ namespace Horizon {
 		}
 	}
 
+	DescriptorSet* Model::getMeshDescriptorSet()
+	{
+		for (auto& node : nodes) {
+			return getNodeMeshDescriptorSet(node);
+		}
+		spdlog::error("mesh descriptorset not found");
+		return nullptr;
+	}
+	DescriptorSet* Model::getNodeMeshDescriptorSet(Node* node)
+	{
+		if (node->mesh) {
+			return node->mesh->meshDescriptorSet;
+		}
+		// 
+		for (auto& child : node->children) {
+			return getNodeMeshDescriptorSet(child);
+		}
+	}
 	DescriptorSet* Model::getMaterialDescriptorSet()
 	{
 		for (auto& node : nodes) {
+			return getNodeMaterialDescriptorSet(node);
+		}
+		spdlog::error("material descriptorset not found");
+		return nullptr;
+	}
+	DescriptorSet* Model::getNodeMaterialDescriptorSet(Node* node)
+	{
+		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
 				if (primitive->material.materialDescriptorSet) {
 					return primitive->material.materialDescriptorSet;
 				}
 			}
 		}
-		spdlog::error("material descriptorset not found");
+		for (auto& child : node->children) {
+			return getNodeMaterialDescriptorSet(child);
+		}
 		return nullptr;
 	}
 
-	DescriptorSet* Model::getMeshDescriptorSet()
-	{
-		for (auto& node : nodes) {
-			if (node->mesh) {
-				return node->mesh->meshDescriptorSet;
-			}
-		}
-		spdlog::error("model does not have descritporset");
-		return nullptr;
-	}
 
 	Mesh::Mesh(Device* device, mat4 model) :mDevice(device), meshUbStruct({ model })
 	{
@@ -446,7 +461,7 @@ namespace Horizon {
 
 
 	mat4 Node::localMatrix() {
-		return glm::translate(mat4(1.0f), translation) * mat4(rotation) * glm::scale(mat4(1.0f), scale) * matrix;
+		return glm::translate(mat4(1.0f), translation) * glm::mat4_cast(rotation) * glm::scale(mat4(1.0f), scale) * matrix;
 	}
 
 	mat4 Node::getMatrix() {

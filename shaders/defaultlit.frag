@@ -154,13 +154,11 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
     vec3 kd = (vec3(1.0) - ks) * (1.0f - metallic);
 
     vec3 brdf = (kd * albedo * diffuseBrdf(brdfCotext) + ks * specularBrdf(brdfCotext));
-    
-    return  brdf* lightRadiance * brdfCotext.NoL;
+    return  brdf * lightRadiance * brdfCotext.NoL;
 }
 
 
 void main() {
-
     vec3 V = - normalize(worldPos - cameraUb.eyePos);
     vec3 N = normalize(worldNormal);
 

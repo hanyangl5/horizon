@@ -64,7 +64,7 @@ namespace Horizon
 	void Camera::rotate(f32 xoffset, f32 yoffset)
 	{
 		mYaw += xoffset;
-		mPicth += yoffset;
+		mPicth -= yoffset; // TODO: unify axis in different API
 
 		// prevent locked
 		if (mPicth > 89.0f)

@@ -29,5 +29,5 @@ void main() {
     worldNormal = (meshUb.model * vec4(inNormal, 1.0)).xyz;
     fragTexCoord = inTexcoord;
     gl_Position = sceneUb.proj * sceneUb.view * meshUb.model * vec4(inPosition, 1.0);
-
+    
 }

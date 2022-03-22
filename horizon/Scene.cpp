@@ -120,7 +120,7 @@ namespace Horizon {
 			model.updateDescriptors();
 		}
 	}
-
+	
 	void Scene::draw(Pipeline* pipeline) {
 		for (auto& model : mModels) {
 			model.draw(pipeline);

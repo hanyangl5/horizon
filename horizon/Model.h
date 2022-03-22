@@ -52,7 +52,7 @@ namespace Horizon {
 		std::vector<Node*> children;
 		mat4 matrix;
 		std::string name;
-		Mesh* mesh;
+		Mesh* mesh = nullptr;
 		int32_t skinIndex = -1;
 		vec3 translation{};
 		vec3 scale{ 1.0f };
@@ -77,7 +77,9 @@ namespace Horizon {
 		void updateNodeDescriptorSet(Node* node);
 		DescriptorSet* getMeshDescriptorSet();
 		DescriptorSet* getMaterialDescriptorSet();
-
+	private:
+		DescriptorSet* getNodeMeshDescriptorSet(Node* node);
+		DescriptorSet* getNodeMaterialDescriptorSet(Node* node);
 	private:
 		Device* mDevice;
 		CommandBuffer* mCommandBuffer;

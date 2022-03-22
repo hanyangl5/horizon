@@ -109,14 +109,20 @@ namespace Horizon {
 		inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
 
 		// A viewport basically describes the region of the framebuffer that the output will be rendered to
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<f32>(mSwapChain->getExtent().width);
-		viewport.height = static_cast<f32>(mSwapChain->getExtent().height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		mViewport = viewport;
+		mViewport.width = static_cast<f32>(mSwapChain->getExtent().width);
+		mViewport.height = -static_cast<f32>(mSwapChain->getExtent().height);
+		mViewport.x = 0.0f;
+		mViewport.y = -mViewport.height;
+		mViewport.minDepth = 0.0f;
+		mViewport.maxDepth = 1.0f;
+
+		//mViewport.width = static_cast<f32>(mSwapChain->getExtent().width);
+		//mViewport.height = static_cast<f32>(mSwapChain->getExtent().height);
+		//mViewport.x = 0.0f;
+		//mViewport.y = 0.0f;
+		//mViewport.minDepth = 0.0f;
+		//mViewport.maxDepth = 1.0f;
+
 		//Any pixels outside the scissor rectangles will be discarded by the rasterizer
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
@@ -125,7 +131,7 @@ namespace Horizon {
 		VkPipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportStateCreateInfo.viewportCount = 1;
-		viewportStateCreateInfo.pViewports = &viewport;
+		viewportStateCreateInfo.pViewports = &mViewport;
 		viewportStateCreateInfo.scissorCount = 1;
 		viewportStateCreateInfo.pScissors = &scissor;
 
@@ -135,7 +141,7 @@ namespace Horizon {
 		rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationStateCreateInfo.lineWidth = 1.0f;
-		rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;//VK_CULL_MODE_BACK_BIT;
 		rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
 

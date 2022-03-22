@@ -25,7 +25,7 @@ namespace Horizon {
 			//uint8_t emissive = 0;
 		} texCoordSets;
 
-		DescriptorSet* materialDescriptorSet;
+		DescriptorSet* materialDescriptorSet = nullptr;
 
 		struct MaterialUbStruct {
 			vec4 baseColorFactor = vec4(1.0f);
