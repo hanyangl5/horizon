@@ -42,17 +42,19 @@ namespace Horizon {
 
 		void prepareAssests();
 
-	private:
-
 		void releaseAssets();
+		// create pipeline layouts for each pass
+		void createPipelines();
+
 		u32 mWidth, mHeight;
 		Window* mWindow = nullptr;
 		Instance* mInstance = nullptr;
 		Device* mDevice = nullptr;
 		Surface* mSurface = nullptr;
 		SwapChain* mSwapChain = nullptr;
-		RenderPass* mRenderPass = nullptr;
-		Pipeline* mPipeline = nullptr;
+		//RenderPass* mRenderPass = nullptr;
+		//Pipeline* mPipeline = nullptr;
+		PipelinaManager mPipelineMgr;
 		Framebuffers* mFramebuffers = nullptr;
 		CommandBuffer* mCommandBuffer = nullptr;
 		Scene* mScene;

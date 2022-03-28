@@ -15,9 +15,9 @@ namespace Horizon {
 		}
 	}
 
-	VkFramebuffer Framebuffers::get(u32 i) const
+	VkFramebuffer Framebuffers::get(u32 index) const
 	{
-		return mSwapChainFrameBuffers[i];
+		return mSwapChainFrameBuffers[index];
 	}
 
 	void Framebuffers::createFrameBuffers()

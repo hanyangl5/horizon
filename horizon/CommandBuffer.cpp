@@ -3,9 +3,8 @@
 namespace Horizon {
 
 	CommandBuffer::CommandBuffer(Device* device,
-		SwapChain* swapchain,
-		Framebuffers* framebuffers)
-		:mDevice(device), mSwapChain(swapchain), mFramebuffers(framebuffers)
+		SwapChain* swapchain)
+		:mDevice(device), mSwapChain(swapchain)
 	{
 		createCommandPool();
 		allocateCommandBuffers();
@@ -129,7 +128,7 @@ namespace Horizon {
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = pipeline->getRenderPass();
-		renderPassInfo.framebuffer = mFramebuffers->get(index);
+		renderPassInfo.framebuffer = pipeline->getFrameBuffer(index);
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = mSwapChain->getExtent();
 

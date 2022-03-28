@@ -14,7 +14,7 @@ private:
     static std::vector<char> readFile(const char* filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
         if (!file.is_open()) {
-            spdlog::error("failed to open {}", filename);
+            spdlog::error("failed to open shader file: {}", filename);
         }
         size_t fileSize = (size_t)file.tellg();
         std::vector<char> buffer(fileSize);

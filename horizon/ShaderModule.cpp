@@ -6,7 +6,7 @@ namespace Horizon {
 	{
 		std::vector<char> code = readFile(path);
 		if (code.empty()) {
-			spdlog::error("open file faild");
+			spdlog::error("shader code in {} is empty", path);
 		}
 		VkShaderModuleCreateInfo shaderModuleCreateInfo{};
 		shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

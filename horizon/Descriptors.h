@@ -25,6 +25,10 @@ namespace Horizon {
 		void addBinding(VkDescriptorType type, VkShaderStageFlags stage);
 	};
 
+	struct DescriptorSetLayouts {
+		std::vector<VkDescriptorSetLayout> layouts;
+	};
+
 	class DescriptorSet
 	{
 	public:
@@ -45,5 +49,6 @@ namespace Horizon {
 		VkDescriptorSet mSet;
 		VkDescriptorPool mDescriptorPool;
 	};
+
 
 }

@@ -397,10 +397,10 @@ namespace Horizon {
 		if (node->mesh) {
 			return node->mesh->meshDescriptorSet;
 		}
-		// 
 		for (auto& child : node->children) {
 			return getNodeMeshDescriptorSet(child);
 		}
+		return nullptr;
 	}
 	DescriptorSet* Model::getMaterialDescriptorSet()
 	{

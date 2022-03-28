@@ -132,6 +132,14 @@ namespace Horizon {
 		std::vector<DescriptorSet> sets{ *sceneDescritporSet, *mModels[0].getMaterialDescriptorSet(),*mModels[0].getMeshDescriptorSet() };
 		return sets;
 	}
+
+	DescriptorSetLayouts Scene::getDescriptorLayouts()
+	{
+		DescriptorSetLayouts layouts;
+		layouts.layouts = { { sceneDescritporSet->getLayout(), mModels[0].getMaterialDescriptorSet()->getLayout(),mModels[0].getMeshDescriptorSet()->getLayout()} };
+		return layouts;
+	}
+
 	Camera* Scene::getMainCamera() const
 	{
 		return mCamera;

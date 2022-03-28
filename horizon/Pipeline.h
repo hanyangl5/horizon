@@ -13,28 +13,42 @@
 #include "ShaderModule.h"
 #include "Descriptors.h"
 #include "RenderPass.h"
+#include "FrameBuffers.h"
 
 namespace Horizon {
+
+
+	struct PipelineCreateInfo {
+		Shader* vs, * ps;
+		DescriptorSetLayouts descriptorLayouts;
+		//VkPipelineVertexInputStateCreateInfo;
+		//descriptorsetlayout
+	};
 
 	class Pipeline
 	{
 	public:
-		Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass);
+		Pipeline(Device* device, SwapChain* swapchain, PipelineCreateInfo* info);
 		~Pipeline();
 		void destroy();
-		void create(std::vector<DescriptorSet>& descriptors);
+		void create();
 		VkPipeline get()const;
 		VkPipelineLayout getLayout() const;
 		VkViewport getViewport() const;
 		VkRenderPass getRenderPass() const;
+		VkFramebuffer getFrameBuffer(u32 index) const;
 	private:
-		void createPipelineLayout(std::vector<DescriptorSet>& descriptors);
+		void createPipelineLayout();
 		void createPipeline();
 	private:
+
+		PipelineCreateInfo* mCreateInfo = nullptr;
+
 		Device* mDevice = nullptr;
 		SwapChain* mSwapChain = nullptr;
-		//DescriptorSet* mDescriptorSet = nullptr;
 		RenderPass* mRenderPass = nullptr;
+		Framebuffers* mFramebuffers = nullptr;
+		
 		// handle of pipeline layout
 		VkPipelineLayout mPipelineLayout = nullptr;
 		VkPipeline mGraphicsPipeline;
@@ -43,19 +57,30 @@ namespace Horizon {
 	};
 
 	class PipelinaManager {
-		struct PipelineCreateInfo {
-			VkShaderModule vs, ps;
-			//VkPipelineVertexInputStateCreateInfo;
-		};
-		void create(PipelineCreateInfo info);
+	public:
 
-		struct PipelineKey {
-			// descriptor
-			// vs, ps
-		};
+		//struct PipelineKey {
+		//	// descriptor
+		//	// vs, ps
+		//};
 		struct PipelineVal {
-			Pipeline pipeline;
+			Pipeline* pipeline;
 		};
-		std::unordered_map<PipelineKey, PipelineVal> mPipelineMap;
+		Device* mDevice;
+		SwapChain* mSwapChain;
+		std::unordered_map<u32, PipelineVal> mPipelineMap;
+	public:
+		void init(Device* device, SwapChain* swapChain);
+		void createPipeline(PipelineCreateInfo* info, const std::string& name);
+		Pipeline* get(const std::string& name);
+	private:
+		// convert string to u32 hash key, https://dev.to/muiz6/string-hashing-in-c-1np3
+		inline u32 stringHash(const std::string& key) {
+			u32 hashCode = 0;
+			for (u32 i = 0; i < key.length(); i++) {
+				hashCode += key[i] * pow(16, i);
+			}
+			return hashCode;
+		}
 	};
 }

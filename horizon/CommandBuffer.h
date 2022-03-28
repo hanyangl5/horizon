@@ -16,15 +16,13 @@ namespace Horizon {
 	{
 	public:
 		CommandBuffer(Device* device,
-			SwapChain* swapchain,
-			Framebuffers* framebuffers);
+			SwapChain* swapchain);
 		~CommandBuffer();
 		VkCommandBuffer* get(u32 i);
 		void submit();
 		VkCommandPool getCommandpool()const;
 		void beginRenderPass(u32 index, Pipeline* pipeline);
 		void endRenderPass(u32 index);
-		//void draw(std::vector<DrawContext>& drawContexts);
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer commandbuffer);
 		u32 commandBufferCount() const noexcept { return mCommandBuffers.size(); }
@@ -38,7 +36,7 @@ namespace Horizon {
 
 		Device* mDevice = nullptr;
 		SwapChain* mSwapChain;
-		Framebuffers* mFramebuffers = nullptr;
+
 		VkCommandPool mCommandPool = nullptr;
 		std::vector<VkCommandBuffer> mCommandBuffers;
 

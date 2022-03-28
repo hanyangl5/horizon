@@ -11,7 +11,7 @@
 
 namespace Horizon {
 
-	Pipeline::Pipeline(Device* device, SwapChain* swapchain, RenderPass* renderpass) : mDevice(device), mSwapChain(swapchain), mRenderPass(renderpass)
+	Pipeline::Pipeline(Device* device, SwapChain* swapchain, PipelineCreateInfo* createInfo) : mDevice(device), mSwapChain(swapchain), mCreateInfo(createInfo)
 	{
 
 	}
@@ -25,11 +25,15 @@ namespace Horizon {
 	{
 		vkDestroyPipeline(mDevice->get(), mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
+		delete mFramebuffers;
+		delete mRenderPass;
 	}
 
-	void Pipeline::create(std::vector<DescriptorSet>& descriptors)
+	void Pipeline::create()
 	{
-		createPipelineLayout(descriptors);
+		mRenderPass = new RenderPass(mDevice, mSwapChain);
+		mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
+		createPipelineLayout();
 		createPipeline();
 	}
 
@@ -54,14 +58,16 @@ namespace Horizon {
 		return mRenderPass->get();
 	}
 
-
-	void Pipeline::createPipelineLayout(std::vector<DescriptorSet>& descriptors)
+	VkFramebuffer Pipeline::getFrameBuffer(u32 index) const
 	{
-		std::vector<VkDescriptorSet> sets(descriptors.size());
-		std::vector<VkDescriptorSetLayout> setLayouts(descriptors.size());
-		for (u32 i = 0; i < descriptors.size(); i++) {
-			setLayouts[i] = descriptors[i].getLayout();
-		}
+		return mFramebuffers->get(index);
+	}
+
+
+	void Pipeline::createPipelineLayout()
+	{
+
+		auto setLayouts = mCreateInfo->descriptorLayouts.layouts;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
@@ -72,25 +78,25 @@ namespace Horizon {
 
 	void Pipeline::createPipeline()
 	{
-		std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
-		//spdlog::info(shader_dir.string());
-		std::string vspath = (shader_dir / "defaultlit.vert.spv").string();
-		std::string pspath = (shader_dir / "defaultlit.frag.spv").string();
-		Shader vs(mDevice->get(), vspath.c_str());
-		Shader ps(mDevice->get(), pspath.c_str());
+		//std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
+		////spdlog::info(shader_dir.string());
+		//std::string vspath = (shader_dir / "defaultlit.vert.spv").string();
+		//std::string pspath = (shader_dir / "defaultlit.frag.spv").string();
+		//Shader vs(mDevice->get(), vspath.c_str());
+		//Shader ps(mDevice->get(), pspath.c_str());
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
 
 		// vertex shader
 		pipelineShaderStageCreateInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		pipelineShaderStageCreateInfos[0].module = vs.get();
+		pipelineShaderStageCreateInfos[0].module = mCreateInfo->vs->get();
 		pipelineShaderStageCreateInfos[0].pName = "main";
 
 		//pixel shader
 		pipelineShaderStageCreateInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		pipelineShaderStageCreateInfos[1].module = ps.get();
+		pipelineShaderStageCreateInfos[1].module = mCreateInfo->ps->get();
 		pipelineShaderStageCreateInfos[1].pName = "main";
 
 		auto bindingDescription = Vertex::getBindingDescription();
@@ -215,8 +221,34 @@ namespace Horizon {
 		printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
 	}
 
-	void PipelinaManager::create(PipelineCreateInfo info)
+	void PipelinaManager::init(Device* device, SwapChain* swapChain)
 	{
+		mDevice = device;
+		mSwapChain = swapChain;
+	}
+
+	void PipelinaManager::createPipeline(PipelineCreateInfo* info, const std::string& name)
+	{
+		u32 hashKey = stringHash(name);
+		// pipeline key exist
+		if (!mPipelineMap[hashKey].pipeline) {
+
+			auto& pipelineVal = mPipelineMap[hashKey];
+			pipelineVal.pipeline = new Pipeline(mDevice, mSwapChain, info);
+			pipelineVal.pipeline->create();
+		}
+	}
+
+	Pipeline* PipelinaManager::get(const std::string& name)
+	{
+		u32 hashKey = stringHash(name);
+		if (mPipelineMap[hashKey].pipeline) {
+			return mPipelineMap[hashKey].pipeline;
+		}
+		else {
+			spdlog::error("no pipeline found");
+			return nullptr;
+		}
 	}
 
 

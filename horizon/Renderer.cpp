@@ -14,14 +14,8 @@ namespace Horizon {
 	{
 		releaseAssets();
 
-		//delete mScene;
-		delete mPipeline;
 		delete mCommandBuffer;
-		delete mFramebuffers;
-
-		delete mRenderPass;
 		delete mSwapChain;
-
 		delete mSurface;
 		delete mDevice;
 		delete mInstance;
@@ -33,22 +27,15 @@ namespace Horizon {
 		mSurface = new Surface(mInstance, mWindow);
 		mDevice = new Device(mInstance, mSurface);
 		mSwapChain = new SwapChain(mDevice, mSurface, mWindow);
-		mRenderPass = new RenderPass(mDevice, mSwapChain);
-		mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
-		mCommandBuffer = new CommandBuffer(mDevice, mSwapChain, mFramebuffers);
+		mCommandBuffer = new CommandBuffer(mDevice, mSwapChain);
 		mScene = new Scene(mDevice, mCommandBuffer, mWidth, mHeight);
-		mPipeline = new Pipeline(mDevice, mSwapChain, mRenderPass);
-
+		mPipelineMgr.init(mDevice, mSwapChain);
 		prepareAssests();
+		createPipelines();
 	}
 
 	void Renderer::Update() {
 		mScene->prepare();
-		// TODO: pipeline map
-		//if (mPipeline->get()&&mPipeline->getLayout()) {
-		//	mPipeline->destroy();
-		//}
-		mPipeline->create(mScene->getDescriptors());
 	}
 	void Renderer::Render() {
 
@@ -71,7 +58,8 @@ namespace Horizon {
 
 	void Renderer::drawFrame()
 	{
-		mScene->draw(mPipeline); // default shading pipeline
+		mScene->draw(mPipelineMgr.get("lighting")); // default shading pipeline
+
 		mCommandBuffer->submit();
 	}
 
@@ -82,10 +70,25 @@ namespace Horizon {
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/Sponza/glTF/Sponza.gltf");
 
 		mScene->addDirectLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(0.0f, 0.0f, -1.0f));
+
 	}
 
 	void Renderer::releaseAssets()
 	{
 		delete mScene;
+	}
+	void Renderer::createPipelines()
+	{
+
+		Shader lightingVs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.vert.spv");
+		Shader lightingPs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.frag.spv");
+
+
+		PipelineCreateInfo lightingPipelineCreateInfo;
+		lightingPipelineCreateInfo.vs = &lightingVs;
+		lightingPipelineCreateInfo.ps = &lightingPs;
+		lightingPipelineCreateInfo.descriptorLayouts = mScene->getDescriptorLayouts();
+		
+		mPipelineMgr.createPipeline(&lightingPipelineCreateInfo, "lighting");
 	}
 }

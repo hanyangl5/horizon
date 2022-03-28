@@ -19,13 +19,16 @@ namespace Horizon {
 		Scene(Device* device, CommandBuffer* commandBuffer, u32 w, u32 h);
 		~Scene();
 		void destroy();
+
 		void loadModel(const std::string& path);
 		void addDirectLight(vec3 color, f32 intensity, vec3 direction);
 		void addPointLight(vec3 color, f32 intensity, vec3 position, f32 radius);
 		void addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 innerRadius, f32 outerRadius);
+
 		void prepare();
 		void draw(Pipeline* pipeline);
 		std::vector<DescriptorSet> getDescriptors();
+		DescriptorSetLayouts getDescriptorLayouts();
 		Camera* getMainCamera() const;
 	private:
 		Camera* mCamera = nullptr;
