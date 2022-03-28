@@ -134,27 +134,39 @@ namespace Horizon {
 			if (mat.values.find("baseColorTexture") != mat.values.end()) {
 				material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
 				material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+			} else{
+				//material.baseColorTexture = mDummyTexture;
 			}
 			if (mat.values.find("baseColorFactor") != mat.values.end()) {
 				material.materialUbStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+			} else{
+				//material.materialUbStruct.baseColorFactor = mDummyTexture;
 			}
 
 			// normal
 			if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
 				material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
 				material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
+			} else{
+				//material.normalTexture = mDummyTexture;
 			}
 
 			// metallic roughtness
 			if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
 				material.metallicRoughnessTexture = &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
 				material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
+			} else{
+				//material.normalTexture = mDummyTexture;
 			}
 			if (mat.values.find("roughnessFactor") != mat.values.end()) {
 				material.materialUbStruct.metallicRoughnessFactor.y = static_cast<float>(mat.values["roughnessFactor"].Factor());
+			} else{
+				//material.normalTexture = mDummyTexture;
 			}
 			if (mat.values.find("metallicFactor") != mat.values.end()) {
 				material.materialUbStruct.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
+			} else{
+				//material.normalTexture = mDummyTexture;
 			}
 
 			//if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {

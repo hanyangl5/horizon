@@ -55,9 +55,9 @@ float D_GGX(float a2, float NoH) {
 }
 
 float G_Smith(float a2, float NoV, float NoL) {
-	float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
-	float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
-	return 1.0f / sqrt( Vis_SmithV * Vis_SmithL );
+    float Vis_SmithV = NoL * sqrt(NoV * (NoV - NoV * a2) + a2);
+	float Vis_SmithL = NoV * sqrt(NoL * (NoL - NoL * a2) + a2);
+	return 0.5 / sqrt(Vis_SmithV + Vis_SmithL);
 }
 
 vec3 F_Schlick(float VoH, vec3 F0) {
@@ -82,7 +82,7 @@ vec3 specularBrdf(BrdfContext brdfCotext) {
     float D = D_GGX(brdfCotext.a2, brdfCotext.NoH);
     float G = G_Smith(brdfCotext.a2, brdfCotext.NoV, brdfCotext.NoL);
     vec3 F = F_Schlick(brdfCotext.LoH, brdfCotext.F0);
-    return D * G * F / max(4.0 * max(brdfCotext.NoV, 0.0) * max(brdfCotext.NoL, 0.0), eps);
+    return F * (D * G);
 }
 
 float distanceFalloff(float dist, float r, vec3 L) {
@@ -92,6 +92,7 @@ float distanceFalloff(float dist, float r, vec3 L) {
     float a = saturate(1.0f - (d2 * d2) / (r2 * r2));
     return a * a / max(d2, 1e-4);
 }
+
 float angleFalloff(float innerRadius, float outerRadius, vec3 direction, vec3 L) {
     float cosOuter = cos(outerRadius);
     float spotScale = 1.0 / max(cos(innerRadius) - cosOuter, 1e-4);
@@ -144,17 +145,16 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
     vec3 H = normalize(V + L);
     BrdfContext brdfCotext;
     brdfCotext.a2 = roughness * roughness;
-    brdfCotext.NoV = max(dot(N, V), 0.0f);
+    brdfCotext.NoV = saturate(dot(N, V));
     brdfCotext.F0 = mix(vec3(0.04f), albedo, metallic);
-    brdfCotext.LoH = max(dot(L, H), 0.0f); // VoH
-    brdfCotext.NoH = max(dot(N, H), 0.0f);
-    brdfCotext.NoL = max(dot(N, L), 0.0f);
+    brdfCotext.LoH = saturate(dot(L, H)); // VoH
+    brdfCotext.NoH = saturate(dot(N, H));
+    brdfCotext.NoL = saturate(dot(N, L));
 
     vec3 ks = brdfCotext.F0;
     vec3 kd = (vec3(1.0) - ks) * (1.0f - metallic);
-
-    vec3 brdf = (kd * albedo * diffuseBrdf(brdfCotext) + ks * specularBrdf(brdfCotext));
-    return  brdf * lightRadiance * brdfCotext.NoL;
+    vec3 brdf = (kd * albedo * diffuseBrdf(brdfCotext) + ks * specularBrdf(brdfCotext)) * brdfCotext.NoL;
+    return  brdf * lightRadiance;
 }
 
 

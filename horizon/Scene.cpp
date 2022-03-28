@@ -20,7 +20,7 @@ namespace Horizon {
 
 		mCamera = new Camera(vec3(0.0f, 0.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
 		mCamera->setPerspectiveProjectionMatrix(glm::radians(90.0f), static_cast<f32>(mWidth) / static_cast<f32>(mHeight), 0.01f, 1000.0f);
-		mCamera->setCameraSpeed(0.1f);
+		mCamera->setCameraSpeed(0.01f);
 
 		// create uniform buffer
 		sceneUb = new UniformBuffer(device);
