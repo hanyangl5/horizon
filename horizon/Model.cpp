@@ -37,6 +37,7 @@ namespace Horizon {
 	}
 
 	Model::~Model() {
+		//delete mEmptyTexture;
 	}
 
 	void Model::draw(Pipeline* pipeline)
@@ -61,51 +62,51 @@ namespace Horizon {
 
 	void Model::loadTextures(tinygltf::Model& gltfModel)
 	{
-		auto getVkFilterMode = [](int32_t filterMode)
-		{
-			switch (filterMode) {
-			case 9728:
-				return VK_FILTER_NEAREST;
-			case 9729:
-				return VK_FILTER_LINEAR;
-			case 9984:
-				return VK_FILTER_NEAREST;
-			case 9985:
-				return VK_FILTER_NEAREST;
-			case 9986:
-				return VK_FILTER_LINEAR;
-			case 9987:
-				return VK_FILTER_LINEAR;
-			default:
-				return VK_FILTER_NEAREST;
-			}
-		};
+		//auto getVkFilterMode = [](int32_t filterMode)
+		//{
+		//	switch (filterMode) {
+		//	case 9728:
+		//		return VK_FILTER_NEAREST;
+		//	case 9729:
+		//		return VK_FILTER_LINEAR;
+		//	case 9984:
+		//		return VK_FILTER_NEAREST;
+		//	case 9985:
+		//		return VK_FILTER_NEAREST;
+		//	case 9986:
+		//		return VK_FILTER_LINEAR;
+		//	case 9987:
+		//		return VK_FILTER_LINEAR;
+		//	default:
+		//		return VK_FILTER_NEAREST;
+		//	}
+		//};
 
-		auto getVkWrapMode = [](int32_t wrapMode)
-		{
-			switch (wrapMode) {
-			case 10497:
-				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			case 33071:
-				return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			case 33648:
-				return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-			default:
-				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			}
-		};
+		//auto getVkWrapMode = [](int32_t wrapMode)
+		//{
+		//	switch (wrapMode) {
+		//	case 10497:
+		//		return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		//	case 33071:
+		//		return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		//	case 33648:
+		//		return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		//	default:
+		//		return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		//	}
+		//};
 
-		std::vector<VkSamplerCreateInfo> samplers;
+		//std::vector<VkSamplerCreateInfo> samplers;
 
-		for (tinygltf::Sampler smpl : gltfModel.samplers) {
-			VkSamplerCreateInfo sampler{};
-			sampler.minFilter = getVkFilterMode(smpl.minFilter);
-			sampler.magFilter = getVkFilterMode(smpl.magFilter);
-			sampler.addressModeU = getVkWrapMode(smpl.wrapS);
-			sampler.addressModeV = getVkWrapMode(smpl.wrapT);
-			sampler.addressModeW = sampler.addressModeV;
-			samplers.push_back(sampler);
-		}
+		//for (tinygltf::Sampler smpl : gltfModel.samplers) {
+		//	VkSamplerCreateInfo sampler{};
+		//	sampler.minFilter = getVkFilterMode(smpl.minFilter);
+		//	sampler.magFilter = getVkFilterMode(smpl.magFilter);
+		//	sampler.addressModeU = getVkWrapMode(smpl.wrapS);
+		//	sampler.addressModeV = getVkWrapMode(smpl.wrapT);
+		//	sampler.addressModeW = sampler.addressModeV;
+		//	samplers.push_back(sampler);
+		//}
 
 		for (tinygltf::Texture& tex : gltfModel.textures) {
 			tinygltf::Image image = gltfModel.images[tex.source];
@@ -124,6 +125,11 @@ namespace Horizon {
 			textures.emplace_back(Texture(mDevice, mCommandBuffer, image));
 
 		}
+
+		if (!mEmptyTexture) {
+			//mEmptyTexture = new Texture(mDevice, mCommandBuffer);
+			//mEmptyTexture->loadFromFile("C:/Users/hylu/OneDrive/mycode/vulkan/data/black.bmp", VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
 	}
 
 	void Model::loadMaterials(tinygltf::Model& gltfModel)
@@ -135,20 +141,23 @@ namespace Horizon {
 				material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
 				material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
 			} else{
-				//material.baseColorTexture = mDummyTexture;
+				spdlog::warn("no base color texture found, use an empty texture instead");
+				material.baseColorTexture = mEmptyTexture;
 			}
-			if (mat.values.find("baseColorFactor") != mat.values.end()) {
-				material.materialUbStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
-			} else{
-				//material.materialUbStruct.baseColorFactor = mDummyTexture;
-			}
+
+			//if (mat.values.find("baseColorFactor") != mat.values.end()) {
+			//	material.materialUbStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+			//} else{
+			//	spdlog::warn("no base color factor found, use default param instead");
+			//}
 
 			// normal
 			if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
 				material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
 				material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
 			} else{
-				//material.normalTexture = mDummyTexture;
+				spdlog::warn("no normal texture found, use an empty texture instead");
+				material.normalTexture = mEmptyTexture;
 			}
 
 			// metallic roughtness
@@ -156,18 +165,20 @@ namespace Horizon {
 				material.metallicRoughnessTexture = &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
 				material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
 			} else{
-				//material.normalTexture = mDummyTexture;
+				spdlog::warn("no normal texture found, use an empty texture instead");
+				material.metallicRoughnessTexture = mEmptyTexture;
 			}
+			/*
 			if (mat.values.find("roughnessFactor") != mat.values.end()) {
 				material.materialUbStruct.metallicRoughnessFactor.y = static_cast<float>(mat.values["roughnessFactor"].Factor());
 			} else{
-				//material.normalTexture = mDummyTexture;
+				spdlog::warn("no roughnessFactor found, use default param instead");
 			}
 			if (mat.values.find("metallicFactor") != mat.values.end()) {
 				material.materialUbStruct.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
 			} else{
-				//material.normalTexture = mDummyTexture;
-			}
+ 				spdlog::warn("no metallicFactor found, use default param instead");
+			}*/
 
 			//if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
 			//	material.emissiveTexture = &textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
@@ -196,7 +207,7 @@ namespace Horizon {
 
 		}
 		// Push a default material at the end of the list for meshes with no material assigned
-		materials.push_back(Material());
+		//materials.push_back(Material());
 	}
 
 	void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, float globalscale)
@@ -334,12 +345,8 @@ namespace Horizon {
 						return;
 					}
 				}
-				Primitive* newPrimitive = new Primitive(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] : materials.back());
-				//newPrimitive->setBoundingBox(posMin, posMax);
-				newMesh->primitives.push_back(newPrimitive);
+				newMesh->primitives.push_back(Primitive(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] :materials[0]));
 			}
-			// Mesh BB from BBs of primitives
-
 			newNode->mesh = newMesh;
 		}
 		if (parent) {
@@ -354,12 +361,13 @@ namespace Horizon {
 	void Model::drawNode(Node* node, Pipeline* pipeline, VkCommandBuffer commandBuffer)
 	{
 		if (node->mesh) {
-			for (Primitive* primitive : node->mesh->primitives) {
-				//if(primitive->material)
-				std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material.materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
-				vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
+			for (auto& primitive : node->mesh->primitives) {
+				//if (primitive.material) {
+					std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive.material.materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
+					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+					vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+				//}
 			}
 		}
 		for (auto& child : node->children) {
@@ -388,7 +396,7 @@ namespace Horizon {
 			// update material params and textures
 
 			for (auto& primitive : node->mesh->primitives) {
-				primitive->material.updateDescriptorSet();
+				primitive.material.updateDescriptorSet();
 			}
 		}
 		for (auto& child : node->children) {
@@ -426,9 +434,9 @@ namespace Horizon {
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
-				if (primitive->material.materialDescriptorSet) {
-					return primitive->material.materialDescriptorSet;
-				}
+				//if (primitive.material) {
+					return primitive.material.materialDescriptorSet;
+				//}
 			}
 		}
 		for (auto& child : node->children) {
@@ -450,8 +458,7 @@ namespace Horizon {
 
 	Mesh::~Mesh()
 	{
-		for (Primitive* p : primitives)
-			delete p;
+
 	}
 
 	Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
@@ -463,12 +470,12 @@ namespace Horizon {
 	}
 
 	Node::~Node() {
-		if (mesh) {
-			delete mesh;
-		}
-		for (auto& child : children) {
-			delete child;
-		}
+		//if (mesh) {
+		//	delete mesh;
+		//}
+		//for (auto& child : children) {
+		//	delete child;
+		//}
 	}
 
 

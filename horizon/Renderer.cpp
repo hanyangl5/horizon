@@ -66,11 +66,15 @@ namespace Horizon {
 	void Renderer::prepareAssests()
 	{
 		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
-		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf");
-		mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/untitled.gltf");
+		mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf");
+		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
+		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/Sponza/glTF/Sponza.gltf");
 
-		mScene->addDirectLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(0.0f, 0.0f, -1.0f));
+		mScene->addDirectLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(0.0f, -1.0f, -1.0f));
+		mScene->addPointLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(5.0f, 1.0f, 0.0f), 20.0f);
+		mScene->addSpotLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(-1.0f, -1.0f, 0.0f),  vec3(-1.0f, 1.0f, 0.0f), 10.0f, glm::radians(0.0f),glm::radians(90.0f));
+		mScene->addSpotLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(0.0f, -1.0f, 0.0f),  vec3(1.0f, 1.0f, 0.0f), 10.0f, glm::radians(0.0f),glm::radians(45.0f));
 
 	}
 

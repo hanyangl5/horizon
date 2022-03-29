@@ -16,6 +16,6 @@ namespace Horizon {
 		vec4 colorIntensity = vec4(0.0); // r, g, b, intensity
 		vec4 positionType = vec4(0.0);
 		vec4 direction = vec4(0.0);
-		vec4 radiusInnerOuter = vec4(0.0); // radius, innerradius, outerradius
+		vec4 radiusInnerOuter = vec4(0.0); // radius, innerConeAngle, outerConeAngle
 	};
 }

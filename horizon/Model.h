@@ -34,7 +34,7 @@ namespace Horizon {
 		~Mesh();
 
 		Device* mDevice;;
-		std::vector<Primitive*> primitives;
+		std::vector<Primitive> primitives;
 
 		struct MeshUbStruct {
 			mat4 model;
@@ -97,7 +97,8 @@ namespace Horizon {
 		std::vector<Node*> linearNodes;
 
 		std::vector<Texture> textures;
-		//std::vector<TextureSampler> textureSamplers;
+		// TODO: empty texture only need to create once
+		Texture* mEmptyTexture = nullptr;
 		std::vector<Material> materials;
 	};
 }

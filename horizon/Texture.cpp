@@ -136,10 +136,12 @@ namespace Horizon {
 
 	void Texture::loadFromFile(const std::string& path, VkImageUsageFlags usage, VkImageLayout layout) {
 		buffer = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		texChannels = 4;
 		VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
 		if (!buffer) {
-			throw std::runtime_error("failed to load texture image!");
+			spdlog::error("failed to load texture image {}", path);
+			return;
 		}
 
 		VkBuffer stagingBuffer;
@@ -164,7 +166,7 @@ namespace Horizon {
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.initialLayout = layout;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageCreateInfo.usage = usage;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -187,13 +189,18 @@ namespace Horizon {
 
 		transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		copyBufferToImage(stagingBuffer, mImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-		transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout);
 
 		vkDestroyBuffer(mDevice->get(), stagingBuffer, nullptr);
 		vkFreeMemory(mDevice->get(), stagingBufferMemory, nullptr);
 
 		createImageView(VK_FORMAT_R8G8B8A8_UNORM);
 		createSampler();
+
+		// fill descriptor info
+		imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageDescriptorInfo.imageView = mImageView;
+		imageDescriptorInfo.sampler = mSampler;
 
 	}
 
@@ -300,13 +307,13 @@ namespace Horizon {
 	}
 
 
-	VkDescriptorImageInfo Texture::getDescriptor()
-	{
-		mDescriptorImageInfo.imageView = mImageView;
-		mDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		mDescriptorImageInfo.sampler = mSampler;
-		return mDescriptorImageInfo;
-	}
+	// VkDescriptorImageInfo Texture::getDescriptor()
+	// {
+	// 	mDescriptorImageInfo.imageView = mImageView;
+	// 	mDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	// 	mDescriptorImageInfo.sampler = mSampler;
+	// 	return mDescriptorImageInfo;
+	// }
 
 	void Texture::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout)
 	{

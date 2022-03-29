@@ -80,7 +80,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 innerRadius, f32 outerRadius)
+	void Scene::addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
 	{
 		if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
 			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -89,7 +89,7 @@ namespace Horizon {
 		lightUbStruct.lights[lightCountUbStruct.lightCount].colorIntensity = { color, intensity };
 		lightUbStruct.lights[lightCountUbStruct.lightCount].direction = { direction, 0.0 };
 		lightUbStruct.lights[lightCountUbStruct.lightCount].positionType = { position, static_cast<f32>(LightType::SPOT_LIGHT) };
-		lightUbStruct.lights[lightCountUbStruct.lightCount].radiusInnerOuter = { 0.0,innerRadius, outerRadius,0.0 };
+		lightUbStruct.lights[lightCountUbStruct.lightCount].radiusInnerOuter = {radius, innerConeAngle, outerConeAngle, 0.0 };
 		lightCountUbStruct.lightCount++;
 	}
 
@@ -136,7 +136,21 @@ namespace Horizon {
 	DescriptorSetLayouts Scene::getDescriptorLayouts()
 	{
 		DescriptorSetLayouts layouts;
-		layouts.layouts = { { sceneDescritporSet->getLayout(), mModels[0].getMaterialDescriptorSet()->getLayout(),mModels[0].getMeshDescriptorSet()->getLayout()} };
+
+		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
+		for (auto& model : mModels) {
+			if (model.getMaterialDescriptorSet() && model.getMeshDescriptorSet()) {
+				meshSetLayout = model.getMeshDescriptorSet()->getLayout();
+				materialSetLayout = model.getMaterialDescriptorSet()->getLayout();
+			}
+		}
+		if (!meshSetLayout) {
+			spdlog::error("mesh descriptorset layout not found");
+		}
+		if (!materialSetLayout) {
+			spdlog::error("material descriptorset layout not found");
+		}
+		layouts.layouts = { { sceneDescritporSet->getLayout(), materialSetLayout, meshSetLayout} };
 		return layouts;
 	}
 

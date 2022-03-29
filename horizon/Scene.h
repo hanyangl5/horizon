@@ -23,7 +23,7 @@ namespace Horizon {
 		void loadModel(const std::string& path);
 		void addDirectLight(vec3 color, f32 intensity, vec3 direction);
 		void addPointLight(vec3 color, f32 intensity, vec3 position, f32 radius);
-		void addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 innerRadius, f32 outerRadius);
+		void addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
 		void prepare();
 		void draw(Pipeline* pipeline);
@@ -38,8 +38,6 @@ namespace Horizon {
 
 		u32 mWidth, mHeight;
 
-		// models
-		std::vector<Model> mModels;
 
 		// uniform buffers
 
@@ -64,5 +62,11 @@ namespace Horizon {
 			vec3 cameraPos;
 		}camaeraUbStruct;
 		UniformBuffer* cameraUb;
+
+
+		// models
+		std::vector<Model> mModels;
+
+		// 
 	};
 }

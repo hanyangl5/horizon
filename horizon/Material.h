@@ -12,9 +12,9 @@ namespace Horizon {
 		void updateDescriptorSet();
 
 		//vec4 emissiveFactor = vec4(1.0f);
-		Texture* baseColorTexture;
-		Texture* normalTexture;
-		Texture* metallicRoughnessTexture;
+		Texture* baseColorTexture = nullptr;
+		Texture* normalTexture = nullptr;
+		Texture* metallicRoughnessTexture = nullptr;
 		//Texture* occlusionTexture;
 		//Texture* emissiveTexture;
 		struct TexCoordSets {
