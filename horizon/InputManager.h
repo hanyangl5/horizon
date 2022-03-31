@@ -6,7 +6,6 @@ namespace Horizon {
 
 	class InputManager {
 	public:
-
 		enum class Key {
 			ESCAPE,
 			SPACE,
@@ -27,8 +26,10 @@ namespace Horizon {
 			PRESS,
 			RELEASE
 		};
+	public:
+		InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera);
 
-		void Init(Window* window, Camera* camera);
+		~InputManager();
 
 		void processInput();
 
@@ -46,15 +47,14 @@ namespace Horizon {
 
 	private:
 
-		Window* mWindow = nullptr;
-		Camera* mCamera = nullptr;
-
-		bool firstMouse;
+		std::shared_ptr<Window> mWindow = nullptr;
+		std::shared_ptr<Camera> mCamera = nullptr;
 
 		f32 lastX;
 		f32 lastY;
-
 		f32 mMouseSensitivityX = 0.1f;
 		f32 mMouseSensitivityY = 0.1f;
+		bool firstMouse;
+
 	};
 }

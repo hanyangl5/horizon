@@ -20,11 +20,11 @@
 namespace Horizon {
 
 
-	Texture::Texture(Device* device, CommandBuffer* commandBuffer) :mDevice(device), mCommandBuffer(commandBuffer)
+	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer) :mDevice(device), mCommandBuffer(commandBuffer)
 	{
 	}
 
-	Texture::Texture(Device* device, CommandBuffer* commandBuffer, tinygltf::Image& gltfimage) : mDevice(device), mCommandBuffer(commandBuffer)
+	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, tinygltf::Image& gltfimage) : mDevice(device), mCommandBuffer(commandBuffer)
 	{
 		u8* buffer = nullptr;
 		VkDeviceSize bufferSize = 0;
@@ -204,7 +204,7 @@ namespace Horizon {
 
 	}
 
-	void Texture::loadFromglTfImage(tinygltf::Image& gltfimage, Device* device, CommandBuffer* command)
+	void Texture::loadFromglTfImage(tinygltf::Image& gltfimage, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command)
 	{
 		//	mDevice = device;
 		//	mCommandBuffer = command;

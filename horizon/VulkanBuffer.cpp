@@ -29,7 +29,7 @@ namespace Horizon {
 		vkBindBufferMemory(device, buffer, bufferMemory, 0);
 	}
 
-	void vk_copyBuffer(Device* device, CommandBuffer* commandbuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+	void vk_copyBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandbuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
 		VkCommandBuffer cmdbuf = commandbuffer->beginSingleTimeCommands();
 		VkBufferCopy copyRegion{};
 		copyRegion.size = size;
@@ -37,7 +37,7 @@ namespace Horizon {
 		commandbuffer->endSingleTimeCommands(cmdbuf);
 	}
 
-	void vk_copyBufferToImage(CommandBuffer* commandbuffer, VkBuffer buffer, VkImage image, u32 width, u32 height)
+	void vk_copyBufferToImage(std::shared_ptr<CommandBuffer> commandbuffer, VkBuffer buffer, VkImage image, u32 width, u32 height)
 	{
 		VkCommandBuffer cmdbuf = commandbuffer->beginSingleTimeCommands();
 

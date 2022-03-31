@@ -1,13 +1,17 @@
 #include "InputManager.h"
 
 namespace Horizon {
-	void InputManager::Init(Window* window, Camera* camera)
+
+	InputManager::InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera) :mWindow(window), mCamera(camera)
 	{
 		mWindow = window;
 		mCamera = camera;
 		lastX = window->getWidth() / 2.0f;
 		lastY = window->getHeight() / 2.0f;
 		firstMouse = true;
+	}
+	InputManager::~InputManager()
+	{
 	}
 	void InputManager::processInput()
 	{
@@ -62,7 +66,7 @@ namespace Horizon {
 
 		f32 xoffset = xpos - lastX;
 		f32 yoffset = ypos - lastY; // reversed since y-coordinates go from bottom to top
-		
+
 		lastX = xpos;
 		lastY = ypos;
 

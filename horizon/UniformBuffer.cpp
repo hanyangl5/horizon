@@ -2,7 +2,7 @@
 
 namespace Horizon {
 
-	UniformBuffer::UniformBuffer(Device* device) : mDevice(device)
+	UniformBuffer::UniformBuffer(std::shared_ptr<Device> device) : mDevice(device)
 	{
 	}
 

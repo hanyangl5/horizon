@@ -16,24 +16,23 @@ namespace Horizon {
 
 	class Scene {
 	public:
-		Scene(Device* device, CommandBuffer* commandBuffer, u32 w, u32 h);
+		Scene(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, u32 w, u32 h);
 		~Scene();
-		void destroy();
+
 		void loadModel(const std::string& path);
 		void addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
 		void addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
 		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
 		void prepare();
-		void draw(Pipeline* pipeline);
-		std::vector<DescriptorSet> getDescriptors();
-		DescriptorSetLayouts getDescriptorLayouts();
-		Camera* getMainCamera() const;
+		void draw(std::shared_ptr<Pipeline> pipeline);
+		std::shared_ptr<DescriptorSetLayouts> getDescriptorLayouts();
+		std::shared_ptr<Camera> getMainCamera() const;
 	private:
-		Camera* mCamera = nullptr;
-		Device* mDevice;
-		CommandBuffer* mCommandBuffer;
-		DescriptorSet* sceneDescritporSet = nullptr;
+		std::shared_ptr<Camera> mCamera = nullptr;
+		std::shared_ptr<Device> mDevice;
+		std::shared_ptr<CommandBuffer> mCommandBuffer;
+		std::shared_ptr<DescriptorSet> sceneDescritporSet = nullptr;
 
 		u32 mWidth, mHeight;
 
@@ -45,26 +44,26 @@ namespace Horizon {
 			Math::mat4 view;
 			Math::mat4 projection;
 		}sceneUbStruct;
-		UniformBuffer* sceneUb = nullptr;
+		std::shared_ptr<UniformBuffer> sceneUb = nullptr;
 		// 1
 		struct LightCountUbStruct {
 			u32 lightCount = 0;
 		}lightCountUbStruct;
-		UniformBuffer* lightCountUb;
+		std::shared_ptr<UniformBuffer> lightCountUb;
 		// 2
 		struct LightsUbStruct {
 			LightParams lights[MAX_LIGHT_COUNT];
 		}lightUbStruct;
-		UniformBuffer* lightUb;
+		std::shared_ptr<UniformBuffer> lightUb;
 		// 3
 		struct CamaeraUbStruct {
 			Math::vec3 cameraPos;
 		}camaeraUbStruct;
-		UniformBuffer* cameraUb;
+		std::shared_ptr<UniformBuffer> cameraUb;
 
 
 		// models
-		std::vector<Model> mModels;
+		std::vector<std::shared_ptr<Model>> mModels;
 
 		// 
 	};

@@ -11,14 +11,14 @@ namespace Horizon {
 	class Surface
 	{
 	public:
-		Surface(Instance* instance, Window* window);
+		Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
 		~Surface();
 		VkSurfaceKHR get()const;
 	private:
 		void createSurface();
 	private:
-		Instance* mInstance = nullptr;
-		Window* mWindow = nullptr;
+		std::shared_ptr<Instance> mInstance = nullptr;
+		std::shared_ptr<Window> mWindow = nullptr;
 		VkSurfaceKHR mSurface;
 	};
 

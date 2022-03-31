@@ -12,11 +12,11 @@ namespace Horizon {
 		void updateDescriptorSet();
 
 		//Math::vec4 emissiveFactor = Math::vec4(1.0f);
-		Texture* baseColorTexture = nullptr;
-		Texture* normalTexture = nullptr;
-		Texture* metallicRoughnessTexture = nullptr;
-		//Texture* occlusionTexture;
-		//Texture* emissiveTexture;
+		std::shared_ptr<Texture> baseColorTexture = nullptr;
+		std::shared_ptr<Texture> normalTexture = nullptr;
+		std::shared_ptr<Texture> metallicRoughnessTexture = nullptr;
+		//std::shared_ptr<Texture> occlusionTexture;
+		//std::shared_ptr<Texture> emissiveTexture;
 		struct TexCoordSets {
 			uint8_t baseColor = 0;
 			uint8_t metallicRoughness = 0;
@@ -25,12 +25,12 @@ namespace Horizon {
 			//uint8_t emissive = 0;
 		} texCoordSets;
 
-		DescriptorSet* materialDescriptorSet = nullptr;
+		std::shared_ptr<DescriptorSet> materialDescriptorSet = nullptr;
 
 		struct MaterialUbStruct {
 			Math::vec4 baseColorFactor = Math::vec4(1.0f);
 			Math::vec2 metallicRoughnessFactor = Math::vec2(1.0f);
 		}materialUbStruct;
-		UniformBuffer* materialUb;
+		std::shared_ptr<UniformBuffer> materialUb;
 	};
 }

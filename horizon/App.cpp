@@ -17,23 +17,18 @@ App::App(u32 width, u32 height) :mWidth(width), mHeight(height), mLogger(spdlog:
 
 App::~App()
 {
-	delete mRenderer;
-	delete mWindow;
 }
 
 void App::run() {
 
-	mWindow = new Window("horizon", mWidth, mHeight);
-
-	mRenderer = new Horizon::Renderer(mWindow->getWidth(), mWindow->getHeight(), mWindow);
-	mRenderer->Init();
-
-	inputManager.Init(mWindow, mRenderer->getMainCamera());
+	mWindow = std::make_shared<Window>("horizon", mWidth, mHeight);
+	mRenderer = std::make_unique<Renderer>(mWindow->getWidth(), mWindow->getHeight(), mWindow);
+	inputManager = std::make_unique<InputManager>(mWindow, mRenderer->getMainCamera());
 
 	while (!glfwWindowShouldClose(mWindow->getWindow()))
 	{
 		glfwPollEvents();
-		inputManager.processInput();
+		inputManager->processInput();
 		mRenderer->Update();
 		mRenderer->Render();
 	}

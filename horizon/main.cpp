@@ -1,27 +1,19 @@
 #include <iostream>
-#include <thread>
-#include <chrono>
-
+#include <memory>
 #include "utils.h"
 #include "Window.h"
 #include "App.h"
 
 using namespace Horizon;
 
-const u32 w = 1920, h = 1080;
+const u32 width = 1920, height = 1080;
 
 int main(int argc, char* argv[])
 {
 
-	App app(w, h);
+	std::unique_ptr<App> app = std::make_unique<App>(width, height);
 
-	try {
-		app.run();
-	}
-	catch (const std::exception& e) {
-		spdlog::error(e.what());
-		return 1;
-	}
+	app->run();
 
 	return 0;
 }

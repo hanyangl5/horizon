@@ -2,7 +2,7 @@
 
 namespace Horizon {
 
-	RenderPass::RenderPass(Device* device, SwapChain* swapChain) :mDevice(device), mSwapChain(swapChain)
+	RenderPass::RenderPass(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain) :mDevice(device), mSwapChain(swapChain)
 	{
 		createRenderPass();
 	}

@@ -5,33 +5,26 @@ namespace Horizon {
 
 	class Window;
 
-	Renderer::Renderer(u32 width, u32 height, Window* window) :mWindow(window), mWidth(width), mHeight(height)
+	Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window) :mWindow(window), mWidth(width), mHeight(height)
 	{
-
+		mInstance = std::make_shared<Instance>();
+		mSurface = std::make_shared<Surface>(mInstance, mWindow);
+		mDevice = std::make_shared<Device>(mInstance, mSurface);
+		mSwapChain = std::make_shared<SwapChain>(mDevice, mSurface, mWindow);
+		mCommandBuffer = std::make_shared<CommandBuffer>(mDevice, mSwapChain);
+		mScene = std::make_shared<Scene>(mDevice, mCommandBuffer, mWidth, mHeight);
+		mPipelineMgr = std::make_shared<PipelineManager>(mDevice, mSwapChain);
+		prepareAssests();
+		createPipelines();
 	}
 
 	Renderer::~Renderer()
 	{
-		releaseAssets();
-
-		delete mCommandBuffer;
-		delete mSwapChain;
-		delete mSurface;
-		delete mDevice;
-		delete mInstance;
 	}
 
 	void Renderer::Init()
 	{
-		mInstance = new Instance();
-		mSurface = new Surface(mInstance, mWindow);
-		mDevice = new Device(mInstance, mSurface);
-		mSwapChain = new SwapChain(mDevice, mSurface, mWindow);
-		mCommandBuffer = new CommandBuffer(mDevice, mSwapChain);
-		mScene = new Scene(mDevice, mCommandBuffer, mWidth, mHeight);
-		mPipelineMgr.init(mDevice, mSwapChain);
-		prepareAssests();
-		createPipelines();
+
 	}
 
 	void Renderer::Update() {
@@ -42,23 +35,19 @@ namespace Horizon {
 		drawFrame();
 	}
 
-	void Renderer::Destroy()
-	{
-	}
-
 	void Renderer::wait()
 	{
 		vkDeviceWaitIdle(mDevice->get());
 	}
 
-	Camera* Renderer::getMainCamera() const
+	std::shared_ptr<Camera> Renderer::getMainCamera() const
 	{
 		return mScene->getMainCamera();
 	}
 
 	void Renderer::drawFrame()
 	{
-		mScene->draw(mPipelineMgr.get("lighting")); // default shading pipeline
+		mScene->draw(mPipelineMgr->get("lighting")); // default shading pipeline
 
 		mCommandBuffer->submit();
 	}
@@ -78,22 +67,18 @@ namespace Horizon {
 
 	}
 
-	void Renderer::releaseAssets()
-	{
-		delete mScene;
-	}
 	void Renderer::createPipelines()
 	{
 
-		Shader lightingVs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.vert.spv");
-		Shader lightingPs(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.frag.spv");
+		std::shared_ptr<Shader>lightingVs=std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.vert.spv");
+		std::shared_ptr<Shader>lightingPs=std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.frag.spv");
 
+		std::shared_ptr<PipelineCreateInfo> lightingPipelineCreateInfo = std::make_shared<PipelineCreateInfo>();
 
-		PipelineCreateInfo lightingPipelineCreateInfo;
-		lightingPipelineCreateInfo.vs = &lightingVs;
-		lightingPipelineCreateInfo.ps = &lightingPs;
-		lightingPipelineCreateInfo.descriptorLayouts = mScene->getDescriptorLayouts();
+		lightingPipelineCreateInfo->vs = lightingVs;
+		lightingPipelineCreateInfo->ps = lightingPs;
+		lightingPipelineCreateInfo->descriptorLayouts = mScene->getDescriptorLayouts();
 		
-		mPipelineMgr.createPipeline(&lightingPipelineCreateInfo, "lighting");
+		mPipelineMgr->createPipeline(lightingPipelineCreateInfo, "lighting");
 	}
 }

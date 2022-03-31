@@ -11,14 +11,14 @@ namespace Horizon {
 	{
 	public:
 		VertexBuffer() = default;
-		VertexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Vertex>& vertices);
+		VertexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, const std::vector<Vertex>& vertices);
 		//VertexBuffer(const VertexBuffer&& rhs);
 		//VertexBuffer& operator=(VertexBuffer&& rhs);
 		~VertexBuffer();
 		VkBuffer get()const;
 		u64 getVerticesCount()const;
 	private:
-		Device* mDevice = nullptr;
+		std::shared_ptr<Device> mDevice = nullptr;
 		VkBuffer mVertexBuffer;
 		VkDeviceMemory mVertexBufferMemory;
 		u64 mVerticesCount;

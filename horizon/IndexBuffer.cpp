@@ -2,7 +2,7 @@
 #include "VulkanBuffer.h"
 
 namespace Horizon {
-	IndexBuffer::IndexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Index>& indices) :mDevice(device)
+	IndexBuffer::IndexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, const std::vector<Index>& indices) :mDevice(device)
 	{
 		mIndicesCount = indices.size();
 		VkDeviceSize bufferSize = sizeof(Index) * mIndicesCount;

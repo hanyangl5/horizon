@@ -11,7 +11,7 @@
 
 namespace Horizon {
 
-	Pipeline::Pipeline(Device* device, SwapChain* swapchain, PipelineCreateInfo* createInfo) : mDevice(device), mSwapChain(swapchain), mCreateInfo(createInfo)
+	Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapchain, std::shared_ptr<PipelineCreateInfo> createInfo) : mDevice(device), mSwapChain(swapchain), mCreateInfo(createInfo)
 	{
 
 	}
@@ -25,14 +25,12 @@ namespace Horizon {
 	{
 		vkDestroyPipeline(mDevice->get(), mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
-		delete mFramebuffers;
-		delete mRenderPass;
 	}
 
 	void Pipeline::create()
 	{
-		mRenderPass = new RenderPass(mDevice, mSwapChain);
-		mFramebuffers = new Framebuffers(mDevice, mSwapChain, mRenderPass);
+		mRenderPass = std::make_shared<RenderPass>(mDevice, mSwapChain);
+		mFramebuffers = std::make_shared<Framebuffers>(mDevice, mSwapChain, mRenderPass);
 		createPipelineLayout();
 		createPipeline();
 	}
@@ -66,13 +64,11 @@ namespace Horizon {
 
 	void Pipeline::createPipelineLayout()
 	{
-
-		auto setLayouts = mCreateInfo->descriptorLayouts.layouts;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.setLayoutCount = static_cast<u32>(setLayouts.size());
-		pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+		pipelineLayoutInfo.setLayoutCount = static_cast<u32>(mCreateInfo->descriptorLayouts->layouts.size());
+		pipelineLayoutInfo.pSetLayouts = mCreateInfo->descriptorLayouts->layouts.data();
 		printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
 	}
 
@@ -220,28 +216,28 @@ namespace Horizon {
 
 		printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
 	}
+	
 
-	void PipelinaManager::init(Device* device, SwapChain* swapChain)
+
+	PipelineManager::PipelineManager(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain):mDevice(device),mSwapChain(swapChain)
 	{
-		mDevice = device;
-		mSwapChain = swapChain;
 	}
 
-	void PipelinaManager::createPipeline(PipelineCreateInfo* info, const std::string& name)
+	void PipelineManager::createPipeline(std::shared_ptr<PipelineCreateInfo> createInfo, const std::string& name)
 	{
-		u32 hashKey = stringHash(name);
+		u32 hashKey = pipelineHash(name);
 		// pipeline key exist
 		if (!mPipelineMap[hashKey].pipeline) {
 
 			auto& pipelineVal = mPipelineMap[hashKey];
-			pipelineVal.pipeline = new Pipeline(mDevice, mSwapChain, info);
+			pipelineVal.pipeline = std::make_shared<Pipeline>(mDevice, mSwapChain, createInfo);
 			pipelineVal.pipeline->create();
 		}
 	}
 
-	Pipeline* PipelinaManager::get(const std::string& name)
+	std::shared_ptr<Pipeline> PipelineManager::get(const std::string& name)
 	{
-		u32 hashKey = stringHash(name);
+		u32 hashKey = pipelineHash(name);
 		if (mPipelineMap[hashKey].pipeline) {
 			return mPipelineMap[hashKey].pipeline;
 		}
@@ -250,6 +246,7 @@ namespace Horizon {
 			return nullptr;
 		}
 	}
+
 
 
 }

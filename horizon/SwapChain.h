@@ -16,7 +16,7 @@ namespace Horizon {
 
 	public:
 
-		SwapChain(Device* device, Surface* surface, Window* window);
+		SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window);
 
 		~SwapChain();
 
@@ -62,9 +62,9 @@ namespace Horizon {
 
 		const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_B8G8R8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 		const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-		Device* mDevice = nullptr;
-		Surface* mSurface = nullptr;
-		Window* mWindow = nullptr;
+		std::shared_ptr<Device> mDevice = nullptr;
+		std::shared_ptr<Surface> mSurface = nullptr;
+		std::shared_ptr<Window> mWindow = nullptr;
 		VkSwapchainKHR mSwapChain;
 		VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
 		VkFormat mImageFormat;

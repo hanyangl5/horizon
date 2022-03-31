@@ -11,14 +11,14 @@ namespace Horizon {
 	class RenderPass
 	{
 	public:
-		RenderPass(Device* device, SwapChain* swapChain);
+		RenderPass(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain);
 		~RenderPass();
 		VkRenderPass get() const;
 	private:
 		void createRenderPass();
 	private:
-		Device* mDevice = nullptr;
-		SwapChain* mSwapChain = nullptr;
+		std::shared_ptr<Device> mDevice = nullptr;
+		std::shared_ptr<SwapChain> mSwapChain = nullptr;
 		VkRenderPass mRenderPass;
 	};
 }

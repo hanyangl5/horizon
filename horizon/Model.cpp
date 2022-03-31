@@ -3,7 +3,7 @@
 #include "VulkanBuffer.h"
 
 namespace Horizon {
-	Model::Model(const std::string& path, Device* device, CommandBuffer* commandBuffer, DescriptorSet* sceneDescritporSet) :mDevice(device), mCommandBuffer(commandBuffer), sceneDescriptorSet(sceneDescritporSet)
+	Model::Model(const std::string& path, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, std::shared_ptr<DescriptorSet> sceneDescritporSet) :mDevice(device), mCommandBuffer(commandBuffer), sceneDescriptorSet(sceneDescritporSet)
 	{
 
 		tinygltf::TinyGLTF gltfContext;
@@ -27,8 +27,8 @@ namespace Horizon {
 				}
 			}
 
-			mVertexBuffer = new VertexBuffer(mDevice, mCommandBuffer, vertices);
-			mIndexBuffer = new IndexBuffer(mDevice, mCommandBuffer, indices);
+			mVertexBuffer = std::make_shared<VertexBuffer>(mDevice, mCommandBuffer, vertices);
+			mIndexBuffer = std::make_shared<IndexBuffer>(mDevice, mCommandBuffer, indices);
 		}
 		else
 		{
@@ -37,10 +37,9 @@ namespace Horizon {
 	}
 
 	Model::~Model() {
-		//delete mEmptyTexture;
 	}
 
-	void Model::draw(Pipeline* pipeline)
+	void Model::draw(std::shared_ptr<Pipeline> pipeline)
 	{
 		for (u32 i = 0; i < mCommandBuffer->commandBufferCount(); i++) {
 			mCommandBuffer->beginRenderPass(i, pipeline);
@@ -109,7 +108,7 @@ namespace Horizon {
 		//}
 
 		for (tinygltf::Texture& tex : gltfModel.textures) {
-			tinygltf::Image image = gltfModel.images[tex.source];
+			//auto& image = gltfModel.images[tex.source];
 			//VkSamplerCreateInfo samplerinfo;
 			//if (tex.sampler == -1) {
 			//	samplerinfo.magFilter = VK_FILTER_LINEAR;
@@ -122,12 +121,12 @@ namespace Horizon {
 			//	samplerinfo = samplers[tex.sampler];
 			//}
 
-			textures.emplace_back(Texture(mDevice, mCommandBuffer, image));
+			textures.emplace_back(std::make_shared<Texture>(mDevice, mCommandBuffer, gltfModel.images[tex.source]));
 
 		}
 
 		if (!mEmptyTexture) {
-			//mEmptyTexture = new Texture(mDevice, mCommandBuffer);
+			mEmptyTexture = std::make_shared<Texture>(mDevice, mCommandBuffer);
 			//mEmptyTexture->loadFromFile("C:/Users/hylu/OneDrive/mycode/vulkan/data/black.bmp", VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	}
@@ -135,14 +134,15 @@ namespace Horizon {
 	void Model::loadMaterials(tinygltf::Model& gltfModel)
 	{
 		for (tinygltf::Material& mat : gltfModel.materials) {
-			Material material{};
+			std::shared_ptr<Material> material = std::make_shared<Material>();
 			// bc
 			if (mat.values.find("baseColorTexture") != mat.values.end()) {
-				material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
-				material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
-			} else{
+				material->baseColorTexture = textures[mat.values["baseColorTexture"].TextureIndex()];
+				material->texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+			}
+			else {
 				spdlog::warn("no base color texture found, use an empty texture instead");
-				material.baseColorTexture = mEmptyTexture;
+				material->baseColorTexture = mEmptyTexture;
 			}
 
 			//if (mat.values.find("baseColorFactor") != mat.values.end()) {
@@ -153,20 +153,22 @@ namespace Horizon {
 
 			// normal
 			if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-				material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
-				material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
-			} else{
+				material->normalTexture = textures[mat.additionalValues["normalTexture"].TextureIndex()];
+				material->texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
+			}
+			else {
 				spdlog::warn("no normal texture found, use an empty texture instead");
-				material.normalTexture = mEmptyTexture;
+				material->normalTexture = mEmptyTexture;
 			}
 
 			// metallic roughtness
 			if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
-				material.metallicRoughnessTexture = &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
-				material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
-			} else{
+				material->metallicRoughnessTexture = textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
+				material->texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
+			}
+			else {
 				spdlog::warn("no normal texture found, use an empty texture instead");
-				material.metallicRoughnessTexture = mEmptyTexture;
+				material->metallicRoughnessTexture = mEmptyTexture;
 			}
 			/*
 			if (mat.values.find("roughnessFactor") != mat.values.end()) {
@@ -177,7 +179,7 @@ namespace Horizon {
 			if (mat.values.find("metallicFactor") != mat.values.end()) {
 				material.materialUbStruct.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
 			} else{
- 				spdlog::warn("no metallicFactor found, use default param instead");
+				spdlog::warn("no metallicFactor found, use default param instead");
 			}*/
 
 			//if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
@@ -193,15 +195,17 @@ namespace Horizon {
 			//	material.emissiveFactor = Math::vec4(0.0f);
 			//}
 
-			material.materialUb = new UniformBuffer(mDevice);
-			DescriptorSetInfo setInfo;
+			material->materialUb = std::make_shared<UniformBuffer>(mDevice);
+
+
+			std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
 			// material parameters
-			setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 			// albedo/normal/metallicroughness
-			setInfo.addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			setInfo.addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			setInfo.addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			material.materialDescriptorSet = new DescriptorSet(mDevice, &setInfo);
+			setInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			material->materialDescriptorSet = std::make_shared<DescriptorSet>(mDevice, setInfo);
 
 			materials.push_back(material);
 
@@ -210,9 +214,9 @@ namespace Horizon {
 		//materials.push_back(Material());
 	}
 
-	void Model::loadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, float globalscale)
+	void Model::loadNode(std::shared_ptr<Node> parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, float globalscale)
 	{
-		Node* newNode = new Node{};
+		std::shared_ptr<Node> newNode = std::make_shared<Node>();
 		newNode->index = nodeIndex;
 		newNode->parent = parent;
 		newNode->name = node.name;
@@ -246,7 +250,7 @@ namespace Horizon {
 		// Node contains mesh data
 		if (node.mesh > -1) {
 			const tinygltf::Mesh mesh = model.meshes[node.mesh];
-			Mesh* newMesh = new Mesh(mDevice, newNode->matrix);
+			std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>(mDevice, newNode->matrix);
 			for (size_t j = 0; j < mesh.primitives.size(); j++) {
 				const tinygltf::Primitive& primitive = mesh.primitives[j];
 				uint32_t indexStart = static_cast<uint32_t>(indices.size());
@@ -345,7 +349,7 @@ namespace Horizon {
 						return;
 					}
 				}
-				newMesh->primitives.push_back(Primitive(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] :materials[0]));
+				newMesh->primitives.emplace_back(std::make_shared<Primitive>(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] : materials[0]));
 			}
 			newNode->mesh = newMesh;
 		}
@@ -358,16 +362,14 @@ namespace Horizon {
 		linearNodes.push_back(newNode);
 	}
 
-	void Model::drawNode(Node* node, Pipeline* pipeline, VkCommandBuffer commandBuffer)
+	void Model::drawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer commandBuffer)
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
-				//if (primitive.material) {
-					std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive.material.materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
-					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
-					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
-					vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
-				//}
+				std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material->materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+				vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
 			}
 		}
 		for (auto& child : node->children) {
@@ -384,7 +386,7 @@ namespace Horizon {
 		}
 	}
 
-	void Model::updateNodeDescriptorSet(Node* node) {
+	void Model::updateNodeDescriptorSet(std::shared_ptr<Node> node) {
 		if (node->mesh) {
 			node->mesh->meshDescriptorSet->createDescriptorPool();
 			node->mesh->meshDescriptorSet->allocateDescriptors();
@@ -392,11 +394,11 @@ namespace Horizon {
 			DescriptorSetUpdateDesc desc;
 			desc.addBinding(0, node->mesh->meshUb);
 
-			node->mesh->meshDescriptorSet->updateDescriptorSet(&desc);
+			node->mesh->meshDescriptorSet->updateDescriptorSet(desc);
 			// update material params and textures
 
 			for (auto& primitive : node->mesh->primitives) {
-				primitive.material.updateDescriptorSet();
+				primitive->material->updateDescriptorSet();
 			}
 		}
 		for (auto& child : node->children) {
@@ -404,7 +406,7 @@ namespace Horizon {
 		}
 	}
 
-	DescriptorSet* Model::getMeshDescriptorSet()
+	std::shared_ptr<DescriptorSet> Model::getMeshDescriptorSet()
 	{
 		for (auto& node : nodes) {
 			return getNodeMeshDescriptorSet(node);
@@ -412,7 +414,7 @@ namespace Horizon {
 		spdlog::error("mesh descriptorset not found");
 		return nullptr;
 	}
-	DescriptorSet* Model::getNodeMeshDescriptorSet(Node* node)
+	std::shared_ptr<DescriptorSet> Model::getNodeMeshDescriptorSet(std::shared_ptr<Node> node)
 	{
 		if (node->mesh) {
 			return node->mesh->meshDescriptorSet;
@@ -422,7 +424,7 @@ namespace Horizon {
 		}
 		return nullptr;
 	}
-	DescriptorSet* Model::getMaterialDescriptorSet()
+	std::shared_ptr<DescriptorSet> Model::getMaterialDescriptorSet()
 	{
 		for (auto& node : nodes) {
 			return getNodeMaterialDescriptorSet(node);
@@ -430,13 +432,11 @@ namespace Horizon {
 		spdlog::error("material descriptorset not found");
 		return nullptr;
 	}
-	DescriptorSet* Model::getNodeMaterialDescriptorSet(Node* node)
+	std::shared_ptr<DescriptorSet> Model::getNodeMaterialDescriptorSet(std::shared_ptr<Node> node)
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
-				//if (primitive.material) {
-					return primitive.material.materialDescriptorSet;
-				//}
+				return primitive->material->materialDescriptorSet;
 			}
 		}
 		for (auto& child : node->children) {
@@ -446,13 +446,13 @@ namespace Horizon {
 	}
 
 
-	Mesh::Mesh(Device* device, Math::mat4 model) :mDevice(device), meshUbStruct({ model })
+	Mesh::Mesh(std::shared_ptr<Device> device, Math::mat4 model) :mDevice(device), meshUbStruct({ model })
 	{
 
-		meshUb = new UniformBuffer(mDevice);
-		DescriptorSetInfo setInfo;
-		setInfo.addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-		meshDescriptorSet = new DescriptorSet(mDevice, &setInfo);
+		meshUb = std::make_shared<UniformBuffer>(mDevice);
+		std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
+		setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		meshDescriptorSet = std::make_shared<DescriptorSet>(mDevice, setInfo);
 
 	}
 
@@ -461,7 +461,7 @@ namespace Horizon {
 
 	}
 
-	Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+	Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
 		hasIndices = indexCount > 0;
 	}
 
@@ -470,12 +470,6 @@ namespace Horizon {
 	}
 
 	Node::~Node() {
-		//if (mesh) {
-		//	delete mesh;
-		//}
-		//for (auto& child : children) {
-		//	delete child;
-		//}
 	}
 
 
@@ -485,7 +479,7 @@ namespace Horizon {
 
 	Math::mat4 Node::getMatrix() {
 		Math::mat4 m = localMatrix();
-		Node* p = parent;
+		std::shared_ptr<Node> p = parent;
 		while (p) {
 			m = p->localMatrix() * m;
 			p = p->parent;

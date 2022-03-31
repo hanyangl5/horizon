@@ -7,7 +7,7 @@
 #include "SurfaceSupportDetails.h"
 
 namespace Horizon {
-	Device::Device(Instance* instance, Surface* surface) :mInstance(instance), mSurface(surface)
+	Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface) :mInstance(instance), mSurface(surface)
 	{
 		// enumerate vk devices
 		vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, nullptr);

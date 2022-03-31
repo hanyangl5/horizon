@@ -7,6 +7,7 @@
 #include "Window.h"
 #include "Renderer.h"
 #include "InputManager.h"
+
 class App
 {
 public:
@@ -16,8 +17,8 @@ public:
 private:
 	Horizon::u32 mWidth;
 	Horizon::u32 mHeight;
-	Horizon::Window* mWindow = nullptr;
-	Horizon::Renderer* mRenderer = nullptr;
-	Horizon::InputManager inputManager;
+	std::shared_ptr<Horizon::Window> mWindow = nullptr;
+	std::unique_ptr<Horizon::Renderer> mRenderer = nullptr;
+	std::unique_ptr<Horizon::InputManager> inputManager;
 	std::shared_ptr<spdlog::logger> mLogger;
 };

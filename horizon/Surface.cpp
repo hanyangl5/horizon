@@ -4,7 +4,7 @@
 
 namespace Horizon {
 
-	Surface::Surface(Instance* instance, Window* window) :mInstance(instance), mWindow(window)
+	Surface::Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window) :mInstance(instance), mWindow(window)
 	{
 		createSurface();
 	}

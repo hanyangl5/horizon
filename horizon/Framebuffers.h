@@ -13,16 +13,16 @@ namespace Horizon {
 	class Framebuffers
 	{
 	public:
-		Framebuffers(Device* device, SwapChain* swapchain, RenderPass* renderPass);
+		Framebuffers(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapchain, std::shared_ptr<RenderPass> renderPass);
 		~Framebuffers();
 		VkFramebuffer get(u32 i)const;
 	private:
 		void createFrameBuffers();
 	private:
 
-		SwapChain* mSwapChain;
-		Device* mDevice = nullptr;
-		RenderPass* mRenderPass;
+		std::shared_ptr<SwapChain> mSwapChain;
+		std::shared_ptr<Device> mDevice = nullptr;
+		std::shared_ptr<RenderPass> mRenderPass;
 		std::vector<VkFramebuffer> mSwapChainFrameBuffers;
 	};
 }

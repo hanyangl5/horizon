@@ -2,7 +2,7 @@
 #include "VulkanBuffer.h"
 
 namespace Horizon {
-	VertexBuffer::VertexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Vertex>& vertices) :mDevice(device)
+	VertexBuffer::VertexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, const std::vector<Vertex>& vertices) :mDevice(device)
 	{
 		mVerticesCount = vertices.size();
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * mVerticesCount;

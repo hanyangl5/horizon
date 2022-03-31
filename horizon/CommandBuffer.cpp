@@ -2,8 +2,8 @@
 
 namespace Horizon {
 
-	CommandBuffer::CommandBuffer(Device* device,
-		SwapChain* swapchain)
+	CommandBuffer::CommandBuffer(std::shared_ptr<Device> device,
+		std::shared_ptr<SwapChain> swapchain)
 		:mDevice(device), mSwapChain(swapchain)
 	{
 		createCommandPool();
@@ -118,7 +118,7 @@ namespace Horizon {
 		printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 	}
 
-	void CommandBuffer::beginRenderPass(u32 index, Pipeline* pipeline) {
+	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline) {
 
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

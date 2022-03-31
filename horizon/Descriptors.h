@@ -14,8 +14,8 @@ namespace Horizon {
 	{
 		// sampler/Ub/sbo
 	public:
-		void addBinding(u32 binding, DescriptorBase* buffer);
-		std::unordered_map<u32, DescriptorBase*> descriptorMap;
+		void addBinding(u32 binding, std::shared_ptr<DescriptorBase> buffer);
+		std::unordered_map<u32, std::shared_ptr<DescriptorBase>> descriptorMap;
 	};
 
 	struct DescriptorSetInfo {
@@ -32,19 +32,18 @@ namespace Horizon {
 	class DescriptorSet
 	{
 	public:
-		/*DescriptorSet(Device* device);*/
-		DescriptorSet(Device* device, DescriptorSetInfo* setInfo);
+		DescriptorSet(std::shared_ptr<Device> device, std::shared_ptr<DescriptorSetInfo> setInfo);
 		~DescriptorSet();
 		VkDescriptorSetLayout getLayout();
 		VkDescriptorSet get();
 		void createDescriptorSetLayout();
 		void allocateDescriptors();
 		void createDescriptorPool();
-		void updateDescriptorSet(DescriptorSetUpdateDesc* desc);
+		void updateDescriptorSet(const DescriptorSetUpdateDesc& desc);
 
 	private:
-		Device* mDevice = nullptr;
-		DescriptorSetInfo mDescriptorSetInfo;
+		std::shared_ptr<Device> mDevice = nullptr;
+		std::shared_ptr<DescriptorSetInfo> mDescriptorSetInfo;
 		VkDescriptorSetLayout mSetLayout;
 		VkDescriptorSet mSet;
 		VkDescriptorPool mDescriptorPool;

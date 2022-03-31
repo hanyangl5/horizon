@@ -14,13 +14,13 @@ namespace Horizon {
 	class CommandBuffer
 	{
 	public:
-		CommandBuffer(Device* device,
-			SwapChain* swapchain);
+		CommandBuffer(std::shared_ptr<Device> device,
+			std::shared_ptr<SwapChain> swapchain);
 		~CommandBuffer();
 		VkCommandBuffer* get(u32 i);
 		void submit();
 		VkCommandPool getCommandpool()const;
-		void beginRenderPass(u32 index, Pipeline* pipeline);
+		void beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline);
 		void endRenderPass(u32 index);
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer commandbuffer);
@@ -33,8 +33,8 @@ namespace Horizon {
 		void createFences();
 	private:
 
-		Device* mDevice = nullptr;
-		SwapChain* mSwapChain;
+		std::shared_ptr<Device> mDevice = nullptr;
+		std::shared_ptr<SwapChain> mSwapChain;
 
 		VkCommandPool mCommandPool = nullptr;
 		std::vector<VkCommandBuffer> mCommandBuffers;

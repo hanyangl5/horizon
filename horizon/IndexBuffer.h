@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include "utils.h"
 #include "Device.h"
@@ -12,14 +13,14 @@ namespace Horizon {
 	class IndexBuffer {
 	public:
 		IndexBuffer() = default;
-		IndexBuffer(Device* device, CommandBuffer* commandBuffer, const std::vector<Index>& vertices);
+		IndexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, const std::vector<Index>& vertices);
 		~IndexBuffer();
 		VkBuffer get()const;
 		u64 getIndicesCount()const;
 	private:
 		VkBuffer mIndexBuffer;
 		VkDeviceMemory mIndexBufferMemory;
-		Device* mDevice = nullptr;
+		std::shared_ptr<Device> mDevice = nullptr;
 		u64 mIndicesCount;
 	};
 

@@ -2,7 +2,7 @@
 
 namespace Horizon {
 
-	Framebuffers::Framebuffers(Device* device, SwapChain* swapchain, RenderPass* renderPass) :mDevice(device), mSwapChain(swapchain), mRenderPass(renderPass)
+	Framebuffers::Framebuffers(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapchain, std::shared_ptr<RenderPass> renderPass) :mDevice(device), mSwapChain(swapchain), mRenderPass(renderPass)
 	{
 		createFrameBuffers();
 	}

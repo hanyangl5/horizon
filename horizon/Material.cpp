@@ -14,7 +14,7 @@ namespace Horizon {
 
 		materialDescriptorSet->createDescriptorPool();
 		materialDescriptorSet->allocateDescriptors();
-		materialDescriptorSet->updateDescriptorSet(&desc);
+		materialDescriptorSet->updateDescriptorSet(desc);
 	}
 
 }
