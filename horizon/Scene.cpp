@@ -82,8 +82,7 @@ namespace Horizon {
 
 	void Scene::prepare()
 	{
-		sceneDescritporSet->createDescriptorPool();
-		sceneDescritporSet->allocateDescriptors();
+		sceneDescritporSet->allocateDescriptorSet();
 
 		// update Ub data
 		sceneUbStruct.view = mCamera->getViewMatrix();

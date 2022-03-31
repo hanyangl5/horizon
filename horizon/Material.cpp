@@ -12,8 +12,7 @@ namespace Horizon {
 		desc.addBinding(2, normalTexture);
 		desc.addBinding(3, metallicRoughnessTexture);
 
-		materialDescriptorSet->createDescriptorPool();
-		materialDescriptorSet->allocateDescriptors();
+		materialDescriptorSet->allocateDescriptorSet();
 		materialDescriptorSet->updateDescriptorSet(desc);
 	}
 

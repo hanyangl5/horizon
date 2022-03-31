@@ -39,10 +39,7 @@ void printVkError(VkResult result, std::string prefix, logLevel level)
 	}
 	else if (result != VK_SUCCESS || prefix != "")
 	{
-
-			spdlog::info("{}: Successful ", prefix.c_str(), "");
-
-
+		spdlog::info("{}: ", prefix.c_str(), "");
 		return;
 	}
 

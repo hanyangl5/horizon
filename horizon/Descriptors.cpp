@@ -9,6 +9,7 @@ namespace Horizon {
 	DescriptorSet::DescriptorSet(std::shared_ptr<Device> device, std::shared_ptr<DescriptorSetInfo> setInfo) :mDevice(device), mDescriptorSetInfo(setInfo)
 	{
 		createDescriptorSetLayout();
+		createDescriptorPool();
 	}
 
 	DescriptorSet::~DescriptorSet()
@@ -77,7 +78,10 @@ namespace Horizon {
 		return mSet;
 	}
 
-	void DescriptorSet::allocateDescriptors() {
+	void DescriptorSet::allocateDescriptorSet() {
+		if (mSet != VK_NULL_HANDLE) {
+			printVkError(vkFreeDescriptorSets(mDevice->get(), mDescriptorPool, 1, &mSet));
+		}
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = mDescriptorPool;
@@ -90,19 +94,18 @@ namespace Horizon {
 	}
 
 	void DescriptorSet::createDescriptorPool() {
+
 		std::unordered_map<VkDescriptorType, u32> descriptorTypeMap;
 
-		// calculate each descriptor type count
-		//for (u32 set = 0; set < mDescriptorSetInfos.size(); set++) {
-		//}
 		for (u32 binding = 0; binding < mDescriptorSetInfo->bindingCount; binding++) {
 			descriptorTypeMap[mDescriptorSetInfo->types[binding]]++;
 		}
 
-		std::vector<VkDescriptorPoolSize> poolSizes{};
+		std::vector<VkDescriptorPoolSize> poolSizes(descriptorTypeMap.size());
 
+		u32 i = 0;
 		for (auto& type : descriptorTypeMap) {
-			poolSizes.push_back(VkDescriptorPoolSize{ type.first, type.second });
+			poolSizes[i++] = VkDescriptorPoolSize{type.first, type.second};
 		}
 
 		VkDescriptorPoolCreateInfo poolInfo{};
@@ -113,7 +116,7 @@ namespace Horizon {
 		poolInfo.maxSets = 1;
 		poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-
+		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 		printVkError(vkCreateDescriptorPool(mDevice->get(), &poolInfo, nullptr, &mDescriptorPool), "create descriptor pool", logLevel::debug);
 
 	}

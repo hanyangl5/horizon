@@ -379,8 +379,7 @@ namespace Horizon {
 
 	void Model::updateNodeDescriptorSet(std::shared_ptr<Node> node) {
 		if (node->mesh) {
-			node->mesh->meshDescriptorSet->createDescriptorPool();
-			node->mesh->meshDescriptorSet->allocateDescriptors();
+			node->mesh->meshDescriptorSet->allocateDescriptorSet();
 
 			DescriptorSetUpdateDesc desc;
 			desc.addBinding(0, node->mesh->meshUb);

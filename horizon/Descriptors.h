@@ -37,16 +37,15 @@ namespace Horizon {
 		VkDescriptorSetLayout getLayout();
 		VkDescriptorSet get();
 		void createDescriptorSetLayout();
-		void allocateDescriptors();
+		void allocateDescriptorSet();
 		void createDescriptorPool();
 		void updateDescriptorSet(const DescriptorSetUpdateDesc& desc);
-
 	private:
 		std::shared_ptr<Device> mDevice = nullptr;
 		std::shared_ptr<DescriptorSetInfo> mDescriptorSetInfo;
-		VkDescriptorSetLayout mSetLayout;
-		VkDescriptorSet mSet;
-		VkDescriptorPool mDescriptorPool;
+		VkDescriptorSetLayout mSetLayout = VK_NULL_HANDLE;
+		VkDescriptorSet mSet = VK_NULL_HANDLE;
+		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
 	};
 
 
