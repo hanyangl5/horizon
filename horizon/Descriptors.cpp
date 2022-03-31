@@ -13,8 +13,8 @@ namespace Horizon {
 
 	DescriptorSet::~DescriptorSet()
 	{
-		//vkDestroyDescriptorPool(mDevice->get(), mDescriptorPool, nullptr);
-		//vkDestroyDescriptorSetLayout(mDevice->get(), mSetLayout, nullptr);
+		vkDestroyDescriptorPool(mDevice->get(), mDescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(mDevice->get(), mSetLayout, nullptr);
 	}
 
 	void DescriptorSet::createDescriptorSetLayout()

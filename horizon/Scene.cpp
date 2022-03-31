@@ -102,15 +102,20 @@ namespace Horizon {
 		desc.addBinding(3, cameraUb);
 
 		sceneDescritporSet->updateDescriptorSet(desc);
-
 		for (auto& model : mModels) {
 			model->updateDescriptors();
 		}
 	}
 	
 	void Scene::draw(std::shared_ptr<Pipeline> pipeline) {
-		for (auto& model : mModels) {
-			model->draw(pipeline);
+		for (u32 i = 0; i < mCommandBuffer->commandBufferCount(); i++) {
+			mCommandBuffer->beginRenderPass(i, pipeline);
+
+			auto commandBuffer = *mCommandBuffer->get(i);
+			for (auto& model : mModels) {
+				model->draw(pipeline, commandBuffer);
+			}
+			mCommandBuffer->endRenderPass(i);
 		}
 	}
 

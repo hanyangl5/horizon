@@ -37,26 +37,19 @@ namespace Horizon {
 	}
 
 	Model::~Model() {
+
 	}
 
-	void Model::draw(std::shared_ptr<Pipeline> pipeline)
+	void Model::draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer commandBuffer)
 	{
-		for (u32 i = 0; i < mCommandBuffer->commandBufferCount(); i++) {
-			mCommandBuffer->beginRenderPass(i, pipeline);
+		const VkDeviceSize offsets[1] = { 0 };
+		VkBuffer vertexBuffer = mVertexBuffer->get();
 
-			auto commandBuffer = *mCommandBuffer->get(i);
-			//vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
-			const VkDeviceSize offsets[1] = { 0 };
-			VkBuffer vertexBuffer = mVertexBuffer->get();
-
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
-			for (auto& node : nodes) {
-				drawNode(node, pipeline, commandBuffer);
-			}
-			mCommandBuffer->endRenderPass(i);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
+		for (auto& node : nodes) {
+			drawNode(node, pipeline, commandBuffer);
 		}
-
 	}
 
 	void Model::loadTextures(tinygltf::Model& gltfModel)
@@ -379,10 +372,8 @@ namespace Horizon {
 
 	void Model::updateDescriptors()
 	{
-
 		for (auto& node : nodes) {
 			updateNodeDescriptorSet(node);
-
 		}
 	}
 

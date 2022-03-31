@@ -67,7 +67,7 @@ namespace Horizon {
 	public:
 		Model(const std::string& path, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, std::shared_ptr<DescriptorSet> sceneDescritporSet);
 		~Model();
-		void draw(std::shared_ptr<Pipeline> pipeline);
+		void draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer commandBuffer);
 		void loadTextures(tinygltf::Model& gltfModel);
 		void loadMaterials(tinygltf::Model& gltfModel);
 		void loadNode(std::shared_ptr<Node> parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
