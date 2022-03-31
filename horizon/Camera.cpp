@@ -2,7 +2,7 @@
 
 namespace Horizon
 {
-	Camera::Camera(vec3 eye, vec3 at, vec3 up) :mEye(eye), mAt(at), mUp(up)
+	Camera::Camera(Math::vec3 eye, Math::vec3 at, Math::vec3 up) :mEye(eye), mAt(at), mUp(up)
 	{
 		mForward = normalize(mAt - mEye);
 		mRight = cross(mForward, mUp);
@@ -15,16 +15,16 @@ namespace Horizon
 		mAspectRatio = aspectRatio;
 		mNearPlane = nearPlane;
 		mFarPlane = farPlane;
-		mProjection = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+		mProjection = Math::perspective(fov, aspectRatio, nearPlane, farPlane);
 	}
-	mat4 Camera::getProjectionMatrix() const
+	Math::mat4 Camera::getProjectionMatrix() const
 	{
 		return mProjection;
 	}
 
-	vec3 Camera::getFov() const
+	Math::vec3 Camera::getFov() const
 	{
-		return vec3();
+		return Math::vec3();
 	}
 	void Camera::setCameraSpeed(f32 speed)
 	{
@@ -74,23 +74,23 @@ namespace Horizon
 	}
 	void Camera::updateViewMatrix()
 	{
-		// calculate the new Front vector
-		glm::vec3 front;
-		front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPicth));
-		front.y = sin(glm::radians(mPicth));
-		front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPicth));
+		// calculate the new Front std::vector
+		Math::vec3 front;
+		front.x = cos(Math::radians(mYaw)) * cos(Math::radians(mPicth));
+		front.y = sin(Math::radians(mPicth));
+		front.z = sin(Math::radians(mYaw)) * cos(Math::radians(mPicth));
 
-		mForward = glm::normalize(front);
-		mRight = glm::normalize(glm::cross(mForward, vec3(0.0, 1.0, 0.0)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-		mUp = glm::normalize(glm::cross(mRight, mForward));
+		mForward = Math::normalize(front);
+		mRight = Math::normalize(Math::cross(mForward, Math::vec3(0.0, 1.0, 0.0)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+		mUp = Math::normalize(Math::cross(mRight, mForward));
 
-		mView = glm::lookAt(mEye, mEye + mForward, mUp);
+		mView = Math::lookAt(mEye, mEye + mForward, mUp);
 	}
-	mat4 Camera::getViewMatrix() const
+	Math::mat4 Camera::getViewMatrix() const
 	{
 		return mView;
 	}
-	vec3 Camera::getPosition() const
+	Math::vec3 Camera::getPosition() const
 	{
 		return mEye;
 	}

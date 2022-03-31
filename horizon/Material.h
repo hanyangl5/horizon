@@ -11,7 +11,7 @@ namespace Horizon {
 	public:
 		void updateDescriptorSet();
 
-		//vec4 emissiveFactor = vec4(1.0f);
+		//Math::vec4 emissiveFactor = Math::vec4(1.0f);
 		Texture* baseColorTexture = nullptr;
 		Texture* normalTexture = nullptr;
 		Texture* metallicRoughnessTexture = nullptr;
@@ -28,8 +28,8 @@ namespace Horizon {
 		DescriptorSet* materialDescriptorSet = nullptr;
 
 		struct MaterialUbStruct {
-			vec4 baseColorFactor = vec4(1.0f);
-			vec2 metallicRoughnessFactor = vec2(1.0f);
+			Math::vec4 baseColorFactor = Math::vec4(1.0f);
+			Math::vec2 metallicRoughnessFactor = Math::vec2(1.0f);
 		}materialUbStruct;
 		UniformBuffer* materialUb;
 	};

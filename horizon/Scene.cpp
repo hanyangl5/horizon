@@ -18,8 +18,8 @@ namespace Horizon {
 
 		sceneDescritporSet = new DescriptorSet(mDevice, &sceneDescriptorSetInfo);
 
-		mCamera = new Camera(vec3(0.0f, 0.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-		mCamera->setPerspectiveProjectionMatrix(glm::radians(90.0f), static_cast<f32>(mWidth) / static_cast<f32>(mHeight), 0.01f, 1000.0f);
+		mCamera = new Camera(Math::vec3(0.0f, 0.0f, 5.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
+		mCamera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(mWidth) / static_cast<f32>(mHeight), 0.01f, 1000.0f);
 		mCamera->setCameraSpeed(0.01f);
 
 		// create uniform buffer
@@ -53,7 +53,7 @@ namespace Horizon {
 		mModels.emplace_back(path, mDevice, mCommandBuffer, sceneDescritporSet);
 	}
 
-	void Scene::addDirectLight(vec3 color, f32 intensity, vec3 direction)
+	void Scene::addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction)
 	{
 		if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
 			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -66,7 +66,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::addPointLight(vec3 color, f32 intensity, vec3 position, f32 radius)
+	void Scene::addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius)
 	{
 		if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
 			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -80,7 +80,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
+	void Scene::addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
 	{
 		if (lightCountUbStruct.lightCount >= MAX_LIGHT_COUNT) {
 			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);

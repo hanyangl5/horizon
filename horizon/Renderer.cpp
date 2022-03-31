@@ -71,10 +71,10 @@ namespace Horizon {
 		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/Sponza/glTF/Sponza.gltf");
 
-		mScene->addDirectLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(0.0f, -1.0f, -1.0f));
-		mScene->addPointLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(5.0f, 1.0f, 0.0f), 20.0f);
-		mScene->addSpotLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(-1.0f, -1.0f, 0.0f),  vec3(-1.0f, 1.0f, 0.0f), 10.0f, glm::radians(0.0f),glm::radians(90.0f));
-		mScene->addSpotLight(vec3(1.0f, 1.0f, 1.0f), 1.0f, vec3(0.0f, -1.0f, 0.0f),  vec3(1.0f, 1.0f, 0.0f), 10.0f, glm::radians(0.0f),glm::radians(45.0f));
+		mScene->addDirectLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, -1.0f));
+		mScene->addPointLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(5.0f, 1.0f, 0.0f), 20.0f);
+		mScene->addSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(-1.0f, -1.0f, 0.0f),  Math::vec3(-1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(90.0f));
+		mScene->addSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, 0.0f),  Math::vec3(1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(45.0f));
 
 	}
 

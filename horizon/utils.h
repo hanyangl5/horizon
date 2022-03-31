@@ -1,8 +1,6 @@
 #pragma once
 
 #define NOMINMAX
-#define SHADER_DIR "./shaders/"
-
 // stl
 
 #include <string>
@@ -19,20 +17,14 @@
 #include <GLFW/glfw3.h>
 #endif
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/ext.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include "Math.h"
 
-// *******************************
-// HANDLING A VULKAN ERROR RETURN:
-// *******************************
 
 namespace Horizon {
+
+	// *******************************
+	// HANDLING A VULKAN ERROR RETURN:
+	// *******************************
 
 	struct errorcode
 	{
@@ -51,6 +43,7 @@ namespace Horizon {
 
 	void printVkError(VkResult result, std::string prefix = "", logLevel level = logLevel::info);
 
+
 	using u8 = uint8_t;
 	using u16 = uint16_t;
 	using u32 = uint32_t;
@@ -62,13 +55,6 @@ namespace Horizon {
 
 	using f32 = float;
 	using f64 = double;
-
-	using vec2 = glm::vec2;
-	using vec3 = glm::vec3;
-	using vec4 = glm::vec4;
-	using mat3 = glm::mat3;
-	using mat4 = glm::mat4;
-	using quat = glm::quat;
 
 
 	uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);

@@ -146,7 +146,7 @@ namespace Horizon {
 			}
 
 			//if (mat.values.find("baseColorFactor") != mat.values.end()) {
-			//	material.materialUbStruct.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+			//	material.materialUbStruct.baseColorFactor = Math::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
 			//} else{
 			//	spdlog::warn("no base color factor found, use default param instead");
 			//}
@@ -189,8 +189,8 @@ namespace Horizon {
 			//	material.texCoordSets.occlusion = mat.additionalValues["occlusionTexture"].TextureTexCoord();
 			//}
 			//if (mat.additionalValues.find("emissiveFactor") != mat.additionalValues.end()) {
-			//	material.emissiveFactor = vec4(glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
-			//	material.emissiveFactor = vec4(0.0f);
+			//	material.emissiveFactor = Math::vec4(Math::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
+			//	material.emissiveFactor = Math::vec4(0.0f);
 			//}
 
 			material.materialUb = new UniformBuffer(mDevice);
@@ -216,24 +216,24 @@ namespace Horizon {
 		newNode->index = nodeIndex;
 		newNode->parent = parent;
 		newNode->name = node.name;
-		newNode->matrix = mat4(1.0f);
+		newNode->matrix = Math::mat4(1.0f);
 
 		// Generate local node matrix
-		vec3 translation = vec3(0.0f);
+		Math::vec3 translation = Math::vec3(0.0f);
 		if (node.translation.size() == 3) {
-			translation = glm::make_vec3(node.translation.data());
+			translation = Math::make_vec3(node.translation.data());
 			newNode->translation = translation;
 		}
 		if (node.rotation.size() == 4) {
-			newNode->rotation = glm::make_quat(node.rotation.data());
+			newNode->rotation = Math::make_quat(node.rotation.data());
 		}
-		vec3 scale = vec3(1.0f);
+		Math::vec3 scale = Math::vec3(1.0f);
 		if (node.scale.size() == 3) {
-			scale = glm::make_vec3(node.scale.data());
+			scale = Math::make_vec3(node.scale.data());
 			newNode->scale = scale;
 		}
 		if (node.matrix.size() == 16) {
-			newNode->matrix = glm::make_mat4x4(node.matrix.data());
+			newNode->matrix = Math::make_mat4x4(node.matrix.data());
 		};
 
 		// Node with children
@@ -253,8 +253,8 @@ namespace Horizon {
 				uint32_t vertexStart = static_cast<uint32_t>(vertices.size());
 				uint32_t indexCount = 0;
 				uint32_t vertexCount = 0;
-				vec3 posMin{};
-				vec3 posMax{};
+				Math::vec3 posMin{};
+				Math::vec3 posMax{};
 				bool hasSkin = false;
 				bool hasIndices = primitive.indices > -1;
 				// Vertices
@@ -281,30 +281,30 @@ namespace Horizon {
 					const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
 					const tinygltf::BufferView& posView = model.bufferViews[posAccessor.bufferView];
 					bufferPos = reinterpret_cast<const float*>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
-					posMin = vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
-					posMax = vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
+					posMin = Math::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
+					posMax = Math::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
 					vertexCount = static_cast<uint32_t>(posAccessor.count);
-					posByteStride = posAccessor.ByteStride(posView) ? (posAccessor.ByteStride(posView) / sizeof(float)) : sizeof(vec3) * 8;
+					posByteStride = posAccessor.ByteStride(posView) ? (posAccessor.ByteStride(posView) / sizeof(float)) : sizeof(Math::vec3) * 8;
 
 					if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
 						const tinygltf::Accessor& normAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
 						const tinygltf::BufferView& normView = model.bufferViews[normAccessor.bufferView];
 						bufferNormals = reinterpret_cast<const float*>(&(model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
-						normByteStride = normAccessor.ByteStride(normView) ? (normAccessor.ByteStride(normView) / sizeof(float)) : sizeof(vec3) * 8;
+						normByteStride = normAccessor.ByteStride(normView) ? (normAccessor.ByteStride(normView) / sizeof(float)) : sizeof(Math::vec3) * 8;
 					}
 
 					if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
 						const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
 						const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
 						bufferTexCoordSet0 = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-						uv0ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : sizeof(vec3) * 8;
+						uv0ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : sizeof(Math::vec3) * 8;
 					}
 					for (size_t v = 0; v < posAccessor.count; v++) {
 						Vertex vert;
-						vert.pos = glm::make_vec3(&bufferPos[v * posByteStride]);
-						vert.normal = glm::normalize(vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : vec3(0.0f)));
-						vert.uv0 = bufferTexCoordSet0 ? glm::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : vec3(0.0f);
-						//vert.uv1 = bufferTexCoordSet1 ? glm::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : vec3(0.0f);
+						vert.pos = Math::make_vec3(&bufferPos[v * posByteStride]);
+						vert.normal = Math::normalize(Math::vec3(bufferNormals ? Math::make_vec3(&bufferNormals[v * normByteStride]) : Math::vec3(0.0f)));
+						vert.uv0 = bufferTexCoordSet0 ? Math::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : Math::vec3(0.0f);
+						//vert.uv1 = bufferTexCoordSet1 ? Math::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : Math::vec3(0.0f);
 						vertices.push_back(vert);
 					}
 				}
@@ -446,7 +446,7 @@ namespace Horizon {
 	}
 
 
-	Mesh::Mesh(Device* device, mat4 model) :mDevice(device), meshUbStruct({ model })
+	Mesh::Mesh(Device* device, Math::mat4 model) :mDevice(device), meshUbStruct({ model })
 	{
 
 		meshUb = new UniformBuffer(mDevice);
@@ -479,12 +479,12 @@ namespace Horizon {
 	}
 
 
-	mat4 Node::localMatrix() {
-		return glm::translate(mat4(1.0f), translation) * glm::mat4_cast(rotation) * glm::scale(mat4(1.0f), scale) * matrix;
+	Math::mat4 Node::localMatrix() {
+		return Math::translate(Math::mat4(1.0f), translation) * Math::mat4_cast(rotation) * Math::scale(Math::mat4(1.0f), scale) * matrix;
 	}
 
-	mat4 Node::getMatrix() {
-		mat4 m = localMatrix();
+	Math::mat4 Node::getMatrix() {
+		Math::mat4 m = localMatrix();
 		Node* p = parent;
 		while (p) {
 			m = p->localMatrix() * m;
@@ -494,7 +494,7 @@ namespace Horizon {
 	}
 	void Node::update() {
 		if (mesh) {
-			mat4 m = getMatrix();
+			Math::mat4 m = getMatrix();
 			mesh->meshUbStruct.model = m;
 			mesh->meshUb->update(&m, sizeof(mesh->meshUbStruct));
 		}

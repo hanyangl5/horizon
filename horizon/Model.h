@@ -30,14 +30,14 @@ namespace Horizon {
 
 	class Mesh {
 	public:
-		Mesh(Device* device, mat4 model);
+		Mesh(Device* device, Math::mat4 model);
 		~Mesh();
 
 		Device* mDevice;;
 		std::vector<Primitive> primitives;
 
 		struct MeshUbStruct {
-			mat4 model;
+			Math::mat4 model;
 		}meshUbStruct;
 		UniformBuffer* meshUb = nullptr;
 		DescriptorSet* meshDescriptorSet = nullptr;
@@ -50,15 +50,15 @@ namespace Horizon {
 		Node* parent;
 		uint32_t index;
 		std::vector<Node*> children;
-		mat4 matrix;
+		Math::mat4 matrix;
 		std::string name;
 		Mesh* mesh = nullptr;
 		int32_t skinIndex = -1;
-		vec3 translation{};
-		vec3 scale{ 1.0f };
-		quat rotation{};
-		mat4 localMatrix();
-		mat4 getMatrix();
+		Math::vec3 translation{};
+		Math::vec3 scale{ 1.0f };
+		Math::quat rotation{};
+		Math::mat4 localMatrix();
+		Math::mat4 getMatrix();
 		void update();
 
 	};

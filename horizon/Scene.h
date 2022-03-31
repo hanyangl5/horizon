@@ -19,11 +19,10 @@ namespace Horizon {
 		Scene(Device* device, CommandBuffer* commandBuffer, u32 w, u32 h);
 		~Scene();
 		void destroy();
-
 		void loadModel(const std::string& path);
-		void addDirectLight(vec3 color, f32 intensity, vec3 direction);
-		void addPointLight(vec3 color, f32 intensity, vec3 position, f32 radius);
-		void addSpotLight(vec3 color, f32 intensity, vec3 direction, vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
+		void addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
+		void addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
+		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
 		void prepare();
 		void draw(Pipeline* pipeline);
@@ -43,8 +42,8 @@ namespace Horizon {
 
 		// 0
 		struct SceneUbStruct {
-			mat4 view;
-			mat4 projection;
+			Math::mat4 view;
+			Math::mat4 projection;
 		}sceneUbStruct;
 		UniformBuffer* sceneUb = nullptr;
 		// 1
@@ -59,7 +58,7 @@ namespace Horizon {
 		UniformBuffer* lightUb;
 		// 3
 		struct CamaeraUbStruct {
-			vec3 cameraPos;
+			Math::vec3 cameraPos;
 		}camaeraUbStruct;
 		UniformBuffer* cameraUb;
 
