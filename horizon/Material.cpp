@@ -7,10 +7,10 @@ namespace Horizon {
 		materialUb->update(&materialUbStruct, sizeof(materialUbStruct));
 
 		DescriptorSetUpdateDesc desc;
-		desc.addBinding(0, materialUb);
-		desc.addBinding(1, baseColorTexture);
-		desc.addBinding(2, normalTexture);
-		desc.addBinding(3, metallicRoughnessTexture);
+		desc.bindResource(0, materialUb);
+		desc.bindResource(1, baseColorTexture);
+		desc.bindResource(2, normalTexture);
+		desc.bindResource(3, metallicRoughnessTexture);
 
 		materialDescriptorSet->allocateDescriptorSet();
 		materialDescriptorSet->updateDescriptorSet(desc);

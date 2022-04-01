@@ -14,7 +14,7 @@ namespace Horizon {
 	{
 		// sampler/Ub/sbo
 	public:
-		void addBinding(u32 binding, std::shared_ptr<DescriptorBase> buffer);
+		void bindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer);
 		std::unordered_map<u32, std::shared_ptr<DescriptorBase>> descriptorMap;
 	};
 
@@ -36,10 +36,11 @@ namespace Horizon {
 		~DescriptorSet();
 		VkDescriptorSetLayout getLayout();
 		VkDescriptorSet get();
-		void createDescriptorSetLayout();
 		void allocateDescriptorSet();
-		void createDescriptorPool();
 		void updateDescriptorSet(const DescriptorSetUpdateDesc& desc);
+	private:
+		void createDescriptorSetLayout();
+		void createDescriptorPool();
 	private:
 		std::shared_ptr<Device> mDevice = nullptr;
 		std::shared_ptr<DescriptorSetInfo> mDescriptorSetInfo;

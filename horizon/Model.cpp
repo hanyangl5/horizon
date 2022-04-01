@@ -132,6 +132,7 @@ namespace Horizon {
 			if (mat.values.find("baseColorTexture") != mat.values.end()) {
 				material->baseColorTexture = textures[mat.values["baseColorTexture"].TextureIndex()];
 				material->texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+				material->materialUbStruct.hasBaseColor = true;
 			}
 			else {
 				spdlog::warn("no base color texture found, use an empty texture instead");
@@ -148,6 +149,7 @@ namespace Horizon {
 			if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
 				material->normalTexture = textures[mat.additionalValues["normalTexture"].TextureIndex()];
 				material->texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
+				material->materialUbStruct.hasNormal = true;
 			}
 			else {
 				spdlog::warn("no normal texture found, use an empty texture instead");
@@ -158,6 +160,7 @@ namespace Horizon {
 			if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
 				material->metallicRoughnessTexture = textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
 				material->texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
+				material->materialUbStruct.hasMetallicRoughness = true;
 			}
 			else {
 				spdlog::warn("no normal texture found, use an empty texture instead");
@@ -382,7 +385,7 @@ namespace Horizon {
 			node->mesh->meshDescriptorSet->allocateDescriptorSet();
 
 			DescriptorSetUpdateDesc desc;
-			desc.addBinding(0, node->mesh->meshUb);
+			desc.bindResource(0, node->mesh->meshUb);
 
 			node->mesh->meshDescriptorSet->updateDescriptorSet(desc);
 			// update material params and textures

@@ -64,22 +64,25 @@ namespace Horizon {
 
 	void Pipeline::createPipelineLayout()
 	{
+		auto& layouts = mCreateInfo->descriptorLayouts;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.setLayoutCount = static_cast<u32>(mCreateInfo->descriptorLayouts->layouts.size());
-		pipelineLayoutInfo.pSetLayouts = mCreateInfo->descriptorLayouts->layouts.data();
+		// prevent crash if no descriptors are used in shader
+		if (mCreateInfo->descriptorLayouts || mCreateInfo->descriptorLayouts->layouts.empty()) {
+			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(mCreateInfo->descriptorLayouts->layouts.size());
+			pipelineLayoutInfo.pSetLayouts = mCreateInfo->descriptorLayouts->layouts.data();
+		}
+		else {
+			pipelineLayoutInfo.setLayoutCount = 0;
+			pipelineLayoutInfo.pSetLayouts = nullptr;
+		}
+
 		printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
 	}
 
 	void Pipeline::createPipeline()
 	{
-		//std::filesystem::path shader_dir = std::filesystem::current_path().parent_path().append("shaders");
-		////spdlog::info(shader_dir.string());
-		//std::string vspath = (shader_dir / "defaultlit.vert.spv").string();
-		//std::string pspath = (shader_dir / "defaultlit.frag.spv").string();
-		//Shader vs(mDevice->get(), vspath.c_str());
-		//Shader ps(mDevice->get(), pspath.c_str());
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
 
@@ -143,8 +146,8 @@ namespace Horizon {
 		rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationStateCreateInfo.lineWidth = 1.0f;
-		rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;//VK_CULL_MODE_BACK_BIT;
-		rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisamplingStateCreateInfo{};
@@ -186,8 +189,8 @@ namespace Horizon {
 		colorBlendingStateCreateInfo.blendConstants[3] = 0.0f;
 
 		std::array<VkDynamicState, 2> dynamicStates = {
-		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_LINE_WIDTH
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_LINE_WIDTH
 		};
 
 		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
@@ -216,10 +219,10 @@ namespace Horizon {
 
 		printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
 	}
-	
 
 
-	PipelineManager::PipelineManager(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain):mDevice(device),mSwapChain(swapChain)
+
+	PipelineManager::PipelineManager(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain) :mDevice(device), mSwapChain(swapChain)
 	{
 	}
 

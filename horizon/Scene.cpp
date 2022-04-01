@@ -19,9 +19,9 @@ namespace Horizon {
 
 		sceneDescritporSet = std::make_shared<DescriptorSet>(mDevice, sceneDescriptorSetInfo);
 
-		mCamera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 5.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
+		mCamera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 500.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
 		mCamera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(mWidth) / static_cast<f32>(mHeight), 0.01f, 1000.0f);
-		mCamera->setCameraSpeed(0.01f);
+		mCamera->setCameraSpeed(1.0f);
 
 		// create uniform buffer
 		sceneUb = std::make_shared<UniformBuffer>(device);
@@ -95,10 +95,10 @@ namespace Horizon {
 		cameraUb->update(&camaeraUbStruct, sizeof(CamaeraUbStruct));
 
 		DescriptorSetUpdateDesc desc;
-		desc.addBinding(0, sceneUb);
-		desc.addBinding(1, lightCountUb);
-		desc.addBinding(2, lightUb);
-		desc.addBinding(3, cameraUb);
+		desc.bindResource(0, sceneUb);
+		desc.bindResource(1, lightCountUb);
+		desc.bindResource(2, lightUb);
+		desc.bindResource(3, cameraUb);
 
 		sceneDescritporSet->updateDescriptorSet(desc);
 		for (auto& model : mModels) {

@@ -129,7 +129,7 @@ namespace Horizon {
 	}
 
 
-	void DescriptorSetUpdateDesc::addBinding(u32 binding, std::shared_ptr<DescriptorBase> buffer)
+	void DescriptorSetUpdateDesc::bindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer)
 	{
 		descriptorMap[binding] = buffer;
 	}

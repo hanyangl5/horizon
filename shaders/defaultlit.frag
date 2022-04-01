@@ -34,8 +34,12 @@ layout(set = 0, binding = 3) uniform CameraUb {
 // set 1: material
 
 layout(set = 1, binding = 0) uniform MaterialParams {
-    vec4 bcFactor;
-    vec2 mrFactor;
+    bool hasBaseColor;
+    bool hasNormal;
+    bool hasMetallicRoughness;
+    // vec4 bcFactor;
+    // vec3 normalFactor;
+    // vec2 mrFactor;
 }materialParams;
 
 layout(set = 1, binding = 1) uniform sampler2D bcTexture;
@@ -104,11 +108,10 @@ float angleFalloff(float innerRadius, float outerRadius, vec3 direction, vec3 L)
 }
 
 vec3 radiance(LightParams light, vec3 N, vec3 V) {
-
-    vec3 albedo = texture(bcTexture, fragTexCoord).xyz;
-    vec3 normal = texture(normalTexture, fragTexCoord).xyz;
-    float metallic= texture(mrTexture, fragTexCoord).x;
-    float roughness = texture(mrTexture, fragTexCoord).y;
+    vec3 albedo = materialParams.hasBaseColor ? texture(bcTexture, fragTexCoord).xyz : vec3(1.0);
+    vec3 normal = materialParams.hasNormal? texture(normalTexture, fragTexCoord).xyz : vec3(0.0);
+    float metallic= materialParams.hasMetallicRoughness ? texture(mrTexture, fragTexCoord).x : 0.0f;
+    float roughness = materialParams.hasMetallicRoughness ? texture(mrTexture, fragTexCoord).y : 1.0f;
 
     vec3 lightRadiance;
     vec3 L;

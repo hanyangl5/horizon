@@ -1,14 +1,20 @@
 import sys
 import os
 
-def glslc(input,output):
+
+path, _ = os.path.split(os.path.abspath(sys.argv[0]))
+
+def glslc(shaderPath):
+    input = os.path.join(path, shaderPath)
+    output = os.path.join(os.path.join(path, "spirv"), shaderPath) + ".spv"
     cmd="glslc"+ " " + input + " -o " + output
     os.system(cmd)
 
 def main():
-    path, _ = os.path.split(os.path.abspath(sys.argv[0]))
-    glslc(os.path.join(path,"defaultlit.vert"),os.path.join(path,"defaultlit.vert.spv"))
-    glslc(os.path.join(path,"defaultlit.frag"),os.path.join(path,"defaultlit.frag.spv"))
+    glslc("defaultlit.vert")
+    glslc("defaultlit.frag")
+    glslc("postprocess.vert")
+    glslc("postprocess.frag")
     
 if __name__ == '__main__':
     main()

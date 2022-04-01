@@ -48,30 +48,32 @@ namespace Horizon {
 	void Renderer::drawFrame()
 	{
 		mScene->draw(mPipelineMgr->get("lighting")); // default shading pipeline
-
+		
 		mCommandBuffer->submit();
 	}
 
 	void Renderer::prepareAssests()
 	{
 		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
-		mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
-		mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf");
+		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
+		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/earth/earth.gltf");
+		mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/earth_original_size/earth.gltf");
+		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/Sponza/glTF/Sponza.gltf");
 
 		mScene->addDirectLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, -1.0f));
-		mScene->addPointLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(5.0f, 1.0f, 0.0f), 20.0f);
-		mScene->addSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(-1.0f, -1.0f, 0.0f),  Math::vec3(-1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(90.0f));
-		mScene->addSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, 0.0f),  Math::vec3(1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(45.0f));
+		//mScene->addPointLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(5.0f, 1.0f, 0.0f), 20.0f);
+		//mScene->addSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(-1.0f, -1.0f, 0.0f),  Math::vec3(-1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(90.0f));
+		//mScene->addSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, 0.0f),  Math::vec3(1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(45.0f));
 
 	}
 
 	void Renderer::createPipelines()
 	{
 
-		std::shared_ptr<Shader>lightingVs=std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.vert.spv");
-		std::shared_ptr<Shader>lightingPs=std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/defaultlit.frag.spv");
+		std::shared_ptr<Shader> lightingVs=std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/spirv/defaultlit.vert.spv");
+		std::shared_ptr<Shader> lightingPs=std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/spirv/defaultlit.frag.spv");
 
 		std::shared_ptr<PipelineCreateInfo> lightingPipelineCreateInfo = std::make_shared<PipelineCreateInfo>();
 
@@ -80,5 +82,25 @@ namespace Horizon {
 		lightingPipelineCreateInfo->descriptorLayouts = mScene->getDescriptorLayouts();
 		
 		mPipelineMgr->createPipeline(lightingPipelineCreateInfo, "lighting");
+
+		// post process
+
+		//std::shared_ptr<DescriptorSetInfo> ppDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
+		//ppDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		//std::shared_ptr<DescriptorSet> ppDescriptorSet = std::make_shared<DescriptorSet>(mDevice, ppDescriptorSetCreateInfo);
+		//std::shared_ptr<DescriptorSetLayouts> ppDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
+		//ppDescriptorSetLayout->layouts.push_back(ppDescriptorSet->getLayout());
+
+
+		//std::shared_ptr<Shader> ppVs = std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/spirv/postprocess.vert.spv");
+		//std::shared_ptr<Shader> ppPs = std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/spirv/postprocess.frag.spv");
+
+		//std::shared_ptr<PipelineCreateInfo> ppPipelineCreateInfo = std::make_shared<PipelineCreateInfo>();
+		//ppPipelineCreateInfo->vs = ppVs;
+		//ppPipelineCreateInfo->ps = ppPs;
+		//ppPipelineCreateInfo->descriptorLayouts = ppDescriptorSetLayout;
+
+		//mPipelineMgr->createPipeline(ppPipelineCreateInfo, "pp");
+
 	}
 }

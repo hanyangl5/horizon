@@ -28,8 +28,12 @@ namespace Horizon {
 		std::shared_ptr<DescriptorSet> materialDescriptorSet = nullptr;
 
 		struct MaterialUbStruct {
-			Math::vec4 baseColorFactor = Math::vec4(1.0f);
-			Math::vec2 metallicRoughnessFactor = Math::vec2(1.0f);
+			bool hasBaseColor = false;
+			bool hasNormal = false;
+			bool hasMetallicRoughness = false;
+			//Math::vec4 baseColorFactor = Math::vec4(0.0f);
+			//Math::vec3 normalFactor = Math::vec3(0.0f);
+			//Math::vec2 metallicRoughnessFactor = Math::vec2(0.0f);
 		}materialUbStruct;
 		std::shared_ptr<UniformBuffer> materialUb;
 	};
