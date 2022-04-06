@@ -23,7 +23,7 @@ namespace Horizon {
 
 	bool ValidationLayer::checkValidationLayerSupport()
 	{
-		u32 layerCount;
+		u32 layerCount = 0;
 		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 		std::vector<VkLayerProperties> availableLayers(layerCount);

@@ -17,9 +17,9 @@
 
 namespace Horizon {
 
-	class Primitive {
+	class MeshPrimitive {
 	public:
-		Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material);
+		MeshPrimitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material);
 	public:
 		std::shared_ptr<Material> material;
 		uint32_t firstIndex;
@@ -34,7 +34,7 @@ namespace Horizon {
 		~Mesh();
 
 		std::shared_ptr<Device> mDevice;;
-		std::vector<std::shared_ptr<Primitive>> primitives;
+		std::vector<std::shared_ptr<MeshPrimitive>> primitives;
 
 		struct MeshUbStruct {
 			Math::mat4 model;

@@ -3,7 +3,7 @@
 
 namespace Horizon {
 
-	Scene::Scene(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, u32 w, u32 h) :mDevice(device), mCommandBuffer(commandBuffer), mWidth(w), mHeight(h)
+	Scene::Scene(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer) :mRenderContext(renderContext), mDevice(device), mCommandBuffer(commandBuffer)
 	{
 
 
@@ -19,8 +19,8 @@ namespace Horizon {
 
 		sceneDescritporSet = std::make_shared<DescriptorSet>(mDevice, sceneDescriptorSetInfo);
 
-		mCamera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 500.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
-		mCamera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(mWidth) / static_cast<f32>(mHeight), 0.01f, 1000.0f);
+		mCamera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 7000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
+		mCamera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(mRenderContext.width) / static_cast<f32>(mRenderContext.height), 0.01f, 100000.0f);
 		mCamera->setCameraSpeed(1.0f);
 
 		// create uniform buffer
@@ -76,7 +76,7 @@ namespace Horizon {
 		lightUbStruct.lights[lightCountUbStruct.lightCount].colorIntensity = { color, intensity };
 		lightUbStruct.lights[lightCountUbStruct.lightCount].direction = { direction, 0.0 };
 		lightUbStruct.lights[lightCountUbStruct.lightCount].positionType = { position, static_cast<f32>(LightType::SPOT_LIGHT) };
-		lightUbStruct.lights[lightCountUbStruct.lightCount].radiusInnerOuter = {radius, innerConeAngle, outerConeAngle, 0.0 };
+		lightUbStruct.lights[lightCountUbStruct.lightCount].radiusInnerOuter = { radius, innerConeAngle, outerConeAngle, 0.0 };
 		lightCountUbStruct.lightCount++;
 	}
 
@@ -105,16 +105,10 @@ namespace Horizon {
 			model->updateDescriptors();
 		}
 	}
-	
-	void Scene::draw(std::shared_ptr<Pipeline> pipeline) {
-		for (u32 i = 0; i < mCommandBuffer->commandBufferCount(); i++) {
-			mCommandBuffer->beginRenderPass(i, pipeline);
 
-			auto commandBuffer = *mCommandBuffer->get(i);
-			for (auto& model : mModels) {
-				model->draw(pipeline, commandBuffer);
-			}
-			mCommandBuffer->endRenderPass(i);
+	void Scene::draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline) {
+		for (auto& model : mModels) {
+			model->draw(pipeline, commandBuffer);
 		}
 	}
 
@@ -143,4 +137,34 @@ namespace Horizon {
 	{
 		return mCamera;
 	}
+	FullscreenTriangle::FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer) :mDevice(device), mCommandBuffer(commandBuffer)
+	{
+
+		// pos, normal, uv
+		vertices.push_back(Vertex{ { 1.0f, -1.0f, 0.0f}, {0.0f,0.0f,0.0f}, {1.0f, 0.0f} });
+		vertices.push_back(Vertex{ { 1.0f,  3.0f, 0.0f}, {0.0f,0.0f,0.0f}, {1.0f, -2.0f} });
+		vertices.push_back(Vertex{ {-3.0f, -1.0f, 0.0f}, {0.0f,0.0f,0.0f}, {-1.0f, 0.0f} });
+		mVertexBuffer = std::make_shared<VertexBuffer>(mDevice, mCommandBuffer, vertices);
+	}
+
+	void FullscreenTriangle::draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptorsets, bool isPresent)
+	{
+
+		const VkDeviceSize offsets[1] = { 0 };
+		VkBuffer vertexBuffer = mVertexBuffer->get();
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
+
+		std::vector<VkDescriptorSet> descriptorsets(_descriptorsets.size());
+		for (u32 i = 0; i < _descriptorsets.size(); i++)
+		{
+			descriptorsets[i] = _descriptorsets[i]->get();
+		}
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptorsets.size(), descriptorsets.data(), 0, 0);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+	}
+
+
 }

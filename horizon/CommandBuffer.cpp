@@ -2,9 +2,7 @@
 
 namespace Horizon {
 
-	CommandBuffer::CommandBuffer(std::shared_ptr<Device> device,
-		std::shared_ptr<SwapChain> swapchain)
-		:mDevice(device), mSwapChain(swapchain)
+	CommandBuffer::CommandBuffer(RenderContext& renderContext, std::shared_ptr<Device> device) :mRenderContext(renderContext), mDevice(device)
 	{
 		createCommandPool();
 		allocateCommandBuffers();
@@ -22,18 +20,17 @@ namespace Horizon {
 	}
 
 
-	VkCommandBuffer* CommandBuffer::get(u32 i)
+	VkCommandBuffer CommandBuffer::get(u32 i)
 	{
-		return &mCommandBuffers[i];
+		return mCommandBuffers[i];
 	}
 
-	void CommandBuffer::submit()
+	void CommandBuffer::submit(std::shared_ptr<SwapChain> swapChain)
 	{
-		//vkQueueWaitIdle(mDevice->getGraphicQueue());
 		vkWaitForFences(mDevice->get(), 1, &mInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(mDevice->get(), mSwapChain->get(), UINT64_MAX, mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		vkAcquireNextImageKHR(mDevice->get(), swapChain->get(), UINT64_MAX, mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 		if (mImagesInFlight[imageIndex] != VK_NULL_HANDLE) {
 			vkWaitForFences(mDevice->get(), 1, &mImagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
@@ -50,7 +47,7 @@ namespace Horizon {
 		submitInfo.pWaitDstStageMask = waitStages;
 
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = get(imageIndex);
+		submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
 
 		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[currentFrame] };
 		submitInfo.signalSemaphoreCount = 1;
@@ -66,7 +63,7 @@ namespace Horizon {
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = { mSwapChain->get() };
+		VkSwapchainKHR swapChains[] = { swapChain->get() };
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 
@@ -107,7 +104,7 @@ namespace Horizon {
 		// once again. To that end, create a list of VkCommandBuffer objects as a class member.
 		// Command buffers will be automatically freed when their command pool is destroyed, 
 		// so we don't need an explicit cleanup.
-		mCommandBuffers.resize(mSwapChain->getImageCount());
+		mCommandBuffers.resize(mRenderContext.swapChainImageCount);
 
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
 		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -118,19 +115,18 @@ namespace Horizon {
 		printVkError(vkAllocateCommandBuffers(mDevice->get(), &commandBufferAllocateInfo, mCommandBuffers.data()), "allocate command buffers");
 	}
 
-	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline) {
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo{};
-		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		// begin command buffer recording
-		printVkError(vkBeginCommandBuffer(mCommandBuffers[index], &commandBufferBeginInfo), "");
+	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool isPresent) {
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = pipeline->getRenderPass();
-		renderPassInfo.framebuffer = pipeline->getFrameBuffer(index);
+		if (isPresent) {
+			renderPassInfo.framebuffer = pipeline->getFrameBuffer(index);
+		} else {
+			renderPassInfo.framebuffer = pipeline->getFrameBuffer();
+		}
 		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = mSwapChain->getExtent();
+		renderPassInfo.renderArea.extent = VkExtent2D{mRenderContext.width,mRenderContext.height};
 
 		std::array<VkClearValue, 2> clearValues{};
 		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
@@ -145,9 +141,8 @@ namespace Horizon {
 
 	void CommandBuffer::endRenderPass(u32 index) {
 		vkCmdEndRenderPass(mCommandBuffers[index]);
-
-		printVkError(vkEndCommandBuffer(mCommandBuffers[index]), "");
 	}
+
 
 	void CommandBuffer::createSyncObjects()
 	{
@@ -172,7 +167,7 @@ namespace Horizon {
 	{
 
 		mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-		mImagesInFlight.resize(mSwapChain->getImageCount(), VK_NULL_HANDLE);
+		mImagesInFlight.resize(mRenderContext.swapChainImageCount, VK_NULL_HANDLE);
 
 		VkFenceCreateInfo fenceInfo{};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -214,6 +209,24 @@ namespace Horizon {
 		vkQueueWaitIdle(mDevice->getGraphicQueue());
 
 		vkFreeCommandBuffers(mDevice->get(), mCommandPool, 1, &commandBuffer);
+	}
+
+	u32 CommandBuffer::present()
+	{
+		return 1;
+	}
+
+	void CommandBuffer::beginCommandRecording(u32 i)
+	{
+		VkCommandBufferBeginInfo commandBufferBeginInfo{};
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		// begin command buffer recording
+		printVkError(vkBeginCommandBuffer(mCommandBuffers[i], &commandBufferBeginInfo), "");
+	}
+
+	void CommandBuffer::endCommandRecording(u32 i)
+	{
+		printVkError(vkEndCommandBuffer(mCommandBuffers[i]), "");
 	}
 
 }

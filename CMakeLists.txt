@@ -4,6 +4,8 @@ project(horizon)
 
 set(CMAKE_CXX_STANDARD 17)
 
+
+
 set(PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/horizon)
 
 set(THIRD_PARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
@@ -37,3 +39,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 #add_subdirectory(${THIRD_PARTY}/glfw)
 #add_subdirectory(${THIRD_PARTY}/tiny_gltf)
 
+if(MSVC)
+ target_compile_options(${PROJECT_NAME} PRIVATE "/MP")
+endif()

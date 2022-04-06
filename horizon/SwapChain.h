@@ -16,7 +16,7 @@ namespace Horizon {
 
 	public:
 
-		SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window);
+		SwapChain(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface);
 
 		~SwapChain();
 
@@ -26,15 +26,8 @@ namespace Horizon {
 
 		VkImageView getImageView(u32 i) const;
 
-		VkImageView getDepthImageView() const;
-
-		VkExtent2D getExtent() const;
-
-		u32 getImageCount() const;
-
 		VkFormat getImageFormat() const;
 
-		VkFormat getDepthFormat() const;
 
 		void recreate(VkExtent2D newExtent);
 
@@ -49,32 +42,28 @@ namespace Horizon {
 
 		static u32 chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities);
 
-		void saveImages(u32 imageCount);
-
 		void createImageViews();
-
-		void createDepthResources();
 
 		void cleanup();
 
 
 	private:
-
-		const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_B8G8R8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+		RenderContext& mRenderContext;		
+		const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 		const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
 		std::shared_ptr<Device> mDevice = nullptr;
 		std::shared_ptr<Surface> mSurface = nullptr;
 		std::shared_ptr<Window> mWindow = nullptr;
 		VkSwapchainKHR mSwapChain;
-		VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
+		//VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
 		VkFormat mImageFormat;
 		std::vector<VkImage> images; // handle of swapchain images
 		std::vector<VkImageView> imageViews; // An image view is quite literally a view into an image. It describes how to access the image and which part of the image to access
 
-		VkImage depthImage;
-		VkDeviceMemory depthImageMemory;
-		VkImageView depthImageView;
-		VkFormat mDepthFormat;
+		//VkImage depthImage;
+		//VkDeviceMemory depthImageMemory;
+		//VkImageView depthImageView;
+		//VkFormat mDepthFormat;
 	};
 }
 

@@ -32,7 +32,7 @@ namespace Horizon {
 		}
 		else
 		{
-			spdlog::error("failed to load file {} {}", error, warning);
+			spdlog::error("{} {}", error, warning);
 		}
 	}
 
@@ -120,7 +120,7 @@ namespace Horizon {
 
 		if (!mEmptyTexture) {
 			mEmptyTexture = std::make_shared<Texture>(mDevice, mCommandBuffer);
-			//mEmptyTexture->loadFromFile("C:/Users/hylu/OneDrive/mycode/vulkan/data/black.bmp", VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			mEmptyTexture->loadFromFile(getAssetsPath() + "/models/black.bmp", VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	}
 
@@ -163,7 +163,7 @@ namespace Horizon {
 				material->materialUbStruct.hasMetallicRoughness = true;
 			}
 			else {
-				spdlog::warn("no normal texture found, use an empty texture instead");
+				spdlog::warn("no metallicRoughness texture found, use an empty texture instead");
 				material->metallicRoughnessTexture = mEmptyTexture;
 			}
 			/*
@@ -345,7 +345,7 @@ namespace Horizon {
 						return;
 					}
 				}
-				newMesh->primitives.emplace_back(std::make_shared<Primitive>(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] : materials[0]));
+				newMesh->primitives.emplace_back(std::make_shared<MeshPrimitive>(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] : materials[0]));
 			}
 			newNode->mesh = newMesh;
 		}
@@ -454,7 +454,7 @@ namespace Horizon {
 
 	}
 
-	Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+	MeshPrimitive::MeshPrimitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
 		hasIndices = indexCount > 0;
 	}
 

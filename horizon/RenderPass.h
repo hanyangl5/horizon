@@ -4,21 +4,20 @@
 
 #include "utils.h"
 #include "Device.h"
-#include "SwapChain.h"
+#include "Attachment.h"
 
 namespace Horizon {
 
 	class RenderPass
 	{
 	public:
-		RenderPass(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain);
+		RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo);
 		~RenderPass();
 		VkRenderPass get() const;
 	private:
-		void createRenderPass();
+		void createRenderPass(const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo);
 	private:
 		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<SwapChain> mSwapChain = nullptr;
 		VkRenderPass mRenderPass;
 	};
 }

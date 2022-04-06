@@ -13,7 +13,7 @@
 #include "ShaderModule.h"
 #include "Descriptors.h"
 #include "RenderPass.h"
-#include "FrameBuffers.h"
+#include "FrameBuffer.h"
 
 namespace Horizon {
 
@@ -28,26 +28,24 @@ namespace Horizon {
 	class Pipeline
 	{
 	public:
-		Pipeline(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapchain, std::shared_ptr<PipelineCreateInfo> createInfo);
+		Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext, std::shared_ptr<SwapChain> swapChain = nullptr);
 		~Pipeline();
-		void destroy();
-		void create();
 		VkPipeline get()const;
 		VkPipelineLayout getLayout() const;
 		VkViewport getViewport() const;
 		VkRenderPass getRenderPass() const;
+		VkFramebuffer getFrameBuffer() const;
 		VkFramebuffer getFrameBuffer(u32 index) const;
+		std::shared_ptr<AttachmentDescriptor> getFramebufferDescriptorImageInfo(u32 attahmentIndex);
+		void attachToSwapChain(std::shared_ptr<SwapChain> swapChain);
+		std::vector<VkImage> getPresentImages();
 	private:
-		void createPipelineLayout();
-		void createPipeline();
+		void createPipelineLayout(const PipelineCreateInfo& createInfo);
+		void createPipeline(const PipelineCreateInfo& createInfo);
 	private:
-
-		std::shared_ptr<PipelineCreateInfo> mCreateInfo;
-
+		RenderContext& mRenderContext;
 		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<SwapChain> mSwapChain = nullptr;
-		std::shared_ptr<RenderPass> mRenderPass = nullptr;
-		std::shared_ptr<Framebuffers> mFramebuffers = nullptr;
+		std::shared_ptr<Framebuffer> mFramebuffer = nullptr;
 
 		// handle of pipeline layout
 		VkPipelineLayout mPipelineLayout = nullptr;
@@ -58,8 +56,9 @@ namespace Horizon {
 
 	class PipelineManager {
 	public:
-		PipelineManager(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain);
-		void createPipeline(std::shared_ptr<PipelineCreateInfo> createInfo, const std::string& name);
+		PipelineManager(std::shared_ptr<Device> device);
+		void createPipeline(const PipelineCreateInfo& createInfo, const std::string& name, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext);
+		void createPresentPipeline(const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext, std::shared_ptr<SwapChain> swapChain);
 		std::shared_ptr<Pipeline> get(const std::string& name);
 	private:
 		// convert pipelinecreateinfo and pipelinename to u32 hash key, https://dev.to/muiz6/string-hashing-in-c-1np3

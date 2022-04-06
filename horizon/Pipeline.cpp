@@ -11,29 +11,23 @@
 
 namespace Horizon {
 
-	Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapchain, std::shared_ptr<PipelineCreateInfo> createInfo) : mDevice(device), mSwapChain(swapchain), mCreateInfo(createInfo)
+	Pipeline::Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext, std::shared_ptr<SwapChain> swapChain) :mRenderContext(renderContext), mDevice(device)
 	{
-
+		if (swapChain) {
+			mFramebuffer = std::make_shared<Framebuffer>(mDevice, attachmentsCreateInfo, mRenderContext, swapChain);
+		}
+		else {
+			mFramebuffer = std::make_shared<Framebuffer>(mDevice, attachmentsCreateInfo, mRenderContext);
+		}
+		createPipelineLayout(createInfo);
+		createPipeline(createInfo);
 	}
 
-	Pipeline::~Pipeline()
-	{
-		destroy();
-	}
-
-	void Pipeline::destroy()
-	{
+	Pipeline::~Pipeline() {
 		vkDestroyPipeline(mDevice->get(), mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(mDevice->get(), mPipelineLayout, nullptr);
 	}
 
-	void Pipeline::create()
-	{
-		mRenderPass = std::make_shared<RenderPass>(mDevice, mSwapChain);
-		mFramebuffers = std::make_shared<Framebuffers>(mDevice, mSwapChain, mRenderPass);
-		createPipelineLayout();
-		createPipeline();
-	}
 
 	VkPipeline Pipeline::get() const
 	{
@@ -53,25 +47,45 @@ namespace Horizon {
 
 	VkRenderPass Pipeline::getRenderPass() const
 	{
-		return mRenderPass->get();
+		return mFramebuffer->getRenderPass();
 	}
 
+	VkFramebuffer Pipeline::getFrameBuffer() const
+	{
+		return mFramebuffer->get();
+	}
 	VkFramebuffer Pipeline::getFrameBuffer(u32 index) const
 	{
-		return mFramebuffers->get(index);
+		return mFramebuffer->get(index);
+	}
+	std::shared_ptr<AttachmentDescriptor> Pipeline::getFramebufferDescriptorImageInfo(u32 attachmentIndex)
+	{
+		return mFramebuffer->getDescriptorImageInfo(attachmentIndex);
+	}
+
+	void Pipeline::attachToSwapChain(std::shared_ptr<SwapChain> swapChain)
+	{
+		//std::vector<VkImage> images = mFramebuffer->getPresentImages();
+		//u32 imageCount = images.size();
+		//vkGetSwapchainImagesKHR(mDevice->get(), swapChain->get(), &imageCount, images.data());  // get images
+	}
+
+	std::vector<VkImage> Pipeline::getPresentImages()
+	{
+		return std::vector<VkImage>();
 	}
 
 
-	void Pipeline::createPipelineLayout()
+	void Pipeline::createPipelineLayout(const PipelineCreateInfo& createInfo)
 	{
-		auto& layouts = mCreateInfo->descriptorLayouts;
+		auto& layouts = createInfo.descriptorLayouts;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		// prevent crash if no descriptors are used in shader
-		if (mCreateInfo->descriptorLayouts || mCreateInfo->descriptorLayouts->layouts.empty()) {
-			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(mCreateInfo->descriptorLayouts->layouts.size());
-			pipelineLayoutInfo.pSetLayouts = mCreateInfo->descriptorLayouts->layouts.data();
+		if (createInfo.descriptorLayouts || createInfo.descriptorLayouts->layouts.empty()) {
+			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(createInfo.descriptorLayouts->layouts.size());
+			pipelineLayoutInfo.pSetLayouts = createInfo.descriptorLayouts->layouts.data();
 		}
 		else {
 			pipelineLayoutInfo.setLayoutCount = 0;
@@ -81,7 +95,7 @@ namespace Horizon {
 		printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
 	}
 
-	void Pipeline::createPipeline()
+	void Pipeline::createPipeline(const PipelineCreateInfo& createInfo)
 	{
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
@@ -89,13 +103,13 @@ namespace Horizon {
 		// vertex shader
 		pipelineShaderStageCreateInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		pipelineShaderStageCreateInfos[0].module = mCreateInfo->vs->get();
+		pipelineShaderStageCreateInfos[0].module = createInfo.vs->get();
 		pipelineShaderStageCreateInfos[0].pName = "main";
 
 		//pixel shader
 		pipelineShaderStageCreateInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		pipelineShaderStageCreateInfos[1].module = mCreateInfo->ps->get();
+		pipelineShaderStageCreateInfos[1].module = createInfo.ps->get();
 		pipelineShaderStageCreateInfos[1].pName = "main";
 
 		auto bindingDescription = Vertex::getBindingDescription();
@@ -114,8 +128,8 @@ namespace Horizon {
 		inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
 
 		// A viewport basically describes the region of the framebuffer that the output will be rendered to
-		mViewport.width = static_cast<f32>(mSwapChain->getExtent().width);
-		mViewport.height = -static_cast<f32>(mSwapChain->getExtent().height);
+		mViewport.width = static_cast<f32>(mRenderContext.width);
+		mViewport.height = -static_cast<f32>(mRenderContext.height);
 		mViewport.x = 0.0f;
 		mViewport.y = -mViewport.height;
 		mViewport.minDepth = 0.0f;
@@ -129,9 +143,14 @@ namespace Horizon {
 		//mViewport.maxDepth = 1.0f;
 
 		//Any pixels outside the scissor rectangles will be discarded by the rasterizer
+
+		VkExtent2D extent;
+		extent.width = mRenderContext.width;
+		extent.height = mRenderContext.height;
+
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = mSwapChain->getExtent();
+		scissor.extent = extent;
 
 		VkPipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -212,7 +231,7 @@ namespace Horizon {
 		pipelineInfo.pMultisampleState = &multisamplingStateCreateInfo;
 		pipelineInfo.pColorBlendState = &colorBlendingStateCreateInfo;
 		pipelineInfo.layout = mPipelineLayout;
-		pipelineInfo.renderPass = mRenderPass->get();
+		pipelineInfo.renderPass = getRenderPass();
 		pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -222,19 +241,29 @@ namespace Horizon {
 
 
 
-	PipelineManager::PipelineManager(std::shared_ptr<Device> device, std::shared_ptr<SwapChain> swapChain) :mDevice(device), mSwapChain(swapChain)
+	PipelineManager::PipelineManager(std::shared_ptr<Device> device) :mDevice(device)
 	{
 	}
 
-	void PipelineManager::createPipeline(std::shared_ptr<PipelineCreateInfo> createInfo, const std::string& name)
+	void PipelineManager::createPipeline(const PipelineCreateInfo& createInfo, const std::string& name, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext)
 	{
 		u32 hashKey = pipelineHash(name);
 		// pipeline key exist
 		if (!mPipelineMap[hashKey].pipeline) {
 
 			auto& pipelineVal = mPipelineMap[hashKey];
-			pipelineVal.pipeline = std::make_shared<Pipeline>(mDevice, mSwapChain, createInfo);
-			pipelineVal.pipeline->create();
+			pipelineVal.pipeline = std::make_shared<Pipeline>(mDevice, createInfo, attachmentsCreateInfo, renderContext);
+		}
+	}
+
+	void PipelineManager::createPresentPipeline(const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext, std::shared_ptr<SwapChain> swapChain)
+	{
+		u32 hashKey = pipelineHash("present");
+		// pipeline key exist
+		if (!mPipelineMap[hashKey].pipeline) {
+
+			auto& pipelineVal = mPipelineMap[hashKey];
+			pipelineVal.pipeline = std::make_shared<Pipeline>(mDevice, createInfo, attachmentsCreateInfo, renderContext, swapChain);
 		}
 	}
 

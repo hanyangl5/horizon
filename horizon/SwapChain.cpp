@@ -6,9 +6,10 @@
 #include "Window.h"
 
 namespace Horizon {
-	SwapChain::SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface, std::shared_ptr<Window> window) :mDevice(device), mSurface(surface), mWindow(window)
+	SwapChain::SwapChain(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface) :mRenderContext(renderContext), mDevice(device), mSurface(surface)
 	{
 		createSwapChain();
+
 		createImageViews();
 	}
 
@@ -22,39 +23,19 @@ namespace Horizon {
 		return mSwapChain;
 	}
 
-
 	std::vector<VkImageView> SwapChain::getImageViews() const
 	{
 		return imageViews;
 	}
 
-	VkImageView SwapChain::getImageView(u32 i)const {
+	VkImageView SwapChain::getImageView(u32 i) const {
 		return imageViews[i];
 	}
 
-	VkImageView SwapChain::getDepthImageView() const
-	{
-		return depthImageView;
-	}
-
-	VkExtent2D SwapChain::getExtent() const
-	{
-		return mExtent;
-	}
-
-	u32 SwapChain::getImageCount() const
-	{
-		return static_cast<u32>(images.size());
-	}
 
 	VkFormat SwapChain::getImageFormat() const
 	{
 		return mImageFormat;
-	}
-
-	VkFormat SwapChain::getDepthFormat() const
-	{
-		return mDepthFormat;
 	}
 
 	void SwapChain::recreate(VkExtent2D newExtent)
@@ -76,8 +57,8 @@ namespace Horizon {
 		VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(details.getFormats());
 		VkPresentModeKHR presentMode = choosePresentMode(details.getPresentModes());
 		VkSurfaceCapabilitiesKHR surfaceCapabilities = details.getCapabilities();
-		u32 imageCount = chooseMinImageCount(details.getCapabilities()); // how many images we would like to have in swap chain
-		mExtent = chooseExtent(details.getCapabilities());
+		u32 imageCount = mRenderContext.swapChainImageCount; // how many images we would like to have in swap chain
+
 		mImageFormat = surfaceFormat.format;
 
 		VkSwapchainCreateInfoKHR swapChainCreateInfo{};
@@ -86,7 +67,7 @@ namespace Horizon {
 		swapChainCreateInfo.minImageCount = imageCount;
 		swapChainCreateInfo.imageFormat = mImageFormat;
 		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapChainCreateInfo.imageExtent = mExtent;
+		swapChainCreateInfo.imageExtent = { mRenderContext.width, mRenderContext.height };
 		swapChainCreateInfo.imageArrayLayers = 1;
 		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //  the image can be used as the source of a transfer command.
 		swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform; // rotatioin/flip
@@ -110,10 +91,9 @@ namespace Horizon {
 
 		printVkError(vkCreateSwapchainKHR(mDevice->get(), &swapChainCreateInfo, nullptr, &mSwapChain), "create swap chain");
 
-		// Retrieving the swap chain images
-		saveImages(imageCount);
-
-		createDepthResources();
+		vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, nullptr);  // get images
+		images.resize(imageCount);
+		vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, images.data());  // get images
 
 	}
 
@@ -142,14 +122,6 @@ namespace Horizon {
 
 	VkPresentModeKHR SwapChain::choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const
 	{
-		for (const auto& availablePresentMode : availablePresentModes)
-		{
-			if (availablePresentMode == PREFERRED_PRESENT_MODE)
-			{
-				return availablePresentMode;
-			}
-		}
-
 		// simplest mode
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
@@ -192,19 +164,25 @@ namespace Horizon {
 		return imageCount;
 	}
 
-	void SwapChain::saveImages(u32 imageCount)
+
+
+	void SwapChain::cleanup()
 	{
-		// real count of images can be greater than requested
-		vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, nullptr);  // get count
-		images.resize(imageCount);
-		vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, images.data());  // get images
+		for (auto& image : images) {
+			vkDestroyImage(mDevice->get(), image, nullptr);
+		}
+		for (auto& imageView : imageViews)
+		{
+			vkDestroyImageView(mDevice->get(), imageView, nullptr);
+		}
+		vkDestroySwapchainKHR(mDevice->get(), mSwapChain, nullptr);
 	}
 
 	void SwapChain::createImageViews()
 	{
-		imageViews.resize(getImageCount());
+		imageViews.resize(mRenderContext.swapChainImageCount);
 
-		for (u32 i = 0; i < getImageCount(); i++)
+		for (u32 i = 0; i < mRenderContext.swapChainImageCount; i++)
 		{
 			//Image image(device, images[i], imageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -221,90 +199,4 @@ namespace Horizon {
 			printVkError(vkCreateImageView(mDevice->get(), &imageViewCreateInfo, nullptr, &imageViews[i]), "create image views", logLevel::debug);
 		}
 	}
-
-	void SwapChain::cleanup()
-	{
-		vkDestroyImageView(mDevice->get(), depthImageView, nullptr);
-		vkDestroyImage(mDevice->get(), depthImage, nullptr);
-		vkFreeMemory(mDevice->get(), depthImageMemory, nullptr);
-
-
-		for (auto imageView : imageViews)
-		{
-			vkDestroyImageView(mDevice->get(), imageView, nullptr);
-		}
-
-		vkDestroySwapchainKHR(mDevice->get(), mSwapChain, nullptr);
-	}
-
-
-	void SwapChain::createDepthResources() {
-
-		auto findFormat = [](VkPhysicalDevice device, std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-			for (VkFormat format : candidates) {
-				VkFormatProperties props;
-				vkGetPhysicalDeviceFormatProperties(device, format, &props);
-
-				if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-					return format;
-				}
-				else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-					return format;
-				}
-			}
-
-			throw std::runtime_error("failed to find supported format!");
-		};
-		std::vector<VkFormat> candidates{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
-		mDepthFormat = findFormat(mDevice->getPhysicalDevice(),
-			candidates,
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-		);
-		// create depth image
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = mExtent.width;
-		imageInfo.extent.height = mExtent.height;
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = mDepthFormat;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		printVkError(vkCreateImage(mDevice->get(), &imageInfo, nullptr, &depthImage), "failed to create depth image");
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(mDevice->get(), depthImage, &memRequirements);
-
-		VkMemoryAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = findMemoryType(mDevice->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		printVkError(vkAllocateMemory(mDevice->get(), &allocInfo, nullptr, &depthImageMemory), "failed to allocate depth image memory");
-
-		printVkError(vkBindImageMemory(mDevice->get(), depthImage, depthImageMemory, 0));
-
-		// create depth image view
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = depthImage;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = mDepthFormat;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		printVkError(vkCreateImageView(mDevice->get(), &viewInfo, nullptr, &depthImageView), "failed to create image view");
-
-	}
-
 }

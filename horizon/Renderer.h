@@ -11,13 +11,12 @@
 #include "SwapChain.h"
 #include "Descriptors.h"
 #include "Pipeline.h"
-#include "Framebuffers.h"
+#include "Framebuffer.h"
 #include "Scene.h"
 #include "UniformBuffer.h"
 
 namespace Horizon
 {
-
 	class Renderer
 	{
 	public:
@@ -43,7 +42,7 @@ namespace Horizon
 		// create pipeline layouts for each pass
 		void createPipelines();
 
-		u32 mWidth, mHeight;
+		RenderContext mRenderContext;
 		std::shared_ptr<Window> mWindow = nullptr;
 		std::shared_ptr<Instance> mInstance = nullptr;
 		std::shared_ptr<Device> mDevice = nullptr;
@@ -51,13 +50,16 @@ namespace Horizon
 		std::shared_ptr<SwapChain> mSwapChain = nullptr;
 		std::shared_ptr<PipelineManager> mPipelineMgr = nullptr;
 		std::shared_ptr<CommandBuffer> mCommandBuffer = nullptr;
-		std::shared_ptr<Scene> mScene;
-
+		std::shared_ptr<Scene> mScene = nullptr;
+		std::shared_ptr<FullscreenTriangle> mFullscreenTriangle = nullptr;
 		// sync primitives
 
 		// semaphores
 		VkSemaphore presenet_complete_semaphore;
 		VkSemaphore render_complete_semaphore;
 		std::vector<VkFence> fences;
+
+		// pipeline objects
+		std::shared_ptr<DescriptorSet> presentDescriptorSet;
 	};
 }

@@ -128,6 +128,7 @@ namespace Horizon {
 			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 			break;
 		default:
+			return 0;
 			break;
 		}
 
@@ -144,6 +145,7 @@ namespace Horizon {
 			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
 			break;
 		default:
+			return 0;
 			break;
 		}
 	}

@@ -43,6 +43,9 @@ namespace Horizon {
 
 	void printVkError(VkResult result, std::string prefix = "", logLevel level = logLevel::info);
 
+	std::string getAssetsPath();
+	std::string getModelPath();
+	std::string getShaderPath();
 
 	using u8 = uint8_t;
 	using u16 = uint16_t;
@@ -75,4 +78,15 @@ namespace Horizon {
 		VkDescriptorBufferInfo bufferDescriptrInfo{};
 	};
 
+	struct RenderContext {
+		u32 width;
+		u32 height;
+		u32 swapChainImageCount = 3;
+	};
+	//struct BarrierDesc {
+	//	std::vector<>
+	//};
+	//void insertBarrier(std::shared_ptr<Commandbuffer> commandBuffer) {
+	//	vkCmdPipelineBarrier()
+	//}
 }

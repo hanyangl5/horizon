@@ -1,29 +1,21 @@
 #pragma once
+
 #include "utils.h"
+
 #include <vector>
 #include <fstream>
 #include <string>
+
 namespace Horizon {
+
 class Shader
 {
 public:
-	Shader(VkDevice device,const char* path);
+	Shader(VkDevice device, const std::string& path);
     ~Shader();
     VkShaderModule get()const;
 private:
-    static std::vector<char> readFile(const char* filename) {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-        if (!file.is_open()) {
-            spdlog::error("failed to open shader file: {}", filename);
-        }
-        size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-        file.close();
-
-        return buffer;
-    }
+    std::vector<char> readFile(const std::string& path);
 
 private:
     VkShaderModule mShaderModule;

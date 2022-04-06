@@ -7,24 +7,26 @@
 #include "Device.h"
 #include "SwapChain.h"
 #include "Pipeline.h"
-#include "Framebuffers.h"
 
 namespace Horizon {
 
 	class CommandBuffer
 	{
 	public:
-		CommandBuffer(std::shared_ptr<Device> device,
-			std::shared_ptr<SwapChain> swapchain);
+		CommandBuffer(RenderContext& renderContext, std::shared_ptr<Device> device);
 		~CommandBuffer();
-		VkCommandBuffer* get(u32 i);
-		void submit();
+		VkCommandBuffer get(u32 i);
+		void submit(std::shared_ptr<SwapChain> swapChain);
 		VkCommandPool getCommandpool()const;
-		void beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline);
+		void beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool isPresent = false);
 		void endRenderPass(u32 index);
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer commandbuffer);
 		u32 commandBufferCount() const noexcept { return mCommandBuffers.size(); }
+		u32 present();
+		void beginCommandRecording(u32 index);
+		void endCommandRecording(u32 index);
+
 	private:
 		void createCommandPool();
 		void allocateCommandBuffers();
@@ -32,9 +34,8 @@ namespace Horizon {
 		void createSemaphores();
 		void createFences();
 	private:
-
+		RenderContext& mRenderContext;
 		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<SwapChain> mSwapChain;
 
 		VkCommandPool mCommandPool = nullptr;
 		std::vector<VkCommandBuffer> mCommandBuffers;

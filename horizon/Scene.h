@@ -16,7 +16,7 @@ namespace Horizon {
 
 	class Scene {
 	public:
-		Scene(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, u32 w, u32 h);
+		Scene(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer);
 		~Scene();
 
 		void loadModel(const std::string& path);
@@ -25,17 +25,15 @@ namespace Horizon {
 		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
 		void prepare();
-		void draw(std::shared_ptr<Pipeline> pipeline);
+		void draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline);
 		std::shared_ptr<DescriptorSetLayouts> getDescriptorLayouts();
 		std::shared_ptr<Camera> getMainCamera() const;
 	private:
+		RenderContext& mRenderContext;
 		std::shared_ptr<Camera> mCamera = nullptr;
 		std::shared_ptr<Device> mDevice;
 		std::shared_ptr<CommandBuffer> mCommandBuffer;
 		std::shared_ptr<DescriptorSet> sceneDescritporSet = nullptr;
-
-		u32 mWidth, mHeight;
-
 
 		// uniform buffers
 
@@ -65,6 +63,33 @@ namespace Horizon {
 		// models
 		std::vector<std::shared_ptr<Model>> mModels;
 
-		// 
 	};
+
+	class FullscreenTriangle {
+	public:
+		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer);
+		void draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool isPresent);
+	private:
+		std::shared_ptr<Device> mDevice = nullptr;
+		std::shared_ptr<CommandBuffer> mCommandBuffer = nullptr;
+		std::shared_ptr<VertexBuffer> mVertexBuffer = nullptr;
+		std::vector<Vertex> vertices;
+	};
+
+	//enum PrimitiveType {
+	//	Triangle
+	//};
+
+	//class Primitive {
+	//public:
+	//	Primitive(PrimitiveType );
+	//	void drawPrimitive(std::shared_ptr<Pipeline> pipeline);
+
+	//	std::shared_ptr<VertexBuffer> mVertexBuffer = nullptr;
+	//	std::shared_ptr<IndexBuffer> mIndexBuffer = nullptr;
+
+	//	std::vector<Vertex> vertices;
+	//	std::vector<u32> indices;
+	//};
+
 }

@@ -1,4 +1,7 @@
 #include "utils.h"
+
+#include <filesystem>
+
 namespace Horizon {
 errorcode ErrorCodes[] =
 {
@@ -54,6 +57,21 @@ void printVkError(VkResult result, std::string prefix, logLevel level)
 		}
 	}
 	spdlog::error("{},{}", meaning.c_str(), prefix.c_str());
+}
+
+std::string getAssetsPath()
+{
+	return std::filesystem::current_path().parent_path().string().append("/assets");
+}
+
+std::string getModelPath()
+{
+	return getAssetsPath().append("/models/");
+}
+
+std::string getShaderPath()
+{
+	return getAssetsPath().append("/shaders/spirv/");
 }
 
 uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
