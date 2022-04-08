@@ -20,12 +20,6 @@ namespace Horizon {
 				loadNode(nullptr, node, scene.nodes[i], gltfModel, indices, vertices, scale);
 			}
 
-			for (auto node : linearNodes) {
-				// Initial pose of each node mesh
-				if (node->mesh) {
-					node->update();
-				}
-			}
 
 			mVertexBuffer = std::make_shared<VertexBuffer>(mDevice, mCommandBuffer, vertices);
 			mIndexBuffer = std::make_shared<IndexBuffer>(mDevice, mCommandBuffer, indices);
@@ -382,6 +376,9 @@ namespace Horizon {
 
 	void Model::updateNodeDescriptorSet(std::shared_ptr<Node> node) {
 		if (node->mesh) {
+			// update uniform buffer
+			node->update(mModelMatrix);
+
 			node->mesh->meshDescriptorSet->allocateDescriptorSet();
 
 			DescriptorSetUpdateDesc desc;
@@ -425,6 +422,10 @@ namespace Horizon {
 		spdlog::error("material descriptorset not found");
 		return nullptr;
 	}
+	void Model::setModelMatrix(const Math::mat4& modelMatrix)
+	{
+		mModelMatrix = modelMatrix;
+	}
 	std::shared_ptr<DescriptorSet> Model::getNodeMaterialDescriptorSet(std::shared_ptr<Node> node)
 	{
 		if (node->mesh) {
@@ -441,12 +442,10 @@ namespace Horizon {
 
 	Mesh::Mesh(std::shared_ptr<Device> device, Math::mat4 model) :mDevice(device), meshUbStruct({ model })
 	{
-
 		meshUb = std::make_shared<UniformBuffer>(mDevice);
 		std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
 		setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
 		meshDescriptorSet = std::make_shared<DescriptorSet>(mDevice, setInfo);
-
 	}
 
 	Mesh::~Mesh()
@@ -465,12 +464,12 @@ namespace Horizon {
 	Node::~Node() {
 	}
 
-
 	Math::mat4 Node::localMatrix() {
 		return Math::translate(Math::mat4(1.0f), translation) * Math::mat4_cast(rotation) * Math::scale(Math::mat4(1.0f), scale) * matrix;
 	}
 
 	Math::mat4 Node::getMatrix() {
+		// local matrix
 		Math::mat4 m = localMatrix();
 		std::shared_ptr<Node> p = parent;
 		while (p) {
@@ -479,15 +478,13 @@ namespace Horizon {
 		}
 		return m;
 	}
-	void Node::update() {
-		if (mesh) {
-			Math::mat4 m = getMatrix();
-			mesh->meshUbStruct.model = m;
-			mesh->meshUb->update(&m, sizeof(mesh->meshUbStruct));
-		}
+
+	void Node::update(const Math::mat4& modelMat) {
+		mesh->meshUbStruct.model = modelMat * getMatrix();
+		mesh->meshUb->update(&mesh->meshUbStruct, sizeof(mesh->meshUbStruct));
 
 		for (auto& child : children) {
-			child->update();
+			child->update(modelMat);
 		}
 	}
 }

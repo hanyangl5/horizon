@@ -16,8 +16,12 @@ namespace Horizon {
 		VkRenderPass get() const;
 	private:
 		void createRenderPass(const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo);
+	public:
+		bool hasDepthAttachment = false;
+		u32 colorAttachmentCount = 0;
 	private:
 		std::shared_ptr<Device> mDevice = nullptr;
 		VkRenderPass mRenderPass;
+
 	};
 }

@@ -11,10 +11,14 @@ def glslc(shaderPath):
     os.system(cmd)
 
 def main():
-    glslc("defaultlit.vert")
-    glslc("defaultlit.frag")
-    glslc("postprocess.vert")
-    glslc("postprocess.frag")
+    # glslc("defaultlit.vert")
+    # glslc("defaultlit.frag")
+    # glslc("postprocess.vert")
+    # glslc("postprocess.frag")
+    glslc("geometry.vert")
+    glslc("geometry.frag")
+    glslc("scatter.vert")
+    glslc("scatter.frag")
     glslc("present.vert")
     glslc("present.frag")
     # glslc("scatter.vert")

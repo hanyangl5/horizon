@@ -28,6 +28,8 @@ namespace Horizon {
 
 		Math::vec3 getFov() const;
 
+		Math::vec2 getNearFarPlane() const;
+
 		void setCameraSpeed(f32 speed);
 		f32 getCameraSpeed() const;
 

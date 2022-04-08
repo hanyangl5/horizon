@@ -14,6 +14,7 @@ layout(location = 2) out vec2 fragTexCoord;
 
 layout(set = 0, binding = 0) uniform SceneUb {
     mat4 view, proj;
+    vec2 nearFar;
 } sceneUb;
 
 // set 1: material
@@ -23,6 +24,7 @@ layout(set = 0, binding = 0) uniform SceneUb {
 layout(set = 2, binding = 0) uniform MeshUb {
     mat4 model;
 } meshUb;
+
 
 void main() {
     mat4 model = meshUb.model;

@@ -37,8 +37,8 @@ namespace Horizon {
 		VkFramebuffer getFrameBuffer() const;
 		VkFramebuffer getFrameBuffer(u32 index) const;
 		std::shared_ptr<AttachmentDescriptor> getFramebufferDescriptorImageInfo(u32 attahmentIndex);
-		void attachToSwapChain(std::shared_ptr<SwapChain> swapChain);
 		std::vector<VkImage> getPresentImages();
+		std::vector<VkClearValue> getClearValues();
 	private:
 		void createPipelineLayout(const PipelineCreateInfo& createInfo);
 		void createPipeline(const PipelineCreateInfo& createInfo);
@@ -46,7 +46,7 @@ namespace Horizon {
 		RenderContext& mRenderContext;
 		std::shared_ptr<Device> mDevice = nullptr;
 		std::shared_ptr<Framebuffer> mFramebuffer = nullptr;
-
+		std::vector<VkClearValue> mClearValues;
 		// handle of pipeline layout
 		VkPipelineLayout mPipelineLayout = nullptr;
 		VkPipeline mGraphicsPipeline;

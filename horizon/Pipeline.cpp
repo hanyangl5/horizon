@@ -21,6 +21,7 @@ namespace Horizon {
 		}
 		createPipelineLayout(createInfo);
 		createPipeline(createInfo);
+		mClearValues = mFramebuffer->getClearValues();
 	}
 
 	Pipeline::~Pipeline() {
@@ -63,16 +64,15 @@ namespace Horizon {
 		return mFramebuffer->getDescriptorImageInfo(attachmentIndex);
 	}
 
-	void Pipeline::attachToSwapChain(std::shared_ptr<SwapChain> swapChain)
-	{
-		//std::vector<VkImage> images = mFramebuffer->getPresentImages();
-		//u32 imageCount = images.size();
-		//vkGetSwapchainImagesKHR(mDevice->get(), swapChain->get(), &imageCount, images.data());  // get images
-	}
 
 	std::vector<VkImage> Pipeline::getPresentImages()
 	{
 		return std::vector<VkImage>();
+	}
+
+	std::vector<VkClearValue> Pipeline::getClearValues()
+	{
+		return mClearValues;
 	}
 
 
@@ -112,8 +112,8 @@ namespace Horizon {
 		pipelineShaderStageCreateInfos[1].module = createInfo.ps->get();
 		pipelineShaderStageCreateInfos[1].pName = "main";
 
-		auto bindingDescription = Vertex::getBindingDescription();
-		auto attributeDescriptions = Vertex::getAttributeDescriptions();
+		auto& bindingDescription = Vertex::getBindingDescription();
+		auto& attributeDescriptions = Vertex::getAttributeDescriptions();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
 		vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -186,9 +186,11 @@ namespace Horizon {
 		depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
 		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
 
-		VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
-		colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachmentState.blendEnable = VK_FALSE;
+		std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachmentStates(mFramebuffer->getColorAttachmentCount());
+		for (auto& state : colorBlendAttachmentStates) {
+			state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			state.blendEnable = VK_FALSE;
+		}
 		//colorBlendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
 		//colorBlendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
 		//colorBlendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD; // Optional
@@ -200,8 +202,8 @@ namespace Horizon {
 		colorBlendingStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlendingStateCreateInfo.logicOpEnable = VK_FALSE;
 		colorBlendingStateCreateInfo.logicOp = VK_LOGIC_OP_COPY;
-		colorBlendingStateCreateInfo.attachmentCount = 1;
-		colorBlendingStateCreateInfo.pAttachments = &colorBlendAttachmentState;
+		colorBlendingStateCreateInfo.attachmentCount = static_cast<u32>(colorBlendAttachmentStates.size());
+		colorBlendingStateCreateInfo.pAttachments = colorBlendAttachmentStates.data();
 		colorBlendingStateCreateInfo.blendConstants[0] = 0.0f;
 		colorBlendingStateCreateInfo.blendConstants[1] = 0.0f;
 		colorBlendingStateCreateInfo.blendConstants[2] = 0.0f;

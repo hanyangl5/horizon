@@ -43,7 +43,7 @@ namespace Horizon {
 		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceCreateInfo.pApplicationInfo = &appInfo;
 		instanceCreateInfo.flags = 0;
-		auto extensions = mValidationLayer.getRequiredExtensions();
+		auto& extensions = mValidationLayer.getRequiredExtensions();
 		instanceCreateInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
 

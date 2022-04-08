@@ -61,6 +61,28 @@ namespace Horizon {
 		return {};
 	}
 
+	u32 Framebuffer::getColorAttachmentCount()
+	{
+		return mRenderPass->colorAttachmentCount;
+	}
+
+	std::vector<VkClearValue> Framebuffer::getClearValues()
+	{
+		std::vector<VkClearValue> clearValues;
+		VkClearValue clearColor;
+		clearColor.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+		VkClearValue clearDepth;
+		clearDepth.depthStencil = { 1.0f, 0 };
+
+		for (u32 i = 0; i < mRenderPass->colorAttachmentCount; i++) {
+			clearValues.emplace_back(clearColor);
+		}
+		if (mRenderPass->hasDepthAttachment) {
+			clearValues.emplace_back(clearDepth);
+		}
+		return clearValues;
+	}
+
 	void Framebuffer::createFrameBuffer(u32 width, u32 height, u32 imageCount, std::shared_ptr<SwapChain> swapChain)
 	{
 		mFramebuffer.resize(imageCount);

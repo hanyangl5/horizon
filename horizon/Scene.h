@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-
+#include <unordered_map>
 #include "utils.h"
 #include "Camera.h"
 #include "Device.h"
@@ -19,7 +19,8 @@ namespace Horizon {
 		Scene(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer);
 		~Scene();
 
-		void loadModel(const std::string& path);
+		void loadModel(const std::string& path, const std::string& name);
+		std::shared_ptr<Model> getModel(const std::string& name);
 		void addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
 		void addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
 		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
@@ -27,6 +28,8 @@ namespace Horizon {
 		void prepare();
 		void draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline);
 		std::shared_ptr<DescriptorSetLayouts> getDescriptorLayouts();
+		std::shared_ptr<DescriptorSetLayouts> getGeometryPassDescriptorLayouts();
+		std::shared_ptr<DescriptorSetLayouts> getScatterPassDescriptorLayouts();
 		std::shared_ptr<Camera> getMainCamera() const;
 	private:
 		RenderContext& mRenderContext;
@@ -41,6 +44,7 @@ namespace Horizon {
 		struct SceneUbStruct {
 			Math::mat4 view;
 			Math::mat4 projection;
+			Math::vec2 nearFar;
 		}sceneUbStruct;
 		std::shared_ptr<UniformBuffer> sceneUb = nullptr;
 		// 1
@@ -61,8 +65,8 @@ namespace Horizon {
 
 
 		// models
-		std::vector<std::shared_ptr<Model>> mModels;
-
+		//std::vector<std::shared_ptr<Model>> mModels;
+		std::unordered_map<std::string, std::shared_ptr<Model>> mModels;
 	};
 
 	class FullscreenTriangle {

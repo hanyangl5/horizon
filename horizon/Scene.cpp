@@ -10,12 +10,12 @@ namespace Horizon {
 		std::shared_ptr<DescriptorSetInfo> sceneDescriptorSetInfo = std::make_shared<DescriptorSetInfo>();
 		// vp mat
 		sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		// light count
-		sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-		// light ub
-		sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-		// camera
-		sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		//// light count
+		//sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		//// light ub
+		//sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		//// camera
+		//sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		sceneDescritporSet = std::make_shared<DescriptorSet>(mDevice, sceneDescriptorSetInfo);
 
@@ -25,9 +25,9 @@ namespace Horizon {
 
 		// create uniform buffer
 		sceneUb = std::make_shared<UniformBuffer>(device);
-		lightCountUb = std::make_shared<UniformBuffer>(device);
-		lightUb = std::make_shared<UniformBuffer>(device);
-		cameraUb = std::make_shared<UniformBuffer>(device);
+		//lightCountUb = std::make_shared<UniformBuffer>(device);
+		//lightUb = std::make_shared<UniformBuffer>(device);
+		//cameraUb = std::make_shared<UniformBuffer>(device);
 	}
 
 	Scene::~Scene()
@@ -35,9 +35,14 @@ namespace Horizon {
 
 	}
 
-	void Scene::loadModel(const std::string& path)
+	void Scene::loadModel(const std::string& path, const std::string& name)
 	{
-		mModels.emplace_back(std::make_shared<Model>(path, mDevice, mCommandBuffer, sceneDescritporSet));
+		mModels.insert({ name, std::make_shared<Model>(path, mDevice, mCommandBuffer, sceneDescritporSet) });
+	}
+
+	std::shared_ptr<Model> Scene::getModel(const std::string& name)
+	{
+		return mModels.at(name);
 	}
 
 	void Scene::addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction)
@@ -82,33 +87,39 @@ namespace Horizon {
 
 	void Scene::prepare()
 	{
+		// update scene descriptorset
 		sceneDescritporSet->allocateDescriptorSet();
 
 		// update Ub data
 		sceneUbStruct.view = mCamera->getViewMatrix();
 		sceneUbStruct.projection = mCamera->getProjectionMatrix();
-		camaeraUbStruct.cameraPos = mCamera->getPosition();
+		sceneUbStruct.nearFar = mCamera->getNearFarPlane();
 
 		sceneUb->update(&sceneUbStruct, sizeof(SceneUbStruct));
-		lightCountUb->update(&lightCountUbStruct, sizeof(LightCountUbStruct));
-		lightUb->update(&lightUbStruct, lightCountUbStruct.lightCount > 0 ? sizeof(LightParams) * lightCountUbStruct.lightCount : sizeof(LightParams));
-		cameraUb->update(&camaeraUbStruct, sizeof(CamaeraUbStruct));
+		//camaeraUbStruct.cameraPos = mCamera->getPosition();
+
+
+		//lightCountUb->update(&lightCountUbStruct, sizeof(LightCountUbStruct));
+		//lightUb->update(&lightUbStruct, lightCountUbStruct.lightCount > 0 ? sizeof(LightParams) * lightCountUbStruct.lightCount : sizeof(LightParams));
+		//cameraUb->update(&camaeraUbStruct, sizeof(CamaeraUbStruct));
 
 		DescriptorSetUpdateDesc desc;
 		desc.bindResource(0, sceneUb);
-		desc.bindResource(1, lightCountUb);
-		desc.bindResource(2, lightUb);
-		desc.bindResource(3, cameraUb);
+		//desc.bindResource(1, lightCountUb);
+		//desc.bindResource(2, lightUb);
+		//desc.bindResource(3, cameraUb);
 
 		sceneDescritporSet->updateDescriptorSet(desc);
+		
+		// update material&mesh descriptorset
 		for (auto& model : mModels) {
-			model->updateDescriptors();
+			model.second->updateDescriptors();
 		}
 	}
 
 	void Scene::draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline) {
 		for (auto& model : mModels) {
-			model->draw(pipeline, commandBuffer);
+			model.second->draw(pipeline, commandBuffer);
 		}
 	}
 
@@ -118,9 +129,9 @@ namespace Horizon {
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
 		for (auto& model : mModels) {
-			if (model->getMaterialDescriptorSet() && model->getMeshDescriptorSet()) {
-				meshSetLayout = model->getMeshDescriptorSet()->getLayout();
-				materialSetLayout = model->getMaterialDescriptorSet()->getLayout();
+			if (model.second->getMaterialDescriptorSet() && model.second->getMeshDescriptorSet()) {
+				meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
+				materialSetLayout = model.second->getMaterialDescriptorSet()->getLayout();
 			}
 		}
 		if (!meshSetLayout) {
@@ -132,6 +143,44 @@ namespace Horizon {
 		layouts->layouts = { { sceneDescritporSet->getLayout(), materialSetLayout, meshSetLayout} };
 		return layouts;
 	}
+
+	std::shared_ptr<DescriptorSetLayouts> Scene::getGeometryPassDescriptorLayouts()
+	{
+		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
+		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
+		for (auto& model : mModels) {
+			if (model.second->getMaterialDescriptorSet() && model.second->getMeshDescriptorSet()) {
+				meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
+				materialSetLayout = model.second->getMaterialDescriptorSet()->getLayout();
+			}
+		}
+		if (!meshSetLayout) {
+			spdlog::error("mesh descriptorset layout not found");
+		}
+		if (!materialSetLayout) {
+			spdlog::error("material descriptorset layout not found");
+		}
+		layouts->layouts = { { sceneDescritporSet->getLayout(), materialSetLayout, meshSetLayout} };
+		return layouts;
+	}
+
+	std::shared_ptr<DescriptorSetLayouts> Scene::getScatterPassDescriptorLayouts()
+	{
+		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
+		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
+		for (auto& model : mModels) {
+			if (model.second->getMeshDescriptorSet()) {
+				meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
+			}
+		}
+		if (!meshSetLayout) {
+			spdlog::error("mesh descriptorset layout not found");
+		}
+
+		layouts->layouts = { { sceneDescritporSet->getLayout(), meshSetLayout} };
+		return layouts;
+	}
+
 
 	std::shared_ptr<Camera> Scene::getMainCamera() const
 	{

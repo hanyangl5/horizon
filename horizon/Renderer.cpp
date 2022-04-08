@@ -36,13 +36,23 @@ namespace Horizon {
 	void Renderer::Update() {
 		mScene->prepare();
 
-		auto lightingPipeline = mPipelineMgr->get("lighting");
+		auto& geometryPipeline = mPipelineMgr->get("geometry");
+
+		scatterDescriptorSet->allocateDescriptorSet();
+
+		DescriptorSetUpdateDesc desc1;
+		desc1.bindResource(0, geometryPipeline->getFramebufferDescriptorImageInfo(0));
+		desc1.bindResource(1, geometryPipeline->getFramebufferDescriptorImageInfo(1));
+		desc1.bindResource(2, geometryPipeline->getFramebufferDescriptorImageInfo(2));
+		scatterDescriptorSet->updateDescriptorSet(desc1);
+
+		auto& scatterPipeline = mPipelineMgr->get("scatter");
 
 		presentDescriptorSet->allocateDescriptorSet();
 
-		DescriptorSetUpdateDesc desc;
-		desc.bindResource(0, lightingPipeline->getFramebufferDescriptorImageInfo(0));
-		presentDescriptorSet->updateDescriptorSet(desc);
+		DescriptorSetUpdateDesc desc2;
+		desc2.bindResource(0, scatterPipeline->getFramebufferDescriptorImageInfo(0));
+		presentDescriptorSet->updateDescriptorSet(desc2);
 
 	}
 	void Renderer::Render() {
@@ -67,12 +77,19 @@ namespace Horizon {
 		{
 			mCommandBuffer->beginCommandRecording(i);
 
-			auto lightingPipeline = mPipelineMgr->get("lighting");
-			mCommandBuffer->beginRenderPass(i, lightingPipeline, false);
-			mScene->draw(mCommandBuffer->get(i), lightingPipeline); // default shading pipeline
+			// lighting pass
+			auto& geometryPipeline = mPipelineMgr->get("geometry");
+			mCommandBuffer->beginRenderPass(i, geometryPipeline, false);
+			mScene->draw(mCommandBuffer->get(i), geometryPipeline);
 			mCommandBuffer->endRenderPass(i);
 
-			auto presentPipeline = mPipelineMgr->get("present");
+			// scattering pass
+			auto& scatteringPipeline = mPipelineMgr->get("scatter");
+			mCommandBuffer->beginRenderPass(i, scatteringPipeline, false);
+			mFullscreenTriangle->draw(mCommandBuffer->get(i), scatteringPipeline,{scatterDescriptorSet}, false);
+			mCommandBuffer->endRenderPass(i);
+
+			auto& presentPipeline = mPipelineMgr->get("present");
 			mCommandBuffer->beginRenderPass(i, presentPipeline, true);
 			mFullscreenTriangle->draw(mCommandBuffer->get(i), presentPipeline, { presentDescriptorSet }, true);
 			mCommandBuffer->endRenderPass(i);
@@ -86,7 +103,9 @@ namespace Horizon {
 	{
 		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
-		mScene->loadModel(getModelPath() + "earth6378/earth.gltf");
+		mScene->loadModel(getModelPath() + "earth6378/earth.gltf", "earth");
+		//Math::mat4 scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(1.0f/6378.0f));
+		//mScene->getModel("earth")->setModelMatrix(scaleMatrix);
 		//mScene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/earth_original_size/earth.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf");
 		//mScene->loadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
@@ -102,75 +121,72 @@ namespace Horizon {
 	void Renderer::createPipelines()
 	{
 
-		std::shared_ptr<Shader> lightingVs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "defaultlit.vert.spv");
-		std::shared_ptr<Shader> lightingPs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "defaultlit.frag.spv");
+		PipelineCreateInfo geometryPipelineCreateInfo;
 
-		PipelineCreateInfo lightingPipelineCreateInfo;
+		geometryPipelineCreateInfo.vs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "geometry.vert.spv");
+		geometryPipelineCreateInfo.ps = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "geometry.frag.spv");
+		geometryPipelineCreateInfo.descriptorLayouts = mScene->getGeometryPassDescriptorLayouts();
 
-		lightingPipelineCreateInfo.vs = lightingVs;
-		lightingPipelineCreateInfo.ps = lightingPs;
-		lightingPipelineCreateInfo.descriptorLayouts = mScene->getDescriptorLayouts();
+		// position + depth
+		// normal
+		// albedo
+		// depth
 
-		// color + depth
-		std::vector<AttachmentCreateInfo> lightingAttachmentsCreateInfo{
+		std::vector<AttachmentCreateInfo> geometryAttachmentsCreateInfo{
+			{VK_FORMAT_R32G32B32A32_SFLOAT, COLOR_ATTACHMENT, mRenderContext.width, mRenderContext.height },
+			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, mRenderContext.width, mRenderContext.height },
 			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, mRenderContext.width, mRenderContext.height },
 			{VK_FORMAT_D32_SFLOAT, DEPTH_STENCIL_ATTACHMENT, mRenderContext.width, mRenderContext.height}
 		};
 
 
-		mPipelineMgr->createPipeline(lightingPipelineCreateInfo, "lighting", lightingAttachmentsCreateInfo, mRenderContext);
-
-#pragma region COMMENTED
+		mPipelineMgr->createPipeline(geometryPipelineCreateInfo, "geometry", geometryAttachmentsCreateInfo, mRenderContext);
 
 		// scattering pass
 
-		//std::shared_ptr<DescriptorSetInfo> scatterDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		//scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // color tex
-		//scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // scatter params
-		//std::shared_ptr<DescriptorSet> scatterDescriptorSet = std::make_shared<DescriptorSet>(mDevice, scatterDescriptorSetCreateInfo);
-		//
-		//std::shared_ptr<DescriptorSetLayouts> scatterDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
-		//scatterDescriptorSetLayout->layouts.push_back(scatterDescriptorSet->getLayout());
+		std::shared_ptr<DescriptorSetInfo> scatterDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // positionDepth tex
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // normal tex
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // albdeo tex
+		//scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // scatter params
+
+		scatterDescriptorSet = std::make_shared<DescriptorSet>(mDevice, scatterDescriptorSetCreateInfo);
+		
+		std::shared_ptr<DescriptorSetLayouts> scatterDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
+		scatterDescriptorSetLayout->layouts.push_back(scatterDescriptorSet->getLayout());
 
 
-		//std::shared_ptr<Shader> scatterVs = std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/spirv/scatter.vert.spv");
-		//std::shared_ptr<Shader> scatterPs = std::make_shared<Shader>(mDevice->get(), "C:/Users/hylu/OneDrive/mycode/vulkan/shaders/spirv/scatter.frag.spv");
-		//  
-		//PipelineCreateInfo scatterPipelineCreateInfo;
-		//scatterPipelineCreateInfo.vs = scatterVs;
-		//scatterPipelineCreateInfo.ps = scatterPs;
-		//scatterPipelineCreateInfo.descriptorLayouts = scatterDescriptorSetLayout;
+		PipelineCreateInfo scatterPipelineCreateInfo;
+		scatterPipelineCreateInfo.vs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "scatter.vert.spv");
+		scatterPipelineCreateInfo.ps = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "scatter.frag.spv");
+		scatterPipelineCreateInfo.descriptorLayouts = scatterDescriptorSetLayout;
 
-		//std::vector<AttachmentCreateInfo> scatterAttachmentsCreateInfo;
+		std::vector<AttachmentCreateInfo> scatterAttachmentsCreateInfo{
+			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, mRenderContext.width, mRenderContext.height }
+		};
 
-		//mPipelineMgr->createPipeline(scatterPipelineCreateInfo, "scatter", scatterAttachmentsCreateInfo, mWidth, mHeight);
-
+		mPipelineMgr->createPipeline(scatterPipelineCreateInfo, "scatter", scatterAttachmentsCreateInfo, mRenderContext);
 
 
-		// post process
+
+		//// post process
 
 		//std::shared_ptr<DescriptorSetInfo> ppDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
 		//ppDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		//std::shared_ptr<DescriptorSet> ppDescriptorSet = std::make_shared<DescriptorSet>(mDevice, ppDescriptorSetCreateInfo);
+		//ppDescriptorSet = std::make_shared<DescriptorSet>(mDevice, ppDescriptorSetCreateInfo);
 		//std::shared_ptr<DescriptorSetLayouts> ppDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		//ppDescriptorSetLayout->layouts.push_back(ppDescriptorSet->getLayout());
 
-
-		//std::shared_ptr<Shader> ppVs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "postprocess.vert.spv");
-		//std::shared_ptr<Shader> ppPs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "postprocess.frag.spv");
-
 		//PipelineCreateInfo ppPipelineCreateInfo;
-		//ppPipelineCreateInfo.vs = ppVs;
-		//ppPipelineCreateInfo.ps = ppPs;
+		//ppPipelineCreateInfo.vs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "postprocess.vert.spv");
+		//ppPipelineCreateInfo.ps = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "postprocess.frag.spv");
 		//ppPipelineCreateInfo.descriptorLayouts = nullptr;
 
 		//std::vector<AttachmentCreateInfo> ppAttachmentsCreateInfo{
-		//	{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, mWidth, mHeight},
-		//	{VK_FORMAT_D32_SFLOAT, DEPTH_STENCIL_ATTACHMENT | PRESENT_SRC, mWidth, mHeight}
+		//	{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, mRenderContext.width, mRenderContext.height },
 		//};
-		//mPipelineMgr->createPipeline(ppPipelineCreateInfo, "pp", ppAttachmentsCreateInfo, mWidth, mHeight);
+		//mPipelineMgr->createPipeline(ppPipelineCreateInfo, "pp", ppAttachmentsCreateInfo, mRenderContext);
 
-#pragma endregion
 
 		// present pass
 

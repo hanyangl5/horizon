@@ -9,7 +9,7 @@ namespace Horizon {
 	void RenderPass::createRenderPass(const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo)
 	{
 		u32 attachmentCount = attachmentsCreateInfo.size();
-
+		colorAttachmentCount = attachmentCount;
 		std::vector<VkAttachmentDescription> attachmentsDesc(attachmentCount);
 
 		for (u32 i = 0; i < attachmentsDesc.size(); i++) {
@@ -41,9 +41,10 @@ namespace Horizon {
 		}
 
 		// if attachements have depth attachment, it should be the last attachment
-		bool hasDepthAttachment = false;
+		hasDepthAttachment = false;
 		if (attachmentsCreateInfo[attachmentCount - 1].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
 			hasDepthAttachment = true;
+			colorAttachmentCount -= 1;
 			attachmentsDesc[attachmentCount - 1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 		}
 

@@ -26,6 +26,10 @@ namespace Horizon
 	{
 		return Math::vec3();
 	}
+	Math::vec2 Camera::getNearFarPlane() const
+	{
+		return Math::vec2(mNearPlane, mFarPlane);
+	}
 	void Camera::setCameraSpeed(f32 speed)
 	{
 		mCameraSpeed = speed;

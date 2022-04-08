@@ -18,11 +18,14 @@ namespace Horizon {
 		VkRenderPass getRenderPass() const;
 		std::shared_ptr<AttachmentDescriptor> getDescriptorImageInfo(u32 attachmentIndex);
 		std::vector<VkImage> getPresentImages();
+		u32 getColorAttachmentCount();
+		std::vector<VkClearValue> getClearValues();
 	private:
 		void createFrameBuffer(u32 width, u32 height, u32 imageCount, std::shared_ptr<SwapChain> swapChain = nullptr);
 		void createAttachmentsResources(const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo);
 	private:
 		RenderContext& mRenderContext;
+		bool hasDepthAttachment = false;
 		std::shared_ptr<Device> mDevice = nullptr;
 		std::shared_ptr<RenderPass> mRenderPass;
 		std::vector<VkFramebuffer> mFramebuffer;

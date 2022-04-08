@@ -61,5 +61,7 @@ namespace Horizon
 
 		// pipeline objects
 		std::shared_ptr<DescriptorSet> presentDescriptorSet;
+		std::shared_ptr<DescriptorSet> scatterDescriptorSet;
+		std::shared_ptr<DescriptorSet> ppDescriptorSet;
 	};
 }
