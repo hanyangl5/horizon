@@ -127,57 +127,53 @@ namespace Horizon {
 	std::shared_ptr<DescriptorSetLayouts> Scene::getDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
-		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
+		VkDescriptorSetLayout materialSetLayout;
 		for (auto& model : mModels) {
-			if (model.second->getMaterialDescriptorSet() && model.second->getMeshDescriptorSet()) {
-				meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
+			if (model.second->getMaterialDescriptorSet()) {
+				//meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
 				materialSetLayout = model.second->getMaterialDescriptorSet()->getLayout();
 			}
 		}
-		if (!meshSetLayout) {
-			spdlog::error("mesh descriptorset layout not found");
-		}
+		//if (!meshSetLayout) {
+		//	spdlog::error("mesh descriptorset layout not found");
+		//}
 		if (!materialSetLayout) {
 			spdlog::error("material descriptorset layout not found");
 		}
-		layouts->layouts = { { sceneDescritporSet->getLayout(), materialSetLayout, meshSetLayout} };
+		layouts->layouts = { { sceneDescritporSet->getLayout(), materialSetLayout} };
 		return layouts;
 	}
 
 	std::shared_ptr<DescriptorSetLayouts> Scene::getGeometryPassDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
-		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
+		VkDescriptorSetLayout materialSetLayout;
 		for (auto& model : mModels) {
-			if (model.second->getMaterialDescriptorSet() && model.second->getMeshDescriptorSet()) {
-				meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
+			if (model.second->getMaterialDescriptorSet()) {
 				materialSetLayout = model.second->getMaterialDescriptorSet()->getLayout();
 			}
-		}
-		if (!meshSetLayout) {
-			spdlog::error("mesh descriptorset layout not found");
 		}
 		if (!materialSetLayout) {
 			spdlog::error("material descriptorset layout not found");
 		}
-		layouts->layouts = { { sceneDescritporSet->getLayout(), materialSetLayout, meshSetLayout} };
+		layouts->layouts = { { sceneDescritporSet->getLayout(), materialSetLayout} };
 		return layouts;
 	}
 
 	std::shared_ptr<DescriptorSetLayouts> Scene::getScatterPassDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
-		VkDescriptorSetLayout meshSetLayout, materialSetLayout;
-		for (auto& model : mModels) {
-			if (model.second->getMeshDescriptorSet()) {
-				meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
-			}
-		}
-		if (!meshSetLayout) {
-			spdlog::error("mesh descriptorset layout not found");
-		}
+		//VkDescriptorSetLayout meshSetLayout, materialSetLayout;
+		//for (auto& model : mModels) {
+		//	if (model.second->getMeshDescriptorSet()) {
+		//		meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
+		//	}
+		//}
+		//if (!meshSetLayout) {
+		//	spdlog::error("mesh descriptorset layout not found");
+		//}
 
-		layouts->layouts = { { sceneDescritporSet->getLayout(), meshSetLayout} };
+		//layouts->layouts = { { sceneDescritporSet->getLayout(), meshSetLayout} };
 		return layouts;
 	}
 

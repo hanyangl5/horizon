@@ -127,6 +127,10 @@ namespace Horizon {
 		geometryPipelineCreateInfo.ps = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "geometry.frag.spv");
 		geometryPipelineCreateInfo.descriptorLayouts = mScene->getGeometryPassDescriptorLayouts();
 
+		std::shared_ptr<PushConstants> geometryPipelinePushConstants = std::make_shared<PushConstants>();
+
+		geometryPipelinePushConstants->pushConstantRanges = { VkPushConstantRange{VK_SHADER_STAGE_VERTEX_BIT, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
+		geometryPipelineCreateInfo.pushConstants = geometryPipelinePushConstants; 
 		// position + depth
 		// normal
 		// albedo

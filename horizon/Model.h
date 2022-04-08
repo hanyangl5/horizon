@@ -36,11 +36,15 @@ namespace Horizon {
 		std::shared_ptr<Device> mDevice;;
 		std::vector<std::shared_ptr<MeshPrimitive>> primitives;
 
-		struct MeshUbStruct {
-			Math::mat4 model;
-		}meshUbStruct;
-		std::shared_ptr<UniformBuffer> meshUb = nullptr;
-		std::shared_ptr<DescriptorSet> meshDescriptorSet = nullptr;
+
+		// 128 bytes push constant
+		struct PushConstantStruct {
+			Math::mat4 modelMatrix;
+			Math::mat4 padding;
+		}pushConstantStruct;
+
+		//std::shared_ptr<UniformBuffer> meshUb = nullptr;
+		//std::shared_ptr<DescriptorSet> meshDescriptorSet = nullptr;
 	};
 
 	class Node {
@@ -73,12 +77,12 @@ namespace Horizon {
 		void loadNode(std::shared_ptr<Node> parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
 		void drawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer commandBuffer);
 		void updateDescriptors();
-		std::shared_ptr<DescriptorSet> getMeshDescriptorSet();
+		//std::shared_ptr<DescriptorSet> getMeshDescriptorSet();
 		std::shared_ptr<DescriptorSet> getMaterialDescriptorSet();
 		void setModelMatrix(const Math::mat4& modelMatrix);
 	private:
 		void updateNodeDescriptorSet(std::shared_ptr<Node> node);
-		std::shared_ptr<DescriptorSet> getNodeMeshDescriptorSet(std::shared_ptr<Node> node);
+		//std::shared_ptr<DescriptorSet> getNodeMeshDescriptorSet(std::shared_ptr<Node> node);
 		std::shared_ptr<DescriptorSet> getNodeMaterialDescriptorSet(std::shared_ptr<Node> node);
 	private:
 		std::shared_ptr<Device> mDevice;

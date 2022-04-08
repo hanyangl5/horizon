@@ -356,9 +356,12 @@ namespace Horizon {
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
-				std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material->materialDescriptorSet->get(), node->mesh->meshDescriptorSet->get() };
+				std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material->materialDescriptorSet->get() };
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+				if (pipeline->hasPushConstants()) {
+					vkCmdPushConstants(commandBuffer, pipeline->getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(node->mesh->pushConstantStruct), &node->mesh->pushConstantStruct);
+				}
 				vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
 			}
 		}
@@ -379,12 +382,12 @@ namespace Horizon {
 			// update uniform buffer
 			node->update(mModelMatrix);
 
-			node->mesh->meshDescriptorSet->allocateDescriptorSet();
+			//node->mesh->meshDescriptorSet->allocateDescriptorSet();
 
-			DescriptorSetUpdateDesc desc;
-			desc.bindResource(0, node->mesh->meshUb);
+			//DescriptorSetUpdateDesc desc;
+			//desc.bindResource(0, node->mesh->meshUb);
 
-			node->mesh->meshDescriptorSet->updateDescriptorSet(desc);
+			//node->mesh->meshDescriptorSet->updateDescriptorSet(desc);
 			// update material params and textures
 
 			for (auto& primitive : node->mesh->primitives) {
@@ -396,24 +399,24 @@ namespace Horizon {
 		}
 	}
 
-	std::shared_ptr<DescriptorSet> Model::getMeshDescriptorSet()
-	{
-		for (auto& node : nodes) {
-			return getNodeMeshDescriptorSet(node);
-		}
-		spdlog::error("mesh descriptorset not found");
-		return nullptr;
-	}
-	std::shared_ptr<DescriptorSet> Model::getNodeMeshDescriptorSet(std::shared_ptr<Node> node)
-	{
-		if (node->mesh) {
-			return node->mesh->meshDescriptorSet;
-		}
-		for (auto& child : node->children) {
-			return getNodeMeshDescriptorSet(child);
-		}
-		return nullptr;
-	}
+	//std::shared_ptr<DescriptorSet> Model::getMeshDescriptorSet()
+	//{
+	//	for (auto& node : nodes) {
+	//		return getNodeMeshDescriptorSet(node);
+	//	}
+	//	spdlog::error("mesh descriptorset not found");
+	//	return nullptr;
+	//}
+	//std::shared_ptr<DescriptorSet> Model::getNodeMeshDescriptorSet(std::shared_ptr<Node> node)
+	//{
+	//	if (node->mesh) {
+	//		return node->mesh->meshDescriptorSet;
+	//	}
+	//	for (auto& child : node->children) {
+	//		return getNodeMeshDescriptorSet(child);
+	//	}
+	//	return nullptr;
+	//}
 	std::shared_ptr<DescriptorSet> Model::getMaterialDescriptorSet()
 	{
 		for (auto& node : nodes) {
@@ -440,12 +443,13 @@ namespace Horizon {
 	}
 
 
-	Mesh::Mesh(std::shared_ptr<Device> device, Math::mat4 model) :mDevice(device), meshUbStruct({ model })
+	Mesh::Mesh(std::shared_ptr<Device> device, Math::mat4 model) :mDevice(device)
 	{
-		meshUb = std::make_shared<UniformBuffer>(mDevice);
-		std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
-		setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-		meshDescriptorSet = std::make_shared<DescriptorSet>(mDevice, setInfo);
+		pushConstantStruct.modelMatrix = model;
+		//meshUb = std::make_shared<UniformBuffer>(mDevice);
+		//std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
+		//setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		//meshDescriptorSet = std::make_shared<DescriptorSet>(mDevice, setInfo);
 	}
 
 	Mesh::~Mesh()
@@ -480,8 +484,9 @@ namespace Horizon {
 	}
 
 	void Node::update(const Math::mat4& modelMat) {
-		mesh->meshUbStruct.model = modelMat * getMatrix();
-		mesh->meshUb->update(&mesh->meshUbStruct, sizeof(mesh->meshUbStruct));
+		mesh->pushConstantStruct.modelMatrix = modelMat * getMatrix();
+		//mesh->meshUbStruct.model = modelMat * getMatrix();
+		//mesh->meshUb->update(&mesh->meshUbStruct, sizeof(mesh->meshUbStruct));
 
 		for (auto& child : children) {
 			child->update(modelMat);

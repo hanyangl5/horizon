@@ -19,15 +19,15 @@ layout(set = 0, binding = 0) uniform SceneUb {
 
 // set 1: material
 
-// set 2: mesh
+// push constant
 
-layout(set = 2, binding = 0) uniform MeshUb {
+layout(push_constant) uniform MeshUb {
     mat4 model;
-} meshUb;
+} mesh;
 
 
 void main() {
-    mat4 model = meshUb.model;
+    mat4 model = mesh.model;
     worldPos = (model * vec4(inPosition, 1.0)).xyz;
     worldNormal = (model * vec4(inNormal, 1.0)).xyz;
     fragTexCoord = inTexcoord;

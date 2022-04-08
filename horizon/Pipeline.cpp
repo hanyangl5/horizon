@@ -75,6 +75,11 @@ namespace Horizon {
 		return mClearValues;
 	}
 
+	bool Pipeline::hasPushConstants()
+	{
+		return mPushConstants != nullptr;
+	}
+
 
 	void Pipeline::createPipelineLayout(const PipelineCreateInfo& createInfo)
 	{
@@ -91,7 +96,12 @@ namespace Horizon {
 			pipelineLayoutInfo.setLayoutCount = 0;
 			pipelineLayoutInfo.pSetLayouts = nullptr;
 		}
+		if (createInfo.pushConstants) {
 
+			mPushConstants = createInfo.pushConstants;
+			pipelineLayoutInfo.pushConstantRangeCount = mPushConstants->pushConstantRanges.size();
+			pipelineLayoutInfo.pPushConstantRanges = mPushConstants->pushConstantRanges.data();
+		}
 		printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
 	}
 
