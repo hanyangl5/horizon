@@ -77,7 +77,7 @@ namespace Horizon {
 		{
 			mCommandBuffer->beginCommandRecording(i);
 
-			// lighting pass
+			// geometry pass
 			auto& geometryPipeline = mPipelineMgr->get("geometry");
 			mCommandBuffer->beginRenderPass(i, geometryPipeline, false);
 			mScene->draw(mCommandBuffer->get(i), geometryPipeline);
@@ -86,9 +86,10 @@ namespace Horizon {
 			// scattering pass
 			auto& scatteringPipeline = mPipelineMgr->get("scatter");
 			mCommandBuffer->beginRenderPass(i, scatteringPipeline, false);
-			mFullscreenTriangle->draw(mCommandBuffer->get(i), scatteringPipeline,{scatterDescriptorSet}, false);
+			mScene->draw(mCommandBuffer->get(i), scatteringPipeline);
 			mCommandBuffer->endRenderPass(i);
 
+			// final present pass
 			auto& presentPipeline = mPipelineMgr->get("present");
 			mCommandBuffer->beginRenderPass(i, presentPipeline, true);
 			mFullscreenTriangle->draw(mCommandBuffer->get(i), presentPipeline, { presentDescriptorSet }, true);
@@ -149,22 +150,27 @@ namespace Horizon {
 		// scattering pass
 
 		std::shared_ptr<DescriptorSetInfo> scatterDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // positionDepth tex
-		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // normal tex
-		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // albdeo tex
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // positionDepth tex
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // normal r tex
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // albdeo m tex
 		//scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // scatter params
 
 		scatterDescriptorSet = std::make_shared<DescriptorSet>(mDevice, scatterDescriptorSetCreateInfo);
 		
 		std::shared_ptr<DescriptorSetLayouts> scatterDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
+		scatterDescriptorSetLayout = mScene->getGeometryPassDescriptorLayouts();
 		scatterDescriptorSetLayout->layouts.push_back(scatterDescriptorSet->getLayout());
+
+		std::shared_ptr<PushConstants> scatterPipelinePushConstants = std::make_shared<PushConstants>();
+		scatterPipelinePushConstants->pushConstantRanges = { VkPushConstantRange{VK_SHADER_STAGE_VERTEX_BIT, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
 
 
 		PipelineCreateInfo scatterPipelineCreateInfo;
 		scatterPipelineCreateInfo.vs = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "scatter.vert.spv");
 		scatterPipelineCreateInfo.ps = std::make_shared<Shader>(mDevice->get(), getShaderPath() + "scatter.frag.spv");
 		scatterPipelineCreateInfo.descriptorLayouts = scatterDescriptorSetLayout;
-
+		scatterPipelineCreateInfo.pipelineDescriptorSet = scatterDescriptorSet;
+		scatterPipelineCreateInfo.pushConstants = scatterPipelinePushConstants;
 		std::vector<AttachmentCreateInfo> scatterAttachmentsCreateInfo{
 			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, mRenderContext.width, mRenderContext.height }
 		};
@@ -208,7 +214,6 @@ namespace Horizon {
 		presentPipelineCreateInfo.vs = presentVs;
 		presentPipelineCreateInfo.ps = presentPs;
 		presentPipelineCreateInfo.descriptorLayouts = presentDescriptorSetLayout;
-
 		std::vector<AttachmentCreateInfo> presentAttachmentsCreateInfo{
 			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, mRenderContext.width, mRenderContext.height}
 		};

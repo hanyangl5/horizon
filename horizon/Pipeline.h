@@ -25,6 +25,7 @@ namespace Horizon {
 		std::shared_ptr<Shader> vs, ps;
 		std::shared_ptr<DescriptorSetLayouts> descriptorLayouts;
 		std::shared_ptr<PushConstants> pushConstants;
+		std::shared_ptr<DescriptorSet> pipelineDescriptorSet;
 		//VkPipelineVertexInputStateCreateInfo;
 		//descriptorsetlayout
 	};
@@ -44,6 +45,8 @@ namespace Horizon {
 		std::vector<VkImage> getPresentImages();
 		std::vector<VkClearValue> getClearValues();
 		bool hasPushConstants();
+		bool hasPipelineDescriptorSet();
+		std::shared_ptr<DescriptorSet> getPipelineDescriptorSet();
 	private:
 		void createPipelineLayout(const PipelineCreateInfo& createInfo);
 		void createPipeline(const PipelineCreateInfo& createInfo);
@@ -52,6 +55,7 @@ namespace Horizon {
 		std::shared_ptr<Device> mDevice = nullptr;
 		std::shared_ptr<Framebuffer> mFramebuffer = nullptr;
 		std::shared_ptr<PushConstants> mPushConstants = nullptr;
+		std::shared_ptr<DescriptorSet> mPipelineDescriptorSet = nullptr;
 		std::vector<VkClearValue> mClearValues;
 		// handle of pipeline layout
 		VkPipelineLayout mPipelineLayout = nullptr;

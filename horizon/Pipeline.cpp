@@ -80,6 +80,16 @@ namespace Horizon {
 		return mPushConstants != nullptr;
 	}
 
+	bool Pipeline::hasPipelineDescriptorSet()
+	{
+		return mPipelineDescriptorSet != nullptr;
+	}
+
+	std::shared_ptr<DescriptorSet> Pipeline::getPipelineDescriptorSet()
+	{
+		return mPipelineDescriptorSet;
+	}
+
 
 	void Pipeline::createPipelineLayout(const PipelineCreateInfo& createInfo)
 	{
@@ -103,6 +113,8 @@ namespace Horizon {
 			pipelineLayoutInfo.pPushConstantRanges = mPushConstants->pushConstantRanges.data();
 		}
 		printVkError(vkCreatePipelineLayout(mDevice->get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout), "create pipeline layout");
+
+		mPipelineDescriptorSet = createInfo.pipelineDescriptorSet;
 	}
 
 	void Pipeline::createPipeline(const PipelineCreateInfo& createInfo)
@@ -248,7 +260,7 @@ namespace Horizon {
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline");
+		printVkError(vkCreateGraphicsPipelines(mDevice->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline), "create graphics pipeline failed");
 	}
 
 

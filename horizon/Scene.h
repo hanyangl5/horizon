@@ -29,7 +29,7 @@ namespace Horizon {
 		void draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline);
 		std::shared_ptr<DescriptorSetLayouts> getDescriptorLayouts();
 		std::shared_ptr<DescriptorSetLayouts> getGeometryPassDescriptorLayouts();
-		std::shared_ptr<DescriptorSetLayouts> getScatterPassDescriptorLayouts();
+		std::shared_ptr<DescriptorSetLayouts> getSceneDescriptorLayouts();
 		std::shared_ptr<Camera> getMainCamera() const;
 	private:
 		RenderContext& mRenderContext;

@@ -160,20 +160,10 @@ namespace Horizon {
 		return layouts;
 	}
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::getScatterPassDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::getSceneDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
-		//VkDescriptorSetLayout meshSetLayout, materialSetLayout;
-		//for (auto& model : mModels) {
-		//	if (model.second->getMeshDescriptorSet()) {
-		//		meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
-		//	}
-		//}
-		//if (!meshSetLayout) {
-		//	spdlog::error("mesh descriptorset layout not found");
-		//}
-
-		//layouts->layouts = { { sceneDescritporSet->getLayout(), meshSetLayout} };
+		layouts->layouts.emplace_back(sceneDescritporSet->getLayout());
 		return layouts;
 	}
 

@@ -357,6 +357,9 @@ namespace Horizon {
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
 				std::vector<VkDescriptorSet> descriptors{ sceneDescriptorSet->get(),  primitive->material->materialDescriptorSet->get() };
+				if (pipeline->hasPipelineDescriptorSet()) {
+					descriptors.emplace_back(pipeline->getPipelineDescriptorSet()->get());
+				}
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
 				if (pipeline->hasPushConstants()) {
