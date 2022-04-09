@@ -77,11 +77,20 @@ namespace Horizon {
 		{
 			mCommandBuffer->beginCommandRecording(i);
 
+			auto earth = mScene->getModel("earth");
+			Math::mat4 scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6378.0f));
+			earth->setModelMatrix(scaleMatrix);
+			earth->updateModelMatrix();
+
 			// geometry pass
 			auto& geometryPipeline = mPipelineMgr->get("geometry");
 			mCommandBuffer->beginRenderPass(i, geometryPipeline, false);
 			mScene->draw(mCommandBuffer->get(i), geometryPipeline);
 			mCommandBuffer->endRenderPass(i);
+
+			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6378.0f));
+			earth->setModelMatrix(scaleMatrix);
+			earth->updateModelMatrix();
 
 			// scattering pass
 			auto& scatteringPipeline = mPipelineMgr->get("scatter");

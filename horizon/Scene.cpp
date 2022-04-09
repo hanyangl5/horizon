@@ -111,8 +111,11 @@ namespace Horizon {
 
 		sceneDescritporSet->updateDescriptorSet(desc);
 		
+
+
 		// update material&mesh descriptorset
 		for (auto& model : mModels) {
+			model.second->updateModelMatrix();
 			model.second->updateDescriptors();
 		}
 	}

@@ -375,32 +375,30 @@ namespace Horizon {
 
 	void Model::updateDescriptors()
 	{
-		for (auto& node : nodes) {
-			updateNodeDescriptorSet(node);
+		for (auto& material : materials) {
+			material->updateDescriptorSet();
 		}
 	}
 
-	void Model::updateNodeDescriptorSet(std::shared_ptr<Node> node) {
+	void Model::updateModelMatrix()
+	{
+		for (auto& node : nodes) {
+			updateNodeModelMatrix(node);
+		}
+	}
+
+	void Model::updateNodeModelMatrix(std::shared_ptr<Node> node)
+	{
+
+		// update model matrix for each node
 		if (node->mesh) {
-			// update uniform buffer
 			node->update(mModelMatrix);
-
-			//node->mesh->meshDescriptorSet->allocateDescriptorSet();
-
-			//DescriptorSetUpdateDesc desc;
-			//desc.bindResource(0, node->mesh->meshUb);
-
-			//node->mesh->meshDescriptorSet->updateDescriptorSet(desc);
-			// update material params and textures
-
-			for (auto& primitive : node->mesh->primitives) {
-				primitive->material->updateDescriptorSet();
-			}
 		}
 		for (auto& child : node->children) {
-			updateNodeDescriptorSet(child);
+			updateNodeModelMatrix(child);
 		}
 	}
+
 
 	//std::shared_ptr<DescriptorSet> Model::getMeshDescriptorSet()
 	//{
