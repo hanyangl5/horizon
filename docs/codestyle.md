@@ -2,6 +2,8 @@
 
 ## naming rules
 
+both c++ and shader code.
+
 ### variable
 
 for general vairables, all lowercase, with underscores between words.
@@ -44,5 +46,6 @@ void ABC(int _a, float _b, double _c) {
 
 }
 ```
+
 
 
