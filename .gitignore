@@ -2,5 +2,6 @@
 build
 out
 3rdparty
-docs
+docs/design.md
+docs/figs
 assets/models
