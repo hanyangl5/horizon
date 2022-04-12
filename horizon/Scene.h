@@ -31,6 +31,7 @@ namespace Horizon {
 		std::shared_ptr<DescriptorSetLayouts> getGeometryPassDescriptorLayouts();
 		std::shared_ptr<DescriptorSetLayouts> getSceneDescriptorLayouts();
 		std::shared_ptr<Camera> getMainCamera() const;
+		std::shared_ptr<UniformBuffer> getCameraUbo() const;
 	private:
 		RenderContext& mRenderContext;
 		std::shared_ptr<Camera> mCamera = nullptr;

@@ -19,15 +19,15 @@ namespace Horizon {
 
 		sceneDescritporSet = std::make_shared<DescriptorSet>(mDevice, sceneDescriptorSetInfo);
 
-		mCamera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 7000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
+		mCamera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 10000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
 		mCamera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(mRenderContext.width) / static_cast<f32>(mRenderContext.height), 0.01f, 100000.0f);
 		mCamera->setCameraSpeed(1.0f);
 
-		// create uniform buffer
+		// create uniform buffe
 		sceneUb = std::make_shared<UniformBuffer>(device);
 		//lightCountUb = std::make_shared<UniformBuffer>(device);
 		//lightUb = std::make_shared<UniformBuffer>(device);
-		//cameraUb = std::make_shared<UniformBuffer>(device);
+		cameraUb = std::make_shared<UniformBuffer>(device);
 	}
 
 	Scene::~Scene()
@@ -94,14 +94,14 @@ namespace Horizon {
 		sceneUbStruct.view = mCamera->getViewMatrix();
 		sceneUbStruct.projection = mCamera->getProjectionMatrix();
 		sceneUbStruct.nearFar = mCamera->getNearFarPlane();
-
 		sceneUb->update(&sceneUbStruct, sizeof(SceneUbStruct));
-		//camaeraUbStruct.cameraPos = mCamera->getPosition();
 
+		camaeraUbStruct.cameraPos = mCamera->getPosition();
+		cameraUb->update(&camaeraUbStruct, sizeof(CamaeraUbStruct));
 
 		//lightCountUb->update(&lightCountUbStruct, sizeof(LightCountUbStruct));
 		//lightUb->update(&lightUbStruct, lightCountUbStruct.lightCount > 0 ? sizeof(LightParams) * lightCountUbStruct.lightCount : sizeof(LightParams));
-		//cameraUb->update(&camaeraUbStruct, sizeof(CamaeraUbStruct));
+
 
 		DescriptorSetUpdateDesc desc;
 		desc.bindResource(0, sceneUb);
@@ -174,6 +174,10 @@ namespace Horizon {
 	std::shared_ptr<Camera> Scene::getMainCamera() const
 	{
 		return mCamera;
+	}
+	std::shared_ptr<UniformBuffer> Scene::getCameraUbo() const
+	{
+		return cameraUb;
 	}
 	FullscreenTriangle::FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer) :mDevice(device), mCommandBuffer(commandBuffer)
 	{

@@ -39,11 +39,12 @@ namespace Horizon {
 		auto& geometryPipeline = mPipelineMgr->get("geometry");
 
 		scatterDescriptorSet->allocateDescriptorSet();
-
+		
 		DescriptorSetUpdateDesc desc1;
 		desc1.bindResource(0, geometryPipeline->getFramebufferDescriptorImageInfo(0));
 		desc1.bindResource(1, geometryPipeline->getFramebufferDescriptorImageInfo(1));
 		desc1.bindResource(2, geometryPipeline->getFramebufferDescriptorImageInfo(2));
+		desc1.bindResource(3, mScene->getCameraUbo());
 		scatterDescriptorSet->updateDescriptorSet(desc1);
 
 		auto& scatterPipeline = mPipelineMgr->get("scatter");
@@ -88,7 +89,7 @@ namespace Horizon {
 			mScene->draw(mCommandBuffer->get(i), geometryPipeline);
 			mCommandBuffer->endRenderPass(i);
 
-			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6378.0f));
+			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(8378.0f));
 			earth->setModelMatrix(scaleMatrix);
 			earth->updateModelMatrix();
 
@@ -158,11 +159,14 @@ namespace Horizon {
 
 		// scattering pass
 
+	
 		std::shared_ptr<DescriptorSetInfo> scatterDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
 		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // positionDepth tex
 		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // normal r tex
 		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // albdeo m tex
-		//scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // scatter params
+		//scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT); // scatter params
+		scatterDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT); // camera params
+
 
 		scatterDescriptorSet = std::make_shared<DescriptorSet>(mDevice, scatterDescriptorSetCreateInfo);
 		

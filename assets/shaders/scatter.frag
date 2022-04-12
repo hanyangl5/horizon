@@ -1,155 +1,218 @@
-// #version 450
-
-// #define MAX_LIGHT_COUNT 512
-// #define PI 3.14159265359
-// #define eps 1e-6
-
-// layout(location = 0) in vec3 worldPos;
-// layout(location = 1) in vec3 worldNormal;
-// layout(location = 2) in vec2 fragTexCoord;
-
-// layout(location = 0) out vec3 outColor;
-
-// // set 0: scene
-
-// struct LightParams{
-//     vec4 colorIntensity; // r, g, b, intensity
-//     vec4 positionType; // x, y, z, type
-//     vec4 direction;
-//     vec4 radiusInnerOuter; // radius, innerradius, outerradius
-// };
-
-// layout(set = 0, binding = 1) uniform LightCountUb {
-//     uint lightCount;
-// }lightCountUb;
-
-// layout(set = 0, binding = 2) uniform LightUb {
-//     LightParams lights[MAX_LIGHT_COUNT];
-// }lightUb;
-
-// layout(set = 0, binding = 3) uniform CameraUb {
-//     vec3 eyePos;
-// }cameraUb;
-
-// // set 1: material
-
-// layout(set = 1, binding = 0) uniform MaterialParams {
-//     bool hasBaseColor;
-//     bool hasNormal;
-//     bool hasMetallicRoughness;
-//     // vec4 bcFactor;
-//     // vec3 normalFactor;
-//     // vec2 mrFactor;
-// }materialParams;
-
-// layout(set = 1, binding = 1) uniform sampler2D bcTexture;
-// layout(set = 1, binding = 2) uniform sampler2D normalTexture;
-// layout(set = 1, binding = 3) uniform sampler2D mrTexture;
-// // set 2: mesh
-// 、
-// // -------------------------------------------------------
-
-// // constants
-
-// struct ScatteringContext {
-//     vec3 lightDir;
-//     vec3 planetCenter = vec3(0.0f);
-//     float planetRadius = 6378.0f;
-//     float atmosphereRadius = 6478.0f;
-//     vec3 RaylieghMieScaleHeight = vec2(8.0f, 1.2f);
-// }
-// // ------------------------------------------------------
-
-// float saturate(float x) {
-//     return clamp(x, 0.0f , 1.0f);
-// }
-
-// vec2 raySphereIntersec(vec3 p, vec3 dir, float r) {
-// 	float b = dot( p, dir );
-// 	float c = dot( p, p ) - r * r;
-	
-// 	float d = b * b - c;
-// 	if ( d < 0.0 ) {
-// 		return vec2( MAX, -MAX );
-// 	}
-// 	d = sqrt( d );
-	
-// 	return vec2( -b - d, -b + d );
-// }
-
-// float PhaseRayleigh(float c2) {
-//     float nom = 3.0f * (1 + c2);
-//     float denom = 16.0f * PI;
-//     return nom / denom;
-// }
-
-// // g: (0.75, 0.9)
-// // henyey-greenstein phase function
-// float PhaseMie_HG(float g, float c) {
-//     float g2 = g * g;
-//     float nom = 1.0f - g2;
-//     float denom = pow(1 + g2 - 2 * g * c, 1.5f);
-//     denom = denom * 4.0f * PI;
-//     return nom / denom;
-// }
-
-// // Cornette-Shanks phase function
-// float PhaseMie_CS(float g, float c) {
-//     float g2 = g * g;
-//     float nom = 3.0f * (1.0f - g2) * (1.0f + c * c);
-//     float denom = pow(1 + g2 - 2 * g * c, 1.5f);
-//     denom = denom * 8.0f * PI * (2.0f + g2);
-//     return nom / denom;
-// }
-
-// float atmosphereDensity(float height, float atmosphereLength) {
-//     return exp(-height / atmosphereLength);
-// }
-
-// float opticalDepth() {
-
-// }
-
-
-// vec3 scatteringFunc(vec3 viewDir, ScatteringContext context) {
-//     vec3 color = vec3(0.0f);
-//     vec3 p = raySphereIntersect();
-//     float dist = length(p - worldPos);
-//     const uint steps = 32;
-//     float stepSize = dist / steps;
-//     vec3 scatteringPoint = worldPos;
-//     for(uint i = 0; i < steps; i++) {
-//         scatteringPoint + = stepSize * viewDir;
-
-//         color;
-//     }
-
-//     return color;
-// }
-
-
-// void main() {
-//     vec3 V = - normalize(worldPos - cameraUb.eyePos);
-//     vec3 N = normalize(worldNormal);
-//     vec3 albedo = materialParams.hasBaseColor ? texture(bcTexture, fragTexCoord).xyz : vec3(1.0);
-//     vec3 color = albedo;
-//     outColor = color;
-// }
-
-
 #version 450
 
+#define PI 3.14159265359
+#define eps 1e-6
+#define MAX 1e6
 
-layout(location = 0) in vec3 worldPos;
-layout(location = 1) in vec3 worldNormal;
-layout(location = 2) in vec2 fragTexCoord;
+const vec3 k_ray = vec3( 3.8, 13.5, 33.1 );
+const vec3 k_mie = vec3( 21.0 );
+const float k_mie_ex = 1.1;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) in vec3 world_pos;
+layout(location = 1) in vec3 world_normal;
+layout(location = 2) in vec2 frag_tex_coord;
 
-layout(set = 2, binding = 0) uniform sampler2D postionDepth;
-layout(set = 2, binding = 1) uniform sampler2D normalRoughness;
-layout(set = 2, binding = 2) uniform sampler2D albedoMetallic;
+layout(location = 0) out vec4 out_color;
+
+layout(set = 2, binding = 0) uniform sampler2D postion_depth;
+layout(set = 2, binding = 1) uniform sampler2D normal_roughness;
+layout(set = 2, binding = 2) uniform sampler2D albedo_metallic;
+
+layout(set = 2, binding = 3) uniform CameraUb {
+    vec3 eye_pos;
+}camera_ub;
+
+
+
+//  constants
+
+struct ScatteringContext {
+    vec3 light_dir;
+    vec3 planet_center;
+    float planet_radius;
+    float atmosphere_radius;
+    vec2 rayliegh_mie_scale_height;
+    float mie_g;
+    vec3 view_dir;
+    int k_scatter_nums_view, k_scatter_nums_light;
+};
+// ------------------------------------------------------
+
+float saturate(float x) {
+    return clamp(x, 0.0f , 1.0f);
+}
+
+vec2 RaySphereIntersect(vec3 _origin, vec3 _dir, float _radius) {
+
+	float b = dot( _origin, _dir );
+	float c = dot( _origin, _origin ) - _radius * _radius;
+	
+	float d = b * b - c;
+
+    vec2 min_max_intersections;
+    if(d < 0.0f){
+        min_max_intersections = vec2(-1.0, -1.0);
+    }
+    else 
+    {
+        d = sqrt(d);
+        min_max_intersections = vec2( -b - d, -b + d);
+    }
+    return min_max_intersections;
+
+}
+
+vec3 ComputeIntersection(vec3 _origin, ScatteringContext _context, out vec2 intersection_point) {
+    vec2 outer_intersectoin_point = RaySphereIntersect(_origin, _context.view_dir, _context.atmosphere_radius);
+    // no intersection point 
+    if(outer_intersectoin_point.y < 0.0f) {
+        return vec3(1.0, 0.0, 0.0);
+    }
+
+    vec2 inner_intersectoin_point = RaySphereIntersect(_origin, _context.view_dir, _context.planet_radius);
+    
+    // both intersected
+    if(inner_intersectoin_point.x > 0.0f) {
+        //outer_intersectoin_point.y = inner_intersectoin_point.x;
+        intersection_point = vec2(outer_intersectoin_point.x, inner_intersectoin_point.y);
+        return vec3(0.0, 1.0, 0.0);
+    }
+    
+    intersection_point = outer_intersectoin_point;
+    return vec3(0.0, 0.0, 1.0);
+}
+
+float PhaseRayleigh(float _c2) {
+    float nom = 3.0f * (1 + _c2);
+    float denom = 16.0f * PI;
+    return nom / denom;
+}
+
+// g: (0.75, 0.9)
+// henyey-greenstein phase function
+float PhaseMieHG(float _g, float _c) {
+    float g2 = _g * _g;
+    float nom = 1.0f - g2;
+    float denom = pow(1 + g2 - 2 * _g * _c, 1.5f);
+    denom = denom * 4.0f * PI;
+    return nom / denom;
+}
+
+// Cornette-Shanks phase function
+float PhaseMieCS(float _g, float _c) {
+    float g2 = _g * _g;
+    float nom = 3.0f * (1.0f - g2) * (1.0f + _c * _c);
+    float denom = pow(1 + g2 - 2 * _g * _c, 1.5f);
+    denom = denom * 8.0f * PI * (2.0f + g2);
+    return nom / denom;
+}
+
+float AtmosphereDensity(float _height, float _radius, float _scale_height) {
+    return exp( -max(_height - _radius, 0.0f) / _scale_height);
+}
+
+vec2 AtmosphereDensityRayMie(float _height, float _radius, vec2 _scale_height) {
+    return exp( -max(_height - _radius, 0.0f) / _scale_height);
+}
+
+// 
+vec2 OpticalDepth(vec3 _sample_point_v, vec3 _intersection_point_l, ScatteringContext _context) {
+    // start from sample point v, along light dir, to intersection point l
+    vec3 step_size_l = (_intersection_point_l - _sample_point_v) / float(_context.k_scatter_nums_light);
+    vec3 sample_point_l = _sample_point_v + step_size_l * 0.5;
+    vec2 sum = vec2(0.0f);
+    for(int i = 0; i < _context.k_scatter_nums_light; i++, sample_point_l += step_size_l) {
+        sum += AtmosphereDensityRayMie(length(sample_point_l), _context.planet_radius, _context.rayliegh_mie_scale_height);
+        
+    }
+    sum *= length(step_size_l);
+    return sum;
+}
+
+/*
+cases:
+if ray intersect with inner sphere s1 and outer sphere s2
+
+cast 1: 2 intersection point with s1 and s2, integrate from surface to near intersection point 
+cast 2: 0 intersection point with s1, 2 intersection point with s2, integrate from p1 to p2
+cast 3: 0 intersection point with s1 and s2, discard
+*/
+
+
+
+vec3 InScattering(ScatteringContext _context) {
+
+    vec3 origin = camera_ub.eye_pos - _context.planet_center;
+    
+    vec2 intersection_info = vec2(0.0);
+    vec3 ret = ComputeIntersection(origin, _context, intersection_info);
+    return ret;
+    //if(intersection_info == vec2(0.0f)) return vec3(0.0f);
+
+    float len = (intersection_info.y - intersection_info.x) / float(_context.k_scatter_nums_view);
+    vec3 start = origin + intersection_info.x * _context.view_dir;
+    vec3 end = origin + intersection_info.y * _context.view_dir;
+
+	vec3 step_size_v = (end - start) / float(_context.k_scatter_nums_view);
+	//float step_length = length(step_size);
+
+	vec3 sample_point_v = start + step_size_v * 0.5;
+
+    vec2 optical_depth_rayleigh_mie_v = vec2(0.0);
+
+	vec3 sum_ray = vec3( 0.0 );
+    vec3 sum_mie = vec3( 0.0 );
+
+    // sample the view ray 
+    for (int i = 0; i < _context.k_scatter_nums_view; i++, sample_point_v += step_size_v)
+	{
+
+        float height_v = length(sample_point_v);
+        vec2 density_ray_mie_v = len * AtmosphereDensityRayMie(height_v, _context.planet_radius, _context.rayliegh_mie_scale_height);
+        optical_depth_rayleigh_mie_v += density_ray_mie_v;
+
+        float a = dot(_context.light_dir, _context.light_dir);
+        float b = 2.0 * dot(_context.light_dir, sample_point_v);
+        float c = dot(sample_point_v, sample_point_v) - (_context.atmosphere_radius * _context.atmosphere_radius);
+        float d = (b * b) - 4.0 * a * c;
+
+        vec2 light_sphere_intersection  = RaySphereIntersect(sample_point_v, _context.light_dir, _context.atmosphere_radius);
+
+        vec3 intersection_point_l = sample_point_v + _context.light_dir * light_sphere_intersection.y;
+
+        vec2 optical_depth_rayleigh_mie_l = OpticalDepth(sample_point_v, intersection_point_l, _context);
+ 
+
+        vec3 attenuation = exp( - ( optical_depth_rayleigh_mie_v.x + optical_depth_rayleigh_mie_l.x ) * k_ray - ( optical_depth_rayleigh_mie_v.y + optical_depth_rayleigh_mie_l.y ) * k_mie * k_mie_ex );
+        
+		sum_ray += density_ray_mie_v.x * attenuation;
+        sum_mie += density_ray_mie_v.y * attenuation;
+
+	}
+
+    float theta = dot(_context.view_dir, _context.light_dir);
+    float theta2 = theta * theta;
+    float phase_rayleigh = PhaseRayleigh(theta2);
+    float phase_mie = PhaseMieCS(theta, _context.mie_g);
+
+    return sum_ray * k_ray * phase_rayleigh + sum_mie * k_mie * phase_mie;
+
+}
+
+
 
 void main() {
-    outColor = texture(albedoMetallic, gl_FragCoord.xy / vec2(1920.f, 1080.f));
+
+    ScatteringContext context;
+    context.light_dir = vec3(0.0, 0.0, -1.0);
+    context.planet_center = vec3(0.0f);
+    context.planet_radius = 6378.0f;
+    context.atmosphere_radius = 8478.0f;
+    context.rayliegh_mie_scale_height = vec2(8.0f, 1.2f);
+    context.k_scatter_nums_view = 32;
+    context.k_scatter_nums_light = 32;
+    context.view_dir =  normalize(world_pos - camera_ub.eye_pos);
+
+    vec3 scatter = InScattering(context);
+    out_color = vec4(scatter,1.0);// + texture(albedo_metallic, gl_FragCoord.xy / vec2(1920.f, 1080.f));
 }
