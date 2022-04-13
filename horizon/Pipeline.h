@@ -41,7 +41,7 @@ namespace Horizon {
 		VkRenderPass getRenderPass() const;
 		VkFramebuffer getFrameBuffer() const;
 		VkFramebuffer getFrameBuffer(u32 index) const;
-		std::shared_ptr<AttachmentDescriptor> getFramebufferDescriptorImageInfo(u32 attahmentIndex);
+		std::shared_ptr<AttachmentDescriptor> GetFrameBufferAttachment(u32 attahmentIndex);
 		std::vector<VkImage> getPresentImages();
 		std::vector<VkClearValue> getClearValues();
 		bool hasPushConstants();

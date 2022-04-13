@@ -73,7 +73,7 @@ namespace Horizon {
 	class FullscreenTriangle {
 	public:
 		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
-		void draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool is_present);
+		void draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool is_present = false);
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;

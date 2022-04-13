@@ -21,9 +21,9 @@ namespace Horizon {
 
 		m_camera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 10000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
 		m_camera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 0.01f, 100000.0f);
-		m_camera->setCameraSpeed(1.0f);
+		m_camera->setCameraSpeed(10.0f);
 
-		// create uniform buffe
+		// create uniform buffer
 		m_scene_ub = std::make_shared<UniformBuffer>(device);
 		//m_light_count_ub = std::make_shared<UniformBuffer>(device);
 		//m_light_ub = std::make_shared<UniformBuffer>(device);

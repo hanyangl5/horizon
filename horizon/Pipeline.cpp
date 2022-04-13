@@ -59,7 +59,7 @@ namespace Horizon {
 	{
 		return m_framebuffer->get(index);
 	}
-	std::shared_ptr<AttachmentDescriptor> Pipeline::getFramebufferDescriptorImageInfo(u32 attachment_index)
+	std::shared_ptr<AttachmentDescriptor> Pipeline::GetFrameBufferAttachment(u32 attachment_index)
 	{
 		return m_framebuffer->getDescriptorImageInfo(attachment_index);
 	}

@@ -37,23 +37,26 @@ namespace Horizon {
 		m_scene->prepare();
 
 		auto& geometryPipeline = m_pipeline_manager->get("geometry");
+		auto& scatterPipeline = m_pipeline_manager->get("scatter");
+		auto& ppPipeline = m_pipeline_manager->get("pp");
 
 		m_scatter_descriptorSet->allocateDescriptorSet();
-		
 		DescriptorSetUpdateDesc desc1;
-		desc1.bindResource(0, geometryPipeline->getFramebufferDescriptorImageInfo(0));
-		desc1.bindResource(1, geometryPipeline->getFramebufferDescriptorImageInfo(1));
-		desc1.bindResource(2, geometryPipeline->getFramebufferDescriptorImageInfo(2));
+		desc1.bindResource(0, geometryPipeline->GetFrameBufferAttachment(0));
+		desc1.bindResource(1, geometryPipeline->GetFrameBufferAttachment(1));
+		desc1.bindResource(2, geometryPipeline->GetFrameBufferAttachment(2));
 		desc1.bindResource(3, m_scene->getCameraUbo());
 		m_scatter_descriptorSet->UpdateDescriptorSet(desc1);
 
-		auto& scatterPipeline = m_pipeline_manager->get("scatter");
+		m_pp_descriptorSet->allocateDescriptorSet();
+		DescriptorSetUpdateDesc desc2;
+		desc2.bindResource(0, scatterPipeline->GetFrameBufferAttachment(0));
+		m_pp_descriptorSet->UpdateDescriptorSet(desc2);
 
 		m_present_descriptorSet->allocateDescriptorSet();
-
-		DescriptorSetUpdateDesc desc2;
-		desc2.bindResource(0, scatterPipeline->getFramebufferDescriptorImageInfo(0));
-		m_present_descriptorSet->UpdateDescriptorSet(desc2);
+		DescriptorSetUpdateDesc desc3;
+		desc3.bindResource(0, ppPipeline->GetFrameBufferAttachment(0));
+		m_present_descriptorSet->UpdateDescriptorSet(desc3);
 
 	}
 	void Renderer::Render() {
@@ -85,18 +88,24 @@ namespace Horizon {
 
 			// geometry pass
 			auto& geometryPipeline = m_pipeline_manager->get("geometry");
-			m_command_buffer->beginRenderPass(i, geometryPipeline, false);
+			m_command_buffer->beginRenderPass(i, geometryPipeline);
 			m_scene->draw(m_command_buffer->get(i), geometryPipeline);
 			m_command_buffer->endRenderPass(i);
 
-			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(8378.0f));
+			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(7478.0f));
 			earth->setModelMatrix(scaleMatrix);
 			earth->updateModelMatrix();
 
 			// scattering pass
 			auto& scatteringPipeline = m_pipeline_manager->get("scatter");
-			m_command_buffer->beginRenderPass(i, scatteringPipeline, false);
+			m_command_buffer->beginRenderPass(i, scatteringPipeline);
 			m_scene->draw(m_command_buffer->get(i), scatteringPipeline);
+			m_command_buffer->endRenderPass(i);
+
+			// post process pass
+			auto& ppPipeline = m_pipeline_manager->get("pp");
+			m_command_buffer->beginRenderPass(i, ppPipeline);
+			m_fullscreen_triangle->draw(m_command_buffer->get(i), ppPipeline, { m_pp_descriptorSet });
 			m_command_buffer->endRenderPass(i);
 
 			// final present pass
@@ -192,23 +201,23 @@ namespace Horizon {
 
 
 
-		//// post process
+		// post process
 
-		//std::shared_ptr<DescriptorSetInfo> ppDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		//ppDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		//m_pp_descriptorSet = std::make_shared<DescriptorSet>(m_device, ppDescriptorSetCreateInfo);
-		//std::shared_ptr<DescriptorSetLayouts> ppDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
-		//ppDescriptorSetLayout->layouts.push_back(m_pp_descriptorSet->getLayout());
+		std::shared_ptr<DescriptorSetInfo> ppDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
+		ppDescriptorSetCreateInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		m_pp_descriptorSet = std::make_shared<DescriptorSet>(m_device, ppDescriptorSetCreateInfo);
+		std::shared_ptr<DescriptorSetLayouts> ppDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
+		ppDescriptorSetLayout->layouts.push_back(m_pp_descriptorSet->getLayout());
 
-		//PipelineCreateInfo ppPipelineCreateInfo;
-		//ppPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "postprocess.vert.spv");
-		//ppPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), getShaderPath() + "postprocess.frag.spv");
-		//ppPipelineCreateInfo.descriptor_layouts = nullptr;
+		PipelineCreateInfo ppPipelineCreateInfo;
+		ppPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "postprocess.vert.spv");
+		ppPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), getShaderPath() + "postprocess.frag.spv");
+		ppPipelineCreateInfo.descriptor_layouts = ppDescriptorSetLayout;
 
-		//std::vector<AttachmentCreateInfo> ppAttachmentsCreateInfo{
-		//	{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, m_render_context.width, m_render_context.height },
-		//};
-		//m_pipeline_manager->createPipeline(ppPipelineCreateInfo, "pp", ppAttachmentsCreateInfo, m_render_context);
+		std::vector<AttachmentCreateInfo> ppAttachmentsCreateInfo{
+			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, m_render_context.width, m_render_context.height },
+		};
+		m_pipeline_manager->createPipeline(ppPipelineCreateInfo, "pp", ppAttachmentsCreateInfo, m_render_context);
 
 
 		// present pass
@@ -232,6 +241,5 @@ namespace Horizon {
 		};
 		m_pipeline_manager->createPresentPipeline(presentPipelineCreateInfo, presentAttachmentsCreateInfo, m_render_context, m_swap_chain);
 
-		//m_pipeline_manager->get("present")->attachToSwapChain(m_swap_chain);
 	}
 }

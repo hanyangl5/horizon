@@ -123,8 +123,8 @@ namespace Horizon {
 		for (tinygltf::Material& mat : gltfModel.materials) {
 			std::shared_ptr<Material> material = std::make_shared<Material>();
 			// bc
-			if (mat.values.find("base_color_texture") != mat.values.end()) {
-				material->base_color_texture = textures[mat.values["base_color_texture"].TextureIndex()];
+			if (mat.values.find("baseColorTexture") != mat.values.end()) {
+				material->base_color_texture = textures[mat.values["baseColorTexture"].TextureIndex()];
 				//material->texCoordSets.baseColor = mat.values["base_color_texture"].TextureTexCoord();
 				material->m_material_ubdata.has_base_color = true;
 			}
@@ -140,8 +140,8 @@ namespace Horizon {
 			//}
 
 			// normal
-			if (mat.additionalValues.find("normal_texture") != mat.additionalValues.end()) {
-				material->normal_texture = textures[mat.additionalValues["normal_texture"].TextureIndex()];
+			if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
+				material->normal_texture = textures[mat.additionalValues["normalTexture"].TextureIndex()];
 				//material->texCoordSets.normal = mat.additionalValues["normal_texture"].TextureTexCoord();
 				material->m_material_ubdata.has_normal = true;
 			}
@@ -151,8 +151,8 @@ namespace Horizon {
 			}
 
 			// metallic roughtness
-			if (mat.values.find("metallic_rougness_texture") != mat.values.end()) {
-				material->metallic_rougness_texture = textures[mat.values["metallic_rougness_texture"].TextureIndex()];
+			if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
+				material->metallic_rougness_texture = textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
 				//material->texCoordSets.metallicRoughness = mat.values["metallic_rougness_texture"].TextureTexCoord();
 				material->m_material_ubdata.has_metallic_rougness = true;
 			}
