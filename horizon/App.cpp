@@ -3,10 +3,10 @@
 
 using namespace Horizon;
 
-App::App(u32 width, u32 height) :mWidth(width), mHeight(height), mLogger(spdlog::stdout_color_mt("horizon logger"))
+App::App(u32 _width, u32 _height) :m_width(_width), mHeight(_height), m_logger(spdlog::stdout_color_mt("horizon logger"))
 {
 
-	spdlog::set_default_logger(mLogger);
+	spdlog::set_default_logger(m_logger);
 #ifndef NDEBUG
 	spdlog::set_level(spdlog::level::debug);
 #else
@@ -21,16 +21,16 @@ App::~App()
 
 void App::run() {
 
-	mWindow = std::make_shared<Window>("horizon", mWidth, mHeight);
-	mRenderer = std::make_unique<Renderer>(mWindow->getWidth(), mWindow->getHeight(), mWindow);
-	inputManager = std::make_unique<InputManager>(mWindow, mRenderer->getMainCamera());
+	m_window = std::make_shared<Window>("horizon", m_width, mHeight);
+	m_renderer = std::make_unique<Renderer>(m_window->getWidth(), m_window->getHeight(), m_window);
+	m_input_manager = std::make_unique<InputManager>(m_window, m_renderer->getMainCamera());
 
-	while (!glfwWindowShouldClose(mWindow->getWindow()))
+	while (!glfwWindowShouldClose(m_window->getWindow()))
 	{
 		glfwPollEvents();
-		inputManager->processInput();
-		mRenderer->Update();
-		mRenderer->Render();
+		m_input_manager->processInput();
+		m_renderer->Update();
+		m_renderer->Render();
 	}
-	mRenderer->wait();
+	m_renderer->wait();
 }

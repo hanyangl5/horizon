@@ -2,37 +2,37 @@
 
 namespace Horizon {
 
-	UniformBuffer::UniformBuffer(std::shared_ptr<Device> device) : mDevice(device)
+	UniformBuffer::UniformBuffer(std::shared_ptr<Device> device) : m_device(device)
 	{
 	}
 
 	UniformBuffer::~UniformBuffer()
 	{
-		vkDestroyBuffer(mDevice->get(), mUniformBuffer, nullptr);
-		vkFreeMemory(mDevice->get(), mUniformBufferMemory, nullptr);
+		vkDestroyBuffer(m_device->get(), m_uniform_buffer, nullptr);
+		vkFreeMemory(m_device->get(), m_uniform_buffer_memory, nullptr);
 	}
 
-	void UniformBuffer::update(void* Ub, u64 bufferSize)
+	void UniformBuffer::update(void* Ub, u64 buffer_size)
 	{
-		if (!mUniformBuffer) {
-			vk_createBuffer(mDevice->get(), mDevice->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mUniformBuffer, mUniformBufferMemory);
-			mSize = bufferSize;
-			bufferDescriptrInfo.buffer = mUniformBuffer;
+		if (!m_uniform_buffer) {
+			vk_createBuffer(m_device->get(), m_device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniform_buffer, m_uniform_buffer_memory);
+			m_size = buffer_size;
+			bufferDescriptrInfo.buffer = m_uniform_buffer;
 			bufferDescriptrInfo.offset = 0;
-			bufferDescriptrInfo.range = bufferSize;
+			bufferDescriptrInfo.range = buffer_size;
 		}
 		void* data;
-		vkMapMemory(mDevice->get(), mUniformBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, Ub, bufferSize);
-		vkUnmapMemory(mDevice->get(), mUniformBufferMemory);
+		vkMapMemory(m_device->get(), m_uniform_buffer_memory, 0, buffer_size, 0, &data);
+		memcpy(data, Ub, buffer_size);
+		vkUnmapMemory(m_device->get(), m_uniform_buffer_memory);
 	}
 
 	VkBuffer UniformBuffer::get() const
 	{
-		return mUniformBuffer;
+		return m_uniform_buffer;
 	}
 	u64 UniformBuffer::size() const
 	{
-		return mSize;
+		return m_size;
 	}
 }

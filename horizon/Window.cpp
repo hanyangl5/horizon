@@ -10,9 +10,9 @@ namespace Horizon {
 		};
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		mWindow = glfwCreateWindow(_width, _height, _name, nullptr, nullptr);
+		m_window = glfwCreateWindow(_width, _height, _name, nullptr, nullptr);
 
-		if (!mWindow)
+		if (!m_window)
 		{
 			glfwTerminate();
 			spdlog::error("failed to init window");
@@ -20,7 +20,7 @@ namespace Horizon {
 	}
 	Window::~Window()
 	{
-		glfwDestroyWindow(mWindow);
+		glfwDestroyWindow(m_window);
 		glfwTerminate();
 	}
 
@@ -37,12 +37,12 @@ namespace Horizon {
 
 	GLFWwindow* Window::getWindow()
 	{
-		return mWindow;
+		return m_window;
 	}
 
 	void Window::close()
 	{
-		glfwSetWindowShouldClose(mWindow, true);
+		glfwSetWindowShouldClose(m_window, true);
 	}
 
 }

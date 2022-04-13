@@ -2,18 +2,18 @@
 
 namespace Horizon {
 
-	void Material::updateDescriptorSet()
+	void Material::UpdateDescriptorSet()
 	{
-		materialUb->update(&materialUbStruct, sizeof(materialUbStruct));
+		m_material_ub->update(&m_material_ubdata, sizeof(m_material_ubdata));
 
 		DescriptorSetUpdateDesc desc;
-		desc.bindResource(0, materialUb);
-		desc.bindResource(1, baseColorTexture);
-		desc.bindResource(2, normalTexture);
-		desc.bindResource(3, metallicRoughnessTexture);
+		desc.bindResource(0, m_material_ub);
+		desc.bindResource(1, base_color_texture);
+		desc.bindResource(2, normal_texture);
+		desc.bindResource(3, metallic_rougness_texture);
 
-		materialDescriptorSet->allocateDescriptorSet();
-		materialDescriptorSet->updateDescriptorSet(desc);
+		m_material_descriptor_set->allocateDescriptorSet();
+		m_material_descriptor_set->UpdateDescriptorSet(desc);
 	}
 
 }

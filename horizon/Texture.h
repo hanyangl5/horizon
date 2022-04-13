@@ -22,15 +22,15 @@ namespace Horizon {
 		void createSampler();
 		void destroy();
 	private:
-		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<CommandBuffer> mCommandBuffer = nullptr;
+		std::shared_ptr<Device> m_device = nullptr;
+		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;
 		u8* buffer = nullptr;
 		i32 texWidth, texHeight, texChannels;
 		u32 mipLevels;
-		VkImage mImage;
-		VkDeviceMemory mImageMemory;
-		VkImageView mImageView;
-		VkSampler mSampler;
+		VkImage m_image;
+		VkDeviceMemory m_image_memory;
+		VkImageView m_image_view;
+		VkSampler m_sampler;
 		VkDescriptorImageInfo mDescriptorImageInfo;
 	};
 

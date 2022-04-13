@@ -2,37 +2,37 @@
 #include "VulkanBuffer.h"
 
 namespace Horizon {
-	VertexBuffer::VertexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, const std::vector<Vertex>& vertices) :mDevice(device)
+	VertexBuffer::VertexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, const std::vector<Vertex>& vertices) :m_device(device)
 	{
-		mVerticesCount = vertices.size();
-		VkDeviceSize bufferSize = sizeof(vertices[0]) * mVerticesCount;
+		m_vertices_count = vertices.size();
+		VkDeviceSize buffer_size = sizeof(vertices[0]) * m_vertices_count;
 
 		// create stage buffer
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		vk_createBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		vk_createBuffer(device->get(), device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 		// upload cpu data
 		void* data;
-		vkMapMemory(mDevice->get(), stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), bufferSize);
-		vkUnmapMemory(mDevice->get(), stagingBufferMemory);
+		vkMapMemory(m_device->get(), stagingBufferMemory, 0, buffer_size, 0, &data);
+		memcpy(data, vertices.data(), buffer_size);
+		vkUnmapMemory(m_device->get(), stagingBufferMemory);
 
 		// create actual vertex buffer
-		vk_createBuffer(device->get(), device->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer, mVertexBufferMemory);
+		vk_createBuffer(device->get(), device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertex_buffer, m_vertex_buffer_memory);
 
-		vk_copyBuffer(device, commandBuffer, stagingBuffer, mVertexBuffer, bufferSize);
+		vk_copyBuffer(device, command_buffer, stagingBuffer, m_vertex_buffer, buffer_size);
 
-		VkCommandBuffer cmdbuf = commandBuffer->beginSingleTimeCommands();
+		VkCommandBuffer cmdbuf = command_buffer->beginSingleTimeCommands();
 		VkBufferMemoryBarrier bufferMemoryBarrier{};
 		bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-		bufferMemoryBarrier.buffer = mVertexBuffer;
-		bufferMemoryBarrier.size = bufferSize;
+		bufferMemoryBarrier.buffer = m_vertex_buffer;
+		bufferMemoryBarrier.size = buffer_size;
 		bufferMemoryBarrier.offset = 0;
 		bufferMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		bufferMemoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
-		commandBuffer->endSingleTimeCommands(cmdbuf);
+		command_buffer->endSingleTimeCommands(cmdbuf);
 
 		vkDestroyBuffer(device->get(), stagingBuffer, nullptr);
 		vkFreeMemory(device->get(), stagingBufferMemory, nullptr);
@@ -40,30 +40,30 @@ namespace Horizon {
 
 	//VertexBuffer::VertexBuffer(const VertexBuffer&& rhs)
 	//{
-	//    mVertexBuffer = rhs.mVertexBuffer;
-	//    mVertexBufferMemory = rhs.mVertexBufferMemory;
+	//    m_vertex_buffer = rhs.m_vertex_buffer;
+	//    m_vertex_buffer_memory = rhs.m_vertex_buffer_memory;
 	//}
 	//
 	//VertexBuffer& VertexBuffer::operator=(VertexBuffer&& rhs)
 	//{
-	//    mVertexBuffer = rhs.mVertexBuffer;
-	//    mVertexBufferMemory = rhs.mVertexBufferMemory;
+	//    m_vertex_buffer = rhs.m_vertex_buffer;
+	//    m_vertex_buffer_memory = rhs.m_vertex_buffer_memory;
 	//    return *this;
 	//}
 
 	VertexBuffer::~VertexBuffer()
 	{
-		vkDestroyBuffer(mDevice->get(), mVertexBuffer, nullptr);
-		vkFreeMemory(mDevice->get(), mVertexBufferMemory, nullptr);
+		vkDestroyBuffer(m_device->get(), m_vertex_buffer, nullptr);
+		vkFreeMemory(m_device->get(), m_vertex_buffer_memory, nullptr);
 	}
 
 	VkBuffer VertexBuffer::get() const
 	{
-		return mVertexBuffer;
+		return m_vertex_buffer;
 	}
 
 	u64 VertexBuffer::getVerticesCount() const
 	{
-		return mVerticesCount;
+		return m_vertices_count;
 	}
 }

@@ -18,7 +18,7 @@ private:
     std::vector<char> readFile(const std::string& path);
 
 private:
-    VkShaderModule mShaderModule;
-    VkDevice mDevice;
+    VkShaderModule m_shader_module;
+    VkDevice m_device;
 };
 }

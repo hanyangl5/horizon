@@ -2,24 +2,24 @@
 
 namespace Horizon
 {
-	Camera::Camera(Math::vec3 eye, Math::vec3 at, Math::vec3 up) :mEye(eye), mAt(at), mUp(up)
+	Camera::Camera(Math::vec3 eye, Math::vec3 at, Math::vec3 up) :m_eye(eye), m_at(at), m_up(up)
 	{
-		mForward = normalize(mAt - mEye);
-		mRight = cross(mForward, mUp);
+		m_forward = normalize(m_at - m_eye);
+		m_right = cross(m_forward, m_up);
 		updateViewMatrix();
 		//setLookAt(eye, at, up);
 	}
-	void Camera::setPerspectiveProjectionMatrix(f32 fov, float aspectRatio, float nearPlane, float farPlane)
+	void Camera::setPerspectiveProjectionMatrix(f32 fov, float aspect_ratio, float nearPlane, float farPlane)
 	{
-		mFov = fov;
-		mAspectRatio = aspectRatio;
-		mNearPlane = nearPlane;
-		mFarPlane = farPlane;
-		mProjection = Math::perspective(fov, aspectRatio, nearPlane, farPlane);
+		m_fov = fov;
+		m_aspect_ratio = aspect_ratio;
+		m_near_plane = nearPlane;
+		m_far_plane = farPlane;
+		m_projection = Math::perspective(fov, aspect_ratio, nearPlane, farPlane);
 	}
 	Math::mat4 Camera::getProjectionMatrix() const
 	{
-		return mProjection;
+		return m_projection;
 	}
 
 	Math::vec3 Camera::getFov() const
@@ -28,15 +28,15 @@ namespace Horizon
 	}
 	Math::vec2 Camera::getNearFarPlane() const
 	{
-		return Math::vec2(mNearPlane, mFarPlane);
+		return Math::vec2(m_near_plane, m_far_plane);
 	}
 	void Camera::setCameraSpeed(f32 speed)
 	{
-		mCameraSpeed = speed;
+		m_camera_speed = speed;
 	}
 	f32 Camera::getCameraSpeed() const
 	{
-		return mCameraSpeed;
+		return m_camera_speed;
 	}
 
 	void Camera::move(Direction direction)
@@ -44,22 +44,22 @@ namespace Horizon
 		switch (direction)
 		{
 		case Horizon::Direction::FORWARD:
-			mEye += mCameraSpeed * mForward;
+			m_eye += m_camera_speed * m_forward;
 			break;
 		case Horizon::Direction::BACKWARD:
-			mEye -= mCameraSpeed * mForward;
+			m_eye -= m_camera_speed * m_forward;
 			break;
 		case Horizon::Direction::RIGHT:
-			mEye += mCameraSpeed * mRight;
+			m_eye += m_camera_speed * m_right;
 			break;
 		case Horizon::Direction::LEFT:
-			mEye -= mCameraSpeed * mRight;
+			m_eye -= m_camera_speed * m_right;
 			break;
 		case Horizon::Direction::UP:
-			mEye += mCameraSpeed * mUp;
+			m_eye += m_camera_speed * m_up;
 			break;
 		case Horizon::Direction::DOWN:
-			mEye -= mCameraSpeed * mUp;
+			m_eye -= m_camera_speed * m_up;
 			break;
 		default:
 			break;
@@ -67,35 +67,35 @@ namespace Horizon
 	}
 	void Camera::rotate(f32 xoffset, f32 yoffset)
 	{
-		mYaw += xoffset;
-		mPicth -= yoffset; // TODO: unify axis in different API
+		m_yaw += xoffset;
+		m_pitch -= yoffset; // TODO: unify axis in different API
 
 		// prevent locked
-		if (mPicth > 89.0f)
-			mPicth = 89.0f;
-		if (mPicth < -89.0f)
-			mPicth = -89.0f;
+		if (m_pitch > 89.0f)
+			m_pitch = 89.0f;
+		if (m_pitch < -89.0f)
+			m_pitch = -89.0f;
 	}
 	void Camera::updateViewMatrix()
 	{
 		// calculate the new Front std::vector
 		Math::vec3 front;
-		front.x = cos(Math::radians(mYaw)) * cos(Math::radians(mPicth));
-		front.y = sin(Math::radians(mPicth));
-		front.z = sin(Math::radians(mYaw)) * cos(Math::radians(mPicth));
+		front.x = cos(Math::radians(m_yaw)) * cos(Math::radians(m_pitch));
+		front.y = sin(Math::radians(m_pitch));
+		front.z = sin(Math::radians(m_yaw)) * cos(Math::radians(m_pitch));
 
-		mForward = Math::normalize(front);
-		mRight = Math::normalize(Math::cross(mForward, Math::vec3(0.0, 1.0, 0.0)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-		mUp = Math::normalize(Math::cross(mRight, mForward));
+		m_forward = Math::normalize(front);
+		m_right = Math::normalize(Math::cross(m_forward, Math::vec3(0.0, 1.0, 0.0)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+		m_up = Math::normalize(Math::cross(m_right, m_forward));
 
-		mView = Math::lookAt(mEye, mEye + mForward, mUp);
+		m_view = Math::lookAt(m_eye, m_eye + m_forward, m_up);
 	}
 	Math::mat4 Camera::getViewMatrix() const
 	{
-		return mView;
+		return m_view;
 	}
 	Math::vec3 Camera::getPosition() const
 	{
-		return mEye;
+		return m_eye;
 	}
 } // namespace Horizon

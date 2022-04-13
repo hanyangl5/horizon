@@ -2,13 +2,13 @@
 
 namespace Horizon {
 
-	RenderPass::RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo) :mDevice(device)
+	RenderPass::RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info) :m_device(device)
 	{
-		createRenderPass(attachmentsCreateInfo);
+		createRenderPass(attachment_create_info);
 	}
-	void RenderPass::createRenderPass(const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo)
+	void RenderPass::createRenderPass(const std::vector<AttachmentCreateInfo>& attachment_create_info)
 	{
-		u32 attachmentCount = attachmentsCreateInfo.size();
+		u32 attachmentCount = attachment_create_info.size();
 		colorAttachmentCount = attachmentCount;
 		std::vector<VkAttachmentDescription> attachmentsDesc(attachmentCount);
 
@@ -18,21 +18,21 @@ namespace Horizon {
 			attachmentsDesc[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE; 
 			attachmentsDesc[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentsDesc[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachmentsDesc[i].format = attachmentsCreateInfo[i].format;
+			attachmentsDesc[i].format = attachment_create_info[i].format;
 			attachmentsDesc[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-			if (attachmentsCreateInfo[i].usage & AttachmentUsageFlags::PRESENT_SRC) {
-				if (attachmentsCreateInfo[i].usage & AttachmentUsageFlags::COLOR_ATTACHMENT) {
+			if (attachment_create_info[i].usage & AttachmentUsageFlags::PRESENT_SRC) {
+				if (attachment_create_info[i].usage & AttachmentUsageFlags::COLOR_ATTACHMENT) {
 					attachmentsDesc[i].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 				}
-				else if (attachmentsCreateInfo[i].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
+				else if (attachment_create_info[i].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
 					attachmentsDesc[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				}
 			}
-			else if (attachmentsCreateInfo[i].usage & AttachmentUsageFlags::COLOR_ATTACHMENT) {
+			else if (attachment_create_info[i].usage & AttachmentUsageFlags::COLOR_ATTACHMENT) {
 				attachmentsDesc[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
-			else if (attachmentsCreateInfo[i].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
+			else if (attachment_create_info[i].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
 				attachmentsDesc[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			}
 			else {
@@ -41,9 +41,9 @@ namespace Horizon {
 		}
 
 		// if attachements have depth attachment, it should be the last attachment
-		hasDepthAttachment = false;
-		if (attachmentsCreateInfo[attachmentCount - 1].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
-			hasDepthAttachment = true;
+		m_has_depth_attachment = false;
+		if (attachment_create_info[attachmentCount - 1].usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT) {
+			m_has_depth_attachment = true;
 			colorAttachmentCount -= 1;
 			attachmentsDesc[attachmentCount - 1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 		}
@@ -56,15 +56,15 @@ namespace Horizon {
 			attachmentReferences[i].layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 		}
 		// set last attachment as depth
-		if (hasDepthAttachment) {
+		if (m_has_depth_attachment) {
 			attachmentReferences[attachmentCount - 1].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		}
 
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = hasDepthAttachment ? attachmentCount - 1 : attachmentCount;
+		subpass.colorAttachmentCount = m_has_depth_attachment ? attachmentCount - 1 : attachmentCount;
 		subpass.pColorAttachments = attachmentReferences.data();
-		subpass.pDepthStencilAttachment = hasDepthAttachment ? &attachmentReferences[attachmentCount - 1] : nullptr;
+		subpass.pDepthStencilAttachment = m_has_depth_attachment ? &attachmentReferences[attachmentCount - 1] : nullptr;
 
 		//
 		std::array<VkSubpassDependency, 2> dependencies;
@@ -93,16 +93,16 @@ namespace Horizon {
 		renderPassInfo.dependencyCount = dependencies.size();
 		renderPassInfo.pDependencies = dependencies.data();
 
-		printVkError(vkCreateRenderPass(mDevice->get(), &renderPassInfo, nullptr, &mRenderPass), "failed to create render pass");
+		printVkError(vkCreateRenderPass(m_device->get(), &renderPassInfo, nullptr, &m_render_pass), "failed to create render pass");
 	}
 
 	RenderPass::~RenderPass()
 	{
-		vkDestroyRenderPass(mDevice->get(), mRenderPass, nullptr);
+		vkDestroyRenderPass(m_device->get(), m_render_pass, nullptr);
 	}
 
 	VkRenderPass RenderPass::get() const
 	{
-		return mRenderPass;
+		return m_render_pass;
 	}
 }

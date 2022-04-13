@@ -37,7 +37,7 @@ namespace Horizon {
 		//private:
 
 		VkDebugUtilsMessengerEXT debugMessenger{};
-		const std::vector<const char*> validationLayers{ "VK_LAYER_KHRONOS_validation" };
+		const std::vector<const char*> validation_layers{ "VK_LAYER_KHRONOS_validation" };
 	};
 
 }

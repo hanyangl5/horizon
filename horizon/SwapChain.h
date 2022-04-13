@@ -16,7 +16,7 @@ namespace Horizon {
 
 	public:
 
-		SwapChain(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface);
+		SwapChain(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface);
 
 		~SwapChain();
 
@@ -48,13 +48,13 @@ namespace Horizon {
 
 
 	private:
-		RenderContext& mRenderContext;		
+		RenderContext& m_render_context;		
 		const VkSurfaceFormatKHR  PREFERRED_PRESENT_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 		const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<Surface> mSurface = nullptr;
-		std::shared_ptr<Window> mWindow = nullptr;
-		VkSwapchainKHR mSwapChain;
+		std::shared_ptr<Device> m_device = nullptr;
+		std::shared_ptr<Surface> m_surface = nullptr;
+		std::shared_ptr<Window> m_window = nullptr;
+		VkSwapchainKHR m_swap_chain;
 		//VkExtent2D mExtent;	// swap extent is the resolution of swap chain images
 		VkFormat mImageFormat;
 		std::vector<VkImage> images; // handle of swapchain images

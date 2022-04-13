@@ -19,9 +19,9 @@ namespace Horizon {
 	private:
 		void createInstance();
 	private:
-		VkInstance mInstance;
-		u32 mExtensionCount = 0;
-		std::vector<VkExtensionProperties> mExtensions;
-		ValidationLayer mValidationLayer;
+		VkInstance m_instance;
+		u32 m_extension_count = 0;
+		std::vector<VkExtensionProperties> m_extensions;
+		ValidationLayer m_validation_layer;
 	};
 }

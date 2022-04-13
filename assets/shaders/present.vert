@@ -1,11 +1,11 @@
 #version 450
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 2) in vec2 inTexcoord;
+layout(location = 0) in vec3 in_position;
+layout(location = 2) in vec2 in_tex_coord;
 
-layout(location = 0) out vec2 fragTexCoord;
+layout(location = 0) out vec2 frag_tex_coord;
 
 void main() {
-    fragTexCoord = inTexcoord;
-    gl_Position = vec4(inPosition, 1.0);
+    frag_tex_coord = in_tex_coord;
+    gl_Position = vec4(in_position, 1.0);
 }

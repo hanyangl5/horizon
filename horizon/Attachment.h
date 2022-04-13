@@ -27,10 +27,10 @@ namespace Horizon {
 	public:
 		Attachment(std::shared_ptr<Device> device, AttachmentCreateInfo createInfo);
 
-		VkImage mImage;
-		VkDeviceMemory mImageMemory;
-		VkImageView mImageView;
-		VkFormat mFormat;
+		VkImage m_image;
+		VkDeviceMemory m_image_memory;
+		VkImageView m_image_view;
+		VkFormat m_format;
 	};
 
 	class AttachmentDescriptor :public DescriptorBase {

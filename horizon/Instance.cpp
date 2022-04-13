@@ -9,25 +9,25 @@ namespace Horizon {
 	Instance::~Instance()
 	{
 		if (enableValidationLayers) {
-			mValidationLayer.DestroyDebugUtilsMessengerEXT(mInstance, mValidationLayer.debugMessenger, nullptr);
+			m_validation_layer.DestroyDebugUtilsMessengerEXT(m_instance, m_validation_layer.debugMessenger, nullptr);
 		}
-		vkDestroyInstance(mInstance, nullptr);
+		vkDestroyInstance(m_instance, nullptr);
 	}
 
 	VkInstance Instance::get()const
 	{
-		return mInstance;
+		return m_instance;
 	}
 
 	const ValidationLayer& Instance::getValidationLayer() const
 	{
-		return mValidationLayer;
+		return m_validation_layer;
 	}
 
 	void Instance::createInstance()
 	{
 
-		if (enableValidationLayers && !mValidationLayer.checkValidationLayerSupport()) {
+		if (enableValidationLayers && !m_validation_layer.checkValidationLayerSupport()) {
 			spdlog::error("validation layers requested, but not available!");
 		}
 
@@ -39,27 +39,27 @@ namespace Horizon {
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_1;
 
-		VkInstanceCreateInfo instanceCreateInfo{};
-		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		instanceCreateInfo.pApplicationInfo = &appInfo;
-		instanceCreateInfo.flags = 0;
-		auto& extensions = mValidationLayer.getRequiredExtensions();
-		instanceCreateInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
-		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
+		VkInstanceCreateInfo instance_create_info{};
+		instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		instance_create_info.pApplicationInfo = &appInfo;
+		instance_create_info.flags = 0;
+		auto& extensions = m_validation_layer.getRequiredExtensions();
+		instance_create_info.enabledExtensionCount = static_cast<u32>(extensions.size());
+		instance_create_info.ppEnabledExtensionNames = extensions.data();
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 		if (enableValidationLayers) {
-			instanceCreateInfo.enabledLayerCount = static_cast<u32>(mValidationLayer.validationLayers.size());
-			instanceCreateInfo.ppEnabledLayerNames = mValidationLayer.validationLayers.data();
-			mValidationLayer.populateDebugMessengerCreateInfo(debugCreateInfo);
-			instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+			instance_create_info.enabledLayerCount = static_cast<u32>(m_validation_layer.validation_layers.size());
+			instance_create_info.ppEnabledLayerNames = m_validation_layer.validation_layers.data();
+			m_validation_layer.populateDebugMessengerCreateInfo(debugCreateInfo);
+			instance_create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 		}
 		else {
-			instanceCreateInfo.enabledLayerCount = 0;
-			instanceCreateInfo.pNext = nullptr;
+			instance_create_info.enabledLayerCount = 0;
+			instance_create_info.pNext = nullptr;
 		}
-		VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &mInstance);
+		VkResult result = vkCreateInstance(&instance_create_info, nullptr, &m_instance);
 		printVkError(result, "create vulkan instance");
-		if (enableValidationLayers) { mValidationLayer.setupDebugMessenger(mInstance); }
+		if (enableValidationLayers) { m_validation_layer.setupDebugMessenger(m_instance); }
 	}
 }

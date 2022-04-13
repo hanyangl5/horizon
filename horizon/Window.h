@@ -13,7 +13,7 @@ public:
 	GLFWwindow* getWindow();
 	void close();
 private:
-	GLFWwindow* mWindow;
+	GLFWwindow* m_window;
 	u32 width, height;
 };
 }

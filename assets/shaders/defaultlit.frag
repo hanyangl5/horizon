@@ -4,9 +4,9 @@
 #define PI 3.14159265359
 #define eps 1e-6
 
-layout(location = 0) in vec3 worldPos;
-layout(location = 1) in vec3 worldNormal;
-layout(location = 2) in vec2 fragTexCoord;
+layout(location = 0) in vec3 world_pos;
+layout(location = 1) in vec3 world_normal;
+layout(location = 2) in vec2 frag_tex_coord;
 
 layout(location = 0) out vec3 outColor;
 
@@ -21,29 +21,29 @@ struct LightParams{
 
 layout(set = 0, binding = 1) uniform LightCountUb {
     uint lightCount;
-}lightCountUb;
+}m_light_count_ub;
 
 layout(set = 0, binding = 2) uniform LightUb {
     LightParams lights[MAX_LIGHT_COUNT];
-}lightUb;
+}m_light_ub;
 
 layout(set = 0, binding = 3) uniform CameraUb {
     vec3 eyePos;
-}cameraUb;
+}m_camera_ub;
 
 // set 1: material
 
 layout(set = 1, binding = 0) uniform MaterialParams {
-    bool hasBaseColor;
-    bool hasNormal;
-    bool hasMetallicRoughness;
+    bool has_base_color;
+    bool has_normal;
+    bool has_metallic_rougness;
     // vec4 bcFactor;
     // vec3 normalFactor;
     // vec2 mrFactor;
 }materialParams;
 
 layout(set = 1, binding = 1) uniform sampler2D bcTexture;
-layout(set = 1, binding = 2) uniform sampler2D normalTexture;
+layout(set = 1, binding = 2) uniform sampler2D normal_texture;
 layout(set = 1, binding = 3) uniform sampler2D mrTexture;
 // set 2: mesh
 
@@ -108,10 +108,10 @@ float angleFalloff(float innerRadius, float outerRadius, vec3 direction, vec3 L)
 }
 
 vec3 radiance(LightParams light, vec3 N, vec3 V) {
-    vec3 albedo = materialParams.hasBaseColor ? texture(bcTexture, fragTexCoord).xyz : vec3(1.0);
-    vec3 normal = materialParams.hasNormal? texture(normalTexture, fragTexCoord).xyz : vec3(0.0);
-    float metallic= materialParams.hasMetallicRoughness ? texture(mrTexture, fragTexCoord).x : 0.0f;
-    float roughness = materialParams.hasMetallicRoughness ? texture(mrTexture, fragTexCoord).y : 1.0f;
+    vec3 albedo = materialParams.has_base_color ? texture(bcTexture, frag_tex_coord).xyz : vec3(1.0);
+    vec3 normal = materialParams.has_normal? texture(normal_texture, frag_tex_coord).xyz : vec3(0.0);
+    float metallic= materialParams.has_metallic_rougness ? texture(mrTexture, frag_tex_coord).x : 0.0f;
+    float roughness = materialParams.has_metallic_rougness ? texture(mrTexture, frag_tex_coord).y : 1.0f;
 
     vec3 lightRadiance;
     vec3 L;
@@ -124,7 +124,7 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
     }
     // point light
     else if(light.positionType.w == 1.0f) {
-        L = light.positionType.xyz - worldPos;
+        L = light.positionType.xyz - world_pos;
         float dist = length(L);
         L = normalize(L);
 
@@ -135,7 +135,7 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
     // spot light
     else if (light.positionType.w == 2.0f) {
 
-        L = light.positionType.xyz - worldPos;
+        L = light.positionType.xyz - world_pos;
         float dist = length(L);
         L = normalize(L);
 
@@ -162,13 +162,13 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
 
 
 void main() {
-    vec3 V = - normalize(worldPos - cameraUb.eyePos);
-    vec3 N = normalize(worldNormal);
+    vec3 V = - normalize(world_pos - m_camera_ub.eyePos);
+    vec3 N = normalize(world_normal);
 
     vec3 color = vec3(0.0f);
     
-    for(uint i = 0; i < lightCountUb.lightCount; i++) {
-        color += radiance(lightUb.lights[i], N, V);
+    for(uint i = 0; i < m_light_count_ub.lightCount; i++) {
+        color += radiance(m_light_ub.lights[i], N, V);
     }
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2)); 

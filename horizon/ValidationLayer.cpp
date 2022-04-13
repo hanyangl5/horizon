@@ -30,7 +30,7 @@ namespace Horizon {
 		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
 		// loop all reqested layers
-		for (const auto& layerName : validationLayers) {
+		for (const auto& layerName : validation_layers) {
 			bool layerFound = false;
 			// loop all available layers
 			for (const auto& layerProperties : availableLayers) {

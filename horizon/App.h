@@ -11,14 +11,14 @@
 class App
 {
 public:
-	App(Horizon::u32 width, Horizon::u32 height);
+	App(Horizon::u32 _width, Horizon::u32 _height);
 	~App();
 	void run();
 private:
-	Horizon::u32 mWidth;
+	Horizon::u32 m_width;
 	Horizon::u32 mHeight;
-	std::shared_ptr<Horizon::Window> mWindow = nullptr;
-	std::unique_ptr<Horizon::Renderer> mRenderer = nullptr;
-	std::unique_ptr<Horizon::InputManager> inputManager;
-	std::shared_ptr<spdlog::logger> mLogger;
+	std::shared_ptr<Horizon::Window> m_window = nullptr;
+	std::unique_ptr<Horizon::Renderer> m_renderer = nullptr;
+	std::unique_ptr<Horizon::InputManager> m_input_manager;
+	std::shared_ptr<spdlog::logger> m_logger;
 };

@@ -2,60 +2,60 @@
 
 namespace Horizon {
 
-	Framebuffer::Framebuffer(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo, RenderContext& renderContext, std::shared_ptr<SwapChain> swapChain) :mRenderContext(renderContext), mDevice(device)
+	Framebuffer::Framebuffer(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain) :m_render_context(render_context), m_device(device)
 	{
-		createAttachmentsResources(attachmentsCreateInfo);
-		mRenderPass = std::make_shared<RenderPass>(mDevice, attachmentsCreateInfo);
-		if (swapChain) {
-			createFrameBuffer(mRenderContext.width, mRenderContext.height, mRenderContext.swapChainImageCount, swapChain);
+		createAttachmentsResources(attachment_create_info);
+		m_render_pass = std::make_shared<RenderPass>(m_device, attachment_create_info);
+		if (swap_chain) {
+			createFrameBuffer(m_render_context.width, m_render_context.height, m_render_context.swap_chain_image_count, swap_chain);
 		}
 		else {
-			createFrameBuffer(mRenderContext.width, mRenderContext.height, 1);
+			createFrameBuffer(m_render_context.width, m_render_context.height, 1);
 		}
 	}
 
 	Framebuffer::~Framebuffer()
 	{
-		for (auto& attachment : mFramebufferAttachments) {
-			vkDestroyImage(mDevice->get(), attachment.mImage, nullptr);
-			vkDestroyImageView(mDevice->get(), attachment.mImageView, nullptr);
-			vkFreeMemory(mDevice->get(), attachment.mImageMemory, nullptr);
+		for (auto& attachment : m_frame_buffer_attachments) {
+			vkDestroyImage(m_device->get(), attachment.m_image, nullptr);
+			vkDestroyImageView(m_device->get(), attachment.m_image_view, nullptr);
+			vkFreeMemory(m_device->get(), attachment.m_image_memory, nullptr);
 		}
-		for (auto& framebuffer : mFramebuffer) {
-			vkDestroyFramebuffer(mDevice->get(), framebuffer, nullptr);
+		for (auto& framebuffer : m_framebuffer) {
+			vkDestroyFramebuffer(m_device->get(), framebuffer, nullptr);
 		}
 	}
 
 	VkFramebuffer Framebuffer::get() const
 	{
-		return mFramebuffer[0];
+		return m_framebuffer[0];
 	}
 
 	VkFramebuffer Framebuffer::get(u32 index) const
 	{
-		return mFramebuffer[index];
+		return m_framebuffer[index];
 	}
 
 	VkRenderPass Framebuffer::getRenderPass() const
 	{
-		return mRenderPass->get();
+		return m_render_pass->get();
 	}
 
-	std::shared_ptr<AttachmentDescriptor> Framebuffer::getDescriptorImageInfo(u32 attachmentIndex)
+	std::shared_ptr<AttachmentDescriptor> Framebuffer::getDescriptorImageInfo(u32 attachment_index)
 	{
 		std::shared_ptr<AttachmentDescriptor> attachmentDescriptor = std::make_shared<AttachmentDescriptor>();
-		attachmentDescriptor->imageDescriptorInfo = { mSampler, mFramebufferAttachments[attachmentIndex].mImageView ,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		attachmentDescriptor->imageDescriptorInfo = { m_sampler, m_frame_buffer_attachments[attachment_index].m_image_view ,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 		return attachmentDescriptor;
 	}
 
 	std::vector<VkImage> Framebuffer::getPresentImages()
 	{
 		//std::vector<VkImage> images;
-		//for (auto& framebuffer : mFramebuffer) {
+		//for (auto& framebuffer : m_framebuffer) {
 		//	framebuffer
 		//}
-		//for (auto& attachment : mFramebufferAttachments) {
-		//	images.push_back(attachment.mImage);
+		//for (auto& attachment : m_frame_buffer_attachments) {
+		//	images.push_back(attachment.m_image);
 		//}
 		//return ();
 		return {};
@@ -63,7 +63,7 @@ namespace Horizon {
 
 	u32 Framebuffer::getColorAttachmentCount()
 	{
-		return mRenderPass->colorAttachmentCount;
+		return m_render_pass->colorAttachmentCount;
 	}
 
 	std::vector<VkClearValue> Framebuffer::getClearValues()
@@ -74,46 +74,46 @@ namespace Horizon {
 		VkClearValue clearDepth;
 		clearDepth.depthStencil = { 1.0f, 0 };
 
-		for (u32 i = 0; i < mRenderPass->colorAttachmentCount; i++) {
+		for (u32 i = 0; i < m_render_pass->colorAttachmentCount; i++) {
 			clearValues.emplace_back(clearColor);
 		}
-		if (mRenderPass->hasDepthAttachment) {
+		if (m_render_pass->m_has_depth_attachment) {
 			clearValues.emplace_back(clearDepth);
 		}
 		return clearValues;
 	}
 
-	void Framebuffer::createFrameBuffer(u32 width, u32 height, u32 imageCount, std::shared_ptr<SwapChain> swapChain)
+	void Framebuffer::createFrameBuffer(u32 width, u32 height, u32 imag_count, std::shared_ptr<SwapChain> swap_chain)
 	{
-		mFramebuffer.resize(imageCount);
-		for (u32 i = 0; i < imageCount; i++)
+		m_framebuffer.resize(imag_count);
+		for (u32 i = 0; i < imag_count; i++)
 		{
 			std::vector<VkImageView> attachmentsImageViews{};
-			if (swapChain) {
-				attachmentsImageViews.emplace_back(swapChain->getImageView(i));
+			if (swap_chain) {
+				attachmentsImageViews.emplace_back(swap_chain->getImageView(i));
 			}
 			else {
-				attachmentsImageViews.resize(mFramebufferAttachments.size());
-				for (u32 j = 0; j < mFramebufferAttachments.size(); j++) {
-					attachmentsImageViews[j] = mFramebufferAttachments[j].mImageView;
+				attachmentsImageViews.resize(m_frame_buffer_attachments.size());
+				for (u32 j = 0; j < m_frame_buffer_attachments.size(); j++) {
+					attachmentsImageViews[j] = m_frame_buffer_attachments[j].m_image_view;
 				}
 			}
 			VkFramebufferCreateInfo frameBufferCreateInfo{};
 			frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			frameBufferCreateInfo.renderPass = mRenderPass->get();
+			frameBufferCreateInfo.renderPass = m_render_pass->get();
 			frameBufferCreateInfo.attachmentCount = static_cast<u32>(attachmentsImageViews.size());
 			frameBufferCreateInfo.pAttachments = attachmentsImageViews.data();
 			frameBufferCreateInfo.width = width;
 			frameBufferCreateInfo.height = height;
 			frameBufferCreateInfo.layers = 1;
-			printVkError(vkCreateFramebuffer(mDevice->get(), &frameBufferCreateInfo, nullptr, &mFramebuffer[i]), "create frame buffer");
+			printVkError(vkCreateFramebuffer(m_device->get(), &frameBufferCreateInfo, nullptr, &m_framebuffer[i]), "create frame buffer");
 		}
 	}
 
-	void Framebuffer::createAttachmentsResources(const std::vector<AttachmentCreateInfo>& attachmentsCreateInfo)
+	void Framebuffer::createAttachmentsResources(const std::vector<AttachmentCreateInfo>& attachment_create_info)
 	{
-		for (auto& createInfo : attachmentsCreateInfo) {
-			mFramebufferAttachments.emplace_back(mDevice, createInfo);
+		for (auto& createInfo : attachment_create_info) {
+			m_frame_buffer_attachments.emplace_back(m_device, createInfo);
 		}
 
 		VkSamplerCreateInfo sampler{};
@@ -129,7 +129,7 @@ namespace Horizon {
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		printVkError(vkCreateSampler(mDevice->get(), &sampler, nullptr, &mSampler));
+		printVkError(vkCreateSampler(m_device->get(), &sampler, nullptr, &m_sampler));
 
 	}
 

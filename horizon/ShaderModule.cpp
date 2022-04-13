@@ -2,7 +2,7 @@
 
 namespace Horizon {
 
-	Shader::Shader(VkDevice device, const std::string& path) :mDevice(device)
+	Shader::Shader(VkDevice device, const std::string& path) :m_device(device)
 	{
 		std::vector<char> code = readFile(path);
 		if (code.empty()) {
@@ -12,18 +12,18 @@ namespace Horizon {
 		shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		shaderModuleCreateInfo.codeSize = code.size();
 		shaderModuleCreateInfo.pCode = reinterpret_cast<const u32*>(code.data());
-		printVkError(vkCreateShaderModule(mDevice, &shaderModuleCreateInfo, nullptr, &mShaderModule), "create shader module", logLevel::debug);
+		printVkError(vkCreateShaderModule(m_device, &shaderModuleCreateInfo, nullptr, &m_shader_module), "create shader module", logLevel::debug);
 
 	}
 
 	Shader::~Shader()
 	{
-		vkDestroyShaderModule(mDevice, mShaderModule, nullptr);
+		vkDestroyShaderModule(m_device, m_shader_module, nullptr);
 	}
 
 	VkShaderModule Shader::get() const
 	{
-		return mShaderModule;
+		return m_shader_module;
 	}
 
 	std::vector<char> Shader::readFile(const std::string& path)

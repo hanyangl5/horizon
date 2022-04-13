@@ -6,7 +6,7 @@
 #include "Window.h"
 
 namespace Horizon {
-	SwapChain::SwapChain(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface) :mRenderContext(renderContext), mDevice(device), mSurface(surface)
+	SwapChain::SwapChain(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface) :m_render_context(render_context), m_device(device), m_surface(surface)
 	{
 		createSwapChain();
 
@@ -20,7 +20,7 @@ namespace Horizon {
 
 	VkSwapchainKHR SwapChain::get() const
 	{
-		return mSwapChain;
+		return m_swap_chain;
 	}
 
 	std::vector<VkImageView> SwapChain::getImageViews() const
@@ -52,48 +52,48 @@ namespace Horizon {
 	void SwapChain::createSwapChain()
 	{
 		// get necessary swapchain properties
-		SurfaceSupportDetails details(mDevice->getPhysicalDevice(), mSurface->get());
-		QueueFamilyIndices indices = mDevice->getQueueFamilyIndices();
+		SurfaceSupportDetails details(m_device->getPhysicalDevice(), m_surface->get());
+		QueueFamilyIndices indices = m_device->getQueueFamilyIndices();
 		VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(details.getFormats());
 		VkPresentModeKHR presentMode = choosePresentMode(details.getPresentModes());
 		VkSurfaceCapabilitiesKHR surfaceCapabilities = details.getCapabilities();
-		u32 imageCount = mRenderContext.swapChainImageCount; // how many images we would like to have in swap chain
+		u32 imag_count = m_render_context.swap_chain_image_count; // how many images we would like to have in swap chain
 
 		mImageFormat = surfaceFormat.format;
 
-		VkSwapchainCreateInfoKHR swapChainCreateInfo{};
-		swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainCreateInfo.surface = mSurface->get();
-		swapChainCreateInfo.minImageCount = imageCount;
-		swapChainCreateInfo.imageFormat = mImageFormat;
-		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapChainCreateInfo.imageExtent = { mRenderContext.width, mRenderContext.height };
-		swapChainCreateInfo.imageArrayLayers = 1;
-		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //  the image can be used as the source of a transfer command.
-		swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform; // rotatioin/flip
-		swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		swapChainCreateInfo.presentMode = presentMode;
-		swapChainCreateInfo.clipped = VK_TRUE;
+		VkSwapchainCreateInfoKHR swap_chain_create_info{};
+		swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swap_chain_create_info.surface = m_surface->get();
+		swap_chain_create_info.minImageCount = imag_count;
+		swap_chain_create_info.imageFormat = mImageFormat;
+		swap_chain_create_info.imageColorSpace = surfaceFormat.colorSpace;
+		swap_chain_create_info.imageExtent = { m_render_context.width, m_render_context.height };
+		swap_chain_create_info.imageArrayLayers = 1;
+		swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //  the image can be used as the source of a transfer command.
+		swap_chain_create_info.preTransform = surfaceCapabilities.currentTransform; // rotatioin/flip
+		swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swap_chain_create_info.presentMode = presentMode;
+		swap_chain_create_info.clipped = VK_TRUE;
 
 		// handle swap chain images that will be used across multiple queue families
 		if (indices.getGraphics() != indices.getPresent())
 		{
 			std::vector<u32> queueFamilyindices{ indices.getGraphics(),indices.getPresent() };
-			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;  // An image is owned by one queue family at a time and ownership must be explicitly transferred before using it in another queue family. This option offers the best performance.
-			swapChainCreateInfo.queueFamilyIndexCount = static_cast<u32>(queueFamilyindices.size());
-			swapChainCreateInfo.pQueueFamilyIndices = queueFamilyindices.data();
+			swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;  // An image is owned by one queue family at a time and ownership must be explicitly transferred before using it in another queue family. This option offers the best performance.
+			swap_chain_create_info.queueFamilyIndexCount = static_cast<u32>(queueFamilyindices.size());
+			swap_chain_create_info.pQueueFamilyIndices = queueFamilyindices.data();
 		}
 		else {
-			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // mages can be used across multiple queue families without explicit ownership transfers.
-			swapChainCreateInfo.queueFamilyIndexCount = 0;
-			swapChainCreateInfo.pQueueFamilyIndices = nullptr;
+			swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // mages can be used across multiple queue families without explicit ownership transfers.
+			swap_chain_create_info.queueFamilyIndexCount = 0;
+			swap_chain_create_info.pQueueFamilyIndices = nullptr;
 		}
 
-		printVkError(vkCreateSwapchainKHR(mDevice->get(), &swapChainCreateInfo, nullptr, &mSwapChain), "create swap chain");
+		printVkError(vkCreateSwapchainKHR(m_device->get(), &swap_chain_create_info, nullptr, &m_swap_chain), "create swap chain");
 
-		vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, nullptr);  // get images
-		images.resize(imageCount);
-		vkGetSwapchainImagesKHR(mDevice->get(), mSwapChain, &imageCount, images.data());  // get images
+		vkGetSwapchainImagesKHR(m_device->get(), m_swap_chain, &imag_count, nullptr);  // get images
+		images.resize(imag_count);
+		vkGetSwapchainImagesKHR(m_device->get(), m_swap_chain, &imag_count, images.data());  // get images
 
 	}
 
@@ -134,7 +134,7 @@ namespace Horizon {
 			return capabilities.currentExtent;
 		}
 		i32 width, height;
-		glfwGetFramebufferSize(mWindow->getWindow(), &width, &height);
+		glfwGetFramebufferSize(m_window->getWindow(), &width, &height);
 
 		VkExtent2D actualExtent = {
 			static_cast<u32>(width),
@@ -154,14 +154,14 @@ namespace Horizon {
 
 	u32 SwapChain::chooseMinImageCount(VkSurfaceCapabilitiesKHR capabilities)
 	{
-		u32 imageCount = capabilities.minImageCount + 1;
+		u32 imag_count = capabilities.minImageCount + 1;
 		if (capabilities.maxImageCount > 0 &&
-			imageCount > capabilities.maxImageCount)
+			imag_count > capabilities.maxImageCount)
 		{
-			imageCount = capabilities.maxImageCount;// not exceed the maximum number of images
+			imag_count = capabilities.maxImageCount;// not exceed the maximum number of images
 		}
 
-		return imageCount;
+		return imag_count;
 	}
 
 
@@ -169,34 +169,34 @@ namespace Horizon {
 	void SwapChain::cleanup()
 	{
 		for (auto& image : images) {
-			vkDestroyImage(mDevice->get(), image, nullptr);
+			vkDestroyImage(m_device->get(), image, nullptr);
 		}
 		for (auto& imageView : imageViews)
 		{
-			vkDestroyImageView(mDevice->get(), imageView, nullptr);
+			vkDestroyImageView(m_device->get(), imageView, nullptr);
 		}
-		vkDestroySwapchainKHR(mDevice->get(), mSwapChain, nullptr);
+		vkDestroySwapchainKHR(m_device->get(), m_swap_chain, nullptr);
 	}
 
 	void SwapChain::createImageViews()
 	{
-		imageViews.resize(mRenderContext.swapChainImageCount);
+		imageViews.resize(m_render_context.swap_chain_image_count);
 
-		for (u32 i = 0; i < mRenderContext.swapChainImageCount; i++)
+		for (u32 i = 0; i < m_render_context.swap_chain_image_count; i++)
 		{
 			//Image image(device, images[i], imageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
 
-			VkImageViewCreateInfo imageViewCreateInfo{};
-			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			imageViewCreateInfo.image = images[i];
-			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			imageViewCreateInfo.format = mImageFormat;
-			imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-			imageViewCreateInfo.subresourceRange.levelCount = 1;
-			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-			imageViewCreateInfo.subresourceRange.layerCount = 1;
-			printVkError(vkCreateImageView(mDevice->get(), &imageViewCreateInfo, nullptr, &imageViews[i]), "create image views", logLevel::debug);
+			VkImageViewCreateInfo image_view_create_info{};
+			image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			image_view_create_info.image = images[i];
+			image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			image_view_create_info.format = mImageFormat;
+			image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			image_view_create_info.subresourceRange.baseMipLevel = 0;
+			image_view_create_info.subresourceRange.levelCount = 1;
+			image_view_create_info.subresourceRange.baseArrayLayer = 0;
+			image_view_create_info.subresourceRange.layerCount = 1;
+			printVkError(vkCreateImageView(m_device->get(), &image_view_create_info, nullptr, &imageViews[i]), "create image views", logLevel::debug);
 		}
 	}
 }

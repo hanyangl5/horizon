@@ -7,50 +7,50 @@
 #include "SurfaceSupportDetails.h"
 
 namespace Horizon {
-	Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface) :mInstance(instance), mSurface(surface)
+	Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface) :m_instance(instance), m_surface(surface)
 	{
 		// enumerate vk devices
-		vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, nullptr);
-		if (deviceCount == 0) { spdlog::error("no available device"); }
-		vkEnumeratePhysicalDevices(mInstance->get(), &deviceCount, mPhysicalDevices.data());
-		pickPhysicalDevice(mInstance->get());
-		createDevice(mInstance->getValidationLayer());
+		vkEnumeratePhysicalDevices(m_instance->get(), &device_count, nullptr);
+		if (device_count == 0) { spdlog::error("no available device"); }
+		vkEnumeratePhysicalDevices(m_instance->get(), &device_count, m_physical_devices.data());
+		pickPhysicalDevice(m_instance->get());
+		createDevice(m_instance->getValidationLayer());
 	}
 
 	Device::~Device()
 	{
-		vkDestroyDevice(mDevice, nullptr);
+		vkDestroyDevice(m_device, nullptr);
 	}
 
 	VkPhysicalDevice Device::getPhysicalDevice() const
 	{
-		return mPhysicalDevices[mPhysicalDeviceIndex];
+		return m_physical_devices[m_physical_device_index];
 	}
 
 	VkDevice Device::get() const
 	{
-		return mDevice;
+		return m_device;
 	}
 
 	VkQueue Device::getGraphicQueue() const
 	{
-		return mGraphicsQueue;
+		return m_graphics_queue;
 	}
 
 	VkQueue Device::getPresnetQueue() const
 	{
-		return mPresentQueue;
+		return m_present_queue;
 	}
 
 	bool Device::isDeviceSuitable(VkPhysicalDevice device)
 	{
-		QueueFamilyIndices indices(device, mSurface->get());
-		SurfaceSupportDetails details(device, mSurface->get());
+		QueueFamilyIndices indices(device, m_surface->get());
+		SurfaceSupportDetails details(device, m_surface->get());
 		if (indices.completed() && details.suitable() && checkDeviceExtensionSupport(device)) {
-			VkPhysicalDeviceProperties deviceProperties;
-			vkGetPhysicalDeviceProperties(device, &deviceProperties);
-			spdlog::info("using device:{}", deviceProperties.deviceName);
-			mQueueFamilyIndices = indices;
+			VkPhysicalDeviceProperties device_properties;
+			vkGetPhysicalDeviceProperties(device, &device_properties);
+			spdlog::info("using device:{}", device_properties.deviceName);
+			m_queue_family_indices = indices;
 			return true;
 		}
 		return false;
@@ -58,84 +58,84 @@ namespace Horizon {
 
 	void Device::pickPhysicalDevice(VkInstance instance)
 	{
-		u32 deviceCount = 0;
-		vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+		u32 device_count = 0;
+		vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 
-		if (deviceCount == 0) {
+		if (device_count == 0) {
 			spdlog::error("failed to find GPUs with Vulkan support!");
 		}
-		mPhysicalDevices.resize(deviceCount);
-		vkEnumeratePhysicalDevices(instance, &deviceCount, mPhysicalDevices.data());
+		m_physical_devices.resize(device_count);
+		vkEnumeratePhysicalDevices(instance, &device_count, m_physical_devices.data());
 
 
 		// pick gpu
-		for (u32 deviceIndex = 0; deviceIndex < mPhysicalDevices.size(); deviceIndex++) {
-			if (isDeviceSuitable(mPhysicalDevices[deviceIndex])) {
-				mPhysicalDeviceIndex = deviceIndex;
+		for (u32 device_index = 0; device_index < m_physical_devices.size(); device_index++) {
+			if (isDeviceSuitable(m_physical_devices[device_index])) {
+				m_physical_device_index = device_index;
 				break;
 			}
 		}
 
-		if (mPhysicalDevices[mPhysicalDeviceIndex] == VK_NULL_HANDLE) {
+		if (m_physical_devices[m_physical_device_index] == VK_NULL_HANDLE) {
 			spdlog::error("failed to find a suitable GPU!");
 		}
 	}
 
-	void Device::setPhysicalDevice(u32 deviceIndex)
+	void Device::setPhysicalDevice(u32 device_index)
 	{
-		mPhysicalDeviceIndex = deviceIndex;
+		m_physical_device_index = device_index;
 	}
 
-	void Device::createDevice(const ValidationLayer& validationLayers)
+	void Device::createDevice(const ValidationLayer& validation_layers)
 	{
 
-		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos{};
+		std::vector<VkDeviceQueueCreateInfo> device_queue_create_info{};
 
 		// The queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos
 		// except that two members can share the same queueFamilyIndex if one is a protected-capable queue and one is not a protected-capable queue
-		std::set<u32> uniqueQueueFamilies{ mQueueFamilyIndices.getGraphics(), mQueueFamilyIndices.getPresent() };
+		std::set<u32> unique_queue_families{ m_queue_family_indices.getGraphics(), m_queue_family_indices.getPresent() };
 
-		f32 queuePriority = 1.0f;
-		for (u32 queueFamily : uniqueQueueFamilies) {
-			deviceQueueCreateInfos.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO ,nullptr,0,queueFamily,1,&queuePriority });
+		f32 queue_priority = 1.0f;
+		for (u32 queue_family : unique_queue_families) {
+			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO ,nullptr,0,queue_family,1,&queue_priority });
 		}
 
 		VkPhysicalDeviceFeatures deviceFeatures{};
 
-		VkDeviceCreateInfo deviceCreateInfo{};
-		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
-		deviceCreateInfo.queueCreateInfoCount = static_cast<u32>(deviceQueueCreateInfos.size());
-		deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-		deviceCreateInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+		VkDeviceCreateInfo device_create_info{};
+		device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		device_create_info.pQueueCreateInfos = device_queue_create_info.data();
+		device_create_info.queueCreateInfoCount = static_cast<u32>(device_queue_create_info.size());
+		device_create_info.pEnabledFeatures = &deviceFeatures;
+		device_create_info.enabledExtensionCount = static_cast<u32>(m_device_extensions.size());
+		device_create_info.ppEnabledExtensionNames = m_device_extensions.data();
 
-		printVkError(vkCreateDevice(mPhysicalDevices[mPhysicalDeviceIndex], &deviceCreateInfo, nullptr, &mDevice), "create logical device");
+		printVkError(vkCreateDevice(m_physical_devices[m_physical_device_index], &device_create_info, nullptr, &m_device), "create logical device");
 
-		vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getGraphics(), 0, &mGraphicsQueue);
-		vkGetDeviceQueue(mDevice, mQueueFamilyIndices.getPresent(), 0, &mPresentQueue);
+		vkGetDeviceQueue(m_device, m_queue_family_indices.getGraphics(), 0, &m_graphics_queue);
+		vkGetDeviceQueue(m_device, m_queue_family_indices.getPresent(), 0, &m_present_queue);
 
 	}
 
 	bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device) {
-		u32 extensionCount;
-		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+		u32 extension_count;
+		vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, nullptr);
 
-		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+		std::vector<VkExtensionProperties> available_extensions(extension_count);
+		vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, available_extensions.data());
 
-		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+		std::set<std::string> required_extensions(m_device_extensions.begin(), m_device_extensions.end());
 
-		for (const auto& extension : availableExtensions) {
-			requiredExtensions.erase(extension.extensionName);
+		for (const auto& extension : available_extensions) {
+			required_extensions.erase(extension.extensionName);
 		}
 
-		return requiredExtensions.empty();
+		return required_extensions.empty();
 	}
 
 	QueueFamilyIndices Device::getQueueFamilyIndices()
 	{
-		return mQueueFamilyIndices;
+		return m_queue_family_indices;
 	}
 
 }

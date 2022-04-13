@@ -20,20 +20,20 @@
 namespace Horizon {
 
 
-	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer) :mDevice(device), mCommandBuffer(commandBuffer)
+	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) :m_device(device), m_command_buffer(command_buffer)
 	{
 	}
 
-	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer, tinygltf::Image& gltfimage) : mDevice(device), mCommandBuffer(commandBuffer)
+	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, tinygltf::Image& gltfimage) : m_device(device), m_command_buffer(command_buffer)
 	{
 		u8* buffer = nullptr;
-		VkDeviceSize bufferSize = 0;
+		VkDeviceSize buffer_size = 0;
 		bool deleteBuffer = false;
 		if (gltfimage.component == 3) {
 			// Most devices don't support RGB only on Vulkan so convert if necessary
 			// TODO: Check actual format support and transform only if required
-			bufferSize = gltfimage.width * gltfimage.height * 4;
-			buffer = new unsigned char[bufferSize];
+			buffer_size = gltfimage.width * gltfimage.height * 4;
+			buffer = new unsigned char[buffer_size];
 			unsigned char* rgba = buffer;
 			unsigned char* rgb = &gltfimage.image[0];
 			for (int32_t i = 0; i < gltfimage.width * gltfimage.height; ++i) {
@@ -47,7 +47,7 @@ namespace Horizon {
 		}
 		else {
 			buffer = &gltfimage.image[0];
-			bufferSize = gltfimage.image.size();
+			buffer_size = gltfimage.image.size();
 
 		}
 		texWidth = gltfimage.width;
@@ -55,53 +55,53 @@ namespace Horizon {
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		vk_createBuffer(mDevice->get(), mDevice->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		vk_createBuffer(m_device->get(), m_device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 		void* data;
-		vkMapMemory(mDevice->get(), stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, buffer, static_cast<size_t>(bufferSize));
-		vkUnmapMemory(mDevice->get(), stagingBufferMemory);
+		vkMapMemory(m_device->get(), stagingBufferMemory, 0, buffer_size, 0, &data);
+		memcpy(data, buffer, static_cast<size_t>(buffer_size));
+		vkUnmapMemory(m_device->get(), stagingBufferMemory);
 
 		//stbi_image_free(buffer);
 
 		// create image
-		VkImageCreateInfo imageCreateInfo{};
-		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.extent.width = static_cast<uint32_t>(texWidth);
-		imageCreateInfo.extent.height = static_cast<uint32_t>(texHeight);
-		imageCreateInfo.extent.depth = 1;
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		VkImageCreateInfo image_create_info{};
+		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		image_create_info.imageType = VK_IMAGE_TYPE_2D;
+		image_create_info.extent.width = static_cast<uint32_t>(texWidth);
+		image_create_info.extent.height = static_cast<uint32_t>(texHeight);
+		image_create_info.extent.depth = 1;
+		image_create_info.mipLevels = 1;
+		image_create_info.arrayLayers = 1;
+		image_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
+		image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		image_create_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
-		printVkError(vkCreateImage(mDevice->get(), &imageCreateInfo, nullptr, &mImage));
+		printVkError(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(mDevice->get(), mImage, &memRequirements);
+		vkGetImageMemoryRequirements(m_device->get(), m_image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = findMemoryType(mDevice->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		allocInfo.memoryTypeIndex = findMemoryType(m_device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		if (vkAllocateMemory(mDevice->get(), &allocInfo, nullptr, &mImageMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(m_device->get(), &allocInfo, nullptr, &m_image_memory) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate image memory!");
 		}
 
-		vkBindImageMemory(mDevice->get(), mImage, mImageMemory, 0);
+		vkBindImageMemory(m_device->get(), m_image, m_image_memory, 0);
 
 		transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer, mImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+		copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 		transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		vkDestroyBuffer(mDevice->get(), stagingBuffer, nullptr);
-		vkFreeMemory(mDevice->get(), stagingBufferMemory, nullptr);
+		vkDestroyBuffer(m_device->get(), stagingBuffer, nullptr);
+		vkFreeMemory(m_device->get(), stagingBufferMemory, nullptr);
 
 		createImageView(VK_FORMAT_R8G8B8A8_UNORM);
 
@@ -121,13 +121,13 @@ namespace Horizon {
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-		vkCreateSampler(mDevice->get(), &samplerInfo, nullptr, &mSampler);
+		vkCreateSampler(m_device->get(), &samplerInfo, nullptr, &m_sampler);
 
 
 		// fill descriptor info
 		imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageDescriptorInfo.imageView = mImageView;
-		imageDescriptorInfo.sampler = mSampler;
+		imageDescriptorInfo.imageView = m_image_view;
+		imageDescriptorInfo.sampler = m_sampler;
 	}
 
 	Texture::~Texture()
@@ -146,76 +146,76 @@ namespace Horizon {
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		vk_createBuffer(mDevice->get(), mDevice->getPhysicalDevice(), imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		vk_createBuffer(m_device->get(), m_device->getPhysicalDevice(), imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 		void* data;
-		vkMapMemory(mDevice->get(), stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(m_device->get(), stagingBufferMemory, 0, imageSize, 0, &data);
 		memcpy(data, buffer, static_cast<size_t>(imageSize));
-		vkUnmapMemory(mDevice->get(), stagingBufferMemory);
+		vkUnmapMemory(m_device->get(), stagingBufferMemory);
 
 		stbi_image_free(buffer);
 
 		// create image
-		VkImageCreateInfo imageCreateInfo{};
-		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.extent.width = static_cast<uint32_t>(texWidth);
-		imageCreateInfo.extent.height = static_cast<uint32_t>(texHeight);
-		imageCreateInfo.extent.depth = 1;
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageCreateInfo.usage = usage;
-		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		VkImageCreateInfo image_create_info{};
+		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		image_create_info.imageType = VK_IMAGE_TYPE_2D;
+		image_create_info.extent.width = static_cast<uint32_t>(texWidth);
+		image_create_info.extent.height = static_cast<uint32_t>(texHeight);
+		image_create_info.extent.depth = 1;
+		image_create_info.mipLevels = 1;
+		image_create_info.arrayLayers = 1;
+		image_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
+		image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		image_create_info.usage = usage;
+		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
-		printVkError(vkCreateImage(mDevice->get(), &imageCreateInfo, nullptr, &mImage));
+		printVkError(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(mDevice->get(), mImage, &memRequirements);
+		vkGetImageMemoryRequirements(m_device->get(), m_image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = findMemoryType(mDevice->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		allocInfo.memoryTypeIndex = findMemoryType(m_device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		if (vkAllocateMemory(mDevice->get(), &allocInfo, nullptr, &mImageMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(m_device->get(), &allocInfo, nullptr, &m_image_memory) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate image memory!");
 		}
 
-		vkBindImageMemory(mDevice->get(), mImage, mImageMemory, 0);
+		vkBindImageMemory(m_device->get(), m_image, m_image_memory, 0);
 
 		transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer, mImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+		copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 		transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout);
 
-		vkDestroyBuffer(mDevice->get(), stagingBuffer, nullptr);
-		vkFreeMemory(mDevice->get(), stagingBufferMemory, nullptr);
+		vkDestroyBuffer(m_device->get(), stagingBuffer, nullptr);
+		vkFreeMemory(m_device->get(), stagingBufferMemory, nullptr);
 
 		createImageView(VK_FORMAT_R8G8B8A8_UNORM);
 		createSampler();
 
 		// fill descriptor info
 		imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageDescriptorInfo.imageView = mImageView;
-		imageDescriptorInfo.sampler = mSampler;
+		imageDescriptorInfo.imageView = m_image_view;
+		imageDescriptorInfo.sampler = m_sampler;
 
 	}
 
 	void Texture::loadFromglTfImage(tinygltf::Image& gltfimage, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command)
 	{
-		//	mDevice = device;
-		//	mCommandBuffer = command;
+		//	m_device = device;
+		//	m_command_buffer = command;
 		//	u8* buffer = nullptr;
-		//	VkDeviceSize bufferSize = 0;
+		//	VkDeviceSize buffer_size = 0;
 		//	bool deleteBuffer = false;
 		//	if (gltfimage.component == 3) {
 		//		// Most devices don't support RGB only on Vulkan so convert if necessary
 		//		// TODO: Check actual format support and transform only if required
-		//		bufferSize = gltfimage.width * gltfimage.height * 4;
-		//		buffer = new unsigned char[bufferSize];
+		//		buffer_size = gltfimage.width * gltfimage.height * 4;
+		//		buffer = new unsigned char[buffer_size];
 		//		unsigned char* rgba = buffer;
 		//		unsigned char* rgb = &gltfimage.image[0];
 		//		for (int32_t i = 0; i < gltfimage.width * gltfimage.height; ++i) {
@@ -229,7 +229,7 @@ namespace Horizon {
 		//	}
 		//	else {
 		//		buffer = &gltfimage.image[0];
-		//		bufferSize = gltfimage.image.size();
+		//		buffer_size = gltfimage.image.size();
 		//
 		//	}
 		//	texWidth = gltfimage.width;
@@ -237,53 +237,53 @@ namespace Horizon {
 		//
 		//	VkBuffer stagingBuffer;
 		//	VkDeviceMemory stagingBufferMemory;
-		//	vk_createBuffer(mDevice->get(), mDevice->getPhysicalDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		//	vk_createBuffer(m_device->get(), m_device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 		//
 		//	void* data;
-		//	vkMapMemory(mDevice->get(), stagingBufferMemory, 0, bufferSize, 0, &data);
-		//	memcpy(data, buffer, static_cast<size_t>(bufferSize));
-		//	vkUnmapMemory(mDevice->get(), stagingBufferMemory);
+		//	vkMapMemory(m_device->get(), stagingBufferMemory, 0, buffer_size, 0, &data);
+		//	memcpy(data, buffer, static_cast<size_t>(buffer_size));
+		//	vkUnmapMemory(m_device->get(), stagingBufferMemory);
 		//
 		//	//stbi_image_free(buffer);
 		//
 		//	// create image
-		//	VkImageCreateInfo imageCreateInfo{};
-		//	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		//	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		//	imageCreateInfo.extent.width = static_cast<uint32_t>(texWidth);
-		//	imageCreateInfo.extent.height = static_cast<uint32_t>(texHeight);
-		//	imageCreateInfo.extent.depth = 1;
-		//	imageCreateInfo.mipLevels = 1;
-		//	imageCreateInfo.arrayLayers = 1;
-		//	imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-		//	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		//	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		//	imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		//	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		//	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		//	VkImageCreateInfo image_create_info{};
+		//	image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		//	image_create_info.imageType = VK_IMAGE_TYPE_2D;
+		//	image_create_info.extent.width = static_cast<uint32_t>(texWidth);
+		//	image_create_info.extent.height = static_cast<uint32_t>(texHeight);
+		//	image_create_info.extent.depth = 1;
+		//	image_create_info.mipLevels = 1;
+		//	image_create_info.arrayLayers = 1;
+		//	image_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
+		//	image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		//	image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		//	image_create_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		//	image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		//	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 		//
-		//	printVkError(vkCreateImage(mDevice->get(), &imageCreateInfo, nullptr, &mImage));
+		//	printVkError(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
 		//
 		//	VkMemoryRequirements memRequirements;
-		//	vkGetImageMemoryRequirements(mDevice->get(), mImage, &memRequirements);
+		//	vkGetImageMemoryRequirements(m_device->get(), m_image, &memRequirements);
 		//
 		//	VkMemoryAllocateInfo allocInfo{};
 		//	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		//	allocInfo.allocationSize = memRequirements.size;
-		//	allocInfo.memoryTypeIndex = findMemoryType(mDevice->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		//	allocInfo.memoryTypeIndex = findMemoryType(m_device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		//
-		//	if (vkAllocateMemory(mDevice->get(), &allocInfo, nullptr, &mImageMemory) != VK_SUCCESS) {
+		//	if (vkAllocateMemory(m_device->get(), &allocInfo, nullptr, &m_image_memory) != VK_SUCCESS) {
 		//		throw std::runtime_error("failed to allocate image memory!");
 		//	}
 		//
-		//	vkBindImageMemory(mDevice->get(), mImage, mImageMemory, 0);
+		//	vkBindImageMemory(m_device->get(), m_image, m_image_memory, 0);
 		//
 		//	transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		//	copyBufferToImage(stagingBuffer, mImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+		//	copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 		//	transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		//
-		//	vkDestroyBuffer(mDevice->get(), stagingBuffer, nullptr);
-		//	vkFreeMemory(mDevice->get(), stagingBufferMemory, nullptr);
+		//	vkDestroyBuffer(m_device->get(), stagingBuffer, nullptr);
+		//	vkFreeMemory(m_device->get(), stagingBufferMemory, nullptr);
 		//
 		//	createImageView(VK_FORMAT_R8G8B8A8_UNORM);
 		//
@@ -303,21 +303,21 @@ namespace Horizon {
 		//	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		//	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		//
-		//	vkCreateSampler(mDevice->get(), &samplerInfo, nullptr, &mSampler);
+		//	vkCreateSampler(m_device->get(), &samplerInfo, nullptr, &m_sampler);
 	}
 
 
 	// VkDescriptorImageInfo Texture::getDescriptor()
 	// {
-	// 	mDescriptorImageInfo.imageView = mImageView;
+	// 	mDescriptorImageInfo.imageView = m_image_view;
 	// 	mDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	// 	mDescriptorImageInfo.sampler = mSampler;
+	// 	mDescriptorImageInfo.sampler = m_sampler;
 	// 	return mDescriptorImageInfo;
 	// }
 
 	void Texture::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		VkCommandBuffer cmdbuf = mCommandBuffer->beginSingleTimeCommands();
+		VkCommandBuffer cmdbuf = m_command_buffer->beginSingleTimeCommands();
 
 		VkImageMemoryBarrier barrier{};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -325,7 +325,7 @@ namespace Horizon {
 		barrier.newLayout = newLayout;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = mImage;
+		barrier.image = m_image;
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		barrier.subresourceRange.baseMipLevel = 0;
 		barrier.subresourceRange.levelCount = 1;
@@ -362,11 +362,11 @@ namespace Horizon {
 			1, &barrier
 		);
 
-		mCommandBuffer->endSingleTimeCommands(cmdbuf);
+		m_command_buffer->endSingleTimeCommands(cmdbuf);
 	}
 
 	void Texture::copyBufferToImage(VkBuffer buffer, VkImage image, u32 width, u32 height) {
-		VkCommandBuffer cmdbuf = mCommandBuffer->beginSingleTimeCommands();
+		VkCommandBuffer cmdbuf = m_command_buffer->beginSingleTimeCommands();
 
 		VkBufferImageCopy region{};
 		region.bufferOffset = 0;
@@ -385,13 +385,13 @@ namespace Horizon {
 
 		vkCmdCopyBufferToImage(cmdbuf, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-		mCommandBuffer->endSingleTimeCommands(cmdbuf);
+		m_command_buffer->endSingleTimeCommands(cmdbuf);
 	}
 
 	void Texture::createImageView(VkFormat format) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = mImage;
+		viewInfo.image = m_image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = format;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -400,7 +400,7 @@ namespace Horizon {
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		printVkError(vkCreateImageView(mDevice->get(), &viewInfo, nullptr, &mImageView));
+		printVkError(vkCreateImageView(m_device->get(), &viewInfo, nullptr, &m_image_view));
 	}
 
 	void Texture::createSampler()
@@ -420,13 +420,13 @@ namespace Horizon {
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-		vkCreateSampler(mDevice->get(), &samplerInfo, nullptr, &mSampler);
+		vkCreateSampler(m_device->get(), &samplerInfo, nullptr, &m_sampler);
 	}
 
 	void Texture::destroy()
 	{
-		vkDestroyImageView(mDevice->get(), mImageView, nullptr);
-		vkDestroyImage(mDevice->get(), mImage, nullptr);
-		vkFreeMemory(mDevice->get(), mImageMemory, nullptr);
+		vkDestroyImageView(m_device->get(), m_image_view, nullptr);
+		vkDestroyImage(m_device->get(), m_image, nullptr);
+		vkFreeMemory(m_device->get(), m_image_memory, nullptr);
 	}
 }

@@ -7,7 +7,7 @@ namespace Horizon {
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
 
-		mFormat = createInfo.format;
+		m_format = createInfo.format;
 
 		if (createInfo.usage & AttachmentUsageFlags::COLOR_ATTACHMENT)
 		{
@@ -24,29 +24,29 @@ namespace Horizon {
 
 		assert(aspectMask > 0);
 
-		VkImageCreateInfo imageCreateInfo{};
-		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = createInfo.format;
-		imageCreateInfo.extent.width = createInfo.width;
-		imageCreateInfo.extent.height = createInfo.height;
-		imageCreateInfo.extent.depth = 1;
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+		VkImageCreateInfo image_create_info{};
+		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		image_create_info.imageType = VK_IMAGE_TYPE_2D;
+		image_create_info.format = createInfo.format;
+		image_create_info.extent.width = createInfo.width;
+		image_create_info.extent.height = createInfo.height;
+		image_create_info.extent.depth = 1;
+		image_create_info.mipLevels = 1;
+		image_create_info.arrayLayers = 1;
+		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+		image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image_create_info.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		VkMemoryAllocateInfo memAlloc{};
 		VkMemoryRequirements memReqs{};
 
-		printVkError(vkCreateImage(device->get(), &imageCreateInfo, nullptr, &mImage));
-		vkGetImageMemoryRequirements(device->get(), mImage, &memReqs);
+		printVkError(vkCreateImage(device->get(), &image_create_info, nullptr, &m_image));
+		vkGetImageMemoryRequirements(device->get(), m_image, &memReqs);
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = findMemoryType(device->getPhysicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		printVkError(vkAllocateMemory(device->get(), &memAlloc, nullptr, &mImageMemory));
-		printVkError(vkBindImageMemory(device->get(), mImage, mImageMemory, 0));
+		printVkError(vkAllocateMemory(device->get(), &memAlloc, nullptr, &m_image_memory));
+		printVkError(vkBindImageMemory(device->get(), m_image, m_image_memory, 0));
 
 		VkImageViewCreateInfo imageView{};
 		imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -58,8 +58,8 @@ namespace Horizon {
 		imageView.subresourceRange.levelCount = 1;
 		imageView.subresourceRange.baseArrayLayer = 0;
 		imageView.subresourceRange.layerCount = 1;
-		imageView.image = mImage;
-		printVkError(vkCreateImageView(device->get(), &imageView, nullptr, &mImageView));
+		imageView.image = m_image;
+		printVkError(vkCreateImageView(device->get(), &imageView, nullptr, &m_image_view));
 	}
 
 

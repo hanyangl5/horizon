@@ -16,7 +16,7 @@ namespace Horizon {
 
 	class Scene {
 	public:
-		Scene(RenderContext& renderContext, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer);
+		Scene(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
 		~Scene();
 
 		void loadModel(const std::string& path, const std::string& name);
@@ -26,59 +26,59 @@ namespace Horizon {
 		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
 		void prepare();
-		void draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline);
+		void draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline);
 		std::shared_ptr<DescriptorSetLayouts> getDescriptorLayouts();
 		std::shared_ptr<DescriptorSetLayouts> getGeometryPassDescriptorLayouts();
 		std::shared_ptr<DescriptorSetLayouts> getSceneDescriptorLayouts();
 		std::shared_ptr<Camera> getMainCamera() const;
 		std::shared_ptr<UniformBuffer> getCameraUbo() const;
 	private:
-		RenderContext& mRenderContext;
-		std::shared_ptr<Camera> mCamera = nullptr;
-		std::shared_ptr<Device> mDevice;
-		std::shared_ptr<CommandBuffer> mCommandBuffer;
-		std::shared_ptr<DescriptorSet> sceneDescritporSet = nullptr;
+		RenderContext& m_render_context;
+		std::shared_ptr<Camera> m_camera = nullptr;
+		std::shared_ptr<Device> m_device;
+		std::shared_ptr<CommandBuffer> m_command_buffer;
+		std::shared_ptr<DescriptorSet> m_scene_descriptor_set = nullptr;
 
 		// uniform buffers
 
 		// 0
-		struct SceneUbStruct {
+		struct SceneUb {
 			Math::mat4 view;
 			Math::mat4 projection;
 			Math::vec2 nearFar;
-		}sceneUbStruct;
-		std::shared_ptr<UniformBuffer> sceneUb = nullptr;
+		}m_scene_ubdata;
+		std::shared_ptr<UniformBuffer> m_scene_ub = nullptr;
 		// 1
-		struct LightCountUbStruct {
+		struct LightCountUb {
 			u32 lightCount = 0;
-		}lightCountUbStruct;
-		std::shared_ptr<UniformBuffer> lightCountUb;
+		}m_light_count_ubdata;
+		std::shared_ptr<UniformBuffer> m_light_count_ub;
 		// 2
-		struct LightsUbStruct {
+		struct LightsUb {
 			LightParams lights[MAX_LIGHT_COUNT];
-		}lightUbStruct;
-		std::shared_ptr<UniformBuffer> lightUb;
+		}m_lights_ubdata;
+		std::shared_ptr<UniformBuffer> m_light_ub;
 		// 3
-		struct CamaeraUbStruct {
+		struct CamaeraUb {
 			Math::vec3 cameraPos;
-		}camaeraUbStruct;
-		std::shared_ptr<UniformBuffer> cameraUb;
+		}m_camera_ubdata;
+		std::shared_ptr<UniformBuffer> m_camera_ub;
 
 
 		// models
-		//std::vector<std::shared_ptr<Model>> mModels;
-		std::unordered_map<std::string, std::shared_ptr<Model>> mModels;
+		//std::vector<std::shared_ptr<Model>> m_models;
+		std::unordered_map<std::string, std::shared_ptr<Model>> m_models;
 	};
 
 	class FullscreenTriangle {
 	public:
-		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandBuffer);
-		void draw(VkCommandBuffer commandBuffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool isPresent);
+		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
+		void draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool is_present);
 	private:
-		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<CommandBuffer> mCommandBuffer = nullptr;
-		std::shared_ptr<VertexBuffer> mVertexBuffer = nullptr;
-		std::vector<Vertex> vertices;
+		std::shared_ptr<Device> m_device = nullptr;
+		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;
+		std::shared_ptr<VertexBuffer> m_vertex_buffer = nullptr;
+		std::vector<Vertex> m_vertices;
 	};
 
 	//enum PrimitiveType {
@@ -90,8 +90,8 @@ namespace Horizon {
 	//	Primitive(PrimitiveType );
 	//	void drawPrimitive(std::shared_ptr<Pipeline> pipeline);
 
-	//	std::shared_ptr<VertexBuffer> mVertexBuffer = nullptr;
-	//	std::shared_ptr<IndexBuffer> mIndexBuffer = nullptr;
+	//	std::shared_ptr<VertexBuffer> m_vertex_buffer = nullptr;
+	//	std::shared_ptr<IndexBuffer> m_index_buffer = nullptr;
 
 	//	std::vector<Vertex> vertices;
 	//	std::vector<u32> indices;

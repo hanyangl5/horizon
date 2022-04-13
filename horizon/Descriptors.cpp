@@ -6,7 +6,7 @@
 
 namespace Horizon {
 
-	DescriptorSet::DescriptorSet(std::shared_ptr<Device> device, std::shared_ptr<DescriptorSetInfo> setInfo) :mDevice(device), mDescriptorSetInfo(setInfo)
+	DescriptorSet::DescriptorSet(std::shared_ptr<Device> device, std::shared_ptr<DescriptorSetInfo> setInfo) :m_device(device), mDescriptorSetInfo(setInfo)
 	{
 		createDescriptorSetLayout();
 		createDescriptorPool();
@@ -14,8 +14,8 @@ namespace Horizon {
 
 	DescriptorSet::~DescriptorSet()
 	{
-		vkDestroyDescriptorPool(mDevice->get(), mDescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(mDevice->get(), mSetLayout, nullptr);
+		vkDestroyDescriptorPool(m_device->get(), mDescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_device->get(), mSetLayout, nullptr);
 	}
 
 	void DescriptorSet::createDescriptorSetLayout()
@@ -33,11 +33,11 @@ namespace Horizon {
 		layoutInfo.bindingCount = bindings.size();
 		layoutInfo.pBindings = bindings.data();
 
-		printVkError(vkCreateDescriptorSetLayout(mDevice->get(), &layoutInfo, nullptr, &mSetLayout), "create descriptor set layout!");
+		printVkError(vkCreateDescriptorSetLayout(m_device->get(), &layoutInfo, nullptr, &mSetLayout), "create descriptor set layout!");
 
 	}
 
-	void DescriptorSet::updateDescriptorSet(const DescriptorSetUpdateDesc& desc)
+	void DescriptorSet::UpdateDescriptorSet(const DescriptorSetUpdateDesc& desc)
 	{
 
 		// update descriptor set
@@ -66,7 +66,7 @@ namespace Horizon {
 				break;
 			}
 		}
-		vkUpdateDescriptorSets(mDevice->get(), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+		vkUpdateDescriptorSets(m_device->get(), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 
 	VkDescriptorSetLayout DescriptorSet::getLayout() {
@@ -80,14 +80,14 @@ namespace Horizon {
 
 	void DescriptorSet::allocateDescriptorSet() {
 		if (mSet != VK_NULL_HANDLE) {
-			printVkError(vkFreeDescriptorSets(mDevice->get(), mDescriptorPool, 1, &mSet));
+			printVkError(vkFreeDescriptorSets(m_device->get(), mDescriptorPool, 1, &mSet));
 		}
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = mDescriptorPool;
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &mSetLayout;
-		printVkError(vkAllocateDescriptorSets(mDevice->get(), &allocInfo, &mSet));
+		printVkError(vkAllocateDescriptorSets(m_device->get(), &allocInfo, &mSet));
 		if (!mSet) {
 			spdlog::error("failed to allocate descriptorset");
 		}
@@ -117,7 +117,7 @@ namespace Horizon {
 		poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
 		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-		printVkError(vkCreateDescriptorPool(mDevice->get(), &poolInfo, nullptr, &mDescriptorPool), "create descriptor pool", logLevel::debug);
+		printVkError(vkCreateDescriptorPool(m_device->get(), &poolInfo, nullptr, &mDescriptorPool), "create descriptor pool", logLevel::debug);
 
 	}
 

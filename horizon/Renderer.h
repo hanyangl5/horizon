@@ -42,27 +42,27 @@ namespace Horizon
 		// create pipeline layouts for each pass
 		void createPipelines();
 
-		RenderContext mRenderContext;
-		std::shared_ptr<Window> mWindow = nullptr;
-		std::shared_ptr<Instance> mInstance = nullptr;
-		std::shared_ptr<Device> mDevice = nullptr;
-		std::shared_ptr<Surface> mSurface = nullptr;
-		std::shared_ptr<SwapChain> mSwapChain = nullptr;
-		std::shared_ptr<PipelineManager> mPipelineMgr = nullptr;
-		std::shared_ptr<CommandBuffer> mCommandBuffer = nullptr;
-		std::shared_ptr<Scene> mScene = nullptr;
-		std::shared_ptr<FullscreenTriangle> mFullscreenTriangle = nullptr;
+		RenderContext m_render_context;
+		std::shared_ptr<Window> m_window = nullptr;
+		std::shared_ptr<Instance> m_instance = nullptr;
+		std::shared_ptr<Device> m_device = nullptr;
+		std::shared_ptr<Surface> m_surface = nullptr;
+		std::shared_ptr<SwapChain> m_swap_chain = nullptr;
+		std::shared_ptr<PipelineManager> m_pipeline_manager = nullptr;
+		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;
+		std::shared_ptr<Scene> m_scene = nullptr;
+		std::shared_ptr<FullscreenTriangle> m_fullscreen_triangle = nullptr;
 		// sync primitives
 
 		// semaphores
-		VkSemaphore presenet_complete_semaphore;
+		VkSemaphore m_presenet_complete_semaphore;
 		VkSemaphore render_complete_semaphore;
-		std::vector<VkFence> fences;
+		std::vector<VkFence> m_fences;
 
 		// pipeline objects
-		std::shared_ptr<DescriptorSet> presentDescriptorSet;
-		std::shared_ptr<DescriptorSet> scatterDescriptorSet;
-		std::shared_ptr<DescriptorSet> ppDescriptorSet;
+		std::shared_ptr<DescriptorSet> m_present_descriptorSet;
+		std::shared_ptr<DescriptorSet> m_scatter_descriptorSet;
+		std::shared_ptr<DescriptorSet> m_pp_descriptorSet;
 
 		//
 		//std::shared_ptr<UniformBuffer> scatterUbo;

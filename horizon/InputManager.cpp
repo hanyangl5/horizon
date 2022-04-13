@@ -2,13 +2,13 @@
 
 namespace Horizon {
 
-	InputManager::InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera) :mWindow(window), mCamera(camera)
+	InputManager::InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera) :m_window(window), m_camera(camera)
 	{
-		mWindow = window;
-		mCamera = camera;
-		lastX = window->getWidth() / 2.0f;
-		lastY = window->getHeight() / 2.0f;
-		firstMouse = true;
+		m_window = window;
+		m_camera = camera;
+		m_last_x = window->getWidth() / 2.0f;
+		m_last_y = window->getHeight() / 2.0f;
+		m_first_mouse = true;
 	}
 	InputManager::~InputManager()
 	{
@@ -18,32 +18,32 @@ namespace Horizon {
 
 		processMouseInput();
 		processKeyboardInput();
-		mCamera->updateViewMatrix();
+		m_camera->updateViewMatrix();
 	}
 
 	void InputManager::processKeyboardInput()
 	{
 
 		if (getKeyPress(Key::ESCAPE)) {
-			mWindow->close();
+			m_window->close();
 		}
 		if (getKeyPress(Key::KEY_W)) {
-			mCamera->move(Direction::FORWARD);
+			m_camera->move(Direction::FORWARD);
 		}
 		if (getKeyPress(Key::KEY_S)) {
-			mCamera->move(Direction::BACKWARD);
+			m_camera->move(Direction::BACKWARD);
 		}
 		if (getKeyPress(Key::KEY_A)) {
-			mCamera->move(Direction::LEFT);
+			m_camera->move(Direction::LEFT);
 		}
 		if (getKeyPress(Key::KEY_D)) {
-			mCamera->move(Direction::RIGHT);
+			m_camera->move(Direction::RIGHT);
 		}
 		if (getKeyPress(Key::SPACE)) {
-			mCamera->move(Direction::UP);
+			m_camera->move(Direction::UP);
 		}
 		if (getKeyPress(Key::KEY_LCTRL)) {
-			mCamera->move(Direction::DOWN);
+			m_camera->move(Direction::DOWN);
 		}
 
 	}
@@ -52,34 +52,34 @@ namespace Horizon {
 	void InputManager::processMouseInput()
 	{
 		f64 xposIn, yposIn;
-		glfwGetCursorPos(mWindow->getWindow(), &xposIn, &yposIn);
+		glfwGetCursorPos(m_window->getWindow(), &xposIn, &yposIn);
 
 		f32 xpos = static_cast<f32>(xposIn);
 		f32 ypos = static_cast<f32>(yposIn);
 
-		if (firstMouse)
+		if (m_first_mouse)
 		{
-			lastX = xpos;
-			lastY = ypos;
-			firstMouse = false;
+			m_last_x = xpos;
+			m_last_y = ypos;
+			m_first_mouse = false;
 		}
 
-		f32 xoffset = xpos - lastX;
-		f32 yoffset = ypos - lastY; // reversed since y-coordinates go from bottom to top
+		f32 xoffset = xpos - m_last_x;
+		f32 yoffset = ypos - m_last_y; // reversed since y-coordinates go from bottom to top
 
-		lastX = xpos;
-		lastY = ypos;
+		m_last_x = xpos;
+		m_last_y = ypos;
 
 		if (getMouseButtonPress(MouseButton::RIGHT_BUTTON)) {
 
-			xoffset *= mMouseSensitivityX;
-			yoffset *= mMouseSensitivityY;
+			xoffset *= m_mouse_sensitivity_x;
+			yoffset *= m_mouse_sensitivity_y;
 
-			mCamera->rotate(xoffset, yoffset);
+			m_camera->rotate(xoffset, yoffset);
 
 		}
 		else if (getMouseButtonRelease(MouseButton::RIGHT_BUTTON)) {
-			firstMouse = true;
+			m_first_mouse = true;
 		}
 	}
 
@@ -88,28 +88,28 @@ namespace Horizon {
 		switch (inputKey)
 		{
 		case Key::ESCAPE:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS;
 			break;
 		case Key::SPACE:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_SPACE) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_SPACE) == GLFW_PRESS;
 			break;
 		case Key::KEY_W:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_W) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_W) == GLFW_PRESS;
 			break;
 		case Key::KEY_S:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_S) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_S) == GLFW_PRESS;
 			break;
 		case Key::KEY_A:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_A) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_A) == GLFW_PRESS;
 			break;
 		case Key::KEY_D:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_D) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_D) == GLFW_PRESS;
 			break;
 		case Key::KEY_LCTRL:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
 			break;
 		case Key::KEY_LSHIFT:
-			return glfwGetKey(mWindow->getWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+			return glfwGetKey(m_window->getWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 			break;
 		default:
 			return false;
@@ -122,10 +122,10 @@ namespace Horizon {
 		switch (button)
 		{
 		case Horizon::InputManager::MouseButton::LEFT_BUTTON:
-			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+			return glfwGetMouseButton(m_window->getWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 			break;
 		case Horizon::InputManager::MouseButton::RIGHT_BUTTON:
-			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+			return glfwGetMouseButton(m_window->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 			break;
 		default:
 			return 0;
@@ -139,10 +139,10 @@ namespace Horizon {
 		switch (button)
 		{
 		case Horizon::InputManager::MouseButton::LEFT_BUTTON:
-			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
+			return glfwGetMouseButton(m_window->getWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
 			break;
 		case Horizon::InputManager::MouseButton::RIGHT_BUTTON:
-			return glfwGetMouseButton(mWindow->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
+			return glfwGetMouseButton(m_window->getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
 			break;
 		default:
 			return 0;

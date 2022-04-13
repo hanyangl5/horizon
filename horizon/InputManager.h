@@ -47,14 +47,14 @@ namespace Horizon {
 
 	private:
 
-		std::shared_ptr<Window> mWindow = nullptr;
-		std::shared_ptr<Camera> mCamera = nullptr;
+		std::shared_ptr<Window> m_window = nullptr;
+		std::shared_ptr<Camera> m_camera = nullptr;
 
-		f32 lastX;
-		f32 lastY;
-		f32 mMouseSensitivityX = 0.1f;
-		f32 mMouseSensitivityY = 0.1f;
-		bool firstMouse;
+		f32 m_last_x;
+		f32 m_last_y;
+		f32 m_mouse_sensitivity_x = 0.1f;
+		f32 m_mouse_sensitivity_y = 0.1f;
+		bool m_first_mouse;
 
 	};
 }

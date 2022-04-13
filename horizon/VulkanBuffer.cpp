@@ -3,7 +3,7 @@
 namespace Horizon {
 
 	// vkcreatebuffer, allocate memory and bindbuffermemory
-	void vk_createBuffer(VkDevice device, VkPhysicalDevice gpu, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+	void vk_createBuffer(VkDevice device, VkPhysicalDevice gpu, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = size;
@@ -22,24 +22,24 @@ namespace Horizon {
 		allocInfo.allocationSize = memRequirements.size;
 		allocInfo.memoryTypeIndex = findMemoryType(gpu, memRequirements.memoryTypeBits, properties);
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &buffer_memory) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate buffer memory!");
 		}
 
-		vkBindBufferMemory(device, buffer, bufferMemory, 0);
+		vkBindBufferMemory(device, buffer, buffer_memory, 0);
 	}
 
-	void vk_copyBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> commandbuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-		VkCommandBuffer cmdbuf = commandbuffer->beginSingleTimeCommands();
+	void vk_copyBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+		VkCommandBuffer cmdbuf = command_buffer->beginSingleTimeCommands();
 		VkBufferCopy copyRegion{};
 		copyRegion.size = size;
 		vkCmdCopyBuffer(cmdbuf, srcBuffer, dstBuffer, 1, &copyRegion);
-		commandbuffer->endSingleTimeCommands(cmdbuf);
+		command_buffer->endSingleTimeCommands(cmdbuf);
 	}
 
-	void vk_copyBufferToImage(std::shared_ptr<CommandBuffer> commandbuffer, VkBuffer buffer, VkImage image, u32 width, u32 height)
+	void vk_copyBufferToImage(std::shared_ptr<CommandBuffer> command_buffer, VkBuffer buffer, VkImage image, u32 width, u32 height)
 	{
-		VkCommandBuffer cmdbuf = commandbuffer->beginSingleTimeCommands();
+		VkCommandBuffer cmdbuf = command_buffer->beginSingleTimeCommands();
 
 		VkBufferImageCopy region{};
 		region.bufferOffset = 0;
@@ -67,7 +67,7 @@ namespace Horizon {
 			&region
 		);
 
-		commandbuffer->endSingleTimeCommands(cmdbuf);
+		command_buffer->endSingleTimeCommands(cmdbuf);
 	}
 
 }

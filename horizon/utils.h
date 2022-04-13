@@ -81,12 +81,12 @@ namespace Horizon {
 	struct RenderContext {
 		u32 width;
 		u32 height;
-		u32 swapChainImageCount = 3;
+		u32 swap_chain_image_count = 3;
 	};
 	//struct BarrierDesc {
 	//	std::vector<>
 	//};
-	//void insertBarrier(std::shared_ptr<Commandbuffer> commandBuffer) {
+	//void insertBarrier(std::shared_ptr<Commandbuffer> command_buffer) {
 	//	vkCmdPipelineBarrier()
 	//}
 }

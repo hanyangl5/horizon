@@ -17,9 +17,9 @@ namespace Horizon {
 	private:
 		void createSurface();
 	private:
-		std::shared_ptr<Instance> mInstance = nullptr;
-		std::shared_ptr<Window> mWindow = nullptr;
-		VkSurfaceKHR mSurface;
+		std::shared_ptr<Instance> m_instance = nullptr;
+		std::shared_ptr<Window> m_window = nullptr;
+		VkSurfaceKHR m_surface;
 	};
 
 }
