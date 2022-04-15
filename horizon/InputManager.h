@@ -52,8 +52,8 @@ namespace Horizon {
 
 		f32 m_last_x;
 		f32 m_last_y;
-		f32 m_mouse_sensitivity_x = 0.1f;
-		f32 m_mouse_sensitivity_y = 0.1f;
+		f32 m_mouse_sensitivity_x = 1.0f;
+		f32 m_mouse_sensitivity_y = 1.0f;
 		bool m_first_mouse;
 
 	};

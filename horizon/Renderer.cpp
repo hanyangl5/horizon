@@ -92,7 +92,7 @@ namespace Horizon {
 			m_scene->draw(m_command_buffer->get(i), geometryPipeline);
 			m_command_buffer->endRenderPass(i);
 
-			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(7478.0f));
+			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6478.0f));
 			earth->setModelMatrix(scaleMatrix);
 			earth->updateModelMatrix();
 
