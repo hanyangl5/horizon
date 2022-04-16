@@ -16,7 +16,13 @@ vec3 TonemapACES(vec3 x)
 	return (x * (A * x + B)) / (x * (C * x + D) + E);
 }
 
+vec3 GammaCorrection(vec3 x){
+	return pow( x, vec3( 1.0 / 2.2 ));
+}
+
 void main() {
 	vec3 color = texture(color_texture, frag_tex_coord).xyz;
-    out_color = vec4(TonemapACES(color), 1.0);
+	//color = TonemapACES(color);
+	//color = GammaCorrection(color);
+    out_color = vec4(color, 1.0);
 }
