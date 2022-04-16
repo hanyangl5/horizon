@@ -175,7 +175,6 @@ vec3 InScattering(ScatteringContext _context) {
         vec3 intersection_point_l = sample_point_v + _context.light_dir * light_sphere_intersection.x;
 
         vec2 optical_depth_l = OpticalDepth(sample_point_v, intersection_point_l, _context);
-        optical_depth_l = vec2(0.0);
 
         vec3 attenuation = 
         exp( - ( optical_depth_v.x + optical_depth_l.x ) * _context.beta_rayleigh 
