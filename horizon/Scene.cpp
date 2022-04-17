@@ -51,7 +51,10 @@ namespace Horizon {
 			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
 			return;
 		}
-		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].color_intensity = { color, intensity };
+
+		f32 luminous_intensity = intensity;
+
+		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].color_intensity = { color, luminous_intensity };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].direction = { direction.x, direction.y, direction.z, 0.0 };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].position_type = { 0.0, 0.0, 0.0, static_cast<f32>(LightType::DIRECT_LIGHT) };
 		m_light_count_ubdata.lightCount++;
@@ -65,7 +68,9 @@ namespace Horizon {
 			return;
 		}
 
-		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].color_intensity = { color, intensity };
+		f32 luminous_intensity = intensity / Math::one_over_pi<f32>() / 4.0f;
+
+		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].color_intensity = { color, luminous_intensity };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].position_type = { position, static_cast<f32>(LightType::POINT_LIGHT) };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].radius_inner_outer = { radius, 0.0, 0.0, 0.0 };
 		m_light_count_ubdata.lightCount++;
@@ -78,7 +83,12 @@ namespace Horizon {
 			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
 			return;
 		}
-		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].color_intensity = { color, intensity };
+		;
+		f32 cos_outer = Math::cos(std::clamp(std::abs(outerConeAngle), 0.5f * Math::radians(0.5f), Math::two_pi<f32>()));
+		f32 cos_outer2 = Math::sqrt(cos_outer * cos_outer);
+		f32 luminous_intensity = intensity / Math::one_over_two_pi<f32>() / (1.0f - cos_outer2);
+
+		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].color_intensity = { color, luminous_intensity };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].direction = { direction, 0.0 };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].position_type = { position, static_cast<f32>(LightType::SPOT_LIGHT) };
 		m_lights_ubdata.lights[m_light_count_ubdata.lightCount].radius_inner_outer = { radius, innerConeAngle, outerConeAngle, 0.0 };

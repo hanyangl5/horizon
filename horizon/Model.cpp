@@ -16,7 +16,7 @@ namespace Horizon {
 			const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
 			for (size_t i = 0; i < scene.nodes.size(); i++) {
 				const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
-				float scale = 1.0;
+				f32 scale = 1.0;
 				loadNode(nullptr, node, scene.nodes[i], gltfModel, indices, vertices, scale);
 			}
 
@@ -162,12 +162,12 @@ namespace Horizon {
 			}
 			/*
 			if (mat.values.find("roughnessFactor") != mat.values.end()) {
-				material.m_material_ubdata.metallicRoughnessFactor.y = static_cast<float>(mat.values["roughnessFactor"].Factor());
+				material.m_material_ubdata.metallicRoughnessFactor.y = static_cast<f32>(mat.values["roughnessFactor"].Factor());
 			} else{
 				spdlog::warn("no roughnessFactor found, use default param instead");
 			}
 			if (mat.values.find("metallicFactor") != mat.values.end()) {
-				material.m_material_ubdata.metallicRoughnessFactor.x = static_cast<float>(mat.values["metallicFactor"].Factor());
+				material.m_material_ubdata.metallicRoughnessFactor.x = static_cast<f32>(mat.values["metallicFactor"].Factor());
 			} else{
 				spdlog::warn("no metallicFactor found, use default param instead");
 			}*/
@@ -204,7 +204,7 @@ namespace Horizon {
 		//materials.push_back(Material());
 	}
 
-	void Model::loadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, float globalscale)
+	void Model::loadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, f32 globalscale)
 	{
 		std::shared_ptr<Node> newNode = std::make_shared<Node>();
 		newNode->index = nodeIndex;
@@ -253,12 +253,12 @@ namespace Horizon {
 				bool hasIndices = primitive.indices > -1;
 				// Vertices
 				{
-					const float* bufferPos = nullptr;
-					const float* bufferNormals = nullptr;
-					const float* bufferTexCoordSet0 = nullptr;
-					const float* bufferTexCoordSet1 = nullptr;
+					const f32* bufferPos = nullptr;
+					const f32* bufferNormals = nullptr;
+					const f32* bufferTexCoordSet0 = nullptr;
+					const f32* bufferTexCoordSet1 = nullptr;
 					const void* bufferJoints = nullptr;
-					const float* bufferWeights = nullptr;
+					const f32* bufferWeights = nullptr;
 
 					int posByteStride;
 					int normByteStride;
@@ -274,24 +274,24 @@ namespace Horizon {
 
 					const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
 					const tinygltf::BufferView& posView = model.bufferViews[posAccessor.bufferView];
-					bufferPos = reinterpret_cast<const float*>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+					bufferPos = reinterpret_cast<const f32*>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
 					posMin = Math::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
 					posMax = Math::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
 					vertexCount = static_cast<uint32_t>(posAccessor.count);
-					posByteStride = posAccessor.ByteStride(posView) ? (posAccessor.ByteStride(posView) / sizeof(float)) : sizeof(Math::vec3) * 8;
+					posByteStride = posAccessor.ByteStride(posView) ? (posAccessor.ByteStride(posView) / sizeof(f32)) : sizeof(Math::vec3) * 8;
 
 					if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
 						const tinygltf::Accessor& normAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
 						const tinygltf::BufferView& normView = model.bufferViews[normAccessor.bufferView];
-						bufferNormals = reinterpret_cast<const float*>(&(model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
-						normByteStride = normAccessor.ByteStride(normView) ? (normAccessor.ByteStride(normView) / sizeof(float)) : sizeof(Math::vec3) * 8;
+						bufferNormals = reinterpret_cast<const f32*>(&(model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+						normByteStride = normAccessor.ByteStride(normView) ? (normAccessor.ByteStride(normView) / sizeof(f32)) : sizeof(Math::vec3) * 8;
 					}
 
 					if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
 						const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
 						const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
-						bufferTexCoordSet0 = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-						uv0ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : sizeof(Math::vec3) * 8;
+						bufferTexCoordSet0 = reinterpret_cast<const f32*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+						uv0ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(f32)) : sizeof(Math::vec3) * 8;
 					}
 					for (size_t v = 0; v < posAccessor.count; v++) {
 						Vertex vert;

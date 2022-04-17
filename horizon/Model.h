@@ -74,7 +74,7 @@ namespace Horizon {
 		void draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer);
 		void loadTextures(tinygltf::Model& gltfModel);
 		void loadMaterials(tinygltf::Model& gltfModel);
-		void loadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
+		void loadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indexBuffer, std::vector<Vertex>& vertexBuffer, f32 globalscale);
 		void drawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer);
 		void updateDescriptors();
 		void updateModelMatrix();

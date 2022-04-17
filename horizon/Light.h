@@ -4,6 +4,7 @@
 
 namespace Horizon {
 
+	// light unit: lux for direct light, lumen for punctual light
 	enum LightType
 	{
 		DIRECT_LIGHT = 0,

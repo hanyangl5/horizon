@@ -9,7 +9,7 @@ namespace Horizon
 		updateViewMatrix();
 		//setLookAt(eye, at, up);
 	}
-	void Camera::setPerspectiveProjectionMatrix(f32 fov, float aspect_ratio, float nearPlane, float farPlane)
+	void Camera::setPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane)
 	{
 		m_fov = fov;
 		m_aspect_ratio = aspect_ratio;

@@ -21,6 +21,8 @@ namespace Horizon {
 
 		void loadModel(const std::string& path, const std::string& name);
 		std::shared_ptr<Model> getModel(const std::string& name);
+		
+		// https://google.github.io/filament/Filament.html
 		void addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
 		void addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
 		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);

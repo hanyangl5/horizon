@@ -18,7 +18,7 @@ namespace Horizon {
 	public:
 		Camera(Math::vec3 position, Math::vec3 at, Math::vec3 up);
 
-		void setPerspectiveProjectionMatrix(f32 fov, float aspect_ratio, float near, float far);
+		void setPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far);
 		Math::mat4 getProjectionMatrix() const;
 
 		//void setLookAt(vec3 position, vec3 at, vec3 up = vec3(0.0f, 1.0f, 0.0f));
