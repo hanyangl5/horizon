@@ -19,9 +19,7 @@ layout(set = 2, binding = 2) uniform sampler2D albedo_metallic;
 
 layout(set = 2, binding = 3) uniform CameraUb {
     vec3 eye_pos;
-}camera_ub;
-
-
+} camera_ub;
 
 //  constants
 
@@ -37,21 +35,22 @@ struct ScatteringContext {
     int view_scatter_nums, light_scatter_nums;
     vec3 beta_rayleigh;
     vec3 beta_mie;
+    vec3 beta_ozone;
 };
 // ------------------------------------------------------
 
 float saturate(float x) {
-    return clamp(x, 0.0f , 1.0f);
+    return clamp(x, 0.0f, 1.0f);
 }
 
 vec2 RaySphereIntersect(vec3 _origin, vec3 _dir, float _radius) {
 
-	float b = dot( _origin, _dir );
-	float c = dot( _origin, _origin ) - _radius * _radius;
-	float d = b * b - c;
+    float b = dot(_origin, _dir);
+    float c = dot(_origin, _origin) - _radius * _radius;
+    float d = b * b - c;
 
     vec2 min_max_intersections;
-    if (d < 0.0f) {
+    if(d < 0.0f) {
         min_max_intersections = vec2(-1.0, -1.0);
     } else {
         d = sqrt(d);
@@ -64,18 +63,18 @@ vec2 RaySphereIntersect(vec3 _origin, vec3 _dir, float _radius) {
 vec3 ComputeIntersection(vec3 _origin, ScatteringContext _context, out vec2 intersection_point) {
     vec2 outer_intersectoin_point = RaySphereIntersect(_origin, _context.view_dir, _context.atmosphere_radius);
     // no intersection point 
-    if (outer_intersectoin_point == vec2(-1.0, -1.0)) {
+    if(outer_intersectoin_point == vec2(-1.0, -1.0)) {
         return vec3(1.0, 0.0, 0.0);
     }
 
     vec2 inner_intersectoin_point = RaySphereIntersect(_origin, _context.view_dir, _context.planet_radius);
-    
+
     // both intersected
-    if (inner_intersectoin_point != vec2(-1.0, -1.0)) {
+    if(inner_intersectoin_point != vec2(-1.0, -1.0)) {
         intersection_point = vec2(outer_intersectoin_point.x, inner_intersectoin_point.x);
         return vec3(0.0, 1.0, 0.0);
     }
-    
+
     intersection_point = outer_intersectoin_point;
     return vec3(0.0, 0.0, 1.0);
 }
@@ -105,12 +104,24 @@ float PhaseMieCS(float _g, float _c) {
     return nom / denom;
 }
 
+float rho(float _h, float _planet_radius) {
+    return exp(-max(_h - _planet_radius, 0.0));
+}
+
+// description: scattering coeff
+// altitude, refrative index, atmoshpere particle count
+vec3 RayleighScatteringCoeff(float _h, float _n, float _N, float _planet_radius) {
+    vec3 lambda_rgb = vec3(680e-9, 550e-9, 450e-9); // wavelength of rgb light
+    float c = 8.0f * PI * PI * PI * pow(_n * _n - 1.0f, 2.0) * rho(_h, _planet_radius) / 3.0f / _N;
+    return c / (lambda_rgb * lambda_rgb * lambda_rgb * lambda_rgb);
+}
+
 // float AtmosphereDensity(float _height, float _radius, float _scale_height) {
 //     return exp( -max(_height - _radius, 0.0f) / _scale_height);
 // }
 
 vec2 AtmosphereDensityRayMie(float _height, float _radius, vec2 _scale_height) {
-    return exp( -max(_height - _radius, 0.0) / _scale_height);
+    return exp(-max(_height - _radius, 0.0) / _scale_height);
 }
 
 // 
@@ -135,20 +146,18 @@ cast 2: 0 intersection point with s1, 2 intersection point with s2, integrate fr
 cast 3: 0 intersection point with s1 and s2, discard
 */
 
-
-
 vec3 InScattering(ScatteringContext _context) {
 
-    vec3 sum_rayleigh = vec3( 0.0 );
-    vec3 sum_mie = vec3( 0.0 );
+    vec3 sum_rayleigh = vec3(0.0);
+    vec3 sum_mie = vec3(0.0);
 
     vec3 origin = camera_ub.eye_pos - _context.planet_center;
-    
+
     vec2 view_sphere_intersection = vec2(0.0);
     // view dir atmoshphere intersection
     vec3 ret = ComputeIntersection(origin, _context, view_sphere_intersection);   
     // no intersection 
-    if (view_sphere_intersection == vec2(0.0)) {
+    if(view_sphere_intersection == vec2(0.0)) {
         return vec3(0.0f);
     }
 
@@ -156,52 +165,41 @@ vec3 InScattering(ScatteringContext _context) {
 
     vec3 start_v = origin + view_sphere_intersection.x * _context.view_dir;
     vec3 end_v = origin + view_sphere_intersection.y * _context.view_dir;
-	vec3 step_size_v = (end_v - start_v) / float(_context.view_scatter_nums);
+    vec3 step_size_v = (end_v - start_v) / float(_context.view_scatter_nums);
     float step_length_v = 1000.0f * length(step_size_v);
 
-	vec3 sample_point_v = start_v + step_size_v * 0.5;
+    vec3 sample_point_v = start_v + step_size_v * 0.5;
 
     vec2 optical_depth_v = vec2(0.0);
     // sample the view ray 
-    for (int i = 0; i < _context.view_scatter_nums; i++, sample_point_v += step_size_v)
-	{
+    for(int i = 0; i < _context.view_scatter_nums; i++, sample_point_v += step_size_v) {
 
         vec2 density_v = step_length_v * AtmosphereDensityRayMie(length(sample_point_v), _context.planet_radius, _context.rayliegh_mie_scale_height);
         optical_depth_v += density_v;
 
         // light dir atmosphere intersection
-        vec2 light_sphere_intersection  = RaySphereIntersect(sample_point_v, _context.light_dir, _context.atmosphere_radius);
+        vec2 light_sphere_intersection = RaySphereIntersect(sample_point_v, _context.light_dir, _context.atmosphere_radius);
 
         vec3 intersection_point_l = sample_point_v + _context.light_dir * light_sphere_intersection.x;
 
         vec2 optical_depth_l = OpticalDepth(sample_point_v, intersection_point_l, _context);
 
-        vec3 attenuation = 
-        exp( - ( optical_depth_v.x + optical_depth_l.x ) * _context.beta_rayleigh 
-             - ( optical_depth_v.y + optical_depth_l.y ) * _context.beta_mie);
-        
-		sum_rayleigh += density_v.x * attenuation;
+        vec3 attenuation = exp(-(optical_depth_v.x + optical_depth_l.x) * _context.beta_rayleigh - (optical_depth_v.y + optical_depth_l.y) * _context.beta_mie);
+
+        sum_rayleigh += density_v.x * attenuation;
         sum_mie += density_v.y * attenuation;
 
-	}
+    }
 
     float theta = dot(_context.view_dir, _context.light_dir);
     float theta2 = theta * theta;
     float phase_rayleigh = PhaseRayleigh(theta2);
     float phase_mie = PhaseMieCS(theta, _context.mie_g);
-    return  (sum_rayleigh * _context.beta_rayleigh * phase_rayleigh + 
-             sum_mie * _context.beta_mie      * phase_mie) * 
-             _context.light_intensity;
+    return (sum_rayleigh * _context.beta_rayleigh * phase_rayleigh +
+        sum_mie * _context.beta_mie * phase_mie) *
+        _context.light_intensity;
 
 }
-
-vec3 GetCameraVector(vec2 resolution, vec2 coord){
-    	vec2 uv = coord.xy / resolution.xy - vec2(0.5);
-         uv.x *= resolution.x / resolution.y;
-
-    return normalize(vec3(uv.x, uv.y, -1.0));
-}
-
 
 void main() {
 
@@ -216,13 +214,14 @@ void main() {
     // thickness of the atmosphere if its density were uniform (how far to go up before the scattering has no effect)
     context.rayliegh_mie_scale_height = vec2(8e0, 1.2e0);
     // scattering coeffs at sea level
-    context.beta_rayleigh = vec3(5.5e-6, 13.0e-6, 22.4e-6);
+    context.beta_rayleigh = RayleighScatteringCoeff(context.planet_radius, 1.00029, 2.545e25, context.planet_radius);
+    //context.beta_rayleigh = vec3(5.5e-6, 13.0e-6, 22.4e-6);
     context.beta_mie = vec3(21e-6);
     context.mie_g = 0.7;
 
     context.view_dir = normalize(world_pos - camera_ub.eye_pos);
-    //context.view_dir = GetCameraVector(vec2(1920.0,1080.0), gl_FragCoord.xy); 
     vec3 scatter = InScattering(context);
+
     out_color = vec4(scatter, 1.0);
     //out_color += texture(albedo_metallic, gl_FragCoord.xy / vec2(1920.f, 1080.f));
 }
