@@ -5,7 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/core/math/Math.h>
+#include <runtime/function/render/rhi/VulkanEnums.h>
 #include "Device.h"
 
 namespace Horizon {

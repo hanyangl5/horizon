@@ -15,6 +15,8 @@
 
 #include "tiny_gltf.h"
 
+#include <runtime/core/log/Log.h>
+
 #include "VulkanBuffer.h"
 
 namespace Horizon {
@@ -80,7 +82,7 @@ namespace Horizon {
 		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
-		printVkError(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
+		CHECK_VK_RESULT(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
 
 		VkMemoryRequirements memRequirements;
 		vkGetImageMemoryRequirements(m_device->get(), m_image, &memRequirements);
@@ -140,7 +142,7 @@ namespace Horizon {
 		VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
 		if (!buffer) {
-			spdlog::error("failed to load texture image {}", path);
+			LOG_ERROR("failed to load texture image {}", path);
 			return;
 		}
 
@@ -171,7 +173,7 @@ namespace Horizon {
 		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
-		printVkError(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
+		CHECK_VK_RESULT(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
 
 		VkMemoryRequirements memRequirements;
 		vkGetImageMemoryRequirements(m_device->get(), m_image, &memRequirements);
@@ -262,7 +264,7 @@ namespace Horizon {
 		//	image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		//	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 		//
-		//	printVkError(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
+		//	CHECK_VK_RESULT(vkCreateImage(m_device->get(), &image_create_info, nullptr, &m_image));
 		//
 		//	VkMemoryRequirements memRequirements;
 		//	vkGetImageMemoryRequirements(m_device->get(), m_image, &memRequirements);
@@ -400,7 +402,7 @@ namespace Horizon {
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		printVkError(vkCreateImageView(m_device->get(), &viewInfo, nullptr, &m_image_view));
+		CHECK_VK_RESULT(vkCreateImageView(m_device->get(), &viewInfo, nullptr, &m_image_view));
 	}
 
 	void Texture::createSampler()

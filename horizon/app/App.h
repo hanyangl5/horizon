@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <spdlog/spdlog.h>
 #include <runtime/core/utils/utils.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/scene/render/Renderer.h>
@@ -19,5 +18,4 @@ private:
 	std::shared_ptr<Horizon::Window> m_window = nullptr;
 	std::unique_ptr<Horizon::Renderer> m_renderer = nullptr;
 	std::unique_ptr<Horizon::InputManager> m_input_manager;
-	std::shared_ptr<spdlog::logger> m_logger;
 };

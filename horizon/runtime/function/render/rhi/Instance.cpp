@@ -1,5 +1,7 @@
 #include "Instance.h"
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 	Instance::Instance()
 	{
@@ -28,7 +30,7 @@ namespace Horizon {
 	{
 
 		if (enableValidationLayers && !m_validation_layer.checkValidationLayerSupport()) {
-			spdlog::error("validation layers requested, but not available!");
+			LOG_ERROR("validation layers requested, but not available!");
 		}
 
 		VkApplicationInfo appInfo{};
@@ -59,7 +61,7 @@ namespace Horizon {
 			instance_create_info.pNext = nullptr;
 		}
 		VkResult result = vkCreateInstance(&instance_create_info, nullptr, &m_instance);
-		printVkError(result, "create vulkan instance");
+		CHECK_VK_RESULT(result);
 		if (enableValidationLayers) { m_validation_layer.setupDebugMessenger(m_instance); }
 	}
 }

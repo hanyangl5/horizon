@@ -3,6 +3,8 @@
 #include <vector>
 #include <set>
 
+#include <runtime/core/log/Log.h>
+
 #include "QueueFamilyIndices.h"
 #include "SurfaceSupportDetails.h"
 
@@ -11,7 +13,7 @@ namespace Horizon {
 	{
 		// enumerate vk devices
 		vkEnumeratePhysicalDevices(m_instance->get(), &device_count, nullptr);
-		if (device_count == 0) { spdlog::error("no available device"); }
+		if (device_count == 0) { LOG_ERROR("no available device"); }
 		vkEnumeratePhysicalDevices(m_instance->get(), &device_count, m_physical_devices.data());
 		pickPhysicalDevice(m_instance->get());
 		createDevice(m_instance->getValidationLayer());
@@ -49,7 +51,7 @@ namespace Horizon {
 		if (indices.completed() && details.suitable() && checkDeviceExtensionSupport(device)) {
 			VkPhysicalDeviceProperties device_properties;
 			vkGetPhysicalDeviceProperties(device, &device_properties);
-			spdlog::info("using device:{}", device_properties.deviceName);
+			LOG_INFO("using device:{}", device_properties.deviceName);
 			m_queue_family_indices = indices;
 			return true;
 		}
@@ -62,7 +64,7 @@ namespace Horizon {
 		vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 
 		if (device_count == 0) {
-			spdlog::error("failed to find GPUs with Vulkan support!");
+			LOG_ERROR("failed to find GPUs with Vulkan support!");
 		}
 		m_physical_devices.resize(device_count);
 		vkEnumeratePhysicalDevices(instance, &device_count, m_physical_devices.data());
@@ -77,7 +79,7 @@ namespace Horizon {
 		}
 
 		if (m_physical_devices[m_physical_device_index] == VK_NULL_HANDLE) {
-			spdlog::error("failed to find a suitable GPU!");
+			LOG_ERROR("failed to find a suitable GPU!");
 		}
 	}
 
@@ -110,7 +112,7 @@ namespace Horizon {
 		device_create_info.enabledExtensionCount = static_cast<u32>(m_device_extensions.size());
 		device_create_info.ppEnabledExtensionNames = m_device_extensions.data();
 
-		printVkError(vkCreateDevice(m_physical_devices[m_physical_device_index], &device_create_info, nullptr, &m_device), "create logical device");
+		CHECK_VK_RESULT(vkCreateDevice(m_physical_devices[m_physical_device_index], &device_create_info, nullptr, &m_device));
 
 		vkGetDeviceQueue(m_device, m_queue_family_indices.getGraphics(), 0, &m_graphics_queue);
 		vkGetDeviceQueue(m_device, m_queue_family_indices.getPresent(), 0, &m_present_queue);

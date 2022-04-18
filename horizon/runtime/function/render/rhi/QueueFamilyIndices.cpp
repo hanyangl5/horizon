@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 
 	QueueFamilyIndices::QueueFamilyIndices()
@@ -32,7 +34,7 @@ namespace Horizon {
 			if (i.queueFlags & VK_QUEUE_PROTECTED_BIT)
 				queueFlagsStr += "VK_QUEUE_PROTECTED_BIT";
 
-			spdlog::debug(" queueinfo :queueCount:{} queueFlags:{}", i.queueCount, queueFlagsStr);
+			LOG_DEBUG(" queueinfo :queueCount:{} queueFlags:{}", i.queueCount, queueFlagsStr);
 		}
 
 		// loop all queue families

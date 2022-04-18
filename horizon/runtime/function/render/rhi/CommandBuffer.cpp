@@ -1,5 +1,7 @@
 #include "CommandBuffer.h"
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 
 	CommandBuffer::CommandBuffer(RenderContext& render_context, std::shared_ptr<Device> device) :m_render_context(render_context), m_device(device)
@@ -55,7 +57,7 @@ namespace Horizon {
 
 		vkResetFences(m_device->get(), 1, &m_in_flight_fences[m_current_frame]);
 
-		printVkError(vkQueueSubmit(m_device->getGraphicQueue(), 1, &submitInfo, m_in_flight_fences[m_current_frame]), "");
+		CHECK_VK_RESULT(vkQueueSubmit(m_device->getGraphicQueue(), 1, &submitInfo, m_in_flight_fences[m_current_frame]));
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -92,7 +94,7 @@ namespace Horizon {
 		command_pool_create_info.queueFamilyIndex = m_device->getQueueFamilyIndices().getGraphics();
 		command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		printVkError(vkCreateCommandPool(m_device->get(), &command_pool_create_info, nullptr, &m_command_pool), "create command pool");
+		CHECK_VK_RESULT(vkCreateCommandPool(m_device->get(), &command_pool_create_info, nullptr, &m_command_pool));
 
 	}
 
@@ -112,7 +114,7 @@ namespace Horizon {
 		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		commandBufferAllocateInfo.commandBufferCount = static_cast<u32>(m_command_buffers.size());
 
-		printVkError(vkAllocateCommandBuffers(m_device->get(), &commandBufferAllocateInfo, m_command_buffers.data()), "allocate command buffers");
+		CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device->get(), &commandBufferAllocateInfo, m_command_buffers.data()));
 	}
 
 	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) {
@@ -159,8 +161,8 @@ namespace Horizon {
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
 		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			printVkError(vkCreateSemaphore(m_device->get(), &semaphoreCreateInfo, nullptr, &m_image_available_semaphores[i]), "create semaphore", logLevel::debug);
-			printVkError(vkCreateSemaphore(m_device->get(), &semaphoreCreateInfo, nullptr, &m_render_finished_semaphores[i]), "create semaphore", logLevel::debug);
+			CHECK_VK_RESULT(vkCreateSemaphore(m_device->get(), &semaphoreCreateInfo, nullptr, &m_image_available_semaphores[i]));
+			CHECK_VK_RESULT(vkCreateSemaphore(m_device->get(), &semaphoreCreateInfo, nullptr, &m_render_finished_semaphores[i]));
 		}
 	}
 
@@ -175,7 +177,7 @@ namespace Horizon {
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			printVkError(vkCreateFence(m_device->get(), &fenceInfo, nullptr, &m_in_flight_fences[i]), "create fence", logLevel::debug);
+			CHECK_VK_RESULT(vkCreateFence(m_device->get(), &fenceInfo, nullptr, &m_in_flight_fences[i]));
 		}
 	}
 
@@ -222,12 +224,12 @@ namespace Horizon {
 		VkCommandBufferBeginInfo commandBufferBeginInfo{};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		// begin command buffer recording
-		printVkError(vkBeginCommandBuffer(m_command_buffers[i], &commandBufferBeginInfo), "");
+		CHECK_VK_RESULT(vkBeginCommandBuffer(m_command_buffers[i], &commandBufferBeginInfo));
 	}
 
 	void CommandBuffer::endCommandRecording(u32 i)
 	{
-		printVkError(vkEndCommandBuffer(m_command_buffers[i]), "");
+		CHECK_VK_RESULT(vkEndCommandBuffer(m_command_buffers[i]));
 	}
 
 }

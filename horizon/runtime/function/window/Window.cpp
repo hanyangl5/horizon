@@ -1,5 +1,7 @@
 #include "Window.h"
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 
 	Window::Window(const char* _name, u32 _width, u32 _height) : width(_width), height(_height)
@@ -7,7 +9,7 @@ namespace Horizon {
 		if (glfwInit() != GLFW_TRUE)
 		{
 			glfwTerminate();
-			spdlog::error("failed to init glfw");
+			LOG_ERROR("failed to init glfw");
 		};
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -16,7 +18,7 @@ namespace Horizon {
 		if (!m_window)
 		{
 			glfwTerminate();
-			spdlog::error("failed to init window");
+			LOG_ERROR("failed to init window");
 		}
 	}
 	Window::~Window()

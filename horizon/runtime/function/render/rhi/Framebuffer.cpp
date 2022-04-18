@@ -1,5 +1,7 @@
 #include "Framebuffer.h"
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 
 	Framebuffer::Framebuffer(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain) :m_render_context(render_context), m_device(device)
@@ -106,7 +108,7 @@ namespace Horizon {
 			frameBufferCreateInfo.width = width;
 			frameBufferCreateInfo.height = height;
 			frameBufferCreateInfo.layers = 1;
-			printVkError(vkCreateFramebuffer(m_device->get(), &frameBufferCreateInfo, nullptr, &m_framebuffer[i]), "create frame buffer");
+			CHECK_VK_RESULT(vkCreateFramebuffer(m_device->get(), &frameBufferCreateInfo, nullptr, &m_framebuffer[i]));
 		}
 	}
 
@@ -129,7 +131,7 @@ namespace Horizon {
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		printVkError(vkCreateSampler(m_device->get(), &sampler, nullptr, &m_sampler));
+		CHECK_VK_RESULT(vkCreateSampler(m_device->get(), &sampler, nullptr, &m_sampler));
 
 	}
 

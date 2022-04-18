@@ -1,5 +1,7 @@
 #include "Attachment.h"
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 	Attachment::Attachment(std::shared_ptr<Device> device, AttachmentCreateInfo createInfo)
 	{
@@ -40,13 +42,13 @@ namespace Horizon {
 		VkMemoryAllocateInfo memAlloc{};
 		VkMemoryRequirements memReqs{};
 
-		printVkError(vkCreateImage(device->get(), &image_create_info, nullptr, &m_image));
+		CHECK_VK_RESULT(vkCreateImage(device->get(), &image_create_info, nullptr, &m_image));
 		vkGetImageMemoryRequirements(device->get(), m_image, &memReqs);
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = findMemoryType(device->getPhysicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		printVkError(vkAllocateMemory(device->get(), &memAlloc, nullptr, &m_image_memory));
-		printVkError(vkBindImageMemory(device->get(), m_image, m_image_memory, 0));
+		CHECK_VK_RESULT(vkAllocateMemory(device->get(), &memAlloc, nullptr, &m_image_memory));
+		CHECK_VK_RESULT(vkBindImageMemory(device->get(), m_image, m_image_memory, 0));
 
 		VkImageViewCreateInfo imageView{};
 		imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -59,7 +61,7 @@ namespace Horizon {
 		imageView.subresourceRange.baseArrayLayer = 0;
 		imageView.subresourceRange.layerCount = 1;
 		imageView.image = m_image;
-		printVkError(vkCreateImageView(device->get(), &imageView, nullptr, &m_image_view));
+		CHECK_VK_RESULT(vkCreateImageView(device->get(), &imageView, nullptr, &m_image_view));
 	}
 
 

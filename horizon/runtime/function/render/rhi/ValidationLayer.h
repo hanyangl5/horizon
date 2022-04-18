@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include <runtime/core/utils/utils.h>
+#include <runtime/core/log/Log.h>
 
 namespace Horizon {
 
@@ -15,7 +16,7 @@ namespace Horizon {
 #endif
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-		spdlog::error("validation layer error: {}", pCallbackData->pMessage);
+		LOG_ERROR("validation layer error: {}", pCallbackData->pMessage);
 		return VK_FALSE;
 	};
 

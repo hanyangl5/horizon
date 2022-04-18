@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <runtime/core/log/Log.h>
+
 #include "Instance.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -112,7 +114,7 @@ namespace Horizon {
 			pipelineLayoutInfo.pushConstantRangeCount = m_push_constants->pushConstantRanges.size();
 			pipelineLayoutInfo.pPushConstantRanges = m_push_constants->pushConstantRanges.data();
 		}
-		printVkError(vkCreatePipelineLayout(m_device->get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout), "create pipeline layout");
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device->get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout));
 
 		m_pipeline_descriptor_set = createInfo.pipeline_descriptor_set;
 	}
@@ -260,7 +262,7 @@ namespace Horizon {
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		printVkError(vkCreateGraphicsPipelines(m_device->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline), "create graphics pipeline failed");
+		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_device->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline));
 	}
 
 
@@ -298,7 +300,7 @@ namespace Horizon {
 			return m_pipeline_map[hashKey].pipeline;
 		}
 		else {
-			spdlog::error("no pipeline found");
+			LOG_ERROR("no pipeline found");
 			return nullptr;
 		}
 	}

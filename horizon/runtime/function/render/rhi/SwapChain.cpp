@@ -1,5 +1,7 @@
 #include "SwapChain.h"
 
+#include <runtime/core/log/Log.h>
+
 #include "Device.h"
 #include "QueueFamilyIndices.h"
 #include "SurfaceSupportDetails.h"
@@ -89,7 +91,7 @@ namespace Horizon {
 			swap_chain_create_info.pQueueFamilyIndices = nullptr;
 		}
 
-		printVkError(vkCreateSwapchainKHR(m_device->get(), &swap_chain_create_info, nullptr, &m_swap_chain), "create swap chain");
+		CHECK_VK_RESULT(vkCreateSwapchainKHR(m_device->get(), &swap_chain_create_info, nullptr, &m_swap_chain));
 
 		vkGetSwapchainImagesKHR(m_device->get(), m_swap_chain, &imag_count, nullptr);  // get images
 		images.resize(imag_count);
@@ -196,7 +198,7 @@ namespace Horizon {
 			image_view_create_info.subresourceRange.levelCount = 1;
 			image_view_create_info.subresourceRange.baseArrayLayer = 0;
 			image_view_create_info.subresourceRange.layerCount = 1;
-			printVkError(vkCreateImageView(m_device->get(), &image_view_create_info, nullptr, &imageViews[i]), "create image views", logLevel::debug);
+			CHECK_VK_RESULT(vkCreateImageView(m_device->get(), &image_view_create_info, nullptr, &imageViews[i]));
 		}
 	}
 }

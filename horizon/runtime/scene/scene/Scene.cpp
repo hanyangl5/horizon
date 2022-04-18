@@ -1,5 +1,6 @@
 #include "Scene.h"
 
+#include <runtime/core/log/Log.h>
 #include <runtime/function/render/rhi/UniformBuffer.h>
 
 namespace Horizon {
@@ -49,7 +50,7 @@ namespace Horizon {
 	void Scene::addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction)
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
-			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
+			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
 			return;
 		}
 
@@ -65,7 +66,7 @@ namespace Horizon {
 	void Scene::addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius)
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
-			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
+			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
 			return;
 		}
 
@@ -81,7 +82,7 @@ namespace Horizon {
 	void Scene::addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
-			spdlog::warn("light count cannot more than {}", MAX_LIGHT_COUNT);
+			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
 			return;
 		}
 		;
@@ -149,10 +150,10 @@ namespace Horizon {
 			}
 		}
 		//if (!meshSetLayout) {
-		//	spdlog::error("mesh descriptorset layout not found");
+		//	LOG_ERROR("mesh descriptorset layout not found");
 		//}
 		if (!materialSetLayout) {
-			spdlog::error("material descriptorset layout not found");
+			LOG_ERROR("material descriptorset layout not found");
 		}
 		layouts->layouts = { { m_scene_descriptor_set->getLayout(), materialSetLayout} };
 		return layouts;
@@ -168,7 +169,7 @@ namespace Horizon {
 			}
 		}
 		if (!materialSetLayout) {
-			spdlog::error("material descriptorset layout not found");
+			LOG_ERROR("material descriptorset layout not found");
 		}
 		layouts->layouts = { { m_scene_descriptor_set->getLayout(), materialSetLayout} };
 		return layouts;

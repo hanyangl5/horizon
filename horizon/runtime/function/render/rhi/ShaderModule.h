@@ -1,9 +1,6 @@
 #pragma once
 
-#include <runtime/core/utils/utils.h>
-
-#include <vector>
-#include <fstream>
+#include <runtime/function/render/rhi/VulkanEnums.h>
 #include <string>
 
 namespace Horizon {

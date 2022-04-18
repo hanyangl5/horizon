@@ -1,19 +1,10 @@
 #include "App.h"
-
-#include "spdlog/sinks/stdout_color_sinks.h" // or "../stdout_sinks.h" if no colors needed
 #include <memory>
 
 using namespace Horizon;
 
-App::App(u32 _width, u32 _height) :m_width(_width), mHeight(_height), m_logger(spdlog::stdout_color_mt("horizon logger"))
+App::App(u32 _width, u32 _height) :m_width(_width), mHeight(_height)
 {
-
-	spdlog::set_default_logger(m_logger);
-#ifndef NDEBUG
-	spdlog::set_level(spdlog::level::debug);
-#else
-	spdlog::set_level(spdlog::level::info);
-#endif // !NDEBUG
 
 }
 

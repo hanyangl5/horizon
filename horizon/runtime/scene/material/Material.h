@@ -1,6 +1,7 @@
 #pragma once
 
-#include <runtime/core/utils/utils.h>
+#include <memory>
+
 #include <runtime/function/render/rhi/Texture.h>
 #include <runtime/function/render/rhi/UniformBuffer.h>
 #include <runtime/function/render/rhi/Descriptors.h>

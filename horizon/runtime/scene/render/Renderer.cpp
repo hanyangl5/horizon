@@ -1,7 +1,9 @@
 #include "Renderer.h"
 
 #include <iostream>
-
+#include <runtime/core/math/Math.h>
+#include <runtime/core/path/Path.h>
+#include <runtime/function/render/rhi/VulkanEnums.h>
 namespace Horizon {
 
 	class Window;
@@ -124,7 +126,7 @@ namespace Horizon {
 	{
 		//m_scene->loadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
 		//m_scene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
-		m_scene->loadModel(getModelPath() + "earth6378/earth.gltf", "earth");
+		m_scene->loadModel(Path::GetInstance().GetModelPath("earth6378/earth.gltf"), "earth");
 		//Math::mat4 scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(1.0f/6378.0f));
 		//m_scene->getModel("earth")->setModelMatrix(scaleMatrix);
 		//m_scene->loadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/earth_original_size/earth.gltf");
@@ -144,8 +146,8 @@ namespace Horizon {
 
 		PipelineCreateInfo geometryPipelineCreateInfo;
 
-		geometryPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "geometry.vert.spv");
-		geometryPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), getShaderPath() + "geometry.frag.spv");
+		geometryPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("geometry.vert.spv"));
+		geometryPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("geometry.frag.spv"));
 		geometryPipelineCreateInfo.descriptor_layouts = m_scene->getGeometryPassDescriptorLayouts();
 
 		std::shared_ptr<PushConstants> geometryPipelinePushConstants = std::make_shared<PushConstants>();
@@ -189,8 +191,8 @@ namespace Horizon {
 
 
 		PipelineCreateInfo scatterPipelineCreateInfo;
-		scatterPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "scatter.vert.spv");
-		scatterPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), getShaderPath() + "scatter.frag.spv");
+		scatterPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("scatter.vert.spv"));
+		scatterPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("scatter.frag.spv"));
 		scatterPipelineCreateInfo.descriptor_layouts = scatterDescriptorSetLayout;
 		scatterPipelineCreateInfo.pipeline_descriptor_set = m_scatter_descriptorSet;
 		scatterPipelineCreateInfo.push_constants = scatterPipelinePushConstants;
@@ -211,8 +213,8 @@ namespace Horizon {
 		ppDescriptorSetLayout->layouts.push_back(m_pp_descriptorSet->getLayout());
 
 		PipelineCreateInfo ppPipelineCreateInfo;
-		ppPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "postprocess.vert.spv");
-		ppPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), getShaderPath() + "postprocess.frag.spv");
+		ppPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("postprocess.vert.spv"));
+		ppPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("postprocess.frag.spv"));
 		ppPipelineCreateInfo.descriptor_layouts = ppDescriptorSetLayout;
 
 		std::vector<AttachmentCreateInfo> ppAttachmentsCreateInfo{
@@ -229,9 +231,10 @@ namespace Horizon {
 		std::shared_ptr<DescriptorSetLayouts> presentDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		presentDescriptorSetLayout->layouts.push_back(m_present_descriptorSet->getLayout());
 
-
-		std::shared_ptr<Shader> presentVs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "present.vert.spv");
-		std::shared_ptr<Shader> presentPs = std::make_shared<Shader>(m_device->get(), getShaderPath() + "present.frag.spv");
+		Log::GetInstance();
+		Path::GetInstance();
+		std::shared_ptr<Shader> presentVs = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("present.vert.spv"));
+		std::shared_ptr<Shader> presentPs = std::make_shared<Shader>(m_device->get(), Path::GetInstance().GetShaderPath("present.frag.spv"));
 
 		PipelineCreateInfo presentPipelineCreateInfo;
 		presentPipelineCreateInfo.vs = presentVs;

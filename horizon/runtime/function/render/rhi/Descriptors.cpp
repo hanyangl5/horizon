@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include <runtime/core/log/Log.h>
+
 #include "UniformBuffer.h"
 
 namespace Horizon {
@@ -33,7 +35,7 @@ namespace Horizon {
 		layoutInfo.bindingCount = bindings.size();
 		layoutInfo.pBindings = bindings.data();
 
-		printVkError(vkCreateDescriptorSetLayout(m_device->get(), &layoutInfo, nullptr, &mSetLayout), "create descriptor set layout!");
+		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_device->get(), &layoutInfo, nullptr, &mSetLayout));
 
 	}
 
@@ -80,16 +82,16 @@ namespace Horizon {
 
 	void DescriptorSet::allocateDescriptorSet() {
 		if (mSet != VK_NULL_HANDLE) {
-			printVkError(vkFreeDescriptorSets(m_device->get(), mDescriptorPool, 1, &mSet));
+			CHECK_VK_RESULT(vkFreeDescriptorSets(m_device->get(), mDescriptorPool, 1, &mSet));
 		}
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = mDescriptorPool;
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &mSetLayout;
-		printVkError(vkAllocateDescriptorSets(m_device->get(), &allocInfo, &mSet));
+		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_device->get(), &allocInfo, &mSet));
 		if (!mSet) {
-			spdlog::error("failed to allocate descriptorset");
+			LOG_ERROR("failed to allocate descriptorset");
 		}
 	}
 
@@ -117,7 +119,7 @@ namespace Horizon {
 		poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
 		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-		printVkError(vkCreateDescriptorPool(m_device->get(), &poolInfo, nullptr, &mDescriptorPool), "create descriptor pool", logLevel::debug);
+		CHECK_VK_RESULT(vkCreateDescriptorPool(m_device->get(), &poolInfo, nullptr, &mDescriptorPool));
 
 	}
 

@@ -1,5 +1,7 @@
 #include "RenderPass.h"
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 
 	RenderPass::RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info) :m_device(device)
@@ -36,7 +38,7 @@ namespace Horizon {
 				attachmentsDesc[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			}
 			else {
-				spdlog::error("not an valid attachment");
+				LOG_ERROR("not an valid attachment");
 			}
 		}
 
@@ -93,7 +95,7 @@ namespace Horizon {
 		renderPassInfo.dependencyCount = dependencies.size();
 		renderPassInfo.pDependencies = dependencies.data();
 
-		printVkError(vkCreateRenderPass(m_device->get(), &renderPassInfo, nullptr, &m_render_pass), "failed to create render pass");
+		CHECK_VK_RESULT(vkCreateRenderPass(m_device->get(), &renderPassInfo, nullptr, &m_render_pass));
 	}
 
 	RenderPass::~RenderPass()

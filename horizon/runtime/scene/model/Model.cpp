@@ -1,5 +1,7 @@
 #include "Model.h"
 
+#include <runtime/core/log/Log.h>
+#include <runtime/core/path/Path.h>
 #include <runtime/function/render/rhi/VulkanBuffer.h>
 
 namespace Horizon {
@@ -26,7 +28,7 @@ namespace Horizon {
 		}
 		else
 		{
-			spdlog::error("{} {}", error, warning);
+			LOG_ERROR("{} {}", error, warning);
 		}
 	}
 
@@ -114,7 +116,7 @@ namespace Horizon {
 
 		if (!mEmptyTexture) {
 			mEmptyTexture = std::make_shared<Texture>(m_device, m_command_buffer);
-			mEmptyTexture->loadFromFile(getAssetsPath() + "/models/black.bmp", VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			mEmptyTexture->loadFromFile(Path::GetInstance().GetModelPath("black.bmp"), VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	}
 
@@ -129,14 +131,14 @@ namespace Horizon {
 				material->m_material_ubdata.has_base_color = true;
 			}
 			else {
-				spdlog::warn("no base color texture found, use an empty texture instead");
+				LOG_WARN("no base color texture found, use an empty texture instead");
 				material->base_color_texture = mEmptyTexture;
 			}
 
 			//if (mat.values.find("baseColorFactor") != mat.values.end()) {
 			//	material.m_material_ubdata.baseColorFactor = Math::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
 			//} else{
-			//	spdlog::warn("no base color factor found, use default param instead");
+			//	LOG_WARN("no base color factor found, use default param instead");
 			//}
 
 			// normal
@@ -146,7 +148,7 @@ namespace Horizon {
 				material->m_material_ubdata.has_normal = true;
 			}
 			else {
-				spdlog::warn("no normal texture found, use an empty texture instead");
+				LOG_WARN("no normal texture found, use an empty texture instead");
 				material->normal_texture = mEmptyTexture;
 			}
 
@@ -157,19 +159,19 @@ namespace Horizon {
 				material->m_material_ubdata.has_metallic_rougness = true;
 			}
 			else {
-				spdlog::warn("no metallicRoughness texture found, use an empty texture instead");
+				LOG_WARN("no metallicRoughness texture found, use an empty texture instead");
 				material->metallic_rougness_texture = mEmptyTexture;
 			}
 			/*
 			if (mat.values.find("roughnessFactor") != mat.values.end()) {
 				material.m_material_ubdata.metallicRoughnessFactor.y = static_cast<f32>(mat.values["roughnessFactor"].Factor());
 			} else{
-				spdlog::warn("no roughnessFactor found, use default param instead");
+				LOG_WARN("no roughnessFactor found, use default param instead");
 			}
 			if (mat.values.find("metallicFactor") != mat.values.end()) {
 				material.m_material_ubdata.metallicRoughnessFactor.x = static_cast<f32>(mat.values["metallicFactor"].Factor());
 			} else{
-				spdlog::warn("no metallicFactor found, use default param instead");
+				LOG_WARN("no metallicFactor found, use default param instead");
 			}*/
 
 			//if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
@@ -405,7 +407,7 @@ namespace Horizon {
 	//	for (auto& node : nodes) {
 	//		return getNodeMeshDescriptorSet(node);
 	//	}
-	//	spdlog::error("mesh descriptorset not found");
+	//	LOG_ERROR("mesh descriptorset not found");
 	//	return nullptr;
 	//}
 	//std::shared_ptr<DescriptorSet> Model::getNodeMeshDescriptorSet(std::shared_ptr<Node> node)
@@ -423,7 +425,7 @@ namespace Horizon {
 		for (auto& node : nodes) {
 			return getNodeMaterialDescriptorSet(node);
 		}
-		spdlog::error("material descriptorset not found");
+		LOG_ERROR("material descriptorset not found");
 		return nullptr;
 	}
 	void Model::setModelMatrix(const Math::mat4& modelMatrix)

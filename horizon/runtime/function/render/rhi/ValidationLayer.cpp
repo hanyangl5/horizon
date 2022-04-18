@@ -1,5 +1,10 @@
 #include "ValidationLayer.h"
 
+#ifndef GLFW_INCLUDE_VULKAN
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#endif
+
 namespace Horizon {
 
 	VkResult ValidationLayer::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)

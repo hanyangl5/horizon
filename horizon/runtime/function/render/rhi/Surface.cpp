@@ -2,6 +2,8 @@
 #include <runtime/core/utils/utils.h>
 #include <runtime/function/window/Window.h>
 
+#include <runtime/core/log/Log.h>
+
 namespace Horizon {
 
 	Surface::Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window) :m_instance(instance), m_window(window)
@@ -21,6 +23,6 @@ namespace Horizon {
 
 	void Surface::createSurface()
 	{
-		printVkError(glfwCreateWindowSurface(m_instance->get(), m_window->getWindow(), nullptr, &m_surface), "create surface");
+		CHECK_VK_RESULT(glfwCreateWindowSurface(m_instance->get(), m_window->getWindow(), nullptr, &m_surface));
 	}
 }

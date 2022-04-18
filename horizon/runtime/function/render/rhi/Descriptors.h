@@ -1,11 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
-
 #include <runtime/core/utils/utils.h>
+#include <runtime/function/render/rhi/VulkanEnums.h>
 #include "Device.h"
 
 namespace Horizon {
