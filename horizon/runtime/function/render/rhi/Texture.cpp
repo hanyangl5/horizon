@@ -134,6 +134,10 @@ namespace Horizon {
 
 	Texture::~Texture()
 	{
+		vkDestroyImage(m_device->get(), m_image, nullptr);
+		vkDestroyImageView(m_device->get(), m_image_view, nullptr);
+		vkDestroySampler(m_device->get(), m_sampler, nullptr);
+		vkFreeMemory(m_device->get(), m_image_memory, nullptr);
 	}
 
 	void Texture::loadFromFile(const std::string& path, VkImageUsageFlags usage, VkImageLayout layout) {

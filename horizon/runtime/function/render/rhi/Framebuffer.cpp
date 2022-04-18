@@ -18,6 +18,7 @@ namespace Horizon {
 
 	Framebuffer::~Framebuffer()
 	{
+		vkDestroySampler(m_device->get(), m_sampler, nullptr);
 		for (auto& attachment : m_frame_buffer_attachments) {
 			vkDestroyImage(m_device->get(), attachment.m_image, nullptr);
 			vkDestroyImageView(m_device->get(), attachment.m_image_view, nullptr);

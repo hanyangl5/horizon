@@ -7,6 +7,7 @@
 #include "Device.h"
 #include "SwapChain.h"
 #include "RenderPass.h"
+
 namespace Horizon {
 	class Framebuffer
 	{

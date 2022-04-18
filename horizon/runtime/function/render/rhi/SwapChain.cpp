@@ -170,9 +170,6 @@ namespace Horizon {
 
 	void SwapChain::cleanup()
 	{
-		for (auto& image : images) {
-			vkDestroyImage(m_device->get(), image, nullptr);
-		}
 		for (auto& imageView : imageViews)
 		{
 			vkDestroyImageView(m_device->get(), imageView, nullptr);
