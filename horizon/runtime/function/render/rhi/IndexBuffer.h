@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Device.h"
 #include "CommandBuffer.h"
 
@@ -15,7 +15,7 @@ namespace Horizon {
 		IndexBuffer() = default;
 		IndexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, const std::vector<Index>& vertices);
 		~IndexBuffer();
-		VkBuffer get()const;
+		VkBuffer Get()const;
 		u64 getIndicesCount()const;
 	private:
 		VkBuffer m_index_buffer;

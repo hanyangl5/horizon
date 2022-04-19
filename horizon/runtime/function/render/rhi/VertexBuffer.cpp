@@ -10,16 +10,16 @@ namespace Horizon {
 		// create stage buffer
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		vk_createBuffer(device->get(), device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		vk_createBuffer(device->Get(), device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 		// upload cpu data
 		void* data;
-		vkMapMemory(m_device->get(), stagingBufferMemory, 0, buffer_size, 0, &data);
+		vkMapMemory(m_device->Get(), stagingBufferMemory, 0, buffer_size, 0, &data);
 		memcpy(data, vertices.data(), buffer_size);
-		vkUnmapMemory(m_device->get(), stagingBufferMemory);
+		vkUnmapMemory(m_device->Get(), stagingBufferMemory);
 
 		// create actual vertex buffer
-		vk_createBuffer(device->get(), device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertex_buffer, m_vertex_buffer_memory);
+		vk_createBuffer(device->Get(), device->getPhysicalDevice(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertex_buffer, m_vertex_buffer_memory);
 
 		vk_copyBuffer(device, command_buffer, stagingBuffer, m_vertex_buffer, buffer_size);
 
@@ -34,8 +34,8 @@ namespace Horizon {
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
 		command_buffer->endSingleTimeCommands(cmdbuf);
 
-		vkDestroyBuffer(device->get(), stagingBuffer, nullptr);
-		vkFreeMemory(device->get(), stagingBufferMemory, nullptr);
+		vkDestroyBuffer(device->Get(), stagingBuffer, nullptr);
+		vkFreeMemory(device->Get(), stagingBufferMemory, nullptr);
 	}
 
 	//VertexBuffer::VertexBuffer(const VertexBuffer&& rhs)
@@ -53,11 +53,11 @@ namespace Horizon {
 
 	VertexBuffer::~VertexBuffer()
 	{
-		vkDestroyBuffer(m_device->get(), m_vertex_buffer, nullptr);
-		vkFreeMemory(m_device->get(), m_vertex_buffer_memory, nullptr);
+		vkDestroyBuffer(m_device->Get(), m_vertex_buffer, nullptr);
+		vkFreeMemory(m_device->Get(), m_vertex_buffer_memory, nullptr);
 	}
 
-	VkBuffer VertexBuffer::get() const
+	VkBuffer VertexBuffer::Get() const
 	{
 		return m_vertex_buffer;
 	}

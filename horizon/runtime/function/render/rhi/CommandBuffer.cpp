@@ -14,28 +14,28 @@ namespace Horizon {
 	CommandBuffer::~CommandBuffer()
 	{
 		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroySemaphore(m_device->get(), m_render_finished_semaphores[i], nullptr);
-			vkDestroySemaphore(m_device->get(), m_image_available_semaphores[i], nullptr);
-			vkDestroyFence(m_device->get(), m_in_flight_fences[i], nullptr);
+			vkDestroySemaphore(m_device->Get(), m_render_finished_semaphores[i], nullptr);
+			vkDestroySemaphore(m_device->Get(), m_image_available_semaphores[i], nullptr);
+			vkDestroyFence(m_device->Get(), m_in_flight_fences[i], nullptr);
 		}
-		vkDestroyCommandPool(m_device->get(), m_command_pool, nullptr);
+		vkDestroyCommandPool(m_device->Get(), m_command_pool, nullptr);
 	}
 
 
-	VkCommandBuffer CommandBuffer::get(u32 i)
+	VkCommandBuffer CommandBuffer::Get(u32 i)
 	{
 		return m_command_buffers[i];
 	}
 
 	void CommandBuffer::submit(std::shared_ptr<SwapChain> swap_chain)
 	{
-		vkWaitForFences(m_device->get(), 1, &m_in_flight_fences[m_current_frame], VK_TRUE, UINT64_MAX);
+		vkWaitForFences(m_device->Get(), 1, &m_in_flight_fences[m_current_frame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(m_device->get(), swap_chain->get(), UINT64_MAX, m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &imageIndex);
+		vkAcquireNextImageKHR(m_device->Get(), swap_chain->Get(), UINT64_MAX, m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &imageIndex);
 
 		if (m_images_in_flight[imageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(m_device->get(), 1, &m_images_in_flight[imageIndex], VK_TRUE, UINT64_MAX);
+			vkWaitForFences(m_device->Get(), 1, &m_images_in_flight[imageIndex], VK_TRUE, UINT64_MAX);
 		}
 		m_images_in_flight[imageIndex] = m_in_flight_fences[m_current_frame];
 
@@ -55,7 +55,7 @@ namespace Horizon {
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		vkResetFences(m_device->get(), 1, &m_in_flight_fences[m_current_frame]);
+		vkResetFences(m_device->Get(), 1, &m_in_flight_fences[m_current_frame]);
 
 		CHECK_VK_RESULT(vkQueueSubmit(m_device->getGraphicQueue(), 1, &submitInfo, m_in_flight_fences[m_current_frame]));
 
@@ -65,7 +65,7 @@ namespace Horizon {
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = { swap_chain->get() };
+		VkSwapchainKHR swapChains[] = { swap_chain->Get() };
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 
@@ -94,7 +94,7 @@ namespace Horizon {
 		command_pool_create_info.queueFamilyIndex = m_device->getQueueFamilyIndices().getGraphics();
 		command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		CHECK_VK_RESULT(vkCreateCommandPool(m_device->get(), &command_pool_create_info, nullptr, &m_command_pool));
+		CHECK_VK_RESULT(vkCreateCommandPool(m_device->Get(), &command_pool_create_info, nullptr, &m_command_pool));
 
 	}
 
@@ -114,7 +114,7 @@ namespace Horizon {
 		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		commandBufferAllocateInfo.commandBufferCount = static_cast<u32>(m_command_buffers.size());
 
-		CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device->get(), &commandBufferAllocateInfo, m_command_buffers.data()));
+		CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device->Get(), &commandBufferAllocateInfo, m_command_buffers.data()));
 	}
 
 	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) {
@@ -161,8 +161,8 @@ namespace Horizon {
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
 		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			CHECK_VK_RESULT(vkCreateSemaphore(m_device->get(), &semaphoreCreateInfo, nullptr, &m_image_available_semaphores[i]));
-			CHECK_VK_RESULT(vkCreateSemaphore(m_device->get(), &semaphoreCreateInfo, nullptr, &m_render_finished_semaphores[i]));
+			CHECK_VK_RESULT(vkCreateSemaphore(m_device->Get(), &semaphoreCreateInfo, nullptr, &m_image_available_semaphores[i]));
+			CHECK_VK_RESULT(vkCreateSemaphore(m_device->Get(), &semaphoreCreateInfo, nullptr, &m_render_finished_semaphores[i]));
 		}
 	}
 
@@ -177,7 +177,7 @@ namespace Horizon {
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 		for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			CHECK_VK_RESULT(vkCreateFence(m_device->get(), &fenceInfo, nullptr, &m_in_flight_fences[i]));
+			CHECK_VK_RESULT(vkCreateFence(m_device->Get(), &fenceInfo, nullptr, &m_in_flight_fences[i]));
 		}
 	}
 
@@ -189,7 +189,7 @@ namespace Horizon {
 		allocInfo.commandBufferCount = 1;
 
 		VkCommandBuffer command_buffer;
-		vkAllocateCommandBuffers(m_device->get(), &allocInfo, &command_buffer);
+		vkAllocateCommandBuffers(m_device->Get(), &allocInfo, &command_buffer);
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -211,7 +211,7 @@ namespace Horizon {
 		vkQueueSubmit(m_device->getGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(m_device->getGraphicQueue());
 
-		vkFreeCommandBuffers(m_device->get(), m_command_pool, 1, &command_buffer);
+		vkFreeCommandBuffers(m_device->Get(), m_command_pool, 1, &command_buffer);
 	}
 
 	u32 CommandBuffer::present()

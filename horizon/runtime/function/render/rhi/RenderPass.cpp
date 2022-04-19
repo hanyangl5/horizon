@@ -6,9 +6,9 @@ namespace Horizon {
 
 	RenderPass::RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info) :m_device(device)
 	{
-		createRenderPass(attachment_create_info);
+		CreateRenderPass(attachment_create_info);
 	}
-	void RenderPass::createRenderPass(const std::vector<AttachmentCreateInfo>& attachment_create_info)
+	void RenderPass::CreateRenderPass(const std::vector<AttachmentCreateInfo>& attachment_create_info)
 	{
 		u32 attachmentCount = attachment_create_info.size();
 		colorAttachmentCount = attachmentCount;
@@ -95,15 +95,15 @@ namespace Horizon {
 		renderPassInfo.dependencyCount = dependencies.size();
 		renderPassInfo.pDependencies = dependencies.data();
 
-		CHECK_VK_RESULT(vkCreateRenderPass(m_device->get(), &renderPassInfo, nullptr, &m_render_pass));
+		CHECK_VK_RESULT(vkCreateRenderPass(m_device->Get(), &renderPassInfo, nullptr, &m_render_pass));
 	}
 
 	RenderPass::~RenderPass()
 	{
-		vkDestroyRenderPass(m_device->get(), m_render_pass, nullptr);
+		vkDestroyRenderPass(m_device->Get(), m_render_pass, nullptr);
 	}
 
-	VkRenderPass RenderPass::get() const
+	VkRenderPass RenderPass::Get() const
 	{
 		return m_render_pass;
 	}

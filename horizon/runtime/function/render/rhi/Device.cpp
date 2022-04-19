@@ -12,10 +12,10 @@ namespace Horizon {
 	Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface) :m_instance(instance), m_surface(surface)
 	{
 		// enumerate vk devices
-		vkEnumeratePhysicalDevices(m_instance->get(), &device_count, nullptr);
+		vkEnumeratePhysicalDevices(m_instance->Get(), &device_count, nullptr);
 		if (device_count == 0) { LOG_ERROR("no available device"); }
-		vkEnumeratePhysicalDevices(m_instance->get(), &device_count, m_physical_devices.data());
-		pickPhysicalDevice(m_instance->get());
+		vkEnumeratePhysicalDevices(m_instance->Get(), &device_count, m_physical_devices.data());
+		pickPhysicalDevice(m_instance->Get());
 		createDevice(m_instance->getValidationLayer());
 	}
 
@@ -29,7 +29,7 @@ namespace Horizon {
 		return m_physical_devices[m_physical_device_index];
 	}
 
-	VkDevice Device::get() const
+	VkDevice Device::Get() const
 	{
 		return m_device;
 	}
@@ -46,8 +46,8 @@ namespace Horizon {
 
 	bool Device::isDeviceSuitable(VkPhysicalDevice device)
 	{
-		QueueFamilyIndices indices(device, m_surface->get());
-		SurfaceSupportDetails details(device, m_surface->get());
+		QueueFamilyIndices indices(device, m_surface->Get());
+		SurfaceSupportDetails details(device, m_surface->Get());
 		if (indices.completed() && details.suitable() && checkDeviceExtensionSupport(device)) {
 			VkPhysicalDeviceProperties device_properties;
 			vkGetPhysicalDeviceProperties(device, &device_properties);

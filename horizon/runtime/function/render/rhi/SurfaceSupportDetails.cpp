@@ -1,6 +1,6 @@
 #include "SurfaceSupportDetails.h"
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 
 #include <runtime/core/log/Log.h>
 
@@ -11,11 +11,11 @@ namespace Horizon {
 		CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &capabilities));
 
 		u32 formatCount = 0;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);  // get count
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);  // Get count
 		if (formatCount == 0)
 			LOG_ERROR("vkGetPhysicalDeviceSurfaceFormatsKHR returned zero surface formats");
 		formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, formats.data());  // get available surface formats
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, formats.data());  // Get available surface formats
 
 		u32 presentModeCount;
 		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);

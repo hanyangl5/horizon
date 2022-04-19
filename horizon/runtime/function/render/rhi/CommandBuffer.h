@@ -3,7 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Device.h"
 #include "SwapChain.h"
 #include "Pipeline.h"
@@ -15,7 +15,7 @@ namespace Horizon {
 	public:
 		CommandBuffer(RenderContext& render_context, std::shared_ptr<Device> device);
 		~CommandBuffer();
-		VkCommandBuffer get(u32 i);
+		VkCommandBuffer Get(u32 i);
 		void submit(std::shared_ptr<SwapChain> swap_chain);
 		VkCommandPool getCommandpool()const;
 		void beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present = false);

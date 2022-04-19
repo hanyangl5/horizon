@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Device.h"
 #include "VulkanBuffer.h"
 #include "CommandBuffer.h"
@@ -14,7 +14,7 @@ namespace Horizon {
 		UniformBuffer(std::shared_ptr<Device>);
 		~UniformBuffer();
 		void update(void* ub, u64 buffer_size);
-		VkBuffer get()const;
+		VkBuffer Get()const;
 		u64 size()const;
 	private:
 		std::shared_ptr<Device> m_device = nullptr;

@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Instance.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -35,8 +35,8 @@ namespace Horizon {
 	public:
 		Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain = nullptr);
 		~Pipeline();
-		VkPipeline get()const;
-		VkPipelineLayout getLayout() const;
+		VkPipeline Get()const;
+		VkPipelineLayout GetLayout() const;
 		VkViewport getViewport() const;
 		VkRenderPass getRenderPass() const;
 		VkFramebuffer getFrameBuffer() const;
@@ -69,7 +69,7 @@ namespace Horizon {
 		PipelineManager(std::shared_ptr<Device> device);
 		void createPipeline(const PipelineCreateInfo& createInfo, const std::string& name, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context);
 		void createPresentPipeline(const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain);
-		std::shared_ptr<Pipeline> get(const std::string& name);
+		std::shared_ptr<Pipeline> Get(const std::string& name);
 	private:
 		// convert pipelinecreateinfo and pipelinename to u32 hash key, https://dev.to/muiz6/string-hashing-in-c-1np3
 		inline u32 GetPipelineKey(const std::string& key) {

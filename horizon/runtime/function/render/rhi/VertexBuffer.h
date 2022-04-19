@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Device.h"
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Vertex.h"
 #include "CommandBuffer.h"
 
@@ -15,7 +15,7 @@ namespace Horizon {
 		//VertexBuffer(const VertexBuffer&& rhs);
 		//VertexBuffer& operator=(VertexBuffer&& rhs);
 		~VertexBuffer();
-		VkBuffer get()const;
+		VkBuffer Get()const;
 		u64 getVerticesCount()const;
 	private:
 		std::shared_ptr<Device> m_device = nullptr;

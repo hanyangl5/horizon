@@ -11,19 +11,19 @@ namespace Horizon {
 
 		std::shared_ptr<DescriptorSetInfo> sceneDescriptorSetInfo = std::make_shared<DescriptorSetInfo>();
 		// vp mat
-		sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		sceneDescriptorSetInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 		//// light count
-		//sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		//sceneDescriptorSetInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 		//// light ub
-		//sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		//sceneDescriptorSetInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 		//// camera
-		//sceneDescriptorSetInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		//sceneDescriptorSetInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		m_scene_descriptor_set = std::make_shared<DescriptorSet>(m_device, sceneDescriptorSetInfo);
 
 		m_camera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 10000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
-		m_camera->setPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 0.01f, 30000.0f);
-		m_camera->setCameraSpeed(10.0f);
+		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 0.01f, 30000.0f);
+		m_camera->SetCameraSpeed(10.0f);
 
 		// create uniform buffer
 		m_scene_ub = std::make_shared<UniformBuffer>(device);
@@ -37,17 +37,17 @@ namespace Horizon {
 
 	}
 
-	void Scene::loadModel(const std::string& path, const std::string& name)
+	void Scene::LoadModel(const std::string& path, const std::string& name)
 	{
 		m_models.insert({ name, std::make_shared<Model>(path, m_device, m_command_buffer, m_scene_descriptor_set) });
 	}
 
-	std::shared_ptr<Model> Scene::getModel(const std::string& name)
+	std::shared_ptr<Model> Scene::GetModel(const std::string& name)
 	{
 		return m_models.at(name);
 	}
 
-	void Scene::addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction)
+	void Scene::AddDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction)
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
 			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -63,7 +63,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius)
+	void Scene::AddPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius)
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
 			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -79,7 +79,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
+	void Scene::AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
 			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -97,18 +97,18 @@ namespace Horizon {
 		m_light_count_ubdata.lightCount++;
 	}
 
-	void Scene::prepare()
+	void Scene::Prepare()
 	{
 		// update scene descriptorset
-		m_scene_descriptor_set->allocateDescriptorSet();
+		m_scene_descriptor_set->AllocateDescriptorSet();
 
 		// update Ub data
-		m_scene_ubdata.view = m_camera->getViewMatrix();
-		m_scene_ubdata.projection = m_camera->getProjectionMatrix();
-		m_scene_ubdata.nearFar = m_camera->getNearFarPlane();
+		m_scene_ubdata.view = m_camera->GetViewMatrix();
+		m_scene_ubdata.projection = m_camera->GetProjectionMatrix();
+		m_scene_ubdata.nearFar = m_camera->GetNearFarPlane();
 		m_scene_ub->update(&m_scene_ubdata, sizeof(SceneUb));
 
-		m_camera_ubdata.cameraPos = m_camera->getPosition();
+		m_camera_ubdata.cameraPos = m_camera->GetPosition();
 		m_camera_ub->update(&m_camera_ubdata, sizeof(CamaeraUb));
 
 		//m_light_count_ub->update(&m_light_count_ubdata, sizeof(LightCountUb));
@@ -116,10 +116,10 @@ namespace Horizon {
 
 
 		DescriptorSetUpdateDesc desc;
-		desc.bindResource(0, m_scene_ub);
-		//desc.bindResource(1, m_light_count_ub);
-		//desc.bindResource(2, m_light_ub);
-		//desc.bindResource(3, m_camera_ub);
+		desc.BindResource(0, m_scene_ub);
+		//desc.BindResource(1, m_light_count_ub);
+		//desc.BindResource(2, m_light_ub);
+		//desc.BindResource(3, m_camera_ub);
 
 		m_scene_descriptor_set->UpdateDescriptorSet(desc);
 		
@@ -127,26 +127,26 @@ namespace Horizon {
 
 		// update material&mesh descriptorset
 		for (auto& model : m_models) {
-			model.second->updateModelMatrix();
-			model.second->updateDescriptors();
+			model.second->UpdateModelMatrix();
+			model.second->UpdateDescriptors();
 		}
 	}
 
-	void Scene::draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline) {
+	void Scene::Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline) {
 		for (auto& model : m_models) {
-			model.second->draw(pipeline, command_buffer);
+			model.second->Draw(pipeline, command_buffer);
 		}
 	}
 
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::getDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::GetDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout materialSetLayout;
 		for (auto& model : m_models) {
-			if (model.second->getMaterialDescriptorSet()) {
-				//meshSetLayout = model.second->getMeshDescriptorSet()->getLayout();
-				materialSetLayout = model.second->getMaterialDescriptorSet()->getLayout();
+			if (model.second->GetMaterialDescriptorSet()) {
+				//meshSetLayout = model.second->getMeshDescriptorSet()->GetLayout();
+				materialSetLayout = model.second->GetMaterialDescriptorSet()->GetLayout();
 			}
 		}
 		//if (!meshSetLayout) {
@@ -155,35 +155,35 @@ namespace Horizon {
 		if (!materialSetLayout) {
 			LOG_ERROR("material descriptorset layout not found");
 		}
-		layouts->layouts = { { m_scene_descriptor_set->getLayout(), materialSetLayout} };
+		layouts->layouts = { { m_scene_descriptor_set->GetLayout(), materialSetLayout} };
 		return layouts;
 	}
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::getGeometryPassDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::GetGeometryPassDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout materialSetLayout;
 		for (auto& model : m_models) {
-			if (model.second->getMaterialDescriptorSet()) {
-				materialSetLayout = model.second->getMaterialDescriptorSet()->getLayout();
+			if (model.second->GetMaterialDescriptorSet()) {
+				materialSetLayout = model.second->GetMaterialDescriptorSet()->GetLayout();
 			}
 		}
 		if (!materialSetLayout) {
 			LOG_ERROR("material descriptorset layout not found");
 		}
-		layouts->layouts = { { m_scene_descriptor_set->getLayout(), materialSetLayout} };
+		layouts->layouts = { { m_scene_descriptor_set->GetLayout(), materialSetLayout} };
 		return layouts;
 	}
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::getSceneDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::GetSceneDescriptorLayouts()
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
-		layouts->layouts.emplace_back(m_scene_descriptor_set->getLayout());
+		layouts->layouts.emplace_back(m_scene_descriptor_set->GetLayout());
 		return layouts;
 	}
 
 
-	std::shared_ptr<Camera> Scene::getMainCamera() const
+	std::shared_ptr<Camera> Scene::GetMainCamera() const
 	{
 		return m_camera;
 	}
@@ -201,21 +201,21 @@ namespace Horizon {
 		m_vertex_buffer = std::make_shared<VertexBuffer>(m_device, m_command_buffer, m_vertices);
 	}
 
-	void FullscreenTriangle::draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptorsets, bool is_present)
+	void FullscreenTriangle::Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptorsets, bool is_present)
 	{
 
 		const VkDeviceSize offsets[1] = { 0 };
-		VkBuffer vertexBuffer = m_vertex_buffer->get();
+		VkBuffer vertexBuffer = m_vertex_buffer->Get();
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertexBuffer, offsets);
 
 		std::vector<VkDescriptorSet> descriptorsets(_descriptorsets.size());
 		for (u32 i = 0; i < _descriptorsets.size(); i++)
 		{
-			descriptorsets[i] = _descriptorsets[i]->get();
+			descriptorsets[i] = _descriptorsets[i]->Get();
 		}
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptorsets.size(), descriptorsets.data(), 0, 0);
-		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), 0, descriptorsets.size(), descriptorsets.data(), 0, 0);
+		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
 		vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
 	}

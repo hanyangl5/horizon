@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Device.h"
 #include "Attachment.h"
 
@@ -13,9 +13,9 @@ namespace Horizon {
 	public:
 		RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info);
 		~RenderPass();
-		VkRenderPass get() const;
+		VkRenderPass Get() const;
 	private:
-		void createRenderPass(const std::vector<AttachmentCreateInfo>& attachment_create_info);
+		void CreateRenderPass(const std::vector<AttachmentCreateInfo>& attachment_create_info);
 	public:
 		bool m_has_depth_attachment = false;
 		u32 colorAttachmentCount = 0;

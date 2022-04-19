@@ -13,43 +13,43 @@ namespace Horizon {
 	InputManager::~InputManager()
 	{
 	}
-	void InputManager::processInput()
+	void InputManager::ProcessInput()
 	{
-
-		processMouseInput();
-		processKeyboardInput();
-		m_camera->updateViewMatrix();
+		glfwPollEvents();
+		ProcessMouseInput();
+		ProcessKeyboardInput();
+		m_camera->UpdateViewMatrix();
 	}
 
-	void InputManager::processKeyboardInput()
+	void InputManager::ProcessKeyboardInput()
 	{
 
-		if (getKeyPress(Key::ESCAPE)) {
+		if (GetKeyPress(Key::ESCAPE)) {
 			m_window->close();
 		}
-		if (getKeyPress(Key::KEY_W)) {
-			m_camera->move(Direction::FORWARD);
+		if (GetKeyPress(Key::KEY_W)) {
+			m_camera->Move(Direction::FORWARD);
 		}
-		if (getKeyPress(Key::KEY_S)) {
-			m_camera->move(Direction::BACKWARD);
+		if (GetKeyPress(Key::KEY_S)) {
+			m_camera->Move(Direction::BACKWARD);
 		}
-		if (getKeyPress(Key::KEY_A)) {
-			m_camera->move(Direction::LEFT);
+		if (GetKeyPress(Key::KEY_A)) {
+			m_camera->Move(Direction::LEFT);
 		}
-		if (getKeyPress(Key::KEY_D)) {
-			m_camera->move(Direction::RIGHT);
+		if (GetKeyPress(Key::KEY_D)) {
+			m_camera->Move(Direction::RIGHT);
 		}
-		if (getKeyPress(Key::SPACE)) {
-			m_camera->move(Direction::UP);
+		if (GetKeyPress(Key::SPACE)) {
+			m_camera->Move(Direction::UP);
 		}
-		if (getKeyPress(Key::KEY_LCTRL)) {
-			m_camera->move(Direction::DOWN);
+		if (GetKeyPress(Key::KEY_LCTRL)) {
+			m_camera->Move(Direction::DOWN);
 		}
 
 	}
 
 
-	void InputManager::processMouseInput()
+	void InputManager::ProcessMouseInput()
 	{
 		f64 xposIn, yposIn;
 		glfwGetCursorPos(m_window->getWindow(), &xposIn, &yposIn);
@@ -70,20 +70,20 @@ namespace Horizon {
 		m_last_x = xpos;
 		m_last_y = ypos;
 
-		if (getMouseButtonPress(MouseButton::RIGHT_BUTTON)) {
+		if (GetMouseButtonPress(MouseButton::RIGHT_BUTTON)) {
 
 			xoffset *= m_mouse_sensitivity_x;
 			yoffset *= m_mouse_sensitivity_y;
 
-			m_camera->rotate(xoffset, yoffset);
+			m_camera->Rotate(xoffset, yoffset);
 
 		}
-		else if (getMouseButtonRelease(MouseButton::RIGHT_BUTTON)) {
+		else if (GetMouseButtonRelease(MouseButton::RIGHT_BUTTON)) {
 			m_first_mouse = true;
 		}
 	}
 
-	bool InputManager::getKeyPress(Key inputKey)
+	bool InputManager::GetKeyPress(Key inputKey)
 	{
 		switch (inputKey)
 		{
@@ -117,7 +117,7 @@ namespace Horizon {
 		}
 	}
 
-	int InputManager::getMouseButtonPress(MouseButton button)
+	int InputManager::GetMouseButtonPress(MouseButton button)
 	{
 		switch (button)
 		{
@@ -134,7 +134,7 @@ namespace Horizon {
 
 	}
 
-	int InputManager::getMouseButtonRelease(MouseButton button)
+	int InputManager::GetMouseButtonRelease(MouseButton button)
 	{
 		switch (button)
 		{

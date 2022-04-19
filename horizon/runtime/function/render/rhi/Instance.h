@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "ValidationLayer.h"
 
 namespace Horizon {
@@ -14,7 +14,7 @@ namespace Horizon {
 	public:
 		Instance();
 		~Instance();
-		VkInstance get()const;
+		VkInstance Get()const;
 		const ValidationLayer& getValidationLayer()const;
 	private:
 		void createInstance();

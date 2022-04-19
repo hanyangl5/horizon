@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include "Instance.h"
 #include "Surface.h"
 #include "QueueFamilyIndices.h"
@@ -16,7 +16,7 @@ namespace Horizon {
 		Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface);
 		~Device();
 		VkPhysicalDevice getPhysicalDevice() const;
-		VkDevice get()const;
+		VkDevice Get()const;
 		VkQueue getGraphicQueue()const;
 		VkQueue getPresnetQueue()const;
 		QueueFamilyIndices getQueueFamilyIndices();

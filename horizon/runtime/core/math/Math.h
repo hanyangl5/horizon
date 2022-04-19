@@ -10,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Horizon {
+
 	namespace Math = glm;
 
 	using u8 = uint8_t;

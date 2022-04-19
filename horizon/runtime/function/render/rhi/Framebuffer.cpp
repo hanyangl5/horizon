@@ -18,30 +18,30 @@ namespace Horizon {
 
 	Framebuffer::~Framebuffer()
 	{
-		vkDestroySampler(m_device->get(), m_sampler, nullptr);
+		vkDestroySampler(m_device->Get(), m_sampler, nullptr);
 		for (auto& attachment : m_frame_buffer_attachments) {
-			vkDestroyImage(m_device->get(), attachment.m_image, nullptr);
-			vkDestroyImageView(m_device->get(), attachment.m_image_view, nullptr);
-			vkFreeMemory(m_device->get(), attachment.m_image_memory, nullptr);
+			vkDestroyImage(m_device->Get(), attachment.m_image, nullptr);
+			vkDestroyImageView(m_device->Get(), attachment.m_image_view, nullptr);
+			vkFreeMemory(m_device->Get(), attachment.m_image_memory, nullptr);
 		}
 		for (auto& framebuffer : m_framebuffer) {
-			vkDestroyFramebuffer(m_device->get(), framebuffer, nullptr);
+			vkDestroyFramebuffer(m_device->Get(), framebuffer, nullptr);
 		}
 	}
 
-	VkFramebuffer Framebuffer::get() const
+	VkFramebuffer Framebuffer::Get() const
 	{
 		return m_framebuffer[0];
 	}
 
-	VkFramebuffer Framebuffer::get(u32 index) const
+	VkFramebuffer Framebuffer::Get(u32 index) const
 	{
 		return m_framebuffer[index];
 	}
 
 	VkRenderPass Framebuffer::getRenderPass() const
 	{
-		return m_render_pass->get();
+		return m_render_pass->Get();
 	}
 
 	std::shared_ptr<AttachmentDescriptor> Framebuffer::getDescriptorImageInfo(u32 attachment_index)
@@ -103,13 +103,13 @@ namespace Horizon {
 			}
 			VkFramebufferCreateInfo frameBufferCreateInfo{};
 			frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			frameBufferCreateInfo.renderPass = m_render_pass->get();
+			frameBufferCreateInfo.renderPass = m_render_pass->Get();
 			frameBufferCreateInfo.attachmentCount = static_cast<u32>(attachmentsImageViews.size());
 			frameBufferCreateInfo.pAttachments = attachmentsImageViews.data();
 			frameBufferCreateInfo.width = width;
 			frameBufferCreateInfo.height = height;
 			frameBufferCreateInfo.layers = 1;
-			CHECK_VK_RESULT(vkCreateFramebuffer(m_device->get(), &frameBufferCreateInfo, nullptr, &m_framebuffer[i]));
+			CHECK_VK_RESULT(vkCreateFramebuffer(m_device->Get(), &frameBufferCreateInfo, nullptr, &m_framebuffer[i]));
 		}
 	}
 
@@ -132,7 +132,7 @@ namespace Horizon {
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(m_device->get(), &sampler, nullptr, &m_sampler));
+		CHECK_VK_RESULT(vkCreateSampler(m_device->Get(), &sampler, nullptr, &m_sampler));
 
 	}
 

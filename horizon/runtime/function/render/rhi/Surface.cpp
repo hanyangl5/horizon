@@ -1,5 +1,5 @@
 #include "Surface.h"
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 
 #include <runtime/core/log/Log.h>
@@ -13,16 +13,16 @@ namespace Horizon {
 
 	Surface::~Surface()
 	{
-		vkDestroySurfaceKHR(m_instance->get(), m_surface, nullptr);
+		vkDestroySurfaceKHR(m_instance->Get(), m_surface, nullptr);
 	}
 
-	VkSurfaceKHR Surface::get() const
+	VkSurfaceKHR Surface::Get() const
 	{
 		return m_surface;
 	}
 
 	void Surface::createSurface()
 	{
-		CHECK_VK_RESULT(glfwCreateWindowSurface(m_instance->get(), m_window->getWindow(), nullptr, &m_surface));
+		CHECK_VK_RESULT(glfwCreateWindowSurface(m_instance->Get(), m_window->getWindow(), nullptr, &m_surface));
 	}
 }

@@ -15,9 +15,9 @@ namespace Horizon {
 	QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		u32 queueFamilyCount = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr); // get count
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr); // Get count
 		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data()); // get queue family properties
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data()); // Get queue family properties
 
 		// print queue infos
 		for (const auto& i : queueFamilies) {

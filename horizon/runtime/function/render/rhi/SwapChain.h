@@ -7,7 +7,7 @@
 
 #include "Device.h"
 #include "Instance.h"
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 
 namespace Horizon {
@@ -20,7 +20,7 @@ namespace Horizon {
 
 		~SwapChain();
 
-		VkSwapchainKHR get() const;
+		VkSwapchainKHR Get() const;
 
 		std::vector<VkImageView> getImageViews() const;
 

@@ -20,7 +20,7 @@ namespace Horizon {
 		cleanup();
 	}
 
-	VkSwapchainKHR SwapChain::get() const
+	VkSwapchainKHR SwapChain::Get() const
 	{
 		return m_swap_chain;
 	}
@@ -53,8 +53,8 @@ namespace Horizon {
 
 	void SwapChain::createSwapChain()
 	{
-		// get necessary swapchain properties
-		SurfaceSupportDetails details(m_device->getPhysicalDevice(), m_surface->get());
+		// Get necessary swapchain properties
+		SurfaceSupportDetails details(m_device->getPhysicalDevice(), m_surface->Get());
 		QueueFamilyIndices indices = m_device->getQueueFamilyIndices();
 		VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(details.getFormats());
 		VkPresentModeKHR presentMode = choosePresentMode(details.getPresentModes());
@@ -65,7 +65,7 @@ namespace Horizon {
 
 		VkSwapchainCreateInfoKHR swap_chain_create_info{};
 		swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swap_chain_create_info.surface = m_surface->get();
+		swap_chain_create_info.surface = m_surface->Get();
 		swap_chain_create_info.minImageCount = imag_count;
 		swap_chain_create_info.imageFormat = mImageFormat;
 		swap_chain_create_info.imageColorSpace = surfaceFormat.colorSpace;
@@ -91,11 +91,11 @@ namespace Horizon {
 			swap_chain_create_info.pQueueFamilyIndices = nullptr;
 		}
 
-		CHECK_VK_RESULT(vkCreateSwapchainKHR(m_device->get(), &swap_chain_create_info, nullptr, &m_swap_chain));
+		CHECK_VK_RESULT(vkCreateSwapchainKHR(m_device->Get(), &swap_chain_create_info, nullptr, &m_swap_chain));
 
-		vkGetSwapchainImagesKHR(m_device->get(), m_swap_chain, &imag_count, nullptr);  // get images
+		vkGetSwapchainImagesKHR(m_device->Get(), m_swap_chain, &imag_count, nullptr);  // Get images
 		images.resize(imag_count);
-		vkGetSwapchainImagesKHR(m_device->get(), m_swap_chain, &imag_count, images.data());  // get images
+		vkGetSwapchainImagesKHR(m_device->Get(), m_swap_chain, &imag_count, images.data());  // Get images
 
 	}
 
@@ -172,9 +172,9 @@ namespace Horizon {
 	{
 		for (auto& imageView : imageViews)
 		{
-			vkDestroyImageView(m_device->get(), imageView, nullptr);
+			vkDestroyImageView(m_device->Get(), imageView, nullptr);
 		}
-		vkDestroySwapchainKHR(m_device->get(), m_swap_chain, nullptr);
+		vkDestroySwapchainKHR(m_device->Get(), m_swap_chain, nullptr);
 	}
 
 	void SwapChain::createImageViews()
@@ -195,7 +195,7 @@ namespace Horizon {
 			image_view_create_info.subresourceRange.levelCount = 1;
 			image_view_create_info.subresourceRange.baseArrayLayer = 0;
 			image_view_create_info.subresourceRange.layerCount = 1;
-			CHECK_VK_RESULT(vkCreateImageView(m_device->get(), &image_view_create_info, nullptr, &imageViews[i]));
+			CHECK_VK_RESULT(vkCreateImageView(m_device->Get(), &image_view_create_info, nullptr, &imageViews[i]));
 		}
 	}
 }

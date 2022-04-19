@@ -26,7 +26,7 @@ namespace Horizon {
 		vkDestroyShaderModule(m_device, m_shader_module, nullptr);
 	}
 
-	VkShaderModule Shader::get() const
+	VkShaderModule Shader::Get() const
 	{
 		return m_shader_module;
 	}

@@ -2,7 +2,11 @@
 #include <cstdint>
 #include <memory>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN

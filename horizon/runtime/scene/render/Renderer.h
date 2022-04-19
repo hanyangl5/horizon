@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/function/render/rhi/CommandBuffer.h>
 #include <runtime/function/render/rhi/Instance.h>
@@ -31,17 +31,17 @@ namespace Horizon
 
 		void Render();
 
-		void wait();
+		void Wait();
 
-		std::shared_ptr<Camera> getMainCamera() const;
+		std::shared_ptr<Camera> GetMainCamera() const;
 
 	private:
-		void drawFrame();
+		void DrawFrame();
 
-		void prepareAssests();
+		void PrepareAssests();
 
 		// create pipeline layouts for each pass
-		void createPipelines();
+		void CreatePipelines();
 
 		RenderContext m_render_context;
 		std::shared_ptr<Window> m_window = nullptr;

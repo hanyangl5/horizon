@@ -1,4 +1,4 @@
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/scene/camera/Camera.h>
 namespace Horizon {
@@ -30,19 +30,19 @@ namespace Horizon {
 
 		~InputManager();
 
-		void processInput();
+		void ProcessInput();
 
 	private:
 
-		void processKeyboardInput();
+		void ProcessKeyboardInput();
 
-		void processMouseInput();
+		void ProcessMouseInput();
 
-		bool getKeyPress(Key key);
+		bool GetKeyPress(Key key);
 
-		int getMouseButtonPress(MouseButton button);
+		int GetMouseButtonPress(MouseButton button);
 
-		int getMouseButtonRelease(MouseButton button);
+		int GetMouseButtonRelease(MouseButton button);
 
 	private:
 

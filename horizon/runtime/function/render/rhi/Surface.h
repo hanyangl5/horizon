@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "Instance.h"
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 
 namespace Horizon {
@@ -13,7 +13,7 @@ namespace Horizon {
 	public:
 		Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
 		~Surface();
-		VkSurfaceKHR get()const;
+		VkSurfaceKHR Get()const;
 	private:
 		void createSurface();
 	private:

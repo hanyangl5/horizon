@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/render/rhi/VulkanEnums.h>
 #include "Device.h"
 
@@ -14,7 +14,7 @@ namespace Horizon {
 	{
 		// sampler/Ub/sbo
 	public:
-		void bindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer);
+		void BindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer);
 		std::unordered_map<u32, std::shared_ptr<DescriptorBase>> descriptorMap;
 	};
 
@@ -22,7 +22,7 @@ namespace Horizon {
 		u32 bindingCount = 0;
 		std::vector<VkDescriptorType> types{};
 		std::vector<VkShaderStageFlags> stageFlags{};
-		void addBinding(VkDescriptorType type, VkShaderStageFlags stage);
+		void AddBinding(VkDescriptorType type, VkShaderStageFlags stage);
 	};
 
 	struct DescriptorSetLayouts {
@@ -34,13 +34,13 @@ namespace Horizon {
 	public:
 		DescriptorSet(std::shared_ptr<Device> device, std::shared_ptr<DescriptorSetInfo> setInfo);
 		~DescriptorSet();
-		VkDescriptorSetLayout getLayout();
-		VkDescriptorSet get();
-		void allocateDescriptorSet();
+		VkDescriptorSetLayout GetLayout();
+		VkDescriptorSet Get();
+		void AllocateDescriptorSet();
 		void UpdateDescriptorSet(const DescriptorSetUpdateDesc& desc);
 	private:
-		void createDescriptorSetLayout();
-		void createDescriptorPool();
+		void CreateDescriptorSetLayout();
+		void CreateDescriptorPool();
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		std::shared_ptr<DescriptorSetInfo> mDescriptorSetInfo;

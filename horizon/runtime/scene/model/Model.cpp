@@ -8,23 +8,25 @@ namespace Horizon {
 	Model::Model(const std::string& path, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<DescriptorSet> m_scene_descriptor_set) :m_device(device), m_command_buffer(command_buffer), m_scene_descriptor_set(m_scene_descriptor_set)
 	{
 
-		tinygltf::TinyGLTF gltfContext;
+		tinygltf::TinyGLTF gltf_context;
 		std::string error, warning;
 
-		bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, path);
-		if (fileLoaded) {
-			loadTextures(gltfModel);
-			loadMaterials(gltfModel);
-			const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
+		tinygltf::Model gltf_model;
+
+		bool file_loaded = gltf_context.LoadASCIIFromFile(&gltf_model, &error, &warning, path);
+		if (file_loaded) {
+			LoadTextures(gltf_model);
+			LoadMaterials(gltf_model);
+			const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene > -1 ? gltf_model.defaultScene : 0];
 			for (size_t i = 0; i < scene.nodes.size(); i++) {
-				const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
+				const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
 				f32 scale = 1.0;
-				loadNode(nullptr, node, scene.nodes[i], gltfModel, indices, vertices, scale);
+				LoadNode(nullptr, node, scene.nodes[i], gltf_model, m_indices, m_vertices, scale);
 			}
 
 
-			m_vertex_buffer = std::make_shared<VertexBuffer>(m_device, m_command_buffer, vertices);
-			m_index_buffer = std::make_shared<IndexBuffer>(m_device, m_command_buffer, indices);
+			m_vertex_buffer = std::make_shared<VertexBuffer>(m_device, m_command_buffer, m_vertices);
+			m_index_buffer = std::make_shared<IndexBuffer>(m_device, m_command_buffer, m_indices);
 		}
 		else
 		{
@@ -36,19 +38,19 @@ namespace Horizon {
 
 	}
 
-	void Model::draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer)
+	void Model::Draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer)
 	{
 		const VkDeviceSize offsets[1] = { 0 };
-		VkBuffer vertexBuffer = m_vertex_buffer->get();
+		VkBuffer vertexBuffer = m_vertex_buffer->Get();
 
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertexBuffer, offsets);
-		vkCmdBindIndexBuffer(command_buffer, m_index_buffer->get(), 0, VK_INDEX_TYPE_UINT32);
-		for (auto& node : nodes) {
-			drawNode(node, pipeline, command_buffer);
+		vkCmdBindIndexBuffer(command_buffer, m_index_buffer->Get(), 0, VK_INDEX_TYPE_UINT32);
+		for (auto& node : m_nodes) {
+			DrawNode(node, pipeline, command_buffer);
 		}
 	}
 
-	void Model::loadTextures(tinygltf::Model& gltfModel)
+	void Model::LoadTextures(tinygltf::Model& gltfModel)
 	{
 		//auto getVkFilterMode = [](int32_t filterMode)
 		//{
@@ -110,29 +112,29 @@ namespace Horizon {
 			//	samplerinfo = samplers[tex.sampler];
 			//}
 
-			textures.emplace_back(std::make_shared<Texture>(m_device, m_command_buffer, gltfModel.images[tex.source]));
+			m_textures.emplace_back(std::make_shared<Texture>(m_device, m_command_buffer, gltfModel.images[tex.source]));
 
 		}
 
-		if (!mEmptyTexture) {
-			mEmptyTexture = std::make_shared<Texture>(m_device, m_command_buffer);
-			mEmptyTexture->loadFromFile(Path::GetInstance().GetModelPath("black.bmp"), VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		if (!m_empty_texture) {
+			m_empty_texture = std::make_shared<Texture>(m_device, m_command_buffer);
+			m_empty_texture->loadFromFile(Path::GetInstance().GetModelPath("black.bmp"), VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	}
 
-	void Model::loadMaterials(tinygltf::Model& gltfModel)
+	void Model::LoadMaterials(tinygltf::Model& gltfModel)
 	{
 		for (tinygltf::Material& mat : gltfModel.materials) {
 			std::shared_ptr<Material> material = std::make_shared<Material>();
 			// bc
 			if (mat.values.find("baseColorTexture") != mat.values.end()) {
-				material->base_color_texture = textures[mat.values["baseColorTexture"].TextureIndex()];
+				material->base_color_texture = m_textures[mat.values["baseColorTexture"].TextureIndex()];
 				//material->texCoordSets.baseColor = mat.values["base_color_texture"].TextureTexCoord();
 				material->m_material_ubdata.has_base_color = true;
 			}
 			else {
 				LOG_WARN("no base color texture found, use an empty texture instead");
-				material->base_color_texture = mEmptyTexture;
+				material->base_color_texture = m_empty_texture;
 			}
 
 			//if (mat.values.find("baseColorFactor") != mat.values.end()) {
@@ -143,24 +145,24 @@ namespace Horizon {
 
 			// normal
 			if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-				material->normal_texture = textures[mat.additionalValues["normalTexture"].TextureIndex()];
+				material->normal_texture = m_textures[mat.additionalValues["normalTexture"].TextureIndex()];
 				//material->texCoordSets.normal = mat.additionalValues["normal_texture"].TextureTexCoord();
 				material->m_material_ubdata.has_normal = true;
 			}
 			else {
 				LOG_WARN("no normal texture found, use an empty texture instead");
-				material->normal_texture = mEmptyTexture;
+				material->normal_texture = m_empty_texture;
 			}
 
 			// metallic roughtness
 			if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
-				material->metallic_rougness_texture = textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
+				material->metallic_rougness_texture = m_textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
 				//material->texCoordSets.metallicRoughness = mat.values["metallic_rougness_texture"].TextureTexCoord();
 				material->m_material_ubdata.has_metallic_rougness = true;
 			}
 			else {
 				LOG_WARN("no metallicRoughness texture found, use an empty texture instead");
-				material->metallic_rougness_texture = mEmptyTexture;
+				material->metallic_rougness_texture = m_empty_texture;
 			}
 			/*
 			if (mat.values.find("roughnessFactor") != mat.values.end()) {
@@ -192,21 +194,21 @@ namespace Horizon {
 
 			std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
 			// material parameters
-			setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 			// albedo/normal/metallicroughness
-			setInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			setInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			setInfo->addBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 			material->m_material_descriptor_set = std::make_shared<DescriptorSet>(m_device, setInfo);
 
-			materials.push_back(material);
+			m_materials.push_back(material);
 
 		}
 		// Push a default material at the end of the list for meshes with no material assigned
-		//materials.push_back(Material());
+		//m_materials.push_back(Material());
 	}
 
-	void Model::loadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, f32 globalscale)
+	void Model::LoadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, f32 globalscale)
 	{
 		std::shared_ptr<Node> newNode = std::make_shared<Node>();
 		newNode->index = nodeIndex;
@@ -235,7 +237,7 @@ namespace Horizon {
 		// Node with m_children
 		if (node.children.size() > 0) {
 			for (size_t i = 0; i < node.children.size(); i++) {
-				loadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indices, vertices, globalscale);
+				LoadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indices, vertices, globalscale);
 			}
 		}
 
@@ -341,7 +343,7 @@ namespace Horizon {
 						return;
 					}
 				}
-				newMesh->primitives.emplace_back(std::make_shared<MeshPrimitive>(indexStart, indexCount, vertexCount, primitive.material > -1 ? materials[primitive.material] : materials[0]));
+				newMesh->primitives.emplace_back(std::make_shared<MeshPrimitive>(indexStart, indexCount, vertexCount, primitive.material > -1 ? m_materials[primitive.material] : m_materials[0]));
 			}
 			newNode->mesh = newMesh;
 		}
@@ -349,55 +351,55 @@ namespace Horizon {
 			m_parent->m_children.push_back(newNode);
 		}
 		else {
-			nodes.push_back(newNode);
+			m_nodes.push_back(newNode);
 		}
-		linearNodes.push_back(newNode);
+		m_linear_nodes.push_back(newNode);
 	}
 
-	void Model::drawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer)
+	void Model::DrawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer)
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
-				std::vector<VkDescriptorSet> descriptors{ m_scene_descriptor_set->get(),  primitive->material->m_material_descriptor_set->get() };
+				std::vector<VkDescriptorSet> descriptors{ m_scene_descriptor_set->Get(),  primitive->material->m_material_descriptor_set->Get() };
 				if (pipeline->hasPipelineDescriptorSet()) {
-					descriptors.emplace_back(pipeline->getPipelineDescriptorSet()->get());
+					descriptors.emplace_back(pipeline->getPipelineDescriptorSet()->Get());
 				}
-				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
-				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
+				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
 				if (pipeline->hasPushConstants()) {
-					vkCmdPushConstants(command_buffer, pipeline->getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(node->mesh->m_mesh_push_constant), &node->mesh->m_mesh_push_constant);
+					vkCmdPushConstants(command_buffer, pipeline->GetLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(node->mesh->m_mesh_push_constant), &node->mesh->m_mesh_push_constant);
 				}
 				vkCmdDrawIndexed(command_buffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
 			}
 		}
 		for (auto& child : node->m_children) {
-			drawNode(child, pipeline, command_buffer);
+			DrawNode(child, pipeline, command_buffer);
 		}
 	}
 
-	void Model::updateDescriptors()
+	void Model::UpdateDescriptors()
 	{
-		for (auto& material : materials) {
+		for (auto& material : m_materials) {
 			material->UpdateDescriptorSet();
 		}
 	}
 
-	void Model::updateModelMatrix()
+	void Model::UpdateModelMatrix()
 	{
-		for (auto& node : nodes) {
-			updateNodeModelMatrix(node);
+		for (auto& node : m_nodes) {
+			UpdateNodeModelMatrix(node);
 		}
 	}
 
-	void Model::updateNodeModelMatrix(std::shared_ptr<Node> node)
+	void Model::UpdateNodeModelMatrix(std::shared_ptr<Node> node)
 	{
 
 		// update model matrix for each node
 		if (node->mesh) {
-			node->update(mModelMatrix);
+			node->update(m_model_matrix);
 		}
 		for (auto& child : node->m_children) {
-			updateNodeModelMatrix(child);
+			UpdateNodeModelMatrix(child);
 		}
 	}
 
@@ -420,19 +422,19 @@ namespace Horizon {
 	//	}
 	//	return nullptr;
 	//}
-	std::shared_ptr<DescriptorSet> Model::getMaterialDescriptorSet()
+	std::shared_ptr<DescriptorSet> Model::GetMaterialDescriptorSet()
 	{
-		for (auto& node : nodes) {
-			return getNodeMaterialDescriptorSet(node);
+		for (auto& node : m_nodes) {
+			return GetNodeMaterialDescriptorSet(node);
 		}
 		LOG_ERROR("material descriptorset not found");
 		return nullptr;
 	}
-	void Model::setModelMatrix(const Math::mat4& modelMatrix)
+	void Model::SetModelMatrix(const Math::mat4& modelMatrix)
 	{
-		mModelMatrix = modelMatrix;
+		m_model_matrix = modelMatrix;
 	}
-	std::shared_ptr<DescriptorSet> Model::getNodeMaterialDescriptorSet(std::shared_ptr<Node> node)
+	std::shared_ptr<DescriptorSet> Model::GetNodeMaterialDescriptorSet(std::shared_ptr<Node> node)
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
@@ -440,7 +442,7 @@ namespace Horizon {
 			}
 		}
 		for (auto& child : node->m_children) {
-			return getNodeMaterialDescriptorSet(child);
+			return GetNodeMaterialDescriptorSet(child);
 		}
 		return nullptr;
 	}
@@ -451,7 +453,7 @@ namespace Horizon {
 		m_mesh_push_constant.modelMatrix = model;
 		//meshUb = std::make_shared<UniformBuffer>(m_device);
 		//std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
-		//setInfo->addBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		//setInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
 		//meshDescriptorSet = std::make_shared<DescriptorSet>(m_device, setInfo);
 	}
 

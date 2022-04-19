@@ -27,17 +27,17 @@ namespace Horizon {
 	}
 
 	Pipeline::~Pipeline() {
-		vkDestroyPipeline(m_device->get(), m_pipeline, nullptr);
-		vkDestroyPipelineLayout(m_device->get(), m_pipeline_layout, nullptr);
+		vkDestroyPipeline(m_device->Get(), m_pipeline, nullptr);
+		vkDestroyPipelineLayout(m_device->Get(), m_pipeline_layout, nullptr);
 	}
 
 
-	VkPipeline Pipeline::get() const
+	VkPipeline Pipeline::Get() const
 	{
 		return m_pipeline;
 	}
 
-	VkPipelineLayout Pipeline::getLayout() const
+	VkPipelineLayout Pipeline::GetLayout() const
 	{
 		return m_pipeline_layout;
 	}
@@ -55,11 +55,11 @@ namespace Horizon {
 
 	VkFramebuffer Pipeline::getFrameBuffer() const
 	{
-		return m_framebuffer->get();
+		return m_framebuffer->Get();
 	}
 	VkFramebuffer Pipeline::getFrameBuffer(u32 index) const
 	{
-		return m_framebuffer->get(index);
+		return m_framebuffer->Get(index);
 	}
 	std::shared_ptr<AttachmentDescriptor> Pipeline::GetFrameBufferAttachment(u32 attachment_index)
 	{
@@ -114,7 +114,7 @@ namespace Horizon {
 			pipelineLayoutInfo.pushConstantRangeCount = m_push_constants->pushConstantRanges.size();
 			pipelineLayoutInfo.pPushConstantRanges = m_push_constants->pushConstantRanges.data();
 		}
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device->get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device->Get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout));
 
 		m_pipeline_descriptor_set = createInfo.pipeline_descriptor_set;
 	}
@@ -127,13 +127,13 @@ namespace Horizon {
 		// vertex shader
 		pipelineShaderStageCreateInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		pipelineShaderStageCreateInfos[0].module = createInfo.vs->get();
+		pipelineShaderStageCreateInfos[0].module = createInfo.vs->Get();
 		pipelineShaderStageCreateInfos[0].pName = "main";
 
 		//pixel shader
 		pipelineShaderStageCreateInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		pipelineShaderStageCreateInfos[1].module = createInfo.ps->get();
+		pipelineShaderStageCreateInfos[1].module = createInfo.ps->Get();
 		pipelineShaderStageCreateInfos[1].pName = "main";
 
 		auto& bindingDescription = Vertex::getBindingDescription();
@@ -262,7 +262,7 @@ namespace Horizon {
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_device->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline));
+		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_device->Get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline));
 	}
 
 
@@ -293,7 +293,7 @@ namespace Horizon {
 		}
 	}
 
-	std::shared_ptr<Pipeline> PipelineManager::get(const std::string& name)
+	std::shared_ptr<Pipeline> PipelineManager::Get(const std::string& name)
 	{
 		u32 hashKey = GetPipelineKey(name);
 		if (m_pipeline_map[hashKey].pipeline) {

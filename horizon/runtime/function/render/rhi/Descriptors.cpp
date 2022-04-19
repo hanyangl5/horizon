@@ -10,17 +10,17 @@ namespace Horizon {
 
 	DescriptorSet::DescriptorSet(std::shared_ptr<Device> device, std::shared_ptr<DescriptorSetInfo> setInfo) :m_device(device), mDescriptorSetInfo(setInfo)
 	{
-		createDescriptorSetLayout();
-		createDescriptorPool();
+		CreateDescriptorSetLayout();
+		CreateDescriptorPool();
 	}
 
 	DescriptorSet::~DescriptorSet()
 	{
-		vkDestroyDescriptorPool(m_device->get(), mDescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(m_device->get(), mSetLayout, nullptr);
+		vkDestroyDescriptorPool(m_device->Get(), mDescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_device->Get(), mSetLayout, nullptr);
 	}
 
-	void DescriptorSet::createDescriptorSetLayout()
+	void DescriptorSet::CreateDescriptorSetLayout()
 	{
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings(mDescriptorSetInfo->bindingCount);
@@ -35,7 +35,7 @@ namespace Horizon {
 		layoutInfo.bindingCount = bindings.size();
 		layoutInfo.pBindings = bindings.data();
 
-		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_device->get(), &layoutInfo, nullptr, &mSetLayout));
+		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_device->Get(), &layoutInfo, nullptr, &mSetLayout));
 
 	}
 
@@ -52,8 +52,8 @@ namespace Horizon {
 			descriptorWrites[binding].dstArrayElement = 0;
 			descriptorWrites[binding].descriptorCount = 1;
 			descriptorWrites[binding].descriptorType = mDescriptorSetInfo->types[binding];
-			switch (descriptorWrites[binding].descriptorType)
-			{
+
+			switch (descriptorWrites[binding].descriptorType) {
 			case VK_DESCRIPTOR_TYPE_SAMPLER:
 			case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
 			case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
@@ -68,34 +68,34 @@ namespace Horizon {
 				break;
 			}
 		}
-		vkUpdateDescriptorSets(m_device->get(), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+		vkUpdateDescriptorSets(m_device->Get(), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 
-	VkDescriptorSetLayout DescriptorSet::getLayout() {
+	VkDescriptorSetLayout DescriptorSet::GetLayout() {
 		return mSetLayout;
 	}
 
-	VkDescriptorSet DescriptorSet::get()
+	VkDescriptorSet DescriptorSet::Get()
 	{
 		return mSet;
 	}
 
-	void DescriptorSet::allocateDescriptorSet() {
+	void DescriptorSet::AllocateDescriptorSet() {
 		if (mSet != VK_NULL_HANDLE) {
-			CHECK_VK_RESULT(vkFreeDescriptorSets(m_device->get(), mDescriptorPool, 1, &mSet));
+			CHECK_VK_RESULT(vkFreeDescriptorSets(m_device->Get(), mDescriptorPool, 1, &mSet));
 		}
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = mDescriptorPool;
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &mSetLayout;
-		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_device->get(), &allocInfo, &mSet));
+		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_device->Get(), &allocInfo, &mSet));
 		if (!mSet) {
 			LOG_ERROR("failed to allocate descriptorset");
 		}
 	}
 
-	void DescriptorSet::createDescriptorPool() {
+	void DescriptorSet::CreateDescriptorPool() {
 
 		std::unordered_map<VkDescriptorType, u32> descriptorTypeMap;
 
@@ -107,7 +107,7 @@ namespace Horizon {
 
 		u32 i = 0;
 		for (auto& type : descriptorTypeMap) {
-			poolSizes[i++] = VkDescriptorPoolSize{type.first, type.second};
+			poolSizes[i++] = VkDescriptorPoolSize{ type.first, type.second };
 		}
 
 		VkDescriptorPoolCreateInfo poolInfo{};
@@ -119,11 +119,11 @@ namespace Horizon {
 		poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
 		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-		CHECK_VK_RESULT(vkCreateDescriptorPool(m_device->get(), &poolInfo, nullptr, &mDescriptorPool));
+		CHECK_VK_RESULT(vkCreateDescriptorPool(m_device->Get(), &poolInfo, nullptr, &mDescriptorPool));
 
 	}
 
-	void DescriptorSetInfo::addBinding(VkDescriptorType type, VkShaderStageFlags stage)
+	void DescriptorSetInfo::AddBinding(VkDescriptorType type, VkShaderStageFlags stage)
 	{
 		bindingCount++;
 		types.push_back(type);
@@ -131,7 +131,7 @@ namespace Horizon {
 	}
 
 
-	void DescriptorSetUpdateDesc::bindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer)
+	void DescriptorSetUpdateDesc::BindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer)
 	{
 		descriptorMap[binding] = buffer;
 	}

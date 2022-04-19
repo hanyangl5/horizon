@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/scene/camera/Camera.h>
 #include <runtime/function/render/rhi/Device.h>
 #include <runtime/function/render/rhi/Descriptors.h>
@@ -20,20 +20,20 @@ namespace Horizon {
 		Scene(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
 		~Scene();
 
-		void loadModel(const std::string& path, const std::string& name);
-		std::shared_ptr<Model> getModel(const std::string& name);
+		void LoadModel(const std::string& path, const std::string& name);
+		std::shared_ptr<Model> GetModel(const std::string& name);
 		
 		// https://google.github.io/filament/Filament.html
-		void addDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
-		void addPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
-		void addSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
+		void AddDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
+		void AddPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
+		void AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
-		void prepare();
-		void draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline);
-		std::shared_ptr<DescriptorSetLayouts> getDescriptorLayouts();
-		std::shared_ptr<DescriptorSetLayouts> getGeometryPassDescriptorLayouts();
-		std::shared_ptr<DescriptorSetLayouts> getSceneDescriptorLayouts();
-		std::shared_ptr<Camera> getMainCamera() const;
+		void Prepare();
+		void Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline);
+		std::shared_ptr<DescriptorSetLayouts> GetDescriptorLayouts();
+		std::shared_ptr<DescriptorSetLayouts> GetGeometryPassDescriptorLayouts();
+		std::shared_ptr<DescriptorSetLayouts> GetSceneDescriptorLayouts();
+		std::shared_ptr<Camera> GetMainCamera() const;
 		std::shared_ptr<UniformBuffer> getCameraUbo() const;
 	private:
 		RenderContext& m_render_context;
@@ -76,7 +76,7 @@ namespace Horizon {
 	class FullscreenTriangle {
 	public:
 		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
-		void draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool is_present = false);
+		void Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool is_present = false);
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;

@@ -35,7 +35,7 @@ struct ScatteringContext {
     int view_scatter_nums, light_scatter_nums;
     vec3 beta_rayleigh;
     vec3 beta_mie;
-    vec3 beta_ozone;
+    vec3 beta_absoption;
 };
 // ------------------------------------------------------
 
@@ -104,15 +104,15 @@ float PhaseMieCS(float _g, float _c) {
     return nom / denom;
 }
 
-float rho(float _h, float _planet_radius) {
-    return exp(-max(_h - _planet_radius, 0.0));
+float rho(float _altitude, float _hr) {
+    return exp(-_altitude / _hr);
 }
 
 // description: scattering coeff
 // altitude, refrative index, atmoshpere particle count
-vec3 RayleighScatteringCoeff(float _h, float _n, float _N, float _planet_radius) {
+vec3 RayleighScatteringCoeff(float _altitude, float _n, float _N, float _thickness) {
     vec3 lambda_rgb = vec3(680e-9, 550e-9, 450e-9); // wavelength of rgb light
-    float c = 8.0f * PI * PI * PI * pow(_n * _n - 1.0f, 2.0) * rho(_h, _planet_radius) / 3.0f / _N;
+    float c = 8.0f * PI * PI * PI * pow(_n * _n - 1.0f, 2.0) * rho(_altitude, _thickness) / 3.0f / _N;
     return c / (lambda_rgb * lambda_rgb * lambda_rgb * lambda_rgb);
 }
 
@@ -214,7 +214,7 @@ void main() {
     // thickness of the atmosphere if its density were uniform (how far to go up before the scattering has no effect)
     context.rayliegh_mie_scale_height = vec2(8e0, 1.2e0);
     // scattering coeffs at sea level
-    context.beta_rayleigh = RayleighScatteringCoeff(context.planet_radius, 1.00029, 2.545e25, context.planet_radius);
+    context.beta_rayleigh = RayleighScatteringCoeff(0.0f, 1.00029, 2.545e25, context.rayliegh_mie_scale_height.x);
     //context.beta_rayleigh = vec3(5.5e-6, 13.0e-6, 22.4e-6);
     context.beta_mie = vec3(21e-6);
     context.mie_g = 0.7;

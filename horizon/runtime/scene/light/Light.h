@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/core/math/Math.h>
 
 namespace Horizon {
 
@@ -13,7 +13,6 @@ namespace Horizon {
 	};
 
 	struct LightParams {
-		//LightType lightType;
 		Math::vec4 color_intensity = Math::vec4(0.0); // r, g, b, intensity
 		Math::vec4 position_type = Math::vec4(0.0);
 		Math::vec4 direction = Math::vec4(0.0);

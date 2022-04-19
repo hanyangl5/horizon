@@ -16,7 +16,7 @@ namespace Horizon {
 		vkDestroyInstance(m_instance, nullptr);
 	}
 
-	VkInstance Instance::get()const
+	VkInstance Instance::Get()const
 	{
 		return m_instance;
 	}

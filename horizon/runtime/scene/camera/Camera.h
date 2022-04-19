@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 
 namespace Horizon {
 
@@ -18,25 +18,25 @@ namespace Horizon {
 	public:
 		Camera(Math::vec3 position, Math::vec3 at, Math::vec3 up);
 
-		void setPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far);
-		Math::mat4 getProjectionMatrix() const;
+		void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far);
+		Math::mat4 GetProjectionMatrix() const;
 
 		//void setLookAt(vec3 position, vec3 at, vec3 up = vec3(0.0f, 1.0f, 0.0f));
-		Math::mat4 getViewMatrix() const;
+		Math::mat4 GetViewMatrix() const;
 
-		Math::vec3 getPosition() const;
+		Math::vec3 GetPosition() const;
 
-		Math::vec3 getFov() const;
+		Math::vec3 GetFov() const;
 
-		Math::vec2 getNearFarPlane() const;
+		Math::vec2 GetNearFarPlane() const;
 
-		void setCameraSpeed(f32 speed);
-		f32 getCameraSpeed() const;
+		void SetCameraSpeed(f32 speed);
+		f32 GetCameraSpeed() const;
 
-		void move(Direction direction);
-		void rotate(f32 yaw, f32 pitch);
+		void Move(Direction direction);
+		void Rotate(f32 yaw, f32 pitch);
 
-		void updateViewMatrix();
+		void UpdateViewMatrix();
 	private:
 		Math::vec3 m_eye, m_at, m_up;
 		Math::vec3 m_forward, m_right;

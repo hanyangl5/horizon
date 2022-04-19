@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <runtime/core/utils/utils.h>
+#include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/scene/render/Renderer.h>
 #include <runtime/function/input/InputManager.h>
@@ -11,7 +11,7 @@ class App
 public:
 	App(Horizon::u32 _width, Horizon::u32 _height);
 	~App();
-	void run();
+	void Run();
 private:
 	Horizon::u32 m_width;
 	Horizon::u32 mHeight;
