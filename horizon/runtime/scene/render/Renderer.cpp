@@ -124,21 +124,7 @@ namespace Horizon {
 
 	void Renderer::PrepareAssests()
 	{
-		//m_scene->LoadModel("C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/DamagedHelmet/DamagedHelmet.gltf");
-		//m_scene->LoadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/plane.gltf");
 		m_scene->LoadModel(Path::GetInstance().GetModelPath("earth6378/earth.gltf"), "earth");
-		//Math::mat4 scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(1.0f/6378.0f));
-		//m_scene->GetModel("earth")->SetModelMatrix(scaleMatrix);
-		//m_scene->LoadModel("C:/Users/hylu/OneDrive/mycode/vulkan/data/earth_original_size/earth.gltf");
-		//m_scene->LoadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf");
-		//m_scene->LoadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
-		//m_scene->LoadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/gltf/2.0/Sponza/glTF/Sponza.gltf");
-
-		m_scene->AddDirectLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, -1.0f));
-		//m_scene->AddPointLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(5.0f, 1.0f, 0.0f), 20.0f);
-		//m_scene->AddSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(-1.0f, -1.0f, 0.0f),  Math::vec3(-1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(90.0f));
-		//m_scene->AddSpotLight(Math::vec3(1.0f, 1.0f, 1.0f), 1.0f, Math::vec3(0.0f, -1.0f, 0.0f),  Math::vec3(1.0f, 1.0f, 0.0f), 10.0f, Math::radians(0.0f),Math::radians(45.0f));
-
 	}
 
 	void Renderer::CreatePipelines()
@@ -152,8 +138,8 @@ namespace Horizon {
 
 		std::shared_ptr<PushConstants> geometryPipelinePushConstants = std::make_shared<PushConstants>();
 
-		geometryPipelinePushConstants->pushConstantRanges = { VkPushConstantRange{VK_SHADER_STAGE_VERTEX_BIT, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
-		geometryPipelineCreateInfo.push_constants = geometryPipelinePushConstants; 
+		geometryPipelinePushConstants->pushConstantRanges = { {SHADER_STAGE_VERTEX_SHADER, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
+		geometryPipelineCreateInfo.push_constants = geometryPipelinePushConstants;
 		// position + depth
 		// normal
 		// albedo
@@ -169,23 +155,22 @@ namespace Horizon {
 		m_pipeline_manager->createPipeline(geometryPipelineCreateInfo, "geometry", geometryAttachmentsCreateInfo, m_render_context);
 
 		// scattering pass
-	
+
 		std::shared_ptr<DescriptorSetInfo> scatterDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		scatterDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // positionDepth tex
-		scatterDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // normal r tex
-		scatterDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); // albdeo m tex
-		//scatterDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT); // scatter params
-		scatterDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT); // camera params
+		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER); // positionDepth tex
+		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER); // normal r tex
+		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER); // albdeo m tex
+		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_PIXEL_SHADER); // camera params
 
 
 		m_scatter_descriptorSet = std::make_shared<DescriptorSet>(m_device, scatterDescriptorSetCreateInfo);
-		
+
 		std::shared_ptr<DescriptorSetLayouts> scatterDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		scatterDescriptorSetLayout = m_scene->GetGeometryPassDescriptorLayouts();
 		scatterDescriptorSetLayout->layouts.push_back(m_scatter_descriptorSet->GetLayout());
 
 		std::shared_ptr<PushConstants> scatterPipelinePushConstants = std::make_shared<PushConstants>();
-		scatterPipelinePushConstants->pushConstantRanges = { VkPushConstantRange{VK_SHADER_STAGE_VERTEX_BIT, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
+		scatterPipelinePushConstants->pushConstantRanges = { {SHADER_STAGE_VERTEX_SHADER, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
 
 		PipelineCreateInfo scatterPipelineCreateInfo;
 		scatterPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("scatter.vert.spv"));
@@ -204,7 +189,7 @@ namespace Horizon {
 		// post process
 
 		std::shared_ptr<DescriptorSetInfo> ppDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		ppDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		ppDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER);
 		m_pp_descriptorSet = std::make_shared<DescriptorSet>(m_device, ppDescriptorSetCreateInfo);
 		std::shared_ptr<DescriptorSetLayouts> ppDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		ppDescriptorSetLayout->layouts.push_back(m_pp_descriptorSet->GetLayout());
@@ -223,7 +208,7 @@ namespace Horizon {
 		// present pass
 
 		std::shared_ptr<DescriptorSetInfo> presentDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		presentDescriptorSetCreateInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		presentDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER);
 		m_present_descriptorSet = std::make_shared<DescriptorSet>(m_device, presentDescriptorSetCreateInfo);
 		std::shared_ptr<DescriptorSetLayouts> presentDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		presentDescriptorSetLayout->layouts.push_back(m_present_descriptorSet->GetLayout());

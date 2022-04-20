@@ -18,14 +18,8 @@ namespace Horizon {
 		}
 		throw std::runtime_error("failed to find suitable memory type!");
 	}
-	enum class DescriptorTypeFlags
-	{
-		UNIFORM_BUFFER,
-		STORAGE_BUFFER,
-		COMBINDED_SAMPLER
-	};
 
-	using DescriptorType = u32;
+
 
 	struct DescriptorBase
 	{

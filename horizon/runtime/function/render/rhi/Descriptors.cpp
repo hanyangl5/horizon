@@ -26,9 +26,9 @@ namespace Horizon {
 		std::vector<VkDescriptorSetLayoutBinding> bindings(mDescriptorSetInfo->bindingCount);
 		for (u32 binding = 0; binding < mDescriptorSetInfo->bindingCount; binding++) {
 			bindings[binding].binding = binding;
-			bindings[binding].descriptorType = mDescriptorSetInfo->types[binding];
+			bindings[binding].descriptorType = ToVkDescriptorType(mDescriptorSetInfo->types[binding]);
 			bindings[binding].descriptorCount = 1;
-			bindings[binding].stageFlags = mDescriptorSetInfo->stageFlags[binding];
+			bindings[binding].stageFlags = ToVkShaderStageFlags(mDescriptorSetInfo->stageFlags[binding]);
 		}
 		VkDescriptorSetLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -51,7 +51,7 @@ namespace Horizon {
 			descriptorWrites[binding].dstBinding = binding;
 			descriptorWrites[binding].dstArrayElement = 0;
 			descriptorWrites[binding].descriptorCount = 1;
-			descriptorWrites[binding].descriptorType = mDescriptorSetInfo->types[binding];
+			descriptorWrites[binding].descriptorType = ToVkDescriptorType(mDescriptorSetInfo->types[binding]);
 
 			switch (descriptorWrites[binding].descriptorType) {
 			case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -100,7 +100,7 @@ namespace Horizon {
 		std::unordered_map<VkDescriptorType, u32> descriptorTypeMap;
 
 		for (u32 binding = 0; binding < mDescriptorSetInfo->bindingCount; binding++) {
-			descriptorTypeMap[mDescriptorSetInfo->types[binding]]++;
+			descriptorTypeMap[ToVkDescriptorType(mDescriptorSetInfo->types[binding])]++;
 		}
 
 		std::vector<VkDescriptorPoolSize> poolSizes(descriptorTypeMap.size());
@@ -123,13 +123,12 @@ namespace Horizon {
 
 	}
 
-	void DescriptorSetInfo::AddBinding(VkDescriptorType type, VkShaderStageFlags stage)
+	void DescriptorSetInfo::AddBinding(DescriptorType type, ShaderStage stage)
 	{
 		bindingCount++;
 		types.push_back(type);
 		stageFlags.push_back(stage);
 	}
-
 
 	void DescriptorSetUpdateDesc::BindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer)
 	{

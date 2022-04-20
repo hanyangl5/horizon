@@ -194,11 +194,11 @@ namespace Horizon {
 
 			std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
 			// material parameters
-			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
 			// albedo/normal/metallicroughness
-			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-			setInfo->AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			setInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+			setInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+			setInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
 			material->m_material_descriptor_set = std::make_shared<DescriptorSet>(m_device, setInfo);
 
 			m_materials.push_back(material);
@@ -367,7 +367,7 @@ namespace Horizon {
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
 				if (pipeline->hasPushConstants()) {
-					vkCmdPushConstants(command_buffer, pipeline->GetLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(node->mesh->m_mesh_push_constant), &node->mesh->m_mesh_push_constant);
+					vkCmdPushConstants(command_buffer, pipeline->GetLayout(), SHADER_STAGE_VERTEX_SHADER, 0, sizeof(node->mesh->m_mesh_push_constant), &node->mesh->m_mesh_push_constant);
 				}
 				vkCmdDrawIndexed(command_buffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
 			}
@@ -453,7 +453,7 @@ namespace Horizon {
 		m_mesh_push_constant.modelMatrix = model;
 		//meshUb = std::make_shared<UniformBuffer>(m_device);
 		//std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
-		//setInfo->AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		//setInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER);
 		//meshDescriptorSet = std::make_shared<DescriptorSet>(m_device, setInfo);
 	}
 

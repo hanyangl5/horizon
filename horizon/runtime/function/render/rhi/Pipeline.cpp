@@ -98,7 +98,7 @@ namespace Horizon {
 		auto& layouts = createInfo.descriptor_layouts;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
+
 		// prevent crash if no descriptors are used in shader
 		if (createInfo.descriptor_layouts || createInfo.descriptor_layouts->layouts.empty()) {
 			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(createInfo.descriptor_layouts->layouts.size());
@@ -108,11 +108,20 @@ namespace Horizon {
 			pipelineLayoutInfo.setLayoutCount = 0;
 			pipelineLayoutInfo.pSetLayouts = nullptr;
 		}
-		if (createInfo.push_constants) {
 
+		std::vector<VkPushConstantRange> push_constant_ranges;
+
+		if (createInfo.push_constants) {
+			push_constant_ranges.resize(createInfo.push_constants->pushConstantRanges.size());
 			m_push_constants = createInfo.push_constants;
-			pipelineLayoutInfo.pushConstantRangeCount = m_push_constants->pushConstantRanges.size();
-			pipelineLayoutInfo.pPushConstantRanges = m_push_constants->pushConstantRanges.data();
+
+			for (u32 i = 0; i < m_push_constants->pushConstantRanges.size(); i++) {
+				push_constant_ranges[i].stageFlags = ToVkShaderStageFlags(m_push_constants->pushConstantRanges[i].stages); // convert to vulkan shader stage flags
+				push_constant_ranges[i].offset = m_push_constants->pushConstantRanges[i].offset;
+				push_constant_ranges[i].size = m_push_constants->pushConstantRanges[i].size;
+			}
+			pipelineLayoutInfo.pushConstantRangeCount = push_constant_ranges.size();
+			pipelineLayoutInfo.pPushConstantRanges = push_constant_ranges.data();
 		}
 		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device->Get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout));
 

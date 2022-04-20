@@ -17,10 +17,6 @@
 
 namespace Horizon {
 
-	struct PushConstants {
-		std::vector<VkPushConstantRange> pushConstantRanges;
-	};
-
 	struct PipelineCreateInfo {
 		std::shared_ptr<Shader> vs, ps;
 		std::shared_ptr<DescriptorSetLayouts> descriptor_layouts;
