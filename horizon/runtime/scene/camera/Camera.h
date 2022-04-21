@@ -37,6 +37,10 @@ namespace Horizon {
 		void Rotate(f32 yaw, f32 pitch);
 
 		void UpdateViewMatrix();
+
+		Math::mat4 GetInvViewProjectionMatrix() const;
+
+		Math::vec3 GetForwardDir() const;
 	private:
 		Math::vec3 m_eye, m_at, m_up;
 		Math::vec3 m_forward, m_right;

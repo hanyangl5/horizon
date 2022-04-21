@@ -63,7 +63,10 @@ namespace Horizon {
 		std::shared_ptr<UniformBuffer> m_light_ub;
 		// 3
 		struct CamaeraUb {
-			Math::vec3 cameraPos;
+			Math::vec3 camera_pos;
+			f32 pad0;
+			Math::vec3 camera_forward_dir;
+			f32 pad1;
 		}m_camera_ubdata;
 		std::shared_ptr<UniformBuffer> m_camera_ub;
 

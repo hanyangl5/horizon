@@ -15,11 +15,11 @@ namespace Horizon {
 	public:
 		CommandBuffer(RenderContext& render_context, std::shared_ptr<Device> device);
 		~CommandBuffer();
-		VkCommandBuffer Get(u32 i);
+		VkCommandBuffer Get(u32 i) const;
 		void submit(std::shared_ptr<SwapChain> swap_chain);
-		VkCommandPool getCommandpool()const;
-		void beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present = false);
-		void endRenderPass(u32 index);
+		VkCommandPool getCommandpool() const;
+		void beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present = false) const;
+		void endRenderPass(u32 index) const;
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer command_buffer);
 		u32 commandBufferCount() const noexcept { return m_command_buffers.size(); }

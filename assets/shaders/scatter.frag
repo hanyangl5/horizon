@@ -7,20 +7,17 @@
 #define MAX 1e6
 #define TKM = 1000.0f
 
-layout(location = 0) in vec3 world_pos;
-layout(location = 1) in vec3 world_normal;
-layout(location = 2) in vec2 frag_tex_coord;
-
 layout(location = 0) out vec4 out_color;
 
-layout(set = 2, binding = 0) uniform sampler2D postion_depth;
-layout(set = 2, binding = 1) uniform sampler2D normal_roughness;
-layout(set = 2, binding = 2) uniform sampler2D albedo_metallic;
-
-layout(set = 2, binding = 3) uniform CameraUb {
+layout(set = 0, binding = 0) uniform CameraUb {
     vec3 eye_pos;
+    vec3 eye_dir;
 } camera_ub;
 
+layout(set = 0, binding = 1) uniform ScatteringUb {
+    mat4 inv_view_projection_matrix;
+    vec2 resolution;
+} scattering_ub;
 //  constants
 
 struct ScatteringContext {
@@ -203,13 +200,22 @@ vec3 InScattering(ScatteringContext _context) {
 
 void main() {
 
+    // reproject pos to world pos
+
+    // [-1, 1]
+    vec2 clip_pos = (gl_FragCoord.xy / scattering_ub.resolution) * vec2(2.0, -2.0) - vec2(1.0, -1.0);
+    vec4 pixel_pos = vec4(clip_pos.x, clip_pos.y, 1.0, 1.0);
+    vec4 world_pos = (scattering_ub.inv_view_projection_matrix * pixel_pos);
+
+    vec3 view_dir = normalize(world_pos.xyz / world_pos.w - camera_ub.eye_pos);
+
     ScatteringContext context;
     context.light_dir = vec3(0.0, 0.0, -1.0);
     context.light_intensity = 10.0f;
     context.planet_center = vec3(0.0f);
     context.planet_radius = 6378e0;
     context.atmosphere_radius = 6478e0;
-    context.view_scatter_nums = 64;
+    context.view_scatter_nums =   64;
     context.light_scatter_nums = 32;
     // thickness of the atmosphere if its density were uniform (how far to go up before the scattering has no effect)
     context.rayliegh_mie_scale_height = vec2(8e0, 1.2e0);
@@ -219,9 +225,8 @@ void main() {
     context.beta_mie = vec3(21e-6);
     context.mie_g = 0.7;
 
-    context.view_dir = normalize(world_pos - camera_ub.eye_pos);
-    vec3 scatter = InScattering(context);
+    context.view_dir = view_dir;
 
-    out_color = vec4(scatter, 1.0);
-    //out_color += texture(albedo_metallic, gl_FragCoord.xy / vec2(1920.f, 1080.f));
+    vec3 scatter = InScattering(context);
+    out_color = vec4(scatter,1.0);
 }

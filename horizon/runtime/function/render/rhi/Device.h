@@ -17,9 +17,9 @@ namespace Horizon {
 		~Device();
 		VkPhysicalDevice getPhysicalDevice() const;
 		VkDevice Get()const;
-		VkQueue getGraphicQueue()const;
-		VkQueue getPresnetQueue()const;
-		QueueFamilyIndices getQueueFamilyIndices();
+		VkQueue getGraphicQueue() const;
+		VkQueue getPresnetQueue() const;
+		QueueFamilyIndices getQueueFamilyIndices() const;
 	private:
 		bool isDeviceSuitable(VkPhysicalDevice device);
 		// pick the best gpu

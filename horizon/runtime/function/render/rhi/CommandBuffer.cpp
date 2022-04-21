@@ -22,7 +22,7 @@ namespace Horizon {
 	}
 
 
-	VkCommandBuffer CommandBuffer::Get(u32 i)
+	VkCommandBuffer CommandBuffer::Get(u32 i) const
 	{
 		return m_command_buffers[i];
 	}
@@ -117,18 +117,20 @@ namespace Horizon {
 		CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device->Get(), &commandBufferAllocateInfo, m_command_buffers.data()));
 	}
 
-	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) {
+	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) const
+	{
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = pipeline->getRenderPass();
 		if (is_present) {
 			renderPassInfo.framebuffer = pipeline->getFrameBuffer(index);
-		} else {
+		}
+		else {
 			renderPassInfo.framebuffer = pipeline->getFrameBuffer();
 		}
 		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = VkExtent2D{m_render_context.width,m_render_context.height};
+		renderPassInfo.renderArea.extent = VkExtent2D{ m_render_context.width,m_render_context.height };
 
 
 		//std::array<VkClearValue, 2> clearValues{};
@@ -142,7 +144,8 @@ namespace Horizon {
 		vkCmdSetViewport(m_command_buffers[index], 0, 1, &pipeline->getViewport());
 	}
 
-	void CommandBuffer::endRenderPass(u32 index) {
+	void CommandBuffer::endRenderPass(u32 index) const
+	{
 		vkCmdEndRenderPass(m_command_buffers[index]);
 	}
 

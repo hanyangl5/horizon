@@ -93,6 +93,14 @@ namespace Horizon
 
 		m_view = Math::lookAt(m_eye, m_eye + m_forward, m_up);
 	}
+	Math::mat4 Camera::GetInvViewProjectionMatrix() const
+	{
+		return Math::inverse(m_projection * m_view);
+	}
+	Math::vec3 Camera::GetForwardDir() const
+	{
+		return m_forward;
+	}
 	Math::mat4 Camera::GetViewMatrix() const
 	{
 		return m_view;

@@ -22,7 +22,7 @@ namespace Horizon {
 		m_scene_descriptor_set = std::make_shared<DescriptorSet>(m_device, sceneDescriptorSetInfo);
 
 		m_camera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 10000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
-		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 0.01f, 30000.0f);
+		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 100.0f, 20000.0f);
 		m_camera->SetCameraSpeed(10.0f);
 
 		// create uniform buffer
@@ -108,7 +108,8 @@ namespace Horizon {
 		m_scene_ubdata.nearFar = m_camera->GetNearFarPlane();
 		m_scene_ub->update(&m_scene_ubdata, sizeof(SceneUb));
 
-		m_camera_ubdata.cameraPos = m_camera->GetPosition();
+		m_camera_ubdata.camera_pos = m_camera->GetPosition();
+		m_camera_ubdata.camera_forward_dir = m_camera->GetForwardDir();
 		m_camera_ub->update(&m_camera_ubdata, sizeof(CamaeraUb));
 
 		//m_light_count_ub->update(&m_light_count_ubdata, sizeof(LightCountUb));

@@ -43,12 +43,15 @@ namespace Horizon {
 		auto& scatterPipeline = m_pipeline_manager->Get("scatter");
 		auto& ppPipeline = m_pipeline_manager->Get("pp");
 
+		m_scattering_ubdata.inv_view_projection_matrix = m_scene->GetMainCamera()->GetInvViewProjectionMatrix();
+		m_scattering_ub->update(&m_scattering_ubdata, sizeof(ScatteringUb));
+
+
 		m_scatter_descriptorSet->AllocateDescriptorSet();
 		DescriptorSetUpdateDesc desc1;
-		desc1.BindResource(0, geometryPipeline->GetFrameBufferAttachment(0));
-		desc1.BindResource(1, geometryPipeline->GetFrameBufferAttachment(1));
-		desc1.BindResource(2, geometryPipeline->GetFrameBufferAttachment(2));
-		desc1.BindResource(3, m_scene->getCameraUbo());
+		desc1.BindResource(0, m_scene->getCameraUbo());
+		desc1.BindResource(1, m_scattering_ub);
+
 		m_scatter_descriptorSet->UpdateDescriptorSet(desc1);
 
 		m_pp_descriptorSet->AllocateDescriptorSet();
@@ -89,26 +92,18 @@ namespace Horizon {
 			earth->SetModelMatrix(scaleMatrix);
 			earth->UpdateModelMatrix();
 
-			// geometry pass
 			auto& geometryPipeline = m_pipeline_manager->Get("geometry");
-			m_scene->Draw(i, m_command_buffer, geometryPipeline);
-
-
-			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6478.0f));
-			earth->SetModelMatrix(scaleMatrix);
-			earth->UpdateModelMatrix();
-
-			// scattering pass
 			auto& scatteringPipeline = m_pipeline_manager->Get("scatter");
-
-			m_scene->Draw(i, m_command_buffer, scatteringPipeline);
-
-			// post process pass
 			auto& ppPipeline = m_pipeline_manager->Get("pp");
-			m_fullscreen_triangle->Draw(i, m_command_buffer, ppPipeline, { m_pp_descriptorSet });
-
-			// final present pass
 			auto& presentPipeline = m_pipeline_manager->Get("present");
+
+			// geometry pass
+			//m_scene->Draw(i, m_command_buffer, geometryPipeline);
+			// scattering pass
+			m_fullscreen_triangle->Draw(i, m_command_buffer, scatteringPipeline, { m_scatter_descriptorSet });
+			// post process pass
+			m_fullscreen_triangle->Draw(i, m_command_buffer, ppPipeline, { m_pp_descriptorSet });
+			// final present pass
 			m_fullscreen_triangle->Draw(i, m_command_buffer, presentPipeline, { m_present_descriptorSet }, true);
 
 			m_command_buffer->endCommandRecording(i);
@@ -119,6 +114,8 @@ namespace Horizon {
 	void Renderer::PrepareAssests()
 	{
 		m_scene->LoadModel(Path::GetInstance().GetModelPath("earth6378/earth.gltf"), "earth");
+		m_scattering_ub = std::make_shared<UniformBuffer>(m_device);
+		m_scattering_ubdata.resolution = Math::vec2(m_render_context.width, m_render_context.height);
 	}
 
 	void Renderer::CreatePipelines()
@@ -151,27 +148,21 @@ namespace Horizon {
 		// scattering pass
 
 		std::shared_ptr<DescriptorSetInfo> scatterDescriptorSetCreateInfo = std::make_shared<DescriptorSetInfo>();
-		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER); // positionDepth tex
-		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER); // normal r tex
-		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER); // albdeo m tex
 		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_PIXEL_SHADER); // camera params
+		scatterDescriptorSetCreateInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_PIXEL_SHADER); // scatter params
 
 
 		m_scatter_descriptorSet = std::make_shared<DescriptorSet>(m_device, scatterDescriptorSetCreateInfo);
 
 		std::shared_ptr<DescriptorSetLayouts> scatterDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
-		scatterDescriptorSetLayout = m_scene->GetGeometryPassDescriptorLayouts();
+		//scatterDescriptorSetLayout = m_scene->GetGeometryPassDescriptorLayouts();
 		scatterDescriptorSetLayout->layouts.push_back(m_scatter_descriptorSet->GetLayout());
-
-		std::shared_ptr<PushConstants> scatterPipelinePushConstants = std::make_shared<PushConstants>();
-		scatterPipelinePushConstants->pushConstantRanges = { {SHADER_STAGE_VERTEX_SHADER, 0, 2 * sizeof(Math::mat4)} }; // Push constants have a minimum size of 128 bytes 
 
 		PipelineCreateInfo scatterPipelineCreateInfo;
 		scatterPipelineCreateInfo.vs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("scatter.vert.spv"));
 		scatterPipelineCreateInfo.ps = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("scatter.frag.spv"));
 		scatterPipelineCreateInfo.descriptor_layouts = scatterDescriptorSetLayout;
 		scatterPipelineCreateInfo.pipeline_descriptor_set = m_scatter_descriptorSet;
-		scatterPipelineCreateInfo.push_constants = scatterPipelinePushConstants;
 		std::vector<AttachmentCreateInfo> scatterAttachmentsCreateInfo{
 			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, m_render_context.width, m_render_context.height }
 		};

@@ -135,7 +135,7 @@ namespace Horizon {
 		return required_extensions.empty();
 	}
 
-	QueueFamilyIndices Device::getQueueFamilyIndices()
+	QueueFamilyIndices Device::getQueueFamilyIndices() const
 	{
 		return m_queue_family_indices;
 	}

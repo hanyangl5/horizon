@@ -65,12 +65,11 @@ namespace Horizon
 		std::shared_ptr<DescriptorSet> m_scatter_descriptorSet;
 		std::shared_ptr<DescriptorSet> m_pp_descriptorSet;
 
-		//
-		//std::shared_ptr<UniformBuffer> scatterUbo;
-		//struct ScatteringContext {
-		//	Math::vec4 lightDir = vec4(0.0, 0.0, -1.0, 0.0);
-		//	Math::vec4 planetCenter = vec4(0.0f);
-		//	Math::vec4 RaylieghMieScaleHeightRadiusInnerOuter = vec2(8.0f, 1.2f, 6378.0f, 6478.0f);
-		//}scatterContext;
+		
+		std::shared_ptr<UniformBuffer> m_scattering_ub;
+		struct ScatteringUb {
+			Math::mat4 inv_view_projection_matrix;
+			Math::vec2 resolution;
+		}m_scattering_ubdata;
 	};
 }
