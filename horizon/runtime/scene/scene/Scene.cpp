@@ -132,10 +132,13 @@ namespace Horizon {
 		}
 	}
 
-	void Scene::Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline) {
+	void Scene::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline) {
+
+		_command_buffer->beginRenderPass(_i, _pipeline);
 		for (auto& model : m_models) {
-			model.second->Draw(pipeline, command_buffer);
+			model.second->Draw(_pipeline, _command_buffer->Get(_i));
 		}
+		_command_buffer->endRenderPass(_i);
 	}
 
 
@@ -201,23 +204,24 @@ namespace Horizon {
 		m_vertex_buffer = std::make_shared<VertexBuffer>(m_device, m_command_buffer, m_vertices);
 	}
 
-	void FullscreenTriangle::Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptorsets, bool is_present)
+	void FullscreenTriangle::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets, bool _is_present)
 	{
-
+		_command_buffer->beginRenderPass(_i, _pipeline, _is_present);
+		VkCommandBuffer command_buffer = _command_buffer->Get(_i);
 		const VkDeviceSize offsets[1] = { 0 };
 		VkBuffer vertexBuffer = m_vertex_buffer->Get();
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertexBuffer, offsets);
 
-		std::vector<VkDescriptorSet> descriptorsets(_descriptorsets.size());
-		for (u32 i = 0; i < _descriptorsets.size(); i++)
+		std::vector<VkDescriptorSet> descriptor_sets(_descriptor_sets.size());
+		for (u32 i = 0; i < _descriptor_sets.size(); i++)
 		{
-			descriptorsets[i] = _descriptorsets[i]->Get();
+			descriptor_sets[i] = _descriptor_sets[i]->Get();
 		}
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), 0, descriptorsets.size(), descriptorsets.data(), 0, 0);
-		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->GetLayout(), 0, descriptor_sets.size(), descriptor_sets.data(), 0, 0);
+		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->Get());
 		vkCmdDraw(command_buffer, 3, 1, 0, 0);
-
+		_command_buffer->endRenderPass(_i);
 	}
 
 

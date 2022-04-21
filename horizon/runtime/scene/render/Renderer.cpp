@@ -91,9 +91,8 @@ namespace Horizon {
 
 			// geometry pass
 			auto& geometryPipeline = m_pipeline_manager->Get("geometry");
-			m_command_buffer->beginRenderPass(i, geometryPipeline);
-			m_scene->Draw(m_command_buffer->Get(i), geometryPipeline);
-			m_command_buffer->endRenderPass(i);
+			m_scene->Draw(i, m_command_buffer, geometryPipeline);
+
 
 			scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6478.0f));
 			earth->SetModelMatrix(scaleMatrix);
@@ -101,21 +100,16 @@ namespace Horizon {
 
 			// scattering pass
 			auto& scatteringPipeline = m_pipeline_manager->Get("scatter");
-			m_command_buffer->beginRenderPass(i, scatteringPipeline);
-			m_scene->Draw(m_command_buffer->Get(i), scatteringPipeline);
-			m_command_buffer->endRenderPass(i);
+
+			m_scene->Draw(i, m_command_buffer, scatteringPipeline);
 
 			// post process pass
 			auto& ppPipeline = m_pipeline_manager->Get("pp");
-			m_command_buffer->beginRenderPass(i, ppPipeline);
-			m_fullscreen_triangle->Draw(m_command_buffer->Get(i), ppPipeline, { m_pp_descriptorSet });
-			m_command_buffer->endRenderPass(i);
+			m_fullscreen_triangle->Draw(i, m_command_buffer, ppPipeline, { m_pp_descriptorSet });
 
 			// final present pass
 			auto& presentPipeline = m_pipeline_manager->Get("present");
-			m_command_buffer->beginRenderPass(i, presentPipeline, true);
-			m_fullscreen_triangle->Draw(m_command_buffer->Get(i), presentPipeline, { m_present_descriptorSet }, true);
-			m_command_buffer->endRenderPass(i);
+			m_fullscreen_triangle->Draw(i, m_command_buffer, presentPipeline, { m_present_descriptorSet }, true);
 
 			m_command_buffer->endCommandRecording(i);
 

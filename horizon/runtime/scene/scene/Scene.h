@@ -29,7 +29,7 @@ namespace Horizon {
 		void AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
 
 		void Prepare();
-		void Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline);
+		void Draw(u32 i, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<Pipeline> pipeline);
 		std::shared_ptr<DescriptorSetLayouts> GetDescriptorLayouts();
 		std::shared_ptr<DescriptorSetLayouts> GetGeometryPassDescriptorLayouts();
 		std::shared_ptr<DescriptorSetLayouts> GetSceneDescriptorLayouts();
@@ -76,7 +76,7 @@ namespace Horizon {
 	class FullscreenTriangle {
 	public:
 		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
-		void Draw(VkCommandBuffer command_buffer, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> descriptorsets, bool is_present = false);
+		void Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets, bool _is_present = false);
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;
