@@ -57,12 +57,12 @@ namespace Horizon {
 		vkFreeMemory(m_device->Get(), m_vertex_buffer_memory, nullptr);
 	}
 
-	VkBuffer VertexBuffer::Get() const
+	VkBuffer VertexBuffer::Get() const noexcept 
 	{
 		return m_vertex_buffer;
 	}
 
-	u64 VertexBuffer::getVerticesCount() const
+	u64 VertexBuffer::getVerticesCount() const noexcept 
 	{
 		return m_vertices_count;
 	}

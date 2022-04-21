@@ -24,22 +24,22 @@ namespace Horizon {
 		vkDestroyDevice(m_device, nullptr);
 	}
 
-	VkPhysicalDevice Device::getPhysicalDevice() const
+	VkPhysicalDevice Device::getPhysicalDevice() const noexcept 
 	{
 		return m_physical_devices[m_physical_device_index];
 	}
 
-	VkDevice Device::Get() const
+	VkDevice Device::Get() const noexcept 
 	{
 		return m_device;
 	}
 
-	VkQueue Device::getGraphicQueue() const
+	VkQueue Device::getGraphicQueue() const noexcept 
 	{
 		return m_graphics_queue;
 	}
 
-	VkQueue Device::getPresnetQueue() const
+	VkQueue Device::getPresnetQueue() const noexcept 
 	{
 		return m_present_queue;
 	}
@@ -135,7 +135,7 @@ namespace Horizon {
 		return required_extensions.empty();
 	}
 
-	QueueFamilyIndices Device::getQueueFamilyIndices() const
+	QueueFamilyIndices Device::getQueueFamilyIndices() const noexcept 
 	{
 		return m_queue_family_indices;
 	}

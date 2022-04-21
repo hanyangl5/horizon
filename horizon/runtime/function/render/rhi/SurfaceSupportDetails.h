@@ -12,13 +12,13 @@ namespace Horizon {
 
 		SurfaceSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface);
 
-		VkSurfaceCapabilitiesKHR getCapabilities() const;
+		VkSurfaceCapabilitiesKHR getCapabilities() const noexcept;
 
-		std::vector<VkSurfaceFormatKHR> getFormats() const;
+		std::vector<VkSurfaceFormatKHR> getFormats() const noexcept;
 
-		std::vector<VkPresentModeKHR> getPresentModes() const;
+		std::vector<VkPresentModeKHR> getPresentModes() const noexcept;
 
-		bool suitable() const;
+		bool suitable() const noexcept;
 
 	private:
 		VkSurfaceCapabilitiesKHR capabilities;

@@ -69,9 +69,7 @@ namespace Horizon {
 		VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo;
 		populateDebugMessengerCreateInfo(debugUtilsMessengerCreateInfo);
 
-		if (CreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCreateInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-			throw std::runtime_error("failed to set up debug messenger!");
-		}
+		CHECK_VK_RESULT(CreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCreateInfo, nullptr, &debugMessenger));
 	}
 	std::vector<const char*> ValidationLayer::getRequiredExtensions()
 	{

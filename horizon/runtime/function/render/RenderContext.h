@@ -29,7 +29,7 @@ namespace Horizon {
 
 	using ShaderStage = u32;
 
-	inline VkDescriptorType ToVkDescriptorType(DescriptorType type) {
+	inline VkDescriptorType ToVkDescriptorType(DescriptorType type) noexcept {
 		switch (type)
 		{
 		case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -45,7 +45,7 @@ namespace Horizon {
 
 	}
 
-	inline VkShaderStageFlags ToVkShaderStageFlags(ShaderStage stage) {
+	inline VkShaderStageFlags ToVkShaderStageFlags(ShaderStage stage) noexcept {
 		VkShaderStageFlags flags = 0;
 		if (stage & SHADER_STAGE_VERTEX_SHADER) {
 			flags |= VK_SHADER_STAGE_VERTEX_BIT;

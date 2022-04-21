@@ -13,7 +13,7 @@ namespace Horizon {
 	public:
 		Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
 		~Surface();
-		VkSurfaceKHR Get()const;
+		VkSurfaceKHR Get()const noexcept;
 	private:
 		void createSurface();
 	private:

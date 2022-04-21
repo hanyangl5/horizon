@@ -29,17 +29,17 @@ namespace Horizon {
 		}
 	}
 
-	VkFramebuffer Framebuffer::Get() const
+	VkFramebuffer Framebuffer::Get() const noexcept 
 	{
 		return m_framebuffer[0];
 	}
 
-	VkFramebuffer Framebuffer::Get(u32 index) const
+	VkFramebuffer Framebuffer::Get(u32 index) const noexcept 
 	{
 		return m_framebuffer[index];
 	}
 
-	VkRenderPass Framebuffer::getRenderPass() const
+	VkRenderPass Framebuffer::getRenderPass() const noexcept 
 	{
 		return m_render_pass->Get();
 	}

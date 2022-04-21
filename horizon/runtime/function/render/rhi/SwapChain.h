@@ -20,13 +20,13 @@ namespace Horizon {
 
 		~SwapChain();
 
-		VkSwapchainKHR Get() const;
+		VkSwapchainKHR Get() const noexcept;
 
-		std::vector<VkImageView> getImageViews() const;
+		std::vector<VkImageView> getImageViews() const noexcept;
 
-		VkImageView getImageView(u32 i) const;
+		VkImageView getImageView(u32 i) const noexcept;
 
-		VkFormat getImageFormat() const;
+		VkFormat getImageFormat() const noexcept;
 
 
 		void recreate(VkExtent2D newExtent);
@@ -34,9 +34,9 @@ namespace Horizon {
 	private:
 		void createSwapChain();
 
-		VkSurfaceFormatKHR chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const;
+		VkSurfaceFormatKHR chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const noexcept;
 
-		VkPresentModeKHR choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const;
+		VkPresentModeKHR choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const noexcept;
 
 		VkExtent2D chooseExtent(VkSurfaceCapabilitiesKHR capabilities);
 

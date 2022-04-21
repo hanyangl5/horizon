@@ -14,8 +14,8 @@ namespace Horizon {
 		UniformBuffer(std::shared_ptr<Device>);
 		~UniformBuffer();
 		void update(void* ub, u64 buffer_size);
-		VkBuffer Get()const;
-		u64 size()const;
+		VkBuffer Get()const noexcept;
+		u64 size()const noexcept;
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		VkBuffer m_uniform_buffer = VK_NULL_HANDLE;

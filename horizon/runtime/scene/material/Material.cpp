@@ -2,7 +2,7 @@
 
 namespace Horizon {
 
-	void Material::UpdateDescriptorSet()
+	void Material::UpdateDescriptorSet() noexcept
 	{
 		m_material_ub->update(&m_material_ubdata, sizeof(m_material_ubdata));
 

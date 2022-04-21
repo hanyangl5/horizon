@@ -10,7 +10,7 @@ namespace Horizon {
 
 	class Material {
 	public:
-		void UpdateDescriptorSet();
+		void UpdateDescriptorSet() noexcept;
 
 		//Math::vec4 emissiveFactor = Math::vec4(1.0f);
 		std::shared_ptr<Texture> base_color_texture = nullptr;

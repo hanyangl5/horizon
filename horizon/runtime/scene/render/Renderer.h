@@ -21,27 +21,27 @@ namespace Horizon
 	class Renderer
 	{
 	public:
-		Renderer(u32 width, u32 height, std::shared_ptr<Window> window);
+		Renderer(u32 width, u32 height, std::shared_ptr<Window> window) noexcept;
 
-		~Renderer();
+		~Renderer() noexcept;
 
-		void Init();
+		void Init() noexcept;
 
-		void Update();
+		void Update() noexcept;
 
-		void Render();
+		void Render() noexcept;
 
-		void Wait();
+		void Wait() noexcept;
 
-		std::shared_ptr<Camera> GetMainCamera() const;
+		std::shared_ptr<Camera> GetMainCamera() const noexcept;
 
 	private:
-		void DrawFrame();
+		void DrawFrame() noexcept;
 
-		void PrepareAssests();
+		void PrepareAssests() noexcept;
 
 		// create pipeline layouts for each pass
-		void CreatePipelines();
+		void CreatePipelines() noexcept;
 
 		RenderContext m_render_context;
 		std::shared_ptr<Window> m_window = nullptr;

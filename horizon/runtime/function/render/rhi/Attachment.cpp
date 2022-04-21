@@ -46,7 +46,7 @@ namespace Horizon {
 		vkGetImageMemoryRequirements(device->Get(), m_image, &memReqs);
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = findMemoryType(device->getPhysicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		memAlloc.memoryTypeIndex = FindMemoryType(device->getPhysicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		CHECK_VK_RESULT(vkAllocateMemory(device->Get(), &memAlloc, nullptr, &m_image_memory));
 		CHECK_VK_RESULT(vkBindImageMemory(device->Get(), m_image, m_image_memory, 0));
 

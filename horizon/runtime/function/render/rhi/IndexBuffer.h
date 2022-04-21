@@ -15,8 +15,8 @@ namespace Horizon {
 		IndexBuffer() = default;
 		IndexBuffer(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, const std::vector<Index>& vertices);
 		~IndexBuffer();
-		VkBuffer Get()const;
-		u64 getIndicesCount()const;
+		VkBuffer Get()const noexcept;
+		u64 getIndicesCount()const noexcept;
 	private:
 		VkBuffer m_index_buffer;
 		VkDeviceMemory m_index_buffer_memory;

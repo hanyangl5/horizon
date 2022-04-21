@@ -15,7 +15,6 @@ namespace Horizon {
 		Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command, tinygltf::Image& gltfimage);
 		~Texture();
 		void loadFromFile(const std::string& path, VkImageUsageFlags usage, VkImageLayout layout);
-		void loadFromglTfImage(tinygltf::Image& gltfimage, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command);
 		void transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
 		void copyBufferToImage(VkBuffer buffer, VkImage image, u32 width, u32 height);
 		void createImageView(VkFormat format);

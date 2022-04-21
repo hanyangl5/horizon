@@ -20,22 +20,22 @@ namespace Horizon {
 		cleanup();
 	}
 
-	VkSwapchainKHR SwapChain::Get() const
+	VkSwapchainKHR SwapChain::Get() const noexcept
 	{
 		return m_swap_chain;
 	}
 
-	std::vector<VkImageView> SwapChain::getImageViews() const
+	std::vector<VkImageView> SwapChain::getImageViews() const noexcept
 	{
 		return imageViews;
 	}
 
-	VkImageView SwapChain::getImageView(u32 i) const {
+	VkImageView SwapChain::getImageView(u32 i) const noexcept {
 		return imageViews[i];
 	}
 
 
-	VkFormat SwapChain::getImageFormat() const
+	VkFormat SwapChain::getImageFormat() const noexcept
 	{
 		return mImageFormat;
 	}
@@ -99,7 +99,7 @@ namespace Horizon {
 
 	}
 
-	VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const
+	VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats) const noexcept
 	{
 		// force predefined format
 		VkSurfaceFormatKHR ret{};
@@ -122,7 +122,7 @@ namespace Horizon {
 		return availableFormats[0];
 	}
 
-	VkPresentModeKHR SwapChain::choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const
+	VkPresentModeKHR SwapChain::choosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes) const noexcept
 	{
 		// simplest mode
 		return VK_PRESENT_MODE_FIFO_KHR;

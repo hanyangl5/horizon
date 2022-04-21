@@ -22,7 +22,7 @@ vec3 GammaCorrection(vec3 x){
 
 void main() {
 	vec3 color = texture(color_texture, frag_tex_coord).xyz;
-	color = TonemapACES(color);
+	//color = TonemapACES(color);
 	//color = GammaCorrection(color);
     out_color = vec4(color, 1.0);
 }

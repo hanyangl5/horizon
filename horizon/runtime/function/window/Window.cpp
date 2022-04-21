@@ -27,12 +27,12 @@ namespace Horizon {
 		glfwTerminate();
 	}
 
-	u32 Window::getWidth() const
+	u32 Window::getWidth() const noexcept 
 	{
 		return width;
 	}
 
-	u32 Window::getHeight() const
+	u32 Window::getHeight() const noexcept 
 	{
 		return height;
 	}

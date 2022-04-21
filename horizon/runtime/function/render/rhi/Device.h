@@ -15,11 +15,11 @@ namespace Horizon {
 	public:
 		Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface);
 		~Device();
-		VkPhysicalDevice getPhysicalDevice() const;
-		VkDevice Get()const;
-		VkQueue getGraphicQueue() const;
-		VkQueue getPresnetQueue() const;
-		QueueFamilyIndices getQueueFamilyIndices() const;
+		VkPhysicalDevice getPhysicalDevice() const noexcept;
+		VkDevice Get()const noexcept;
+		VkQueue getGraphicQueue() const noexcept;
+		VkQueue getPresnetQueue() const noexcept;
+		QueueFamilyIndices getQueueFamilyIndices() const noexcept;
 	private:
 		bool isDeviceSuitable(VkPhysicalDevice device);
 		// pick the best gpu

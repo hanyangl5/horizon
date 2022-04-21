@@ -25,29 +25,29 @@ namespace Horizon {
 		~Log();
 
 		template<typename... args>
-		inline void Debug(args&&... _args) {
+		inline void Debug(args&&... _args) const noexcept {
 			m_logger->debug(std::forward<args>(_args)...);
 		}
 
 		template<typename... args>
-		inline void Info(args&&... _args) {
+		inline void Info(args&&... _args) const noexcept {
 			m_logger->info(std::forward<args>(_args)...);
 		}
 
 		template<typename... args>
-		inline void Warn(args&&... _args) {
+		inline void Warn(args&&... _args) const noexcept {
 			m_logger->warn(std::forward<args>(_args)...);
 		}
 
 		template<typename... args>
-		inline void Error(args&&... _args) {
+		inline void Error(args&&... _args) const noexcept {
 			m_logger->error(std::forward<args>(_args)...);
 		}
 		template<typename... args>
-		inline void Fatal(args&&... _args) {
+		inline void Fatal(args&&... _args) const noexcept {
 			m_logger->fatal(std::forward<args>(_args)...);
 		}
-		void CheckVulkanResult(VkResult _res);
+		void CheckVulkanResult(VkResult _res) const noexcept;
 
 	private:
 		std::shared_ptr<spdlog::logger> m_logger;

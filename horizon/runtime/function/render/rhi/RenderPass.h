@@ -13,7 +13,7 @@ namespace Horizon {
 	public:
 		RenderPass(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info);
 		~RenderPass();
-		VkRenderPass Get() const;
+		VkRenderPass Get() const noexcept;
 	private:
 		void CreateRenderPass(const std::vector<AttachmentCreateInfo>& attachment_create_info);
 	public:

@@ -3,15 +3,16 @@
 
 using namespace Horizon;
 
-App::App(u32 _width, u32 _height) :m_width(_width), mHeight(_height) {
+App::App(u32 _width, u32 _height) noexcept :m_width(_width), mHeight(_height)
+{
 
 }
 
-App::~App() {
+App::~App() noexcept {
 
 }
 
-void App::Run() {
+void App::Run() noexcept {
 
 	m_window = std::make_shared<Window>("horizon", m_width, mHeight);
 	m_renderer = std::make_unique<Renderer>(m_window->getWidth(), m_window->getHeight(), m_window);
@@ -27,9 +28,9 @@ void App::Run() {
 }
 
 int main(int argc, char* argv[]) {
+
 	std::unique_ptr<App> app = std::make_unique<App>(1920, 1080);
-
 	app->Run();
-
+	
 	return 0;
 }

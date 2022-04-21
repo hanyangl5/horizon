@@ -16,12 +16,12 @@ namespace Horizon {
 		vkDestroyInstance(m_instance, nullptr);
 	}
 
-	VkInstance Instance::Get()const
+	VkInstance Instance::Get()const noexcept 
 	{
 		return m_instance;
 	}
 
-	const ValidationLayer& Instance::getValidationLayer() const
+	const ValidationLayer& Instance::getValidationLayer() const noexcept 
 	{
 		return m_validation_layer;
 	}

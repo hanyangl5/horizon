@@ -14,9 +14,9 @@ namespace Horizon {
 	public:
 		Framebuffer(std::shared_ptr<Device> device, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain = nullptr);
 		~Framebuffer();
-		VkFramebuffer Get() const;
-		VkFramebuffer Get(u32 index) const;
-		VkRenderPass getRenderPass() const;
+		VkFramebuffer Get() const noexcept;
+		VkFramebuffer Get(u32 index) const noexcept;
+		VkRenderPass getRenderPass() const noexcept;
 		std::shared_ptr<AttachmentDescriptor> getDescriptorImageInfo(u32 attachment_index);
 		std::vector<VkImage> getPresentImages();
 		u32 getColorAttachmentCount();

@@ -15,8 +15,8 @@ namespace Horizon {
 		//VertexBuffer(const VertexBuffer&& rhs);
 		//VertexBuffer& operator=(VertexBuffer&& rhs);
 		~VertexBuffer();
-		VkBuffer Get()const;
-		u64 getVerticesCount()const;
+		VkBuffer Get()const noexcept;
+		u64 getVerticesCount()const noexcept;
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		VkBuffer m_vertex_buffer;

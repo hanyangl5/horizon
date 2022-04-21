@@ -1,6 +1,9 @@
+#pragma once
+
 #include <runtime/function/render/RenderContext.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/scene/camera/Camera.h>
+
 namespace Horizon {
 
 	class InputManager {
@@ -26,23 +29,23 @@ namespace Horizon {
 			RELEASE
 		};
 	public:
-		InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera);
+		InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera) noexcept;
 
-		~InputManager();
+		~InputManager() noexcept;
 
-		void ProcessInput();
+		void ProcessInput() noexcept;
 
 	private:
 
-		void ProcessKeyboardInput();
+		void ProcessKeyboardInput() noexcept;
 
-		void ProcessMouseInput();
+		void ProcessMouseInput() noexcept;
 
-		bool GetKeyPress(Key key);
+		bool GetKeyPress(Key key) const noexcept;
 
-		int GetMouseButtonPress(MouseButton button);
+		int GetMouseButtonPress(MouseButton button) const noexcept;
 
-		int GetMouseButtonRelease(MouseButton button);
+		int GetMouseButtonRelease(MouseButton button) const noexcept;
 
 	private:
 

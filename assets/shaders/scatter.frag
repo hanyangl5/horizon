@@ -215,7 +215,7 @@ void main() {
     context.planet_center = vec3(0.0f);
     context.planet_radius = 6378e0;
     context.atmosphere_radius = 6478e0;
-    context.view_scatter_nums =   64;
+    context.view_scatter_nums = 64;
     context.light_scatter_nums = 32;
     // thickness of the atmosphere if its density were uniform (how far to go up before the scattering has no effect)
     context.rayliegh_mie_scale_height = vec2(8e0, 1.2e0);
@@ -228,5 +228,5 @@ void main() {
     context.view_dir = view_dir;
 
     vec3 scatter = InScattering(context);
-    out_color = vec4(scatter,1.0);
+    out_color = vec4(scatter, 1.0);
 }

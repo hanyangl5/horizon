@@ -27,11 +27,11 @@ namespace Horizon {
 		vkUnmapMemory(m_device->Get(), m_uniform_buffer_memory);
 	}
 
-	VkBuffer UniformBuffer::Get() const
+	VkBuffer UniformBuffer::Get() const noexcept 
 	{
 		return m_uniform_buffer;
 	}
-	u64 UniformBuffer::size() const
+	u64 UniformBuffer::size() const noexcept 
 	{
 		return m_size;
 	}

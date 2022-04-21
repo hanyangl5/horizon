@@ -61,17 +61,17 @@ namespace Horizon {
 		}
 	}
 
-	bool QueueFamilyIndices::completed() const
+	bool QueueFamilyIndices::completed() const noexcept 
 	{
 		return graphics.has_value() && present.has_value();
 	}
 
-	u32 QueueFamilyIndices::getGraphics() const
+	u32 QueueFamilyIndices::getGraphics() const noexcept 
 	{
 		return graphics.value();
 	}
 
-	u32 QueueFamilyIndices::getPresent() const
+	u32 QueueFamilyIndices::getPresent() const noexcept 
 	{
 		return present.value();
 	}

@@ -32,32 +32,32 @@ namespace Horizon {
 	}
 
 
-	VkPipeline Pipeline::Get() const
+	VkPipeline Pipeline::Get() const noexcept 
 	{
 		return m_pipeline;
 	}
 
-	VkPipelineLayout Pipeline::GetLayout() const
+	VkPipelineLayout Pipeline::GetLayout() const noexcept 
 	{
 		return m_pipeline_layout;
 	}
 
 
-	VkViewport Pipeline::getViewport() const
+	VkViewport Pipeline::getViewport() const noexcept 
 	{
 		return m_viewport;
 	}
 
-	VkRenderPass Pipeline::getRenderPass() const
+	VkRenderPass Pipeline::getRenderPass() const noexcept 
 	{
 		return m_framebuffer->getRenderPass();
 	}
 
-	VkFramebuffer Pipeline::getFrameBuffer() const
+	VkFramebuffer Pipeline::getFrameBuffer() const noexcept 
 	{
 		return m_framebuffer->Get();
 	}
-	VkFramebuffer Pipeline::getFrameBuffer(u32 index) const
+	VkFramebuffer Pipeline::getFrameBuffer(u32 index) const noexcept 
 	{
 		return m_framebuffer->Get(index);
 	}

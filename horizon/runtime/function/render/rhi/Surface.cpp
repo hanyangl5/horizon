@@ -16,7 +16,7 @@ namespace Horizon {
 		vkDestroySurfaceKHR(m_instance->Get(), m_surface, nullptr);
 	}
 
-	VkSurfaceKHR Surface::Get() const
+	VkSurfaceKHR Surface::Get() const noexcept 
 	{
 		return m_surface;
 	}

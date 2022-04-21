@@ -5,7 +5,7 @@
 
 namespace Horizon {
 
-	Scene::Scene(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) :m_render_context(render_context), m_device(device), m_command_buffer(command_buffer)
+	Scene::Scene(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) noexcept :m_render_context(render_context), m_device(device), m_command_buffer(command_buffer)
 	{
 
 
@@ -32,22 +32,22 @@ namespace Horizon {
 		m_camera_ub = std::make_shared<UniformBuffer>(device);
 	}
 
-	Scene::~Scene()
+	Scene::~Scene() noexcept
 	{
 
 	}
 
-	void Scene::LoadModel(const std::string& path, const std::string& name)
+	void Scene::LoadModel(const std::string& path, const std::string& name) noexcept
 	{
 		m_models.insert({ name, std::make_shared<Model>(path, m_device, m_command_buffer, m_scene_descriptor_set) });
 	}
 
-	std::shared_ptr<Model> Scene::GetModel(const std::string& name)
+	std::shared_ptr<Model> Scene::GetModel(const std::string& name) const noexcept
 	{
 		return m_models.at(name);
 	}
 
-	void Scene::AddDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction)
+	void Scene::AddDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction) noexcept
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
 			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -63,7 +63,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::AddPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius)
+	void Scene::AddPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius) noexcept
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
 			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -79,7 +79,7 @@ namespace Horizon {
 
 	}
 
-	void Scene::AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle)
+	void Scene::AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle) noexcept
 	{
 		if (m_light_count_ubdata.lightCount >= MAX_LIGHT_COUNT) {
 			LOG_WARN("light count cannot more than {}", MAX_LIGHT_COUNT);
@@ -97,7 +97,7 @@ namespace Horizon {
 		m_light_count_ubdata.lightCount++;
 	}
 
-	void Scene::Prepare()
+	void Scene::Prepare() noexcept
 	{
 		// update scene descriptorset
 		m_scene_descriptor_set->AllocateDescriptorSet();
@@ -133,7 +133,7 @@ namespace Horizon {
 		}
 	}
 
-	void Scene::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline) {
+	void Scene::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline) noexcept {
 
 		_command_buffer->beginRenderPass(_i, _pipeline);
 		for (auto& model : m_models) {
@@ -143,7 +143,7 @@ namespace Horizon {
 	}
 
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::GetDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::GetDescriptorLayouts() const noexcept
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout materialSetLayout;
@@ -163,7 +163,7 @@ namespace Horizon {
 		return layouts;
 	}
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::GetGeometryPassDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::GetGeometryPassDescriptorLayouts() const noexcept
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout materialSetLayout;
@@ -179,7 +179,7 @@ namespace Horizon {
 		return layouts;
 	}
 
-	std::shared_ptr<DescriptorSetLayouts> Scene::GetSceneDescriptorLayouts()
+	std::shared_ptr<DescriptorSetLayouts> Scene::GetSceneDescriptorLayouts() const noexcept
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		layouts->layouts.emplace_back(m_scene_descriptor_set->GetLayout());
@@ -187,15 +187,17 @@ namespace Horizon {
 	}
 
 
-	std::shared_ptr<Camera> Scene::GetMainCamera() const
+	std::shared_ptr<Camera> Scene::GetMainCamera() const noexcept
 	{
 		return m_camera;
 	}
-	std::shared_ptr<UniformBuffer> Scene::getCameraUbo() const
+
+	std::shared_ptr<UniformBuffer> Scene::getCameraUbo() const noexcept
 	{
 		return m_camera_ub;
 	}
-	FullscreenTriangle::FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) :m_device(device), m_command_buffer(command_buffer)
+
+	FullscreenTriangle::FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) noexcept :m_device(device), m_command_buffer(command_buffer)
 	{
 
 		// pos, normal, uv
@@ -205,7 +207,7 @@ namespace Horizon {
 		m_vertex_buffer = std::make_shared<VertexBuffer>(m_device, m_command_buffer, m_vertices);
 	}
 
-	void FullscreenTriangle::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets, bool _is_present)
+	void FullscreenTriangle::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets, bool _is_present) noexcept
 	{
 		_command_buffer->beginRenderPass(_i, _pipeline, _is_present);
 		VkCommandBuffer command_buffer = _command_buffer->Get(_i);

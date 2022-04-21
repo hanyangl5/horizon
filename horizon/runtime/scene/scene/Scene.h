@@ -17,24 +17,24 @@ namespace Horizon {
 
 	class Scene {
 	public:
-		Scene(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
-		~Scene();
+		Scene(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) noexcept;
+		~Scene() noexcept;
 
-		void LoadModel(const std::string& path, const std::string& name);
-		std::shared_ptr<Model> GetModel(const std::string& name);
-		
+		void LoadModel(const std::string& path, const std::string& name) noexcept;
+		std::shared_ptr<Model> GetModel(const std::string& name) const noexcept;
+
 		// https://google.github.io/filament/Filament.html
-		void AddDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction);
-		void AddPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius);
-		void AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle);
+		void AddDirectLight(Math::vec3 color, f32 intensity, Math::vec3 direction) noexcept;
+		void AddPointLight(Math::vec3 color, f32 intensity, Math::vec3 position, f32 radius) noexcept;
+		void AddSpotLight(Math::vec3 color, f32 intensity, Math::vec3 direction, Math::vec3 position, f32 radius, f32 innerConeAngle, f32 outerConeAngle) noexcept;
 
-		void Prepare();
-		void Draw(u32 i, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<Pipeline> pipeline);
-		std::shared_ptr<DescriptorSetLayouts> GetDescriptorLayouts();
-		std::shared_ptr<DescriptorSetLayouts> GetGeometryPassDescriptorLayouts();
-		std::shared_ptr<DescriptorSetLayouts> GetSceneDescriptorLayouts();
-		std::shared_ptr<Camera> GetMainCamera() const;
-		std::shared_ptr<UniformBuffer> getCameraUbo() const;
+		void Prepare() noexcept;
+		void Draw(u32 i, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<Pipeline> pipeline) noexcept;
+		std::shared_ptr<DescriptorSetLayouts> GetDescriptorLayouts() const noexcept;
+		std::shared_ptr<DescriptorSetLayouts> GetGeometryPassDescriptorLayouts() const noexcept;
+		std::shared_ptr<DescriptorSetLayouts> GetSceneDescriptorLayouts() const noexcept;
+		std::shared_ptr<Camera> GetMainCamera() const noexcept;
+		std::shared_ptr<UniformBuffer> getCameraUbo() const noexcept;
 	private:
 		RenderContext& m_render_context;
 		std::shared_ptr<Camera> m_camera = nullptr;
@@ -78,8 +78,8 @@ namespace Horizon {
 
 	class FullscreenTriangle {
 	public:
-		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer);
-		void Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets, bool _is_present = false);
+		FullscreenTriangle(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer) noexcept;
+		void Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets, bool _is_present = false) noexcept;
 	private:
 		std::shared_ptr<Device> m_device = nullptr;
 		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;

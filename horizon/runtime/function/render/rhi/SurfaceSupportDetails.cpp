@@ -26,22 +26,22 @@ namespace Horizon {
 
 	}
 
-	VkSurfaceCapabilitiesKHR SurfaceSupportDetails::getCapabilities() const
+	VkSurfaceCapabilitiesKHR SurfaceSupportDetails::getCapabilities() const noexcept 
 	{
 		return capabilities;
 	}
 
-	std::vector<VkSurfaceFormatKHR> SurfaceSupportDetails::getFormats() const
+	std::vector<VkSurfaceFormatKHR> SurfaceSupportDetails::getFormats() const noexcept 
 	{
 		return formats;
 	}
 
-	std::vector<VkPresentModeKHR> SurfaceSupportDetails::getPresentModes() const
+	std::vector<VkPresentModeKHR> SurfaceSupportDetails::getPresentModes() const noexcept 
 	{
 		return presentModes;
 	}
 
-	bool SurfaceSupportDetails::suitable() const
+	bool SurfaceSupportDetails::suitable() const noexcept 
 	{
 		return !formats.empty() && !presentModes.empty();
 	}

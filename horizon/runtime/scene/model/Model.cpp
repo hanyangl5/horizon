@@ -5,7 +5,7 @@
 #include <runtime/function/render/rhi/VulkanBuffer.h>
 
 namespace Horizon {
-	Model::Model(const std::string& path, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<DescriptorSet> m_scene_descriptor_set) :m_device(device), m_command_buffer(command_buffer), m_scene_descriptor_set(m_scene_descriptor_set)
+	Model::Model(const std::string& path, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<DescriptorSet> m_scene_descriptor_set) noexcept :m_device(device), m_command_buffer(command_buffer), m_scene_descriptor_set(m_scene_descriptor_set)
 	{
 
 		tinygltf::TinyGLTF gltf_context;
@@ -34,11 +34,11 @@ namespace Horizon {
 		}
 	}
 
-	Model::~Model() {
+	Model::~Model() noexcept {
 
 	}
 
-	void Model::Draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer)
+	void Model::Draw(std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer) noexcept
 	{
 		const VkDeviceSize offsets[1] = { 0 };
 		VkBuffer vertexBuffer = m_vertex_buffer->Get();
@@ -50,7 +50,7 @@ namespace Horizon {
 		}
 	}
 
-	void Model::LoadTextures(tinygltf::Model& gltfModel)
+	void Model::LoadTextures(tinygltf::Model& gltfModel) noexcept
 	{
 		//auto getVkFilterMode = [](int32_t filterMode)
 		//{
@@ -122,7 +122,7 @@ namespace Horizon {
 		}
 	}
 
-	void Model::LoadMaterials(tinygltf::Model& gltfModel)
+	void Model::LoadMaterials(tinygltf::Model& gltfModel) noexcept
 	{
 		for (tinygltf::Material& mat : gltfModel.materials) {
 			std::shared_ptr<Material> material = std::make_shared<Material>();
@@ -208,7 +208,7 @@ namespace Horizon {
 		//m_materials.push_back(Material());
 	}
 
-	void Model::LoadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, f32 globalscale)
+	void Model::LoadNode(std::shared_ptr<Node> m_parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<u32>& indices, std::vector<Vertex>& vertices, f32 globalscale) noexcept
 	{
 		std::shared_ptr<Node> newNode = std::make_shared<Node>();
 		newNode->index = nodeIndex;
@@ -356,7 +356,7 @@ namespace Horizon {
 		m_linear_nodes.push_back(newNode);
 	}
 
-	void Model::DrawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer)
+	void Model::DrawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer) noexcept
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
@@ -377,21 +377,21 @@ namespace Horizon {
 		}
 	}
 
-	void Model::UpdateDescriptors()
+	void Model::UpdateDescriptors() noexcept
 	{
 		for (auto& material : m_materials) {
 			material->UpdateDescriptorSet();
 		}
 	}
 
-	void Model::UpdateModelMatrix()
+	void Model::UpdateModelMatrix() noexcept
 	{
 		for (auto& node : m_nodes) {
 			UpdateNodeModelMatrix(node);
 		}
 	}
 
-	void Model::UpdateNodeModelMatrix(std::shared_ptr<Node> node)
+	void Model::UpdateNodeModelMatrix(std::shared_ptr<Node> node) noexcept
 	{
 
 		// update model matrix for each node
@@ -422,7 +422,7 @@ namespace Horizon {
 	//	}
 	//	return nullptr;
 	//}
-	std::shared_ptr<DescriptorSet> Model::GetMaterialDescriptorSet()
+	std::shared_ptr<DescriptorSet> Model::GetMaterialDescriptorSet() noexcept
 	{
 		for (auto& node : m_nodes) {
 			return GetNodeMaterialDescriptorSet(node);
@@ -430,11 +430,13 @@ namespace Horizon {
 		LOG_ERROR("material descriptorset not found");
 		return nullptr;
 	}
-	void Model::SetModelMatrix(const Math::mat4& modelMatrix)
+
+	void Model::SetModelMatrix(const Math::mat4& modelMatrix) noexcept
 	{
 		m_model_matrix = modelMatrix;
 	}
-	std::shared_ptr<DescriptorSet> Model::GetNodeMaterialDescriptorSet(std::shared_ptr<Node> node)
+
+	std::shared_ptr<DescriptorSet> Model::GetNodeMaterialDescriptorSet(std::shared_ptr<Node> node) noexcept
 	{
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
@@ -448,7 +450,7 @@ namespace Horizon {
 	}
 
 
-	Mesh::Mesh(std::shared_ptr<Device> device, Math::mat4 model) :m_device(device)
+	Mesh::Mesh(std::shared_ptr<Device> device, Math::mat4 model) noexcept :m_device(device)
 	{
 		m_mesh_push_constant.modelMatrix = model;
 		//meshUb = std::make_shared<UniformBuffer>(m_device);
@@ -462,22 +464,22 @@ namespace Horizon {
 
 	}
 
-	MeshPrimitive::MeshPrimitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+	MeshPrimitive::MeshPrimitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material) noexcept : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
 		hasIndices = indexCount > 0;
 	}
 
-	Node::Node() {
+	Node::Node() noexcept {
 
 	}
 
-	Node::~Node() {
+	Node::~Node() noexcept {
 	}
 
-	Math::mat4 Node::localMatrix() {
+	Math::mat4 Node::localMatrix() noexcept {
 		return Math::translate(Math::mat4(1.0f), translation) * Math::mat4_cast(rotation) * Math::scale(Math::mat4(1.0f), scale) * matrix;
 	}
 
-	Math::mat4 Node::getMatrix() {
+	Math::mat4 Node::getMatrix() noexcept {
 		// local matrix
 		Math::mat4 m = localMatrix();
 		std::shared_ptr<Node> p = m_parent;
@@ -488,7 +490,7 @@ namespace Horizon {
 		return m;
 	}
 
-	void Node::update(const Math::mat4& modelMat) {
+	void Node::update(const Math::mat4& modelMat) noexcept {
 		mesh->m_mesh_push_constant.modelMatrix = modelMat * getMatrix();
 		//mesh->meshUbStruct.model = modelMat * getMatrix();
 		//mesh->meshUb->update(&mesh->meshUbStruct, sizeof(mesh->meshUbStruct));

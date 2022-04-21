@@ -57,12 +57,12 @@ namespace Horizon {
 		vkFreeMemory(m_device->Get(), m_index_buffer_memory, nullptr);
 	}
 
-	VkBuffer IndexBuffer::Get() const
+	VkBuffer IndexBuffer::Get() const noexcept 
 	{
 		return m_index_buffer;
 	}
 
-	u64 IndexBuffer::getIndicesCount() const
+	u64 IndexBuffer::getIndicesCount() const noexcept 
 	{
 		return m_indices_count;
 	}

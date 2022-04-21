@@ -22,7 +22,7 @@ namespace Horizon {
 	}
 
 
-	VkCommandBuffer CommandBuffer::Get(u32 i) const
+	VkCommandBuffer CommandBuffer::Get(u32 i) const noexcept 
 	{
 		return m_command_buffers[i];
 	}
@@ -77,7 +77,7 @@ namespace Horizon {
 		vkQueueWaitIdle(m_device->getGraphicQueue());
 	}
 
-	VkCommandPool CommandBuffer::getCommandpool() const
+	VkCommandPool CommandBuffer::getCommandpool() const noexcept 
 	{
 		return m_command_pool;
 	}
@@ -117,7 +117,7 @@ namespace Horizon {
 		CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device->Get(), &commandBufferAllocateInfo, m_command_buffers.data()));
 	}
 
-	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) const
+	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) const noexcept 
 	{
 
 		VkRenderPassBeginInfo renderPassInfo{};
@@ -144,7 +144,7 @@ namespace Horizon {
 		vkCmdSetViewport(m_command_buffers[index], 0, 1, &pipeline->getViewport());
 	}
 
-	void CommandBuffer::endRenderPass(u32 index) const
+	void CommandBuffer::endRenderPass(u32 index) const noexcept 
 	{
 		vkCmdEndRenderPass(m_command_buffers[index]);
 	}

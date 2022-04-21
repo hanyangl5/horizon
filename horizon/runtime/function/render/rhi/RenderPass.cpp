@@ -103,7 +103,7 @@ namespace Horizon {
 		vkDestroyRenderPass(m_device->Get(), m_render_pass, nullptr);
 	}
 
-	VkRenderPass RenderPass::Get() const
+	VkRenderPass RenderPass::Get() const noexcept 
 	{
 		return m_render_pass;
 	}

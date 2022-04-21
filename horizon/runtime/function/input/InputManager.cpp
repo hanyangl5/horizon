@@ -2,7 +2,7 @@
 
 namespace Horizon {
 
-	InputManager::InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera) :m_window(window), m_camera(camera)
+	InputManager::InputManager(std::shared_ptr<Window> window, std::shared_ptr<Camera> camera) noexcept :m_window(window), m_camera(camera)
 	{
 		m_window = window;
 		m_camera = camera;
@@ -10,10 +10,10 @@ namespace Horizon {
 		m_last_y = window->getHeight() / 2.0f;
 		m_first_mouse = true;
 	}
-	InputManager::~InputManager()
+	InputManager::~InputManager() noexcept
 	{
 	}
-	void InputManager::ProcessInput()
+	void InputManager::ProcessInput() noexcept
 	{
 		glfwPollEvents();
 		ProcessMouseInput();
@@ -21,7 +21,7 @@ namespace Horizon {
 		m_camera->UpdateViewMatrix();
 	}
 
-	void InputManager::ProcessKeyboardInput()
+	void InputManager::ProcessKeyboardInput() noexcept
 	{
 
 		if (GetKeyPress(Key::ESCAPE)) {
@@ -49,7 +49,7 @@ namespace Horizon {
 	}
 
 
-	void InputManager::ProcessMouseInput()
+	void InputManager::ProcessMouseInput() noexcept
 	{
 		f64 xposIn, yposIn;
 		glfwGetCursorPos(m_window->getWindow(), &xposIn, &yposIn);
@@ -83,7 +83,7 @@ namespace Horizon {
 		}
 	}
 
-	bool InputManager::GetKeyPress(Key inputKey)
+	bool InputManager::GetKeyPress(Key inputKey) const noexcept
 	{
 		switch (inputKey)
 		{
@@ -117,7 +117,7 @@ namespace Horizon {
 		}
 	}
 
-	int InputManager::GetMouseButtonPress(MouseButton button)
+	int InputManager::GetMouseButtonPress(MouseButton button) const noexcept
 	{
 		switch (button)
 		{
@@ -134,7 +134,7 @@ namespace Horizon {
 
 	}
 
-	int InputManager::GetMouseButtonRelease(MouseButton button)
+	int InputManager::GetMouseButtonRelease(MouseButton button) const noexcept
 	{
 		switch (button)
 		{

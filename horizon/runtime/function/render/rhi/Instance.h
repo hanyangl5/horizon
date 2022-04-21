@@ -14,8 +14,8 @@ namespace Horizon {
 	public:
 		Instance();
 		~Instance();
-		VkInstance Get()const;
-		const ValidationLayer& getValidationLayer()const;
+		VkInstance Get()const noexcept;
+		const ValidationLayer& getValidationLayer()const noexcept;
 	private:
 		void createInstance();
 	private:

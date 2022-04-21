@@ -9,9 +9,9 @@
 class App
 {
 public:
-	App(Horizon::u32 _width, Horizon::u32 _height);
-	~App();
-	void Run();
+	App(Horizon::u32 _width, Horizon::u32 _height) noexcept;
+	~App() noexcept;
+	void Run() noexcept;
 private:
 	Horizon::u32 m_width;
 	Horizon::u32 mHeight;

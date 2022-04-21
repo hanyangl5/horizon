@@ -10,7 +10,7 @@ class Shader
 public:
 	Shader(VkDevice device, const std::string& path);
     ~Shader();
-    VkShaderModule Get()const;
+    VkShaderModule Get()const noexcept;
 private:
     std::vector<char> readFile(const std::string& path);
 

@@ -31,12 +31,12 @@ namespace Horizon {
 	public:
 		Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain = nullptr);
 		~Pipeline();
-		VkPipeline Get()const;
-		VkPipelineLayout GetLayout() const;
-		VkViewport getViewport() const;
-		VkRenderPass getRenderPass() const;
-		VkFramebuffer getFrameBuffer() const;
-		VkFramebuffer getFrameBuffer(u32 index) const;
+		VkPipeline Get()const noexcept;
+		VkPipelineLayout GetLayout() const noexcept;
+		VkViewport getViewport() const noexcept;
+		VkRenderPass getRenderPass() const noexcept;
+		VkFramebuffer getFrameBuffer() const noexcept;
+		VkFramebuffer getFrameBuffer(u32 index) const noexcept;
 		std::shared_ptr<AttachmentDescriptor> GetFrameBufferAttachment(u32 attahmentIndex);
 		std::vector<VkImage> getPresentImages();
 		std::vector<VkClearValue> getClearValues();

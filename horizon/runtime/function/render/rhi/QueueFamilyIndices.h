@@ -19,11 +19,11 @@ namespace Horizon {
 		// try to find required queue families and save they indices
 
 		// this device have all required queue families (for this surface)
-		bool completed() const;
+		bool completed() const noexcept;
 
-		u32 getGraphics()const;
+		u32 getGraphics()const noexcept;
 
-		u32 getPresent()const;
+		u32 getPresent()const noexcept;
 
 	private:
 		std::optional<u32> graphics;

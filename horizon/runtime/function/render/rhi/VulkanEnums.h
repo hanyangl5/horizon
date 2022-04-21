@@ -3,10 +3,11 @@
 #include <vulkan/vulkan.hpp>
 
 #include <runtime/core/math/Math.h>
+#include <runtime/core/log/Log.h>
 
 namespace Horizon {
 
-	inline u32 findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+	inline u32 FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) noexcept
 	{
 		VkPhysicalDeviceMemoryProperties memProperties;
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -16,7 +17,8 @@ namespace Horizon {
 				return i;
 			}
 		}
-		throw std::runtime_error("failed to find suitable memory type!");
+		LOG_ERROR("failed to find suitable memory type");
+		return 0;
 	}
 
 

@@ -16,31 +16,31 @@ namespace Horizon {
 
 	class Camera {
 	public:
-		Camera(Math::vec3 position, Math::vec3 at, Math::vec3 up);
+		Camera(Math::vec3 position, Math::vec3 at, Math::vec3 up) noexcept;
 
-		void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far);
-		Math::mat4 GetProjectionMatrix() const;
+		void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far) noexcept;
+		Math::mat4 GetProjectionMatrix() const noexcept;
 
 		//void setLookAt(vec3 position, vec3 at, vec3 up = vec3(0.0f, 1.0f, 0.0f));
-		Math::mat4 GetViewMatrix() const;
+		Math::mat4 GetViewMatrix() const noexcept;
 
-		Math::vec3 GetPosition() const;
+		Math::vec3 GetPosition() const noexcept;
 
-		Math::vec3 GetFov() const;
+		Math::vec3 GetFov() const noexcept;
 
-		Math::vec2 GetNearFarPlane() const;
+		Math::vec2 GetNearFarPlane() const noexcept;
 
-		void SetCameraSpeed(f32 speed);
-		f32 GetCameraSpeed() const;
+		void SetCameraSpeed(f32 speed) noexcept;
+		f32 GetCameraSpeed() const noexcept;
 
-		void Move(Direction direction);
-		void Rotate(f32 yaw, f32 pitch);
+		void Move(Direction direction) noexcept;
+		void Rotate(f32 yaw, f32 pitch) noexcept;
 
-		void UpdateViewMatrix();
+		void UpdateViewMatrix() noexcept;
 
-		Math::mat4 GetInvViewProjectionMatrix() const;
+		Math::mat4 GetInvViewProjectionMatrix() const noexcept;
 
-		Math::vec3 GetForwardDir() const;
+		Math::vec3 GetForwardDir() const noexcept;
 	private:
 		Math::vec3 m_eye, m_at, m_up;
 		Math::vec3 m_forward, m_right;

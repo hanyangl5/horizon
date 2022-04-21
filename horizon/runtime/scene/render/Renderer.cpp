@@ -8,7 +8,7 @@ namespace Horizon {
 
 	class Window;
 
-	Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window) :m_window(window)
+	Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window) noexcept :m_window(window)
 	{
 
 		m_instance = std::make_shared<Instance>();
@@ -27,16 +27,16 @@ namespace Horizon {
 		CreatePipelines();
 	}
 
-	Renderer::~Renderer()
+	Renderer::~Renderer() noexcept
 	{
 	}
 
-	void Renderer::Init()
+	void Renderer::Init() noexcept
 	{
 
 	}
 
-	void Renderer::Update() {
+	void Renderer::Update() noexcept {
 		m_scene->Prepare();
 
 		auto& geometryPipeline = m_pipeline_manager->Get("geometry");
@@ -65,23 +65,24 @@ namespace Horizon {
 		m_present_descriptorSet->UpdateDescriptorSet(desc3);
 
 	}
-	void Renderer::Render() {
+
+	void Renderer::Render() noexcept {
 
 		DrawFrame();
 		m_command_buffer->submit(m_swap_chain);
 	}
 
-	void Renderer::Wait()
+	void Renderer::Wait() noexcept
 	{
 		vkDeviceWaitIdle(m_device->Get());
 	}
 
-	std::shared_ptr<Camera> Renderer::GetMainCamera() const
+	std::shared_ptr<Camera> Renderer::GetMainCamera() const noexcept
 	{
 		return m_scene->GetMainCamera();
 	}
 
-	void Renderer::DrawFrame()
+	void Renderer::DrawFrame() noexcept
 	{
 		for (u32 i = 0; i < m_render_context.swap_chain_image_count; i++)
 		{
@@ -98,7 +99,7 @@ namespace Horizon {
 			auto& presentPipeline = m_pipeline_manager->Get("present");
 
 			// geometry pass
-			//m_scene->Draw(i, m_command_buffer, geometryPipeline);
+			m_scene->Draw(i, m_command_buffer, geometryPipeline);
 			// scattering pass
 			m_fullscreen_triangle->Draw(i, m_command_buffer, scatteringPipeline, { m_scatter_descriptorSet });
 			// post process pass
@@ -111,14 +112,14 @@ namespace Horizon {
 		}
 	}
 
-	void Renderer::PrepareAssests()
+	void Renderer::PrepareAssests() noexcept
 	{
 		m_scene->LoadModel(Path::GetInstance().GetModelPath("earth6378/earth.gltf"), "earth");
 		m_scattering_ub = std::make_shared<UniformBuffer>(m_device);
 		m_scattering_ubdata.resolution = Math::vec2(m_render_context.width, m_render_context.height);
 	}
 
-	void Renderer::CreatePipelines()
+	void Renderer::CreatePipelines() noexcept
 	{
 
 		PipelineCreateInfo geometryPipelineCreateInfo;

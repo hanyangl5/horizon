@@ -2,14 +2,14 @@
 
 namespace Horizon
 {
-	Camera::Camera(Math::vec3 eye, Math::vec3 at, Math::vec3 up) :m_eye(eye), m_at(at), m_up(up)
+	Camera::Camera(Math::vec3 eye, Math::vec3 at, Math::vec3 up) noexcept :m_eye(eye), m_at(at), m_up(up)
 	{
 		m_forward = normalize(m_at - m_eye);
 		m_right = cross(m_forward, m_up);
 		UpdateViewMatrix();
 		//setLookAt(eye, at, up);
 	}
-	void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane)
+	void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane) noexcept
 	{
 		m_fov = fov;
 		m_aspect_ratio = aspect_ratio;
@@ -17,32 +17,32 @@ namespace Horizon
 		m_far_plane = farPlane;
 		m_projection = Math::perspective(fov, aspect_ratio, nearPlane, farPlane);
 	}
-	Math::mat4 Camera::GetProjectionMatrix() const
+	Math::mat4 Camera::GetProjectionMatrix() const noexcept 
 	{
 		return m_projection;
 	}
 
-	Math::vec3 Camera::GetFov() const
+	Math::vec3 Camera::GetFov() const noexcept 
 	{
 		return Math::vec3();
 	}
 
-	Math::vec2 Camera::GetNearFarPlane() const
+	Math::vec2 Camera::GetNearFarPlane() const noexcept 
 	{
 		return Math::vec2(m_near_plane, m_far_plane);
 	}
 
-	void Camera::SetCameraSpeed(f32 speed)
+	void Camera::SetCameraSpeed(f32 speed) noexcept
 	{
 		m_camera_speed = speed;
 	}
 
-	f32 Camera::GetCameraSpeed() const
+	f32 Camera::GetCameraSpeed() const noexcept 
 	{
 		return m_camera_speed;
 	}
 
-	void Camera::Move(Direction direction)
+	void Camera::Move(Direction direction) noexcept
 	{
 		switch (direction)
 		{
@@ -68,7 +68,7 @@ namespace Horizon
 			break;
 		}
 	}
-	void Camera::Rotate(f32 xoffset, f32 yoffset)
+	void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept
 	{
 		m_yaw += xoffset;
 		m_pitch -= yoffset; // TODO: unify axis in different API
@@ -79,7 +79,7 @@ namespace Horizon
 		if (m_pitch < -89.0f)
 			m_pitch = -89.0f;
 	}
-	void Camera::UpdateViewMatrix()
+	void Camera::UpdateViewMatrix() noexcept
 	{
 		// calculate the new Front std::vector
 		Math::vec3 front;
@@ -93,19 +93,19 @@ namespace Horizon
 
 		m_view = Math::lookAt(m_eye, m_eye + m_forward, m_up);
 	}
-	Math::mat4 Camera::GetInvViewProjectionMatrix() const
+	Math::mat4 Camera::GetInvViewProjectionMatrix() const noexcept 
 	{
 		return Math::inverse(m_projection * m_view);
 	}
-	Math::vec3 Camera::GetForwardDir() const
+	Math::vec3 Camera::GetForwardDir() const noexcept 
 	{
 		return m_forward;
 	}
-	Math::mat4 Camera::GetViewMatrix() const
+	Math::mat4 Camera::GetViewMatrix() const noexcept 
 	{
 		return m_view;
 	}
-	Math::vec3 Camera::GetPosition() const
+	Math::vec3 Camera::GetPosition() const noexcept 
 	{
 		return m_eye;
 	}
