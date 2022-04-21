@@ -9,14 +9,16 @@ namespace Horizon
 		UpdateViewMatrix();
 		//setLookAt(eye, at, up);
 	}
+	
 	void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane) noexcept
 	{
 		m_fov = fov;
 		m_aspect_ratio = aspect_ratio;
 		m_near_plane = nearPlane;
 		m_far_plane = farPlane;
-		m_projection = Math::perspective(fov, aspect_ratio, nearPlane, farPlane);
+		m_projection = ReversePerspective(fov, aspect_ratio, nearPlane, farPlane);
 	}
+	
 	Math::mat4 Camera::GetProjectionMatrix() const noexcept 
 	{
 		return m_projection;

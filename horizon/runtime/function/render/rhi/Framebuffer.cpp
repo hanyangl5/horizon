@@ -75,7 +75,7 @@ namespace Horizon {
 		VkClearValue clearColor;
 		clearColor.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 		VkClearValue clearDepth;
-		clearDepth.depthStencil = { 1.0f, 0 };
+		clearDepth.depthStencil = { 0.0f, 0 };
 
 		for (u32 i = 0; i < m_render_pass->colorAttachmentCount; i++) {
 			clearValues.emplace_back(clearColor);

@@ -11,8 +11,6 @@
 
 namespace Horizon {
 
-	namespace Math = glm;
-
 	using u8 = uint8_t;
 	using u16 = uint16_t;
 	using u32 = uint32_t;
@@ -24,4 +22,12 @@ namespace Horizon {
 
 	using f32 = float;
 	using f64 = double;
+
+	namespace Math = glm;
+	inline glm::mat4 ReversePerspective(f32 _fov, f32 _aspect_ratio, f32 _near, f32 _far) {
+		glm::mat4 ret = glm::perspective(_fov, _aspect_ratio, _near, _far);
+		ret[2][2] = -_near / (_far - _near);
+		ret[3][2] = (_far * _near) / (_far - _near);
+		return ret;
+	}
 }

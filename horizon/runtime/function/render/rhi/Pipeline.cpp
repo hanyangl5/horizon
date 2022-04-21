@@ -215,7 +215,7 @@ namespace Horizon {
 		depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencilCreateInfo.depthTestEnable = VK_TRUE;
 		depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
-		depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_GREATER;
 		depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
 		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
 
