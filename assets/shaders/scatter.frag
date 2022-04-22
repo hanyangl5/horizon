@@ -8,7 +8,6 @@
 #define TKM = 1000.0f
 
 layout(location = 0) out vec4 out_color;
-
 layout(set = 0, binding = 0) uniform CameraUb {
     vec3 eye_pos;
     vec3 eye_dir;
@@ -57,17 +56,32 @@ vec2 RaySphereIntersect(vec3 _origin, vec3 _dir, float _radius) {
 
 }
 
+/*
+if view from space, no intersection or 1/2 intersection
+if view inside atmoshphere, at least 1 intersection
+*/
+
 vec3 ComputeIntersection(vec3 _origin, ScatteringContext _context, out vec2 intersection_point) {
     vec2 outer_intersectoin_point = RaySphereIntersect(_origin, _context.view_dir, _context.atmosphere_radius);
+
     // no intersection point 
-    if(outer_intersectoin_point == vec2(-1.0, -1.0)) {
+    if(outer_intersectoin_point == vec2(-1.0, -1.0) || outer_intersectoin_point.y < 0.0f) {
+        intersection_point = vec2(0.0);
         return vec3(1.0, 0.0, 0.0);
     }
 
     vec2 inner_intersectoin_point = RaySphereIntersect(_origin, _context.view_dir, _context.planet_radius);
-
+    if(length(_origin) < _context.atmosphere_radius) {
+        outer_intersectoin_point.x = 0.0f;
+    }
     // both intersected
     if(inner_intersectoin_point != vec2(-1.0, -1.0)) {
+        if(length(_origin) < _context.atmosphere_radius) {
+            if(inner_intersectoin_point.x < 0.0f) {
+                intersection_point = vec2(0.0, outer_intersectoin_point.y);
+                return vec3(0.0, 1.0, 0.0);
+            }
+        }
         intersection_point = vec2(outer_intersectoin_point.x, inner_intersectoin_point.x);
         return vec3(0.0, 1.0, 0.0);
     }
@@ -149,7 +163,9 @@ vec3 InScattering(ScatteringContext _context) {
     vec3 sum_mie = vec3(0.0);
 
     vec3 origin = camera_ub.eye_pos - _context.planet_center;
-
+    if(length(origin) < _context.planet_radius) {
+        return vec3(0.0f);
+    }
     vec2 view_sphere_intersection = vec2(0.0);
     // view dir atmoshphere intersection
     vec3 ret = ComputeIntersection(origin, _context, view_sphere_intersection);   
@@ -211,6 +227,7 @@ void main() {
 
     ScatteringContext context;
     context.light_dir = vec3(0.0, 0.0, -1.0);
+    // TODO: physical unit
     context.light_intensity = 10.0f;
     context.planet_center = vec3(0.0f);
     context.planet_radius = 6378e0;
@@ -220,8 +237,8 @@ void main() {
     // thickness of the atmosphere if its density were uniform (how far to go up before the scattering has no effect)
     context.rayliegh_mie_scale_height = vec2(8e0, 1.2e0);
     // scattering coeffs at sea level
-    context.beta_rayleigh = RayleighScatteringCoeff(0.0f, 1.00029, 2.545e25, context.rayliegh_mie_scale_height.x);
-    //context.beta_rayleigh = vec3(5.5e-6, 13.0e-6, 22.4e-6);
+    //context.beta_rayleigh = RayleighScatteringCoeff(0.0f, 1.00029, 2.545e25, context.rayliegh_mie_scale_height.x);
+    context.beta_rayleigh = vec3(5.5e-6, 13.0e-6, 22.4e-6);
     context.beta_mie = vec3(21e-6);
     context.mie_g = 0.7;
 
