@@ -13,6 +13,9 @@
 #include <runtime/function/render/rhi/Pipeline.h>
 #include <runtime/function/render/rhi/Framebuffer.h>
 #include <runtime/function/render/rhi/UniformBuffer.h>
+#include <runtime/function/render/Atmosphere.h>
+#include <runtime/function/render/PostProcess.h>
+#include <runtime/function/render/Geometry.h>
 
 #include <runtime/scene/scene/Scene.h>
 
@@ -43,6 +46,9 @@ namespace Horizon
 		// create pipeline layouts for each pass
 		void CreatePipelines() noexcept;
 
+		void CreatePresentPipeline() noexcept;
+
+	private:
 		RenderContext m_render_context;
 		std::shared_ptr<Window> m_window = nullptr;
 		std::shared_ptr<Instance> m_instance = nullptr;
@@ -62,14 +68,9 @@ namespace Horizon
 
 		// pipeline objects
 		std::shared_ptr<DescriptorSet> m_present_descriptorSet;
-		std::shared_ptr<DescriptorSet> m_scatter_descriptorSet;
-		std::shared_ptr<DescriptorSet> m_pp_descriptorSet;
 
-		
-		std::shared_ptr<UniformBuffer> m_scattering_ub;
-		struct ScatteringUb {
-			Math::mat4 inv_view_projection_matrix;
-			Math::vec2 resolution;
-		}m_scattering_ubdata;
+		std::shared_ptr<Atmosphere> m_scattering_pass;
+		std::shared_ptr<PostProcess> m_post_process_pass;
+		std::shared_ptr<Geometry> m_geometry_pass;
 	};
 }

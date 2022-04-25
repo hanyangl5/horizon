@@ -15,23 +15,26 @@
 #include "RenderPass.h"
 #include "FrameBuffer.h"
 
-namespace Horizon {
+namespace Horizon
+{
 
-	struct PipelineCreateInfo {
+	struct PipelineCreateInfo
+	{
+		std::string name;
 		std::shared_ptr<Shader> vs, ps;
 		std::shared_ptr<DescriptorSetLayouts> descriptor_layouts;
 		std::shared_ptr<PushConstants> push_constants;
 		std::shared_ptr<DescriptorSet> pipeline_descriptor_set;
-		//VkPipelineVertexInputStateCreateInfo;
-		//descriptorsetlayout
+		// VkPipelineVertexInputStateCreateInfo;
+		// descriptorsetlayout
 	};
 
 	class Pipeline
 	{
 	public:
-		Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain = nullptr);
+		Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo &createInfo, const std::vector<AttachmentCreateInfo> &attachment_create_info, RenderContext &render_context, std::shared_ptr<SwapChain> swap_chain = nullptr);
 		~Pipeline();
-		VkPipeline Get()const noexcept;
+		VkPipeline Get() const noexcept;
 		VkPipelineLayout GetLayout() const noexcept;
 		VkViewport getViewport() const noexcept;
 		VkRenderPass getRenderPass() const noexcept;
@@ -43,11 +46,13 @@ namespace Horizon {
 		bool hasPushConstants();
 		bool hasPipelineDescriptorSet();
 		std::shared_ptr<DescriptorSet> getPipelineDescriptorSet();
+
 	private:
-		void createPipelineLayout(const PipelineCreateInfo& createInfo);
-		void createPipeline(const PipelineCreateInfo& createInfo);
+		void createPipelineLayout(const PipelineCreateInfo &createInfo);
+		void createPipeline(const PipelineCreateInfo &createInfo);
+
 	private:
-		RenderContext& m_render_context;
+		RenderContext &m_render_context;
 		std::shared_ptr<Device> m_device = nullptr;
 		std::shared_ptr<Framebuffer> m_framebuffer = nullptr;
 		std::shared_ptr<PushConstants> m_push_constants = nullptr;
@@ -57,26 +62,31 @@ namespace Horizon {
 		VkPipelineLayout m_pipeline_layout = nullptr;
 		VkPipeline m_pipeline;
 		VkViewport m_viewport;
-
 	};
 
-	class PipelineManager {
+	class PipelineManager
+	{
 	public:
 		PipelineManager(std::shared_ptr<Device> device);
-		void createPipeline(const PipelineCreateInfo& createInfo, const std::string& name, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context);
-		void createPresentPipeline(const PipelineCreateInfo& createInfo, const std::vector<AttachmentCreateInfo>& attachment_create_info, RenderContext& render_context, std::shared_ptr<SwapChain> swap_chain);
-		std::shared_ptr<Pipeline> Get(const std::string& name);
+		void createPipeline(const PipelineCreateInfo &_create_info, const std::vector<AttachmentCreateInfo> &_attachment_create_info, RenderContext &_render_context);
+		void createPresentPipeline(const PipelineCreateInfo &_create_info, const std::vector<AttachmentCreateInfo> &_attachment_create_info, RenderContext &_render_context, std::shared_ptr<SwapChain> swap_chain);
+		std::shared_ptr<Pipeline> Get(const std::string &name);
+
 	private:
 		// convert pipelinecreateinfo and pipelinename to u32 hash key, https://dev.to/muiz6/string-hashing-in-c-1np3
-		inline u32 GetPipelineKey(const std::string& key) {
+		inline u32 GetPipelineKey(const std::string &key)
+		{
 			u32 hashCode = 0;
-			for (u32 i = 0; i < key.length(); i++) {
+			for (u32 i = 0; i < key.length(); i++)
+			{
 				hashCode += key[i] * pow(16, i);
 			}
 			return hashCode;
 		}
+
 	private:
-		struct PipelineVal {
+		struct PipelineVal
+		{
 			std::shared_ptr<Pipeline> pipeline;
 		};
 		std::shared_ptr<Device> m_device;
