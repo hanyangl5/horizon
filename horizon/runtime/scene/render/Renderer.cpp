@@ -4,6 +4,8 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/core/path/Path.h>
 #include <runtime/function/render/rhi/VulkanEnums.h>
+#include <runtime/function/render/rhi/ResourceBarrier.h>
+
 namespace Horizon
 {
 
@@ -40,12 +42,12 @@ namespace Horizon
 	{
 		m_scene->Prepare();
 
-		m_scattering_pass->SetInvViewProjectionMatrix(m_scene->GetMainCamera()->GetInvViewProjectionMatrix());
+		m_atmosphere_pass->SetCameraParams(m_scene->GetMainCamera()->GetInvViewProjectionMatrix(), m_scene->GetMainCamera()->GetPosition());
 
-		m_scattering_pass->BindResource(0, m_scene->getCameraUbo());
-		m_scattering_pass->UpdateDescriptorSets();
+		m_atmosphere_pass->BindResource(0, m_scene->getCameraUbo());
+		m_atmosphere_pass->UpdateDescriptorSets();
 
-		m_post_process_pass->BindResource(0, m_scattering_pass->GetFrameBufferAttachment(0));
+		m_post_process_pass->BindResource(0, m_atmosphere_pass->GetFrameBufferAttachment(0));
 		m_post_process_pass->UpdateDescriptorSets();
 
 		m_present_descriptorSet->AllocateDescriptorSet();
@@ -80,7 +82,148 @@ namespace Horizon
 			// geometry pass
 			//m_scene->Draw(i, m_command_buffer, m_geometry_pass->GetPipeline());
 			// scattering pass
-			m_fullscreen_triangle->Draw(i, m_command_buffer, m_scattering_pass->GetPipeline(), {m_scattering_pass->GetDescriptorSet()});
+
+			if (!m_atmosphere_pass->precomputed) {
+				m_command_buffer->Dispatch(i, m_atmosphere_pass->m_transmittance_lut_pass, { m_atmosphere_pass->m_transmittance_lut_descriptor_set });
+				
+				// barrier
+				{
+					BarrierDesc desc1;
+					ImageMemoryBarrierDesc transmittance_lut_barrier;
+					transmittance_lut_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+					transmittance_lut_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+					transmittance_lut_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+					transmittance_lut_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+					transmittance_lut_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+					transmittance_lut_barrier.texture = m_atmosphere_pass->transmittance_lut;
+					desc1.image_memory_barriers.push_back(transmittance_lut_barrier);
+					desc1.src_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+					desc1.dst_stage= PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+					InsertBarrier(i, m_command_buffer, desc1);
+				}
+
+				m_command_buffer->Dispatch(i, m_atmosphere_pass->m_direct_irradiance_lut_pass, { m_atmosphere_pass->m_direct_irradiance_lut_descriptor_set });
+
+				m_command_buffer->Dispatch(i, m_atmosphere_pass->m_single_scattering_lut_pass, { m_atmosphere_pass->m_single_scattering_lut_descriptor_set });
+				
+				// barrier
+				{
+					BarrierDesc desc2;
+
+					ImageMemoryBarrierDesc delta_r_barrier;
+					delta_r_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+					delta_r_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+					delta_r_barrier.texture = m_atmosphere_pass->single_rayleigh_scattering_lut;
+					delta_r_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+					delta_r_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+					ImageMemoryBarrierDesc delta_mie_barrier;
+					delta_mie_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+					delta_mie_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+					delta_mie_barrier.texture = m_atmosphere_pass->single_mie_scattering_lut;
+					delta_mie_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+					delta_mie_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+					ImageMemoryBarrierDesc irradiance_barrier;
+					irradiance_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+					irradiance_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+					irradiance_barrier.texture = m_atmosphere_pass->direct_irradiance_lut;
+					irradiance_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+					irradiance_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+					ImageMemoryBarrierDesc multi_scattering_barrier;
+					multi_scattering_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+					multi_scattering_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+					multi_scattering_barrier.texture = m_atmosphere_pass->multi_scattering_lut;
+					multi_scattering_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+					multi_scattering_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+					desc2.image_memory_barriers.push_back(delta_r_barrier);
+					desc2.image_memory_barriers.push_back(delta_mie_barrier);
+					desc2.image_memory_barriers.push_back(irradiance_barrier);
+					desc2.image_memory_barriers.push_back(multi_scattering_barrier);
+
+					desc2.src_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+					desc2.dst_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+					InsertBarrier(i, m_command_buffer, desc2);
+
+				}
+
+				for (u32 j = 0; j < m_atmosphere_pass->m_multi_scattering_order; j++) {
+					m_atmosphere_pass->scattering_order_push_constants->ranges[0].value = &m_atmosphere_pass->layers[j + 1];
+					m_command_buffer->Dispatch(i, m_atmosphere_pass->m_scattering_density_lut, { m_atmosphere_pass->m_scattering_density_lut_descriptor_set });
+					// barrier
+					{
+						BarrierDesc desc;
+						desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+						desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+						InsertBarrier(i, m_command_buffer, desc);
+					}
+					m_atmosphere_pass->scattering_order_push_constants->ranges[0].value = &m_atmosphere_pass->layers[j];
+					m_command_buffer->Dispatch(i, m_atmosphere_pass->m_indirect_irradiance_lut, { m_atmosphere_pass->m_indirect_irradiance_lut_descriptor_set });
+					// barrier
+					{
+						BarrierDesc desc2;
+
+						ImageMemoryBarrierDesc density_barrier;
+						density_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+						density_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+						density_barrier.texture = m_atmosphere_pass->scattering_density_lut;
+						density_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+						density_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+						ImageMemoryBarrierDesc multi_scattering_barrier;
+						multi_scattering_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+						multi_scattering_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+						multi_scattering_barrier.texture = m_atmosphere_pass->single_rayleigh_scattering_lut;
+						multi_scattering_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+						multi_scattering_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+						desc2.image_memory_barriers.push_back(density_barrier);
+						desc2.image_memory_barriers.push_back(multi_scattering_barrier);
+
+						desc2.src_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+						desc2.dst_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT | PipelineStageFlags::PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+						InsertBarrier(i, m_command_buffer, desc2);
+
+					}
+					m_atmosphere_pass->scattering_order_push_constants->ranges[0].value = &m_atmosphere_pass->layers[j + 1];
+					m_command_buffer->Dispatch(i, m_atmosphere_pass->m_multi_scattering_lut, { m_atmosphere_pass->m_multi_scattering_lut_descriptor_set });
+					// barrier
+					{
+						BarrierDesc desc2;
+
+						ImageMemoryBarrierDesc _scattering_barrier;
+						_scattering_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+						_scattering_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+						_scattering_barrier.texture = m_atmosphere_pass->_scattering_tex;
+						_scattering_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+						_scattering_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+						ImageMemoryBarrierDesc multi_scattering_barrier;
+						multi_scattering_barrier.src_access_mask = MemoryAccessFlags::ACCESS_SHADER_WRITE_BIT;
+						multi_scattering_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+						multi_scattering_barrier.texture = m_atmosphere_pass->single_rayleigh_scattering_lut;
+						multi_scattering_barrier.src_usage = TextureUsage::TEXTURE_USAGE_RW;
+						multi_scattering_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_RW;
+
+						desc2.image_memory_barriers.push_back(_scattering_barrier);
+						desc2.image_memory_barriers.push_back(multi_scattering_barrier);
+
+						desc2.src_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+						desc2.dst_stage = PipelineStageFlags::PIPELINE_STAGE_COMPUTE_SHADER_BIT | PipelineStageFlags::PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+						InsertBarrier(i, m_command_buffer, desc2);
+					}
+				}
+				m_atmosphere_pass->precomputed = true;
+			}
+			//TODO: barrier
+
+			m_fullscreen_triangle->Draw(i, m_command_buffer, m_atmosphere_pass->m_sky_pass, {m_atmosphere_pass->m_sky_descriptor_set});
+
 			// post process pass
 			m_fullscreen_triangle->Draw(i, m_command_buffer, m_post_process_pass->GetPipeline(), {m_post_process_pass->GetDescriptorSet()});
 			// final present pass
@@ -105,7 +248,7 @@ namespace Horizon
 
 		//m_geometry_pass = std::make_shared<Geometry>(m_scene, m_pipeline_manager, m_device, m_render_context);
 
-		m_scattering_pass = std::make_shared<Atmosphere>(m_pipeline_manager, m_device, m_render_context);
+		m_atmosphere_pass = std::make_shared<Atmosphere>(m_pipeline_manager, m_device, m_command_buffer, m_render_context);
 
 		m_post_process_pass = std::make_shared<PostProcess>(m_pipeline_manager, m_device, m_render_context);
 
@@ -116,7 +259,7 @@ namespace Horizon
 		// present pass
 
 		std::shared_ptr<DescriptorSetInfo> present_descriptor_set_create_info = std::make_shared<DescriptorSetInfo>();
-		present_descriptor_set_create_info->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_PIXEL_SHADER);
+		present_descriptor_set_create_info->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_PIXEL_SHADER);
 		m_present_descriptorSet = std::make_shared<DescriptorSet>(m_device, present_descriptor_set_create_info);
 		std::shared_ptr<DescriptorSetLayouts> presentDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		presentDescriptorSetLayout->layouts.push_back(m_present_descriptorSet->GetLayout());
@@ -124,13 +267,13 @@ namespace Horizon
 		std::shared_ptr<Shader> presentVs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("present.vert.spv"));
 		std::shared_ptr<Shader> presentPs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("present.frag.spv"));
 
-		PipelineCreateInfo presentPipelineCreateInfo;
+		GraphicsPipelineCreateInfo presentPipelineCreateInfo;
 		presentPipelineCreateInfo.name = "present";
 		presentPipelineCreateInfo.vs = presentVs;
 		presentPipelineCreateInfo.ps = presentPs;
 		presentPipelineCreateInfo.descriptor_layouts = presentDescriptorSetLayout;
 		std::vector<AttachmentCreateInfo> presentAttachmentsCreateInfo{
-			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, m_render_context.width, m_render_context.height}};
+			{TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, TextureType::TEXTURE_TYPE_2D, m_render_context.width, m_render_context.height}};
 		m_pipeline_manager->createPresentPipeline(presentPipelineCreateInfo, presentAttachmentsCreateInfo, m_render_context, m_swap_chain);
 	}
 }

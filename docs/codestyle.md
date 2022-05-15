@@ -37,15 +37,6 @@ void ABC()
 }
 ```
 
-### paramater
-
-add a underscore ```_``` before the variable name.
-
-```
-void ABC(int _a, float _b, double _c) {
-
-}
-```
 
 
 

@@ -11,18 +11,23 @@ def glslc(shaderPath):
     os.system(cmd)
 
 def main():
-    # glslc("defaultlit.vert")
-    # glslc("defaultlit.frag")
     glslc("postprocess.vert")
     glslc("postprocess.frag")
     glslc("geometry.vert")
     glslc("geometry.frag")
-    glslc("scatter.vert")
-    glslc("scatter.frag")
     glslc("present.vert")
     glslc("present.frag")
-    # glslc("scatter.vert")
-    # glslc("scatter.frag")
-    
+    glslc("simplevs.vert")
+
+    # atmosphere
+    glslc("atmosphere/transmittance_lut.comp")
+    glslc("atmosphere/direct_irradiance_lut.comp")
+    glslc("atmosphere/single_scattering_lut.comp")
+    glslc("atmosphere/scattering_density.comp")
+    glslc("atmosphere/indirect_irradiance_lut.comp")
+    glslc("atmosphere/multi_scattering_lut.comp")
+    glslc("atmosphere/scatter.vert")
+    glslc("atmosphere/scatter.frag")
+
 if __name__ == '__main__':
     main()

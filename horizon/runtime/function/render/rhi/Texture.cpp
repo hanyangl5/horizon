@@ -103,16 +103,16 @@ namespace Horizon {
 		vkDestroyBuffer(m_device->Get(), stagingBuffer, nullptr);
 		vkFreeMemory(m_device->Get(), stagingBufferMemory, nullptr);
 
-		createImageView(VK_FORMAT_R8G8B8A8_UNORM);
+		createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D);
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.anisotropyEnable = VK_FALSE;
 		samplerInfo.maxAnisotropy = 1.0;
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -126,6 +126,82 @@ namespace Horizon {
 
 		// fill descriptor info
 		imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageDescriptorInfo.imageView = m_image_view;
+		imageDescriptorInfo.sampler = m_sampler;
+	}
+
+	Texture::Texture(std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, TextureCreateInfo create_info) : m_device(device), m_command_buffer(command_buffer)
+	{
+
+		// create image
+		VkImageCreateInfo image_create_info{};
+		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		image_create_info.imageType = ToVkImageType(create_info.texture_type);
+		image_create_info.extent.width = create_info.width;
+		image_create_info.extent.height = create_info.height;
+		image_create_info.extent.depth = create_info.depth;
+		image_create_info.mipLevels = 1;
+		image_create_info.arrayLayers = 1;
+		image_create_info.format = ToVkImageFormat(create_info.texture_format);
+		image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		image_create_info.usage = ToVkImageUsage(create_info.texture_usage);
+		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+
+		CHECK_VK_RESULT(vkCreateImage(m_device->Get(), &image_create_info, nullptr, &m_image));
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(m_device->Get(), m_image, &memRequirements);
+
+		VkMemoryAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memRequirements.size;
+		allocInfo.memoryTypeIndex = FindMemoryType(m_device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		CHECK_VK_RESULT(vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_image_memory));
+
+		vkBindImageMemory(m_device->Get(), m_image, m_image_memory, 0);
+
+
+		if (create_info.texture_usage & TextureUsage::TEXTURE_USAGE_RW) {
+
+			transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		}
+
+
+		VkImageViewType type;
+
+		switch (image_create_info.imageType)
+		{
+		case VK_IMAGE_TYPE_1D:
+			type = VK_IMAGE_VIEW_TYPE_1D;
+			break;
+		case VK_IMAGE_TYPE_2D:
+			type = VK_IMAGE_VIEW_TYPE_2D;
+			break;
+		case VK_IMAGE_TYPE_3D:
+			type = VK_IMAGE_VIEW_TYPE_3D;
+			break;
+		default:
+			type = VK_IMAGE_VIEW_TYPE_2D;
+			break;
+		}
+		createImageView(image_create_info.format, type);
+		createSampler();
+
+		// fill descriptor info
+		switch (create_info.texture_usage) {
+		case TextureUsage::TEXTURE_USAGE_R:
+			imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			break;
+		case TextureUsage::TEXTURE_USAGE_RW:
+			imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			break;
+		default:
+			imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			break;
+		}
 		imageDescriptorInfo.imageView = m_image_view;
 		imageDescriptorInfo.sampler = m_sampler;
 	}
@@ -196,7 +272,7 @@ namespace Horizon {
 		vkDestroyBuffer(m_device->Get(), stagingBuffer, nullptr);
 		vkFreeMemory(m_device->Get(), stagingBufferMemory, nullptr);
 
-		createImageView(VK_FORMAT_R8G8B8A8_UNORM);
+		createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D);
 		createSampler();
 
 		// fill descriptor info
@@ -240,8 +316,15 @@ namespace Horizon {
 			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		}
 		else {
-			throw std::invalid_argument("unsupported layout transition!");
+			LOG_ERROR("unsupported layout transition!");
 		}
 
 		vkCmdPipelineBarrier(
@@ -279,18 +362,18 @@ namespace Horizon {
 		m_command_buffer->endSingleTimeCommands(cmdbuf);
 	}
 
-	void Texture::createImageView(VkFormat format) {
+	void Texture::createImageView(VkFormat format, VkImageViewType type) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.viewType = type;
 		viewInfo.format = format;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
-
+		subresource_range = viewInfo.subresourceRange;
 		CHECK_VK_RESULT(vkCreateImageView(m_device->Get(), &viewInfo, nullptr, &m_image_view));
 	}
 
@@ -300,9 +383,9 @@ namespace Horizon {
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.anisotropyEnable = VK_FALSE;
 		samplerInfo.maxAnisotropy = 1.0;
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;

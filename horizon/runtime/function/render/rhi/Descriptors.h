@@ -21,8 +21,8 @@ namespace Horizon {
 	struct DescriptorSetInfo {
 		u32 bindingCount = 0;
 		std::vector<DescriptorType> types{};
-		std::vector<ShaderStage> stageFlags{};
-		void AddBinding(DescriptorType type, ShaderStage stage);
+		std::vector<u32> stageFlags{};
+		void AddBinding(DescriptorType type, u32 stage);
 	};
 
 	struct DescriptorSetLayouts {

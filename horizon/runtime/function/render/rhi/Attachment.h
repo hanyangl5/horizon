@@ -20,13 +20,15 @@ namespace Horizon {
 
 	struct AttachmentCreateInfo {
 	public:
-		VkFormat format;
+		TextureFormat format = TextureFormat::TEXTURE_FORMAT_INVALID;
 		AttachmentUsage usage = AttachmentUsageFlags::NONE;
-		u32 width, height;
+		TextureType texture_type = TextureType::TEXTURE_TYPE_INVALID;
+		u32 width = 0, height = 0, depth = 1;
 	};
+
 	class Attachment{
 	public:
-		Attachment(std::shared_ptr<Device> device, AttachmentCreateInfo createInfo);
+		Attachment(std::shared_ptr<Device> device, const AttachmentCreateInfo create_info);
 
 		VkImage m_image;
 		VkDeviceMemory m_image_memory;

@@ -6,6 +6,20 @@ layout(location = 0) out vec4 out_color;
 
 layout(set = 0, binding = 0) uniform sampler2D color_texture;
 
+float sRGB(float x)
+{
+	if (x <= 0.00031308)
+		return 12.92 * x;
+	else
+		return 1.055*pow(x, (1.0 / 2.4)) - 0.055;
+}
+
+vec4 sRGB(vec4 vec)
+{
+	return vec4(sRGB(vec.x), sRGB(vec.y), sRGB(vec.z), vec.w);
+}
+
+
 vec3 TonemapACES(vec3 x)
 {
 	const float A = 2.51f;
@@ -21,8 +35,14 @@ vec3 GammaCorrection(vec3 x){
 }
 
 void main() {
-	vec3 color = texture(color_texture, frag_tex_coord).xyz;
+	//vec3 color = texture(color_texture, frag_tex_coord).xyz;
 	//color = TonemapACES(color);
 	//color = GammaCorrection(color);
-    out_color = vec4(color, 1.0);
+	vec4 rgbA = texture(color_texture, frag_tex_coord);
+	rgbA /= rgbA.aaaa;	// Normalise according to sample count when path tracing
+
+	// Similar setup to the Bruneton demo
+	vec3 white_point = vec3(1.08241, 0.96756, 0.95003);
+	float exposure = 10.0;
+	out_color = vec4( pow(vec3(1.0) - exp(-rgbA.rgb / white_point * exposure), vec3(1.0 / 2.2)), 1.0 );
 }

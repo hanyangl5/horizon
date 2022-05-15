@@ -1,23 +1,25 @@
 #include "Attachment.h"
 
 #include <runtime/core/log/Log.h>
+#include <runtime/function/render/RenderContext.h>
 
 namespace Horizon {
-	Attachment::Attachment(std::shared_ptr<Device> device, AttachmentCreateInfo createInfo)
+
+	Attachment::Attachment(std::shared_ptr<Device> device, const AttachmentCreateInfo create_info)
 	{
 		VkImageUsageFlags usage = 0;
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
 
-		m_format = createInfo.format;
+		m_format = ToVkImageFormat(create_info.format);
 
-		if (createInfo.usage & AttachmentUsageFlags::COLOR_ATTACHMENT)
+		if (create_info.usage & AttachmentUsageFlags::COLOR_ATTACHMENT)
 		{
 			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		}
-		if (createInfo.usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT)
+		if (create_info.usage & AttachmentUsageFlags::DEPTH_STENCIL_ATTACHMENT)
 		{
 			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;// | VK_IMAGE_ASPECT_STENCIL_BIT;
 			imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -28,11 +30,11 @@ namespace Horizon {
 
 		VkImageCreateInfo image_create_info{};
 		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		image_create_info.imageType = VK_IMAGE_TYPE_2D;
-		image_create_info.format = createInfo.format;
-		image_create_info.extent.width = createInfo.width;
-		image_create_info.extent.height = createInfo.height;
-		image_create_info.extent.depth = 1;
+		image_create_info.imageType = ToVkImageType(create_info.texture_type);
+		image_create_info.format = m_format;
+		image_create_info.extent.width = create_info.width;
+		image_create_info.extent.height = create_info.height;
+		image_create_info.extent.depth = create_info.depth;
 		image_create_info.mipLevels = 1;
 		image_create_info.arrayLayers = 1;
 		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -52,8 +54,22 @@ namespace Horizon {
 
 		VkImageViewCreateInfo imageView{};
 		imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageView.format = createInfo.format;
+		switch (image_create_info.imageType)
+		{
+		case VK_IMAGE_TYPE_1D:
+			imageView.viewType = VK_IMAGE_VIEW_TYPE_1D;
+			break;
+		case VK_IMAGE_TYPE_2D:
+			imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			break;
+		case VK_IMAGE_TYPE_3D:
+			imageView.viewType = VK_IMAGE_VIEW_TYPE_3D;
+			break;
+		default:
+			imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			break;
+		}
+		imageView.format = m_format;
 		imageView.subresourceRange = {};
 		imageView.subresourceRange.aspectMask = aspectMask;
 		imageView.subresourceRange.baseMipLevel = 0;

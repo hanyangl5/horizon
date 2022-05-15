@@ -8,7 +8,7 @@ namespace Horizon
 	Geometry::Geometry(std::shared_ptr<Scene> _scene, std::shared_ptr<PipelineManager> _pipeline_manager, std::shared_ptr<Device> _device, RenderContext &_render_context) noexcept
 	{
 
-		PipelineCreateInfo geometryPipelineCreateInfo;
+		GraphicsPipelineCreateInfo geometryPipelineCreateInfo;
 		geometryPipelineCreateInfo.name = "geometry";
 		geometryPipelineCreateInfo.vs = std::make_shared<Shader>(_device->Get(), Path::GetInstance().GetShaderPath("geometry.vert.spv"));
 		geometryPipelineCreateInfo.ps = std::make_shared<Shader>(_device->Get(), Path::GetInstance().GetShaderPath("geometry.frag.spv"));
@@ -16,7 +16,7 @@ namespace Horizon
 
 		std::shared_ptr<PushConstants> geometryPipelinePushConstants = std::make_shared<PushConstants>();
 
-		geometryPipelinePushConstants->pushConstantRanges = {{SHADER_STAGE_VERTEX_SHADER, 0, 2 * sizeof(Math::mat4)}}; // Push constants have a minimum size of 128 bytes
+		geometryPipelinePushConstants->ranges = {{SHADER_STAGE_VERTEX_SHADER, 0, 2 * sizeof(Math::mat4)}}; // Push constants have a minimum size of 128 bytes
 		geometryPipelineCreateInfo.push_constants = geometryPipelinePushConstants;
 		// position + depth
 		// normal
@@ -24,13 +24,13 @@ namespace Horizon
 		// depth
 
 		std::vector<AttachmentCreateInfo> geometryAttachmentsCreateInfo{
-			{VK_FORMAT_R32G32B32A32_SFLOAT, COLOR_ATTACHMENT, _render_context.width, _render_context.height},
-			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, _render_context.width, _render_context.height},
-			{VK_FORMAT_R8G8B8A8_UNORM, COLOR_ATTACHMENT, _render_context.width, _render_context.height},
-			{VK_FORMAT_D32_SFLOAT, DEPTH_STENCIL_ATTACHMENT, _render_context.width, _render_context.height}};
+			AttachmentCreateInfo{TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT, COLOR_ATTACHMENT, TextureType::TEXTURE_TYPE_2D, _render_context.width, _render_context.height, 1},
+			AttachmentCreateInfo{TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT, COLOR_ATTACHMENT, TextureType::TEXTURE_TYPE_2D, _render_context.width, _render_context.height, 1},
+			AttachmentCreateInfo{TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT, COLOR_ATTACHMENT, TextureType::TEXTURE_TYPE_2D, _render_context.width, _render_context.height, 1},
+			AttachmentCreateInfo{TextureFormat::TEXTURE_FORMAT_D32_SFLOAT, DEPTH_STENCIL_ATTACHMENT, TextureType::TEXTURE_TYPE_2D, _render_context.width, _render_context.height, 1}
+		};
 
-		_pipeline_manager->createPipeline(geometryPipelineCreateInfo, geometryAttachmentsCreateInfo, _render_context);
-		m_pipeline = _pipeline_manager->Get("geometry");
+		m_pipeline = _pipeline_manager->CreateGraphicsPipeline(geometryPipelineCreateInfo, geometryAttachmentsCreateInfo, _render_context);
 	}
 
 	Geometry::~Geometry() noexcept
@@ -43,7 +43,7 @@ namespace Horizon
 
 	std::shared_ptr<AttachmentDescriptor> Geometry::GetFrameBufferAttachment(u32 _index) const noexcept
 	{
-		return m_pipeline->GetFrameBufferAttachment(_index);
+		return std::static_pointer_cast<GraphicsPipeline>(m_pipeline)->GetFrameBufferAttachment(_index);
 	}
 
 	std::shared_ptr<Pipeline> Geometry::GetPipeline() const noexcept

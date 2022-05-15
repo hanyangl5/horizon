@@ -1,0 +1,25 @@
+#version 450
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+
+#include "functions.glsl"
+
+layout (set = 0, binding = 0) uniform sampler2D transmittance;
+layout (set = 0, binding = 1, rgba32f) uniform writeonly image3D delta_rayleigh;
+layout (set = 0, binding = 2, rgba32f) uniform writeonly image3D delta_mie;
+layout (set = 0, binding = 3, rgba32f) uniform writeonly image3D scattering;
+
+void main() {
+    AtmosphereParameters atmosphere = GetAtmosphereParameters();
+
+    vec3 frag_coord = gl_GlobalInvocationID + vec3(0.5);
+
+    vec3 rayleigh;
+    vec3 mie;
+
+    ComputeSingleScatteringTexture(atmosphere, transmittance, frag_coord, rayleigh, mie);
+
+    imageStore(delta_rayleigh, ivec3(gl_GlobalInvocationID), vec4(rayleigh, 0));
+    imageStore(delta_mie, ivec3(gl_GlobalInvocationID), vec4(mie, 0));
+    imageStore(scattering, ivec3(gl_GlobalInvocationID), vec4(rayleigh, mie.r));
+}

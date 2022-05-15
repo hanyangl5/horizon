@@ -1,0 +1,23 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+#include "functions.glsl"
+
+// layout(set = 0, binding = 0) uniform AtmosphereUb{
+//    AtmosphereParameters atmosphere;
+// } params;
+
+layout (set = 0, binding = 0) uniform sampler2D transmittance_lut;
+layout (set = 0, binding = 1, rgba32f) uniform writeonly image2D delta_irradiance_lut;
+layout (set = 0, binding = 2, rgba32f) uniform writeonly image2D irradiance_lut;
+
+void main() {
+    AtmosphereParameters atmosphere = GetAtmosphereParameters();
+
+    vec3 delta_irradiance = ComputeDirectIrradianceTexture(atmosphere, transmittance_lut, gl_GlobalInvocationID.xy + vec2(0.5));
+    vec3 irradiance = vec3(0.0);
+
+    imageStore(delta_irradiance_lut, ivec2(gl_GlobalInvocationID), vec4(delta_irradiance, 0));
+    imageStore(irradiance_lut, ivec2(gl_GlobalInvocationID), vec4(irradiance, 0));
+}

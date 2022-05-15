@@ -1,6 +1,8 @@
 #include "CommandBuffer.h"
 
 #include <runtime/core/log/Log.h>
+#include <runtime/function/render/rhi/Texture.h>
+#include <memory>
 
 namespace Horizon {
 
@@ -119,29 +121,26 @@ namespace Horizon {
 
 	void CommandBuffer::beginRenderPass(u32 index, std::shared_ptr<Pipeline> pipeline, bool is_present) const noexcept 
 	{
-
+		std::shared_ptr<GraphicsPipeline> _pipeline = std::static_pointer_cast<GraphicsPipeline>(pipeline);
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = pipeline->getRenderPass();
+		renderPassInfo.renderPass = _pipeline->getRenderPass();
 		if (is_present) {
-			renderPassInfo.framebuffer = pipeline->getFrameBuffer(index);
+			renderPassInfo.framebuffer = _pipeline->getFrameBuffer(index);
 		}
 		else {
-			renderPassInfo.framebuffer = pipeline->getFrameBuffer();
+			renderPassInfo.framebuffer = _pipeline->getFrameBuffer();
 		}
 		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = VkExtent2D{ m_render_context.width,m_render_context.height };
+		renderPassInfo.renderArea.extent = VkExtent2D{ static_cast<u32>(_pipeline->getViewport().width), static_cast<u32>(-_pipeline->getViewport().height)};
 
 
-		//std::array<VkClearValue, 2> clearValues{};
-		//clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-		//clearValues[1].depthStencil = { 1.0f, 0 };
-		auto& clearValues = pipeline->getClearValues();
+		auto& clearValues = _pipeline->getClearValues();
 		renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(m_command_buffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdSetViewport(m_command_buffers[index], 0, 1, &pipeline->getViewport());
+		vkCmdSetViewport(m_command_buffers[index], 0, 1, &_pipeline->getViewport());
 	}
 
 	void CommandBuffer::endRenderPass(u32 index) const noexcept 
@@ -235,4 +234,29 @@ namespace Horizon {
 		CHECK_VK_RESULT(vkEndCommandBuffer(m_command_buffers[i]));
 	}
 
+	void CommandBuffer::Dispatch(u32 i, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets) noexcept
+	{
+		if (pipeline->GetType() != PipelineType::COMPUTE) {
+			LOG_ERROR("incorrect pipeline type");
+			return;
+		}
+
+		if (pipeline->hasPushConstants()) {
+			for (auto& pc : pipeline->m_push_constants->ranges) {
+				vkCmdPushConstants(m_command_buffers[i], pipeline->GetLayout(), ToVkShaderStageFlags(pc.stages), pc.offset, pc.size, pc.value);
+			}
+		}
+
+		std::shared_ptr<ComputePipeline> _pipeline = std::static_pointer_cast<ComputePipeline>(pipeline);
+		if (!_descriptor_sets.empty()) {
+			std::vector<VkDescriptorSet> descriptor_sets(_descriptor_sets.size());
+			for (u32 i = 0; i < _descriptor_sets.size(); i++)
+			{
+				descriptor_sets[i] = _descriptor_sets[i]->Get();
+			}
+			vkCmdBindDescriptorSets(m_command_buffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline->GetLayout(), 0, descriptor_sets.size(), descriptor_sets.data(), 0, 0);
+		}
+		vkCmdBindPipeline(m_command_buffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline->Get());
+		vkCmdDispatch(m_command_buffers[i], _pipeline->GroupCountX(), _pipeline->GroupCountY(), _pipeline->GroupCountZ());
+	}
 }

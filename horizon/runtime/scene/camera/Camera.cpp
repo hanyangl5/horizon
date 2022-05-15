@@ -16,6 +16,7 @@ namespace Horizon
 		m_aspect_ratio = aspect_ratio;
 		m_near_plane = nearPlane;
 		m_far_plane = farPlane;
+		//m_projection = Math::perspective(fov, aspect_ratio, nearPlane, farPlane);
 		m_projection = ReversePerspective(fov, aspect_ratio, nearPlane, farPlane);
 	}
 	

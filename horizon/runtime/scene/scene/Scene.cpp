@@ -11,7 +11,7 @@ namespace Horizon {
 
 		std::shared_ptr<DescriptorSetInfo> sceneDescriptorSetInfo = std::make_shared<DescriptorSetInfo>();
 		// vp mat
-		sceneDescriptorSetInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+		sceneDescriptorSetInfo->AddBinding(DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
 		//// light count
 		//sceneDescriptorSetInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_PIXEL_SHADER);
 		//// light ub
@@ -22,7 +22,7 @@ namespace Horizon {
 		m_scene_descriptor_set = std::make_shared<DescriptorSet>(m_device, sceneDescriptorSetInfo);
 
 		m_camera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 10000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
-		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 100.0f, 20000.0f);
+		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 20.0f, 20000.0f);
 		m_camera->SetCameraSpeed(10.0f);
 
 		// create uniform buffer
@@ -100,8 +100,7 @@ namespace Horizon {
 	void Scene::Prepare() noexcept
 	{
 		// update scene descriptorset
-		m_scene_descriptor_set->AllocateDescriptorSet();
-
+		
 		// update Ub data
 		m_scene_ubdata.view = m_camera->GetViewMatrix();
 		m_scene_ubdata.projection = m_camera->GetProjectionMatrix();
@@ -201,9 +200,9 @@ namespace Horizon {
 	{
 
 		// pos, normal, uv
-		m_vertices.push_back(Vertex{ { 1.0f, -1.0f, 0.0f}, {0.0f,0.0f,0.0f}, {1.0f, 0.0f} });
-		m_vertices.push_back(Vertex{ { 1.0f,  3.0f, 0.0f}, {0.0f,0.0f,0.0f}, {1.0f, -2.0f} });
-		m_vertices.push_back(Vertex{ {-3.0f, -1.0f, 0.0f}, {0.0f,0.0f,0.0f}, {-1.0f, 0.0f} });
+		m_vertices.push_back(Vertex{ { 1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f} });
+		m_vertices.push_back(Vertex{ { 1.0f,  3.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 2.0f} });
+		m_vertices.push_back(Vertex{ {-3.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f} });
 		m_vertex_buffer = std::make_shared<VertexBuffer>(m_device, m_command_buffer, m_vertices);
 	}
 
@@ -215,13 +214,15 @@ namespace Horizon {
 		VkBuffer vertexBuffer = m_vertex_buffer->Get();
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertexBuffer, offsets);
 
-		std::vector<VkDescriptorSet> descriptor_sets(_descriptor_sets.size());
-		for (u32 i = 0; i < _descriptor_sets.size(); i++)
-		{
-			descriptor_sets[i] = _descriptor_sets[i]->Get();
+		if (!_descriptor_sets.empty()) {
+			std::vector<VkDescriptorSet> descriptor_sets(_descriptor_sets.size());
+			for (u32 i = 0; i < _descriptor_sets.size(); i++)
+			{
+				descriptor_sets[i] = _descriptor_sets[i]->Get();
+			}
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->GetLayout(), 0, descriptor_sets.size(), descriptor_sets.data(), 0, 0);
 		}
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->GetLayout(), 0, descriptor_sets.size(), descriptor_sets.data(), 0, 0);
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->Get());
 		vkCmdDraw(command_buffer, 3, 1, 0, 0);
 		_command_buffer->endRenderPass(_i);

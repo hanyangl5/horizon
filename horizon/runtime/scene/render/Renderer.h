@@ -69,7 +69,7 @@ namespace Horizon
 		// pipeline objects
 		std::shared_ptr<DescriptorSet> m_present_descriptorSet;
 
-		std::shared_ptr<Atmosphere> m_scattering_pass;
+		std::shared_ptr<Atmosphere> m_atmosphere_pass;
 		std::shared_ptr<PostProcess> m_post_process_pass;
 		std::shared_ptr<Geometry> m_geometry_pass;
 	};

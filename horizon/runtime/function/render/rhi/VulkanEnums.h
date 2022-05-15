@@ -30,10 +30,5 @@ namespace Horizon {
 		VkDescriptorBufferInfo bufferDescriptrInfo{};
 	};
 
-	//struct BarrierDesc {
-	//	std::vector<>
-	//};
-	//void insertBarrier(std::shared_ptr<Commandbuffer> command_buffer) {
-	//	vkCmdPipelineBarrier()
-	//}
+
 }

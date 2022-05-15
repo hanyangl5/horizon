@@ -115,8 +115,8 @@ namespace Horizon {
 
 	void Framebuffer::createAttachmentsResources(const std::vector<AttachmentCreateInfo>& attachment_create_info)
 	{
-		for (auto& createInfo : attachment_create_info) {
-			m_frame_buffer_attachments.emplace_back(m_device, createInfo);
+		for (auto& create_info : attachment_create_info) {
+			m_frame_buffer_attachments.emplace_back(m_device, create_info);
 		}
 
 		VkSamplerCreateInfo sampler{};
@@ -124,9 +124,9 @@ namespace Horizon {
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		sampler.mipLodBias = 0.0f;
 		sampler.maxAnisotropy = 1.0f;
 		sampler.minLod = 0.0f;

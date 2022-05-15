@@ -1,0 +1,30 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+#include "functions.glsl"
+
+layout(set = 0, binding = 0) uniform sampler3D single_rayleigh_scattering_texture;
+layout(set = 0, binding = 1) uniform sampler3D single_mie_scattering_texture;
+layout(set = 0, binding = 2) uniform sampler3D multiple_scattering_texture;
+layout(set = 0, binding = 3, rgba32f) uniform writeonly image2D delta_irradiance;
+layout(set = 0, binding = 4, rgba32f) uniform image2D irradiance;
+
+layout(push_constant) uniform PerOrder {
+    int scattering_order;
+};
+
+void main() {
+    AtmosphereParameters atmosphere = GetAtmosphereParameters();
+
+    vec2 frag_coord = gl_GlobalInvocationID.xy + vec2(0.5);
+    vec3 result = ComputeIndirectIrradianceTexture(
+        atmosphere, single_rayleigh_scattering_texture,
+         single_mie_scattering_texture,
+          multiple_scattering_texture,
+           frag_coord,
+            scattering_order);
+
+    imageStore(delta_irradiance, ivec2(gl_GlobalInvocationID), vec4(result, 0.0));
+    imageStore(irradiance, ivec2(gl_GlobalInvocationID), vec4(result, 0.0) + imageLoad(irradiance, ivec2(gl_GlobalInvocationID)));
+}

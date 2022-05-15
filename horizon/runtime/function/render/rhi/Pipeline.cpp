@@ -13,23 +13,12 @@
 
 namespace Horizon
 {
-
-	Pipeline::Pipeline(std::shared_ptr<Device> device, const PipelineCreateInfo &createInfo, const std::vector<AttachmentCreateInfo> &attachment_create_info, RenderContext &render_context, std::shared_ptr<SwapChain> swap_chain) : m_render_context(render_context), m_device(device)
+	Pipeline::Pipeline(std::shared_ptr<Device> device) noexcept : m_device(device)
 	{
-		if (swap_chain)
-		{
-			m_framebuffer = std::make_shared<Framebuffer>(m_device, attachment_create_info, m_render_context, swap_chain);
-		}
-		else
-		{
-			m_framebuffer = std::make_shared<Framebuffer>(m_device, attachment_create_info, m_render_context);
-		}
-		createPipelineLayout(createInfo);
-		createPipeline(createInfo);
-		m_clear_values = m_framebuffer->getClearValues();
+
 	}
 
-	Pipeline::~Pipeline()
+	Pipeline::~Pipeline() noexcept
 	{
 		vkDestroyPipeline(m_device->Get(), m_pipeline, nullptr);
 		vkDestroyPipelineLayout(m_device->Get(), m_pipeline_layout, nullptr);
@@ -45,65 +34,88 @@ namespace Horizon
 		return m_pipeline_layout;
 	}
 
-	VkViewport Pipeline::getViewport() const noexcept
-	{
-		return m_viewport;
-	}
-
-	VkRenderPass Pipeline::getRenderPass() const noexcept
-	{
-		return m_framebuffer->getRenderPass();
-	}
-
-	VkFramebuffer Pipeline::getFrameBuffer() const noexcept
-	{
-		return m_framebuffer->Get();
-	}
-	VkFramebuffer Pipeline::getFrameBuffer(u32 index) const noexcept
-	{
-		return m_framebuffer->Get(index);
-	}
-	std::shared_ptr<AttachmentDescriptor> Pipeline::GetFrameBufferAttachment(u32 attachment_index)
-	{
-		return m_framebuffer->getDescriptorImageInfo(attachment_index);
-	}
-
-	std::vector<VkImage> Pipeline::getPresentImages()
-	{
-		return std::vector<VkImage>();
-	}
-
-	std::vector<VkClearValue> Pipeline::getClearValues()
-	{
-		return m_clear_values;
-	}
-
-	bool Pipeline::hasPushConstants()
+	bool Pipeline::hasPushConstants() const noexcept
 	{
 		return m_push_constants != nullptr;
 	}
 
-	bool Pipeline::hasPipelineDescriptorSet()
+	PipelineType Pipeline::GetType() const noexcept
 	{
-		return m_pipeline_descriptor_set != nullptr;
+		return m_type;
 	}
 
-	std::shared_ptr<DescriptorSet> Pipeline::getPipelineDescriptorSet()
+	GraphicsPipeline::GraphicsPipeline(std::shared_ptr<Device> device,
+		const GraphicsPipelineCreateInfo& create_info,
+		const std::vector<AttachmentCreateInfo>& attachment_create_info,
+		const RenderContext render_context,
+		std::shared_ptr<SwapChain> swap_chain) noexcept : Pipeline(device), m_render_context(render_context)
 	{
-		return m_pipeline_descriptor_set;
+		m_type = PipelineType::GRAPHICS;
+		
+		if (swap_chain)
+		{
+			m_framebuffer = std::make_shared<Framebuffer>(m_device, attachment_create_info, m_render_context, swap_chain);
+		}
+		else
+		{
+			m_framebuffer = std::make_shared<Framebuffer>(m_device, attachment_create_info, m_render_context);
+		}
+		CreatePipelineLayout(create_info);
+		CreatePipeline(create_info);
+		m_clear_values = m_framebuffer->getClearValues();
 	}
 
-	void Pipeline::createPipelineLayout(const PipelineCreateInfo &createInfo)
+	GraphicsPipeline::~GraphicsPipeline() noexcept
 	{
-		auto &layouts = createInfo.descriptor_layouts;
+	}
+
+
+	VkViewport GraphicsPipeline::getViewport() const noexcept
+	{
+		return m_viewport;
+	}
+
+	VkRenderPass GraphicsPipeline::getRenderPass() const noexcept
+	{
+		return m_framebuffer->getRenderPass();
+	}
+
+	VkFramebuffer GraphicsPipeline::getFrameBuffer() const noexcept
+	{
+		return m_framebuffer->Get();
+	}
+
+	VkFramebuffer GraphicsPipeline::getFrameBuffer(u32 index) const noexcept
+	{
+		return m_framebuffer->Get(index);
+	}
+
+	std::shared_ptr<AttachmentDescriptor> GraphicsPipeline::GetFrameBufferAttachment(u32 attachment_index) const noexcept
+	{
+		return m_framebuffer->getDescriptorImageInfo(attachment_index);
+	}
+
+	std::vector<VkImage> GraphicsPipeline::getPresentImages() const noexcept
+	{
+		return std::vector<VkImage>();
+	}
+
+	std::vector<VkClearValue> GraphicsPipeline::getClearValues() const noexcept
+	{
+		return m_clear_values;
+	}
+
+	void GraphicsPipeline::CreatePipelineLayout(const GraphicsPipelineCreateInfo& create_info)
+	{
+		//auto &layouts = create_info.descriptor_layouts;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
 		// prevent crash if no descriptors are used in shader
-		if (createInfo.descriptor_layouts || createInfo.descriptor_layouts->layouts.empty())
+		if (create_info.descriptor_layouts)
 		{
-			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(createInfo.descriptor_layouts->layouts.size());
-			pipelineLayoutInfo.pSetLayouts = createInfo.descriptor_layouts->layouts.data();
+			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(create_info.descriptor_layouts->layouts.size());
+			pipelineLayoutInfo.pSetLayouts = create_info.descriptor_layouts->layouts.data();
 		}
 		else
 		{
@@ -113,26 +125,25 @@ namespace Horizon
 
 		std::vector<VkPushConstantRange> push_constant_ranges;
 
-		if (createInfo.push_constants)
+		if (create_info.push_constants)
 		{
-			push_constant_ranges.resize(createInfo.push_constants->pushConstantRanges.size());
-			m_push_constants = createInfo.push_constants;
+			push_constant_ranges.resize(create_info.push_constants->ranges.size());
+			m_push_constants = create_info.push_constants;
 
-			for (u32 i = 0; i < m_push_constants->pushConstantRanges.size(); i++)
+			for (u32 i = 0; i < m_push_constants->ranges.size(); i++)
 			{
-				push_constant_ranges[i].stageFlags = ToVkShaderStageFlags(m_push_constants->pushConstantRanges[i].stages); // convert to vulkan shader stage flags
-				push_constant_ranges[i].offset = m_push_constants->pushConstantRanges[i].offset;
-				push_constant_ranges[i].size = m_push_constants->pushConstantRanges[i].size;
+				push_constant_ranges[i].stageFlags = ToVkShaderStageFlags(m_push_constants->ranges[i].stages); // convert to vulkan shader stage flags
+				push_constant_ranges[i].offset = m_push_constants->ranges[i].offset;
+				push_constant_ranges[i].size = m_push_constants->ranges[i].size;
 			}
 			pipelineLayoutInfo.pushConstantRangeCount = push_constant_ranges.size();
 			pipelineLayoutInfo.pPushConstantRanges = push_constant_ranges.data();
 		}
 		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device->Get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout));
 
-		m_pipeline_descriptor_set = createInfo.pipeline_descriptor_set;
 	}
 
-	void Pipeline::createPipeline(const PipelineCreateInfo &createInfo)
+	void GraphicsPipeline::CreatePipeline(const GraphicsPipelineCreateInfo& create_info)
 	{
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos{};
@@ -140,17 +151,17 @@ namespace Horizon
 		// vertex shader
 		pipelineShaderStageCreateInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		pipelineShaderStageCreateInfos[0].module = createInfo.vs->Get();
+		pipelineShaderStageCreateInfos[0].module = create_info.vs->Get();
 		pipelineShaderStageCreateInfos[0].pName = "main";
 
 		// pixel shader
 		pipelineShaderStageCreateInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipelineShaderStageCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		pipelineShaderStageCreateInfos[1].module = createInfo.ps->Get();
+		pipelineShaderStageCreateInfos[1].module = create_info.ps->Get();
 		pipelineShaderStageCreateInfos[1].pName = "main";
 
-		auto &bindingDescription = Vertex::getBindingDescription();
-		auto &attributeDescriptions = Vertex::getAttributeDescriptions();
+		auto& bindingDescription = Vertex::getBindingDescription();
+		auto& attributeDescriptions = Vertex::getAttributeDescriptions();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
 		vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -187,7 +198,7 @@ namespace Horizon
 		extent.height = m_render_context.height;
 
 		VkRect2D scissor{};
-		scissor.offset = {0, 0};
+		scissor.offset = { 0, 0 };
 		scissor.extent = extent;
 
 		VkPipelineViewportStateCreateInfo viewportStateCreateInfo{};
@@ -225,7 +236,7 @@ namespace Horizon
 		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
 
 		std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachmentStates(m_framebuffer->getColorAttachmentCount());
-		for (auto &state : colorBlendAttachmentStates)
+		for (auto& state : colorBlendAttachmentStates)
 		{
 			state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 			state.blendEnable = VK_FALSE;
@@ -250,7 +261,7 @@ namespace Horizon
 
 		std::array<VkDynamicState, 2> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_LINE_WIDTH};
+			VK_DYNAMIC_STATE_LINE_WIDTH };
 
 		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
 		dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -282,33 +293,55 @@ namespace Horizon
 	{
 	}
 
-	void PipelineManager::createPipeline(const PipelineCreateInfo &_create_info, const std::vector<AttachmentCreateInfo> &_attachment_create_info, RenderContext &_render_context)
+	std::shared_ptr<Pipeline> PipelineManager::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& create_info,
+		const std::vector<AttachmentCreateInfo>& _attachment_create_info,
+		const RenderContext _render_context)
 	{
-		u32 hashKey = GetPipelineKey(_create_info.name);
+		std::string hashKey = GetPipelineKey(create_info);
 		// pipeline key exist
 		if (!m_pipeline_map[hashKey].pipeline)
 		{
-
-			auto &pipelineVal = m_pipeline_map[hashKey];
-			pipelineVal.pipeline = std::make_shared<Pipeline>(m_device, _create_info, _attachment_create_info, _render_context);
+			auto& pipelineVal = m_pipeline_map[hashKey];
+			pipelineVal.pipeline = std::make_shared<GraphicsPipeline>(m_device, create_info, _attachment_create_info, _render_context);
 		}
+		else {
+			LOG_INFO("pipeline exist");
+		}
+		return m_pipeline_map[hashKey].pipeline;
 	}
 
-	void PipelineManager::createPresentPipeline(const PipelineCreateInfo &_create_info, const std::vector<AttachmentCreateInfo> &_attachment_create_info, RenderContext &_render_context, std::shared_ptr<SwapChain> swap_chain)
+	std::shared_ptr<Pipeline> PipelineManager::CreateComputePipeline(const ComputePipelineCreateInfo& create_info)
 	{
-		u32 hashKey = GetPipelineKey("present");
+		std::string hashKey = GetPipelineKey(create_info);
 		// pipeline key exist
 		if (!m_pipeline_map[hashKey].pipeline)
 		{
+			auto& pipelineVal = m_pipeline_map[hashKey];
+			pipelineVal.pipeline = std::make_shared<ComputePipeline>(m_device, create_info);
+		}
+		else {
+			LOG_INFO("pipeline exist");
+		}
+		return m_pipeline_map[hashKey].pipeline;
+	}
 
-			auto &pipelineVal = m_pipeline_map[hashKey];
-			pipelineVal.pipeline = std::make_shared<Pipeline>(m_device, _create_info, _attachment_create_info, _render_context, swap_chain);
+	void PipelineManager::createPresentPipeline(const GraphicsPipelineCreateInfo& create_info,
+		const std::vector<AttachmentCreateInfo>& _attachment_create_info,
+		RenderContext& _render_context,
+		std::shared_ptr<SwapChain> swap_chain)
+	{
+		std::string hashKey = "present";
+		// pipeline key exist
+		if (!m_pipeline_map[hashKey].pipeline)
+		{
+			auto& pipelineVal = m_pipeline_map[hashKey];
+			pipelineVal.pipeline = std::make_shared<GraphicsPipeline>(m_device, create_info, _attachment_create_info, _render_context, swap_chain);
 		}
 	}
 
-	std::shared_ptr<Pipeline> PipelineManager::Get(const std::string &name)
+	std::shared_ptr<Pipeline> PipelineManager::Get(const std::string& name)
 	{
-		u32 hashKey = GetPipelineKey(name);
+		std::string hashKey = name;
 		if (m_pipeline_map[hashKey].pipeline)
 		{
 			return m_pipeline_map[hashKey].pipeline;
@@ -319,5 +352,94 @@ namespace Horizon
 			return nullptr;
 		}
 	}
+
+	ComputePipeline::ComputePipeline(std::shared_ptr<Device> device, const ComputePipelineCreateInfo& create_info) noexcept :Pipeline(device)
+	{
+		m_group_count_x = create_info.group_count_x;
+		m_group_count_y = create_info.group_count_y;
+		m_group_count_z = create_info.group_count_z;
+		m_type = PipelineType::COMPUTE;
+		CreatePipelineLayout(create_info);
+		CreatePipeline(create_info);
+	}
+
+	ComputePipeline::~ComputePipeline() noexcept
+	{
+	}
+
+	u32 ComputePipeline::GroupCountX() const noexcept
+	{
+		return m_group_count_x;
+	}
+
+	u32 ComputePipeline::GroupCountY() const noexcept
+	{
+		return m_group_count_y;
+	}
+
+	u32 ComputePipeline::GroupCountZ() const noexcept
+	{
+		return m_group_count_z;
+	}
+
+	void ComputePipeline::CreatePipelineLayout(const ComputePipelineCreateInfo& create_info) noexcept 
+	{
+		//auto &layouts = create_info.descriptor_layouts;
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		// prevent crash if no descriptors are used in shader
+		if (create_info.descriptor_layouts)
+		{
+			pipelineLayoutInfo.setLayoutCount = static_cast<u32>(create_info.descriptor_layouts->layouts.size());
+			pipelineLayoutInfo.pSetLayouts = create_info.descriptor_layouts->layouts.data();
+		}
+		else
+		{
+			pipelineLayoutInfo.setLayoutCount = 0;
+			pipelineLayoutInfo.pSetLayouts = nullptr;
+		}
+
+		std::vector<VkPushConstantRange> push_constant_ranges;
+
+		if (create_info.push_constants)
+		{
+			push_constant_ranges.resize(create_info.push_constants->ranges.size());
+			m_push_constants = create_info.push_constants;
+
+			for (u32 i = 0; i < m_push_constants->ranges.size(); i++)
+			{
+				push_constant_ranges[i].stageFlags = ToVkShaderStageFlags(m_push_constants->ranges[i].stages); // convert to vulkan shader stage flags
+				push_constant_ranges[i].offset = m_push_constants->ranges[i].offset;
+				push_constant_ranges[i].size = m_push_constants->ranges[i].size;
+			}
+			pipelineLayoutInfo.pushConstantRangeCount = push_constant_ranges.size();
+			pipelineLayoutInfo.pPushConstantRanges = push_constant_ranges.data();
+		}
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device->Get(), &pipelineLayoutInfo, nullptr, &m_pipeline_layout));
+	}
+
+	void ComputePipeline::CreatePipeline(const ComputePipelineCreateInfo& create_info) noexcept
+	{
+
+		VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info{};
+
+		// vertex shader
+		pipeline_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		pipeline_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		pipeline_shader_stage_create_info.module = create_info.cs->Get();
+		pipeline_shader_stage_create_info.pName = "main";
+
+		VkComputePipelineCreateInfo compute_pipeline_create_info{};
+		compute_pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		compute_pipeline_create_info.flags = 0;
+		compute_pipeline_create_info.layout = m_pipeline_layout;
+		compute_pipeline_create_info.stage = pipeline_shader_stage_create_info;
+		compute_pipeline_create_info.basePipelineHandle = nullptr;
+		compute_pipeline_create_info.basePipelineIndex = 0;
+
+		CHECK_VK_RESULT(vkCreateComputePipelines(m_device->Get(), nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline));
+	}
+
 
 }

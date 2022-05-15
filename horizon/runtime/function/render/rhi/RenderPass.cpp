@@ -20,7 +20,7 @@ namespace Horizon {
 			attachmentsDesc[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE; 
 			attachmentsDesc[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentsDesc[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachmentsDesc[i].format = attachment_create_info[i].format;
+			attachmentsDesc[i].format =ToVkImageFormat(attachment_create_info[i].format);
 			attachmentsDesc[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 			if (attachment_create_info[i].usage & AttachmentUsageFlags::PRESENT_SRC) {

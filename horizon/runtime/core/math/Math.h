@@ -25,10 +25,12 @@ namespace Horizon {
 	using f64 = double;
 
 	namespace Math = glm;
+
 	inline glm::mat4 ReversePerspective(f32 _fov, f32 _aspect_ratio, f32 _near, f32 _far) {
 		glm::mat4 ret = glm::perspective(_fov, _aspect_ratio, _near, _far);
 		ret[2][2] = -_near / (_far - _near);
 		ret[3][2] = (_far * _near) / (_far - _near);
 		return ret;
 	}
+
 }

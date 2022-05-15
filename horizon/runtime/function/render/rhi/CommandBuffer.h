@@ -3,6 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
+#include <runtime/core/singleton/public_singleton.h>
 #include <runtime/function/render/RenderContext.h>
 #include "Device.h"
 #include "SwapChain.h"
@@ -26,7 +27,7 @@ namespace Horizon {
 		u32 present();
 		void beginCommandRecording(u32 index);
 		void endCommandRecording(u32 index);
-
+		void Dispatch(u32 i, std::shared_ptr<Pipeline> pipeline, const std::vector<std::shared_ptr<DescriptorSet>> _descriptor_sets) noexcept;
 	private:
 		void createCommandPool();
 		void allocateCommandBuffers();

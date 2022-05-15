@@ -12,7 +12,6 @@ namespace Horizon {
 		desc.BindResource(2, normal_texture);
 		desc.BindResource(3, metallic_rougness_texture);
 
-		m_material_descriptor_set->AllocateDescriptorSet();
 		m_material_descriptor_set->UpdateDescriptorSet(desc);
 	}
 

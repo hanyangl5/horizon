@@ -41,7 +41,7 @@ namespace Horizon {
 
 	void DescriptorSet::UpdateDescriptorSet(const DescriptorSetUpdateDesc& desc)
 	{
-
+		AllocateDescriptorSet();
 		// update descriptor set
 		std::vector<VkWriteDescriptorSet> descriptorWrites(mDescriptorSetInfo->bindingCount);
 		for (u32 binding = 0; binding < mDescriptorSetInfo->bindingCount; binding++) {
@@ -123,7 +123,7 @@ namespace Horizon {
 
 	}
 
-	void DescriptorSetInfo::AddBinding(DescriptorType type, ShaderStage stage)
+	void DescriptorSetInfo::AddBinding(DescriptorType type, u32 stage)
 	{
 		bindingCount++;
 		types.push_back(type);

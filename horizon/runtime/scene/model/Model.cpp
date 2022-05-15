@@ -194,11 +194,11 @@ namespace Horizon {
 
 			std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
 			// material parameters
-			setInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+			setInfo->AddBinding(DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
 			// albedo/normal/metallicroughness
-			setInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
-			setInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
-			setInfo->AddBinding(DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+			setInfo->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+			setInfo->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
+			setInfo->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_VERTEX_SHADER | SHADER_STAGE_PIXEL_SHADER);
 			material->m_material_descriptor_set = std::make_shared<DescriptorSet>(m_device, setInfo);
 
 			m_materials.push_back(material);
@@ -361,9 +361,7 @@ namespace Horizon {
 		if (node->mesh) {
 			for (auto& primitive : node->mesh->primitives) {
 				std::vector<VkDescriptorSet> descriptors{ m_scene_descriptor_set->Get(),  primitive->material->m_material_descriptor_set->Get() };
-				if (pipeline->hasPipelineDescriptorSet()) {
-					descriptors.emplace_back(pipeline->getPipelineDescriptorSet()->Get());
-				}
+
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
 				if (pipeline->hasPushConstants()) {
