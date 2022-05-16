@@ -18,7 +18,7 @@ void App::Run() noexcept {
 	m_renderer = std::make_unique<Renderer>(m_window->getWidth(), m_window->getHeight(), m_window);
 	m_input_manager = std::make_unique<InputManager>(m_window, m_renderer->GetMainCamera());
 
-	while (!glfwWindowShouldClose(m_window->getWindow()))
+	while (!m_window->ShouldClose())
 	{
 		m_input_manager->ProcessInput();
 		m_renderer->Update();

@@ -87,6 +87,8 @@ namespace Horizon
 		u32 GroupCountX() const noexcept;
 		u32 GroupCountY() const noexcept;
 		u32 GroupCountZ() const noexcept;
+
+
 	private:
 		void CreatePipelineLayout(const ComputePipelineCreateInfo& create_info) noexcept;
 		void CreatePipeline(const ComputePipelineCreateInfo& create_info) noexcept;
@@ -95,7 +97,7 @@ namespace Horizon
 	};
 
 	class RTpipeline : public Pipeline{
-	public:
+		public:
 	};
 
 	class PipelineManager

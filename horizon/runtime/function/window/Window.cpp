@@ -4,7 +4,7 @@
 
 namespace Horizon {
 
-	Window::Window(const char* _name, u32 _width, u32 _height) : width(_width), height(_height)
+	Window::Window(const char* _name, u32 _width, u32 _height) noexcept : width(_width), height(_height)
 	{
 		if (glfwInit() != GLFW_TRUE)
 		{
@@ -20,30 +20,38 @@ namespace Horizon {
 			glfwTerminate();
 			LOG_ERROR("failed to init window");
 		}
+
+		glfwSwapInterval(vsync_enabled ? 1 : 0);
+		LOG_INFO("vsync stat: {}", vsync_enabled);
 	}
-	Window::~Window()
+	Window::~Window()noexcept
 	{
 		glfwDestroyWindow(m_window);
 		glfwTerminate();
 	}
 
-	u32 Window::getWidth() const noexcept 
+	u32 Window::getWidth() const noexcept
 	{
 		return width;
 	}
 
-	u32 Window::getHeight() const noexcept 
+	u32 Window::getHeight() const noexcept
 	{
 		return height;
 	}
 
 
-	GLFWwindow* Window::getWindow()
+	GLFWwindow* Window::getWindow() const noexcept
 	{
 		return m_window;
 	}
 
-	void Window::close()
+	int Window::ShouldClose() const noexcept
+	{
+		return glfwWindowShouldClose(m_window);
+	}
+
+	void Window::close()noexcept
 	{
 		glfwSetWindowShouldClose(m_window, true);
 	}
