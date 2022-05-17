@@ -35,13 +35,9 @@ vec3 GammaCorrection(vec3 x){
 }
 
 void main() {
-	//vec3 color = texture(color_texture, frag_tex_coord).xyz;
-	//color = TonemapACES(color);
-	//color = GammaCorrection(color);
+	out_color = texture(color_texture, frag_tex_coord);
 	vec4 rgbA = texture(color_texture, frag_tex_coord);
 	rgbA /= rgbA.aaaa;	// Normalise according to sample count when path tracing
-
-	// Similar setup to the Bruneton demo
 	vec3 white_point = vec3(1.08241, 0.96756, 0.95003);
 	float exposure = 10.0;
 	out_color = vec4( pow(vec3(1.0) - exp(-rgbA.rgb / white_point * exposure), vec3(1.0 / 2.2)), 1.0 );

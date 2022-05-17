@@ -21,14 +21,14 @@ namespace Horizon {
 
 		m_scene_descriptor_set = std::make_shared<DescriptorSet>(m_device, sceneDescriptorSetInfo);
 
-		m_camera = std::make_shared<Camera>(Math::vec3(0.0f, 0.0f, 10000.0f), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
-		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 20.0f, 20000.0f);
-		m_camera->SetCameraSpeed(10.0f);
+		m_camera = std::make_shared<Camera>(Math::vec3(0.0f, 6370.0f, 10.0), Math::vec3(0.0f, 0.0f, 0.0f), Math::vec3(0.0f, 1.0f, 0.0f));
+		m_camera->SetPerspectiveProjectionMatrix(Math::radians(90.0f), static_cast<f32>(m_render_context.width) / static_cast<f32>(m_render_context.height), 5.0f, 20000.0f);
+		m_camera->SetCameraSpeed(1.0f);
 
 		// create uniform buffer
 		m_scene_ub = std::make_shared<UniformBuffer>(device);
-		//m_light_count_ub = std::make_shared<UniformBuffer>(device);
-		//m_light_ub = std::make_shared<UniformBuffer>(device);
+		m_light_count_ub = std::make_shared<UniformBuffer>(device);
+		m_light_ub = std::make_shared<UniformBuffer>(device);
 		m_camera_ub = std::make_shared<UniformBuffer>(device);
 	}
 
@@ -111,8 +111,8 @@ namespace Horizon {
 		m_camera_ubdata.camera_forward_dir = m_camera->GetForwardDir();
 		m_camera_ub->update(&m_camera_ubdata, sizeof(CamaeraUb));
 
-		//m_light_count_ub->update(&m_light_count_ubdata, sizeof(LightCountUb));
-		//m_light_ub->update(&m_lights_ubdata, m_light_count_ubdata.lightCount > 0 ? sizeof(LightParams) * m_light_count_ubdata.lightCount : sizeof(LightParams));
+		m_light_count_ub->update(&m_light_count_ubdata, sizeof(LightCountUb));
+		m_light_ub->update(&m_lights_ubdata, m_light_count_ubdata.lightCount > 0 ? sizeof(LightParams) * m_light_count_ubdata.lightCount : sizeof(LightParams));
 
 
 		DescriptorSetUpdateDesc desc;

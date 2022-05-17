@@ -35,6 +35,10 @@ namespace Horizon {
 		std::shared_ptr<DescriptorSetLayouts> GetSceneDescriptorLayouts() const noexcept;
 		std::shared_ptr<Camera> GetMainCamera() const noexcept;
 		std::shared_ptr<UniformBuffer> getCameraUbo() const noexcept;
+	public:
+		std::shared_ptr<UniformBuffer> m_light_count_ub;
+		std::shared_ptr<UniformBuffer> m_light_ub;
+		std::shared_ptr<UniformBuffer> m_camera_ub;
 	private:
 		RenderContext& m_render_context;
 		std::shared_ptr<Camera> m_camera = nullptr;
@@ -55,12 +59,12 @@ namespace Horizon {
 		struct LightCountUb {
 			u32 lightCount = 0;
 		}m_light_count_ubdata;
-		std::shared_ptr<UniformBuffer> m_light_count_ub;
+
 		// 2
 		struct LightsUb {
 			LightParams lights[MAX_LIGHT_COUNT];
 		}m_lights_ubdata;
-		std::shared_ptr<UniformBuffer> m_light_ub;
+
 		// 3
 		struct CamaeraUb {
 			Math::vec3 camera_pos;
@@ -68,7 +72,7 @@ namespace Horizon {
 			Math::vec3 camera_forward_dir;
 			f32 pad1;
 		}m_camera_ubdata;
-		std::shared_ptr<UniformBuffer> m_camera_ub;
+
 
 
 		// models

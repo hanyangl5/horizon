@@ -50,6 +50,6 @@ void main() {
     
     position_depth = vec4(world_pos, ToLinearDepth(gl_FragCoord.z));
     normal_roughness = vec4(normalize(world_normal), roughness);
-    albedo_metallic = vec4(albedo, roughness);
+    albedo_metallic = vec4(albedo, metallic);
     
 }

@@ -28,6 +28,7 @@ def main():
     glslc("atmosphere/multi_scattering_lut.comp")
     glslc("atmosphere/scatter.vert")
     glslc("atmosphere/scatter.frag")
+    glslc("shading.frag")
 
 if __name__ == '__main__':
     main()

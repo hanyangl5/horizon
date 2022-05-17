@@ -314,6 +314,8 @@ namespace Horizon
 		scatter_descriptor_set_create_info->AddBinding(DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_PIXEL_SHADER); // camera pos, inv vp, resolution
 		scatter_descriptor_set_create_info->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_PIXEL_SHADER); // transmittion
 		scatter_descriptor_set_create_info->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_PIXEL_SHADER); // scattering
+		scatter_descriptor_set_create_info->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_PIXEL_SHADER); // geometry
+		scatter_descriptor_set_create_info->AddBinding(DescriptorType::DESCRIPTOR_TYPE_TEXTURE, SHADER_STAGE_PIXEL_SHADER); // depth
 
 		m_sky_descriptor_set = std::make_shared<DescriptorSet>(_device, scatter_descriptor_set_create_info);
 

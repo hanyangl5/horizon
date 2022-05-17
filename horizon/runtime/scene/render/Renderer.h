@@ -16,7 +16,7 @@
 #include <runtime/function/render/Atmosphere.h>
 #include <runtime/function/render/PostProcess.h>
 #include <runtime/function/render/Geometry.h>
-
+#include <runtime/function/render/LightPass.h>
 #include <runtime/scene/scene/Scene.h>
 
 namespace Horizon
@@ -72,5 +72,6 @@ namespace Horizon
 		std::shared_ptr<Atmosphere> m_atmosphere_pass;
 		std::shared_ptr<PostProcess> m_post_process_pass;
 		std::shared_ptr<Geometry> m_geometry_pass;
+		std::shared_ptr<LightPass> m_light_pass;
 	};
 }

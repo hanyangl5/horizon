@@ -4,10 +4,6 @@
 #define PI 3.14159265359
 #define eps 1e-6
 
-layout(location = 0) in vec3 world_pos;
-layout(location = 1) in vec3 world_normal;
-layout(location = 2) in vec2 frag_tex_coord;
-
 layout(location = 0) out vec3 outColor;
 
 // set 0: scene
@@ -19,35 +15,21 @@ struct LightParams{
     vec4 radiusInnerOuter; // radius, innerradius, outerradius
 };
 
-layout(set = 0, binding = 1) uniform LightCountUb {
+layout(set = 0, binding = 0) uniform LightCountUb {
     uint lightCount;
 }m_light_count_ub;
 
-layout(set = 0, binding = 2) uniform LightUb {
+layout(set = 0, binding = 1) uniform LightUb {
     LightParams lights[MAX_LIGHT_COUNT];
 }m_light_ub;
 
-layout(set = 0, binding = 3) uniform CameraUb {
+layout(set = 0, binding = 2) uniform CameraUb {
     vec3 eyePos;
 }m_camera_ub;
 
-// set 1: material
-
-layout(set = 1, binding = 0) uniform MaterialParams {
-    bool has_base_color;
-    bool has_normal;
-    bool has_metallic_rougness;
-    // vec4 bcFactor;
-    // vec3 normalFactor;
-    // vec2 mrFactor;
-}materialParams;
-
-layout(set = 1, binding = 1) uniform sampler2D bcTexture;
-layout(set = 1, binding = 2) uniform sampler2D normal_texture;
-layout(set = 1, binding = 3) uniform sampler2D mrTexture;
-// set 2: mesh
-
-// -------------------------------------------------------
+layout(set = 0, binding = 3) uniform sampler2D position_depth;
+layout(set = 0, binding = 4) uniform sampler2D normal_roughness;
+layout(set = 0, binding = 5) uniform sampler2D albedo_metallic;
 
 float saturate(float x) {
     return clamp(x, 0.0f , 1.0f);
@@ -61,7 +43,7 @@ float D_GGX(float a2, float NoH) {
 float G_Smith(float a2, float NoV, float NoL) {
     float Vis_SmithV = NoL * sqrt(NoV * (NoV - NoV * a2) + a2);
 	float Vis_SmithL = NoV * sqrt(NoL * (NoL - NoL * a2) + a2);
-	return 0.5 / sqrt(Vis_SmithV + Vis_SmithL);
+	return 0.5 / (eps + sqrt(Vis_SmithV + Vis_SmithL));
 }
 
 vec3 F_Schlick(float VoH, vec3 F0) {
@@ -107,12 +89,7 @@ float angleFalloff(float innerRadius, float outerRadius, vec3 direction, vec3 L)
     return attenuation * attenuation;
 }
 
-vec3 radiance(LightParams light, vec3 N, vec3 V) {
-    vec3 albedo = materialParams.has_base_color ? texture(bcTexture, frag_tex_coord).xyz : vec3(1.0);
-    vec3 normal = materialParams.has_normal? texture(normal_texture, frag_tex_coord).xyz : vec3(0.0);
-    float metallic= materialParams.has_metallic_rougness ? texture(mrTexture, frag_tex_coord).x : 0.0f;
-    float roughness = materialParams.has_metallic_rougness ? texture(mrTexture, frag_tex_coord).y : 1.0f;
-
+vec3 radiance(LightParams light, vec3 N, vec3 V, vec3 world_pos, vec3 albedo, float metallic, float roughness) {
     vec3 lightRadiance;
     vec3 L;
 
@@ -162,16 +139,26 @@ vec3 radiance(LightParams light, vec3 N, vec3 V) {
 
 
 void main() {
+
+    vec2 frag_coord = gl_FragCoord.xy/vec2(1920.0f,1080.0f);
+    vec4 position_depth_color = texture(position_depth, frag_coord);
+    vec4 albedo_metallic_color = texture(albedo_metallic, frag_coord);
+    vec4 normal_roughness_color = texture(normal_roughness, frag_coord);
+
+    vec3 world_pos = position_depth_color.rgb;
+    vec3 albedo = albedo_metallic_color.rgb;
+    float metallic = albedo_metallic_color.a;
+    float roughness = normal_roughness_color.a;
+    vec3 world_normal = normal_roughness_color.rgb;
+
     vec3 V = - normalize(world_pos - m_camera_ub.eyePos);
     vec3 N = normalize(world_normal);
 
     vec3 color = vec3(0.0f);
     
     for(uint i = 0; i < m_light_count_ub.lightCount; i++) {
-        color += radiance(m_light_ub.lights[i], N, V);
+        color += radiance(m_light_ub.lights[i], N, V, world_pos ,albedo, metallic, roughness);
     }
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0/2.2)); 
     outColor = color;
     
 }

@@ -29,7 +29,7 @@ layout(push_constant) uniform MeshUb {
 void main() {
     mat4 model = mesh_ub.model;
     world_pos = (model * vec4(in_position, 1.0)).xyz;
-    world_normal = (model * vec4(in_normal, 1.0)).xyz;
+    world_normal = (model * vec4(in_normal, 0.0)).xyz;
     frag_tex_coord = in_tex_coord;
     gl_Position = scene_ub.proj * scene_ub.view * model * vec4(in_position, 1.0);
     

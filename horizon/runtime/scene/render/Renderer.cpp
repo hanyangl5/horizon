@@ -42,9 +42,24 @@ namespace Horizon
 	{
 		m_scene->Prepare();
 
+
+		m_light_pass->BindResource(0, m_scene->m_light_count_ub);
+		m_light_pass->BindResource(1, m_scene->m_light_ub);
+		m_light_pass->BindResource(2, m_scene->m_camera_ub);
+
+		m_light_pass->BindResource(3, m_geometry_pass->GetFrameBufferAttachment(0));
+		m_light_pass->BindResource(4, m_geometry_pass->GetFrameBufferAttachment(1));
+		m_light_pass->BindResource(5, m_geometry_pass->GetFrameBufferAttachment(2));
+
+
+		m_light_pass->UpdateDescriptorSets();
+
 		m_atmosphere_pass->SetCameraParams(m_scene->GetMainCamera()->GetInvViewProjectionMatrix(), m_scene->GetMainCamera()->GetPosition());
 
+
 		m_atmosphere_pass->BindResource(0, m_scene->getCameraUbo());
+		m_atmosphere_pass->BindResource(3, m_light_pass->GetFrameBufferAttachment(0));
+		m_atmosphere_pass->BindResource(4, m_geometry_pass->GetFrameBufferAttachment(3));
 		m_atmosphere_pass->UpdateDescriptorSets();
 
 		m_post_process_pass->BindResource(0, m_atmosphere_pass->GetFrameBufferAttachment(0));
@@ -80,9 +95,12 @@ namespace Horizon
 			m_command_buffer->beginCommandRecording(i);
 
 			// geometry pass
-			//m_scene->Draw(i, m_command_buffer, m_geometry_pass->GetPipeline());
-			// scattering pass
+			m_scene->Draw(i, m_command_buffer, m_geometry_pass->GetPipeline());
 
+			m_fullscreen_triangle->Draw(i, m_command_buffer, m_light_pass->GetPipeline(), { m_light_pass->m_descriptorset });
+
+			// scattering pass
+			
 			if (!m_atmosphere_pass->precomputed) {
 				m_command_buffer->Dispatch(i, m_atmosphere_pass->m_transmittance_lut_pass, { m_atmosphere_pass->m_transmittance_lut_descriptor_set });
 				
@@ -220,6 +238,7 @@ namespace Horizon
 				}
 				m_atmosphere_pass->precomputed = true;
 			}
+
 			//TODO: barrier
 
 			m_fullscreen_triangle->Draw(i, m_command_buffer, m_atmosphere_pass->m_sky_pass, {m_atmosphere_pass->m_sky_descriptor_set});
@@ -235,18 +254,31 @@ namespace Horizon
 
 	void Renderer::PrepareAssests() noexcept
 	{
-		m_scene->LoadModel(Path::GetInstance().GetModelPath("earth6378/earth.gltf"), "earth");
+		//m_scene->LoadModel(Path::GetInstance().GetModelPath("earth6378/earth.gltf"), "earth");
+		//
+		//auto earth = m_scene->GetModel("earth");
+		//Math::mat4 scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6400)); // a hack value due to mesh precision
+		//earth->SetModelMatrix(scaleMatrix);
+		//earth->UpdateModelMatrix();
 
-		auto earth = m_scene->GetModel("earth");
-		Math::mat4 scaleMatrix = Math::scale(Math::mat4(1.0f), Math::vec3(6378.0f));
-		earth->SetModelMatrix(scaleMatrix);
-		earth->UpdateModelMatrix();
+
+		m_scene->LoadModel("C:/Users/hylu/OneDrive/Program/Computer Graphics/models/vulkan_asset_pack_gltf/data/models/FlightHelmet/glTF/FlightHelmet.gltf", "flighthelmet");
+		  
+		auto flighthelmet = m_scene->GetModel("flighthelmet");
+		Math::mat4 scale_mat = Math::scale(Math::mat4(1.0f), Math::vec3(20.0)); // a hack value due to mesh precision
+		Math::mat4 traslate_mat = Math::translate(Math::mat4(1.0f), Math::vec3(0.0, 6370.0 ,0 ));
+		flighthelmet->SetModelMatrix(traslate_mat * scale_mat);
+		flighthelmet->UpdateModelMatrix();
+
+		m_scene->AddDirectLight(Math::vec3(1.0), 1.0, Math::normalize(Math::vec3(0.0, -1.0, -1.0)));
 	}
 
 	void Renderer::CreatePipelines() noexcept
 	{
 
-		//m_geometry_pass = std::make_shared<Geometry>(m_scene, m_pipeline_manager, m_device, m_render_context);
+		m_geometry_pass = std::make_shared<Geometry>(m_scene, m_pipeline_manager, m_device, m_render_context);
+
+		m_light_pass = std::make_shared<LightPass>(m_scene, m_pipeline_manager, m_device, m_render_context);
 
 		m_atmosphere_pass = std::make_shared<Atmosphere>(m_pipeline_manager, m_device, m_command_buffer, m_render_context);
 

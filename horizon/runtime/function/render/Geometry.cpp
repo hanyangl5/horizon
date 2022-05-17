@@ -39,6 +39,7 @@ namespace Horizon
 
 	void Geometry::BindResource(u32 binding, std::shared_ptr<DescriptorBase> buffer) noexcept
 	{
+		//m_descriptor_set_update_desc.BindResource(binding, buffer);
 	}
 
 	std::shared_ptr<AttachmentDescriptor> Geometry::GetFrameBufferAttachment(u32 _index) const noexcept
