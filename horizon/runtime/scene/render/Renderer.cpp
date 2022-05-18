@@ -3,8 +3,8 @@
 #include <iostream>
 #include <runtime/core/math/Math.h>
 #include <runtime/core/path/Path.h>
-#include <runtime/function/render/rhi/VulkanEnums.h>
-#include <runtime/function/render/rhi/ResourceBarrier.h>
+#include <runtime/function/rhi/vulkan/VulkanEnums.h>
+#include <runtime/function/rhi/vulkan/ResourceBarrier.h>
 
 namespace Horizon
 {

@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include <runtime/function/render/rhi/Texture.h>
-#include <runtime/function/render/rhi/UniformBuffer.h>
-#include <runtime/function/render/rhi/Descriptors.h>
+#include <runtime/function/rhi/vulkan/Texture.h>
+#include <runtime/function/rhi/vulkan/UniformBuffer.h>
+#include <runtime/function/rhi/vulkan/Descriptors.h>
 
 namespace Horizon {
 

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <memory>
 
-#include <runtime/function/render/RenderContext.h>
+#include <runtime/core/math/Math.h>
 
 #ifdef _WIN32
 #include <Windows.h>

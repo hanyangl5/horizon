@@ -5,14 +5,14 @@
 #include <vulkan/vulkan.hpp>
 #include "tiny_gltf.h"
 
-#include <runtime/function/render/rhi/Device.h>
-#include <runtime/function/render/rhi/CommandBuffer.h>
-#include <runtime/function/render/rhi/Descriptors.h>
-#include <runtime/function/render/rhi/Pipeline.h>
-#include <runtime/function/render/rhi/UniformBuffer.h>
-#include <runtime/function/render/rhi/VertexBuffer.h>
-#include <runtime/function/render/rhi/IndexBuffer.h>
-#include <runtime/function/render/rhi/Texture.h>
+#include <runtime/function/rhi/vulkan/Device.h>
+#include <runtime/function/rhi/vulkan/CommandBuffer.h>
+#include <runtime/function/rhi/vulkan/Descriptors.h>
+#include <runtime/function/rhi/vulkan/Pipeline.h>
+#include <runtime/function/rhi/vulkan/UniformBuffer.h>
+#include <runtime/function/rhi/vulkan/VertexBuffer.h>
+#include <runtime/function/rhi/vulkan/IndexBuffer.h>
+#include <runtime/function/rhi/vulkan/Texture.h>
 #include <runtime/scene/material/Material.h>
 
 

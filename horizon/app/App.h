@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <runtime/function/render/RenderContext.h>
+#include <runtime/function/rhi/RenderContext.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/scene/render/Renderer.h>
 #include <runtime/function/input/InputManager.h>

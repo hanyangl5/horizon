@@ -3,11 +3,11 @@
 #include <vector>
 #include <unordered_map>
 
-#include <runtime/function/render/RenderContext.h>
+#include <runtime/function/rhi/RenderContext.h>
 #include <runtime/scene/camera/Camera.h>
-#include <runtime/function/render/rhi/Device.h>
-#include <runtime/function/render/rhi/Descriptors.h>
-#include <runtime/function/render/rhi/CommandBuffer.h>
+#include <runtime/function/rhi/vulkan/Device.h>
+#include <runtime/function/rhi/vulkan/Descriptors.h>
+#include <runtime/function/rhi/vulkan/CommandBuffer.h>
 #include <runtime/scene/model/Model.h>
 #include <runtime/scene/light/Light.h>
 

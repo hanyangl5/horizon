@@ -1,7 +1,7 @@
 #include "Scene.h"
 
 #include <runtime/core/log/Log.h>
-#include <runtime/function/render/rhi/UniformBuffer.h>
+#include <runtime/function/rhi/vulkan/UniformBuffer.h>
 
 namespace Horizon {
 

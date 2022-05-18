@@ -2,7 +2,7 @@
 
 #include <runtime/core/log/Log.h>
 #include <runtime/core/path/Path.h>
-#include <runtime/function/render/rhi/VulkanBuffer.h>
+#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 
 namespace Horizon {
 	Model::Model(const std::string& path, std::shared_ptr<Device> device, std::shared_ptr<CommandBuffer> command_buffer, std::shared_ptr<DescriptorSet> m_scene_descriptor_set) noexcept :m_device(device), m_command_buffer(command_buffer), m_scene_descriptor_set(m_scene_descriptor_set)

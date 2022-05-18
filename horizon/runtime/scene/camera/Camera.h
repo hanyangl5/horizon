@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/function/render/RenderContext.h>
+#include <runtime/core/math/Math.h>
 
 namespace Horizon {
 
