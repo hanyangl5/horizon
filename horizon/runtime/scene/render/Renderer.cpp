@@ -14,14 +14,12 @@ namespace Horizon
 	Renderer::Renderer(u32 width, u32 height, std::shared_ptr<Window> window) noexcept : m_window(window)
 	{
 
-		m_instance = std::make_shared<Instance>();
-		m_surface = std::make_shared<Surface>(m_instance, m_window);
-		m_device = std::make_shared<Device>(m_instance, m_surface);
+		m_device = std::make_shared<Device>(window);
 
 		m_render_context.width = width;
 		m_render_context.height = height;
 
-		m_swap_chain = std::make_shared<SwapChain>(m_render_context, m_device, m_surface);
+		m_swap_chain = std::make_shared<SwapChain>(m_render_context, m_device, m_device->GetSurface());
 		m_command_buffer = std::make_shared<CommandBuffer>(m_render_context, m_device);
 		m_scene = std::make_shared<Scene>(m_render_context, m_device, m_command_buffer);
 		m_fullscreen_triangle = std::make_shared<FullscreenTriangle>(m_device, m_command_buffer);

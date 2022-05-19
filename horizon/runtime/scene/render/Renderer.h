@@ -5,8 +5,6 @@
 #include <runtime/function/rhi/RenderContext.h>
 #include <runtime/function/window/Window.h>
 #include <runtime/function/rhi/vulkan/CommandBuffer.h>
-#include <runtime/function/rhi/vulkan/Instance.h>
-#include <runtime/function/rhi/vulkan/Surface.h>
 #include <runtime/function/rhi/vulkan/Device.h>
 #include <runtime/function/rhi/vulkan/SwapChain.h>
 #include <runtime/function/rhi/vulkan/Descriptors.h>
@@ -51,9 +49,7 @@ namespace Horizon
 	private:
 		RenderContext m_render_context;
 		std::shared_ptr<Window> m_window = nullptr;
-		std::shared_ptr<Instance> m_instance = nullptr;
 		std::shared_ptr<Device> m_device = nullptr;
-		std::shared_ptr<Surface> m_surface = nullptr;
 		std::shared_ptr<SwapChain> m_swap_chain = nullptr;
 		std::shared_ptr<PipelineManager> m_pipeline_manager = nullptr;
 		std::shared_ptr<CommandBuffer> m_command_buffer = nullptr;
