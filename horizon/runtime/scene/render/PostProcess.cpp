@@ -29,7 +29,7 @@ namespace Horizon
 
 		GraphicsPipelineCreateInfo pp_ipeline_create_info;
 		pp_ipeline_create_info.name = "pp";
-		pp_ipeline_create_info.vs = std::make_shared<Shader>(_device->Get(), Path::GetInstance().GetShaderPath("postprocess.vert.spv"));
+		pp_ipeline_create_info.vs = std::make_shared<Shader>(_device->Get(), Path::GetInstance().GetShaderPath("simplevs.vert.spv"));
 		pp_ipeline_create_info.ps = std::make_shared<Shader>(_device->Get(), Path::GetInstance().GetShaderPath("postprocess.frag.spv"));
 		pp_ipeline_create_info.descriptor_layouts = pp_descriptor_set_layout;
 

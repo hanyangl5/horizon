@@ -296,7 +296,7 @@ namespace Horizon
 		std::shared_ptr<DescriptorSetLayouts> presentDescriptorSetLayout = std::make_shared<DescriptorSetLayouts>();
 		presentDescriptorSetLayout->layouts.push_back(m_present_descriptorSet->GetLayout());
 
-		std::shared_ptr<Shader> presentVs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("present.vert.spv"));
+		std::shared_ptr<Shader> presentVs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("simplevs.vert.spv"));
 		std::shared_ptr<Shader> presentPs = std::make_shared<Shader>(m_device->Get(), Path::GetInstance().GetShaderPath("present.frag.spv"));
 
 		GraphicsPipelineCreateInfo presentPipelineCreateInfo;

@@ -1,7 +1,5 @@
 #version 450
 
-layout(location = 0) in vec2 frag_tex_coord;
-
 layout(location = 0) out vec4 out_color;
 
 layout(set = 0, binding = 0) uniform sampler2D color_texture;
@@ -35,8 +33,8 @@ vec3 GammaCorrection(vec3 x){
 }
 
 void main() {
-	out_color = texture(color_texture, frag_tex_coord);
-	vec4 rgbA = texture(color_texture, frag_tex_coord);
+	vec2 frag_coord = gl_FragCoord.xy / vec2(1920.0,1080.0);
+	vec4 rgbA = texture(color_texture, frag_coord);
 	rgbA /= rgbA.aaaa;	// Normalise according to sample count when path tracing
 	vec3 white_point = vec3(1.08241, 0.96756, 0.95003);
 	float exposure = 10.0;
