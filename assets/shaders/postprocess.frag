@@ -32,11 +32,18 @@ vec3 GammaCorrection(vec3 x){
 	return pow( x, vec3( 1.0 / 2.2 ));
 }
 
+float Exposure(float aperture, float shutterSpeed, float sensitivity) {
+	float ev100 = log2((aperture * aperture) / shutterSpeed * 100.0 / sensitivity);
+    return 1.0 / (pow(2.0, ev100));
+}
+
+
 void main() {
+	float aperture = 1, shutterSpeed = 1000, ISO = 1;
 	vec2 frag_coord = gl_FragCoord.xy / vec2(1920.0,1080.0);
-	vec4 rgbA = texture(color_texture, frag_coord);
-	rgbA /= rgbA.aaaa;	// Normalise according to sample count when path tracing
-	vec3 white_point = vec3(1.08241, 0.96756, 0.95003);
-	float exposure = 10.0;
-	out_color = vec4( pow(vec3(1.0) - exp(-rgbA.rgb / white_point * exposure), vec3(1.0 / 2.2)), 1.0 );
+	vec3 color = texture(color_texture, frag_coord).rgb;
+	float exposure = Exposure(aperture, shutterSpeed, ISO);
+	color *= exposure;
+	color = TonemapACES(color);
+	out_color = vec4( color, 1.0 );
 }
