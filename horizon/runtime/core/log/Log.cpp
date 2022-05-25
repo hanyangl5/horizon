@@ -1,6 +1,6 @@
-#include "Log.h"
+#include <spdlog/sinks/stdout_color_sinks.h> // or "../stdout_sinks.h" if no colors needed
 
-#include "spdlog/sinks/stdout_color_sinks.h" // or "../stdout_sinks.h" if no colors needed
+#include "Log.h"
 
 namespace Horizon {
 
@@ -26,6 +26,13 @@ namespace Horizon {
 	{
 		if (_res != VK_SUCCESS) {
 			m_logger->error("vulkan result checking failed");
+		}
+	}
+
+	void Log::CheckDXResult(HRESULT hr) const noexcept
+	{
+		if (FAILED(hr)) {
+			m_logger->error("directx result checking failed:{}", HrToString(hr));
 		}
 	}
 

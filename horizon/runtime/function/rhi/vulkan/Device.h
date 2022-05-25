@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include <runtime/function/rhi/RenderContext.h>
-#include <runtime/function/window/Window.h>
+#include <runtime/core/window/Window.h>
 
 #include "QueueFamilyIndices.h"
 #include "ValidationLayer.h"
@@ -68,7 +68,7 @@ namespace Horizon {
 		i32 m_physical_device_index = -1;
 		std::vector<VkPhysicalDevice> m_physical_devices;
 		VkDevice m_device{};
-		VkQueue m_graphics_queue, m_present_queue, m_compute_queue;
+		VkQueue graphics_queue, m_present_queue, compute_queue;
 		QueueFamilyIndices m_queue_family_indices;
 		std::shared_ptr<Instance> m_instance = nullptr;
 		std::shared_ptr<Surface> m_surface = nullptr;

@@ -1,7 +1,7 @@
 .vscode
 build
 out
-3rdparty
+horizon/third_party
 docs/design.md
 docs/figs
 assets/models

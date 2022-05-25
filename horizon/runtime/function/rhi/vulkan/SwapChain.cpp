@@ -5,7 +5,7 @@
 #include "Device.h"
 #include "QueueFamilyIndices.h"
 #include "SurfaceSupportDetails.h"
-#include <runtime/function/window/Window.h>
+#include <runtime/core/window/Window.h>
 
 namespace Horizon {
 	SwapChain::SwapChain(RenderContext& render_context, std::shared_ptr<Device> device, std::shared_ptr<Surface> surface) :m_render_context(render_context), m_device(device), m_surface(surface)
@@ -136,7 +136,7 @@ namespace Horizon {
 			return capabilities.currentExtent;
 		}
 		i32 width, height;
-		glfwGetFramebufferSize(m_window->getWindow(), &width, &height);
+		glfwGetFramebufferSize(m_window->GetWindow(), &width, &height);
 
 		VkExtent2D actualExtent = {
 			static_cast<u32>(width),

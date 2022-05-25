@@ -1,0 +1,2 @@
+add_subdirectory(VulkanMemoryAllocator)
+add_subdirectory(D3D12MemoryAllocator)

@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <runtime/core/math/Math.h>
 #include <runtime/function/rhi/RenderContext.h>
 
 namespace Horizon {

@@ -88,7 +88,7 @@ namespace Horizon {
 
 	void Surface::createSurface()
 	{
-		CHECK_VK_RESULT(glfwCreateWindowSurface(m_instance->Get(), m_window->getWindow(), nullptr, &m_surface));
+		CHECK_VK_RESULT(glfwCreateWindowSurface(m_instance->Get(), m_window->GetWindow(), nullptr, &m_surface));
 	}
 	
 	Device::Device(std::shared_ptr<Window> window)noexcept
@@ -122,7 +122,7 @@ namespace Horizon {
 
 	VkQueue Device::getGraphicQueue() const noexcept 
 	{
-		return m_graphics_queue;
+		return graphics_queue;
 	}
 
 	VkQueue Device::getPresnetQueue() const noexcept 
@@ -200,7 +200,7 @@ namespace Horizon {
 
 		CHECK_VK_RESULT(vkCreateDevice(m_physical_devices[m_physical_device_index], &device_create_info, nullptr, &m_device));
 
-		vkGetDeviceQueue(m_device, m_queue_family_indices.getGraphics(), 0, &m_graphics_queue);
+		vkGetDeviceQueue(m_device, m_queue_family_indices.getGraphics(), 0, &graphics_queue);
 		vkGetDeviceQueue(m_device, m_queue_family_indices.getPresent(), 0, &m_present_queue);
 
 	}

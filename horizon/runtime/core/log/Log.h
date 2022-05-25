@@ -2,13 +2,20 @@
 
 #include <string>
 
-#include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
-#include <runtime/core/math/Math.h>
 #include <runtime/core/singleton/public_singleton.h>
+#include <runtime/core/utils/definations.h>
 
 namespace Horizon {
+
+	inline std::string HrToString(HRESULT hr)
+	{
+		char s_str[64] = {};
+		sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<UINT>(hr));
+		return std::string(s_str);
+	}
+
 	class Log :public PublicSingleton<Log>
 	{
 	public:
@@ -49,6 +56,8 @@ namespace Horizon {
 		}
 		void CheckVulkanResult(VkResult _res) const noexcept;
 
+		void CheckDXResult(HRESULT hr) const noexcept;
+
 	private:
 		std::shared_ptr<spdlog::logger> m_logger;
 	};
@@ -64,5 +73,8 @@ namespace Horizon {
 #define LOG_FATAL(...) Log::GetInstance().Fatal("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
 #define CHECK_VK_RESULT(res) Log::GetInstance().CheckVulkanResult(res);
+
+#define CHECK_DX_RESULT(res) Log::GetInstance().CheckDXResult(res);
+
 }
 

@@ -1,10 +1,18 @@
 #pragma once
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/utils/definations.h>
 #include <runtime/core/log/Log.h>
+#include <runtime/function/rhi/vulkan/VulkanConfig.h>
 
 namespace Horizon
 {
+
+
+	enum class RenderBackend {
+		RENDER_BACKEND_NONE,
+		RENDER_BACKEND_VULKAN,
+		RENDER_BACKEND_DX12
+	};
 
 	struct RenderContext
 	{
@@ -411,6 +419,33 @@ namespace Horizon
 		RAYTRACING
 	};
 
+	enum BufferUsage {
+		BUFFER_USAGE_VERTEX_BUFFER = 0,
+		BUFFER_USAGE_INDEX_BUFFER = 1,
+		BUFFER_USAGE_UNIFORM_BUFFER = 2,
+		BUFFER_USAGE_RW_BUFFER = 4,
+	};
 
+	struct BufferCreateInfo {
+		u32 buffer_usage_flags;
+		u32 size;
+	};
+
+	inline u32 ToVulkanBufferUsage(u32 buffer_usage) {
+		u32 flags = 0;
+		if (buffer_usage & BUFFER_USAGE_VERTEX_BUFFER) {
+			flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		}
+		if (buffer_usage & BUFFER_USAGE_INDEX_BUFFER) {
+			flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		}
+		if (buffer_usage & BUFFER_USAGE_UNIFORM_BUFFER) {
+			flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		}
+		if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
+			flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		}
+		return flags;
+	}
 
 }
