@@ -3,17 +3,16 @@
 #include <third_party/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
 
 #include "stdafx.h"
-#include <runtime/function/rhi/Buffer.h>  
+#include <runtime/function/rhi/Texture.h>  
 
 namespace Horizon {
 	namespace RHI {
 
-		class DX12Buffer : public Buffer
+		class DX12Texture : public Texture2
 		{
-		using Buffer::Buffer;
 		public:
-			DX12Buffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info);
-			~DX12Buffer();
+			DX12Texture(D3D12MA::Allocator* allocator, const TextureCreateInfo& texture_create_info);
+			~DX12Texture();
 		private:
 			virtual void Destroy() override;
 		private:

@@ -1,12 +1,13 @@
 #pragma once
 
+#include <d3d12.h>
+
 #include <runtime/core/utils/definations.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
 
 namespace Horizon
 {
-
 
 	enum class RenderBackend {
 		RENDER_BACKEND_NONE,
@@ -23,10 +24,8 @@ namespace Horizon
 
 	enum class DescriptorType
 	{
-		DESCRIPTOR_TYPE_INVALID = 0,
-		DESCRIPTOR_TYPE_UNIFORM_BUFFER = 1,
-		DESCRIPTOR_TYPE_RW_BUFFER = 2,
-		//DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = 4,
+		DESCRIPTOR_TYPE_UNIFORM_BUFFER = 0,
+		DESCRIPTOR_TYPE_RW_BUFFER,
 		DESCRIPTOR_TYPE_TEXTURE,
 		DESCRIPTOR_TYPE_RW_TEXTURE
 	};
@@ -35,10 +34,9 @@ namespace Horizon
 
 	enum ShaderStageFlags
 	{
-		SHADER_STAGE_INVALID = 0,
 		SHADER_STAGE_VERTEX_SHADER = 1,
 		SHADER_STAGE_PIXEL_SHADER = 2,
-		SHADER_STAGE_COMPUTE_SHADER = 2,
+		SHADER_STAGE_COMPUTE_SHADER = 4,
 	};
 
 	enum PipelineStageFlags {
@@ -115,17 +113,15 @@ namespace Horizon
 
 	enum class TextureType
 	{
-		TEXTURE_TYPE_INVALID = 0,
-		TEXTURE_TYPE_1D,
+		TEXTURE_TYPE_1D = 0,
 		TEXTURE_TYPE_2D,
 		TEXTURE_TYPE_3D,
 	};
 
 	enum class TextureFormat
 	{
-		TEXTURE_FORMAT_INVALID = 0,
 		// unsigned int
-		TEXTURE_FORMAT_R8_UINT,
+		TEXTURE_FORMAT_R8_UINT = 0,
 		TEXTURE_FORMAT_RG8_UINT,
 		TEXTURE_FORMAT_RGB8_UINT,
 		TEXTURE_FORMAT_RGBA8_UINT,
@@ -202,8 +198,8 @@ namespace Horizon
 
 	enum TextureUsage
 	{
-		TEXTURE_USAGE_R,
-		TEXTURE_USAGE_RW
+		TEXTURE_USAGE_R = 1,
+		TEXTURE_USAGE_RW =2
 	};
 
 	inline VkDescriptorType ToVkDescriptorType(DescriptorType type) noexcept
@@ -276,9 +272,6 @@ namespace Horizon
 	{
 		switch (format)
 		{
-		case Horizon::TextureFormat::TEXTURE_FORMAT_INVALID:
-			LOG_ERROR("invalid image format");
-			return VK_FORMAT_MAX_ENUM;
 		case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UINT:
 			return VK_FORMAT_R8_UINT;
 		case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_UINT:
@@ -420,10 +413,10 @@ namespace Horizon
 	};
 
 	enum BufferUsage {
-		BUFFER_USAGE_VERTEX_BUFFER = 0,
-		BUFFER_USAGE_INDEX_BUFFER = 1,
-		BUFFER_USAGE_UNIFORM_BUFFER = 2,
-		BUFFER_USAGE_RW_BUFFER = 4,
+		BUFFER_USAGE_VERTEX_BUFFER = 1,
+		BUFFER_USAGE_INDEX_BUFFER = 2,
+		BUFFER_USAGE_UNIFORM_BUFFER = 4,
+		BUFFER_USAGE_RW_BUFFER = 8,
 	};
 
 	struct BufferCreateInfo {
@@ -431,8 +424,8 @@ namespace Horizon
 		u32 size;
 	};
 
-	inline u32 ToVulkanBufferUsage(u32 buffer_usage) {
-		u32 flags = 0;
+	inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) {
+		VkBufferUsageFlags flags = 0;
 		if (buffer_usage & BUFFER_USAGE_VERTEX_BUFFER) {
 			flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		}
@@ -447,5 +440,170 @@ namespace Horizon
 		}
 		return flags;
 	}
+
+	inline D3D12_RESOURCE_FLAGS ToDX12BufferUsage(u32 buffer_usage) {
+		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+		if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
+			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		}
+		return flags;
+	}
+
+	struct TextureCreateInfo {
+		TextureType texture_type;
+		TextureFormat texture_format;
+		TextureUsage texture_usage;
+		u32 width, height, depth = 1;
+	};
+
+	inline DXGI_FORMAT ToDx12TextureFormat(TextureFormat format) {
+		switch (format)
+		{
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R16_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R32_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG32_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB32_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_UINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R16_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R8_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R16_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R32_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG32_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB32_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SINT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R8_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R16_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R32_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG32_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB32_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SNORM:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R16_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_R32_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGB32_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT:
+			break;
+		case Horizon::TextureFormat::TEXTURE_FORMAT_D32_SFLOAT:
+			break;
+		default:
+			LOG_ERROR("invalid texture format, use rgba8 format as default");
+			return DXGI_FORMAT_R8G8B8A8_UNORM;
+			break;
+		}
+		return DXGI_FORMAT_R8G8B8A8_UNORM;
+	}
+
+	inline D3D12_RESOURCE_DIMENSION ToDX12TextureDimension(TextureType type) {
+		switch (type)
+		{
+		case Horizon::TextureType::TEXTURE_TYPE_1D:
+			return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+			break;
+		case Horizon::TextureType::TEXTURE_TYPE_2D:
+			return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			break;
+		case Horizon::TextureType::TEXTURE_TYPE_3D:
+			return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			break;
+		default:
+			LOG_ERROR("invalid image type, use texture2D as default");
+			return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			break;
+		}
+	}
+
+	inline D3D12_RESOURCE_FLAGS ToDX12TextureUsage(TextureUsage usage) {
+		switch (usage)
+		{
+		case Horizon::TEXTURE_USAGE_R:
+			return D3D12_RESOURCE_FLAG_NONE;
+		case Horizon::TEXTURE_USAGE_RW:
+			return D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		default:
+			return D3D12_RESOURCE_FLAG_NONE;
+			break;
+		}
+	}
+
 
 }

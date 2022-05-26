@@ -9,12 +9,6 @@
 namespace Horizon {
 
 
-	struct TextureCreateInfo{
-		TextureType texture_type;
-		TextureFormat texture_format;
-		TextureUsage texture_usage;
-		u32 width, height, depth = 1;
-	};
 
 	class Texture : public DescriptorBase
 	{  

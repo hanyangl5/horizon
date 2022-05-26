@@ -23,37 +23,31 @@ namespace Horizon {
 			InitializeDX12Renderer();
 		}
 
-		Buffer* RHIDX12::CreateBuffer(BufferCreateInfo create_info)
+		Buffer* RHIDX12::CreateBuffer(const BufferCreateInfo& create_info)
 		{
-			auto buffer_create_info = CD3DX12_RESOURCE_DESC::Buffer(create_info.size);
-			//m_dx12.device->CreateCommittedResource();
-			//D3D12_RESOURCE_DESC _create_info{};
-			//_create_info.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			//_create_info.Alignment = 0;
-			//_create_info.Width = create_info.size;
-			//_create_info.Height = 1;
-			//_create_info.DepthOrArraySize = 1;
-			//_create_info.MipLevels = 1;
-			//_create_info.Format = DXGI_FORMAT_UNKNOWN;
-			//_create_info.SampleDesc.Count = 1;
-			//_create_info.SampleDesc.Quality = 0;
-			//_create_info.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			//_create_info.Flags = D3D12_RESOURCE_FLAG_NONE;
-			//_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			//_create_info.size = create_info.size;
-			//_create_info.usage = ToVulkanBufferUsage(create_info.buffer_usage_flags);
-			//Buffer* buffer = new DX12Buffer(m_dx12.d3dma_allocator, &_create_info);
-			//return buffer;
+			Buffer* buffer = new DX12Buffer(m_dx12.d3dma_allocator, create_info);
+			return buffer;
 		}
 
 		void RHIDX12::DestroyBuffer(Buffer* buffer)
 		{
-			delete buffer;
+			if (buffer) {
+				delete buffer;
+				buffer = nullptr;
+			}
 		}
 
-		void RHIDX12::CreateTexture()
+		Texture2* RHIDX12::CreateTexture(const TextureCreateInfo& texture_create_info)
 		{
-			//auto texture_create_info = CD3DX12_RESOURCE_DESC;
+			return new DX12Texture(m_dx12.d3dma_allocator, texture_create_info);
+		}
+
+		void RHIDX12::DestroyTexture(Texture2* texture)
+		{
+			if (texture) {
+				delete texture;
+				texture = nullptr;
+			}
 		}
 
 		void RHIDX12::CreateSwapChain(std::shared_ptr<Window> window)

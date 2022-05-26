@@ -10,6 +10,7 @@
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/RenderContext.h>
 #include <runtime/function/rhi/dx12/DX12Buffer.h>
+#include <runtime/function/rhi/dx12/DX12Texture.h>
 
 namespace Horizon {
 	namespace RHI {
@@ -18,10 +19,15 @@ namespace Horizon {
 		public:
 			RHIDX12();
 			virtual ~RHIDX12();
+
 			virtual void InitializeRenderer() override;
-			virtual Buffer* CreateBuffer(BufferCreateInfo create_info) override;
+
+			virtual Buffer* CreateBuffer(const BufferCreateInfo& create_info) override;
 			virtual void DestroyBuffer(Buffer* buffer) override;
-			virtual void CreateTexture() override;
+
+			virtual Texture2* CreateTexture(const TextureCreateInfo& texture_create_info) override;
+			virtual void DestroyTexture(Texture2* texture) override;
+
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) override;
 		private:
 			void InitializeDX12Renderer();

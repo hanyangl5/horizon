@@ -8,14 +8,14 @@ namespace Horizon {
 
 		class Buffer {
 		public:
-			Buffer() = default;
+			Buffer(const BufferCreateInfo& buffer_create_info);
 			virtual ~Buffer() = default;
 			u32 GetBufferSize();
 		private:
 			virtual void Destroy() = 0;
-		private:
-			u32 m_buffer_usage;
-			u32 m_buffer_size;
+		protected:
+			u32 m_usage;
+			u32 m_size;
 		};
 	}
 }

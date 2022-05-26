@@ -18,6 +18,7 @@
 #include <runtime/core/log/Log.h>
 
 #include "VulkanBuffer.h"
+#include "Texture.h"
 
 namespace Horizon {
 
@@ -404,3 +405,4 @@ namespace Horizon {
 		vkFreeMemory(m_device->Get(), m_image_memory, nullptr);
 	}
 }
+

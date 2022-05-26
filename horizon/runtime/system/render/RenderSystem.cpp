@@ -16,6 +16,7 @@ namespace Horizon
 	RenderSystem::RenderSystem(u32 width, u32 height, std::shared_ptr<Window> window) noexcept : m_window(window)
 	{
 
+		//RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
 		RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
 		switch (backend)
 		{
@@ -33,8 +34,11 @@ namespace Horizon
 
 		render_api->InitializeRenderer();
 		render_api->CreateSwapChain(window);
-		//auto buffer = render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
-		//render_api->DestroyBuffer(buffer);
+
+		auto buffer = render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
+		render_api->DestroyBuffer(buffer);
+		auto texture = render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
+		render_api->DestroyTexture(texture);
 
 		m_device = std::make_shared<Device>(window);
 

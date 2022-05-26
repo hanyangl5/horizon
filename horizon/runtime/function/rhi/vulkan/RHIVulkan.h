@@ -10,6 +10,7 @@
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/RenderContext.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer2.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon {
 	namespace RHI {
@@ -18,10 +19,15 @@ namespace Horizon {
 		public:
 			RHIVulkan();
 			virtual ~RHIVulkan();
+
 			virtual void InitializeRenderer() override;
-			virtual Buffer* CreateBuffer(BufferCreateInfo create_info) override;
+
+			virtual Buffer* CreateBuffer(const BufferCreateInfo& buffer_create_info) override;
 			virtual void DestroyBuffer(Buffer* buffer) override;
-			virtual void CreateTexture() override;
+
+			virtual Texture2* CreateTexture(const TextureCreateInfo& texture_create_info) override;
+			virtual void DestroyTexture(Texture2* texture) override;
+
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) override;
 		private:
 			void InitializeVulkanRenderer(const std::string& app_name);

@@ -11,7 +11,6 @@
 
 namespace Horizon {
 	enum AttachmentUsageFlags {
-		NONE = 0,
 		COLOR_ATTACHMENT = 1,
 		DEPTH_STENCIL_ATTACHMENT = 2,
 		PRESENT_SRC = 4
@@ -20,9 +19,9 @@ namespace Horizon {
 
 	struct AttachmentCreateInfo {
 	public:
-		TextureFormat format = TextureFormat::TEXTURE_FORMAT_INVALID;
-		AttachmentUsage usage = AttachmentUsageFlags::NONE;
-		TextureType texture_type = TextureType::TEXTURE_TYPE_INVALID;
+		TextureFormat format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
+		AttachmentUsage usage{};
+		TextureType texture_type = TextureType::TEXTURE_TYPE_2D;
 		u32 width = 0, height = 0, depth = 1;
 	};
 

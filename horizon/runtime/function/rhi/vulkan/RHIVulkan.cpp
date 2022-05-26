@@ -26,25 +26,32 @@ namespace Horizon {
 			InitializeVulkanRenderer("vulkan renderer");
 		}
 
-		Buffer* RHIVulkan::CreateBuffer(BufferCreateInfo create_info)
+		Buffer* RHIVulkan::CreateBuffer(const BufferCreateInfo& buffer_create_info)
 		{
-			VkBufferCreateInfo _create_info{};
-			_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			_create_info.size = create_info.size;
-			_create_info.usage = ToVulkanBufferUsage(create_info.buffer_usage_flags);
-			VulkanBuffer2* buffer = new VulkanBuffer2(m_vulkan.vma_allocator, &_create_info);
-			return dynamic_cast<Buffer*>(buffer);
+			return new VulkanBuffer2(m_vulkan.vma_allocator, buffer_create_info);
 		}
 
 		void RHIVulkan::DestroyBuffer(Buffer* buffer)
 		{
-			delete buffer;
+			if (buffer) {
+				delete buffer;
+				buffer = nullptr;
+			}
 		}
 
-		void RHIVulkan::CreateTexture()
+		Texture2* RHIVulkan::CreateTexture(const TextureCreateInfo& texture_create_info)
 		{
+			return new VulkanTexture(m_vulkan.vma_allocator, texture_create_info);
 		}
-		  
+
+		void RHIVulkan::DestroyTexture(Texture2* texture)
+		{
+			if (texture) {
+				delete texture;
+				texture = nullptr;
+			}
+		}
+
 		void RHIVulkan::CreateSwapChain(std::shared_ptr<Window> window)
 		{
 			// create window surface
@@ -70,7 +77,7 @@ namespace Horizon {
 			swap_chain_create_info.minImageCount = m_back_buffer_count;
 			swap_chain_create_info.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 			swap_chain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-			swap_chain_create_info.imageExtent = { window->GetWidth(), window->GetHeight()};
+			swap_chain_create_info.imageExtent = { window->GetWidth(), window->GetHeight() };
 			swap_chain_create_info.imageArrayLayers = 1;
 			swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
@@ -79,7 +86,7 @@ namespace Horizon {
 			swap_chain_create_info.clipped = VK_TRUE;
 			swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			swap_chain_create_info.queueFamilyIndexCount = 0;
-			
+
 
 			CHECK_VK_RESULT(vkCreateSwapchainKHR(m_vulkan.device, &swap_chain_create_info, nullptr, &m_vulkan.swap_chain));
 
@@ -234,9 +241,9 @@ namespace Horizon {
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
 
 			CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info, nullptr, &m_vulkan.device));
-			
+
 			//retrive command queue
-			
+
 			vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index, 0, &m_vulkan.graphics_queue);
 			//vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index, 0, &m_vulkan.m_present_queue);
 			//vkGetDeviceQueue(m_vulkan.device, m_vulkan.transfer_queue_family_index, 0, &m_vulkan.transfer_queue);
@@ -258,7 +265,5 @@ namespace Horizon {
 			vma_create_info.vulkanApiVersion = VULKAN_API_VERSION;
 			vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator);
 		}
-
-
 	}
 }

@@ -10,7 +10,8 @@ namespace Horizon {
 		class VulkanBuffer2 : public Buffer
 		{
 		public:
-			VulkanBuffer2(VmaAllocator allocator, VkBufferCreateInfo* buffer_create_info);
+			using Buffer::Buffer;
+			VulkanBuffer2(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info);
 			~VulkanBuffer2();
 		private:
 			virtual void Destroy() override;
