@@ -28,6 +28,8 @@ else(Vulkan_FOUND)
     message("error: cannot find vulkan")
 endif(Vulkan_FOUND)
 
+target_link_libraries(${PROJECT_NAME} PUBLIC HorizonShaderCompiler)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator D3D12MemoryAllocator spdlog tinygltf glm glfw)
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
