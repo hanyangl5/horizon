@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
 
 #include <runtime/core/singleton/public_singleton.h>
 #include <runtime/function/rhi/RenderContext.h>

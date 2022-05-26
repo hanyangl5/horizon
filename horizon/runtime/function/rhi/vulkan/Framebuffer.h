@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
 
 #include "Device.h"
 #include "SwapChain.h"

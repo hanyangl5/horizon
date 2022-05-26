@@ -1,3 +1,5 @@
+#include <array>
+
 #include "RenderPass.h"
 
 #include <runtime/core/log/Log.h>

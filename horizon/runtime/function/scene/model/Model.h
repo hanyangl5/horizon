@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
 #include "tiny_gltf.h"
 
 #include <runtime/function/rhi/vulkan/Device.h>

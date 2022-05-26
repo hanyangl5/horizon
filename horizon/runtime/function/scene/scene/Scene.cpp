@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "Scene.h"
 
 #include <runtime/core/log/Log.h>

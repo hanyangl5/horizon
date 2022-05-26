@@ -1,6 +1,7 @@
 #include "Texture.h"
 
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
+
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
 #endif // !TINYGLTF_IMPLEMENTATION
@@ -216,70 +217,70 @@ namespace Horizon {
 	}
 
 	void Texture::loadFromFile(const std::string& path, VkImageUsageFlags usage, VkImageLayout layout) {
-		buffer = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-		texChannels = 4;
-		VkDeviceSize imageSize = texWidth * texHeight * texChannels;
+		//buffer = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		//texChannels = 4;
+		//VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
-		if (!buffer) {
-			LOG_ERROR("failed to load texture image {}", path);
-			return;
-		}
+		//if (!buffer) {
+		//	LOG_ERROR("failed to load texture image {}", path);
+		//	return;
+		//}
 
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		vk_createBuffer(m_device->Get(), m_device->getPhysicalDevice(), imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		//VkBuffer stagingBuffer;
+		//VkDeviceMemory stagingBufferMemory;
+		//vk_createBuffer(m_device->Get(), m_device->getPhysicalDevice(), imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-		void* data;
-		vkMapMemory(m_device->Get(), stagingBufferMemory, 0, imageSize, 0, &data);
-		memcpy(data, buffer, static_cast<size_t>(imageSize));
-		vkUnmapMemory(m_device->Get(), stagingBufferMemory);
+		//void* data;
+		//vkMapMemory(m_device->Get(), stagingBufferMemory, 0, imageSize, 0, &data);
+		//memcpy(data, buffer, static_cast<size_t>(imageSize));
+		//vkUnmapMemory(m_device->Get(), stagingBufferMemory);
 
-		stbi_image_free(buffer);
+		//stbi_image_free(buffer);
 
-		// create image
-		VkImageCreateInfo image_create_info{};
-		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		image_create_info.imageType = VK_IMAGE_TYPE_2D;
-		image_create_info.extent.width = static_cast<uint32_t>(texWidth);
-		image_create_info.extent.height = static_cast<uint32_t>(texHeight);
-		image_create_info.extent.depth = 1;
-		image_create_info.mipLevels = 1;
-		image_create_info.arrayLayers = 1;
-		image_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
-		image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		image_create_info.usage = usage;
-		image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+		//// create image
+		//VkImageCreateInfo image_create_info{};
+		//image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		//image_create_info.imageType = VK_IMAGE_TYPE_2D;
+		//image_create_info.extent.width = static_cast<uint32_t>(texWidth);
+		//image_create_info.extent.height = static_cast<uint32_t>(texHeight);
+		//image_create_info.extent.depth = 1;
+		//image_create_info.mipLevels = 1;
+		//image_create_info.arrayLayers = 1;
+		//image_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
+		//image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		//image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		//image_create_info.usage = usage;
+		//image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		//image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
-		CHECK_VK_RESULT(vkCreateImage(m_device->Get(), &image_create_info, nullptr, &m_image));
+		//CHECK_VK_RESULT(vkCreateImage(m_device->Get(), &image_create_info, nullptr, &m_image));
 
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(m_device->Get(), m_image, &memRequirements);
+		//VkMemoryRequirements memRequirements;
+		//vkGetImageMemoryRequirements(m_device->Get(), m_image, &memRequirements);
 
-		VkMemoryAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = FindMemoryType(m_device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		//VkMemoryAllocateInfo allocInfo{};
+		//allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		//allocInfo.allocationSize = memRequirements.size;
+		//allocInfo.memoryTypeIndex = FindMemoryType(m_device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	
-		CHECK_VK_RESULT(vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_image_memory));
+		//CHECK_VK_RESULT(vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_image_memory));
 
-		vkBindImageMemory(m_device->Get(), m_image, m_image_memory, 0);
+		//vkBindImageMemory(m_device->Get(), m_image, m_image_memory, 0);
 
-		transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-		transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout);
+		//transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		//copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+		//transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout);
 
-		vkDestroyBuffer(m_device->Get(), stagingBuffer, nullptr);
-		vkFreeMemory(m_device->Get(), stagingBufferMemory, nullptr);
+		//vkDestroyBuffer(m_device->Get(), stagingBuffer, nullptr);
+		//vkFreeMemory(m_device->Get(), stagingBufferMemory, nullptr);
 
-		createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D);
-		createSampler();
+		//createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D);
+		//createSampler();
 
-		// fill descriptor info
-		imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageDescriptorInfo.imageView = m_image_view;
-		imageDescriptorInfo.sampler = m_sampler;
+		//// fill descriptor info
+		//imageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		//imageDescriptorInfo.imageView = m_image_view;
+		//imageDescriptorInfo.sampler = m_sampler;
 
 	}
 

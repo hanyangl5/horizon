@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include <vulkan/vulkan.h>
+#include <d3d12.h>
 
 namespace Horizon {
 

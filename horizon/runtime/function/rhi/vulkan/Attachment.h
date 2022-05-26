@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
 
 #include <runtime/core/math/Math.h>
 #include <runtime/function/rhi/vulkan/VulkanEnums.h>

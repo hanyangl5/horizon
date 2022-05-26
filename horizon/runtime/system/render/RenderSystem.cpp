@@ -17,28 +17,28 @@ namespace Horizon
 	{
 
 		//RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
-		RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
-		switch (backend)
-		{
-		case Horizon::RenderBackend::RENDER_BACKEND_NONE:
-			break;
-		case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-			render_api = std::make_shared<RHI::RHIVulkan>();
-			break;
-		case Horizon::RenderBackend::RENDER_BACKEND_DX12:
-			render_api = std::make_shared<RHI::RHIDX12>();
-			break;
-		default:
-			break;
-		}
+		//RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
+		//switch (backend)
+		//{
+		//case Horizon::RenderBackend::RENDER_BACKEND_NONE:
+		//	break;
+		//case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
+		//	render_api = std::make_shared<RHI::RHIVulkan>();
+		//	break;
+		//case Horizon::RenderBackend::RENDER_BACKEND_DX12:
+		//	render_api = std::make_shared<RHI::RHIDX12>();
+		//	break;
+		//default:
+		//	break;
+		//}
 
-		render_api->InitializeRenderer();
-		render_api->CreateSwapChain(window);
+		//render_api->InitializeRenderer();
+		//render_api->CreateSwapChain(window);
 
-		auto buffer = render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
-		render_api->DestroyBuffer(buffer);
-		auto texture = render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
-		render_api->DestroyTexture(texture);
+		//auto buffer = render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
+		//render_api->DestroyBuffer(buffer);
+		//auto texture = render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
+		//render_api->DestroyTexture(texture);
 
 		m_device = std::make_shared<Device>(window);
 
