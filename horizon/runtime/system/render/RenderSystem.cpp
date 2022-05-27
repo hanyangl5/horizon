@@ -17,7 +17,7 @@ namespace Horizon
 	{
 
 		RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
-		RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
+		//RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
 		switch (backend)
 		{
 		case Horizon::RenderBackend::RENDER_BACKEND_NONE:

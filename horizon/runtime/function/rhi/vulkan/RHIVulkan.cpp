@@ -230,15 +230,26 @@ namespace Horizon {
 
 #endif // USE_ASYNC_COMPUTE
 
-			VkPhysicalDeviceFeatures device_features{};
+			// bindless extension
+			VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexing_features{};
+			indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+			indexing_features.pNext = nullptr;
+			indexing_features.runtimeDescriptorArray = VK_TRUE;
+			indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+			indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+
+			VkPhysicalDeviceFeatures2 device_features{};
+			device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			device_features.pNext = &indexing_features;
+			vkGetPhysicalDeviceFeatures2(m_vulkan.active_gpu, &device_features);
 
 			VkDeviceCreateInfo device_create_info{};
 			device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 			device_create_info.pQueueCreateInfos = device_queue_create_info.data();
 			device_create_info.queueCreateInfoCount = static_cast<u32>(device_queue_create_info.size());
-			device_create_info.pEnabledFeatures = &device_features;
 			device_create_info.enabledExtensionCount = static_cast<u32>(device_extensions.size());
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
+			device_create_info.pNext = &device_features;
 
 			CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info, nullptr, &m_vulkan.device));
 
