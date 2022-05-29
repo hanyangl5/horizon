@@ -4,17 +4,21 @@
 
 #include <runtime/function/rhi/Buffer.h>
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
 		class VulkanBuffer2 : public Buffer
 		{
 		public:
 			using Buffer::Buffer;
-			VulkanBuffer2(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info);
-			~VulkanBuffer2();
+			VulkanBuffer2(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info) noexcept;
+			~VulkanBuffer2() noexcept;
+
 		private:
-			virtual void Destroy() override;
+			virtual void Destroy() noexcept override;
+
 		private:
 			VkBuffer m_buffer;
 			VmaAllocation m_allocation;

@@ -8,26 +8,26 @@ namespace Horizon
         class CommandList
         {
         public:
-            CommandList();
-            ~CommandList();
-            virtual void BeginRecording() = 0;
-            virtual void EndRecording() = 0;
+            CommandList() noexcept;
+            ~CommandList() noexcept;
+            virtual void BeginRecording() noexcept = 0;
+            virtual void EndRecording() noexcept = 0;
 
-            virtual void Draw() = 0;
-            virtual void DrawIndirect() = 0;
-            virtual void Dispatch() = 0;
-            virtual void DispatchIndirect() = 0;
-            virtual void UpdateBuffer() = 0;
-            virtual void UpdateTexture() = 0;
+            virtual void Draw() noexcept = 0;
+            virtual void DrawIndirect() noexcept = 0;
+            virtual void Dispatch() noexcept = 0;
+            virtual void DispatchIndirect() noexcept = 0;
+            virtual void UpdateBuffer() noexcept = 0;
+            virtual void UpdateTexture() noexcept = 0;
 
-            virtual void CopyBuffer() = 0;
-            virtual void CopyTexture() = 0;
+            virtual void CopyBuffer() noexcept = 0;
+            virtual void CopyTexture() noexcept = 0;
 
-            virtual void InsertBarreir() = 0;
-            virtual void Submit() = 0;
+            virtual void InsertBarreir() noexcept = 0;
+            virtual void Submit() noexcept = 0;
+
         private:
-            //CommandListType m_type;
-
+            // CommandListType m_type;
         };
     }
 }

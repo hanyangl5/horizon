@@ -109,7 +109,7 @@ namespace Horizon {
 		}
 
 		// try to found preferred format from available
-		for (const auto& availableFormat : availableFormats)
+		for (const const auto& availableFormat : availableFormats)
 		{
 			if (availableFormat.format == PREFERRED_PRESENT_FORMAT.format &&
 				availableFormat.colorSpace == PREFERRED_PRESENT_FORMAT.colorSpace)
@@ -170,7 +170,7 @@ namespace Horizon {
 
 	void SwapChain::cleanup()
 	{
-		for (auto& imageView : imageViews)
+		for (const auto& imageView : imageViews)
 		{
 			vkDestroyImageView(m_device->Get(), imageView, nullptr);
 		}

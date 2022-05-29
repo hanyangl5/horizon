@@ -3,22 +3,27 @@
 #include <third_party/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
 
 #include "stdafx.h"
-#include <runtime/function/rhi/Buffer.h>  
+#include <runtime/function/rhi/Buffer.h>
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
 		class DX12Buffer : public Buffer
 		{
-		using Buffer::Buffer;
+			using Buffer::Buffer;
+
 		public:
-			DX12Buffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info);
+			DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info) noexcept;
 			~DX12Buffer();
+
 		private:
-			virtual void Destroy() override;
+			virtual void Destroy() noexcept override;
+
 		private:
-			D3D12MA::Allocation* m_allocation;
-			D3D12MA::Allocator* m_allocator;
+			D3D12MA::Allocation *m_allocation;
+			D3D12MA::Allocator *m_allocator;
 		};
 
 	}

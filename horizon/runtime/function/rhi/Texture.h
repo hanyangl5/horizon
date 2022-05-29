@@ -3,15 +3,19 @@
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/RenderContext.h>
 
-namespace Horizon {
-	namespace RHI {
-
-		class Texture2 {
+namespace Horizon
+{
+	namespace RHI
+	{
+		class Texture2
+		{
 		public:
-			Texture2(const TextureCreateInfo& texture_create_info);
-			virtual ~Texture2() = default;
+			Texture2(const TextureCreateInfo &texture_create_info) noexcept;
+			virtual ~Texture2() noexcept = default;
+
 		private:
-			virtual void Destroy() = 0;
+			virtual void Destroy() noexcept = 0;
+
 		protected:
 			TextureType m_type;
 			TextureFormat m_format;

@@ -7,7 +7,8 @@
 #include <runtime/core/singleton/public_singleton.h>
 #include <runtime/core/utils/definations.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
 	inline std::string HrToString(HRESULT hr)
 	{
@@ -16,10 +17,10 @@ namespace Horizon {
 		return std::string(s_str);
 	}
 
-	class Log :public PublicSingleton<Log>
+	class Log : public PublicSingleton<Log>
 	{
 	public:
-		enum loglevel :u8
+		enum loglevel : u8
 		{
 			debug,
 			info,
@@ -27,31 +28,37 @@ namespace Horizon {
 			error,
 			fatal
 		};
-	public:
-		Log();
-		~Log();
 
-		template<typename... args>
-		inline void Debug(args&&... _args) const noexcept {
+	public:
+		Log() noexcept;
+		~Log() noexcept;
+
+		template <typename... args>
+		inline void Debug(args &&..._args) const noexcept
+		{
 			m_logger->debug(std::forward<args>(_args)...);
 		}
 
-		template<typename... args>
-		inline void Info(args&&... _args) const noexcept {
+		template <typename... args>
+		inline void Info(args &&..._args) const noexcept
+		{
 			m_logger->info(std::forward<args>(_args)...);
 		}
 
-		template<typename... args>
-		inline void Warn(args&&... _args) const noexcept {
+		template <typename... args>
+		inline void Warn(args &&..._args) const noexcept
+		{
 			m_logger->warn(std::forward<args>(_args)...);
 		}
 
-		template<typename... args>
-		inline void Error(args&&... _args) const noexcept {
+		template <typename... args>
+		inline void Error(args &&..._args) const noexcept
+		{
 			m_logger->error(std::forward<args>(_args)...);
 		}
-		template<typename... args>
-		inline void Fatal(args&&... _args) const noexcept {
+		template <typename... args>
+		inline void Fatal(args &&..._args) const noexcept
+		{
 			m_logger->fatal(std::forward<args>(_args)...);
 		}
 		void CheckVulkanResult(VkResult _res) const noexcept;
@@ -77,4 +84,3 @@ namespace Horizon {
 #define CHECK_DX_RESULT(res) Log::GetInstance().CheckDXResult(res);
 
 }
-

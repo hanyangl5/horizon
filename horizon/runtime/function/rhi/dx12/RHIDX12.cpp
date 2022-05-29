@@ -1,56 +1,59 @@
 #include "RHIDX12.h"
 #include "DX12Config.h"
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
-		RHIDX12::RHIDX12()
+		RHIDX12::RHIDX12() noexcept
 		{
 		}
 
-		RHIDX12::~RHIDX12()
+		RHIDX12::~RHIDX12() noexcept
 		{
 			m_dx12.d3dma_allocator->Release();
 			m_dx12.active_gpu->Release();
 			m_dx12.device->Release();
 			m_dx12.factory->Release();
-
 		}
 
-		void RHIDX12::InitializeRenderer()
+		void RHIDX12::InitializeRenderer() noexcept
 		{
 			LOG_INFO("using DirectX 12 renderer");
 			InitializeDX12Renderer();
 		}
 
-		Buffer* RHIDX12::CreateBuffer(const BufferCreateInfo& create_info)
+		Buffer *RHIDX12::CreateBuffer(const BufferCreateInfo &create_info) noexcept
 		{
-			Buffer* buffer = new DX12Buffer(m_dx12.d3dma_allocator, create_info);
+			Buffer *buffer = new DX12Buffer(m_dx12.d3dma_allocator, create_info);
 			return buffer;
 		}
 
-		void RHIDX12::DestroyBuffer(Buffer* buffer)
+		void RHIDX12::DestroyBuffer(Buffer *buffer) noexcept
 		{
-			if (buffer) {
+			if (buffer)
+			{
 				delete buffer;
 				buffer = nullptr;
 			}
 		}
 
-		Texture2* RHIDX12::CreateTexture(const TextureCreateInfo& texture_create_info)
+		Texture2 *RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
 		{
 			return new DX12Texture(m_dx12.d3dma_allocator, texture_create_info);
 		}
 
-		void RHIDX12::DestroyTexture(Texture2* texture)
+		void RHIDX12::DestroyTexture(Texture2 *texture) noexcept
 		{
-			if (texture) {
+			if (texture)
+			{
 				delete texture;
 				texture = nullptr;
 			}
 		}
 
-		void RHIDX12::CreateSwapChain(std::shared_ptr<Window> window)
+		void RHIDX12::CreateSwapChain(std::shared_ptr<Window> window) noexcept
 		{
 			DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
 			swap_chain_desc.BufferCount = m_back_buffer_count;
@@ -63,29 +66,30 @@ namespace Horizon {
 			swap_chain_desc.SampleDesc.Quality = 0;
 			swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
-			IDXGISwapChain1* swap_chain;
+			IDXGISwapChain1 *swap_chain;
 
 			CHECK_DX_RESULT(m_dx12.factory->CreateSwapChainForHwnd(
-				m_dx12.graphics_queue,        // Swap chain needs the queue so that it can force a flush on it.
+				m_dx12.graphics_queue, // Swap chain needs the queue so that it can force a flush on it.
 				window->GetWin32Window(),
 				&swap_chain_desc,
 				nullptr,
 				nullptr,
-				&swap_chain
-			));
+				&swap_chain));
 
-			m_dx12.swap_chain = static_cast<IDXGISwapChain3*>(swap_chain);
+			m_dx12.swap_chain = static_cast<IDXGISwapChain3 *>(swap_chain);
 			m_current_frame_index = m_dx12.swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		void RHIDX12::InitializeDX12Renderer() {
+		void RHIDX12::InitializeDX12Renderer() noexcept
+		{
 
 			CreateFactory();
 			CreateDevice();
 			InitializeD3DMA();
 		}
 
-		void RHIDX12::CreateFactory() {
+		void RHIDX12::CreateFactory() noexcept
+		{
 			u32 dxgi_factory_flags = 0;
 #ifndef NDEBUG
 			dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
@@ -93,30 +97,32 @@ namespace Horizon {
 			CHECK_DX_RESULT(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&m_dx12.factory)));
 		}
 
-		void RHIDX12::PickGPU(IDXGIFactory6* factory, IDXGIAdapter4** gpu)
+		void RHIDX12::PickGPU(IDXGIFactory6 *factory, IDXGIAdapter4 **gpu) noexcept
 		{
 			u32 gpu_count = 0;
-			IDXGIAdapter4* adapter = NULL;
-			IDXGIFactory6* factory6;
+			IDXGIAdapter4 *adapter = NULL;
+			IDXGIFactory6 *factory6;
 
 			CHECK_DX_RESULT(factory->QueryInterface(IID_PPV_ARGS(&factory6)))
 
-				// Find number of usable GPUs
-				// Use DXGI6 interface which lets us specify gpu preference so we dont need to use NVOptimus or AMDPowerExpress exports
-				for (u32 i = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
-					i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)); ++i)
+			// Find number of usable GPUs
+			// Use DXGI6 interface which lets us specify gpu preference so we dont need to use NVOptimus or AMDPowerExpress exports
+			for (u32 i = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
+														i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter));
+				 ++i)
+			{
+				DXGI_ADAPTER_DESC3 desc;
+				adapter->GetDesc3(&desc);
+				if (SUCCEEDED(D3D12CreateDevice(adapter, DX12_API_VERSION, _uuidof(ID3D12Device), nullptr)))
 				{
-					DXGI_ADAPTER_DESC3 desc;
-					adapter->GetDesc3(&desc);
-					if (SUCCEEDED(D3D12CreateDevice(adapter, DX12_API_VERSION, _uuidof(ID3D12Device), nullptr))) {
-						break;
-					}
+					break;
 				}
+			}
 			*gpu = adapter;
-
 		}
 
-		void RHIDX12::CreateDevice() {
+		void RHIDX12::CreateDevice() noexcept
+		{
 
 			// pick gpu
 			PickGPU(m_dx12.factory, &m_dx12.active_gpu);
@@ -124,8 +130,7 @@ namespace Horizon {
 			CHECK_DX_RESULT(D3D12CreateDevice(
 				m_dx12.active_gpu,
 				DX12_API_VERSION,
-				IID_PPV_ARGS(&m_dx12.device)
-			));
+				IID_PPV_ARGS(&m_dx12.device)));
 
 			// create command queue
 
@@ -149,10 +154,9 @@ namespace Horizon {
 			CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(&transfer_command_queue_desc, IID_PPV_ARGS(&m_dx12.transfer_queue)));
 
 #endif // USE_ASYNC_COMPUTE
-
 		}
 
-		void RHIDX12::InitializeD3DMA()
+		void RHIDX12::InitializeD3DMA() noexcept
 		{
 			D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
 			allocatorDesc.pDevice = m_dx12.device;
@@ -160,7 +164,6 @@ namespace Horizon {
 
 			CHECK_DX_RESULT(D3D12MA::CreateAllocator(&allocatorDesc, &m_dx12.d3dma_allocator));
 		}
-
 
 	}
 }

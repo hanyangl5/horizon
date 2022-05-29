@@ -3,17 +3,16 @@
 class DescriptorSet
 {
 public:
-	DescriptorSet();
-	~DescriptorSet();
+	DescriptorSet() noexcept;
+	~DescriptorSet() noexcept;
 
 private:
-
 };
 
-DescriptorSet::DescriptorSet()
+DescriptorSet::DescriptorSet() noexcept
 {
 }
 
-DescriptorSet::~DescriptorSet()
+DescriptorSet::~DescriptorSet() noexcept
 {
 }

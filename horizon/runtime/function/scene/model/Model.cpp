@@ -45,7 +45,7 @@ namespace Horizon {
 
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertexBuffer, offsets);
 		vkCmdBindIndexBuffer(command_buffer, m_index_buffer->Get(), 0, VK_INDEX_TYPE_UINT32);
-		for (auto& node : m_nodes) {
+		for (const auto& node : m_nodes) {
 			DrawNode(node, pipeline, command_buffer);
 		}
 	}
@@ -99,7 +99,7 @@ namespace Horizon {
 		//}
 
 		for (tinygltf::Texture& tex : gltfModel.textures) {
-			//auto& image = gltfModel.images[tex.source];
+			//const auto& image = gltfModel.images[tex.source];
 			//VkSamplerCreateInfo samplerinfo;
 			//if (tex.sampler == -1) {
 			//	samplerinfo.magFilter = VK_FILTER_LINEAR;
@@ -359,7 +359,7 @@ namespace Horizon {
 	void Model::DrawNode(std::shared_ptr<Node> node, std::shared_ptr<Pipeline> pipeline, VkCommandBuffer command_buffer) noexcept
 	{
 		if (node->mesh) {
-			for (auto& primitive : node->mesh->primitives) {
+			for (const auto& primitive : node->mesh->primitives) {
 				std::vector<VkDescriptorSet> descriptors{ m_scene_descriptor_set->Get(),  primitive->material->m_material_descriptor_set->Get() };
 
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), 0, descriptors.size(), descriptors.data(), 0, 0);
@@ -370,21 +370,21 @@ namespace Horizon {
 				vkCmdDrawIndexed(command_buffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
 			}
 		}
-		for (auto& child : node->m_children) {
+		for (const auto& child : node->m_children) {
 			DrawNode(child, pipeline, command_buffer);
 		}
 	}
 
 	void Model::UpdateDescriptors() noexcept
 	{
-		for (auto& material : m_materials) {
+		for (const auto& material : m_materials) {
 			material->UpdateDescriptorSet();
 		}
 	}
 
 	void Model::UpdateModelMatrix() noexcept
 	{
-		for (auto& node : m_nodes) {
+		for (const auto& node : m_nodes) {
 			UpdateNodeModelMatrix(node);
 		}
 	}
@@ -396,7 +396,7 @@ namespace Horizon {
 		if (node->mesh) {
 			node->update(m_model_matrix);
 		}
-		for (auto& child : node->m_children) {
+		for (const auto& child : node->m_children) {
 			UpdateNodeModelMatrix(child);
 		}
 	}
@@ -404,7 +404,7 @@ namespace Horizon {
 
 	//std::shared_ptr<DescriptorSet> Model::getMeshDescriptorSet()
 	//{
-	//	for (auto& node : nodes) {
+	//	for (const auto& node : nodes) {
 	//		return getNodeMeshDescriptorSet(node);
 	//	}
 	//	LOG_ERROR("mesh descriptorset not found");
@@ -415,14 +415,14 @@ namespace Horizon {
 	//	if (node->mesh) {
 	//		return node->mesh->meshDescriptorSet;
 	//	}
-	//	for (auto& child : node->m_children) {
+	//	for (const auto& child : node->m_children) {
 	//		return getNodeMeshDescriptorSet(child);
 	//	}
 	//	return nullptr;
 	//}
 	std::shared_ptr<DescriptorSet> Model::GetMaterialDescriptorSet() noexcept
 	{
-		for (auto& node : m_nodes) {
+		for (const auto& node : m_nodes) {
 			return GetNodeMaterialDescriptorSet(node);
 		}
 		LOG_ERROR("material descriptorset not found");
@@ -437,11 +437,11 @@ namespace Horizon {
 	std::shared_ptr<DescriptorSet> Model::GetNodeMaterialDescriptorSet(std::shared_ptr<Node> node) noexcept
 	{
 		if (node->mesh) {
-			for (auto& primitive : node->mesh->primitives) {
+			for (const auto& primitive : node->mesh->primitives) {
 				return primitive->material->m_material_descriptor_set;
 			}
 		}
-		for (auto& child : node->m_children) {
+		for (const auto& child : node->m_children) {
 			return GetNodeMaterialDescriptorSet(child);
 		}
 		return nullptr;
@@ -493,7 +493,7 @@ namespace Horizon {
 		//mesh->meshUbStruct.model = modelMat * getMatrix();
 		//mesh->meshUb->update(&mesh->meshUbStruct, sizeof(mesh->meshUbStruct));
 
-		for (auto& child : m_children) {
+		for (const auto& child : m_children) {
 			child->update(modelMat);
 		}
 	}

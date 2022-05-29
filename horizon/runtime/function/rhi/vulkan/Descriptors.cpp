@@ -106,7 +106,7 @@ namespace Horizon {
 		std::vector<VkDescriptorPoolSize> poolSizes(descriptorTypeMap.size());
 
 		u32 i = 0;
-		for (auto& type : descriptorTypeMap) {
+		for (const auto& type : descriptorTypeMap) {
 			poolSizes[i++] = VkDescriptorPoolSize{ type.first, type.second };
 		}
 

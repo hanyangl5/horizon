@@ -1,23 +1,23 @@
 #pragma once
 
-
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 		class Pipeline
 		{
 		public:
-			Pipeline();
-			~Pipeline();
+			Pipeline() noexcept;
+			~Pipeline() noexcept;
 
 		private:
-
 		};
 
-		Pipeline::Pipeline()
+		Pipeline::Pipeline() noexcept
 		{
 		}
 
-		Pipeline::~Pipeline()
+		Pipeline::~Pipeline() noexcept
 		{
 		}
 	}

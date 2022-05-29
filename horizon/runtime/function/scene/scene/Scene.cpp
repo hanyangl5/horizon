@@ -128,7 +128,7 @@ namespace Horizon {
 
 
 		// update material&mesh descriptorset
-		for (auto& model : m_models) {
+		for (const auto& model : m_models) {
 			model.second->UpdateModelMatrix();
 			model.second->UpdateDescriptors();
 		}
@@ -137,7 +137,7 @@ namespace Horizon {
 	void Scene::Draw(u32 _i, std::shared_ptr<CommandBuffer> _command_buffer, std::shared_ptr<Pipeline> _pipeline) noexcept {
 
 		_command_buffer->beginRenderPass(_i, _pipeline);
-		for (auto& model : m_models) {
+		for (const auto& model : m_models) {
 			model.second->Draw(_pipeline, _command_buffer->Get(_i));
 		}
 		_command_buffer->endRenderPass(_i);
@@ -148,7 +148,7 @@ namespace Horizon {
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout materialSetLayout;
-		for (auto& model : m_models) {
+		for (const auto& model : m_models) {
 			if (model.second->GetMaterialDescriptorSet()) {
 				//meshSetLayout = model.second->getMeshDescriptorSet()->GetLayout();
 				materialSetLayout = model.second->GetMaterialDescriptorSet()->GetLayout();
@@ -168,7 +168,7 @@ namespace Horizon {
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
 		VkDescriptorSetLayout materialSetLayout;
-		for (auto& model : m_models) {
+		for (const auto& model : m_models) {
 			if (model.second->GetMaterialDescriptorSet()) {
 				materialSetLayout = model.second->GetMaterialDescriptorSet()->GetLayout();
 			}

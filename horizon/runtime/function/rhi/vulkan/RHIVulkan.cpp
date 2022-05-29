@@ -1,18 +1,20 @@
-#define VMA_IMPLEMENTATION 
+#define VMA_IMPLEMENTATION
 
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 #include "RHIVulkan.h"
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
-		RHIVulkan::RHIVulkan()
+		RHIVulkan::RHIVulkan() noexcept
 		{
 		}
 
-		RHIVulkan::~RHIVulkan()
+		RHIVulkan::~RHIVulkan() noexcept
 		{
 			vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
 			vmaDestroyAllocator(m_vulkan.vma_allocator);
@@ -20,54 +22,57 @@ namespace Horizon {
 			vkDestroyInstance(m_vulkan.instance, nullptr);
 		}
 
-		void RHIVulkan::InitializeRenderer()
+		void RHIVulkan::InitializeRenderer() noexcept
 		{
 			LOG_INFO("using vulkan renderer");
 			InitializeVulkanRenderer("vulkan renderer");
 		}
 
-		Buffer* RHIVulkan::CreateBuffer(const BufferCreateInfo& buffer_create_info)
+		Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept
 		{
 			return new VulkanBuffer2(m_vulkan.vma_allocator, buffer_create_info);
 		}
 
-		void RHIVulkan::DestroyBuffer(Buffer* buffer)
+		void RHIVulkan::DestroyBuffer(Buffer *buffer) noexcept
 		{
-			if (buffer) {
+			if (buffer)
+			{
 				delete buffer;
 				buffer = nullptr;
 			}
 		}
 
-		Texture2* RHIVulkan::CreateTexture(const TextureCreateInfo& texture_create_info)
+		Texture2 *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
 		{
 			return new VulkanTexture(m_vulkan.vma_allocator, texture_create_info);
 		}
 
-		void RHIVulkan::DestroyTexture(Texture2* texture)
+		void RHIVulkan::DestroyTexture(Texture2 *texture) noexcept
 		{
-			if (texture) {
+			if (texture)
+			{
 				delete texture;
 				texture = nullptr;
 			}
 		}
 
-		void RHIVulkan::CreateSwapChain(std::shared_ptr<Window> window)
+		void RHIVulkan::CreateSwapChain(std::shared_ptr<Window> window) noexcept
 		{
 			// create window surface
 			VkWin32SurfaceCreateInfoKHR surface_create_info = {};
 			surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-			surface_create_info.hinstance = GetModuleHandle(nullptr);;
+			surface_create_info.hinstance = GetModuleHandle(nullptr);
+			;
 			surface_create_info.hwnd = window->GetWin32Window();
 			CHECK_VK_RESULT(vkCreateWin32SurfaceKHR(m_vulkan.instance, &surface_create_info, nullptr, &m_vulkan.surface));
 
-			//u32 surface_format_count = 0;
+			// u32 surface_format_count = 0;
 			//// Get surface formats count
-			//CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, nullptr));
-			//std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
-			//CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, surface_formats.data()));
+			// CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, nullptr));
+			// std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
+			// CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, surface_formats.data()));
 
-			//VkSurfaceFormatKHR surface_format{};
+			// VkSurfaceFormatKHR surface_format{};
 
 			// create swap chain
 
@@ -77,7 +82,7 @@ namespace Horizon {
 			swap_chain_create_info.minImageCount = m_back_buffer_count;
 			swap_chain_create_info.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 			swap_chain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-			swap_chain_create_info.imageExtent = { window->GetWidth(), window->GetHeight() };
+			swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
 			swap_chain_create_info.imageArrayLayers = 1;
 			swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
@@ -87,13 +92,12 @@ namespace Horizon {
 			swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			swap_chain_create_info.queueFamilyIndexCount = 0;
 
-
 			CHECK_VK_RESULT(vkCreateSwapchainKHR(m_vulkan.device, &swap_chain_create_info, nullptr, &m_vulkan.swap_chain));
 
-			//u32 image_count = 0;
-			//vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain, &image_count, nullptr);  // Get images
+			// u32 image_count = 0;
+			// vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain, &image_count, nullptr);  // Get images
 			m_vulkan.swap_chain_images.resize(m_back_buffer_count);
-			vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain, &m_back_buffer_count, m_vulkan.swap_chain_images.data());  // Get images
+			vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain, &m_back_buffer_count, m_vulkan.swap_chain_images.data()); // Get images
 
 			m_vulkan.swap_chain_image_views.resize(m_back_buffer_count);
 
@@ -111,13 +115,13 @@ namespace Horizon {
 				image_view_create_info.subresourceRange.layerCount = 1;
 				CHECK_VK_RESULT(vkCreateImageView(m_vulkan.device, &image_view_create_info, nullptr, &m_vulkan.swap_chain_image_views[i]));
 			}
-
 		}
-		void RHIVulkan::InitializeVulkanRenderer(const std::string& app_name) {
+		void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) noexcept
+		{
 
-			std::vector<const char*> instance_layers;
-			std::vector<const char*> instance_extensions;
-			std::vector<const char*> device_extensions;
+			std::vector<const char *> instance_layers;
+			std::vector<const char *> instance_extensions;
+			std::vector<const char *> device_extensions;
 #ifndef NDEBUG
 			instance_layers.emplace_back("VK_LAYER_KHRONOS_validation");
 			instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -132,9 +136,10 @@ namespace Horizon {
 			InitializeVMA();
 		}
 
-		void RHIVulkan::CreateInstance(const std::string& app_name,
-			std::vector<const char*>& instance_layers,
-			std::vector<const char*>& instance_extensions) {
+		void RHIVulkan::CreateInstance(const std::string &app_name,
+									   std::vector<const char *> &instance_layers,
+									   std::vector<const char *> &instance_extensions) noexcept
+		{
 
 			u32 layer_count = 0, extension_count = 0;
 			vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -164,16 +169,18 @@ namespace Horizon {
 			instance_create_info.ppEnabledLayerNames = instance_layers.data();
 
 			CHECK_VK_RESULT(vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
-
 		}
 
-		void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice* gpu)
+		void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept
 		{
 			u32 device_count = 0;
 			std::vector<VkPhysicalDevice> physical_devices;
 			vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 			physical_devices.resize(device_count);
-			if (device_count == 0) { LOG_ERROR("no available device"); }
+			if (device_count == 0)
+			{
+				LOG_ERROR("no available device");
+			}
 			vkEnumeratePhysicalDevices(instance, &device_count, physical_devices.data());
 
 			// pick gpu
@@ -182,19 +189,22 @@ namespace Horizon {
 			u32 compute_queue_family_index;
 			u32 transfer_queue_family_index;
 
-			for (auto& physical_device : physical_devices) {
+			for (const auto &physical_device : physical_devices)
+			{
 				u32 queue_family_count = 0;
 				vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr); // Get count
 				std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_count);
 				vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_family_properties.data()); // Get queue family properties
 
-				for (u32 i = 0; i < queue_family_count; i++) {
+				for (u32 i = 0; i < queue_family_count; i++)
+				{
 					// TOOD: print gpu info, runtime swith gpu
 					// TODO: support async compute, async transfer
 
 					if (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
 						queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-						queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+						queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+					{
 						*gpu = physical_device;
 
 						graphics_queue_family_index = i;
@@ -203,20 +213,22 @@ namespace Horizon {
 						break;
 					}
 				}
-				if (gpu != VK_NULL_HANDLE) {
+				if (gpu != VK_NULL_HANDLE)
+				{
 					break;
 				}
 			}
-			if (gpu == VK_NULL_HANDLE) {
+			if (gpu == VK_NULL_HANDLE)
+			{
 				LOG_ERROR("no suitable gpu found");
 			}
 			m_vulkan.graphics_queue_family_index = graphics_queue_family_index;
 			m_vulkan.compute_queue_family_index = compute_queue_family_index;
 			m_vulkan.transfer_queue_family_index = transfer_queue_family_index;
-
 		}
 
-		void RHIVulkan::CreateDevice(std::vector<const char*>& device_extensions) {
+		void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) noexcept
+		{
 
 			PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
 
@@ -224,7 +236,7 @@ namespace Horizon {
 
 			f32 queue_priority = 1.0f;
 
-			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO , nullptr, 0, m_vulkan.graphics_queue_family_index, 1, &queue_priority });
+			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, m_vulkan.graphics_queue_family_index, 1, &queue_priority});
 
 #ifdef USE_ASYNC_COMPUTE
 
@@ -253,22 +265,21 @@ namespace Horizon {
 
 			CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info, nullptr, &m_vulkan.device));
 
-			//retrive command queue
+			// retrive command queue
 
 			vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index, 0, &m_vulkan.graphics_queue);
-			//vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index, 0, &m_vulkan.m_present_queue);
-			//vkGetDeviceQueue(m_vulkan.device, m_vulkan.transfer_queue_family_index, 0, &m_vulkan.transfer_queue);
+			// vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index, 0, &m_vulkan.m_present_queue);
+			// vkGetDeviceQueue(m_vulkan.device, m_vulkan.transfer_queue_family_index, 0, &m_vulkan.transfer_queue);
 			vkGetDeviceQueue(m_vulkan.device, m_vulkan.compute_queue_family_index, 0, &m_vulkan.compute_queue);
-
 		}
 
-		void RHIVulkan::InitializeVMA()
+		void RHIVulkan::InitializeVMA() noexcept
 		{
 			VmaVulkanFunctions vulkan_functions{};
 			vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
 			vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-			VmaAllocatorCreateInfo vma_create_info = { 0 };
+			VmaAllocatorCreateInfo vma_create_info = {0};
 			vma_create_info.device = m_vulkan.device;
 			vma_create_info.physicalDevice = m_vulkan.active_gpu;
 			vma_create_info.instance = m_vulkan.instance;

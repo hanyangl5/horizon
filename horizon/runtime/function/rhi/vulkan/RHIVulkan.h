@@ -12,38 +12,42 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer2.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 		class RHIVulkan : public RHIInterface
 		{
 		public:
-			RHIVulkan();
-			virtual ~RHIVulkan();
+			RHIVulkan() noexcept;
+			virtual ~RHIVulkan() noexcept;
 
-			virtual void InitializeRenderer() override;
+			virtual void InitializeRenderer() noexcept override;
 
-			virtual Buffer* CreateBuffer(const BufferCreateInfo& buffer_create_info) override;
-			virtual void DestroyBuffer(Buffer* buffer) override;
+			virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept override;
+			virtual void DestroyBuffer(Buffer *buffer) noexcept override;
 
-			virtual Texture2* CreateTexture(const TextureCreateInfo& texture_create_info) override;
-			virtual void DestroyTexture(Texture2* texture) override;
+			virtual Texture2 *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept override;
+			virtual void DestroyTexture(Texture2 *texture) noexcept override;
 
-			virtual void CreateSwapChain(std::shared_ptr<Window> window) override;
-		private:
-			void InitializeVulkanRenderer(const std::string& app_name);
-			void CreateInstance(const std::string& app_name,
-				std::vector<const char*>& instance_layers,
-				std::vector<const char*>& instance_extensions);
-			void PickGPU(VkInstance instance, VkPhysicalDevice* gpu);
-			void CreateDevice(std::vector<const char*>& device_extensions);
-			void InitializeVMA();
+			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
 
 		private:
-			struct VulkanRendererContext {
-				VkInstance                   instance;
-				VkPhysicalDevice             active_gpu;
-				//VkPhysicalDeviceProperties* vk_active_gpu_properties;
-				VkDevice                     device;
+			void InitializeVulkanRenderer(const std::string &app_name) noexcept;
+			void CreateInstance(const std::string &app_name,
+								std::vector<const char *> &instance_layers,
+								std::vector<const char *> &instance_extensions) noexcept;
+			void PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept;
+			void CreateDevice(std::vector<const char *> &device_extensions) noexcept;
+			void InitializeVMA() noexcept;
+
+		private:
+			struct VulkanRendererContext
+			{
+				VkInstance instance;
+				VkPhysicalDevice active_gpu;
+				// VkPhysicalDeviceProperties* vk_active_gpu_properties;
+				VkDevice device;
 				VmaAllocator vma_allocator;
 				VkQueue graphics_queue, compute_queue, transfer_queue;
 				u32 graphics_queue_family_index, compute_queue_family_index, transfer_queue_family_index;
@@ -51,7 +55,7 @@ namespace Horizon {
 				VkSwapchainKHR swap_chain;
 				std::vector<VkImage> swap_chain_images;
 				std::vector<VkImageView> swap_chain_image_views;
-			}m_vulkan;
+			} m_vulkan;
 		};
 	}
 

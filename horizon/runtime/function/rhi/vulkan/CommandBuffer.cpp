@@ -135,7 +135,7 @@ namespace Horizon {
 		renderPassInfo.renderArea.extent = VkExtent2D{ static_cast<u32>(_pipeline->getViewport().width), static_cast<u32>(-_pipeline->getViewport().height)};
 
 
-		auto& clearValues = _pipeline->getClearValues();
+		const auto& clearValues = _pipeline->getClearValues();
 		renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
 
@@ -242,7 +242,7 @@ namespace Horizon {
 		}
 
 		if (pipeline->hasPushConstants()) {
-			for (auto& pc : pipeline->m_push_constants->ranges) {
+			for (const auto& pc : pipeline->m_push_constants->ranges) {
 				vkCmdPushConstants(m_command_buffers[i], pipeline->GetLayout(), ToVkShaderStageFlags(pc.stages), pc.offset, pc.size, pc.value);
 			}
 		}

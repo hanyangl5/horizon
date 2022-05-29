@@ -1,9 +1,11 @@
 #include "VulkanBuffer2.h"
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
-		VulkanBuffer2::VulkanBuffer2(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) :Buffer(buffer_create_info), m_allocator(allocator)
+		VulkanBuffer2::VulkanBuffer2(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info) noexcept : Buffer(buffer_create_info), m_allocator(allocator)
 		{
 			VkBufferCreateInfo create_info{};
 			create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -15,12 +17,12 @@ namespace Horizon {
 			CHECK_VK_RESULT(vmaCreateBuffer(allocator, &create_info, &allocation_creat_info, &m_buffer, &m_allocation, nullptr));
 		}
 
-		VulkanBuffer2::~VulkanBuffer2()
+		VulkanBuffer2::~VulkanBuffer2() noexcept
 		{
 			Destroy();
 		}
 
-		void VulkanBuffer2::Destroy()
+		void VulkanBuffer2::Destroy() noexcept
 		{
 			vmaDestroyBuffer(m_allocator, m_buffer, m_allocation);
 		}

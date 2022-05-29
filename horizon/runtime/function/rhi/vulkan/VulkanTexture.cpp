@@ -1,9 +1,11 @@
 #include "VulkanTexture.h"
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
-		VulkanTexture::VulkanTexture(VmaAllocator allocator, const TextureCreateInfo& texture_create_info) :Texture2(texture_create_info), m_allocator(allocator)
+		VulkanTexture::VulkanTexture(VmaAllocator allocator, const TextureCreateInfo &texture_create_info) noexcept : Texture2(texture_create_info), m_allocator(allocator)
 		{
 			VkImageCreateInfo image_create_info{};
 			image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -22,16 +24,16 @@ namespace Horizon {
 
 			VmaAllocationCreateInfo allocation_creat_info = {};
 			allocation_creat_info.usage = VMA_MEMORY_USAGE_AUTO;
-			
+
 			CHECK_VK_RESULT(vmaCreateImage(allocator, &image_create_info, &allocation_creat_info, &m_image, &m_allocation, nullptr));
 		}
 
-		VulkanTexture::~VulkanTexture()
+		VulkanTexture::~VulkanTexture() noexcept
 		{
 			Destroy();
 		}
 
-		void VulkanTexture::Destroy()
+		void VulkanTexture::Destroy() noexcept
 		{
 			vmaDestroyImage(m_allocator, m_image, m_allocation);
 		}

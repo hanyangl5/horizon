@@ -1,13 +1,15 @@
 
 #include "DX12Texture.h"
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 
-		DX12Texture::DX12Texture(D3D12MA::Allocator* allocator, const TextureCreateInfo& texture_create_info) :Texture2(texture_create_info), m_allocator(allocator)
+		DX12Texture::DX12Texture(D3D12MA::Allocator *allocator, const TextureCreateInfo &texture_create_info) noexcept : Texture2(texture_create_info), m_allocator(allocator)
 		{
 			// Alignment must be 64KB (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) or 0, which is effectively 64KB.
-			
+
 			CD3DX12_RESOURCE_DESC _texture_create_info{};
 			_texture_create_info.Dimension = ToDX12TextureDimension(texture_create_info.texture_type);
 			_texture_create_info.Format = ToDx12TextureFormat(texture_create_info.texture_format);
@@ -33,12 +35,12 @@ namespace Horizon {
 				IID_NULL, NULL));
 		}
 
-		DX12Texture::~DX12Texture()
+		DX12Texture::~DX12Texture() noexcept
 		{
 			Destroy();
 		}
 
-		void DX12Texture::Destroy()
+		void DX12Texture::Destroy() noexcept
 		{
 			m_allocation->Release();
 		}

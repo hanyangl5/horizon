@@ -2,9 +2,10 @@
 
 #include "Log.h"
 
-namespace Horizon {
+namespace Horizon
+{
 
-	Log::Log()
+	Log::Log() noexcept
 	{
 		m_logger = spdlog::stdout_color_mt("horizon logger");
 		spdlog::set_default_logger(m_logger);
@@ -13,10 +14,9 @@ namespace Horizon {
 #else
 		spdlog::set_level(spdlog::level::info);
 #endif // !NDEBUG
-
 	}
 
-	Log::~Log()
+	Log::~Log() noexcept
 	{
 		m_logger->flush();
 		spdlog::drop_all();
@@ -24,14 +24,16 @@ namespace Horizon {
 
 	void Log::CheckVulkanResult(VkResult _res) const noexcept
 	{
-		if (_res != VK_SUCCESS) {
+		if (_res != VK_SUCCESS)
+		{
 			m_logger->error("vulkan result checking failed");
 		}
 	}
 
 	void Log::CheckDXResult(HRESULT hr) const noexcept
 	{
-		if (FAILED(hr)) {
+		if (FAILED(hr))
+		{
 			m_logger->error("directx result checking failed:{}", HrToString(hr));
 		}
 	}

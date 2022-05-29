@@ -12,39 +12,43 @@
 #include <runtime/function/rhi/dx12/DX12Buffer.h>
 #include <runtime/function/rhi/dx12/DX12Texture.h>
 
-namespace Horizon {
-	namespace RHI {
+namespace Horizon
+{
+	namespace RHI
+	{
 		class RHIDX12 : public RHIInterface
 		{
 		public:
-			RHIDX12();
-			virtual ~RHIDX12();
+			RHIDX12() noexcept;
+			virtual ~RHIDX12() noexcept;
 
-			virtual void InitializeRenderer() override;
+			virtual void InitializeRenderer() noexcept override;
 
-			virtual Buffer* CreateBuffer(const BufferCreateInfo& create_info) override;
-			virtual void DestroyBuffer(Buffer* buffer) override;
+			virtual Buffer *CreateBuffer(const BufferCreateInfo &create_info) noexcept override;
+			virtual void DestroyBuffer(Buffer *buffer) noexcept override;
 
-			virtual Texture2* CreateTexture(const TextureCreateInfo& texture_create_info) override;
-			virtual void DestroyTexture(Texture2* texture) override;
+			virtual Texture2 *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept override;
+			virtual void DestroyTexture(Texture2 *texture) noexcept override;
 
-			virtual void CreateSwapChain(std::shared_ptr<Window> window) override;
-		private:
-			void InitializeDX12Renderer();
-			void CreateFactory();
-			void PickGPU(IDXGIFactory6* factory, IDXGIAdapter4** gpu);
-			void CreateDevice();
-			void InitializeD3DMA();
+			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
 
 		private:
-			struct DX12RendererContext {
-				ID3D12Device* device;
-				IDXGIFactory6* factory;
-				IDXGIAdapter4* active_gpu;
-				D3D12MA::Allocator* d3dma_allocator;
-				ID3D12CommandQueue* graphics_queue, * compute_queue, * transfer_queue;
-				IDXGISwapChain3* swap_chain;
-			}m_dx12;
+			void InitializeDX12Renderer() noexcept;
+			void CreateFactory() noexcept;
+			void PickGPU(IDXGIFactory6 *factory, IDXGIAdapter4 **gpu) noexcept;
+			void CreateDevice() noexcept;
+			void InitializeD3DMA() noexcept;
+
+		private:
+			struct DX12RendererContext
+			{
+				ID3D12Device *device;
+				IDXGIFactory6 *factory;
+				IDXGIAdapter4 *active_gpu;
+				D3D12MA::Allocator *d3dma_allocator;
+				ID3D12CommandQueue *graphics_queue, *compute_queue, *transfer_queue;
+				IDXGISwapChain3 *swap_chain;
+			} m_dx12;
 		};
 	}
 

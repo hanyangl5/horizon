@@ -19,12 +19,12 @@ namespace Horizon {
 	Framebuffer::~Framebuffer()
 	{
 		vkDestroySampler(m_device->Get(), m_sampler, nullptr);
-		for (auto& attachment : m_frame_buffer_attachments) {
+		for (const auto& attachment : m_frame_buffer_attachments) {
 			vkDestroyImage(m_device->Get(), attachment.m_image, nullptr);
 			vkDestroyImageView(m_device->Get(), attachment.m_image_view, nullptr);
 			vkFreeMemory(m_device->Get(), attachment.m_image_memory, nullptr);
 		}
-		for (auto& framebuffer : m_framebuffer) {
+		for (const auto& framebuffer : m_framebuffer) {
 			vkDestroyFramebuffer(m_device->Get(), framebuffer, nullptr);
 		}
 	}
@@ -54,10 +54,10 @@ namespace Horizon {
 	std::vector<VkImage> Framebuffer::getPresentImages()
 	{
 		//std::vector<VkImage> images;
-		//for (auto& framebuffer : m_framebuffer) {
+		//for (const auto& framebuffer : m_framebuffer) {
 		//	framebuffer
 		//}
-		//for (auto& attachment : m_frame_buffer_attachments) {
+		//for (const auto& attachment : m_frame_buffer_attachments) {
 		//	images.push_back(attachment.m_image);
 		//}
 		//return ();
@@ -115,7 +115,7 @@ namespace Horizon {
 
 	void Framebuffer::createAttachmentsResources(const std::vector<AttachmentCreateInfo>& attachment_create_info)
 	{
-		for (auto& create_info : attachment_create_info) {
+		for (const auto& create_info : attachment_create_info) {
 			m_frame_buffer_attachments.emplace_back(m_device, create_info);
 		}
 

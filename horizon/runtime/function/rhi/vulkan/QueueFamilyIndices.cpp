@@ -20,7 +20,7 @@ namespace Horizon {
 		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data()); // Get queue family properties
 
 		// print queue infos
-		for (const auto& i : queueFamilies) {
+		for (const const auto& i : queueFamilies) {
 			std::string queueFlagsStr = "";
 
 			if (i.queueFlags & VK_QUEUE_GRAPHICS_BIT)

@@ -5,8 +5,8 @@
 
 #include <runtime/core/utils/definations.h>
 
-
-namespace Horizon {
+namespace Horizon
+{
 	enum class ShaderTargetPlatform
 	{
 		SPIRV,
@@ -23,22 +23,20 @@ namespace Horizon {
 	class ShaderComplier
 	{
 	public:
-		ShaderComplier();
-		~ShaderComplier();
-		void InitializeShaderCompiler();
-		//void CompileFromFile(ShaderTargetPlatform platform, const std::string& file, void* bytecode);
+		ShaderComplier() noexcept;
+		~ShaderComplier() noexcept;
+		void InitializeShaderCompiler() noexcept;
+		// void CompileFromFile(ShaderTargetPlatform platform, const std::string& file, void* bytecode);
 		void CompileFromSource(
 			ShaderTargetPlatform platform,
 			ShaderTargetStage stage,
-			const std::string& entry_point,
+			const std::string &entry_point,
 			u32 compile_flags,
 			std::vector<char> source_code,
-			void** byte_code);
-		static std::vector<char> read_file(const std::string& path);
-		
-	private:
+			void **byte_code) noexcept;
+		static std::vector<char> read_file(const std::string &path) noexcept;
 
-		
+	private:
 	};
 
 }

@@ -51,7 +51,7 @@ namespace Horizon {
 		instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instance_create_info.pApplicationInfo = &appInfo;
 		instance_create_info.flags = 0;
-		auto& extensions = m_validation_layer.getRequiredExtensions();
+		const auto& extensions = m_validation_layer.getRequiredExtensions();
 		instance_create_info.enabledExtensionCount = static_cast<u32>(extensions.size());
 		instance_create_info.ppEnabledExtensionNames = extensions.data();
 
@@ -214,7 +214,7 @@ namespace Horizon {
 
 		std::set<std::string> required_extensions(m_device_extensions.begin(), m_device_extensions.end());
 
-		for (const auto& extension : available_extensions) {
+		for (const const auto& extension : available_extensions) {
 			required_extensions.erase(extension.extensionName);
 		}
 
