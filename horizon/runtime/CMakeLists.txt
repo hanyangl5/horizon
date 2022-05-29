@@ -30,8 +30,7 @@ endif(Vulkan_FOUND)
 
 #target_link_libraries(${PROJECT_NAME} PUBLIC HorizonShaderCompiler)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator D3D12MemoryAllocator spdlog tinygltf glm glfw)
-#target_link_libraries(${PROJECT_NAME} PUBLIC d3d12.lib dxgi.lib d3dcompiler.lib dxcompiler.lib)
+target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator D3D12MemoryAllocator spdlog tinygltf glm glfw dxclib dxcompiler)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)

@@ -5,7 +5,6 @@
 
 #include <runtime/core/utils/definations.h>
 
-#pragma comment(lib, "dxcompiler.lib")
 
 namespace Horizon {
 	enum class ShaderTargetPlatform

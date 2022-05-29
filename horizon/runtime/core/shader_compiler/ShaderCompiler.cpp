@@ -37,10 +37,10 @@ namespace Horizon {
 			//IDxcUtils* utils;
 			//DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
 
-//			IDxcUtils* pUtils;
-//			IDxcCompiler3* pCompiler;
-//			DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
-//			DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
+			//IDxcUtils* pUtils;
+			//IDxcCompiler3* pCompiler;
+			//DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
+			//DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
 //
 //			ID3DBlob* errormsg;
 //			u32 compileFlags = 0;
