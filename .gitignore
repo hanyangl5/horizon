@@ -5,3 +5,5 @@ docs/design.md
 docs/figs
 assets/models
 bin
+horizon/tools
+horizon/third_party

@@ -8,6 +8,8 @@
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/rhi/dx12/RHIDX12.h>
+#include <runtime/core/shader_compiler/ShaderCompiler.h>
+
 namespace Horizon
 {
 
@@ -40,6 +42,14 @@ namespace Horizon
 		auto texture = render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
 		render_api->DestroyTexture(texture);
 
+		ShaderComplier sp;
+		
+		sp.InitializeShaderCompiler();
+		ID3DBlob* dxil_code = nullptr;
+		char* spirv_code = nullptr;
+		auto code = ShaderComplier::read_file("C:/Users/hylu/OneDrive/mycode/horizon/horizon/tools/shaders/hlsl/shader.hlsl");
+		sp.CompileFromSource(ShaderTargetPlatform::DXIL, ShaderTargetStage::vs, "vs_main",0, code, reinterpret_cast<void**>(&dxil_code));
+		sp.CompileFromSource(ShaderTargetPlatform::SPIRV, ShaderTargetStage::vs, "vs_main",0, code, reinterpret_cast<void**>(&spirv_code));
 		m_device = std::make_shared<Device>(window);
 
 		m_render_context.width = width;
