@@ -24,7 +24,7 @@ namespace Horizon {
 		glfwSwapInterval(vsync_enabled ? 1 : 0);
 		LOG_INFO("vsync stat: {}", vsync_enabled);
 	}
-	Window::~Window()noexcept
+	Window::~Window() noexcept
 	{
 		glfwDestroyWindow(m_window);
 		glfwTerminate();

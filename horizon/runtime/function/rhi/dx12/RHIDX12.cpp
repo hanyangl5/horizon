@@ -80,6 +80,13 @@ namespace Horizon
 			m_current_frame_index = m_dx12.swap_chain->GetCurrentBackBufferIndex();
 		}
 
+		ShaderProgram RHIDX12::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
+		{
+			auto dxil_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::DXIL, stage, entry_point, compile_flags, file_name);
+			
+			return ShaderProgram(dxil_blob);
+		}
+
 		void RHIDX12::InitializeDX12Renderer() noexcept
 		{
 

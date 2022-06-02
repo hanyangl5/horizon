@@ -8,7 +8,6 @@
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/rhi/dx12/RHIDX12.h>
-#include <runtime/core/shader_compiler/ShaderCompiler.h>
 
 namespace Horizon
 {
@@ -18,38 +17,25 @@ namespace Horizon
 	RenderSystem::RenderSystem(u32 width, u32 height, std::shared_ptr<Window> window) noexcept : m_window(window)
 	{
 
-		RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
-		//RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
-		switch (backend)
-		{
-		case Horizon::RenderBackend::RENDER_BACKEND_NONE:
-			break;
-		case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-			render_api = std::make_shared<RHI::RHIVulkan>();
-			break;
-		case Horizon::RenderBackend::RENDER_BACKEND_DX12:
-			render_api = std::make_shared<RHI::RHIDX12>();
-			break;
-		default:
-			break;
-		}
+		//RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
 
-		render_api->InitializeRenderer();
-		render_api->CreateSwapChain(window);
+		RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
 
-		auto buffer = render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
-		render_api->DestroyBuffer(buffer);
-		auto texture = render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
-		render_api->DestroyTexture(texture);
+		InitializeRenderAPI(backend);
 
-		ShaderComplier sp;
+		// BUFFER TEST
+
+		auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
+		m_render_api->DestroyBuffer(buffer);
 		
-		sp.InitializeShaderCompiler();
-		ID3DBlob* dxil_code = nullptr;
-		char* spirv_code = nullptr;
-		auto code = ShaderComplier::read_file("C:/Users/hylu/OneDrive/mycode/horizon/horizon/tools/shaders/hlsl/shader.hlsl");
-		sp.CompileFromSource(ShaderTargetPlatform::DXIL, ShaderTargetStage::vs, "vs_main",0, code, reinterpret_cast<void**>(&dxil_code));
-		sp.CompileFromSource(ShaderTargetPlatform::SPIRV, ShaderTargetStage::vs, "vs_main",0, code, reinterpret_cast<void**>(&spirv_code));
+		// TEXTURE TEST
+		
+		auto texture = m_render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
+		m_render_api->DestroyTexture(texture);
+
+		std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/horizon/tools/shaders/hlsl/shader.hlsl";
+		m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
+
 		m_device = std::make_shared<Device>(window);
 
 		m_render_context.width = width;
@@ -344,5 +330,22 @@ namespace Horizon
 		std::vector<AttachmentCreateInfo> presentAttachmentsCreateInfo{
 			{TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, TextureType::TEXTURE_TYPE_2D, m_render_context.width, m_render_context.height} };
 		m_pipeline_manager->createPresentPipeline(presentPipelineCreateInfo, presentAttachmentsCreateInfo, m_render_context, m_swap_chain);
+	}
+
+	void RenderSystem::InitializeRenderAPI(RenderBackend backend) noexcept
+	{
+		switch (backend)
+		{
+		case Horizon::RenderBackend::RENDER_BACKEND_NONE:
+			break;
+		case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
+			m_render_api = std::make_shared<RHI::RHIVulkan>();
+			break;
+		case Horizon::RenderBackend::RENDER_BACKEND_DX12:
+			m_render_api = std::make_shared<RHI::RHIDX12>();
+			break;
+		}
+		m_render_api->InitializeRenderer();
+		m_render_api->CreateSwapChain(m_window);
 	}
 }

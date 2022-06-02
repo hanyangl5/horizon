@@ -42,6 +42,6 @@ namespace Horizon
 	private:
 		GLFWwindow *m_window;
 		u32 width, height;
-		bool vsync_enabled = false;
+		bool vsync_enabled = true;
 	};
 }

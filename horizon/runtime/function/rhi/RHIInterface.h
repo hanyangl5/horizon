@@ -6,6 +6,7 @@
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/shader_compiler/ShaderCompiler.h>
 
 namespace Horizon
 {
@@ -14,7 +15,7 @@ namespace Horizon
 		class RHIInterface
 		{
 		public:
-			RHIInterface() noexcept = default;
+			RHIInterface() noexcept;
 			~RHIInterface() noexcept = default;
 
 			virtual void InitializeRenderer() noexcept = 0;
@@ -26,15 +27,22 @@ namespace Horizon
 			virtual void DestroyTexture(Texture2 *texture) noexcept = 0;
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept = 0;
+
+			virtual ShaderProgram CreateShaderProgram(
+				ShaderTargetStage stage,
+				const std::string& entry_point,
+				u32 compile_flags,
+				std::string file_name) noexcept = 0;
 			// virtual void CreateRenderTarget() = 0;
 			// virtual void CreatePipeline() = 0;
 			// virtual void CreateDescriptorSet() = 0;
 		protected:
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;
-
+			std::shared_ptr<ShaderCompiler> m_shader_compiler = nullptr;
 		private:
 			std::shared_ptr<Window> m_window = nullptr;
+
 		};
 
 	}

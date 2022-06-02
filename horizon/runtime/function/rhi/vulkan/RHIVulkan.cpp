@@ -5,6 +5,8 @@
 #endif
 #include "RHIVulkan.h"
 
+#include <vulkan/vulkan.hpp>
+
 namespace Horizon
 {
 	namespace RHI
@@ -116,9 +118,19 @@ namespace Horizon
 				CHECK_VK_RESULT(vkCreateImageView(m_vulkan.device, &image_view_create_info, nullptr, &m_vulkan.swap_chain_image_views[i]));
 			}
 		}
-		void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) noexcept
+		ShaderProgram RHIVulkan::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
 		{
-
+			auto spirv_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::SPIRV, stage, entry_point, compile_flags, file_name);
+			VkShaderModule shader_module;
+			VkShaderModuleCreateInfo shader_module_create_info{};
+			shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			shader_module_create_info.codeSize = spirv_blob->GetBufferSize();
+			shader_module_create_info.pCode = (uint32_t*)spirv_blob->GetBufferPointer();
+			vkCreateShaderModule(m_vulkan.device, &shader_module_create_info, nullptr, &shader_module);
+			return ShaderProgram(shader_module);
+		}
+		void RHIVulkan::InitializeVulkanRenderer(const std::string& app_name) noexcept
+		{
 			std::vector<const char *> instance_layers;
 			std::vector<const char *> instance_extensions;
 			std::vector<const char *> device_extensions;

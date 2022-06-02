@@ -48,6 +48,8 @@ namespace Horizon
 
 		void CreatePresentPipeline() noexcept;
 
+		void InitializeRenderAPI(RenderBackend backend) noexcept;
+
 	private:
 		RenderContext m_render_context;
 		std::shared_ptr<Window> m_window = nullptr;
@@ -72,6 +74,6 @@ namespace Horizon
 		std::shared_ptr<Geometry> m_geometry_pass;
 		std::shared_ptr<LightPass> m_light_pass;
 
-		std::shared_ptr<RHI::RHIInterface> render_api;
+		std::shared_ptr<RHI::RHIInterface> m_render_api;
 	};
 }

@@ -31,7 +31,12 @@ namespace Horizon
 			virtual void DestroyTexture(Texture2 *texture) noexcept override;
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
-
+			
+			virtual ShaderProgram CreateShaderProgram(
+				ShaderTargetStage stage,
+				const std::string& entry_point,
+				u32 compile_flags,
+				std::string file_name) noexcept override;
 		private:
 			void InitializeVulkanRenderer(const std::string &app_name) noexcept;
 			void CreateInstance(const std::string &app_name,
