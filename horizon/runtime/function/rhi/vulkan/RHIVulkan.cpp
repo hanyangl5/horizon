@@ -32,7 +32,7 @@ namespace Horizon
 
 		Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept
 		{
-			return new VulkanBuffer2(m_vulkan.vma_allocator, buffer_create_info);
+			return new VulkanBuffer(m_vulkan.vma_allocator, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 		}
 
 		void RHIVulkan::DestroyBuffer(Buffer *buffer) noexcept

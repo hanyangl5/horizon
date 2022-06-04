@@ -17,12 +17,12 @@ namespace Horizon
 	RenderSystem::RenderSystem(u32 width, u32 height, std::shared_ptr<Window> window) noexcept : m_window(window)
 	{
 
-		//RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
+		RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
 
-		RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
+		//RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
 
 		InitializeRenderAPI(backend);
-
+		
 		// BUFFER TEST
 
 		auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });

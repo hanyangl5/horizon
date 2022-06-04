@@ -15,13 +15,13 @@ namespace Horizon
 			using Buffer::Buffer;
 
 		public:
-			DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info) noexcept;
-			~DX12Buffer();
+			DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept;
+			~DX12Buffer() noexcept;
 
 		private:
 			virtual void Destroy() noexcept override;
 
-		private:
+		public:
 			D3D12MA::Allocation *m_allocation;
 			D3D12MA::Allocator *m_allocator;
 		};

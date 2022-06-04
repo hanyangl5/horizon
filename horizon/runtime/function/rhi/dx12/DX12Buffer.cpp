@@ -6,7 +6,7 @@ namespace Horizon
 	namespace RHI
 	{
 
-		DX12Buffer::DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info) noexcept : Buffer(buffer_create_info), m_allocator(allocator)
+		DX12Buffer::DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept : Buffer(buffer_create_info), m_allocator(allocator)
 		{
 			m_size = buffer_create_info.size;
 			m_usage = buffer_create_info.buffer_usage_flags;
@@ -16,12 +16,21 @@ namespace Horizon
 			auto _buffer_create_info = CD3DX12_RESOURCE_DESC::Buffer(buffer_create_info.size, usage, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
 
 			D3D12MA::ALLOCATION_DESC allocation_desc = {};
-			allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+			D3D12_RESOURCE_STATES initial_state;
+			if (memory_flag == MemoryFlag::CPU_VISABLE_MEMORY) {
+				allocation_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+				initial_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+			}
+			else if (memory_flag == MemoryFlag::DEDICATE_GPU_MEMORY) {
+				allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+				initial_state = D3D12_RESOURCE_STATE_COMMON;
+			}
+
 
 			CHECK_DX_RESULT(allocator->CreateResource(
 				&allocation_desc,
 				&_buffer_create_info,
-				D3D12_RESOURCE_STATE_COPY_DEST,
+				initial_state,
 				NULL,
 				&m_allocation,
 				IID_NULL, NULL));

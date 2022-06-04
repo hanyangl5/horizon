@@ -26,7 +26,7 @@ namespace Horizon
 
 		Buffer *RHIDX12::CreateBuffer(const BufferCreateInfo &create_info) noexcept
 		{
-			Buffer *buffer = new DX12Buffer(m_dx12.d3dma_allocator, create_info);
+			Buffer *buffer = new DX12Buffer(m_dx12.d3dma_allocator, create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 			return buffer;
 		}
 

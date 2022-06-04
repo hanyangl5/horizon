@@ -13,7 +13,8 @@ namespace Horizon
 		public:
 			Buffer(const BufferCreateInfo &buffer_create_info) noexcept;
 			virtual ~Buffer() noexcept = default;
-			u32 GetBufferSize() noexcept;
+			u64 GetBufferSize() const noexcept;
+			u32 GetBufferUsage() const noexcept;
 
 		private:
 			virtual void Destroy() noexcept = 0;

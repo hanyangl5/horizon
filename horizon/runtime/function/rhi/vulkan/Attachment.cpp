@@ -26,7 +26,7 @@ namespace Horizon {
 			usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		}
 
-		assert(aspectMask > 0);
+		assert(aspectMask > 0, "aspectMask not valid");
 
 		VkImageCreateInfo image_create_info{};
 		image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

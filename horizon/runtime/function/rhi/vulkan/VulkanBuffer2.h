@@ -9,19 +9,18 @@ namespace Horizon
 	namespace RHI
 	{
 
-		class VulkanBuffer2 : public Buffer
+		class VulkanBuffer : public Buffer
 		{
 		public:
 			using Buffer::Buffer;
-			VulkanBuffer2(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info) noexcept;
-			~VulkanBuffer2() noexcept;
-
+			VulkanBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept;
+			~VulkanBuffer() noexcept;
 		private:
 			virtual void Destroy() noexcept override;
 
-		private:
+		public:
 			VkBuffer m_buffer;
-			VmaAllocation m_allocation;
+			VmaAllocation m_memory;
 			VmaAllocator m_allocator;
 		};
 

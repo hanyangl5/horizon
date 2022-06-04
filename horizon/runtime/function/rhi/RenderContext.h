@@ -412,16 +412,24 @@ namespace Horizon
 		RAYTRACING
 	};
 
-	enum BufferUsage {
+	enum BufferUsage
+	{
 		BUFFER_USAGE_VERTEX_BUFFER = 1,
 		BUFFER_USAGE_INDEX_BUFFER = 2,
 		BUFFER_USAGE_UNIFORM_BUFFER = 4,
 		BUFFER_USAGE_RW_BUFFER = 8,
+		BUFFER_USAGE_TRANSFER_SRC = 16,
+		BUFFER_USAGE_TRANSFER_DST = 32
+	};
+
+	enum class MemoryFlag {
+		DEDICATE_GPU_MEMORY,
+		CPU_VISABLE_MEMORY
 	};
 
 	struct BufferCreateInfo {
 		u32 buffer_usage_flags;
-		u32 size;
+		u64 size;
 	};
 
 	inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) {
@@ -439,6 +447,10 @@ namespace Horizon
 			flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		}
 		return flags;
+	}
+
+	inline u32 UsageToPipelineStage(u32 buffer_usage){
+		
 	}
 
 	inline D3D12_RESOURCE_FLAGS ToDX12BufferUsage(u32 buffer_usage) {
