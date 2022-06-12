@@ -11,7 +11,7 @@
 #include <runtime/function/rhi/vulkan/Pipeline.h>
 #include <runtime/function/rhi/vulkan/Framebuffer.h>
 #include <runtime/function/rhi/vulkan/UniformBuffer.h>
-#include <runtime/function/rhi/vulkan/RHIVulkan.h>
+#include <runtime/function/rhi/vulkan2/RHIVulkan.h>
 #include <runtime/function/scene/scene/Scene.h>
 #include <runtime/system/render/render_passes/Atmosphere.h>
 #include <runtime/system/render/render_passes/PostProcess.h>

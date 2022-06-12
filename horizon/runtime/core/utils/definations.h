@@ -21,6 +21,5 @@ namespace Horizon {
 	using f32 = float;
 	using f64 = double;
 
-//#define USE_ASYNC_COMPUTE
-
+#define USE_ASYNC_COMPUTE_TRANSFER 1
 }

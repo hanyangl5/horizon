@@ -4,7 +4,7 @@
 
 #include <runtime/core/utils/definations.h>
 #include <runtime/core/log/Log.h>
-#include <runtime/function/rhi/vulkan/VulkanConfig.h>
+#include <runtime/function/rhi/vulkan2/VulkanConfig.h>
 
 namespace Horizon
 {

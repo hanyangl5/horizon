@@ -6,8 +6,9 @@
 #include <runtime/function/rhi/vulkan/VulkanEnums.h>
 #include <runtime/function/rhi/vulkan/ResourceBarrier.h>
 #include <runtime/function/rhi/RHIInterface.h>
-#include <runtime/function/rhi/vulkan/RHIVulkan.h>
+#include <runtime/function/rhi/vulkan2/RHIVulkan.h>
 #include <runtime/function/rhi/dx12/RHIDX12.h>
+#include <runtime/core/jobsystem/ThreadPool.h>
 
 namespace Horizon
 {
@@ -25,6 +26,9 @@ namespace Horizon
 		
 		// BUFFER TEST
 
+		//ThreadPool thread_pool(std::thread::hardware_concurrency());
+		//thread_pool.enqueue();
+		
 		auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
 		m_render_api->DestroyBuffer(buffer);
 		

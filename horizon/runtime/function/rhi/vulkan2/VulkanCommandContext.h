@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/function/rhi/CommandList.h>
+#include <runtime/function/rhi/CommandContext.h>
 #include "VulkanBuffer2.h"
 
 namespace Horizon
@@ -8,11 +8,11 @@ namespace Horizon
     namespace RHI
     {
 
-        class VulkanCommandList : public CommandList
+        class VulkanCommandContext : public CommandContext
         {
         public:
-            VulkanCommandList() noexcept;
-            ~VulkanCommandList() noexcept;
+            VulkanCommandContext(VkDevice device) noexcept;
+            ~VulkanCommandContext() noexcept;
             virtual void BeginRecording() noexcept override;
             virtual void EndRecording() noexcept override;
 
@@ -29,12 +29,18 @@ namespace Horizon
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
             virtual void Submit() noexcept override;
 
+            void RequestSecondaryCommandBuffer() noexcept;
+            void BeginRenderPass() noexcept;
+            
+            VkCommandBuffer GetCommandBuffer(CommandQueueType type) noexcept;
+            VkCommandBuffer GetSecondaryCommandBuffer() noexcept;
         private:
             void CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept;
-        private:
-            VkCommandBuffer m_command_buffer;
-
-            // VulkanCommandListType m_type;
+        public:
+            VkDevice m_device;
+            std::array<VkCommandPool, 3> m_command_pools;
+            std::array<VkCommandBuffer, 3> m_command_buffers;
+            VkCommandBuffer m_secondary_command_buffer;
         };
     }
 }

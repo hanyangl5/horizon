@@ -6,12 +6,22 @@ namespace Horizon
 {
     namespace RHI
     {
+		enum CommandQueueType
+		{
+			GRAPHICS = 0, COMPUTE, TRANSFER
+        };
+        
+        //class CommandQueue{
+        //public:
+        //    CommandQueueType m_type;
+        //    u32 m_index;
+        //};
 
-        class CommandList
+        class CommandContext
         {
         public:
-            CommandList() noexcept;
-            ~CommandList() noexcept;
+            CommandContext() noexcept;
+            ~CommandContext() noexcept;
             virtual void BeginRecording() noexcept = 0;
             virtual void EndRecording() noexcept = 0;
 
@@ -27,10 +37,11 @@ namespace Horizon
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept = 0;
             virtual void Submit() noexcept = 0;
+
         protected:
             bool is_recording = false;
         private:
-            // CommandListType m_type;
+            //CommandQueueType m_type;
         };
     }
 }

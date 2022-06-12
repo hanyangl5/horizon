@@ -1,12 +1,15 @@
 #pragma once
 
 #include <memory>
-
+#include <unordered_map>
+#include <thread>
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/CommandContext.h>
 #include <runtime/function/shader_compiler/ShaderCompiler.h>
+#include <runtime/core/jobsystem/ThreadPool.h>
 
 namespace Horizon
 {
@@ -40,9 +43,11 @@ namespace Horizon
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;
 			std::shared_ptr<ShaderCompiler> m_shader_compiler = nullptr;
+			// each thread has one command pool, 
+			std::unordered_map<std::thread::id, std::shared_ptr<CommandContext>> m_command_context_map;
+			std::unique_ptr<ThreadPool> m_thread_pool;
 		private:
 			std::shared_ptr<Window> m_window = nullptr;
-
 		};
 
 	}

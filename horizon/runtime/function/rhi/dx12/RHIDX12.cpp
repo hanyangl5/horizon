@@ -147,7 +147,7 @@ namespace Horizon
 
 			CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(&graphics_command_queue_desc, IID_PPV_ARGS(&m_dx12.graphics_queue)));
 
-#ifdef USE_ASYNC_COMPUTE
+#ifdef USE_ASYNC_COMPUTE_TRANSFER
 			D3D12_COMMAND_QUEUE_DESC compute_command_queue_desc = {};
 			compute_command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 			compute_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
@@ -159,8 +159,8 @@ namespace Horizon
 			transfer_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
 
 			CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(&transfer_command_queue_desc, IID_PPV_ARGS(&m_dx12.transfer_queue)));
-
-#endif // USE_ASYNC_COMPUTE
+			LOG_INFO("using async compute & transfer");
+#endif // USE_ASYNC_COMPUTE_TRANSFER
 		}
 
 		void RHIDX12::InitializeD3DMA() noexcept
