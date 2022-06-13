@@ -7,14 +7,6 @@ namespace Horizon {
 		VulkanCommandContext::VulkanCommandContext(VkDevice device) noexcept : m_device(device)
 		{
 			// each thread has 3 types of command pool, can allocate 3 types of command buffer
-			for (u32 i = 0; i < m_command_pools.size(); i++) {
-				VkCommandPoolCreateInfo command_pool_create_info{};
-				command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-				command_pool_create_info.queueFamilyIndex = i;
-				command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-				CHECK_VK_RESULT(vkCreateCommandPool(device, &command_pool_create_info, nullptr, &m_command_pools[i]));
-			}
 		}
 
 		VulkanCommandContext::~VulkanCommandContext() noexcept
@@ -94,17 +86,28 @@ namespace Horizon {
 		{
 
 		}
-		VkCommandBuffer VulkanCommandContext::GetCommandBuffer(CommandQueueType type) noexcept
+		VulkanCommandList VulkanCommandContext::GetCommandBuffer(CommandQueueType type) noexcept
 		{
-			if (m_command_buffers[type] == VK_NULL_HANDLE) {
-				VkCommandBufferAllocateInfo command_buffer_allocate_info{};
-				command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-				command_buffer_allocate_info.commandPool = m_command_pools[type];
-				command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-				command_buffer_allocate_info.commandBufferCount = 1;
-				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_buffers[type]));
+			// lazy create command pool
+			if (m_command_pools[type] == VK_NULL_HANDLE) {
+				VkCommandPoolCreateInfo command_pool_create_info{};
+				command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+				command_pool_create_info.queueFamilyIndex = type;
+				command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+				CHECK_VK_RESULT(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pools[type]));
 			}
-			return m_command_buffers[type];
+
+			// allocate command buffer
+			VkCommandBuffer command_buffer;
+			VkCommandBufferAllocateInfo command_buffer_allocate_info{};
+			command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			command_buffer_allocate_info.commandPool = m_command_pools[type];
+			command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			command_buffer_allocate_info.commandBufferCount = 1;
+			CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
+
+			return command_buffer;
 		}
 		VkCommandBuffer VulkanCommandContext::GetSecondaryCommandBuffer() noexcept
 		{

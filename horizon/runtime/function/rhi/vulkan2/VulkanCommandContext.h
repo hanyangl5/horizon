@@ -8,6 +8,12 @@ namespace Horizon
     namespace RHI
     {
 
+        struct VulkanCommandList {
+            void Get();
+            VkCommandBuffer m_command_buffer;
+            // type
+        };
+
         class VulkanCommandContext : public CommandContext
         {
         public:
@@ -39,7 +45,7 @@ namespace Horizon
         public:
             VkDevice m_device;
             std::array<VkCommandPool, 3> m_command_pools;
-            std::array<VkCommandBuffer, 3> m_command_buffers;
+            //std::array<VkCommandBuffer, 3> m_command_buffers;
             VkCommandBuffer m_secondary_command_buffer;
         };
     }
