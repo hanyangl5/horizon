@@ -45,19 +45,8 @@ namespace Horizon
 			void PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept;
 			void CreateDevice(std::vector<const char *> &device_extensions) noexcept;
 			void InitializeVMA() noexcept;
-
+			CommandList GetCommandList(CommandQueueType type) noexcept;
 		private:
-			void PrepareCommandContext() noexcept;
-			void BeginRenderPass() noexcept;
-			void EndRenderPass() noexcept;
-
-			VkCommandBuffer GetVulkanCommandBuffer(CommandQueueType type) noexcept;
-
-			void UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept;
-			void RHIVulkan::CopyBuffer(Buffer* dst_buffer, Buffer* src_buffer) noexcept;
-			void CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept;
-
-			void InsertBarrier(const BarrierDesc& desc, VkCommandBuffer command_buffer) noexcept;
 
 		private:
 			struct VulkanRendererContext

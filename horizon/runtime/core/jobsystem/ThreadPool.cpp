@@ -6,6 +6,7 @@ namespace Horizon{
     ThreadPool::ThreadPool(size_t threads) noexcept
         : stop(false)
     {
+        threads = std::min(threads, std::thread::hardware_concurrency() - 1);
         for (size_t i = 0; i < threads; ++i)
             workers.emplace_back(
                 [this]

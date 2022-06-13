@@ -318,136 +318,7 @@ namespace Horizon
 			vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator);
 		}
 
-		void RHIVulkan::PrepareCommandContext() noexcept
-		{
-			for (u32 i = 0; i < m_thread_pool->GetThreadCount(); i++) {
-				m_thread_pool->enqueue([&]() {
-					m_command_context_map.insert({ std::this_thread::get_id(), std::make_shared<VulkanCommandContext>(m_vulkan.device) });
-				});
-			}
-		}
-		void RHIVulkan::BeginRenderPass() noexcept
-		{
-			//beginrecording primary cmdbuf
-
-			VkRenderPassBeginInfo render_pass_begin_info;
-
-			vkCmdBeginRenderPass(m_vulkan.primary_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-
-			// begin renderpass  primary cmdbuf
-			u32 operation_count = 0;
-			for (u32 i = 0; i < operation_count; i++) {
-
-			}
-
-
-
-			CHECK_VK_RESULT(vkEndCommandBuffer(m_vulkan.primary_command_buffer));
-			//endrecording primary cmdbuf
-		}
-		void RHIVulkan::EndRenderPass() noexcept
-		{
-			for (auto& cmdbuf : m_command_context_map) {
-				//m_vulkan.secondary_command_buffer.emplace_back(cmdbuf.second->);
-			}
-
-			vkCmdExecuteCommands(m_vulkan.primary_command_buffer, m_vulkan.secondary_command_buffer.size(), m_vulkan.secondary_command_buffer.data());
-
-			vkCmdEndRenderPass(m_vulkan.primary_command_buffer);
-
-		}
-
-		void RHIVulkan::CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept
-		{
-			assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
-			m_thread_pool->enqueue([&]() {
-				VkBufferCopy region{};
-				region.size = dst_buffer->GetBufferSize();
-				auto command_buffer = GetVulkanCommandBuffer(CommandQueueType::TRANSFER);
-				vkCmdCopyBuffer(command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
-				});
-
-		}
-
-		void RHIVulkan::CopyBuffer(Buffer* dst_buffer, Buffer* src_buffer) noexcept
-		{
-			auto vk_src_buffer = dynamic_cast<VulkanBuffer*>(src_buffer);
-			auto vk_dst_buffer = dynamic_cast<VulkanBuffer*>(dst_buffer);
-			CopyBuffer(vk_src_buffer, vk_dst_buffer);
-		}
-
-		void RHIVulkan::InsertBarrier(const BarrierDesc& desc, VkCommandBuffer command_buffer) noexcept
-		{
-			//assert(is_recording, "command list isn't recording");
-			VkPipelineStageFlags src_stage = ToVkPipelineStage(desc.src_stage);
-			VkPipelineStageFlags dst_stage = ToVkPipelineStage(desc.dst_stage);
-
-			std::vector<VkBufferMemoryBarrier> buffer_memory_barriers(desc.buffer_memory_barriers.size());
-			std::vector<VkImageMemoryBarrier> image_memory_barriers(desc.image_memory_barriers.size());
-
-			for (u32 i = 0; i < desc.buffer_memory_barriers.size(); i++) {
-				buffer_memory_barriers[i].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-				buffer_memory_barriers[i].srcAccessMask = ToVkMemoryAccessFlags(desc.buffer_memory_barriers[i].src_access_mask);
-				buffer_memory_barriers[i].dstAccessMask = ToVkMemoryAccessFlags(desc.buffer_memory_barriers[i].dst_access_mask);
-				buffer_memory_barriers[i].buffer = static_cast<VkBuffer>(desc.buffer_memory_barriers[i].buffer);
-				buffer_memory_barriers[i].offset = desc.buffer_memory_barriers[i].offset;
-				buffer_memory_barriers[i].size = desc.buffer_memory_barriers[i].size;
-			}
-
-			for (u32 i = 0; i < desc.image_memory_barriers.size(); i++) {
-				image_memory_barriers[i].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				image_memory_barriers[i].srcAccessMask = ToVkMemoryAccessFlags(desc.image_memory_barriers[i].src_access_mask);
-				image_memory_barriers[i].dstAccessMask = ToVkMemoryAccessFlags(desc.image_memory_barriers[i].dst_access_mask);
-				image_memory_barriers[i].oldLayout = ToVkImageLayout(desc.image_memory_barriers[i].src_usage);
-				image_memory_barriers[i].newLayout = ToVkImageLayout(desc.image_memory_barriers[i].dst_usage);
-				image_memory_barriers[i].image = desc.image_memory_barriers[i].texture->GetImage();
-				image_memory_barriers[i].subresourceRange = desc.image_memory_barriers[i].texture->GetSubresourceRange();
-
-			}
-
-			vkCmdPipelineBarrier(command_buffer, src_stage, dst_stage, 0, 0, nullptr, desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(), desc.image_memory_barriers.size(), image_memory_barriers.data());
-		}
-
-		void RHIVulkan::UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept
-		{
-			//assert(is_recording, "command list isn't recording");
-			assert(buffer->GetBufferSize() == size);
-
-			auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
-			auto stage_buffer = new VulkanBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size }, MemoryFlag::CPU_VISABLE_MEMORY);
-
-			// persistantly mapping 
-			memcpy(stage_buffer->m_memory, &data, size);
-
-			//barrier 1
-			//{
-			//	BufferMemoryBarrierDesc bmb;
-			//	bmb.src_access_mask = MemoryAccessFlags::ACCESS_HOST_WRITE_BIT;
-			//	bmb.src_access_mask = MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT;
-
-			//	BarrierDesc desc{};
-			//	desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//	desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//	InsertBarrier(desc);
-			//}
-
-			// upload to gpu buffer
-
-			CopyBuffer(vk_buffer, stage_buffer);
-
-			// barrier2
-			//{
-			//	BarrierDesc desc{};
-			//	desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//	desc.dst_stage = UsageToPipelineStage(vk_buffer->GetBufferUsage());
-			//	InsertBarrier(desc);
-			//}
-
-
-			delete stage_buffer;
-		}
-
-		VkCommandBuffer RHIVulkan::GetVulkanCommandBuffer(CommandQueueType type) noexcept
+		CommandList RHIVulkan::GetCommandList(CommandQueueType type) noexcept
 		{
 			auto key = std::this_thread::get_id();
 			if (!m_command_context_map[key]) {
@@ -455,7 +326,7 @@ namespace Horizon
 			}
 
 			auto vk_command_context = std::dynamic_pointer_cast<VulkanCommandContext>(m_command_context_map[key]);
-			return vk_command_context->GetCommandBuffer(type);
+			return vk_command_context->GetVulkanCommandList(type);
 		}
 	}
 }
