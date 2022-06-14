@@ -15,7 +15,7 @@ namespace Horizon
 			virtual ~Buffer() noexcept = default;
 			u64 GetBufferSize() const noexcept;
 			u32 GetBufferUsage() const noexcept;
-
+			virtual void* GetBufferPointer() noexcept = 0;
 		private:
 			virtual void Destroy() noexcept = 0;
 

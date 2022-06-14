@@ -41,6 +41,11 @@ namespace Horizon
 			Destroy();
 		}
 
+		void* DX12Buffer::GetBufferPointer() noexcept
+		{
+			return m_allocation->GetResource();
+		}
+
 		void DX12Buffer::Destroy() noexcept
 		{
 			m_allocation->Release();

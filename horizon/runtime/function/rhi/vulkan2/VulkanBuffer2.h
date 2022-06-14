@@ -15,6 +15,7 @@ namespace Horizon
 			using Buffer::Buffer;
 			VulkanBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept;
 			~VulkanBuffer() noexcept;
+			virtual void* GetBufferPointer() noexcept override;
 		private:
 			virtual void Destroy() noexcept override;
 

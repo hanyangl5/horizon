@@ -11,7 +11,7 @@ namespace Horizon
 			create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			create_info.size = buffer_create_info.size;
 			create_info.usage = ToVulkanBufferUsage(buffer_create_info.buffer_usage_flags);
-			create_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 			VmaAllocationCreateInfo allocation_create_info = {};
 			allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -29,6 +29,11 @@ namespace Horizon
 		VulkanBuffer::~VulkanBuffer() noexcept
 		{
 			Destroy();
+		}
+
+		void* VulkanBuffer::GetBufferPointer() noexcept
+		{
+			return m_buffer;
 		}
 
 		void VulkanBuffer::Destroy() noexcept

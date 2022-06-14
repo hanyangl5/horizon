@@ -35,6 +35,9 @@ namespace Horizon
 			virtual ShaderProgram CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept override;
 
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept override;
+
+			virtual void ResetCommandResources() noexcept override;
+
 		private:
 			void InitializeDX12Renderer() noexcept;
 			void CreateFactory() noexcept;

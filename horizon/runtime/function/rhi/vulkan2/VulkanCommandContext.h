@@ -49,12 +49,14 @@ namespace Horizon
             VulkanCommandContext(VulkanCommandContext&& command_list) noexcept = default;
             virtual ~VulkanCommandContext() noexcept override;
             VulkanCommandList* GetVulkanCommandList(CommandQueueType type) noexcept;
+            virtual void Reset() noexcept override;
         private:
             VkDevice m_device;
             // each thread has pools to allocate graphics/compute/transfer commandlist
             std::array<VkCommandPool, 3> m_command_pools{};
-            //  reuse commandlist to prevent allocating command list per frame
-            std::array<std::vector<CommandList*>, 3> m_command_lists{};
+
+            std::array<std::vector<VkCommandBuffer>, 3> m_command_lists1{};
+            std::array<u32, 3> m_command_lists_count;
         };
     }
 }

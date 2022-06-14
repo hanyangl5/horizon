@@ -92,6 +92,10 @@ namespace Horizon
 			return nullptr;
 		}
 
+		void RHIDX12::ResetCommandResources() noexcept
+		{
+		}
+
 		void RHIDX12::InitializeDX12Renderer() noexcept
 		{
 

@@ -226,7 +226,7 @@ namespace Horizon
 		return flags;
 	}
 
-	inline VkAccessFlags ToVkMemoryAccessFlags(MemoryAccessFlags flags) {
+	inline VkAccessFlags ToVkMemoryAccessFlags(u32 flags) {
 		return flags;
 	}
 
@@ -446,6 +446,15 @@ namespace Horizon
 		if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
 			flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		}
+
+		if (buffer_usage & BUFFER_USAGE_TRANSFER_SRC) {
+			flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		}
+
+		if (buffer_usage & BUFFER_USAGE_TRANSFER_DST) {
+			flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		}
+
 		return flags;
 	}
 

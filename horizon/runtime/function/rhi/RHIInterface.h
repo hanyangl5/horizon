@@ -40,6 +40,7 @@ namespace Horizon
 			// virtual void CreatePipeline() = 0;
 			// virtual void CreateDescriptorSet() = 0;
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept = 0;
+			virtual void ResetCommandResources() noexcept = 0;
 		protected:
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;

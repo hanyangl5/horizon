@@ -17,7 +17,7 @@ namespace Horizon
 		public:
 			DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept;
 			~DX12Buffer() noexcept;
-
+			virtual void* GetBufferPointer() noexcept override;
 		private:
 			virtual void Destroy() noexcept override;
 

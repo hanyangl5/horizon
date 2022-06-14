@@ -9,10 +9,10 @@
 namespace Horizon{
 
 	struct BufferMemoryBarrierDesc {
-		MemoryAccessFlags src_access_mask, dst_access_mask;
 		void* buffer;
 		u32 offset;
-		u32 size;
+		u64 size;
+		u32 src_access_mask, dst_access_mask;
 		u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED, dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED;
 	};
 

@@ -38,6 +38,7 @@ namespace Horizon
 				u32 compile_flags,
 				std::string file_name) noexcept override;
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept override;
+			virtual void ResetCommandResources() noexcept override;
 		private:
 			void InitializeVulkanRenderer(const std::string &app_name) noexcept;
 			void CreateInstance(const std::string &app_name,

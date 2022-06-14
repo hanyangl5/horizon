@@ -6,6 +6,7 @@ namespace Horizon {
 
 		VulkanCommandContext::VulkanCommandContext(VkDevice device) noexcept : m_device(device)
 		{
+			m_command_lists_count.fill(0);
 		}
 
 		VulkanCommandContext::~VulkanCommandContext() noexcept
@@ -25,18 +26,44 @@ namespace Horizon {
 				CHECK_VK_RESULT(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pools[type]));
 			}
 
-			// allocate command buffer
-			VkCommandBuffer command_buffer;
 			VkCommandBufferAllocateInfo command_buffer_allocate_info{};
 			command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			command_buffer_allocate_info.commandPool = m_command_pools[type];
 			command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			command_buffer_allocate_info.commandBufferCount = 1;
-			CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
+			
+			u32 count = m_command_lists_count[type];
+			if (count < m_command_lists1[type].size()) {
+				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_lists1[type][count]));
+			}
+			else {
+				VkCommandBuffer command_buffer;
+				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
+				m_command_lists1[type].emplace_back(command_buffer);
+			}
 
-			auto command_list = new VulkanCommandList(type, command_buffer);
-			m_command_lists[type].emplace_back(command_list);
+			m_command_lists_count[type]++;
+			auto command_list = new VulkanCommandList(type, m_command_lists1[type][count]);
 			return command_list;
+		}
+
+		void VulkanCommandContext::Reset() noexcept
+		{
+			// https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
+			//  reuse commandlist to prevent allocating command list per frame
+
+			// reset command pool
+
+			for (auto& command_pool : m_command_pools) {
+				vkResetCommandPool(m_device, command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+			}
+
+			for (auto& cmdlist : m_command_lists1) {
+				//cmdlist.clear();
+			}
+
+			m_command_lists_count.fill(0);
+
 		}
 
 		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept : CommandList(type), m_command_buffer(command_buffer)
@@ -159,31 +186,28 @@ namespace Horizon {
 			memcpy(stage_buffer->m_memory, &data, size);
 
 			//barrier 1
-			//{
-			//	BufferMemoryBarrierDesc bmb;
-			//	bmb.src_access_mask = MemoryAccessFlags::ACCESS_HOST_WRITE_BIT;
-			//	bmb.src_access_mask = MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT;
+			{
+				BufferMemoryBarrierDesc bmb{};
+				bmb.src_access_mask = MemoryAccessFlags::ACCESS_HOST_WRITE_BIT;
+				bmb.dst_access_mask = MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT;
+				bmb.buffer = stage_buffer->GetBufferPointer();
+				bmb.offset = 0;
+				bmb.size = stage_buffer->GetBufferSize();
 
-			//	BarrierDesc desc{};
-			//	desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//	desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//	InsertBarrier(desc);
-			//}
+				BarrierDesc desc{};
+				desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_HOST_BIT;
+				desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
+				desc.buffer_memory_barriers.emplace_back(bmb);
+
+				InsertBarrier(desc);
+			}
 
 			// upload to gpu buffer
 
-			CopyBuffer(vk_buffer, stage_buffer);
+			CopyBuffer(stage_buffer, vk_buffer);
 
-			// barrier2
-			//{
-			//	BarrierDesc desc{};
-			//	desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//	desc.dst_stage = UsageToPipelineStage(vk_buffer->GetBufferUsage());
-			//	InsertBarrier(desc);
-			//}
-
-
-			delete stage_buffer;
+			//delete stage_buffer;
+			//stage_buffer = nullptr;
 		}
 
 		void VulkanCommandList::CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept {

@@ -35,7 +35,11 @@ namespace Horizon
 
 		Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept
 		{
-			return new VulkanBuffer(m_vulkan.vma_allocator, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
+			BufferCreateInfo create_info;
+			create_info.size = buffer_create_info.size;
+			create_info.buffer_usage_flags = buffer_create_info.buffer_usage_flags | BufferUsage::BUFFER_USAGE_TRANSFER_DST;
+
+			return new VulkanBuffer(m_vulkan.vma_allocator, create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 		}
 
 		void RHIVulkan::DestroyBuffer(Buffer *buffer) noexcept
@@ -328,6 +332,12 @@ namespace Horizon
 
 			auto vk_command_context = dynamic_cast<VulkanCommandContext*>(m_command_context_map[key]);
 			return vk_command_context->GetVulkanCommandList(type);
+		}
+
+		void RHIVulkan::ResetCommandResources() noexcept {
+			for (auto& context : m_command_context_map) {
+				context.second->Reset();
+			}
 		}
 	}
 }
