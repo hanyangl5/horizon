@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vulkan/vulkan.h>
+
+#include <array>
+
 #include <runtime/function/rhi/CommandContext.h>
 #include "VulkanBuffer2.h"
 

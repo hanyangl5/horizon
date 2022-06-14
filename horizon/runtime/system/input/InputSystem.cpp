@@ -16,9 +16,9 @@ namespace Horizon {
 	void InputSystem::Tick() noexcept
 	{
 		glfwPollEvents();
-		ProcessMouseInput();
-		ProcessKeyboardInput();
-		m_camera->UpdateViewMatrix();
+		//ProcessMouseInput();
+		//ProcessKeyboardInput();
+		//m_camera->UpdateViewMatrix();
 	}
 
 	void InputSystem::ProcessKeyboardInput() noexcept

@@ -1,10 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <vulkan/vulkan.h>
-#include <runtime/function/rhi/vulkan/CommandBuffer.h>
 #include <runtime/function/rhi/RenderContext.h>
-#include <runtime/function/rhi/vulkan/Texture.h>
 
 namespace Horizon{
 
@@ -19,7 +15,7 @@ namespace Horizon{
 	struct ImageMemoryBarrierDesc {
 		MemoryAccessFlags src_access_mask, dst_access_mask;
 		TextureUsage src_usage, dst_usage; // transition image layout
-		std::shared_ptr<Texture> texture;
+		void* texture;
 		u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED, dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED;
 	};
 
@@ -29,6 +25,5 @@ namespace Horizon{
 		std::vector<ImageMemoryBarrierDesc> image_memory_barriers;
 	};
 
-	void InsertBarrier(u32 i, std::shared_ptr<CommandBuffer> command_buffer, const BarrierDesc& desc) noexcept;
 	
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/function/rhi/Buffer.h>
-#include "vulkan/ResourceBarrier.h"
+#include <runtime/function/rhi/ResourceBarrier.h>
 namespace Horizon
 {
     namespace RHI
