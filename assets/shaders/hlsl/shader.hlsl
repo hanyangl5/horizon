@@ -22,7 +22,5 @@ struct VSOutput
 VSOutput vs_main(VSInput input, uint VertexIndex : SV_VertexID)
 {
 	VSOutput output = (VSOutput)0;
-	output.Color = input.Color * float(VertexIndex);
-	output.Position = mul(ubo.projectionMatrix, mul(ubo.viewMatrix, mul(ubo.modelMatrix, float4(input.Position.xyz, 1.0))));
 	return output;
 }

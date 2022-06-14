@@ -55,11 +55,18 @@ namespace Horizon {
 			// reset command pool
 
 			for (auto& command_pool : m_command_pools) {
-				vkResetCommandPool(m_device, command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+				if (command_pool) {
+					vkResetCommandPool(m_device, command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+				}
 			}
 
-			for (auto& cmdlist : m_command_lists1) {
-				//cmdlist.clear();
+			for (u32 type = 0; type < 3;type++) {
+				for (auto& cmdbuf : m_command_lists1[type]) {
+					if (cmdbuf) {
+						vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdbuf);
+						//vkResetCommandBuffer(cmdbuf, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+					}
+				}
 			}
 
 			m_command_lists_count.fill(0);

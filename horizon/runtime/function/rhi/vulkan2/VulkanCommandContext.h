@@ -60,6 +60,7 @@ namespace Horizon
             std::array<VkCommandPool, 3> m_command_pools{};
 
             std::array<std::vector<VkCommandBuffer>, 3> m_command_lists1{};
+            std::array<std::vector<VulkanCommandList>, 3> m_command_lists{};
             std::array<u32, 3> m_command_lists_count;
         };
     }
