@@ -24,21 +24,39 @@ namespace Horizon
 
 		InitializeRenderAPI(backend);
 		
-		// BUFFER TEST
+		{
+			// BUFFER TEST
 
-		//ThreadPool thread_pool(std::thread::hardware_concurrency());
-		//thread_pool.enqueue();
-		
-		auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
-		m_render_api->DestroyBuffer(buffer);
-		
-		// TEXTURE TEST
-		
-		auto texture = m_render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
-		m_render_api->DestroyTexture(texture);
+			auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
+			m_render_api->DestroyBuffer(buffer);
 
-		std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/horizon/tools/shaders/hlsl/shader.hlsl";
-		m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
+			// TEXTURE TEST
+
+			auto texture = m_render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
+			m_render_api->DestroyTexture(texture);
+		}
+
+		{
+			std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/horizon/tools/shaders/hlsl/shader.hlsl";
+			m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
+		}
+
+		{
+
+			auto cmdlist = m_render_api->GetCommandList(RHI::CommandQueueType::GRAPHICS);
+			cmdlist->Dispatch();
+			cmdlist->BeginRecording();
+			cmdlist->Dispatch();
+			cmdlist->Draw();
+			cmdlist->EndRecording();
+
+			auto cmdlist2 = m_render_api->GetCommandList(RHI::CommandQueueType::COMPUTE);
+			cmdlist2->BeginRecording();
+			cmdlist->Dispatch();
+			cmdlist2->EndRecording();
+		}
+
+
 
 		m_device = std::make_shared<Device>(window);
 

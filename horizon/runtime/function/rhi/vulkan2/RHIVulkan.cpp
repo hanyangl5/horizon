@@ -318,14 +318,15 @@ namespace Horizon
 			vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator);
 		}
 
-		CommandList RHIVulkan::GetCommandList(CommandQueueType type) noexcept
+		CommandList* RHIVulkan::GetCommandList(CommandQueueType type) noexcept
 		{
 			auto key = std::this_thread::get_id();
 			if (!m_command_context_map[key]) {
-				m_command_context_map.insert({ key, std::make_shared<VulkanCommandContext>(m_vulkan.device) });
+				CommandContext* context = new VulkanCommandContext(m_vulkan.device);
+				m_command_context_map[key] = context;
 			}
 
-			auto vk_command_context = std::dynamic_pointer_cast<VulkanCommandContext>(m_command_context_map[key]);
+			auto vk_command_context = dynamic_cast<VulkanCommandContext*>(m_command_context_map[key]);
 			return vk_command_context->GetVulkanCommandList(type);
 		}
 	}

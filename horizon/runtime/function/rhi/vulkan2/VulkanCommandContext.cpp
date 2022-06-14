@@ -1,4 +1,4 @@
-#include "VulkanCommandList.h"
+#include "VulkanCommandContext.h"
 #include "VulkanBuffer2.h"
 
 namespace Horizon {
@@ -10,9 +10,10 @@ namespace Horizon {
 
 		VulkanCommandContext::~VulkanCommandContext() noexcept
 		{
+			//vkDestroyCommandPool
 		}
 
-		VulkanCommandList VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept
+		VulkanCommandList* VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept
 		{
 			// lazy create command pool
 			if (m_command_pools[type] == VK_NULL_HANDLE) {
@@ -33,28 +34,43 @@ namespace Horizon {
 			command_buffer_allocate_info.commandBufferCount = 1;
 			CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
 
-			return VulkanCommandList(command_buffer, type);
-		}
-		
-		void Get() const noexcept{
-			return m_command_buffer;	
+			auto command_list = new VulkanCommandList(type, command_buffer);
+			m_command_lists[type].emplace_back(command_list);
+			return command_list;
 		}
 
-		void BeginRecoridng() noexcept{
+		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept : CommandList(type), m_command_buffer(command_buffer)
+		{
+
+		}
+
+		VulkanCommandList::~VulkanCommandList() noexcept
+		{
+		}
+
+		void VulkanCommandList::BeginRecording() noexcept {
+			is_recoring = true;
 			VkCommandBufferBeginInfo command_buffer_begin_info{};
 			command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-			vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+			vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
 		}
 
-		void EndRecording() noexcept{
-			VkEndCommandBuffer(command_buffer);
+		void VulkanCommandList::EndRecording() noexcept {
+			is_recoring = false;
+			vkEndCommandBuffer(m_command_buffer);
 		}
 
 		// graphics commands
-		void BeginRenderPass() noexcept{
-			if(m_type != CommandQueueType::GRAPHICS){
+		void VulkanCommandList::BeginRenderPass() noexcept {
+
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+
+			if (m_type != CommandQueueType::GRAPHICS) {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
@@ -63,8 +79,12 @@ namespace Horizon {
 			vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 		}
 
-		void EndRenderPass() noexcept{
-			if(m_type != CommandQueueType::GRAPHICS){
+		void VulkanCommandList::EndRenderPass() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::GRAPHICS) {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
@@ -76,63 +96,60 @@ namespace Horizon {
 
 			vkCmdEndRenderPass(m_command_buffer);
 		}
-		void Draw() noexcept{
-			if(m_type != CommandQueueType::GRAPHICS){
+		void VulkanCommandList::Draw() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::GRAPHICS) {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
 		}
-		void DrawIndirect() noexcept{
-			if(m_type != CommandQueueType::GRAPHICS){
+		void VulkanCommandList::DrawIndirect() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::GRAPHICS) {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
-		}	
+		}
 
 		// compute commands
-		void Dispatch() noexcept{
-			if(m_type != CommandQueueType::COMPUTE){
+		void VulkanCommandList::Dispatch() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::COMPUTE) {
 				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
 				return;
 			}
 		}
-		void DispatchIndirect() noexcept{
-			if(m_type != CommandQueueType::COMPUTE){
+		void VulkanCommandList::DispatchIndirect() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::COMPUTE) {
 				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
 				return;
-			}		
+			}
 		}
 
 		// transfer commands
-		void UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept{
-			if(m_type != CommandQueueType::COMPUTE){
-				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
+		void VulkanCommandList::UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
 				return;
 			}
-		}
-
-		void CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept{
-			if(m_type != CommandQueueType::TRANSFER){
+			if (m_type != CommandQueueType::TRANSFER) {
 				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
 				return;
 			}
-			auto vk_src_buffer = dynamic_cast<VulkanBuffer*>(src_buffer);
-			auto vk_dst_buffer = dynamic_cast<VulkanBuffer*>(dst_buffer);
-			CopyBuffer(vk_src_buffer, vk_dst_buffer);
-		}
 
-		void CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept{
-			assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
-			VkBufferCopy region{};
-			region.size = dst_buffer->GetBufferSize();
-			vkCmdCopyBuffer(m_command_buffer), src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
-		}
-		void UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept{
-			if(m_type != CommandQueueType::TRANSFER){
-				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
-				return;
-			}
-	
 			assert(buffer->GetBufferSize() == size);
 
 			auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
@@ -169,19 +186,53 @@ namespace Horizon {
 			delete stage_buffer;
 		}
 
-		void UpdateTexture() noexcept{
-			if(m_type != CommandQueueType::TRANSFER){
+		void VulkanCommandList::CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::TRANSFER) {
+				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
+				return;
+			}
+			auto vk_src_buffer = dynamic_cast<VulkanBuffer*>(src_buffer);
+			auto vk_dst_buffer = dynamic_cast<VulkanBuffer*>(dst_buffer);
+			CopyBuffer(vk_src_buffer, vk_dst_buffer);
+		}
+
+		void VulkanCommandList::CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept {
+			assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
+			VkBufferCopy region{};
+			region.size = dst_buffer->GetBufferSize();
+			vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
+		}
+
+
+		void VulkanCommandList::UpdateTexture() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::TRANSFER) {
 				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
 			}
 		}
 
-		void CopyTexture() noexcept{
-			if(m_type != CommandQueueType::TRANSFER){
+		void VulkanCommandList::CopyTexture() noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
+			if (m_type != CommandQueueType::TRANSFER) {
 				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
 			}
 		}
 
-		void InsertBarrier(const BarrierDesc& desc) noexcept{
+		void VulkanCommandList::InsertBarrier(const BarrierDesc& desc) noexcept {
+			if (!is_recoring) {
+				LOG_ERROR("command buffer isn't recording");
+				return;
+			}
 
 			VkPipelineStageFlags src_stage = ToVkPipelineStage(desc.src_stage);
 			VkPipelineStageFlags dst_stage = ToVkPipelineStage(desc.dst_stage);
@@ -209,7 +260,7 @@ namespace Horizon {
 
 			}
 
-			vkCmdPipelineBarrier(m_command_buffer, src_stage, dst_stage, 0, 0, nullptr, 
+			vkCmdPipelineBarrier(m_command_buffer, src_stage, dst_stage, 0, 0, nullptr,
 				desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(), desc.image_memory_barriers.size(), image_memory_barriers.data());
 		}
 

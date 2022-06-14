@@ -1,13 +1,13 @@
 #include "ThreadPool.h"
-
+#include <algorithm>
 namespace Horizon{
     
     // the constructor just launches some amount of workers
-    ThreadPool::ThreadPool(size_t threads) noexcept
+    ThreadPool::ThreadPool(u32 threads) noexcept
         : stop(false)
     {
         threads = std::min(threads, std::thread::hardware_concurrency() - 1);
-        for (size_t i = 0; i < threads; ++i)
+        for (u32 i = 0; i < threads; ++i)
             workers.emplace_back(
                 [this]
                 {
@@ -34,7 +34,7 @@ namespace Horizon{
 
 
     // the destructor joins all threads
-    inline ThreadPool::~ThreadPool()
+    ThreadPool::~ThreadPool()
     {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);

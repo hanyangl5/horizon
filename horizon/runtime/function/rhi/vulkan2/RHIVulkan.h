@@ -37,6 +37,7 @@ namespace Horizon
 				const std::string& entry_point,
 				u32 compile_flags,
 				std::string file_name) noexcept override;
+			virtual CommandList* GetCommandList(CommandQueueType type) noexcept override;
 		private:
 			void InitializeVulkanRenderer(const std::string &app_name) noexcept;
 			void CreateInstance(const std::string &app_name,
@@ -45,7 +46,7 @@ namespace Horizon
 			void PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept;
 			void CreateDevice(std::vector<const char *> &device_extensions) noexcept;
 			void InitializeVMA() noexcept;
-			CommandList GetCommandList(CommandQueueType type) noexcept;
+
 		private:
 
 		private:

@@ -36,7 +36,7 @@ namespace Horizon
 {
     class ThreadPool {
     public:
-        ThreadPool(size_t) noexcept;
+        ThreadPool(u32) noexcept;
 
         ~ThreadPool() noexcept;
 

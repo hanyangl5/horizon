@@ -87,6 +87,11 @@ namespace Horizon
 			return ShaderProgram(dxil_blob);
 		}
 
+		CommandList* RHIDX12::GetCommandList(CommandQueueType type) noexcept
+		{
+			return nullptr;
+		}
+
 		void RHIDX12::InitializeDX12Renderer() noexcept
 		{
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/function/rhi/CommandList.h>
+#include <runtime/function/rhi/CommandContext.h>
 #include "DX12Buffer.h"
 
 namespace Horizon

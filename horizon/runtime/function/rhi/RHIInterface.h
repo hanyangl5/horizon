@@ -39,12 +39,13 @@ namespace Horizon
 			// virtual void CreateRenderTarget() = 0;
 			// virtual void CreatePipeline() = 0;
 			// virtual void CreateDescriptorSet() = 0;
+			virtual CommandList* GetCommandList(CommandQueueType type) noexcept = 0;
 		protected:
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;
 			std::shared_ptr<ShaderCompiler> m_shader_compiler = nullptr;
 			// each thread has one command pool, 
-			std::unordered_map<std::thread::id, std::shared_ptr<CommandContext>> m_command_context_map;
+			std::unordered_map<std::thread::id, CommandContext*> m_command_context_map;
 			std::unique_ptr<ThreadPool> m_thread_pool;
 		private:
 			std::shared_ptr<Window> m_window = nullptr;
