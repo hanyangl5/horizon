@@ -2,8 +2,6 @@
 
 # Horizon
 
-horizon is a real time renderer supporting
-
-DirectX12 & Vulkan
+horizon is a real time renderer.
 
 ---
