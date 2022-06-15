@@ -5,16 +5,17 @@
 #include <array>
 
 #include <runtime/function/rhi/CommandContext.h>
-#include "VulkanBuffer2.h"
+#include "VulkanBuffer.h"
 
 namespace Horizon
 {
     namespace RHI
     {
+        class VulkanCommandContext;
 
         class VulkanCommandList : public CommandList{
         public:
-            VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept;
+            VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer, const VulkanCommandContext* command_context) noexcept;
             virtual ~VulkanCommandList() noexcept;
 
             virtual void BeginRecording() noexcept override;
@@ -41,25 +42,8 @@ namespace Horizon
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
         public:
             VkCommandBuffer m_command_buffer;
+            VulkanCommandContext* m_command_context;
         };
 
-        class VulkanCommandContext : public CommandContext
-        {
-        public:
-            VulkanCommandContext(VkDevice device) noexcept;            
-            VulkanCommandContext(const VulkanCommandContext& command_list) noexcept = default;
-            VulkanCommandContext(VulkanCommandContext&& command_list) noexcept = default;
-            virtual ~VulkanCommandContext() noexcept override;
-            VulkanCommandList* GetVulkanCommandList(CommandQueueType type) noexcept;
-            virtual void Reset() noexcept override;
-        private:
-            VkDevice m_device;
-            // each thread has pools to allocate graphics/compute/transfer commandlist
-            std::array<VkCommandPool, 3> m_command_pools{};
-
-            std::array<std::vector<VkCommandBuffer>, 3> m_command_lists1{};
-            std::array<std::vector<VulkanCommandList>, 3> m_command_lists{};
-            std::array<u32, 3> m_command_lists_count;
-        };
     }
 }

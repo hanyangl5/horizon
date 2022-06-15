@@ -5,7 +5,7 @@
 #include <runtime/function/rhi/RenderContext.h>
 #include <runtime/core/window/Window.h>
 
-#include <runtime/function/rhi/vulkan2/RHIVulkan.h>
+#include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/scene/camera/Camera.h>
 
 

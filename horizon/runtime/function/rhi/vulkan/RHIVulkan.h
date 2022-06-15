@@ -10,8 +10,8 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/RenderContext.h>
-#include <runtime/function/rhi/vulkan2/VulkanBuffer2.h>
-#include <runtime/function/rhi/vulkan2/VulkanTexture.h>
+#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon
 {

@@ -5,7 +5,7 @@
 #include <runtime/core/path/Path.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
 #include <runtime/function/rhi/RHIInterface.h>
-#include <runtime/function/rhi/vulkan2/RHIVulkan.h>
+#include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/rhi/dx12/RHIDX12.h>
 #include <runtime/core/jobsystem/ThreadPool.h>
 

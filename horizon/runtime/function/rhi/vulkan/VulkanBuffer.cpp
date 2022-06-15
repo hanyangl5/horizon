@@ -1,4 +1,4 @@
-#include "VulkanBuffer2.h"
+#include "VulkanBuffer.h"
 
 namespace Horizon
 {
@@ -15,7 +15,7 @@ namespace Horizon
 
 			VmaAllocationCreateInfo allocation_create_info = {};
 			allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO;
-
+			
 			if (memory_flag == MemoryFlag::CPU_VISABLE_MEMORY) {
 				allocation_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 			}

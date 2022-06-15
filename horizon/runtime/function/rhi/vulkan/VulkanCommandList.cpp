@@ -1,79 +1,10 @@
 #include "VulkanCommandContext.h"
-#include "VulkanBuffer2.h"
+#include "VulkanBuffer.h"
 
 namespace Horizon {
 	namespace RHI {
 
-		VulkanCommandContext::VulkanCommandContext(VkDevice device) noexcept : m_device(device)
-		{
-			m_command_lists_count.fill(0);
-		}
-
-		VulkanCommandContext::~VulkanCommandContext() noexcept
-		{
-			Reset();
-		}
-
-		VulkanCommandList* VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept
-		{
-			// lazy create command pool
-			if (m_command_pools[type] == VK_NULL_HANDLE) {
-				VkCommandPoolCreateInfo command_pool_create_info{};
-				command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-				command_pool_create_info.queueFamilyIndex = type;
-				command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-				CHECK_VK_RESULT(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pools[type]));
-			}
-
-			VkCommandBufferAllocateInfo command_buffer_allocate_info{};
-			command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			command_buffer_allocate_info.commandPool = m_command_pools[type];
-			command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			command_buffer_allocate_info.commandBufferCount = 1;
-			
-			u32 count = m_command_lists_count[type];
-			if (count < m_command_lists1[type].size()) {
-				//CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_lists1[type][count]));
-			}
-			else {
-				VkCommandBuffer command_buffer;
-				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
-				m_command_lists[type].eplace_back(new VulkanCommandList(type, m_command_lists1[type][count]));
-				//m_command_lists1[type].emplace_back(command_buffer);
-			}
-
-			m_command_lists_count[type]++;
-			return m_command_lists[type][count];
-		}
-
-		void VulkanCommandContext::Reset() noexcept
-		{
-			// https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
-			//  reuse commandlist to prevent allocating command list per frame
-
-			// reset command pool
-
-			for (auto& command_pool : m_command_pools) {
-				if (command_pool) {
-					vkResetCommandPool(m_device, command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-				}
-			}
-
-			for (u32 type = 0; type < 3;type++) {
-				for (auto& cmdbuf : m_command_lists1[type]) {
-					if (cmdbuf) {
-						//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdbuf);
-						vkResetCommandBuffer(cmdbuf, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-					}
-				}
-			}
-
-			m_command_lists_count.fill(0);
-
-		}
-
-		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept : CommandList(type), m_command_buffer(command_buffer)
+		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer, const VulkanCommandContext* command_context) noexcept : CommandList(type), m_command_buffer(command_buffer), m_command_context(command_context)
 		{
 
 		}
@@ -190,10 +121,13 @@ namespace Horizon {
 			assert(buffer->GetBufferSize() == size);
 
 			auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
-			auto stage_buffer = new VulkanBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size }, MemoryFlag::CPU_VISABLE_MEMORY);
-
-			// persistantly mapping 
-			memcpy(stage_buffer->m_memory, &data, size);
+			//auto stage_buffer = new VulkanBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size }, MemoryFlag::CPU_VISABLE_MEMORY);
+			//auto stage_buffer = stage_pool->GetStageBuffer();
+			VulkanBuffer* stage_buffer = m_command_context->GetStageBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size });
+			void* mapped_data;
+			vmaMapMemory(stage_buffer->m_allocator, stage_buffer->m_memory, &mapped_data);
+			memcpy(mapped_data, &data, size);
+			vmaUnmapMemory(stage_buffer->m_allocator, stage_buffer->m_memory);
 
 			//barrier 1
 			{
