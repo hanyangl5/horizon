@@ -11,7 +11,7 @@ namespace Horizon {
 
 		VulkanCommandContext::~VulkanCommandContext() noexcept
 		{
-			//vkDestroyCommandPool
+			Reset();
 		}
 
 		VulkanCommandList* VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept
@@ -34,17 +34,17 @@ namespace Horizon {
 			
 			u32 count = m_command_lists_count[type];
 			if (count < m_command_lists1[type].size()) {
-				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_lists1[type][count]));
+				//CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_lists1[type][count]));
 			}
 			else {
 				VkCommandBuffer command_buffer;
 				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
-				m_command_lists1[type].emplace_back(command_buffer);
+				m_command_lists[type].eplace_back(new VulkanCommandList(type, m_command_lists1[type][count]));
+				//m_command_lists1[type].emplace_back(command_buffer);
 			}
 
 			m_command_lists_count[type]++;
-			auto command_list = new VulkanCommandList(type, m_command_lists1[type][count]);
-			return command_list;
+			return m_command_lists[type][count];
 		}
 
 		void VulkanCommandContext::Reset() noexcept
@@ -63,8 +63,8 @@ namespace Horizon {
 			for (u32 type = 0; type < 3;type++) {
 				for (auto& cmdbuf : m_command_lists1[type]) {
 					if (cmdbuf) {
-						vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdbuf);
-						//vkResetCommandBuffer(cmdbuf, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+						//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdbuf);
+						vkResetCommandBuffer(cmdbuf, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 					}
 				}
 			}
@@ -183,7 +183,10 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
 				return;
 			}
+			// if prev buffer and current are same not upload
+			{
 
+			}
 			assert(buffer->GetBufferSize() == size);
 
 			auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);

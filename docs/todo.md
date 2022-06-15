@@ -6,8 +6,12 @@
 - [ ] Render Graph
 - [ ] GPU Driven Rendering
 - [ ] Material System
-- [ ] Virtual Texture
-
+- [ ] Virtual Texture & Shadow Map
+- [ ] clusterd rendering
+- [ ] Async IO
+- [ ] Streaming
+- [ ] Data Driven Rendering
+- [ ] ECS
 ### Effects
 
 - [ ] HDR

@@ -39,9 +39,7 @@ namespace Horizon
             virtual void CopyTexture() noexcept override;
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
-        private:
-            void CheckStatus() noexcept;
-        private:
+        public:
             VkCommandBuffer m_command_buffer;
         };
 

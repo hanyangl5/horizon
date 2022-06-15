@@ -41,35 +41,70 @@ namespace Horizon {
 
 		}
 
-		//// data uploading
-		//{
-		//	auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
+		// data uploading, 
+		{
+			auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
 
-		//	transfer->BeginRecording();
-		//	//auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, sizeof(Math::vec3) });
-		//	//Math::vec3 data(1.0);
-		//	//transfer->UpdateBuffer(buffer, &data, sizeof(data));
+			transfer->BeginRecording();
+			auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, sizeof(Math::vec3) });
+			Math::vec3 data(1.0);
+			transfer->UpdateBuffer(buffer, &data, sizeof(data));
 
-		//	//// barrier for queue family ownership transfer
+			// barrier for queue family ownership transfer
 
-		//	//BufferMemoryBarrierDesc bmb{
-		//	//	buffer->GetBufferPointer(),
-		//	//	0,
-		//	//	buffer->GetBufferSize(),
-		//	//	MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT,
-		//	//	0,
-		//	//	RHI::CommandQueueType::TRANSFER,
-		//	//	RHI::CommandQueueType::COMPUTE,
-		//	//};
+			BufferMemoryBarrierDesc bmb{
+				buffer->GetBufferPointer(),
+				0,
+				buffer->GetBufferSize(),
+				MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT,
+				0,
+				RHI::CommandQueueType::TRANSFER,
+				RHI::CommandQueueType::COMPUTE,
+			};
 
-		//	//BarrierDesc desc{};
-		//	//desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-		//	//desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_COMMANDS_BIT;
-		//	//desc.buffer_memory_barriers.emplace_back(bmb);
-		//	//transfer->InsertBarrier(desc);
+			BarrierDesc desc{};
+			desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
+			desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			desc.buffer_memory_barriers.emplace_back(bmb);
+			transfer->InsertBarrier(desc);
 
-		//	transfer->EndRecording();
-		//	//m_render_api->DestroyBuffer(buffer);
-		//}
+			transfer->EndRecording();
+			m_render_api->DestroyBuffer(buffer);
+		}
+
+		// if data hasn't changed, won't upload resource
+		{
+			auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
+
+			transfer->BeginRecording();
+			auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, sizeof(Math::vec3) });
+			Math::vec3 data(1.0);
+
+			for (u32 i = 0; i < 10; i++ ){
+				transfer->UpdateBuffer(buffer, &data, sizeof(data));
+			}
+
+
+			// barrier for queue family ownership transfer
+
+			BufferMemoryBarrierDesc bmb{
+				buffer->GetBufferPointer(),
+				0,
+				buffer->GetBufferSize(),
+				MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT,
+				0,
+				RHI::CommandQueueType::TRANSFER,
+				RHI::CommandQueueType::COMPUTE,
+			};
+
+			BarrierDesc desc{};
+			desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
+			desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			desc.buffer_memory_barriers.emplace_back(bmb);
+			transfer->InsertBarrier(desc);
+
+			transfer->EndRecording();
+			m_render_api->DestroyBuffer(buffer);
+		}
 	}
 }
