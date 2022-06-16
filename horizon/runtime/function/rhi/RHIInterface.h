@@ -6,7 +6,7 @@
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Texture.h>
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/CommandContext.h>
 #include <runtime/function/shader_compiler/ShaderCompiler.h>
 #include <runtime/core/jobsystem/ThreadPool.h>

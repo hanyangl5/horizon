@@ -11,6 +11,10 @@ namespace Horizon
 		{
 			return m_usage;
 		}
+		bool& Buffer::Initialized() noexcept
+		{
+			return m_initialized;
+		}
 		u64 Horizon::RHI::Buffer::GetBufferSize() const noexcept
 		{
 			return m_size;

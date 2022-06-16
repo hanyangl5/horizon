@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/core/window/Window.h>
 #include <runtime/system/render/RenderSystem.h>
 #include <runtime/system/input/InputSystem.h>

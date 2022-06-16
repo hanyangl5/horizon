@@ -9,7 +9,7 @@
 #include <runtime/core/utils/definations.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/RHIInterface.h>
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 

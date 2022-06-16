@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "VulkanCommandContext.h"
 #include "VulkanBuffer.h"
 
@@ -114,40 +116,51 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
 				return;
 			}
-			// if prev buffer and current are same not upload
-			{
 
-			}
 			assert(buffer->GetBufferSize() == size);
 
-			auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
-			//auto stage_buffer = new VulkanBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size }, MemoryFlag::CPU_VISABLE_MEMORY);
-			//auto stage_buffer = stage_pool->GetStageBuffer();
-			VulkanBuffer* stage_buffer = GetStageBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC , size });
-			void* mapped_data;
-			vmaMapMemory(stage_buffer->m_allocator, stage_buffer->m_memory, &mapped_data);
-			memcpy(mapped_data, &data, size);
-			vmaUnmapMemory(stage_buffer->m_allocator, stage_buffer->m_memory);
-
-			//barrier 1
-			{
-				BufferMemoryBarrierDesc bmb{};
-				bmb.src_access_mask = MemoryAccessFlags::ACCESS_HOST_WRITE_BIT;
-				bmb.dst_access_mask = MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT;
-				bmb.buffer = stage_buffer->GetBufferPointer();
-				bmb.offset = 0;
-				bmb.size = stage_buffer->GetBufferSize();
-
-				BarrierDesc desc{};
-				desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_HOST_BIT;
-				desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-				desc.buffer_memory_barriers.emplace_back(bmb);
-
-				InsertBarrier(desc);
+			// cannot update static buffer more than once
+			bool& initialized = buffer->Initialized();
+			if (!(buffer->GetBufferUsage() & BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE) && !initialized) {
+				LOG_ERROR("buffer {} is a static buffer and is initialized", (void*)buffer);
+				return;
 			}
 
-			// copy to gpu buffer
-			CopyBuffer(stage_buffer, vk_buffer);
+			// frequently updated buffer
+			{
+				initialized = true;
+				auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
+
+				VulkanBuffer* stage_buffer = GetStageBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC , size });
+
+				if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size) == 0) {
+					LOG_DEBUG("prev buffer and current buffer are same");
+					return;
+				}
+
+				memcpy(stage_buffer->m_allocation_info.pMappedData, data, size);
+
+				//barrier 1
+				{
+					BufferMemoryBarrierDesc bmb{};
+					bmb.src_access_mask = MemoryAccessFlags::ACCESS_HOST_WRITE_BIT;
+					bmb.dst_access_mask = MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT;
+					bmb.buffer = stage_buffer->GetBufferPointer();
+					bmb.offset = 0;
+					bmb.size = stage_buffer->GetBufferSize();
+
+					BarrierDesc desc{};
+					desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_HOST_BIT;
+					desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
+					desc.buffer_memory_barriers.emplace_back(bmb);
+
+					InsertBarrier(desc);
+				}
+
+				// copy to gpu buffer
+				CopyBuffer(stage_buffer, vk_buffer);
+				
+			}
 		}
 
 		void VulkanCommandList::CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept {
@@ -230,11 +243,12 @@ namespace Horizon {
 		VulkanBuffer* VulkanCommandList::GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept
 		{
 			if (m_stage_buffer) {
-				delete m_stage_buffer;
-				m_stage_buffer = nullptr;
+				return m_stage_buffer;
 			}
-			m_stage_buffer = new VulkanBuffer(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
-			return m_stage_buffer;
+			else {
+				m_stage_buffer = new VulkanBuffer(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
+				return m_stage_buffer;
+			}
 		}
 
 	}

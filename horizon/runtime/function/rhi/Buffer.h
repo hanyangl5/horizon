@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 
 namespace Horizon
 {
@@ -16,12 +16,14 @@ namespace Horizon
 			u64 GetBufferSize() const noexcept;
 			u32 GetBufferUsage() const noexcept;
 			virtual void* GetBufferPointer() noexcept = 0;
+			bool& Initialized() noexcept;
 		private:
 			virtual void Destroy() noexcept = 0;
 
 		protected:
 			u32 m_usage;
 			u32 m_size;
+			bool m_initialized = false;
 		};
 	}
 }

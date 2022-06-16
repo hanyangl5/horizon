@@ -2,12 +2,11 @@
 
 #include <vulkan/vulkan.h>
 
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/core/window/Window.h>
 
-#include <runtime/function/rhi/vulkan/RHIVulkan.h>
+#include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/scene/camera/Camera.h>
-
 
 namespace Horizon
 {

@@ -8,7 +8,7 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/RHIInterface.h>
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/dx12/DX12Buffer.h>
 #include <runtime/function/rhi/dx12/DX12Texture.h>
 

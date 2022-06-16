@@ -11,10 +11,6 @@ namespace Horizon
 {
     namespace RHI
     {
-        class VulkanStagePool {
-        public:
-            VulkanBuffer* GetStageBuffer(const BufferCreateInfo& buffer_create_info) noexcept;
-        };
 
         class VulkanCommandContext : public CommandContext
         {
@@ -33,8 +29,6 @@ namespace Horizon
 
 			std::array<std::vector<VulkanCommandList*>, 3> m_command_lists{};
 			std::array<u32, 3> m_command_lists_count;
-
-            //VulkanStagePool* stage_pool;
 
         };
     }

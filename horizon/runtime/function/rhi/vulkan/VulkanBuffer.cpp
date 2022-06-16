@@ -22,8 +22,8 @@ namespace Horizon
 			else if (memory_flag == MemoryFlag::DEDICATE_GPU_MEMORY) {
 				allocation_create_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 			}
-			
-			CHECK_VK_RESULT(vmaCreateBuffer(allocator, &create_info, &allocation_create_info, &m_buffer, &m_memory, nullptr));
+
+			CHECK_VK_RESULT(vmaCreateBuffer(allocator, &create_info, &allocation_create_info, &m_buffer, &m_memory, &m_allocation_info));
 		}
 
 		VulkanBuffer::~VulkanBuffer() noexcept

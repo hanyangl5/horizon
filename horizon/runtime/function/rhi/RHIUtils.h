@@ -419,7 +419,8 @@ namespace Horizon
 		BUFFER_USAGE_UNIFORM_BUFFER = 4,
 		BUFFER_USAGE_RW_BUFFER = 8,
 		BUFFER_USAGE_TRANSFER_SRC = 16,
-		BUFFER_USAGE_TRANSFER_DST = 32
+		BUFFER_USAGE_TRANSFER_DST = 32,
+		BUFFER_USAGE_DYNAMIC_UPDATE = 64
 	};
 
 	enum class MemoryFlag {
@@ -430,6 +431,7 @@ namespace Horizon
 	struct BufferCreateInfo {
 		u32 buffer_usage_flags;
 		u64 size;
+		void* data;
 	};
 
 	inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) {

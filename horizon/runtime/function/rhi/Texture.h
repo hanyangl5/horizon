@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/function/rhi/RenderContext.h>
+#include <runtime/function/rhi/RHIUtils.h>
 
 namespace Horizon
 {

@@ -23,6 +23,7 @@ namespace Horizon
 			VkBuffer m_buffer;
 			VmaAllocation m_memory;
 			VmaAllocator m_allocator;
+			VmaAllocationInfo m_allocation_info;
 		};
 
 	}
