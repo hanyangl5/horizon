@@ -10,7 +10,7 @@ namespace Horizon
 	namespace RHI
 	{
 
-		class DX12Texture : public Texture2
+		class DX12Texture : public Texture
 		{
 		public:
 			DX12Texture(D3D12MA::Allocator *allocator, const TextureCreateInfo &texture_create_info) noexcept;

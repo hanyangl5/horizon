@@ -26,8 +26,8 @@ namespace Horizon
 			virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept = 0;
 			virtual void DestroyBuffer(Buffer *buffer) noexcept = 0;
 
-			virtual Texture2 *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
-			virtual void DestroyTexture(Texture2 *texture) noexcept = 0;
+			virtual Texture *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
+			virtual void DestroyTexture(Texture *texture) noexcept = 0;
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept = 0;
 
@@ -47,6 +47,7 @@ namespace Horizon
 			std::shared_ptr<ShaderCompiler> m_shader_compiler = nullptr;
 			// each thread has one command pool, 
 			std::unordered_map<std::thread::id, CommandContext*> m_command_context_map;
+		public:
 			std::unique_ptr<ThreadPool> m_thread_pool;
 		private:
 			std::shared_ptr<Window> m_window = nullptr;

@@ -24,59 +24,70 @@ namespace Horizon {
 		//	std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/assets/shaders/hlsl/shader.hlsl";
 		//	m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
 		//}
-		//// command list recording
+		// 
+		// multithread command list recording
 		{
 
-			auto graphics = m_render_api->GetCommandList(RHI::CommandQueueType::GRAPHICS);
-			//graphics->Dispatch();
-			graphics->BeginRecording();
-			//graphics->Dispatch();
-			graphics->Draw();
-			graphics->EndRecording();
+			//for (int i = 0; i < std::thread::hardware_concurrency(); i++) {
+			//	m_render_api->m_thread_pool->enqueue([&]() {
 
-			auto compute = m_render_api->GetCommandList(RHI::CommandQueueType::COMPUTE);
-			compute->BeginRecording();
-			compute->Dispatch();
-			compute->EndRecording();
+			//		auto graphics = m_render_api->GetCommandList(RHI::CommandQueueType::GRAPHICS);
+			//		//graphics->Dispatch();
+			//		graphics->BeginRecording();
+			//		//graphics->Dispatch();
+			//		graphics->Draw();
+			//		graphics->EndRecording();
 
+			//		auto compute = m_render_api->GetCommandList(RHI::CommandQueueType::COMPUTE);
+			//		compute->BeginRecording();
+			//		compute->Dispatch();
+			//		compute->EndRecording();
+
+
+			//		// data uploading, 
+			//		//{
+			//		//	auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, sizeof(Math::vec3) });
+			//		//	
+			//		//	{
+			//		//		auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
+
+			//		//		transfer->BeginRecording();
+
+			//		//		Math::vec3 data(1.0);
+			//		//		transfer->UpdateBuffer(buffer, &data, sizeof(data));
+
+			//		//		// barrier for queue family ownership transfer
+
+			//		//		BufferMemoryBarrierDesc bmb{
+			//		//			buffer->GetBufferPointer(),
+			//		//			0,
+			//		//			buffer->GetBufferSize(),
+			//		//			MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT,
+			//		//			0,
+			//		//			RHI::CommandQueueType::TRANSFER,
+			//		//			RHI::CommandQueueType::COMPUTE,
+			//		//		};
+
+			//		//		BarrierDesc desc{};
+			//		//		desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
+			//		//		desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			//		//		desc.buffer_memory_barriers.emplace_back(bmb);
+
+			//		//		transfer->InsertBarrier(desc);
+
+			//		//		transfer->EndRecording();
+			//		//		
+			//		//	}
+			//		//	m_render_api->DestroyBuffer(buffer);
+			//		//}
+			//		});
+
+			//}
+
+			//m_render_api->m_thread_pool->Wait();
 		}
 
-		// data uploading, 
-		{
-			auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, sizeof(Math::vec3) });
-			
-			{
-				auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
 
-				transfer->BeginRecording();
-
-				Math::vec3 data(1.0);
-				transfer->UpdateBuffer(buffer, &data, sizeof(data));
-
-				// barrier for queue family ownership transfer
-
-				BufferMemoryBarrierDesc bmb{
-					buffer->GetBufferPointer(),
-					0,
-					buffer->GetBufferSize(),
-					MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT,
-					0,
-					RHI::CommandQueueType::TRANSFER,
-					RHI::CommandQueueType::COMPUTE,
-				};
-
-				BarrierDesc desc{};
-				desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-				desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_COMMANDS_BIT;
-				desc.buffer_memory_barriers.emplace_back(bmb);
-
-				transfer->InsertBarrier(desc);
-
-				transfer->EndRecording();
-				
-			}
-			m_render_api->DestroyBuffer(buffer);
-		}
 
 		// if data hasn't changed, won't upload resource
 		{

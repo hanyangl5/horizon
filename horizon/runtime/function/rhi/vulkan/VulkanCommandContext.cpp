@@ -36,7 +36,7 @@ namespace Horizon {
 				command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 				command_buffer_allocate_info.commandBufferCount = 1;
 				CHECK_VK_RESULT(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &command_buffer));
-				m_command_lists[type].emplace_back(new VulkanCommandList(type, command_buffer, this));
+				m_command_lists[type].emplace_back(new VulkanCommandList(type, command_buffer));
 			}
 
 			m_command_lists_count[type]++;
@@ -45,7 +45,7 @@ namespace Horizon {
 
 		void VulkanCommandContext::Reset() noexcept
 		{
-			// reset command pool
+			// reset command buffers to initial state
 
 			for (auto& command_pool : m_command_pools) {
 				if (command_pool) {
@@ -54,21 +54,17 @@ namespace Horizon {
 			}
 
 			// reset command buffers to reuse
-			for (u32 type = 0; type < 3;type++) {
-				for (auto& cmdlist : m_command_lists[type]) {
-					if (cmdlist) {
-						//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdlist->m_command_buffer);
-						vkResetCommandBuffer(cmdlist->m_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-					}
-				}
-			}
+			//for (u32 type = 0; type < 3;type++) {
+			//	for (auto& cmdlist : m_command_lists[type]) {
+			//		if (cmdlist) {
+			//			//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdlist->m_command_buffer);
+			//			//vkResetCommandBuffer(cmdlist->m_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+			//		}
+			//	}
+			//}
 
 			m_command_lists_count.fill(0);
 
-		}
-		VulkanBuffer* VulkanCommandContext::GetStageBuffer(const BufferCreateInfo& buffer_create_info) noexcept
-		{
-			return stage_pool->GetStageBuffer(buffer_create_info);
 		}
 	}
 }

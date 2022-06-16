@@ -7,11 +7,11 @@ namespace Horizon
 {
 	namespace RHI
 	{
-		class Texture2
+		class Texture
 		{
 		public:
-			Texture2(const TextureCreateInfo &texture_create_info) noexcept;
-			virtual ~Texture2() noexcept = default;
+			Texture(const TextureCreateInfo &texture_create_info) noexcept;
+			virtual ~Texture() noexcept = default;
 
 		private:
 			virtual void Destroy() noexcept = 0;

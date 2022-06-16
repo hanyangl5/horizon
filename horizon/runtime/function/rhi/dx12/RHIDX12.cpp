@@ -39,12 +39,12 @@ namespace Horizon
 			}
 		}
 
-		Texture2 *RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
+		Texture *RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
 		{
 			return new DX12Texture(m_dx12.d3dma_allocator, texture_create_info);
 		}
 
-		void RHIDX12::DestroyTexture(Texture2 *texture) noexcept
+		void RHIDX12::DestroyTexture(Texture *texture) noexcept
 		{
 			if (texture)
 			{

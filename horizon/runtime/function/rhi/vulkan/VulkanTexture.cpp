@@ -5,7 +5,7 @@ namespace Horizon
 	namespace RHI
 	{
 
-		VulkanTexture::VulkanTexture(VmaAllocator allocator, const TextureCreateInfo &texture_create_info) noexcept : Texture2(texture_create_info), m_allocator(allocator)
+		VulkanTexture::VulkanTexture(VmaAllocator allocator, const TextureCreateInfo &texture_create_info) noexcept : Texture(texture_create_info), m_allocator(allocator)
 		{
 			VkImageCreateInfo image_create_info{};
 			image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

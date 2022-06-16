@@ -4,18 +4,16 @@
 
 #include <array>
 
-#include <runtime/function/rhi/CommandContext.h>
 #include "VulkanBuffer.h"
 
 namespace Horizon
 {
     namespace RHI
     {
-        class VulkanCommandContext;
 
         class VulkanCommandList : public CommandList{
         public:
-            VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer, const VulkanCommandContext* command_context) noexcept;
+            VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept;
             virtual ~VulkanCommandList() noexcept;
 
             virtual void BeginRecording() noexcept override;
@@ -40,9 +38,11 @@ namespace Horizon
             virtual void CopyTexture() noexcept override;
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
+        private:
+            VulkanBuffer* GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept;
         public:
             VkCommandBuffer m_command_buffer;
-            VulkanCommandContext* m_command_context;
+            VulkanBuffer* m_stage_buffer = nullptr;
         };
 
     }

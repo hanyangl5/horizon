@@ -9,7 +9,7 @@ namespace Horizon
 	namespace RHI
 	{
 
-		class VulkanTexture : public Texture2
+		class VulkanTexture : public Texture
 		{
 		public:
 			VulkanTexture(VmaAllocator allocator, const TextureCreateInfo &buffer_create_info) noexcept;

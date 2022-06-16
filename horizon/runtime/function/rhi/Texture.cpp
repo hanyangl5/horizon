@@ -4,7 +4,7 @@ namespace Horizon
 {
 	namespace RHI
 	{
-		Texture2::Texture2(const TextureCreateInfo &texture_create_info) noexcept : m_type(texture_create_info.texture_type),
+		Texture::Texture(const TextureCreateInfo &texture_create_info) noexcept : m_type(texture_create_info.texture_type),
 																		   m_format(texture_create_info.texture_format),
 																		   m_usage(texture_create_info.texture_usage),
 																		   m_width(texture_create_info.width),

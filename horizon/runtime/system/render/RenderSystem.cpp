@@ -67,6 +67,7 @@ namespace Horizon
 			break;
 		}
 		m_render_api->InitializeRenderer();
+		LOG_DEBUG("size of render api {}", sizeof(*m_render_api.get()));
 		m_render_api->CreateSwapChain(m_window);
 	}
 }

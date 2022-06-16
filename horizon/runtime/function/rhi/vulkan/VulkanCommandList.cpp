@@ -4,7 +4,7 @@
 namespace Horizon {
 	namespace RHI {
 
-		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer, const VulkanCommandContext* command_context) noexcept : CommandList(type), m_command_buffer(command_buffer), m_command_context(command_context)
+		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept : CommandList(type), m_command_buffer(command_buffer)
 		{
 
 		}
@@ -123,7 +123,7 @@ namespace Horizon {
 			auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
 			//auto stage_buffer = new VulkanBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size }, MemoryFlag::CPU_VISABLE_MEMORY);
 			//auto stage_buffer = stage_pool->GetStageBuffer();
-			VulkanBuffer* stage_buffer = m_command_context->GetStageBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size });
+			VulkanBuffer* stage_buffer = GetStageBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC , size });
 			void* mapped_data;
 			vmaMapMemory(stage_buffer->m_allocator, stage_buffer->m_memory, &mapped_data);
 			memcpy(mapped_data, &data, size);
@@ -146,12 +146,8 @@ namespace Horizon {
 				InsertBarrier(desc);
 			}
 
-			// upload to gpu buffer
-
+			// copy to gpu buffer
 			CopyBuffer(stage_buffer, vk_buffer);
-
-			//delete stage_buffer;
-			//stage_buffer = nullptr;
 		}
 
 		void VulkanCommandList::CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept {
@@ -174,7 +170,6 @@ namespace Horizon {
 			region.size = dst_buffer->GetBufferSize();
 			vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
 		}
-
 
 		void VulkanCommandList::UpdateTexture() noexcept {
 			if (!is_recoring) {
@@ -230,6 +225,16 @@ namespace Horizon {
 
 			vkCmdPipelineBarrier(m_command_buffer, src_stage, dst_stage, 0, 0, nullptr,
 				desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(), desc.image_memory_barriers.size(), image_memory_barriers.data());
+		}
+
+		VulkanBuffer* VulkanCommandList::GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept
+		{
+			if (m_stage_buffer) {
+				delete m_stage_buffer;
+				m_stage_buffer = nullptr;
+			}
+			m_stage_buffer = new VulkanBuffer(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
+			return m_stage_buffer;
 		}
 
 	}

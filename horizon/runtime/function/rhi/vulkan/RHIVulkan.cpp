@@ -51,12 +51,12 @@ namespace Horizon
 			}
 		}
 
-		Texture2 *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
+		Texture *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
 		{
 			return new VulkanTexture(m_vulkan.vma_allocator, texture_create_info);
 		}
 
-		void RHIVulkan::DestroyTexture(Texture2 *texture) noexcept
+		void RHIVulkan::DestroyTexture(Texture *texture) noexcept
 		{
 			if (texture)
 			{

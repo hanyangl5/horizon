@@ -28,8 +28,8 @@ namespace Horizon
 			virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept override;
 			virtual void DestroyBuffer(Buffer *buffer) noexcept override;
 
-			virtual Texture2 *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept override;
-			virtual void DestroyTexture(Texture2 *texture) noexcept override;
+			virtual Texture *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept override;
+			virtual void DestroyTexture(Texture *texture) noexcept override;
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
 			
@@ -64,9 +64,6 @@ namespace Horizon
 				VkSwapchainKHR swap_chain;
 				std::vector<VkImage> swap_chain_images;
 				std::vector<VkImageView> swap_chain_image_views;
-				VkCommandPool default_command_pool;
-				VkCommandBuffer primary_command_buffer;
-				std::vector<VkCommandBuffer> secondary_command_buffer;
 			} m_vulkan;
 			
 		};

@@ -6,7 +6,7 @@ namespace Horizon
 	namespace RHI
 	{
 
-		DX12Texture::DX12Texture(D3D12MA::Allocator *allocator, const TextureCreateInfo &texture_create_info) noexcept : Texture2(texture_create_info), m_allocator(allocator)
+		DX12Texture::DX12Texture(D3D12MA::Allocator *allocator, const TextureCreateInfo &texture_create_info) noexcept : Texture(texture_create_info), m_allocator(allocator)
 		{
 			// Alignment must be 64KB (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) or 0, which is effectively 64KB.
 
