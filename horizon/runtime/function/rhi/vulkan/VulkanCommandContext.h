@@ -21,7 +21,6 @@ namespace Horizon
             virtual ~VulkanCommandContext() noexcept override;
             VulkanCommandList* GetVulkanCommandList(CommandQueueType type) noexcept;
             virtual void Reset() noexcept override;
-            VulkanBuffer* GetStageBuffer(const BufferCreateInfo& buffer_create_info) noexcept;
         private:
             VkDevice m_device;
             // each thread has pools to allocate graphics/compute/transfer commandlist

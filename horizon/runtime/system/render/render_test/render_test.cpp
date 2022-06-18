@@ -43,7 +43,8 @@ namespace Horizon {
 			// dynamic buffer, cpu pointer not change, cpu data change, gpu data change
 			{
 				static Math::vec3 data(1.0);
-				auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
+
+				auto transfer = m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
 				// data update per frame
 				data += Math::vec3(1.0);
@@ -65,7 +66,7 @@ namespace Horizon {
 			// dynamic buffer, cpu pointer change, cpu data change, gpu data change
 			{
 				Math::vec3 data2(1.0);
-				auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
+				auto transfer = m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
 				// data update per frame
 				data2 += rand();
@@ -87,7 +88,7 @@ namespace Horizon {
 			// static buffer, cpu pointer not change, cpu data not change, gpu data not change
 			{
 				Math::vec3 data3(1.0);
-				auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
+				auto transfer = m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
 				// data update per frame
 				data3 += rand();

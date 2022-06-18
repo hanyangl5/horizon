@@ -1,36 +1,35 @@
 #include <algorithm>
 
-#include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/vulkan/VulkanCommandList.h>
+
+#include <runtime/function/rhi/dx12/DX12Buffer.h>
+#include <runtime/function/rhi/dx12/DX12CommandList.h>
 
 namespace Horizon {
 	namespace RHI {
 
-		VulkanCommandList::VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept : CommandList(type), m_command_buffer(command_buffer)
+		DX12CommandList::DX12CommandList(CommandQueueType type, ID3D12GraphicsCommandList6* command_list) noexcept : CommandList(type), m_command_list(command_list)
 		{
 
 		}
 
-		VulkanCommandList::~VulkanCommandList() noexcept
+		DX12CommandList::~DX12CommandList() noexcept
 		{
 		}
 
-		void VulkanCommandList::BeginRecording() noexcept {
+		void DX12CommandList::BeginRecording() noexcept {
 			is_recoring = true;
-			VkCommandBufferBeginInfo command_buffer_begin_info{};
-			command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-			vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
+			//m_command_list->Reset();
+			
 		}
 
-		void VulkanCommandList::EndRecording() noexcept {
+		void DX12CommandList::EndRecording() noexcept {
 			is_recoring = false;
-			vkEndCommandBuffer(m_command_buffer);
+			m_command_list->Close();
 		}
 
 		// graphics commands
-		void VulkanCommandList::BeginRenderPass() noexcept {
+		void DX12CommandList::BeginRenderPass() noexcept {
 
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
@@ -41,12 +40,12 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
-			VkRenderPassBeginInfo render_pass_begin_info;
 
-			vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			//m_command_list->BeginRenderPass();
+
 		}
 
-		void VulkanCommandList::EndRenderPass() noexcept {
+		void DX12CommandList::EndRenderPass() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -55,15 +54,10 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
-			// for (auto& cmdbuf : m_command_context_map) {
-			// 	//m_vulkan.secondary_command_buffer.emplace_back(cmdbuf.second->);
-			// }
-
-			// vkCmdExecuteCommands(m_vulkan.primary_command_buffer, m_vulkan.secondary_command_buffer.size(), m_vulkan.secondary_command_buffer.data());
-
-			vkCmdEndRenderPass(m_command_buffer);
+			
+			m_command_list->EndRenderPass();
 		}
-		void VulkanCommandList::Draw() noexcept {
+		void DX12CommandList::Draw() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -73,7 +67,7 @@ namespace Horizon {
 				return;
 			}
 		}
-		void VulkanCommandList::DrawIndirect() noexcept {
+		void DX12CommandList::DrawIndirect() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -85,7 +79,7 @@ namespace Horizon {
 		}
 
 		// compute commands
-		void VulkanCommandList::Dispatch() noexcept {
+		void DX12CommandList::Dispatch() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -94,8 +88,10 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
 				return;
 			}
+
+			//m_command_list->Dispatch();
 		}
-		void VulkanCommandList::DispatchIndirect() noexcept {
+		void DX12CommandList::DispatchIndirect() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -104,10 +100,11 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
 				return;
 			}
+			//m_command_list->Dispatch();
 		}
 
 		// transfer commands
-		void VulkanCommandList::UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept {
+		void DX12CommandList::UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -129,16 +126,16 @@ namespace Horizon {
 			// frequently updated buffer
 			{
 				initialized = true;
-				auto vk_buffer = dynamic_cast<VulkanBuffer*>(buffer);
+				auto dx12_buffer = dynamic_cast<DX12Buffer*>(buffer);
 
-				VulkanBuffer* stage_buffer = GetStageBuffer(vk_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC , size });
-
-				if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size) == 0) {
-					LOG_DEBUG("prev buffer and current buffer are same");
-					return;
-				}
-
-				memcpy(stage_buffer->m_allocation_info.pMappedData, data, size);
+				DX12Buffer* stage_buffer = GetStageBuffer(dx12_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC , size });
+				//stage_buffer->m_allocation->SetResource();
+				//if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size) == 0) {
+				//	LOG_DEBUG("prev buffer and current buffer are same");
+				//	return;
+				//}
+				
+				memcpy(stage_buffer, data, size);
 
 				//barrier 1
 				{
@@ -158,12 +155,12 @@ namespace Horizon {
 				}
 
 				// copy to gpu buffer
-				CopyBuffer(stage_buffer, vk_buffer);
+				CopyBuffer(stage_buffer, dx12_buffer);
 				
 			}
 		}
 
-		void VulkanCommandList::CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept {
+		void DX12CommandList::CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -172,19 +169,17 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect transfer commandlist");
 				return;
 			}
-			auto vk_src_buffer = dynamic_cast<VulkanBuffer*>(src_buffer);
-			auto vk_dst_buffer = dynamic_cast<VulkanBuffer*>(dst_buffer);
-			CopyBuffer(vk_src_buffer, vk_dst_buffer);
+			auto dx12_src_buffer = dynamic_cast<DX12Buffer*>(src_buffer);
+			auto dx12_dst_buffer = dynamic_cast<DX12Buffer*>(dst_buffer);
+			CopyBuffer(dx12_src_buffer, dx12_dst_buffer);
 		}
 
-		void VulkanCommandList::CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept {
+		void DX12CommandList::CopyBuffer(DX12Buffer* src_buffer, DX12Buffer* dst_buffer) noexcept {
 			assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
-			VkBufferCopy region{};
-			region.size = dst_buffer->GetBufferSize();
-			vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
+			// copy buffer
 		}
 
-		void VulkanCommandList::UpdateTexture() noexcept {
+		void DX12CommandList::UpdateTexture() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -194,7 +189,7 @@ namespace Horizon {
 			}
 		}
 
-		void VulkanCommandList::CopyTexture() noexcept {
+		void DX12CommandList::CopyTexture() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -204,7 +199,7 @@ namespace Horizon {
 			}
 		}
 
-		void VulkanCommandList::InsertBarrier(const BarrierDesc& desc) noexcept {
+		void DX12CommandList::InsertBarrier(const BarrierDesc& desc) noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -236,17 +231,16 @@ namespace Horizon {
 
 			//}
 
-			vkCmdPipelineBarrier(m_command_buffer, src_stage, dst_stage, 0, 0, nullptr,
-				desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(), desc.image_memory_barriers.size(), image_memory_barriers.data());
+			//m_command_list->ResourceBarrier();
 		}
 
-		VulkanBuffer* VulkanCommandList::GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept
+		DX12Buffer* DX12CommandList::GetStageBuffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info) noexcept
 		{
 			if (m_stage_buffer) {
 				return m_stage_buffer;
 			}
 			else {
-				m_stage_buffer = new VulkanBuffer(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
+				m_stage_buffer = new DX12Buffer(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
 				return m_stage_buffer;
 			}
 		}

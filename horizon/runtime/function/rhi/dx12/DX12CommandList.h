@@ -1,21 +1,23 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "stdafx.h"
 
 #include <array>
 
-#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/CommandList.h>
+#include <runtime/function/rhi/dx12/DX12Buffer.h>
+
+#include <third_party/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
 
 namespace Horizon
 {
     namespace RHI
     {
 
-        class VulkanCommandList : public CommandList{
+        class DX12CommandList : public CommandList{
         public:
-            VulkanCommandList(CommandQueueType type, VkCommandBuffer command_buffer) noexcept;
-            virtual ~VulkanCommandList() noexcept;
+            DX12CommandList(CommandQueueType type, ID3D12GraphicsCommandList6* command_list) noexcept;
+            virtual ~DX12CommandList() noexcept;
 
             virtual void BeginRecording() noexcept override;
             virtual void EndRecording() noexcept override;
@@ -32,7 +34,7 @@ namespace Horizon
 
             virtual void UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept override;
 			virtual void CopyBuffer(Buffer* src_buffer, Buffer* dst_buffer) noexcept override;
-			void CopyBuffer(VulkanBuffer* src_buffer, VulkanBuffer* dst_buffer) noexcept;
+			void CopyBuffer(DX12Buffer* src_buffer, DX12Buffer* dst_buffer) noexcept;
 
             virtual void UpdateTexture() noexcept override;
 
@@ -40,10 +42,10 @@ namespace Horizon
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
         private:
-            VulkanBuffer* GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept;
+            DX12Buffer* GetStageBuffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info) noexcept;
         public:
-            VkCommandBuffer m_command_buffer;
-            VulkanBuffer* m_stage_buffer = nullptr;
+            ID3D12GraphicsCommandList6* m_command_list = nullptr;
+            DX12Buffer* m_stage_buffer = nullptr;
         };
 
     }

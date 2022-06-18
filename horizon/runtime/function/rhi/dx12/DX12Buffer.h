@@ -12,8 +12,6 @@ namespace Horizon
 
 		class DX12Buffer : public Buffer
 		{
-			using Buffer::Buffer;
-
 		public:
 			DX12Buffer(D3D12MA::Allocator *allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept;
 			~DX12Buffer() noexcept;

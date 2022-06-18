@@ -48,6 +48,8 @@ namespace Horizon
 			{
 				delete buffer;
 				buffer = nullptr;
+			} else {
+				LOG_WARN("buffer is uninitialized or delted");
 			}
 		}
 
@@ -62,6 +64,8 @@ namespace Horizon
 			{
 				delete texture;
 				texture = nullptr;
+			} else {
+				LOG_WARN("texture is uninitialized or delted");
 			}
 		}
 

@@ -31,7 +31,6 @@ namespace Horizon
 
 		void RunRenderTest();
 	private:
-		RenderContext m_render_context;
 		std::shared_ptr<Window> m_window = nullptr;
 
 		std::shared_ptr<RHI::RHIInterface> m_render_api;

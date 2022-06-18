@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include "dx12/stdafx.h"
 
 #include <runtime/core/utils/definations.h>
 #include <runtime/core/log/Log.h>
@@ -14,6 +15,33 @@ namespace Horizon
 		RENDER_BACKEND_VULKAN,
 		RENDER_BACKEND_DX12
 	};
+
+	enum CommandQueueType
+	{
+		GRAPHICS = 0, COMPUTE, TRANSFER
+	};
+	
+		
+	//class CommandQueue {
+	//public:
+	//    CommandQueueType m_type;
+	//    u32 m_index;
+	//};
+
+	inline D3D12_COMMAND_LIST_TYPE ToDX12CommandQueueType(CommandQueueType type) {
+		switch (type)
+		{
+		case Horizon::GRAPHICS:
+			return D3D12_COMMAND_LIST_TYPE_DIRECT;
+		case Horizon::COMPUTE:
+			return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+		case Horizon::TRANSFER:
+			return D3D12_COMMAND_LIST_TYPE_COPY;
+		default:
+			LOG_ERROR("invalid command queue type")
+			return {};
+		}
+	}
 
 	struct RenderContext
 	{
@@ -431,7 +459,7 @@ namespace Horizon
 	struct BufferCreateInfo {
 		u32 buffer_usage_flags;
 		u64 size;
-		void* data;
+		//void* data;
 	};
 
 	inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) {

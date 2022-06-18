@@ -4,85 +4,64 @@
 namespace Horizon {
 	namespace RHI {
 
-		//DX12CommandList::DX12CommandList() noexcept
-		//{
-		//}
+		DX12CommandContext::DX12CommandContext(ID3D12Device* device) noexcept : m_device(device)
+		{
+			m_command_lists_count.fill(0);
+		}
 
-		//DX12CommandList::~DX12CommandList() noexcept
-		//{
-		//}
-		//void DX12CommandList::BeginRecording() noexcept
-		//{
-		//	is_recording = true;
-		//}
-		//void DX12CommandList::EndRecording() noexcept
-		//{
-		//	is_recording = false;
-		//}
-		//void DX12CommandList::Draw() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//}
-		//void DX12CommandList::DrawIndirect() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//}
-		//void DX12CommandList::Dispatch() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//}
-		//void DX12CommandList::DispatchIndirect() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
+		DX12CommandContext::~DX12CommandContext() noexcept
+		{
+			Reset();
+		}
 
-		//}
-		//void DX12CommandList::UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//	assert(buffer->GetBufferSize() == size);
+		DX12CommandList* DX12CommandContext::GetDX12CommandList(CommandQueueType type) noexcept
+		{
+			// lazy create command pool
+			if (m_command_pools[type] == nullptr) {
 
-		//	auto dx12_buffer = dynamic_cast<DX12Buffer*>(buffer);
-		//	auto stage_buffer = new DX12Buffer(dx12_buffer->m_allocator, BufferCreateInfo{ BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size }, MemoryFlag::CPU_VISABLE_MEMORY);
+				m_device->CreateCommandAllocator(ToDX12CommandQueueType(type), IID_PPV_ARGS(&m_command_pools[type]));
 
-		//	const auto& resource = stage_buffer->m_allocation->GetResource();
+			}
 
-		//	void* mapped_data;
-		//	CHECK_DX_RESULT(resource->Map(0, nullptr, &mapped_data));
-		//	memcpy(mapped_data, data, size);
-		//	resource->Unmap(0, nullptr);
-		//}
+			u32 count = m_command_lists_count[type];
 
-		//void DX12CommandList::UpdateTexture() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//}
+			if (count >= m_command_lists[type].size()) {
 
-		//void DX12CommandList::CopyBuffer(Buffer* dst_buffer, Buffer* src_buffer) noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//	assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
-		//	auto dx12_src_buffer = dynamic_cast<DX12Buffer*>(src_buffer);
-		//	auto dx12_dst_buffer = dynamic_cast<DX12Buffer*>(dst_buffer);
+				ID3D12GraphicsCommandList6* command_list;
+				m_device->CreateCommandList(0, ToDX12CommandQueueType(type), m_command_pools[type],
+					nullptr, IID_PPV_ARGS(&command_list));
+				
+				m_command_lists[type].emplace_back(new DX12CommandList(type, command_list));
+			}
 
-		//}
-		//void DX12CommandList::CopyTexture() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//}
-		//void DX12CommandList::InsertBarrier(const BarrierDesc& desc) noexcept
-		//{
+			m_command_lists_count[type]++;
+			return m_command_lists[type][count];
+		}
 
-		//}
-		//void DX12CommandList::Submit() noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//}
-		//void DX12CommandList::CopyBuffer(DX12Buffer* src_buffer, DX12Buffer* dst_buffer) noexcept
-		//{
-		//	//assert(is_recording, "command list isn't recording");
-		//	assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
+		void DX12CommandContext::Reset() noexcept
+		{
+			// reset command buffers to initial state
 
-		//}
+			for (auto& command_pool : m_command_pools) {
+				if (command_pool) {
+					command_pool->Reset();
+				}
+			}
+
+			// reset command buffers to reuse
+			//for (u32 type = 0; type < 3;type++) {
+			//	for (auto& cmdlist : m_command_lists[type]) {
+			//		if (cmdlist) {
+			//			//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdlist->m_command_buffer);
+			//			//vkResetCommandBuffer(cmdlist->m_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+			//		}
+			//	}
+			//}
+
+			m_command_lists_count.fill(0);
+
+		}
 	}
 }
+
 
