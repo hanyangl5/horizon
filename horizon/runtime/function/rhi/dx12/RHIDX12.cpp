@@ -89,11 +89,21 @@ namespace Horizon
 
 		CommandList* RHIDX12::GetCommandList(CommandQueueType type) noexcept
 		{
-			return nullptr;
+			auto key = std::this_thread::get_id();
+			if (!m_command_context_map[key]) {
+				CommandContext* context = new DX12CommandContext(m_dx12.device);
+				m_command_context_map[key] = context;
+			}
+
+			auto vk_command_context = dynamic_cast<DX12CommandContext*>(m_command_context_map[key]);
+			return vk_command_context->GetDX12CommandList(type);
 		}
 
 		void RHIDX12::ResetCommandResources() noexcept
 		{
+			for (auto& context : m_command_context_map) {
+				context.second->Reset();
+			}
 		}
 
 		void RHIDX12::InitializeDX12Renderer() noexcept

@@ -46,6 +46,7 @@ namespace Horizon
         public:
             ID3D12GraphicsCommandList6* m_command_list = nullptr;
             DX12Buffer* m_stage_buffer = nullptr;
+            void* mapped_data = nullptr;
         };
 
     }

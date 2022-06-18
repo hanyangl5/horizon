@@ -19,18 +19,6 @@ namespace Horizon {
 			m_render_api->DestroyTexture(texture);
 		}
 
-		{
-			// BUFFER CREATION TEST
-
-			auto buffer = m_render_api->CreateBuffer(BufferCreateInfo{ BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32 });
-			m_render_api->DestroyBuffer(buffer);
-
-			// TEXTURE CREATION TEST
-
-			auto texture = m_render_api->CreateTexture(TextureCreateInfo{ TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage::TEXTURE_USAGE_R, 4, 4, 1 });
-			m_render_api->DestroyTexture(texture);
-		}
-
 		// data uploading, 
 		{
 			static bool buffer_created = false;
@@ -121,17 +109,17 @@ namespace Horizon {
 			//for (int i = 0; i < std::thread::hardware_concurrency(); i++) {
 			//	m_render_api->m_thread_pool->enqueue([&]() {
 
-			//		auto graphics = m_render_api->GetCommandList(RHI::CommandQueueType::GRAPHICS);
-			//		//graphics->Dispatch();
-			//		graphics->BeginRecording();
-			//		//graphics->Dispatch();
-			//		graphics->Draw();
-			//		graphics->EndRecording();
+					auto graphics = m_render_api->GetCommandList(CommandQueueType::GRAPHICS);
+					//graphics->Dispatch();
+					graphics->BeginRecording();
+					//graphics->Dispatch();
+					graphics->Draw();
+					graphics->EndRecording();
 
-			//		auto compute = m_render_api->GetCommandList(RHI::CommandQueueType::COMPUTE);
-			//		compute->BeginRecording();
-			//		compute->Dispatch();
-			//		compute->EndRecording();
+					auto compute = m_render_api->GetCommandList(CommandQueueType::COMPUTE);
+					compute->BeginRecording();
+					compute->Dispatch();
+					compute->EndRecording();
 
 			//static Math::vec3 data(1.0);
 			//auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);

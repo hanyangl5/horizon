@@ -11,6 +11,8 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/dx12/DX12Buffer.h>
 #include <runtime/function/rhi/dx12/DX12Texture.h>
+#include <runtime/function/rhi/dx12/DX12CommandContext.h>
+
 
 namespace Horizon
 {
