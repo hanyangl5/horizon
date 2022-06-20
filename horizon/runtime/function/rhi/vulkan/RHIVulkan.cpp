@@ -329,9 +329,9 @@ namespace Horizon
 		CommandList* RHIVulkan::GetCommandList(CommandQueueType type) noexcept
 		{
 			auto key = std::this_thread::get_id();
+			;
 			if (!m_command_context_map[key]) {
-				CommandContext* context = new VulkanCommandContext(m_vulkan.device);
-				m_command_context_map[key] = context;
+				m_command_context_map[key] = new VulkanCommandContext(m_vulkan.device);
 			}
 
 			auto vk_command_context = dynamic_cast<VulkanCommandContext*>(m_command_context_map[key]);

@@ -106,58 +106,31 @@ namespace Horizon {
 		// multithread command list recording
 		{
 
-			//for (int i = 0; i < std::thread::hardware_concurrency(); i++) {
-			//	m_render_api->m_thread_pool->enqueue([&]() {
 
-					auto graphics = m_render_api->GetCommandList(CommandQueueType::GRAPHICS);
-					//graphics->Dispatch();
-					graphics->BeginRecording();
-					//graphics->Dispatch();
-					graphics->Draw();
-					graphics->EndRecording();
+			//m_render_api->m_thread_pool->enqueue([&]() {
+			auto graphics = m_render_api->GetCommandList(CommandQueueType::GRAPHICS);
+			//graphics->Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z);
+			graphics->BeginRecording();
+			//graphics->Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z);
+			graphics->Draw();
+			graphics->EndRecording();
 
-					auto compute = m_render_api->GetCommandList(CommandQueueType::COMPUTE);
-					compute->BeginRecording();
-					compute->Dispatch();
-					compute->EndRecording();
+			auto compute = m_render_api->GetCommandList(CommandQueueType::COMPUTE);
+			compute->BeginRecording();
+			compute->Dispatch(1, 1, 1);
+			compute->EndRecording();
 
-			//static Math::vec3 data(1.0);
-			//auto transfer = m_render_api->GetCommandList(RHI::CommandQueueType::TRANSFER);
 
-			//// data update per frame
-			//data += Math::vec3(1.0);
+			auto transfer = m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
-			//transfer->BeginRecording();
+			transfer->BeginRecording();
 
-			//transfer->UpdateBuffer(buffer, &data, sizeof(data));
-
-			//// barrier for queue family ownership transfer
-
-			//BufferMemoryBarrierDesc bmb{
-			//	buffer->GetBufferPointer(),
-			//	0,
-			//	buffer->GetBufferSize(),
-			//	MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT,
-			//	0,
-			//	RHI::CommandQueueType::TRANSFER,
-			//	RHI::CommandQueueType::COMPUTE,
-			//};
-
-			//BarrierDesc desc{};
-			//desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
-			//desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_COMMANDS_BIT;
-			//desc.buffer_memory_barriers.emplace_back(bmb);
-
-			//transfer->InsertBarrier(desc);
-
-			//transfer->EndRecording();
+			transfer->EndRecording();
 			//});
-
-			//}
-
-			//m_render_api->m_thread_pool->Wait();
-
 		}
 
+
+		int a = 0;
 	}
+
 }

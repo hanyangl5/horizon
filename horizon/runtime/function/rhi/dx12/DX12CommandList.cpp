@@ -41,7 +41,22 @@ namespace Horizon {
 				return;
 			}
 
-			//m_command_list->BeginRenderPass();
+
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUDescriptorHandle;
+			D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUDescriptorHandle;
+
+			const float clearColor4[]{ 0.f, 0.f, 0.f, 0.f };
+			CD3DX12_CLEAR_VALUE clearValue{ DXGI_FORMAT_R32G32B32_FLOAT, clearColor4 };
+
+			D3D12_RENDER_PASS_BEGINNING_ACCESS renderPassBeginningAccessClear{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR, { clearValue } };
+			D3D12_RENDER_PASS_ENDING_ACCESS renderPassEndingAccessPreserve{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE, {} };
+			D3D12_RENDER_PASS_RENDER_TARGET_DESC renderPassRenderTargetDesc{ rtvCPUDescriptorHandle, renderPassBeginningAccessClear, renderPassEndingAccessPreserve };
+
+			D3D12_RENDER_PASS_BEGINNING_ACCESS renderPassBeginningAccessNoAccess{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS, {} };
+			D3D12_RENDER_PASS_ENDING_ACCESS renderPassEndingAccessNoAccess{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS, {} };
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC renderPassDepthStencilDesc{ dsvCPUDescriptorHandle, renderPassBeginningAccessNoAccess, renderPassBeginningAccessNoAccess, renderPassEndingAccessNoAccess, renderPassEndingAccessNoAccess };
+
+			m_command_list->BeginRenderPass(1, &renderPassRenderTargetDesc, &renderPassDepthStencilDesc, D3D12_RENDER_PASS_FLAG_NONE);
 
 		}
 
@@ -67,6 +82,7 @@ namespace Horizon {
 				return;
 			}
 		}
+
 		void DX12CommandList::DrawIndirect() noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
@@ -79,7 +95,7 @@ namespace Horizon {
 		}
 
 		// compute commands
-		void DX12CommandList::Dispatch() noexcept {
+		void DX12CommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -89,7 +105,7 @@ namespace Horizon {
 				return;
 			}
 
-			//m_command_list->Dispatch();
+			//m_command_list->Dispatch(group_count_x, group_count_y, group_count_z);
 		}
 		void DX12CommandList::DispatchIndirect() noexcept {
 			if (!is_recoring) {
@@ -100,7 +116,7 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
 				return;
 			}
-			//m_command_list->Dispatch();
+
 		}
 
 		// transfer commands
@@ -215,6 +231,10 @@ namespace Horizon {
 			std::vector<D3D12_RESOURCE_BARRIER> barriers{};
 
 			m_command_list->ResourceBarrier(barriers.size(), barriers.data());
+		}
+
+		void DX12CommandList::BindPipeline(Pipeline& pipeline) noexcept
+		{
 		}
 
 		DX12Buffer* DX12CommandList::GetStageBuffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info) noexcept

@@ -29,7 +29,7 @@ namespace Horizon
             virtual void DrawIndirect() noexcept override;
 
             // compute commands
-            virtual void Dispatch() noexcept override;
+            virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) noexcept override;
             virtual void DispatchIndirect() noexcept override;
 
             virtual void UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept override;
@@ -41,6 +41,8 @@ namespace Horizon
             virtual void CopyTexture() noexcept override;
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
+
+            void BindPipeline(Pipeline& pipeline) noexcept override;
         private:
             DX12Buffer* GetStageBuffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info) noexcept;
         public:

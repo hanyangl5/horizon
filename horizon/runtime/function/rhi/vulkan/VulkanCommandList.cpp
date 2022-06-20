@@ -55,6 +55,7 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect graphics commandlist");
 				return;
 			}
+
 			// for (auto& cmdbuf : m_command_context_map) {
 			// 	//m_vulkan.secondary_command_buffer.emplace_back(cmdbuf.second->);
 			// }
@@ -85,7 +86,7 @@ namespace Horizon {
 		}
 
 		// compute commands
-		void VulkanCommandList::Dispatch() noexcept {
+		void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) noexcept {
 			if (!is_recoring) {
 				LOG_ERROR("command buffer isn't recording");
 				return;
@@ -94,6 +95,8 @@ namespace Horizon {
 				LOG_ERROR("invalid commands for current commandlist, expect compute commandlist");
 				return;
 			}
+
+			//vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 		}
 		void VulkanCommandList::DispatchIndirect() noexcept {
 			if (!is_recoring) {
@@ -230,7 +233,7 @@ namespace Horizon {
 			//	image_memory_barriers[i].srcAccessMask = ToVkMemoryAccessFlags(desc.image_memory_barriers[i].src_access_mask);
 			//	image_memory_barriers[i].dstAccessMask = ToVkMemoryAccessFlags(desc.image_memory_barriers[i].dst_access_mask);
 			//	image_memory_barriers[i].oldLayout = ToVkImageLayout(desc.image_memory_barriers[i].src_usage);
-			//	image_memory_barriers[i].newLayout = ToVkImageLayout(desc.image_memory_barriers[i].dst_usage);
+			//	image_memory_barriers[i].newLayout = ToVkImageLaconst Pipeline& pipelineyout(desc.image_memory_barriers[i].dst_usage);
 			//	image_memory_barriers[i].image = desc.image_memory_barriers[i].texture->GetImage();
 			//	image_memory_barriers[i].subresourceRange = desc.image_memory_barriers[i].texture->GetSubresourceRange();
 
@@ -238,6 +241,15 @@ namespace Horizon {
 
 			vkCmdPipelineBarrier(m_command_buffer, src_stage, dst_stage, 0, 0, nullptr,
 				desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(), desc.image_memory_barriers.size(), image_memory_barriers.data());
+		}
+
+		void VulkanCommandList::BindPipeline(Pipeline& pipeline) noexcept
+		{
+			m_type;
+			VkPipeline vk_pipeline = (VkPipeline)pipeline.GetHandle();
+			pipeline.GetType();
+			VkPipelineBindPoint bind_point;
+			vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline);
 		}
 
 		VulkanBuffer* VulkanCommandList::GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept

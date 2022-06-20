@@ -3,6 +3,7 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
+#include <runtime/function/rhi/Pipeline.h>
 
 namespace Horizon
 {
@@ -22,7 +23,7 @@ namespace Horizon
             virtual void Draw() noexcept = 0;
             virtual void DrawIndirect() noexcept = 0;
 
-            virtual void Dispatch() noexcept = 0;
+            virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) noexcept = 0;
             virtual void DispatchIndirect() noexcept = 0;
 
             virtual void UpdateBuffer(Buffer* buffer, void* data, u64 size) noexcept = 0;
@@ -31,6 +32,8 @@ namespace Horizon
             virtual void CopyTexture() noexcept = 0;
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept = 0;
+
+            virtual void BindPipeline(Pipeline& pipeline) noexcept = 0;
         protected:
 			bool is_recoring = false;
 			CommandQueueType m_type;
