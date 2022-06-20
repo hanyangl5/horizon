@@ -1,4 +1,4 @@
-project(horizon_app)
+project(app)
 
 file(GLOB APP_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB APP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
@@ -11,8 +11,3 @@ target_link_libraries(${PROJECT_NAME} PUBLIC runtime)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/horizon)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
-
-#output dir
-set(CMAKE_DEBUG_POSTFIX "_d")
-set(EXECUTABLE_OUTPUT_PATH  ${PROJECT_SOURCE_DIR}/../../bin/)

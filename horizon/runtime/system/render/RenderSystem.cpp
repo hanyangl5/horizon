@@ -17,9 +17,9 @@ namespace Horizon
 	RenderSystem::RenderSystem(u32 width, u32 height, std::shared_ptr<Window> window) noexcept : m_window(window)
 	{
 
-		//RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
+		RenderBackend backend = RenderBackend::RENDER_BACKEND_VULKAN;
 
-		RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
+		//RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
 
 		InitializeRenderAPI(backend);
 
