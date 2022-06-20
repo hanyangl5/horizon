@@ -233,7 +233,7 @@ namespace Horizon {
 			m_command_list->ResourceBarrier(barriers.size(), barriers.data());
 		}
 
-		void DX12CommandList::BindPipeline(Pipeline& pipeline) noexcept
+		void DX12CommandList::BindPipeline(Pipeline* pipeline) noexcept
 		{
 		}
 

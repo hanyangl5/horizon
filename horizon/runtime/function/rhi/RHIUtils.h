@@ -50,6 +50,31 @@ namespace Horizon
 		u32 swap_chain_image_count = 3;
 	};
 
+	enum class PipelineType
+	{
+		GRAPHICS = 0, COMPUTE, RAY_TRACING
+	};
+
+	struct PipelineCreateInfo {
+		PipelineType type;
+	};
+
+	inline VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) {
+		switch (type)
+		{
+		case Horizon::PipelineType::GRAPHICS:
+			return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		case Horizon::PipelineType::COMPUTE:
+			return VK_PIPELINE_BIND_POINT_COMPUTE;
+		case Horizon::PipelineType::RAY_TRACING:
+			return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+		default:
+			LOG_ERROR("invalid pipeline type");
+			return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		}
+		
+	}
+
 	enum class DescriptorType
 	{
 		DESCRIPTOR_TYPE_UNIFORM_BUFFER = 0,

@@ -5,10 +5,13 @@
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
-#include "RHIVulkan.h"
-#include "VulkanCommandContext.h"
 
 #include <vulkan/vulkan.hpp>
+
+#include "RHIVulkan.h"
+#include "VulkanCommandContext.h"
+#include <runtime/function/rhi/vulkan/VulkanPipeline.h>
+
 
 namespace Horizon
 {
@@ -342,6 +345,11 @@ namespace Horizon
 			for (auto& context : m_command_context_map) {
 				context.second->Reset();
 			}
+		}
+
+		Pipeline* RHIVulkan::CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept
+		{
+			return new VulkanPipeline(m_vulkan.device, pipeline_create_info);
 		}
 	}
 }

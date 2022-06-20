@@ -2,6 +2,7 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandList.h>
+#include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 
 namespace Horizon {
 	namespace RHI {
@@ -243,13 +244,25 @@ namespace Horizon {
 				desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(), desc.image_memory_barriers.size(), image_memory_barriers.data());
 		}
 
-		void VulkanCommandList::BindPipeline(Pipeline& pipeline) noexcept
+		void VulkanCommandList::BindPipeline(Pipeline* pipeline) noexcept
 		{
-			m_type;
-			VkPipeline vk_pipeline = (VkPipeline)pipeline.GetHandle();
-			pipeline.GetType();
-			VkPipelineBindPoint bind_point;
-			vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline);
+			switch (pipeline->GetType())
+			{
+			case PipelineType::GRAPHICS:
+			case PipelineType::RAY_TRACING:
+				if (m_type != CommandQueueType::GRAPHICS) {
+					LOG_ERROR("command list type not correspond with pipeline type");
+				}
+			case PipelineType::COMPUTE:
+				if (m_type != CommandQueueType::COMPUTE) {
+					LOG_ERROR("command list type not correspond with pipeline type");
+				}
+			default:
+				break;
+			}
+			auto vk_pipeline = dynamic_cast<VulkanPipeline*>(pipeline);
+			VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
+			vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 		}
 
 		VulkanBuffer* VulkanCommandList::GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept

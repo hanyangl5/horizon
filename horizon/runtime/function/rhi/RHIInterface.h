@@ -38,10 +38,11 @@ namespace Horizon
 				u32 compile_flags,
 				std::string file_name) noexcept = 0;
 			// virtual void CreateRenderTarget() = 0;
-			// virtual void CreatePipeline() = 0;
+			virtual Pipeline* CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept = 0;
 			// virtual void CreateDescriptorSet() = 0;
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept = 0;
 			virtual void ResetCommandResources() noexcept = 0;
+
 		protected:
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;

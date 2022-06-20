@@ -33,7 +33,7 @@ namespace Horizon
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept = 0;
 
-            virtual void BindPipeline(Pipeline& pipeline) noexcept = 0;
+            virtual void BindPipeline(Pipeline* pipeline) noexcept = 0;
         protected:
 			bool is_recoring = false;
 			CommandQueueType m_type;

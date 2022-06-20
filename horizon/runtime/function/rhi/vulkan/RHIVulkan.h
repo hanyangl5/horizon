@@ -40,6 +40,8 @@ namespace Horizon
 				std::string file_name) noexcept override;
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept override;
 			virtual void ResetCommandResources() noexcept override;
+
+			virtual Pipeline* CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept override;
 		private:
 			void InitializeVulkanRenderer(const std::string &app_name) noexcept;
 			void CreateInstance(const std::string &app_name,

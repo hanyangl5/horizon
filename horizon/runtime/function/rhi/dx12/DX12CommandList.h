@@ -42,7 +42,7 @@ namespace Horizon
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
 
-            void BindPipeline(Pipeline& pipeline) noexcept override;
+            void BindPipeline(Pipeline* pipeline) noexcept override;
         private:
             DX12Buffer* GetStageBuffer(D3D12MA::Allocator* allocator, const BufferCreateInfo& buffer_create_info) noexcept;
         public:

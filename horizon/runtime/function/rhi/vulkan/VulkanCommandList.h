@@ -40,7 +40,7 @@ namespace Horizon
 
             virtual void InsertBarrier(const BarrierDesc& desc) noexcept override;
 
-            virtual void BindPipeline(Pipeline& pipeline) noexcept override;
+            virtual void BindPipeline(Pipeline* pipeline) noexcept override;
         private:
             VulkanBuffer* GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept;
         public:
