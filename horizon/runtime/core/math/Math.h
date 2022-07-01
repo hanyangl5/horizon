@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 
 namespace Horizon {
 

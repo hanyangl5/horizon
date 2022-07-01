@@ -6,7 +6,7 @@
 #include <dxc/dxcapi.h>
 #include <d3d12shader.h>
 
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/ShaderProgram.h>
 namespace Horizon
 {
@@ -16,12 +16,12 @@ namespace Horizon
 		DXIL
 	};
 
-	enum class ShaderTargetStage
-	{
-		vs,
-		ps,
-		cs
-	};
+	//enum class ShaderTargetStage
+	//{
+	//	vs,
+	//	ps,
+	//	cs
+	//};
 
 
 	class ShaderCompiler
@@ -31,7 +31,7 @@ namespace Horizon
 		~ShaderCompiler() noexcept;
 
 		IDxcBlob* CompileFromFile(ShaderTargetPlatform platform,
-			ShaderTargetStage stage,
+			ShaderType type,
 			const std::string& entry_point,
 			u32 compile_flags,
 			std::string file_name) noexcept;

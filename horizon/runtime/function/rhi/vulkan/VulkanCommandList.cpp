@@ -97,7 +97,7 @@ namespace Horizon {
 				return;
 			}
 
-			//vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
+			vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 		}
 		void VulkanCommandList::DispatchIndirect() noexcept {
 			if (!is_recoring) {

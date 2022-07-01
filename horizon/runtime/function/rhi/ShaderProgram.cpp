@@ -2,28 +2,16 @@
 
 namespace Horizon::RHI {
 
-
-	ShaderProgram::ShaderProgram(IDxcBlob* dxil_byte_code) noexcept : shader_byte_code(dxil_byte_code)
-	{
-		shader_byte_code = dxil_byte_code;
-	}
-
-	ShaderProgram::ShaderProgram(VkShaderModule vk_shader_module) noexcept : shader_module(vk_shader_module)
-	{
-
-	}
-
-	ShaderProgram::~ShaderProgram() noexcept
+	ShaderProgram::ShaderProgram(ShaderType type, const std::string& entry_point) noexcept :m_type(type), m_entry_point(entry_point)
 	{
 	}
 
-	void* ShaderProgram::GetBufferPointer() const noexcept
+	ShaderType ShaderProgram::GetType() const noexcept
 	{
-		return shader_byte_code->GetBufferPointer();
+		return m_type;
 	}
-
-	u64 ShaderProgram::GetBufferSize() const noexcept
+	const std::string& ShaderProgram::GetEntryPoint() const noexcept
 	{
-		return shader_byte_code->GetBufferSize();
+		return m_entry_point;
 	}
 }

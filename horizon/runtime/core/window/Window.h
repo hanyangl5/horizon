@@ -17,7 +17,7 @@
 #include <GLFW/glfw3native.h>
 #endif
 
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 
 namespace Horizon
 {

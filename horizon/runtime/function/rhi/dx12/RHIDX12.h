@@ -6,7 +6,7 @@
 #include <third_party/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
 
 #include <runtime/core/log/Log.h>
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Pipeline.h>
@@ -36,7 +36,9 @@ namespace Horizon
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
 
-			virtual ShaderProgram* CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept override;
+			virtual ShaderProgram* CreateShaderProgram(ShaderType type, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept override;
+
+			virtual void DestroyShaderProgram(ShaderProgram* shader_program) noexcept override;
 
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept override;
 
@@ -44,7 +46,7 @@ namespace Horizon
 
 			virtual Pipeline* CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept override;
 			// submit command list to command queue
-			virtual void SubmitCommandList(CommandList** command_list) noexcept override;
+			virtual void SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList*>& command_lists)  noexcept override;
 		private:
 			void InitializeDX12Renderer() noexcept;
 			void CreateFactory() noexcept;

@@ -22,4 +22,5 @@ namespace Horizon {
 	using f64 = double;
 
 #define USE_ASYNC_COMPUTE_TRANSFER 1
+#define RENDERDOC_ENABLED 1
 }

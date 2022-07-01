@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include "dx12/stdafx.h"
 
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
 
@@ -20,8 +20,8 @@ namespace Horizon
 	{
 		GRAPHICS = 0, COMPUTE, TRANSFER
 	};
-	
-		
+
+
 	//class CommandQueue {
 	//public:
 	//    CommandQueueType m_type;
@@ -39,7 +39,7 @@ namespace Horizon
 			return D3D12_COMMAND_LIST_TYPE_COPY;
 		default:
 			LOG_ERROR("invalid command queue type")
-			return {};
+				return {};
 		}
 	}
 
@@ -72,7 +72,7 @@ namespace Horizon
 			LOG_ERROR("invalid pipeline type");
 			return VK_PIPELINE_BIND_POINT_GRAPHICS;
 		}
-		
+
 	}
 
 	enum class DescriptorType
@@ -261,7 +261,7 @@ namespace Horizon
 	enum TextureUsage
 	{
 		TEXTURE_USAGE_R = 1,
-		TEXTURE_USAGE_RW =2
+		TEXTURE_USAGE_RW = 2
 	};
 
 	inline VkDescriptorType ToVkDescriptorType(DescriptorType type) noexcept
@@ -284,11 +284,13 @@ namespace Horizon
 		}
 	}
 
-	inline VkPipelineStageFlags ToVkPipelineStage(u32 flags) {
+	inline VkPipelineStageFlags ToVkPipelineStage(u32 flags) noexcept
+	{
 		return flags;
 	}
 
-	inline VkAccessFlags ToVkMemoryAccessFlags(u32 flags) {
+	inline VkAccessFlags ToVkMemoryAccessFlags(u32 flags) noexcept
+	{
 		return flags;
 	}
 
@@ -314,7 +316,7 @@ namespace Horizon
 		return flags;
 	}
 
-	inline VkImageType ToVkImageType(TextureType type)
+	inline VkImageType ToVkImageType(TextureType type) noexcept
 	{
 		switch (type)
 		{
@@ -330,7 +332,7 @@ namespace Horizon
 		}
 	}
 
-	inline VkFormat ToVkImageFormat(TextureFormat format)
+	inline VkFormat ToVkImageFormat(TextureFormat format) noexcept
 	{
 		switch (format)
 		{
@@ -422,7 +424,7 @@ namespace Horizon
 		}
 	}
 
-	inline VkImageUsageFlags ToVkImageUsage(u32 usage)
+	inline VkImageUsageFlags ToVkImageUsage(u32 usage) noexcept
 	{
 		VkImageUsageFlags flags = 0;
 		if (usage & TextureUsage::TEXTURE_USAGE_R) {
@@ -440,7 +442,8 @@ namespace Horizon
 		return flags;
 	}
 
-	inline VkImageLayout ToVkImageLayout(TextureUsage usage) {
+	inline VkImageLayout ToVkImageLayout(TextureUsage usage) noexcept
+	{
 		switch (usage)
 		{
 		case Horizon::TEXTURE_USAGE_R:
@@ -466,18 +469,21 @@ namespace Horizon
 		BUFFER_USAGE_DYNAMIC_UPDATE = 64
 	};
 
-	enum class MemoryFlag {
+	enum class MemoryFlag 
+	{
 		DEDICATE_GPU_MEMORY,
 		CPU_VISABLE_MEMORY
 	};
 
-	struct BufferCreateInfo {
+	struct BufferCreateInfo 
+	{
 		u32 buffer_usage_flags;
 		u64 size;
 		//void* data;
 	};
 
-	inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) {
+	inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) noexcept
+	{
 		VkBufferUsageFlags flags = 0;
 		if (buffer_usage & BUFFER_USAGE_VERTEX_BUFFER) {
 			flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -491,7 +497,6 @@ namespace Horizon
 		if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
 			flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		}
-
 		if (buffer_usage & BUFFER_USAGE_TRANSFER_SRC) {
 			flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		}
@@ -503,11 +508,13 @@ namespace Horizon
 		return flags;
 	}
 
-	inline u32 UsageToPipelineStage(u32 buffer_usage){
-		
+	inline u32 UsageToPipelineStage(u32 buffer_usage) noexcept 
+	{
+
 	}
 
-	inline D3D12_RESOURCE_FLAGS ToDX12BufferUsage(u32 buffer_usage) {
+	inline D3D12_RESOURCE_FLAGS ToDX12BufferUsage(u32 buffer_usage) noexcept 
+	{
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 		if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
 			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -515,14 +522,16 @@ namespace Horizon
 		return flags;
 	}
 
-	struct TextureCreateInfo {
+	struct TextureCreateInfo 
+	{
 		TextureType texture_type;
 		TextureFormat texture_format;
 		TextureUsage texture_usage;
 		u32 width, height, depth = 1;
 	};
 
-	inline DXGI_FORMAT ToDx12TextureFormat(TextureFormat format) {
+	inline DXGI_FORMAT ToDx12TextureFormat(TextureFormat format) 
+	{
 		switch (format)
 		{
 		case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UINT:
@@ -639,7 +648,8 @@ namespace Horizon
 		return DXGI_FORMAT_R8G8B8A8_UNORM;
 	}
 
-	inline D3D12_RESOURCE_DIMENSION ToDX12TextureDimension(TextureType type) {
+	inline D3D12_RESOURCE_DIMENSION ToDX12TextureDimension(TextureType type) 
+	{
 		switch (type)
 		{
 		case Horizon::TextureType::TEXTURE_TYPE_1D:
@@ -658,7 +668,8 @@ namespace Horizon
 		}
 	}
 
-	inline D3D12_RESOURCE_FLAGS ToDX12TextureUsage(TextureUsage usage) {
+	inline D3D12_RESOURCE_FLAGS ToDX12TextureUsage(TextureUsage usage) noexcept 
+	{
 		switch (usage)
 		{
 		case Horizon::TEXTURE_USAGE_R:

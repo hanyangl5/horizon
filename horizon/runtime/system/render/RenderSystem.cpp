@@ -22,7 +22,6 @@ namespace Horizon
 		//RenderBackend backend = RenderBackend::RENDER_BACKEND_DX12;
 
 		InitializeRenderAPI(backend);
-
 	}
 
 	RenderSystem::~RenderSystem() noexcept
@@ -44,7 +43,11 @@ namespace Horizon
 
 	void RenderSystem::Update() noexcept
 	{
-		RunRenderTest();
+		//for (size_t i = 0; i < 100; i++)
+		{
+			RunRenderTest();
+		}
+		
 	}
 
 	void RenderSystem::Render() noexcept

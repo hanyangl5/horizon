@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 
 #include <runtime/core/singleton/public_singleton.h>
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 
 namespace Horizon
 {

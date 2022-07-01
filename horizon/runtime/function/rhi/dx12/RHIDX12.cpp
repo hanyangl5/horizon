@@ -80,11 +80,23 @@ namespace Horizon
 			m_current_frame_index = m_dx12.swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		ShaderProgram* RHIDX12::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
+		ShaderProgram* RHIDX12::CreateShaderProgram(ShaderType type, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
 		{
-			auto dxil_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::DXIL, stage, entry_point, compile_flags, file_name);
+			auto dxil_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::DXIL, type, entry_point, compile_flags, file_name);
 			
-			return new ShaderProgram(dxil_blob);
+			// TODO: DX12 shader program
+			return new ShaderProgram(type, entry_point);
+		}
+
+		void RHIDX12::DestroyShaderProgram(ShaderProgram* shader_program) noexcept
+		{
+			if (shader_program) {
+				delete shader_program;
+			}
+			else 
+			{
+				LOG_WARN("shader program is uninitialized or deleted");
+			}
 		}
 
 		CommandList* RHIDX12::GetCommandList(CommandQueueType type) noexcept
@@ -111,7 +123,7 @@ namespace Horizon
 			return nullptr;
 		}
 
-		void RHIDX12::SubmitCommandList(CommandList** command_list) noexcept
+		void RHIDX12::SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList*>& command_lists)  noexcept
 		{
 			// submit command lists
 			// for (auto& command_list : *command_list) {

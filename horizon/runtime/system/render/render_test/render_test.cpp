@@ -1,4 +1,5 @@
 #include "../RenderSystem.h"
+#include <runtime/core/utils/renderdoc/RenderDoc.h>
 
 namespace Horizon {
 
@@ -110,7 +111,7 @@ namespace Horizon {
 
 			auto compute = m_render_api->GetCommandList(CommandQueueType::COMPUTE);
 			compute->BeginRecording();
-			compute->Dispatch(1, 1, 1);
+			//compute->Dispatch(1, 1, 1);
 			compute->EndRecording();
 
 
@@ -125,11 +126,12 @@ namespace Horizon {
 
 		int a = 0;
 
-		// shader complition
+		// shader compiation
 		{
-			std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/assets/shaders/hlsl/shader.hlsl";
-			auto shader_program = m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
+			std::string file_name = "D:/codes/horizon/assets/shaders/hlsl/shader.hlsl";
+			auto shader_program = m_render_api->CreateShaderProgram(ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
 
+			m_render_api->DestroyShaderProgram(shader_program);
 
 			// destroy
 		}
@@ -137,20 +139,26 @@ namespace Horizon {
 		// pipeline
 
 		{
+			RDC::StartFrameCapture();
 			static bool create_ed = false;
 			static ShaderProgram* shader = nullptr;
 			static Pipeline* pipeline = nullptr;
 			if (!create_ed) {
 				create_ed = true;
-				std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/assets/shaders/hlsl/shader.hlsl";
-				shader = m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
-			
+				std::string file_name = "D:/codes/horizon/assets/shaders/hlsl/cs.hlsl";
+				shader = m_render_api->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name); // TODO: shader resource release
+				pipeline = m_render_api->CreatePipeline(PipelineCreateInfo{PipelineType::COMPUTE});
+				
 			}
 			auto cl = m_render_api->GetCommandList(CommandQueueType::COMPUTE);
 			pipeline->SetShader(shader);
+			cl->BeginRecording();
 			cl->BindPipeline(pipeline);
 			cl->Dispatch(1,1,1);
-			m_render_api->SubmitCommandList(&cl);
+			cl->EndRecording();
+
+			m_render_api->SubmitCommandLists(COMPUTE, std::vector{ cl });
+			RDC::EndFrameCapture();
 		}
 	}
 

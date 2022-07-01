@@ -31,7 +31,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 
 namespace Horizon
 {

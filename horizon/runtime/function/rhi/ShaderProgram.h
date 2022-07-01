@@ -1,24 +1,22 @@
 #pragma once
 
+#include <string>
+
 #include <runtime/function/rhi/RHIUtils.h>
-#include <dxc/dxcapi.h>
-#include <d3d12shader.h>
+
 namespace Horizon::RHI {	
 	class ShaderProgram {
 	public:
-		ShaderProgram(IDxcBlob* dxil_byte_code) noexcept;
-		ShaderProgram(VkShaderModule vk_shader_module) noexcept;
-		~ShaderProgram() noexcept;
-		void* GetBufferPointer() const noexcept;
-		u64 GetBufferSize() const noexcept;
-		ShaderType GetType() const noexcept {
-			return m_type;
-		}
+		//ShaderProgram(ShaderType type, IDxcBlob* dxil_byte_code) noexcept;
+		ShaderProgram(ShaderType type, const std::string& entry_point) noexcept;
+		virtual ~ShaderProgram() noexcept = default;
+		//virtual void* GetBufferPointer() const noexcept = 0;
+		//virtual u64 GetBufferSize() const noexcept = 0;
+		ShaderType GetType() const noexcept;
+		const std::string& GetEntryPoint() const noexcept;
 	private:
-		ShaderType m_type;
-	//private:
-		IDxcBlob* shader_byte_code;
-		VkShaderModule shader_module;
+		const ShaderType m_type;
+		std::string m_entry_point;
 	};
 
 }

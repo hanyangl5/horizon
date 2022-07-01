@@ -1,8 +1,10 @@
 #pragma once
 
+#include <vector>
 #include <memory>
 #include <unordered_map>
 #include <thread>
+
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Texture.h>
@@ -33,10 +35,11 @@ namespace Horizon
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept = 0;
 
 			virtual ShaderProgram* CreateShaderProgram(
-				ShaderTargetStage stage,
+				ShaderType type,
 				const std::string& entry_point,
 				u32 compile_flags,
 				std::string file_name) noexcept = 0;
+			virtual void DestroyShaderProgram(ShaderProgram* shader_program) noexcept = 0;
 			// virtual void CreateRenderTarget() = 0;
 			virtual Pipeline* CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept = 0;
 			// virtual void CreateDescriptorSet() = 0;
@@ -44,7 +47,7 @@ namespace Horizon
 			virtual void ResetCommandResources() noexcept = 0;
 
 			// submit command list to command queue
-			virtual void SubmitCommandList(CommandList** command_list) noexcept = 0;
+			virtual void SubmitCommandLists(CommandQueueType queue, std::vector<CommandList*>& command_lists) noexcept = 0;
 		protected:
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;

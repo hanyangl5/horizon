@@ -23,7 +23,6 @@ namespace Horizon
 			VkDevice m_device;
 			VkPipeline m_pipeline;
 			VkPipelineLayout m_pipeline_layout;
-			const PipelineCreateInfo& m_create_info;
 			const VulkanDescriptor* m_descriptor;
 		};
 

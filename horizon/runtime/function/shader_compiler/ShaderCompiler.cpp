@@ -4,7 +4,7 @@
 
 #include "ShaderCompiler.h"
 #include <runtime/core/log/Log.h>
-#include <runtime/core/utils/definations.h>
+#include <runtime/core/utils/Definations.h>
 
 namespace Horizon
 {
@@ -23,9 +23,9 @@ namespace Horizon
 		DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler));
 	}
 
-	IDxcBlob* ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform, ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
+	IDxcBlob* ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform, ShaderType type, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
 	{
-
+		
 		// read source file
 		IDxcBlobEncoding* source_file = nullptr;
 		idxc_utils->LoadFile(std::wstring(file_name.begin(), file_name.end()).c_str(), nullptr, &source_file);
@@ -37,22 +37,46 @@ namespace Horizon
 
 		IDxcIncludeHandler* pIncludeHandler;
 		idxc_utils->CreateDefaultIncludeHandler(&pIncludeHandler);
-
+		
 		// fill compile args
 		std::vector<LPCWSTR> compile_args;
 
-		compile_args.push_back(L"-T vs_6_0");
-		compile_args.push_back(L"-E vs_main");
+		std::string typestr;
+		switch (type)
+		{
+		case Horizon::ShaderType::VERTEX_SHADER:
+			typestr = "vs";
+			break;
+		case Horizon::ShaderType::PIXEL_SHADER:
+			typestr = "ps";
+			break;
+		case Horizon::ShaderType::COMPUTE_SHADER:
+			typestr = "cs";
+			break;
+		case Horizon::ShaderType::GEOMETRY_SHADER:
+			typestr = "gs";
+			break;
+		default:
+			break;
+		}
+
+		auto tp = "-T " + typestr + "_6_0";
+		auto ep = "-E " + entry_point;
+
+		std::wstring wtp(tp.begin(), tp.end());
+		std::wstring wep(ep.begin(), ep.end());
+
+		compile_args.emplace_back(wep.c_str());
+		compile_args.emplace_back(wtp.c_str());
 
 		if (platform == ShaderTargetPlatform::SPIRV)
 		{
-			compile_args.push_back(L"-spirv");
+			compile_args.emplace_back(L"-spirv");
 		}
 
 		// compile
 		IDxcResult* compile_result;
 		CHECK_DX_RESULT(idxc_compiler->Compile(&source_buffer, compile_args.data(), compile_args.size(), nullptr, IID_PPV_ARGS(&compile_result)));
-		
 		IDxcBlobUtf8* error_msg;
 		compile_result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&error_msg), nullptr);
 
@@ -64,6 +88,14 @@ namespace Horizon
 
 		IDxcBlob* result_code;
 		compile_result->GetResult(&result_code);
+
+		{
+			error_msg->Release();
+			compile_result->Release();
+			source_file->Release();
+			pIncludeHandler->Release();
+		}
+
 		return result_code;
 	}
 

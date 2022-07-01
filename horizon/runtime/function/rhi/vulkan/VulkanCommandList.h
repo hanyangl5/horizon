@@ -45,8 +45,8 @@ namespace Horizon
         private:
             VulkanBuffer* GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo& buffer_create_info) noexcept;
         public:
-            VkCommandBuffer m_command_buffer;
-            VulkanBuffer* m_stage_buffer = nullptr;
+            VkCommandBuffer m_command_buffer; // TODO: release command buffer
+            VulkanBuffer* m_stage_buffer = nullptr; // TODO: release stage buffer
         };
 
     }

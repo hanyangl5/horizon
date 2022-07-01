@@ -1,13 +1,13 @@
 #include "VulkanPipeline.h"
-
+#include "VulkanShaderProgram.h"
 namespace Horizon::RHI
 {
 
 
 	VulkanPipeline::VulkanPipeline(VkDevice device, const PipelineCreateInfo& pipeline_create_info, VulkanDescriptor* descriptor)
-		noexcept :m_device(device), m_create_info(pipeline_create_info), m_descriptor(descriptor)
+		noexcept :m_device(device), m_descriptor(descriptor)
 	{
-
+		m_type = pipeline_create_info.type;
 	}
 
 	VulkanPipeline::~VulkanPipeline() noexcept
@@ -21,20 +21,25 @@ namespace Horizon::RHI
 		VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
 		pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipeline_layout_create_info.setLayoutCount = static_cast<u32>(m_descriptor->m_set_layouts.size());
-		pipeline_layout_create_info.pSetLayouts = m_descriptor->m_set_layouts.data();
+		//pipeline_layout_create_info.setLayoutCount = static_cast<u32>(m_descriptor->m_set_layouts.size());
+		//pipeline_layout_create_info.pSetLayouts = m_descriptor->m_set_layouts.data();
+		pipeline_layout_create_info.setLayoutCount = 0;
+		pipeline_layout_create_info.pSetLayouts = nullptr;
 		vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout);
 
 
-		switch (m_create_info.type)
+		switch (m_type)
 		{
 		case PipelineType::COMPUTE:
 			CreateComputePipeline();
+			break;
 		case PipelineType::GRAPHICS:
 			CreateGraphicsPipeline();
+			break;
 		case PipelineType::RAY_TRACING:
 			//VkRayTracingPipelineCreateInfoKHR r	t_pipeline_create_info{};
 			//vkCreateRayTracingPipelinesKHR();
+			break;
 		default:
 			break;
 		}
@@ -46,10 +51,10 @@ namespace Horizon::RHI
 		case ShaderType::VERTEX_SHADER:
 		case ShaderType::GEOMETRY_SHADER:
 		case ShaderType::PIXEL_SHADER:
-			assert(m_create_info.type == PipelineType::GRAPHICS);
+			assert(m_type == PipelineType::GRAPHICS);
 			//return;
 		case ShaderType::COMPUTE_SHADER:
-			assert(m_create_info.type == PipelineType::COMPUTE);
+			assert(m_type == PipelineType::COMPUTE);
 			//return;
 
 		}
@@ -65,15 +70,17 @@ namespace Horizon::RHI
 	}
 	void VulkanPipeline::CreateComputePipeline() noexcept
 	{
-		if (shader_map[ShaderType::COMPUTE_SHADER]) {
+		if (!shader_map[ShaderType::COMPUTE_SHADER]) {
 			LOG_ERROR("missing shader: compute shader");
+			return;
 		}
-
+		auto cs = dynamic_cast<VulkanShaderProgram*>(shader_map[ShaderType::COMPUTE_SHADER]);
 		VkPipelineShaderStageCreateInfo shader_stage_create_info{};
 		shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-		shader_stage_create_info.module = static_cast<VkShaderModule>(shader_map[ShaderType::COMPUTE_SHADER]->GetBufferPointer());
-		shader_stage_create_info.pName = "main";
+		shader_stage_create_info.module = cs->m_shader_module;
+		shader_stage_create_info.pName = cs->GetEntryPoint().c_str();
+		
 
 		VkComputePipelineCreateInfo compute_pipeline_create_info{};
 
@@ -84,7 +91,7 @@ namespace Horizon::RHI
 		compute_pipeline_create_info.basePipelineHandle = nullptr;
 		compute_pipeline_create_info.basePipelineIndex = 0;
 		vkCreateComputePipelines(m_device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline);
-
+		
 
 	}
 }

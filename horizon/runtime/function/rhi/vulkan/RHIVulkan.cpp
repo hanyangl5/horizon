@@ -10,6 +10,7 @@
 
 #include "RHIVulkan.h"
 #include "VulkanCommandContext.h"
+#include "VulkanShaderProgram.h"
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 
 
@@ -39,7 +40,7 @@ namespace Horizon
 
 		Buffer* RHIVulkan::CreateBuffer(const BufferCreateInfo& buffer_create_info) noexcept
 		{
-			BufferCreateInfo create_info;
+			BufferCreateInfo create_info{};
 			create_info.size = buffer_create_info.size;
 			create_info.buffer_usage_flags = buffer_create_info.buffer_usage_flags | BufferUsage::BUFFER_USAGE_TRANSFER_DST;
 
@@ -54,7 +55,7 @@ namespace Horizon
 				buffer = nullptr;
 			}
 			else {
-				LOG_WARN("buffer is uninitialized or delted");
+				LOG_WARN("buffer is uninitialized or deleted");
 			}
 		}
 
@@ -71,7 +72,7 @@ namespace Horizon
 				texture = nullptr;
 			}
 			else {
-				LOG_WARN("texture is uninitialized or delted");
+				LOG_WARN("texture is uninitialized or deleted");
 			}
 		}
 
@@ -135,16 +136,23 @@ namespace Horizon
 				CHECK_VK_RESULT(vkCreateImageView(m_vulkan.device, &image_view_create_info, nullptr, &m_vulkan.swap_chain_image_views[i]));
 			}
 		}
-		ShaderProgram* RHIVulkan::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
+
+		ShaderProgram* RHIVulkan::CreateShaderProgram(ShaderType type, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
 		{
-			auto spirv_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::SPIRV, stage, entry_point, compile_flags, file_name);
-			VkShaderModule shader_module;
-			VkShaderModuleCreateInfo shader_module_create_info{};
-			shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			shader_module_create_info.codeSize = spirv_blob->GetBufferSize();
-			shader_module_create_info.pCode = (uint32_t*)spirv_blob->GetBufferPointer();
-			vkCreateShaderModule(m_vulkan.device, &shader_module_create_info, nullptr, &shader_module);
-			return new ShaderProgram(shader_module);
+			auto spirv_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::SPIRV, type, entry_point, compile_flags, file_name);
+
+			return new VulkanShaderProgram(m_vulkan.device, type, entry_point, spirv_blob);
+		}
+
+		void RHIVulkan::DestroyShaderProgram(ShaderProgram* shader_program) noexcept
+		{
+			if (shader_program) {
+				delete shader_program;
+			}
+			else 
+			{
+				LOG_WARN("shader program is uninitialized or deleted");
+			}
 		}
 
 		void RHIVulkan::InitializeVulkanRenderer(const std::string& app_name) noexcept
@@ -215,9 +223,9 @@ namespace Horizon
 
 			// pick gpu
 
-			u32 graphics_queue_family_index;
-			u32 compute_queue_family_index;
-			u32 transfer_queue_family_index;
+			u32 graphics_queue_family_index{};
+			u32 compute_queue_family_index{};
+			u32 transfer_queue_family_index{};
 
 			for (const auto& physical_device : physical_devices)
 			{
@@ -342,25 +350,33 @@ namespace Horizon
 			vkDestroySwapchainKHR(m_vulkan.device, m_vulkan.swap_chain, nullptr);
 		}
 
-		void RHIVulkan::SubmitCommandList(CommandList** command_list) noexcept
+		void RHIVulkan::SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList*>& command_lists) noexcept
 		{
-			// // submit command buffers
-			// VkCommandBufferBeginInfo begin_info{};
-			// begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			// begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-			// begin_info.pInheritanceInfo = nullptr;
-			// vkBeginCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS], &begin_info);
-			// for (auto command_list : *command_list)
-			// {
-			// 	command_list->Execute(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
-			// }
-			// vkEndCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
-			// VkSubmitInfo submit_info{};
-			// submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			// submit_info.commandBufferCount = 1;
-			// submit_info.pCommandBuffers = &m_vulkan.command_buffers[CommandQueueType::GRAPHICS];
-			// vkQueueSubmit(m_vulkan.command_queues[CommandQueueType::GRAPHICS], 1, &submit_info, VK_NULL_HANDLE);
-			// vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
+			 // submit command buffers
+			 //VkCommandBufferBeginInfo begin_info{};
+			 //begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			 //begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			 //begin_info.pInheritanceInfo = nullptr;
+
+			 //vkBeginCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS], &begin_info);
+			 //for (auto command_list : *command_list)
+			 //{
+			 //	command_list->Execute(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
+			 //}
+			 //vkEndCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
+
+			
+			std::vector<VkCommandBuffer> command_buffers(command_lists.size());
+			for (u32 i = 0; i < command_lists.size(); i++) {
+				command_buffers[i] = dynamic_cast<VulkanCommandList*>(command_lists[i])->m_command_buffer;
+			}
+				
+			 VkSubmitInfo submit_info{};
+			 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			 submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
+			 submit_info.pCommandBuffers = command_buffers.data();
+			 vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, VK_NULL_HANDLE);
+			 vkQueueWaitIdle(m_vulkan.command_queues[queue_type]);
 
 
 		}
