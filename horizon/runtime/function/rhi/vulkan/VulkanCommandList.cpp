@@ -262,6 +262,7 @@ namespace Horizon {
 			}
 			auto vk_pipeline = dynamic_cast<VulkanPipeline*>(pipeline);
 			VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
+			vk_pipeline->Create();
 			vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 		}
 

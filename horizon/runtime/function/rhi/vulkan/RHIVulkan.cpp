@@ -24,6 +24,7 @@ namespace Horizon
 
 		RHIVulkan::~RHIVulkan() noexcept
 		{
+			DestroySwapChain();
 			vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
 			vmaDestroyAllocator(m_vulkan.vma_allocator);
 			vkDestroyDevice(m_vulkan.device, nullptr);
@@ -36,7 +37,7 @@ namespace Horizon
 			InitializeVulkanRenderer("vulkan renderer");
 		}
 
-		Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept
+		Buffer* RHIVulkan::CreateBuffer(const BufferCreateInfo& buffer_create_info) noexcept
 		{
 			BufferCreateInfo create_info;
 			create_info.size = buffer_create_info.size;
@@ -45,29 +46,31 @@ namespace Horizon
 			return new VulkanBuffer(m_vulkan.vma_allocator, create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 		}
 
-		void RHIVulkan::DestroyBuffer(Buffer *buffer) noexcept
+		void RHIVulkan::DestroyBuffer(Buffer* buffer) noexcept
 		{
 			if (buffer)
 			{
 				delete buffer;
 				buffer = nullptr;
-			} else {
+			}
+			else {
 				LOG_WARN("buffer is uninitialized or delted");
 			}
 		}
 
-		Texture *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept
+		Texture* RHIVulkan::CreateTexture(const TextureCreateInfo& texture_create_info) noexcept
 		{
 			return new VulkanTexture(m_vulkan.vma_allocator, texture_create_info);
 		}
 
-		void RHIVulkan::DestroyTexture(Texture *texture) noexcept
+		void RHIVulkan::DestroyTexture(Texture* texture) noexcept
 		{
 			if (texture)
 			{
 				delete texture;
 				texture = nullptr;
-			} else {
+			}
+			else {
 				LOG_WARN("texture is uninitialized or delted");
 			}
 		}
@@ -98,7 +101,7 @@ namespace Horizon
 			swap_chain_create_info.minImageCount = m_back_buffer_count;
 			swap_chain_create_info.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 			swap_chain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-			swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
+			swap_chain_create_info.imageExtent = { window->GetWidth(), window->GetHeight() };
 			swap_chain_create_info.imageArrayLayers = 1;
 			swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
@@ -132,7 +135,7 @@ namespace Horizon
 				CHECK_VK_RESULT(vkCreateImageView(m_vulkan.device, &image_view_create_info, nullptr, &m_vulkan.swap_chain_image_views[i]));
 			}
 		}
-		ShaderProgram RHIVulkan::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
+		ShaderProgram* RHIVulkan::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
 		{
 			auto spirv_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::SPIRV, stage, entry_point, compile_flags, file_name);
 			VkShaderModule shader_module;
@@ -141,13 +144,14 @@ namespace Horizon
 			shader_module_create_info.codeSize = spirv_blob->GetBufferSize();
 			shader_module_create_info.pCode = (uint32_t*)spirv_blob->GetBufferPointer();
 			vkCreateShaderModule(m_vulkan.device, &shader_module_create_info, nullptr, &shader_module);
-			return ShaderProgram(shader_module);
+			return new ShaderProgram(shader_module);
 		}
+
 		void RHIVulkan::InitializeVulkanRenderer(const std::string& app_name) noexcept
 		{
-			std::vector<const char *> instance_layers;
-			std::vector<const char *> instance_extensions;
-			std::vector<const char *> device_extensions;
+			std::vector<const char*> instance_layers;
+			std::vector<const char*> instance_extensions;
+			std::vector<const char*> device_extensions;
 #ifndef NDEBUG
 			instance_layers.emplace_back("VK_LAYER_KHRONOS_validation");
 			instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -162,9 +166,9 @@ namespace Horizon
 			InitializeVMA();
 		}
 
-		void RHIVulkan::CreateInstance(const std::string &app_name,
-									   std::vector<const char *> &instance_layers,
-									   std::vector<const char *> &instance_extensions) noexcept
+		void RHIVulkan::CreateInstance(const std::string& app_name,
+			std::vector<const char*>& instance_layers,
+			std::vector<const char*>& instance_extensions) noexcept
 		{
 
 			u32 layer_count = 0, extension_count = 0;
@@ -197,7 +201,7 @@ namespace Horizon
 			CHECK_VK_RESULT(vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
 		}
 
-		void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept
+		void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice* gpu) noexcept
 		{
 			u32 device_count = 0;
 			std::vector<VkPhysicalDevice> physical_devices;
@@ -215,7 +219,7 @@ namespace Horizon
 			u32 compute_queue_family_index;
 			u32 transfer_queue_family_index;
 
-			for (const auto &physical_device : physical_devices)
+			for (const auto& physical_device : physical_devices)
 			{
 				u32 queue_family_count = 0;
 				vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr); // Get count
@@ -262,7 +266,7 @@ namespace Horizon
 
 		}
 
-		void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) noexcept
+		void RHIVulkan::CreateDevice(std::vector<const char*>& device_extensions) noexcept
 		{
 
 			PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
@@ -271,7 +275,7 @@ namespace Horizon
 
 			f32 queue_priority = 1.0f;
 
-			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, CommandQueueType::GRAPHICS, 1, &queue_priority});
+			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, CommandQueueType::GRAPHICS, 1, &queue_priority });
 #ifdef USE_ASYNC_COMPUTE_TRANSFER
 			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, CommandQueueType::COMPUTE, 1, &queue_priority });
 			device_queue_create_info.emplace_back(VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, CommandQueueType::TRANSFER, 1, &queue_priority });
@@ -320,13 +324,45 @@ namespace Horizon
 			vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
 			vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-			VmaAllocatorCreateInfo vma_create_info = {0};
+			VmaAllocatorCreateInfo vma_create_info = { 0 };
 			vma_create_info.device = m_vulkan.device;
 			vma_create_info.physicalDevice = m_vulkan.active_gpu;
 			vma_create_info.instance = m_vulkan.instance;
 			vma_create_info.pVulkanFunctions = &vulkan_functions;
 			vma_create_info.vulkanApiVersion = VULKAN_API_VERSION;
 			vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator);
+		}
+
+		void RHIVulkan::DestroySwapChain() noexcept
+		{
+			for (u32 i = 0; i < m_vulkan.swap_chain_images.size(); i++) {
+				vkDestroyImageView(m_vulkan.device, m_vulkan.swap_chain_image_views[i], nullptr);
+				//vkDestroyImage(m_vulkan.device, m_vulkan.swap_chain_images[i], nullptr);
+			}
+			vkDestroySwapchainKHR(m_vulkan.device, m_vulkan.swap_chain, nullptr);
+		}
+
+		void RHIVulkan::SubmitCommandList(CommandList** command_list) noexcept
+		{
+			// // submit command buffers
+			// VkCommandBufferBeginInfo begin_info{};
+			// begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			// begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			// begin_info.pInheritanceInfo = nullptr;
+			// vkBeginCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS], &begin_info);
+			// for (auto command_list : *command_list)
+			// {
+			// 	command_list->Execute(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
+			// }
+			// vkEndCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
+			// VkSubmitInfo submit_info{};
+			// submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			// submit_info.commandBufferCount = 1;
+			// submit_info.pCommandBuffers = &m_vulkan.command_buffers[CommandQueueType::GRAPHICS];
+			// vkQueueSubmit(m_vulkan.command_queues[CommandQueueType::GRAPHICS], 1, &submit_info, VK_NULL_HANDLE);
+			// vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
+
+
 		}
 
 		CommandList* RHIVulkan::GetCommandList(CommandQueueType type) noexcept
@@ -349,7 +385,11 @@ namespace Horizon
 
 		Pipeline* RHIVulkan::CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept
 		{
-			return new VulkanPipeline(m_vulkan.device, pipeline_create_info);
+			if (!m_descriptor) {
+				m_descriptor = new VulkanDescriptor(m_vulkan.device);
+				m_descriptor->AllocateDescriptors();
+			}
+			return new VulkanPipeline(m_vulkan.device, pipeline_create_info, m_descriptor);
 		}
 	}
 }

@@ -12,6 +12,7 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
 
 namespace Horizon
 {
@@ -25,15 +26,15 @@ namespace Horizon
 
 			virtual void InitializeRenderer() noexcept override;
 
-			virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept override;
-			virtual void DestroyBuffer(Buffer *buffer) noexcept override;
+			virtual Buffer* CreateBuffer(const BufferCreateInfo& buffer_create_info) noexcept override;
+			virtual void DestroyBuffer(Buffer* buffer) noexcept override;
 
-			virtual Texture *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept override;
-			virtual void DestroyTexture(Texture *texture) noexcept override;
+			virtual Texture* CreateTexture(const TextureCreateInfo& texture_create_info) noexcept override;
+			virtual void DestroyTexture(Texture* texture) noexcept override;
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
-			
-			virtual ShaderProgram CreateShaderProgram(
+
+			virtual ShaderProgram* CreateShaderProgram(
 				ShaderTargetStage stage,
 				const std::string& entry_point,
 				u32 compile_flags,
@@ -43,13 +44,18 @@ namespace Horizon
 
 			virtual Pipeline* CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept override;
 		private:
-			void InitializeVulkanRenderer(const std::string &app_name) noexcept;
-			void CreateInstance(const std::string &app_name,
-								std::vector<const char *> &instance_layers,
-								std::vector<const char *> &instance_extensions) noexcept;
-			void PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept;
-			void CreateDevice(std::vector<const char *> &device_extensions) noexcept;
+			void InitializeVulkanRenderer(const std::string& app_name) noexcept;
+			void CreateInstance(const std::string& app_name,
+				std::vector<const char*>& instance_layers,
+				std::vector<const char*>& instance_extensions) noexcept;
+			void PickGPU(VkInstance instance, VkPhysicalDevice* gpu) noexcept;
+			void CreateDevice(std::vector<const char*>& device_extensions) noexcept;
 			void InitializeVMA() noexcept;
+
+			void DestroySwapChain() noexcept;
+
+			// submit command list to command queue
+			virtual void SubmitCommandList(CommandList** command_list) noexcept override;
 
 		private:
 
@@ -67,7 +73,8 @@ namespace Horizon
 				std::vector<VkImage> swap_chain_images;
 				std::vector<VkImageView> swap_chain_image_views;
 			} m_vulkan;
-			
+			VulkanDescriptor* m_descriptor = nullptr;
+
 		};
 	}
 

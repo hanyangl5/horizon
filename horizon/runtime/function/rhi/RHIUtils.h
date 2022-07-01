@@ -85,6 +85,15 @@ namespace Horizon
 
 	//using DescriptorType = u32;
 
+	enum class ShaderType {
+		VERTEX_SHADER,
+		PIXEL_SHADER,
+		COMPUTE_SHADER,
+		GEOMETRY_SHADER,
+		// ray tracing related shader
+	};
+
+
 	enum ShaderStageFlags
 	{
 		SHADER_STAGE_VERTEX_SHADER = 1,
@@ -445,25 +454,6 @@ namespace Horizon
 			break;
 		}
 	}
-
-	struct PushConstantRange
-	{
-		u32 stages;
-		u32 offset;
-		u32 size;
-		void* value = nullptr;
-	};
-
-	struct PushConstants
-	{
-		std::vector<PushConstantRange> ranges;
-	};
-
-	enum class PipelineType {
-		GRAPHICS,
-		COMPUTE,
-		RAYTRACING
-	};
 
 	enum BufferUsage
 	{

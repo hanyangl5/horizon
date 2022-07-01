@@ -80,11 +80,11 @@ namespace Horizon
 			m_current_frame_index = m_dx12.swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		ShaderProgram RHIDX12::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
+		ShaderProgram* RHIDX12::CreateShaderProgram(ShaderTargetStage stage, const std::string& entry_point, u32 compile_flags, std::string file_name) noexcept
 		{
 			auto dxil_blob = m_shader_compiler->CompileFromFile(ShaderTargetPlatform::DXIL, stage, entry_point, compile_flags, file_name);
 			
-			return ShaderProgram(dxil_blob);
+			return new ShaderProgram(dxil_blob);
 		}
 
 		CommandList* RHIDX12::GetCommandList(CommandQueueType type) noexcept
@@ -104,6 +104,21 @@ namespace Horizon
 			for (auto& context : m_command_context_map) {
 				context.second->Reset();
 			}
+		}
+
+		Pipeline* RHIDX12::CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept
+		{
+			return nullptr;
+		}
+
+		void RHIDX12::SubmitCommandList(CommandList** command_list) noexcept
+		{
+			// submit command lists
+			// for (auto& command_list : *command_list) {
+			// 	command_list->Submit();
+			// }
+
+
 		}
 
 		void RHIDX12::InitializeDX12Renderer() noexcept

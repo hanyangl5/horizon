@@ -96,13 +96,6 @@ namespace Horizon {
 		}
 
 
-		//// shader complition
-		{
-			//std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/assets/shaders/hlsl/shader.hlsl";
-			//m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
-			// destroy
-		}
-
 		// multithread command list recording
 		{
 
@@ -131,6 +124,34 @@ namespace Horizon {
 
 
 		int a = 0;
+
+		// shader complition
+		{
+			std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/assets/shaders/hlsl/shader.hlsl";
+			auto shader_program = m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
+
+
+			// destroy
+		}
+
+		// pipeline
+
+		{
+			static bool create_ed = false;
+			static ShaderProgram* shader = nullptr;
+			static Pipeline* pipeline = nullptr;
+			if (!create_ed) {
+				create_ed = true;
+				std::string file_name = "C:/Users/hylu/OneDrive/mycode/horizon/assets/shaders/hlsl/shader.hlsl";
+				shader = m_render_api->CreateShaderProgram(ShaderTargetStage::vs, "vs_main", 0, file_name);
+			
+			}
+			auto cl = m_render_api->GetCommandList(CommandQueueType::COMPUTE);
+			pipeline->SetShader(shader);
+			cl->BindPipeline(pipeline);
+			cl->Dispatch(1,1,1);
+			m_render_api->SubmitCommandList(&cl);
+		}
 	}
 
 }

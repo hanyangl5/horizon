@@ -59,7 +59,7 @@ namespace Horizon
 		template <typename... args>
 		inline void Fatal(args &&..._args) const noexcept
 		{
-			m_logger->fatal(std::forward<args>(_args)...);
+			//m_logger->fatal(std::forward<args>(_args)...);
 		}
 		void CheckVulkanResult(VkResult _res) const noexcept;
 

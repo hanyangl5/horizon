@@ -24,15 +24,15 @@ namespace Horizon
 
 			virtual void InitializeRenderer() noexcept = 0;
 
-			virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept = 0;
-			virtual void DestroyBuffer(Buffer *buffer) noexcept = 0;
+			virtual Buffer* CreateBuffer(const BufferCreateInfo& buffer_create_info) noexcept = 0;
+			virtual void DestroyBuffer(Buffer* buffer) noexcept = 0;
 
-			virtual Texture *CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
-			virtual void DestroyTexture(Texture *texture) noexcept = 0;
+			virtual Texture* CreateTexture(const TextureCreateInfo& texture_create_info) noexcept = 0;
+			virtual void DestroyTexture(Texture* texture) noexcept = 0;
 
 			virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept = 0;
 
-			virtual ShaderProgram CreateShaderProgram(
+			virtual ShaderProgram* CreateShaderProgram(
 				ShaderTargetStage stage,
 				const std::string& entry_point,
 				u32 compile_flags,
@@ -43,6 +43,8 @@ namespace Horizon
 			virtual CommandList* GetCommandList(CommandQueueType type) noexcept = 0;
 			virtual void ResetCommandResources() noexcept = 0;
 
+			// submit command list to command queue
+			virtual void SubmitCommandList(CommandList** command_list) noexcept = 0;
 		protected:
 			u32 m_back_buffer_count = 2;
 			u32 m_current_frame_index = 0;
@@ -50,7 +52,7 @@ namespace Horizon
 			// each thread has one command pool, 
 			std::unordered_map<std::thread::id, CommandContext*> m_command_context_map;
 		public:
-			std::unique_ptr<ThreadPool> m_thread_pool;
+			//std::unique_ptr<ThreadPool> m_thread_pool;
 		private:
 			std::shared_ptr<Window> m_window = nullptr;
 		};

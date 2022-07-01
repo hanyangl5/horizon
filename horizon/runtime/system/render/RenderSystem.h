@@ -13,6 +13,12 @@ namespace Horizon
 	class RenderSystem
 	{
 	public:
+		using Buffer = RHI::Buffer;
+		using Texture = RHI::Texture;
+		using ShaderProgram = RHI::ShaderProgram;
+		using Pipeline = RHI::Pipeline;
+		using CommandList = RHI::CommandList;
+	public:
 		RenderSystem(u32 width, u32 height, std::shared_ptr<Window> window) noexcept;
 
 		~RenderSystem() noexcept;

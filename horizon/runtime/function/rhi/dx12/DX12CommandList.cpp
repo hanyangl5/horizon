@@ -42,8 +42,8 @@ namespace Horizon {
 			}
 
 
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUDescriptorHandle;
-			D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUDescriptorHandle;
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUDescriptorHandle{};
+			D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUDescriptorHandle{};
 
 			const float clearColor4[]{ 0.f, 0.f, 0.f, 0.f };
 			CD3DX12_CLEAR_VALUE clearValue{ DXGI_FORMAT_R32G32B32_FLOAT, clearColor4 };

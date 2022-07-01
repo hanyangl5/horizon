@@ -7,7 +7,7 @@
 #include <d3d12shader.h>
 
 #include <runtime/core/utils/definations.h>
-
+#include <runtime/function/rhi/ShaderProgram.h>
 namespace Horizon
 {
 	enum class ShaderTargetPlatform
@@ -23,17 +23,6 @@ namespace Horizon
 		cs
 	};
 
-	class ShaderProgram {
-	public:
-		ShaderProgram(IDxcBlob* dxil_byte_code) noexcept;
-		ShaderProgram(VkShaderModule vk_shader_module) noexcept;
-		~ShaderProgram() noexcept;
-		void* GetBufferPointer() const noexcept;
-		u64 GetBufferSize() const noexcept;
-	//private:
-		IDxcBlob* shader_byte_code;
-		VkShaderModule shader_module;
-	};
 
 	class ShaderCompiler
 	{
