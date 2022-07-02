@@ -113,8 +113,8 @@ namespace Horizon
 
 		void RHIDX12::ResetCommandResources() noexcept
 		{
-			for (auto& context : m_command_context_map) {
-				context.second->Reset();
+			for (auto& [thread_id, context] : m_command_context_map) {
+				context->Reset();
 			}
 		}
 
@@ -126,6 +126,7 @@ namespace Horizon
 		void RHIDX12::SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList*>& command_lists)  noexcept
 		{
 			// submit command lists
+			// submit command lists
 			// for (auto& command_list : *command_list) {
 			// 	command_list->Submit();
 			// }
@@ -135,7 +136,6 @@ namespace Horizon
 
 		void RHIDX12::InitializeDX12Renderer() noexcept
 		{
-
 			CreateFactory();
 			CreateDevice();
 			InitializeD3DMA();

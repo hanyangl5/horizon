@@ -9,10 +9,11 @@ namespace Horizon::RHI {
 
 	VulkanDescriptor::~VulkanDescriptor()
 	{
+
 	}
+
 	void VulkanDescriptor::AllocateDescriptors() noexcept
 	{
-
 		// create descriptorpool
 		if (m_bindless_descriptor_pool == VK_NULL_HANDLE) {
 			std::vector<VkDescriptorPoolSize> pool_sizes = {
@@ -71,6 +72,12 @@ namespace Horizon::RHI {
 			set_info.pSetLayouts = &m_set_layouts[i];
 			CHECK_VK_RESULT(vkAllocateDescriptorSets(m_device, &set_info, &m_sets[i]));
 		}
+		
+
+	}
+	void VulkanDescriptor::ResetDescriptorPool() noexcept
+	{
+		vkResetDescriptorPool(m_device, m_bindless_descriptor_pool, 0);
 
 	}
 }

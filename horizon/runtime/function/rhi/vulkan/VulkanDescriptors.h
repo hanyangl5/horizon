@@ -11,7 +11,7 @@ namespace Horizon::RHI {
 		VulkanDescriptor(VkDevice device) noexcept;
 		~VulkanDescriptor() noexcept;
 		void AllocateDescriptors() noexcept;
-
+		void ResetDescriptorPool() noexcept;
 	public:
 		VkDevice m_device;
 		VkDescriptorPool m_bindless_descriptor_pool;

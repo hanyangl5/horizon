@@ -21,11 +21,11 @@ namespace Horizon::RHI
 		VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
 		pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		//pipeline_layout_create_info.setLayoutCount = static_cast<u32>(m_descriptor->m_set_layouts.size());
-		//pipeline_layout_create_info.pSetLayouts = m_descriptor->m_set_layouts.data();
-		pipeline_layout_create_info.setLayoutCount = 0;
-		pipeline_layout_create_info.pSetLayouts = nullptr;
-		vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout);
+		pipeline_layout_create_info.setLayoutCount = static_cast<u32>(m_descriptor->m_set_layouts.size());
+		pipeline_layout_create_info.pSetLayouts = m_descriptor->m_set_layouts.data();
+		//pipeline_layout_create_info.setLayoutCount = 0;
+		//pipeline_layout_create_info.pSetLayouts = nullptr;
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout));
 
 
 		switch (m_type)
@@ -66,7 +66,7 @@ namespace Horizon::RHI
 	{
 		VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
 
-		vkCreateGraphicsPipelines(m_device, nullptr, 1, &graphics_pipeline_create_info, nullptr, &m_pipeline);
+		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_device, nullptr, 1, &graphics_pipeline_create_info, nullptr, &m_pipeline));
 	}
 	void VulkanPipeline::CreateComputePipeline() noexcept
 	{
@@ -90,7 +90,7 @@ namespace Horizon::RHI
 		compute_pipeline_create_info.stage = shader_stage_create_info;
 		compute_pipeline_create_info.basePipelineHandle = nullptr;
 		compute_pipeline_create_info.basePipelineIndex = 0;
-		vkCreateComputePipelines(m_device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline);
+		CHECK_VK_RESULT(vkCreateComputePipelines(m_device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline));
 		
 
 	}

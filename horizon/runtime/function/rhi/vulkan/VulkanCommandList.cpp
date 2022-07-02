@@ -252,13 +252,18 @@ namespace Horizon {
 			case PipelineType::RAY_TRACING:
 				if (m_type != CommandQueueType::GRAPHICS) {
 					LOG_ERROR("command list type not correspond with pipeline type");
+					return;
 				}
+				break;
+
 			case PipelineType::COMPUTE:
 				if (m_type != CommandQueueType::COMPUTE) {
 					LOG_ERROR("command list type not correspond with pipeline type");
+					return;
 				}
-			default:
 				break;
+			default:
+				return;
 			}
 			auto vk_pipeline = dynamic_cast<VulkanPipeline*>(pipeline);
 			VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());

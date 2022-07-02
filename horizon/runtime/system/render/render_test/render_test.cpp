@@ -139,7 +139,6 @@ namespace Horizon {
 		// pipeline
 
 		{
-			RDC::StartFrameCapture();
 			static bool create_ed = false;
 			static ShaderProgram* shader = nullptr;
 			static Pipeline* pipeline = nullptr;
@@ -158,7 +157,6 @@ namespace Horizon {
 			cl->EndRecording();
 
 			m_render_api->SubmitCommandLists(COMPUTE, std::vector{ cl });
-			RDC::EndFrameCapture();
 		}
 	}
 

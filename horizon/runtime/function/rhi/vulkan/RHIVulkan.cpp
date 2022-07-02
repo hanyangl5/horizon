@@ -25,6 +25,10 @@ namespace Horizon
 
 		RHIVulkan::~RHIVulkan() noexcept
 		{
+			for (auto& [thread_id, context] : m_command_context_map) {
+				delete context;
+			}
+			delete m_global_descriptor;
 			DestroySwapChain();
 			vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
 			vmaDestroyAllocator(m_vulkan.vma_allocator);
@@ -384,7 +388,7 @@ namespace Horizon
 		CommandList* RHIVulkan::GetCommandList(CommandQueueType type) noexcept
 		{
 			auto key = std::this_thread::get_id();
-			;
+			
 			if (!m_command_context_map[key]) {
 				m_command_context_map[key] = new VulkanCommandContext(m_vulkan.device);
 			}
@@ -394,18 +398,18 @@ namespace Horizon
 		}
 
 		void RHIVulkan::ResetCommandResources() noexcept {
-			for (auto& context : m_command_context_map) {
-				context.second->Reset();
+			for (auto& [thred_id, context] : m_command_context_map) {
+				context->Reset();
 			}
 		}
-
+		
 		Pipeline* RHIVulkan::CreatePipeline(const PipelineCreateInfo& pipeline_create_info) noexcept
 		{
-			if (!m_descriptor) {
-				m_descriptor = new VulkanDescriptor(m_vulkan.device);
-				m_descriptor->AllocateDescriptors();
+			if (!m_global_descriptor) {
+				m_global_descriptor = new VulkanDescriptor(m_vulkan.device);
+				m_global_descriptor->AllocateDescriptors();
 			}
-			return new VulkanPipeline(m_vulkan.device, pipeline_create_info, m_descriptor);
+			return new VulkanPipeline(m_vulkan.device, pipeline_create_info, m_global_descriptor);
 		}
 	}
 }
