@@ -15,8 +15,8 @@ namespace Horizon::RHI {
 		//virtual u64 GetBufferSize() const noexcept override;
 
 	public:
-		VkShaderModule m_shader_module;
-		VkDevice m_device;
+		VkShaderModule m_shader_module{};
+		VkDevice m_device{};
 	};
 
 }

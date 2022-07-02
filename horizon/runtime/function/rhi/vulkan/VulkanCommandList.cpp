@@ -14,6 +14,7 @@ namespace Horizon {
 
 		VulkanCommandList::~VulkanCommandList() noexcept
 		{
+			delete m_stage_buffer;
 		}
 
 		void VulkanCommandList::BeginRecording() noexcept {
@@ -124,7 +125,8 @@ namespace Horizon {
 			assert(buffer->GetBufferSize() == size);
 
 			// cannot update static buffer more than once
-			bool& initialized = buffer->Initialized();
+			// TODO: refractor
+			bool& initialized{ buffer->Initialized() };
 			if (!(buffer->GetBufferUsage() & BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE) && !initialized) {
 				LOG_ERROR("buffer {} is a static buffer and is initialized", (void*)buffer);
 				return;

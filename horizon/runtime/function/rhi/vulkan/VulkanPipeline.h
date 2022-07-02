@@ -3,11 +3,8 @@
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/ShaderProgram.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
-namespace Horizon
-{
-	namespace RHI
-	{
 
+namespace Horizon::RHI {
 		class VulkanPipeline : public Pipeline
 		{
 		public:
@@ -20,11 +17,10 @@ namespace Horizon
 			void CreateComputePipeline() noexcept;
 			//void CreateRTPipeline() noexcept;
 		public:
-			VkDevice m_device;
-			VkPipeline m_pipeline;
-			VkPipelineLayout m_pipeline_layout;
-			const VulkanDescriptor* m_descriptor;
+			VkDevice m_device{};
+			VkPipeline m_pipeline{};
+			VkPipelineLayout m_pipeline_layout{};
+			const VulkanDescriptor* m_descriptor{};
 		};
 
 	}
-}

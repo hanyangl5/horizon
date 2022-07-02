@@ -1,10 +1,13 @@
-#include "CommandList.h"
+#include <runtime/function/rhi/CommandList.h>
 
+namespace Horizon::RHI {
 
-Horizon::RHI::CommandList::CommandList(CommandQueueType type) noexcept : m_type(type)
-{
-}
+	CommandList::CommandList(CommandQueueType type) noexcept : m_type(type)
+	{
+	}
 
-Horizon::RHI::CommandList::~CommandList() noexcept
-{
+	CommandList::~CommandList() noexcept
+	{
+	}
+
 }

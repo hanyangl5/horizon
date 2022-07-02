@@ -4,7 +4,7 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 
-namespace Horizon::RHI {	
+namespace Horizon::RHI {
 	class ShaderProgram {
 	public:
 		//ShaderProgram(ShaderType type, IDxcBlob* dxil_byte_code) noexcept;
@@ -15,8 +15,8 @@ namespace Horizon::RHI {
 		ShaderType GetType() const noexcept;
 		const std::string& GetEntryPoint() const noexcept;
 	private:
-		const ShaderType m_type;
-		std::string m_entry_point;
+		const ShaderType m_type{};
+		std::string m_entry_point{};
 	};
 
 }

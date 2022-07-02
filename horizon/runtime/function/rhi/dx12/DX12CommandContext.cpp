@@ -11,6 +11,7 @@ namespace Horizon {
 
 		DX12CommandContext::~DX12CommandContext() noexcept
 		{
+			// TODO: destroy command allocator
 			Reset();
 		}
 
@@ -23,11 +24,11 @@ namespace Horizon {
 
 			}
 
-			u32 count = m_command_lists_count[type];
+			u32 count{ m_command_lists_count[type] };
 
 			if (count >= m_command_lists[type].size()) {
 
-				ID3D12GraphicsCommandList6* command_list;
+				ID3D12GraphicsCommandList6* command_list{};
 				m_device->CreateCommandList(0, ToDX12CommandQueueType(type), m_command_pools[type],
 					nullptr, IID_PPV_ARGS(&command_list));
 				
@@ -48,11 +49,11 @@ namespace Horizon {
 				}
 			}
 
-			// reset command buffers to reuse
 			//for (u32 type = 0; type < 3;type++) {
 			//	for (auto& cmdlist : m_command_lists[type]) {
 			//		if (cmdlist) {
-			//			//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdlist->m_command_buffer);
+			//			//vkFreeCommandBuffers(m_device, m_command_pools[type], 1, &cmdlist->m_command
+			// reset command buffers to reuse_buffer);
 			//			//vkResetCommandBuffer(cmdlist->m_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 			//		}
 			//	}

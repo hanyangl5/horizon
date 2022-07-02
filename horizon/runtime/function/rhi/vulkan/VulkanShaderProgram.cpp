@@ -1,4 +1,4 @@
-#include "VulkanShaderProgram.h"
+#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
 
 namespace Horizon::RHI {
 
@@ -14,11 +14,10 @@ namespace Horizon::RHI {
 		shader_byte_code->Release();
 	}
 
-	Horizon::RHI::VulkanShaderProgram::~VulkanShaderProgram() noexcept
+	VulkanShaderProgram::~VulkanShaderProgram() noexcept
 	{
 		vkDestroyShaderModule(m_device, m_shader_module, nullptr);
 	}
-
 
 }
 

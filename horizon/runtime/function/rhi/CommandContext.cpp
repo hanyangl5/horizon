@@ -1,9 +1,14 @@
-#include "CommandContext.h"
+#include <runtime/function/rhi/CommandContext.h>
 
-Horizon::RHI::CommandContext::CommandContext() noexcept
-{
-}
+namespace Horizon::RHI {
 
-Horizon::RHI::CommandContext::~CommandContext() noexcept
-{
+	CommandContext::CommandContext() noexcept
+	{
+
+	}
+
+	CommandContext::~CommandContext() noexcept
+	{
+
+	}
 }

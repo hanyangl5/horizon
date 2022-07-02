@@ -269,6 +269,7 @@ namespace Horizon
 		switch (type)
 		{
 		case DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+			//return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		case DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER:
 			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;

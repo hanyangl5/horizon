@@ -1,9 +1,8 @@
-#include "VulkanPipeline.h"
-#include "VulkanShaderProgram.h"
+#include <runtime/function/rhi/vulkan/VulkanPipeline.h>
+#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+
 namespace Horizon::RHI
 {
-
-
 	VulkanPipeline::VulkanPipeline(VkDevice device, const PipelineCreateInfo& pipeline_create_info, VulkanDescriptor* descriptor)
 		noexcept :m_device(device), m_descriptor(descriptor)
 	{
@@ -12,7 +11,8 @@ namespace Horizon::RHI
 
 	VulkanPipeline::~VulkanPipeline() noexcept
 	{
-
+		// TODO: destroy pipeline resources, pipeline layout, pipeline
+		
 	}
 
 	void VulkanPipeline::Create() noexcept

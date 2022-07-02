@@ -13,10 +13,19 @@ namespace Horizon::RHI {
 		void AllocateDescriptors() noexcept;
 		void ResetDescriptorPool() noexcept;
 	public:
-		VkDevice m_device;
-		VkDescriptorPool m_bindless_descriptor_pool;
-		std::vector<VkDescriptorSetLayout> m_set_layouts;
-		std::vector<VkDescriptorSet> m_sets;
+		static constexpr u32 m_k_bindless_descriptor_type_count{4};
+		static constexpr u32 m_k_max_binding_count{1024};
+		std::array<DescriptorType, m_k_bindless_descriptor_type_count> m_bindless_descriptor_types{
+			DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
+			DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
+			DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE
+		};
+		VkDevice m_device{};
+		VkDescriptorPool m_bindless_descriptor_pool{};
+		std::array<VkDescriptorSetLayout, m_k_bindless_descriptor_type_count> m_set_layouts{};
+		std::array<VkDescriptorSet, m_k_bindless_descriptor_type_count> m_sets{};
+		
 	};
 
 }

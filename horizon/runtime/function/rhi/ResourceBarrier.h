@@ -24,6 +24,4 @@ namespace Horizon{
 		std::vector<BufferMemoryBarrierDesc> buffer_memory_barriers;
 		std::vector<ImageMemoryBarrierDesc> image_memory_barriers;
 	};
-
-	
 }
