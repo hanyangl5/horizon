@@ -26,7 +26,7 @@ namespace Horizon::RHI {
 		}
 		DestroySwapChain();
 		vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
-		//vmaDestroyAllocator(m_vulkan.vma_allocator);
+		vmaDestroyAllocator(m_vulkan.vma_allocator);
 		vkDestroyDevice(m_vulkan.device, nullptr);
 		vkDestroyInstance(m_vulkan.instance, nullptr);
 	}

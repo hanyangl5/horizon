@@ -5,8 +5,6 @@
 #include <array>
 #include <memory>
 
-#include "vk_mem_alloc.h"
-
 #include <runtime/core/utils/Definations.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/RHIInterface.h>
@@ -14,6 +12,9 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
+#include <runtime/function/rhi/vulkan/VulkanConfig.h>
+
+#include "vk_mem_alloc.h"
 
 namespace Horizon::RHI {
 
