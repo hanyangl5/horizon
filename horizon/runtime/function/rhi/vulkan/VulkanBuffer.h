@@ -12,11 +12,10 @@ class VulkanBuffer : public Buffer {
     VulkanBuffer(VmaAllocator allocator,
                  const BufferCreateInfo &buffer_create_info,
                  MemoryFlag memory_flag) noexcept;
-    ~VulkanBuffer() noexcept;
+    virtual ~VulkanBuffer() noexcept;
     virtual void *GetBufferPointer() noexcept override;
 
   private:
-    virtual void Destroy() noexcept override;
 
   public:
     VkBuffer m_buffer{};

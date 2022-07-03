@@ -52,7 +52,7 @@ class DX12CommandList : public CommandList {
 
   public:
     ID3D12GraphicsCommandList6 *m_command_list{};
-    DX12Buffer *m_stage_buffer{};
+    Resource<DX12Buffer> m_stage_buffer{};
     void *mapped_data{};
 };
 

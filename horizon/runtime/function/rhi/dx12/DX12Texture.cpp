@@ -32,7 +32,6 @@ DX12Texture::DX12Texture(D3D12MA::Allocator *allocator,
         NULL, &m_allocation, IID_NULL, NULL));
 }
 
-DX12Texture::~DX12Texture() noexcept { Destroy(); }
+DX12Texture::~DX12Texture() noexcept { m_allocation->Release(); }
 
-void DX12Texture::Destroy() noexcept { m_allocation->Release(); }
 } // namespace Horizon::RHI

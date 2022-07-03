@@ -7,6 +7,8 @@
 #include <d3d12.h>
 #include <vulkan/vulkan.h>
 
+#include <memory>
+
 namespace Horizon {
 
 using u8 = uint8_t;
@@ -20,6 +22,9 @@ using i64 = int64_t;
 
 using f32 = float;
 using f64 = double;
+
+template<typename T>
+using Resource = std::unique_ptr<T>;
 
 #define USE_ASYNC_COMPUTE_TRANSFER 1
 #define RENDERDOC_ENABLED 1

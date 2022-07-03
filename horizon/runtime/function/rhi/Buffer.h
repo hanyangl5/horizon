@@ -14,9 +14,6 @@ class Buffer {
     virtual void *GetBufferPointer() noexcept = 0;
     bool &Initialized() noexcept;
 
-  private:
-    virtual void Destroy() noexcept = 0;
-
   protected:
     u32 m_usage{};
     u32 m_size{};

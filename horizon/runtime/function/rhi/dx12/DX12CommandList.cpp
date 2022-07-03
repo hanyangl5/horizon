@@ -260,11 +260,11 @@ DX12Buffer *DX12CommandList::GetStageBuffer(
     D3D12MA::Allocator *allocator,
     const BufferCreateInfo &buffer_create_info) noexcept {
     if (m_stage_buffer) {
-        return m_stage_buffer;
+        return m_stage_buffer.get();
     } else {
-        m_stage_buffer = new DX12Buffer(allocator, buffer_create_info,
-                                        MemoryFlag::CPU_VISABLE_MEMORY);
-        return m_stage_buffer;
+        m_stage_buffer = std::make_unique<DX12Buffer>(
+            allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
+        return m_stage_buffer.get();
     }
 }
 

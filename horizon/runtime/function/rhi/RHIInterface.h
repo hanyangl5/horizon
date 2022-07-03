@@ -23,13 +23,11 @@ class RHIInterface {
 
     virtual void InitializeRenderer() noexcept = 0;
 
-    virtual Buffer *
+    virtual Resource<Buffer>
     CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept = 0;
-    virtual void DestroyBuffer(Buffer *buffer) noexcept = 0;
 
-    virtual Texture *
+    virtual Resource<Texture>
     CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
-    virtual void DestroyTexture(Texture *texture) noexcept = 0;
 
     virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept = 0;
 

@@ -33,38 +33,21 @@ void RHIVulkan::InitializeRenderer() noexcept {
     InitializeVulkanRenderer("vulkan renderer");
 }
 
-Buffer *
+Resource<Buffer>
 RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept {
     BufferCreateInfo create_info{};
     create_info.size = buffer_create_info.size;
     create_info.buffer_usage_flags = buffer_create_info.buffer_usage_flags |
                                      BufferUsage::BUFFER_USAGE_TRANSFER_DST;
 
-    return new VulkanBuffer(m_vulkan.vma_allocator, create_info,
-                            MemoryFlag::DEDICATE_GPU_MEMORY);
+    return std::make_unique<VulkanBuffer>(m_vulkan.vma_allocator, create_info,
+                                          MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
-void RHIVulkan::DestroyBuffer(Buffer *buffer) noexcept {
-    if (buffer) {
-        delete buffer;
-        buffer = nullptr;
-    } else {
-        LOG_WARN("buffer is uninitialized or deleted");
-    }
-}
-
-Texture *RHIVulkan::CreateTexture(
+Resource<Texture> RHIVulkan::CreateTexture(
     const TextureCreateInfo &texture_create_info) noexcept {
-    return new VulkanTexture(m_vulkan.vma_allocator, texture_create_info);
-}
-
-void RHIVulkan::DestroyTexture(Texture *texture) noexcept {
-    if (texture) {
-        delete texture;
-        texture = nullptr;
-    } else {
-        LOG_WARN("texture is uninitialized or deleted");
-    }
+    return std::make_unique<VulkanTexture>(m_vulkan.vma_allocator,
+                                           texture_create_info);
 }
 
 void RHIVulkan::CreateSwapChain(std::shared_ptr<Window> window) noexcept {

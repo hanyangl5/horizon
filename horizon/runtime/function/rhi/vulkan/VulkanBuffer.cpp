@@ -30,12 +30,11 @@ VulkanBuffer::VulkanBuffer(VmaAllocator allocator,
                                     &m_memory, &m_allocation_info));
 }
 
-VulkanBuffer::~VulkanBuffer() noexcept { Destroy(); }
+VulkanBuffer::~VulkanBuffer() noexcept {
+    vmaDestroyBuffer(m_allocator, m_buffer, m_memory);
+}
 
 void *VulkanBuffer::GetBufferPointer() noexcept { return m_buffer; }
 
-void VulkanBuffer::Destroy() noexcept {
-    vmaDestroyBuffer(m_allocator, m_buffer, m_memory);
-}
 
 } // namespace Horizon::RHI

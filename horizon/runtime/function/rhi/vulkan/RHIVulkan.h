@@ -25,13 +25,11 @@ class RHIVulkan : public RHIInterface {
 
     virtual void InitializeRenderer() noexcept override;
 
-    virtual Buffer *
+    virtual Resource<Buffer>
     CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept override;
-    virtual void DestroyBuffer(Buffer *buffer) noexcept override;
 
-    virtual Texture *CreateTexture(
+    virtual Resource<Texture> CreateTexture(
         const TextureCreateInfo &texture_create_info) noexcept override;
-    virtual void DestroyTexture(Texture *texture) noexcept override;
 
     virtual void
     CreateSwapChain(std::shared_ptr<Window> window) noexcept override;

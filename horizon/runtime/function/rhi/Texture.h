@@ -9,9 +9,6 @@ class Texture {
     Texture(const TextureCreateInfo &texture_create_info) noexcept;
     virtual ~Texture() noexcept = default;
 
-  private:
-    virtual void Destroy() noexcept = 0;
-
   protected:
     TextureType m_type{};
     TextureFormat m_format{};

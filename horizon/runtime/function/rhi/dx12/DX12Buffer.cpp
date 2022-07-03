@@ -33,11 +33,9 @@ DX12Buffer::DX12Buffer(D3D12MA::Allocator *allocator,
         &m_allocation, IID_NULL, NULL));
 }
 
-DX12Buffer::~DX12Buffer() noexcept { Destroy(); }
+DX12Buffer::~DX12Buffer() noexcept { m_allocation->Release(); }
 
 void *DX12Buffer::GetBufferPointer() noexcept {
     return m_allocation->GetResource();
 }
-
-void DX12Buffer::Destroy() noexcept { m_allocation->Release(); }
 } // namespace Horizon::RHI

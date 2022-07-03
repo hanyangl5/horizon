@@ -9,10 +9,7 @@ class VulkanTexture : public Texture {
   public:
     VulkanTexture(VmaAllocator allocator,
                   const TextureCreateInfo &buffer_create_info) noexcept;
-    ~VulkanTexture() noexcept;
-
-  private:
-    virtual void Destroy() noexcept override;
+    virtual ~VulkanTexture() noexcept;
 
   private:
     VkImage m_image{};

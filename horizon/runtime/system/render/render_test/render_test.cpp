@@ -12,7 +12,6 @@ void RenderSystem::RunRenderTest() {
 
         auto buffer = m_render_api->CreateBuffer(
             BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, 32});
-        m_render_api->DestroyBuffer(buffer);
 
         // TEXTURE CREATION TEST
 
@@ -20,13 +19,12 @@ void RenderSystem::RunRenderTest() {
             TextureCreateInfo{TextureType::TEXTURE_TYPE_2D,
                               TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                               TextureUsage::TEXTURE_USAGE_R, 4, 4, 1});
-        m_render_api->DestroyTexture(texture);
     }
 
     // data uploading,
     {
         static bool buffer_created = false;
-        static RHI::Buffer *buffer = nullptr;
+        static Resource<Buffer> buffer = nullptr;
         if (!buffer_created) {
             buffer = m_render_api->CreateBuffer(
                 BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
@@ -48,13 +46,13 @@ void RenderSystem::RunRenderTest() {
 
             transfer->BeginRecording();
 
-            transfer->UpdateBuffer(buffer, &data, sizeof(data));
+            transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
 
             transfer->EndRecording();
         }
 
         static bool buffer_created2 = false;
-        static RHI::Buffer *buffer2 = nullptr;
+        static Resource<Buffer> buffer2 = nullptr;
         if (!buffer_created2) {
             buffer2 = m_render_api->CreateBuffer(
                 BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
@@ -74,13 +72,13 @@ void RenderSystem::RunRenderTest() {
 
             transfer->BeginRecording();
 
-            transfer->UpdateBuffer(buffer2, &data2, sizeof(data2));
+            transfer->UpdateBuffer(buffer2.get(), &data2, sizeof(data2));
 
             transfer->EndRecording();
         }
 
         static bool buffer_created3 = false;
-        static RHI::Buffer *buffer3 = nullptr;
+        static Resource<Buffer> buffer3 = nullptr;
         if (!buffer_created3) {
             buffer3 = m_render_api->CreateBuffer(
                 BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER,

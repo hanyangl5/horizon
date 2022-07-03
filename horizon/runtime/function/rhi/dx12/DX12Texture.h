@@ -10,10 +10,7 @@ class DX12Texture : public Texture {
   public:
     DX12Texture(D3D12MA::Allocator *allocator,
                 const TextureCreateInfo &texture_create_info) noexcept;
-    ~DX12Texture() noexcept;
-
-  private:
-    virtual void Destroy() noexcept override;
+    virtual ~DX12Texture() noexcept;
 
   private:
     D3D12MA::Allocation *m_allocation{};

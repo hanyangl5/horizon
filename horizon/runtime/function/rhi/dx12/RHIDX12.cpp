@@ -17,29 +17,15 @@ void RHIDX12::InitializeRenderer() noexcept {
     InitializeDX12Renderer();
 }
 
-Buffer *RHIDX12::CreateBuffer(const BufferCreateInfo &create_info) noexcept {
-    Buffer *buffer = new DX12Buffer(m_dx12.d3dma_allocator, create_info,
-                                    MemoryFlag::DEDICATE_GPU_MEMORY);
-    return buffer;
+Resource<Buffer>
+RHIDX12::CreateBuffer(const BufferCreateInfo &create_info) noexcept {
+    return std::make_unique<DX12Buffer>(m_dx12.d3dma_allocator, create_info,
+                                        MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
-void RHIDX12::DestroyBuffer(Buffer *buffer) noexcept {
-    if (buffer) {
-        delete buffer;
-        buffer = nullptr;
-    }
-}
-
-Texture *
+Resource<Texture>
 RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept {
-    return new DX12Texture(m_dx12.d3dma_allocator, texture_create_info);
-}
-
-void RHIDX12::DestroyTexture(Texture *texture) noexcept {
-    if (texture) {
-        delete texture;
-        texture = nullptr;
-    }
+    return  std::make_unique<DX12Texture>(m_dx12.d3dma_allocator, texture_create_info);
 }
 
 void RHIDX12::CreateSwapChain(std::shared_ptr<Window> window) noexcept {

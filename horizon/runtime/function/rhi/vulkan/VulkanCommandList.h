@@ -50,8 +50,9 @@ class VulkanCommandList : public CommandList {
                    const BufferCreateInfo &buffer_create_info) noexcept;
 
   public:
-    VkCommandBuffer m_command_buffer;       // TODO: release command buffer
-    VulkanBuffer *m_stage_buffer = nullptr; // TODO: release stage buffer
+    VkCommandBuffer m_command_buffer; // TODO: release command buffer
+    Resource<VulkanBuffer> m_stage_buffer =
+        nullptr; // TODO: release stage buffer
 };
 
 } // namespace Horizon::RHI

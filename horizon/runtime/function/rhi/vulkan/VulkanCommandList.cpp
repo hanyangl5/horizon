@@ -10,7 +10,7 @@ VulkanCommandList::VulkanCommandList(CommandQueueType type,
                                      VkCommandBuffer command_buffer) noexcept
     : CommandList(type), m_command_buffer(command_buffer) {}
 
-VulkanCommandList::~VulkanCommandList() noexcept { delete m_stage_buffer; }
+VulkanCommandList::~VulkanCommandList() noexcept {}
 
 void VulkanCommandList::BeginRecording() noexcept {
     is_recoring = true;
@@ -262,17 +262,17 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
     // for (u32 i = 0; i < desc.image_memory_barriers.size(); i++) {
     //	image_memory_barriers[i].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     //	image_memory_barriers[i].srcAccessMask =
-    //ToVkMemoryAccessFlags(desc.image_memory_barriers[i].src_access_mask);
+    // ToVkMemoryAccessFlags(desc.image_memory_barriers[i].src_access_mask);
     //	image_memory_barriers[i].dstAccessMask =
-    //ToVkMemoryAccessFlags(desc.image_memory_barriers[i].dst_access_mask);
+    // ToVkMemoryAccessFlags(desc.image_memory_barriers[i].dst_access_mask);
     //	image_memory_barriers[i].oldLayout =
-    //ToVkImageLayout(desc.image_memory_barriers[i].src_usage);
+    // ToVkImageLayout(desc.image_memory_barriers[i].src_usage);
     //	image_memory_barriers[i].newLayout = ToVkImageLaconst Pipeline&
-    //pipelineyout(desc.image_memory_barriers[i].dst_usage);
+    // pipelineyout(desc.image_memory_barriers[i].dst_usage);
     //	image_memory_barriers[i].image =
-    //desc.image_memory_barriers[i].texture->GetImage();
+    // desc.image_memory_barriers[i].texture->GetImage();
     //	image_memory_barriers[i].subresourceRange =
-    //desc.image_memory_barriers[i].texture->GetSubresourceRange();
+    // desc.image_memory_barriers[i].texture->GetSubresourceRange();
 
     //}
 
@@ -311,11 +311,11 @@ VulkanBuffer *VulkanCommandList::GetStageBuffer(
     VmaAllocator allocator,
     const BufferCreateInfo &buffer_create_info) noexcept {
     if (m_stage_buffer) {
-        return m_stage_buffer;
+        return m_stage_buffer.get();
     } else {
-        m_stage_buffer = new VulkanBuffer(allocator, buffer_create_info,
-                                          MemoryFlag::CPU_VISABLE_MEMORY);
-        return m_stage_buffer;
+        m_stage_buffer = std::make_unique<VulkanBuffer>(
+            allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
+        return m_stage_buffer.get();
     }
 }
 

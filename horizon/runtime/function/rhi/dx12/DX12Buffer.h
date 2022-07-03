@@ -15,8 +15,6 @@ class DX12Buffer : public Buffer {
     virtual void *GetBufferPointer() noexcept override;
 
   private:
-    virtual void Destroy() noexcept override;
-
   public:
     D3D12MA::Allocation *m_allocation{};
     D3D12MA::Allocator *m_allocator{};

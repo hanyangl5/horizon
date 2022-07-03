@@ -32,9 +32,7 @@ VulkanTexture::VulkanTexture(
                                    &m_allocation, nullptr));
 }
 
-VulkanTexture::~VulkanTexture() noexcept { Destroy(); }
-
-void VulkanTexture::Destroy() noexcept {
+VulkanTexture::~VulkanTexture() noexcept {
     vmaDestroyImage(m_allocator, m_image, m_allocation);
 }
 
