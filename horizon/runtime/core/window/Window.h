@@ -19,29 +19,26 @@
 
 #include <runtime/core/utils/Definations.h>
 
-namespace Horizon
-{
+namespace Horizon {
 
-	class Window
-	{
-	public:
-		Window(const char *_name, u32 _width, u32 _height) noexcept;
-		~Window() noexcept;
-		u32 GetWidth() const noexcept;
-		u32 GetHeight() const noexcept;
-		GLFWwindow *GetWindow() const noexcept;
+class Window {
+  public:
+    Window(const char *_name, u32 _width, u32 _height) noexcept;
+    ~Window() noexcept;
+    u32 GetWidth() const noexcept;
+    u32 GetHeight() const noexcept;
+    GLFWwindow *GetWindow() const noexcept;
 #ifdef _WIN32
-		HWND GetWin32Window() const noexcept
-		{
-			return glfwGetWin32Window(m_window);
-		}
+    HWND GetWin32Window() const noexcept {
+        return glfwGetWin32Window(m_window);
+    }
 #endif
-		int ShouldClose() const noexcept;
-		void close() noexcept;
+    int ShouldClose() const noexcept;
+    void close() noexcept;
 
-	private:
-		GLFWwindow *m_window;
-		u32 width, height;
-		bool vsync_enabled = true;
-	};
-}
+  private:
+    GLFWwindow *m_window;
+    u32 width, height;
+    bool vsync_enabled = true;
+};
+} // namespace Horizon

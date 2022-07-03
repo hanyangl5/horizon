@@ -1,18 +1,13 @@
 #pragma once
 
-class DescriptorSet
-{
-public:
-	DescriptorSet() noexcept;
-	~DescriptorSet() noexcept;
+class DescriptorSet {
+  public:
+    DescriptorSet() noexcept;
+    ~DescriptorSet() noexcept;
 
-private:
+  private:
 };
 
-DescriptorSet::DescriptorSet() noexcept
-{
-}
+DescriptorSet::DescriptorSet() noexcept {}
 
-DescriptorSet::~DescriptorSet() noexcept
-{
-}
+DescriptorSet::~DescriptorSet() noexcept {}

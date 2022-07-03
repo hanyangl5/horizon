@@ -2,12 +2,8 @@
 
 namespace Horizon::RHI {
 
-	CommandList::CommandList(CommandQueueType type) noexcept : m_type(type)
-	{
-	}
+CommandList::CommandList(CommandQueueType type) noexcept : m_type(type) {}
 
-	CommandList::~CommandList() noexcept
-	{
-	}
+CommandList::~CommandList() noexcept {}
 
-}
+} // namespace Horizon::RHI

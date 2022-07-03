@@ -3,46 +3,40 @@
 #include <string>
 #include <vector>
 
-#include <dxc/dxcapi.h>
-#include <d3d12shader.h>
+#include <directx-dxc/d3d12shader.h>
+#include <directx-dxc/dxcapi.h>
 
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/ShaderProgram.h>
-namespace Horizon
-{
-	enum class ShaderTargetPlatform
-	{
-		SPIRV,
-		DXIL
-	};
 
-	//enum class ShaderTargetStage
-	//{
-	//	vs,
-	//	ps,
-	//	cs
-	//};
+namespace Horizon {
+enum class ShaderTargetPlatform { SPIRV, DXIL };
 
+// enum class ShaderTargetStage
+//{
+//	vs,
+//	ps,
+//	cs
+// };
 
-	class ShaderCompiler
-	{
-	public:
-		ShaderCompiler() noexcept;
-		~ShaderCompiler() noexcept;
+class ShaderCompiler {
+  public:
+    ShaderCompiler() noexcept;
+    ~ShaderCompiler() noexcept;
 
-		IDxcBlob* CompileFromFile(ShaderTargetPlatform platform,
-			ShaderType type,
-			const std::string& entry_point,
-			u32 compile_flags,
-			std::string file_name) noexcept;
+    IDxcBlob *CompileFromFile(ShaderTargetPlatform platform, ShaderType type,
+                              const std::string &entry_point, u32 compile_flags,
+                              std::string file_name) noexcept;
 
-		static std::vector<char> read_file(const std::string &path) noexcept;
+    static std::vector<char> read_file(const std::string &path) noexcept;
 
-	private:
-		void InitializeShaderCompiler() noexcept;
-	private:
-		IDxcUtils* idxc_utils;;
-		IDxcCompiler3* idxc_compiler;
-	};
+  private:
+    void InitializeShaderCompiler() noexcept;
 
-}
+  private:
+    IDxcUtils *idxc_utils;
+    ;
+    IDxcCompiler3 *idxc_compiler;
+};
+
+} // namespace Horizon

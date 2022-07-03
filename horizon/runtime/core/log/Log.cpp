@@ -2,40 +2,33 @@
 
 #include "Log.h"
 
-namespace Horizon
-{
+namespace Horizon {
 
-	Log::Log() noexcept
-	{
-		m_logger = spdlog::stdout_color_mt("horizon logger");
-		spdlog::set_default_logger(m_logger);
+Log::Log() noexcept {
+    m_logger = spdlog::stdout_color_mt("horizon logger");
+    spdlog::set_default_logger(m_logger);
 #ifndef NDEBUG
-		spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::debug);
 #else
-		spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(spdlog::level::info);
 #endif // !NDEBUG
-	}
-
-	Log::~Log() noexcept
-	{
-		m_logger->flush();
-		spdlog::drop_all();
-	}
-
-	void Log::CheckVulkanResult(VkResult _res) const noexcept
-	{
-		if (_res != VK_SUCCESS)
-		{
-			m_logger->error("vulkan result checking failed");
-		}
-	}
-
-	void Log::CheckDXResult(HRESULT hr) const noexcept
-	{
-		if (FAILED(hr))
-		{
-			m_logger->error("directx result checking failed:{}", HrToString(hr));
-		}
-	}
-
 }
+
+Log::~Log() noexcept {
+    m_logger->flush();
+    spdlog::drop_all();
+}
+
+void Log::CheckVulkanResult(VkResult _res) const noexcept {
+    if (_res != VK_SUCCESS) {
+        m_logger->error("vulkan result checking failed");
+    }
+}
+
+void Log::CheckDXResult(HRESULT hr) const noexcept {
+    if (FAILED(hr)) {
+        m_logger->error("directx result checking failed:{}", HrToString(hr));
+    }
+}
+
+} // namespace Horizon
