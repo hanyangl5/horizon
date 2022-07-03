@@ -31,20 +31,20 @@ void RenderSystem::RunRenderTest() {
             buffer = m_render_api->CreateBuffer(
                 BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
                                      BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE,
-                                 sizeof(Math::vec3)});
+                                 sizeof(Math::float3)});
             buffer_created = true;
         }
 
         // dynamic buffer, cpu pointer not change, cpu data change, gpu data
         // change
         {
-            static Math::vec3 data(1.0);
+            static Math::float3 data(1.0);
 
             auto transfer =
                 m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
             // data update per frame
-            data += Math::vec3(1.0);
+            data += Math::float3(1.0);
 
             transfer->BeginRecording();
 
@@ -59,18 +59,18 @@ void RenderSystem::RunRenderTest() {
             buffer2 = m_render_api->CreateBuffer(
                 BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
                                      BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE,
-                                 sizeof(Math::vec3)});
+                                 sizeof(Math::float3)});
             buffer_created2 = true;
         }
 
         // dynamic buffer, cpu pointer change, cpu data change, gpu data change
         {
-            Math::vec3 data2(1.0);
+            Math::float3 data2(1.0);
             auto transfer =
                 m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
             // data update per frame
-            data2 += rand();
+            data2 += Math::float3(rand());
 
             transfer->BeginRecording();
 
@@ -82,20 +82,21 @@ void RenderSystem::RunRenderTest() {
         static bool buffer_created3 = false;
         static RHI::Buffer *buffer3 = nullptr;
         if (!buffer_created3) {
-            buffer3 = m_render_api->CreateBuffer(BufferCreateInfo{
-                BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER, sizeof(Math::vec3)});
+            buffer3 = m_render_api->CreateBuffer(
+                BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER,
+                                 sizeof(Math::float3)});
             buffer_created3 = true;
         }
 
         // static buffer, cpu pointer not change, cpu data not change, gpu data
         // not change
         {
-            Math::vec3 data3(1.0);
+            Math::float3 data3(1.0);
             auto transfer =
                 m_render_api->GetCommandList(CommandQueueType::TRANSFER);
 
             // data update per frame
-            data3 += rand();
+            data3 += Math::float3(rand());
 
             transfer->BeginRecording();
 
