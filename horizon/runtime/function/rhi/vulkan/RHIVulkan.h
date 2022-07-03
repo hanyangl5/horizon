@@ -78,7 +78,7 @@ namespace Horizon::RHI {
 		} m_vulkan{};
 		VulkanDescriptor* m_global_descriptor = nullptr;
 		// pipeline map
-		// resource manager, auto 
+		// resource manager, auto
 	};
 }
 
