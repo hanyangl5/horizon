@@ -16,9 +16,9 @@ class DX12CommandContext : public CommandContext {
     DX12CommandContext(const DX12CommandContext &command_list) noexcept =
         default;
     DX12CommandContext(DX12CommandContext &&command_list) noexcept = default;
-    virtual ~DX12CommandContext() noexcept override;
+    ~DX12CommandContext() noexcept override;
     DX12CommandList *GetDX12CommandList(CommandQueueType type) noexcept;
-    virtual void Reset() noexcept override;
+    void Reset() noexcept override;
 
   private:
     ID3D12Device *m_device;

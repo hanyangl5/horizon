@@ -7,10 +7,10 @@ void Horizon::RDC::InitializeRenderDoc() noexcept {
     is_rdc_initialized = true;
     // At init, on windows
     if (HMODULE mod = GetModuleHandleA("renderdoc.dll")) {
-        pRENDERDOC_GetAPI RENDERDOC_GetAPI =
-            (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-        int ret =
-            RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&rdoc_api);
+        auto RENDERDOC_GetAPI{
+            (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI")};
+        int ret{
+            RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&rdoc_api)};
         assert(ret == 1);
     } else {
         LOG_ERROR("failed to find renderdoc.dll");
@@ -40,7 +40,7 @@ void Horizon::RDC::StartFrameCapture() noexcept {
     }
     // Your rendering should happen here
     if (rdoc_api) {
-        rdoc_api->StartFrameCapture(NULL, NULL);
+        rdoc_api->StartFrameCapture(nullptr, nullptr);
         LOG_DEBUG("frame capture start");
     }
 }
@@ -48,7 +48,7 @@ void Horizon::RDC::StartFrameCapture() noexcept {
 void Horizon::RDC::EndFrameCapture() noexcept {
     // stop the capture
     if (rdoc_api) {
-        rdoc_api->EndFrameCapture(NULL, NULL);
+        rdoc_api->EndFrameCapture(nullptr, nullptr);
         LOG_DEBUG("frame capture end");
     }
 }

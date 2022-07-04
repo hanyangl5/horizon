@@ -8,12 +8,11 @@ namespace Horizon::RHI {
 
 class VulkanBuffer : public Buffer {
   public:
-    using Buffer::Buffer;
     VulkanBuffer(VmaAllocator allocator,
                  const BufferCreateInfo &buffer_create_info,
                  MemoryFlag memory_flag) noexcept;
     virtual ~VulkanBuffer() noexcept;
-    virtual void *GetBufferPointer() noexcept override;
+    void *GetBufferPointer() noexcept override;
 
   private:
 

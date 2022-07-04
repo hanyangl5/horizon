@@ -23,29 +23,27 @@ class RHIVulkan : public RHIInterface {
     RHIVulkan() noexcept;
     virtual ~RHIVulkan() noexcept;
 
-    virtual void InitializeRenderer() noexcept override;
+    void InitializeRenderer() noexcept override;
 
-    virtual Resource<Buffer>
+    Resource<Buffer>
     CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept override;
 
-    virtual Resource<Texture> CreateTexture(
+    Resource<Texture> CreateTexture(
         const TextureCreateInfo &texture_create_info) noexcept override;
 
-    virtual void CreateSwapChain(Window *window) noexcept override;
+    void CreateSwapChain(Window *window) noexcept override;
 
-    virtual ShaderProgram *
-    CreateShaderProgram(ShaderType type, const std::string &entry_point,
-                        u32 compile_flags,
-                        std::string file_name) noexcept override;
+    ShaderProgram *CreateShaderProgram(ShaderType type,
+                                       const std::string &entry_point,
+                                       u32 compile_flags,
+                                       std::string file_name) noexcept override;
 
-    virtual void
-    DestroyShaderProgram(ShaderProgram *shader_program) noexcept override;
+    void DestroyShaderProgram(ShaderProgram *shader_program) noexcept override;
 
-    virtual CommandList *
-    GetCommandList(CommandQueueType type) noexcept override;
-    virtual void ResetCommandResources() noexcept override;
+    CommandList *GetCommandList(CommandQueueType type) noexcept override;
+    void ResetCommandResources() noexcept override;
 
-    virtual Pipeline *CreatePipeline(
+    Pipeline *CreatePipeline(
         const PipelineCreateInfo &pipeline_create_info) noexcept override;
 
   private:

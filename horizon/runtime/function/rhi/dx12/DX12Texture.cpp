@@ -29,7 +29,7 @@ DX12Texture::DX12Texture(D3D12MA::Allocator *allocator,
 
     CHECK_DX_RESULT(allocator->CreateResource(
         &allocation_desc, &_texture_create_info, D3D12_RESOURCE_STATE_COPY_DEST,
-        NULL, &m_allocation, IID_NULL, NULL));
+        nullptr, &m_allocation, IID_NULL, nullptr));
 }
 
 DX12Texture::~DX12Texture() noexcept { m_allocation->Release(); }
