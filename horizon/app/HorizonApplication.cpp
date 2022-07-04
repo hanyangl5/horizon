@@ -32,8 +32,8 @@ void HorizonApplication::Run(const EngineConfig &config) noexcept {
 }
 
 int main(int argc, char *argv[]) {
-    std::unique_ptr<HorizonApplication> application =
-        std::make_unique<HorizonApplication>();
+    std::unique_ptr<HorizonApplication> application{
+        std::make_unique<HorizonApplication>()};
 
     argparse::ArgumentParser args("app");
 
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     const auto &config_path = args.get<std::string>("-config_path");
 
     // read ini file
-    dictionary *ini = iniparser_load(config_path.c_str());
+    dictionary *ini{iniparser_load(config_path.c_str())};
     if (!ini) {
         LOG_ERROR("cannot load config file: {}", config_path);
         return 1;
