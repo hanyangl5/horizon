@@ -31,8 +31,7 @@ class RHIVulkan : public RHIInterface {
     virtual Resource<Texture> CreateTexture(
         const TextureCreateInfo &texture_create_info) noexcept override;
 
-    virtual void
-    CreateSwapChain(std::shared_ptr<Window> window) noexcept override;
+    virtual void CreateSwapChain(Window *window) noexcept override;
 
     virtual ShaderProgram *
     CreateShaderProgram(ShaderType type, const std::string &entry_point,

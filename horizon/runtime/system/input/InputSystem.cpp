@@ -2,8 +2,8 @@
 
 namespace Horizon {
 
-InputSystem::InputSystem(std::shared_ptr<Window> window,
-                         std::shared_ptr<Camera> camera) noexcept
+InputSystem::InputSystem(Window* window,
+                         Camera* camera) noexcept
     : m_window(window), m_camera(camera) {
     m_window = window;
     m_camera = camera;

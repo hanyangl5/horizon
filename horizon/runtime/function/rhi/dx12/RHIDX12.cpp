@@ -13,7 +13,7 @@ RHIDX12::~RHIDX12() noexcept {
 }
 
 void RHIDX12::InitializeRenderer() noexcept {
-    LOG_INFO("using DirectX 12 renderer");
+    LOG_DEBUG("using DirectX 12 renderer");
     InitializeDX12Renderer();
 }
 
@@ -28,7 +28,7 @@ RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept {
     return  std::make_unique<DX12Texture>(m_dx12.d3dma_allocator, texture_create_info);
 }
 
-void RHIDX12::CreateSwapChain(std::shared_ptr<Window> window) noexcept {
+void RHIDX12::CreateSwapChain(Window* window) noexcept {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc{};
     swap_chain_desc.BufferCount = m_back_buffer_count;
     swap_chain_desc.Width = window->GetWidth();

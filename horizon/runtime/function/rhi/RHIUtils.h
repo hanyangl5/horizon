@@ -627,6 +627,7 @@ inline D3D12_RESOURCE_FLAGS ToDX12TextureUsage(TextureUsage usage) noexcept {
     default:
         return D3D12_RESOURCE_FLAG_NONE;
         break;
+        break;
     }
 }
 

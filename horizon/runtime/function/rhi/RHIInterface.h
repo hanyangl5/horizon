@@ -29,7 +29,7 @@ class RHIInterface {
     virtual Resource<Texture>
     CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
 
-    virtual void CreateSwapChain(std::shared_ptr<Window> window) noexcept = 0;
+    virtual void CreateSwapChain(Window *window) noexcept = 0;
 
     virtual ShaderProgram *
     CreateShaderProgram(ShaderType type, const std::string &entry_point,

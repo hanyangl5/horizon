@@ -20,7 +20,7 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept
     }
 
     glfwSwapInterval(vsync_enabled ? 1 : 0);
-    LOG_INFO("vsync stat: {}", vsync_enabled);
+    LOG_DEBUG("vsync : {}", vsync_enabled); // TODO: vsync not working now
 }
 Window::~Window() noexcept {
     glfwDestroyWindow(m_window);

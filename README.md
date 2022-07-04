@@ -20,13 +20,19 @@ On Windows:
 install the following package with vcpkg
 
 ~~~
-d3d12-memory-allocator directx-dxc directxtk12 spdlog glm glfw3 vulkan-memory-allocator
+vcpkg install d3d12-memory-allocator directx-dxc directxtk12 spdlog glfw3 vulkan-memory-allocator argparse doctest
 ~~~
 
 clone the repo with
 
 ~~~
 git clone https://github.com/v4vendeta/horizon.git
+~~~
+
+modify vcpkg path in CMakeLists.txt in project root directory
+
+~~~
+include(/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake)
 ~~~
 
 
@@ -36,5 +42,6 @@ use CMkae to generate solution file
 cmake . -B build
 ~~~
 
-open solution **Horizon** and build all to generate execuatble file.
+open solution **Horizon** and build all solution.
 
+<!-- ./app.exe -config_path D:/codes/horizon/horizon/app/EngineConfig.ini -->

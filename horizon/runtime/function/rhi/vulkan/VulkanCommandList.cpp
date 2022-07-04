@@ -135,7 +135,7 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data,
     assert(buffer->GetBufferSize() == size);
 
     // cannot update static buffer more than once
-    // TODO: refractor
+    // TODO: refractor with new RAII resource
     bool &initialized{buffer->Initialized()};
     if (!(buffer->GetBufferUsage() &
           BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE) &&

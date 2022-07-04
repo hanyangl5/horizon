@@ -29,7 +29,7 @@ RHIVulkan::~RHIVulkan() noexcept {
 }
 
 void RHIVulkan::InitializeRenderer() noexcept {
-    LOG_INFO("using vulkan renderer");
+    LOG_DEBUG("using vulkan renderer");
     InitializeVulkanRenderer("vulkan renderer");
 }
 
@@ -50,7 +50,7 @@ Resource<Texture> RHIVulkan::CreateTexture(
                                            texture_create_info);
 }
 
-void RHIVulkan::CreateSwapChain(std::shared_ptr<Window> window) noexcept {
+void RHIVulkan::CreateSwapChain(Window *window) noexcept {
     // create window surface
     VkWin32SurfaceCreateInfoKHR surface_create_info{};
     surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -324,10 +324,10 @@ void RHIVulkan::CreateDevice(
                      &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
 
 #ifdef USE_ASYNC_COMPUTE_TRANSFER
-    LOG_INFO("using async compute & transfer, graphics queue: {}, compute "
-             "queue: {}, transfer queue: {}",
-             CommandQueueType::GRAPHICS, CommandQueueType::COMPUTE,
-             CommandQueueType::TRANSFER);
+    LOG_DEBUG("using async compute & transfer, graphics queue: {}, compute "
+              "queue: {}, transfer queue: {}",
+              CommandQueueType::GRAPHICS, CommandQueueType::COMPUTE,
+              CommandQueueType::TRANSFER);
 #endif // USE_ASYNC_COMPUTE
 }
 

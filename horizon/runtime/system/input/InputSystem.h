@@ -24,8 +24,8 @@ class InputSystem {
     enum class INPUT_STATE { PRESS, RELEASE };
 
   public:
-    InputSystem(std::shared_ptr<Window> window,
-                std::shared_ptr<Camera> camera) noexcept;
+    InputSystem(Window* window,
+                Camera* camera) noexcept;
 
     ~InputSystem() noexcept;
 
@@ -43,8 +43,8 @@ class InputSystem {
     int GetMouseButtonRelease(MouseButton button) const noexcept;
 
   private:
-    std::shared_ptr<Window> m_window = nullptr;
-    std::shared_ptr<Camera> m_camera = nullptr;
+    Window* m_window = nullptr;
+    Camera* m_camera = nullptr;
 
     f32 m_last_x;
     f32 m_last_y;

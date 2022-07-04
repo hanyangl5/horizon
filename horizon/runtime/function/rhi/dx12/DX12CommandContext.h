@@ -26,6 +26,6 @@ class DX12CommandContext : public CommandContext {
     std::array<ID3D12CommandAllocator *, 3> m_command_pools{};
 
     std::array<std::vector<DX12CommandList *>, 3> m_command_lists{};
-    std::array<u32, 3> m_command_lists_count;
+    std::array<u32, 3> m_command_lists_count{};
 };
 } // namespace Horizon::RHI

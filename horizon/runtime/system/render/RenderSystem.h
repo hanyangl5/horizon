@@ -9,36 +9,50 @@
 #include <runtime/function/scene/camera/Camera.h>
 
 namespace Horizon {
+
+using Buffer = RHI::Buffer;
+using Texture = RHI::Texture;
+using ShaderProgram = RHI::ShaderProgram;
+using Pipeline = RHI::Pipeline;
+using CommandList = RHI::CommandList;
+
 class RenderSystem {
   public:
-    using Buffer = RHI::Buffer;
-    using Texture = RHI::Texture;
-    using ShaderProgram = RHI::ShaderProgram;
-    using Pipeline = RHI::Pipeline;
-    using CommandList = RHI::CommandList;
-
   public:
-    RenderSystem(u32 width, u32 height,
-                 std::shared_ptr<Window> window) noexcept;
+    RenderSystem(u32 width, u32 height, Window *window,
+                 RenderBackend backend) noexcept;
 
     ~RenderSystem() noexcept;
 
-    void Tick() noexcept;
+    Camera *GetMainCamera() const noexcept;
 
-    std::shared_ptr<Camera> GetMainCamera() const noexcept;
+    Resource<Buffer>
+    CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept;
+
+    Resource<Texture>
+    CreateTexture(const TextureCreateInfo &texture_create_info) noexcept;
+
+    ShaderProgram *CreateShaderProgram(ShaderType type,
+                                       const std::string &entry_point,
+                                       u32 compile_flags,
+                                       std::string file_name) noexcept;
+    void DestroyShaderProgram(ShaderProgram *shader_program) noexcept;
+    Pipeline *
+    CreatePipeline(const PipelineCreateInfo &pipeline_create_info) noexcept;
+
+    CommandList *GetCommandList(CommandQueueType type) noexcept;
+    void ResetCommandResources() noexcept;
+
+    // submit command list to command queue
+    void SubmitCommandLists(CommandQueueType queue,
+                            std::vector<CommandList *> &command_lists) noexcept;
 
   private:
-    void Update() noexcept;
-
-    void Render() noexcept;
-
     void InitializeRenderAPI(RenderBackend backend) noexcept;
 
-    void RunRenderTest();
-
   private:
-    std::shared_ptr<Window> m_window = nullptr;
+    Window *m_window{};
 
-    std::shared_ptr<RHI::RHIInterface> m_render_api;
+    std::unique_ptr<RHI::RHIInterface> m_render_api{};
 };
 } // namespace Horizon
