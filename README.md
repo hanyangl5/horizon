@@ -20,7 +20,7 @@ On Windows:
 install the following package with vcpkg
 
 ~~~
-vcpkg install d3d12-memory-allocator directx-dxc directxtk12 spdlog glfw3 vulkan-memory-allocator argparse doctest
+vcpkg install d3d12-memory-allocator directx-dxc directxtk12 spdlog glfw3 vulkan-memory-allocator argparse doctest iniparser
 ~~~
 
 clone the repo with
