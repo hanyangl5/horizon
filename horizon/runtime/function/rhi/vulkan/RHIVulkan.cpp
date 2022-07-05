@@ -388,15 +388,11 @@ void RHIVulkan::SubmitCommandLists(
 }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
-    auto key{std::this_thread::get_id()};
+    auto cl = new VulkanCommandContext(m_vulkan.device);
+    auto [key, success] =
+        m_command_context_map.try_emplace(std::this_thread::get_id(), cl);
 
-    if (!m_command_context_map[key]) {
-        m_command_context_map[key] = new VulkanCommandContext(m_vulkan.device);
-    }
-
-    auto vk_command_context =
-        dynamic_cast<VulkanCommandContext *>(m_command_context_map[key]);
-    return vk_command_context->GetVulkanCommandList(type);
+    return cl->GetVulkanCommandList(type);
 }
 
 void RHIVulkan::ResetCommandResources() noexcept {

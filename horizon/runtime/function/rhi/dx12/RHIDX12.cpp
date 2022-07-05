@@ -25,10 +25,11 @@ RHIDX12::CreateBuffer(const BufferCreateInfo &create_info) noexcept {
 
 Resource<Texture>
 RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept {
-    return  std::make_unique<DX12Texture>(m_dx12.d3dma_allocator, texture_create_info);
+    return std::make_unique<DX12Texture>(m_dx12.d3dma_allocator,
+                                         texture_create_info);
 }
 
-void RHIDX12::CreateSwapChain(Window* window) noexcept {
+void RHIDX12::CreateSwapChain(Window *window) noexcept {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc{};
     swap_chain_desc.BufferCount = m_back_buffer_count;
     swap_chain_desc.Width = window->GetWidth();
@@ -73,15 +74,12 @@ void RHIDX12::DestroyShaderProgram(ShaderProgram *shader_program) noexcept {
 }
 
 CommandList *RHIDX12::GetCommandList(CommandQueueType type) noexcept {
-    auto key{std::this_thread::get_id()};
-    if (!m_command_context_map[key]) {
-        CommandContext *context = new DX12CommandContext(m_dx12.device);
-        m_command_context_map[key] = context;
-    }
 
-    auto vk_command_context =
-        dynamic_cast<DX12CommandContext *>(m_command_context_map[key]);
-    return vk_command_context->GetDX12CommandList(type);
+    auto cl = new DX12CommandContext(m_dx12.device);
+    auto [key, success] =
+        m_command_context_map.try_emplace(std::this_thread::get_id(), cl);
+
+    return cl->GetDX12CommandList(type);
 }
 
 void RHIDX12::ResetCommandResources() noexcept {
