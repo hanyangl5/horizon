@@ -387,6 +387,46 @@ void RHIVulkan::SubmitCommandLists(
     vkQueueWaitIdle(m_vulkan.command_queues[queue_type]);
 }
 
+void RHIVulkan::SetResource(Buffer *buffer) noexcept {
+
+    u32 usage = buffer->GetBufferUsage();
+    auto vk_buffer = dynamic_cast<VulkanBuffer *>(buffer);
+    
+    vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
+    vk_buffer->buffer_info.offset = 0;
+    vk_buffer->buffer_info.range = buffer->GetBufferSize();
+
+    if (usage & BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER) {
+        auto &write = m_global_descriptor->descriptor_writes[0];
+        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = nullptr;
+        write.dstSet = m_global_descriptor->m_sets[0];
+        write.dstBinding = 0;
+        write.dstArrayElement = 0;
+        write.descriptorCount = 1;
+        write.pBufferInfo = &vk_buffer->buffer_info;
+    } else if (usage & BufferUsage::BUFFER_USAGE_RW_BUFFER) {
+        auto &write = m_global_descriptor->descriptor_writes[1];
+        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = nullptr;
+        write.dstSet = m_global_descriptor->m_sets[1];
+        write.dstBinding = 0;
+        write.dstArrayElement = 0;
+        write.descriptorCount = 1;
+        write.pBufferInfo = &vk_buffer->buffer_info;
+    }
+}
+
+void RHIVulkan::SetResource(Texture *texture) noexcept {
+    VkDescriptorImageInfo image_info{};
+    image_info.imageView;
+    image_info.imageLayout;
+}
+
+void RHIVulkan::UpdateDescriptors() noexcept { m_global_descriptor->Update(); }
+
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
     auto cl = new VulkanCommandContext(m_vulkan.device);
     auto [key, success] =

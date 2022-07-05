@@ -4,7 +4,9 @@
 namespace Horizon::RHI {
 
 VulkanDescriptor::VulkanDescriptor(VkDevice device) noexcept
-    : m_device(device) {}
+    : m_device(device) {
+
+}
 
 VulkanDescriptor::~VulkanDescriptor() {
     // TODO: destroy descriptor resources, descriptorsetlayout, descriptorpool
@@ -66,11 +68,17 @@ void VulkanDescriptor::AllocateDescriptors() noexcept {
                 m_device, &set_layout_info, nullptr, &m_set_layouts[i]));
         }
 
+        VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info{
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT};
+
+        count_info.descriptorSetCount = 1;
+        count_info.pDescriptorCounts = &m_k_max_binding_count - 1; // ?
+
         VkDescriptorSetAllocateInfo set_info{};
         set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         set_info.descriptorPool = m_bindless_descriptor_pool;
         set_info.descriptorSetCount = 1;
-
+        set_info.pNext = &count_info;
         for (u32 i = 0; i < m_sets.size(); i++) {
             set_info.pSetLayouts = &m_set_layouts[i];
             CHECK_VK_RESULT(
@@ -80,5 +88,10 @@ void VulkanDescriptor::AllocateDescriptors() noexcept {
 }
 void VulkanDescriptor::ResetDescriptorPool() noexcept {
     vkResetDescriptorPool(m_device, m_bindless_descriptor_pool, 0);
+}
+void VulkanDescriptor::Update() noexcept {
+
+    vkUpdateDescriptorSets(m_device, descriptor_writes.size(),
+                           descriptor_writes.data(), 0, nullptr);
 }
 } // namespace Horizon::RHI

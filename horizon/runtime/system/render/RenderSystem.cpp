@@ -78,4 +78,14 @@ void RenderSystem::SubmitCommandLists(
     std::vector<CommandList *> &command_lists) noexcept {
     m_render_api->SubmitCommandLists(queue, command_lists);
 }
+
+void RenderSystem::SetResource(Buffer *buffer) noexcept {
+    m_render_api->SetResource(buffer);
+}
+void RenderSystem::SetResource(Texture *texture) noexcept {
+    m_render_api->SetResource(texture);
+}
+void RenderSystem::UpdateDescriptors() noexcept {
+    m_render_api->UpdateDescriptors();
+}
 } // namespace Horizon

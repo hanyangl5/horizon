@@ -58,7 +58,7 @@ IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform,
         break;
     }
 
-    auto tp = "-T " + typestr + "_6_0";
+    auto tp = "-T " + typestr + "_6_6";
     auto ep = "-E " + entry_point;
 
     std::wstring wtp(tp.begin(), tp.end());

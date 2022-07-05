@@ -103,6 +103,12 @@ void RHIDX12::SubmitCommandLists(
     // }
 }
 
+void RHIDX12::SetResource(Buffer *buffer) noexcept {}
+
+void RHIDX12::SetResource(Texture *texture) noexcept {}
+
+void RHIDX12::UpdateDescriptors() noexcept {}
+
 void RHIDX12::InitializeDX12Renderer() noexcept {
     CreateFactory();
     CreateDevice();

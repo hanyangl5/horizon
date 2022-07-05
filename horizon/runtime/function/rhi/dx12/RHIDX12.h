@@ -50,6 +50,9 @@ class RHIDX12 : public RHIInterface {
         CommandQueueType queue_type,
         std::vector<CommandList *> &command_lists) noexcept override;
 
+    void SetResource(Buffer *buffer) noexcept override;
+    void SetResource(Texture *texture) noexcept override;
+    void UpdateDescriptors() noexcept override;
   private:
     void InitializeDX12Renderer() noexcept;
     void CreateFactory() noexcept;

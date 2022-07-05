@@ -46,6 +46,14 @@ class RHIVulkan : public RHIInterface {
     Pipeline *CreatePipeline(
         const PipelineCreateInfo &pipeline_create_info) noexcept override;
 
+    // submit command list to command queue
+    virtual void SubmitCommandLists(
+        CommandQueueType queue_type,
+        std::vector<CommandList *> &command_lists) noexcept override;
+    void SetResource(Buffer *buffer) noexcept override;
+    void SetResource(Texture *texture) noexcept override;
+
+    void UpdateDescriptors() noexcept override;
   private:
     void InitializeVulkanRenderer(const std::string &app_name) noexcept;
     void
@@ -57,11 +65,6 @@ class RHIVulkan : public RHIInterface {
     void InitializeVMA() noexcept;
 
     void DestroySwapChain() noexcept;
-
-    // submit command list to command queue
-    virtual void SubmitCommandLists(
-        CommandQueueType queue_type,
-        std::vector<CommandList *> &command_lists) noexcept override;
 
   private:
   private:

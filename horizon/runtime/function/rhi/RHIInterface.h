@@ -48,6 +48,10 @@ class RHIInterface {
     SubmitCommandLists(CommandQueueType queue,
                        std::vector<CommandList *> &command_lists) noexcept = 0;
 
+    virtual void SetResource(Buffer *buffer) noexcept = 0;
+    virtual void SetResource(Texture *texture) noexcept = 0;
+
+    virtual void UpdateDescriptors() noexcept = 0;
   protected:
     u32 m_back_buffer_count{2};
     u32 m_current_frame_index{0};

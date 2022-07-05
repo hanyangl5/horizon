@@ -21,6 +21,7 @@ class VulkanBuffer : public Buffer {
     VmaAllocation m_memory{};
     VmaAllocator m_allocator{};
     VmaAllocationInfo m_allocation_info{};
+    VkDescriptorBufferInfo buffer_info{};
 };
 
 } // namespace Horizon::RHI

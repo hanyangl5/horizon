@@ -46,7 +46,10 @@ class RenderSystem {
     // submit command list to command queue
     void SubmitCommandLists(CommandQueueType queue,
                             std::vector<CommandList *> &command_lists) noexcept;
+    void SetResource(Buffer *buffer) noexcept;
+    void SetResource(Texture *texture) noexcept;
 
+    void UpdateDescriptors() noexcept;
   private:
     void InitializeRenderAPI(RenderBackend backend) noexcept;
 

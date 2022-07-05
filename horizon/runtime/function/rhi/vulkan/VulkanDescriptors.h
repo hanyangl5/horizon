@@ -12,7 +12,7 @@ class VulkanDescriptor {
     ~VulkanDescriptor() noexcept;
     void AllocateDescriptors() noexcept;
     void ResetDescriptorPool() noexcept;
-
+    void Update() noexcept;
   public:
     static constexpr u32 m_k_bindless_descriptor_type_count{4};
     static constexpr u32 m_k_max_binding_count{1024};
@@ -27,6 +27,9 @@ class VulkanDescriptor {
     std::array<VkDescriptorSetLayout, m_k_bindless_descriptor_type_count>
         m_set_layouts{};
     std::array<VkDescriptorSet, m_k_bindless_descriptor_type_count> m_sets{};
+
+    std::array<VkWriteDescriptorSet, m_k_bindless_descriptor_type_count>
+        descriptor_writes{};
 };
 
 } // namespace Horizon::RHI
