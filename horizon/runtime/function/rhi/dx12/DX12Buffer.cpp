@@ -7,11 +7,8 @@ DX12Buffer::DX12Buffer(D3D12MA::Allocator *allocator,
                        const BufferCreateInfo &buffer_create_info,
                        MemoryFlag memory_flag) noexcept
     : Buffer(buffer_create_info), m_allocator(allocator) {
-    m_size = buffer_create_info.size;
-    m_usage = buffer_create_info.buffer_usage_flags;
 
-    D3D12_RESOURCE_FLAGS usage{
-        ToDX12BufferUsage(buffer_create_info.buffer_usage_flags)};
+    D3D12_RESOURCE_FLAGS usage{}; // TODO: 
     // Alignment must be 64KB (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) or 0,
     // which is effectively 64KB.
     auto _buffer_create_info = CD3DX12_RESOURCE_DESC::Buffer(

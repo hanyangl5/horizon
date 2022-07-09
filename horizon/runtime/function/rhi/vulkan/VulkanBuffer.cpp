@@ -10,7 +10,8 @@ VulkanBuffer::VulkanBuffer(VmaAllocator allocator,
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = buffer_create_info.size;
     create_info.usage =
-        ToVulkanBufferUsage(buffer_create_info.buffer_usage_flags);
+        util_to_vk_buffer_usage(buffer_create_info.descriptor_type, false);
+    create_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo allocation_create_info{};
@@ -28,6 +29,8 @@ VulkanBuffer::VulkanBuffer(VmaAllocator allocator,
     CHECK_VK_RESULT(vmaCreateBuffer(allocator, &create_info,
                                     &allocation_create_info, &m_buffer,
                                     &m_memory, &m_allocation_info));
+
+    
 }
 
 VulkanBuffer::~VulkanBuffer() noexcept {
@@ -35,6 +38,5 @@ VulkanBuffer::~VulkanBuffer() noexcept {
 }
 
 void *VulkanBuffer::GetBufferPointer() noexcept { return m_buffer; }
-
 
 } // namespace Horizon::RHI

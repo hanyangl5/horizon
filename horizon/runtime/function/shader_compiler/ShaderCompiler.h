@@ -22,8 +22,18 @@ enum class ShaderTargetPlatform { SPIRV, DXIL };
 class ShaderCompiler {
   public:
     ShaderCompiler() noexcept;
+
     ~ShaderCompiler() noexcept;
 
+    ShaderCompiler(const ShaderCompiler &rhs) noexcept = delete;
+
+    ShaderCompiler &operator=(const ShaderCompiler &rhs) noexcept = delete;
+
+    ShaderCompiler(ShaderCompiler &&rhs) noexcept = delete;
+
+    ShaderCompiler &operator=(ShaderCompiler &&rhs) noexcept = delete;
+
+  public:
     IDxcBlob *CompileFromFile(ShaderTargetPlatform platform, ShaderType type,
                               const std::string &entry_point, u32 compile_flags,
                               std::string file_name) noexcept;

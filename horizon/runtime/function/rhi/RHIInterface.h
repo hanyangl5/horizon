@@ -19,7 +19,16 @@ namespace Horizon::RHI {
 class RHIInterface {
   public:
     RHIInterface() noexcept;
+
     ~RHIInterface() noexcept = default;
+
+    RHIInterface(const RHIInterface &window) noexcept = delete;
+
+    RHIInterface &operator=(const RHIInterface &window) noexcept = delete;
+
+    RHIInterface(RHIInterface &&window) noexcept = delete;
+
+    RHIInterface &operator=(RHIInterface &&window) noexcept = delete;
 
     virtual void InitializeRenderer() noexcept = 0;
 
@@ -57,7 +66,7 @@ class RHIInterface {
     u32 m_current_frame_index{0};
     std::shared_ptr<ShaderCompiler> m_shader_compiler{};
     // each thread has one command pool,
-    std::unordered_map<std::thread::id, CommandContext *>
+    std::unordered_map<std::thread::id, std::unique_ptr<CommandContext>>
         m_command_context_map{};
 
   public:

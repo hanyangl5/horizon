@@ -4,6 +4,7 @@
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
+#include <runtime/function/rhi/Texture.h>
 
 namespace Horizon::RHI {
 
@@ -26,7 +27,8 @@ class CommandList {
 
     virtual void UpdateBuffer(Buffer *buffer, void *data,
                               u64 size) noexcept = 0;
-    virtual void UpdateTexture() noexcept = 0;
+    virtual void UpdateTexture(Texture *texture,
+                               const TextureData &texture_data) noexcept = 0;
     virtual void CopyBuffer(Buffer *dst_buffer,
                             Buffer *src_buffer) noexcept = 0;
     virtual void CopyTexture() noexcept = 0;

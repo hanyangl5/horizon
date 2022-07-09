@@ -10,6 +10,17 @@ class Camera {
   public:
     Camera(Math::float3 position, Math::float3 at, Math::float3 up) noexcept;
 
+    ~Camera() noexcept = default;
+
+    Camera(const Camera &rhs) noexcept = delete;
+
+    Camera &operator=(const Camera &rhs) noexcept = delete;
+
+    Camera(Camera &&rhs) noexcept = delete;
+
+    Camera &operator=(Camera &&rhs) noexcept = delete;
+
+  public:
     void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near,
                                         f32 far) noexcept;
 

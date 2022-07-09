@@ -14,14 +14,8 @@ enum class RenderBackend {
     RENDER_BACKEND_VULKAN,
     RENDER_BACKEND_DX12
 };
-
+// always assum queue family index: graphics = 0, compute = 1, transfer = 2
 enum CommandQueueType { GRAPHICS = 0, COMPUTE, TRANSFER };
-
-// class CommandQueue {
-// public:
-//     CommandQueueType m_type;
-//     u32 m_index;
-// };
 
 inline D3D12_COMMAND_LIST_TYPE ToDX12CommandQueueType(CommandQueueType type) {
     switch (type) {
@@ -36,12 +30,6 @@ inline D3D12_COMMAND_LIST_TYPE ToDX12CommandQueueType(CommandQueueType type) {
         return {};
     }
 }
-
-struct RenderContext {
-    u32 width;
-    u32 height;
-    u32 swap_chain_image_count = 3;
-};
 
 enum class PipelineType { GRAPHICS = 0, COMPUTE, RAY_TRACING };
 
@@ -63,11 +51,62 @@ inline VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) {
     }
 }
 
-enum class DescriptorType {
-    DESCRIPTOR_TYPE_UNIFORM_BUFFER = 0,
-    DESCRIPTOR_TYPE_RW_BUFFER,
-    DESCRIPTOR_TYPE_TEXTURE,
-    DESCRIPTOR_TYPE_RW_TEXTURE
+enum DescriptorType {
+    DESCRIPTOR_TYPE_UNDEFINED = 0,
+    DESCRIPTOR_TYPE_SAMPLER = 0x01,
+    // SRV Read only texture
+    DESCRIPTOR_TYPE_TEXTURE = (DESCRIPTOR_TYPE_SAMPLER << 1),
+    /// UAV Texture
+    DESCRIPTOR_TYPE_RW_TEXTURE = (DESCRIPTOR_TYPE_TEXTURE << 1),
+    // SRV Read only buffer
+    DESCRIPTOR_TYPE_BUFFER = (DESCRIPTOR_TYPE_RW_TEXTURE << 1),
+    DESCRIPTOR_TYPE_BUFFER_RAW =
+        (DESCRIPTOR_TYPE_BUFFER | (DESCRIPTOR_TYPE_BUFFER << 1)),
+    /// UAV Buffer
+    DESCRIPTOR_TYPE_RW_BUFFER = (DESCRIPTOR_TYPE_BUFFER << 2),
+    DESCRIPTOR_TYPE_RW_BUFFER_RAW =
+        (DESCRIPTOR_TYPE_RW_BUFFER | (DESCRIPTOR_TYPE_RW_BUFFER << 1)),
+    /// Uniform buffer
+    DESCRIPTOR_TYPE_UNIFORM_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2),
+    /// Push constant / Root constant
+    DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_UNIFORM_BUFFER << 1),
+    /// IA
+    DESCRIPTOR_TYPE_VERTEX_BUFFER = (DESCRIPTOR_TYPE_ROOT_CONSTANT << 1),
+    DESCRIPTOR_TYPE_INDEX_BUFFER = (DESCRIPTOR_TYPE_VERTEX_BUFFER << 1),
+    DESCRIPTOR_TYPE_INDIRECT_BUFFER = (DESCRIPTOR_TYPE_INDEX_BUFFER << 1),
+    /// Cubemap SRV
+    DESCRIPTOR_TYPE_TEXTURE_CUBE =
+        (DESCRIPTOR_TYPE_TEXTURE | (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 1)),
+    /// RTV / DSV per mip slice
+    DESCRIPTOR_TYPE_RENDER_TARGET_MIP_SLICES =
+        (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 2),
+    /// RTV / DSV per array slice
+    DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES =
+        (DESCRIPTOR_TYPE_RENDER_TARGET_MIP_SLICES << 1),
+    /// RTV / DSV per depth slice
+    DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES =
+        (DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES << 1),
+    DESCRIPTOR_TYPE_RAY_TRACING =
+        (DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES << 1),
+#if defined(USE_VULKAN)
+    /// Subpass input (descriptor type only available in Vulkan)
+    DESCRIPTOR_TYPE_INPUT_ATTACHMENT = (DESCRIPTOR_TYPE_RAY_TRACING << 1),
+    DESCRIPTOR_TYPE_TEXEL_BUFFER = (DESCRIPTOR_TYPE_INPUT_ATTACHMENT << 1),
+    DESCRIPTOR_TYPE_RW_TEXEL_BUFFER = (DESCRIPTOR_TYPE_TEXEL_BUFFER << 1),
+    DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER =
+        (DESCRIPTOR_TYPE_RW_TEXEL_BUFFER << 1),
+
+    /// Khronos extension ray tracing
+    DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE =
+        (DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER << 1),
+    DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT =
+        (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE << 1),
+    DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS =
+        (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT << 1),
+    DESCRIPTOR_TYPE_SHADER_BINDING_TABLE =
+        (DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS << 1),
+#endif
+
 };
 
 // using DescriptorType = u32;
@@ -84,84 +123,6 @@ enum ShaderStageFlags {
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
-};
-
-enum PipelineStageFlags {
-    PIPELINE_STAGE_TOP_OF_PIPE_BIT = 0x00000001,
-    PIPELINE_STAGE_DRAW_INDIRECT_BIT = 0x00000002,
-    PIPELINE_STAGE_VERTEX_INPUT_BIT = 0x00000004,
-    PIPELINE_STAGE_VERTEX_SHADER_BIT = 0x00000008,
-    PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT = 0x00000010,
-    PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT = 0x00000020,
-    PIPELINE_STAGE_GEOMETRY_SHADER_BIT = 0x00000040,
-    PIPELINE_STAGE_FRAGMENT_SHADER_BIT = 0x00000080,
-    PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT = 0x00000100,
-    PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT = 0x00000200,
-    PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT = 0x00000400,
-    PIPELINE_STAGE_COMPUTE_SHADER_BIT = 0x00000800,
-    PIPELINE_STAGE_TRANSFER_BIT = 0x00001000,
-    PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT = 0x00002000,
-    PIPELINE_STAGE_HOST_BIT = 0x00004000,
-    PIPELINE_STAGE_ALL_GRAPHICS_BIT = 0x00008000,
-    PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x00010000,
-    PIPELINE_STAGE_NONE = 0,
-    PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT = 0x01000000,
-    PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT = 0x00040000,
-    PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR = 0x02000000,
-    PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR = 0x00200000,
-    PIPELINE_STAGE_TASK_SHADER_BIT_NV = 0x00080000,
-    PIPELINE_STAGE_MESH_SHADER_BIT_NV = 0x00100000,
-    PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT = 0x00800000,
-    PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR = 0x00400000,
-    PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV = 0x00020000,
-    PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV =
-        VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
-    PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV =
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-    PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV =
-        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-    PIPELINE_STAGE_NONE_KHR = VK_PIPELINE_STAGE_NONE,
-    PIPELINE_STAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
-};
-
-enum MemoryAccessFlags {
-    ACCESS_INDIRECT_COMMAND_READ_BIT = 0x00000001,
-    ACCESS_INDEX_READ_BIT = 0x00000002,
-    ACCESS_VERTEX_ATTRIBUTE_READ_BIT = 0x00000004,
-    ACCESS_UNIFORM_READ_BIT = 0x00000008,
-    ACCESS_INPUT_ATTACHMENT_READ_BIT = 0x00000010,
-    ACCESS_SHADER_READ_BIT = 0x00000020,
-    ACCESS_SHADER_WRITE_BIT = 0x00000040,
-    ACCESS_COLOR_ATTACHMENT_READ_BIT = 0x00000080,
-    ACCESS_COLOR_ATTACHMENT_WRITE_BIT = 0x00000100,
-    ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT = 0x00000200,
-    ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT = 0x00000400,
-    ACCESS_TRANSFER_READ_BIT = 0x00000800,
-    ACCESS_TRANSFER_WRITE_BIT = 0x00001000,
-    ACCESS_HOST_READ_BIT = 0x00002000,
-    ACCESS_HOST_WRITE_BIT = 0x00004000,
-    ACCESS_MEMORY_READ_BIT = 0x00008000,
-    ACCESS_MEMORY_WRITE_BIT = 0x00010000,
-    ACCESS_NONE = 0,
-    ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT = 0x02000000,
-    ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT = 0x04000000,
-    ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT = 0x08000000,
-    ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT = 0x00100000,
-    ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT = 0x00080000,
-    ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR = 0x00200000,
-    ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR = 0x00400000,
-    ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT = 0x01000000,
-    ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR = 0x00800000,
-    ACCESS_COMMAND_PREPROCESS_READ_BIT_NV = 0x00020000,
-    ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV = 0x00040000,
-    ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV =
-        VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR,
-    ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV =
-        VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR,
-    ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV =
-        VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-    ACCESS_NONE_KHR = VK_ACCESS_NONE,
-    ACCESS_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 };
 
 enum class TextureType {
@@ -246,32 +207,241 @@ enum class TextureFormat {
 
 };
 
-enum TextureUsage { TEXTURE_USAGE_R = 1, TEXTURE_USAGE_RW = 2 };
+enum ResourceState {
+    RESOURCE_STATE_UNDEFINED = 0,
+    RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER = 0x1,
+    RESOURCE_STATE_INDEX_BUFFER = 0x2,
+    RESOURCE_STATE_RENDER_TARGET = 0x4,
+    RESOURCE_STATE_UNORDERED_ACCESS = 0x8,
+    RESOURCE_STATE_DEPTH_WRITE = 0x10,
+    RESOURCE_STATE_DEPTH_READ = 0x20,
+    RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE = 0x40,
+    RESOURCE_STATE_PIXEL_SHADER_RESOURCE = 0x80,
+    RESOURCE_STATE_SHADER_RESOURCE = 0x40 | 0x80,
+    RESOURCE_STATE_STREAM_OUT = 0x100,
+    RESOURCE_STATE_INDIRECT_ARGUMENT = 0x200,
+    RESOURCE_STATE_COPY_DEST = 0x400,
+    RESOURCE_STATE_COPY_SOURCE = 0x800,
+    RESOURCE_STATE_GENERIC_READ =
+        (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
+    RESOURCE_STATE_PRESENT = 0x1000,
+    RESOURCE_STATE_COMMON = 0x2000,
+    RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE = 0x4000,
+    RESOURCE_STATE_SHADING_RATE_SOURCE = 0x8000,
+    RESOURCE_STATE_HOST_READ = 0x10000,
+    RESOURCE_STATE_HOST_WRITE = 0x20000
+};
 
-inline VkDescriptorType ToVkDescriptorType(DescriptorType type) noexcept {
-    switch (type) {
-    case DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-        // return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    case DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER:
-        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        // case DescriptorType::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-        //	return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    case DescriptorType::DESCRIPTOR_TYPE_TEXTURE:
-        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    case DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE:
-        return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    default:
-        LOG_ERROR("invalid descriptor type");
-        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+
+
+enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
+
+struct BufferCreateInfo {
+    // u32 buffer_usage_flags;
+    DescriptorType descriptor_type;
+    ResourceState initial_state;
+    u64 size;
+    // void* data;
+};
+
+struct TextureCreateInfo {
+    DescriptorType descriptor_type;
+    ResourceState initial_state;
+    TextureType texture_type;
+    TextureFormat texture_format;
+    // TextureUsage texture_usage;
+    u32 width, height, depth = 1;
+};
+
+inline VkAccessFlags util_to_vk_access_flags(ResourceState state) {
+    VkAccessFlags ret = 0;
+
+    if (state & RESOURCE_STATE_HOST_READ) {
+        ret |= VK_ACCESS_HOST_READ_BIT;
     }
+    if (state & RESOURCE_STATE_HOST_WRITE) {
+        ret |= VK_ACCESS_HOST_WRITE_BIT;
+    }
+    if (state & RESOURCE_STATE_COPY_SOURCE) {
+        ret |= VK_ACCESS_TRANSFER_READ_BIT;
+    }
+    if (state & RESOURCE_STATE_COPY_DEST) {
+        ret |= VK_ACCESS_TRANSFER_WRITE_BIT;
+    }
+    if (state & RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) {
+        ret |= VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    }
+    if (state & RESOURCE_STATE_INDEX_BUFFER) {
+        ret |= VK_ACCESS_INDEX_READ_BIT;
+    }
+    if (state & RESOURCE_STATE_UNORDERED_ACCESS) {
+        ret |= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+    }
+    if (state & RESOURCE_STATE_INDIRECT_ARGUMENT) {
+        ret |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+    }
+    if (state & RESOURCE_STATE_RENDER_TARGET) {
+        ret |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    }
+    if (state & RESOURCE_STATE_DEPTH_WRITE) {
+        ret |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    }
+    if (state & RESOURCE_STATE_SHADER_RESOURCE) {
+        ret |= VK_ACCESS_SHADER_READ_BIT;
+    }
+    if (state & RESOURCE_STATE_PRESENT) {
+        ret |= VK_ACCESS_MEMORY_READ_BIT;
+    }
+    //#if defined(QUEST_VR)
+    //    if (state & RESOURCE_STATE_SHADING_RATE_SOURCE) {
+    //        ret |= VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+    //    }
+    //#endif
+    //
+    //#ifdef VK_RAYTRACING_AVAILABLE
+    //    if (state & RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE) {
+    //        ret |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR |
+    //               VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+    //    }
+    //#endif
+
+    return ret;
 }
 
-inline VkPipelineStageFlags ToVkPipelineStage(u32 flags) noexcept {
+inline VkImageLayout util_to_vk_image_layout(ResourceState usage) {
+    if (usage & RESOURCE_STATE_COPY_SOURCE)
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+    if (usage & RESOURCE_STATE_COPY_DEST)
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+    if (usage & RESOURCE_STATE_RENDER_TARGET)
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    if (usage & RESOURCE_STATE_DEPTH_WRITE)
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    if (usage & RESOURCE_STATE_UNORDERED_ACCESS)
+        return VK_IMAGE_LAYOUT_GENERAL;
+
+    if (usage & RESOURCE_STATE_SHADER_RESOURCE)
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    if (usage & RESOURCE_STATE_PRESENT)
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    if (usage == RESOURCE_STATE_COMMON)
+        return VK_IMAGE_LAYOUT_GENERAL;
+
+#if defined(QUEST_VR)
+    if (usage == RESOURCE_STATE_SHADING_RATE_SOURCE)
+        return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+#endif
+
+    return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
+inline VkImageUsageFlags util_to_vk_image_usage(DescriptorType usage) {
+    VkImageUsageFlags result = 0;
+    if (DESCRIPTOR_TYPE_TEXTURE == (usage & DESCRIPTOR_TYPE_TEXTURE))
+        result |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (DESCRIPTOR_TYPE_RW_TEXTURE == (usage & DESCRIPTOR_TYPE_RW_TEXTURE))
+        result |= VK_IMAGE_USAGE_STORAGE_BIT;
+    return result;
+}
+
+inline VkPipelineStageFlags
+util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
+                                    CommandQueueType queueType) {
+    VkPipelineStageFlags flags = 0;
+
+    switch (queueType) {
+    case GRAPHICS: {
+        if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT |
+                            VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0)
+            flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+
+        if ((accessFlags &
+             (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+              VK_ACCESS_SHADER_WRITE_BIT)) != 0) {
+            flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+            flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            // if (pRenderer->pActiveGpuSettings->mGeometryShaderSupported) {
+            //     flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+            // }
+            // if (pRenderer->pActiveGpuSettings->mTessellationSupported) {
+            //     flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+            //     flags |=
+            //     VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+            // }
+            flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+            //#ifdef VK_RAYTRACING_AVAILABLE
+            //            if (pRenderer->mVulkan.mRaytracingSupported) {
+            //                flags |=
+            //                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            //            }
+            //#endif
+        }
+
+        if ((accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0)
+            flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+        if ((accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0)
+            flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        if ((accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+            flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                     VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+#if defined(QUEST_VR)
+        if ((accessFlags & VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT) != 0)
+            flags |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+#endif
+        break;
+    }
+    case COMPUTE: {
+        if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT |
+                            VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0 ||
+            (accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0 ||
+            (accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0 ||
+            (accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+            return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+        if ((accessFlags &
+             (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+              VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+            flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+        break;
+    }
+    case TRANSFER:
+        return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    default:
+        break;
+    }
+
+    // Compatible with both compute and graphics queues
+    if ((accessFlags & VK_ACCESS_INDIRECT_COMMAND_READ_BIT) != 0)
+        flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+
+    if ((accessFlags &
+         (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0)
+        flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    if ((accessFlags & (VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT)) !=
+        0)
+        flags |= VK_PIPELINE_STAGE_HOST_BIT;
+
+    if (flags == 0)
+        flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
     return flags;
 }
-
-inline VkAccessFlags ToVkMemoryAccessFlags(u32 flags) noexcept { return flags; }
 
 inline VkShaderStageFlags ToVkShaderStageFlags(u32 stage) noexcept {
     VkShaderStageFlags flags = 0;
@@ -283,9 +453,6 @@ inline VkShaderStageFlags ToVkShaderStageFlags(u32 stage) noexcept {
     }
     if (stage & SHADER_STAGE_COMPUTE_SHADER) {
         flags |= VK_SHADER_STAGE_COMPUTE_BIT;
-    }
-    if (flags == 0) {
-        LOG_ERROR("invalid shader stage: ", stage);
     }
     return flags;
 }
@@ -394,95 +561,80 @@ inline VkFormat ToVkImageFormat(TextureFormat format) noexcept {
     }
 }
 
-inline VkImageUsageFlags ToVkImageUsage(u32 usage) noexcept {
-    VkImageUsageFlags flags = 0;
-    if (usage & TextureUsage::TEXTURE_USAGE_R) {
-        flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    }
-    if (usage & TextureUsage::TEXTURE_USAGE_RW) {
-        flags |= VK_IMAGE_USAGE_STORAGE_BIT;
-        flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    }
-    if (flags == 0) {
-        LOG_ERROR("invalid image usage: ", usage);
-        return {};
-    }
-    return flags;
-}
-
-inline VkImageLayout ToVkImageLayout(TextureUsage usage) noexcept {
-    switch (usage) {
-    case Horizon::TEXTURE_USAGE_R:
-        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+inline VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format,
+                                              bool includeStencilBit) {
+    VkImageAspectFlags result = 0;
+    switch (format) {
+        // Depth
+    case VK_FORMAT_D16_UNORM:
+    case VK_FORMAT_X8_D24_UNORM_PACK32:
+    case VK_FORMAT_D32_SFLOAT:
+        result = VK_IMAGE_ASPECT_DEPTH_BIT;
         break;
-    case Horizon::TEXTURE_USAGE_RW:
-        return VK_IMAGE_LAYOUT_GENERAL;
+        // Stencil
+    case VK_FORMAT_S8_UINT:
+        result = VK_IMAGE_ASPECT_STENCIL_BIT;
         break;
+        // Depth/stencil
+    case VK_FORMAT_D16_UNORM_S8_UINT:
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+        result = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (includeStencilBit)
+            result |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        break;
+        // Assume everything else is Color
     default:
-        return VK_IMAGE_LAYOUT_MAX_ENUM;
+        result = VK_IMAGE_ASPECT_COLOR_BIT;
         break;
     }
+    return result;
 }
 
-enum BufferUsage {
-    BUFFER_USAGE_VERTEX_BUFFER = 1,
-    BUFFER_USAGE_INDEX_BUFFER = 2,
-    BUFFER_USAGE_UNIFORM_BUFFER = 4,
-    BUFFER_USAGE_RW_BUFFER = 8,
-    BUFFER_USAGE_TRANSFER_SRC = 16,
-    BUFFER_USAGE_TRANSFER_DST = 32,
-    BUFFER_USAGE_DYNAMIC_UPDATE = 64
-};
-
-enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
-
-struct BufferCreateInfo {
-    u32 buffer_usage_flags;
-    u64 size;
-    // void* data;
-};
-
-inline VkBufferUsageFlags ToVulkanBufferUsage(u32 buffer_usage) noexcept {
-    VkBufferUsageFlags flags = 0;
-    if (buffer_usage & BUFFER_USAGE_VERTEX_BUFFER) {
-        flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+inline VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage,
+                                                  bool typed) {
+    VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    if (usage & DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
-    if (buffer_usage & BUFFER_USAGE_INDEX_BUFFER) {
-        flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (usage & DESCRIPTOR_TYPE_RW_BUFFER) {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        if (typed)
+            result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     }
-    if (buffer_usage & BUFFER_USAGE_UNIFORM_BUFFER) {
-        flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    if (usage & DESCRIPTOR_TYPE_BUFFER) {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        if (typed)
+            result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     }
-    if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
-        flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (usage & DESCRIPTOR_TYPE_INDEX_BUFFER) {
+        result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
-    if (buffer_usage & BUFFER_USAGE_TRANSFER_SRC) {
-        flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    if (usage & DESCRIPTOR_TYPE_VERTEX_BUFFER) {
+        result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     }
-
-    if (buffer_usage & BUFFER_USAGE_TRANSFER_DST) {
-        flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    if (usage & DESCRIPTOR_TYPE_INDIRECT_BUFFER) {
+        result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     }
-
-    return flags;
+#ifdef VK_RAYTRACING_AVAILABLE
+    if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE) {
+        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+    }
+    if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT) {
+        result |=
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    }
+    if (usage & DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS) {
+        result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    }
+    if (usage & DESCRIPTOR_TYPE_SHADER_BINDING_TABLE) {
+        result |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
+    }
+#endif
+    return result;
 }
 
-inline u32 UsageToPipelineStage(u32 buffer_usage) noexcept {}
-
-inline D3D12_RESOURCE_FLAGS ToDX12BufferUsage(u32 buffer_usage) noexcept {
-    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    if (buffer_usage & BUFFER_USAGE_RW_BUFFER) {
-        flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    }
-    return flags;
-}
-
-struct TextureCreateInfo {
-    TextureType texture_type;
-    TextureFormat texture_format;
-    TextureUsage texture_usage;
-    u32 width, height, depth = 1;
-};
+// dx12
 
 inline DXGI_FORMAT ToDx12TextureFormat(TextureFormat format) {
     switch (format) {
@@ -614,19 +766,6 @@ inline D3D12_RESOURCE_DIMENSION ToDX12TextureDimension(TextureType type) {
     default:
         LOG_ERROR("invalid image type, use texture2D as default");
         return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        break;
-    }
-}
-
-inline D3D12_RESOURCE_FLAGS ToDX12TextureUsage(TextureUsage usage) noexcept {
-    switch (usage) {
-    case Horizon::TEXTURE_USAGE_R:
-        return D3D12_RESOURCE_FLAG_NONE;
-    case Horizon::TEXTURE_USAGE_RW:
-        return D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    default:
-        return D3D12_RESOURCE_FLAG_NONE;
-        break;
         break;
     }
 }

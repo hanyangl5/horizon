@@ -11,7 +11,7 @@ class VulkanTexture : public Texture {
                   const TextureCreateInfo &buffer_create_info) noexcept;
     virtual ~VulkanTexture() noexcept;
 
-  private:
+  public:
     VkImage m_image{};
     VmaAllocation m_allocation{};
     VmaAllocator m_allocator{};

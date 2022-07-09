@@ -9,14 +9,11 @@ class Buffer {
   public:
     Buffer(const BufferCreateInfo &buffer_create_info) noexcept;
     virtual ~Buffer() noexcept = default;
-    u64 GetBufferSize() const noexcept;
-    u32 GetBufferUsage() const noexcept;
     virtual void *GetBufferPointer() noexcept = 0;
-    bool &Initialized() noexcept;
 
-  protected:
-    u32 m_usage{};
-    u32 m_size{};
-    bool m_initialized{false};
+  public:
+    const DescriptorType m_descriptor_type{};
+    ResourceState m_resource_state{};
+    const u64 m_size{};
 };
 } // namespace Horizon::RHI

@@ -16,12 +16,11 @@ class VulkanDescriptor {
   public:
     static constexpr u32 m_k_bindless_descriptor_type_count{4};
     static constexpr u32 m_k_max_binding_count{1024};
-    std::array<DescriptorType, m_k_bindless_descriptor_type_count>
-        m_bindless_descriptor_types{
-            DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
-            DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
-            DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE};
+    std::array<VkDescriptorType, m_k_bindless_descriptor_type_count>
+        m_bindless_descriptor_types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                    VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
     VkDevice m_device{};
     VkDescriptorPool m_bindless_descriptor_pool{};
     std::array<VkDescriptorSetLayout, m_k_bindless_descriptor_type_count>

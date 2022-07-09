@@ -20,7 +20,8 @@ VulkanTexture::VulkanTexture(
         ToVkImageFormat(texture_create_info.texture_format);
     image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    image_create_info.usage = ToVkImageUsage(texture_create_info.texture_usage);
+    image_create_info.usage =
+        util_to_vk_image_usage(texture_create_info.descriptor_type);
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 

@@ -24,11 +24,19 @@ class InputSystem {
     enum class INPUT_STATE { PRESS, RELEASE };
 
   public:
-    InputSystem(Window* window,
-                Camera* camera) noexcept;
+    InputSystem(Window *window, Camera *camera) noexcept;
 
     ~InputSystem() noexcept;
 
+    InputSystem(const InputSystem &rhs) noexcept = delete;
+
+    InputSystem &operator=(const InputSystem &rhs) noexcept = delete;
+
+    InputSystem(InputSystem &&rhs) noexcept = delete;
+
+    InputSystem &operator=(InputSystem &&rhs) noexcept = delete;
+
+  public:
     void Tick() noexcept;
 
   private:
@@ -43,8 +51,8 @@ class InputSystem {
     int GetMouseButtonRelease(MouseButton button) const noexcept;
 
   private:
-    Window* m_window = nullptr;
-    Camera* m_camera = nullptr;
+    Window *m_window = nullptr;
+    Camera *m_camera = nullptr;
 
     f32 m_last_x;
     f32 m_last_y;

@@ -80,7 +80,7 @@ class RHIVulkan : public RHIInterface {
         std::vector<VkImage> swap_chain_images;
         std::vector<VkImageView> swap_chain_image_views;
     } m_vulkan{};
-    VulkanDescriptor *m_global_descriptor = nullptr;
+    std::unique_ptr<VulkanDescriptor> m_global_descriptor = nullptr;
     // pipeline map
     // resource manager, auto
 };

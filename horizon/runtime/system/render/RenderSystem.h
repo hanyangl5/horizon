@@ -18,12 +18,20 @@ using CommandList = RHI::CommandList;
 
 class RenderSystem {
   public:
-  public:
     RenderSystem(u32 width, u32 height, Window *window,
                  RenderBackend backend) noexcept;
 
     ~RenderSystem() noexcept;
 
+    RenderSystem(const RenderSystem &rhs) noexcept = delete;
+
+    RenderSystem &operator=(const RenderSystem &rhs) noexcept = delete;
+
+    RenderSystem(RenderSystem &&rhs) noexcept = delete;
+
+    RenderSystem &operator=(RenderSystem &&rhs) noexcept = delete;
+
+  public:
     Camera *GetMainCamera() const noexcept;
 
     Resource<Buffer>
@@ -50,6 +58,7 @@ class RenderSystem {
     void SetResource(Texture *texture) noexcept;
 
     void UpdateDescriptors() noexcept;
+
   private:
     void InitializeRenderAPI(RenderBackend backend) noexcept;
 

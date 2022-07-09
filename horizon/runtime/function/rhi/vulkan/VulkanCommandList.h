@@ -6,6 +6,7 @@
 
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon::RHI {
 
@@ -13,6 +14,7 @@ class VulkanCommandList : public CommandList {
   public:
     VulkanCommandList(CommandQueueType type,
                       VkCommandBuffer command_buffer) noexcept;
+
     virtual ~VulkanCommandList() noexcept;
 
     virtual void BeginRecording() noexcept override;
@@ -36,23 +38,23 @@ class VulkanCommandList : public CommandList {
     void CopyBuffer(VulkanBuffer *src_buffer,
                     VulkanBuffer *dst_buffer) noexcept;
 
-    virtual void UpdateTexture() noexcept override;
+    void UpdateTexture(Texture *texture,
+                       const TextureData &texture_data) noexcept override;
 
     virtual void CopyTexture() noexcept override;
 
     virtual void InsertBarrier(const BarrierDesc &desc) noexcept override;
 
     virtual void BindPipeline(Pipeline *pipeline) noexcept override;
-
+    void CopyBufferToImage() noexcept;
   private:
     VulkanBuffer *
     GetStageBuffer(VmaAllocator allocator,
                    const BufferCreateInfo &buffer_create_info) noexcept;
 
   public:
-    VkCommandBuffer m_command_buffer; // TODO: release command buffer
-    Resource<VulkanBuffer> m_stage_buffer =
-        nullptr; // TODO: release stage buffer
+    VkCommandBuffer m_command_buffer;
+    Resource<VulkanBuffer> m_stage_buffer = nullptr;
 };
 
 } // namespace Horizon::RHI

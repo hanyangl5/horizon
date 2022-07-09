@@ -1,4 +1,5 @@
 #include <thread>
+#include <memory>
 
 #define VMA_IMPLEMENTATION
 
@@ -19,8 +20,9 @@ RHIVulkan::RHIVulkan() noexcept {}
 
 RHIVulkan::~RHIVulkan() noexcept {
     for (auto &[thread_id, context] : m_command_context_map) {
-        delete context;
+        context = nullptr;
     }
+    m_global_descriptor = nullptr; // release
     DestroySwapChain();
     vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
     vmaDestroyAllocator(m_vulkan.vma_allocator);
@@ -35,12 +37,9 @@ void RHIVulkan::InitializeRenderer() noexcept {
 
 Resource<Buffer>
 RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept {
-    BufferCreateInfo create_info{};
-    create_info.size = buffer_create_info.size;
-    create_info.buffer_usage_flags = buffer_create_info.buffer_usage_flags |
-                                     BufferUsage::BUFFER_USAGE_TRANSFER_DST;
 
-    return std::make_unique<VulkanBuffer>(m_vulkan.vma_allocator, create_info,
+    return std::make_unique<VulkanBuffer>(m_vulkan.vma_allocator,
+                                          buffer_create_info,
                                           MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
@@ -228,7 +227,6 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept {
 
         for (u32 i = 0; i < queue_family_count; i++) {
             // TOOD: print gpu info, runtime swith gpu
-            // TODO: support async compute, async transfer
 
             if (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
@@ -373,7 +371,7 @@ void RHIVulkan::SubmitCommandLists(
 
     std::vector<VkCommandBuffer> command_buffers(command_lists.size());
     for (u32 i = 0; i < command_lists.size(); i++) {
-        command_buffers[i] = dynamic_cast<VulkanCommandList *>(command_lists[i])
+        command_buffers[i] = static_cast<VulkanCommandList *>(command_lists[i])
                                  ->m_command_buffer;
         // valid command list type when submitting
     }
@@ -389,14 +387,14 @@ void RHIVulkan::SubmitCommandLists(
 
 void RHIVulkan::SetResource(Buffer *buffer) noexcept {
 
-    u32 usage = buffer->GetBufferUsage();
-    auto vk_buffer = dynamic_cast<VulkanBuffer *>(buffer);
-    
+    auto descriptor_type = buffer->m_descriptor_type;
+    auto vk_buffer = static_cast<VulkanBuffer *>(buffer);
+
     vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
     vk_buffer->buffer_info.offset = 0;
-    vk_buffer->buffer_info.range = buffer->GetBufferSize();
+    vk_buffer->buffer_info.range = buffer->m_size;
 
-    if (usage & BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER) {
+    if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
         auto &write = m_global_descriptor->descriptor_writes[0];
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -406,7 +404,8 @@ void RHIVulkan::SetResource(Buffer *buffer) noexcept {
         write.dstArrayElement = 0;
         write.descriptorCount = 1;
         write.pBufferInfo = &vk_buffer->buffer_info;
-    } else if (usage & BufferUsage::BUFFER_USAGE_RW_BUFFER) {
+    } else if (descriptor_type ==
+               DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
         auto &write = m_global_descriptor->descriptor_writes[1];
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -428,11 +427,11 @@ void RHIVulkan::SetResource(Texture *texture) noexcept {
 void RHIVulkan::UpdateDescriptors() noexcept { m_global_descriptor->Update(); }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
-    auto cl = new VulkanCommandContext(m_vulkan.device);
-    auto [key, success] =
-        m_command_context_map.try_emplace(std::this_thread::get_id(), cl);
-
-    return cl->GetVulkanCommandList(type);
+    auto &cl = std::make_unique<VulkanCommandContext>(m_vulkan.device);
+    auto [key, success] = m_command_context_map.try_emplace(
+        std::this_thread::get_id(), std::move(cl));
+    return static_cast<VulkanCommandContext *>(key->second.get())
+        ->GetVulkanCommandList(type);
 }
 
 void RHIVulkan::ResetCommandResources() noexcept {
@@ -444,10 +443,11 @@ void RHIVulkan::ResetCommandResources() noexcept {
 Pipeline *RHIVulkan::CreatePipeline(
     const PipelineCreateInfo &pipeline_create_info) noexcept {
     if (!m_global_descriptor) {
-        m_global_descriptor = new VulkanDescriptor(m_vulkan.device);
+        m_global_descriptor =
+            std::make_unique<VulkanDescriptor>(m_vulkan.device);
         m_global_descriptor->AllocateDescriptors();
     }
     return new VulkanPipeline(m_vulkan.device, pipeline_create_info,
-                              m_global_descriptor);
+                              m_global_descriptor.get());
 }
 } // namespace Horizon::RHI

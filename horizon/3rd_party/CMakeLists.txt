@@ -58,5 +58,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC doctest::doctest)
 find_package(argparse CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 
+find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
+target_include_directories(${PROJECT_NAME} PUBLIC ${STB_INCLUDE_DIRS})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")

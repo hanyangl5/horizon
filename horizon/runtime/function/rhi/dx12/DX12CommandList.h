@@ -6,6 +6,7 @@
 
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/dx12/DX12Buffer.h>
+#include <runtime/function/rhi/dx12/DX12Texture.h>
 
 #include <D3D12MemAlloc.h>
 
@@ -34,8 +35,8 @@ class DX12CommandList : public CommandList {
     void UpdateBuffer(Buffer *buffer, void *data, u64 size) noexcept override;
     void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) noexcept override;
     void CopyBuffer(DX12Buffer *src_buffer, DX12Buffer *dst_buffer) noexcept;
-
-    void UpdateTexture() noexcept override;
+    void UpdateTexture(Texture *texture,
+                       const TextureData &texture_data) noexcept override;
 
     void CopyTexture() noexcept override;
 

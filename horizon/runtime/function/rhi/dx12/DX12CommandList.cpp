@@ -141,27 +141,18 @@ void DX12CommandList::UpdateBuffer(Buffer *buffer, void *data,
         return;
     }
 
-    assert(buffer->GetBufferSize() == size);
+    assert(buffer->m_size == size);
 
     // cannot update static buffer more than once
 
-    bool &initialized{buffer->Initialized()};
-    if (!(buffer->GetBufferUsage() &
-          BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE) &&
-        !initialized) {
-        LOG_ERROR("buffer {} is a static buffer and is initialized",
-                  (void *)buffer);
-        return;
-    }
-
     // frequently updated buffer
     {
-        initialized = true;
-        auto dx12_buffer = dynamic_cast<DX12Buffer *>(buffer);
+        auto dx12_buffer = static_cast<DX12Buffer *>(buffer);
 
         DX12Buffer *stage_buffer = GetStageBuffer(
             dx12_buffer->m_allocator,
-            BufferCreateInfo{BufferUsage::BUFFER_USAGE_TRANSFER_SRC, size});
+            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
+                             ResourceState::RESOURCE_STATE_COPY_SOURCE, size});
 
         const auto &resource = stage_buffer->m_allocation->GetResource();
 
@@ -176,16 +167,11 @@ void DX12CommandList::UpdateBuffer(Buffer *buffer, void *data,
 
         // barrier 1
         {
-            BufferMemoryBarrierDesc bmb{};
-            bmb.src_access_mask = MemoryAccessFlags::ACCESS_HOST_WRITE_BIT;
-            bmb.dst_access_mask = MemoryAccessFlags::ACCESS_TRANSFER_READ_BIT;
-            bmb.buffer = stage_buffer->GetBufferPointer();
-            bmb.offset = 0;
-            bmb.size = stage_buffer->GetBufferSize();
+            BufferBarrierDesc bmb{};
+            bmb.buffer = stage_buffer;
 
             BarrierDesc desc{};
-            desc.src_stage = PipelineStageFlags::PIPELINE_STAGE_HOST_BIT;
-            desc.dst_stage = PipelineStageFlags::PIPELINE_STAGE_TRANSFER_BIT;
+
             desc.buffer_memory_barriers.emplace_back(bmb);
 
             InsertBarrier(desc);
@@ -207,21 +193,22 @@ void DX12CommandList::CopyBuffer(Buffer *src_buffer,
                   "commandlist");
         return;
     }
-    auto dx12_src_buffer = dynamic_cast<DX12Buffer *>(src_buffer);
-    auto dx12_dst_buffer = dynamic_cast<DX12Buffer *>(dst_buffer);
+    auto dx12_src_buffer = static_cast<DX12Buffer *>(src_buffer);
+    auto dx12_dst_buffer = static_cast<DX12Buffer *>(dst_buffer);
     CopyBuffer(dx12_src_buffer, dx12_dst_buffer);
 }
 
 void DX12CommandList::CopyBuffer(DX12Buffer *src_buffer,
                                  DX12Buffer *dst_buffer) noexcept {
-    assert(dst_buffer->GetBufferSize() == src_buffer->GetBufferSize());
+    assert(dst_buffer->m_size == src_buffer->m_size);
 
     // copy buffer
     m_command_list->CopyResource(dst_buffer->m_allocation->GetResource(),
                                  src_buffer->m_allocation->GetResource());
 }
 
-void DX12CommandList::UpdateTexture() noexcept {
+void DX12CommandList::UpdateTexture(Texture *texture,
+                                    const TextureData &texture_data) noexcept {
     if (!is_recoring) {
         LOG_ERROR("command buffer isn't recording");
         return;

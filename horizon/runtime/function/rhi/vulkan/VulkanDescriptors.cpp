@@ -16,17 +16,12 @@ void VulkanDescriptor::AllocateDescriptors() noexcept {
     // create descriptorpool
     if (m_bindless_descriptor_pool == VK_NULL_HANDLE) {
 
-        std::vector<VkDescriptorType> vk_types{};
-
-        std::transform(
-            m_bindless_descriptor_types.begin(),
-            m_bindless_descriptor_types.end(), std::back_inserter(vk_types),
-            [](DescriptorType type) { return ToVkDescriptorType(type); });
-
         std::vector<VkDescriptorPoolSize> pool_sizes{};
 
         std::transform(
-            vk_types.begin(), vk_types.end(), std::back_inserter(pool_sizes),
+            m_bindless_descriptor_types.begin(),
+            m_bindless_descriptor_types.end(),
+            std::back_inserter(pool_sizes),
             [](VkDescriptorType type) {
                 return VkDescriptorPoolSize{type, m_k_max_binding_count};
             });
@@ -62,7 +57,7 @@ void VulkanDescriptor::AllocateDescriptors() noexcept {
         set_layout_info.bindingCount = 1;
 
         for (u32 i = 0; i < m_set_layouts.size(); i++) {
-            binding.descriptorType = vk_types[i];
+            binding.descriptorType = m_bindless_descriptor_types[i];
             set_layout_info.pBindings = &binding;
             CHECK_VK_RESULT(vkCreateDescriptorSetLayout(
                 m_device, &set_layout_info, nullptr, &m_set_layouts[i]));
@@ -90,6 +85,8 @@ void VulkanDescriptor::ResetDescriptorPool() noexcept {
     vkResetDescriptorPool(m_device, m_bindless_descriptor_pool, 0);
 }
 void VulkanDescriptor::Update() noexcept {
+
+    // TODO: create empty descriptors if no resource set
 
     vkUpdateDescriptorSets(m_device, descriptor_writes.size(),
                            descriptor_writes.data(), 0, nullptr);

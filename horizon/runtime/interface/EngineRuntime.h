@@ -11,7 +11,17 @@ namespace Horizon {
 class EngineRuntime final {
   public:
     EngineRuntime(const EngineConfig &config) noexcept;
+
+    EngineRuntime(const EngineRuntime &rhs) noexcept = delete;
+
+    EngineRuntime &operator=(const EngineRuntime &rhs) noexcept = delete;
+
+    EngineRuntime(EngineRuntime &&rhs) noexcept = delete;
+
+    EngineRuntime &operator=(EngineRuntime &&rhs) noexcept = delete;
+
     void BeginNewFrame() const noexcept;
+
   public:
     std::shared_ptr<Window> m_window{};
     std::unique_ptr<RenderSystem> m_render_system{};

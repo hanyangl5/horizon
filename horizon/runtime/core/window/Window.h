@@ -24,7 +24,18 @@ namespace Horizon {
 class Window {
   public:
     Window(const char *_name, u32 _width, u32 _height) noexcept;
+
     ~Window() noexcept;
+
+    Window(const Window &rhs) noexcept = delete;
+
+    Window &operator=(const Window &rhs) noexcept = delete;
+
+    Window(Window &&rhs) noexcept = delete;
+
+    Window &operator=(Window &&rhs) noexcept = delete;
+
+  public:
     u32 GetWidth() const noexcept;
     u32 GetHeight() const noexcept;
     GLFWwindow *GetWindow() const noexcept;

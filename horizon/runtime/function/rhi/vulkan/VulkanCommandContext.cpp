@@ -9,8 +9,15 @@ VulkanCommandContext::VulkanCommandContext(VkDevice device) noexcept
 }
 
 VulkanCommandContext::~VulkanCommandContext() noexcept {
+    // destroy command pools and release all command buffers allocated from
+    // pools
     for (auto &pool : m_command_pools) {
         vkDestroyCommandPool(m_device, pool, nullptr);
+    }
+    for (auto &cls : m_command_lists) {
+        for (auto &cl : cls) {
+            cl = nullptr; // release VulkanCommandLists
+        }
     }
 }
 
@@ -42,11 +49,11 @@ VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept {
         CHECK_VK_RESULT(vkAllocateCommandBuffers(
             m_device, &command_buffer_allocate_info, &command_buffer));
         m_command_lists[type].emplace_back(
-            new VulkanCommandList(type, command_buffer));
+            std::make_unique<VulkanCommandList>(type, command_buffer));
     }
 
     m_command_lists_count[type]++;
-    return m_command_lists[type][count];
+    return m_command_lists[type][count].get();
 }
 
 void VulkanCommandContext::Reset() noexcept {

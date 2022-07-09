@@ -9,7 +9,7 @@ DX12Texture::DX12Texture(D3D12MA::Allocator *allocator,
     // which is effectively 64KB.
 
     CD3DX12_RESOURCE_DESC _texture_create_info{};
-    _texture_create_info.Dimension =
+  /*  _texture_create_info.Dimension =
         ToDX12TextureDimension(texture_create_info.texture_type);
     _texture_create_info.Format =
         ToDx12TextureFormat(texture_create_info.texture_format);
@@ -22,7 +22,7 @@ DX12Texture::DX12Texture(D3D12MA::Allocator *allocator,
     _texture_create_info.DepthOrArraySize = texture_create_info.depth;
     _texture_create_info.MipLevels = 1;
     _texture_create_info.SampleDesc.Count = 1;
-    _texture_create_info.SampleDesc.Quality = 0;
+    _texture_create_info.SampleDesc.Quality = 0;*/
 
     D3D12MA::ALLOCATION_DESC allocation_desc = {};
     allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
