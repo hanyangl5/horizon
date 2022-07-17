@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <runtime/core/jobsystem/ThreadPool.h>
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/CommandContext.h>
@@ -20,7 +19,7 @@ class RHIInterface {
   public:
     RHIInterface() noexcept;
 
-    ~RHIInterface() noexcept = default;
+    virtual ~RHIInterface() noexcept;
 
     RHIInterface(const RHIInterface &window) noexcept = delete;
 
@@ -61,6 +60,7 @@ class RHIInterface {
     virtual void SetResource(Texture *texture) noexcept = 0;
 
     virtual void UpdateDescriptors() noexcept = 0;
+
   protected:
     u32 m_back_buffer_count{2};
     u32 m_current_frame_index{0};
@@ -69,8 +69,6 @@ class RHIInterface {
     std::unordered_map<std::thread::id, std::unique_ptr<CommandContext>>
         m_command_context_map{};
 
-  public:
-    // std::unique_ptr<ThreadPool> m_thread_pool;
   private:
     std::shared_ptr<Window> m_window{};
 };

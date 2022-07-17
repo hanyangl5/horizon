@@ -46,6 +46,7 @@ class VulkanCommandList : public CommandList {
     virtual void InsertBarrier(const BarrierDesc &desc) noexcept override;
 
     virtual void BindPipeline(Pipeline *pipeline) noexcept override;
+
     void CopyBufferToImage() noexcept;
   private:
     VulkanBuffer *

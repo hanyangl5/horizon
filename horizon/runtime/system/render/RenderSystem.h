@@ -45,16 +45,20 @@ class RenderSystem {
                                        u32 compile_flags,
                                        std::string file_name) noexcept;
     void DestroyShaderProgram(ShaderProgram *shader_program) noexcept;
+
     Pipeline *
     CreatePipeline(const PipelineCreateInfo &pipeline_create_info) noexcept;
 
     CommandList *GetCommandList(CommandQueueType type) noexcept;
+
     void ResetCommandResources() noexcept;
 
     // submit command list to command queue
     void SubmitCommandLists(CommandQueueType queue,
                             std::vector<CommandList *> &command_lists) noexcept;
+
     void SetResource(Buffer *buffer) noexcept;
+
     void SetResource(Texture *texture) noexcept;
 
     void UpdateDescriptors() noexcept;

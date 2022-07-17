@@ -232,6 +232,7 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept {
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
                 *gpu = physical_device;
+
                 assert(CommandQueueType::GRAPHICS == i);
                 // break;
             }

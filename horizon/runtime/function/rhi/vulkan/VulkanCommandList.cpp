@@ -11,7 +11,7 @@ VulkanCommandList::VulkanCommandList(CommandQueueType type,
                                      VkCommandBuffer command_buffer) noexcept
     : CommandList(type), m_command_buffer(command_buffer) {}
 
-VulkanCommandList::~VulkanCommandList() noexcept {}
+VulkanCommandList::~VulkanCommandList() noexcept { m_stage_buffer = nullptr; }
 
 void VulkanCommandList::BeginRecording() noexcept {
     is_recoring = true;
@@ -45,7 +45,7 @@ void VulkanCommandList::BeginRenderPass() noexcept {
     VkRenderPassBeginInfo render_pass_begin_info;
 
     vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info,
-                         VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+                         VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void VulkanCommandList::EndRenderPass() noexcept {
@@ -58,14 +58,6 @@ void VulkanCommandList::EndRenderPass() noexcept {
                   "commandlist");
         return;
     }
-
-    // for (auto& cmdbuf : m_command_context_map) {
-    // 	//m_vulkan.secondary_command_buffer.emplace_back(cmdbuf.second->);
-    // }
-
-    // vkCmdExecuteCommands(m_vulkan.primary_command_buffer,
-    // m_vulkan.secondary_command_buffer.size(),
-    // m_vulkan.secondary_command_buffer.data());
 
     vkCmdEndRenderPass(m_command_buffer);
 }
@@ -231,11 +223,6 @@ void VulkanCommandList::UpdateTexture(
         vmaBindImageMemory(vk_texture->m_allocator, stage_buffer->m_memory,
                            vk_texture->m_image);
 
-
-
-
-
-
         // barrier 1
         {
             // barrier for stage upload
@@ -244,7 +231,7 @@ void VulkanCommandList::UpdateTexture(
             bmb.src_state = RESOURCE_STATE_HOST_WRITE;
             bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
 
-                    // transition layout, undefined -> transfer dst
+            // transition layout, undefined -> transfer dst
             TextureBarrierDesc tmb{};
             tmb.texture = texture;
             tmb.src_state = RESOURCE_STATE_UNDEFINED;
@@ -417,8 +404,7 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
                 ;
                 barrier.srcQueueFamilyIndex = barrier_desc.queue;
                 barrier.dstQueueFamilyIndex = m_type;
-            } else if (barrier_desc.queue_op ==
-                       QueueOp::RELEASE) {
+            } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
                 barrier.srcQueueFamilyIndex = m_type;
                 barrier.dstQueueFamilyIndex = barrier_desc.queue;
             } else {

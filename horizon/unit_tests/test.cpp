@@ -44,7 +44,8 @@ TEST_CASE_FIXTURE(HorizonTest, "texture creation test") {
     engine->m_render_system->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, 4, 4, 1});
+                          TextureType::TEXTURE_TYPE_2D,
+                          TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, 4, 4, 1});
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "buffer upload, dynamic") {
@@ -90,10 +91,8 @@ TEST_CASE_FIXTURE(HorizonTest, "shader compile test") {
 
 TEST_CASE_FIXTURE(HorizonTest, "pipeline creation test") {}
 
-TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {}
-
 TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
-    Horizon::RDC::StartFrameCapture();
+    // Horizon::RDC::StartFrameCapture();
     std::string file_name =
         "D:/codes/horizon/horizon/assets/shaders/hlsl/cs.hlsl";
     auto shader{engine->m_render_system->CreateShaderProgram(
@@ -110,50 +109,92 @@ TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
     cl->EndRecording();
 
     engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
-    Horizon::RDC::EndFrameCapture();
+    // Horizon::RDC::EndFrameCapture();
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "bindless descriptors") {
 
-    //Horizon::RDC::StartFrameCapture();
-    //std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
-    //                        "cs_bindless_descriptor.hlsl";
-    //auto shader{engine->m_render_system->CreateShaderProgram(
-    //    ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
-    //auto pipeline{engine->m_render_system->CreatePipeline(
-    //    PipelineCreateInfo{PipelineType::COMPUTE})};
+    // Horizon::RDC::StartFrameCapture();
+    // std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
+    //                         "cs_bindless_descriptor.hlsl";
+    // auto shader{engine->m_render_system->CreateShaderProgram(
+    //     ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
+    // auto pipeline{engine->m_render_system->CreatePipeline(
+    //     PipelineCreateInfo{PipelineType::COMPUTE})};
 
-    //auto buffer = engine->m_render_system->CreateBuffer(
-    //    BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
-    //                         BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE,
-    //                     sizeof(Math::float4)});
+    // auto buffer = engine->m_render_system->CreateBuffer(
+    //     BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
+    //                          BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE,
+    //                      sizeof(Math::float4)});
     ////auto texture;
-    //Math::float4 data{5.0f};
+    // Math::float4 data{5.0f};
 
-    //auto transfer =
-    //    engine->m_render_system->GetCommandList(CommandQueueType::TRANSFER);
+    // auto transfer =
+    //     engine->m_render_system->GetCommandList(CommandQueueType::TRANSFER);
 
-    //transfer->BeginRecording();
+    // transfer->BeginRecording();
 
     //// cpu -> stage
-    //transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
+    // transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
 
-    //transfer->EndRecording();
+    // transfer->EndRecording();
 
     //// stage -> gpu
-    //engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
-    //                                            std::vector{transfer});
+    // engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
+    //                                             std::vector{transfer});
 
-    //auto cl =
-    //    engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
-    //pipeline->SetShader(shader);
-    //engine->m_render_system->SetResource(buffer.get());
-    //engine->m_render_system->UpdateDescriptors();
-    //cl->BeginRecording();
-    //cl->BindPipeline(pipeline);
-    //cl->Dispatch(1, 1, 1);
-    //cl->EndRecording();
+    // auto cl =
+    //     engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
+    // pipeline->SetShader(shader);
+    // engine->m_render_system->SetResource(buffer.get());
+    // engine->m_render_system->UpdateDescriptors();
+    // cl->BeginRecording();
+    // cl->BindPipeline(pipeline);
+    // cl->Dispatch(1, 1, 1);
+    // cl->EndRecording();
 
-    //engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
-    //Horizon::RDC::EndFrameCapture();
+    // engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
+    // Horizon::RDC::EndFrameCapture();
+}
+
+TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
+    auto &tp = engine->tp;
+
+    std::vector<CommandList *> cmdlists;
+    constexpr u32 cmdlist_count = 20;
+    cmdlists.reserve(cmdlist_count);
+    Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(Math::float3)})};
+
+    for (u32 i = 0; i < cmdlist_count; i++) {
+        auto result = tp->enqueue([&]() {
+            Math::float3 data{
+                static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
+
+            auto transfer = engine->m_render_system->GetCommandList(
+                CommandQueueType::TRANSFER);
+
+            transfer->BeginRecording();
+
+            // cpu -> stage
+            transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
+
+            transfer->EndRecording();
+            // stage -> gpu
+
+            cmdlists.emplace_back(transfer);
+        });
+        result.get();
+        LOG_INFO("command list count: {}", cmdlists.size());
+    }
+
+    
+    engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
+                                                cmdlists);
+
+    LOG_INFO("all task done");
 }
