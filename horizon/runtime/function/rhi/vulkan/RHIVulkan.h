@@ -63,7 +63,7 @@ class RHIVulkan : public RHIInterface {
     void PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept;
     void CreateDevice(std::vector<const char *> &device_extensions) noexcept;
     void InitializeVMA() noexcept;
-
+    void CreateSyncObjects() noexcept;
     void DestroySwapChain() noexcept;
 
   private:
@@ -75,6 +75,7 @@ class RHIVulkan : public RHIInterface {
         VkDevice device;
         VmaAllocator vma_allocator;
         std::array<VkQueue, 3> command_queues;
+        std::array<VkFence, 3> fences;
         VkSurfaceKHR surface;
         VkSwapchainKHR swap_chain;
         std::vector<VkImage> swap_chain_images;

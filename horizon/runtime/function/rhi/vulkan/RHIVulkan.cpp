@@ -158,6 +158,8 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) noexcept {
     CreateInstance(app_name, instance_layers, instance_extensions);
     CreateDevice(device_extensions);
     InitializeVMA();
+    // create sync objects
+    CreateSyncObjects();
 }
 
 void RHIVulkan::CreateInstance(
@@ -344,6 +346,15 @@ void RHIVulkan::InitializeVMA() noexcept {
     vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator);
 }
 
+void RHIVulkan::CreateSyncObjects() noexcept {
+    VkFenceCreateInfo fence_create_info{};
+    fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info, nullptr,
+                                  m_vulkan.fences.data()));
+}
+
 void RHIVulkan::DestroySwapChain() noexcept {
     for (u32 i = 0; i < m_vulkan.swap_chain_images.size(); i++) {
         vkDestroyImageView(m_vulkan.device, m_vulkan.swap_chain_image_views[i],
@@ -382,8 +393,7 @@ void RHIVulkan::SubmitCommandLists(
     submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
     vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info,
-                  VK_NULL_HANDLE);
-    vkQueueWaitIdle(m_vulkan.command_queues[queue_type]);
+                  m_vulkan.fences[queue_type]);
 }
 
 void RHIVulkan::SetResource(Buffer *buffer) noexcept {
