@@ -1,5 +1,5 @@
-#include <thread>
 #include <memory>
+#include <thread>
 
 #define VMA_IMPLEMENTATION
 
@@ -19,6 +19,14 @@ namespace Horizon::RHI {
 RHIVulkan::RHIVulkan() noexcept {}
 
 RHIVulkan::~RHIVulkan() noexcept {
+
+    vkWaitForFences(m_vulkan.device, m_vulkan.fences.size(),
+                    m_vulkan.fences.data(), VK_TRUE, UINT64_MAX);
+
+    for (auto &fence : m_vulkan.fences) {
+        vkDestroyFence(m_vulkan.device, fence, nullptr);
+    }
+
     for (auto &[thread_id, context] : m_command_context_map) {
         context = nullptr;
     }
@@ -349,10 +357,11 @@ void RHIVulkan::InitializeVMA() noexcept {
 void RHIVulkan::CreateSyncObjects() noexcept {
     VkFenceCreateInfo fence_create_info{};
     fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info, nullptr,
-                                  m_vulkan.fences.data()));
+    for (auto &fence : m_vulkan.fences) {
+        CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info,
+                                      nullptr, &fence));
+    }
 }
 
 void RHIVulkan::DestroySwapChain() noexcept {
@@ -392,8 +401,10 @@ void RHIVulkan::SubmitCommandLists(
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
-    vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info,
-                  m_vulkan.fences[queue_type]);
+
+    auto &fence = m_vulkan.fences[queue_type];
+
+    vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, fence);
 }
 
 void RHIVulkan::SetResource(Buffer *buffer) noexcept {
@@ -415,8 +426,7 @@ void RHIVulkan::SetResource(Buffer *buffer) noexcept {
         write.dstArrayElement = 0;
         write.descriptorCount = 1;
         write.pBufferInfo = &vk_buffer->buffer_info;
-    } else if (descriptor_type ==
-               DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
+    } else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
         auto &write = m_global_descriptor->descriptor_writes[1];
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -444,6 +454,13 @@ CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
     return static_cast<VulkanCommandContext *>(key->second.get())
         ->GetVulkanCommandList(type);
 }
+
+void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) noexcept {
+    vkWaitForFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type], VK_TRUE,
+                    UINT64_MAX);
+    vkResetFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type]);
+}
+
 
 void RHIVulkan::ResetCommandResources() noexcept {
     for (auto &[thred_id, context] : m_command_context_map) {

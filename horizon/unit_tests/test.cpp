@@ -79,6 +79,7 @@ TEST_CASE_FIXTURE(HorizonTest, "buffer upload, dynamic") {
         engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
                                                     std::vector{transfer});
     }
+    engine->BeginNewFrame();
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "shader compile test") {
@@ -110,6 +111,7 @@ TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
 
     engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
     // Horizon::RDC::EndFrameCapture();
+    engine->BeginNewFrame();
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "bindless descriptors") {
@@ -192,9 +194,9 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
         LOG_INFO("command list count: {}", cmdlists.size());
     }
 
-    
     engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
                                                 cmdlists);
 
+    engine->BeginNewFrame();
     LOG_INFO("all task done");
 }

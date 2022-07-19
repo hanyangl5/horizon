@@ -48,7 +48,11 @@ class RHIInterface {
     virtual Pipeline *
     CreatePipeline(const PipelineCreateInfo &pipeline_create_info) noexcept = 0;
     // virtual void CreateDescriptorSet() = 0;
+
     virtual CommandList *GetCommandList(CommandQueueType type) noexcept = 0;
+
+    virtual void WaitGpuExecution(CommandQueueType queue_type) noexcept = 0;
+
     virtual void ResetCommandResources() noexcept = 0;
 
     // submit command list to command queue

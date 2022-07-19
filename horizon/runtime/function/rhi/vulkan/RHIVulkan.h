@@ -41,6 +41,9 @@ class RHIVulkan : public RHIInterface {
     void DestroyShaderProgram(ShaderProgram *shader_program) noexcept override;
 
     CommandList *GetCommandList(CommandQueueType type) noexcept override;
+
+    void WaitGpuExecution(CommandQueueType queue_type) noexcept override;
+
     void ResetCommandResources() noexcept override;
 
     Pipeline *CreatePipeline(

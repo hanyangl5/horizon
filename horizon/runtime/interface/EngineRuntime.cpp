@@ -13,6 +13,10 @@ EngineRuntime::EngineRuntime(const EngineConfig &config) noexcept {
 
 void EngineRuntime::BeginNewFrame() const noexcept {
     // TODO: wait for gpu execution?
+    m_render_system->WaitGpuExecution(CommandQueueType::GRAPHICS);
+    m_render_system->WaitGpuExecution(CommandQueueType::COMPUTE);
+    m_render_system->WaitGpuExecution(CommandQueueType::TRANSFER);
+
     m_render_system->ResetCommandResources();
 }
 

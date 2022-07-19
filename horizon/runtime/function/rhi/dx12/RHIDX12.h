@@ -41,10 +41,13 @@ class RHIDX12 : public RHIInterface {
 
     CommandList *GetCommandList(CommandQueueType type) noexcept override;
 
+    void WaitGpuExecution(CommandQueueType queue_type) noexcept override;
+
     void ResetCommandResources() noexcept override;
 
     Pipeline *CreatePipeline(
         const PipelineCreateInfo &pipeline_create_info) noexcept override;
+
     // submit command list to command queue
     void SubmitCommandLists(
         CommandQueueType queue_type,
@@ -66,7 +69,9 @@ class RHIDX12 : public RHIInterface {
         IDXGIFactory6 *factory;
         IDXGIAdapter4 *active_gpu;
         D3D12MA::Allocator *d3dma_allocator;
-        ID3D12CommandQueue *graphics_queue, *compute_queue, *transfer_queue;
+        //ID3D12CommandQueue *graphics_queue, *compute_queue, *transfer_queue;
+        std::array<ID3D12CommandQueue *, 3> queues;
+        std::array<ID3D12Fence *, 3> fences;
         IDXGISwapChain3 *swap_chain;
     } m_dx12{};
 };

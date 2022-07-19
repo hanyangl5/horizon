@@ -67,6 +67,10 @@ Resource<Texture> RenderSystem::CreateTexture(
 CommandList *RenderSystem::GetCommandList(CommandQueueType type) noexcept {
     return m_render_api->GetCommandList(type);
 }
+void RenderSystem::WaitGpuExecution(CommandQueueType queue_type) noexcept {
+    m_render_api->WaitGpuExecution(queue_type);
+}
+
 void RenderSystem::ResetCommandResources() noexcept {
     return m_render_api->ResetCommandResources();
 }

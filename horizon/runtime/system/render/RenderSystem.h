@@ -51,6 +51,8 @@ class RenderSystem {
 
     CommandList *GetCommandList(CommandQueueType type) noexcept;
 
+    void WaitGpuExecution(CommandQueueType queue_type) noexcept;
+
     void ResetCommandResources() noexcept;
 
     // submit command list to command queue

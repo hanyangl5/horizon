@@ -6,14 +6,14 @@ namespace Horizon {
 
 #define PRINT_VMA_LOG 1
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
 
-#define VMA_DEBUG_LOG(format, ...)                                             \
-    do {                                                                       \
-        printf(format, __VA_ARGS__);                                           \
-        printf("\n");                                                          \
-    } while (false)
-
-#endif // !NDEBUG
+//#define VMA_DEBUG_LOG(format, ...)                                             \
+//    do {                                                                       \
+//        printf(format, __VA_ARGS__);                                           \
+//        printf("\n");                                                          \
+//    } while (false)
+//
+//#endif // !NDEBUG
 
 } // namespace Horizon

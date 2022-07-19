@@ -44,7 +44,8 @@ void RHIDX12::CreateSwapChain(Window *window) noexcept {
     IDXGISwapChain1 *swap_chain{};
 
     CHECK_DX_RESULT(m_dx12.factory->CreateSwapChainForHwnd(
-        m_dx12.graphics_queue, // Swap chain needs the queue so that it can
+        m_dx12.queues[CommandQueueType::GRAPHICS], // Swap chain needs the queue
+                                                   // so that it can
                                // force a flush on it.
         window->GetWin32Window(), &swap_chain_desc, nullptr, nullptr,
         &swap_chain));
@@ -80,6 +81,10 @@ CommandList *RHIDX12::GetCommandList(CommandQueueType type) noexcept {
         m_command_context_map.try_emplace(std::this_thread::get_id(), cl);
 
     return cl->GetDX12CommandList(type);
+}
+
+void RHIDX12::WaitGpuExecution(CommandQueueType queue_type) noexcept {
+    //m_dx12.queues[queue_type]->Wait();
 }
 
 void RHIDX12::ResetCommandResources() noexcept {
@@ -164,7 +169,7 @@ void RHIDX12::CreateDevice() noexcept {
     graphics_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
     CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(
-        &graphics_command_queue_desc, IID_PPV_ARGS(&m_dx12.graphics_queue)));
+        &graphics_command_queue_desc, IID_PPV_ARGS(&m_dx12.queues[CommandQueueType::GRAPHICS])));
 
 #ifdef USE_ASYNC_COMPUTE_TRANSFER
     D3D12_COMMAND_QUEUE_DESC compute_command_queue_desc{};
@@ -172,14 +177,16 @@ void RHIDX12::CreateDevice() noexcept {
     compute_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
 
     CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(
-        &compute_command_queue_desc, IID_PPV_ARGS(&m_dx12.compute_queue)));
+        &compute_command_queue_desc,
+        IID_PPV_ARGS(&m_dx12.queues[CommandQueueType::COMPUTE])));
 
     D3D12_COMMAND_QUEUE_DESC transfer_command_queue_desc{};
     transfer_command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     transfer_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
 
     CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(
-        &transfer_command_queue_desc, IID_PPV_ARGS(&m_dx12.transfer_queue)));
+        &transfer_command_queue_desc,
+        IID_PPV_ARGS(&m_dx12.queues[CommandQueueType::TRANSFER])));
     LOG_INFO("using async compute & transfer");
 #endif // USE_ASYNC_COMPUTE_TRANSFER
 }
