@@ -1,8 +1,12 @@
 project(third_party)
+
 set(third_party_folder "third_party")
-#set_property(TARGET PROPERTY FOLDER ${third_party_folder})
 
 add_library(${PROJECT_NAME} 3rd_party.cpp)
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
+
+
 
 # inih
 
@@ -62,4 +66,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 
 find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 target_include_directories(${PROJECT_NAME} PUBLIC ${STB_INCLUDE_DIRS})
+
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
