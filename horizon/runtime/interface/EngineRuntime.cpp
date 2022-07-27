@@ -8,7 +8,8 @@ EngineRuntime::EngineRuntime(const EngineConfig &config) noexcept {
         config.width, config.width, m_window.get(), config.render_backend);
     m_input_system = std::make_unique<InputSystem>(
         m_window.get(), m_render_system->GetMainCamera());
-    tp = std::make_unique<ThreadPool>(std::thread::hardware_concurrency() - 1);
+    tp = std::make_unique<BS::thread_pool>(std::thread::hardware_concurrency() -
+                                           1);
 }
 
 void EngineRuntime::BeginNewFrame() const noexcept {

@@ -14,11 +14,37 @@ VulkanShaderProgram::VulkanShaderProgram(VkDevice device, ShaderType type,
         (uint32_t *)shader_byte_code->GetBufferPointer();
     CHECK_VK_RESULT(vkCreateShaderModule(device, &shader_module_create_info,
                                          nullptr, &m_shader_module));
+    ReflectDescriptorSetLayout(shader_byte_code->GetBufferPointer(),
+                               shader_byte_code->GetBufferSize());
+
     shader_byte_code->Release();
 }
 
 VulkanShaderProgram::~VulkanShaderProgram() noexcept {
     vkDestroyShaderModule(m_device, m_shader_module, nullptr);
+}
+
+void VulkanShaderProgram::ReflectDescriptorSetLayout(void *spirv, u32 size) {
+    // reflection data
+    // Generate reflection data for a shader
+    SpvReflectShaderModule module;
+    SpvReflectResult result =
+        spvReflectCreateShaderModule(size, spirv, &module);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    // Enumerate and extract shader's input variables
+    uint32_t var_count = 0;
+    result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    uint32_t count = 0;
+    result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    std::vector<SpvReflectDescriptorSet *> sets(count);
+    result = spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+    
 }
 
 } // namespace Horizon::RHI

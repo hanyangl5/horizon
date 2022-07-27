@@ -90,6 +90,14 @@ TEST_CASE_FIXTURE(HorizonTest, "shader compile test") {
     engine->m_render_system->DestroyShaderProgram(shader_program);
 }
 
+TEST_CASE_FIXTURE(HorizonTest, "spirv shader reflection test") {
+    std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
+                            "ps_descriptor_set_reflect.hlsl";
+    auto shader_program = engine->m_render_system->CreateShaderProgram(
+        ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
+    engine->m_render_system->DestroyShaderProgram(shader_program);
+}
+
 TEST_CASE_FIXTURE(HorizonTest, "pipeline creation test") {}
 
 TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
@@ -171,7 +179,7 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
                          sizeof(Math::float3)})};
 
     for (u32 i = 0; i < cmdlist_count; i++) {
-        auto result = tp->enqueue([&]() {
+        auto result = tp->submit([&]() {
             Math::float3 data{
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
@@ -189,14 +197,16 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
             // stage -> gpu
 
             cmdlists.emplace_back(transfer);
+
+            LOG_INFO("command list count: {}", cmdlists.size());
         });
-        result.get();
-        LOG_INFO("command list count: {}", cmdlists.size());
+        result.wait();
     }
+
+    LOG_INFO("all task done");
 
     engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
                                                 cmdlists);
 
     engine->BeginNewFrame();
-    LOG_INFO("all task done");
 }

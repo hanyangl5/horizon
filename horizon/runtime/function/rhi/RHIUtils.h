@@ -115,7 +115,7 @@ enum class ShaderType {
     VERTEX_SHADER,
     PIXEL_SHADER,
     COMPUTE_SHADER,
-    GEOMETRY_SHADER,
+    //GEOMETRY_SHADER,
     // ray tracing related shader
 };
 

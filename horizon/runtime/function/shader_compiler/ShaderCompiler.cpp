@@ -51,8 +51,8 @@ IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform,
     case Horizon::ShaderType::COMPUTE_SHADER:
         typestr = "cs";
         break;
-    case Horizon::ShaderType::GEOMETRY_SHADER:
-        typestr = "gs";
+    //case Horizon::ShaderType::GEOMETRY_SHADER:
+    //    typestr = "gs";
         break;
     default:
         break;

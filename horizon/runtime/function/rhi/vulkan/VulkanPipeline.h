@@ -17,6 +17,7 @@ class VulkanPipeline : public Pipeline {
   private:
     void CreateGraphicsPipeline() noexcept;
     void CreateComputePipeline() noexcept;
+    void CreatePipelineLayout() noexcept;
     // void CreateRTPipeline() noexcept;
   public:
     VkDevice m_device{};

@@ -70,3 +70,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${STB_INCLUDE_DIRS})
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
+find_package(unofficial-spirv-reflect CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::spirv-reflect::spirv-reflect)
+
+find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
+target_include_directories(${PROJECT_NAME} PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIRS})

@@ -4,9 +4,7 @@
 namespace Horizon::RHI {
 
 VulkanDescriptor::VulkanDescriptor(VkDevice device) noexcept
-    : m_device(device) {
-
-}
+    : m_device(device) {}
 
 VulkanDescriptor::~VulkanDescriptor() {
     // TODO: destroy descriptor resources, descriptorsetlayout, descriptorpool
@@ -20,8 +18,7 @@ void VulkanDescriptor::AllocateDescriptors() noexcept {
 
         std::transform(
             m_bindless_descriptor_types.begin(),
-            m_bindless_descriptor_types.end(),
-            std::back_inserter(pool_sizes),
+            m_bindless_descriptor_types.end(), std::back_inserter(pool_sizes),
             [](VkDescriptorType type) {
                 return VkDescriptorPoolSize{type, m_k_max_binding_count};
             });

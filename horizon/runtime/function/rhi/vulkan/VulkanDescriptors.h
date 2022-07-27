@@ -29,6 +29,7 @@ class VulkanDescriptor {
 
     std::array<VkWriteDescriptorSet, m_k_bindless_descriptor_type_count>
         descriptor_writes{};
+
 };
 
 } // namespace Horizon::RHI
