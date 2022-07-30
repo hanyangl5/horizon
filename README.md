@@ -17,11 +17,7 @@ On Windows:
 - Git
 - vcpkg
 
-install the following package with vcpkg
-
-~~~
-vcpkg install d3d12-memory-allocator directx-dxc directxtk12 spdlog glfw3 vulkan-memory-allocator argparse doctest iniparser
-~~~
+install the required package with vcpkg, you can refer to ```./horizon/3rd_party/CMakeLists.txt```.
 
 clone the repo with
 
