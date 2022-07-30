@@ -29,8 +29,6 @@ VulkanBuffer::VulkanBuffer(VmaAllocator allocator,
     CHECK_VK_RESULT(vmaCreateBuffer(allocator, &create_info,
                                     &allocation_create_info, &m_buffer,
                                     &m_memory, &m_allocation_info));
-
-    
 }
 
 VulkanBuffer::~VulkanBuffer() noexcept {

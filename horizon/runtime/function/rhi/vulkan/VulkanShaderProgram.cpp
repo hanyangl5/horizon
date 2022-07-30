@@ -2,18 +2,20 @@
 
 namespace Horizon::RHI {
 
-VulkanShaderProgram::VulkanShaderProgram(VkDevice device, ShaderType type,
+VulkanShaderProgram::VulkanShaderProgram(const VulkanRendererContext &context,
+                                         ShaderType type,
                                          const std::string &entry_point,
                                          IDxcBlob *shader_byte_code) noexcept
-    : m_device(device), ShaderProgram(type, entry_point) {
+    : m_context(context), ShaderProgram(type, entry_point) {
     VkShaderModuleCreateInfo shader_module_create_info{};
     shader_module_create_info.sType =
         VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shader_module_create_info.codeSize = shader_byte_code->GetBufferSize();
     shader_module_create_info.pCode =
         (uint32_t *)shader_byte_code->GetBufferPointer();
-    CHECK_VK_RESULT(vkCreateShaderModule(device, &shader_module_create_info,
-                                         nullptr, &m_shader_module));
+    CHECK_VK_RESULT(vkCreateShaderModule(m_context.device,
+                                         &shader_module_create_info, nullptr,
+                                         &m_shader_module));
     ReflectDescriptorSetLayout(shader_byte_code->GetBufferPointer(),
                                shader_byte_code->GetBufferSize());
 
@@ -21,7 +23,7 @@ VulkanShaderProgram::VulkanShaderProgram(VkDevice device, ShaderType type,
 }
 
 VulkanShaderProgram::~VulkanShaderProgram() noexcept {
-    vkDestroyShaderModule(m_device, m_shader_module, nullptr);
+    vkDestroyShaderModule(m_context.device, m_shader_module, nullptr);
 }
 
 void VulkanShaderProgram::ReflectDescriptorSetLayout(void *spirv, u32 size) {
@@ -44,7 +46,6 @@ void VulkanShaderProgram::ReflectDescriptorSetLayout(void *spirv, u32 size) {
     std::vector<SpvReflectDescriptorSet *> sets(count);
     result = spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
-    
 }
 
 } // namespace Horizon::RHI

@@ -7,9 +7,10 @@
 
 namespace Horizon::RHI {
 
-VulkanCommandList::VulkanCommandList(CommandQueueType type,
+VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context,
+                                     CommandQueueType type,
                                      VkCommandBuffer command_buffer) noexcept
-    : CommandList(type), m_command_buffer(command_buffer) {}
+    : CommandList(type), m_context(context), m_command_buffer(command_buffer) {}
 
 VulkanCommandList::~VulkanCommandList() noexcept { m_stage_buffer = nullptr; }
 
@@ -337,11 +338,11 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
             barrier.offset = 0;
 
             if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
-                barrier.srcQueueFamilyIndex = barrier_desc.queue;
-                barrier.dstQueueFamilyIndex = m_type;
+                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
+                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
             } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
-                barrier.srcQueueFamilyIndex = m_type;
-                barrier.dstQueueFamilyIndex = barrier_desc.queue;
+                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
+                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
             } else {
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -402,11 +403,15 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
 
             if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
                 ;
-                barrier.srcQueueFamilyIndex = barrier_desc.queue;
-                barrier.dstQueueFamilyIndex = m_type;
+                barrier.srcQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[barrier_desc.queue];
+                barrier.dstQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[m_type];
             } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
-                barrier.srcQueueFamilyIndex = m_type;
-                barrier.dstQueueFamilyIndex = barrier_desc.queue;
+                barrier.srcQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[m_type];
+                barrier.dstQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[barrier_desc.queue];
             } else {
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

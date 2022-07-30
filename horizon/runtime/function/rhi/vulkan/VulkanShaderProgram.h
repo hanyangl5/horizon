@@ -2,6 +2,7 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
 #include <spirv_reflect.h>
 #include <d3d12shader.h>
@@ -10,7 +11,7 @@
 namespace Horizon::RHI {
 class VulkanShaderProgram : public ShaderProgram {
   public:
-    VulkanShaderProgram(VkDevice device, ShaderType type,
+    VulkanShaderProgram(const VulkanRendererContext& context, ShaderType type,
                         const std::string &entry_point,
                         IDxcBlob *shader_byte_code) noexcept;
     virtual ~VulkanShaderProgram() noexcept;
@@ -18,9 +19,8 @@ class VulkanShaderProgram : public ShaderProgram {
     // virtual u64 GetBufferSize() const noexcept override;
     void ReflectDescriptorSetLayout(void* spirv,u32 size);
   public:
+    const VulkanRendererContext &m_context;
     VkShaderModule m_shader_module{};
-    VkDevice m_device{};
-
     // reflection data
     std::vector<SpvReflectDescriptorSet *> sets;
 };

@@ -2,10 +2,10 @@
 #include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
 
 namespace Horizon::RHI {
-VulkanPipeline::VulkanPipeline(VkDevice device,
+VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
                                const PipelineCreateInfo &pipeline_create_info,
                                VulkanDescriptor *descriptor) noexcept
-    : m_device(device), m_descriptor(descriptor) {
+    : m_context(context), m_descriptor(descriptor) {
     m_type = pipeline_create_info.type;
 }
 
@@ -53,7 +53,7 @@ void VulkanPipeline::SetShader(ShaderProgram *shader_moudle) noexcept {
 void VulkanPipeline::CreateGraphicsPipeline() noexcept {
     VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
 
-    CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_device, nullptr, 1,
+    CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_context.device, nullptr, 1,
                                               &graphics_pipeline_create_info,
                                               nullptr, &m_pipeline));
 }
@@ -80,7 +80,7 @@ void VulkanPipeline::CreateComputePipeline() noexcept {
     compute_pipeline_create_info.stage = shader_stage_create_info;
     compute_pipeline_create_info.basePipelineHandle = nullptr;
     compute_pipeline_create_info.basePipelineIndex = 0;
-    CHECK_VK_RESULT(vkCreateComputePipelines(m_device, nullptr, 1,
+    CHECK_VK_RESULT(vkCreateComputePipelines(m_context.device, nullptr, 1,
                                              &compute_pipeline_create_info,
                                              nullptr, &m_pipeline));
 }
@@ -93,7 +93,8 @@ void VulkanPipeline::CreatePipelineLayout() noexcept {
     set_layout_create_info.sType =
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
-    // for graphics pipeline, descriptorset reflected in vs/gs/ts/ps conbine to the final descriptor/pipeline layout
+    // for graphics pipeline, descriptorset reflected in vs/gs/ts/ps conbine to
+    // the final descriptor/pipeline layout
     if (m_type == PipelineType::GRAPHICS) {
         auto vk_vs = static_cast<VulkanShaderProgram *>(
             shader_map[ShaderType::VERTEX_SHADER]);
@@ -141,8 +142,9 @@ void VulkanPipeline::CreatePipelineLayout() noexcept {
             set_layout_create_info.bindingCount = layout_bindings.size();
             set_layout_create_info.pBindings = layout_bindings.data();
             set_numbers[i] = refl_set.set;
-            vkCreateDescriptorSetLayout(m_device, &set_layout_create_info,
-                                        nullptr, &set_layouts[i]);
+            vkCreateDescriptorSetLayout(m_context.device,
+                                        &set_layout_create_info, nullptr,
+                                        &set_layouts[i]);
         }
 
     } else if (m_type == PipelineType::RAY_TRACING) {
@@ -156,7 +158,8 @@ void VulkanPipeline::CreatePipelineLayout() noexcept {
     pipeline_layout_create_info.setLayoutCount =
         static_cast<u32>(set_layouts.size());
     pipeline_layout_create_info.pSetLayouts = set_layouts.data();
-    CHECK_VK_RESULT(vkCreatePipelineLayout(
-        m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout));
+    CHECK_VK_RESULT(vkCreatePipelineLayout(m_context.device,
+                                           &pipeline_layout_create_info,
+                                           nullptr, &m_pipeline_layout));
 }
 } // namespace Horizon::RHI

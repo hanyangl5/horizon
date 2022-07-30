@@ -3,11 +3,12 @@
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/ShaderProgram.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
 namespace Horizon::RHI {
 class VulkanPipeline : public Pipeline {
   public:
-    VulkanPipeline(VkDevice device,
+    VulkanPipeline(const VulkanRendererContext &context,
                    const PipelineCreateInfo &pipeline_create_info,
                    VulkanDescriptor *descriptor) noexcept;
     ~VulkanPipeline() noexcept;
@@ -20,7 +21,7 @@ class VulkanPipeline : public Pipeline {
     void CreatePipelineLayout() noexcept;
     // void CreateRTPipeline() noexcept;
   public:
-    VkDevice m_device{};
+    const VulkanRendererContext &m_context;
     VkPipeline m_pipeline{};
     VkPipelineLayout m_pipeline_layout{};
     const VulkanDescriptor *m_descriptor{};

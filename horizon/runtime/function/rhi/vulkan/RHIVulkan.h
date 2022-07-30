@@ -9,6 +9,7 @@
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
@@ -70,20 +71,7 @@ class RHIVulkan : public RHIInterface {
     void DestroySwapChain() noexcept;
 
   private:
-  private:
-    struct VulkanRendererContext {
-        VkInstance instance;
-        VkPhysicalDevice active_gpu;
-        // VkPhysicalDeviceProperties* vk_active_gpu_properties;
-        VkDevice device;
-        VmaAllocator vma_allocator;
-        std::array<VkQueue, 3> command_queues;
-        std::array<VkFence, 3> fences;
-        VkSurfaceKHR surface;
-        VkSwapchainKHR swap_chain;
-        std::vector<VkImage> swap_chain_images;
-        std::vector<VkImageView> swap_chain_image_views;
-    } m_vulkan{};
+    VulkanRendererContext m_vulkan{};
     std::unique_ptr<VulkanDescriptor> m_global_descriptor = nullptr;
     // pipeline map
     // resource manager, auto

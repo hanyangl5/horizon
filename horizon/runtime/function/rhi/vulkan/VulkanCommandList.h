@@ -7,12 +7,14 @@
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
 namespace Horizon::RHI {
 
 class VulkanCommandList : public CommandList {
   public:
-    VulkanCommandList(CommandQueueType type,
+    VulkanCommandList(const VulkanRendererContext &context,
+                      CommandQueueType type,
                       VkCommandBuffer command_buffer) noexcept;
 
     virtual ~VulkanCommandList() noexcept;
@@ -48,7 +50,9 @@ class VulkanCommandList : public CommandList {
     virtual void BindPipeline(Pipeline *pipeline) noexcept override;
 
     void CopyBufferToImage() noexcept;
+
   private:
+    const VulkanRendererContext &m_context;
     VulkanBuffer *
     GetStageBuffer(VmaAllocator allocator,
                    const BufferCreateInfo &buffer_create_info) noexcept;

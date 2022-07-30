@@ -8,6 +8,6 @@ set(PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/horizon)
 set(SOLUTION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-include("D:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+include("C:/hylu/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 add_subdirectory(horizon)
