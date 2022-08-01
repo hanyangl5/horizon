@@ -461,10 +461,10 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) noexcept {
     auto vk_pipeline = static_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
     vk_pipeline->Create();
-    vkCmdBindDescriptorSets(
-        m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
-        vk_pipeline->m_descriptor->m_k_bindless_descriptor_type_count,
-        vk_pipeline->m_descriptor->m_sets.data(), 0, 0);
+    //vkCmdBindDescriptorSets(
+    //    m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
+    //    vk_pipeline->m_descriptor->m_k_bindless_descriptor_type_count,
+    //    vk_pipeline->m_descriptor->m_sets.data(), 0, 0);
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 

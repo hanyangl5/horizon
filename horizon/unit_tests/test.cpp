@@ -24,7 +24,7 @@ class HorizonTest {
         EngineConfig config{};
         config.width = 800;
         config.height = 600;
-        config.asset_path = "";
+        //config.asset_path = 
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.offscreen = false;
         engine = std::make_unique<EngineRuntime>(config);
@@ -32,6 +32,7 @@ class HorizonTest {
 
   public:
     std::unique_ptr<EngineRuntime> engine{};
+    std::string asset_path = "C:/hylu/horizon/horizon/assets/";
 };
 
 TEST_CASE_FIXTURE(HorizonTest, "buffer creation test") {
@@ -83,16 +84,15 @@ TEST_CASE_FIXTURE(HorizonTest, "buffer upload, dynamic") {
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "shader compile test") {
-    std::string file_name =
-        "D:/codes/horizon/horizon/assets/shaders/hlsl/shader.hlsl";
+    std::string file_name = asset_path + "shaders/hlsl/shader.hlsl";
     auto shader_program = engine->m_render_system->CreateShaderProgram(
         ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
     engine->m_render_system->DestroyShaderProgram(shader_program);
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "spirv shader reflection test") {
-    std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
-                            "ps_descriptor_set_reflect.hlsl";
+    std::string file_name = asset_path + "shaders/hlsl/"
+                                         "ps_descriptor_set_reflect.hlsl";
     auto shader_program = engine->m_render_system->CreateShaderProgram(
         ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
     engine->m_render_system->DestroyShaderProgram(shader_program);
@@ -102,8 +102,7 @@ TEST_CASE_FIXTURE(HorizonTest, "pipeline creation test") {}
 
 TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
     // Horizon::RDC::StartFrameCapture();
-    std::string file_name =
-        "D:/codes/horizon/horizon/assets/shaders/hlsl/cs.hlsl";
+    std::string file_name = asset_path + "shaders/hlsl/cs.hlsl";
     auto shader{engine->m_render_system->CreateShaderProgram(
         ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
     auto pipeline{engine->m_render_system->CreatePipeline(
