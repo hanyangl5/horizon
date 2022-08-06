@@ -12,6 +12,7 @@
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/scene/geometry/mesh/Mesh.h>
 #include <runtime/interface/EngineRuntime.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
@@ -24,7 +25,7 @@ class HorizonTest {
         EngineConfig config{};
         config.width = 800;
         config.height = 600;
-        //config.asset_path = 
+        // config.asset_path =
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.offscreen = false;
         engine = std::make_unique<EngineRuntime>(config);
@@ -208,4 +209,19 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
                                                 cmdlists);
 
     engine->BeginNewFrame();
+}
+
+TEST_CASE_FIXTURE(HorizonTest, "mesh load") {
+
+    std::vector<Mesh> meshes;
+    std::vector<std::string> paths = {
+        "D:/codes/horizon/horizon/assets/models/DamagedHelmet/DamagedHelmet.gltf",
+        "D:/codes/horizon/horizon/assets/models/sponza/sponza.gltf",
+        "D:/codes/horizon/horizon/assets/models/cerberus/cerberus.gltf"};
+
+    for (u32 i = 0; i < paths.size(); i++) {
+        auto &m =
+            meshes.emplace_back(Mesh{MeshDesc{VertexAttributeType::POSTION}});
+        m.LoadMesh(paths[i]);
+    }
 }

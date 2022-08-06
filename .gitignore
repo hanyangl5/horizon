@@ -2,4 +2,5 @@
 build
 horizon/tools
 horizon/third_party
+horizon/assets/models
 out
