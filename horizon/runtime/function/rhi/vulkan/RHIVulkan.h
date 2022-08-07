@@ -74,7 +74,7 @@ class RHIVulkan : public RHIInterface {
 
   private:
     VulkanRendererContext m_vulkan{};
-    std::unique_ptr<VulkanDescriptorSetManager> m_global_descriptor = nullptr;
+    std::unique_ptr<VulkanDescriptorSetManager> m_descriptor_set_manager = nullptr;
     // pipeline map
     // resource manager, auto
 };
