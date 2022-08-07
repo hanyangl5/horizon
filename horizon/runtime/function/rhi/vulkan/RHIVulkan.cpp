@@ -30,7 +30,7 @@ RHIVulkan::~RHIVulkan() noexcept {
     for (auto &[thread_id, context] : m_command_context_map) {
         context = nullptr;
     }
-    m_global_descriptor = nullptr; // release
+    m_descriptor_set_manager = nullptr; // release
     DestroySwapChain();
     vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
     vmaDestroyAllocator(m_vulkan.vma_allocator);
@@ -67,16 +67,16 @@ void RHIVulkan::CreateSwapChain(Window *window) noexcept {
     CHECK_VK_RESULT(vkCreateWin32SurfaceKHR(
         m_vulkan.instance, &surface_create_info, nullptr, &m_vulkan.surface));
 
-     u32 surface_format_count = 0;
+    u32 surface_format_count = 0;
     // Get surface formats count
-     CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu,
-     m_vulkan.surface, &surface_format_count, nullptr));
-     std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
-     CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu,
-     m_vulkan.surface, &surface_format_count, surface_formats.data()));
-     
-     m_vulkan.optimal_surface_format = surface_formats.back();
+    CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(
+        m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, nullptr));
+    std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
+    CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(
+        m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count,
+        surface_formats.data()));
 
+    m_vulkan.optimal_surface_format = surface_formats.back();
 
     // create swap chain
 
@@ -85,7 +85,8 @@ void RHIVulkan::CreateSwapChain(Window *window) noexcept {
     swap_chain_create_info.surface = m_vulkan.surface;
     swap_chain_create_info.minImageCount = m_back_buffer_count;
     swap_chain_create_info.imageFormat = m_vulkan.optimal_surface_format.format;
-    swap_chain_create_info.imageColorSpace = m_vulkan.optimal_surface_format.colorSpace;
+    swap_chain_create_info.imageColorSpace =
+        m_vulkan.optimal_surface_format.colorSpace;
     swap_chain_create_info.imageExtent = {window->GetWidth(),
                                           window->GetHeight()};
     swap_chain_create_info.imageArrayLayers = 1;
@@ -139,8 +140,7 @@ ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type,
         ShaderTargetPlatform::SPIRV, type, entry_point, compile_flags,
         file_name)};
 
-    return new VulkanShaderProgram(m_vulkan, type, entry_point,
-                                   spirv_blob);
+    return new VulkanShaderProgram(m_vulkan, type, entry_point, spirv_blob);
 }
 
 void RHIVulkan::DestroyShaderProgram(ShaderProgram *shader_program) noexcept {
@@ -293,7 +293,8 @@ void RHIVulkan::CreateDevice(
             VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         device_queue_create_info[i].pNext = NULL;
         device_queue_create_info[i].flags = 0;
-        device_queue_create_info[i].queueFamilyIndex = m_vulkan.command_queue_familiy_indices[i];
+        device_queue_create_info[i].queueFamilyIndex =
+            m_vulkan.command_queue_familiy_indices[i];
         device_queue_create_info[i].queueCount = 1;
         device_queue_create_info[i].pQueuePriorities = &queue_priority;
     }
@@ -344,11 +345,12 @@ void RHIVulkan::CreateDevice(
         &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
 
 #ifdef USE_ASYNC_COMPUTE_TRANSFER
-    LOG_DEBUG("using async compute & transfer, graphics queue: {}, compute "
-              "queue: {}, transfer queue: {}",
-              m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
-              m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
-              m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
+    LOG_DEBUG(
+        "using async compute & transfer, graphics queue: {}, compute "
+        "queue: {}, transfer queue: {}",
+        m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
+        m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
+        m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
 #endif // USE_ASYNC_COMPUTE
 }
 
@@ -428,27 +430,27 @@ void RHIVulkan::SetResource(Buffer *buffer) noexcept {
     vk_buffer->buffer_info.offset = 0;
     vk_buffer->buffer_info.range = buffer->m_size;
 
-    if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-        auto &write = m_global_descriptor->descriptor_writes[0];
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = nullptr;
-        write.dstSet = m_global_descriptor->m_sets[0];
-        write.dstBinding = 0;
-        write.dstArrayElement = 0;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &vk_buffer->buffer_info;
-    } else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
-        auto &write = m_global_descriptor->descriptor_writes[1];
-        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = nullptr;
-        write.dstSet = m_global_descriptor->m_sets[1];
-        write.dstBinding = 0;
-        write.dstArrayElement = 0;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &vk_buffer->buffer_info;
-    }
+    //if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+    //    auto &write = m_descriptor_set_manager->descriptor_writes[0];
+    //    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    write.pNext = nullptr;
+    //    write.dstSet = m_descriptor_set_manager->m_sets[0];
+    //    write.dstBinding = 0;
+    //    write.dstArrayElement = 0;
+    //    write.descriptorCount = 1;
+    //    write.pBufferInfo = &vk_buffer->buffer_info;
+    //} else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
+    //    auto &write = m_descriptor_set_manager->descriptor_writes[1];
+    //    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    //    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    write.pNext = nullptr;
+    //    write.dstSet = m_descriptor_set_manager->m_sets[1];
+    //    write.dstBinding = 0;
+    //    write.dstArrayElement = 0;
+    //    write.descriptorCount = 1;
+    //    write.pBufferInfo = &vk_buffer->buffer_info;
+    //}
 }
 
 void RHIVulkan::SetResource(Texture *texture) noexcept {
@@ -457,7 +459,9 @@ void RHIVulkan::SetResource(Texture *texture) noexcept {
     image_info.imageLayout;
 }
 
-void RHIVulkan::UpdateDescriptors() noexcept { m_global_descriptor->Update(); }
+void RHIVulkan::UpdateDescriptors() noexcept {
+    m_descriptor_set_manager->Update();
+}
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
     auto &cl = std::make_unique<VulkanCommandContext>(m_vulkan);
@@ -481,12 +485,12 @@ void RHIVulkan::ResetCommandResources() noexcept {
 
 Pipeline *RHIVulkan::CreatePipeline(
     const PipelineCreateInfo &pipeline_create_info) noexcept {
-    if (!m_global_descriptor) {
-        m_global_descriptor =
-            std::make_unique<VulkanDescriptor>(m_vulkan.device);
-        m_global_descriptor->AllocateDescriptors();
+    if (!m_descriptor_set_manager) {
+        m_descriptor_set_manager =
+            std::make_unique<VulkanDescriptorSetManager>(m_vulkan);
+        m_descriptor_set_manager->AllocateDescriptors();
     }
     return new VulkanPipeline(m_vulkan, pipeline_create_info,
-                              m_global_descriptor.get());
+                              *m_descriptor_set_manager.get());
 }
 } // namespace Horizon::RHI

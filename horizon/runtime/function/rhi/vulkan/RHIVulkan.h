@@ -9,11 +9,12 @@
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIInterface.h>
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
+
 
 #include "vk_mem_alloc.h"
 
@@ -58,6 +59,7 @@ class RHIVulkan : public RHIInterface {
     void SetResource(Texture *texture) noexcept override;
 
     void UpdateDescriptors() noexcept override;
+
   private:
     void InitializeVulkanRenderer(const std::string &app_name) noexcept;
     void
@@ -72,7 +74,7 @@ class RHIVulkan : public RHIInterface {
 
   private:
     VulkanRendererContext m_vulkan{};
-    std::unique_ptr<VulkanDescriptor> m_global_descriptor = nullptr;
+    std::unique_ptr<VulkanDescriptorSetManager> m_global_descriptor = nullptr;
     // pipeline map
     // resource manager, auto
 };

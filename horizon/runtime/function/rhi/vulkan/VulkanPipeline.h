@@ -2,7 +2,7 @@
 
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/ShaderProgram.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptors.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
 namespace Horizon::RHI {
@@ -10,7 +10,7 @@ class VulkanPipeline : public Pipeline {
   public:
     VulkanPipeline(const VulkanRendererContext &context,
                    const PipelineCreateInfo &pipeline_create_info,
-                   VulkanDescriptor *descriptor) noexcept;
+                   VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     ~VulkanPipeline() noexcept;
     void Create() noexcept;
     virtual void SetShader(ShaderProgram *shader_moudle) noexcept override;
@@ -24,7 +24,7 @@ class VulkanPipeline : public Pipeline {
     const VulkanRendererContext &m_context;
     VkPipeline m_pipeline{};
     VkPipelineLayout m_pipeline_layout{};
-    const VulkanDescriptor *m_descriptor{};
+    VulkanDescriptorSetManager &m_descriptor_set_manager;
 };
 
 } // namespace Horizon::RHI
