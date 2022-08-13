@@ -1,5 +1,8 @@
 #include <memory>
 #include <string>
+#include <mutex>
+#include <shared_mutex>
+#include <chrono>
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
@@ -16,6 +19,7 @@
 #include <runtime/interface/EngineRuntime.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
+
 
 using namespace Horizon;
 
@@ -177,9 +181,9 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float3)})};
-
     for (u32 i = 0; i < cmdlist_count; i++) {
         auto result = tp->submit([&]() {
+            
             Math::float3 data{
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
@@ -211,17 +215,37 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
     engine->BeginNewFrame();
 }
 
-TEST_CASE_FIXTURE(HorizonTest, "mesh load") {
+TEST_CASE_FIXTURE(HorizonTest, "multithread mesh load") {
 
-    std::vector<Mesh> meshes;
+    auto &tp = engine->tp;
+    constexpr u32 mesh_count = 500;
+    std::vector<Mesh> meshes(mesh_count);
+
     std::vector<std::string> paths = {
-        "D:/codes/horizon/horizon/assets/models/DamagedHelmet/DamagedHelmet.gltf",
+        "D:/codes/horizon/horizon/assets/models/DamagedHelmet/"
+        "DamagedHelmet.gltf",
         "D:/codes/horizon/horizon/assets/models/sponza/sponza.gltf",
         "D:/codes/horizon/horizon/assets/models/cerberus/cerberus.gltf"};
 
-    for (u32 i = 0; i < paths.size(); i++) {
-        auto &m =
-            meshes.emplace_back(Mesh{MeshDesc{VertexAttributeType::POSTION}});
-        m.LoadMesh(paths[i]);
+    std::vector<std::future<void>> results(mesh_count);
+
+    LOG_INFO("start to load meshes");
+
+    auto tp1 = std::chrono::high_resolution_clock::now();
+
+    for (u32 i = 0; i < mesh_count; i++) {
+        results[i] = std::move(tp->submit([&meshes, &paths, i]() {
+            auto &m = meshes[i];
+            m.LoadMesh(paths[i % 3]);
+        }));
     }
+    for (auto &res : results) {
+        res.wait();
+    }
+    auto tp2 = std::chrono::high_resolution_clock::now();
+    auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1)
+                   .count();
+    LOG_INFO("spend {} ms to load {} meshes", dur, mesh_count);
 }
+
+

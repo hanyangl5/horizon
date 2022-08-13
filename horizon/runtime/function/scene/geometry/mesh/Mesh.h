@@ -40,7 +40,7 @@ struct MeshDesc {
 
 class Mesh {
   public:
-    Mesh(const MeshDesc &desc);
+    Mesh(const MeshDesc &desc = {});
     ~Mesh();
     void LoadMesh(const std::string &path);
     void ConvertToClusterdMesh();
