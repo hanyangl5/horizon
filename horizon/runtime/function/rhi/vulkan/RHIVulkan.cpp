@@ -430,27 +430,28 @@ void RHIVulkan::SetResource(Buffer *buffer) noexcept {
     vk_buffer->buffer_info.offset = 0;
     vk_buffer->buffer_info.range = buffer->m_size;
 
-    //if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-    //    auto &write = m_descriptor_set_manager->descriptor_writes[0];
-    //    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //    write.pNext = nullptr;
-    //    write.dstSet = m_descriptor_set_manager->m_sets[0];
-    //    write.dstBinding = 0;
-    //    write.dstArrayElement = 0;
-    //    write.descriptorCount = 1;
-    //    write.pBufferInfo = &vk_buffer->buffer_info;
-    //} else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
-    //    auto &write = m_descriptor_set_manager->descriptor_writes[1];
-    //    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    //    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //    write.pNext = nullptr;
-    //    write.dstSet = m_descriptor_set_manager->m_sets[1];
-    //    write.dstBinding = 0;
-    //    write.dstArrayElement = 0;
-    //    write.descriptorCount = 1;
-    //    write.pBufferInfo = &vk_buffer->buffer_info;
-    //}
+    // if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+    //     auto &write = m_descriptor_set_manager->descriptor_writes[0];
+    //     write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //     write.pNext = nullptr;
+    //     write.dstSet = m_descriptor_set_manager->m_sets[0];
+    //     write.dstBinding = 0;
+    //     write.dstArrayElement = 0;
+    //     write.descriptorCount = 1;
+    //     write.pBufferInfo = &vk_buffer->buffer_info;
+    // } else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER)
+    // {
+    //     auto &write = m_descriptor_set_manager->descriptor_writes[1];
+    //     write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    //     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //     write.pNext = nullptr;
+    //     write.dstSet = m_descriptor_set_manager->m_sets[1];
+    //     write.dstBinding = 0;
+    //     write.dstArrayElement = 0;
+    //     write.descriptorCount = 1;
+    //     write.pBufferInfo = &vk_buffer->buffer_info;
+    // }
 }
 
 void RHIVulkan::SetResource(Texture *texture) noexcept {
@@ -464,12 +465,26 @@ void RHIVulkan::UpdateDescriptors() noexcept {
 }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
-    auto &cl = std::make_unique<VulkanCommandContext>(m_vulkan);
-    std::lock_guard<std::mutex> lk(m_command_context_mutex);
-    auto [key, success] = m_command_context_map.try_emplace(
-        std::this_thread::get_id(), std::move(cl));
-    return static_cast<VulkanCommandContext *>(key->second.get())
-        ->GetVulkanCommandList(type);
+
+    auto res = m_command_context_map.find(std::this_thread::get_id());
+
+    if (res == m_command_context_map.end()) {
+        // write
+        auto &cl = std::make_unique<VulkanCommandContext>(m_vulkan);
+
+        std::unique_lock<std::mutex> lk(m_command_context_mutex);
+
+        auto [key, success] = m_command_context_map.try_emplace(
+            std::this_thread::get_id(), std::move(cl));
+
+        return static_cast<VulkanCommandContext *>(key->second.get())
+            ->GetVulkanCommandList(type);
+
+    } else {
+        // read
+        return static_cast<VulkanCommandContext *>(res->second.get())
+            ->GetVulkanCommandList(type);
+    }
 }
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) noexcept {
