@@ -465,6 +465,7 @@ void RHIVulkan::UpdateDescriptors() noexcept {
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
     auto &cl = std::make_unique<VulkanCommandContext>(m_vulkan);
+    std::lock_guard<std::mutex> lk(m_command_context_mutex);
     auto [key, success] = m_command_context_map.try_emplace(
         std::this_thread::get_id(), std::move(cl));
     return static_cast<VulkanCommandContext *>(key->second.get())

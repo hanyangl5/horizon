@@ -72,9 +72,10 @@ class RHIInterface {
     // each thread has one command pool,
     std::unordered_map<std::thread::id, std::unique_ptr<CommandContext>>
         m_command_context_map{};
-
+    std::mutex m_command_context_mutex;
   private:
     std::shared_ptr<Window> m_window{};
+
 };
 
 } // namespace Horizon::RHI

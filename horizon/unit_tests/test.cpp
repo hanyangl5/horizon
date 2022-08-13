@@ -1,8 +1,8 @@
+#include <chrono>
 #include <memory>
-#include <string>
 #include <mutex>
 #include <shared_mutex>
-#include <chrono>
+#include <string>
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
@@ -19,7 +19,6 @@
 #include <runtime/interface/EngineRuntime.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
-
 
 using namespace Horizon;
 
@@ -173,24 +172,24 @@ TEST_CASE_FIXTURE(HorizonTest, "bindless descriptors") {
 
 TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
     auto &tp = engine->tp;
+    auto &rs = engine->m_render_system;
 
-    std::vector<CommandList *> cmdlists;
     constexpr u32 cmdlist_count = 20;
-    cmdlists.reserve(cmdlist_count);
+    std::vector<CommandList *> cmdlists(cmdlist_count);
+    std::vector<std::future<void>> results(cmdlist_count);
+
     Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float3)})};
     for (u32 i = 0; i < cmdlist_count; i++) {
-        auto result = tp->submit([&]() {
-            
+        results[i] = std::move(tp->submit([&rs, &cmdlists, &buffer, i]() {
             Math::float3 data{
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
 
-            auto transfer = engine->m_render_system->GetCommandList(
-                CommandQueueType::TRANSFER);
+            auto transfer = rs->GetCommandList(CommandQueueType::TRANSFER);
 
             transfer->BeginRecording();
 
@@ -200,13 +199,13 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
             transfer->EndRecording();
             // stage -> gpu
 
-            cmdlists.emplace_back(transfer);
-
-            LOG_INFO("command list count: {}", cmdlists.size());
-        });
-        result.wait();
+            cmdlists[i] = transfer;
+        }));
     }
 
+    for (auto &res : results) {
+        res.wait();
+    }
     LOG_INFO("all task done");
 
     engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
@@ -247,5 +246,3 @@ TEST_CASE_FIXTURE(HorizonTest, "multithread mesh load") {
                    .count();
     LOG_INFO("spend {} ms to load {} meshes", dur, mesh_count);
 }
-
-

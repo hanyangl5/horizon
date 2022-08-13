@@ -69,8 +69,8 @@ std::vector<u32> VulkanDescriptorSetManager::CreateLayouts(
             set_layout_create_info.bindingCount = layout_bindings.size();
             set_layout_create_info.pBindings = layout_bindings.data();
             set_numbers[i] = refl_set.set;
-            u64 hash_value = std::hash<VkDescriptorSetLayoutCreateInfo>{}(
-                set_layout_create_info);
+            u64 hash_value;//= std::hash<VkDescriptorSetLayoutCreateInfo>{}(
+                //set_layout_create_info);
             pipeline_layout.emplace_back(hash_value);
             if (!descriptor_set_map.at(hash_value)) {
                 vkCreateDescriptorSetLayout(m_context.device,
