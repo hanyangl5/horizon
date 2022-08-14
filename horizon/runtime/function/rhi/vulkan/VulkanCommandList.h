@@ -53,13 +53,12 @@ class VulkanCommandList : public CommandList {
 
   private:
     const VulkanRendererContext &m_context;
-    VulkanBuffer *
+    Resource<VulkanBuffer>
     GetStageBuffer(VmaAllocator allocator,
                    const BufferCreateInfo &buffer_create_info) noexcept;
 
   public:
     VkCommandBuffer m_command_buffer;
-    Resource<VulkanBuffer> m_stage_buffer = nullptr;
 };
 
 } // namespace Horizon::RHI

@@ -12,7 +12,8 @@ VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context,
                                      VkCommandBuffer command_buffer) noexcept
     : CommandList(type), m_context(context), m_command_buffer(command_buffer) {}
 
-VulkanCommandList::~VulkanCommandList() noexcept { m_stage_buffer = nullptr; }
+VulkanCommandList::~VulkanCommandList() noexcept {
+}
 
 void VulkanCommandList::BeginRecording() noexcept {
     is_recoring = true;
@@ -133,26 +134,30 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data,
 
     // frequently updated buffer
     {
-        auto vk_buffer = static_cast<VulkanBuffer *>(buffer);
 
-        VulkanBuffer *stage_buffer = GetStageBuffer(
+        auto vk_buffer = static_cast<VulkanBuffer *>(buffer);
+        vk_buffer->m_stage_buffer;
+        vk_buffer->m_stage_buffer = GetStageBuffer(
             vk_buffer->m_allocator,
             BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
                              ResourceState::RESOURCE_STATE_COPY_SOURCE, size});
 
-        // if cpu data does not change, don't upload // buffer handle is different?
-        //if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size) ==
+        // if cpu data does not change, don't upload // buffer handle is
+        // different?
+        // if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size)
+        // ==
         //    0) {
         //    LOG_DEBUG("prev buffer and current buffer are same");
         //    return;
         //}
 
-        memcpy(stage_buffer->m_allocation_info.pMappedData, data, size);
+        memcpy(vk_buffer->m_stage_buffer->m_allocation_info.pMappedData, data,
+               size);
 
         // barrier for stage upload
         {
             BufferBarrierDesc bmb{};
-            bmb.buffer = stage_buffer;
+            bmb.buffer = vk_buffer->m_stage_buffer.get();
             bmb.src_state = RESOURCE_STATE_HOST_WRITE;
             bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
 
@@ -163,7 +168,7 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data,
         }
 
         // copy to gpu buffer
-        CopyBuffer(stage_buffer, vk_buffer);
+        CopyBuffer(vk_buffer->m_stage_buffer.get(), vk_buffer);
 
         // release queue ownership barrier, controlled by render graph?
     }
@@ -206,81 +211,81 @@ void VulkanCommandList::UpdateTexture(
     }
 
     // frequently updated buffer
-    {
+    //{
 
-        auto vk_texture = static_cast<VulkanTexture *>(texture);
+    //    auto vk_texture = static_cast<VulkanTexture *>(texture);
 
-        u64 texture_size =
-            vk_texture->m_width * vk_texture->m_height * vk_texture->m_depth;
+    //    u64 texture_size =
+    //        vk_texture->m_width * vk_texture->m_height * vk_texture->m_depth;
 
-        VulkanBuffer *stage_buffer = GetStageBuffer(
-            vk_texture->m_allocator,
-            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
-                             ResourceState::RESOURCE_STATE_COPY_SOURCE,
-                             texture_size});
-        memcpy(stage_buffer->m_allocation_info.pMappedData, texture_data.data,
-               texture_size);
+    //    auto& stage_buffer = GetStageBuffer(
+    //        vk_texture->m_allocator,
+    //        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
+    //                         ResourceState::RESOURCE_STATE_COPY_SOURCE,
+    //                         texture_size});
+    //    memcpy(stage_buffer->m_allocation_info.pMappedData, texture_data.data,
+    //           texture_size);
 
-        vmaBindImageMemory(vk_texture->m_allocator, stage_buffer->m_memory,
-                           vk_texture->m_image);
+    //    vmaBindImageMemory(vk_texture->m_allocator, stage_buffer->m_memory,
+    //                       vk_texture->m_image);
 
-        // barrier 1
-        {
-            // barrier for stage upload
-            BufferBarrierDesc bmb{};
-            bmb.buffer = stage_buffer;
-            bmb.src_state = RESOURCE_STATE_HOST_WRITE;
-            bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
+    //    // barrier 1
+    //    {
+    //        // barrier for stage upload
+    //        BufferBarrierDesc bmb{};
+    //        bmb.buffer = stage_buffer;
+    //        bmb.src_state = RESOURCE_STATE_HOST_WRITE;
+    //        bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
 
-            // transition layout, undefined -> transfer dst
-            TextureBarrierDesc tmb{};
-            tmb.texture = texture;
-            tmb.src_state = RESOURCE_STATE_UNDEFINED;
-            tmb.dst_state = RESOURCE_STATE_COPY_DEST;
+    //        // transition layout, undefined -> transfer dst
+    //        TextureBarrierDesc tmb{};
+    //        tmb.texture = texture;
+    //        tmb.src_state = RESOURCE_STATE_UNDEFINED;
+    //        tmb.dst_state = RESOURCE_STATE_COPY_DEST;
 
-            BarrierDesc desc{};
+    //        BarrierDesc desc{};
 
-            desc.buffer_memory_barriers.emplace_back(bmb);
-            desc.texture_memory_barriers.emplace_back(tmb);
+    //        desc.buffer_memory_barriers.emplace_back(bmb);
+    //        desc.texture_memory_barriers.emplace_back(tmb);
 
-            InsertBarrier(desc);
-        }
+    //        InsertBarrier(desc);
+    //    }
 
-        // copy buffer to image
+    //    // copy buffer to image
 
-        VkBufferImageCopy region{};
-        region.bufferOffset = 0;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = {0, 0, 0};
-        region.imageExtent = {texture->m_width, texture->m_height,
-                              texture->m_depth};
+    //    VkBufferImageCopy region{};
+    //    region.bufferOffset = 0;
+    //    region.bufferRowLength = 0;
+    //    region.bufferImageHeight = 0;
+    //    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //    region.imageSubresource.mipLevel = 0;
+    //    region.imageSubresource.baseArrayLayer = 0;
+    //    region.imageSubresource.layerCount = 1;
+    //    region.imageOffset = {0, 0, 0};
+    //    region.imageExtent = {texture->m_width, texture->m_height,
+    //                          texture->m_depth};
 
-        vkCmdCopyBufferToImage(
-            m_command_buffer, stage_buffer->m_buffer, vk_texture->m_image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    //    vkCmdCopyBufferToImage(
+    //        m_command_buffer, stage_buffer->m_buffer, vk_texture->m_image,
+    //        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-        // barrier 2, transtion image layout
-        {
+    //    // barrier 2, transtion image layout
+    //    {
 
-            // transition layout, undefined -> transfer dst
-            TextureBarrierDesc tmb{};
-            tmb.texture = texture;
-            tmb.src_state = RESOURCE_STATE_COPY_DEST;
-            tmb.dst_state = RESOURCE_STATE_COPY_DEST; // usage determin
+    //        // transition layout, undefined -> transfer dst
+    //        TextureBarrierDesc tmb{};
+    //        tmb.texture = texture;
+    //        tmb.src_state = RESOURCE_STATE_COPY_DEST;
+    //        tmb.dst_state = RESOURCE_STATE_COPY_DEST; // usage determin
 
-            BarrierDesc desc{};
+    //        BarrierDesc desc{};
 
-            desc.texture_memory_barriers.emplace_back(tmb);
+    //        desc.texture_memory_barriers.emplace_back(tmb);
 
-            InsertBarrier(desc);
-        }
-        // create sampler and image view
-    }
+    //        InsertBarrier(desc);
+    //    }
+    //    // create sampler and image view
+    //}
 }
 
 void VulkanCommandList::CopyTexture() noexcept {
@@ -338,11 +343,15 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
             barrier.offset = 0;
 
             if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
-                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
+                barrier.srcQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[barrier_desc.queue];
+                barrier.dstQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[m_type];
             } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
-                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
+                barrier.srcQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[m_type];
+                barrier.dstQueueFamilyIndex =
+                    m_context.command_queue_familiy_indices[barrier_desc.queue];
             } else {
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -470,16 +479,11 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) noexcept {
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 
-VulkanBuffer *VulkanCommandList::GetStageBuffer(
+Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(
     VmaAllocator allocator,
     const BufferCreateInfo &buffer_create_info) noexcept {
-    if (m_stage_buffer) {
-        return m_stage_buffer.get();
-    } else {
-        m_stage_buffer = std::make_unique<VulkanBuffer>(
-            allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
-        return m_stage_buffer.get();
-    }
+    return std::make_unique<VulkanBuffer>(allocator, buffer_create_info,
+                                          MemoryFlag::CPU_VISABLE_MEMORY);
 }
 
 } // namespace Horizon::RHI

@@ -11,15 +11,12 @@ struct T {
 // set 0
 [[vk::binding(0, 0)]] ConstantBuffer<T> ub1;
 [[vk::binding(1, 0)]] ConstantBuffer<T> ub2;
-
-// set 1
-[[vk::binding(0, 1)]] RWStructuredBuffer<T> sb1;
-[[vk::binding(1, 1)]] RWStructuredBuffer<T> sb2;
-
 [[vk::binding(0, 2)]] ConstantBuffer<T> ub3;
 [[vk::binding(1, 2)]] ConstantBuffer<T> ub4;
 
 // set 1
+[[vk::binding(0, 1)]] RWStructuredBuffer<T> sb1;
+[[vk::binding(1, 1)]] RWStructuredBuffer<T> sb2;
 [[vk::binding(0, 3)]] RWStructuredBuffer<T> sb3;
 [[vk::binding(1, 3)]] RWStructuredBuffer<T> sb4;
 

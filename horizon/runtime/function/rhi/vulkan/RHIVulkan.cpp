@@ -434,7 +434,7 @@ void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
     auto vk_pipeline = static_cast<VulkanPipeline *>(pipeline);
 
     VkWriteDescriptorSet write;
-    if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+    if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
         //auto &write = m_descriptor_set_manager->descriptor_writes[0];
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

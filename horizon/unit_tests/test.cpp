@@ -41,7 +41,7 @@ class HorizonTest {
 
 TEST_CASE_FIXTURE(HorizonTest, "buffer creation test") {
     engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 32});
 }
 
@@ -56,7 +56,7 @@ TEST_CASE_FIXTURE(HorizonTest, "texture creation test") {
 TEST_CASE_FIXTURE(HorizonTest, "buffer upload, dynamic") {
 
     Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float3)})};
 
@@ -137,18 +137,44 @@ TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
     auto pipeline = engine->m_render_system->CreatePipeline(
         PipelineCreateInfo{PipelineType::COMPUTE});
 
-    Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+    Resource<Buffer> cb1{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(f32)})};
 
-    Resource<Buffer> buffer2{engine->m_render_system->CreateBuffer(
+    Resource<Buffer> cb2{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+    Resource<Buffer> cb3{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+
+    Resource<Buffer> cb4{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+    Resource<Buffer> rwb1{engine->m_render_system->CreateBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(f32)})};
 
+    Resource<Buffer> rwb2{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+    Resource<Buffer> rwb3{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
 
-    float data = 5;
+    Resource<Buffer> rwb4{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+
+    f32 data[4] = {5, 6, 7, 7};
 
     auto transfer =
         engine->m_render_system->GetCommandList(CommandQueueType::TRANSFER);
@@ -156,8 +182,13 @@ TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
     transfer->BeginRecording();
 
     // cpu -> stage
-    transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
-    transfer->UpdateBuffer(buffer2.get(), &data, sizeof(data));
+    transfer->UpdateBuffer(cb1.get(), &data[0], sizeof(f32)); // 5
+
+    transfer->UpdateBuffer(cb2.get(), &data[1], sizeof(f32)); // 6
+
+    transfer->UpdateBuffer(cb3.get(), &data[2], sizeof(f32)); // 7
+
+    transfer->UpdateBuffer(cb4.get(), &data[3], sizeof(f32)); // 7
 
     transfer->EndRecording();
 
@@ -167,16 +198,20 @@ TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
     auto cl =
         engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
 
+    // barrier trans -> compute
+
     pipeline->SetComputeShader(shader);
 
-    rs->SetResource(buffer.get(), pipeline, 0, 0); // set, binding
-    rs->SetResource(buffer.get(), pipeline, 0, 1);
-    rs->SetResource(buffer.get(), pipeline, 2, 0); // set, binding
-    rs->SetResource(buffer.get(), pipeline, 2, 1);
-    rs->SetResource(buffer2.get(), pipeline, 1, 0); // set, binding
-    rs->SetResource(buffer2.get(), pipeline, 1, 1);
-    rs->SetResource(buffer2.get(), pipeline, 3, 0); // set, binding
-    rs->SetResource(buffer2.get(), pipeline, 3, 1);
+    rs->SetResource(cb1.get(), pipeline, 0, 0); // set, binding
+    rs->SetResource(cb2.get(), pipeline, 0, 1);
+    rs->SetResource(cb3.get(), pipeline, 2, 0); // set, binding
+    rs->SetResource(cb4.get(), pipeline, 2, 1);
+    rs->SetResource(rwb1.get(), pipeline, 1, 0); // set, binding
+    rs->SetResource(rwb2.get(), pipeline, 1, 1);
+    rs->SetResource(rwb3.get(), pipeline, 3, 0); // set, binding
+    rs->SetResource(rwb4.get(), pipeline, 3, 1);
+
+
     cl->BeginRecording();
     cl->BindPipeline(pipeline);
 
@@ -246,7 +281,7 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
     std::vector<std::future<void>> results(cmdlist_count);
 
     Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float3)})};
     for (u32 i = 0; i < cmdlist_count; i++) {

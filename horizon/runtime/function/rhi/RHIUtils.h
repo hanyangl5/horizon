@@ -67,9 +67,9 @@ enum DescriptorType {
     DESCRIPTOR_TYPE_RW_BUFFER_RAW =
         (DESCRIPTOR_TYPE_RW_BUFFER | (DESCRIPTOR_TYPE_RW_BUFFER << 1)),
     /// Uniform buffer
-    DESCRIPTOR_TYPE_UNIFORM_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2),
+    DESCRIPTOR_TYPE_CONSTANT_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2),
     /// Push constant / Root constant
-    DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_UNIFORM_BUFFER << 1),
+    DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_CONSTANT_BUFFER << 1),
     /// IA
     DESCRIPTOR_TYPE_VERTEX_BUFFER = (DESCRIPTOR_TYPE_ROOT_CONSTANT << 1),
     DESCRIPTOR_TYPE_INDEX_BUFFER = (DESCRIPTOR_TYPE_VERTEX_BUFFER << 1),
@@ -594,7 +594,7 @@ inline VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format,
 inline VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage,
                                                   bool typed) {
     VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    if (usage & DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
     if (usage & DESCRIPTOR_TYPE_RW_BUFFER) {
