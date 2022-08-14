@@ -53,9 +53,11 @@ class RHIDX12 : public RHIInterface {
         CommandQueueType queue_type,
         std::vector<CommandList *> &command_lists) noexcept override;
 
-    void SetResource(Buffer *buffer) noexcept override;
+    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+                     u32 binding) noexcept override;
     void SetResource(Texture *texture) noexcept override;
     void UpdateDescriptors() noexcept override;
+
   private:
     void InitializeDX12Renderer() noexcept;
     void CreateFactory() noexcept;
@@ -69,7 +71,7 @@ class RHIDX12 : public RHIInterface {
         IDXGIFactory6 *factory;
         IDXGIAdapter4 *active_gpu;
         D3D12MA::Allocator *d3dma_allocator;
-        //ID3D12CommandQueue *graphics_queue, *compute_queue, *transfer_queue;
+        // ID3D12CommandQueue *graphics_queue, *compute_queue, *transfer_queue;
         std::array<ID3D12CommandQueue *, 3> queues;
         std::array<ID3D12Fence *, 3> fences;
         IDXGISwapChain3 *swap_chain;

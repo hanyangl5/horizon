@@ -108,7 +108,8 @@ void RHIDX12::SubmitCommandLists(
     // }
 }
 
-void RHIDX12::SetResource(Buffer *buffer) noexcept {}
+void RHIDX12::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+                          u32 binding) noexcept {}
 
 void RHIDX12::SetResource(Texture *texture) noexcept {}
 

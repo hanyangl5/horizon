@@ -4,7 +4,6 @@
 #include <runtime/function/rhi/ShaderProgram.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-#include <spirv_reflect.h>
 #include <d3d12shader.h>
 #include <dxc/dxcapi.h>
 
@@ -17,12 +16,12 @@ class VulkanShaderProgram : public ShaderProgram {
     virtual ~VulkanShaderProgram() noexcept;
     // virtual void* GetBufferPointer() const noexcept override;
     // virtual u64 GetBufferSize() const noexcept override;
-    void ReflectDescriptorSetLayout(void* spirv,u32 size);
+    
   public:
     const VulkanRendererContext &m_context;
     VkShaderModule m_shader_module{};
     // reflection data
-    std::vector<SpvReflectDescriptorSet *> sets;
+    IDxcBlob *m_shader_byte_code;
 };
 
 } // namespace Horizon::RHI

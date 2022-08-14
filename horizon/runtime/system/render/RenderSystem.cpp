@@ -82,8 +82,8 @@ void RenderSystem::SubmitCommandLists(
     m_render_api->SubmitCommandLists(queue, command_lists);
 }
 
-void RenderSystem::SetResource(Buffer *buffer) noexcept {
-    m_render_api->SetResource(buffer);
+void RenderSystem::SetResource(Buffer *buffer, Pipeline* pipeline, u32 set, u32 binding) noexcept {
+    m_render_api->SetResource(buffer, pipeline, set, binding);
 }
 void RenderSystem::SetResource(Texture *texture) noexcept {
     m_render_api->SetResource(texture);

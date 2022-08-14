@@ -136,10 +136,9 @@ ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type,
                                               const std::string &entry_point,
                                               u32 compile_flags,
                                               std::string file_name) noexcept {
-    auto spirv_blob{m_shader_compiler->CompileFromFile(
+    auto spirv_blob = m_shader_compiler->CompileFromFile(
         ShaderTargetPlatform::SPIRV, type, entry_point, compile_flags,
-        file_name)};
-
+        file_name);
     return new VulkanShaderProgram(m_vulkan, type, entry_point, spirv_blob);
 }
 
@@ -169,6 +168,8 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) noexcept {
     InitializeVMA();
     // create sync objects
     CreateSyncObjects();
+    m_descriptor_set_manager =
+        std::make_unique<VulkanDescriptorSetManager>(m_vulkan);
 }
 
 void RHIVulkan::CreateInstance(
@@ -421,7 +422,8 @@ void RHIVulkan::SubmitCommandLists(
     vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, fence);
 }
 
-void RHIVulkan::SetResource(Buffer *buffer) noexcept {
+void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+                            u32 binding) noexcept {
 
     auto descriptor_type = buffer->m_descriptor_type;
     auto vk_buffer = static_cast<VulkanBuffer *>(buffer);
@@ -429,29 +431,31 @@ void RHIVulkan::SetResource(Buffer *buffer) noexcept {
     vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
     vk_buffer->buffer_info.offset = 0;
     vk_buffer->buffer_info.range = buffer->m_size;
+    auto vk_pipeline = static_cast<VulkanPipeline *>(pipeline);
 
-    // if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-    //     auto &write = m_descriptor_set_manager->descriptor_writes[0];
-    //     write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //     write.pNext = nullptr;
-    //     write.dstSet = m_descriptor_set_manager->m_sets[0];
-    //     write.dstBinding = 0;
-    //     write.dstArrayElement = 0;
-    //     write.descriptorCount = 1;
-    //     write.pBufferInfo = &vk_buffer->buffer_info;
-    // } else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER)
-    // {
-    //     auto &write = m_descriptor_set_manager->descriptor_writes[1];
-    //     write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    //     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //     write.pNext = nullptr;
-    //     write.dstSet = m_descriptor_set_manager->m_sets[1];
-    //     write.dstBinding = 0;
-    //     write.dstArrayElement = 0;
-    //     write.descriptorCount = 1;
-    //     write.pBufferInfo = &vk_buffer->buffer_info;
-    // }
+    VkWriteDescriptorSet write;
+    if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+        //auto &write = m_descriptor_set_manager->descriptor_writes[0];
+        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = nullptr;
+        write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
+        write.dstBinding = binding;
+        write.dstArrayElement = 0;
+        write.descriptorCount = 1;
+        write.pBufferInfo = &vk_buffer->buffer_info;
+    } else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
+        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = nullptr;
+        write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
+        write.dstBinding = binding;
+        write.dstArrayElement = 0;
+        write.descriptorCount = 1;
+        write.pBufferInfo = &vk_buffer->buffer_info;
+    }
+
+    vk_pipeline->m_descriptor_set_manager.descriptor_writes.emplace_back(write);
 }
 
 void RHIVulkan::SetResource(Texture *texture) noexcept {
@@ -501,11 +505,7 @@ void RHIVulkan::ResetCommandResources() noexcept {
 
 Pipeline *RHIVulkan::CreatePipeline(
     const PipelineCreateInfo &pipeline_create_info) noexcept {
-    if (!m_descriptor_set_manager) {
-        m_descriptor_set_manager =
-            std::make_unique<VulkanDescriptorSetManager>(m_vulkan);
-        m_descriptor_set_manager->AllocateDescriptors();
-    }
+
     return new VulkanPipeline(m_vulkan, pipeline_create_info,
                               *m_descriptor_set_manager.get());
 }

@@ -12,8 +12,12 @@ class VulkanPipeline : public Pipeline {
                    const PipelineCreateInfo &pipeline_create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     ~VulkanPipeline() noexcept;
-    void Create() noexcept;
-    virtual void SetShader(ShaderProgram *shader_moudle) noexcept override;
+
+    const std::vector<VkDescriptorSet> &CreatePipelineResources() noexcept;
+
+    void SetComputeShader(ShaderProgram *vs) noexcept override;
+    void SetGraphicsShader(ShaderProgram *vs,
+                           ShaderProgram *ps) noexcept override;
 
   private:
     void CreateGraphicsPipeline() noexcept;
@@ -25,6 +29,7 @@ class VulkanPipeline : public Pipeline {
     VkPipeline m_pipeline{};
     VkPipelineLayout m_pipeline_layout{};
     VulkanDescriptorSetManager &m_descriptor_set_manager;
+    PipelineLayoutDesc m_pipeline_layout_desc;
 };
 
 } // namespace Horizon::RHI

@@ -36,7 +36,7 @@ class HorizonTest {
 
   public:
     std::unique_ptr<EngineRuntime> engine{};
-    std::string asset_path = "C:/hylu/horizon/horizon/assets/";
+    std::string asset_path = "D:/codes/horizon/horizon/assets/";
 };
 
 TEST_CASE_FIXTURE(HorizonTest, "buffer creation test") {
@@ -114,7 +114,7 @@ TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
 
     auto cl =
         engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
-    pipeline->SetShader(shader);
+    pipeline->SetComputeShader(shader);
     cl->BeginRecording();
     cl->BindPipeline(pipeline);
     cl->Dispatch(1, 1, 1);
@@ -123,6 +123,73 @@ TEST_CASE_FIXTURE(HorizonTest, "dispatch test") {
     engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
     // Horizon::RDC::EndFrameCapture();
     engine->BeginNewFrame();
+}
+
+TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
+    Horizon::RDC::StartFrameCapture();
+    auto &rs = engine->m_render_system;
+    std::string file_name =
+        asset_path + "shaders/hlsl/cs_descriptor_set_cache.hlsl";
+
+    auto shader = engine->m_render_system->CreateShaderProgram(
+        ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
+
+    auto pipeline = engine->m_render_system->CreatePipeline(
+        PipelineCreateInfo{PipelineType::COMPUTE});
+
+    Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+
+    Resource<Buffer> buffer2{engine->m_render_system->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(f32)})};
+
+
+    float data = 5;
+
+    auto transfer =
+        engine->m_render_system->GetCommandList(CommandQueueType::TRANSFER);
+
+    transfer->BeginRecording();
+
+    // cpu -> stage
+    transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
+    transfer->UpdateBuffer(buffer2.get(), &data, sizeof(data));
+
+    transfer->EndRecording();
+
+    engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
+                                                std::vector{transfer});
+
+    auto cl =
+        engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
+
+    pipeline->SetComputeShader(shader);
+
+    rs->SetResource(buffer.get(), pipeline, 0, 0); // set, binding
+    rs->SetResource(buffer.get(), pipeline, 0, 1);
+    rs->SetResource(buffer.get(), pipeline, 2, 0); // set, binding
+    rs->SetResource(buffer.get(), pipeline, 2, 1);
+    rs->SetResource(buffer2.get(), pipeline, 1, 0); // set, binding
+    rs->SetResource(buffer2.get(), pipeline, 1, 1);
+    rs->SetResource(buffer2.get(), pipeline, 3, 0); // set, binding
+    rs->SetResource(buffer2.get(), pipeline, 3, 1);
+    cl->BeginRecording();
+    cl->BindPipeline(pipeline);
+
+
+    cl->Dispatch(1, 1, 1);
+    cl->EndRecording();
+
+    engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
+
+    Horizon::RDC::EndFrameCapture();
+    engine->BeginNewFrame();
+
+
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "bindless descriptors") {

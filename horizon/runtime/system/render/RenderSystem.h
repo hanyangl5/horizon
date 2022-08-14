@@ -59,7 +59,8 @@ class RenderSystem {
     void SubmitCommandLists(CommandQueueType queue,
                             std::vector<CommandList *> &command_lists) noexcept;
 
-    void SetResource(Buffer *buffer) noexcept;
+    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+                     u32 binding) noexcept;
 
     void SetResource(Texture *texture) noexcept;
 

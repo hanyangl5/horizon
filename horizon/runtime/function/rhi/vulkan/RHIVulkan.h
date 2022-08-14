@@ -55,7 +55,8 @@ class RHIVulkan : public RHIInterface {
     virtual void SubmitCommandLists(
         CommandQueueType queue_type,
         std::vector<CommandList *> &command_lists) noexcept override;
-    void SetResource(Buffer *buffer) noexcept override;
+    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+                     u32 binding) noexcept override;
     void SetResource(Texture *texture) noexcept override;
 
     void UpdateDescriptors() noexcept override;

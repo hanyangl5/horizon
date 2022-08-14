@@ -13,7 +13,8 @@ VulkanPipeline::~VulkanPipeline() noexcept {
     // TODO: destroy pipeline resources, pipeline layout, pipeline
 }
 
-void VulkanPipeline::Create() noexcept {
+const std::vector<VkDescriptorSet>&
+VulkanPipeline::CreatePipelineResources() noexcept {
 
     // at that time parse shader and generate descriptor layout and pipeline
     // layout.
@@ -33,21 +34,26 @@ void VulkanPipeline::Create() noexcept {
     default:
         break;
     }
+    m_pipeline_layout_desc.sets =
+        m_descriptor_set_manager.AllocateDescriptorSets(m_pipeline_layout_desc);
+    return m_pipeline_layout_desc.sets;
 }
 
-void VulkanPipeline::SetShader(ShaderProgram *shader_moudle) noexcept {
-    switch (shader_moudle->GetType()) {
-    case ShaderType::VERTEX_SHADER:
-    // case ShaderType::GEOMETRY_SHADER:
-    case ShaderType::PIXEL_SHADER:
-        assert(m_type == PipelineType::GRAPHICS);
-        // return;
-    case ShaderType::COMPUTE_SHADER:
-        assert(m_type == PipelineType::COMPUTE);
-        // return;
-    }
+void VulkanPipeline::SetComputeShader(ShaderProgram *cs) noexcept {
+    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
+    assert(m_type == PipelineType::COMPUTE);
+    shader_map[ShaderType::COMPUTE_SHADER] = cs;
+    CreatePipelineResources();
+}
 
-    shader_map[shader_moudle->GetType()] = shader_moudle;
+void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs,
+                                       ShaderProgram *ps) noexcept {
+    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
+    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
+    assert(m_type == PipelineType::GRAPHICS);
+    shader_map[ShaderType::VERTEX_SHADER] = vs;
+    shader_map[ShaderType::VERTEX_SHADER] = ps;
+    CreatePipelineResources();
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() noexcept {
@@ -85,20 +91,26 @@ void VulkanPipeline::CreateComputePipeline() noexcept {
                                              nullptr, &m_pipeline));
 }
 void VulkanPipeline::CreatePipelineLayout() noexcept {
-    
 
-    const auto &pl = m_descriptor_set_manager.CreateLayouts(shader_map, m_type);
+    m_pipeline_layout_desc =
+        m_descriptor_set_manager.CreateLayouts(shader_map, m_type);
+    std::vector<VkDescriptorSetLayout> layouts;
+    layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
+    for (u32 i = 0; i < m_pipeline_layout_desc.descriptor_set_hash_key.size();
+         i++) {
+        auto key = m_pipeline_layout_desc.descriptor_set_hash_key[i];
+        layouts.emplace_back(m_descriptor_set_manager.FindLayout(key));
+    }
 
+    VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
-    //VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
-
-    //pipeline_layout_create_info.sType =
-    //    VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    //pipeline_layout_create_info.setLayoutCount =
-    //    static_cast<u32>(set_layouts.size());
-    //pipeline_layout_create_info.pSetLayouts = set_layouts.data();
-    //CHECK_VK_RESULT(vkCreatePipelineLayout(m_context.device,
-    //                                       &pipeline_layout_create_info,
-    //                                       nullptr, &m_pipeline_layout));
+    pipeline_layout_create_info.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipeline_layout_create_info.setLayoutCount =
+        static_cast<u32>(layouts.size());
+    pipeline_layout_create_info.pSetLayouts = layouts.data();
+    CHECK_VK_RESULT(vkCreatePipelineLayout(m_context.device,
+                                           &pipeline_layout_create_info,
+                                           nullptr, &m_pipeline_layout));
 }
 } // namespace Horizon::RHI

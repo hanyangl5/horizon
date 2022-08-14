@@ -140,12 +140,12 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data,
             BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
                              ResourceState::RESOURCE_STATE_COPY_SOURCE, size});
 
-        // if cpu data does not change, don't upload
-        if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size) ==
-            0) {
-            LOG_DEBUG("prev buffer and current buffer are same");
-            return;
-        }
+        // if cpu data does not change, don't upload // buffer handle is different?
+        //if (memcmp(stage_buffer->m_allocation_info.pMappedData, data, size) ==
+        //    0) {
+        //    LOG_DEBUG("prev buffer and current buffer are same");
+        //    return;
+        //}
 
         memcpy(stage_buffer->m_allocation_info.pMappedData, data, size);
 
@@ -460,11 +460,13 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) noexcept {
     }
     auto vk_pipeline = static_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
-    vk_pipeline->Create();
-    //vkCmdBindDescriptorSets(
-    //    m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
-    //    vk_pipeline->m_descriptor->m_k_bindless_descriptor_type_count,
-    //    vk_pipeline->m_descriptor->m_sets.data(), 0, 0);
+
+    vk_pipeline->m_descriptor_set_manager.Update(); // update descriptor sets
+
+    vkCmdBindDescriptorSets(
+        m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
+        vk_pipeline->m_pipeline_layout_desc.sets.size(),
+        vk_pipeline->m_pipeline_layout_desc.sets.data(), 0, 0);
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 
