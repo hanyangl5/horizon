@@ -8,7 +8,7 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/interface/EngineRuntime.h>
+#include <runtime/interface/Engine.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 
@@ -19,11 +19,11 @@ class HorizonApplication {
     void Run(const EngineConfig &config) noexcept;
 
   private:
-    std::unique_ptr<EngineRuntime> engine{};
+    std::unique_ptr<Engine> engine{};
 };
 
 void HorizonApplication::Run(const EngineConfig &config) noexcept {
-    engine = std::make_unique<EngineRuntime>(config);
+    engine = std::make_unique<Engine>(config);
 
     while (!engine->m_window->ShouldClose()) {
         engine->BeginNewFrame();

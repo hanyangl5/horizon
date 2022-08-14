@@ -113,4 +113,21 @@ void Mesh::LoadMesh(const std::string &path) {
               m_mesh_primitives.size(), m_vertices.size(), m_indices.size());
 }
 
+void Mesh::LoadMesh(BasicGeometry basic_geometry) {
+    switch (basic_geometry) {
+    case Horizon::BasicGeometry::QUAD:
+        break;
+    case Horizon::BasicGeometry::TRIANGLE:
+        break;
+    case Horizon::BasicGeometry::CUBE:
+        break;
+    case Horizon::BasicGeometry::SPHERE:
+        break;
+    case Horizon::BasicGeometry::CAPSULE:
+        break;
+    default:
+        break;
+    }
+}
+
 } // namespace Horizon

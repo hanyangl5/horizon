@@ -38,11 +38,20 @@ struct MeshDesc {
     u32 vertex_attribute_flag;
 };
 
+enum class BasicGeometry {
+    QUAD,
+    TRIANGLE,
+    CUBE,
+    SPHERE,
+    CAPSULE
+};
+
 class Mesh {
   public:
     Mesh(const MeshDesc &desc = {});
     ~Mesh();
     void LoadMesh(const std::string &path);
+    void LoadMesh(BasicGeometry basic_geometry);
     void ConvertToClusterdMesh();
 
   private:

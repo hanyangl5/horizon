@@ -8,21 +8,24 @@
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/interface/EngineConfig.h>
+
+#include <runtime/function/scene/scene_manager/SceneManager.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 
+
 namespace Horizon {
-class EngineRuntime final {
+class Engine final {
   public:
-    EngineRuntime(const EngineConfig &config) noexcept;
+    Engine(const EngineConfig &config) noexcept;
 
-    EngineRuntime(const EngineRuntime &rhs) noexcept = delete;
+    Engine(const Engine &rhs) noexcept = delete;
 
-    EngineRuntime &operator=(const EngineRuntime &rhs) noexcept = delete;
+    Engine &operator=(const Engine &rhs) noexcept = delete;
 
-    EngineRuntime(EngineRuntime &&rhs) noexcept = delete;
+    Engine(Engine &&rhs) noexcept = delete;
 
-    EngineRuntime &operator=(EngineRuntime &&rhs) noexcept = delete;
+    Engine &operator=(Engine &&rhs) noexcept = delete;
 
     void BeginNewFrame() const noexcept;
 
@@ -32,6 +35,8 @@ class EngineRuntime final {
     std::unique_ptr<InputSystem> m_input_system{};
     // https://github.com/bshoshany/thread-pool
     std::unique_ptr<BS::thread_pool> tp;
+
+    std::unique_ptr<SceneManager> m_scene_manager{};
 };
 
 } // namespace Horizon
