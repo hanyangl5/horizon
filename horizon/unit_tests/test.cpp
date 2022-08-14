@@ -137,24 +137,20 @@ TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
     auto pipeline = engine->m_render_system->CreatePipeline(
         PipelineCreateInfo{PipelineType::COMPUTE});
 
-    Resource<Buffer> cb1{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
+    Resource<Buffer> cb1{engine->m_render_system->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
-    Resource<Buffer> cb2{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
-    Resource<Buffer> cb3{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
+    Resource<Buffer> cb2{engine->m_render_system->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
+    Resource<Buffer> cb3{engine->m_render_system->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
-    Resource<Buffer> cb4{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
+    Resource<Buffer> cb4{engine->m_render_system->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
     Resource<Buffer> rwb1{engine->m_render_system->CreateBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
@@ -211,10 +207,8 @@ TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
     rs->SetResource(rwb3.get(), pipeline, 3, 0); // set, binding
     rs->SetResource(rwb4.get(), pipeline, 3, 1);
 
-
     cl->BeginRecording();
     cl->BindPipeline(pipeline);
-
 
     cl->Dispatch(1, 1, 1);
     cl->EndRecording();
@@ -223,8 +217,6 @@ TEST_CASE_FIXTURE(HorizonTest, "descriptor set cache") {
 
     Horizon::RDC::EndFrameCapture();
     engine->BeginNewFrame();
-
-
 }
 
 TEST_CASE_FIXTURE(HorizonTest, "bindless descriptors") {
@@ -280,12 +272,15 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
     std::vector<CommandList *> cmdlists(cmdlist_count);
     std::vector<std::future<void>> results(cmdlist_count);
 
-    Resource<Buffer> buffer{engine->m_render_system->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(Math::float3)})};
+    std::vector<Resource<Buffer>> buffers;
+
     for (u32 i = 0; i < cmdlist_count; i++) {
-        results[i] = std::move(tp->submit([&rs, &cmdlists, &buffer, i]() {
+        buffers.emplace_back(engine->m_render_system->CreateBuffer(
+            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                             sizeof(Math::float3)}));
+
+        results[i] = std::move(tp->submit([&rs, &cmdlists, &buffers, i]() {
             Math::float3 data{
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                 static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
@@ -296,7 +291,8 @@ TEST_CASE_FIXTURE(HorizonTest, "multi thread command list recording") {
             transfer->BeginRecording();
 
             // cpu -> stage
-            transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
+            transfer->UpdateBuffer(buffers[i].get(), &data,
+                                   sizeof(data)); // TODO: multithread
 
             transfer->EndRecording();
             // stage -> gpu
@@ -348,3 +344,7 @@ TEST_CASE_FIXTURE(HorizonTest, "multithread mesh load") {
                    .count();
     LOG_INFO("spend {} ms to load {} meshes", dur, mesh_count);
 }
+
+TEST_CASE_FIXTURE(HorizonTest, "graphics pipeline") {}
+
+TEST_CASE_FIXTURE(HorizonTest, "draw") {}

@@ -12,8 +12,7 @@ VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context,
                                      VkCommandBuffer command_buffer) noexcept
     : CommandList(type), m_context(context), m_command_buffer(command_buffer) {}
 
-VulkanCommandList::~VulkanCommandList() noexcept {
-}
+VulkanCommandList::~VulkanCommandList() noexcept {}
 
 void VulkanCommandList::BeginRecording() noexcept {
     is_recoring = true;
