@@ -27,9 +27,8 @@ RHIVulkan::~RHIVulkan() noexcept {
         vkDestroyFence(m_vulkan.device, fence, nullptr);
     }
 
-    for (auto &[thread_id, context] : m_command_context_map) {
-        context = nullptr;
-    }
+    thread_command_context = nullptr;
+
     m_descriptor_set_manager = nullptr; // release
     DestroySwapChain();
     vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
@@ -435,7 +434,7 @@ void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
 
     VkWriteDescriptorSet write;
     if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
-        //auto &write = m_descriptor_set_manager->descriptor_writes[0];
+        // auto &write = m_descriptor_set_manager->descriptor_writes[0];
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.pNext = nullptr;
@@ -470,25 +469,12 @@ void RHIVulkan::UpdateDescriptors() noexcept {
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
 
-    auto res = m_command_context_map.find(std::this_thread::get_id());
-
-    if (res == m_command_context_map.end()) {
-        // write
-        auto &cl = std::make_unique<VulkanCommandContext>(m_vulkan);
-
-        std::unique_lock<std::mutex> lk(m_command_context_mutex);
-
-        auto [key, success] = m_command_context_map.try_emplace(
-            std::this_thread::get_id(), std::move(cl));
-
-        return static_cast<VulkanCommandContext *>(key->second.get())
-            ->GetVulkanCommandList(type);
-
-    } else {
-        // read
-        return static_cast<VulkanCommandContext *>(res->second.get())
-            ->GetVulkanCommandList(type);
+    if (!thread_command_context) {
+        thread_command_context =
+            std::make_unique<VulkanCommandContext>(m_vulkan);
     }
+
+    return thread_command_context->GetCommandList(type);
 }
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) noexcept {
@@ -498,8 +484,8 @@ void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) noexcept {
 }
 
 void RHIVulkan::ResetCommandResources() noexcept {
-    for (auto &[thred_id, context] : m_command_context_map) {
-        context->Reset();
+    if (thread_command_context) {
+        thread_command_context->Reset();
     }
 }
 

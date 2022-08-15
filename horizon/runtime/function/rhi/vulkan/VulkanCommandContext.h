@@ -12,7 +12,7 @@ namespace Horizon::RHI {
 
 class VulkanCommandContext : public CommandContext {
   public:
-    VulkanCommandContext(const VulkanRendererContext& context) noexcept;
+    VulkanCommandContext(const VulkanRendererContext &context) noexcept;
 
     virtual ~VulkanCommandContext() noexcept override;
 
@@ -26,8 +26,7 @@ class VulkanCommandContext : public CommandContext {
     VulkanCommandContext &
     operator=(VulkanCommandContext &&rhs) noexcept = delete;
 
-
-    VulkanCommandList *GetVulkanCommandList(CommandQueueType type) noexcept;
+    CommandList *GetCommandList(CommandQueueType type) noexcept override;
     virtual void Reset() noexcept override;
 
   private:

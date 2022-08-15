@@ -279,7 +279,6 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
 
             transfer->EndRecording();
             // stage -> gpu
-
             cmdlists[i] = transfer;
         }));
     }

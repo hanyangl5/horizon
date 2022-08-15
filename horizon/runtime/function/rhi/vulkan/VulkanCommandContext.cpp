@@ -22,14 +22,15 @@ VulkanCommandContext::~VulkanCommandContext() noexcept {
     }
 }
 
-VulkanCommandList *
-VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept {
+CommandList *
+VulkanCommandContext::GetCommandList(CommandQueueType type) noexcept {
     // lazy create command pool
     if (m_command_pools[type] == VK_NULL_HANDLE) {
         VkCommandPoolCreateInfo command_pool_create_info{};
         command_pool_create_info.sType =
             VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        command_pool_create_info.queueFamilyIndex = m_context.command_queue_familiy_indices[type];
+        command_pool_create_info.queueFamilyIndex =
+            m_context.command_queue_familiy_indices[type];
         command_pool_create_info.flags =
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
@@ -50,8 +51,8 @@ VulkanCommandContext::GetVulkanCommandList(CommandQueueType type) noexcept {
         command_buffer_allocate_info.commandBufferCount = 1;
         CHECK_VK_RESULT(vkAllocateCommandBuffers(
             m_context.device, &command_buffer_allocate_info, &command_buffer));
-        m_command_lists[type].emplace_back(
-            std::make_unique<VulkanCommandList>(m_context, type, command_buffer));
+        m_command_lists[type].emplace_back(std::make_unique<VulkanCommandList>(
+            m_context, type, command_buffer));
     }
 
     m_command_lists_count[type]++;

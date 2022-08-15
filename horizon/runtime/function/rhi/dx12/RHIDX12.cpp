@@ -46,7 +46,7 @@ void RHIDX12::CreateSwapChain(Window *window) noexcept {
     CHECK_DX_RESULT(m_dx12.factory->CreateSwapChainForHwnd(
         m_dx12.queues[CommandQueueType::GRAPHICS], // Swap chain needs the queue
                                                    // so that it can
-                               // force a flush on it.
+                                                   // force a flush on it.
         window->GetWin32Window(), &swap_chain_desc, nullptr, nullptr,
         &swap_chain));
 
@@ -75,21 +75,21 @@ void RHIDX12::DestroyShaderProgram(ShaderProgram *shader_program) noexcept {
 }
 
 CommandList *RHIDX12::GetCommandList(CommandQueueType type) noexcept {
+    if (!thread_command_context) {
+        thread_command_context =
+            std::make_unique<DX12CommandContext>(m_dx12.device);
+    }
 
-    auto cl = new DX12CommandContext(m_dx12.device);
-    auto [key, success] =
-        m_command_context_map.try_emplace(std::this_thread::get_id(), cl);
-
-    return cl->GetDX12CommandList(type);
+    return thread_command_context->GetCommandList(type);
 }
 
 void RHIDX12::WaitGpuExecution(CommandQueueType queue_type) noexcept {
-    //m_dx12.queues[queue_type]->Wait();
+    // m_dx12.queues[queue_type]->Wait();
 }
 
 void RHIDX12::ResetCommandResources() noexcept {
-    for (auto &[thread_id, context] : m_command_context_map) {
-        context->Reset();
+    if (thread_command_context) {
+        thread_command_context->Reset();
     }
 }
 
@@ -170,7 +170,8 @@ void RHIDX12::CreateDevice() noexcept {
     graphics_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
     CHECK_DX_RESULT(m_dx12.device->CreateCommandQueue(
-        &graphics_command_queue_desc, IID_PPV_ARGS(&m_dx12.queues[CommandQueueType::GRAPHICS])));
+        &graphics_command_queue_desc,
+        IID_PPV_ARGS(&m_dx12.queues[CommandQueueType::GRAPHICS])));
 
 #ifdef USE_ASYNC_COMPUTE_TRANSFER
     D3D12_COMMAND_QUEUE_DESC compute_command_queue_desc{};

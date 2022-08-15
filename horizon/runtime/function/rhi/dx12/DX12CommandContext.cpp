@@ -13,8 +13,7 @@ DX12CommandContext::~DX12CommandContext() noexcept {
     Reset();
 }
 
-DX12CommandList *
-DX12CommandContext::GetDX12CommandList(CommandQueueType type) noexcept {
+CommandList *DX12CommandContext::GetCommandList(CommandQueueType type) noexcept {
     // lazy create command pool
     if (m_command_pools[type] == nullptr) {
 
@@ -51,11 +50,11 @@ void DX12CommandContext::Reset() noexcept {
     // for (u32 type = 0; type < 3;type++) {
     //	for (auto& cmdlist : m_command_lists[type]) {
     //		if (cmdlist) {
-    //			//vkFreeCommandBuffers(m_device, m_command_pools[type], 1,
-    //&cmdlist->m_command
+    //			//vkFreeCommandBuffers(m_device, m_command_pools[type],
+    //1, &cmdlist->m_command
     //  reset command buffers to reuse_buffer);
     //			//vkResetCommandBuffer(cmdlist->m_command_buffer,
-    //VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+    // VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
     //		}
     //	}
     // }
