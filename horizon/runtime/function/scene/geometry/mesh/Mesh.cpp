@@ -11,15 +11,15 @@ namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc) {
+Mesh::Mesh(const MeshDesc &desc) noexcept {
     vertex_attribute_flag = desc.vertex_attribute_flag;
 }
 
-Mesh::~Mesh() {
+Mesh::~Mesh() noexcept {
     // delete
 }
 
-void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
+void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) noexcept {
     if (!node) {
         return;
     }
@@ -40,7 +40,7 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
     }
 }
 
-u32 SubNodeCount(const aiNode *node) {
+u32 SubNodeCount(const aiNode *node) noexcept {
     int n = node->mNumChildren;
 
     for (u32 i = 0; i < node->mNumChildren; i++) {
@@ -49,11 +49,11 @@ u32 SubNodeCount(const aiNode *node) {
     return n;
 }
 
-u32 CalculateNodeCount(const aiScene *scene) {
+u32 CalculateNodeCount(const aiScene *scene) noexcept {
     return SubNodeCount(scene->mRootNode);
 }
 
-void Mesh::LoadMesh(const std::string &path) {
+void Mesh::LoadMesh(const std::string &path) noexcept {
     // Assimp::Importer importer;
 
     // And have it read the given file with some example postprocessing
@@ -113,7 +113,7 @@ void Mesh::LoadMesh(const std::string &path) {
               m_mesh_primitives.size(), m_vertices.size(), m_indices.size());
 }
 
-void Mesh::LoadMesh(BasicGeometry basic_geometry) {
+void Mesh::LoadMesh(BasicGeometry basic_geometry) noexcept {
     switch (basic_geometry) {
     case Horizon::BasicGeometry::QUAD:
         break;

@@ -3,13 +3,13 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/Buffer.h>
-#include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/CommandContext.h>
+#include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/shader_compiler/ShaderCompiler.h>
@@ -48,10 +48,12 @@ class RHIInterface {
     virtual void
     DestroyShaderProgram(ShaderProgram *shader_program) noexcept = 0;
     // virtual void CreateRenderTarget() = 0;
-    virtual Pipeline *
-    CreatePipeline(const PipelineCreateInfo &pipeline_create_info) noexcept = 0;
-    // virtual void CreateDescriptorSet() = 0;
 
+    virtual Pipeline *CreateGraphicsPipeline(
+        const GraphicsPipelineCreateInfo &create_info) noexcept = 0;
+
+    virtual Pipeline *CreateComputePipeline(
+        const ComputePipelineCreateInfo &create_info) noexcept = 0;
     virtual CommandList *GetCommandList(CommandQueueType type) noexcept = 0;
 
     virtual void WaitGpuExecution(CommandQueueType queue_type) noexcept = 0;
@@ -73,10 +75,8 @@ class RHIInterface {
     u32 m_back_buffer_count{2};
     u32 m_current_frame_index{0};
     std::shared_ptr<ShaderCompiler> m_shader_compiler{};
-    // each thread has one command pool,
-    //std::unordered_map<std::thread::id, std::unique_ptr<CommandContext>>
-    //    m_command_context_map{};
-    std::mutex m_command_context_mutex;
+
+    // std::unordered_map<u64, Pipeline *> pipeline_map; // TODO: manage by rg
 
   private:
     std::shared_ptr<Window> m_window{};

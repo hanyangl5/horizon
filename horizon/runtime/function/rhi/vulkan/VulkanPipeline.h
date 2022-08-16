@@ -9,7 +9,10 @@ namespace Horizon::RHI {
 class VulkanPipeline : public Pipeline {
   public:
     VulkanPipeline(const VulkanRendererContext &context,
-                   const PipelineCreateInfo &pipeline_create_info,
+                   const GraphicsPipelineCreateInfo &create_info,
+                   VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
+    VulkanPipeline(const VulkanRendererContext &context,
+                   const ComputePipelineCreateInfo &create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     ~VulkanPipeline() noexcept;
 

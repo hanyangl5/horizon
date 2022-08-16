@@ -17,8 +17,8 @@ struct LightParams {
 
 class Light {
   public:
-    Light() = default;
-    ~Light() = default;
+    Light() noexcept = default;
+    ~Light() noexcept = default;
 
   protected:
     LightType m_type;
@@ -29,20 +29,21 @@ class Light {
 
 class DirectionalLight : public Light {
   public:
-    DirectionalLight(Math::color color, f32 intensity, Math::float3 direction) {
+    DirectionalLight(Math::color color, f32 intensity,
+                     Math::float3 direction) noexcept {
         m_type = LightType::DIRECT_LIGHT;
     }
 };
 class PointLight : public Light {
   public:
-    PointLight(Math::float3 color, f32 intensity, f32 radius) {
+    PointLight(Math::float3 color, f32 intensity, f32 radius) noexcept {
         m_type = LightType::POINT_LIGHT;
     }
 };
 class SpotLight : public Light {
   public:
     SpotLight(Math::float3 color, f32 intensity, f32 inner_cone,
-              f32 outer_cone) {
+              f32 outer_cone) noexcept {
         m_type = LightType::SPOT_LIGHT;
     }
 };

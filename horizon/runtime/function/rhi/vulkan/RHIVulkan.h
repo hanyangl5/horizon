@@ -48,8 +48,11 @@ class RHIVulkan : public RHIInterface {
 
     void ResetCommandResources() noexcept override;
 
-    Pipeline *CreatePipeline(
-        const PipelineCreateInfo &pipeline_create_info) noexcept override;
+    virtual Pipeline *CreateGraphicsPipeline(
+        const GraphicsPipelineCreateInfo &create_info) noexcept;
+
+    virtual Pipeline *CreateComputePipeline(
+        const ComputePipelineCreateInfo &create_info) noexcept;
 
     // submit command list to command queue
     virtual void SubmitCommandLists(

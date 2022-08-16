@@ -22,6 +22,7 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window,
 RenderSystem::~RenderSystem() noexcept {}
 
 void RenderSystem::InitializeRenderAPI(RenderBackend backend) noexcept {
+    
     switch (backend) {
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
         break;
@@ -29,7 +30,7 @@ void RenderSystem::InitializeRenderAPI(RenderBackend backend) noexcept {
         m_render_api = std::make_unique<RHI::RHIVulkan>();
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_DX12:
-        m_render_api = std::make_unique<RHI::RHIDX12>();
+        //m_render_api = std::make_unique<RHI::RHIDX12>();
         break;
     }
     m_render_api->InitializeRenderer();
@@ -50,9 +51,14 @@ void RenderSystem::DestroyShaderProgram(
     m_render_api->DestroyShaderProgram(shader_program);
 }
 
-Pipeline *RenderSystem::CreatePipeline(
-    const PipelineCreateInfo &pipeline_create_info) noexcept {
-    return m_render_api->CreatePipeline(pipeline_create_info);
+Pipeline *RenderSystem::CreateGraphicsPipeline(
+    const GraphicsPipelineCreateInfo &create_info) noexcept {
+    return m_render_api->CreateGraphicsPipeline(create_info);
+}
+
+Pipeline *RenderSystem::CreateComputePipeline(
+    const ComputePipelineCreateInfo &create_info) noexcept {
+    return m_render_api->CreateComputePipeline(create_info);
 }
 
 Resource<Buffer> RenderSystem::CreateBuffer(
@@ -82,7 +88,8 @@ void RenderSystem::SubmitCommandLists(
     m_render_api->SubmitCommandLists(queue, command_lists);
 }
 
-void RenderSystem::SetResource(Buffer *buffer, Pipeline* pipeline, u32 set, u32 binding) noexcept {
+void RenderSystem::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+                               u32 binding) noexcept {
     m_render_api->SetResource(buffer, pipeline, set, binding);
 }
 void RenderSystem::SetResource(Texture *texture) noexcept {

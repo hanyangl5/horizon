@@ -36,7 +36,6 @@ class Engine final {
     // https://github.com/bshoshany/thread-pool
     std::unique_ptr<BS::thread_pool> tp;
 
-    std::unique_ptr<SceneManager> m_scene_manager{};
 };
 
 } // namespace Horizon

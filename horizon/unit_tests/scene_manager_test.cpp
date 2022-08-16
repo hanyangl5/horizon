@@ -23,6 +23,8 @@ class SceneManagementTest {
     std::unique_ptr<Engine> engine{};
     std::string asset_path = "D:/codes/horizon/horizon/assets/";
 };
+
+
 TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
 
     auto &tp = engine->tp;

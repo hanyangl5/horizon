@@ -17,6 +17,7 @@ using namespace Horizon;
 class HorizonApplication {
   public:
     void Run(const EngineConfig &config) noexcept;
+    void PrepareResources() noexcept;
 
   private:
     std::unique_ptr<Engine> engine{};
@@ -25,11 +26,16 @@ class HorizonApplication {
 void HorizonApplication::Run(const EngineConfig &config) noexcept {
     engine = std::make_unique<Engine>(config);
 
+    PrepareResources();
+
     while (!engine->m_window->ShouldClose()) {
         engine->BeginNewFrame();
         // engine->m_render_system->CreateBuffer({});
+        // engine->m_render_system->
     }
 }
+
+void HorizonApplication::PrepareResources() noexcept {}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<HorizonApplication> application{

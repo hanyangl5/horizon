@@ -38,24 +38,18 @@ struct MeshDesc {
     u32 vertex_attribute_flag;
 };
 
-enum class BasicGeometry {
-    QUAD,
-    TRIANGLE,
-    CUBE,
-    SPHERE,
-    CAPSULE
-};
+enum class BasicGeometry { QUAD, TRIANGLE, CUBE, SPHERE, CAPSULE };
 
 class Mesh {
   public:
-    Mesh(const MeshDesc &desc = {});
-    ~Mesh();
-    void LoadMesh(const std::string &path);
-    void LoadMesh(BasicGeometry basic_geometry);
-    void ConvertToClusterdMesh();
+    Mesh(const MeshDesc &desc = {}) noexcept;
+    ~Mesh() noexcept;
+    void LoadMesh(const std::string &path) noexcept;
+    void LoadMesh(BasicGeometry basic_geometry) noexcept;
+    void ConvertToClusterdMesh() noexcept;
 
   private:
-    void ProcessNode(const aiScene *scene, aiNode *node, u32 offset);
+    void ProcessNode(const aiScene *scene, aiNode *node, u32 offset) noexcept;
 
   private:
     using Index = u32;

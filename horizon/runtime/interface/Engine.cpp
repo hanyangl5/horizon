@@ -4,8 +4,6 @@ namespace Horizon {
 
 Engine::Engine(const EngineConfig &config) noexcept {
     m_window = std::make_unique<Window>("horizon", config.width, config.height);
-    m_scene_manager = std::make_unique<SceneManager>();
-
     m_render_system = std::make_unique<RenderSystem>(
         config.width, config.width, m_window.get(), config.render_backend);
 

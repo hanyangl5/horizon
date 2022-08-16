@@ -33,10 +33,6 @@ inline D3D12_COMMAND_LIST_TYPE ToDX12CommandQueueType(CommandQueueType type) {
 
 enum class PipelineType { GRAPHICS = 0, COMPUTE, RAY_TRACING };
 
-struct PipelineCreateInfo {
-    PipelineType type;
-};
-
 inline VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) {
     switch (type) {
     case Horizon::PipelineType::GRAPHICS:
@@ -115,8 +111,8 @@ enum class ShaderType {
     VERTEX_SHADER,
     PIXEL_SHADER,
     COMPUTE_SHADER,
-    //GEOMETRY_SHADER,
-    // ray tracing related shader
+    // GEOMETRY_SHADER,
+    //  ray tracing related shader
 };
 
 enum ShaderStageFlags {
@@ -231,8 +227,6 @@ enum ResourceState {
     RESOURCE_STATE_HOST_READ = 0x10000,
     RESOURCE_STATE_HOST_WRITE = 0x20000
 };
-
-
 
 enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
 
@@ -769,5 +763,124 @@ inline D3D12_RESOURCE_DIMENSION ToDX12TextureDimension(TextureType type) {
         break;
     }
 }
+
+struct ViewportCreateInfo {
+    u32 x;
+    u32 y;
+    u32 width;
+    u32 height;
+    f32 min_depth;
+    f32 max_depth;
+};
+
+//// vertex input state vk
+// struct VertexInputState {
+//     std::vector<VkVertexInputBindingDescription> binding_descriptions;
+//     std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+// };
+//
+// struct VertexInputStateDx12 {
+//     std::vector<D3D12_INPUT_ELEMENT_DESC> input_element_descs;
+//     D3D12_INPUT_LAYOUT_DESC input_layout_desc;
+// };
+
+// struct RasterizationState {
+//     VkPolygonMode polygon_mode;
+//     VkCullModeFlags cull_mode;
+//     VkFrontFace front_face;
+//     VkBool32 depth_clamp;
+//     VkBool32 rasterizer_discard_enable;
+//     f32 depth_bias_constant_factor;
+//     f32 depth_bias_clamp;
+//     f32 depth_bias_slope_factor;
+//     f32 line_width;
+// };
+
+enum class VertexInputRate {
+    VERTEX_ATTRIB_RATE_VERTEX = 0,
+    VERTEX_ATTRIB_RATE_INSTANCE = 1,
+};
+
+enum class VertexAttribFormat { U8, U16, U32, F8, F16, F32, NF8, NF16, NF32 };
+
+struct VertexAttributeDescription {
+    VertexAttribFormat attrib_format;
+    VertexInputRate input_rate;
+    u32 binding;
+    u32 stride;
+};
+
+struct VertexInputState {
+    u32 attribute_count;
+    VertexAttributeDescription attributes[32];
+};
+
+enum class PrimitiveTopology { POINT, LINE, TRIANGLE };
+
+struct InputAssemblyState {
+    PrimitiveTopology topology;
+};
+
+struct ViewPortState {
+    u32 width;
+    u32 height;
+};
+
+enum class FrontFace { CCW, CW };
+
+enum class CullMode { NONE, FRONT, BACK, ALL };
+
+struct RasterizationState {
+    FrontFace front_face;
+    CullMode cull_mode;
+};
+
+enum class DepthFunc {
+    NEVER,
+    LESS,
+    L_EQUAL,
+    EQUAL,
+    GREATER,
+    G_EQUAL,
+    ALWAYS
+
+};
+
+struct DepthStencilState {
+    bool depth_test;
+    bool depth_write;
+    DepthFunc depth_func;
+    TextureFormat depth_stencil_format;
+    f32 depthRange[2]; // [0.0, 1.0]
+    // stencil settings
+};
+
+struct MultiSampleState {
+    u32 sample_count;
+};
+
+struct GraphicsPipelineCreateInfo {
+    VertexInputState vertex_input_state;
+    InputAssemblyState input_assembly_state;
+    ViewPortState view_port_state;
+    RasterizationState raserization_state;
+    DepthStencilState depth_stencil_state;
+    MultiSampleState multi_sample_state;
+};
+
+struct ComputePipelineCreateInfo {
+    u32 flag = 0x01;
+};
+
+
+struct PipelineCreateInfo {
+    PipelineType type;
+    GraphicsPipelineCreateInfo* gpci;
+    ComputePipelineCreateInfo* cpci;
+};
+
+struct PipelineState {
+
+};
 
 } // namespace Horizon

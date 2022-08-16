@@ -92,8 +92,8 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
     std::string file_name = asset_path + "shaders/hlsl/cs.hlsl";
     auto shader{engine->m_render_system->CreateShaderProgram(
         ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
-    auto pipeline{engine->m_render_system->CreatePipeline(
-        PipelineCreateInfo{PipelineType::COMPUTE})};
+    ComputePipelineCreateInfo info;
+    auto pipeline = engine->m_render_system->CreateComputePipeline(info);
 
     auto cl =
         engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
@@ -117,8 +117,8 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
     auto shader = engine->m_render_system->CreateShaderProgram(
         ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
 
-    auto pipeline = engine->m_render_system->CreatePipeline(
-        PipelineCreateInfo{PipelineType::COMPUTE});
+    ComputePipelineCreateInfo info;
+    auto pipeline = engine->m_render_system->CreateComputePipeline(info);
 
     Resource<Buffer> cb1{engine->m_render_system->CreateBuffer(BufferCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,

@@ -489,10 +489,18 @@ void RHIVulkan::ResetCommandResources() noexcept {
     }
 }
 
-Pipeline *RHIVulkan::CreatePipeline(
-    const PipelineCreateInfo &pipeline_create_info) noexcept {
+Pipeline *RHIVulkan::CreateGraphicsPipeline(
+    const GraphicsPipelineCreateInfo &create_info) noexcept {
 
-    return new VulkanPipeline(m_vulkan, pipeline_create_info,
+    return new VulkanPipeline(m_vulkan, create_info,
+                              *m_descriptor_set_manager.get());
+    
+}
+
+Pipeline *RHIVulkan::CreateComputePipeline(
+    const ComputePipelineCreateInfo &create_info) noexcept {
+    return new VulkanPipeline(m_vulkan, create_info,
                               *m_descriptor_set_manager.get());
 }
+
 } // namespace Horizon::RHI

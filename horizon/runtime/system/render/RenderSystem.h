@@ -46,8 +46,11 @@ class RenderSystem {
                                        std::string file_name) noexcept;
     void DestroyShaderProgram(ShaderProgram *shader_program) noexcept;
 
-    Pipeline *
-    CreatePipeline(const PipelineCreateInfo &pipeline_create_info) noexcept;
+    Pipeline *CreateGraphicsPipeline(
+        const GraphicsPipelineCreateInfo &create_info) noexcept;
+
+    Pipeline *CreateComputePipeline(
+        const ComputePipelineCreateInfo &create_info) noexcept;
 
     CommandList *GetCommandList(CommandQueueType type) noexcept;
 

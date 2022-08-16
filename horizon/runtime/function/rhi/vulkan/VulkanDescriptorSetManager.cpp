@@ -1,4 +1,6 @@
 #include <algorithm>
+
+#include <runtime/function/rhi/ResourceCache.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
 
@@ -131,8 +133,8 @@ VulkanDescriptorSetManager::CreateComputeShaderDescriptorLayout(
         set_layout_create_info.bindingCount = layout_bindings.size();
         set_layout_create_info.pBindings = layout_bindings.data();
 
-        VkDescriptorSetLayoutCreateInfoHasher hf;
-        u64 hash_key = hf(set_layout_create_info);
+        u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(
+            set_layout_create_info);
 
         auto res = m_descriptor_set_layout_map.find(hash_key);
 

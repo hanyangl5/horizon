@@ -2,25 +2,38 @@
 #include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
 
 namespace Horizon::RHI {
-VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
-                               const PipelineCreateInfo &pipeline_create_info,
-                               VulkanDescriptorSetManager& descriptor_set_manager) noexcept
+VulkanPipeline::VulkanPipeline(
+    const VulkanRendererContext &context,
+    const GraphicsPipelineCreateInfo &create_info,
+    VulkanDescriptorSetManager &descriptor_set_manager) noexcept
     : m_context(context), m_descriptor_set_manager(descriptor_set_manager) {
-    m_type = pipeline_create_info.type;
+    m_create_info.type = PipelineType::GRAPHICS;
+    m_create_info.gpci =
+        const_cast<GraphicsPipelineCreateInfo *>(std::move(&create_info));
+}
+
+VulkanPipeline::VulkanPipeline(
+    const VulkanRendererContext &context,
+    const ComputePipelineCreateInfo &create_info,
+    VulkanDescriptorSetManager &descriptor_set_manager) noexcept
+    : m_context(context), m_descriptor_set_manager(descriptor_set_manager) {
+    m_create_info.type = PipelineType::COMPUTE;
+    m_create_info.cpci =
+        const_cast<ComputePipelineCreateInfo *>(std::move(&create_info));
 }
 
 VulkanPipeline::~VulkanPipeline() noexcept {
     // TODO: destroy pipeline resources, pipeline layout, pipeline
 }
 
-const std::vector<VkDescriptorSet>&
+const std::vector<VkDescriptorSet> &
 VulkanPipeline::CreatePipelineResources() noexcept {
 
     // at that time parse shader and generate descriptor layout and pipeline
     // layout.
     CreatePipelineLayout();
 
-    switch (m_type) {
+    switch (m_create_info.type) {
     case PipelineType::COMPUTE:
         CreateComputePipeline();
         break;
@@ -41,7 +54,7 @@ VulkanPipeline::CreatePipelineResources() noexcept {
 
 void VulkanPipeline::SetComputeShader(ShaderProgram *cs) noexcept {
     assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
-    assert(m_type == PipelineType::COMPUTE);
+    assert(m_create_info.type == PipelineType::COMPUTE);
     shader_map[ShaderType::COMPUTE_SHADER] = cs;
     CreatePipelineResources();
 }
@@ -50,7 +63,7 @@ void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs,
                                        ShaderProgram *ps) noexcept {
     assert(vs->GetType() == ShaderType::VERTEX_SHADER);
     assert(ps->GetType() == ShaderType::PIXEL_SHADER);
-    assert(m_type == PipelineType::GRAPHICS);
+    assert(m_create_info.type == PipelineType::GRAPHICS);
     shader_map[ShaderType::VERTEX_SHADER] = vs;
     shader_map[ShaderType::VERTEX_SHADER] = ps;
     CreatePipelineResources();
@@ -79,6 +92,8 @@ void VulkanPipeline::CreateComputePipeline() noexcept {
 
     VkComputePipelineCreateInfo compute_pipeline_create_info{};
 
+    // cache
+
     compute_pipeline_create_info.sType =
         VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     compute_pipeline_create_info.flags = 0;
@@ -93,7 +108,7 @@ void VulkanPipeline::CreateComputePipeline() noexcept {
 void VulkanPipeline::CreatePipelineLayout() noexcept {
 
     m_pipeline_layout_desc =
-        m_descriptor_set_manager.CreateLayouts(shader_map, m_type);
+        m_descriptor_set_manager.CreateLayouts(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;
     layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
     for (u32 i = 0; i < m_pipeline_layout_desc.descriptor_set_hash_key.size();
