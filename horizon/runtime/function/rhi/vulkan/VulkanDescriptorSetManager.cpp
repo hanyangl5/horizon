@@ -177,6 +177,9 @@ void VulkanDescriptorSetManager::CreateDescriptorPool() noexcept {
         poolSizes[i++] = VkDescriptorPoolSize{type.first, type.second.reserved};
     }
 
+    if (poolSizes.empty()) {
+        return;
+    }
     VkDescriptorPoolCreateInfo pool_create_info{};
 
     pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -223,7 +226,9 @@ std::vector<VkDescriptorSet> VulkanDescriptorSetManager::AllocateDescriptorSets(
     }
 
     CreateDescriptorPool();
-
+    if (!m_descriptor_pool) {
+        return {};
+    }
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     alloc_info.descriptorPool = m_descriptor_pool;

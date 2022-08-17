@@ -53,17 +53,23 @@ VulkanPipeline::CreatePipelineResources() noexcept {
 }
 
 void VulkanPipeline::SetComputeShader(ShaderProgram *cs) noexcept {
-    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
-    assert(m_create_info.type == PipelineType::COMPUTE);
+    assert(("shader is not compute shader",
+            cs->GetType() == ShaderType::COMPUTE_SHADER));
+    assert(("pipeline is not compute shader",
+            m_create_info.type == PipelineType::COMPUTE));
     shader_map[ShaderType::COMPUTE_SHADER] = cs;
     CreatePipelineResources();
 }
 
 void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs,
                                        ShaderProgram *ps) noexcept {
-    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
-    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
-    assert(m_create_info.type == PipelineType::GRAPHICS);
+    assert(("shader is not vertex shader",
+            vs->GetType() == ShaderType::VERTEX_SHADER));
+    assert(("shader is not pixel shader",
+            ps->GetType() == ShaderType::PIXEL_SHADER));
+    assert(("pipeline is not graphics pipeline",
+            m_create_info.type == PipelineType::GRAPHICS));
+
     shader_map[ShaderType::VERTEX_SHADER] = vs;
     shader_map[ShaderType::VERTEX_SHADER] = ps;
     CreatePipelineResources();

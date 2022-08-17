@@ -33,16 +33,10 @@ void VulkanCommandList::EndRecording() noexcept {
 // graphics commands
 void VulkanCommandList::BeginRenderPass() noexcept {
 
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-
-    if (m_type != CommandQueueType::GRAPHICS) {
-        LOG_ERROR("invalid commands for current commandlist, expect graphics "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect graphics "
+            "commandlist",
+            m_type == CommandQueueType::GRAPHICS));
     VkRenderPassBeginInfo render_pass_begin_info;
 
     vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info,
@@ -50,82 +44,51 @@ void VulkanCommandList::BeginRenderPass() noexcept {
 }
 
 void VulkanCommandList::EndRenderPass() noexcept {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::GRAPHICS) {
-        LOG_ERROR("invalid commands for current commandlist, expect graphics "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect graphics "
+            "commandlist",
+            m_type == CommandQueueType::GRAPHICS));
 
     vkCmdEndRenderPass(m_command_buffer);
 }
 void VulkanCommandList::Draw() noexcept {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::GRAPHICS) {
-        LOG_ERROR("invalid commands for current commandlist, expect graphics "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect graphics "
+            "commandlist",
+            m_type == CommandQueueType::GRAPHICS));
 }
 void VulkanCommandList::DrawIndirect() noexcept {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::GRAPHICS) {
-        LOG_ERROR("invalid commands for current commandlist, expect graphics "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect compute "
+            "commandlist",
+            m_type == CommandQueueType::COMPUTE));
 }
 
 // compute commands
 void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y,
                                  u32 group_count_z) noexcept {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::COMPUTE) {
-        LOG_ERROR("invalid commands for current commandlist, expect compute "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect compute "
+            "commandlist",
+            m_type == CommandQueueType::COMPUTE));
 
     vkCmdDispatch(m_command_buffer, group_count_x, group_count_y,
                   group_count_z);
 }
 void VulkanCommandList::DispatchIndirect() noexcept {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::COMPUTE) {
-        LOG_ERROR("invalid commands for current commandlist, expect compute "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect compute "
+            "commandlist",
+            m_type == CommandQueueType::COMPUTE));
 }
 
 // transfer commands
 void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data,
                                      u64 size) noexcept {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::TRANSFER) {
-        LOG_ERROR("invalid commands for current commandlist, expect transfer "
-                  "commandlist");
-        return;
-    }
-
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect transfer "
+            "commandlist",
+            m_type == CommandQueueType::TRANSFER));
     assert(buffer->m_size == size);
 
     // cannot update static buffer more than once
@@ -448,33 +411,29 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
 }
 
 void VulkanCommandList::BindPipeline(Pipeline *pipeline) noexcept {
-    switch (pipeline->GetType()) {
-    case PipelineType::GRAPHICS:
-    case PipelineType::RAY_TRACING:
-        if (m_type != CommandQueueType::GRAPHICS) {
-            LOG_ERROR("command list type not correspond with pipeline type");
-            return;
-        }
-        break;
-
-    case PipelineType::COMPUTE:
-        if (m_type != CommandQueueType::COMPUTE) {
-            LOG_ERROR("command list type not correspond with pipeline type");
-            return;
-        }
-        break;
-    default:
-        return;
+    if (pipeline->GetType() == PipelineType::GRAPHICS ||
+        pipeline->GetType() == PipelineType::RAY_TRACING) {
+        assert(("pipeline type does not correspond with current command list, "
+                "expect compute pipeline",
+                m_type == CommandQueueType::GRAPHICS));
+    } else if (pipeline->GetType() == PipelineType::COMPUTE) {
+        assert(("pipeline type does not correspond with current command list, "
+                "expect compute pipeline",
+                m_type == CommandQueueType::COMPUTE));
     }
+
     auto vk_pipeline = static_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
     vk_pipeline->m_descriptor_set_manager.Update(); // update descriptor sets
 
-    vkCmdBindDescriptorSets(
-        m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
-        vk_pipeline->m_pipeline_layout_desc.sets.size(),
-        vk_pipeline->m_pipeline_layout_desc.sets.data(), 0, 0);
+    if (!vk_pipeline->m_pipeline_layout_desc.sets.empty()) {
+        vkCmdBindDescriptorSets(
+            m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
+            vk_pipeline->m_pipeline_layout_desc.sets.size(),
+            vk_pipeline->m_pipeline_layout_desc.sets.data(), 0, 0);
+    }
+
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 

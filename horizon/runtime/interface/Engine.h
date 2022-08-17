@@ -28,7 +28,7 @@ class Engine final {
     Engine &operator=(Engine &&rhs) noexcept = delete;
 
     void BeginNewFrame() const noexcept;
-
+    void EndFrame() const noexcept;
   public:
     std::unique_ptr<Window> m_window{};
     std::unique_ptr<RenderSystem> m_render_system{};

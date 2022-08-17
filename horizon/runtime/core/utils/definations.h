@@ -25,7 +25,7 @@ using f64 = double;
 
 template <typename T> using Resource = std::unique_ptr<T>;
 
-//template <typename T> using StaticResource;
+// template <typename T> using StaticResource;
 
 #define USE_ASYNC_COMPUTE_TRANSFER 1
 #define RENDERDOC_ENABLED 1

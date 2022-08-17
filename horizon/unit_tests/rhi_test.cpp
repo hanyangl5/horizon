@@ -66,8 +66,9 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
         // stage -> gpu
         engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
                                                     std::vector{transfer});
+        engine->EndFrame();
     }
-    engine->BeginNewFrame();
+    
 }
 
 TEST_CASE_FIXTURE(RHITest, "shader compile test") {
@@ -105,7 +106,7 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
 
     engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
     // Horizon::RDC::EndFrameCapture();
-    engine->BeginNewFrame();
+    engine->EndFrame();
 }
 
 TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
@@ -199,7 +200,7 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
     engine->m_render_system->SubmitCommandLists(COMPUTE, std::vector{cl});
 
     Horizon::RDC::EndFrameCapture();
-    engine->BeginNewFrame();
+    engine->EndFrame();
 }
 
 TEST_CASE_FIXTURE(RHITest, "bindless descriptors") {
@@ -291,11 +292,31 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
     engine->m_render_system->SubmitCommandLists(CommandQueueType::TRANSFER,
                                                 cmdlists);
 
-    engine->BeginNewFrame();
+    engine->EndFrame();
 }
 
-TEST_CASE_FIXTURE(RHITest, "graphics pipeline") {}
+TEST_CASE_FIXTURE(RHITest, "graphics pipeline") {
+    std::string file_name = asset_path + "shaders/hlsl/grapphics_pass.hlsl";
+    auto vs = engine->m_render_system->CreateShaderProgram(
+        ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
+    auto ps = engine->m_render_system->CreateShaderProgram(
+        ShaderType::PIXEL_SHADER, "ps_main", 0, file_name);
 
-TEST_CASE_FIXTURE(RHITest, "draw") {}
+    GraphicsPipelineCreateInfo info;
+    auto pipeline = engine->m_render_system->CreateGraphicsPipeline(info);
+
+    auto cl =
+        engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
+    pipeline->SetGraphicsShader(vs, ps);
+    cl->BeginRecording();
+    cl->BindPipeline(pipeline);
+    cl->BeginRenderPass();
+    cl->Draw();
+    cl->EndRenderPass();
+    cl->EndRecording();
+    engine->m_render_system->SubmitCommandLists(GRAPHICS, std::vector{cl});
+    // Horizon::RDC::EndFrameCapture();
+    engine->EndFrame();
+}
 
 } // namespace TEST::RHI

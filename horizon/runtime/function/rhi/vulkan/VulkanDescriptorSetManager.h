@@ -58,7 +58,7 @@ class VulkanDescriptorSetManager {
   public:
     const VulkanRendererContext &m_context;
     DescriptorPoolSizeDesc descriptor_pool_size_desc;
-    VkDescriptorPool m_descriptor_pool;
+    VkDescriptorPool m_descriptor_pool = VK_NULL_HANDLE;
     std::unordered_map<u64, DescriptorSetValue>
         m_descriptor_set_layout_map; // cache exist layout
 
