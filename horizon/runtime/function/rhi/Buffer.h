@@ -9,7 +9,6 @@ class Buffer {
   public:
     Buffer(const BufferCreateInfo &buffer_create_info) noexcept;
     virtual ~Buffer() noexcept = default;
-    virtual void *GetBufferPointer() noexcept = 0;
 
   public:
     const DescriptorType m_descriptor_type{};

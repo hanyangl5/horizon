@@ -22,12 +22,24 @@ class VulkanCommandList : public CommandList {
     virtual void BeginRecording() noexcept override;
     virtual void EndRecording() noexcept override;
 
-    // graphics commands
-    virtual void BeginRenderPass() noexcept override;
-    virtual void EndRenderPass() noexcept override;
-    virtual void Draw() noexcept override;
-    virtual void DrawIndirect() noexcept override;
+    virtual void BindVertexBuffer(u32 buffer_count, VertexBuffer **buffers,
+                                  u32 *offsets) noexcept override;
+    virtual void BindIndexBuffer(IndexBuffer *buffer,
+                                 u32 offset) noexcept override;
 
+    // graphics commands
+    virtual void
+    BeginRenderPass(const RenderPassBeginInfo &begin_info) noexcept override;
+    virtual void EndRenderPass() noexcept override;
+
+    virtual void DrawInstanced(u32 vertex_count, u32 first_vertex,
+                               u32 instance_count = 1,
+                               u32 first_instance = 0) noexcept override;
+
+    virtual void DrawIndexedInstanced(u32 index_count, u32 first_index,
+                                      u32 first_vertex, u32 instance_count = 1,
+                                      u32 first_instance = 0) noexcept override;
+    virtual void DrawIndirect() noexcept override;
     // compute commands
     virtual void Dispatch(u32 group_count_x, u32 group_count_y,
                           u32 group_count_z) noexcept override;

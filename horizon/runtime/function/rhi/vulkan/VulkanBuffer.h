@@ -13,7 +13,6 @@ class VulkanBuffer : public Buffer {
                  const BufferCreateInfo &buffer_create_info,
                  MemoryFlag memory_flag) noexcept;
     virtual ~VulkanBuffer() noexcept;
-    void *GetBufferPointer() noexcept override;
 
   private:
   public:

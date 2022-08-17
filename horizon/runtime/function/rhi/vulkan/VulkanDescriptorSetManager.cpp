@@ -45,13 +45,13 @@ PipelineLayoutDesc VulkanDescriptorSetManager::CreateLayouts(
 
     // combine vs/gs/ps to get pipeline layout
     if (pipeline_type == PipelineType::GRAPHICS) {
-        auto vk_vs = static_cast<VulkanShaderProgram *>(
+        auto vk_vs = reinterpret_cast<VulkanShaderProgram *>(
             shader_map[ShaderType::VERTEX_SHADER]);
-        auto vk_ps = static_cast<VulkanShaderProgram *>(
+        auto vk_ps = reinterpret_cast<VulkanShaderProgram *>(
             shader_map[ShaderType::PIXEL_SHADER]);
 
     } else if (pipeline_type == PipelineType::COMPUTE) {
-        auto vk_cs = static_cast<VulkanShaderProgram *>(
+        auto vk_cs = reinterpret_cast<VulkanShaderProgram *>(
             shader_map[ShaderType::COMPUTE_SHADER]);
 
         return CreateComputeShaderDescriptorLayout(vk_cs);

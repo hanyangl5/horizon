@@ -161,6 +161,7 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) noexcept {
     instance_extensions.emplace_back("VK_KHR_win32_surface");
     device_extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    device_extensions.emplace_back("VK_KHR_dynamic_rendering");
 
     CreateInstance(app_name, instance_layers, instance_extensions);
     CreateDevice(device_extensions);
@@ -406,8 +407,9 @@ void RHIVulkan::SubmitCommandLists(
 
     std::vector<VkCommandBuffer> command_buffers(command_lists.size());
     for (u32 i = 0; i < command_lists.size(); i++) {
-        command_buffers[i] = static_cast<VulkanCommandList *>(command_lists[i])
-                                 ->m_command_buffer;
+        command_buffers[i] =
+            reinterpret_cast<VulkanCommandList *>(command_lists[i])
+                ->m_command_buffer;
         // valid command list type when submitting
     }
 
@@ -425,12 +427,12 @@ void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
                             u32 binding) noexcept {
 
     auto descriptor_type = buffer->m_descriptor_type;
-    auto vk_buffer = static_cast<VulkanBuffer *>(buffer);
+    auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
     vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
     vk_buffer->buffer_info.offset = 0;
     vk_buffer->buffer_info.range = buffer->m_size;
-    auto vk_pipeline = static_cast<VulkanPipeline *>(pipeline);
+    auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
 
     VkWriteDescriptorSet write;
     if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
@@ -494,7 +496,6 @@ Pipeline *RHIVulkan::CreateGraphicsPipeline(
 
     return new VulkanPipeline(m_vulkan, create_info,
                               *m_descriptor_set_manager.get());
-    
 }
 
 Pipeline *RHIVulkan::CreateComputePipeline(

@@ -297,26 +297,34 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
 
 TEST_CASE_FIXTURE(RHITest, "graphics pipeline") {
     std::string file_name = asset_path + "shaders/hlsl/grapphics_pass.hlsl";
+
     auto vs = engine->m_render_system->CreateShaderProgram(
         ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
+
     auto ps = engine->m_render_system->CreateShaderProgram(
         ShaderType::PIXEL_SHADER, "ps_main", 0, file_name);
 
     GraphicsPipelineCreateInfo info;
     auto pipeline = engine->m_render_system->CreateGraphicsPipeline(info);
+    RenderPassBeginInfo begin_info{};
+    DrawParam draw_param;
 
-    auto cl =
-        engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
-    pipeline->SetGraphicsShader(vs, ps);
-    cl->BeginRecording();
-    cl->BindPipeline(pipeline);
-    cl->BeginRenderPass();
-    cl->Draw();
-    cl->EndRenderPass();
-    cl->EndRecording();
-    engine->m_render_system->SubmitCommandLists(GRAPHICS, std::vector{cl});
-    // Horizon::RDC::EndFrameCapture();
-    engine->EndFrame();
+    for (u32 frame = 0; frame < 3; frame++) {
+        engine->BeginNewFrame();
+        auto cl =
+            engine->m_render_system->GetCommandList(CommandQueueType::COMPUTE);
+        pipeline->SetGraphicsShader(vs, ps);
+        cl->BeginRecording();
+
+        cl->BeginRenderPass(begin_info);
+        cl->BindPipeline(pipeline);
+        cl->Draw(draw_param);
+        cl->EndRenderPass();
+        cl->EndRecording();
+        engine->m_render_system->SubmitCommandLists(GRAPHICS, std::vector{cl});
+        // Horizon::RDC::EndFrameCapture();
+        engine->EndFrame();
+    }
 }
 
 } // namespace TEST::RHI

@@ -87,7 +87,7 @@ void VulkanPipeline::CreateComputePipeline() noexcept {
         LOG_ERROR("missing shader: compute shader");
         return;
     }
-    auto cs = static_cast<VulkanShaderProgram *>(
+    auto cs = reinterpret_cast<VulkanShaderProgram *>(
         shader_map[ShaderType::COMPUTE_SHADER]);
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};
     shader_stage_create_info.sType =

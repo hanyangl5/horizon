@@ -1,5 +1,7 @@
 #pragma once
 
+#include <runtime/function/resource/IndexBuffer.h>
+#include <runtime/function/resource/VertexBuffer.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/RHIUtils.h>
@@ -16,9 +18,19 @@ class CommandList {
     virtual void BeginRecording() noexcept = 0;
     virtual void EndRecording() noexcept = 0;
 
-    virtual void BeginRenderPass() noexcept = 0;
+    virtual void BindVertexBuffer(u32 buffer_count, VertexBuffer **buffers,
+                                  u32* offsets) noexcept = 0;
+    virtual void BindIndexBuffer(IndexBuffer *buffer, u32 offset) noexcept = 0;
+
+    virtual void
+    BeginRenderPass(const RenderPassBeginInfo &begin_info) noexcept = 0;
     virtual void EndRenderPass() noexcept = 0;
-    virtual void Draw() noexcept = 0;
+    virtual void DrawInstanced(u32 vertex_count, u32 first_vertex,
+                               u32 instance_count = 1,
+                               u32 first_instance = 0) noexcept = 0;
+    virtual void DrawIndexedInstanced(u32 index_count, u32 first_index,
+                                      u32 first_vertex, u32 instance_count = 1,
+                                      u32 first_instance = 0) noexcept = 0;
     virtual void DrawIndirect() noexcept = 0;
 
     virtual void Dispatch(u32 group_count_x, u32 group_count_y,

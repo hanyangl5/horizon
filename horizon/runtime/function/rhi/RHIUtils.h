@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "dx12/stdafx.h"
 #include <d3d12.h>
 
@@ -880,6 +882,39 @@ struct PipelineCreateInfo {
 };
 
 struct PipelineState {
+
+};
+
+struct Rect {
+    u32 x, y, w, h;
+};
+
+using RenderTargetFormat = TextureFormat;
+
+enum class RenderTargetType {
+    COLOR, DEPTH_STENCIL
+};
+
+struct RenderTargetCreateInfo {
+    RenderTargetFormat rt_format;
+    RenderTargetType rt_type;
+    u32 width, height;
+};
+
+class RenderTarget;
+struct RenderPassBeginInfo {
+    static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
+    std::array<RenderTarget *, MAX_RENDER_TARGET_COUNT> render_targets;
+    RenderTarget *depth, *stencil;
+    Rect render_area;
+};
+
+struct DrawParam {
+    u32 indexCount;
+    u32 instanceCount;
+    u32 firstIndex;
+    i32 vertexOffset;
+    u32 firstInstance;
 
 };
 
