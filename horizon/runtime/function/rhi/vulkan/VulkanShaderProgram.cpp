@@ -19,8 +19,7 @@ VulkanShaderProgram::VulkanShaderProgram(const VulkanRendererContext &context,
     shader_byte_code->AddRef();
     m_shader_byte_code = shader_byte_code;
 
-
-    //shader_byte_code->Release();
+    // shader_byte_code->Release();
 }
 
 VulkanShaderProgram::~VulkanShaderProgram() noexcept {

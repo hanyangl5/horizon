@@ -8,16 +8,16 @@
 //#include <runtime/core/log/Log.h>
 //#include <runtime/core/utils/Definations.h>
 //#include <runtime/function/rhi/Pipeline.h>
-//#include <runtime/function/rhi/RHIInterface.h>
+//#include <runtime/function/rhi/RHI.h>
 //#include <runtime/function/rhi/RHIUtils.h>
 //#include <runtime/function/rhi/ShaderProgram.h>
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
 //#include <runtime/function/rhi/dx12/DX12CommandContext.h>
 //#include <runtime/function/rhi/dx12/DX12Texture.h>
 //
-//namespace Horizon::RHI {
+// namespace Horizon::RHI {
 //
-//class RHIDX12 : public RHIInterface {
+// class RHIDX12 : public RHI {
 //  public:
 //    RHIDX12() noexcept;
 //    virtual ~RHIDX12() noexcept;
@@ -35,9 +35,11 @@
 //    ShaderProgram *CreateShaderProgram(ShaderType type,
 //                                       const std::string &entry_point,
 //                                       u32 compile_flags,
-//                                       std::string file_name) noexcept override;
+//                                       std::string file_name) noexcept
+//                                       override;
 //
-//    void DestroyShaderProgram(ShaderProgram *shader_program) noexcept override;
+//    void DestroyShaderProgram(ShaderProgram *shader_program) noexcept
+//    override;
 //
 //    CommandList *GetCommandList(CommandQueueType type) noexcept override;
 //
@@ -71,8 +73,8 @@
 //        IDXGIFactory6 *factory;
 //        IDXGIAdapter4 *active_gpu;
 //        D3D12MA::Allocator *d3dma_allocator;
-//        // ID3D12CommandQueue *graphics_queue, *compute_queue, *transfer_queue;
-//        std::array<ID3D12CommandQueue *, 3> queues;
+//        // ID3D12CommandQueue *graphics_queue, *compute_queue,
+//        *transfer_queue; std::array<ID3D12CommandQueue *, 3> queues;
 //        std::array<ID3D12Fence *, 3> fences;
 //        IDXGISwapChain3 *swap_chain;
 //    } m_dx12{};

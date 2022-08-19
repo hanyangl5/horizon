@@ -7,7 +7,7 @@
 
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/Definations.h>
-#include <runtime/function/rhi/RHIInterface.h>
+#include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
@@ -15,12 +15,11 @@
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-
 #include "vk_mem_alloc.h"
 
 namespace Horizon::RHI {
 
-class RHIVulkan : public RHIInterface {
+class RHIVulkan : public RHI {
   public:
     RHIVulkan() noexcept;
     virtual ~RHIVulkan() noexcept;
@@ -78,7 +77,8 @@ class RHIVulkan : public RHIInterface {
 
   private:
     VulkanRendererContext m_vulkan{};
-    std::unique_ptr<VulkanDescriptorSetManager> m_descriptor_set_manager = nullptr;
+    std::unique_ptr<VulkanDescriptorSetManager> m_descriptor_set_manager =
+        nullptr;
     // pipeline map
     // resource manager, auto
 };

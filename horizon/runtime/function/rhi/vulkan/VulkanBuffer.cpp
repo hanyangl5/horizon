@@ -1,3 +1,4 @@
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 
 namespace Horizon::RHI {

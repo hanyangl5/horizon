@@ -22,9 +22,9 @@ class VulkanCommandList : public CommandList {
     virtual void BeginRecording() noexcept override;
     virtual void EndRecording() noexcept override;
 
-    virtual void BindVertexBuffer(u32 buffer_count, VertexBuffer **buffers,
+    virtual void BindVertexBuffer(u32 buffer_count, Buffer **buffers,
                                   u32 *offsets) noexcept override;
-    virtual void BindIndexBuffer(IndexBuffer *buffer,
+    virtual void BindIndexBuffer(Buffer *buffer,
                                  u32 offset) noexcept override;
 
     // graphics commands

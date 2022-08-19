@@ -15,13 +15,14 @@ Engine::Engine(const EngineConfig &config) noexcept {
 }
 
 void Engine::BeginNewFrame() const noexcept {
-    m_render_system->ResetCommandResources();
+    m_render_system->GetRhi()->ResetCommandResources();
 }
 
 void Engine::EndFrame() const noexcept {
     // TODO: wait for gpu execution?
-    m_render_system->WaitGpuExecution(CommandQueueType::GRAPHICS);
-    m_render_system->WaitGpuExecution(CommandQueueType::COMPUTE);
-    m_render_system->WaitGpuExecution(CommandQueueType::TRANSFER);
+    auto rhi = m_render_system->GetRhi();
+    rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
+    rhi->WaitGpuExecution(CommandQueueType::COMPUTE);
+    rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
 }
 } // namespace Horizon

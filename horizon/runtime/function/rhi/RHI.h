@@ -18,19 +18,19 @@ namespace Horizon::RHI {
 
 extern thread_local std::unique_ptr<CommandContext> thread_command_context;
 
-class RHIInterface {
+class RHI {
   public:
-    RHIInterface() noexcept;
+    RHI() noexcept;
 
-    virtual ~RHIInterface() noexcept;
+    virtual ~RHI() noexcept;
 
-    RHIInterface(const RHIInterface &window) noexcept = delete;
+    RHI(const RHI &window) noexcept = delete;
 
-    RHIInterface &operator=(const RHIInterface &window) noexcept = delete;
+    RHI &operator=(const RHI &window) noexcept = delete;
 
-    RHIInterface(RHIInterface &&window) noexcept = delete;
+    RHI(RHI &&window) noexcept = delete;
 
-    RHIInterface &operator=(RHIInterface &&window) noexcept = delete;
+    RHI &operator=(RHI &&window) noexcept = delete;
 
     virtual void InitializeRenderer() noexcept = 0;
 

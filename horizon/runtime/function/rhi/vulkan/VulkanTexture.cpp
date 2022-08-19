@@ -1,3 +1,4 @@
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon::RHI {

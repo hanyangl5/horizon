@@ -19,25 +19,25 @@ struct PipelineLayoutDesc {
 
 struct DescriptorSetValue {
     VkDescriptorSetLayout layout;
-    //VkDescriptorSet set;
+    // VkDescriptorSet set;
 };
 
 struct DescriptorPoolSizeDesc {
     struct DescriptorCount {
         u32 reserved = 128; // 1024 descriptor for each descriptor type
-        u32 required = 0; // descriptor required
+        u32 required = 0;   // descriptor required
     };
     std::unordered_map<VkDescriptorType, DescriptorCount> descriptor_type_map;
-    u32 max_sets = 10; // max set a pool can allocate
+    u32 max_sets = 10;     // max set a pool can allocate
     u32 required_sets = 0; // set required
-    bool recreate = true; // need to recreate descriptor pool
+    bool recreate = true;  // need to recreate descriptor pool
 };
 
 class VulkanDescriptorSetManager {
   public:
     VulkanDescriptorSetManager(const VulkanRendererContext &context) noexcept;
     ~VulkanDescriptorSetManager() noexcept;
-    
+
     void ResetDescriptorPool() noexcept;
     void Update() noexcept;
     VkDescriptorSetLayout FindLayout(u64 key) const noexcept;
@@ -52,8 +52,11 @@ class VulkanDescriptorSetManager {
     CreateLayouts(std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
                   PipelineType pipeline_type) noexcept;
     // create layout for a single shader
+
+    PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs,
+                                                 VulkanShaderProgram *ps);
     PipelineLayoutDesc
-    CreateComputeShaderDescriptorLayout(VulkanShaderProgram *shader_program);
+    GetComputePipelineLayout(VulkanShaderProgram *cs);
 
   public:
     const VulkanRendererContext &m_context;

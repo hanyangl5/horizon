@@ -3,7 +3,7 @@
 #include <iostream>
 #include <runtime/core/math/Math.h>
 #include <runtime/core/path/Path.h>
-#include <runtime/function/rhi/RHIInterface.h>
+#include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
 #include <runtime/function/rhi/dx12/RHIDX12.h>
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
@@ -22,80 +22,80 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window,
 RenderSystem::~RenderSystem() noexcept {}
 
 void RenderSystem::InitializeRenderAPI(RenderBackend backend) noexcept {
-    
+
     switch (backend) {
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-        m_render_api = std::make_unique<RHI::RHIVulkan>();
+        m_rhi = std::make_unique<RHI::RHIVulkan>();
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_DX12:
-        //m_render_api = std::make_unique<RHI::RHIDX12>();
+        // m_rhi = std::make_unique<RHI::RHIDX12>();
         break;
     }
-    m_render_api->InitializeRenderer();
-    LOG_DEBUG("size of render api {}", sizeof(*m_render_api.get()));
-    m_render_api->CreateSwapChain(m_window);
+    m_rhi->InitializeRenderer();
+    LOG_DEBUG("size of render api {}", sizeof(*m_rhi.get()));
+    m_rhi->CreateSwapChain(m_window);
 }
-Camera *RenderSystem::GetMainCamera() const noexcept { return {}; }
+ Camera *RenderSystem::GetMainCamera() const noexcept { return {}; }
 
-ShaderProgram *RenderSystem::CreateShaderProgram(
-    ShaderType type, const std::string &entry_point, u32 compile_flags,
-    std::string file_name) noexcept {
-    return m_render_api->CreateShaderProgram(type, entry_point, compile_flags,
-                                             file_name);
-}
+// ShaderProgram *RenderSystem::CreateShaderProgram(
+//     ShaderType type, const std::string &entry_point, u32 compile_flags,
+//     std::string file_name) noexcept {
+//     return m_rhi->CreateShaderProgram(type, entry_point, compile_flags,
+//                                              file_name);
+// }
 
-void RenderSystem::DestroyShaderProgram(
-    ShaderProgram *shader_program) noexcept {
-    m_render_api->DestroyShaderProgram(shader_program);
-}
+// void RenderSystem::DestroyShaderProgram(
+//     ShaderProgram *shader_program) noexcept {
+//     m_rhi->DestroyShaderProgram(shader_program);
+// }
 
-Pipeline *RenderSystem::CreateGraphicsPipeline(
-    const GraphicsPipelineCreateInfo &create_info) noexcept {
-    return m_render_api->CreateGraphicsPipeline(create_info);
-}
+// Pipeline *RenderSystem::CreateGraphicsPipeline(
+//     const GraphicsPipelineCreateInfo &create_info) noexcept {
+//     return m_rhi->CreateGraphicsPipeline(create_info);
+// }
 
-Pipeline *RenderSystem::CreateComputePipeline(
-    const ComputePipelineCreateInfo &create_info) noexcept {
-    return m_render_api->CreateComputePipeline(create_info);
-}
+// Pipeline *RenderSystem::CreateComputePipeline(
+//     const ComputePipelineCreateInfo &create_info) noexcept {
+//     return m_rhi->CreateComputePipeline(create_info);
+// }
 
-Resource<Buffer> RenderSystem::CreateBuffer(
-    const BufferCreateInfo &buffer_create_info) noexcept {
-    return m_render_api->CreateBuffer(buffer_create_info);
-}
+// Resource<Buffer> RenderSystem::CreateBuffer(
+//     const BufferCreateInfo &buffer_create_info) noexcept {
+//     return m_rhi->CreateBuffer(buffer_create_info);
+// }
 
-Resource<Texture> RenderSystem::CreateTexture(
-    const TextureCreateInfo &texture_create_info) noexcept {
-    return m_render_api->CreateTexture(texture_create_info);
-}
-CommandList *RenderSystem::GetCommandList(CommandQueueType type) noexcept {
-    return m_render_api->GetCommandList(type);
-}
-void RenderSystem::WaitGpuExecution(CommandQueueType queue_type) noexcept {
-    m_render_api->WaitGpuExecution(queue_type);
-}
+// Resource<Texture> RenderSystem::CreateTexture(
+//     const TextureCreateInfo &texture_create_info) noexcept {
+//     return m_rhi->CreateTexture(texture_create_info);
+// }
+// CommandList *RenderSystem::GetCommandList(CommandQueueType type) noexcept {
+//     return m_rhi->GetCommandList(type);
+// }
+// void RenderSystem::WaitGpuExecution(CommandQueueType queue_type) noexcept {
+//     m_rhi->WaitGpuExecution(queue_type);
+// }
 
-void RenderSystem::ResetCommandResources() noexcept {
-    return m_render_api->ResetCommandResources();
-}
+// void RenderSystem::ResetCommandResources() noexcept {
+//     return m_rhi->ResetCommandResources();
+// }
 
-// submit command list to command queue
-void RenderSystem::SubmitCommandLists(
-    CommandQueueType queue,
-    std::vector<CommandList *> &command_lists) noexcept {
-    m_render_api->SubmitCommandLists(queue, command_lists);
-}
+// // submit command list to command queue
+// void RenderSystem::SubmitCommandLists(
+//     CommandQueueType queue,
+//     std::vector<CommandList *> &command_lists) noexcept {
+//     m_rhi->SubmitCommandLists(queue, command_lists);
+// }
 
-void RenderSystem::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
-                               u32 binding) noexcept {
-    m_render_api->SetResource(buffer, pipeline, set, binding);
-}
-void RenderSystem::SetResource(Texture *texture) noexcept {
-    m_render_api->SetResource(texture);
-}
-void RenderSystem::UpdateDescriptors() noexcept {
-    m_render_api->UpdateDescriptors();
-}
+// void RenderSystem::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
+//                                u32 binding) noexcept {
+//     m_rhi->SetResource(buffer, pipeline, set, binding);
+// }
+// void RenderSystem::SetResource(Texture *texture) noexcept {
+//     m_rhi->SetResource(texture);
+// }
+// void RenderSystem::UpdateDescriptors() noexcept {
+//     m_rhi->UpdateDescriptors();
+// }
 } // namespace Horizon

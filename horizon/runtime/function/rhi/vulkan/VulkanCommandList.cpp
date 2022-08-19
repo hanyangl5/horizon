@@ -30,8 +30,7 @@ void VulkanCommandList::EndRecording() noexcept {
     vkEndCommandBuffer(m_command_buffer);
 }
 
-void VulkanCommandList::BindVertexBuffer(u32 buffer_count,
-                                         VertexBuffer **buffers,
+void VulkanCommandList::BindVertexBuffer(u32 buffer_count, Buffer **buffers,
                                          u32 *offsets) noexcept {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
@@ -40,7 +39,7 @@ void VulkanCommandList::BindVertexBuffer(u32 buffer_count,
     //vkCmdBindVertexBuffers2();
 }
 
-void VulkanCommandList::BindIndexBuffer(IndexBuffer *buffer,
+void VulkanCommandList::BindIndexBuffer(Buffer *buffer,
                                         u32 offset) noexcept {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
@@ -138,6 +137,8 @@ void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index,
     vkCmdDrawIndexed(m_command_buffer, index_count, instance_count, first_index,
                      first_vertex, first_instance);
 }
+
+void VulkanCommandList::DrawIndirect() noexcept {}
 
 // compute commands
 void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y,

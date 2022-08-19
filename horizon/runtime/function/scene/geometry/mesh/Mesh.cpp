@@ -11,7 +11,7 @@ namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc) noexcept {
+Mesh::Mesh(RHI::RHI &rhi, const MeshDesc &desc) noexcept : m_rhi(&rhi) {
     vertex_attribute_flag = desc.vertex_attribute_flag;
 }
 
@@ -24,10 +24,10 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) noexcept {
         return;
     }
     auto &n = m_nodes[index];
-    n.meshes.resize(node->mNumMeshes);
+    n.mesh_primitives.resize(node->mNumMeshes);
 
     for (u32 i = 0; i < node->mNumMeshes; i++) {
-        n.meshes[i] = node->mMeshes[i];
+        n.mesh_primitives[i] = &m_mesh_primitives[node->mMeshes[i]];
     }
 
     n.childs.resize(node->mNumChildren);
@@ -96,9 +96,9 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
         m_mesh_primitives[i].index_count = mesh->mNumFaces;
 
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
-            m_indices.emplace_back(std::array{mesh->mFaces[i].mIndices[0],
-                                              mesh->mFaces[i].mIndices[1],
-                                              mesh->mFaces[i].mIndices[2]});
+            m_indices.emplace_back(mesh->mFaces[i].mIndices[0]);
+            m_indices.emplace_back(mesh->mFaces[i].mIndices[1]);
+            m_indices.emplace_back(mesh->mFaces[i].mIndices[2]);
         }
     }
 
@@ -113,21 +113,77 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
               m_mesh_primitives.size(), m_vertices.size(), m_indices.size());
 }
 
-void Mesh::LoadMesh(BasicGeometry basic_geometry) noexcept {
+void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) noexcept {
     switch (basic_geometry) {
-    case Horizon::BasicGeometry::QUAD:
+    case Horizon::BasicGeometry::BasicGeometry::QUAD:
+        m_vertices = std::vector<Vertex>(BasicGeometry::quad_vertices.begin(),
+                                         BasicGeometry::quad_vertices.end());
+        m_indices = std::vector<Index>(BasicGeometry::quad_indices.begin(),
+                                       BasicGeometry::quad_indices.end());
         break;
-    case Horizon::BasicGeometry::TRIANGLE:
+    case Horizon::BasicGeometry::BasicGeometry::TRIANGLE:
+        m_vertices =
+            std::vector<Vertex>(BasicGeometry::triangle_vertices.begin(),
+                                BasicGeometry::triangle_vertices.end());
+        m_indices = std::vector<Index>(BasicGeometry::triangle_indices.begin(),
+                                       BasicGeometry::triangle_indices.end());
         break;
-    case Horizon::BasicGeometry::CUBE:
+    case Horizon::BasicGeometry::BasicGeometry::CUBE:
+        m_vertices = std::vector<Vertex>(BasicGeometry::cube_vertices.begin(),
+                                         BasicGeometry::cube_vertices.end());
+
+        m_indices = std::vector<Index>(BasicGeometry::cube_indices.begin(),
+                                       BasicGeometry::cube_indices.end());
+
         break;
-    case Horizon::BasicGeometry::SPHERE:
+    case Horizon::BasicGeometry::BasicGeometry::SPHERE:
+        // load from file
         break;
-    case Horizon::BasicGeometry::CAPSULE:
+    case Horizon::BasicGeometry::BasicGeometry::CAPSULE:
+        // load from file
         break;
     default:
         break;
     }
+    MeshPrimitive m{};
+    m.index_count = m_indices.size();
+    m.index_offset = 0;
+
+    m_mesh_primitives.push_back(std::move(m));
+
+    Node n{};
+    n.parent = 0;
+    n.mesh_primitives.emplace_back(&m_mesh_primitives[0]);
+    m_nodes.push_back(std::move(n));
 }
+
+RHI::Buffer *Mesh::GetIndexBuffer() noexcept {
+    if (!m_index_buffer) {
+        BufferCreateInfo buffer_create_info{};
+        buffer_create_info.size = m_indices.size() * 3 * sizeof(Index);
+        buffer_create_info.descriptor_type =
+            DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+        buffer_create_info.initial_state =
+            ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+        m_index_buffer = m_rhi->CreateBuffer(buffer_create_info);
+    }
+
+    return m_index_buffer.get();
+}
+
+RHI::Buffer *Mesh::GetVertexBuffer() noexcept {
+
+    if (!m_vertex_buffer) {
+        BufferCreateInfo buffer_create_info{};
+        buffer_create_info.size = m_vertices.size() * sizeof(Vertex);
+        buffer_create_info.descriptor_type =
+            DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+        buffer_create_info.initial_state =
+            ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        m_vertex_buffer = m_rhi->CreateBuffer(buffer_create_info);
+    }
+    return m_vertex_buffer.get();
+}
+const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 
 } // namespace Horizon

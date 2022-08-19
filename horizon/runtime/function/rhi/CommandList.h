@@ -18,9 +18,9 @@ class CommandList {
     virtual void BeginRecording() noexcept = 0;
     virtual void EndRecording() noexcept = 0;
 
-    virtual void BindVertexBuffer(u32 buffer_count, VertexBuffer **buffers,
+    virtual void BindVertexBuffer(u32 buffer_count, Buffer **buffers,
                                   u32* offsets) noexcept = 0;
-    virtual void BindIndexBuffer(IndexBuffer *buffer, u32 offset) noexcept = 0;
+    virtual void BindIndexBuffer(Buffer *buffer, u32 offset) noexcept = 0;
 
     virtual void
     BeginRenderPass(const RenderPassBeginInfo &begin_info) noexcept = 0;
