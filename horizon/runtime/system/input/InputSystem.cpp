@@ -2,9 +2,7 @@
 
 namespace Horizon {
 
-InputSystem::InputSystem(Window* window,
-                         Camera* camera) noexcept
-    : m_window(window), m_camera(camera) {
+InputSystem::InputSystem(Window *window, Camera *camera) noexcept : m_window(window), m_camera(camera) {
     m_window = window;
     m_camera = camera;
     m_last_x = window->GetWidth() / 2.0f;
@@ -12,14 +10,15 @@ InputSystem::InputSystem(Window* window,
     m_first_mouse = true;
 }
 InputSystem::~InputSystem() noexcept {}
-void InputSystem::Tick() noexcept {
+
+void InputSystem::Tick() {
     glfwPollEvents();
     // ProcessMouseInput();
     // ProcessKeyboardInput();
     // m_camera->UpdateViewMatrix();
 }
 
-void InputSystem::ProcessKeyboardInput() noexcept {
+void InputSystem::ProcessKeyboardInput() {
 
     if (GetKeyPress(Key::ESCAPE)) {
         m_window->close();
@@ -44,7 +43,7 @@ void InputSystem::ProcessKeyboardInput() noexcept {
     }
 }
 
-void InputSystem::ProcessMouseInput() noexcept {
+void InputSystem::ProcessMouseInput() {
     f64 xposIn, yposIn;
     glfwGetCursorPos(m_window->GetWindow(), &xposIn, &yposIn);
 
@@ -58,8 +57,7 @@ void InputSystem::ProcessMouseInput() noexcept {
     }
 
     f32 xoffset = xpos - m_last_x;
-    f32 yoffset =
-        ypos - m_last_y; // reversed since y-coordinates go from bottom to top
+    f32 yoffset = ypos - m_last_y; // reversed since y-coordinates go from bottom to top
 
     m_last_x = xpos;
     m_last_y = ypos;
@@ -75,7 +73,7 @@ void InputSystem::ProcessMouseInput() noexcept {
     }
 }
 
-bool InputSystem::GetKeyPress(Key inputKey) const noexcept {
+bool InputSystem::GetKeyPress(Key inputKey) const {
     switch (inputKey) {
     case Key::ESCAPE:
         return glfwGetKey(m_window->GetWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS;
@@ -96,12 +94,10 @@ bool InputSystem::GetKeyPress(Key inputKey) const noexcept {
         return glfwGetKey(m_window->GetWindow(), GLFW_KEY_D) == GLFW_PRESS;
         break;
     case Key::KEY_LCTRL:
-        return glfwGetKey(m_window->GetWindow(), GLFW_KEY_LEFT_CONTROL) ==
-               GLFW_PRESS;
+        return glfwGetKey(m_window->GetWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
         break;
     case Key::KEY_LSHIFT:
-        return glfwGetKey(m_window->GetWindow(), GLFW_KEY_LEFT_SHIFT) ==
-               GLFW_PRESS;
+        return glfwGetKey(m_window->GetWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
         break;
     default:
         return false;
@@ -109,15 +105,13 @@ bool InputSystem::GetKeyPress(Key inputKey) const noexcept {
     }
 }
 
-int InputSystem::GetMouseButtonPress(MouseButton button) const noexcept {
+int InputSystem::GetMouseButtonPress(MouseButton button) const {
     switch (button) {
     case Horizon::InputSystem::MouseButton::LEFT_BUTTON:
-        return glfwGetMouseButton(m_window->GetWindow(),
-                                  GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        return glfwGetMouseButton(m_window->GetWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         break;
     case Horizon::InputSystem::MouseButton::RIGHT_BUTTON:
-        return glfwGetMouseButton(m_window->GetWindow(),
-                                  GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+        return glfwGetMouseButton(m_window->GetWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
         break;
     default:
         return 0;
@@ -125,15 +119,13 @@ int InputSystem::GetMouseButtonPress(MouseButton button) const noexcept {
     }
 }
 
-int InputSystem::GetMouseButtonRelease(MouseButton button) const noexcept {
+int InputSystem::GetMouseButtonRelease(MouseButton button) const {
     switch (button) {
     case Horizon::InputSystem::MouseButton::LEFT_BUTTON:
-        return glfwGetMouseButton(m_window->GetWindow(),
-                                  GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
+        return glfwGetMouseButton(m_window->GetWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
         break;
     case Horizon::InputSystem::MouseButton::RIGHT_BUTTON:
-        return glfwGetMouseButton(m_window->GetWindow(),
-                                  GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
+        return glfwGetMouseButton(m_window->GetWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
         break;
     default:
         return 0;

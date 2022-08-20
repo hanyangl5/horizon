@@ -14,6 +14,10 @@ class Texture {
   public:
     Texture(const TextureCreateInfo &texture_create_info) noexcept;
     virtual ~Texture() noexcept = default;
+    Texture(const Texture &rhs) noexcept = delete;
+    Texture &operator=(const Texture &rhs) noexcept = delete;
+    Texture(Texture &&rhs) noexcept = delete;
+    Texture &operator=(Texture &&rhs) noexcept = delete;
     // virtual void *GetBufferPointer() noexcept = 0;
   public:
     const DescriptorType m_descriptor_type;

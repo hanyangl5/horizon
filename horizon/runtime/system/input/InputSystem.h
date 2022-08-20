@@ -8,16 +8,7 @@ namespace Horizon {
 
 class InputSystem {
   public:
-    enum class Key {
-        ESCAPE,
-        SPACE,
-        KEY_W,
-        KEY_S,
-        KEY_A,
-        KEY_D,
-        KEY_LCTRL,
-        KEY_LSHIFT
-    };
+    enum class Key { ESCAPE, SPACE, KEY_W, KEY_S, KEY_A, KEY_D, KEY_LCTRL, KEY_LSHIFT };
 
     enum class MouseButton { LEFT_BUTTON, RIGHT_BUTTON };
 
@@ -37,18 +28,18 @@ class InputSystem {
     InputSystem &operator=(InputSystem &&rhs) noexcept = delete;
 
   public:
-    void Tick() noexcept;
+    void Tick();
 
   private:
-    void ProcessKeyboardInput() noexcept;
+    void ProcessKeyboardInput();
 
-    void ProcessMouseInput() noexcept;
+    void ProcessMouseInput();
 
-    bool GetKeyPress(Key key) const noexcept;
+    bool GetKeyPress(Key key) const;
 
-    int GetMouseButtonPress(MouseButton button) const noexcept;
+    int GetMouseButtonPress(MouseButton button) const;
 
-    int GetMouseButtonRelease(MouseButton button) const noexcept;
+    int GetMouseButtonRelease(MouseButton button) const;
 
   private:
     Window *m_window = nullptr;

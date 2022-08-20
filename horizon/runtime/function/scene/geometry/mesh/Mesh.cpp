@@ -19,7 +19,7 @@ Mesh::~Mesh() noexcept {
     // delete
 }
 
-void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) noexcept {
+void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
     if (!node) {
         return;
     }
@@ -51,7 +51,7 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
-void Mesh::LoadMesh(const std::string &path) noexcept {
+void Mesh::LoadMesh(const std::string &path) {
     // Assimp::Importer importer;
 
     // And have it read the given file with some example postprocessing
@@ -87,7 +87,7 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
             m_vertices.emplace_back(vertex);
         }
 
-        m_mesh_primitives[i].index_offset = m_indices.size();
+        m_mesh_primitives[i].index_offset = static_cast<u32>(m_indices.size());
         m_mesh_primitives[i].index_count = mesh->mNumFaces;
 
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
@@ -108,7 +108,7 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
               m_indices.size());
 }
 
-void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) noexcept {
+void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) {
     switch (basic_geometry) {
     case Horizon::BasicGeometry::BasicGeometry::QUAD:
         m_vertices = std::vector<Vertex>(BasicGeometry::quad_vertices.begin(), BasicGeometry::quad_vertices.end());
@@ -135,7 +135,7 @@ void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) noexcept {
         break;
     }
     MeshPrimitive m{};
-    m.index_count = m_indices.size();
+    m.index_count = static_cast<u32>(m_indices.size());
     m.index_offset = 0;
 
     m_mesh_primitives.push_back(std::move(m));
@@ -146,7 +146,7 @@ void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) noexcept {
     m_nodes.push_back(std::move(n));
 }
 
-RHI::Buffer *Mesh::GetIndexBuffer() noexcept {
+RHI::Buffer *Mesh::GetIndexBuffer() {
     if (!m_index_buffer) {
         BufferCreateInfo buffer_create_info{};
         buffer_create_info.size = m_indices.size() * 3 * sizeof(Index);
@@ -158,7 +158,7 @@ RHI::Buffer *Mesh::GetIndexBuffer() noexcept {
     return m_index_buffer.get();
 }
 
-RHI::Buffer *Mesh::GetVertexBuffer() noexcept {
+RHI::Buffer *Mesh::GetVertexBuffer() {
 
     if (!m_vertex_buffer) {
         BufferCreateInfo buffer_create_info{};

@@ -10,7 +10,10 @@ class RenderTarget {
     RenderTarget(
         const RenderTargetCreateInfo &render_target_create_info) noexcept;
     virtual ~RenderTarget() noexcept = default;
-
+    RenderTarget(const RenderTarget &rhs) noexcept = delete;
+    RenderTarget &operator=(const RenderTarget &rhs) noexcept = delete;
+    RenderTarget(RenderTarget &&rhs) noexcept = delete;
+    RenderTarget &operator=(RenderTarget &&rhs) noexcept = delete;
   public:
     const DescriptorType m_descriptor_type;
     ResourceState m_state{};

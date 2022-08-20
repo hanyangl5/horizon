@@ -22,7 +22,7 @@ VulkanPipeline::~VulkanPipeline() noexcept {
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
 
-const std::vector<VkDescriptorSet> &VulkanPipeline::CreatePipelineResources() noexcept {
+const std::vector<VkDescriptorSet> &VulkanPipeline::CreatePipelineResources() {
 
     // at that time parse shader and generate descriptor layout and pipeline
     // layout.
@@ -46,14 +46,14 @@ const std::vector<VkDescriptorSet> &VulkanPipeline::CreatePipelineResources() no
     return m_pipeline_layout_desc.sets;
 }
 
-void VulkanPipeline::SetComputeShader(ShaderProgram *cs) noexcept {
+void VulkanPipeline::SetComputeShader(ShaderProgram *cs) {
     assert(("shader is not compute shader", cs->GetType() == ShaderType::COMPUTE_SHADER));
     assert(("pipeline is not compute shader", m_create_info.type == PipelineType::COMPUTE));
     shader_map[ShaderType::COMPUTE_SHADER] = cs;
     CreatePipelineResources();
 }
 
-void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) noexcept {
+void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
     assert(("shader is not vertex shader", vs->GetType() == ShaderType::VERTEX_SHADER));
     assert(("shader is not pixel shader", ps->GetType() == ShaderType::PIXEL_SHADER));
     assert(("pipeline is not graphics pipeline", m_create_info.type == PipelineType::GRAPHICS));
@@ -63,7 +63,7 @@ void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) noe
     CreatePipelineResources();
 }
 
-void VulkanPipeline::CreateGraphicsPipeline() noexcept {
+void VulkanPipeline::CreateGraphicsPipeline() {
 
     auto ci = m_create_info.gpci;
 
@@ -256,7 +256,7 @@ void VulkanPipeline::CreateGraphicsPipeline() noexcept {
     CHECK_VK_RESULT(
         vkCreateGraphicsPipelines(m_context.device, nullptr, 1, &graphics_pipeline_create_info, nullptr, &m_pipeline));
 }
-void VulkanPipeline::CreateComputePipeline() noexcept {
+void VulkanPipeline::CreateComputePipeline() {
     if (!shader_map[ShaderType::COMPUTE_SHADER]) {
         LOG_ERROR("missing shader: compute shader");
         return;
@@ -281,7 +281,7 @@ void VulkanPipeline::CreateComputePipeline() noexcept {
     CHECK_VK_RESULT(
         vkCreateComputePipelines(m_context.device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline));
 }
-void VulkanPipeline::CreatePipelineLayout() noexcept {
+void VulkanPipeline::CreatePipelineLayout() {
 
     m_pipeline_layout_desc = m_descriptor_set_manager.CreateLayouts(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;

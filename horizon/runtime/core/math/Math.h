@@ -31,7 +31,7 @@ inline float3 Normalize(const float3 &f) {
 
 inline float3 Cross(const float3 &lhs, const float3 &rhs) { return lhs.Cross(rhs); }
 
-inline f32 Radians(f32 angle) { return _PI / 180.0f; }
+inline f32 Radians(f32 angle) { return angle * _PI / 180.0f; }
 
 inline float4x4 LookAt(const float3 &eye, const float3 &target, const float3 &up) {
     return DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);

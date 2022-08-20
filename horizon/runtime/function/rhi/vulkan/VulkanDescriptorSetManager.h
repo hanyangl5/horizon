@@ -37,18 +37,23 @@ class VulkanDescriptorSetManager {
   public:
     VulkanDescriptorSetManager(const VulkanRendererContext &context) noexcept;
     ~VulkanDescriptorSetManager() noexcept;
+    VulkanDescriptorSetManager(const VulkanDescriptorSetManager &rhs) noexcept = delete;
+    VulkanDescriptorSetManager &operator=(const VulkanDescriptorSetManager &rhs) noexcept = delete;
+    VulkanDescriptorSetManager(VulkanDescriptorSetManager &&rhs) noexcept = delete;
+    VulkanDescriptorSetManager &operator=(VulkanDescriptorSetManager &&rhs) noexcept = delete;
 
-    void ResetDescriptorPool() noexcept;
-    void Update() noexcept;
-    VkDescriptorSetLayout FindLayout(u64 key) const noexcept;
+    void ResetDescriptorPool();
+    void Update();
+
+    VkDescriptorSetLayout FindLayout(u64 key) const;
     std::vector<VkDescriptorSet> AllocateDescriptorSets(const PipelineLayoutDesc &layout_desc);
 
   public:
     // std::vector<SpvReflectDescriptorSet *>
     // ReflectDescriptorSetLayout(void *spirv, u32 size);
-    void CreateDescriptorPool() noexcept;
+    void CreateDescriptorPool();
     PipelineLayoutDesc CreateLayouts(std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
-                                     PipelineType pipeline_type) noexcept;
+                                     PipelineType pipeline_type);
     // create layout for a single shader
 
     PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs, VulkanShaderProgram *ps);

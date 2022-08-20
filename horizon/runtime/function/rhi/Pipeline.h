@@ -14,10 +14,15 @@ class Pipeline {
     Pipeline() noexcept;
     ~Pipeline() noexcept;
 
+    Pipeline(const Pipeline &rhs) noexcept = delete;
+    Pipeline &operator=(const Pipeline &rhs) noexcept = delete;
+    Pipeline(Pipeline &&rhs) noexcept = delete;
+    Pipeline &operator=(Pipeline &&rhs) noexcept = delete;
+
     PipelineType GetType() const noexcept;
 
-    virtual void SetComputeShader(ShaderProgram *vs) noexcept = 0;
-    virtual void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) noexcept = 0;
+    virtual void SetComputeShader(ShaderProgram *vs)  = 0;
+    virtual void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps)  = 0;
     //// vertex input state
     // virtual void SetVertexInputState(const VertexInputStateCreateInfo&
     // vertex_input_state_create_info) noexcept = 0;

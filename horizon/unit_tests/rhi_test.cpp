@@ -66,15 +66,16 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
         transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
 
         transfer->EndRecording();
-
+        
         // stage -> gpu
-        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, std::vector{transfer});
+        std::vector v{transfer};
+        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v);
         engine->EndFrame();
     }
 }
 
 TEST_CASE_FIXTURE(RHITest, "shader compile test") {
-
+    
     auto rhi = engine->m_render_system->GetRhi();
     std::string file_name = asset_path + "shaders/hlsl/shader.hlsl";
     auto shader_program = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
@@ -108,7 +109,8 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
     cl->Dispatch(1, 1, 1);
     cl->EndRecording();
 
-    rhi->SubmitCommandLists(COMPUTE, std::vector{cl});
+    std::vector v{cl};
+    rhi->SubmitCommandLists(COMPUTE, v);
     // Horizon::RDC::EndFrameCapture();
     engine->EndFrame();
 }
@@ -161,8 +163,9 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
     transfer->UpdateBuffer(cb4.get(), &data[3], sizeof(f32)); // 7
 
     transfer->EndRecording();
-
-    rhi->SubmitCommandLists(CommandQueueType::TRANSFER, std::vector{transfer});
+    std::vector v{transfer};
+    rhi->SubmitCommandLists(COMPUTE, v);
+    rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v);
 
     auto cl = rhi->GetCommandList(CommandQueueType::COMPUTE);
 
@@ -184,8 +187,8 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     cl->Dispatch(1, 1, 1);
     cl->EndRecording();
-
-    rhi->SubmitCommandLists(COMPUTE, std::vector{cl});
+    std::vector v2{cl};
+    rhi->SubmitCommandLists(COMPUTE, v2);
 
     Horizon::RDC::EndFrameCapture();
     engine->EndFrame();
@@ -320,8 +323,8 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(vp));
         transfer->EndRecording();
-
-        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, std::vector{transfer});
+        std::vector v1{transfer};
+        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
         rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
@@ -346,7 +349,8 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         cl->EndRenderPass();
         cl->EndRecording();
-        rhi->SubmitCommandLists(GRAPHICS, std::vector{cl});
+        std::vector v{cl};
+        rhi->SubmitCommandLists(GRAPHICS, v);
         // Horizon::RDC::EndFrameCapture();
         engine->EndFrame();
     }

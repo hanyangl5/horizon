@@ -8,12 +8,12 @@
 namespace Horizon::RHI {
 
 VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context, CommandQueueType type,
-                                     VkCommandBuffer command_buffer) noexcept
-    : CommandList(type), m_context(context), m_command_buffer(command_buffer) {}
+                                     VkCommandBuffer command_buffer)
+    : CommandList(type), m_context(context), m_command_buffer(command_buffer) noexcept {}
 
 VulkanCommandList::~VulkanCommandList() noexcept {}
 
-void VulkanCommandList::BeginRecording() noexcept {
+void VulkanCommandList::BeginRecording() {
     is_recoring = true;
     VkCommandBufferBeginInfo command_buffer_begin_info{};
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -22,12 +22,12 @@ void VulkanCommandList::BeginRecording() noexcept {
     vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
 }
 
-void VulkanCommandList::EndRecording() noexcept {
+void VulkanCommandList::EndRecording() {
     is_recoring = false;
     vkEndCommandBuffer(m_command_buffer);
 }
 
-void VulkanCommandList::BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets) noexcept {
+void VulkanCommandList::BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
@@ -35,7 +35,7 @@ void VulkanCommandList::BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32
     // vkCmdBindVertexBuffers2();
 }
 
-void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) noexcept {
+void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
@@ -46,7 +46,7 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) noexcept {
 }
 
 // graphics commands
-void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) noexcept {
+void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
 
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
@@ -96,7 +96,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) n
     vkCmdBeginRendering(m_command_buffer, &info);
 }
 
-void VulkanCommandList::EndRenderPass() noexcept {
+void VulkanCommandList::EndRenderPass() {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
@@ -105,8 +105,7 @@ void VulkanCommandList::EndRenderPass() noexcept {
     vkCmdEndRendering(m_command_buffer);
 }
 
-void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count,
-                                      u32 first_instance) noexcept {
+void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count, u32 first_instance) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
@@ -115,7 +114,7 @@ void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 in
 }
 
 void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count,
-                                             u32 first_instance) noexcept {
+                                             u32 first_instance) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
@@ -124,10 +123,10 @@ void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u
     vkCmdDrawIndexed(m_command_buffer, index_count, instance_count, first_index, first_vertex, first_instance);
 }
 
-void VulkanCommandList::DrawIndirect() noexcept {}
+void VulkanCommandList::DrawIndirect() {}
 
 // compute commands
-void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) noexcept {
+void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect compute "
             "commandlist",
@@ -135,7 +134,7 @@ void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group
 
     vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 }
-void VulkanCommandList::DispatchIndirect() noexcept {
+void VulkanCommandList::DispatchIndirect() {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect compute "
             "commandlist",
@@ -143,7 +142,7 @@ void VulkanCommandList::DispatchIndirect() noexcept {
 }
 
 // transfer commands
-void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) noexcept {
+void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect transfer "
             "commandlist",
@@ -193,7 +192,7 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) noexc
     }
 }
 
-void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) noexcept {
+void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
     if (!is_recoring) {
         LOG_ERROR("command buffer isn't recording");
         return;
@@ -208,14 +207,14 @@ void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) noexc
     CopyBuffer(vk_src_buffer, vk_dst_buffer);
 }
 
-void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer) noexcept {
+void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer) {
     assert(dst_buffer->m_size == src_buffer->m_size);
     VkBufferCopy region{};
     region.size = dst_buffer->m_size;
     vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
 }
 
-void VulkanCommandList::UpdateTexture(Texture *texture, const TextureData &texture_data) noexcept {
+void VulkanCommandList::UpdateTexture(Texture *texture, const TextureData &texture_data) {
     if (!is_recoring) {
         LOG_ERROR("command buffer isn't recording");
         return;
@@ -303,7 +302,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureData &textu
     //}
 }
 
-void VulkanCommandList::CopyTexture() noexcept {
+void VulkanCommandList::CopyTexture() {
     if (!is_recoring) {
         LOG_ERROR("command buffer isn't recording");
         return;
@@ -314,7 +313,7 @@ void VulkanCommandList::CopyTexture() noexcept {
     }
 }
 
-void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
+void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
     if (!is_recoring) {
         LOG_ERROR("command buffer isn't recording");
         return;
@@ -439,7 +438,7 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) noexcept {
     }
 }
 
-void VulkanCommandList::BindPipeline(Pipeline *pipeline) noexcept {
+void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
     if (pipeline->GetType() == PipelineType::GRAPHICS || pipeline->GetType() == PipelineType::RAY_TRACING) {
         assert(("pipeline type does not correspond with current command list, "
                 "expect compute pipeline",
@@ -465,7 +464,7 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) noexcept {
 }
 
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(VmaAllocator allocator,
-                                                         const BufferCreateInfo &buffer_create_info) noexcept {
+                                                         const BufferCreateInfo &buffer_create_info) {
     return std::make_unique<VulkanBuffer>(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
 }
 

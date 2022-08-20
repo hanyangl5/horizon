@@ -36,7 +36,7 @@ VulkanDescriptorSetManager::VulkanDescriptorSetManager(const VulkanRendererConte
 
 PipelineLayoutDesc
 VulkanDescriptorSetManager::CreateLayouts(std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
-                                          PipelineType pipeline_type) noexcept {
+                                          PipelineType pipeline_type) {
 
     // combine vs/gs/ps to get pipeline layout
     if (pipeline_type == PipelineType::GRAPHICS) {
@@ -115,7 +115,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanS
                     descriptor_count.reserved = descriptor_count.required * 2;
                 }
             }
-            set_layout_create_info.bindingCount = layout_bindings.size();
+            set_layout_create_info.bindingCount = static_cast<u32>(layout_bindings.size());
             set_layout_create_info.pBindings = layout_bindings.data();
 
             u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
@@ -198,7 +198,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
                 descriptor_count.reserved = descriptor_count.required * 2;
             }
         }
-        set_layout_create_info.bindingCount = layout_bindings.size();
+        set_layout_create_info.bindingCount = static_cast<u32>(layout_bindings.size());
         set_layout_create_info.pBindings = layout_bindings.data();
 
         u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
@@ -223,10 +223,10 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
 VulkanDescriptorSetManager::~VulkanDescriptorSetManager() {
     // TODO: destroy descriptor resources, descriptorsetlayout, descriptorpool
 }
-void VulkanDescriptorSetManager::CreateDescriptorPool() noexcept {
+void VulkanDescriptorSetManager::CreateDescriptorPool() {
 
     if (m_descriptor_set_layout_map.size() > descriptor_pool_size_desc.required_sets) {
-        descriptor_pool_size_desc.required_sets = m_descriptor_set_layout_map.size() * 2;
+        descriptor_pool_size_desc.required_sets = static_cast<u32>(m_descriptor_set_layout_map.size() * 2);
         descriptor_pool_size_desc.recreate = true;
     }
     if (!descriptor_pool_size_desc.recreate) {
@@ -254,17 +254,18 @@ void VulkanDescriptorSetManager::CreateDescriptorPool() noexcept {
     CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_descriptor_pool));
     descriptor_pool_size_desc.recreate = false;
 }
-void VulkanDescriptorSetManager::ResetDescriptorPool() noexcept {
+void VulkanDescriptorSetManager::ResetDescriptorPool() {
     // vkResetDescriptorPool(m_device, m_bindless_descriptor_pool, 0);
 }
-void VulkanDescriptorSetManager::Update() noexcept {
+void VulkanDescriptorSetManager::Update() {
 
     // TODO: create empty descriptors if no resource set
 
-    vkUpdateDescriptorSets(m_context.device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
+    vkUpdateDescriptorSets(m_context.device, static_cast<u32>(descriptor_writes.size()), descriptor_writes.data(), 0,
+                           nullptr);
 }
 
-VkDescriptorSetLayout VulkanDescriptorSetManager::FindLayout(u64 key) const noexcept {
+VkDescriptorSetLayout VulkanDescriptorSetManager::FindLayout(u64 key) const {
     return m_descriptor_set_layout_map.at(key).layout;
 }
 
@@ -288,12 +289,12 @@ std::vector<VkDescriptorSet> VulkanDescriptorSetManager::AllocateDescriptorSets(
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     alloc_info.descriptorPool = m_descriptor_pool;
-    alloc_info.descriptorSetCount = layouts.size();
+    alloc_info.descriptorSetCount = static_cast<u32>(layouts.size());
     alloc_info.pSetLayouts = layouts.data();
 
     std::vector<VkDescriptorSet> sets(layout_desc.descriptor_set_hash_key.size());
     CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, sets.data()));
 
-    return std::move(sets);
+    return sets;
 }
 } // namespace Horizon::RHI

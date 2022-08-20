@@ -23,47 +23,50 @@ class RHIVulkan : public RHI {
   public:
     RHIVulkan() noexcept;
     virtual ~RHIVulkan() noexcept;
+    RHIVulkan(const RHIVulkan &rhs) noexcept = delete;
+    RHIVulkan &operator=(const RHIVulkan &rhs) noexcept = delete;
+    RHIVulkan(RHIVulkan &&rhs) noexcept = delete;
+    RHIVulkan &operator=(RHIVulkan &&rhs) noexcept = delete;
 
     void InitializeRenderer() noexcept override;
 
-    Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept override;
+    Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
 
-    Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) noexcept override;
+    Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) override;
 
-    void CreateSwapChain(Window *window) noexcept override;
+    void CreateSwapChain(Window *window) override;
 
     ShaderProgram *CreateShaderProgram(ShaderType type, const std::string &entry_point, u32 compile_flags,
-                                       std::string file_name) noexcept override;
+                                       std::string file_name) override;
 
-    void DestroyShaderProgram(ShaderProgram *shader_program) noexcept override;
+    void DestroyShaderProgram(ShaderProgram *shader_program) override;
 
-    CommandList *GetCommandList(CommandQueueType type) noexcept override;
+    CommandList *GetCommandList(CommandQueueType type) override;
 
-    void WaitGpuExecution(CommandQueueType queue_type) noexcept override;
+    void WaitGpuExecution(CommandQueueType queue_type) override;
 
-    void ResetCommandResources() noexcept override;
+    void ResetCommandResources() override;
 
-    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) noexcept;
+    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
 
-    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) noexcept;
+    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info);
 
     // submit command list to command queue
-    virtual void SubmitCommandLists(CommandQueueType queue_type,
-                                    std::vector<CommandList *> &command_lists) noexcept override;
-    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) noexcept override;
-    void SetResource(Texture *texture) noexcept override;
+    virtual void SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) override;
+    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) override;
+    void SetResource(Texture *texture) override;
 
-    void UpdateDescriptors() noexcept override;
+    void UpdateDescriptors() override;
 
   private:
-    void InitializeVulkanRenderer(const std::string &app_name) noexcept;
+    void InitializeVulkanRenderer(const std::string &app_name);
     void CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
-                        std::vector<const char *> &instance_extensions) noexcept;
-    void PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept;
-    void CreateDevice(std::vector<const char *> &device_extensions) noexcept;
-    void InitializeVMA() noexcept;
-    void CreateSyncObjects() noexcept;
-    void DestroySwapChain() noexcept;
+                        std::vector<const char *> &instance_extensions);
+    void PickGPU(VkInstance instance, VkPhysicalDevice *gpu);
+    void CreateDevice(std::vector<const char *> &device_extensions);
+    void InitializeVMA();
+    void CreateSyncObjects();
+    void DestroySwapChain();
 
   private:
     VulkanRendererContext m_vulkan{};

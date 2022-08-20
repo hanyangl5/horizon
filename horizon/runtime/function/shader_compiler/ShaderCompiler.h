@@ -35,12 +35,12 @@ class ShaderCompiler {
 
   public:
     IDxcBlob *CompileFromFile(ShaderTargetPlatform platform, ShaderType type, const std::string &entry_point,
-                              u32 compile_flags, std::string file_name) noexcept;
+                              u32 compile_flags, std::string file_name);
 
-    static std::vector<char> read_file(const std::string &path) noexcept;
+    static std::vector<char> read_file(const std::string &path);
 
   private:
-    void InitializeShaderCompiler() noexcept;
+    void InitializeShaderCompiler();
 
   private:
     IDxcUtils *idxc_utils;

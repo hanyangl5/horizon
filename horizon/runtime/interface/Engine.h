@@ -4,7 +4,6 @@
 
 #include <BS_thread_pool.hpp>
 
-#include <runtime/core/thread_pool/ThreadPool.h>
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/interface/EngineConfig.h>
@@ -17,17 +16,15 @@ namespace Horizon {
 class Engine final {
   public:
     Engine(const EngineConfig &config) noexcept;
+    ~Engine() noexcept = default;
 
     Engine(const Engine &rhs) noexcept = delete;
-
     Engine &operator=(const Engine &rhs) noexcept = delete;
-
     Engine(Engine &&rhs) noexcept = delete;
-
     Engine &operator=(Engine &&rhs) noexcept = delete;
 
-    void BeginNewFrame() const noexcept;
-    void EndFrame() const noexcept;
+    void BeginNewFrame() const;
+    void EndFrame() const;
 
   public:
     std::unique_ptr<Window> m_window{};

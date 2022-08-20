@@ -29,6 +29,7 @@ class Light {
 class DirectionalLight : public Light {
   public:
     DirectionalLight(Math::color color, f32 intensity, Math::float3 direction) noexcept {
+        
         m_type = LightType::DIRECT_LIGHT;
     }
 };

@@ -8,12 +8,14 @@ namespace Horizon::RHI {
 class CommandContext {
   public:
     CommandContext() noexcept;
-    CommandContext(const CommandContext &command_list) noexcept = default;
-    CommandContext(CommandContext &&command_list) noexcept = default;
-    virtual CommandList *GetCommandList(CommandQueueType type) noexcept = 0;
-
     virtual ~CommandContext() noexcept;
-    virtual void Reset() noexcept = 0;
+    CommandContext(const CommandContext &rhs) noexcept = delete;
+    CommandContext &operator=(const CommandContext &rhs) noexcept = delete;
+    CommandContext(CommandContext &&rhs) noexcept = delete;
+    CommandContext &operator=(CommandContext &&rhs) noexcept = delete;
+
+    virtual CommandList *GetCommandList(CommandQueueType type) = 0;
+    virtual void Reset() = 0;
 
   protected:
   private:

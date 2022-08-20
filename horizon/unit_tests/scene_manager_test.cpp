@@ -55,4 +55,38 @@ TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
     LOG_INFO("spend {} ms to load {} meshes", dur, mesh_count);
 }
 
+
+void t()  { throw std::runtime_error("ex"); }
+
+TEST_CASE_FIXTURE(SceneManagementTest, "ex") {
+
+    class A {
+      public:
+        virtual void vd(){};
+        int a;
+    };
+    class B : public A {
+      public:
+        B() {
+            c = 1;
+            a = 2;
+        }
+        virtual void vd()  { c = 2;
+        }
+        int c;
+    };
+    A *a = new B;
+    LOG_ERROR("{}", typeid(a).name());
+    A *pa = new A;
+    LOG_ERROR("{}", typeid(pa).name());
+    auto b = dynamic_cast<A *>(a);
+    LOG_ERROR("{}", typeid(b).name());
+    {
+        try {
+             t();
+         } catch (const std::exception &) {
+             LOG_ERROR("e");
+         }
+     }
+}
 } // namespace TEST::SceneManagement

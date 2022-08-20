@@ -9,7 +9,10 @@ class VulkanTexture : public Texture {
   public:
     VulkanTexture(VmaAllocator allocator, const TextureCreateInfo &buffer_create_info) noexcept;
     virtual ~VulkanTexture() noexcept;
-
+    VulkanTexture(const VulkanTexture &rhs) noexcept = delete;
+    VulkanTexture &operator=(const VulkanTexture &rhs) noexcept = delete;
+    VulkanTexture(VulkanTexture &&rhs) noexcept = delete;
+    VulkanTexture &operator=(VulkanTexture &&rhs) noexcept = delete;
   public:
     VkImage m_image{};
     VmaAllocation m_allocation{};

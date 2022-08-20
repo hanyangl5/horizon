@@ -13,6 +13,10 @@ class VulkanShaderProgram : public ShaderProgram {
     VulkanShaderProgram(const VulkanRendererContext &context, ShaderType type, const std::string &entry_point,
                         IDxcBlob *shader_byte_code) noexcept;
     virtual ~VulkanShaderProgram() noexcept;
+    VulkanShaderProgram(const VulkanShaderProgram &rhs) noexcept = delete;
+    VulkanShaderProgram &operator=(const VulkanShaderProgram &rhs) noexcept = delete;
+    VulkanShaderProgram(VulkanShaderProgram &&rhs) noexcept = delete;
+    VulkanShaderProgram &operator=(VulkanShaderProgram &&rhs) noexcept = delete;
     // virtual void* GetBufferPointer() const noexcept override;
     // virtual u64 GetBufferSize() const noexcept override;
 

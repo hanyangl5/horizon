@@ -24,43 +24,45 @@ class RHI {
 
     virtual ~RHI() noexcept;
 
-    RHI(const RHI &window) noexcept = delete;
+    RHI(const RHI &rhi) noexcept = delete;
 
-    RHI &operator=(const RHI &window) noexcept = delete;
+    RHI &operator=(const RHI &rhi) noexcept = delete;
 
-    RHI(RHI &&window) noexcept = delete;
+    RHI(RHI &&rhi) noexcept = delete;
 
-    RHI &operator=(RHI &&window) noexcept = delete;
+    RHI &operator=(RHI &&rhi) noexcept = delete;
 
-    virtual void InitializeRenderer() noexcept = 0;
+    virtual void InitializeRenderer() = 0;
 
-    virtual Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept = 0;
+    virtual Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) = 0;
 
-    virtual Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
+    virtual Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) = 0;
 
-    virtual void CreateSwapChain(Window *window) noexcept = 0;
+    virtual void CreateSwapChain(Window *window) = 0;
 
     virtual ShaderProgram *CreateShaderProgram(ShaderType type, const std::string &entry_point, u32 compile_flags,
-                                               std::string file_name) noexcept = 0;
-    virtual void DestroyShaderProgram(ShaderProgram *shader_program) noexcept = 0;
+                                               std::string file_name) = 0;
+    virtual void DestroyShaderProgram(ShaderProgram *shader_program) = 0;
     // virtual void CreateRenderTarget() = 0;
 
-    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) noexcept = 0;
+    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) = 0;
 
-    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) noexcept = 0;
-    virtual CommandList *GetCommandList(CommandQueueType type) noexcept = 0;
+    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) = 0;
 
-    virtual void WaitGpuExecution(CommandQueueType queue_type) noexcept = 0;
+    virtual CommandList *GetCommandList(CommandQueueType type) = 0;
 
-    virtual void ResetCommandResources() noexcept = 0;
+    virtual void WaitGpuExecution(CommandQueueType queue_type) = 0;
+
+    virtual void ResetCommandResources() = 0;
 
     // submit command list to command queue
-    virtual void SubmitCommandLists(CommandQueueType queue, std::vector<CommandList *> &command_lists) noexcept = 0;
+    virtual void SubmitCommandLists(CommandQueueType queue, std::vector<CommandList *> &command_lists) = 0;
 
-    virtual void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) noexcept = 0;
-    virtual void SetResource(Texture *texture) noexcept = 0;
+    virtual void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) = 0;
 
-    virtual void UpdateDescriptors() noexcept = 0;
+    virtual void SetResource(Texture *texture) = 0;
+
+    virtual void UpdateDescriptors() = 0;
 
   protected:
     u32 m_back_buffer_count{2};

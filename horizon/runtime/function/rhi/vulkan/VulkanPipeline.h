@@ -13,16 +13,20 @@ class VulkanPipeline : public Pipeline {
     VulkanPipeline(const VulkanRendererContext &context, const ComputePipelineCreateInfo &create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     ~VulkanPipeline() noexcept;
+    VulkanPipeline(const VulkanPipeline &rhs) noexcept = delete;
+    VulkanPipeline &operator=(const VulkanPipeline &rhs) noexcept = delete;
+    VulkanPipeline(VulkanPipeline &&rhs) noexcept = delete;
+    VulkanPipeline &operator=(VulkanPipeline &&rhs) noexcept = delete;
 
-    const std::vector<VkDescriptorSet> &CreatePipelineResources() noexcept;
+    const std::vector<VkDescriptorSet> &CreatePipelineResources();
 
-    void SetComputeShader(ShaderProgram *vs) noexcept override;
-    void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) noexcept override;
+    void SetComputeShader(ShaderProgram *vs) override;
+    void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) override;
 
   private:
-    void CreateGraphicsPipeline() noexcept;
-    void CreateComputePipeline() noexcept;
-    void CreatePipelineLayout() noexcept;
+    void CreateGraphicsPipeline();
+    void CreateComputePipeline();
+    void CreatePipelineLayout();
     // void CreateRTPipeline() noexcept;
   public:
     const VulkanRendererContext &m_context;

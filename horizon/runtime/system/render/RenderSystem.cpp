@@ -12,16 +12,14 @@ namespace Horizon {
 
 class Window;
 
-RenderSystem::RenderSystem(u32 width, u32 height, Window *window,
-                           RenderBackend backend) noexcept
-    : m_window(window) {
+RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend) noexcept : m_window(window) {
 
     InitializeRenderAPI(backend);
 }
 
 RenderSystem::~RenderSystem() noexcept {}
 
-void RenderSystem::InitializeRenderAPI(RenderBackend backend) noexcept {
+void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
 
     switch (backend) {
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
@@ -37,7 +35,7 @@ void RenderSystem::InitializeRenderAPI(RenderBackend backend) noexcept {
     LOG_DEBUG("size of render api {}", sizeof(*m_rhi.get()));
     m_rhi->CreateSwapChain(m_window);
 }
- Camera *RenderSystem::GetMainCamera() const noexcept { return {}; }
+Camera *RenderSystem::GetMainCamera() const { return {}; }
 
 // ShaderProgram *RenderSystem::CreateShaderProgram(
 //     ShaderType type, const std::string &entry_point, u32 compile_flags,

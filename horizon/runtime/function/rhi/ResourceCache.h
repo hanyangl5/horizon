@@ -52,6 +52,7 @@ template <> struct hash<Horizon::PipelineCreateInfo> {
             break;
         case Horizon::PipelineType::COMPUTE:
             hash_combine(seed, *create_info.cpci);
+            break;
         default:
             break;
         };

@@ -11,14 +11,14 @@ namespace Horizon {
 ShaderCompiler::ShaderCompiler() noexcept { InitializeShaderCompiler(); }
 
 ShaderCompiler::~ShaderCompiler() noexcept {}
-void ShaderCompiler::InitializeShaderCompiler() noexcept {
+
+void ShaderCompiler::InitializeShaderCompiler() {
     DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&idxc_utils));
     DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler));
 }
 
 IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform, ShaderType type,
-                                          const std::string &entry_point, u32 compile_flags,
-                                          std::string file_name) noexcept {
+                                          const std::string &entry_point, u32 compile_flags, std::string file_name) {
 
     // read source file
     IDxcBlobEncoding *source_file = nullptr;
@@ -92,7 +92,7 @@ IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform, ShaderT
     return result_code;
 }
 
-std::vector<char> ShaderCompiler::read_file(const std::string &path) noexcept {
+std::vector<char> ShaderCompiler::read_file(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         LOG_ERROR("failed to open shader file: {}", path);
