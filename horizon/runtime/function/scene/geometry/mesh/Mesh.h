@@ -13,8 +13,8 @@
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/RHI.h>
 
-#include "VertexDescription.h"
 #include "BasicGeometry.h"
+#include "VertexDescription.h"
 
 namespace Horizon {
 
@@ -37,7 +37,6 @@ struct Node {
 struct MeshDesc {
     u32 vertex_attribute_flag;
 };
-
 
 class Mesh {
   public:
@@ -71,7 +70,6 @@ class Mesh {
     std::vector<Node> m_nodes{};
     // Texture* textures;
     // Material* materials;
-
 
     Resource<RHI::Buffer> m_vertex_buffer;
     Resource<RHI::Buffer> m_index_buffer;

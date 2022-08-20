@@ -7,10 +7,8 @@ void Horizon::RDC::InitializeRenderDoc() noexcept {
     is_rdc_initialized = true;
     // At init, on windows
     if (HMODULE mod = GetModuleHandleA("renderdoc.dll")) {
-        auto RENDERDOC_GetAPI{
-            (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI")};
-        int ret{
-            RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&rdoc_api)};
+        auto RENDERDOC_GetAPI{(pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI")};
+        int ret{RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&rdoc_api)};
         assert(ret == 1);
     } else {
         LOG_ERROR("failed to find renderdoc.dll");

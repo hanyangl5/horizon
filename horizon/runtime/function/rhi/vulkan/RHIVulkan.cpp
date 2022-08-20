@@ -20,8 +20,7 @@ RHIVulkan::RHIVulkan() noexcept {}
 
 RHIVulkan::~RHIVulkan() noexcept {
 
-    vkWaitForFences(m_vulkan.device, m_vulkan.fences.size(),
-                    m_vulkan.fences.data(), VK_TRUE, UINT64_MAX);
+    vkWaitForFences(m_vulkan.device, m_vulkan.fences.size(), m_vulkan.fences.data(), VK_TRUE, UINT64_MAX);
 
     for (auto &fence : m_vulkan.fences) {
         vkDestroyFence(m_vulkan.device, fence, nullptr);
@@ -42,18 +41,13 @@ void RHIVulkan::InitializeRenderer() noexcept {
     InitializeVulkanRenderer("vulkan renderer");
 }
 
-Resource<Buffer>
-RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept {
+Resource<Buffer> RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept {
 
-    return std::make_unique<VulkanBuffer>(m_vulkan.vma_allocator,
-                                          buffer_create_info,
-                                          MemoryFlag::DEDICATE_GPU_MEMORY);
+    return std::make_unique<VulkanBuffer>(m_vulkan.vma_allocator, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
-Resource<Texture> RHIVulkan::CreateTexture(
-    const TextureCreateInfo &texture_create_info) noexcept {
-    return std::make_unique<VulkanTexture>(m_vulkan.vma_allocator,
-                                           texture_create_info);
+Resource<Texture> RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept {
+    return std::make_unique<VulkanTexture>(m_vulkan.vma_allocator, texture_create_info);
 }
 
 void RHIVulkan::CreateSwapChain(Window *window) noexcept {
@@ -63,17 +57,15 @@ void RHIVulkan::CreateSwapChain(Window *window) noexcept {
     surface_create_info.hinstance = GetModuleHandle(nullptr);
     ;
     surface_create_info.hwnd = window->GetWin32Window();
-    CHECK_VK_RESULT(vkCreateWin32SurfaceKHR(
-        m_vulkan.instance, &surface_create_info, nullptr, &m_vulkan.surface));
+    CHECK_VK_RESULT(vkCreateWin32SurfaceKHR(m_vulkan.instance, &surface_create_info, nullptr, &m_vulkan.surface));
 
     u32 surface_format_count = 0;
     // Get surface formats count
-    CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(
-        m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, nullptr));
+    CHECK_VK_RESULT(
+        vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, nullptr));
     std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
-    CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(
-        m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count,
-        surface_formats.data()));
+    CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count,
+                                                         surface_formats.data()));
 
     m_vulkan.optimal_surface_format = surface_formats.back();
 
@@ -84,30 +76,24 @@ void RHIVulkan::CreateSwapChain(Window *window) noexcept {
     swap_chain_create_info.surface = m_vulkan.surface;
     swap_chain_create_info.minImageCount = m_back_buffer_count;
     swap_chain_create_info.imageFormat = m_vulkan.optimal_surface_format.format;
-    swap_chain_create_info.imageColorSpace =
-        m_vulkan.optimal_surface_format.colorSpace;
-    swap_chain_create_info.imageExtent = {window->GetWidth(),
-                                          window->GetHeight()};
+    swap_chain_create_info.imageColorSpace = m_vulkan.optimal_surface_format.colorSpace;
+    swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
     swap_chain_create_info.imageArrayLayers = 1;
     swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swap_chain_create_info.preTransform =
-        VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
+    swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
     swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     swap_chain_create_info.clipped = VK_TRUE;
     swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swap_chain_create_info.queueFamilyIndexCount = 0;
 
-    CHECK_VK_RESULT(vkCreateSwapchainKHR(m_vulkan.device,
-                                         &swap_chain_create_info, nullptr,
-                                         &m_vulkan.swap_chain));
+    CHECK_VK_RESULT(vkCreateSwapchainKHR(m_vulkan.device, &swap_chain_create_info, nullptr, &m_vulkan.swap_chain));
 
     // u32 image_count = 0;
     // vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain,
     // &image_count, nullptr);  // Get images
     m_vulkan.swap_chain_images.resize(m_back_buffer_count);
-    vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain,
-                            &m_back_buffer_count,
+    vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain, &m_back_buffer_count,
                             m_vulkan.swap_chain_images.data()); // Get images
 
     m_vulkan.swap_chain_image_views.resize(m_back_buffer_count);
@@ -116,8 +102,7 @@ void RHIVulkan::CreateSwapChain(Window *window) noexcept {
     image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     image_view_create_info.format = m_vulkan.optimal_surface_format.format;
-    image_view_create_info.subresourceRange.aspectMask =
-        VK_IMAGE_ASPECT_COLOR_BIT;
+    image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     image_view_create_info.subresourceRange.baseMipLevel = 0;
     image_view_create_info.subresourceRange.levelCount = 1;
     image_view_create_info.subresourceRange.baseArrayLayer = 0;
@@ -125,19 +110,15 @@ void RHIVulkan::CreateSwapChain(Window *window) noexcept {
 
     for (u32 i = 0; i < m_vulkan.swap_chain_image_views.size(); i++) {
         image_view_create_info.image = m_vulkan.swap_chain_images[i];
-        CHECK_VK_RESULT(vkCreateImageView(m_vulkan.device,
-                                          &image_view_create_info, nullptr,
-                                          &m_vulkan.swap_chain_image_views[i]));
+        CHECK_VK_RESULT(
+            vkCreateImageView(m_vulkan.device, &image_view_create_info, nullptr, &m_vulkan.swap_chain_image_views[i]));
     }
 }
 
-ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type,
-                                              const std::string &entry_point,
-                                              u32 compile_flags,
+ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type, const std::string &entry_point, u32 compile_flags,
                                               std::string file_name) noexcept {
-    auto spirv_blob = m_shader_compiler->CompileFromFile(
-        ShaderTargetPlatform::SPIRV, type, entry_point, compile_flags,
-        file_name);
+    auto spirv_blob =
+        m_shader_compiler->CompileFromFile(ShaderTargetPlatform::SPIRV, type, entry_point, compile_flags, file_name);
     return new VulkanShaderProgram(m_vulkan, type, entry_point, spirv_blob);
 }
 
@@ -168,13 +149,11 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) noexcept {
     InitializeVMA();
     // create sync objects
     CreateSyncObjects();
-    m_descriptor_set_manager =
-        std::make_unique<VulkanDescriptorSetManager>(m_vulkan);
+    m_descriptor_set_manager = std::make_unique<VulkanDescriptorSetManager>(m_vulkan);
 }
 
-void RHIVulkan::CreateInstance(
-    const std::string &app_name, std::vector<const char *> &instance_layers,
-    std::vector<const char *> &instance_extensions) noexcept {
+void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
+                               std::vector<const char *> &instance_extensions) noexcept {
 
     u32 layer_count{0}, extension_count{0};
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -184,8 +163,7 @@ void RHIVulkan::CreateInstance(
     std::vector<VkExtensionProperties> available_extensions(extension_count);
 
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
-    vkEnumerateInstanceExtensionProperties(nullptr, &extension_count,
-                                           available_extensions.data());
+    vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, available_extensions.data());
 
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -199,15 +177,12 @@ void RHIVulkan::CreateInstance(
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_create_info.pApplicationInfo = &app_info;
     instance_create_info.flags = 0;
-    instance_create_info.enabledExtensionCount =
-        static_cast<u32>(instance_extensions.size());
+    instance_create_info.enabledExtensionCount = static_cast<u32>(instance_extensions.size());
     instance_create_info.ppEnabledExtensionNames = instance_extensions.data();
-    instance_create_info.enabledLayerCount =
-        static_cast<u32>(instance_layers.size());
+    instance_create_info.enabledLayerCount = static_cast<u32>(instance_layers.size());
     instance_create_info.ppEnabledLayerNames = instance_layers.data();
 
-    CHECK_VK_RESULT(
-        vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
+    CHECK_VK_RESULT(vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
 }
 
 void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept {
@@ -218,24 +193,20 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept {
     if (device_count == 0) {
         LOG_ERROR("no available device");
     }
-    vkEnumeratePhysicalDevices(instance, &device_count,
-                               physical_devices.data());
+    vkEnumeratePhysicalDevices(instance, &device_count, physical_devices.data());
 
     // pick gpu
 
     for (const auto &physical_device : physical_devices) {
         u32 queue_family_count = m_vulkan.command_queues.size();
-        std::vector<VkQueueFamilyProperties> queue_family_properties(
-            queue_family_count);
-        vkGetPhysicalDeviceQueueFamilyProperties(
-            physical_device, &queue_family_count,
-            nullptr); // Get queue family properties
+        std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_count);
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
+                                                 nullptr); // Get queue family properties
         if (queue_family_count != 3) {
             continue;
         }
-        vkGetPhysicalDeviceQueueFamilyProperties(
-            physical_device, &queue_family_count,
-            queue_family_properties.data()); // Get queue family properties
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
+                                                 queue_family_properties.data()); // Get queue family properties
 
         for (u32 i = 0; i < queue_family_count; i++) {
             // TOOD: print gpu info, runtime swith gpu
@@ -244,29 +215,20 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept {
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
                 *gpu = physical_device;
-                m_vulkan
-                    .command_queue_familiy_indices[CommandQueueType::GRAPHICS] =
-                    i;
+                m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] = i;
                 // break;
             }
             // dedicate compute queue
-            if (!(queue_family_properties[i].queueFlags &
-                  VK_QUEUE_GRAPHICS_BIT) &&
+            if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-                m_vulkan
-                    .command_queue_familiy_indices[CommandQueueType::COMPUTE] =
-                    i;
+                m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE] = i;
             }
             // dedicate transfer queue
-            if (!(queue_family_properties[i].queueFlags &
-                  VK_QUEUE_GRAPHICS_BIT) &&
+            if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-                !(queue_family_properties[i].queueFlags &
-                  VK_QUEUE_COMPUTE_BIT)) {
-                m_vulkan
-                    .command_queue_familiy_indices[CommandQueueType::TRANSFER] =
-                    i;
+                !(queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER] = i;
             }
         }
         if (gpu != VK_NULL_HANDLE) {
@@ -278,24 +240,20 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) noexcept {
     }
 }
 
-void RHIVulkan::CreateDevice(
-    std::vector<const char *> &device_extensions) noexcept {
+void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) noexcept {
 
     PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
 
-    std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(
-        m_vulkan.command_queues.size());
+    std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(m_vulkan.command_queues.size());
 
     f32 queue_priority = 1.0f;
 
     for (u32 i = 0; i < device_queue_create_info.size(); i++) {
         device_queue_create_info[i] = {};
-        device_queue_create_info[i].sType =
-            VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        device_queue_create_info[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         device_queue_create_info[i].pNext = NULL;
         device_queue_create_info[i].flags = 0;
-        device_queue_create_info[i].queueFamilyIndex =
-            m_vulkan.command_queue_familiy_indices[i];
+        device_queue_create_info[i].queueFamilyIndex = m_vulkan.command_queue_familiy_indices[i];
         device_queue_create_info[i].queueCount = 1;
         device_queue_create_info[i].pQueuePriorities = &queue_priority;
     }
@@ -303,8 +261,7 @@ void RHIVulkan::CreateDevice(
     // bindless extension
 
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexing_features{};
-    indexing_features.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+    indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
     indexing_features.pNext = nullptr;
     indexing_features.runtimeDescriptorArray = VK_TRUE;
     indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
@@ -318,40 +275,30 @@ void RHIVulkan::CreateDevice(
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pQueueCreateInfos = device_queue_create_info.data();
-    device_create_info.queueCreateInfoCount =
-        static_cast<u32>(device_queue_create_info.size());
-    device_create_info.enabledExtensionCount =
-        static_cast<u32>(device_extensions.size());
+    device_create_info.queueCreateInfoCount = static_cast<u32>(device_queue_create_info.size());
+    device_create_info.enabledExtensionCount = static_cast<u32>(device_extensions.size());
     device_create_info.ppEnabledExtensionNames = device_extensions.data();
     device_create_info.pNext = &device_features;
 
-    CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info,
-                                   nullptr, &m_vulkan.device));
+    CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info, nullptr, &m_vulkan.device));
 
     // retrive command queue
 
-    vkGetDeviceQueue(
-        m_vulkan.device,
-        m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS], 0,
-        &m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
+    vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS], 0,
+                     &m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
     // vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index,
     // 0, &m_vulkan.m_present_queue);
-    vkGetDeviceQueue(
-        m_vulkan.device,
-        m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER], 0,
-        &m_vulkan.command_queues[CommandQueueType::TRANSFER]);
-    vkGetDeviceQueue(
-        m_vulkan.device,
-        m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE], 0,
-        &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
+    vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER], 0,
+                     &m_vulkan.command_queues[CommandQueueType::TRANSFER]);
+    vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE], 0,
+                     &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
 
 #ifdef USE_ASYNC_COMPUTE_TRANSFER
-    LOG_DEBUG(
-        "using async compute & transfer, graphics queue: {}, compute "
-        "queue: {}, transfer queue: {}",
-        m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
-        m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
-        m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
+    LOG_DEBUG("using async compute & transfer, graphics queue: {}, compute "
+              "queue: {}, transfer queue: {}",
+              m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
+              m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
+              m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
 #endif // USE_ASYNC_COMPUTE
 }
 
@@ -374,24 +321,20 @@ void RHIVulkan::CreateSyncObjects() noexcept {
     fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
     for (auto &fence : m_vulkan.fences) {
-        CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info,
-                                      nullptr, &fence));
+        CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info, nullptr, &fence));
     }
 }
 
 void RHIVulkan::DestroySwapChain() noexcept {
     for (u32 i = 0; i < m_vulkan.swap_chain_images.size(); i++) {
-        vkDestroyImageView(m_vulkan.device, m_vulkan.swap_chain_image_views[i],
-                           nullptr);
+        vkDestroyImageView(m_vulkan.device, m_vulkan.swap_chain_image_views[i], nullptr);
         // vkDestroyImage(m_vulkan.device, m_vulkan.swap_chain_images[i],
         // nullptr);
     }
     vkDestroySwapchainKHR(m_vulkan.device, m_vulkan.swap_chain, nullptr);
 }
 
-void RHIVulkan::SubmitCommandLists(
-    CommandQueueType queue_type,
-    std::vector<CommandList *> &command_lists) noexcept {
+void RHIVulkan::SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) noexcept {
     // submit command buffers
     // VkCommandBufferBeginInfo begin_info{};
     // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -407,9 +350,7 @@ void RHIVulkan::SubmitCommandLists(
 
     std::vector<VkCommandBuffer> command_buffers(command_lists.size());
     for (u32 i = 0; i < command_lists.size(); i++) {
-        command_buffers[i] =
-            reinterpret_cast<VulkanCommandList *>(command_lists[i])
-                ->m_command_buffer;
+        command_buffers[i] = reinterpret_cast<VulkanCommandList *>(command_lists[i])->m_command_buffer;
         // valid command list type when submitting
     }
 
@@ -423,8 +364,7 @@ void RHIVulkan::SubmitCommandLists(
     vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, fence);
 }
 
-void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
-                            u32 binding) noexcept {
+void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) noexcept {
 
     auto descriptor_type = buffer->m_descriptor_type;
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
@@ -465,23 +405,19 @@ void RHIVulkan::SetResource(Texture *texture) noexcept {
     image_info.imageLayout;
 }
 
-void RHIVulkan::UpdateDescriptors() noexcept {
-    m_descriptor_set_manager->Update();
-}
+void RHIVulkan::UpdateDescriptors() noexcept { m_descriptor_set_manager->Update(); }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) noexcept {
 
     if (!thread_command_context) {
-        thread_command_context =
-            std::make_unique<VulkanCommandContext>(m_vulkan);
+        thread_command_context = std::make_unique<VulkanCommandContext>(m_vulkan);
     }
 
     return thread_command_context->GetCommandList(type);
 }
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) noexcept {
-    vkWaitForFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type], VK_TRUE,
-                    UINT64_MAX);
+    vkWaitForFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type], VK_TRUE, UINT64_MAX);
     vkResetFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type]);
 }
 
@@ -491,17 +427,13 @@ void RHIVulkan::ResetCommandResources() noexcept {
     }
 }
 
-Pipeline *RHIVulkan::CreateGraphicsPipeline(
-    const GraphicsPipelineCreateInfo &create_info) noexcept {
+Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) noexcept {
 
-    return new VulkanPipeline(m_vulkan, create_info,
-                              *m_descriptor_set_manager.get());
+    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
 }
 
-Pipeline *RHIVulkan::CreateComputePipeline(
-    const ComputePipelineCreateInfo &create_info) noexcept {
-    return new VulkanPipeline(m_vulkan, create_info,
-                              *m_descriptor_set_manager.get());
+Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &create_info) noexcept {
+    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
 }
 
 } // namespace Horizon::RHI

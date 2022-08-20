@@ -21,8 +21,7 @@ class Camera {
     Camera &operator=(Camera &&rhs) noexcept = delete;
 
   public:
-    void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near,
-                                        f32 far) noexcept;
+    void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far) noexcept;
 
     Math::float4x4 GetProjectionMatrix() const noexcept;
 

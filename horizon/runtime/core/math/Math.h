@@ -29,14 +29,11 @@ inline float3 Normalize(const float3 &f) {
     return ret;
 }
 
-inline float3 Cross(const float3 &lhs, const float3 &rhs) {
-    return lhs.Cross(rhs);
-}
+inline float3 Cross(const float3 &lhs, const float3 &rhs) { return lhs.Cross(rhs); }
 
 inline f32 Radians(f32 angle) { return _PI / 180.0f; }
 
-inline float4x4 LookAt(const float3 &eye, const float3 &target,
-                       const float3 &up) {
+inline float4x4 LookAt(const float3 &eye, const float3 &target, const float3 &up) {
     return DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);
 }
 // inline float4x4 PerspectiveProjection(float width, float height,
@@ -46,11 +43,9 @@ inline float4x4 LookAt(const float3 &eye, const float3 &target,
 //                                                    far_plane);
 // }
 
-inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane,
-                            float far_plane) {
+inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane, float far_plane) {
     float rad = fov * _PI / 180.0f;
-    auto mat = DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(
-        rad, aspect_ratio, near_plane, far_plane);
+    auto mat = DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(rad, aspect_ratio, near_plane, far_plane);
     mat; // reversed-z
     return std::move(mat);
 }

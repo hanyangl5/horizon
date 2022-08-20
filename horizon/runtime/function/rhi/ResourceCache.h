@@ -5,14 +5,12 @@
 
 namespace std {
 
-template <typename T>
-inline void hash_combine(std::size_t &seed, const T &val) {
+template <typename T> inline void hash_combine(std::size_t &seed, const T &val) {
     seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 template <> struct hash<VkDescriptorSetLayoutCreateInfo> {
-    inline Horizon::u64
-    operator()(VkDescriptorSetLayoutCreateInfo const &layout) const {
+    inline Horizon::u64 operator()(VkDescriptorSetLayoutCreateInfo const &layout) const {
         std::size_t seed = 0;
         hash_combine(seed, layout.bindingCount);
         for (Horizon::u32 i = 0; i < layout.bindingCount; i++) {
@@ -25,14 +23,12 @@ template <> struct hash<VkDescriptorSetLayoutCreateInfo> {
     }
 };
 template <> struct hash<Horizon::GraphicsPipelineCreateInfo> {
-    inline Horizon::u64
-    operator()(const Horizon::GraphicsPipelineCreateInfo &create_info) const {
+    inline Horizon::u64 operator()(const Horizon::GraphicsPipelineCreateInfo &create_info) const {
         std::size_t seed = 0;
         hash_combine(seed, create_info.depth_stencil_state.depthRange[0]);
         hash_combine(seed, create_info.depth_stencil_state.depthRange[1]);
         hash_combine(seed, create_info.depth_stencil_state.depth_func);
-        hash_combine(seed,
-                     create_info.depth_stencil_state.depth_stencil_format);
+        hash_combine(seed, create_info.depth_stencil_state.depth_stencil_format);
         hash_combine(seed, create_info.depth_stencil_state.depth_test);
         hash_combine(seed, create_info.depth_stencil_state.depth_write);
         //
@@ -40,8 +36,7 @@ template <> struct hash<Horizon::GraphicsPipelineCreateInfo> {
     }
 };
 template <> struct hash<Horizon::ComputePipelineCreateInfo> {
-    inline Horizon::u64
-    operator()(const Horizon::ComputePipelineCreateInfo &create_info) const {
+    inline Horizon::u64 operator()(const Horizon::ComputePipelineCreateInfo &create_info) const {
         std::size_t seed = 0;
         //
         return seed;
@@ -49,8 +44,7 @@ template <> struct hash<Horizon::ComputePipelineCreateInfo> {
 };
 
 template <> struct hash<Horizon::PipelineCreateInfo> {
-    inline Horizon::u64
-    operator()(const Horizon::PipelineCreateInfo &create_info) const {
+    inline Horizon::u64 operator()(const Horizon::PipelineCreateInfo &create_info) const {
         std::size_t seed = 0;
         switch (create_info.type) {
         case Horizon::PipelineType::GRAPHICS:

@@ -19,19 +19,16 @@ Log::~Log() noexcept {
     spdlog::drop_all();
 }
 
-void Log::CheckVulkanResult(VkResult _res, const char* func_name,
-                            int line) const noexcept {
+void Log::CheckVulkanResult(VkResult _res, const char *func_name, int line) const noexcept {
     if (_res != VK_SUCCESS) {
-        m_logger->error("[function: {}], [line: {}], vulkan result checking failed", func_name,
-                        line);
+        m_logger->error("[function: {}], [line: {}], vulkan result checking failed", func_name, line);
     }
 }
 
-void Log::CheckDXResult(HRESULT hr, const char *func_name,
-                        int line) const noexcept {
+void Log::CheckDXResult(HRESULT hr, const char *func_name, int line) const noexcept {
     if (FAILED(hr)) {
-        m_logger->error("[function: {}], [line: {}], directx result checking failed:{}",
-                        func_name, line, HrToString(hr));
+        m_logger->error("[function: {}], [line: {}], directx result checking failed:{}", func_name, line,
+                        HrToString(hr));
     }
 }
 

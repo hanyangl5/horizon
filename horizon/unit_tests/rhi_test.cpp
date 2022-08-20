@@ -29,42 +29,36 @@ class RHITest {
 TEST_CASE_FIXTURE(RHITest, "buffer creation test") {
 
     auto rhi = engine->m_render_system->GetRhi();
-    rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 32});
+    rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 32});
 }
 
 TEST_CASE_FIXTURE(RHITest, "texture creation test") {
 
     auto rhi = engine->m_render_system->GetRhi();
-    rhi->CreateTexture(
-        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
-                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                          TextureType::TEXTURE_TYPE_2D,
-                          TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, 4, 4, 1});
+    rhi->CreateTexture(TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
+                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, TextureType::TEXTURE_TYPE_2D,
+                                         TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, 4, 4, 1});
 }
 
 TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
 
     auto rhi = engine->m_render_system->GetRhi();
 
-    Resource<Buffer> buffer{rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(Math::float3)})};
+    Resource<Buffer> buffer{
+        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3)})};
 
     // dynamic buffer, cpu pointer not change, cpu data change, gpu data
     // change
     for (u32 i = 0; i < 10; i++) {
         engine->BeginNewFrame();
 
-        Math::float3 data{
-            static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-            static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-            static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
+        Math::float3 data{static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                          static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                          static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
 
-        auto transfer =
-            rhi->GetCommandList(CommandQueueType::TRANSFER);
+        auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
 
@@ -74,8 +68,7 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
         transfer->EndRecording();
 
         // stage -> gpu
-        rhi->SubmitCommandLists(CommandQueueType::TRANSFER,
-                                                    std::vector{transfer});
+        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, std::vector{transfer});
         engine->EndFrame();
     }
 }
@@ -84,8 +77,7 @@ TEST_CASE_FIXTURE(RHITest, "shader compile test") {
 
     auto rhi = engine->m_render_system->GetRhi();
     std::string file_name = asset_path + "shaders/hlsl/shader.hlsl";
-    auto shader_program = rhi->CreateShaderProgram(
-        ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
+    auto shader_program = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
     rhi->DestroyShaderProgram(shader_program);
 }
 
@@ -94,8 +86,7 @@ TEST_CASE_FIXTURE(RHITest, "spirv shader reflection test") {
     auto rhi = engine->m_render_system->GetRhi();
     std::string file_name = asset_path + "shaders/hlsl/"
                                          "ps_descriptor_set_reflect.hlsl";
-    auto shader_program = rhi->CreateShaderProgram(
-        ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
+    auto shader_program = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
     rhi->DestroyShaderProgram(shader_program);
 }
 
@@ -106,13 +97,11 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
     auto rhi = engine->m_render_system->GetRhi();
     // Horizon::RDC::StartFrameCapture();
     std::string file_name = asset_path + "shaders/hlsl/cs.hlsl";
-    auto shader{rhi->CreateShaderProgram(
-        ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
+    auto shader{rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
     ComputePipelineCreateInfo info;
     auto pipeline = rhi->CreateComputePipeline(info);
 
-    auto cl =
-        rhi->GetCommandList(CommandQueueType::COMPUTE);
+    auto cl = rhi->GetCommandList(CommandQueueType::COMPUTE);
     pipeline->SetComputeShader(shader);
     cl->BeginRecording();
     cl->BindPipeline(pipeline);
@@ -128,52 +117,37 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     auto rhi = engine->m_render_system->GetRhi();
     Horizon::RDC::StartFrameCapture();
-    std::string file_name =
-        asset_path + "shaders/hlsl/cs_descriptor_set_cache.hlsl";
+    std::string file_name = asset_path + "shaders/hlsl/cs_descriptor_set_cache.hlsl";
 
-    auto shader = rhi->CreateShaderProgram(
-        ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
+    auto shader = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
 
     ComputePipelineCreateInfo info;
     auto pipeline = rhi->CreateComputePipeline(info);
 
     Resource<Buffer> cb1{rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
     Resource<Buffer> cb2{rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
     Resource<Buffer> cb3{rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
     Resource<Buffer> cb4{rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
-    Resource<Buffer> rwb1{rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
+    Resource<Buffer> rwb1{rhi->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
-    Resource<Buffer> rwb2{rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
-    Resource<Buffer> rwb3{rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
+    Resource<Buffer> rwb2{rhi->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
+    Resource<Buffer> rwb3{rhi->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
-    Resource<Buffer> rwb4{rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(f32)})};
+    Resource<Buffer> rwb4{rhi->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
     f32 data[4] = {5, 6, 7, 7};
 
-    auto transfer =
-        rhi->GetCommandList(CommandQueueType::TRANSFER);
+    auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
     transfer->BeginRecording();
 
@@ -188,11 +162,9 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     transfer->EndRecording();
 
-    rhi->SubmitCommandLists(CommandQueueType::TRANSFER,
-                                                std::vector{transfer});
+    rhi->SubmitCommandLists(CommandQueueType::TRANSFER, std::vector{transfer});
 
-    auto cl =
-        rhi->GetCommandList(CommandQueueType::COMPUTE);
+    auto cl = rhi->GetCommandList(CommandQueueType::COMPUTE);
 
     // barrier trans -> compute
 
@@ -274,16 +246,14 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
     std::vector<Resource<Buffer>> buffers;
 
     for (u32 i = 0; i < cmdlist_count; i++) {
-        buffers.emplace_back(rhi->CreateBuffer(
-            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                             sizeof(Math::float3)}));
+        buffers.emplace_back(
+            rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                               ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3)}));
 
         results[i] = std::move(tp->submit([&rhi, &cmdlists, &buffers, i]() {
-            Math::float3 data{
-                static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-                static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-                static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
+            Math::float3 data{static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                              static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                              static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
 
             auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
@@ -304,75 +274,57 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
     }
     LOG_INFO("all task done");
 
-    rhi->SubmitCommandLists(CommandQueueType::TRANSFER,
-                                                cmdlists);
+    rhi->SubmitCommandLists(CommandQueueType::TRANSFER, cmdlists);
 
     engine->EndFrame();
 }
 
 TEST_CASE_FIXTURE(RHITest, "draw") {
 
-
-
     auto rhi = engine->m_render_system->GetRhi();
     std::string vs_path = asset_path + "shaders/hlsl/graphics_pass.hlsl";
     std::string ps_path = asset_path + "shaders/hlsl/graphics_pass.hlsl";
 
-    auto vs = rhi->CreateShaderProgram(
-        ShaderType::VERTEX_SHADER, "vs_main", 0, vs_path);
+    auto vs = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, "vs_main", 0, vs_path);
 
-    auto ps = rhi->CreateShaderProgram(
-        ShaderType::PIXEL_SHADER, "ps_main", 0, ps_path);
+    auto ps = rhi->CreateShaderProgram(ShaderType::PIXEL_SHADER, "ps_main", 0, ps_path);
 
     GraphicsPipelineCreateInfo info{};
     info.view_port_state.width = width;
     info.view_port_state.height = height;
     info.depth_stencil_state.depth_func = DepthFunc::LESS;
 
-
-
-
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
-    Mesh mesh(*rhi, MeshDesc{VertexAttributeType::POSTION |
-                                      VertexAttributeType::NORMAL});
-    //rhi->GetVertexBuffer(mesh);
+    Mesh mesh(*rhi, MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL});
+    // rhi->GetVertexBuffer(mesh);
     mesh.LoadMesh(BasicGeometry::BasicGeometry::CUBE);
     auto vertexbuffer = mesh.GetVertexBuffer();
     auto indexbuffer = mesh.GetIndexBuffer();
 
-    auto view = Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f),
-                             Math::float3(0.0f, 0.0f, 0.0f),
-                             Math::float3(0.0f, 1.0f, 0.0f));
-    auto projection =
-        Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
+    auto view =
+        Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+    auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
     auto vp = projection * view;
     vp = vp.Transpose();
 
-    auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
+    auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
 
     for (u32 frame = 0; frame < 3; frame++) {
         engine->BeginNewFrame();
 
-        
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
 
-        transfer->UpdateBuffer(vp_buffer.get(), &vp,
-                               sizeof(vp));
+        transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(vp));
         transfer->EndRecording();
-        
-        rhi->SubmitCommandLists(CommandQueueType::TRANSFER,
-                                std::vector{transfer});
+
+        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, std::vector{transfer});
         rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
 
-        
-
-        auto cl =
-            rhi->GetCommandList(CommandQueueType::GRAPHICS);
+        auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
         pipeline->SetGraphicsShader(vs, ps);
 
         rhi->SetResource(vp_buffer.get(), pipeline, 0, 0);
@@ -385,7 +337,6 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         cl->BindPipeline(pipeline);
         cl->BindVertexBuffer(1, &vertexbuffer, 0);
         cl->BindIndexBuffer(indexbuffer, 0);
-
 
         for (auto &node : mesh.GetNodes()) {
             for (auto &m : node.mesh_primitives) {

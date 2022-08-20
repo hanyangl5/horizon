@@ -34,9 +34,8 @@ class ShaderCompiler {
     ShaderCompiler &operator=(ShaderCompiler &&rhs) noexcept = delete;
 
   public:
-    IDxcBlob *CompileFromFile(ShaderTargetPlatform platform, ShaderType type,
-                              const std::string &entry_point, u32 compile_flags,
-                              std::string file_name) noexcept;
+    IDxcBlob *CompileFromFile(ShaderTargetPlatform platform, ShaderType type, const std::string &entry_point,
+                              u32 compile_flags, std::string file_name) noexcept;
 
     static std::vector<char> read_file(const std::string &path) noexcept;
 

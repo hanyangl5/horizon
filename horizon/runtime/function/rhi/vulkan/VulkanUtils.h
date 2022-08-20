@@ -36,9 +36,8 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept;
 
 VkImageUsageFlags util_to_vk_image_usage(DescriptorType usage) noexcept;
 
-VkPipelineStageFlags
-util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
-                                    CommandQueueType queueType) noexcept;
+VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
+                                                         CommandQueueType queueType) noexcept;
 
 VkShaderStageFlags ToVkShaderStageFlags(u32 stage) noexcept;
 
@@ -46,11 +45,10 @@ VkImageType ToVkImageType(TextureType type) noexcept;
 
 VkFormat ToVkImageFormat(TextureFormat format) noexcept;
 
-VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format,
-                                       bool includeStencilBit) noexcept;
+VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) noexcept;
 
-VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage,
-                                           bool typed) noexcept;
+VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed) noexcept;
+
 VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept;
 
 VkPrimitiveTopology ToVkPrimitiveTopology(PrimitiveTopology t) noexcept;

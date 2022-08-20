@@ -16,23 +16,18 @@ void ShaderCompiler::InitializeShaderCompiler() noexcept {
     DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler));
 }
 
-IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform,
-                                          ShaderType type,
-                                          const std::string &entry_point,
-                                          u32 compile_flags,
+IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform, ShaderType type,
+                                          const std::string &entry_point, u32 compile_flags,
                                           std::string file_name) noexcept {
 
     // read source file
     IDxcBlobEncoding *source_file = nullptr;
-    idxc_utils->LoadFile(
-        std::wstring(file_name.begin(), file_name.end()).c_str(), nullptr,
-        &source_file);
+    idxc_utils->LoadFile(std::wstring(file_name.begin(), file_name.end()).c_str(), nullptr, &source_file);
 
     DxcBuffer source_buffer;
     source_buffer.Ptr = source_file->GetBufferPointer();
     source_buffer.Size = source_file->GetBufferSize();
-    source_buffer.Encoding =
-        DXC_CP_ACP; // Assume BOM says UTF8 or UTF16 or this is ANSI text.
+    source_buffer.Encoding = DXC_CP_ACP; // Assume BOM says UTF8 or UTF16 or this is ANSI text.
 
     IDxcIncludeHandler *pIncludeHandler;
     idxc_utils->CreateDefaultIncludeHandler(&pIncludeHandler);
@@ -51,8 +46,8 @@ IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform,
     case Horizon::ShaderType::COMPUTE_SHADER:
         typestr = "cs";
         break;
-    //case Horizon::ShaderType::GEOMETRY_SHADER:
-    //    typestr = "gs";
+        // case Horizon::ShaderType::GEOMETRY_SHADER:
+        //     typestr = "gs";
         break;
     default:
         break;
@@ -73,17 +68,14 @@ IDxcBlob *ShaderCompiler::CompileFromFile(ShaderTargetPlatform platform,
 
     // compile
     IDxcResult *compile_result;
-    CHECK_DX_RESULT(idxc_compiler->Compile(&source_buffer, compile_args.data(),
-                                           compile_args.size(), nullptr,
+    CHECK_DX_RESULT(idxc_compiler->Compile(&source_buffer, compile_args.data(), compile_args.size(), nullptr,
                                            IID_PPV_ARGS(&compile_result)));
     IDxcBlobUtf8 *error_msg;
-    compile_result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&error_msg),
-                              nullptr);
+    compile_result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&error_msg), nullptr);
 
     if (error_msg && error_msg->GetStringLength() > 0) {
         LOG_ERROR("failed to compile shader: {}",
-                  std::string{(char *)error_msg->GetBufferPointer(),
-                              error_msg->GetBufferSize()});
+                  std::string{(char *)error_msg->GetBufferPointer(), error_msg->GetBufferSize()});
         return nullptr;
     }
 

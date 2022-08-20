@@ -40,9 +40,7 @@ class Window {
     u32 GetHeight() const noexcept;
     GLFWwindow *GetWindow() const noexcept;
 #ifdef _WIN32
-    HWND GetWin32Window() const noexcept {
-        return glfwGetWin32Window(m_window);
-    }
+    HWND GetWin32Window() const noexcept { return glfwGetWin32Window(m_window); }
 #endif
     int ShouldClose() const noexcept;
     void close() noexcept;

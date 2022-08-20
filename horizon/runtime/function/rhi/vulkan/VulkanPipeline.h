@@ -8,19 +8,16 @@
 namespace Horizon::RHI {
 class VulkanPipeline : public Pipeline {
   public:
-    VulkanPipeline(const VulkanRendererContext &context,
-                   const GraphicsPipelineCreateInfo &create_info,
+    VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
-    VulkanPipeline(const VulkanRendererContext &context,
-                   const ComputePipelineCreateInfo &create_info,
+    VulkanPipeline(const VulkanRendererContext &context, const ComputePipelineCreateInfo &create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     ~VulkanPipeline() noexcept;
 
     const std::vector<VkDescriptorSet> &CreatePipelineResources() noexcept;
 
     void SetComputeShader(ShaderProgram *vs) noexcept override;
-    void SetGraphicsShader(ShaderProgram *vs,
-                           ShaderProgram *ps) noexcept override;
+    void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) noexcept override;
 
   private:
     void CreateGraphicsPipeline() noexcept;

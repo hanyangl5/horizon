@@ -2,8 +2,7 @@
 
 namespace Horizon {
 
-u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format,
-                                            u32 portions) {
+u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions) {
     u32 stride = 0;
     switch (format) {
     case Horizon::VertexAttribFormat::U8:

@@ -11,7 +11,7 @@ struct Vertex {
   public:
     Math::float3 pos;
     Math::float3 normal;
-    //Math::float4 tbn;
+    // Math::float4 tbn;
     Math::float2 uv1, uv2;
 };
 

@@ -24,6 +24,5 @@ class Texture {
     const u32 m_width{}, m_height{}, m_depth{};
 
   protected:
-
 };
 } // namespace Horizon::RHI

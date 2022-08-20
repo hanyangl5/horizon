@@ -10,8 +10,7 @@
 namespace Horizon::RHI {
 class VulkanShaderProgram : public ShaderProgram {
   public:
-    VulkanShaderProgram(const VulkanRendererContext &context, ShaderType type,
-                        const std::string &entry_point,
+    VulkanShaderProgram(const VulkanRendererContext &context, ShaderType type, const std::string &entry_point,
                         IDxcBlob *shader_byte_code) noexcept;
     virtual ~VulkanShaderProgram() noexcept;
     // virtual void* GetBufferPointer() const noexcept override;

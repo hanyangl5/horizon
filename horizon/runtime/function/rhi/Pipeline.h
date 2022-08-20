@@ -17,8 +17,7 @@ class Pipeline {
     PipelineType GetType() const noexcept;
 
     virtual void SetComputeShader(ShaderProgram *vs) noexcept = 0;
-    virtual void SetGraphicsShader(ShaderProgram *vs,
-                                   ShaderProgram *ps) noexcept = 0;
+    virtual void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) noexcept = 0;
     //// vertex input state
     // virtual void SetVertexInputState(const VertexInputStateCreateInfo&
     // vertex_input_state_create_info) noexcept = 0;

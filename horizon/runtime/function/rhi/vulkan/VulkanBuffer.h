@@ -9,9 +9,7 @@ namespace Horizon::RHI {
 
 class VulkanBuffer : public Buffer {
   public:
-    VulkanBuffer(VmaAllocator allocator,
-                 const BufferCreateInfo &buffer_create_info,
-                 MemoryFlag memory_flag) noexcept;
+    VulkanBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info, MemoryFlag memory_flag) noexcept;
     virtual ~VulkanBuffer() noexcept;
 
   private:

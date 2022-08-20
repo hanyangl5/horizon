@@ -38,8 +38,7 @@ void HorizonApplication::Run(const EngineConfig &config) noexcept {
 void HorizonApplication::PrepareResources() noexcept {}
 
 int main(int argc, char *argv[]) {
-    std::unique_ptr<HorizonApplication> application{
-        std::make_unique<HorizonApplication>()};
+    std::unique_ptr<HorizonApplication> application{std::make_unique<HorizonApplication>()};
 
     argparse::ArgumentParser args("app");
 
@@ -61,9 +60,8 @@ int main(int argc, char *argv[]) {
     config.width = iniparser_getint(ini, "app:width", 1920);
     config.height = iniparser_getint(ini, "app:height", 1080);
 
-    const auto &asset_path = iniparser_getstring(
-        ini, "app:asset_path",
-        "UNKOWN"); // TODO: convert to absolute path, cmake ?
+    const auto &asset_path = iniparser_getstring(ini, "app:asset_path",
+                                                 "UNKOWN"); // TODO: convert to absolute path, cmake ?
 
     if (asset_path == "UNKOWN") {
         LOG_ERROR("asset path not valid");

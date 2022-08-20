@@ -11,8 +11,7 @@ struct LightParams {
     Math::float4 color_intensity = Math::float4(0.0); // r, g, b, intensity
     Math::float4 position_type = Math::float4(0.0);
     Math::float4 direction = Math::float4(0.0);
-    Math::float4 radius_inner_outer =
-        Math::float4(0.0); // radius, innerConeAngle, outerConeAngle
+    Math::float4 radius_inner_outer = Math::float4(0.0); // radius, innerConeAngle, outerConeAngle
 };
 
 class Light {
@@ -29,21 +28,17 @@ class Light {
 
 class DirectionalLight : public Light {
   public:
-    DirectionalLight(Math::color color, f32 intensity,
-                     Math::float3 direction) noexcept {
+    DirectionalLight(Math::color color, f32 intensity, Math::float3 direction) noexcept {
         m_type = LightType::DIRECT_LIGHT;
     }
 };
 class PointLight : public Light {
   public:
-    PointLight(Math::float3 color, f32 intensity, f32 radius) noexcept {
-        m_type = LightType::POINT_LIGHT;
-    }
+    PointLight(Math::float3 color, f32 intensity, f32 radius) noexcept { m_type = LightType::POINT_LIGHT; }
 };
 class SpotLight : public Light {
   public:
-    SpotLight(Math::float3 color, f32 intensity, f32 inner_cone,
-              f32 outer_cone) noexcept {
+    SpotLight(Math::float3 color, f32 intensity, f32 inner_cone, f32 outer_cone) noexcept {
         m_type = LightType::SPOT_LIGHT;
     }
 };

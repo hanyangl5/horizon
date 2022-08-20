@@ -65,9 +65,8 @@ std::array<Index, 36> cube_indices{// Top
 std::vector<Vertex> sphere_vertices;
 std::vector<Index> sphere_indices;
 
-std::array<Vertex, 4> quad_vertices = {
-    Vertex{Math::float3(-1.0, -1.0, 0.0)}, Vertex{Math::float3(-1.0, 1.0, 0.0)},
-    Vertex{Math::float3(1.0, 1.0, 0.0)}, Vertex{Math::float3(1.0, -1.0, 0.0)}};
+std::array<Vertex, 4> quad_vertices = {Vertex{Math::float3(-1.0, -1.0, 0.0)}, Vertex{Math::float3(-1.0, 1.0, 0.0)},
+                                       Vertex{Math::float3(1.0, 1.0, 0.0)}, Vertex{Math::float3(1.0, -1.0, 0.0)}};
 
 std::array<Index, 6> quad_indices = {0, 1, 2, 1, 3, 2};
 

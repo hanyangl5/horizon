@@ -7,8 +7,7 @@
 namespace Horizon::RHI {
 class VulkanTexture : public Texture {
   public:
-    VulkanTexture(VmaAllocator allocator,
-                  const TextureCreateInfo &buffer_create_info) noexcept;
+    VulkanTexture(VmaAllocator allocator, const TextureCreateInfo &buffer_create_info) noexcept;
     virtual ~VulkanTexture() noexcept;
 
   public:

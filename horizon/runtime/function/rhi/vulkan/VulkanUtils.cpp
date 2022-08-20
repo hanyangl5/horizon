@@ -60,8 +60,7 @@ VkAccessFlags util_to_vk_access_flags(ResourceState state) noexcept {
         ret |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
     }
     if (state & RESOURCE_STATE_RENDER_TARGET) {
-        ret |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        ret |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     }
     if (state & RESOURCE_STATE_DEPTH_WRITE) {
         ret |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -130,20 +129,17 @@ VkImageUsageFlags util_to_vk_image_usage(DescriptorType usage) noexcept {
     return result;
 }
 
-VkPipelineStageFlags
-util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
-                                    CommandQueueType queueType) noexcept {
+VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
+                                                         CommandQueueType queueType) noexcept {
     VkPipelineStageFlags flags = 0;
 
     switch (queueType) {
     case GRAPHICS: {
-        if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT |
-                            VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0)
+        if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0)
             flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-        if ((accessFlags &
-             (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
-              VK_ACCESS_SHADER_WRITE_BIT)) != 0) {
+        if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) !=
+            0) {
             flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
             flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             // if (pRenderer->pActiveGpuSettings->mGeometryShaderSupported) {
@@ -166,14 +162,12 @@ util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
         if ((accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0)
             flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
-        if ((accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0)
+        if ((accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0)
             flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        if ((accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
-            flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                     VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        if ((accessFlags &
+             (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+            flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 
 #if defined(QUEST_VR)
         if ((accessFlags & VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT) != 0)
@@ -182,18 +176,14 @@ util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
         break;
     }
     case COMPUTE: {
-        if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT |
-                            VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0 ||
+        if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0 ||
             (accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0 ||
-            (accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0 ||
-            (accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+            (accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0 ||
+            (accessFlags &
+             (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
             return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
-        if ((accessFlags &
-             (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
-              VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+        if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
             flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
         break;
@@ -208,12 +198,10 @@ util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
     if ((accessFlags & VK_ACCESS_INDIRECT_COMMAND_READ_BIT) != 0)
         flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
 
-    if ((accessFlags &
-         (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0)
+    if ((accessFlags & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0)
         flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-    if ((accessFlags & (VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT)) !=
-        0)
+    if ((accessFlags & (VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT)) != 0)
         flags |= VK_PIPELINE_STAGE_HOST_BIT;
 
     if (flags == 0)
@@ -340,8 +328,7 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
     }
 }
 
-VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format,
-                                       bool includeStencilBit) noexcept {
+VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) noexcept {
     VkImageAspectFlags result = 0;
     switch (format) {
         // Depth
@@ -370,8 +357,7 @@ VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format,
     return result;
 }
 
-VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage,
-                                           bool typed) noexcept {
+VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed) noexcept {
     VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     if (usage & DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -400,8 +386,7 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage,
         result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
     }
     if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT) {
-        result |=
-            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
     }
     if (usage & DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS) {
         result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -413,9 +398,7 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage,
     return result;
 }
 
-VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
-    return VK_FORMAT_MAX_ENUM;
-}
+VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept { return VK_FORMAT_MAX_ENUM; }
 
 VkPrimitiveTopology ToVkPrimitiveTopology(PrimitiveTopology t) noexcept {
     switch (t) {

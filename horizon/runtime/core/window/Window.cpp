@@ -4,8 +4,7 @@
 
 namespace Horizon {
 
-Window::Window(const char *_name, u32 _width, u32 _height) noexcept
-    : width(_width), height(_height) {
+Window::Window(const char *_name, u32 _width, u32 _height) noexcept : width(_width), height(_height) {
     if (glfwInit() != GLFW_TRUE) {
         glfwTerminate();
         LOG_ERROR("failed to init glfw");
@@ -33,9 +32,7 @@ u32 Window::GetHeight() const noexcept { return height; }
 
 GLFWwindow *Window::GetWindow() const noexcept { return m_window; }
 
-int Window::ShouldClose() const noexcept {
-    return glfwWindowShouldClose(m_window);
-}
+int Window::ShouldClose() const noexcept { return glfwWindowShouldClose(m_window); }
 
 void Window::close() noexcept { glfwSetWindowShouldClose(m_window, true); }
 

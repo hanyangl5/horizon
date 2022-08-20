@@ -24,18 +24,16 @@ class SceneManagementTest {
     std::string asset_path = "D:/codes/horizon/horizon/assets/";
 };
 
-
 TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
 
     auto &tp = engine->tp;
     constexpr u32 mesh_count = 500;
     std::vector<Mesh> meshes(mesh_count);
 
-    std::vector<std::string> paths = {
-        "D:/codes/horizon/horizon/assets/models/DamagedHelmet/"
-        "DamagedHelmet.gltf",
-        "D:/codes/horizon/horizon/assets/models/sponza/sponza.gltf",
-        "D:/codes/horizon/horizon/assets/models/cerberus/cerberus.gltf"};
+    std::vector<std::string> paths = {"D:/codes/horizon/horizon/assets/models/DamagedHelmet/"
+                                      "DamagedHelmet.gltf",
+                                      "D:/codes/horizon/horizon/assets/models/sponza/sponza.gltf",
+                                      "D:/codes/horizon/horizon/assets/models/cerberus/cerberus.gltf"};
 
     std::vector<std::future<void>> results(mesh_count);
 
@@ -53,8 +51,7 @@ TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
         res.wait();
     }
     auto tp2 = std::chrono::high_resolution_clock::now();
-    auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1)
-                   .count();
+    auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
     LOG_INFO("spend {} ms to load {} meshes", dur, mesh_count);
 }
 

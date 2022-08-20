@@ -49,9 +49,7 @@ u32 SubNodeCount(const aiNode *node) noexcept {
     return n;
 }
 
-u32 CalculateNodeCount(const aiScene *scene) noexcept {
-    return SubNodeCount(scene->mRootNode);
-}
+u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
 void Mesh::LoadMesh(const std::string &path) noexcept {
     // Assimp::Importer importer;
@@ -59,9 +57,8 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
-    const aiScene *scene = assimp_importer.ReadFile(
-        path, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-                  aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+    const aiScene *scene = assimp_importer.ReadFile(path, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
+                                                              aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
 
     // If the import failed, report it
     if (!scene) {
@@ -82,11 +79,9 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
 
             memcpy(&vertex.pos, &mesh->mVertices[v], sizeof(aiVector3D));
 
-            if (vertex_attribute_flag & VertexAttributeType::NORMAL &&
-                mesh->HasNormals()) {
+            if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals()) {
             }
-            if (vertex_attribute_flag & VertexAttributeType::UV1 &&
-                mesh->HasTextureCoords(0)) {
+            if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(0)) {
             }
 
             m_vertices.emplace_back(vertex);
@@ -109,31 +104,25 @@ void Mesh::LoadMesh(const std::string &path) noexcept {
 
     m_nodes.resize(node_count);
     ProcessNode(scene, scene->mRootNode, 0);
-    LOG_DEBUG("mesh successfully loaded, {} meshes, {} vertices, {} faces",
-              m_mesh_primitives.size(), m_vertices.size(), m_indices.size());
+    LOG_DEBUG("mesh successfully loaded, {} meshes, {} vertices, {} faces", m_mesh_primitives.size(), m_vertices.size(),
+              m_indices.size());
 }
 
 void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) noexcept {
     switch (basic_geometry) {
     case Horizon::BasicGeometry::BasicGeometry::QUAD:
-        m_vertices = std::vector<Vertex>(BasicGeometry::quad_vertices.begin(),
-                                         BasicGeometry::quad_vertices.end());
-        m_indices = std::vector<Index>(BasicGeometry::quad_indices.begin(),
-                                       BasicGeometry::quad_indices.end());
+        m_vertices = std::vector<Vertex>(BasicGeometry::quad_vertices.begin(), BasicGeometry::quad_vertices.end());
+        m_indices = std::vector<Index>(BasicGeometry::quad_indices.begin(), BasicGeometry::quad_indices.end());
         break;
     case Horizon::BasicGeometry::BasicGeometry::TRIANGLE:
         m_vertices =
-            std::vector<Vertex>(BasicGeometry::triangle_vertices.begin(),
-                                BasicGeometry::triangle_vertices.end());
-        m_indices = std::vector<Index>(BasicGeometry::triangle_indices.begin(),
-                                       BasicGeometry::triangle_indices.end());
+            std::vector<Vertex>(BasicGeometry::triangle_vertices.begin(), BasicGeometry::triangle_vertices.end());
+        m_indices = std::vector<Index>(BasicGeometry::triangle_indices.begin(), BasicGeometry::triangle_indices.end());
         break;
     case Horizon::BasicGeometry::BasicGeometry::CUBE:
-        m_vertices = std::vector<Vertex>(BasicGeometry::cube_vertices.begin(),
-                                         BasicGeometry::cube_vertices.end());
+        m_vertices = std::vector<Vertex>(BasicGeometry::cube_vertices.begin(), BasicGeometry::cube_vertices.end());
 
-        m_indices = std::vector<Index>(BasicGeometry::cube_indices.begin(),
-                                       BasicGeometry::cube_indices.end());
+        m_indices = std::vector<Index>(BasicGeometry::cube_indices.begin(), BasicGeometry::cube_indices.end());
 
         break;
     case Horizon::BasicGeometry::BasicGeometry::SPHERE:
@@ -161,10 +150,8 @@ RHI::Buffer *Mesh::GetIndexBuffer() noexcept {
     if (!m_index_buffer) {
         BufferCreateInfo buffer_create_info{};
         buffer_create_info.size = m_indices.size() * 3 * sizeof(Index);
-        buffer_create_info.descriptor_type =
-            DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
-        buffer_create_info.initial_state =
-            ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+        buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+        buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
         m_index_buffer = m_rhi->CreateBuffer(buffer_create_info);
     }
 
@@ -176,10 +163,8 @@ RHI::Buffer *Mesh::GetVertexBuffer() noexcept {
     if (!m_vertex_buffer) {
         BufferCreateInfo buffer_create_info{};
         buffer_create_info.size = m_vertices.size() * sizeof(Vertex);
-        buffer_create_info.descriptor_type =
-            DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        buffer_create_info.initial_state =
-            ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+        buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
         m_vertex_buffer = m_rhi->CreateBuffer(buffer_create_info);
     }
     return m_vertex_buffer.get();

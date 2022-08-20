@@ -41,29 +41,24 @@ class VulkanDescriptorSetManager {
     void ResetDescriptorPool() noexcept;
     void Update() noexcept;
     VkDescriptorSetLayout FindLayout(u64 key) const noexcept;
-    std::vector<VkDescriptorSet>
-    AllocateDescriptorSets(const PipelineLayoutDesc &layout_desc);
+    std::vector<VkDescriptorSet> AllocateDescriptorSets(const PipelineLayoutDesc &layout_desc);
 
   public:
     // std::vector<SpvReflectDescriptorSet *>
     // ReflectDescriptorSetLayout(void *spirv, u32 size);
     void CreateDescriptorPool() noexcept;
-    PipelineLayoutDesc
-    CreateLayouts(std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
-                  PipelineType pipeline_type) noexcept;
+    PipelineLayoutDesc CreateLayouts(std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
+                                     PipelineType pipeline_type) noexcept;
     // create layout for a single shader
 
-    PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs,
-                                                 VulkanShaderProgram *ps);
-    PipelineLayoutDesc
-    GetComputePipelineLayout(VulkanShaderProgram *cs);
+    PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs, VulkanShaderProgram *ps);
+    PipelineLayoutDesc GetComputePipelineLayout(VulkanShaderProgram *cs);
 
   public:
     const VulkanRendererContext &m_context;
     DescriptorPoolSizeDesc descriptor_pool_size_desc;
     VkDescriptorPool m_descriptor_pool = VK_NULL_HANDLE;
-    std::unordered_map<u64, DescriptorSetValue>
-        m_descriptor_set_layout_map; // cache exist layout
+    std::unordered_map<u64, DescriptorSetValue> m_descriptor_set_layout_map; // cache exist layout
 
     // std::vector<DescriptorSetInfo> layouts;
     std::vector<VkWriteDescriptorSet> descriptor_writes;

@@ -1,5 +1,3 @@
 #include "Light.h"
 
-namespace Horizon {
-
-}
+namespace Horizon {}

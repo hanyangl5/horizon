@@ -34,26 +34,20 @@ class RHI {
 
     virtual void InitializeRenderer() noexcept = 0;
 
-    virtual Resource<Buffer>
-    CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept = 0;
+    virtual Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept = 0;
 
-    virtual Resource<Texture>
-    CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
+    virtual Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) noexcept = 0;
 
     virtual void CreateSwapChain(Window *window) noexcept = 0;
 
-    virtual ShaderProgram *
-    CreateShaderProgram(ShaderType type, const std::string &entry_point,
-                        u32 compile_flags, std::string file_name) noexcept = 0;
-    virtual void
-    DestroyShaderProgram(ShaderProgram *shader_program) noexcept = 0;
+    virtual ShaderProgram *CreateShaderProgram(ShaderType type, const std::string &entry_point, u32 compile_flags,
+                                               std::string file_name) noexcept = 0;
+    virtual void DestroyShaderProgram(ShaderProgram *shader_program) noexcept = 0;
     // virtual void CreateRenderTarget() = 0;
 
-    virtual Pipeline *CreateGraphicsPipeline(
-        const GraphicsPipelineCreateInfo &create_info) noexcept = 0;
+    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) noexcept = 0;
 
-    virtual Pipeline *CreateComputePipeline(
-        const ComputePipelineCreateInfo &create_info) noexcept = 0;
+    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) noexcept = 0;
     virtual CommandList *GetCommandList(CommandQueueType type) noexcept = 0;
 
     virtual void WaitGpuExecution(CommandQueueType queue_type) noexcept = 0;
@@ -61,12 +55,9 @@ class RHI {
     virtual void ResetCommandResources() noexcept = 0;
 
     // submit command list to command queue
-    virtual void
-    SubmitCommandLists(CommandQueueType queue,
-                       std::vector<CommandList *> &command_lists) noexcept = 0;
+    virtual void SubmitCommandLists(CommandQueueType queue, std::vector<CommandList *> &command_lists) noexcept = 0;
 
-    virtual void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
-                             u32 binding) noexcept = 0;
+    virtual void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) noexcept = 0;
     virtual void SetResource(Texture *texture) noexcept = 0;
 
     virtual void UpdateDescriptors() noexcept = 0;
