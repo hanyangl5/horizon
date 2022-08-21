@@ -362,5 +362,31 @@ struct DrawParam {
     u32 firstInstance;
 };
 
+struct alignas(16) DescriptorInfo {
+    const char *pName;
+
+    uint32_t mType : 21;
+    uint32_t mDim : 4;
+    uint32_t mRootDescriptor : 1;
+    uint32_t mStaticSampler : 1;
+    uint32_t mUpdateFrequency : 3;
+    uint32_t mSize;
+    uint32_t mHandleIndex;
+    union {
+#if defined(DIRECT3D12)
+        struct {
+            uint64_t mPadA;
+        } mD3D12;
+#endif
+#if defined(USE_VULKAN)
+        struct {
+            uint32_t mVkType;
+            uint32_t mReg : 20;
+            uint32_t mVkStages : 8;
+        } mVulkan;
+#endif
+    };
+};
+
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
 } // namespace Horizon

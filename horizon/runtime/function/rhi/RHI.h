@@ -13,7 +13,6 @@
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Texture.h>
-#include <runtime/function/shader_compiler/ShaderCompiler.h>
 
 namespace Horizon::RHI {
 
@@ -70,7 +69,6 @@ class RHI {
   protected:
     u32 m_back_buffer_count{2};
     u32 m_current_frame_index{0};
-    std::shared_ptr<ShaderCompiler> m_shader_compiler{};
 
     // std::unordered_map<u64, Pipeline *> pipeline_map; // TODO: manage by rg
 

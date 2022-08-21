@@ -180,12 +180,16 @@ void ReflectShaderResources(CrossCompiler *pCompiler) {
     if (pCompiler == NULL) {
         return; // error code here
     }
-    spirv_cross::Compiler *compiler = (spirv_cross::Compiler *)pCompiler->pCompiler;
+    spirv_cross::Compiler *compiler = reinterpret_cast<spirv_cross::Compiler *>(pCompiler->pCompiler);
 
+    if (pCompiler->ShaderResourceCount == 0) {
+        return;
+    }
     // 1. get all shader resources
     spirv_cross::ShaderResources allResources;
     std::unordered_set<spirv_cross::VariableID> usedResouces;
-
+    //compiler->get_shader_resources();
+    
     allResources = compiler->get_shader_resources();
     usedResouces = compiler->get_active_interface_variables();
     // 2. Count number of resources and allocate array

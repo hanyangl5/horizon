@@ -21,6 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+#pragma once
 
 #include "../RHIUtils.h"
 #include "../ShaderReflection.h"
@@ -61,8 +62,8 @@ bool filterResource(SPIRV_Resource *resource, ShaderStageFlags currentStage) {
     filter = filter || (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_OUTPUTS);
 
     // remove stage inputs that are not on the vertex shader
-    filter =
-        filter || (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS && currentStage != ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER);
+    filter = filter || (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS &&
+                        currentStage != ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER);
 
     return filter;
 }
@@ -77,7 +78,7 @@ void vk_createShaderReflection(const uint8_t *shaderCode, uint32_t shaderSize, S
     CrossCompiler cc;
 
     CreateCrossCompiler((const uint32_t *)shaderCode, shaderSize / sizeof(uint32_t), &cc);
-
+    cc.pShaderResouces;
     ReflectEntryPoint(&cc);
     ReflectShaderResources(&cc);
     ReflectShaderVariables(&cc);
@@ -106,7 +107,8 @@ void vk_createShaderReflection(const uint8_t *shaderCode, uint32_t shaderSize, S
         if (!filterResource(resource, shaderStage)) {
             namePoolSize += resource->name_size + 1;
 
-            if (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS && shaderStage == ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER) {
+            if (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS &&
+                shaderStage == ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER) {
                 ++vertexInputCount;
             } else {
                 ++resourceCount;
