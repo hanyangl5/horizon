@@ -115,11 +115,10 @@ void RHIVulkan::CreateSwapChain(Window *window) {
     }
 }
 
-ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type, const std::string &entry_point, u32 compile_flags,
+ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type, u32 compile_flags,
                                               std::string file_name) {
-    auto spirv_blob =
-        m_shader_compiler->CompileFromFile(ShaderTargetPlatform::SPIRV, type, entry_point, compile_flags, file_name);
-    return new VulkanShaderProgram(m_vulkan, type, entry_point, spirv_blob);
+    auto spirv_code = ReadFile(file_name + ".VULKAN");
+    return new VulkanShaderProgram(m_vulkan, type, spirv_code);
 }
 
 void RHIVulkan::DestroyShaderProgram(ShaderProgram *shader_program) {

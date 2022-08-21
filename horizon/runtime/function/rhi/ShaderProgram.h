@@ -8,7 +8,7 @@ namespace Horizon::RHI {
 class ShaderProgram {
   public:
     // ShaderProgram(ShaderType type, IDxcBlob* dxil_byte_code) noexcept;
-    ShaderProgram(ShaderType type, std::string entry_point) noexcept;
+    ShaderProgram(ShaderType type) noexcept;
     virtual ~ShaderProgram() noexcept = default;
     ShaderProgram(const ShaderProgram &rhs) noexcept = delete;
     ShaderProgram &operator=(const ShaderProgram &rhs) noexcept = delete;

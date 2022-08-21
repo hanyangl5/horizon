@@ -91,10 +91,10 @@ def main():
     for language in languages:
         out_filename = os.path.basename(args.hsl_input).replace('.hsl', '')
 
-        if language == Languages.METAL:
-            out_filename = out_filename.replace('.tesc', '.tesc.comp')
-            out_filename = out_filename.replace('.tese', '.tese.vert')
-            out_filename += '.metal'
+        # if language == Languages.METAL:
+        #     out_filename = out_filename.replace('.tesc', '.tesc.comp')
+        #     out_filename = out_filename.replace('.tese', '.tese.vert')
+        #     out_filename += '.metal'
 
         # Create per-language subdirectories
         dst_dir = os.path.join(args.destination, folder_map[language])
@@ -119,7 +119,9 @@ def main():
         if args.compile:
             hsl_assert(dst_dir, filename=args.hsl_input, message='Missing destination binary directory')
             if not os.path.exists(args.binaryDestination): os.makedirs(args.binaryDestination)
-            bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath) )
+            #bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath) )
+            bin_filepath = args.hsl_input + "." + str(folder_map[language])
+            
             status = gen_map[language].compile(out_filepath, bin_filepath)
             if status != 0: return 1
 

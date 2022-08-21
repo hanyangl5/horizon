@@ -84,7 +84,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             info.stage = ToVkShaderStageBit(sm->GetType());
             info.module = sm->m_shader_module;
-            info.pName = sm->GetEntryPoint().c_str();
+            info.pName = "main";
             shader_stage_create_infos.push_back(std::move(info));
         }
 
@@ -266,7 +266,7 @@ void VulkanPipeline::CreateComputePipeline() {
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
     shader_stage_create_info.module = cs->m_shader_module;
-    shader_stage_create_info.pName = cs->GetEntryPoint().c_str();
+    shader_stage_create_info.pName = "main";
 
     VkComputePipelineCreateInfo compute_pipeline_create_info{};
 

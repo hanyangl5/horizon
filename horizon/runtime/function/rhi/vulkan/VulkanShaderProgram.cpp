@@ -2,18 +2,15 @@
 
 namespace Horizon::RHI {
 
-VulkanShaderProgram::VulkanShaderProgram(const VulkanRendererContext &context, ShaderType type,
-                                         const std::string &entry_point, IDxcBlob *shader_byte_code) noexcept
-    : m_context(context), ShaderProgram(type, entry_point) {
+VulkanShaderProgram::VulkanShaderProgram(const VulkanRendererContext &context, ShaderType type, std::vector<char>& spirv_code) noexcept
+    : m_context(context), ShaderProgram(type) {
     VkShaderModuleCreateInfo shader_module_create_info{};
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shader_module_create_info.codeSize = shader_byte_code->GetBufferSize();
-    shader_module_create_info.pCode = (uint32_t *)shader_byte_code->GetBufferPointer();
+    shader_module_create_info.codeSize = spirv_code.size();
+    shader_module_create_info.pCode = (uint32_t *)spirv_code.data();
     CHECK_VK_RESULT(vkCreateShaderModule(m_context.device, &shader_module_create_info, nullptr, &m_shader_module));
-    shader_byte_code->AddRef();
-    m_shader_byte_code = shader_byte_code;
 
-    // shader_byte_code->Release();
+    m_spirv_code.swap(spirv_code);
 }
 
 VulkanShaderProgram::~VulkanShaderProgram() noexcept {

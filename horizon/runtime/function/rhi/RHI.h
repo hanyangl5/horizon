@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <fstream>
 
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/Buffer.h>
@@ -40,7 +41,9 @@ class RHI {
 
     virtual void CreateSwapChain(Window *window) = 0;
 
-    virtual ShaderProgram *CreateShaderProgram(ShaderType type, const std::string &entry_point, u32 compile_flags,
+    std::vector<char> ReadFile(const std::string &path) const;
+
+    virtual ShaderProgram *CreateShaderProgram(ShaderType type, u32 compile_flags,
                                                std::string file_name) = 0;
     virtual void DestroyShaderProgram(ShaderProgram *shader_program) = 0;
     // virtual void CreateRenderTarget() = 0;

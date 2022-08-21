@@ -77,8 +77,8 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
 TEST_CASE_FIXTURE(RHITest, "shader compile test") {
     
     auto rhi = engine->m_render_system->GetRhi();
-    std::string file_name = asset_path + "shaders/hlsl/shader.hlsl";
-    auto shader_program = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, "vs_main", 0, file_name);
+    std::string file_name = asset_path + "shaders/cs.comp.hsl";
+    auto shader_program = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, 0, file_name);
     rhi->DestroyShaderProgram(shader_program);
 }
 
@@ -87,7 +87,7 @@ TEST_CASE_FIXTURE(RHITest, "spirv shader reflection test") {
     auto rhi = engine->m_render_system->GetRhi();
     std::string file_name = asset_path + "shaders/hlsl/"
                                          "ps_descriptor_set_reflect.hlsl";
-    auto shader_program = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
+    auto shader_program = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, 0, file_name);
     rhi->DestroyShaderProgram(shader_program);
 }
 
@@ -96,9 +96,9 @@ TEST_CASE_FIXTURE(RHITest, "pipeline creation test") {}
 TEST_CASE_FIXTURE(RHITest, "dispatch test") {
 
     auto rhi = engine->m_render_system->GetRhi();
-    // Horizon::RDC::StartFrameCapture();
-    std::string file_name = asset_path + "shaders/hlsl/cs.hlsl";
-    auto shader{rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
+    Horizon::RDC::StartFrameCapture();
+    std::string file_name = asset_path + "shaders/cs.comp.hsl";
+    auto shader{rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, 0, file_name)};
     ComputePipelineCreateInfo info;
     auto pipeline = rhi->CreateComputePipeline(info);
 
@@ -111,7 +111,7 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
 
     std::vector v{cl};
     rhi->SubmitCommandLists(COMPUTE, v);
-    // Horizon::RDC::EndFrameCapture();
+    Horizon::RDC::EndFrameCapture();
     engine->EndFrame();
 }
 
@@ -121,7 +121,7 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
     Horizon::RDC::StartFrameCapture();
     std::string file_name = asset_path + "shaders/hlsl/cs_descriptor_set_cache.hlsl";
 
-    auto shader = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name);
+    auto shader = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, 0, file_name);
 
     ComputePipelineCreateInfo info;
     auto pipeline = rhi->CreateComputePipeline(info);
@@ -288,9 +288,9 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     std::string vs_path = asset_path + "shaders/hlsl/graphics_pass.hlsl";
     std::string ps_path = asset_path + "shaders/hlsl/graphics_pass.hlsl";
 
-    auto vs = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, "vs_main", 0, vs_path);
+    auto vs = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, 0, vs_path);
 
-    auto ps = rhi->CreateShaderProgram(ShaderType::PIXEL_SHADER, "ps_main", 0, ps_path);
+    auto ps = rhi->CreateShaderProgram(ShaderType::PIXEL_SHADER, 0, ps_path);
 
     GraphicsPipelineCreateInfo info{};
     info.view_port_state.width = width;
