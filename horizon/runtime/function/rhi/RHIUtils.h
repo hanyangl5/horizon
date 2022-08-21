@@ -77,6 +77,7 @@ enum ShaderStageFlags {
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
+    SHADER_STAGE_TESS_SHADER = 8,
 };
 
 enum class TextureType {

@@ -3,6 +3,7 @@
 #include <runtime/function/rhi/ResourceCache.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+#include <runtime/function/rhi/ShaderReflection.h>
 
 namespace Horizon::RHI {
 

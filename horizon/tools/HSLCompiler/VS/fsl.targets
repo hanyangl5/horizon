@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <ItemGroup>
+        <PropertyPageSchema Include="
+            $(MSBuildThisFileDirectory)hsl.xml;
+            $(MSBuildThisFileDirectory)hsl_rules.xml
+        "/>
+        <AvailableItemName Include="HSLShader">
+            <Targets>HSL</Targets>
+        </AvailableItemName>
+    </ItemGroup>
+
+    <ItemDefinitionGroup>
+        <HSLShader>
+            <Verbose>true</Verbose>
+            <Compile>true</Compile>
+            <RootSignature>None</RootSignature>
+        </HSLShader>
+    </ItemDefinitionGroup>
+
+    <Target Name="HSLClean" Condition="'@(HSLShader)' != ''" AfterTargets="Clean">
+        <ItemGroup>
+            <HSLShader>
+                <Command>
+                    if exist "%(HSLShader.OutDir)"\ (
+                        rmdir /s /q "%(HSLShader.OutDir)"
+                    )
+                </Command>
+                <Outputs>None</Outputs>
+                <LinkObjects>false</LinkObjects>
+            </HSLShader>
+        </ItemGroup>
+        <CustomBuild Condition ="'%(HSLShader.ExcludedFromBuild)' != 'true'" Sources="@(HSLShader)"/>
+    </Target>
+
+    <Target Name="HSL" Condition="'@(HSLShader)' != ''" BeforeTargets="ClCompile">
+
+        <ItemGroup>
+            <HSLShader>
+                <Command>
+                    set PYTHON_PATH="$(MSBuildThisFileDirectory)../../../../Tools/python-3.6.0-embed-amd64/python"
+                    %PYTHON_PATH% "$(MSBuildThisFileDirectory)/hsl_vs_call_helper.py" "$(WindowsSDK_ExecutablePath)" "%(HSLShader.OutDir)" "%(HSLShader.BinaryOutDir)" "%(Identity)" "%(HSLShader.Language)" "%(HSLShader.Compile)" "%(HSLShader.Verbose)" "$(Configuration)"
+                </Command>
+                <Outputs>None</Outputs>
+                <LinkObjects>false</LinkObjects>
+            </HSLShader>
+        </ItemGroup>
+
+        <!-- Compile by forwarding to the Custom Build Tool infrastructure -->
+        <CustomBuild Condition ="'%(HSLShader.ExcludedFromBuild)' != 'true'" Sources="@(HSLShader)" />
+
+    </Target>
+</Project>
+

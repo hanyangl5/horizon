@@ -28,7 +28,7 @@ class RHIVulkan : public RHI {
     RHIVulkan(RHIVulkan &&rhs) noexcept = delete;
     RHIVulkan &operator=(RHIVulkan &&rhs) noexcept = delete;
 
-    void InitializeRenderer() noexcept override;
+    void InitializeRenderer() override;
 
     Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
 

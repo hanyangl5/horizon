@@ -1,0 +1,1 @@
+download the latest [DXC](https://github.com/microsoft/DirectXShaderCompiler) release binary file and extract under this directory.

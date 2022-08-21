@@ -8,8 +8,8 @@
 namespace Horizon::RHI {
 
 VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context, CommandQueueType type,
-                                     VkCommandBuffer command_buffer)
-    : CommandList(type), m_context(context), m_command_buffer(command_buffer) noexcept {}
+                                     VkCommandBuffer command_buffer) noexcept
+    : CommandList(type), m_context(context), m_command_buffer(command_buffer)  {}
 
 VulkanCommandList::~VulkanCommandList() noexcept {}
 

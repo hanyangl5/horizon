@@ -1,6 +1,5 @@
 .vscode
 build
-horizon/tools
-horizon/third_party
+horizon/3rd_party/DirectXShaderCompiler
 horizon/assets/models
 out

@@ -10,5 +10,7 @@ add_library(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/horizon)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC third_party)
+target_link_libraries(${PROJECT_NAME} PUBLIC SpirvTools)
+
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")

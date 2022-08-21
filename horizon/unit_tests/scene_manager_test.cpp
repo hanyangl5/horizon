@@ -78,7 +78,7 @@ TEST_CASE_FIXTURE(SceneManagementTest, "ex") {
     A *a = new B;
     LOG_ERROR("{}", typeid(a).name());
     A *pa = new A;
-    LOG_ERROR("{}", typeid(pa).name());
+    LOG_ERROR("{}", typeid(pa).name()); 
     auto b = dynamic_cast<A *>(a);
     LOG_ERROR("{}", typeid(b).name());
     {

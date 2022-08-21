@@ -22,43 +22,43 @@ class VulkanCommandList : public CommandList {
     VulkanCommandList(VulkanCommandList &&rhs) noexcept = delete;
     VulkanCommandList &operator=(VulkanCommandList &&rhs) noexcept = delete;
 
-    virtual void BeginRecording()  override;
-    virtual void EndRecording()  override;
+    virtual void BeginRecording() override;
+    virtual void EndRecording() override;
 
-    virtual void BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets)  override;
-    virtual void BindIndexBuffer(Buffer *buffer, u32 offset)  override;
+    virtual void BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets) override;
+    virtual void BindIndexBuffer(Buffer *buffer, u32 offset) override;
 
     // graphics commands
-    virtual void BeginRenderPass(const RenderPassBeginInfo &begin_info)  override;
-    virtual void EndRenderPass()  override;
+    virtual void BeginRenderPass(const RenderPassBeginInfo &begin_info) override;
+    virtual void EndRenderPass() override;
 
     virtual void DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count = 1,
-                               u32 first_instance = 0)  override;
+                               u32 first_instance = 0) override;
 
     virtual void DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count = 1,
-                                      u32 first_instance = 0)  override;
-    virtual void DrawIndirect()  override;
+                                      u32 first_instance = 0) override;
+    virtual void DrawIndirect() override;
     // compute commands
-    virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z)  override;
-    virtual void DispatchIndirect()  override;
+    virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) override;
+    virtual void DispatchIndirect() override;
 
-    virtual void UpdateBuffer(Buffer *buffer, void *data, u64 size)  override;
-    virtual void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer)  override;
-    void CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer) ;
+    virtual void UpdateBuffer(Buffer *buffer, void *data, u64 size) override;
+    virtual void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) override;
+    void CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer);
 
-    void UpdateTexture(Texture *texture, const TextureData &texture_data)  override;
+    void UpdateTexture(Texture *texture, const TextureData &texture_data) override;
 
-    virtual void CopyTexture()  override;
+    virtual void CopyTexture() override;
 
-    virtual void InsertBarrier(const BarrierDesc &desc)  override;
+    virtual void InsertBarrier(const BarrierDesc &desc) override;
 
-    virtual void BindPipeline(Pipeline *pipeline)  override;
+    virtual void BindPipeline(Pipeline *pipeline) override;
 
-    void CopyBufferToImage() ;
+    void CopyBufferToImage();
 
   private:
     const VulkanRendererContext &m_context;
-    Resource<VulkanBuffer> GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info) noexcept;
+    Resource<VulkanBuffer> GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info);
 
   public:
     VkCommandBuffer m_command_buffer;
