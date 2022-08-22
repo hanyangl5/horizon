@@ -2,4 +2,5 @@
 build
 horizon/3rd_party/DirectXShaderCompiler
 horizon/assets/models
+horizon/assets/generated_shaders
 out

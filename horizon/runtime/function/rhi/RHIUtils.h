@@ -15,7 +15,7 @@ enum class RenderBackend { RENDER_BACKEND_NONE, RENDER_BACKEND_VULKAN, RENDER_BA
 // always assum queue family index: graphics = 0, compute = 1, transfer = 2
 enum CommandQueueType { GRAPHICS = 0, COMPUTE, TRANSFER };
 
-enum class PipelineType { GRAPHICS = 0, COMPUTE, RAY_TRACING };
+enum class PipelineType { UNDIFINED, GRAPHICS = 0, COMPUTE, RAY_TRACING };
 
 enum DescriptorType {
     DESCRIPTOR_TYPE_UNDEFINED = 0,

@@ -1,0 +1,24 @@
+
+RES(Buffer(float), myBuffers0, UPDATE_FREQ_NONE, t0, binding=0);
+RES(Buffer(float), myBuffers1, UPDATE_FREQ_NONE, t1, binding=1);
+
+RES(RWBuffer(float), myBuffers2, UPDATE_FREQ_PER_FRAME, u0, binding=0);
+RES(RWBuffer(float), myBuffers3, UPDATE_FREQ_PER_FRAME, u1, binding=1);
+
+RES(Buffer(float4), myBuffers4, UPDATE_FREQ_PER_BATCH, t0, binding=0);
+RES(Buffer(float4), myBuffers5, UPDATE_FREQ_PER_BATCH, t1, binding=1);
+
+RES(RWBuffer(float4), myBuffers6, UPDATE_FREQ_PER_DRAW, u0, binding=0);
+RES(RWBuffer(float4), myBuffers7, UPDATE_FREQ_PER_DRAW, u1, binding=1);
+
+NUM_THREADS(1, 1, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+{
+    INIT_MAIN;
+    Get(myBuffers2)[0] = Get(myBuffers0)[0];
+    Get(myBuffers3)[0] = Get(myBuffers1)[0];
+    
+    Get(myBuffers6)[0] = Get(myBuffers4)[0];
+    Get(myBuffers7)[0] = Get(myBuffers5)[0];
+    RETURN();
+}
