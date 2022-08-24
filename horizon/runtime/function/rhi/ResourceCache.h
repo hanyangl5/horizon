@@ -25,8 +25,8 @@ template <> struct hash<VkDescriptorSetLayoutCreateInfo> {
 template <> struct hash<Horizon::GraphicsPipelineCreateInfo> {
     inline Horizon::u64 operator()(const Horizon::GraphicsPipelineCreateInfo &create_info) const {
         std::size_t seed = 0;
-        hash_combine(seed, create_info.depth_stencil_state.depthRange[0]);
-        hash_combine(seed, create_info.depth_stencil_state.depthRange[1]);
+        hash_combine(seed, create_info.depth_stencil_state.depthNear);
+        hash_combine(seed, create_info.depth_stencil_state.depthFar);
         hash_combine(seed, create_info.depth_stencil_state.depth_func);
         hash_combine(seed, create_info.depth_stencil_state.depth_stencil_format);
         hash_combine(seed, create_info.depth_stencil_state.depth_test);

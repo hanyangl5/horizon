@@ -53,7 +53,7 @@ class RHIVulkan : public RHI {
 
     // submit command list to command queue
     virtual void SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) override;
-    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) override;
+    void SetResource(Buffer *buffer, Pipeline *pipeline, UpdateFrequency frequency, u32 binding) override;
     void SetResource(Texture *texture) override;
 
     void UpdateDescriptors() override;

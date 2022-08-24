@@ -363,7 +363,7 @@ void RHIVulkan::SubmitCommandLists(CommandQueueType queue_type, std::vector<Comm
     vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, fence);
 }
 
-void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) {
+void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, UpdateFrequency frequency, u32 binding) {
 
     auto descriptor_type = buffer->m_descriptor_type;
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
@@ -379,7 +379,7 @@ void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 bin
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.pNext = nullptr;
-        write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
+        //write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
         write.dstBinding = binding;
         write.dstArrayElement = 0;
         write.descriptorCount = 1;
@@ -388,7 +388,7 @@ void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 bin
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.pNext = nullptr;
-        write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
+        //write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
         write.dstBinding = binding;
         write.dstArrayElement = 0;
         write.descriptorCount = 1;

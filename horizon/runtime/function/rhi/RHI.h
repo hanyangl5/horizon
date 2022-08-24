@@ -60,7 +60,7 @@ class RHI {
     // submit command list to command queue
     virtual void SubmitCommandLists(CommandQueueType queue, std::vector<CommandList *> &command_lists) = 0;
 
-    virtual void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set, u32 binding) = 0;
+    virtual void SetResource(Buffer *buffer, Pipeline *pipeline, UpdateFrequency frequency, u32 binding) = 0;
 
     virtual void SetResource(Texture *texture) = 0;
 

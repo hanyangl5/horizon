@@ -258,8 +258,20 @@ void VulkanDescriptorSetManager::CreateDescriptorPool() {
 void VulkanDescriptorSetManager::ResetDescriptorPool() {
     // vkResetDescriptorPool(m_device, m_bindless_descriptor_pool, 0);
 }
-void VulkanDescriptorSetManager::Update() {
+void VulkanDescriptorSetManager::Update(UpdateFrequency frequency) {
 
+    switch (frequency) {
+    case Horizon::UpdateFrequency::NONE:
+        break;
+    case Horizon::UpdateFrequency::PER_FRAME:
+        break;
+    case Horizon::UpdateFrequency::PER_BATCH:
+        break;
+    case Horizon::UpdateFrequency::PER_DRAW:
+        break;
+    default:
+        break;
+    }
     // TODO: create empty descriptors if no resource set
 
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(descriptor_writes.size()), descriptor_writes.data(), 0,

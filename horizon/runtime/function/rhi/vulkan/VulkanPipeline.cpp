@@ -198,10 +198,10 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         rasterization_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterization_state_create_info.depthClampEnable = VK_FALSE;
         rasterization_state_create_info.rasterizerDiscardEnable = VK_FALSE;
-        rasterization_state_create_info.polygonMode = ToVkPolygonMode(ci->raserization_state.fill_mode);
+        rasterization_state_create_info.polygonMode = ToVkPolygonMode(ci->rasterization_state.fill_mode);
         rasterization_state_create_info.lineWidth = 1.0f;
-        rasterization_state_create_info.cullMode = ToVkCullMode(ci->raserization_state.cull_mode);
-        rasterization_state_create_info.frontFace = ToVkFrontFace(ci->raserization_state.front_face);
+        rasterization_state_create_info.cullMode = ToVkCullMode(ci->rasterization_state.cull_mode);
+        rasterization_state_create_info.frontFace = ToVkFrontFace(ci->rasterization_state.front_face);
         rasterization_state_create_info.depthBiasEnable = VK_FALSE;
 
         graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
@@ -256,6 +256,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
     CHECK_VK_RESULT(
         vkCreateGraphicsPipelines(m_context.device, nullptr, 1, &graphics_pipeline_create_info, nullptr, &m_pipeline));
 }
+
 void VulkanPipeline::CreateComputePipeline() {
     if (!shader_map[ShaderType::COMPUTE_SHADER]) {
         LOG_ERROR("missing shader: compute shader");

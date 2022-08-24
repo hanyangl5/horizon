@@ -298,12 +298,14 @@ enum class DepthFunc {
 
 };
 
+
 struct DepthStencilState {
     bool depth_test;
     bool depth_write;
+    bool stencil_enabled;
     DepthFunc depth_func;
     TextureFormat depth_stencil_format;
-    f32 depthRange[2]; // [0.0, 1.0]
+    f32 depthNear, depthFar;
     // stencil settings
 };
 
@@ -315,7 +317,7 @@ struct GraphicsPipelineCreateInfo {
     VertexInputState vertex_input_state;
     InputAssemblyState input_assembly_state;
     ViewPortState view_port_state;
-    RasterizationState raserization_state;
+    RasterizationState rasterization_state;
     DepthStencilState depth_stencil_state;
     MultiSampleState multi_sample_state;
 };
@@ -386,6 +388,10 @@ struct alignas(16) DescriptorInfo {
         } mVulkan;
 #endif
     };
+};
+
+enum class UpdateFrequency {
+    NONE, PER_FRAME, PER_BATCH, PER_DRAW
 };
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);

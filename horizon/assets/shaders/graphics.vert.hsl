@@ -1,0 +1,29 @@
+
+CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+    DATA(float4x4, mvp, None);
+};
+
+STRUCT(VSInput)
+{
+	DATA(float3, Position, POSITION);
+	DATA(float3, Normal,   NORMAL);
+};
+
+STRUCT(VSOutput)
+{
+	DATA(float4, Position, SV_Position);
+	DATA(float4, Color,    COLOR);
+};
+
+VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
+{
+    INIT_MAIN;
+    VSOutput Out;
+
+    float4x4 tempMat = Get(mvp);
+    Out.Position = mul(tempMat, float4(In.Position.xyz, 1.0f));
+
+    Out.Color = float4(1.0, 1.0, 1.0, 1.0);
+    RETURN(Out);
+}

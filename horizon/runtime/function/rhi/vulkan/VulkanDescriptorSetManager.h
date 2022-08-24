@@ -57,7 +57,7 @@ class VulkanDescriptorSetManager {
     VulkanDescriptorSetManager &operator=(VulkanDescriptorSetManager &&rhs) noexcept = delete;
 
     void ResetDescriptorPool();
-    void Update();
+    void Update(UpdateFrequency frequency);
 
     VkDescriptorSetLayout FindLayout(u64 key) const;
     std::vector<VkDescriptorSet> AllocateDescriptorSets(const PipelineLayoutDesc &layout_desc);
@@ -81,7 +81,14 @@ class VulkanDescriptorSetManager {
     std::unordered_map<u64, DescriptorSetValue> m_descriptor_set_layout_map; // cache exist layout
 
     // std::vector<DescriptorSetInfo> layouts;
-    std::vector<VkWriteDescriptorSet> descriptor_writes;
+
+    //std::unordered_map<UpdateFrequency, std::vector<VkWriteDescriptorSet>>
+    std::vector<std::vector<VkWriteDescriptorSet>> descriptor_writes;
+    
+     //descriptor_writes_none;
+    std::vector<VkWriteDescriptorSet> descriptor_writes_per_frame;
+    std::vector<VkWriteDescriptorSet> descriptor_writes_per_batch;
+    std::vector<VkWriteDescriptorSet> descriptor_writes_per_pass; // owned by per pass
     
 };
 
