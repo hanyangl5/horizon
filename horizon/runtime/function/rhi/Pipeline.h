@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/ShaderProgram.h>
+#include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/Buffer.h>
 
 namespace Horizon::RHI {
@@ -22,8 +22,8 @@ class Pipeline {
 
     PipelineType GetType() const noexcept;
 
-    virtual void SetComputeShader(ShaderProgram *vs)  = 0;
-    virtual void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) = 0;
+    virtual void SetComputeShader(Shader *vs)  = 0;
+    virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
 
     // void UpdateResources()
     virtual void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) = 0;
@@ -61,7 +61,7 @@ class Pipeline {
     // render_pass_create_info) noexcept = 0;
 
   protected:
-    std::unordered_map<ShaderType, ShaderProgram *> shader_map{};
+    std::unordered_map<ShaderType, Shader *> shader_map{};
     PipelineCreateInfo m_create_info{};
 };
 } // namespace Horizon::RHI

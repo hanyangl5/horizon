@@ -42,9 +42,9 @@ class RHI {
 
     std::vector<char> ReadFile(const std::string &path) const;
 
-    virtual ShaderProgram *CreateShaderProgram(ShaderType type, u32 compile_flags,
+    virtual Shader *CreateShader(ShaderType type, u32 compile_flags,
                                                std::string file_name) = 0;
-    virtual void DestroyShaderProgram(ShaderProgram *shader_program) = 0;
+    virtual void DestroyShader(Shader *shader_program) = 0;
     // virtual void CreateRenderTarget() = 0;
 
     virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) = 0;

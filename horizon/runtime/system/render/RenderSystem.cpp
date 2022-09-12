@@ -37,16 +37,16 @@ void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
 }
 Camera *RenderSystem::GetMainCamera() const { return {}; }
 
-// ShaderProgram *RenderSystem::CreateShaderProgram(
+// Shader *RenderSystem::CreateShader(
 //     ShaderType type, const std::string &entry_point, u32 compile_flags,
 //     std::string file_name) noexcept {
-//     return m_rhi->CreateShaderProgram(type, entry_point, compile_flags,
+//     return m_rhi->CreateShader(type, entry_point, compile_flags,
 //                                              file_name);
 // }
 
-// void RenderSystem::DestroyShaderProgram(
-//     ShaderProgram *shader_program) noexcept {
-//     m_rhi->DestroyShaderProgram(shader_program);
+// void RenderSystem::DestroyShader(
+//     Shader *shader_program) noexcept {
+//     m_rhi->DestroyShader(shader_program);
 // }
 
 // Pipeline *RenderSystem::CreateGraphicsPipeline(

@@ -10,7 +10,7 @@
 //#include <runtime/function/rhi/Pipeline.h>
 //#include <runtime/function/rhi/RHI.h>
 //#include <runtime/function/rhi/RHIUtils.h>
-//#include <runtime/function/rhi/ShaderProgram.h>
+//#include <runtime/function/rhi/Shader.h>
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
 //#include <runtime/function/rhi/dx12/DX12CommandContext.h>
 //#include <runtime/function/rhi/dx12/DX12Texture.h>
@@ -32,13 +32,13 @@
 //
 //    void CreateSwapChain(Window *window) noexcept override;
 //
-//    ShaderProgram *CreateShaderProgram(ShaderType type,
+//    Shader *CreateShader(ShaderType type,
 //                                       const std::string &entry_point,
 //                                       u32 compile_flags,
 //                                       std::string file_name) noexcept
 //                                       override;
 //
-//    void DestroyShaderProgram(ShaderProgram *shader_program) noexcept
+//    void DestroyShader(Shader *shader_program) noexcept
 //    override;
 //
 //    CommandList *GetCommandList(CommandQueueType type) noexcept override;

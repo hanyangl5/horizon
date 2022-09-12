@@ -12,7 +12,7 @@
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
-#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::RHI {
 
@@ -115,12 +115,12 @@ void RHIVulkan::CreateSwapChain(Window *window) {
     }
 }
 
-ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type, u32 compile_flags, std::string file_name) {
+Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, std::string file_name) {
     auto spirv_code = ReadFile(file_name + ".VULKAN");
-    return new VulkanShaderProgram(m_vulkan, type, spirv_code);
+    return new VulkanShader(m_vulkan, type, spirv_code);
 }
 
-void RHIVulkan::DestroyShaderProgram(ShaderProgram *shader_program) {
+void RHIVulkan::DestroyShader(Shader *shader_program) {
     if (shader_program) {
         delete shader_program;
     } else {

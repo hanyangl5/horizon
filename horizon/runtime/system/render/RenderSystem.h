@@ -12,7 +12,7 @@ namespace Horizon {
 
 using Buffer = RHI::Buffer;
 using Texture = RHI::Texture;
-using ShaderProgram = RHI::ShaderProgram;
+using Shader = RHI::Shader;
 using Pipeline = RHI::Pipeline;
 using CommandList = RHI::CommandList;
 
@@ -39,11 +39,11 @@ class RenderSystem {
     // Resource<Texture>
     // CreateTexture(const TextureCreateInfo &texture_create_info) noexcept;
 
-    // ShaderProgram *CreateShaderProgram(ShaderType type,
+    // Shader *CreateShader(ShaderType type,
     //                                    const std::string &entry_point,
     //                                    u32 compile_flags,
     //                                    std::string file_name) noexcept;
-    // void DestroyShaderProgram(ShaderProgram *shader_program) noexcept;
+    // void DestroyShader(Shader *shader_program) noexcept;
 
     // Pipeline *CreateGraphicsPipeline(
     //     const GraphicsPipelineCreateInfo &create_info) noexcept;

@@ -80,8 +80,8 @@ TEST_CASE_FIXTURE(RHITest, "shader compile test") {
 
     auto rhi = engine->m_render_system->GetRhi();
     std::string file_name = asset_path + "shaders/cs.comp.hsl";
-    auto shader_program = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, 0, file_name);
-    rhi->DestroyShaderProgram(shader_program);
+    auto shader_program = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, file_name);
+    rhi->DestroyShader(shader_program);
 }
 
 TEST_CASE_FIXTURE(RHITest, "binding model") {
@@ -90,7 +90,7 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
     Horizon::RDC::StartFrameCapture();
     std::string file_name = asset_path + "shaders/shader_resource_frequency.comp.hsl";
 
-    auto shader = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, 0, file_name);
+    auto shader = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, file_name);
 
     Math::float4 f = Math::float4(5.0);
 
@@ -158,7 +158,7 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
     Horizon::RDC::EndFrameCapture();
     engine->EndFrame();
 
-    rhi->DestroyShaderProgram(shader);
+    rhi->DestroyShader(shader);
     rhi->DestroyPipeline(pipeline);
 }
 
@@ -167,7 +167,7 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
 //    // Horizon::RDC::StartFrameCapture();
 //    // std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
 //    //                         "cs_bindless_descriptor.hlsl";
-//    // auto shader{rhi->CreateShaderProgram(
+//    // auto shader{rhi->CreateShader(
 //    //     ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
 //    // auto pipeline{rhi->CreatePipeline(
 //    //     PipelineCreateInfo{PipelineType::COMPUTE})};
@@ -249,95 +249,95 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
 
     engine->EndFrame();
 }
-//
-//TEST_CASE_FIXTURE(RHITest, "draw") {
-//
-//    auto rhi = engine->m_render_system->GetRhi();
-//    std::string vs_path = asset_path + "shaders/graphics_pass.vert.hsl";
-//    std::string ps_path = asset_path + "shaders/graphics_pass.frag.hsl";
-//
-//    auto vs = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, 0, vs_path);
-//
-//    auto ps = rhi->CreateShaderProgram(ShaderType::PIXEL_SHADER, 0, ps_path);
-//
-//    GraphicsPipelineCreateInfo info{};
-//
-//    info.view_port_state.width = width;
-//    info.view_port_state.height = height;
-//
-//    info.depth_stencil_state.depth_func = DepthFunc::LESS;
-//    info.depth_stencil_state.depthNear = 0.0f;
-//    info.depth_stencil_state.depthNear = 1.0f;
-//    info.depth_stencil_state.depth_test = true;
-//    info.depth_stencil_state.depth_write = true;
-//    info.depth_stencil_state.stencil_enabled = false;
-//
-//    info.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
-//
-//    info.multi_sample_state.sample_count = 1;
-//
-//    info.rasterization_state.cull_mode = CullMode::BACK;
-//    info.rasterization_state.discard = false;
-//    info.rasterization_state.fill_mode = FillMode::TRIANGLE;
-//    info.rasterization_state.front_face = FrontFace::CCW;
-//
-//    auto pipeline = rhi->CreateGraphicsPipeline(info);
-//
-//    Mesh mesh(*rhi, MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL});
-//    // rhi->GetVertexBuffer(mesh);
-//    mesh.LoadMesh(BasicGeometry::BasicGeometry::CUBE);
-//    auto vertexbuffer = mesh.GetVertexBuffer();
-//    auto indexbuffer = mesh.GetIndexBuffer();
-//
-//    auto view =
-//        Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
-//    auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
-//    auto vp = projection * view;
-//    vp = vp.Transpose();
-//
-//    auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-//                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
-//
-//    for (u32 frame = 0; frame < 3; frame++) {
-//        engine->BeginNewFrame();
-//
-//        auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
-//
-//        transfer->BeginRecording();
-//
-//        transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(vp));
-//        transfer->EndRecording();
-//        std::vector v1{transfer};
-//        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
-//        rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
-//
-//        auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
-//        pipeline->SetGraphicsShader(vs, ps);
-//
-//        // rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
-//
-//        cl->BeginRecording();
-//
-//        RenderPassBeginInfo begin_info{};
-//        cl->BeginRenderPass(begin_info);
-//
-//        cl->BindPipeline(pipeline);
-//        cl->BindVertexBuffer(1, &vertexbuffer, 0);
-//        cl->BindIndexBuffer(indexbuffer, 0);
-//
-//        for (auto &node : mesh.GetNodes()) {
-//            for (auto &m : node.mesh_primitives) {
-//                cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
-//            }
-//        }
-//
-//        cl->EndRenderPass();
-//        cl->EndRecording();
-//        std::vector v{cl};
-//        rhi->SubmitCommandLists(GRAPHICS, v);
-//        // Horizon::RDC::EndFrameCapture();
-//        engine->EndFrame();
-//    }
-//}
+
+TEST_CASE_FIXTURE(RHITest, "draw") {
+
+    auto rhi = engine->m_render_system->GetRhi();
+    std::string vs_path = asset_path + "shaders/graphics_pass.vert.hsl";
+    std::string ps_path = asset_path + "shaders/graphics_pass.frag.hsl";
+
+    auto vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, vs_path);
+
+    auto ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, ps_path);
+
+    GraphicsPipelineCreateInfo info{};
+
+    info.view_port_state.width = width;
+    info.view_port_state.height = height;
+
+    info.depth_stencil_state.depth_func = DepthFunc::LESS;
+    info.depth_stencil_state.depthNear = 0.0f;
+    info.depth_stencil_state.depthNear = 1.0f;
+    info.depth_stencil_state.depth_test = true;
+    info.depth_stencil_state.depth_write = true;
+    info.depth_stencil_state.stencil_enabled = false;
+
+    info.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
+
+    info.multi_sample_state.sample_count = 1;
+
+    info.rasterization_state.cull_mode = CullMode::BACK;
+    info.rasterization_state.discard = false;
+    info.rasterization_state.fill_mode = FillMode::TRIANGLE;
+    info.rasterization_state.front_face = FrontFace::CCW;
+
+    auto pipeline = rhi->CreateGraphicsPipeline(info);
+
+    Mesh mesh(*rhi, MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL});
+    // rhi->GetVertexBuffer(mesh);
+    mesh.LoadMesh(BasicGeometry::BasicGeometry::CUBE);
+    auto vertexbuffer = mesh.GetVertexBuffer();
+    auto indexbuffer = mesh.GetIndexBuffer();
+
+    auto view =
+        Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+    auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
+    auto vp = projection * view;
+    vp = vp.Transpose();
+
+    auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
+
+    for (u32 frame = 0; frame < 3; frame++) {
+        engine->BeginNewFrame();
+
+        auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
+
+        transfer->BeginRecording();
+
+        transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(vp));
+        transfer->EndRecording();
+        std::vector v1{transfer};
+        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
+        rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
+
+        auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
+        pipeline->SetGraphicsShader(vs, ps);
+
+        // rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
+
+        cl->BeginRecording();
+
+        RenderPassBeginInfo begin_info{};
+        cl->BeginRenderPass(begin_info);
+
+        cl->BindPipeline(pipeline);
+        cl->BindVertexBuffer(1, &vertexbuffer, 0);
+        cl->BindIndexBuffer(indexbuffer, 0);
+
+        for (auto &node : mesh.GetNodes()) {
+            for (auto &m : node.mesh_primitives) {
+                cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
+            }
+        }
+
+        cl->EndRenderPass();
+        cl->EndRecording();
+        std::vector v{cl};
+        rhi->SubmitCommandLists(GRAPHICS, v);
+        // Horizon::RDC::EndFrameCapture();
+        engine->EndFrame();
+    }
+}
 
 } // namespace TEST

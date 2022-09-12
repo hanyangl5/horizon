@@ -54,7 +54,7 @@
 //    m_current_frame_index = m_dx12.swap_chain->GetCurrentBackBufferIndex();
 //}
 //
-//ShaderProgram *RHIDX12::CreateShaderProgram(ShaderType type,
+//Shader *RHIDX12::CreateShader(ShaderType type,
 //                                            const std::string &entry_point,
 //                                            u32 compile_flags,
 //                                            std::string file_name) noexcept {
@@ -63,10 +63,10 @@
 //        file_name)};
 //
 //    // TODO: DX12 shader program
-//    return new ShaderProgram(type, entry_point);
+//    return new Shader(type, entry_point);
 //}
 //
-//void RHIDX12::DestroyShaderProgram(ShaderProgram *shader_program) noexcept {
+//void RHIDX12::DestroyShader(Shader *shader_program) noexcept {
 //    if (shader_program) {
 //        delete shader_program;
 //    } else {

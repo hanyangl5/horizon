@@ -36,9 +36,9 @@ class RHIVulkan : public RHI {
 
     void CreateSwapChain(Window *window) override;
 
-    ShaderProgram *CreateShaderProgram(ShaderType type, u32 compile_flags, std::string file_name) override;
+    Shader *CreateShader(ShaderType type, u32 compile_flags, std::string file_name) override;
 
-    void DestroyShaderProgram(ShaderProgram *shader_program) override;
+    void DestroyShader(Shader *shader_program) override;
 
     CommandList *GetCommandList(CommandQueueType type) override;
 

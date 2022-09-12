@@ -8,9 +8,9 @@
 
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/ShaderProgram.h>
+#include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::RHI {
 
@@ -67,12 +67,12 @@ class VulkanDescriptorSetManager {
   public:
     void CreateDescriptorPool();
     PipelineLayoutDesc
-    CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
+    CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
                                         PipelineType pipeline_type);
     // create layout for a single shader
 
-    PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs, VulkanShaderProgram *ps);
-    PipelineLayoutDesc GetComputePipelineLayout(VulkanShaderProgram *cs);
+    PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShader *vs, VulkanShader *ps);
+    PipelineLayoutDesc GetComputePipelineLayout(VulkanShader *cs);
 
     void BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency freq, u32 binding);
 

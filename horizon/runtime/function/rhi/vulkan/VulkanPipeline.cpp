@@ -1,5 +1,5 @@
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
-#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::RHI {
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
@@ -23,7 +23,7 @@ VulkanPipeline::~VulkanPipeline() noexcept {
 
 void VulkanPipeline::CreatePipelineResources() {}
 
-void VulkanPipeline::SetComputeShader(ShaderProgram *cs) {
+void VulkanPipeline::SetComputeShader(Shader *cs) {
     assert(("shader is not compute shader", cs->GetType() == ShaderType::COMPUTE_SHADER));
     assert(("pipeline is not compute shader", m_create_info.type == PipelineType::COMPUTE));
     shader_map[ShaderType::COMPUTE_SHADER] = cs;
@@ -37,7 +37,7 @@ void VulkanPipeline::SetComputeShader(ShaderProgram *cs) {
     CreateComputePipeline();
 }
 
-void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
+void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
     assert(("shader is not vertex shader", vs->GetType() == ShaderType::VERTEX_SHADER));
     assert(("shader is not pixel shader", ps->GetType() == ShaderType::PIXEL_SHADER));
     assert(("pipeline is not graphics pipeline", m_create_info.type == PipelineType::GRAPHICS));
@@ -74,7 +74,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 
         // no invalid shader in shader map
         for (auto &[type, shader] : shader_map) {
-            auto sm = reinterpret_cast<VulkanShaderProgram *>(shader);
+            auto sm = reinterpret_cast<VulkanShader *>(shader);
             VkPipelineShaderStageCreateInfo info{};
             info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             info.stage = ToVkShaderStageBit(sm->GetType());
@@ -255,7 +255,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 void VulkanPipeline::CreateComputePipeline() {
     assert(("shader not exist", shader_map[ShaderType::COMPUTE_SHADER] != nullptr));
 
-    auto cs = reinterpret_cast<VulkanShaderProgram *>(shader_map[ShaderType::COMPUTE_SHADER]);
+    auto cs = reinterpret_cast<VulkanShader *>(shader_map[ShaderType::COMPUTE_SHADER]);
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;

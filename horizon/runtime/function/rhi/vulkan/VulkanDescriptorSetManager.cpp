@@ -3,7 +3,7 @@
 #include <runtime/function/rhi/ResourceCache.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
-#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::RHI {
 
@@ -11,7 +11,7 @@ VulkanDescriptorSetManager::VulkanDescriptorSetManager(const VulkanRendererConte
     : m_context(context) {}
 
 PipelineLayoutDesc VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShader(
-    std::unordered_map<ShaderType, ShaderProgram *> &shader_map, PipelineType pipeline_type) {
+    std::unordered_map<ShaderType, Shader *> &shader_map, PipelineType pipeline_type) {
 
     // create empty layout
     if (m_empty_descriptor_set == VK_NULL_HANDLE) {
@@ -32,12 +32,12 @@ PipelineLayoutDesc VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShad
     }
     // combine vs/gs/ps to get pipeline layout
     if (pipeline_type == PipelineType::GRAPHICS) {
-        return GetGraphicsPipelineLayout(reinterpret_cast<VulkanShaderProgram *>(shader_map[ShaderType::VERTEX_SHADER]),
-                                         reinterpret_cast<VulkanShaderProgram *>(shader_map[ShaderType::PIXEL_SHADER]));
+        return GetGraphicsPipelineLayout(reinterpret_cast<VulkanShader *>(shader_map[ShaderType::VERTEX_SHADER]),
+                                         reinterpret_cast<VulkanShader *>(shader_map[ShaderType::PIXEL_SHADER]));
 
     } else if (pipeline_type == PipelineType::COMPUTE) {
         return GetComputePipelineLayout(
-            reinterpret_cast<VulkanShaderProgram *>(shader_map[ShaderType::COMPUTE_SHADER]));
+            reinterpret_cast<VulkanShader *>(shader_map[ShaderType::COMPUTE_SHADER]));
 
     } else if (pipeline_type == PipelineType::RAY_TRACING) {
         // TODO
@@ -47,8 +47,8 @@ PipelineLayoutDesc VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShad
 }
 
 // TBD:
-PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanShaderProgram *vs,
-                                                                         VulkanShaderProgram *ps) {
+PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanShader *vs,
+                                                                         VulkanShader *ps) {
 
     PipelineLayoutDesc layout_desc;
     // layout_desc.set_index.resize(10);
@@ -132,7 +132,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanS
     return layout_desc;
 }
 
-PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanShaderProgram *cs) {
+PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanShader *cs) {
     SpvReflectShaderModule module;
     SpvReflectResult result = spvReflectCreateShaderModule(cs->m_spirv_code.size(), cs->m_spirv_code.data(), &module);
     assert(result == SPV_REFLECT_RESULT_SUCCESS);

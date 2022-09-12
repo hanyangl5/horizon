@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/function/rhi/Pipeline.h>
-#include <runtime/function/rhi/ShaderProgram.h>
+#include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
@@ -20,9 +20,9 @@ class VulkanPipeline : public Pipeline {
 
     void CreatePipelineResources();
 
-    void SetComputeShader(ShaderProgram *vs) override;
+    void SetComputeShader(Shader *vs) override;
 
-    void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) override;
+    void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
     void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) override;
 

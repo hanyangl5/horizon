@@ -1,9 +1,9 @@
-#include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::RHI {
 
-VulkanShaderProgram::VulkanShaderProgram(const VulkanRendererContext &context, ShaderType type, std::vector<char>& spirv_code) noexcept
-    : m_context(context), ShaderProgram(type) {
+VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char>& spirv_code) noexcept
+    : m_context(context), Shader(type) {
     VkShaderModuleCreateInfo shader_module_create_info{};
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shader_module_create_info.codeSize = spirv_code.size();
@@ -13,7 +13,7 @@ VulkanShaderProgram::VulkanShaderProgram(const VulkanRendererContext &context, S
     m_spirv_code.swap(spirv_code);
 }
 
-VulkanShaderProgram::~VulkanShaderProgram() noexcept {
+VulkanShader::~VulkanShader() noexcept {
     vkDestroyShaderModule(m_context.device, m_shader_module, nullptr);
 }
 
