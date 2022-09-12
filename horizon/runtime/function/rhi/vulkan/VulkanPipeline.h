@@ -32,11 +32,13 @@ class VulkanPipeline : public Pipeline {
     void CreateGraphicsPipeline();
     void CreateComputePipeline();
     void CreatePipelineLayout();
-    // void CreateRTPipeline() noexcept;
+
+    // void CreateRTPipeline() noexcept;  
   public:
     const VulkanRendererContext &m_context;
     VulkanDescriptorSetManager &m_descriptor_set_manager;
     VkPipeline m_pipeline{};
+    VkRenderPass m_render_pass{};
     VkPipelineLayout m_pipeline_layout{};
     PipelineLayoutDesc m_pipeline_layout_desc;
 };

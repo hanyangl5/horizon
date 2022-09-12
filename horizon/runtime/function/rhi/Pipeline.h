@@ -61,6 +61,7 @@ class Pipeline {
     // render_pass_create_info) noexcept = 0;
 
   protected:
+    // array contain all kinds of shaders
     std::unordered_map<ShaderType, Shader *> shader_map{};
     PipelineCreateInfo m_create_info{};
 };

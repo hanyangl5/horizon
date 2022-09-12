@@ -135,12 +135,14 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) {
 #ifndef NDEBUG
     instance_layers.emplace_back("VK_LAYER_KHRONOS_validation");
     instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    instance_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #endif
     instance_extensions.emplace_back("VK_KHR_surface");
     instance_extensions.emplace_back("VK_KHR_win32_surface");
     device_extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
-    device_extensions.emplace_back("VK_KHR_dynamic_rendering");
+    device_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+    device_extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 
     CreateInstance(app_name, instance_layers, instance_extensions);
     CreateDevice(device_extensions);
@@ -239,8 +241,18 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
 }
 
 void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
-
     PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
+
+    VkPhysicalDeviceDynamicRenderingFeatures dyanmic_rendering_features{};
+    dyanmic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+    dyanmic_rendering_features.dynamicRendering =true;
+
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
+    descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+    descriptor_indexing_features.pNext = &dyanmic_rendering_features;
+    descriptor_indexing_features.runtimeDescriptorArray = VK_TRUE;
+    descriptor_indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
     std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(m_vulkan.command_queues.size());
 
@@ -256,18 +268,10 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
         device_queue_create_info[i].pQueuePriorities = &queue_priority;
     }
 
-    // bindless extension
-
-    VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexing_features{};
-    indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-    indexing_features.pNext = nullptr;
-    indexing_features.runtimeDescriptorArray = VK_TRUE;
-    indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-    indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-
     VkPhysicalDeviceFeatures2 device_features{};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    device_features.pNext = &indexing_features;
+    //device_features.features = &requested_descriptor_indexing;
+    device_features.pNext = &descriptor_indexing_features;
     vkGetPhysicalDeviceFeatures2(m_vulkan.active_gpu, &device_features);
 
     VkDeviceCreateInfo device_create_info{};

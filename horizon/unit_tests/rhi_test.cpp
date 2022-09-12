@@ -253,8 +253,8 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
 TEST_CASE_FIXTURE(RHITest, "draw") {
 
     auto rhi = engine->m_render_system->GetRhi();
-    std::string vs_path = asset_path + "shaders/graphics_pass.vert.hsl";
-    std::string ps_path = asset_path + "shaders/graphics_pass.frag.hsl";
+    std::string vs_path = asset_path + "shaders/draw.vert.hsl";
+    std::string ps_path = asset_path + "shaders/draw.frag.hsl";
 
     auto vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, vs_path);
 

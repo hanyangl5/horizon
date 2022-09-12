@@ -51,84 +51,92 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanS
                                                                          VulkanShader *ps) {
 
     PipelineLayoutDesc layout_desc;
-    // layout_desc.set_index.resize(10);
 
-    //// vs
-    //{
-    //    SpvReflectShaderModule module;
-    //    SpvReflectResult result = spvReflectCreateShaderModule(vs->m_shader_byte_code->GetBufferSize(),
-    //                                                           vs->m_shader_byte_code->GetBufferPointer(), &module);
-    //    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+    std::vector<SpvReflectDescriptorSet *> vs_sets;
+     std::vector<SpvReflectDescriptorSet *> ps_sets;
+    //vs
+    {
+        SpvReflectShaderModule module;
+        SpvReflectResult result =
+            spvReflectCreateShaderModule(vs->m_spirv_code.size(), vs->m_spirv_code.data(), &module);
+        assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-    //    // Enumerate and extract shader's input variables, TODO: derive vertex input layout by shader?
-    //    // uint32_t var_count = 0;
-    //    // result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
-    //    // assert(result == SPV_REFLECT_RESULT_SUCCESS);
+        uint32_t count = 0;
+        result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
+        assert(result == SPV_REFLECT_RESULT_SUCCESS);
+        vs_sets.resize(count);
+        
+        result = spvReflectEnumerateDescriptorSets(&module, &count, vs_sets.data());
+        assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-    //    uint32_t count = 0;
-    //    result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
-    //    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+        result =
+            spvReflectCreateShaderModule(ps->m_spirv_code.size(), ps->m_spirv_code.data(), &module);
+        assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-    //    std::vector<SpvReflectDescriptorSet *> sets(count);
-    //    result = spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
-    //    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+        count = 0;
+        result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
+        assert(result == SPV_REFLECT_RESULT_SUCCESS);
+        ps_sets.resize(count);
+       
+        result = spvReflectEnumerateDescriptorSets(&module, &count, ps_sets.data());
+        assert(result == SPV_REFLECT_RESULT_SUCCESS);
+    }
+    
 
-    //    for (u32 i = 0; i < sets.size(); i++) {
-    //        const auto &refl_set = *(sets[i]);
+    
+    // for (u32 i = 0; i < sets.size(); i++) {
+    //     const auto &refl_set = *(sets[i]);
 
-    //        VkDescriptorSetLayoutCreateInfo set_layout_create_info{};
-    //        set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    //     VkDescriptorSetLayoutCreateInfo set_layout_create_info{};
+    //     set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
-    //        set_layout_create_info.bindingCount = refl_set.binding_count;
+    //     set_layout_create_info.bindingCount = refl_set.binding_count;
 
-    //        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(refl_set.binding_count);
+    //     std::vector<VkDescriptorSetLayoutBinding> layout_bindings(refl_set.binding_count);
 
-    //        for (u32 binding = 0; binding < refl_set.binding_count; binding++) {
-    //            const SpvReflectDescriptorBinding &refl_binding = *(refl_set.bindings[binding]);
-    //            layout_bindings[binding].binding = refl_binding.binding; // binding index
-    //            layout_bindings[binding].descriptorType =
-    //                static_cast<VkDescriptorType>(refl_binding.descriptor_type); // descriptor type
-    //            layout_bindings[binding].descriptorCount = 1;                    // descriptor count
+    //     for (u32 binding = 0; binding < refl_set.binding_count; binding++) {
+    //         const SpvReflectDescriptorBinding &refl_binding = *(refl_set.bindings[binding]);
+    //         layout_bindings[binding].binding = refl_binding.binding; // binding index
+    //         layout_bindings[binding].descriptorType =
+    //             static_cast<VkDescriptorType>(refl_binding.descriptor_type); // descriptor type
+    //         layout_bindings[binding].descriptorCount = 1;                    // descriptor count
 
-    //            // for (u32 i_dim = 0; i_dim < refl_binding.array.dims_count;
-    //            //      ++i_dim) {
-    //            //     layout_bindings[binding].descriptorCount *=
-    //            //         refl_binding.array.dims[i_dim];
-    //            // }
+    //         layout_bindings[binding].stageFlags = VK_SHADER_STAGE_ALL; // cet in cs may also used in other
+    //                                                                    // pipeline, any optimizaion here?
+    //         auto &descriptor_count =
+    //             descriptor_pool_size_desc.descriptor_type_map[layout_bindings[binding].descriptorType];
+    //         descriptor_count.required++;
+    //         if (descriptor_count.required > descriptor_count.reserved) {
+    //             descriptor_pool_size_desc.recreate = true;
+    //             descriptor_count.reserved = descriptor_count.required * 2;
+    //         }
+    //     }
 
-    //            layout_bindings[binding].stageFlags = VK_SHADER_STAGE_ALL; // cet in cs may also used in other
-    //                                                                       // pipeline, any optimizaion here?
-    //            auto &descriptor_count =
-    //                descriptor_pool_size_desc.descriptor_type_map[layout_bindings[binding].descriptorType];
-    //            descriptor_count.required++;
-    //            if (descriptor_count.required > descriptor_count.reserved) {
-    //                descriptor_pool_size_desc.recreate = true;
-    //                descriptor_count.reserved = descriptor_count.required * 2;
-    //            }
-    //        }
-    //        set_layout_create_info.bindingCount = static_cast<u32>(layout_bindings.size());
-    //        set_layout_create_info.pBindings = layout_bindings.data();
 
-    //        u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
+    // }
 
-    //        auto res = m_descriptor_set_layout_map.find(hash_key);
+    // set_layout_create_info.bindingCount = static_cast<u32>(layout_bindings.size());
+    // set_layout_create_info.pBindings = layout_bindings.data();
+    // u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
 
-    //        if (res == m_descriptor_set_layout_map.end()) {
-    //            VkDescriptorSetLayout layout;
-    //            vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout);
+    // auto res = m_descriptor_set_layout_map.find(hash_key);
 
-    //            m_descriptor_set_layout_map.emplace(hash_key, DescriptorSetValue{layout});
-    //        } else {
-    //            LOG_INFO("descriptorset exist");
-    //        }
+    // if (res == m_descriptor_set_layout_map.end()) {
+    //     VkDescriptorSetLayout layout;
+    //     vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout);
+    //     m_descriptor_set_layout_map.emplace(hash_key, DescriptorSetValue{layout});
+    // } else {
+    //     LOG_INFO("descriptorset exist");
+    // }
 
-    //        layout_desc.set_index[i] = refl_set.set;
-    //        layout_desc.descriptor_set_hash_key[i] = hash_key;
-    //    }
-    //}
+    // // layout_desc.set_index[i] = ;
+    // layout_desc.descriptor_set_hash_key[refl_set.set] = hash_key;
 
-    // ps
-
+    // for (auto &key : layout_desc.descriptor_set_hash_key) {
+    //     if (key == 0) {
+    //         key = m_empty_descriptor_set_layout_hash_key;
+    //     }
+    // }
     return layout_desc;
 }
 
