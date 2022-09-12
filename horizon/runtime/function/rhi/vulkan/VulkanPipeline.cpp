@@ -33,11 +33,11 @@ void VulkanPipeline::SetComputeShader(ShaderProgram *cs) {
 
     CreatePipelineLayout();
 
-    CreateComputePipeline();
-
-    for (auto &index : m_pipeline_layout_desc.set_index) {
+    for (u32 index = 0; index < m_pipeline_layout_desc.descriptor_set_hash_key.size(); index++) {
         m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
     }
+
+    CreateComputePipeline();
 }
 
 void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
@@ -52,9 +52,11 @@ void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
 
     CreateGraphicsPipeline();
 
-    for (auto &index : m_pipeline_layout_desc.set_index) {
-        m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
-    }
+    //for (auto &index : m_pipeline_layout_desc.set_index) {
+    //    m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
+    //}
+    
+
 }
 
 void VulkanPipeline::BindResource(Buffer *buffer, ResourceUpdateFrequency freq, u32 binding) {
@@ -260,10 +262,8 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 }
 
 void VulkanPipeline::CreateComputePipeline() {
-    if (!shader_map[ShaderType::COMPUTE_SHADER]) {
-        LOG_ERROR("missing shader: compute shader");
-        return;
-    }
+    assert(("shader not exist", shader_map[ShaderType::COMPUTE_SHADER] != nullptr));
+
     auto cs = reinterpret_cast<VulkanShaderProgram *>(shader_map[ShaderType::COMPUTE_SHADER]);
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -286,7 +286,7 @@ void VulkanPipeline::CreateComputePipeline() {
 }
 void VulkanPipeline::CreatePipelineLayout() {
 
-    m_pipeline_layout_desc = m_descriptor_set_manager.CreateLayouts(shader_map, m_create_info.type);
+    m_pipeline_layout_desc = m_descriptor_set_manager.CreateDescriptorSetLayoutFromShader(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;
     layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
 

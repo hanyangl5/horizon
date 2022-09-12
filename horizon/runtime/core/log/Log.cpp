@@ -23,6 +23,7 @@ void Log::CheckVulkanResult(VkResult _res, const char *func_name, int line) cons
     if (_res != VK_SUCCESS) {
         m_logger->error("[function: {}], [line: {}], vulkan result checking failed", func_name, line);
     }
+    assert(_res == VK_SUCCESS);
 }
 
 void Log::CheckDXResult(HRESULT hr, const char *func_name, int line) const noexcept {

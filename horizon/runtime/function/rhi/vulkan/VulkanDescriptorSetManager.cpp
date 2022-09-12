@@ -8,12 +8,29 @@
 namespace Horizon::RHI {
 
 VulkanDescriptorSetManager::VulkanDescriptorSetManager(const VulkanRendererContext &context) noexcept
-    : m_context(context) {}
+    : m_context(context) {
+}
 
-PipelineLayoutDesc
-VulkanDescriptorSetManager::CreateLayouts(std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
-                                          PipelineType pipeline_type) {
+PipelineLayoutDesc VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShader(
+    std::unordered_map<ShaderType, ShaderProgram *> &shader_map, PipelineType pipeline_type) {
 
+    // create empty layout
+    if (m_empty_descriptor_set == VK_NULL_HANDLE) {
+
+        VkDescriptorSetLayoutCreateInfo set_layout_create_info{};
+        set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+
+        set_layout_create_info.flags = 0;
+        set_layout_create_info.pNext = nullptr;
+        set_layout_create_info.bindingCount = 0;
+        set_layout_create_info.pBindings = nullptr;
+
+        VkDescriptorSetLayout layout;
+        CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout));
+
+        m_empty_descriptor_set_layout_hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
+        m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, DescriptorSetValue{layout});
+    }
     // combine vs/gs/ps to get pipeline layout
     if (pipeline_type == PipelineType::GRAPHICS) {
         return GetGraphicsPipelineLayout(reinterpret_cast<VulkanShaderProgram *>(shader_map[ShaderType::VERTEX_SHADER]),
@@ -35,8 +52,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanS
                                                                          VulkanShaderProgram *ps) {
 
     PipelineLayoutDesc layout_desc;
-    layout_desc.descriptor_set_hash_key.resize(10);
-    layout_desc.set_index.resize(10);
+    //layout_desc.set_index.resize(10);
 
     //// vs
     //{
@@ -136,8 +152,6 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
     PipelineLayoutDesc layout_desc;
-    layout_desc.descriptor_set_hash_key.resize(sets.size());
-    layout_desc.set_index.resize(sets.size());
 
     for (u32 i = 0; i < sets.size(); i++) {
         const auto &refl_set = *(sets[i]);
@@ -174,7 +188,6 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
         }
         set_layout_create_info.bindingCount = static_cast<u32>(layout_bindings.size());
         set_layout_create_info.pBindings = layout_bindings.data();
-
         u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
 
         auto res = m_descriptor_set_layout_map.find(hash_key);
@@ -182,21 +195,29 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
         if (res == m_descriptor_set_layout_map.end()) {
             VkDescriptorSetLayout layout;
             vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout);
-
             m_descriptor_set_layout_map.emplace(hash_key, DescriptorSetValue{layout});
         } else {
             LOG_INFO("descriptorset exist");
         }
 
-        layout_desc.set_index[i] = refl_set.set;
-        layout_desc.descriptor_set_hash_key[i] = hash_key;
+        //layout_desc.set_index[i] = ;
+        layout_desc.descriptor_set_hash_key[refl_set.set] = hash_key;
+    }
+
+    for (auto &key : layout_desc.descriptor_set_hash_key) {
+        if (key == 0) {
+            key = m_empty_descriptor_set_layout_hash_key;
+        }
     }
     return layout_desc;
 }
 
+void VulkanDescriptorSetManager::InitEmptyDescriptorSet() {
+
+}
+
 void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency frequency,
                                               u32 binding) {
-
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
     vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
@@ -210,18 +231,8 @@ void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Buffer *buffer
         return;
     }
 
-    std::unordered_map<u32, VkWriteDescriptorSet> mm1;
+    auto &write = info.writes[binding];
 
-    try {
-        auto a = info.writes.size();
-        auto &w = info.writes[binding];
-    }
-
-    catch (std::exception &e) {
-        LOG_ERROR("{}", e.what());
-    }
-
-    VkWriteDescriptorSet write;
     // VkWriteDescriptorSet write;
     if (buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -301,24 +312,18 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::FindLayout(u64 key) const {
 }
 
 void VulkanDescriptorSetManager::AllocateDescriptorSets(VulkanPipeline *pipeline, ResourceUpdateFrequency frequency) {
-
-    std::vector<VkDescriptorSetLayout> set_layouts;
-    set_layouts.reserve(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key.size());
-
-    for(auto & key : pipeline->m_pipeline_layout_desc.descriptor_set_hash_key) {
-        auto val = FindLayout(key);
-        set_layouts.emplace_back(val);
+    if (m_descriptor_pool==VK_NULL_HANDLE) {
+         CreateDescriptorPool();
     }
+   
+    VkDescriptorSetLayout layout = FindLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
 
-    CreateDescriptorPool();
-    if (!m_descriptor_pool) {
-        return;
-    }
+
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     alloc_info.descriptorPool = m_descriptor_pool;
-    alloc_info.descriptorSetCount = static_cast<u32>(set_layouts.size());
-    alloc_info.pSetLayouts = set_layouts.data();
+    alloc_info.descriptorSetCount = 1;
+    alloc_info.pSetLayouts = &layout;
 
     auto &set = m_pipeline_descriptors_map[pipeline].infos[static_cast<u32>(frequency)].set;
     CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &set));

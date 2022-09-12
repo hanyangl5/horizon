@@ -384,7 +384,6 @@ void RHIVulkan::ResetCommandResources() {
 }
 
 Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) {
-
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
 }
 

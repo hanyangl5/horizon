@@ -14,17 +14,3 @@ https://ruby0x1.github.io/machinery_blog_archive/post/efficient-binding-of-shade
 
 https://themaister.net/blog/2019/04/20/a-tour-of-granites-vulkan-backend-part-3/
 
-resource - pipeline
-
-pipeline access resource
-
-
-pipeline->bindresource
-pipeline->updateresources(freq)
-
-
-drawback
-
-resource shared by multiple pass
-
-each pipeline owns a descriptorset

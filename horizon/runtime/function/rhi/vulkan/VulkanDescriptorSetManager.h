@@ -19,8 +19,8 @@ class VulkanPipeline;
 
 struct PipelineLayoutDesc {
   public:
-    std::vector<u64> descriptor_set_hash_key;
-    std::vector<u32> set_index;
+    std::array<u64, 4> descriptor_set_hash_key{};
+    //std::vector<u32> set_index;
 };
 
 struct DescriptorSetValue {
@@ -67,7 +67,7 @@ class VulkanDescriptorSetManager {
 
   public:
     void CreateDescriptorPool();
-    PipelineLayoutDesc CreateLayouts(::std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
+    PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
                                      PipelineType pipeline_type);
     // create layout for a single shader
 
@@ -75,6 +75,8 @@ class VulkanDescriptorSetManager {
     PipelineLayoutDesc GetComputePipelineLayout(VulkanShaderProgram *cs);
 
     void BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency freq, u32 binding);
+
+    void InitEmptyDescriptorSet();
 
   public:
     const VulkanRendererContext &m_context;
@@ -84,6 +86,9 @@ class VulkanDescriptorSetManager {
     std::unordered_map<u64, DescriptorSetValue> m_descriptor_set_layout_map; // cache exist layout
 
     std::unordered_map<Pipeline *, PipelineDescriptorSetInfo> m_pipeline_descriptors_map;
+
+    VkDescriptorSet m_empty_descriptor_set{};
+    u64 m_empty_descriptor_set_layout_hash_key{};
 };
 
 } // namespace Horizon::RHI

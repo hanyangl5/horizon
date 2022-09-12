@@ -2,8 +2,10 @@
 
 #include <doctest/doctest.h>
 
-namespace TEST::RHI {
+namespace TEST {
+
 using namespace Horizon;
+using namespace Horizon::RHI;
 
 class RHITest {
   public:
@@ -22,7 +24,7 @@ class RHITest {
 
   public:
     std::unique_ptr<Engine> engine{};
-    std::string asset_path = "D:/codes/horizon/horizon/assets/";
+    std::string asset_path = "C:/FILES/horizon/horizon/assets/";
     u32 width, height;
 };
 
@@ -45,9 +47,9 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
 
     auto rhi = engine->m_render_system->GetRhi();
 
-    Resource<Buffer> buffer{
+    Resource<Buffer> buffer = 
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3)})};
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3)});
 
     // dynamic buffer, cpu pointer not change, cpu data change, gpu data
     // change
@@ -86,7 +88,7 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
 
     auto rhi = engine->m_render_system->GetRhi();
     Horizon::RDC::StartFrameCapture();
-    std::string file_name = asset_path + "shaders/cs.comp.hsl";
+    std::string file_name = asset_path + "shaders/shader_resource_frequency.comp.hsl";
     auto shader{rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, 0, file_name)};
     ComputePipelineCreateInfo info;
     auto pipeline = rhi->CreateComputePipeline(info);
@@ -105,7 +107,7 @@ TEST_CASE_FIXTURE(RHITest, "dispatch test") {
     rhi->DestroyShaderProgram(shader);
 }
 
-TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
+TEST_CASE_FIXTURE(RHITest, "binding model") {
 
     auto rhi = engine->m_render_system->GetRhi();
     Horizon::RDC::StartFrameCapture();
@@ -295,14 +297,14 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     info.depth_stencil_state.depth_write = true;
     info.depth_stencil_state.stencil_enabled = false;
 
-    info.input_assembly_state.topology = RHI::PrimitiveTopology::TRIANGLE_LIST;
+    info.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
 
     info.multi_sample_state.sample_count = 1;
 
-    info.rasterization_state.cull_mode = RHI::CullMode::BACK;
+    info.rasterization_state.cull_mode = CullMode::BACK;
     info.rasterization_state.discard = false;
-    info.rasterization_state.fill_mode = RHI::FillMode::TRIANGLE;
-    info.rasterization_state.front_face = RHI::FrontFace::CCW;
+    info.rasterization_state.fill_mode = FillMode::TRIANGLE;
+    info.rasterization_state.front_face = FrontFace::CCW;
 
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 

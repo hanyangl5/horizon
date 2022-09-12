@@ -457,13 +457,10 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
     if (iter != vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.end()) {
         std::vector<VkDescriptorSet> pipeline_descriptor_sets{};
         for (auto &info : vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.at(vk_pipeline).infos) {
-            if (info.set != VK_NULL_HANDLE) {
                 pipeline_descriptor_sets.emplace_back(info.set);
-                vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
-                                        pipeline_descriptor_sets.size(), pipeline_descriptor_sets.data(), 0, 0);
-            }
         }
-
+        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
+                                pipeline_descriptor_sets.size(), pipeline_descriptor_sets.data(), 0, 0);
         vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
     }
 }
