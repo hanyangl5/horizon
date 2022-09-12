@@ -8,8 +8,7 @@
 namespace Horizon::RHI {
 
 VulkanDescriptorSetManager::VulkanDescriptorSetManager(const VulkanRendererContext &context) noexcept
-    : m_context(context) {
-}
+    : m_context(context) {}
 
 PipelineLayoutDesc VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShader(
     std::unordered_map<ShaderType, ShaderProgram *> &shader_map, PipelineType pipeline_type) {
@@ -52,7 +51,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetGraphicsPipelineLayout(VulkanS
                                                                          VulkanShaderProgram *ps) {
 
     PipelineLayoutDesc layout_desc;
-    //layout_desc.set_index.resize(10);
+    // layout_desc.set_index.resize(10);
 
     //// vs
     //{
@@ -200,7 +199,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
             LOG_INFO("descriptorset exist");
         }
 
-        //layout_desc.set_index[i] = ;
+        // layout_desc.set_index[i] = ;
         layout_desc.descriptor_set_hash_key[refl_set.set] = hash_key;
     }
 
@@ -212,9 +211,7 @@ PipelineLayoutDesc VulkanDescriptorSetManager::GetComputePipelineLayout(VulkanSh
     return layout_desc;
 }
 
-void VulkanDescriptorSetManager::InitEmptyDescriptorSet() {
-
-}
+void VulkanDescriptorSetManager::InitEmptyDescriptorSet() {}
 
 void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency frequency,
                                               u32 binding) {
@@ -312,12 +309,12 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::FindLayout(u64 key) const {
 }
 
 void VulkanDescriptorSetManager::AllocateDescriptorSets(VulkanPipeline *pipeline, ResourceUpdateFrequency frequency) {
-    if (m_descriptor_pool==VK_NULL_HANDLE) {
-         CreateDescriptorPool();
+    if (m_descriptor_pool == VK_NULL_HANDLE) {
+        CreateDescriptorPool();
     }
-   
-    VkDescriptorSetLayout layout = FindLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
 
+    VkDescriptorSetLayout layout =
+        FindLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
 
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

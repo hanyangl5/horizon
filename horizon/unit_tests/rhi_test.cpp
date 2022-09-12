@@ -47,7 +47,7 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
 
     auto rhi = engine->m_render_system->GetRhi();
 
-    Resource<Buffer> buffer = 
+    Resource<Buffer> buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3)});
 
@@ -68,7 +68,7 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
         transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
 
         transfer->EndRecording();
-        
+
         // stage -> gpu
         std::vector v{transfer};
         rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v);
@@ -77,7 +77,7 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
 }
 
 TEST_CASE_FIXTURE(RHITest, "shader compile test") {
-    
+
     auto rhi = engine->m_render_system->GetRhi();
     std::string file_name = asset_path + "shaders/cs.comp.hsl";
     auto shader_program = rhi->CreateShaderProgram(ShaderType::VERTEX_SHADER, 0, file_name);
@@ -115,7 +115,7 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
 
     auto shader = rhi->CreateShaderProgram(ShaderType::COMPUTE_SHADER, 0, file_name);
 
-     Math::float4 f = Math::float4(5.0);
+    Math::float4 f = Math::float4(5.0);
 
     ComputePipelineCreateInfo info;
     auto pipeline = rhi->CreateComputePipeline(info);
@@ -147,8 +147,6 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
     transfer->UpdateBuffer(cb1.get(), &data[0], sizeof(f32)); // 5
 
     transfer->UpdateBuffer(cb2.get(), &data[1], sizeof(f32)); // 6
-
-
 
     transfer->EndRecording();
     std::vector v{transfer};
@@ -184,7 +182,6 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
     engine->EndFrame();
 
     rhi->DestroyShaderProgram(shader);
-
 }
 
 TEST_CASE_FIXTURE(RHITest, "bindless descriptors") {
@@ -339,7 +336,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
         pipeline->SetGraphicsShader(vs, ps);
 
-        //rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
+        // rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
 
         cl->BeginRecording();
 
@@ -365,4 +362,4 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     }
 }
 
-} // namespace TEST::RHI
+} // namespace TEST

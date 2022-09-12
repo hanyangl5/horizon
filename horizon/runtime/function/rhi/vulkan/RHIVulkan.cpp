@@ -115,8 +115,7 @@ void RHIVulkan::CreateSwapChain(Window *window) {
     }
 }
 
-ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type, u32 compile_flags,
-                                              std::string file_name) {
+ShaderProgram *RHIVulkan::CreateShaderProgram(ShaderType type, u32 compile_flags, std::string file_name) {
     auto spirv_code = ReadFile(file_name + ".VULKAN");
     return new VulkanShaderProgram(m_vulkan, type, spirv_code);
 }

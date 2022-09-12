@@ -22,9 +22,7 @@ VulkanPipeline::~VulkanPipeline() noexcept {
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
 
-void VulkanPipeline::CreatePipelineResources() {
-
-}
+void VulkanPipeline::CreatePipelineResources() {}
 
 void VulkanPipeline::SetComputeShader(ShaderProgram *cs) {
     assert(("shader is not compute shader", cs->GetType() == ShaderType::COMPUTE_SHADER));
@@ -52,11 +50,9 @@ void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
 
     CreateGraphicsPipeline();
 
-    //for (auto &index : m_pipeline_layout_desc.set_index) {
-    //    m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
-    //}
-    
-
+    // for (auto &index : m_pipeline_layout_desc.set_index) {
+    //     m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
+    // }
 }
 
 void VulkanPipeline::BindResource(Buffer *buffer, ResourceUpdateFrequency freq, u32 binding) {
@@ -286,7 +282,8 @@ void VulkanPipeline::CreateComputePipeline() {
 }
 void VulkanPipeline::CreatePipelineLayout() {
 
-    m_pipeline_layout_desc = m_descriptor_set_manager.CreateDescriptorSetLayoutFromShader(shader_map, m_create_info.type);
+    m_pipeline_layout_desc =
+        m_descriptor_set_manager.CreateDescriptorSetLayoutFromShader(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;
     layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
 

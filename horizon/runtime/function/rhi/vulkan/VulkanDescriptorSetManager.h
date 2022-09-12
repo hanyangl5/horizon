@@ -20,7 +20,7 @@ class VulkanPipeline;
 struct PipelineLayoutDesc {
   public:
     std::array<u64, 4> descriptor_set_hash_key{};
-    //std::vector<u32> set_index;
+    // std::vector<u32> set_index;
 };
 
 struct DescriptorSetValue {
@@ -40,7 +40,7 @@ struct DescriptorPoolSizeDesc {
 
 struct DescriptorSetInfo {
     VkDescriptorSet set;
-    //std::unordered_map<u32, VkWriteDescriptorSet> writes;
+    // std::unordered_map<u32, VkWriteDescriptorSet> writes;
     static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
     std::array<VkWriteDescriptorSet, MAX_BINDING_PER_DESCRIPTOR_SET> writes;
 };
@@ -67,8 +67,9 @@ class VulkanDescriptorSetManager {
 
   public:
     void CreateDescriptorPool();
-    PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
-                                     PipelineType pipeline_type);
+    PipelineLayoutDesc
+    CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
+                                        PipelineType pipeline_type);
     // create layout for a single shader
 
     PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs, VulkanShaderProgram *ps);

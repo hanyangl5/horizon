@@ -36,8 +36,7 @@ class RHIVulkan : public RHI {
 
     void CreateSwapChain(Window *window) override;
 
-    ShaderProgram *CreateShaderProgram(ShaderType type, u32 compile_flags,
-                                       std::string file_name) override;
+    ShaderProgram *CreateShaderProgram(ShaderType type, u32 compile_flags, std::string file_name) override;
 
     void DestroyShaderProgram(ShaderProgram *shader_program) override;
 
@@ -53,7 +52,6 @@ class RHIVulkan : public RHI {
 
     // submit command list to command queue
     virtual void SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) override;
-
 
   private:
     void InitializeVulkanRenderer(const std::string &app_name);
