@@ -17,7 +17,6 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const Compu
 }
 
 VulkanPipeline::~VulkanPipeline() noexcept {
-    // TODO: destroy pipeline resources, pipeline layout, pipeline
     vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
@@ -49,10 +48,6 @@ void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
     CreatePipelineLayout();
 
     CreateGraphicsPipeline();
-
-    // for (auto &index : m_pipeline_layout_desc.set_index) {
-    //     m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
-    // }
 }
 
 void VulkanPipeline::BindResource(Buffer *buffer, ResourceUpdateFrequency freq, u32 binding) {

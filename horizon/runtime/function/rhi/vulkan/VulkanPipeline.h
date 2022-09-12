@@ -12,7 +12,7 @@ class VulkanPipeline : public Pipeline {
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     VulkanPipeline(const VulkanRendererContext &context, const ComputePipelineCreateInfo &create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
-    ~VulkanPipeline() noexcept;
+    virtual ~VulkanPipeline() noexcept;
     VulkanPipeline(const VulkanPipeline &rhs) noexcept = delete;
     VulkanPipeline &operator=(const VulkanPipeline &rhs) noexcept = delete;
     VulkanPipeline(VulkanPipeline &&rhs) noexcept = delete;

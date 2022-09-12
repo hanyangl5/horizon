@@ -390,4 +390,8 @@ Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &crea
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
 }
 
+void RHIVulkan::DestroyPipeline(Pipeline *pipeline) {
+    delete pipeline;
+}
+
 } // namespace Horizon::RHI

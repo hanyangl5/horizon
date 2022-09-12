@@ -13,7 +13,7 @@ namespace Horizon::RHI {
 class Pipeline {
   public:
     Pipeline() noexcept;
-    ~Pipeline() noexcept;
+    virtual ~Pipeline() noexcept;
 
     Pipeline(const Pipeline &rhs) noexcept = delete;
     Pipeline &operator=(const Pipeline &rhs) noexcept = delete;

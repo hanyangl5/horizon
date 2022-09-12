@@ -46,9 +46,11 @@ class RHIVulkan : public RHI {
 
     void ResetCommandResources() override;
 
-    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
+    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) override;
 
-    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info);
+    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) override;
+
+    virtual void DestroyPipeline(Pipeline* pipeline) override;
 
     // submit command list to command queue
     virtual void SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) override;

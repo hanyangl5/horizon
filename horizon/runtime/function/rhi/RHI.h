@@ -51,6 +51,8 @@ class RHI {
 
     virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) = 0;
 
+    virtual void DestroyPipeline(Pipeline* pipeline) = 0;
+
     virtual CommandList *GetCommandList(CommandQueueType type) = 0;
 
     virtual void WaitGpuExecution(CommandQueueType queue_type) = 0;

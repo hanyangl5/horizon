@@ -21,7 +21,7 @@ class SceneManagementTest {
 
   public:
     std::unique_ptr<Engine> engine{};
-    std::string asset_path = "D:/codes/horizon/horizon/assets/";
+    std::string asset_path = "C:/FILES/horizon/horizon/assets/";
 };
 
 TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
@@ -30,10 +30,9 @@ TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
     constexpr u32 mesh_count = 500;
     std::vector<Mesh> meshes(mesh_count);
 
-    std::vector<std::string> paths = {"D:/codes/horizon/horizon/assets/models/DamagedHelmet/"
-                                      "DamagedHelmet.gltf",
-                                      "D:/codes/horizon/horizon/assets/models/sponza/sponza.gltf",
-                                      "D:/codes/horizon/horizon/assets/models/cerberus/cerberus.gltf"};
+    std::vector<std::string> paths = {asset_path + "models/DamagedHelmet/DamagedHelmet.gltf",
+                                      asset_path + "models/sponza/sponza.gltf",
+                                      asset_path + "models/cerberus/cerberus.gltf"};
 
     std::vector<std::future<void>> results(mesh_count);
 

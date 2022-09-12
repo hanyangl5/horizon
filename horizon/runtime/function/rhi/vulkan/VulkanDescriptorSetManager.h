@@ -20,7 +20,6 @@ class VulkanPipeline;
 struct PipelineLayoutDesc {
   public:
     std::array<u64, 4> descriptor_set_hash_key{};
-    // std::vector<u32> set_index;
 };
 
 struct DescriptorSetValue {

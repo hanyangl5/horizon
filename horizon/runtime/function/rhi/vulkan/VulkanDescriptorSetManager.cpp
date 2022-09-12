@@ -247,8 +247,12 @@ void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Buffer *buffer
     write.pBufferInfo = &vk_buffer->buffer_info;
 }
 
-VulkanDescriptorSetManager::~VulkanDescriptorSetManager() {
-    // TODO: destroy descriptor resources, descriptorsetlayout, descriptorpool
+VulkanDescriptorSetManager::~VulkanDescriptorSetManager() noexcept {
+    for (auto &layout : m_descriptor_set_layout_map) {
+        vkDestroyDescriptorSetLayout(m_context.device, layout.second.layout, nullptr);
+    }
+    // all descriptor sets allocated from the pool are implicitly freed and become invalid
+    vkDestroyDescriptorPool(m_context.device, m_descriptor_pool, nullptr);
 }
 void VulkanDescriptorSetManager::CreateDescriptorPool() {
 
