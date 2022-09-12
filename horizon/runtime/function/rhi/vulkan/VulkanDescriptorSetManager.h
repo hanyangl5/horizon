@@ -9,20 +9,22 @@
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ShaderProgram.h>
+#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanShaderProgram.h>
 
 namespace Horizon::RHI {
+
+class Pipeline;
+class VulkanPipeline;
 
 struct PipelineLayoutDesc {
   public:
     std::vector<u64> descriptor_set_hash_key;
     std::vector<u32> set_index;
-    std::vector<VkDescriptorSet> sets;
 };
 
 struct DescriptorSetValue {
     VkDescriptorSetLayout layout;
-    // VkDescriptorSet set;
 };
 
 struct DescriptorPoolSizeDesc {
@@ -36,16 +38,17 @@ struct DescriptorPoolSizeDesc {
     bool recreate = true;  // need to recreate descriptor pool
 };
 
-typedef struct vk_UpdateFrequencyLayoutInfo {
-    /// Array of all bindings in the descriptor set
-    std::vector<VkDescriptorSetLayoutBinding> mBindings{};
-    /// Array of all descriptors in this descriptor set
-    std::vector<DescriptorInfo *> mDescriptors{};
-    /// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-    std::vector<DescriptorInfo *> mDynamicDescriptors{};
-    /// Hash map to get index of the descriptor in the root signature
-    std::unordered_map<DescriptorInfo *, uint32_t> mDescriptorIndexMap{};
-} UpdateFrequencyLayoutInfo;
+struct DescriptorSetInfo {
+    VkDescriptorSet set;
+    //std::unordered_map<u32, VkWriteDescriptorSet> writes;
+    static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
+    std::array<VkWriteDescriptorSet, MAX_BINDING_PER_DESCRIPTOR_SET> writes;
+};
+
+struct PipelineDescriptorSetInfo {
+    static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
+    std::array<DescriptorSetInfo, MAX_SET_COUNT_PER_PIPELINE> infos;
+};
 
 class VulkanDescriptorSetManager {
   public:
@@ -57,14 +60,12 @@ class VulkanDescriptorSetManager {
     VulkanDescriptorSetManager &operator=(VulkanDescriptorSetManager &&rhs) noexcept = delete;
 
     void ResetDescriptorPool();
-    void Update(UpdateFrequency frequency);
+    void UpdatePipelineDescriptorSet(Pipeline *pipeline, ResourceUpdateFrequency frequency);
 
     VkDescriptorSetLayout FindLayout(u64 key) const;
-    std::vector<VkDescriptorSet> AllocateDescriptorSets(const PipelineLayoutDesc &layout_desc);
+    void AllocateDescriptorSets(VulkanPipeline *pipeline, ResourceUpdateFrequency frequency);
 
   public:
-    // std::vector<SpvReflectDescriptorSet *>
-    // ReflectDescriptorSetLayout(void *spirv, u32 size);
     void CreateDescriptorPool();
     PipelineLayoutDesc CreateLayouts(::std::unordered_map<ShaderType, ShaderProgram *> &shader_map,
                                      PipelineType pipeline_type);
@@ -73,6 +74,8 @@ class VulkanDescriptorSetManager {
     PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShaderProgram *vs, VulkanShaderProgram *ps);
     PipelineLayoutDesc GetComputePipelineLayout(VulkanShaderProgram *cs);
 
+    void BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency freq, u32 binding);
+
   public:
     const VulkanRendererContext &m_context;
     DescriptorPoolSizeDesc descriptor_pool_size_desc;
@@ -80,16 +83,7 @@ class VulkanDescriptorSetManager {
 
     std::unordered_map<u64, DescriptorSetValue> m_descriptor_set_layout_map; // cache exist layout
 
-    // std::vector<DescriptorSetInfo> layouts;
-
-    //std::unordered_map<UpdateFrequency, std::vector<VkWriteDescriptorSet>>
-    std::vector<std::vector<VkWriteDescriptorSet>> descriptor_writes;
-    
-     //descriptor_writes_none;
-    std::vector<VkWriteDescriptorSet> descriptor_writes_per_frame;
-    std::vector<VkWriteDescriptorSet> descriptor_writes_per_batch;
-    std::vector<VkWriteDescriptorSet> descriptor_writes_per_pass; // owned by per pass
-    
+    std::unordered_map<Pipeline *, PipelineDescriptorSetInfo> m_pipeline_descriptors_map;
 };
 
 } // namespace Horizon::RHI

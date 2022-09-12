@@ -123,13 +123,7 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     Resource<Buffer> cb2{rhi->CreateBuffer(BufferCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
-    Resource<Buffer> cb3{rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f)})};
 
-    Resource<Buffer> cb4{rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f)})};
-
-   
     Resource<Buffer> rwb1{rhi->CreateBuffer(BufferCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(f32)})};
 
@@ -152,9 +146,7 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     transfer->UpdateBuffer(cb2.get(), &data[1], sizeof(f32)); // 6
 
-    transfer->UpdateBuffer(cb3.get(), &data[2], sizeof(f)); // 7
 
-    transfer->UpdateBuffer(cb4.get(), &data[3], sizeof(f)); // 7
 
     transfer->EndRecording();
     std::vector v{transfer};
@@ -166,16 +158,19 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     pipeline->SetComputeShader(shader);
 
-    rhi->SetResource(cb1.get(), pipeline, UpdateFrequency::NONE, 0); // set, binding
-    rhi->SetResource(cb2.get(), pipeline, UpdateFrequency::NONE, 1);
-    rhi->SetResource(cb3.get(), pipeline, UpdateFrequency::NONE, 0); // set, binding
-    rhi->SetResource(cb4.get(), pipeline, UpdateFrequency::NONE, 1);
-    rhi->SetResource(rwb1.get(), pipeline, UpdateFrequency::NONE, 0); // set, binding
-    rhi->SetResource(rwb2.get(), pipeline, UpdateFrequency::NONE, 1);
-    rhi->SetResource(rwb3.get(), pipeline, UpdateFrequency::NONE, 0); // set, binding
-    rhi->SetResource(rwb4.get(), pipeline, UpdateFrequency::NONE, 1);
+    pipeline->BindResource(cb1.get(), ResourceUpdateFrequency::NONE, 0); // set, binding
+    pipeline->BindResource(cb2.get(), ResourceUpdateFrequency::NONE, 1);
+    pipeline->BindResource(rwb1.get(), ResourceUpdateFrequency::PER_FRAME, 0); // set, binding
+    pipeline->BindResource(rwb2.get(), ResourceUpdateFrequency::PER_FRAME, 1);
+    pipeline->BindResource(rwb3.get(), ResourceUpdateFrequency::PER_DRAW, 0); // set, binding
+    pipeline->BindResource(rwb4.get(), ResourceUpdateFrequency::PER_DRAW, 1);
 
     cl->BeginRecording();
+
+    pipeline->UpdatePipelineDescriptorSet(ResourceUpdateFrequency::NONE);
+    pipeline->UpdatePipelineDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+    pipeline->UpdatePipelineDescriptorSet(ResourceUpdateFrequency::PER_DRAW);
+
     cl->BindPipeline(pipeline);
 
     cl->Dispatch(1, 1, 1);
@@ -185,6 +180,9 @@ TEST_CASE_FIXTURE(RHITest, "descriptor set cache") {
 
     Horizon::RDC::EndFrameCapture();
     engine->EndFrame();
+
+    rhi->DestroyShaderProgram(shader);
+
 }
 
 TEST_CASE_FIXTURE(RHITest, "bindless descriptors") {
@@ -339,7 +337,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
         pipeline->SetGraphicsShader(vs, ps);
 
-        rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
+        //rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
 
         cl->BeginRecording();
 

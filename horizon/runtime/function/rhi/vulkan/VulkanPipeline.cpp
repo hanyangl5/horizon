@@ -22,35 +22,22 @@ VulkanPipeline::~VulkanPipeline() noexcept {
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
 
-const std::vector<VkDescriptorSet> &VulkanPipeline::CreatePipelineResources() {
+void VulkanPipeline::CreatePipelineResources() {
 
-    // at that time parse shader and generate descriptor layout and pipeline
-    // layout.
-    CreatePipelineLayout();
-
-    switch (m_create_info.type) {
-    case PipelineType::COMPUTE:
-        CreateComputePipeline();
-        break;
-    case PipelineType::GRAPHICS:
-        CreateGraphicsPipeline();
-        break;
-    case PipelineType::RAY_TRACING:
-        // VkRayTracingPipelineCreateInfoKHR r	t_pipeline_create_info{};
-        // vkCreateRayTracingPipelinesKHR();
-        break;
-    default:
-        break;
-    }
-    m_pipeline_layout_desc.sets = m_descriptor_set_manager.AllocateDescriptorSets(m_pipeline_layout_desc);
-    return m_pipeline_layout_desc.sets;
 }
 
 void VulkanPipeline::SetComputeShader(ShaderProgram *cs) {
     assert(("shader is not compute shader", cs->GetType() == ShaderType::COMPUTE_SHADER));
     assert(("pipeline is not compute shader", m_create_info.type == PipelineType::COMPUTE));
     shader_map[ShaderType::COMPUTE_SHADER] = cs;
-    CreatePipelineResources();
+
+    CreatePipelineLayout();
+
+    CreateComputePipeline();
+
+    for (auto &index : m_pipeline_layout_desc.set_index) {
+        m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
+    }
 }
 
 void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
@@ -60,7 +47,22 @@ void VulkanPipeline::SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) {
 
     shader_map[ShaderType::VERTEX_SHADER] = vs;
     shader_map[ShaderType::PIXEL_SHADER] = ps;
-    CreatePipelineResources();
+
+    CreatePipelineLayout();
+
+    CreateGraphicsPipeline();
+
+    for (auto &index : m_pipeline_layout_desc.set_index) {
+        m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
+    }
+}
+
+void VulkanPipeline::BindResource(Buffer *buffer, ResourceUpdateFrequency freq, u32 binding) {
+    m_descriptor_set_manager.BindResource(this, buffer, freq, binding);
+}
+
+void VulkanPipeline::UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) {
+    m_descriptor_set_manager.UpdatePipelineDescriptorSet(this, frequency);
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() {
@@ -287,11 +289,10 @@ void VulkanPipeline::CreatePipelineLayout() {
     m_pipeline_layout_desc = m_descriptor_set_manager.CreateLayouts(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;
     layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
-    for (u32 i = 0; i < m_pipeline_layout_desc.descriptor_set_hash_key.size(); i++) {
-        auto key = m_pipeline_layout_desc.descriptor_set_hash_key[i];
+
+    for (auto &key : m_pipeline_layout_desc.descriptor_set_hash_key) {
         layouts.emplace_back(m_descriptor_set_manager.FindLayout(key));
     }
-
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

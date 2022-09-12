@@ -9,7 +9,7 @@ namespace Horizon::RHI {
 
 VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context, CommandQueueType type,
                                      VkCommandBuffer command_buffer) noexcept
-    : CommandList(type), m_context(context), m_command_buffer(command_buffer)  {}
+    : CommandList(type), m_context(context), m_command_buffer(command_buffer) {}
 
 VulkanCommandList::~VulkanCommandList() noexcept {}
 
@@ -452,17 +452,21 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
-    vk_pipeline->m_descriptor_set_manager.Update(); // update descriptor sets
+    auto iter = vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.find(vk_pipeline);
 
-    if (!vk_pipeline->m_pipeline_layout_desc.sets.empty()) {
-        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
-                                vk_pipeline->m_pipeline_layout_desc.sets.size(),
-                                vk_pipeline->m_pipeline_layout_desc.sets.data(), 0, 0);
+    if (iter != vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.end()) {
+        std::vector<VkDescriptorSet> pipeline_descriptor_sets{};
+        for (auto &info : vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.at(vk_pipeline).infos) {
+            if (info.set != VK_NULL_HANDLE) {
+                pipeline_descriptor_sets.emplace_back(info.set);
+                vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
+                                        pipeline_descriptor_sets.size(), pipeline_descriptor_sets.data(), 0, 0);
+            }
+        }
+
+        vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
     }
-
-    vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
-
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(VmaAllocator allocator,
                                                          const BufferCreateInfo &buffer_create_info) {
     return std::make_unique<VulkanBuffer>(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);

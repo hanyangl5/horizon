@@ -11,7 +11,7 @@ def CompileShaders():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    languages = ['DIRECT3D12', 'VULKAN']
+    languages = ['VULKAN']
     
     shader_dir = "shaders"
     for lang in languages:

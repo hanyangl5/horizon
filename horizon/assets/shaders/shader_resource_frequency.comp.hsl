@@ -1,20 +1,21 @@
 
 // --- 
-RES(Buffer(float), myBuffers0, UPDATE_FREQ_NONE, t0, binding=0);
-RES(Buffer(float), myBuffers1, UPDATE_FREQ_NONE, t1, binding=1);
-RES(RWTex2D(float4), dstTexture1, UPDATE_FREQ_NONE, u0, binding = 2);
-
-// --- 
-RES(RWBuffer(float), myBuffers2, UPDATE_FREQ_PER_FRAME, u0, binding=0);
-RES(RWBuffer(float), myBuffers3, UPDATE_FREQ_PER_FRAME, u1, binding=1);
-RES(SamplerState, skyboxSampler, UPDATE_FREQ_PER_FRAME, s0, binding = 2);
+RES(Buffer(float), myBuffers0, UPDATE_FREQ_NONE, t0, binding = 0);
+RES(Buffer(float), myBuffers1, UPDATE_FREQ_NONE, t1, binding = 1);
 
 
 // --- 
+RES(RWBuffer(float), myBuffers2, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
+RES(RWBuffer(float), myBuffers3, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
+//RES(SamplerState, skyboxSampler, UPDATE_FREQ_PER_FRAME, s0, binding = 2);
 
-RES(RWBuffer(float4), myBuffers6, UPDATE_FREQ_PER_DRAW, u0, binding=0);
-RES(RWBuffer(float4), myBuffers7, UPDATE_FREQ_PER_DRAW, u1, binding=1);
-RES(TexCube(float4), srcTexture, UPDATE_FREQ_PER_DRAW, t0, binding = 2);
+
+// --- 
+
+RES(RWBuffer(float4), myBuffers6, UPDATE_FREQ_PER_DRAW, u0, binding = 0);
+RES(RWBuffer(float4), myBuffers7, UPDATE_FREQ_PER_DRAW, u1, binding = 1);
+//RES(TexCube(float4), srcTexture, UPDATE_FREQ_PER_DRAW, t0, binding = 2);
+//RES(RWTex2D(float4), dstTexture1, UPDATE_FREQ_PER_DRAW, u2, binding = 3);
 
 NUM_THREADS(1, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
@@ -22,6 +23,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     INIT_MAIN;
     Get(myBuffers2)[0] = Get(myBuffers0)[0];
     Get(myBuffers3)[0] = Get(myBuffers1)[0];
-    
+    Get(myBuffers6)[0] = float4(Get(myBuffers0)[0], Get(myBuffers0)[0], Get(myBuffers0)[0], Get(myBuffers0)[0]);
+    Get(myBuffers6)[0] = float4(Get(myBuffers1)[0], Get(myBuffers0)[0], Get(myBuffers0)[0], Get(myBuffers0)[0]);
     RETURN();
 }

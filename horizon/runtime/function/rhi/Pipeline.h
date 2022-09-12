@@ -5,6 +5,7 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ShaderProgram.h>
+#include <runtime/function/rhi/Buffer.h>
 
 namespace Horizon::RHI {
 // struct viewport create info
@@ -22,7 +23,12 @@ class Pipeline {
     PipelineType GetType() const noexcept;
 
     virtual void SetComputeShader(ShaderProgram *vs)  = 0;
-    virtual void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps)  = 0;
+    virtual void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) = 0;
+
+    // void UpdateResources()
+    virtual void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) = 0;
+
+    virtual void UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) = 0;
     //// vertex input state
     // virtual void SetVertexInputState(const VertexInputStateCreateInfo&
     // vertex_input_state_create_info) noexcept = 0;

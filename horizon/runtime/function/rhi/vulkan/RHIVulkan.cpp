@@ -363,49 +363,6 @@ void RHIVulkan::SubmitCommandLists(CommandQueueType queue_type, std::vector<Comm
     vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, fence);
 }
 
-void RHIVulkan::SetResource(Buffer *buffer, Pipeline *pipeline, UpdateFrequency frequency, u32 binding) {
-
-    auto descriptor_type = buffer->m_descriptor_type;
-    auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
-
-    vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
-    vk_buffer->buffer_info.offset = 0;
-    vk_buffer->buffer_info.range = buffer->m_size;
-    auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
-
-    VkWriteDescriptorSet write;
-    if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
-        // auto &write = m_descriptor_set_manager->descriptor_writes[0];
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = nullptr;
-        //write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
-        write.dstBinding = binding;
-        write.dstArrayElement = 0;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &vk_buffer->buffer_info;
-    } else if (descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
-        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = nullptr;
-        //write.dstSet = vk_pipeline->m_pipeline_layout_desc.sets[set];
-        write.dstBinding = binding;
-        write.dstArrayElement = 0;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &vk_buffer->buffer_info;
-    }
-
-    vk_pipeline->m_descriptor_set_manager.descriptor_writes.emplace_back(write);
-}
-
-void RHIVulkan::SetResource(Texture *texture) {
-    VkDescriptorImageInfo image_info{};
-    image_info.imageView;
-    image_info.imageLayout;
-}
-
-void RHIVulkan::UpdateDescriptors() { m_descriptor_set_manager->Update(); }
-
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
 
     if (!thread_command_context) {

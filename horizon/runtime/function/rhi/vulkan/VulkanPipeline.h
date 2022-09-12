@@ -18,10 +18,15 @@ class VulkanPipeline : public Pipeline {
     VulkanPipeline(VulkanPipeline &&rhs) noexcept = delete;
     VulkanPipeline &operator=(VulkanPipeline &&rhs) noexcept = delete;
 
-    const std::vector<VkDescriptorSet> &CreatePipelineResources();
+    void CreatePipelineResources();
 
     void SetComputeShader(ShaderProgram *vs) override;
+
     void SetGraphicsShader(ShaderProgram *vs, ShaderProgram *ps) override;
+
+    void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) override;
+
+    void UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) override;
 
   private:
     void CreateGraphicsPipeline();
@@ -30,9 +35,9 @@ class VulkanPipeline : public Pipeline {
     // void CreateRTPipeline() noexcept;
   public:
     const VulkanRendererContext &m_context;
+    VulkanDescriptorSetManager &m_descriptor_set_manager;
     VkPipeline m_pipeline{};
     VkPipelineLayout m_pipeline_layout{};
-    VulkanDescriptorSetManager &m_descriptor_set_manager;
     PipelineLayoutDesc m_pipeline_layout_desc;
 };
 
