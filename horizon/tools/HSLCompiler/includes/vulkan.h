@@ -749,6 +749,7 @@ vec4 saturate(vec4 VALUE) { return clamp(VALUE, 0.0f, 1.0f); }
 #define atan2(X, Y) atan(X, Y)
 #define reversebits(X) bitfieldReverse(X)
 #define asuint(X) floatBitsToUint(X)
+#define asint(X) floatBitsToInt(X)
 #define asfloat(X) uintBitsToFloat(X)
 #define mad(a, b, c) (a) * (b) + (c)
 
