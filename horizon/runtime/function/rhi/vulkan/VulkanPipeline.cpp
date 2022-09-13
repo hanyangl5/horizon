@@ -71,6 +71,9 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         graphics_pipeline_create_info.flags = 0;
         graphics_pipeline_create_info.pNext = nullptr;
 
+        VkVertexInputBindingDescription input_bindings[VertexInputState::MAX_BINDING_COUNT] = {{0}};
+        uint32_t input_attribute_count = 0;
+        VkVertexInputAttributeDescription input_attributes[VertexInputState::MAX_ATTRIBUTE_COUNT] = {{0}};
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos{};
         VkPipelineRasterizationStateCreateInfo rasterization_state_create_info{};
         VkPipelineMultisampleStateCreateInfo multi_sample_state_create_info{};
@@ -79,6 +82,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info{};
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{};
         VkPipelineViewportStateCreateInfo view_port_state_create_info{};
+        uint32_t input_binding_count = 0;
 
         // shader stage
         {
@@ -102,11 +106,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 
         // vertex input state
         {
-
-            uint32_t input_binding_count = 0;
-            VkVertexInputBindingDescription input_bindings[VertexInputState::MAX_BINDING_COUNT] = {{0}};
-            uint32_t input_attribute_count = 0;
-            VkVertexInputAttributeDescription input_attributes[VertexInputState::MAX_ATTRIBUTE_COUNT] = {{0}};
 
             uint32_t binding_value = UINT32_MAX;
 
@@ -136,7 +135,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
                 ++input_attribute_count;
             }
 
-            VkVertexInputBindingDescription bind_description{};
 
             vertex_input_state_create_info.flags = 0;
             vertex_input_state_create_info.pNext = nullptr;

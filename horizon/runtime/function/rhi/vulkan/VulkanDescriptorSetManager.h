@@ -39,13 +39,10 @@ struct DescriptorPoolSizeDesc {
 
 struct DescriptorSetInfo {
     VkDescriptorSet set;
-    // std::unordered_map<u32, VkWriteDescriptorSet> writes;
-    static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
     std::array<VkWriteDescriptorSet, MAX_BINDING_PER_DESCRIPTOR_SET> writes;
 };
 
 struct PipelineDescriptorSetInfo {
-    static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
     std::array<DescriptorSetInfo, MAX_SET_COUNT_PER_PIPELINE> infos;
 };
 
@@ -66,13 +63,12 @@ class VulkanDescriptorSetManager {
 
   public:
     void CreateDescriptorPool();
-    PipelineLayoutDesc
-    CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
-                                        PipelineType pipeline_type);
-    // create layout for a single shader
+    PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
+                                                           PipelineType pipeline_type);
 
-    PipelineLayoutDesc GetGraphicsPipelineLayout(VulkanShader *vs, VulkanShader *ps);
-    PipelineLayoutDesc GetComputePipelineLayout(VulkanShader *cs);
+    void ReflectDescriptorSetLayoutFromShader(
+        VulkanShader *shader, std::array<VkDescriptorSetLayoutCreateInfo, MAX_SET_COUNT_PER_PIPELINE> &layout_create_in,
+        std::array<std::vector<VkDescriptorSetLayoutBinding>, MAX_SET_COUNT_PER_PIPELINE> &layout_bindings);
 
     void BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency freq, u32 binding);
 

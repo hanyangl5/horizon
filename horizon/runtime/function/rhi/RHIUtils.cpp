@@ -3,6 +3,7 @@
 namespace Horizon {
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions) {
+    assert(portions <= 4);
     u32 stride = 0;
     switch (format) {
     case Horizon::VertexAttribFormat::U8:

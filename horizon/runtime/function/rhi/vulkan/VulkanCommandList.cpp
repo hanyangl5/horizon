@@ -57,7 +57,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     info.flags = 0;
     info.pNext = nullptr;
-    info.layerCount = 0;
+    info.layerCount = 1;
     info.viewMask = 0;
 
     info.renderArea =

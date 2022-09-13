@@ -261,6 +261,25 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, ps_path);
 
     GraphicsPipelineCreateInfo info{};
+    
+    info.vertex_input_state.attribute_count = 2;
+
+    auto& attrib0 = info.vertex_input_state.attributes[0];
+    attrib0.attrib_format = VertexAttribFormat::F32; // position
+    attrib0.portion = 3;
+    attrib0.binding = 0;
+    attrib0.location = 1;
+    attrib0.offset = 0;
+    attrib0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+
+    auto& attrib1 = info.vertex_input_state.attributes[1];
+    attrib1.attrib_format = VertexAttribFormat::NF32; // position
+    attrib1.portion = 3;
+    attrib1.binding = 0;
+    attrib1.location = 1;
+    attrib1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+    attrib1.offset = GetStrideFromVertexAttributeDescription(attrib0.attrib_format, attrib0.portion);
+
 
     info.view_port_state.width = width;
     info.view_port_state.height = height;

@@ -366,4 +366,8 @@ struct DrawParam {
 enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
+
+static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
+
+static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
 } // namespace Horizon
