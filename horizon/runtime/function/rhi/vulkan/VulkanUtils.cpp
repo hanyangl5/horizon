@@ -126,6 +126,10 @@ VkImageUsageFlags util_to_vk_image_usage(DescriptorType usage) noexcept {
         result |= VK_IMAGE_USAGE_SAMPLED_BIT;
     if (DESCRIPTOR_TYPE_RW_TEXTURE == (usage & DESCRIPTOR_TYPE_RW_TEXTURE))
         result |= VK_IMAGE_USAGE_STORAGE_BIT;
+    if (usage == DescriptorType::DESCRIPTOR_TYPE_COLOR_ATTACHMENT)
+        result = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    if (usage == DescriptorType::DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT)
+        result = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     return result;
 }
 
@@ -240,6 +244,7 @@ VkImageType ToVkImageType(TextureType type) noexcept {
 
 VkFormat ToVkImageFormat(TextureFormat format) noexcept {
     switch (format) {
+
     case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UINT:
         return VK_FORMAT_R8_UINT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_UINT:
@@ -264,22 +269,7 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
         return VK_FORMAT_R32G32_UINT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_UINT:
         return VK_FORMAT_R32G32B32A32_UINT;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UNORM:
-        return VK_FORMAT_R8_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_UNORM:
-        return VK_FORMAT_R8G8_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_UNORM:
-        return VK_FORMAT_R8G8B8_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM:
-        return VK_FORMAT_R8G8B8A8_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_R16_UNORM:
-        return VK_FORMAT_R16_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_UNORM:
-        return VK_FORMAT_R16G16_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_UNORM:
-        return VK_FORMAT_R16G16B16_UNORM;
-    case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM:
-        return VK_FORMAT_R16G16B16A16_UNORM;
+
     case Horizon::TextureFormat::TEXTURE_FORMAT_R8_SINT:
         return VK_FORMAT_R8_SINT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_SINT:
@@ -304,6 +294,41 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
         return VK_FORMAT_R32G32B32_SINT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SINT:
         return VK_FORMAT_R32G32B32A32_SINT;
+        
+    case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UNORM:
+        return VK_FORMAT_R8_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_UNORM:
+        return VK_FORMAT_R8G8_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_UNORM:
+        return VK_FORMAT_R8G8B8_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM:
+        return VK_FORMAT_R8G8B8A8_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_R16_UNORM:
+        return VK_FORMAT_R16_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_UNORM:
+        return VK_FORMAT_R16G16_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_UNORM:
+        return VK_FORMAT_R16G16B16_UNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM:
+        return VK_FORMAT_R16G16B16A16_UNORM;
+
+    case Horizon::TextureFormat::TEXTURE_FORMAT_R8_SNORM:
+        return VK_FORMAT_R8_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RG8_SNORM:
+        return VK_FORMAT_R8G8_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGB8_SNORM:
+        return VK_FORMAT_R8G8B8_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM:
+        return VK_FORMAT_R8G8B8A8_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_R16_SNORM:
+        return VK_FORMAT_R16_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_SNORM:
+        return VK_FORMAT_R16G16_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGB16_SNORM:
+        return VK_FORMAT_R16G16B16_SNORM;
+    case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA16_SNORM:
+        return VK_FORMAT_R16G16B16A16_SNORM;
+
     case Horizon::TextureFormat::TEXTURE_FORMAT_R16_SFLOAT:
         return VK_FORMAT_R16_SFLOAT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RG16_SFLOAT:
@@ -320,6 +345,7 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
         return VK_FORMAT_R32G32B32_SFLOAT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT:
         return VK_FORMAT_R32G32B32A32_SFLOAT;
+        
     case Horizon::TextureFormat::TEXTURE_FORMAT_D32_SFLOAT:
         return VK_FORMAT_D32_SFLOAT;
     default:
@@ -398,7 +424,126 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed) noe
     return result;
 }
 
-VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept { return VK_FORMAT_MAX_ENUM; }
+VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
+
+    if (portions == 1) {
+        switch (format) {
+        case Horizon::VertexAttribFormat::U8:
+            return VK_FORMAT_R8_UINT;
+        case Horizon::VertexAttribFormat::U16:
+            return VK_FORMAT_R16_UINT;
+        case Horizon::VertexAttribFormat::U32:
+            return VK_FORMAT_R32_UINT;
+        case Horizon::VertexAttribFormat::S8:
+            return VK_FORMAT_R8_SINT;
+        case Horizon::VertexAttribFormat::S16:
+            return VK_FORMAT_R16_SINT;
+        case Horizon::VertexAttribFormat::S32:
+            return VK_FORMAT_R32_SINT;
+        case Horizon::VertexAttribFormat::F16:
+            return VK_FORMAT_R16_SFLOAT;
+        case Horizon::VertexAttribFormat::F32:
+            return VK_FORMAT_R32_SFLOAT;
+        case Horizon::VertexAttribFormat::UN8:
+            return VK_FORMAT_R8_UNORM;
+        case Horizon::VertexAttribFormat::UN16:
+            return VK_FORMAT_R16_UNORM;
+        case Horizon::VertexAttribFormat::SN8:
+            return VK_FORMAT_R8_SNORM;
+        case Horizon::VertexAttribFormat::SN16:
+            return VK_FORMAT_R16_SNORM;
+        default:
+            return VK_FORMAT_MAX_ENUM;
+        }
+    } else if (portions == 2) {
+        switch (format) {
+        case Horizon::VertexAttribFormat::U8:
+            return VK_FORMAT_R8G8_UINT;
+        case Horizon::VertexAttribFormat::U16:
+            return VK_FORMAT_R16G16_UINT;
+        case Horizon::VertexAttribFormat::U32:
+            return VK_FORMAT_R32G32_UINT;
+        case Horizon::VertexAttribFormat::S8:
+            return VK_FORMAT_R8G8_SINT;
+        case Horizon::VertexAttribFormat::S16:
+            return VK_FORMAT_R16G16_SINT;
+        case Horizon::VertexAttribFormat::S32:
+            return VK_FORMAT_R32G32_SINT;
+        case Horizon::VertexAttribFormat::F16:
+            return VK_FORMAT_R16G16_SFLOAT;
+        case Horizon::VertexAttribFormat::F32:
+            return VK_FORMAT_R32G32_SFLOAT;
+        case Horizon::VertexAttribFormat::UN8:
+            return VK_FORMAT_R8G8_UNORM;
+        case Horizon::VertexAttribFormat::UN16:
+            return VK_FORMAT_R16G16_UNORM;
+        case Horizon::VertexAttribFormat::SN8:
+            return VK_FORMAT_R8G8_SNORM;
+        case Horizon::VertexAttribFormat::SN16:
+            return VK_FORMAT_R16G16_SNORM;
+        default:
+            return VK_FORMAT_MAX_ENUM;
+        }
+    } else if (portions == 3) {
+        switch (format) {
+        case Horizon::VertexAttribFormat::U8:
+            return VK_FORMAT_R8G8B8_UINT;
+        case Horizon::VertexAttribFormat::U16:
+            return VK_FORMAT_R16G16B16_UINT;
+        case Horizon::VertexAttribFormat::U32:
+            return VK_FORMAT_R32G32B32_UINT;
+        case Horizon::VertexAttribFormat::S8:
+            return VK_FORMAT_R8G8B8_SINT;
+        case Horizon::VertexAttribFormat::S16:
+            return VK_FORMAT_R16G16B16_SINT;
+        case Horizon::VertexAttribFormat::S32:
+            return VK_FORMAT_R32G32B32_SINT;
+        case Horizon::VertexAttribFormat::F16:
+            return VK_FORMAT_R16G16B16_SFLOAT;
+        case Horizon::VertexAttribFormat::F32:
+            return VK_FORMAT_R32G32B32_SFLOAT;
+        case Horizon::VertexAttribFormat::UN8:
+            return VK_FORMAT_R8G8B8_UNORM;
+        case Horizon::VertexAttribFormat::UN16:
+            return VK_FORMAT_R16G16B16_UNORM;
+        case Horizon::VertexAttribFormat::SN8:
+            return VK_FORMAT_R8G8B8_SNORM;
+        case Horizon::VertexAttribFormat::SN16:
+            return VK_FORMAT_R16G16B16_SNORM;
+        default:
+            return VK_FORMAT_MAX_ENUM;
+        }
+    } else if (portions == 4) {
+        switch (format) {
+        case Horizon::VertexAttribFormat::U8:
+            return VK_FORMAT_R8G8B8A8_UINT;
+        case Horizon::VertexAttribFormat::U16:
+            return VK_FORMAT_R16G16B16A16_UINT;
+        case Horizon::VertexAttribFormat::U32:
+            return VK_FORMAT_R32G32B32A32_UINT;
+        case Horizon::VertexAttribFormat::S8:
+            return VK_FORMAT_R8G8B8A8_SINT;
+        case Horizon::VertexAttribFormat::S16:
+            return VK_FORMAT_R16G16B16A16_SINT;
+        case Horizon::VertexAttribFormat::S32:
+            return VK_FORMAT_R32G32B32A32_SINT;
+        case Horizon::VertexAttribFormat::F16:
+            return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case Horizon::VertexAttribFormat::F32:
+            return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case Horizon::VertexAttribFormat::UN8:
+            return VK_FORMAT_R8G8B8A8_UNORM;
+        case Horizon::VertexAttribFormat::UN16:
+            return VK_FORMAT_R16G16B16A16_UNORM;
+        case Horizon::VertexAttribFormat::SN8:
+            return VK_FORMAT_R8G8B8A8_SNORM;
+        case Horizon::VertexAttribFormat::SN16:
+            return VK_FORMAT_R16G16B16A16_SNORM;
+        default:
+            return VK_FORMAT_MAX_ENUM;
+        }
+    }
+}
 
 VkPrimitiveTopology ToVkPrimitiveTopology(PrimitiveTopology t) noexcept {
     switch (t) {

@@ -162,50 +162,50 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
     rhi->DestroyPipeline(pipeline);
 }
 
-//TEST_CASE_FIXTURE(RHITest, "bindless descriptors") {
+// TEST_CASE_FIXTURE(RHITest, "bindless descriptors") {
 //
-//    // Horizon::RDC::StartFrameCapture();
-//    // std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
-//    //                         "cs_bindless_descriptor.hlsl";
-//    // auto shader{rhi->CreateShader(
-//    //     ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
-//    // auto pipeline{rhi->CreatePipeline(
-//    //     PipelineCreateInfo{PipelineType::COMPUTE})};
+//     // Horizon::RDC::StartFrameCapture();
+//     // std::string file_name = "D:/codes/horizon/horizon/assets/shaders/hlsl/"
+//     //                         "cs_bindless_descriptor.hlsl";
+//     // auto shader{rhi->CreateShader(
+//     //     ShaderType::COMPUTE_SHADER, "cs_main", 0, file_name)};
+//     // auto pipeline{rhi->CreatePipeline(
+//     //     PipelineCreateInfo{PipelineType::COMPUTE})};
 //
-//    // auto buffer = rhi->CreateBuffer(
-//    //     BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
-//    //                          BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE,
-//    //                      sizeof(Math::float4)});
-//    ////auto texture;
-//    // Math::float4 data{5.0f};
+//     // auto buffer = rhi->CreateBuffer(
+//     //     BufferCreateInfo{BufferUsage::BUFFER_USAGE_UNIFORM_BUFFER |
+//     //                          BufferUsage::BUFFER_USAGE_DYNAMIC_UPDATE,
+//     //                      sizeof(Math::float4)});
+//     ////auto texture;
+//     // Math::float4 data{5.0f};
 //
-//    // auto transfer =
-//    //     rhi->GetCommandList(CommandQueueType::TRANSFER);
+//     // auto transfer =
+//     //     rhi->GetCommandList(CommandQueueType::TRANSFER);
 //
-//    // transfer->BeginRecording();
+//     // transfer->BeginRecording();
 //
-//    //// cpu -> stage
-//    // transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
+//     //// cpu -> stage
+//     // transfer->UpdateBuffer(buffer.get(), &data, sizeof(data));
 //
-//    // transfer->EndRecording();
+//     // transfer->EndRecording();
 //
-//    //// stage -> gpu
-//    // rhi->SubmitCommandLists(CommandQueueType::TRANSFER,
-//    //                                             std::vector{transfer});
+//     //// stage -> gpu
+//     // rhi->SubmitCommandLists(CommandQueueType::TRANSFER,
+//     //                                             std::vector{transfer});
 //
-//    // auto cl =
-//    //     rhi->GetCommandList(CommandQueueType::COMPUTE);
-//    // pipeline->SetShader(shader);
-//    // rhi->SetResource(buffer.get());
-//    // rhi->UpdateDescriptors();
-//    // cl->BeginRecording();
-//    // cl->BindPipeline(pipeline);
-//    // cl->Dispatch(1, 1, 1);
-//    // cl->EndRecording();
+//     // auto cl =
+//     //     rhi->GetCommandList(CommandQueueType::COMPUTE);
+//     // pipeline->SetShader(shader);
+//     // rhi->SetResource(buffer.get());
+//     // rhi->UpdateDescriptors();
+//     // cl->BeginRecording();
+//     // cl->BindPipeline(pipeline);
+//     // cl->Dispatch(1, 1, 1);
+//     // cl->EndRecording();
 //
-//    // rhi->SubmitCommandLists(COMPUTE, std::vector{cl});
-//    // Horizon::RDC::EndFrameCapture();
-//}
+//     // rhi->SubmitCommandLists(COMPUTE, std::vector{cl});
+//     // Horizon::RDC::EndFrameCapture();
+// }
 
 TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
     auto &tp = engine->tp;
@@ -260,26 +260,30 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
     auto ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, ps_path);
 
+    auto rt0 = rhi->CreateRenderTarget(
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM, RenderTargetType::COLOR, width, height});
+    auto depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
+                                                                RenderTargetType::DEPTH_STENCIL, width, height});
+
     GraphicsPipelineCreateInfo info{};
-    
+
     info.vertex_input_state.attribute_count = 2;
 
-    auto& attrib0 = info.vertex_input_state.attributes[0];
+    auto &attrib0 = info.vertex_input_state.attributes[0];
     attrib0.attrib_format = VertexAttribFormat::F32; // position
     attrib0.portion = 3;
     attrib0.binding = 0;
-    attrib0.location = 1;
+    attrib0.location = 0;
     attrib0.offset = 0;
     attrib0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
 
-    auto& attrib1 = info.vertex_input_state.attributes[1];
-    attrib1.attrib_format = VertexAttribFormat::NF32; // position
+    auto &attrib1 = info.vertex_input_state.attributes[1];
+    attrib1.attrib_format = VertexAttribFormat::SN16; // position
     attrib1.portion = 3;
     attrib1.binding = 0;
     attrib1.location = 1;
     attrib1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     attrib1.offset = GetStrideFromVertexAttributeDescription(attrib0.attrib_format, attrib0.portion);
-
 
     info.view_port_state.width = width;
     info.view_port_state.height = height;
@@ -300,6 +304,12 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     info.rasterization_state.fill_mode = FillMode::TRIANGLE;
     info.rasterization_state.front_face = FrontFace::CCW;
 
+    info.render_target_formats.color_attachment_count = 1;
+    info.render_target_formats.color_attachment_formats =
+        std::vector<TextureFormat>{TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM};
+    info.render_target_formats.has_depth = true;
+    info.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
+
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(*rhi, MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL});
@@ -316,10 +326,10 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
     auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
-
+    pipeline->SetGraphicsShader(vs, ps);
     for (u32 frame = 0; frame < 3; frame++) {
         engine->BeginNewFrame();
-
+        Horizon::RDC::StartFrameCapture();
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
@@ -331,17 +341,24 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
-        pipeline->SetGraphicsShader(vs, ps);
 
-        // rhi->SetResource(vp_buffer.get(), pipeline, UpdateFrequency::PER_FRAME, 0);
 
+        pipeline->BindResource(vp_buffer.get(), ResourceUpdateFrequency::PER_DRAW, 0);
+
+        pipeline->UpdatePipelineDescriptorSet(ResourceUpdateFrequency::PER_DRAW);
         cl->BeginRecording();
 
         RenderPassBeginInfo begin_info{};
+        begin_info.render_area = Rect{0, 0, width, height};
+        begin_info.render_targets[0].data = rt0.get();
+        begin_info.render_targets[0].clear_color = Math::float4(0.0);
+        begin_info.depth.data = depth.get();
+        begin_info.depth.clear_color.x = 1.0;
         cl->BeginRenderPass(begin_info);
 
         cl->BindPipeline(pipeline);
-        cl->BindVertexBuffer(1, &vertexbuffer, 0);
+        u32 offset = 0;
+        cl->BindVertexBuffer(1, &vertexbuffer, &offset);
         cl->BindIndexBuffer(indexbuffer, 0);
 
         for (auto &node : mesh.GetNodes()) {
@@ -354,9 +371,14 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         cl->EndRecording();
         std::vector v{cl};
         rhi->SubmitCommandLists(GRAPHICS, v);
-        // Horizon::RDC::EndFrameCapture();
+        Horizon::RDC::EndFrameCapture();
         engine->EndFrame();
     }
+
+    rhi->DestroyPipeline(pipeline);
+    rhi->DestroyShader(vs);
+    rhi->DestroyShader(ps);
+    LOG_INFO("draw done");
 }
 
 } // namespace TEST

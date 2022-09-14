@@ -71,9 +71,10 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         graphics_pipeline_create_info.flags = 0;
         graphics_pipeline_create_info.pNext = nullptr;
 
-        VkVertexInputBindingDescription input_bindings[VertexInputState::MAX_BINDING_COUNT] = {{0}};
+        uint32_t input_binding_count = 0;
+        VkVertexInputBindingDescription input_bindings[MAX_BINDING_COUNT] = {{0}};
         uint32_t input_attribute_count = 0;
-        VkVertexInputAttributeDescription input_attributes[VertexInputState::MAX_ATTRIBUTE_COUNT] = {{0}};
+        VkVertexInputAttributeDescription input_attributes[MAX_ATTRIBUTE_COUNT] = {{0}};
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos{};
         VkPipelineRasterizationStateCreateInfo rasterization_state_create_info{};
         VkPipelineMultisampleStateCreateInfo multi_sample_state_create_info{};
@@ -82,7 +83,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info{};
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{};
         VkPipelineViewportStateCreateInfo view_port_state_create_info{};
-        uint32_t input_binding_count = 0;
+        VkPipelineRenderingCreateInfo rendering_create_info{};
 
         // shader stage
         {
@@ -134,7 +135,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
                 input_attributes[input_attribute_count].offset = attrib->offset;
                 ++input_attribute_count;
             }
-
 
             vertex_input_state_create_info.flags = 0;
             vertex_input_state_create_info.pNext = nullptr;
@@ -250,10 +250,27 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         // dyanmic state
         { graphics_pipeline_create_info.pDynamicState = nullptr; }
 
-        //graphics_pipeline_create_info.renderPass = VK_NULL_HANDLE;
+        rendering_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+        rendering_create_info.colorAttachmentCount = ci->render_target_formats.color_attachment_count;
+
+        std::vector<VkFormat> formats(ci->render_target_formats.color_attachment_count);
+
+        for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; i++) {
+            formats[i] = ToVkImageFormat(ci->render_target_formats.color_attachment_formats[i]);
+        }
+
+        rendering_create_info.pColorAttachmentFormats = formats.data();
+        if (ci->render_target_formats.has_depth)
+            rendering_create_info.depthAttachmentFormat =
+                ToVkImageFormat(ci->render_target_formats.depth_stencil_format);
+        if (ci->render_target_formats.has_stencil)
+            rendering_create_info.stencilAttachmentFormat =
+                ToVkImageFormat(ci->render_target_formats.depth_stencil_format);
+
+        graphics_pipeline_create_info.pNext = &rendering_create_info;
+        // graphics_pipeline_create_info.renderPass = VK_NULL_HANDLE;
 
         graphics_pipeline_create_info.layout = m_pipeline_layout;
-
 
         CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_context.device, nullptr, 1, &graphics_pipeline_create_info, nullptr,
                                                   &m_pipeline));
@@ -297,7 +314,7 @@ void VulkanPipeline::CreatePipelineLayout() {
         layouts.emplace_back(m_descriptor_set_manager.FindLayout(key));
     }
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
-    
+
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.setLayoutCount = static_cast<u32>(layouts.size());
     pipeline_layout_create_info.pSetLayouts = layouts.data();

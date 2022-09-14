@@ -153,6 +153,8 @@ RHI::Buffer *Mesh::GetIndexBuffer() {
         buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
         buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
         m_index_buffer = m_rhi->CreateBuffer(buffer_create_info);
+        
+        // TODO: upload resource to gpu
     }
 
     return m_index_buffer.get();
@@ -166,6 +168,9 @@ RHI::Buffer *Mesh::GetVertexBuffer() {
         buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
         buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
         m_vertex_buffer = m_rhi->CreateBuffer(buffer_create_info);
+
+        // TODO: upload resource to gpu
+
     }
     return m_vertex_buffer.get();
 }

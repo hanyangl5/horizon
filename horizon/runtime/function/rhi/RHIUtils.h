@@ -6,10 +6,25 @@
 #include <d3d12.h>
 
 #include <runtime/core/log/Log.h>
+#include <runtime/core/math/Math.h>
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
 
 namespace Horizon {
+
+// definations
+
+// descriptor set
+static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
+
+static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
+
+// render info
+static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
+
+// vertex input
+static constexpr u32 MAX_ATTRIBUTE_COUNT = 32;
+static constexpr u32 MAX_BINDING_COUNT = 32;
 
 enum class RenderBackend { RENDER_BACKEND_NONE, RENDER_BACKEND_VULKAN, RENDER_BACKEND_DX12 };
 // always assum queue family index: graphics = 0, compute = 1, transfer = 2
@@ -60,7 +75,8 @@ enum DescriptorType {
     DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS = (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT << 1),
     DESCRIPTOR_TYPE_SHADER_BINDING_TABLE = (DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS << 1),
 #endif
-
+    DESCRIPTOR_TYPE_COLOR_ATTACHMENT,
+    DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT,
 };
 
 // using DescriptorType = u32;
@@ -103,17 +119,6 @@ enum class TextureFormat {
     TEXTURE_FORMAT_RGB32_UINT,
     TEXTURE_FORMAT_RGBA32_UINT,
 
-    // normalized unsinged int
-    TEXTURE_FORMAT_R8_UNORM,
-    TEXTURE_FORMAT_RG8_UNORM,
-    TEXTURE_FORMAT_RGB8_UNORM,
-    TEXTURE_FORMAT_RGBA8_UNORM,
-
-    TEXTURE_FORMAT_R16_UNORM,
-    TEXTURE_FORMAT_RG16_UNORM,
-    TEXTURE_FORMAT_RGB16_UNORM,
-    TEXTURE_FORMAT_RGBA16_UNORM,
-
     // signed int
     TEXTURE_FORMAT_R8_SINT,
     TEXTURE_FORMAT_RG8_SINT,
@@ -130,6 +135,17 @@ enum class TextureFormat {
     TEXTURE_FORMAT_RGB32_SINT,
     TEXTURE_FORMAT_RGBA32_SINT,
 
+    // normalized unsinged int
+    TEXTURE_FORMAT_R8_UNORM,
+    TEXTURE_FORMAT_RG8_UNORM,
+    TEXTURE_FORMAT_RGB8_UNORM,
+    TEXTURE_FORMAT_RGBA8_UNORM,
+
+    TEXTURE_FORMAT_R16_UNORM,
+    TEXTURE_FORMAT_RG16_UNORM,
+    TEXTURE_FORMAT_RGB16_UNORM,
+    TEXTURE_FORMAT_RGBA16_UNORM,
+
     // normalized signed int
     TEXTURE_FORMAT_R8_SNORM,
     TEXTURE_FORMAT_RG8_SNORM,
@@ -141,13 +157,7 @@ enum class TextureFormat {
     TEXTURE_FORMAT_RGB16_SNORM,
     TEXTURE_FORMAT_RGBA16_SNORM,
 
-    TEXTURE_FORMAT_R32_SNORM,
-    TEXTURE_FORMAT_RG32_SNORM,
-    TEXTURE_FORMAT_RGB32_SNORM,
-    TEXTURE_FORMAT_RGBA32_SNORM,
-
     // signed float
-
     TEXTURE_FORMAT_R16_SFLOAT,
     TEXTURE_FORMAT_RG16_SFLOAT,
     TEXTURE_FORMAT_RGB16_SFLOAT,
@@ -244,7 +254,7 @@ enum class VertexInputRate {
     VERTEX_ATTRIB_RATE_INSTANCE = 1,
 };
 
-enum class VertexAttribFormat { U8, U16, U32, F8, F16, F32, NF8, NF16, NF32 };
+enum class VertexAttribFormat { U8, U16, U32, S8, S16, S32, F16, F32, UN8, UN16, SN8, SN16 };
 
 struct VertexAttributeDescription {
     VertexAttribFormat attrib_format;
@@ -257,8 +267,6 @@ struct VertexAttributeDescription {
 };
 
 struct VertexInputState {
-    static constexpr u32 MAX_ATTRIBUTE_COUNT = 32;
-    static constexpr u32 MAX_BINDING_COUNT = 32;
     u32 attribute_count;
     VertexAttributeDescription attributes[MAX_ATTRIBUTE_COUNT];
 };
@@ -312,6 +320,13 @@ struct MultiSampleState {
     u32 sample_count;
 };
 
+struct RenderTargetFormats {
+    u32 color_attachment_count = 0;
+    std::vector<TextureFormat> color_attachment_formats;
+    bool has_depth = true, has_stencil = false;
+    TextureFormat depth_stencil_format;
+};
+
 struct GraphicsPipelineCreateInfo {
     VertexInputState vertex_input_state;
     InputAssemblyState input_assembly_state;
@@ -319,6 +334,7 @@ struct GraphicsPipelineCreateInfo {
     RasterizationState rasterization_state;
     DepthStencilState depth_stencil_state;
     MultiSampleState multi_sample_state;
+    RenderTargetFormats render_target_formats;
 };
 
 struct ComputePipelineCreateInfo {
@@ -330,8 +346,6 @@ struct PipelineCreateInfo {
     GraphicsPipelineCreateInfo *gpci;
     ComputePipelineCreateInfo *cpci;
 };
-
-struct PipelineState {};
 
 struct Rect {
     u32 x, y, w, h;
@@ -347,14 +361,6 @@ struct RenderTargetCreateInfo {
     u32 width, height;
 };
 
-class RenderTarget;
-struct RenderPassBeginInfo {
-    static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
-    std::array<RenderTarget *, MAX_RENDER_TARGET_COUNT> render_targets;
-    RenderTarget *depth, *stencil;
-    Rect render_area;
-};
-
 struct DrawParam {
     u32 indexCount;
     u32 instanceCount;
@@ -367,7 +373,4 @@ enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
 
-static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
-
-static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
 } // namespace Horizon

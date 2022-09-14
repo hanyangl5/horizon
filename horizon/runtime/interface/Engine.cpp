@@ -11,7 +11,13 @@ Engine::Engine(const EngineConfig &config) noexcept {
     tp = std::make_unique<BS::thread_pool>(std::thread::hardware_concurrency() - 1);
 }
 
-void Engine::BeginNewFrame() const { m_render_system->GetRhi()->ResetCommandResources(); }
+void Engine::BeginNewFrame() const {
+    auto rhi = m_render_system->GetRhi();
+    rhi->ResetCommandResources();
+    rhi->ResetFence(CommandQueueType::GRAPHICS);
+    rhi->ResetFence(CommandQueueType::COMPUTE);
+    rhi->ResetFence(CommandQueueType::TRANSFER);
+}
 
 void Engine::EndFrame() const {
     // TODO: wait for gpu execution?

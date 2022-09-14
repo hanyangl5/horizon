@@ -3,7 +3,6 @@
 #include <vulkan/vulkan.h>
 
 #include <runtime/core/window/Window.h>
-#include <runtime/function/rhi/RHIUtils.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/scene/camera/Camera.h>
@@ -12,6 +11,7 @@ namespace Horizon {
 
 using Buffer = RHI::Buffer;
 using Texture = RHI::Texture;
+using RenderTarget = RHI::RenderTarget;
 using Shader = RHI::Shader;
 using Pipeline = RHI::Pipeline;
 using CommandList = RHI::CommandList;

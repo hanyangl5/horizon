@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 #include <stb_image.h>
@@ -32,7 +33,14 @@ void VulkanCommandList::BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
-    // vkCmdBindVertexBuffers2();
+    std::vector<VkBuffer> vk_buffers(buffer_count);
+    std::vector<VkDeviceSize> vk_offsets(buffer_count);
+    for (u32 i = 0; i < buffer_count; i++) {
+        vk_buffers[i] = reinterpret_cast<VulkanBuffer *>(buffers[i])->m_buffer;
+        vk_offsets[i] = offsets[i];
+    }
+
+    vkCmdBindVertexBuffers(m_command_buffer, 0, buffer_count, vk_buffers.data(), vk_offsets.data());
 }
 
 void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
@@ -67,31 +75,53 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     std::vector<VkRenderingAttachmentInfo> color_attachment_info{};
 
     u32 color_render_target_count = 0;
-    while (begin_info.render_targets[color_render_target_count++] != nullptr)
+    while (begin_info.render_targets[++color_render_target_count].data != nullptr)
         ;
     color_attachment_info.resize(color_render_target_count);
 
     for (u32 i = 0; i < color_render_target_count; i++) {
+        auto t = reinterpret_cast<VulkanTexture*>(begin_info.render_targets[i].data->GetTexture());
         color_attachment_info[i].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        color_attachment_info[i].imageLayout;
-        color_attachment_info[i].imageView;
+        color_attachment_info[i].imageLayout =VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        color_attachment_info[i].imageView = t->m_image_view;
         color_attachment_info[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment_info[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        color_attachment_info[i].clearValue;
+        VkClearValue clear_value;
+        clear_value.color = VkClearColorValue{begin_info.depth.clear_color.x, begin_info.depth.clear_color.y,
+                                              begin_info.depth.clear_color.z, begin_info.depth.clear_color.w};
+        color_attachment_info[i].clearValue = clear_value;
     }
 
-    VkRenderingAttachmentInfo depth_attachment_info{};
-    depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    depth_attachment_info.imageLayout;
-    depth_attachment_info.imageView;
-    depth_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    depth_attachment_info.clearValue;
-
+    
     info.colorAttachmentCount = color_attachment_info.size();
     info.pColorAttachments = color_attachment_info.data();
-    info.pDepthAttachment = &depth_attachment_info;
-    info.pStencilAttachment = nullptr; // not use stencil attachment yet
+
+    if (begin_info.depth.data) {
+            auto t = reinterpret_cast<VulkanTexture*>(begin_info.depth.data->GetTexture());
+        VkRenderingAttachmentInfo depth_attachment_info{};
+        depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depth_attachment_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depth_attachment_info.imageView = t->m_image_view;;
+        depth_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        VkClearValue clear_value;
+        clear_value.depthStencil.depth = begin_info.depth.clear_color.x;
+        depth_attachment_info.clearValue= clear_value;
+        info.pDepthAttachment = &depth_attachment_info;
+    }
+
+    // not use stencil attachment yet
+    //if (begin_info.stencil.data) {
+    //    VkRenderingAttachmentInfo stencil_attachment_info{};
+    //    stencil_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    //    stencil_attachment_info.imageLayout;
+    //    stencil_attachment_info.imageView;
+    //    stencil_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    //    stencil_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    //    stencil_attachment_info.clearValue;
+    //    info.pStencilAttachment = &stencil_attachment_info; 
+    //}
+
 
     vkCmdBeginRendering(m_command_buffer, &info);
 }

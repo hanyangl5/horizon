@@ -9,6 +9,10 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
+#include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
+
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
@@ -47,7 +51,11 @@ Resource<Buffer> RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_i
 }
 
 Resource<Texture> RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) {
-    return std::make_unique<VulkanTexture>(m_vulkan.vma_allocator, texture_create_info);
+    return std::make_unique<VulkanTexture>(m_vulkan, texture_create_info);
+}
+
+Resource<RenderTarget> RHIVulkan::CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) {
+    return std::make_unique<VulkanRenderTarget>(m_vulkan, render_target_create_info);
 }
 
 void RHIVulkan::CreateSwapChain(Window *window) {
@@ -273,7 +281,6 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
     //device_features.features = &requested_descriptor_indexing;
     device_features.pNext = &descriptor_indexing_features;
     vkGetPhysicalDeviceFeatures2(m_vulkan.active_gpu, &device_features);
-
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pQueueCreateInfos = device_queue_create_info.data();
@@ -377,6 +384,9 @@ CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) {
     vkWaitForFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type], VK_TRUE, UINT64_MAX);
+}
+
+void RHIVulkan::ResetFence(CommandQueueType queue_type) {
     vkResetFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type]);
 }
 

@@ -8,11 +8,13 @@
 #include <fstream>
 
 #include <runtime/core/window/Window.h>
+
 #include <runtime/function/rhi/Buffer.h>
+#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/RenderTarget.h>
 #include <runtime/function/rhi/CommandContext.h>
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/Texture.h>
 
 namespace Horizon::RHI {
 
@@ -38,6 +40,8 @@ class RHI {
 
     virtual Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) = 0;
 
+    virtual Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo& render_target_create_info) = 0;
+
     virtual void CreateSwapChain(Window *window) = 0;
 
     std::vector<char> ReadFile(const std::string &path) const;
@@ -58,6 +62,8 @@ class RHI {
     virtual void WaitGpuExecution(CommandQueueType queue_type) = 0;
 
     virtual void ResetCommandResources() = 0;
+
+    virtual void ResetFence(CommandQueueType queue_type) = 0;
 
     // submit command list to command queue
     virtual void SubmitCommandLists(CommandQueueType queue, std::vector<CommandList *> &command_lists) = 0;

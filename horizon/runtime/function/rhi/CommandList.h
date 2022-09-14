@@ -1,14 +1,27 @@
 #pragma once
 
-#include <runtime/function/resource/IndexBuffer.h>
-#include <runtime/function/resource/VertexBuffer.h>
+#include <runtime/core/math/Math.h>
 #include <runtime/function/rhi/Buffer.h>
+#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/RenderTarget.h>
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
-#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/resource/IndexBuffer.h>
+#include <runtime/function/resource/VertexBuffer.h>
 
 namespace Horizon::RHI {
+
+struct RenderTargetInfo{
+    RenderTarget* data{};
+    Math::float4 clear_color{};
+};
+
+struct RenderPassBeginInfo {
+    std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets;
+    RenderTargetInfo depth, stencil;
+    Rect render_area;
+};
 
 class CommandList {
   public:

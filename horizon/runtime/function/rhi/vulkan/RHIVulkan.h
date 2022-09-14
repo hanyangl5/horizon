@@ -34,6 +34,8 @@ class RHIVulkan : public RHI {
 
     Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) override;
 
+    Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo& render_target_create_info) override;
+
     void CreateSwapChain(Window *window) override;
 
     Shader *CreateShader(ShaderType type, u32 compile_flags, std::string file_name) override;
@@ -45,6 +47,8 @@ class RHIVulkan : public RHI {
     void WaitGpuExecution(CommandQueueType queue_type) override;
 
     void ResetCommandResources() override;
+
+    void ResetFence(CommandQueueType queue_type) override;
 
     virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) override;
 
