@@ -267,23 +267,39 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
     GraphicsPipelineCreateInfo info{};
 
-    info.vertex_input_state.attribute_count = 2;
+    info.vertex_input_state.attribute_count = 4;
 
-    auto &attrib0 = info.vertex_input_state.attributes[0];
-    attrib0.attrib_format = VertexAttribFormat::F32; // position
-    attrib0.portion = 3;
-    attrib0.binding = 0;
-    attrib0.location = 0;
-    attrib0.offset = 0;
-    attrib0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+    auto &pos = info.vertex_input_state.attributes[0];
+    pos.attrib_format = VertexAttribFormat::F32; // position
+    pos.portion = 3;
+    pos.binding = 0;
+    pos.location = 0;
+    pos.offset = 0;
+    pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
 
-    auto &attrib1 = info.vertex_input_state.attributes[1];
-    attrib1.attrib_format = VertexAttribFormat::SN16; // position
-    attrib1.portion = 3;
-    attrib1.binding = 0;
-    attrib1.location = 1;
-    attrib1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-    attrib1.offset = GetStrideFromVertexAttributeDescription(attrib0.attrib_format, attrib0.portion);
+    auto &normal = info.vertex_input_state.attributes[1];
+    normal.attrib_format = VertexAttribFormat::F32; // position
+    normal.portion = 3;
+    normal.binding = 0;
+    normal.location = 1;
+    normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+    normal.offset = offsetof(Vertex, normal);
+
+    auto &uv0 = info.vertex_input_state.attributes[2];
+    uv0.attrib_format = VertexAttribFormat::F32; // position
+    uv0.portion = 2;
+    uv0.binding = 0;
+    uv0.location = 2;
+    uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+    uv0.offset = offsetof(Vertex, uv0);
+
+    auto &uv1 = info.vertex_input_state.attributes[3];
+    uv1.attrib_format = VertexAttribFormat::F32; // position
+    uv1.portion = 2;
+    uv1.binding = 0;
+    uv1.location = 3;
+    uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+    uv1.offset = offsetof(Vertex, uv1);
 
     info.view_port_state.width = width;
     info.view_port_state.height = height;
@@ -312,15 +328,25 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
-    Mesh mesh(*rhi, MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL});
-    // rhi->GetVertexBuffer(mesh);
-    mesh.LoadMesh(BasicGeometry::BasicGeometry::CUBE);
-    auto vertexbuffer = mesh.GetVertexBuffer();
-    auto indexbuffer = mesh.GetIndexBuffer();
+    Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
+    mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    BufferCreateInfo vertex_buffer_create_info{};
+    vertex_buffer_create_info.size = mesh.GetVerticesCount() * sizeof(Vertex);
+    vertex_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+    auto vertex_buffer = rhi->CreateBuffer(vertex_buffer_create_info);
+
+    BufferCreateInfo index_buffer_create_info{};
+    index_buffer_create_info.size = mesh.GetIndicesCount() * 3 * sizeof(Index);
+    index_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+    index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+    auto index_buffer = rhi->CreateBuffer(index_buffer_create_info);
 
     auto view =
-        Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+        Math::LookAt(Math::float3(0.0f, 0.0f, 5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
     auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
+
+
     auto vp = projection * view;
     vp = vp.Transpose();
 
@@ -335,6 +361,11 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         transfer->BeginRecording();
 
         transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(vp));
+
+        // update vertex and index buffer
+        transfer->UpdateBuffer(vertex_buffer.get(), mesh.GetVerticesData(), vertex_buffer->m_size);
+        transfer->UpdateBuffer(index_buffer.get(), mesh.GetIndicesData(), index_buffer->m_size);
+
         transfer->EndRecording();
         std::vector v1{transfer};
         rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
@@ -342,10 +373,9 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
 
+        pipeline->BindResource(vp_buffer.get(), ResourceUpdateFrequency::PER_FRAME, 0);
 
-        pipeline->BindResource(vp_buffer.get(), ResourceUpdateFrequency::PER_DRAW, 0);
-
-        pipeline->UpdatePipelineDescriptorSet(ResourceUpdateFrequency::PER_DRAW);
+        pipeline->UpdatePipelineDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
         cl->BeginRecording();
 
         RenderPassBeginInfo begin_info{};
@@ -357,9 +387,11 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         cl->BeginRenderPass(begin_info);
 
         cl->BindPipeline(pipeline);
+
         u32 offset = 0;
-        cl->BindVertexBuffer(1, &vertexbuffer, &offset);
-        cl->BindIndexBuffer(indexbuffer, 0);
+        auto vb = vertex_buffer.get();
+        cl->BindVertexBuffer(1, &vb, &offset);
+        cl->BindIndexBuffer(index_buffer.get(), 0);
 
         for (auto &node : mesh.GetNodes()) {
             for (auto &m : node.mesh_primitives) {

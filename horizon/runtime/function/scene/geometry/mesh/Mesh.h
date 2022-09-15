@@ -41,7 +41,7 @@ struct MeshDesc {
 class Mesh {
   public:
     Mesh() noexcept = default;
-    Mesh(RHI::RHI &rhi, const MeshDesc &desc) noexcept;
+    Mesh(const MeshDesc &desc) noexcept;
     ~Mesh() noexcept;
 
     Mesh(const Mesh &rhs) noexcept = delete;
@@ -53,18 +53,22 @@ class Mesh {
 
     void LoadMesh(BasicGeometry::BasicGeometry basic_geometry);
 
-    RHI::Buffer *GetVertexBuffer();
+    u32 GetVerticesCount() const noexcept;
 
-    RHI::Buffer *GetIndexBuffer();
+    u32 GetIndicesCount() const noexcept;
+
+    void *GetVerticesData() noexcept;
+
+    void *GetIndicesData() noexcept;
 
     const std::vector<Node> &GetNodes() const noexcept;
 
     // void GenerateMeshLet() noexcept;
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 offset);
-
+    
+    void GenerateMeshCluster();
   private:
-    RHI::RHI *m_rhi;
     u32 vertex_attribute_flag{};
 
     std::vector<MeshPrimitive> m_mesh_primitives{};
@@ -72,9 +76,6 @@ class Mesh {
     std::vector<Index> m_indices{};
     std::vector<Node> m_nodes{};
     // Texture* textures;
-    // Material* materials;
-
-    Resource<RHI::Buffer> m_vertex_buffer;
-    Resource<RHI::Buffer> m_index_buffer;
+    // Material* materials
 };
 } // namespace Horizon

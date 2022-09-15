@@ -106,3 +106,6 @@ target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-core)
 
 find_package(TBB CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
+
+find_package(meshoptimizer CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)

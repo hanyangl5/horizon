@@ -17,6 +17,7 @@ void Engine::BeginNewFrame() const {
     rhi->ResetFence(CommandQueueType::GRAPHICS);
     rhi->ResetFence(CommandQueueType::COMPUTE);
     rhi->ResetFence(CommandQueueType::TRANSFER);
+    LOG_DEBUG("begin frame");
 }
 
 void Engine::EndFrame() const {
@@ -25,5 +26,6 @@ void Engine::EndFrame() const {
     rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
     rhi->WaitGpuExecution(CommandQueueType::COMPUTE);
     rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
+    LOG_DEBUG("end frame");
 }
 } // namespace Horizon

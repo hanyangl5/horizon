@@ -9,13 +9,13 @@ namespace Horizon {
 enum QueueOp { IGNORED, RELEASE, ACQUIRE };
 
 struct BufferBarrierDesc {
-    RHI::Buffer *buffer;
+    RHI::Buffer *buffer{};
     // u32 offset;
     // u64 size;
     // u32 src_access_mask, dst_access_mask;
     // CommandQueueType src_queue, dst_queue;
-    ResourceState src_state, dst_state;
-    CommandQueueType queue; // only the other queue type is need
+    ResourceState src_state{}, dst_state{};
+    CommandQueueType queue{}; // only the other queue type is need
     QueueOp queue_op = QueueOp::IGNORED;
 };
 

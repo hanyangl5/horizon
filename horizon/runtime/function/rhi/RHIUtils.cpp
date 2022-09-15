@@ -26,7 +26,6 @@ u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 porti
     default:
         break;
     }
-    if(portions==3) stride=stride * 4 / 3;
     return stride;
 }
 } // namespace Horizon

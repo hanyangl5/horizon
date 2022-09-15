@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <meshoptimizer.h>
+
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
@@ -11,9 +13,7 @@ namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(RHI::RHI &rhi, const MeshDesc &desc) noexcept : m_rhi(&rhi) {
-    vertex_attribute_flag = desc.vertex_attribute_flag;
-}
+Mesh::Mesh(const MeshDesc &desc) noexcept { vertex_attribute_flag = desc.vertex_attribute_flag; }
 
 Mesh::~Mesh() noexcept {
     // delete
@@ -40,6 +40,22 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
     }
 }
 
+// TODO:
+void Mesh::GenerateMeshCluster() {
+    const size_t max_vertices = 64;
+    const size_t max_triangles = 124;
+    const float cone_weight = 0.0f;
+
+    size_t max_meshlets = meshopt_buildMeshletsBound(m_indices.size(), max_vertices, max_triangles);
+    std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+    std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
+    std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
+
+    size_t meshlet_count = meshopt_buildMeshlets(
+        meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), m_indices.data(), m_indices.size(),
+        &m_vertices[0].pos.x, m_vertices.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
+}
+
 u32 SubNodeCount(const aiNode *node) noexcept {
     int n = node->mNumChildren;
 
@@ -58,10 +74,10 @@ void Mesh::LoadMesh(const std::string &path) {
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
     const aiScene *scene = assimp_importer.ReadFile(path, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-                                                              aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+                                                              aiProcess_GenSmoothNormals | aiProcess_FlipUVs);
 
     // If the import failed, report it
-    if (!scene) {
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         LOG_ERROR("failed to load mesh: {}", assimp_importer.GetErrorString());
         return;
     }
@@ -70,7 +86,7 @@ void Mesh::LoadMesh(const std::string &path) {
 
     m_mesh_primitives.resize(scene->mNumMeshes);
 
-    // TOOD: aync load single mesh
+    // TOOD: aync load sub meshes
     for (u32 i = 0; i < scene->mNumMeshes; i++) {
 
         const auto &mesh = scene->mMeshes[i];
@@ -78,13 +94,17 @@ void Mesh::LoadMesh(const std::string &path) {
 
             Vertex vertex{};
 
-            memcpy(&vertex.pos, &mesh->mVertices[v], sizeof(aiVector3D));
+            memcpy(&vertex.pos, &mesh->mVertices[v], sizeof(Math::float3));
 
             if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals()) {
+                memcpy(&vertex.normal, &mesh->mNormals[v], sizeof(Math::float3));
             }
-            if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(0)) {
+            if (vertex_attribute_flag & VertexAttributeType::UV0 && mesh->HasTextureCoords(0)) {
+                memcpy(&vertex.uv0, &mesh->mTextureCoords[0][v], sizeof(Math::float2));
             }
-
+            if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(1)) {
+                memcpy(&vertex.uv1, &mesh->mTextureCoords[1][v], sizeof(Math::float2));
+            }
             m_vertices.emplace_back(vertex);
         }
 
@@ -147,34 +167,14 @@ void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) {
     m_nodes.push_back(std::move(n));
 }
 
-RHI::Buffer *Mesh::GetIndexBuffer() {
-    if (!m_index_buffer) {
-        BufferCreateInfo buffer_create_info{};
-        buffer_create_info.size = m_indices.size() * 3 * sizeof(Index);
-        buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
-        buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-        m_index_buffer = m_rhi->CreateBuffer(buffer_create_info);
-        
-        // TODO: upload resource to gpu
-    }
+u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices.size()); }
 
-    return m_index_buffer.get();
-}
+u32 Mesh::GetIndicesCount() const noexcept { return static_cast<u32>(m_indices.size()); }
 
-RHI::Buffer *Mesh::GetVertexBuffer() {
+void *Mesh::GetVerticesData() noexcept { return m_vertices.data(); }
 
-    if (!m_vertex_buffer) {
-        BufferCreateInfo buffer_create_info{};
-        buffer_create_info.size = m_vertices.size() * sizeof(Vertex);
-        buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        m_vertex_buffer = m_rhi->CreateBuffer(buffer_create_info);
+void *Mesh::GetIndicesData() noexcept { return m_indices.data(); }
 
-        // TODO: upload resource to gpu
-
-    }
-    return m_vertex_buffer.get();
-}
 const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 
 } // namespace Horizon
