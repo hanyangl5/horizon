@@ -24,7 +24,8 @@ class SceneManagementTest {
     std::string asset_path = "C:/FILES/horizon/horizon/assets/";
 };
 
-TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
+
+TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load benchmark") {
 
     auto &tp = engine->tp;
     constexpr u32 mesh_count = 500;
@@ -41,18 +42,37 @@ TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load") {
     auto tp1 = std::chrono::high_resolution_clock::now();
 
     for (u32 i = 0; i < mesh_count; i++) {
-        results[i] = std::move(tp->submit([&meshes, &paths, i]() {
-            auto &m = meshes[i];
-            m.LoadMesh(paths[i % 3]);
-        }));
+       results[i] = std::move(tp->submit([&meshes, &paths, i]() {
+           auto &m = meshes[i];
+           m.LoadMesh(paths[i % 3]);
+       }));
     }
     for (auto &res : results) {
-        res.wait();
+       res.wait();
     }
     auto tp2 = std::chrono::high_resolution_clock::now();
     auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
-    LOG_INFO("spend {} ms to load {} meshes", dur, mesh_count);
+    LOG_INFO("spend {} ms to load {} meshes using bs thread pool", dur, mesh_count);
+
+    // use intel tbb
+    auto LoadMesh = [&meshes, &paths](const tbb::blocked_range<u32> &r) {
+        for (int v = r.begin(); v < r.end(); v++) {
+            auto &m = meshes[v];
+            m.LoadMesh(paths[v % 3]);
+        }
+    };
+
+    LOG_INFO("start to load meshes");
+
+    tp1 = std::chrono::high_resolution_clock::now();
+
+    tbb::parallel_for(tbb::blocked_range<u32>(0, mesh_count), LoadMesh);
+
+    tp2 = std::chrono::high_resolution_clock::now();
+    dur = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
+    LOG_INFO("spend {} ms to load {} meshes using tbb", dur, mesh_count);
 }
+
 
 
 

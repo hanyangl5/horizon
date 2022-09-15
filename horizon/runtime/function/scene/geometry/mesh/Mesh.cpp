@@ -70,6 +70,7 @@ void Mesh::LoadMesh(const std::string &path) {
 
     m_mesh_primitives.resize(scene->mNumMeshes);
 
+    // TOOD: aync load single mesh
     for (u32 i = 0; i < scene->mNumMeshes; i++) {
 
         const auto &mesh = scene->mMeshes[i];

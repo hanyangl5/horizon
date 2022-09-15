@@ -103,3 +103,6 @@ target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-core)
 
 # find_package(spirv_cross_util CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-util)
+
+find_package(TBB CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
