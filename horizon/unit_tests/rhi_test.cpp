@@ -337,7 +337,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto vertex_buffer = rhi->CreateBuffer(vertex_buffer_create_info);
 
     BufferCreateInfo index_buffer_create_info{};
-    index_buffer_create_info.size = mesh.GetIndicesCount() * 3 * sizeof(Index);
+    index_buffer_create_info.size = mesh.GetIndicesCount() * sizeof(Index);
     index_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
     index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
     auto index_buffer = rhi->CreateBuffer(index_buffer_create_info);
@@ -390,7 +390,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         u32 offset = 0;
         auto vb = vertex_buffer.get();
-        cl->BindVertexBuffer(1, &vb, &offset);
+        cl->BindVertexBuffers(1, &vb, &offset);
         cl->BindIndexBuffer(index_buffer.get(), 0);
 
         for (auto &node : mesh.GetNodes()) {

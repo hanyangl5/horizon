@@ -25,7 +25,7 @@ class VulkanCommandList : public CommandList {
     virtual void BeginRecording() override;
     virtual void EndRecording() override;
 
-    virtual void BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets) override;
+    virtual void BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets) override;
     virtual void BindIndexBuffer(Buffer *buffer, u32 offset) override;
 
     // graphics commands

@@ -35,7 +35,7 @@ class CommandList {
     virtual void BeginRecording() = 0;
     virtual void EndRecording() = 0;
 
-    virtual void BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets) = 0;
+    virtual void BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets) = 0;
     virtual void BindIndexBuffer(Buffer *buffer, u32 offset) = 0;
 
     virtual void BeginRenderPass(const RenderPassBeginInfo &begin_info) = 0;

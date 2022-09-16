@@ -87,9 +87,9 @@ void Mesh::LoadMesh(const std::string &path) {
     m_mesh_primitives.resize(scene->mNumMeshes);
 
     // TOOD: aync load sub meshes
-    for (u32 i = 0; i < scene->mNumMeshes; i++) {
+    for (u32 m = 0; m < scene->mNumMeshes; m++) {
 
-        const auto &mesh = scene->mMeshes[i];
+        const auto &mesh = scene->mMeshes[m];
         for (u32 v = 0; v < mesh->mNumVertices; v++) {
 
             Vertex vertex{};
@@ -108,13 +108,13 @@ void Mesh::LoadMesh(const std::string &path) {
             m_vertices.emplace_back(vertex);
         }
 
-        m_mesh_primitives[i].index_offset = static_cast<u32>(m_indices.size());
-        m_mesh_primitives[i].index_count = mesh->mNumFaces;
+        m_mesh_primitives[m].index_offset = static_cast<u32>(m_indices.size());
+        m_mesh_primitives[m].index_count = mesh->mNumFaces * 3;
 
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
-            m_indices.emplace_back(mesh->mFaces[i].mIndices[0]);
-            m_indices.emplace_back(mesh->mFaces[i].mIndices[1]);
-            m_indices.emplace_back(mesh->mFaces[i].mIndices[2]);
+            for (u32 i = 0; i < mesh->mFaces[f].mNumIndices; i++) {
+                m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+            }
         }
     }
 

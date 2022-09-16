@@ -1,9 +1,9 @@
 #include <algorithm>
 
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
+#include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 #include <stb_image.h>
 
 namespace Horizon::RHI {
@@ -28,14 +28,17 @@ void VulkanCommandList::EndRecording() {
     vkEndCommandBuffer(m_command_buffer);
 }
 
-void VulkanCommandList::BindVertexBuffer(u32 buffer_count, Buffer **buffers, u32 *offsets) {
+void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
+
     std::vector<VkBuffer> vk_buffers(buffer_count);
     std::vector<VkDeviceSize> vk_offsets(buffer_count);
     for (u32 i = 0; i < buffer_count; i++) {
+        assert(("vertex buffer not valid",
+                buffers[i]->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
         vk_buffers[i] = reinterpret_cast<VulkanBuffer *>(buffers[i])->m_buffer;
         vk_offsets[i] = offsets[i];
     }
@@ -48,6 +51,8 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
+    assert(("index buffer not valid", buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER));
+
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
     vkCmdBindIndexBuffer(m_command_buffer, vk_buffer->m_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT32);
@@ -80,9 +85,9 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     color_attachment_info.resize(color_render_target_count);
 
     for (u32 i = 0; i < color_render_target_count; i++) {
-        auto t = reinterpret_cast<VulkanTexture*>(begin_info.render_targets[i].data->GetTexture());
+        auto t = reinterpret_cast<VulkanTexture *>(begin_info.render_targets[i].data->GetTexture());
         color_attachment_info[i].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        color_attachment_info[i].imageLayout =VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        color_attachment_info[i].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         color_attachment_info[i].imageView = t->m_image_view;
         color_attachment_info[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment_info[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -92,26 +97,26 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         color_attachment_info[i].clearValue = clear_value;
     }
 
-    
     info.colorAttachmentCount = color_attachment_info.size();
     info.pColorAttachments = color_attachment_info.data();
 
     if (begin_info.depth.data) {
-            auto t = reinterpret_cast<VulkanTexture*>(begin_info.depth.data->GetTexture());
+        auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth.data->GetTexture());
         VkRenderingAttachmentInfo depth_attachment_info{};
         depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depth_attachment_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        depth_attachment_info.imageView = t->m_image_view;;
+        depth_attachment_info.imageView = t->m_image_view;
+        ;
         depth_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         VkClearValue clear_value;
         clear_value.depthStencil.depth = begin_info.depth.clear_color.x;
-        depth_attachment_info.clearValue= clear_value;
+        depth_attachment_info.clearValue = clear_value;
         info.pDepthAttachment = &depth_attachment_info;
     }
 
     // not use stencil attachment yet
-    //if (begin_info.stencil.data) {
+    // if (begin_info.stencil.data) {
     //    VkRenderingAttachmentInfo stencil_attachment_info{};
     //    stencil_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     //    stencil_attachment_info.imageLayout;
@@ -119,9 +124,8 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     //    stencil_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     //    stencil_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     //    stencil_attachment_info.clearValue;
-    //    info.pStencilAttachment = &stencil_attachment_info; 
+    //    info.pStencilAttachment = &stencil_attachment_info;
     //}
-
 
     vkCmdBeginRendering(m_command_buffer, &info);
 }
