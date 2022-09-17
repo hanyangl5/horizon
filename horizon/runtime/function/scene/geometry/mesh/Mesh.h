@@ -30,8 +30,10 @@ struct MeshPrimitive {
 
 struct Node {
     u32 parent{};
+    Math::float4x4 model_matrix{};
     std::vector<u32> childs{};
     std::vector<MeshPrimitive *> mesh_primitives{};
+    const Math::float4x4 &GetModelMatrix() const { return model_matrix; }
 };
 
 struct MeshDesc {

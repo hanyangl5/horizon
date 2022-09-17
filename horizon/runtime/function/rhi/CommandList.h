@@ -56,7 +56,11 @@ class CommandList {
     virtual void InsertBarrier(const BarrierDesc &desc) = 0;
 
     virtual void BindPipeline(Pipeline *pipeline) = 0;
+     
+    virtual void BindPushConstant(Pipeline *pipeline, const std::string& name, void *data) = 0;
 
+    // bind by index save string lookup
+    virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;
   protected:
     bool is_recoring{false};
     CommandQueueType m_type{};

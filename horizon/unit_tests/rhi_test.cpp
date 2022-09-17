@@ -329,7 +329,8 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-    mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = mesh.GetVerticesCount() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -343,12 +344,12 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto index_buffer = rhi->CreateBuffer(index_buffer_create_info);
 
     auto view =
-        Math::LookAt(Math::float3(0.0f, 0.0f, 5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+        Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+    
     auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
 
-
-    auto vp = projection * view;
-    vp = vp.Transpose();
+    // row major
+    auto vp = view * projection;
 
     auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
@@ -367,6 +368,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         transfer->UpdateBuffer(index_buffer.get(), mesh.GetIndicesData(), index_buffer->m_size);
 
         transfer->EndRecording();
+
         std::vector v1{transfer};
         rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
         rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
@@ -394,6 +396,11 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         cl->BindIndexBuffer(index_buffer.get(), 0);
 
         for (auto &node : mesh.GetNodes()) {
+            if (node.mesh_primitives.empty()) {
+                continue;
+            }
+            auto mat = node.GetModelMatrix();
+            cl->BindPushConstant(pipeline, "model_matrix", &mat);
             for (auto &m : node.mesh_primitives) {
                 cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
             }
@@ -401,6 +408,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         cl->EndRenderPass();
         cl->EndRecording();
+
         std::vector v{cl};
         rhi->SubmitCommandLists(GRAPHICS, v);
         Horizon::RDC::EndFrameCapture();

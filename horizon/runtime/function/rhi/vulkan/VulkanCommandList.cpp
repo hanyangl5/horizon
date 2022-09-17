@@ -498,6 +498,21 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
         vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
     }
 }
+
+void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) {
+    auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
+    auto res = vk_pipeline->m_pipeline_layout_desc.push_constants.find(name);
+    if (res == vk_pipeline->m_pipeline_layout_desc.push_constants.end()) {
+        LOG_ERROR("pipeline doesn't have push constant {}", name);
+        return;
+    } else {
+        vkCmdPushConstants(m_command_buffer, vk_pipeline->m_pipeline_layout,
+                           ToVkShaderStageFlags(res->second.shader_stages), res->second.offset, res->second.size, data);
+    }
+}
+
+void VulkanCommandList::BindPushConstant(Pipeline *pipeline, u32 index, void *data) {}
+
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(VmaAllocator allocator,
                                                          const BufferCreateInfo &buffer_create_info) {
     return std::make_unique<VulkanBuffer>(allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);

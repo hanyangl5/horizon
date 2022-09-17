@@ -56,6 +56,10 @@ class VulkanCommandList : public CommandList {
 
     void CopyBufferToImage();
 
+    void BindPushConstant(Pipeline *pipeline, const std::string& name, void *data) override;
+
+    void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
+
   private:
     const VulkanRendererContext &m_context;
     Resource<VulkanBuffer> GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info);

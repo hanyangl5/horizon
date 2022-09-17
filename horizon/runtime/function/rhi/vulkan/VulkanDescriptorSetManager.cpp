@@ -31,7 +31,7 @@ VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShader(std::unordered_m
         CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout));
 
         m_empty_descriptor_set_layout_hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
-        m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, DescriptorSetValue{layout});
+        m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, DescriptorSetLayout{layout});
     }
 
     PipelineLayoutDesc layout_desc;
@@ -68,7 +68,7 @@ VulkanDescriptorSetManager::CreateDescriptorSetLayoutFromShader(std::unordered_m
                 VkDescriptorSetLayout layout;
                 CHECK_VK_RESULT(
                     vkCreateDescriptorSetLayout(m_context.device, &layout_create_infos[i], nullptr, &layout));
-                m_descriptor_set_layout_map.emplace(hash_key, DescriptorSetValue{layout});
+                m_descriptor_set_layout_map.emplace(hash_key, DescriptorSetLayout{layout});
             } else {
                 LOG_INFO("descriptorset exist");
             }
@@ -98,7 +98,6 @@ void VulkanDescriptorSetManager::ReflectDescriptorSetLayoutFromShader(
     std::vector<SpvReflectDescriptorSet *> sets(count);
     result = spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
     for (u32 i = 0; i < sets.size(); i++) {
         const auto &refl_set = *(sets[i]);
         auto &layout_create_info = layout_create_infos[refl_set.set];
@@ -131,6 +130,7 @@ void VulkanDescriptorSetManager::ReflectDescriptorSetLayoutFromShader(
             }
         }
     }
+    spvReflectDestroyShaderModule(&module);
 }
 
 void VulkanDescriptorSetManager::InitEmptyDescriptorSet() {}

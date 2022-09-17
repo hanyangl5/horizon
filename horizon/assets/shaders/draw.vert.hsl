@@ -4,6 +4,11 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
     DATA(float4x4, vp, None);
 };
 
+PUSH_CONSTANT(model_matrix, b1){
+    DATA(float4x4, model_matrix, None);
+};
+
+
 STRUCT(VSInput)
 {
 	DATA(float3, Position, POSITION);
@@ -23,8 +28,9 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
     VSOutput Out;
 
     float4x4 tempMat = Get(vp);
+    //tempMat = mul(tempMat, Get(model_matrix));
     Out.Position = mul(tempMat, float4(In.Position.xyz, 1.0f));
-
+    //Out.Position = mul(float4(In.Position.xyz, 1.0f), tempMat);
     Out.Color = float4(1.0, 1.0, 1.0, 1.0);
     RETURN(Out);
 }

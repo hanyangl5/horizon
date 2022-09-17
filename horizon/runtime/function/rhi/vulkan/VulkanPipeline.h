@@ -32,6 +32,8 @@ class VulkanPipeline : public Pipeline {
     void CreateGraphicsPipeline();
     void CreateComputePipeline();
     void CreatePipelineLayout();
+    
+    void ReflectPushConstants(VulkanShader * shader, PipelineLayoutDesc& layout_desc);
 
     // void CreateRTPipeline() noexcept;  
   public:

@@ -17,12 +17,7 @@ namespace Horizon::RHI {
 class Pipeline;
 class VulkanPipeline;
 
-struct PipelineLayoutDesc {
-  public:
-    std::array<u64, 4> descriptor_set_hash_key{};
-};
-
-struct DescriptorSetValue {
+struct DescriptorSetLayout {
     VkDescriptorSetLayout layout;
 };
 
@@ -79,7 +74,7 @@ class VulkanDescriptorSetManager {
     DescriptorPoolSizeDesc descriptor_pool_size_desc;
     VkDescriptorPool m_descriptor_pool = VK_NULL_HANDLE;
 
-    std::unordered_map<u64, DescriptorSetValue> m_descriptor_set_layout_map; // cache exist layout
+    std::unordered_map<u64, DescriptorSetLayout> m_descriptor_set_layout_map; // cache exist layout
 
     std::unordered_map<Pipeline *, PipelineDescriptorSetInfo> m_pipeline_descriptors_map;
 

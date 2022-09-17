@@ -2,6 +2,7 @@
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::RHI {
+
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
                                VulkanDescriptorSetManager &descriptor_set_manager) noexcept
     : m_context(context), m_descriptor_set_manager(descriptor_set_manager) {
@@ -306,20 +307,63 @@ void VulkanPipeline::CreatePipelineLayout() {
         m_descriptor_set_manager.CreateDescriptorSetLayoutFromShader(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;
     layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
-
     for (auto &key : m_pipeline_layout_desc.descriptor_set_hash_key) {
         if (key == 0) {
             continue;
         }
         layouts.emplace_back(m_descriptor_set_manager.FindLayout(key));
     }
+
+    for (auto &[type, shader] : shader_map) {
+        ReflectPushConstants(reinterpret_cast<VulkanShader *>(shader), m_pipeline_layout_desc);
+    }
+
+    std::vector<VkPushConstantRange> push_constant_ranges{};
+    push_constant_ranges.reserve(m_pipeline_layout_desc.push_constants.size());
+
+    for (auto &[name, pc] : m_pipeline_layout_desc.push_constants) {
+        push_constant_ranges.emplace_back(VkPushConstantRange{
+            ToVkShaderStageFlags(pc.shader_stages),
+            pc.offset,
+            pc.size,
+        });
+    }
+    
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.setLayoutCount = static_cast<u32>(layouts.size());
     pipeline_layout_create_info.pSetLayouts = layouts.data();
+    pipeline_layout_create_info.pushConstantRangeCount = static_cast<u32>(push_constant_ranges.size());
+    pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges.data();
     CHECK_VK_RESULT(
         vkCreatePipelineLayout(m_context.device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout));
+}
+
+void VulkanPipeline::ReflectPushConstants(VulkanShader *shader, PipelineLayoutDesc &layout_desc) {
+    SpvReflectShaderModule module;
+    SpvReflectResult result =
+        spvReflectCreateShaderModule(shader->m_spirv_code.size(), shader->m_spirv_code.data(), &module);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    uint32_t count = 0;
+    result = spvReflectEnumeratePushConstants(&module, &count, NULL);
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    std::vector<SpvReflectBlockVariable *> push_constants(count);
+    result = spvReflectEnumeratePushConstants(&module, &count, push_constants.data());
+    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    for (auto &pc : push_constants) {
+        std::string key = pc->name;
+        key = std::string(key.begin(), key.end() - 5);
+        auto& push_constant = layout_desc.push_constants[key]; // a hack to remove Block str after push constant
+        push_constant.size = pc->size;
+        push_constant.offset = pc->offset;
+        push_constant.shader_stages |= GetShaderStageFlagsFromShaderType(shader->GetType());
+    }
+
+    spvReflectDestroyShaderModule(&module);
 }
 
 } // namespace Horizon::RHI

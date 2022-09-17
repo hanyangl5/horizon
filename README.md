@@ -2,7 +2,7 @@
 
 # Horizon
 
-horizon is a real time renderer.
+horizon is a real time render framework.
 
 ---
 

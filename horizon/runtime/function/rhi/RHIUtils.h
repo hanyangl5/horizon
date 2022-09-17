@@ -373,4 +373,32 @@ enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
 
+struct PushConstantDesc{
+    u32 size;
+    u32 offset;
+    u32 shader_stages;
+};
+
+struct PipelineLayoutDesc {
+  public:
+    std::array<u64, MAX_SET_COUNT_PER_PIPELINE> descriptor_set_hash_key{};
+    std::unordered_map<std::string, PushConstantDesc> push_constants{}; // TODO: vulkan only allow one pc per stage, pc in directx12 is cbuffer
+};
+
+inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
+    switch (type) {
+    case Horizon::ShaderType::VERTEX_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER;
+        break;
+    case Horizon::ShaderType::PIXEL_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_PIXEL_SHADER;
+        break;
+    case Horizon::ShaderType::COMPUTE_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER;
+        break;
+    default:
+        break;
+    }
+}
+
 } // namespace Horizon

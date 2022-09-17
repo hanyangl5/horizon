@@ -349,3 +349,41 @@ float AsinFast4( float x )
 {
 	return (0.5 * PI) - AcosFast4(x);
 }
+
+float Pow2(x) {return x * x;}
+
+float Pow3(x) {return x * x * x;}
+
+float Pow4(x) {return x * x * x * x;}
+
+float Pow5(x) {return x * x * x * x * x;}
+
+// some functions may already optimized on modern platform
+
+// // Spherical Gaussian Power Function 
+// float PowFast(float x, float n)
+// {
+//     n = n * 1.4427f + 1.4427f; // 1.4427f --> 1/ln(2)
+//     return exp2(x * n - n);
+// }
+// 
+// // from idtech6
+// float PowFastIDTech (float fBase, float fPower)
+// {
+// 	uint param_1 = uint((fPower * float (asuint (fBase))) - (((fPower - 1.0) * 127.0) * 8388608.0));
+// 	return asfloat (param_1);
+// }
+// 
+// // from idtech6
+// float Log2FastIdTech (float f)
+// {
+// 	float param = f;
+// 	return (float (asuint (param)) / 8388608.0) - 127.0;
+// }
+// 
+// // from idtech6
+// float Exp2FastIdTech (float f)
+// {
+// 	uint param = uint((f + 127.0) * 8388608.0);
+// 	return asfloat (param);
+// }

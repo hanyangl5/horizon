@@ -24,6 +24,9 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
         return;
     }
     auto &n = m_nodes[index];
+
+    memcpy(&n.model_matrix, &node->mTransformation, sizeof(Math::float4x4));
+
     n.mesh_primitives.resize(node->mNumMeshes);
 
     for (u32 i = 0; i < node->mNumMeshes; i++) {
@@ -68,8 +71,11 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
 void Mesh::LoadMesh(const std::string &path) {
-    // Assimp::Importer importer;
-
+    // check mesh if loaded
+    if(!m_vertices.empty()) {
+        LOG_ERROR("mesh already loaded");
+        return;
+    }
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
@@ -110,10 +116,10 @@ void Mesh::LoadMesh(const std::string &path) {
 
         m_mesh_primitives[m].index_offset = static_cast<u32>(m_indices.size());
         m_mesh_primitives[m].index_count = mesh->mNumFaces * 3;
-
+        
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
             for (u32 i = 0; i < mesh->mFaces[f].mNumIndices; i++) {
-                m_indices.push_back(mesh->mFaces[f].mIndices[i]);
+                m_indices.push_back(mesh->mFaces[f].mIndices[i]);  
             }
         }
     }
