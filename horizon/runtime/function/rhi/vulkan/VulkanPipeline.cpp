@@ -85,7 +85,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{};
         VkPipelineViewportStateCreateInfo view_port_state_create_info{};
         VkPipelineRenderingCreateInfo rendering_create_info{};
-
         // shader stage
         {
 
@@ -166,13 +165,9 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         // viewport
 
         {
-
-            VkPipelineViewportStateCreateInfo view_port_state_create_info{};
             view_port_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
             view_port_state_create_info.flags = 0;
             view_port_state_create_info.pNext = nullptr;
-
-            VkViewport view_port{};
 
             view_port.width = static_cast<f32>(ci->view_port_state.width);
             view_port.height = -static_cast<f32>(ci->view_port_state.height);
@@ -185,7 +180,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             extent.width = ci->view_port_state.width;
             extent.height = ci->view_port_state.height;
 
-            VkRect2D scissor{};
             scissor.offset = {0, 0};
             scissor.extent = extent;
 
@@ -328,7 +322,7 @@ void VulkanPipeline::CreatePipelineLayout() {
             pc.size,
         });
     }
-    
+
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -357,7 +351,7 @@ void VulkanPipeline::ReflectPushConstants(VulkanShader *shader, PipelineLayoutDe
     for (auto &pc : push_constants) {
         std::string key = pc->name;
         key = std::string(key.begin(), key.end() - 5);
-        auto& push_constant = layout_desc.push_constants[key]; // a hack to remove Block str after push constant
+        auto &push_constant = layout_desc.push_constants[key]; // a hack to remove Block str after push constant
         push_constant.size = pc->size;
         push_constant.offset = pc->offset;
         push_constant.shader_stages |= GetShaderStageFlagsFromShaderType(shader->GetType());

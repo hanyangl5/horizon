@@ -78,7 +78,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
                  VkExtent2D{begin_info.render_area.w, begin_info.render_area.h}};
 
     std::vector<VkRenderingAttachmentInfo> color_attachment_info{};
-
+    VkRenderingAttachmentInfo depth_attachment_info{};
     u32 color_render_target_count = 0;
     while (begin_info.render_targets[++color_render_target_count].data != nullptr)
         ;
@@ -100,9 +100,10 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     info.colorAttachmentCount = color_attachment_info.size();
     info.pColorAttachments = color_attachment_info.data();
 
+
     if (begin_info.depth.data) {
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth.data->GetTexture());
-        VkRenderingAttachmentInfo depth_attachment_info{};
+        
         depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depth_attachment_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
         depth_attachment_info.imageView = t->m_image_view;
@@ -495,8 +496,13 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
         }
         vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
                                 pipeline_descriptor_sets.size(), pipeline_descriptor_sets.data(), 0, 0);
-        vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
     }
+
+    vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
+
+    vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
+
+    vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 
 void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) {

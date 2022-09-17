@@ -40,9 +40,11 @@ class VulkanPipeline : public Pipeline {
     const VulkanRendererContext &m_context;
     VulkanDescriptorSetManager &m_descriptor_set_manager;
     VkPipeline m_pipeline{};
-    VkRenderPass m_render_pass{};
     VkPipelineLayout m_pipeline_layout{};
     PipelineLayoutDesc m_pipeline_layout_desc;
+
+    VkViewport view_port{};
+    VkRect2D scissor{};
 };
 
 } // namespace Horizon::RHI

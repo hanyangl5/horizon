@@ -347,7 +347,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto index_buffer = rhi->CreateBuffer(index_buffer_create_info);
 
     auto view =
-        Math::LookAt(Math::float3(0.0f, 0.0f, 5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+        Math::LookAt(Math::float3(0.0f, 0.0f, 1.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
 
     auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
 
