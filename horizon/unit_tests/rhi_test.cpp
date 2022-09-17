@@ -354,7 +354,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
     pipeline->SetGraphicsShader(vs, ps);
-    for (u32 frame = 0; frame < 3; frame++) {
+    for (u32 frame = 0; frame < 1; frame++) {
         engine->BeginNewFrame();
         Horizon::RDC::StartFrameCapture();
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);

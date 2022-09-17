@@ -67,7 +67,7 @@ class Mesh {
 
     // void GenerateMeshLet() noexcept;
   private:
-    void ProcessNode(const aiScene *scene, aiNode *node, u32 offset);
+    void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4& model_matrx);
     
     void GenerateMeshCluster();
   private:

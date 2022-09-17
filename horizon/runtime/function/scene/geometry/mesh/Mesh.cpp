@@ -19,14 +19,14 @@ Mesh::~Mesh() noexcept {
     // delete
 }
 
-void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
+void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx) {
     if (!node) {
         return;
     }
     auto &n = m_nodes[index];
 
     memcpy(&n.model_matrix, &node->mTransformation, sizeof(Math::float4x4));
-
+    n.model_matrix *= model_matrx;
     n.mesh_primitives.resize(node->mNumMeshes);
 
     for (u32 i = 0; i < node->mNumMeshes; i++) {
@@ -39,7 +39,7 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index) {
         u32 child_node_index = index + i + 1;
         n.childs[i] = child_node_index;
         m_nodes[child_node_index].parent = index;
-        ProcessNode(scene, node->mChildren[i], child_node_index);
+        ProcessNode(scene, node->mChildren[i], child_node_index, n.model_matrix);
     }
 }
 
@@ -72,7 +72,7 @@ u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scen
 
 void Mesh::LoadMesh(const std::string &path) {
     // check mesh if loaded
-    if(!m_vertices.empty()) {
+    if (!m_vertices.empty()) {
         LOG_ERROR("mesh already loaded");
         return;
     }
@@ -89,10 +89,13 @@ void Mesh::LoadMesh(const std::string &path) {
     }
 
     // auto directory = path.substr(0, path.find_last_of('/'));
+    u32 index_offset = 0;
 
     m_mesh_primitives.resize(scene->mNumMeshes);
 
     // TOOD: aync load sub meshes
+
+    // combine all mesh to a big vertex buffer
     for (u32 m = 0; m < scene->mNumMeshes; m++) {
 
         const auto &mesh = scene->mMeshes[m];
@@ -116,12 +119,14 @@ void Mesh::LoadMesh(const std::string &path) {
 
         m_mesh_primitives[m].index_offset = static_cast<u32>(m_indices.size());
         m_mesh_primitives[m].index_count = mesh->mNumFaces * 3;
-        
+
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
-            for (u32 i = 0; i < mesh->mFaces[f].mNumIndices; i++) {
-                m_indices.push_back(mesh->mFaces[f].mIndices[i]);  
-            }
+            // use global indices
+            m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[0]);
+            m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[1]);
+            m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[2]);
         }
+        index_offset = m_vertices.size();
     }
 
     m_vertices.shrink_to_fit();
@@ -130,7 +135,7 @@ void Mesh::LoadMesh(const std::string &path) {
     u32 node_count = CalculateNodeCount(scene) + 1;
 
     m_nodes.resize(node_count);
-    ProcessNode(scene, scene->mRootNode, 0);
+    ProcessNode(scene, scene->mRootNode, 0, Math::float4x4::Identity);
     LOG_DEBUG("mesh successfully loaded, {} meshes, {} vertices, {} faces", m_mesh_primitives.size(), m_vertices.size(),
               m_indices.size());
 }
