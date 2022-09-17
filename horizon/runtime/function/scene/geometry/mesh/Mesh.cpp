@@ -19,14 +19,17 @@ Mesh::~Mesh() noexcept {
     // delete
 }
 
-void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx) {
+void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
     if (!node) {
         return;
     }
     auto &n = m_nodes[index];
 
-    memcpy(&n.model_matrix, &node->mTransformation, sizeof(Math::float4x4));
-    n.model_matrix *= model_matrx;
+    // update node model matrix
+    auto &t = node->mTransformation;
+    Math::float4x4 m(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
+    n.model_matrix = m * parent_model_matrx;
+
     n.mesh_primitives.resize(node->mNumMeshes);
 
     for (u32 i = 0; i < node->mNumMeshes; i++) {

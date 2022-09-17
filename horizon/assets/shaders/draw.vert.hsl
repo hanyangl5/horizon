@@ -27,9 +27,8 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
     INIT_MAIN;
     VSOutput Out;
 
-    float4x4 tempMat = Get(vp);
-    tempMat = mulGet(model_matrix), tempMat);
-    Out.Position = mul(float4(In.Position.xyz, 1.0f), tempMat);
-    Out.Color = float4(1.0, 1.0, 1.0, 1.0);
+    //Out.Position = mul(mul(Get(vp), Get(model_matrix)), float4(In.Position.xyz, 1.0)); // row major
+    Out.Position = mul(float4(In.Position.xyz, 1.0), mul(Get(model_matrix), Get(vp))); // column major
+    Out.Color = float4(In.Normal, 1.0);
     RETURN(Out);
 }

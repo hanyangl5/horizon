@@ -20,7 +20,7 @@ def CompileShaders():
         for hsl_file in [os.path.join(shader_dir, _file) for _file in os.listdir(shader_dir) if _file.endswith('.hsl')]:
             print("compile hsl:", hsl_file)
             sys.argv = argv[:]
-            sys.argv += ['-d', os.path.join(output_dir, lang)]
+            sys.argv += ['-d', output_dir]
             sys.argv += ['-b', shader_dir]
             sys.argv += ['-l', lang]
             sys.argv += ['--compile']

@@ -1,9 +1,9 @@
 define the coordinate we can unify cpp and shader code of coordinate transformation in differnet render backends.
-coordinate system of horizon uses a left hand 3D coord， up is z, right is x, forward is y
+coordinate system of horizon uses
 
-row major matrix
+right hand
+column major matrix
+transpose matrix before upload to gpu
 
-mental model :
-
-same cpu
-same shaders
+reference: 
+https://www.cnblogs.com/X-Jun/p/9808727.html

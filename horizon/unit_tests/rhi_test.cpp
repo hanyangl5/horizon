@@ -326,11 +326,14 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     info.render_target_formats.has_depth = true;
     info.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
 
+    
+
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
     //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
     mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
+    //mesh.LoadMesh(asset_path + "models/sponza/sponza.gltf");
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = mesh.GetVerticesCount() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -344,15 +347,16 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto index_buffer = rhi->CreateBuffer(index_buffer_create_info);
 
     auto view =
-        Math::LookAt(Math::float3(0.0f, 0.0f, -5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
-    
+        Math::LookAt(Math::float3(0.0f, 0.0f, 5.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+
     auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
 
     // row major
     auto vp = view * projection;
-
+    vp = vp.Transpose();
     auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
+
     pipeline->SetGraphicsShader(vs, ps);
     for (u32 frame = 0; frame < 1; frame++) {
         engine->BeginNewFrame();
@@ -361,7 +365,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         transfer->BeginRecording();
 
-        transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(vp));
+        transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(Math::float4x4));
 
         // update vertex and index buffer
         transfer->UpdateBuffer(vertex_buffer.get(), mesh.GetVerticesData(), vertex_buffer->m_size);
@@ -371,6 +375,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         std::vector v1{transfer};
         rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
+        // TODO: use other sync method
         rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
@@ -399,7 +404,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
             if (node.mesh_primitives.empty()) {
                 continue;
             }
-            auto mat = node.GetModelMatrix();
+            auto mat = node.GetModelMatrix().Transpose();
             cl->BindPushConstant(pipeline, "model_matrix", &mat);
             for (auto &m : node.mesh_primitives) {
                 cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
