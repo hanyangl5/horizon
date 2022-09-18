@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include <runtime/core/math/Math.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Texture.h>
@@ -12,15 +14,17 @@
 
 namespace Horizon::RHI {
 
+// TODO: move these definations to RHIUtils.h
+
 struct RenderTargetInfo{
     RenderTarget* data{};
-    Math::float4 clear_color{};
+    std::variant<ClearValueColor, ClearValueDepthStencil> clear_color{};
 };
 
 struct RenderPassBeginInfo {
-    std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets;
-    RenderTargetInfo depth, stencil;
-    Rect render_area;
+    std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
+    RenderTargetInfo depth_stencil{};
+    Rect render_area{};
 };
 
 class CommandList {
@@ -58,6 +62,10 @@ class CommandList {
     virtual void BindPipeline(Pipeline *pipeline) = 0;
      
     virtual void BindPushConstant(Pipeline *pipeline, const std::string& name, void *data) = 0;
+
+    virtual void ClearBuffer(Buffer *buffer, f32 clear_value) = 0;
+
+    virtual void ClearTextrue(Texture* texture, const Math::float4& clear_value) = 0;
 
     // bind by index save string lookup
     virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;

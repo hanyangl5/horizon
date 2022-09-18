@@ -397,8 +397,17 @@ inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
         return ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER;
         break;
     default:
+        LOG_ERROR("invalid shader type");
         break;
     }
 }
 
+struct ClearValueColor{
+    Math::float4 color;
+};
+
+struct ClearValueDepthStencil {
+    f32 depth;
+    u32 stencil;
+};
 } // namespace Horizon

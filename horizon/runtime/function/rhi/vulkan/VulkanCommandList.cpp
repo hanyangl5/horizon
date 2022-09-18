@@ -92,26 +92,25 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         color_attachment_info[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment_info[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         VkClearValue clear_value;
-        clear_value.color = VkClearColorValue{begin_info.depth.clear_color.x, begin_info.depth.clear_color.y,
-                                              begin_info.depth.clear_color.z, begin_info.depth.clear_color.w};
+        auto &cc = std::get<ClearValueColor>(begin_info.render_targets[i].clear_color);
+        clear_value.color = {cc.color.x, cc.color.y, cc.color.z, cc.color.w};
         color_attachment_info[i].clearValue = clear_value;
     }
 
     info.colorAttachmentCount = color_attachment_info.size();
     info.pColorAttachments = color_attachment_info.data();
 
+    if (begin_info.depth_stencil.data) {
+        auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth_stencil.data->GetTexture());
 
-    if (begin_info.depth.data) {
-        auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth.data->GetTexture());
-        
         depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depth_attachment_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
         depth_attachment_info.imageView = t->m_image_view;
-        ;
         depth_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         VkClearValue clear_value;
-        clear_value.depthStencil.depth = begin_info.depth.clear_color.x;
+        auto &cc = std::get<ClearValueDepthStencil>(begin_info.depth_stencil.clear_color);
+        clear_value.depthStencil = {cc.depth, cc.stencil};
         depth_attachment_info.clearValue = clear_value;
         info.pDepthAttachment = &depth_attachment_info;
     }
@@ -482,6 +481,8 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
         assert(("pipeline type does not correspond with current command list, "
                 "expect compute pipeline",
                 m_type == CommandQueueType::COMPUTE));
+    } else {
+        assert(("cannot bind pipeline using transfer command list", m_type != CommandQueueType::TRANSFER));
     }
 
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
@@ -506,6 +507,7 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
 }
 
 void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) {
+    assert(("cannot bind push constant using transfer command list", m_type != CommandQueueType::TRANSFER));
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     auto res = vk_pipeline->m_pipeline_layout_desc.push_constants.find(name);
     if (res == vk_pipeline->m_pipeline_layout_desc.push_constants.end()) {
@@ -518,6 +520,16 @@ void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &
 }
 
 void VulkanCommandList::BindPushConstant(Pipeline *pipeline, u32 index, void *data) {}
+
+void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value) {
+    assert(("clear buffer can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
+    // vkCmdFillBuffer();
+}
+
+void VulkanCommandList::ClearTextrue(Texture *texture, const Math::float4 &clear_value) {
+    assert(("clear texture can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
+    // vkCmdClearColorImage();
+}
 
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(VmaAllocator allocator,
                                                          const BufferCreateInfo &buffer_create_info) {

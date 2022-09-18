@@ -261,7 +261,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, ps_path);
 
     auto rt0 = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM, RenderTargetType::COLOR, width, height});
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA32_SFLOAT, RenderTargetType::COLOR, width, height});
     auto depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                 RenderTargetType::DEPTH_STENCIL, width, height});
 
@@ -322,7 +322,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
     info.render_target_formats.color_attachment_count = 1;
     info.render_target_formats.color_attachment_formats =
-        std::vector<TextureFormat>{TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM};
+        std::vector<TextureFormat>{TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT};
     info.render_target_formats.has_depth = true;
     info.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
 
@@ -388,9 +388,9 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         RenderPassBeginInfo begin_info{};
         begin_info.render_area = Rect{0, 0, width, height};
         begin_info.render_targets[0].data = rt0.get();
-        begin_info.render_targets[0].clear_color = Math::float4(0.0);
-        begin_info.depth.data = depth.get();
-        begin_info.depth.clear_color.x = 1.0;
+        begin_info.render_targets[0].clear_color = ClearValueColor{Math::float4(0.0)};
+        begin_info.depth_stencil.data = depth.get();
+        begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
         cl->BeginRenderPass(begin_info);
 
         cl->BindPipeline(pipeline);

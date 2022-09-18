@@ -11,24 +11,24 @@ PUSH_CONSTANT(model_matrix, b1){
 
 STRUCT(VSInput)
 {
-	DATA(float3, Position, POSITION);
-	DATA(float3, Normal,   NORMAL);
-	DATA(float2, Uv0,   UV0);
+	DATA(float3, position, POSITION);
+	DATA(float3, normal,   NORMAL);
+	DATA(float2, uv0,   UV0);
 };
 
 STRUCT(VSOutput)
 {
-	DATA(float4, Position, SV_Position);
-	DATA(float4, Color,    COLOR);
+	DATA(float4, position, SV_Position);
+	DATA(float4, normal,    NORMAL);
 };
 
-VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
+VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
 {
     INIT_MAIN;
-    VSOutput Out;
+    VSOutput vsout;
 
-    //Out.Position = mul(mul(Get(vp), Get(model_matrix)), float4(In.Position.xyz, 1.0)); // row major
-    Out.Position = mul(float4(In.Position.xyz, 1.0), mul(Get(model_matrix), Get(vp))); // column major
-    Out.Color = float4(In.Normal, 1.0);
-    RETURN(Out);
+    //Out.Position = mul(mul(Get(vp), Get(model_matrix)), float4(in.position, 1.0)); // row major
+    vsout.position = mul(float4(vsin.position, 1.0), mul(Get(model_matrix), Get(vp))); // column major
+    vsout.normal = float4(vsin.normal, 1.0);
+    RETURN(vsout);
 }

@@ -27,12 +27,19 @@
 
 STRUCT(VSOutput)
 {
-    DATA(float4, Position, SV_Position);
-    DATA(float4, Color, COLOR);
+    DATA(float4, position, SV_Position);
+    DATA(float4, normal, NORMAL);
 };
 
-float4 PS_MAIN( VSOutput In )
+STRUCT(PSOutput)
+{
+    DATA(float4, color, SV_Target0);
+};
+
+PSOutput PS_MAIN(VSOutput vsout)
 {
     INIT_MAIN;
-    RETURN(In.Color);
+    PSOutput psout;
+    psout.color = abs(vsout.normal);
+    RETURN(psout);
 }

@@ -60,6 +60,10 @@ class VulkanCommandList : public CommandList {
 
     void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
 
+    void ClearBuffer(Buffer *buffer, f32 clear_value) override;
+
+    void ClearTextrue(Texture* texture, const Math::float4& clear_value) override;
+
   private:
     const VulkanRendererContext &m_context;
     Resource<VulkanBuffer> GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info);
