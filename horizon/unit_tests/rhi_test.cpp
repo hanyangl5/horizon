@@ -343,9 +343,9 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-    //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    // mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
     mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
-    //mesh.LoadMesh(asset_path + "models/sponza/sponza.gltf");
+    // mesh.LoadMesh(asset_path + "models/sponza/sponza.gltf");
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = mesh.GetVerticesCount() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -370,9 +370,15 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
 
     pipeline->SetGraphicsShader(vs, ps);
+
+    auto image_acquired_semaphore = rhi->GetSemaphore();
+
     for (u32 frame = 0; frame < 3; frame++) {
         engine->BeginNewFrame();
         Horizon::RDC::StartFrameCapture();
+
+        rhi->AcquireNextImage(image_acquired_semaphore.get(), frame);
+
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
@@ -393,8 +399,6 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
             submit_info.signal_semaphores.push_back(s.get());
             rhi->SubmitCommandLists(submit_info);
         }
-        // TODO: use other sync method
-        //rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
 
@@ -409,6 +413,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         begin_info.render_targets[0].clear_color = ClearValueColor{Math::float4(0.0)};
         begin_info.depth_stencil.data = depth.get();
         begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
+
         cl->BeginRenderPass(begin_info);
 
         cl->BindPipeline(pipeline);
@@ -417,6 +422,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         auto vb = vertex_buffer.get();
         cl->BindVertexBuffers(1, &vb, &offset);
         cl->BindIndexBuffer(index_buffer.get(), 0);
+
 
         for (auto &node : mesh.GetNodes()) {
             if (node.mesh_primitives.empty()) {
@@ -430,15 +436,26 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         }
 
         cl->EndRenderPass();
+
         cl->EndRecording();
 
+        auto render_complete_semaphore = rhi->GetSemaphore();
         {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::GRAPHICS;
             submit_info.command_lists.push_back(cl);
             submit_info.wait_semaphores.push_back(s.get());
+            submit_info.wait_semaphores.push_back(image_acquired_semaphore.get());
+            submit_info.signal_semaphores.push_back(render_complete_semaphore.get());
             rhi->SubmitCommandLists(submit_info);
         }
+
+        //{
+        //    QueuePresentInfo info{};
+        //    info.wait_semaphores.push_back(render_complete_semaphore.get());
+
+        //    rhi->Present(info);
+        //}
         Horizon::RDC::EndFrameCapture();
         engine->EndFrame();
     }

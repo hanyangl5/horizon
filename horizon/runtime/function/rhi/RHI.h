@@ -28,6 +28,10 @@ struct QueueSubmitInfo {
     std::vector<Semaphore *> signal_semaphores;
 };
 
+struct QueuePresentInfo {
+    std::vector<Semaphore *> wait_semaphores;
+};
+
 class RHI {
   public:
     RHI() noexcept;
@@ -77,8 +81,11 @@ class RHI {
     // submit command list to command queue
     virtual void SubmitCommandLists(const QueueSubmitInfo& queue_submit_info) = 0;
 
+    virtual void AcquireNextImage(Semaphore* image_acquired_semaphore, u32 swap_chain_image_index) = 0;
+    virtual void Present(const QueuePresentInfo& queue_present_info) = 0;
+
   protected:
-    u32 m_back_buffer_count{2};
+    u32 m_back_buffer_count{3};
     u32 m_current_frame_index{0};
 
     // std::unordered_map<u64, Pipeline *> pipeline_map; // TODO: manage by rg

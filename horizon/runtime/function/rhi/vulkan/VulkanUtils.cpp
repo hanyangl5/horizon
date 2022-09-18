@@ -542,6 +542,8 @@ VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
         default:
             return VK_FORMAT_MAX_ENUM;
         }
+    } else {
+        return VK_FORMAT_MAX_ENUM;
     }
 }
 

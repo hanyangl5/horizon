@@ -12,6 +12,7 @@ Engine::Engine(const EngineConfig &config) noexcept {
 }
 
 void Engine::BeginNewFrame() const {
+    
     auto rhi = m_render_system->GetRhi();
     rhi->ResetCommandResources();
     rhi->ResetFence(CommandQueueType::GRAPHICS);

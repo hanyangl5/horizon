@@ -10,7 +10,7 @@ namespace Horizon::RHI {
 
 class VulkanSemaphore : public Semaphore {
   public:
-    VulkanSemaphore(const VulkanRendererContext& context) noexcept;
+    VulkanSemaphore(const VulkanRendererContext &context) noexcept;
     virtual ~VulkanSemaphore() noexcept;
 
     VulkanSemaphore(const VulkanSemaphore &rhs) noexcept = delete;
@@ -19,7 +19,11 @@ class VulkanSemaphore : public Semaphore {
     VulkanSemaphore &operator=(VulkanSemaphore &&rhs) noexcept = delete;
 
   public:
-    const VulkanRendererContext& m_context;
+    void AddWaitStage(CommandQueueType queue_type) noexcept override;
+    u32 GetWaitStage() noexcept override;
+
+  public:
+    const VulkanRendererContext &m_context;
     VkSemaphore m_semaphore;
 };
 

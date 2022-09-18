@@ -34,7 +34,7 @@ class RHIVulkan : public RHI {
 
     Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) override;
 
-    Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo& render_target_create_info) override;
+    Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) override;
 
     void CreateSwapChain(Window *window) override;
 
@@ -54,12 +54,15 @@ class RHIVulkan : public RHI {
 
     Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) override;
 
-    void DestroyPipeline(Pipeline* pipeline) override;
+    void DestroyPipeline(Pipeline *pipeline) override;
 
-    virtual Resource<Semaphore> GetSemaphore() override;
+    Resource<Semaphore> GetSemaphore() override;
 
     // submit command list to command queue
-    virtual void SubmitCommandLists(const QueueSubmitInfo& queue_submit_info) override;
+    void SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) override;
+
+    void AcquireNextImage(Semaphore* image_acquired_semaphore, u32 swap_chain_image_index) override;
+    void Present(const QueuePresentInfo& quue_present_info) override;
 
   private:
     void InitializeVulkanRenderer(const std::string &app_name);

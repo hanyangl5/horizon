@@ -323,7 +323,7 @@ void RHIVulkan::InitializeVMA() {
     vma_create_info.instance = m_vulkan.instance;
     vma_create_info.pVulkanFunctions = &vulkan_functions;
     vma_create_info.vulkanApiVersion = VULKAN_API_VERSION;
-    vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator);
+    CHECK_VK_RESULT(vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator));
 }
 
 void RHIVulkan::CreateSyncObjects() {
@@ -371,9 +371,10 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 
     u32 wait_semaphore_count = queue_submit_info.wait_semaphores.size();
     std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
-
+    std::vector<VkPipelineStageFlags> wait_stages(wait_semaphore_count);
     for (u32 i = 0; i < wait_semaphore_count; i++) {
         wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.wait_semaphores[i])->m_semaphore;
+        wait_stages[i] = queue_submit_info.wait_semaphores[i]->GetWaitStage();
     }
 
     u32 signal_semaphore_count = queue_submit_info.signal_semaphores.size();
@@ -381,18 +382,73 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 
     for (u32 i = 0; i < signal_semaphore_count; i++) {
         signal_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.signal_semaphores[i])->m_semaphore;
+        queue_submit_info.signal_semaphores[i]->AddWaitStage(queue_submit_info.queue_type);
     }
 
     submit_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
     submit_info.pWaitSemaphores = wait_semaphores.data();
+
     submit_info.signalSemaphoreCount = static_cast<u32>(signal_semaphores.size());
     submit_info.pSignalSemaphores = signal_semaphores.data();
-    u32 stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT; // TODO: how to optimize?
-    submit_info.pWaitDstStageMask = &stage;
+
+    
+    submit_info.pWaitDstStageMask = wait_stages.data();
 
     auto &fence = m_vulkan.fences[queue_submit_info.queue_type];
 
     vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, fence);
+}
+
+void RHIVulkan::AcquireNextImage(Semaphore *image_acquired_semaphore, u32 swap_chain_image_index) {
+    m_current_frame_index = swap_chain_image_index;
+    auto s =reinterpret_cast<VulkanSemaphore *>(image_acquired_semaphore)->m_semaphore;
+
+    VkResult res = vkAcquireNextImageKHR(m_vulkan.device, m_vulkan.swap_chain, UINT64_MAX,
+                                         s,
+                                         nullptr, &m_current_frame_index);
+		if (res == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+            LOG_ERROR("vkAcquireNextImageKHR returned VK_ERROR_OUT_OF_DATE_KHR."); 
+			return;
+		}
+
+		// Commonly returned immediately following swapchain resize. 
+		// Vulkan spec states that this return value constitutes a successful call to vkAcquireNextImageKHR
+		// https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
+		if (res == VK_SUBOPTIMAL_KHR)
+		{
+			LOG_ERROR("vkAcquireNextImageKHR returned VK_SUBOPTIMAL_KHR. If window was just resized, ignore this message."); 
+			//pSignalSemaphore->mVulkan.mSignaled = true;
+			return; 
+		}
+        //VkSemaphoreSignalInfo info{};
+        //info.semaphore = s;
+        //info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
+        //info.value = 1;
+        //vkSignalSemaphore(m_vulkan.device,)
+}
+
+void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
+
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    u32 wait_semaphore_count = queue_present_info.wait_semaphores.size();
+    std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
+
+    for (u32 i = 0; i < wait_semaphore_count; i++) {
+        wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_present_info.wait_semaphores[i])->m_semaphore;
+    }
+
+    present_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
+    present_info.pWaitSemaphores = wait_semaphores.data();
+
+    VkSwapchainKHR swapChains[] = {m_vulkan.swap_chain};
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swapChains;
+    present_info.pImageIndices = &m_current_frame_index;
+
+    CHECK_VK_RESULT(vkQueuePresentKHR(m_vulkan.command_queues[CommandQueueType::GRAPHICS], &present_info));
 }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {

@@ -467,8 +467,8 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 
     if (!buffer_memory_barriers.empty() || !texture_memory_barriers.empty()) {
         vkCmdPipelineBarrier(m_command_buffer, src_stage_flags, dst_stage_flags, 0, 0, nullptr,
-                             desc.buffer_memory_barriers.size(), buffer_memory_barriers.data(),
-                             desc.texture_memory_barriers.size(), texture_memory_barriers.data());
+                             buffer_memory_barriers.size(), buffer_memory_barriers.data(),
+                             texture_memory_barriers.size(), texture_memory_barriers.data());
     }
 }
 
