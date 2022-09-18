@@ -85,6 +85,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{};
         VkPipelineViewportStateCreateInfo view_port_state_create_info{};
         VkPipelineRenderingCreateInfo rendering_create_info{};
+        std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_state{};
         // shader stage
         {
 
@@ -220,12 +221,25 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             graphics_pipeline_create_info.pMultisampleState = &multi_sample_state_create_info;
         }
 
-        // color blend
+        // color blend state
         {
+            // TODO: 
+            color_blend_attachment_state.resize(ci->render_target_formats.color_attachment_count);
+            for (auto &state : color_blend_attachment_state) {
+                state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                                       VK_COLOR_COMPONENT_A_BIT;
+                state.blendEnable = VK_FALSE;
+            }
 
             color_blend_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-
-            color_blend_state_create_info;
+            color_blend_state_create_info.logicOpEnable = VK_FALSE;
+            color_blend_state_create_info.logicOp = VK_LOGIC_OP_COPY;
+            color_blend_state_create_info.attachmentCount = static_cast<u32>(color_blend_attachment_state.size());
+            color_blend_state_create_info.pAttachments = color_blend_attachment_state.data();
+            color_blend_state_create_info.blendConstants[0] = 0.0f;
+            color_blend_state_create_info.blendConstants[1] = 0.0f;
+            color_blend_state_create_info.blendConstants[2] = 0.0f;
+            color_blend_state_create_info.blendConstants[3] = 0.0f;
             graphics_pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
         }
 
