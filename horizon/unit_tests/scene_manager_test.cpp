@@ -52,7 +52,10 @@ TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load benchmark") {
     }
     auto tp2 = std::chrono::high_resolution_clock::now();
     auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
+
     LOG_INFO("spend {} ms to load {} meshes using bs thread pool", dur, mesh_count);
+
+    meshes.clear();
 
     // use intel tbb
     auto LoadMesh = [&meshes, &paths](const tbb::blocked_range<u32> &r) {

@@ -10,8 +10,9 @@
 #include <vulkan/vulkan.hpp>
 
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
+#include <runtime/function/rhi/vulkan/VulkanSemaphore.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
@@ -253,7 +254,7 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
 
     VkPhysicalDeviceDynamicRenderingFeatures dyanmic_rendering_features{};
     dyanmic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
-    dyanmic_rendering_features.dynamicRendering =true;
+    dyanmic_rendering_features.dynamicRendering = true;
 
     VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
     descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
@@ -278,7 +279,7 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
 
     VkPhysicalDeviceFeatures2 device_features{};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    //device_features.features = &requested_descriptor_indexing;
+    // device_features.features = &requested_descriptor_indexing;
     device_features.pNext = &descriptor_indexing_features;
     vkGetPhysicalDeviceFeatures2(m_vulkan.active_gpu, &device_features);
     VkDeviceCreateInfo device_create_info{};
@@ -343,7 +344,10 @@ void RHIVulkan::DestroySwapChain() {
     vkDestroySwapchainKHR(m_vulkan.device, m_vulkan.swap_chain, nullptr);
 }
 
-void RHIVulkan::SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) {
+void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
+
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     // submit command buffers
     // VkCommandBufferBeginInfo begin_info{};
     // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -356,21 +360,39 @@ void RHIVulkan::SubmitCommandLists(CommandQueueType queue_type, std::vector<Comm
     //	command_list->Execute(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
     // }
     // vkEndCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
-
+    auto &command_lists = queue_submit_info.command_lists;
     std::vector<VkCommandBuffer> command_buffers(command_lists.size());
     for (u32 i = 0; i < command_lists.size(); i++) {
         command_buffers[i] = reinterpret_cast<VulkanCommandList *>(command_lists[i])->m_command_buffer;
         // valid command list type when submitting
     }
-
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
 
-    auto &fence = m_vulkan.fences[queue_type];
+    u32 wait_semaphore_count = queue_submit_info.wait_semaphores.size();
+    std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
 
-    vkQueueSubmit(m_vulkan.command_queues[queue_type], 1, &submit_info, fence);
+    for (u32 i = 0; i < wait_semaphore_count; i++) {
+        wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.wait_semaphores[i])->m_semaphore;
+    }
+
+    u32 signal_semaphore_count = queue_submit_info.signal_semaphores.size();
+    std::vector<VkSemaphore> signal_semaphores(signal_semaphore_count);
+
+    for (u32 i = 0; i < signal_semaphore_count; i++) {
+        signal_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.signal_semaphores[i])->m_semaphore;
+    }
+
+    submit_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
+    submit_info.pWaitSemaphores = wait_semaphores.data();
+    submit_info.signalSemaphoreCount = static_cast<u32>(signal_semaphores.size());
+    submit_info.pSignalSemaphores = signal_semaphores.data();
+    u32 stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT; // TODO: how to optimize?
+    submit_info.pWaitDstStageMask = &stage;
+
+    auto &fence = m_vulkan.fences[queue_submit_info.queue_type];
+
+    vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, fence);
 }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
@@ -404,8 +426,8 @@ Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &crea
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
 }
 
-void RHIVulkan::DestroyPipeline(Pipeline *pipeline) {
-    delete pipeline;
-}
+void RHIVulkan::DestroyPipeline(Pipeline *pipeline) { delete pipeline; }
+
+Resource<Semaphore> RHIVulkan::GetSemaphore() { return std::make_unique<VulkanSemaphore>(m_vulkan); }
 
 } // namespace Horizon::RHI

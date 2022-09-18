@@ -499,10 +499,11 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
                                 pipeline_descriptor_sets.size(), pipeline_descriptor_sets.data(), 0, 0);
     }
 
-    vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
-
-    vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
-
+    if(pipeline->GetType()==PipelineType::GRAPHICS) {
+        // TOOD: set viewport and scissor manually?
+        vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
+        vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
+    }
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 

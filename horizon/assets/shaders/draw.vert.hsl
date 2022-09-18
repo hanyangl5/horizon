@@ -27,7 +27,7 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
     INIT_MAIN;
     VSOutput vsout;
 
-    //Out.Position = mul(mul(Get(vp), Get(model_matrix)), float4(in.position, 1.0)); // row major
+    //vsout.position = mul(mul(Get(vp), Get(model_matrix)), float4(vsin.position, 1.0)); // row major
     vsout.position = mul(float4(vsin.position, 1.0), mul(Get(model_matrix), Get(vp))); // column major
     vsout.normal = float4(vsin.normal, 1.0);
     RETURN(vsout);

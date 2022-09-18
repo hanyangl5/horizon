@@ -55,7 +55,6 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
     // change
     for (u32 i = 0; i < 10; i++) {
         engine->BeginNewFrame();
-
         Math::float3 data{static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                           static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                           static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
@@ -70,8 +69,11 @@ TEST_CASE_FIXTURE(RHITest, "buffer upload, dynamic") {
         transfer->EndRecording();
 
         // stage -> gpu
-        std::vector v{transfer};
-        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v);
+        QueueSubmitInfo submit_info{};
+        submit_info.queue_type = CommandQueueType::TRANSFER;
+        submit_info.command_lists.push_back(transfer);
+
+        rhi->SubmitCommandLists(submit_info);
         engine->EndFrame();
     }
 }
@@ -126,8 +128,13 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
     transfer->UpdateBuffer(cb2.get(), &data[1], sizeof(f32)); // 6
 
     transfer->EndRecording();
-    std::vector v{transfer};
-    rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v);
+
+    QueueSubmitInfo submit_info{};
+    submit_info.queue_type = CommandQueueType::TRANSFER;
+    submit_info.command_lists.push_back(transfer);
+    auto s1 = rhi->GetSemaphore();
+    submit_info.signal_semaphores.push_back(s1.get());
+    rhi->SubmitCommandLists(submit_info);
 
     auto cl = rhi->GetCommandList(CommandQueueType::COMPUTE);
 
@@ -152,8 +159,12 @@ TEST_CASE_FIXTURE(RHITest, "binding model") {
 
     cl->Dispatch(1, 1, 1);
     cl->EndRecording();
-    std::vector v2{cl};
-    rhi->SubmitCommandLists(COMPUTE, v2);
+
+    QueueSubmitInfo submit_info2{};
+    submit_info2.queue_type = CommandQueueType::COMPUTE;
+    submit_info2.command_lists.push_back(cl);
+    submit_info2.wait_semaphores.push_back(s1.get());
+    rhi->SubmitCommandLists(submit_info2);
 
     Horizon::RDC::EndFrameCapture();
     engine->EndFrame();
@@ -245,9 +256,12 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
     }
     LOG_INFO("all task done");
 
-    rhi->SubmitCommandLists(CommandQueueType::TRANSFER, cmdlists);
+    QueueSubmitInfo submit_info{};
+    submit_info.queue_type = CommandQueueType::TRANSFER;
+    submit_info.command_lists.swap(cmdlists);
+    rhi->SubmitCommandLists(submit_info);
 
-    engine->EndFrame();
+    rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
 }
 
 TEST_CASE_FIXTURE(RHITest, "draw") {
@@ -261,7 +275,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, ps_path);
 
     auto rt0 = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA32_SFLOAT, RenderTargetType::COLOR, width, height});
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
     auto depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                 RenderTargetType::DEPTH_STENCIL, width, height});
 
@@ -278,7 +292,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
 
     auto &normal = info.vertex_input_state.attributes[1];
-    normal.attrib_format = VertexAttribFormat::F32; // position
+    normal.attrib_format = VertexAttribFormat::F32; // normal, TOOD: SN16 is a better format
     normal.portion = 3;
     normal.binding = 0;
     normal.location = 1;
@@ -286,7 +300,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     normal.offset = offsetof(Vertex, normal);
 
     auto &uv0 = info.vertex_input_state.attributes[2];
-    uv0.attrib_format = VertexAttribFormat::F32; // position
+    uv0.attrib_format = VertexAttribFormat::F32; // uv0 TOOD: UN16 is a better format
     uv0.portion = 2;
     uv0.binding = 0;
     uv0.location = 2;
@@ -294,7 +308,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     uv0.offset = offsetof(Vertex, uv0);
 
     auto &uv1 = info.vertex_input_state.attributes[3];
-    uv1.attrib_format = VertexAttribFormat::F32; // position
+    uv1.attrib_format = VertexAttribFormat::F32; // uv1 TOOD: UN16 is a better format
     uv1.portion = 2;
     uv1.binding = 0;
     uv1.location = 3;
@@ -322,11 +336,9 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
     info.render_target_formats.color_attachment_count = 1;
     info.render_target_formats.color_attachment_formats =
-        std::vector<TextureFormat>{TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT};
+        std::vector<TextureFormat>{TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM};
     info.render_target_formats.has_depth = true;
     info.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
-
-    
 
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
@@ -358,7 +370,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
 
     pipeline->SetGraphicsShader(vs, ps);
-    for (u32 frame = 0; frame < 1; frame++) {
+    for (u32 frame = 0; frame < 3; frame++) {
         engine->BeginNewFrame();
         Horizon::RDC::StartFrameCapture();
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
@@ -373,10 +385,16 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
 
         transfer->EndRecording();
 
-        std::vector v1{transfer};
-        rhi->SubmitCommandLists(CommandQueueType::TRANSFER, v1);
+        auto s = rhi->GetSemaphore();
+        {
+            QueueSubmitInfo submit_info{};
+            submit_info.queue_type = CommandQueueType::TRANSFER;
+            submit_info.command_lists.push_back(transfer);
+            submit_info.signal_semaphores.push_back(s.get());
+            rhi->SubmitCommandLists(submit_info);
+        }
         // TODO: use other sync method
-        rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
+        //rhi->WaitGpuExecution(CommandQueueType::TRANSFER); // wait for upload done
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
 
@@ -414,8 +432,13 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         cl->EndRenderPass();
         cl->EndRecording();
 
-        std::vector v{cl};
-        rhi->SubmitCommandLists(GRAPHICS, v);
+        {
+            QueueSubmitInfo submit_info{};
+            submit_info.queue_type = CommandQueueType::GRAPHICS;
+            submit_info.command_lists.push_back(cl);
+            submit_info.wait_semaphores.push_back(s.get());
+            rhi->SubmitCommandLists(submit_info);
+        }
         Horizon::RDC::EndFrameCapture();
         engine->EndFrame();
     }

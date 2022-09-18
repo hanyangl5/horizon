@@ -90,6 +90,7 @@ enum class ShaderType {
 };
 
 enum ShaderStageFlags {
+    SHADER_STAGE_INVALID = 0,
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
@@ -389,16 +390,13 @@ inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
     switch (type) {
     case Horizon::ShaderType::VERTEX_SHADER:
         return ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER;
-        break;
     case Horizon::ShaderType::PIXEL_SHADER:
         return ShaderStageFlags::SHADER_STAGE_PIXEL_SHADER;
-        break;
     case Horizon::ShaderType::COMPUTE_SHADER:
         return ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER;
-        break;
     default:
         LOG_ERROR("invalid shader type");
-        break;
+        return ShaderStageFlags::SHADER_STAGE_INVALID;
     }
 }
 
@@ -410,4 +408,5 @@ struct ClearValueDepthStencil {
     f32 depth;
     u32 stencil;
 };
+
 } // namespace Horizon

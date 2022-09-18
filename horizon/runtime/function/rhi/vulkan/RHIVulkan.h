@@ -50,14 +50,16 @@ class RHIVulkan : public RHI {
 
     void ResetFence(CommandQueueType queue_type) override;
 
-    virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) override;
+    Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) override;
 
-    virtual Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) override;
+    Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info) override;
 
-    virtual void DestroyPipeline(Pipeline* pipeline) override;
+    void DestroyPipeline(Pipeline* pipeline) override;
+
+    virtual Resource<Semaphore> GetSemaphore() override;
 
     // submit command list to command queue
-    virtual void SubmitCommandLists(CommandQueueType queue_type, std::vector<CommandList *> &command_lists) override;
+    virtual void SubmitCommandLists(const QueueSubmitInfo& queue_submit_info) override;
 
   private:
     void InitializeVulkanRenderer(const std::string &app_name);
