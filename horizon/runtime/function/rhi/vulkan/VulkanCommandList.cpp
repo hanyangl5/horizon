@@ -473,6 +473,7 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 }
 
 void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
+    assert(("command list is not recording", is_recoring == true));
     if (pipeline->GetType() == PipelineType::GRAPHICS || pipeline->GetType() == PipelineType::RAY_TRACING) {
         assert(("pipeline type does not correspond with current command list, "
                 "expect compute pipeline",
@@ -488,17 +489,6 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
-    auto iter = vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.find(vk_pipeline);
-
-    if (iter != vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.end()) {
-        std::vector<VkDescriptorSet> pipeline_descriptor_sets{};
-        for (auto &info : vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.at(vk_pipeline).infos) {
-            pipeline_descriptor_sets.emplace_back(info.set);
-        }
-        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0,
-                                pipeline_descriptor_sets.size(), pipeline_descriptor_sets.data(), 0, 0);
-    }
-
     if(pipeline->GetType()==PipelineType::GRAPHICS) {
         // TOOD: set viewport and scissor manually?
         vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
@@ -508,6 +498,7 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
 }
 
 void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) {
+    assert(("command list is not recording", is_recoring == true));
     assert(("cannot bind push constant using transfer command list", m_type != CommandQueueType::TRANSFER));
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     auto res = vk_pipeline->m_pipeline_layout_desc.push_constants.find(name);
@@ -523,13 +514,36 @@ void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &
 void VulkanCommandList::BindPushConstant(Pipeline *pipeline, u32 index, void *data) {}
 
 void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value) {
+    assert(("command list is not recording", is_recoring == true));
     assert(("clear buffer can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
     // vkCmdFillBuffer();
 }
 
 void VulkanCommandList::ClearTextrue(Texture *texture, const Math::float4 &clear_value) {
+    assert(("command list is not recording", is_recoring == true));
     assert(("clear texture can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
     // vkCmdClearColorImage();
+}
+
+void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, const std::vector<ResourceUpdateFrequency> &frequency) {
+    assert(("command list is not recording", is_recoring == true));
+    auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
+    VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
+
+    auto iter = vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.find(vk_pipeline);
+
+    if (iter != vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.end()) {
+        for (auto &freq : frequency) {
+            auto vk_set = vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.at(vk_pipeline)
+                              .infos[static_cast<u32>(freq)]
+                              .set;
+            vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
+                                    static_cast<u32>(freq), 1, &vk_set, 0, 0); // TODO: batch update
+        }
+
+    } else {
+        LOG_ERROR("pipeline not found");
+    }
 }
 
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(VmaAllocator allocator,

@@ -1,6 +1,6 @@
+#include <filesystem>
 #include <memory>
 #include <thread>
-#include <filesystem>
 
 #define VMA_IMPLEMENTATION
 
@@ -10,15 +10,16 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
-#include <runtime/function/rhi/vulkan/VulkanSemaphore.h>
-#include <runtime/function/rhi/vulkan/VulkanTexture.h>
-
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
+
+#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
+#include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
+#include <runtime/function/rhi/vulkan/VulkanSampler.h>
+#include <runtime/function/rhi/vulkan/VulkanSemaphore.h>
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon::RHI {
 
@@ -125,7 +126,7 @@ void RHIVulkan::CreateSwapChain(Window *window) {
     }
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path& file_name) {
+Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) {
     std::filesystem::path path = file_name;
     path += ".VULKAN";
     auto spirv_code = ReadFile(path.string().c_str());
@@ -394,7 +395,6 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     submit_info.signalSemaphoreCount = static_cast<u32>(signal_semaphores.size());
     submit_info.pSignalSemaphores = signal_semaphores.data();
 
-    
     submit_info.pWaitDstStageMask = wait_stages.data();
 
     auto &fence = m_vulkan.fences[queue_submit_info.queue_type];
@@ -404,31 +404,28 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 
 void RHIVulkan::AcquireNextImage(Semaphore *image_acquired_semaphore, u32 swap_chain_image_index) {
     m_current_frame_index = swap_chain_image_index;
-    auto s =reinterpret_cast<VulkanSemaphore *>(image_acquired_semaphore)->m_semaphore;
+    auto s = reinterpret_cast<VulkanSemaphore *>(image_acquired_semaphore)->m_semaphore;
 
-    VkResult res = vkAcquireNextImageKHR(m_vulkan.device, m_vulkan.swap_chain, UINT64_MAX,
-                                         s,
-                                         nullptr, &m_current_frame_index);
-		if (res == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-            LOG_ERROR("vkAcquireNextImageKHR returned VK_ERROR_OUT_OF_DATE_KHR."); 
-			return;
-		}
+    VkResult res =
+        vkAcquireNextImageKHR(m_vulkan.device, m_vulkan.swap_chain, UINT64_MAX, s, nullptr, &m_current_frame_index);
+    if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+        LOG_ERROR("vkAcquireNextImageKHR returned VK_ERROR_OUT_OF_DATE_KHR.");
+        return;
+    }
 
-		// Commonly returned immediately following swapchain resize. 
-		// Vulkan spec states that this return value constitutes a successful call to vkAcquireNextImageKHR
-		// https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
-		if (res == VK_SUBOPTIMAL_KHR)
-		{
-			LOG_ERROR("vkAcquireNextImageKHR returned VK_SUBOPTIMAL_KHR. If window was just resized, ignore this message."); 
-			//pSignalSemaphore->mVulkan.mSignaled = true;
-			return; 
-		}
-        //VkSemaphoreSignalInfo info{};
-        //info.semaphore = s;
-        //info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
-        //info.value = 1;
-        //vkSignalSemaphore(m_vulkan.device,)
+    // Commonly returned immediately following swapchain resize.
+    // Vulkan spec states that this return value constitutes a successful call to vkAcquireNextImageKHR
+    // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
+    if (res == VK_SUBOPTIMAL_KHR) {
+        LOG_ERROR("vkAcquireNextImageKHR returned VK_SUBOPTIMAL_KHR. If window was just resized, ignore this message.");
+        // pSignalSemaphore->mVulkan.mSignaled = true;
+        return;
+    }
+    // VkSemaphoreSignalInfo info{};
+    // info.semaphore = s;
+    // info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
+    // info.value = 1;
+    // vkSignalSemaphore(m_vulkan.device,)
 }
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
@@ -471,10 +468,11 @@ void RHIVulkan::ResetFence(CommandQueueType queue_type) {
     vkResetFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type]);
 }
 
-void RHIVulkan::ResetCommandResources() {
+void RHIVulkan::ResetRHIResources() {
     if (thread_command_context) {
         thread_command_context->Reset();
     }
+    m_descriptor_set_manager->ResetDescriptorPool();
 }
 
 Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) {
@@ -488,5 +486,9 @@ Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &crea
 void RHIVulkan::DestroyPipeline(Pipeline *pipeline) { delete pipeline; }
 
 Resource<Semaphore> RHIVulkan::GetSemaphore() { return std::make_unique<VulkanSemaphore>(m_vulkan); }
+
+Resource<Sampler> RHIVulkan::GetSampler(const SamplerDesc &sampler_desc) {
+    return std::make_unique<VulkanSampler>(m_vulkan, sampler_desc);
+}
 
 } // namespace Horizon::RHI

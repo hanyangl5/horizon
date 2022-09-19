@@ -64,6 +64,8 @@ class VulkanCommandList : public CommandList {
 
     void ClearTextrue(Texture* texture, const Math::float4& clear_value) override;
 
+    void BindDescriptorSets(Pipeline *pipeline, const std::vector<ResourceUpdateFrequency> &frequency) override;
+
   private:
     const VulkanRendererContext &m_context;
     Resource<VulkanBuffer> GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info);

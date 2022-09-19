@@ -15,11 +15,13 @@
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/Semaphore.h>
+#include <runtime/function/rhi/Pipeline.h>
 
 #include <runtime/function/scene/material/MaterialDescription.h>
 
 #include "BasicGeometry.h"
-#include "VertexDescription.h"
+#include "../vertex/VertexDescription.h"
+#include "../aabb/AABB.h"
 
 namespace Horizon {
 
@@ -31,6 +33,7 @@ struct MeshPrimitive {
     u32 index_offset{};
     u32 index_count{};
     u32 material_id{};
+    AABB aabb;
 };
 
 struct Node {
@@ -64,18 +67,20 @@ class Mesh {
 
     u32 GetIndicesCount() const noexcept;
 
-    void *GetVerticesData() noexcept;
+    RHI::Buffer *GetVertexBuffer() noexcept;
 
-    void *GetIndicesData() noexcept;
+    RHI::Buffer *GetIndexBuffer() noexcept;
 
     // receive a recording command list
-    void UploadTextures(RHI::CommandList* transfer);
+    void UploadResources(RHI::CommandList *transfer);
 
     const std::vector<Node> &GetNodes() const noexcept;
 
     // void GenerateMeshLet() noexcept;
 
-    void CreateTextureResources(RHI::RHI *rhi);
+    void CreateGpuResources(RHI::RHI *rhi);
+
+    const MaterialDescription &GetMaterial(u32 index) noexcept { return materials[index]; }
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 
@@ -91,6 +96,9 @@ class Mesh {
     std::vector<Index> m_indices{};
     std::vector<Node> m_nodes{};
     std::vector<MaterialDescription> materials{};
+
+    // gpu buffer
+    Resource<RHI::Buffer> m_vertex_buffer{}, m_index_buffer{};
     // Material* materials
 };
 } // namespace Horizon

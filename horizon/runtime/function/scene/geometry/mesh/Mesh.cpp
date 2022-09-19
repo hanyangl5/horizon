@@ -23,20 +23,33 @@ Mesh::Mesh(const MeshDesc &desc) noexcept { vertex_attribute_flag = desc.vertex_
 Mesh::~Mesh() noexcept {
     // delete
     for (auto &m : materials) {
-        for (auto &tex : m.material_textures) {
+        for (auto &[type, tex] : m.material_textures) {
             stbi_image_free(tex.data);
         }
     }
 }
 
-void Mesh::CreateTextureResources(RHI::RHI *rhi) {
+void Mesh::CreateGpuResources(RHI::RHI *rhi) {
+
+    BufferCreateInfo vertex_buffer_create_info{};
+    vertex_buffer_create_info.size = GetVerticesCount() * sizeof(Vertex);
+    vertex_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+    m_vertex_buffer = rhi->CreateBuffer(vertex_buffer_create_info);
+
+    BufferCreateInfo index_buffer_create_info{};
+    index_buffer_create_info.size = GetIndicesCount() * sizeof(Index);
+    index_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+    index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+    m_index_buffer = rhi->CreateBuffer(index_buffer_create_info);
+
     for (auto &m : materials) {
-        for (auto &tex : m.material_textures) {
+        for (auto &[type, tex] : m.material_textures) {
             TextureCreateInfo create_info{};
             create_info.width = tex.width;
             create_info.height = tex.height;
             create_info.depth = 1;
-            create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT; // TOOD: optimize format
+            create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
             create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                  // TODO: cubemap?
             create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
@@ -51,7 +64,6 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
         return;
     }
     auto &n = m_nodes[index];
-
     // update node model matrix
     auto &t = node->mTransformation;
     Math::float4x4 m(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
@@ -95,9 +107,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            /// temp_path.C_Str();
-            materials[i].material_textures.push_back(
-                MaterialTextureDescription{MaterialTextureType::BASE_COLOR, abs_path});
+            materials[i].material_textures.emplace(MaterialTextureType::BASE_COLOR, abs_path);
         }
         // normal
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_NORMALS); t++) {
@@ -105,7 +115,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.push_back(MaterialTextureDescription{MaterialTextureType::NORMAL, abs_path});
+            materials[i].material_textures.emplace(MaterialTextureType::NORMAL, abs_path);
         }
         // metallic roughness
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS);
@@ -114,25 +124,22 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.push_back(
-                MaterialTextureDescription{MaterialTextureType::METALLIC_ROUGHTNESS, abs_path});
+            materials[i].material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
         }
 
-        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
-
-            ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
-            assert(ret == aiReturn_SUCCESS);
-            std::filesystem::path abs_path = m_path;
-            abs_path /= temp_path.C_Str();
-            materials[i].material_textures.push_back(
-                MaterialTextureDescription{MaterialTextureType::EMISSIVE, abs_path});
-        }
+        //for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
+        //    ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
+        //    assert(ret == aiReturn_SUCCESS);
+        //    std::filesystem::path abs_path = m_path;
+        //    abs_path /= temp_path.C_Str();
+        //    materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
+        //}
     }
 
     // load textures
 
     for (auto &m : materials) {
-        for (auto &tex : m.material_textures) {
+        for (auto &[type, tex] : m.material_textures) {
             int width, height, channels;
             auto path = tex.url.string();
             u8 *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
@@ -220,9 +227,10 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
             }
             m_vertices.emplace_back(vertex);
         }
-
         m_mesh_primitives[m].index_offset = static_cast<u32>(m_indices.size());
         m_mesh_primitives[m].index_count = mesh->mNumFaces * 3;
+        m_mesh_primitives[m].material_id = mesh->mMaterialIndex;
+        memcpy(&m_mesh_primitives[m].aabb, &mesh->mAABB,sizeof(AABB));
 
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
             // use global indices
@@ -289,21 +297,34 @@ u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices
 
 u32 Mesh::GetIndicesCount() const noexcept { return static_cast<u32>(m_indices.size()); }
 
-void *Mesh::GetVerticesData() noexcept { return m_vertices.data(); }
+RHI::Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get(); }
 
-void *Mesh::GetIndicesData() noexcept { return m_indices.data(); }
+RHI::Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
 
-void Mesh::UploadTextures(RHI::CommandList *transfer) {
+void Mesh::UploadResources(RHI::CommandList *transfer) {
 
+    // upload vertex and index buffer
+    transfer->UpdateBuffer(m_vertex_buffer.get(), m_vertices.data(), m_vertex_buffer->m_size);
+    transfer->UpdateBuffer(m_index_buffer.get(), m_indices.data(), m_index_buffer->m_size);
+
+    // upload textures
+    
+   BarrierDesc barrier_desc{};
+    
     for (auto &m : materials) {
-        for (auto &tex : m.material_textures) {
+        for (auto &[type, tex] : m.material_textures) {
             TextureUpdateDesc desc{};
             desc.data = tex.data;
             transfer->UpdateTexture(tex.texture.get(), desc);
+            TextureBarrierDesc texture_barrier{};
+            texture_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+            texture_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+            texture_barrier.texture = tex.texture.get();
+            barrier_desc.texture_memory_barriers.push_back(texture_barrier);
         }
     }
+    transfer->InsertBarrier(barrier_desc);
 }
-
 
 const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 

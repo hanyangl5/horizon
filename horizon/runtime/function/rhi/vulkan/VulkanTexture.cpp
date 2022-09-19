@@ -29,19 +29,15 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     CHECK_VK_RESULT(vmaCreateImage(m_context.vma_allocator, &image_create_info, &allocation_creat_info, &m_image,
                                    &m_allocation, nullptr));
 
-    if (texture_create_info.initial_state == ResourceState::RESOURCE_STATE_RENDER_TARGET) {
+    if (texture_create_info.initial_state == ResourceState::RESOURCE_STATE_RENDER_TARGET ||
+        texture_create_info.initial_state==ResourceState::RESOURCE_STATE_SHADER_RESOURCE) {
         VkImageViewCreateInfo image_view_create_info{};
         image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         image_view_create_info.image = m_image;
         image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         image_view_create_info.format = ToVkImageFormat(texture_create_info.texture_format);
         image_view_create_info.subresourceRange = {};
-        if (texture_create_info.descriptor_type == DescriptorType::DESCRIPTOR_TYPE_COLOR_ATTACHMENT) {
-            image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        } else if (texture_create_info.descriptor_type == DescriptorType::DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT) {
-            image_view_create_info.subresourceRange.aspectMask =
-                VK_IMAGE_ASPECT_DEPTH_BIT; // TODO: seperate stencil aspect
-        }
+        image_view_create_info.subresourceRange.aspectMask = ToVkAspectMaskFlags(image_view_create_info.format, false);
         image_view_create_info.subresourceRange.baseMipLevel = 0;
         image_view_create_info.subresourceRange.levelCount = 1;
         image_view_create_info.subresourceRange.baseArrayLayer = 0;

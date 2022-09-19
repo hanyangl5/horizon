@@ -59,6 +59,14 @@ void VulkanPipeline::BindResource(Buffer *buffer, ResourceUpdateFrequency freq, 
     m_descriptor_set_manager.BindResource(this, buffer, freq, binding);
 }
 
+void VulkanPipeline::BindResource(Texture *texture, ResourceUpdateFrequency frequency, u32 binding) {
+    m_descriptor_set_manager.BindResource(this, texture, frequency, binding);
+}
+
+void VulkanPipeline::BindResource(Sampler *sampler, ResourceUpdateFrequency frequency, u32 binding) {
+    m_descriptor_set_manager.BindResource(this, sampler, frequency, binding);
+}
+
 void VulkanPipeline::UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) {
     m_descriptor_set_manager.UpdatePipelineDescriptorSet(this, frequency);
 }

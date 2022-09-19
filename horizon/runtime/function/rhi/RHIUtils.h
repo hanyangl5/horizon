@@ -296,16 +296,9 @@ struct RasterizationState {
     bool discard;
 };
 
-enum class DepthFunc {
-    NEVER,
-    LESS,
-    L_EQUAL,
-    EQUAL,
-    GREATER,
-    G_EQUAL,
-    ALWAYS
+enum class CompareFunc { NEVER, LESS, L_EQUAL, EQUAL, GREATER, G_EQUAL, ALWAYS };
 
-};
+using DepthFunc = CompareFunc;
 
 struct DepthStencilState {
     bool depth_test;
@@ -415,5 +408,72 @@ struct TextureUpdateDesc {
     u32 row_length;
     u32 height;
 };
+
+enum class MipMapMode { MIPMAP_MODE_NEAREST = 0, MIPMAP_MODE_LINEAR };
+
+enum class FilterType {
+    FILTER_NEAREST = 0,
+    FILTER_LINEAR,
+};
+
+enum class AddressMode {
+    ADDRESS_MODE_MIRROR,
+    ADDRESS_MODE_REPEAT,
+    ADDRESS_MODE_CLAMP_TO_EDGE,
+    ADDRESS_MODE_CLAMP_TO_BORDER
+};
+
+struct SamplerDesc {
+    FilterType min_filter;
+    FilterType mag_filter;
+    MipMapMode mip_map_mode;
+    AddressMode address_u;
+    AddressMode address_v;
+    AddressMode address_w;
+    float mMipLodBias;
+    bool mSetLodRange;
+    float mMinLod;
+    float mMaxLod;
+    float mMaxAnisotropy;
+    CompareFunc mCompareFunc;
+};
+
+inline VkFilter util_to_vk_filter(FilterType filter) {
+    switch (filter) {
+    case FilterType::FILTER_NEAREST:
+        return VK_FILTER_NEAREST;
+    case FilterType::FILTER_LINEAR:
+        return VK_FILTER_LINEAR;
+    default:
+        return VK_FILTER_LINEAR;
+    }
+}
+
+inline VkSamplerMipmapMode util_to_vk_mip_map_mode(MipMapMode mipMapMode) {
+    switch (mipMapMode) {
+    case MipMapMode::MIPMAP_MODE_NEAREST:
+        return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    case MipMapMode::MIPMAP_MODE_LINEAR:
+        return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    default:
+        LOG_ERROR("invali mipmap mode");
+        return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
+    }
+}
+inline VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode) {
+    switch (addressMode) {
+    case AddressMode::ADDRESS_MODE_MIRROR:
+        return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    case AddressMode::ADDRESS_MODE_REPEAT:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case AddressMode::ADDRESS_MODE_CLAMP_TO_BORDER:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    default:
+        LOG_ERROR("invali address mode");
+        return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+    }
+}
 
 } // namespace Horizon

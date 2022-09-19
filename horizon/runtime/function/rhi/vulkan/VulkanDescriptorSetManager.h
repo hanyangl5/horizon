@@ -7,10 +7,12 @@
 #include <vulkan/vulkan.h>
 
 #include <runtime/core/utils/Definations.h>
+
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
+#include <runtime/function/rhi/vulkan/VulkanSampler.h>
 
 namespace Horizon::RHI {
 
@@ -45,6 +47,7 @@ class VulkanDescriptorSetManager {
   public:
     VulkanDescriptorSetManager(const VulkanRendererContext &context) noexcept;
     ~VulkanDescriptorSetManager() noexcept;
+
     VulkanDescriptorSetManager(const VulkanDescriptorSetManager &rhs) noexcept = delete;
     VulkanDescriptorSetManager &operator=(const VulkanDescriptorSetManager &rhs) noexcept = delete;
     VulkanDescriptorSetManager(VulkanDescriptorSetManager &&rhs) noexcept = delete;
@@ -65,7 +68,11 @@ class VulkanDescriptorSetManager {
         VulkanShader *shader, std::array<VkDescriptorSetLayoutCreateInfo, MAX_SET_COUNT_PER_PIPELINE> &layout_create_in,
         std::array<std::vector<VkDescriptorSetLayoutBinding>, MAX_SET_COUNT_PER_PIPELINE> &layout_bindings);
 
-    void BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency freq, u32 binding);
+    void BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding);
+
+    void BindResource(Pipeline *pipeline, Texture *texture, ResourceUpdateFrequency frequency, u32 binding);
+
+    void BindResource(Pipeline *pipeline, Sampler *sampler, ResourceUpdateFrequency frequency, u32 binding);
 
     void InitEmptyDescriptorSet();
 

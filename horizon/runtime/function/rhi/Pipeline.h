@@ -6,6 +6,8 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/Buffer.h>
+#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/Sampler.h>
 
 namespace Horizon::RHI {
 // struct viewport create info
@@ -27,6 +29,10 @@ class Pipeline {
 
     // void UpdateResources()
     virtual void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) = 0;
+
+    virtual void BindResource(Texture *texture, ResourceUpdateFrequency frequency, u32 binding) = 0;
+
+    virtual void BindResource(Sampler *sampler, ResourceUpdateFrequency frequency, u32 binding) = 0;
 
     virtual void UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) = 0;
     //// vertex input state

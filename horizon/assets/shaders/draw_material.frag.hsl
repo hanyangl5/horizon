@@ -1,0 +1,33 @@
+RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_DRAW, t0, binding = 0);
+RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_DRAW, t1, binding = 1);
+RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_DRAW, t2, binding = 2);
+
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_DRAW, s0, binding = 3);
+
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+    DATA(float3, world_pos, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv, TEXCOORD0);
+};
+
+STRUCT(PSOutput)
+{
+    DATA(float4, color, SV_Target0);
+};
+
+PSOutput PS_MAIN(VSOutput vsout)
+{
+    INIT_MAIN;
+    PSOutput psout;
+
+    float4 base_color = SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv);
+    base_color = SampleTex2D(Get(normal_texture), default_sampler, vsout.uv);
+    base_color = SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv);
+    
+    psout.color = base_color;
+    
+    RETURN(psout);
+    
+}

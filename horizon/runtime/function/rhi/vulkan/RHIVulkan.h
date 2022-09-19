@@ -46,7 +46,7 @@ class RHIVulkan : public RHI {
 
     void WaitGpuExecution(CommandQueueType queue_type) override;
 
-    void ResetCommandResources() override;
+    void ResetRHIResources() override;
 
     void ResetFence(CommandQueueType queue_type) override;
 
@@ -57,6 +57,8 @@ class RHIVulkan : public RHI {
     void DestroyPipeline(Pipeline *pipeline) override;
 
     Resource<Semaphore> GetSemaphore() override;
+
+    Resource<Sampler> GetSampler(const SamplerDesc &sampler_desc) override;
 
     // submit command list to command queue
     void SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) override;

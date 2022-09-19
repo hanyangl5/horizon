@@ -6,8 +6,6 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
 
-#include "VertexDescription.h"
-
 namespace Horizon::BasicGeometry {
 
 std::array<Vertex, 24> cube_vertices{

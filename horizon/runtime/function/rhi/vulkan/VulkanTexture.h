@@ -19,6 +19,7 @@ class VulkanTexture : public Texture {
     VkImage m_image{};
     VkImageView m_image_view{};
     VmaAllocation m_allocation{};
+    VkDescriptorImageInfo texture_info{};
 };
 
 } // namespace Horizon::RHI

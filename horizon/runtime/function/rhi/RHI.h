@@ -16,6 +16,7 @@
 #include <runtime/function/rhi/RenderTarget.h>
 #include <runtime/function/rhi/Semaphore.h>
 #include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/Sampler.h>
 
 namespace Horizon::RHI {
 
@@ -73,9 +74,11 @@ class RHI {
 
     virtual Resource<Semaphore> GetSemaphore() = 0;
 
+    virtual Resource<Sampler> GetSampler(const SamplerDesc &sampler_desc) = 0;
+
     virtual void WaitGpuExecution(CommandQueueType queue_type) = 0;
 
-    virtual void ResetCommandResources() = 0;
+    virtual void ResetRHIResources() = 0;
 
     virtual void ResetFence(CommandQueueType queue_type) = 0;
 
@@ -83,6 +86,7 @@ class RHI {
     virtual void SubmitCommandLists(const QueueSubmitInfo& queue_submit_info) = 0;
 
     virtual void AcquireNextImage(Semaphore* image_acquired_semaphore, u32 swap_chain_image_index) = 0;
+
     virtual void Present(const QueuePresentInfo& queue_present_info) = 0;
 
   protected:

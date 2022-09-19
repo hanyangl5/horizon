@@ -12,6 +12,7 @@ class VulkanPipeline : public Pipeline {
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
     VulkanPipeline(const VulkanRendererContext &context, const ComputePipelineCreateInfo &create_info,
                    VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
+
     virtual ~VulkanPipeline() noexcept;
     VulkanPipeline(const VulkanPipeline &rhs) noexcept = delete;
     VulkanPipeline &operator=(const VulkanPipeline &rhs) noexcept = delete;
@@ -25,6 +26,10 @@ class VulkanPipeline : public Pipeline {
     void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
     void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) override;
+
+    void BindResource(Texture *texture, ResourceUpdateFrequency frequency, u32 binding) override;
+
+    void BindResource(Sampler *sampler, ResourceUpdateFrequency frequency, u32 binding) override;
 
     void UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) override;
 

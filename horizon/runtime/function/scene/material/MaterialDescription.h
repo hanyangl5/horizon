@@ -14,29 +14,16 @@ enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSI
 
 class MaterialTextureDescription {
   public:
-    MaterialTextureDescription(MaterialTextureType type, const std::filesystem::path url) noexcept
-        : type(type), url(url){};
+    MaterialTextureDescription() noexcept = default;
+    MaterialTextureDescription(const std::filesystem::path url) noexcept : url(url){};
 
     ~MaterialTextureDescription() noexcept { texture = nullptr; }
 
-    MaterialTextureDescription(const MaterialTextureDescription &rhs) {
-        type = rhs.type;
-        url = rhs.url;
-    };
-    MaterialTextureDescription &operator=(const MaterialTextureDescription &rhs) {
-        type = rhs.type;
-        url = rhs.url;
-    };
-    MaterialTextureDescription(MaterialTextureDescription &&rhs) noexcept {
-        type = rhs.type;
-        url = rhs.url;
-    };
-    MaterialTextureDescription &operator=(MaterialTextureDescription &&rhs) {
-        type = rhs.type;
-        url = rhs.url;
-    };
+    MaterialTextureDescription(const MaterialTextureDescription &rhs) { url = rhs.url; };
+    MaterialTextureDescription &operator=(const MaterialTextureDescription &rhs) noexcept { url = rhs.url; };
+    MaterialTextureDescription(MaterialTextureDescription &&rhs) noexcept { url = rhs.url; };
+    MaterialTextureDescription &operator=(MaterialTextureDescription &&rhs) noexcept { url = rhs.url; };
 
-    MaterialTextureType type{};
     std::filesystem::path url{};
     u32 width{}, height{}, channels{};
     void *data{};
@@ -56,11 +43,10 @@ class MaterialDescription {
     ~MaterialDescription() noexcept = default;
 
   public:
-    void UploadTextures(RHI::RHI *rhi);
 
-    std::vector<MaterialTextureDescription> material_textures{};
-    MaterialParams material_params;
-    RHI::Buffer *param_buffer{};
+    std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
+    //MaterialParams material_params;
+    //RHI::Buffer *param_buffer{};
     // Material* materials
 };
 } // namespace Horizon
