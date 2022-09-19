@@ -248,7 +248,7 @@ void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_b
     vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
 }
 
-void VulkanCommandList::UpdateTexture(Texture *texture, const TextureData &texture_data) {
+void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) {
     if (!is_recoring) {
         LOG_ERROR("command buffer isn't recording");
         return;

@@ -343,9 +343,11 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-    // mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
-    mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
-    // mesh.LoadMesh(asset_path + "models/sponza/sponza.gltf");
+    //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    //mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
+    mesh.LoadMesh(asset_path + "models/Sponza/glTF/Sponza.gltf");
+    mesh.CreateTextureResources(rhi);
+
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = mesh.GetVerticesCount() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -389,14 +391,18 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
         transfer->UpdateBuffer(vertex_buffer.get(), mesh.GetVerticesData(), vertex_buffer->m_size);
         transfer->UpdateBuffer(index_buffer.get(), mesh.GetIndicesData(), index_buffer->m_size);
 
+        
+        mesh.UploadTextures(transfer);
+
+
         transfer->EndRecording();
 
-        auto s = rhi->GetSemaphore();
+        auto resource_uploaded_semaphore = rhi->GetSemaphore();
         {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::TRANSFER;
             submit_info.command_lists.push_back(transfer);
-            submit_info.signal_semaphores.push_back(s.get());
+            submit_info.signal_semaphores.push_back(resource_uploaded_semaphore.get());
             rhi->SubmitCommandLists(submit_info);
         }
 
@@ -444,7 +450,7 @@ TEST_CASE_FIXTURE(RHITest, "draw") {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::GRAPHICS;
             submit_info.command_lists.push_back(cl);
-            submit_info.wait_semaphores.push_back(s.get());
+            submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
             submit_info.wait_semaphores.push_back(image_acquired_semaphore.get());
             submit_info.signal_semaphores.push_back(render_complete_semaphore.get());
             rhi->SubmitCommandLists(submit_info);

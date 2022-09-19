@@ -4,10 +4,15 @@
 
 #include <meshoptimizer.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image.h>
+
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 #include <runtime/core/log/Log.h>
+#include <runtime/function/rhi/RHI.h>
 
 namespace Horizon {
 
@@ -17,6 +22,28 @@ Mesh::Mesh(const MeshDesc &desc) noexcept { vertex_attribute_flag = desc.vertex_
 
 Mesh::~Mesh() noexcept {
     // delete
+    for (auto &m : materials) {
+        for (auto &tex : m.material_textures) {
+            stbi_image_free(tex.data);
+        }
+    }
+}
+
+void Mesh::CreateTextureResources(RHI::RHI *rhi) {
+    for (auto &m : materials) {
+        for (auto &tex : m.material_textures) {
+            TextureCreateInfo create_info{};
+            create_info.width = tex.width;
+            create_info.height = tex.height;
+            create_info.depth = 1;
+            create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT; // TOOD: optimize format
+            create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                  // TODO: cubemap?
+            create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
+            create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+
+            tex.texture = rhi->CreateTexture(create_info);
+        }
+    }
 }
 
 void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
@@ -43,6 +70,78 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
         n.childs[i] = child_node_index;
         m_nodes[child_node_index].parent = index;
         ProcessNode(scene, node->mChildren[i], child_node_index, n.model_matrix);
+    }
+}
+
+void Mesh::ProcessMaterials(const aiScene *scene) {
+
+    std::vector<aiMaterial *> ms;
+    std::vector<std::string> strs;
+    materials.resize(scene->mNumMaterials);
+
+    aiReturn ret;
+
+    for (u32 i = 0; i < scene->mNumMaterials; i++) {
+
+        // maybe useful?
+        aiShadingMode shadingMode;
+        scene->mMaterials[i]->Get(AI_MATKEY_SHADING_MODEL, shadingMode);
+
+        aiString temp_path;
+
+        // base color textures
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_BASE_COLOR); t++) {
+            ret = scene->mMaterials[i]->GetTexture(aiTextureType::aiTextureType_BASE_COLOR, t, &temp_path);
+            assert(ret == aiReturn_SUCCESS);
+            std::filesystem::path abs_path = m_path.parent_path();
+            abs_path /= temp_path.C_Str();
+            /// temp_path.C_Str();
+            materials[i].material_textures.push_back(
+                MaterialTextureDescription{MaterialTextureType::BASE_COLOR, abs_path});
+        }
+        // normal
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_NORMALS); t++) {
+            ret = scene->mMaterials[i]->GetTexture(aiTextureType::aiTextureType_NORMALS, t, &temp_path);
+            assert(ret == aiReturn_SUCCESS);
+            std::filesystem::path abs_path = m_path.parent_path();
+            abs_path /= temp_path.C_Str();
+            materials[i].material_textures.push_back(MaterialTextureDescription{MaterialTextureType::NORMAL, abs_path});
+        }
+        // metallic roughness
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS);
+             t++) {
+            ret = scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, t, &temp_path);
+            assert(ret == aiReturn_SUCCESS);
+            std::filesystem::path abs_path = m_path.parent_path();
+            abs_path /= temp_path.C_Str();
+            materials[i].material_textures.push_back(
+                MaterialTextureDescription{MaterialTextureType::METALLIC_ROUGHTNESS, abs_path});
+        }
+
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
+
+            ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
+            assert(ret == aiReturn_SUCCESS);
+            std::filesystem::path abs_path = m_path;
+            abs_path /= temp_path.C_Str();
+            materials[i].material_textures.push_back(
+                MaterialTextureDescription{MaterialTextureType::EMISSIVE, abs_path});
+        }
+    }
+
+    // load textures
+
+    for (auto &m : materials) {
+        for (auto &tex : m.material_textures) {
+            int width, height, channels;
+            auto path = tex.url.string();
+            u8 *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+            assert(("failed to load texture", data != nullptr));
+            tex.width = width;
+            tex.height = height;
+            tex.channels = channels;
+            tex.data = data;
+        }
     }
 }
 
@@ -73,7 +172,8 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
-void Mesh::LoadMesh(const std::string &path) {
+void Mesh::LoadMesh(const std::filesystem::path &path) {
+    m_path = path;
     // check mesh if loaded
     if (!m_vertices.empty()) {
         LOG_ERROR("mesh already loaded");
@@ -82,8 +182,9 @@ void Mesh::LoadMesh(const std::string &path) {
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
-    const aiScene *scene = assimp_importer.ReadFile(path, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-                                                              aiProcess_GenSmoothNormals | aiProcess_FlipUVs);
+    const aiScene *scene =
+        assimp_importer.ReadFile(path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate |
+                                                            aiProcess_GenSmoothNormals | aiProcess_FlipUVs);
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -139,6 +240,9 @@ void Mesh::LoadMesh(const std::string &path) {
 
     m_nodes.resize(node_count);
     ProcessNode(scene, scene->mRootNode, 0, Math::float4x4::Identity);
+
+    ProcessMaterials(scene);
+
     LOG_DEBUG("mesh successfully loaded, {} meshes, {} vertices, {} faces", m_mesh_primitives.size(), m_vertices.size(),
               m_indices.size());
 }
@@ -188,6 +292,18 @@ u32 Mesh::GetIndicesCount() const noexcept { return static_cast<u32>(m_indices.s
 void *Mesh::GetVerticesData() noexcept { return m_vertices.data(); }
 
 void *Mesh::GetIndicesData() noexcept { return m_indices.data(); }
+
+void Mesh::UploadTextures(RHI::CommandList *transfer) {
+
+    for (auto &m : materials) {
+        for (auto &tex : m.material_textures) {
+            TextureUpdateDesc desc{};
+            desc.data = tex.data;
+            transfer->UpdateTexture(tex.texture.get(), desc);
+        }
+    }
+}
+
 
 const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 

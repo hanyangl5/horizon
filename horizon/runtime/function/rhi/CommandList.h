@@ -53,7 +53,7 @@ class CommandList {
     virtual void DispatchIndirect() = 0;
 
     virtual void UpdateBuffer(Buffer *buffer, void *data, u64 size) = 0;
-    virtual void UpdateTexture(Texture *texture, const TextureData &texture_data) = 0;
+    virtual void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) = 0;
     virtual void CopyBuffer(Buffer *dst_buffer, Buffer *src_buffer) = 0;
     virtual void CopyTexture() = 0;
 

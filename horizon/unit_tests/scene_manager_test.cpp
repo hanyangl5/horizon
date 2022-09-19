@@ -32,7 +32,7 @@ TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load benchmark") {
     std::vector<Mesh> meshes(mesh_count);
 
     std::vector<std::string> paths = {asset_path + "models/DamagedHelmet/DamagedHelmet.gltf",
-                                      asset_path + "models/sponza/sponza.gltf",
+                                      asset_path + "models/Sponza/glTF/Sponza.gltf",
                                       asset_path + "models/cerberus/cerberus.gltf"};
 
     std::vector<std::future<void>> results(mesh_count);

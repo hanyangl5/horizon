@@ -374,7 +374,7 @@ enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
 
-struct PushConstantDesc{
+struct PushConstantDesc {
     u32 size;
     u32 offset;
     u32 shader_stages;
@@ -383,7 +383,8 @@ struct PushConstantDesc{
 struct PipelineLayoutDesc {
   public:
     std::array<u64, MAX_SET_COUNT_PER_PIPELINE> descriptor_set_hash_key{};
-    std::unordered_map<std::string, PushConstantDesc> push_constants{}; // TODO: vulkan only allow one pc per stage, pc in directx12 is cbuffer
+    std::unordered_map<std::string, PushConstantDesc>
+        push_constants{}; // TODO: vulkan only allow one pc per stage, pc in directx12 is cbuffer
 };
 
 inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
@@ -400,13 +401,19 @@ inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
     }
 }
 
-struct ClearValueColor{
+struct ClearValueColor {
     Math::float4 color;
 };
 
 struct ClearValueDepthStencil {
     f32 depth;
     u32 stencil;
+};
+
+struct TextureUpdateDesc {
+    void *data;
+    u32 row_length;
+    u32 height;
 };
 
 } // namespace Horizon

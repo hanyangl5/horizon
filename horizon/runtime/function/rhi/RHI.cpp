@@ -9,7 +9,7 @@ RHI::RHI() noexcept { }
 
 RHI::~RHI() noexcept {}
 
-std::vector<char> RHI::ReadFile(const std::string &path) const {
+std::vector<char> RHI::ReadFile(const char* path) const {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         LOG_ERROR("failed to open shader file: {}", path);

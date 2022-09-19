@@ -1,5 +1,6 @@
 #include <memory>
 #include <thread>
+#include <filesystem>
 
 #define VMA_IMPLEMENTATION
 
@@ -124,8 +125,10 @@ void RHIVulkan::CreateSwapChain(Window *window) {
     }
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, std::string file_name) {
-    auto spirv_code = ReadFile(file_name + ".VULKAN");
+Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path& file_name) {
+    std::filesystem::path path = file_name;
+    path += ".VULKAN";
+    auto spirv_code = ReadFile(path.string().c_str());
     return new VulkanShader(m_vulkan, type, spirv_code);
 }
 

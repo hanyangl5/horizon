@@ -5,11 +5,6 @@
 
 namespace Horizon::RHI {
 
-struct TextureData {
-    void *data;
-    u32 row_length;
-    u32 height;
-};
 class Texture {
   public:
     Texture(const TextureCreateInfo &texture_create_info) noexcept;

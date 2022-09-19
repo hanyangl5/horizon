@@ -56,9 +56,10 @@ class RHI {
 
     virtual void CreateSwapChain(Window *window) = 0;
 
-    std::vector<char> ReadFile(const std::string &path) const;
+    std::vector<char> ReadFile(const char* path) const;
 
-    virtual Shader *CreateShader(ShaderType type, u32 compile_flags, std::string file_name) = 0;
+    virtual Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path& file_name) = 0;
+    
     virtual void DestroyShader(Shader *shader_program) = 0;
     // virtual void CreateRenderTarget() = 0;
 

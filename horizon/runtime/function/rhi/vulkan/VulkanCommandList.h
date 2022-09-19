@@ -46,7 +46,7 @@ class VulkanCommandList : public CommandList {
     virtual void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) override;
     void CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer);
 
-    void UpdateTexture(Texture *texture, const TextureData &texture_data) override;
+    void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) override;
 
     virtual void CopyTexture() override;
 

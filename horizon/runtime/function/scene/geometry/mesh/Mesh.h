@@ -10,8 +10,13 @@
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
+
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/RHI.h>
+#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/Semaphore.h>
+
+#include <runtime/function/scene/material/MaterialDescription.h>
 
 #include "BasicGeometry.h"
 #include "VertexDescription.h"
@@ -51,7 +56,7 @@ class Mesh {
     Mesh(Mesh &&rhs) noexcept = delete;
     Mesh &operator=(Mesh &&rhs) noexcept = delete;
 
-    void LoadMesh(const std::string &path);
+    void LoadMesh(const std::filesystem::path &path);
 
     void LoadMesh(BasicGeometry::BasicGeometry basic_geometry);
 
@@ -63,21 +68,29 @@ class Mesh {
 
     void *GetIndicesData() noexcept;
 
+    // receive a recording command list
+    void UploadTextures(RHI::CommandList* transfer);
+
     const std::vector<Node> &GetNodes() const noexcept;
 
     // void GenerateMeshLet() noexcept;
+
+    void CreateTextureResources(RHI::RHI *rhi);
   private:
-    void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4& model_matrx);
-    
+    void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
+
+    void ProcessMaterials(const aiScene *scene);
+
     void GenerateMeshCluster();
+
   private:
     u32 vertex_attribute_flag{};
-
+    std::filesystem::path m_path{};
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};
     std::vector<Node> m_nodes{};
-    // Texture* textures;
+    std::vector<MaterialDescription> materials{};
     // Material* materials
 };
 } // namespace Horizon
