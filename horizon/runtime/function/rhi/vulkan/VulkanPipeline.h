@@ -2,10 +2,12 @@
 
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/Shader.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptorSet.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
 
 namespace Horizon::RHI {
+
 class VulkanPipeline : public Pipeline {
   public:
     VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
@@ -25,13 +27,7 @@ class VulkanPipeline : public Pipeline {
 
     void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
-    void BindResource(Buffer *buffer, ResourceUpdateFrequency frequency, u32 binding) override;
-
-    void BindResource(Texture *texture, ResourceUpdateFrequency frequency, u32 binding) override;
-
-    void BindResource(Sampler *sampler, ResourceUpdateFrequency frequency, u32 binding) override;
-
-    void UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) override;
+    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency) override; 
 
   private:
     void CreateGraphicsPipeline();
@@ -47,7 +43,6 @@ class VulkanPipeline : public Pipeline {
     VkPipeline m_pipeline{};
     VkPipelineLayout m_pipeline_layout{};
     PipelineLayoutDesc m_pipeline_layout_desc;
-
     VkViewport view_port{};
     VkRect2D scissor{};
 };

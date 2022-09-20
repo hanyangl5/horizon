@@ -80,7 +80,7 @@ class Mesh {
 
     void CreateGpuResources(RHI::RHI *rhi);
 
-    const MaterialDescription &GetMaterial(u32 index) noexcept { return materials[index]; }
+    Material &GetMaterial(u32 index) noexcept { return materials[index]; }
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 
@@ -95,7 +95,7 @@ class Mesh {
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};
     std::vector<Node> m_nodes{};
-    std::vector<MaterialDescription> materials{};
+    std::vector<Material> materials{};
 
     // gpu buffer
     Resource<RHI::Buffer> m_vertex_buffer{}, m_index_buffer{};

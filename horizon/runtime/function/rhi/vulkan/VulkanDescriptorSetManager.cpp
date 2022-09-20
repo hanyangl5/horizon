@@ -131,100 +131,6 @@ void VulkanDescriptorSetManager::ReflectDescriptorSetLayoutFromShader(
     spvReflectDestroyShaderModule(&module);
 }
 
-void VulkanDescriptorSetManager::InitEmptyDescriptorSet() {}
-
-void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Buffer *buffer, ResourceUpdateFrequency frequency,
-                                              u32 binding) {
-    auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
-
-    vk_buffer->buffer_info.buffer = vk_buffer->m_buffer;
-    vk_buffer->buffer_info.offset = 0;
-    vk_buffer->buffer_info.range = buffer->m_size;
-
-    auto &info = m_pipeline_descriptors_map[pipeline].infos[static_cast<u32>(frequency)];
-
-    if (info.set == VK_NULL_HANDLE) {
-        LOG_WARN("descriptor set not allocated")
-        return;
-    }
-
-    auto &write = info.writes[binding];
-
-    // VkWriteDescriptorSet write;
-    if (buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
-        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    } else if (buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    }
-
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.pNext = nullptr;
-    write.dstBinding = binding;
-    write.descriptorCount = 1;
-    write.dstSet = info.set;
-    write.dstArrayElement = 0;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &vk_buffer->buffer_info;
-}
-
-void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Texture *texture, ResourceUpdateFrequency frequency,
-                                              u32 binding) {
-    auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
-
-    vk_texture->texture_info.imageLayout = util_to_vk_image_layout(texture->m_state);
-    vk_texture->texture_info.imageView = vk_texture->m_image_view;
-
-    auto &info = m_pipeline_descriptors_map[pipeline].infos[static_cast<u32>(frequency)];
-
-    if (info.set == VK_NULL_HANDLE) {
-        LOG_WARN("descriptor set not allocated")
-        return;
-    }
-
-    auto &write = info.writes[binding];
-
-    if (texture->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE) {
-        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    } else if (texture->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_TEXTURE) {
-        write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    }
-
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.pNext = nullptr;
-    write.dstBinding = binding;
-    write.descriptorCount = 1;
-    write.dstSet = info.set;
-    write.dstArrayElement = 0;
-    write.descriptorCount = 1;
-    write.pImageInfo = &vk_texture->texture_info;
-}
-
-void VulkanDescriptorSetManager::BindResource(Pipeline *pipeline, Sampler *sampler, ResourceUpdateFrequency frequency,
-                                              u32 binding) {
-
-    auto vk_sampler = reinterpret_cast<VulkanSampler *>(sampler);
-    vk_sampler->texture_info.sampler = vk_sampler->m_sampler;
-    
-    auto &info = m_pipeline_descriptors_map[pipeline].infos[static_cast<u32>(frequency)];
-
-    if (info.set == VK_NULL_HANDLE) {
-        LOG_WARN("descriptor set not allocated")
-        return;
-    }
-
-    auto &write = info.writes[binding];
-
-    write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.pNext = nullptr;
-    write.dstBinding = binding;
-    write.descriptorCount = 1;
-    write.dstSet = info.set;
-    write.dstArrayElement = 0;
-    write.descriptorCount = 1;
-    write.pImageInfo = &vk_sampler->texture_info;
-}
 
 VulkanDescriptorSetManager::~VulkanDescriptorSetManager() noexcept {
     for (auto &layout : m_descriptor_set_layout_map) {
@@ -273,44 +179,9 @@ void VulkanDescriptorSetManager::ResetDescriptorPool() {
     }
         //vkResetDescriptorPool(m_context.device, m_descriptor_pool, 0);
 }
-void VulkanDescriptorSetManager::UpdatePipelineDescriptorSet(Pipeline *pipeline, ResourceUpdateFrequency frequency) {
-
-    auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
-
-    auto &info = m_pipeline_descriptors_map.at(pipeline).infos[static_cast<u32>(frequency)];
-    if (info.set == VK_NULL_HANDLE) {
-        return;
-    }
-
-    std::vector<VkWriteDescriptorSet> writes;
-    writes.reserve(info.writes.size());
-    for (auto &val : info.writes) {
-        if (val.dstSet != nullptr)
-            writes.emplace_back(val);
-    }
-
-    vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
-}
 
 VkDescriptorSetLayout VulkanDescriptorSetManager::FindLayout(u64 key) const {
     return m_descriptor_set_layout_map.at(key).layout;
 }
 
-void VulkanDescriptorSetManager::AllocateDescriptorSets(VulkanPipeline *pipeline, ResourceUpdateFrequency frequency) {
-    if (m_descriptor_pool == VK_NULL_HANDLE) {
-        CreateDescriptorPool();
-    }
-
-    VkDescriptorSetLayout layout =
-        FindLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
-
-    VkDescriptorSetAllocateInfo alloc_info{};
-    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    alloc_info.descriptorPool = m_descriptor_pool;
-    alloc_info.descriptorSetCount = 1;
-    alloc_info.pSetLayouts = &layout;
-
-    auto &set = m_pipeline_descriptors_map[pipeline].infos[static_cast<u32>(frequency)].set;
-    CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &set));
-}
 } // namespace Horizon::RHI

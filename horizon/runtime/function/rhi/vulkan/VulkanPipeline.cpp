@@ -31,10 +31,6 @@ void VulkanPipeline::SetComputeShader(Shader *cs) {
 
     CreatePipelineLayout();
 
-    for (u32 index = 0; index < m_pipeline_layout_desc.descriptor_set_hash_key.size(); index++) {
-        m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
-    }
-
     CreateComputePipeline();
 }
 
@@ -48,27 +44,15 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
 
     CreatePipelineLayout();
 
-    for (u32 index = 0; index < m_pipeline_layout_desc.descriptor_set_hash_key.size(); index++) {
-        m_descriptor_set_manager.AllocateDescriptorSets(this, static_cast<ResourceUpdateFrequency>(index));
-    }
-
     CreateGraphicsPipeline();
+
+    m_descriptor_set_manager.CreateDescriptorPool();
 }
 
-void VulkanPipeline::BindResource(Buffer *buffer, ResourceUpdateFrequency freq, u32 binding) {
-    m_descriptor_set_manager.BindResource(this, buffer, freq, binding);
-}
-
-void VulkanPipeline::BindResource(Texture *texture, ResourceUpdateFrequency frequency, u32 binding) {
-    m_descriptor_set_manager.BindResource(this, texture, frequency, binding);
-}
-
-void VulkanPipeline::BindResource(Sampler *sampler, ResourceUpdateFrequency frequency, u32 binding) {
-    m_descriptor_set_manager.BindResource(this, sampler, frequency, binding);
-}
-
-void VulkanPipeline::UpdatePipelineDescriptorSet(ResourceUpdateFrequency frequency) {
-    m_descriptor_set_manager.UpdatePipelineDescriptorSet(this, frequency);
+DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
+    assert(("descriptor pool not allocated", m_descriptor_set_manager.m_descriptor_pool != VK_NULL_HANDLE));
+    u64 key = m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)];
+    return new VulkanDescriptorSet(m_context, frequency, m_descriptor_set_manager, key);
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() {

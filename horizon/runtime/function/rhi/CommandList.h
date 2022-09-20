@@ -70,7 +70,7 @@ class CommandList {
     // bind by index save string lookup
     virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;
 
-    virtual void BindDescriptorSets(Pipeline* pipeline, const std::vector<ResourceUpdateFrequency>& frequency) = 0;
+    virtual void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) = 0;
   protected:
     bool is_recoring{false};
     CommandQueueType m_type{};

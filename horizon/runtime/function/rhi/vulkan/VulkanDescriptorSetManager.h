@@ -54,8 +54,6 @@ class VulkanDescriptorSetManager {
     VulkanDescriptorSetManager &operator=(VulkanDescriptorSetManager &&rhs) noexcept = delete;
 
     void ResetDescriptorPool();
-    void UpdatePipelineDescriptorSet(Pipeline *pipeline, ResourceUpdateFrequency frequency);
-
     VkDescriptorSetLayout FindLayout(u64 key) const;
     void AllocateDescriptorSets(VulkanPipeline *pipeline, ResourceUpdateFrequency frequency);
 

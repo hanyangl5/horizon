@@ -64,7 +64,7 @@ class VulkanCommandList : public CommandList {
 
     void ClearTextrue(Texture* texture, const Math::float4& clear_value) override;
 
-    void BindDescriptorSets(Pipeline *pipeline, const std::vector<ResourceUpdateFrequency> &frequency) override;
+    void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
   private:
     const VulkanRendererContext &m_context;

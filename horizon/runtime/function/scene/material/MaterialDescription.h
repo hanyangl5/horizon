@@ -7,6 +7,7 @@
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/DescriptorSet.h>
 
 namespace Horizon {
 
@@ -37,13 +38,13 @@ struct MaterialParams {
     // f32 metallic_factor;
 };
 
-class MaterialDescription {
+class Material {
   public:
-    MaterialDescription() noexcept = default;
-    ~MaterialDescription() noexcept = default;
+    Material() noexcept = default;
+    ~Material() noexcept = default;
 
   public:
-
+    RHI::DescriptorSet *material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
     //MaterialParams material_params;
     //RHI::Buffer *param_buffer{};

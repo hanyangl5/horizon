@@ -525,25 +525,15 @@ void VulkanCommandList::ClearTextrue(Texture *texture, const Math::float4 &clear
     // vkCmdClearColorImage();
 }
 
-void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, const std::vector<ResourceUpdateFrequency> &frequency) {
+void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) {
     assert(("command list is not recording", is_recoring == true));
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
-    auto iter = vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.find(vk_pipeline);
+    auto vk_set = reinterpret_cast<VulkanDescriptorSet *>(set);
 
-    if (iter != vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.end()) {
-        for (auto &freq : frequency) {
-            auto vk_set = vk_pipeline->m_descriptor_set_manager.m_pipeline_descriptors_map.at(vk_pipeline)
-                              .infos[static_cast<u32>(freq)]
-                              .set;
-            vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
-                                    static_cast<u32>(freq), 1, &vk_set, 0, 0); // TODO: batch update
-        }
-
-    } else {
-        LOG_ERROR("pipeline not found");
-    }
+    vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
+                            static_cast<u32>(set->update_frequency), 1, &vk_set->set, 0, 0); // TODO: batch update
 }
 
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(VmaAllocator allocator,

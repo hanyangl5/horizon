@@ -17,7 +17,7 @@ namespace Horizon {
 // descriptor set
 static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
 
-static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 16;
+static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
 
 // render info
 static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
