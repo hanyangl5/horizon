@@ -161,19 +161,19 @@ void VulkanDescriptorSetManager::CreateDescriptorPool(const std::array<u64, DESC
         CHECK_VK_RESULT(
             vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_descriptor_pools[freq]));
 
-        //// allocate sets to be used
-        //VkDescriptorSetAllocateInfo alloc_info{};
-        //alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        // allocate sets to be used
+        VkDescriptorSetAllocateInfo alloc_info{};
+        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-        //VkDescriptorSetLayout layout = FindLayout(descriptor_set_hash_key[freq]);
-        //std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
-        //allocated_sets[freq].sets.resize(m_reserved_max_sets[freq]);
+        VkDescriptorSetLayout layout = FindLayout(descriptor_set_hash_key[freq]);
+        std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
+        allocated_sets[freq].sets.resize(m_reserved_max_sets[freq]);
 
-        //alloc_info.descriptorPool = m_descriptor_pools[static_cast<u32>(freq)];
-        //alloc_info.descriptorSetCount = m_reserved_max_sets[freq];
-        //alloc_info.pSetLayouts = layouts.data();
+        alloc_info.descriptorPool = m_descriptor_pools[static_cast<u32>(freq)];
+        alloc_info.descriptorSetCount = m_reserved_max_sets[freq];
+        alloc_info.pSetLayouts = layouts.data();
 
-        //CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, allocated_sets[freq].sets.data()));
+        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, allocated_sets[freq].sets.data()));
     }
 }
 
