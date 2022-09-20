@@ -152,7 +152,7 @@ void VulkanDescriptorSetManager::CreateDescriptorPool(const std::array<u64, DESC
         VkDescriptorPoolCreateInfo pool_create_info{};
         pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         pool_create_info.pNext = nullptr;
-        pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        pool_create_info.flags = 0;
 
         pool_create_info.maxSets = m_reserved_max_sets[freq];
         pool_create_info.poolSizeCount = static_cast<u32>(poolSizes.size());
@@ -182,7 +182,7 @@ void VulkanDescriptorSetManager::ResetDescriptorPool() {
         m_used_set_counter[freq] = 0;
         if (m_descriptor_pools[freq] != VK_NULL_HANDLE) {
             // free all descriptors
-            vkResetDescriptorPool(m_context.device, m_descriptor_pools[freq], 0);
+            //vkResetDescriptorPool(m_context.device, m_descriptor_pools[freq], 0);
         }
     }
 
