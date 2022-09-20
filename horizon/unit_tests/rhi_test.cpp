@@ -535,8 +535,8 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-    mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
-    //mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
+    //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
     // mesh.LoadMesh(asset_path + "models/Sponza/glTF/Sponza.gltf");
     mesh.CreateGpuResources(rhi);
 
@@ -602,7 +602,7 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
             if (node.mesh_primitives.empty()) {
                 continue;
             }
-            for (auto &m : node.mesh_primitives) {
+            for (const auto &m : node.mesh_primitives) {
                 auto &material = mesh.GetMaterial(m->material_id);
                 material.material_descriptor_set = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_DRAW);
 
