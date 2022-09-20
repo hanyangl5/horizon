@@ -53,7 +53,7 @@ class VulkanDescriptorSetManager {
   public:
     const VulkanRendererContext &m_context;
 
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{1, 1, 1, 10};
+    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{1, 1, 1, 1};
     std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
 
     std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};

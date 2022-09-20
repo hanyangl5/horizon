@@ -150,39 +150,42 @@ void VulkanDescriptorSetManager::CreateDescriptorPool(const std::array<u64, DESC
         }
 
         VkDescriptorPoolCreateInfo pool_create_info{};
-
         pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         pool_create_info.pNext = nullptr;
         pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
         pool_create_info.maxSets = m_reserved_max_sets[freq];
         pool_create_info.poolSizeCount = static_cast<u32>(poolSizes.size());
         pool_create_info.pPoolSizes = poolSizes.data();
+
         CHECK_VK_RESULT(
             vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_descriptor_pools[freq]));
 
-        // allocate sets to be used
-        VkDescriptorSetAllocateInfo alloc_info{};
-        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        //// allocate sets to be used
+        //VkDescriptorSetAllocateInfo alloc_info{};
+        //alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-        auto layout = FindLayout(descriptor_set_hash_key[freq]);
-        std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
-        allocated_sets[freq].sets.resize(m_reserved_max_sets[freq]);
+        //VkDescriptorSetLayout layout = FindLayout(descriptor_set_hash_key[freq]);
+        //std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
+        //allocated_sets[freq].sets.resize(m_reserved_max_sets[freq]);
 
-        alloc_info.descriptorPool = m_descriptor_pools[static_cast<u32>(freq)];
-        alloc_info.descriptorSetCount = m_reserved_max_sets[freq];
-        alloc_info.pSetLayouts = layouts.data();
+        //alloc_info.descriptorPool = m_descriptor_pools[static_cast<u32>(freq)];
+        //alloc_info.descriptorSetCount = m_reserved_max_sets[freq];
+        //alloc_info.pSetLayouts = layouts.data();
 
-        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, allocated_sets[freq].sets.data()));
+        //CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, allocated_sets[freq].sets.data()));
     }
 }
 
 void VulkanDescriptorSetManager::ResetDescriptorPool() {
-    for (auto &pool : m_descriptor_pools) {
-        if (pool != VK_NULL_HANDLE) {
+    for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
+        m_used_set_counter[freq] = 0;
+        if (m_descriptor_pools[freq] != VK_NULL_HANDLE) {
             // free all descriptors
-            vkResetDescriptorPool(m_context.device, pool, 0);
+            vkResetDescriptorPool(m_context.device, m_descriptor_pools[freq], 0);
         }
     }
+
 }
 
 VkDescriptorSetLayout VulkanDescriptorSetManager::FindLayout(u64 key) const {

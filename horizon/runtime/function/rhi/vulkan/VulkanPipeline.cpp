@@ -60,7 +60,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         LOG_ERROR("descriptor set overflow");
         return {};
     }
-    return new VulkanDescriptorSet(m_context, frequency, &set);
+    return new VulkanDescriptorSet(m_context, frequency, set);
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() {

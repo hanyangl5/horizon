@@ -535,8 +535,8 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
     auto pipeline = rhi->CreateGraphicsPipeline(info);
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-    //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
-    mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
+    mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
+    //mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
     // mesh.LoadMesh(asset_path + "models/Sponza/glTF/Sponza.gltf");
     mesh.CreateGpuResources(rhi);
 

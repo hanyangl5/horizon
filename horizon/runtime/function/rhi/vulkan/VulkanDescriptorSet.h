@@ -16,7 +16,7 @@ namespace Horizon::RHI {
 
 class VulkanDescriptorSet : public DescriptorSet {
   public:
-    VulkanDescriptorSet(const VulkanRendererContext& context, ResourceUpdateFrequency frequency, VkDescriptorSet* pset) noexcept;
+    VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency, VkDescriptorSet set) noexcept;
     virtual ~VulkanDescriptorSet() noexcept {};
 
     VulkanDescriptorSet(const VulkanDescriptorSet &rhs) noexcept = delete;
@@ -33,7 +33,7 @@ class VulkanDescriptorSet : public DescriptorSet {
 
   public:
     const VulkanRendererContext &m_context;
-    VkDescriptorSet m_set{};
+    VkDescriptorSet m_set;
     std::array<VkWriteDescriptorSet, MAX_BINDING_PER_DESCRIPTOR_SET> writes{};
 };
 } // namespace Horizon::RHI
