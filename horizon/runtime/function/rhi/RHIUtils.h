@@ -15,7 +15,7 @@ namespace Horizon {
 // definations
 
 // descriptor set
-static constexpr u32 MAX_SET_COUNT_PER_PIPELINE = 4;
+static constexpr u32 DESCRIPTOR_SET_UPDATE_FREQUENCIES = 4;
 
 static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
 
@@ -375,7 +375,7 @@ struct PushConstantDesc {
 
 struct PipelineLayoutDesc {
   public:
-    std::array<u64, MAX_SET_COUNT_PER_PIPELINE> descriptor_set_hash_key{};
+    std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_set_hash_key{};
     std::unordered_map<std::string, PushConstantDesc>
         push_constants{}; // TODO: vulkan only allow one pc per stage, pc in directx12 is cbuffer
 };

@@ -46,13 +46,21 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
 
     CreateGraphicsPipeline();
 
-    m_descriptor_set_manager.CreateDescriptorPool();
+    m_descriptor_set_manager.CreateDescriptorPool(m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
 DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
-    assert(("descriptor pool not allocated", m_descriptor_set_manager.m_descriptor_pool != VK_NULL_HANDLE));
-    u64 key = m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)];
-    return new VulkanDescriptorSet(m_context, frequency, m_descriptor_set_manager, key);
+    u32 freq = static_cast<u32>(frequency);
+    assert(("descriptor pool not allocated", m_descriptor_set_manager.m_descriptor_pools[freq] != VK_NULL_HANDLE));
+
+    u32 counter = m_descriptor_set_manager.m_used_set_counter[static_cast<u32>(frequency)]++;
+    VkDescriptorSet set = m_descriptor_set_manager.allocated_sets[freq].sets[counter];
+
+    if (counter >= m_descriptor_set_manager.m_reserved_max_sets[static_cast<u32>(frequency)]) {
+        LOG_ERROR("descriptor set overflow");
+        return {};
+    }
+    return new VulkanDescriptorSet(m_context, frequency, set);
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() {
@@ -215,7 +223,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 
         // color blend state
         {
-            // TODO: 
+            // TODO:
             color_blend_attachment_state.resize(ci->render_target_formats.color_attachment_count);
             for (auto &state : color_blend_attachment_state) {
                 state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
