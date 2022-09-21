@@ -536,8 +536,8 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
 
     Mesh mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
     //mesh.LoadMesh(asset_path + "models/DamagedHelmet/DamagedHelmet.gltf");
-    mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
-    // mesh.LoadMesh(asset_path + "models/Sponza/glTF/Sponza.gltf");
+    //mesh.LoadMesh(asset_path + "models/FlightHelmet/glTF/FlightHelmet.gltf");
+    mesh.LoadMesh(asset_path + "models/Sponza/glTF/Sponza.gltf");
     mesh.CreateGpuResources(rhi);
 
     SamplerDesc sampler_desc{};
@@ -563,7 +563,6 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
     auto image_acquired_semaphore = rhi->GetSemaphore();
     auto resource_uploaded_semaphore = rhi->GetSemaphore();
     bool resources_uploaded = false;
-
     for (u32 frame = 0; frame < 3; frame++) {
 
         engine->BeginNewFrame();
@@ -608,20 +607,32 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
             if (node.mesh_primitives.empty()) {
                 continue;
             }
+            std::unordered_set<Material*> materials{};
             for (const auto &m : node.mesh_primitives) {
-                auto &material = mesh.GetMaterial(m->material_id);
-                material.material_descriptor_set = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_DRAW);
-
-                material.material_descriptor_set->SetResource(
-                    material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
-                material.material_descriptor_set->SetResource(
-                    material.material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
-                material.material_descriptor_set->SetResource(
-                    material.material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
-                material.material_descriptor_set->SetResource(sampler.get(), 3);
-
-                material.material_descriptor_set->Update();
+                materials.emplace(&mesh.GetMaterial(m->material_id));
             }
+
+            for (auto &material : materials) {
+                material->material_descriptor_set = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+
+                // material.material_params.param_bitmask;
+                //if (material->material_params.param_bitmask & HAS_BASE_COLOR) {
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
+                //}
+                //if (material->material_params.param_bitmask & HAS_NORMAL) {
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
+                //}
+                //if (material->material_params.param_bitmask & HAS_METALLIC_ROUGHNESS) {
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
+                //}
+                material->material_descriptor_set->SetResource(sampler.get(), 3);
+                material->material_descriptor_set->SetResource(material->param_buffer.get(), 4);
+                material->material_descriptor_set->Update();
+            }
+            
         }
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);

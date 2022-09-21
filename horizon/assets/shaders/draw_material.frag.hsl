@@ -1,8 +1,17 @@
-RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_DRAW, t0, binding = 0);
-RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_DRAW, t1, binding = 1);
-RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_DRAW, t2, binding = 2);
+#include "include/material_params_defination.hsl"
 
-RES(SamplerState, default_sampler, UPDATE_FREQ_PER_DRAW, s0, binding = 3);
+RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
+RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
+RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
+
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 3);
+
+CBUFFER(material_params, UPDATE_FREQ_PER_BATCH, b0, binding = 4)
+{
+    DATA(float4, base_color_roughness, None);
+    DATA(float4, emmissive_factor_metallic, None);
+    DATA(uint, param_bitmask, None);
+};
 
 STRUCT(VSOutput)
 {
@@ -21,12 +30,24 @@ PSOutput PS_MAIN(VSOutput vsout)
 {
     INIT_MAIN;
     PSOutput psout;
+    float4 color;
 
-    float4 base_color = SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv);
-    base_color = SampleTex2D(Get(normal_texture), default_sampler, vsout.uv);
-    base_color = SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv);
+    uint has_metallic_roughness = Get(param_bitmask) & HAS_METALLIC_ROUGHNESS;
+    if(has_metallic_roughness != 0) {
+        color = SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv);
+    }
+
+    uint has_normal = Get(param_bitmask) & HAS_NORMAL;
+    if(has_normal != 0) {
+        color = SampleTex2D(Get(normal_texture), default_sampler, vsout.uv);
+    }
+
+    uint has_base_color = Get(param_bitmask) & HAS_BASE_COLOR;
+    if(has_base_color != 0) {
+        color = SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv);
+    }
     
-    psout.color = base_color;
+    psout.color = color;
     
     RETURN(psout);
     

@@ -11,6 +11,13 @@
 
 namespace Horizon {
 
+enum MaterialParamFlags {
+    HAS_BASE_COLOR = 0x01,
+    HAS_NORMAL = 0x10,
+    HAS_METALLIC_ROUGHNESS = 0x100,
+    HAS_EMISSIVE = 0x1000,
+};
+
 enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSIVE };
 
 class MaterialTextureDescription {
@@ -32,10 +39,12 @@ class MaterialTextureDescription {
 };
 
 struct MaterialParams {
-    // Math::float3 base_color_factor;
-    // Math::float3 emmissive_factor;
-    // f32 roughness_factor;
-    // f32 metallic_factor;
+    Math::float3 base_color_factor;
+    f32 roughness_factor;
+    Math::float3 emmissive_factor;
+    f32 metallic_factor;
+    u32 param_bitmask;
+    u32 pad0, pad1, pad2;
 };
 
 class Material {
@@ -51,8 +60,8 @@ class Material {
   public:
     Resource<RHI::DescriptorSet> material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
-    // MaterialParams material_params;
-    // RHI::Buffer *param_buffer{};
+    MaterialParams material_params{};
+    Resource<RHI::Buffer> param_buffer{};
     //  Material* materials
 };
 } // namespace Horizon

@@ -44,17 +44,33 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
     m_index_buffer = rhi->CreateBuffer(index_buffer_create_info);
 
     for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
+        m.param_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                            sizeof(m.material_params)});
+        std::vector<MaterialTextureType> types{MaterialTextureType::BASE_COLOR, MaterialTextureType::NORMAL,
+                                               MaterialTextureType::METALLIC_ROUGHTNESS};
+        for (auto &type : types) {
+            auto &tex = m.material_textures[type];
+
             TextureCreateInfo create_info{};
-            create_info.width = tex.width;
-            create_info.height = tex.height;
-            create_info.depth = 1;
+            if (tex.url == "") {
+                create_info.width = 1;
+                create_info.height = 1;
+                create_info.depth = 1;
+            } else {
+                create_info.width = tex.width;
+                create_info.height = tex.height;
+                create_info.depth = 1;
+            }
             create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
-            create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                  // TODO: cubemap?
+            create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
             create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
 
             tex.texture = rhi->CreateTexture(create_info);
+        }
+        for (auto &[type, tex] : m.material_textures) {
+
         }
     }
 }
@@ -108,6 +124,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::BASE_COLOR, abs_path);
+            materials[i].material_params.param_bitmask |= HAS_BASE_COLOR;
         }
         // normal
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_NORMALS); t++) {
@@ -116,6 +133,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::NORMAL, abs_path);
+            materials[i].material_params.param_bitmask |= HAS_NORMAL;
         }
         // metallic roughness
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS);
@@ -125,6 +143,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
+            materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
 
         //for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
@@ -313,17 +332,26 @@ void Mesh::UploadResources(RHI::CommandList *transfer) {
    BarrierDesc barrier_desc{};
     
     for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
-            TextureUpdateDesc desc{};
-            desc.data = tex.data;
-            transfer->UpdateTexture(tex.texture.get(), desc);
-            //TextureBarrierDesc texture_barrier{};
-            //texture_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-            //texture_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            //texture_barrier.texture = tex.texture.get();
-            //barrier_desc.texture_memory_barriers.push_back(texture_barrier);
-        }
-    }
+       transfer->UpdateBuffer(m.param_buffer.get(), &m.material_params, sizeof(m.material_params));
+
+       BarrierDesc empty_texture_barrier{};
+       for (auto &[type, tex] : m.material_textures) {
+           // we don't upload empty texture, but have to transit image layout
+           if (tex.url == "") {
+               TextureBarrierDesc tex_barrier{};
+               tex_barrier.texture = tex.texture.get();
+               tex_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+               tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+
+               empty_texture_barrier.texture_memory_barriers.push_back(tex_barrier);
+               continue;
+           }
+           TextureUpdateDesc desc{};
+           desc.data = tex.data;
+           transfer->UpdateTexture(tex.texture.get(), desc);
+       }
+       transfer->InsertBarrier(empty_texture_barrier);
+   }
     transfer->InsertBarrier(barrier_desc);
 }
 
