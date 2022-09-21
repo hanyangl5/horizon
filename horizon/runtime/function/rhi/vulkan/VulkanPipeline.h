@@ -4,16 +4,16 @@
 #include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSet.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
 
 namespace Horizon::RHI {
 
 class VulkanPipeline : public Pipeline {
   public:
     VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
-                   VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
+                   VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept;
     VulkanPipeline(const VulkanRendererContext &context, const ComputePipelineCreateInfo &create_info,
-                   VulkanDescriptorSetManager &descriptor_set_manager) noexcept;
+                   VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept;
 
     virtual ~VulkanPipeline() noexcept;
     VulkanPipeline(const VulkanPipeline &rhs) noexcept = delete;
@@ -27,7 +27,7 @@ class VulkanPipeline : public Pipeline {
 
     void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
-    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency) override; 
+    Resource<DescriptorSet> GetDescriptorSet(ResourceUpdateFrequency frequency) override; 
 
   private:
     void CreateGraphicsPipeline();
@@ -39,7 +39,7 @@ class VulkanPipeline : public Pipeline {
     // void CreateRTPipeline() noexcept;  
   public:
     const VulkanRendererContext &m_context;
-    VulkanDescriptorSetManager &m_descriptor_set_manager;
+    VulkanDescriptorSetAllocator &m_descriptor_set_allocator;
     VkPipeline m_pipeline{};
     VkPipelineLayout m_pipeline_layout{};
     PipelineLayoutDesc m_pipeline_layout_desc;

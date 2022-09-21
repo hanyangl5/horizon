@@ -35,7 +35,8 @@ RHIVulkan::~RHIVulkan() noexcept {
 
     thread_command_context = nullptr;
 
-    m_descriptor_set_manager = nullptr; // release
+    m_descriptor_set_allocator = nullptr; // release
+
     DestroySwapChain();
     vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
     vmaDestroyAllocator(m_vulkan.vma_allocator);
@@ -162,7 +163,7 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) {
     InitializeVMA();
     // create sync objects
     CreateSyncObjects();
-    m_descriptor_set_manager = std::make_unique<VulkanDescriptorSetManager>(m_vulkan);
+    m_descriptor_set_allocator = std::make_unique<VulkanDescriptorSetAllocator>(m_vulkan);
 }
 
 void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
@@ -472,15 +473,15 @@ void RHIVulkan::ResetRHIResources() {
     if (thread_command_context) {
         thread_command_context->Reset();
     }
-    m_descriptor_set_manager->ResetDescriptorPool();
+    m_descriptor_set_allocator->ResetDescriptorPool();
 }
 
 Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) {
-    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
+    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator.get());
 }
 
 Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &create_info) {
-    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_manager.get());
+    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator.get());
 }
 
 void RHIVulkan::DestroyPipeline(Pipeline *pipeline) { delete pipeline; }

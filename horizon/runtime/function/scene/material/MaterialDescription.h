@@ -41,13 +41,18 @@ struct MaterialParams {
 class Material {
   public:
     Material() noexcept = default;
-    ~Material() noexcept = default;
+    ~Material() noexcept { material_descriptor_set = nullptr; }
+
+    Material(const Material &rhs){};
+    Material &operator=(const Material &rhs) noexcept {};
+    Material(Material &&rhs) noexcept {};
+    Material &operator=(Material &&rhs) noexcept {};
 
   public:
-    RHI::DescriptorSet *material_descriptor_set{};
+    Resource<RHI::DescriptorSet> material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
-    //MaterialParams material_params;
-    //RHI::Buffer *param_buffer{};
-    // Material* materials
+    // MaterialParams material_params;
+    // RHI::Buffer *param_buffer{};
+    //  Material* materials
 };
 } // namespace Horizon
