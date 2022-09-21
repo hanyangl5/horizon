@@ -1,0 +1,8 @@
+add_subdirectory(shadow)
+add_subdirectory(ao)
+add_subdirectory(gi)
+add_subdirectory(antialiasing)
+add_subdirectory(postprocess)
+add_subdirectory(atmosphere)
+add_subdirectory(reflection)
+add_subdirectory(pbr)
