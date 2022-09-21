@@ -27,7 +27,7 @@ class Pipeline {
     virtual void SetComputeShader(Shader *vs) = 0;
     virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
 
-    virtual DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency) = 0; 
+    virtual Resource<DescriptorSet> GetDescriptorSet(ResourceUpdateFrequency frequency) = 0; 
 
   protected:
     // array contain all kinds of shaders

@@ -561,11 +561,11 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
 
     
-    pipeline->SetGraphicsShader(vs, ps);
+
 
     auto image_acquired_semaphore = rhi->GetSemaphore();
 
-    auto per_frame_descriptor_set = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+    bool resources_uploaded = false;
 
     for (u32 frame = 0; frame < 3; frame++) {
 
@@ -574,14 +574,21 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
 
         rhi->AcquireNextImage(image_acquired_semaphore.get(), frame);
 
+        pipeline->SetGraphicsShader(vs, ps);
+
+        
+        auto per_frame_descriptor_set = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
 
         transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(Math::float4x4));
 
-        mesh.UploadResources(transfer);
-
+        if (!resources_uploaded) {
+            resources_uploaded = true;
+            mesh.UploadResources(transfer);
+        }
         transfer->EndRecording();
 
         auto resource_uploaded_semaphore = rhi->GetSemaphore();
@@ -636,7 +643,7 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
         cl->BindVertexBuffers(1, &vb, &offset);
         cl->BindIndexBuffer(mesh.GetIndexBuffer(), 0);
 
-        cl->BindDescriptorSets(pipeline, per_frame_descriptor_set);
+        cl->BindDescriptorSets(pipeline, per_frame_descriptor_set.get());
        
         for (auto &node : mesh.GetNodes()) {
             if (node.mesh_primitives.empty()) {
@@ -647,7 +654,7 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
 
             for (auto &m : node.mesh_primitives) {
                 auto& material = mesh.GetMaterial(m->material_id);
-                cl->BindDescriptorSets(pipeline, material.material_descriptor_set);
+                cl->BindDescriptorSets(pipeline, material.material_descriptor_set.get());
                 cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
             }
         }

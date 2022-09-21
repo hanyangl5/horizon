@@ -27,21 +27,21 @@ struct DescriptorPoolSizeDesc {
     std::unordered_map<VkDescriptorType, u32> required_descriptor_count_per_type;
 };
 
-class VulkanDescriptorSetManager {
+class VulkanDescriptorSetAllocator {
   public:
-    VulkanDescriptorSetManager(const VulkanRendererContext &context) noexcept;
-    ~VulkanDescriptorSetManager() noexcept;
+    VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept;
+    ~VulkanDescriptorSetAllocator() noexcept;
 
-    VulkanDescriptorSetManager(const VulkanDescriptorSetManager &rhs) noexcept = delete;
-    VulkanDescriptorSetManager &operator=(const VulkanDescriptorSetManager &rhs) noexcept = delete;
-    VulkanDescriptorSetManager(VulkanDescriptorSetManager &&rhs) noexcept = delete;
-    VulkanDescriptorSetManager &operator=(VulkanDescriptorSetManager &&rhs) noexcept = delete;
+    VulkanDescriptorSetAllocator(const VulkanDescriptorSetAllocator &rhs) noexcept = delete;
+    VulkanDescriptorSetAllocator &operator=(const VulkanDescriptorSetAllocator &rhs) noexcept = delete;
+    VulkanDescriptorSetAllocator(VulkanDescriptorSetAllocator &&rhs) noexcept = delete;
+    VulkanDescriptorSetAllocator &operator=(VulkanDescriptorSetAllocator &&rhs) noexcept = delete;
 
+  public:
     void ResetDescriptorPool();
 
     VkDescriptorSetLayout FindLayout(u64 key) const;
 
-  public:
     void CreateDescriptorPool(const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES>&);
     PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
                                                            PipelineType pipeline_type);
@@ -49,7 +49,6 @@ class VulkanDescriptorSetManager {
     void ReflectDescriptorSetLayoutFromShader(
         VulkanShader *shader, std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_create_in,
         std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_bindings);
-
   public:
     const VulkanRendererContext &m_context;
 

@@ -11,7 +11,7 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptorSetManager.h>
+#include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
@@ -23,6 +23,7 @@ class RHIVulkan : public RHI {
   public:
     RHIVulkan() noexcept;
     virtual ~RHIVulkan() noexcept;
+
     RHIVulkan(const RHIVulkan &rhs) noexcept = delete;
     RHIVulkan &operator=(const RHIVulkan &rhs) noexcept = delete;
     RHIVulkan(RHIVulkan &&rhs) noexcept = delete;
@@ -78,7 +79,7 @@ class RHIVulkan : public RHI {
 
   private:
     VulkanRendererContext m_vulkan{};
-    std::unique_ptr<VulkanDescriptorSetManager> m_descriptor_set_manager = nullptr;
+    std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator = nullptr;
     // pipeline map
     // resource manager, auto
 };
