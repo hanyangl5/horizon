@@ -51,7 +51,7 @@ void RHIVulkan::InitializeRenderer() {
 
 Resource<Buffer> RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) {
 
-    return std::make_unique<VulkanBuffer>(m_vulkan.vma_allocator, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
+    return std::make_unique<VulkanBuffer>(m_vulkan, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
 Resource<Texture> RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) {

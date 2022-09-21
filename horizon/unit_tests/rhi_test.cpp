@@ -560,11 +560,8 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
     auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
 
-    
-
-
     auto image_acquired_semaphore = rhi->GetSemaphore();
-
+    auto resource_uploaded_semaphore = rhi->GetSemaphore();
     bool resources_uploaded = false;
 
     for (u32 frame = 0; frame < 3; frame++) {
@@ -582,16 +579,18 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
-
+        
         transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(Math::float4x4));
 
         if (!resources_uploaded) {
             resources_uploaded = true;
             mesh.UploadResources(transfer);
         }
+
+
         transfer->EndRecording();
 
-        auto resource_uploaded_semaphore = rhi->GetSemaphore();
+
         {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::TRANSFER;

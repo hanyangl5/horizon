@@ -20,6 +20,7 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     image_create_info.usage = util_to_vk_image_usage(texture_create_info.descriptor_type);
+    image_create_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -27,7 +28,7 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     allocation_creat_info.usage = VMA_MEMORY_USAGE_AUTO;
 
     CHECK_VK_RESULT(vmaCreateImage(m_context.vma_allocator, &image_create_info, &allocation_creat_info, &m_image,
-                                   &m_allocation, nullptr));
+                                   &m_memory, nullptr));
 
     if (texture_create_info.initial_state == ResourceState::RESOURCE_STATE_RENDER_TARGET ||
         texture_create_info.initial_state==ResourceState::RESOURCE_STATE_SHADER_RESOURCE) {
@@ -48,7 +49,7 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
 }
 
 VulkanTexture::~VulkanTexture() noexcept {
-    vmaDestroyImage(m_context.vma_allocator, m_image, m_allocation);
+    vmaDestroyImage(m_context.vma_allocator, m_image, m_memory);
     if (m_image_view != VK_NULL_HANDLE) {
         vkDestroyImageView(m_context.device, m_image_view, nullptr);
     }

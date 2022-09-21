@@ -43,32 +43,35 @@ class VulkanCommandList : public CommandList {
     virtual void DispatchIndirect() override;
 
     virtual void UpdateBuffer(Buffer *buffer, void *data, u64 size) override;
+
     virtual void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) override;
+
     void CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer);
 
-    void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) override;
+    // void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) override;
+    // 
+    // void CopyTextureToBuffer(VulkanTexture *src_texture, VulkanBuffer *dst_buffer) override;
 
-    virtual void CopyTexture() override;
+    void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) override;
 
     virtual void InsertBarrier(const BarrierDesc &desc) override;
 
     virtual void BindPipeline(Pipeline *pipeline) override;
 
-    void CopyBufferToImage();
 
-    void BindPushConstant(Pipeline *pipeline, const std::string& name, void *data) override;
+    void BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) override;
 
     void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
 
     void ClearBuffer(Buffer *buffer, f32 clear_value) override;
 
-    void ClearTextrue(Texture* texture, const Math::float4& clear_value) override;
+    void ClearTextrue(Texture *texture, const Math::float4 &clear_value) override;
 
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
   private:
     const VulkanRendererContext &m_context;
-    Resource<VulkanBuffer> GetStageBuffer(VmaAllocator allocator, const BufferCreateInfo &buffer_create_info);
+    Resource<VulkanBuffer> GetStageBuffer(const BufferCreateInfo &buffer_create_info);
 
   public:
     VkCommandBuffer m_command_buffer;

@@ -142,7 +142,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         for (auto &[type, tex] : m.material_textures) {
             int width, height, channels;
             auto path = tex.url.string();
-            u8 *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+            u8 *data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
             assert(("failed to load texture", data != nullptr));
             tex.width = width;
             tex.height = height;
@@ -253,6 +253,7 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
 
     LOG_DEBUG("mesh successfully loaded, {} meshes, {} vertices, {} faces", m_mesh_primitives.size(), m_vertices.size(),
               m_indices.size());
+    assimp_importer.FreeScene();
 }
 
 void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) {
@@ -308,7 +309,7 @@ void Mesh::UploadResources(RHI::CommandList *transfer) {
     transfer->UpdateBuffer(m_index_buffer.get(), m_indices.data(), m_index_buffer->m_size);
 
     // upload textures
-    
+    // insert barrier for texture for layout transition
    BarrierDesc barrier_desc{};
     
     for (auto &m : materials) {
@@ -316,11 +317,11 @@ void Mesh::UploadResources(RHI::CommandList *transfer) {
             TextureUpdateDesc desc{};
             desc.data = tex.data;
             transfer->UpdateTexture(tex.texture.get(), desc);
-            TextureBarrierDesc texture_barrier{};
-            texture_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-            texture_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            texture_barrier.texture = tex.texture.get();
-            barrier_desc.texture_memory_barriers.push_back(texture_barrier);
+            //TextureBarrierDesc texture_barrier{};
+            //texture_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+            //texture_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+            //texture_barrier.texture = tex.texture.get();
+            //barrier_desc.texture_memory_barriers.push_back(texture_barrier);
         }
     }
     transfer->InsertBarrier(barrier_desc);

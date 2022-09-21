@@ -3,6 +3,7 @@
 #include "vk_mem_alloc.h"
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
+#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 
 namespace Horizon::RHI {
 class VulkanTexture : public Texture {
@@ -18,8 +19,9 @@ class VulkanTexture : public Texture {
     const VulkanRendererContext &m_context;
     VkImage m_image{};
     VkImageView m_image_view{};
-    VmaAllocation m_allocation{};
+    VmaAllocation m_memory{};
     VkDescriptorImageInfo texture_info{};
+    Resource<VulkanBuffer> m_stage_buffer;
 };
 
 } // namespace Horizon::RHI
