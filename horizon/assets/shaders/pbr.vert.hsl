@@ -1,0 +1,37 @@
+
+CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+    DATA(float4x4, vp, None);
+    DATA(float4, camera_position, None);
+};
+
+PUSH_CONSTANT(model_matrix, b1){
+    DATA(float4x4, model_matrix, None);
+};
+
+
+STRUCT(VSInput)
+{
+	DATA(float3, position, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv0, UV0);
+};
+
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+    DATA(float3, world_pos, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv, TEXCOORD0);
+};
+
+VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
+{
+    INIT_MAIN;
+    VSOutput vsout;
+    vsout.position = mul(float4(vsin.position, 1.0), mul(Get(model_matrix), Get(vp))); // column major
+    vsout.world_pos = mul(float4(vsin.position, 1.0), Get(model_matrix)).xyz;
+    vsout.normal = vsin.normal;
+    vsout.uv = vsin.uv0;
+    RETURN(vsout);
+}

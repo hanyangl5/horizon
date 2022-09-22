@@ -33,6 +33,8 @@
     THE SOFTWARE.
 ********************************************************************************/
 
+#include "common_math.h"
+
 // utils
 
 float sqrtIEEEIntApproximation(float x, const int inSqrtConst)
@@ -195,8 +197,7 @@ float3 NormalizeFast0(float3 v) {
 //
 // Trigonometric functions
 //
-const  float PI = 3.1415926535897932384626433f;
-const  float HALF_PI = 0.5f * PI;
+
 // max absolute error 9.0x10^-3
 // Eberly's polynomial degree 1 - respect bounds
 // 4 VGPR, 12 FR (8 FR, 1 QR), 1 scalar
@@ -349,14 +350,6 @@ float AsinFast4( float x )
 {
 	return (0.5 * PI) - AcosFast4(x);
 }
-
-float Pow2(x) {return x * x;}
-
-float Pow3(x) {return x * x * x;}
-
-float Pow4(x) {return x * x * x * x;}
-
-float Pow5(x) {return x * x * x * x * x;}
 
 // some functions may already optimized on modern platform
 

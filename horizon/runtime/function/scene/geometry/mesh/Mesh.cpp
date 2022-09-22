@@ -160,8 +160,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
     for (auto &m : materials) {
         for (auto &[type, tex] : m.material_textures) {
             int width, height, channels;
-            auto path = tex.url.string();
-            u8 *data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+            u8 *data = stbi_load(tex.url.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
             assert(("failed to load texture", data != nullptr));
             tex.width = width;
             tex.height = height;
