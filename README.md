@@ -1,6 +1,6 @@
 ![](docs/figs/horizon_224.png)
 
-# Horizon
+# [Horizon](https://github.com/v4vendeta/horizon/)
 
 horizon is a real time render framework.
 
