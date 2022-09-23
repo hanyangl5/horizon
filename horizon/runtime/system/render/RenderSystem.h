@@ -33,42 +33,6 @@ class RenderSystem {
   public:
     Camera *GetMainCamera() const;
 
-    // Resource<Buffer>
-    // CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept;
-
-    // Resource<Texture>
-    // CreateTexture(const TextureCreateInfo &texture_create_info) noexcept;
-
-    // Shader *CreateShader(ShaderType type,
-    //                                    const std::string &entry_point,
-    //                                    u32 compile_flags,
-    //                                    std::string file_name) noexcept;
-    // void DestroyShader(Shader *shader_program) noexcept;
-
-    // Pipeline *CreateGraphicsPipeline(
-    //     const GraphicsPipelineCreateInfo &create_info) noexcept;
-
-    // Pipeline *CreateComputePipeline(
-    //     const ComputePipelineCreateInfo &create_info) noexcept;
-
-    // CommandList *GetCommandList(CommandQueueType type) noexcept;
-
-    // void WaitGpuExecution(CommandQueueType queue_type) noexcept;
-
-    // void ResetCommandResources() noexcept;
-
-    // // submit command list to command queue
-    // void SubmitCommandLists(CommandQueueType queue,
-    //                         std::vector<CommandList *> &command_lists)
-    //                         noexcept;
-
-    // void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
-    //                  u32 binding) noexcept;
-
-    // void SetResource(Texture *texture) noexcept;
-
-    // void UpdateDescriptors() noexcept;
-
     RHI::RHI *GetRhi() noexcept { return m_rhi.get(); }
 
   private:
@@ -76,7 +40,7 @@ class RenderSystem {
 
   private:
     Window *m_window{};
-
+    std::unique_ptr<Camera> m_debug_camera;
     std::unique_ptr<RHI::RHI> m_rhi{};
 };
 } // namespace Horizon

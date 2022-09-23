@@ -194,7 +194,7 @@ enum ResourceState {
     RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE = 0x4000,
     RESOURCE_STATE_SHADING_RATE_SOURCE = 0x8000,
     RESOURCE_STATE_HOST_READ = 0x10000,
-    RESOURCE_STATE_HOST_WRITE = 0x20000
+    RESOURCE_STATE_HOST_WRITE = 0x20000 
 };
 
 enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
@@ -214,6 +214,12 @@ struct TextureCreateInfo {
     TextureFormat texture_format;
     // TextureUsage texture_usage;
     u32 width, height, depth = 1;
+};
+
+using SwapChainFormat = TextureFormat;
+
+struct SwapChainCreateInfo {
+    u32 back_buffer_count;
 };
 
 // dx12

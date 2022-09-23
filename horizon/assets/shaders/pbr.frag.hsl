@@ -72,7 +72,7 @@ PSOutput PS_MAIN(VSOutput vsout)
         radiance += Radiance(mat, Get(light_data)[i], n, v, vsout.world_pos);
     }
 
-    psout.color = radiance;
+    psout.color = float4(mat.albedo,  1.0);
     
     RETURN(psout);
     

@@ -5,7 +5,7 @@ Camera::Camera(Math::float3 eye, Math::float3 at, Math::float3 up) noexcept : m_
     m_forward = Math::Normalize(m_at - m_eye);
     m_right = Math::Cross(m_forward, m_up);
     UpdateViewMatrix();
-    // setLookAt(eye, at, up);
+    //setLookAt(eye, at, up);
 }
 
 void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane) noexcept {
@@ -13,7 +13,7 @@ void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearP
     m_aspect_ratio = aspect_ratio;
     m_near_plane = nearPlane;
     m_far_plane = farPlane;
-    // m_projection = Math::perspective(fov, aspect_ratio, nearPlane, farPlane);
+    m_projection = Math::Perspective(fov, aspect_ratio, nearPlane, farPlane);
     // m_projection = ReversePerspective(fov, aspect_ratio, nearPlane,
     // farPlane);
 }
@@ -78,11 +78,14 @@ void Camera::UpdateViewMatrix() noexcept {
 
     m_view = Math::LookAt(m_eye, m_eye + m_forward, m_up);
 }
-Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
-    // TODO: the directx matrix calculation rule
-    return (m_projection * m_view).Invert();
+Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept {
+    auto vp = m_view * m_projection;
+    vp = vp.Transpose();
+    return vp;
 }
 Math::float3 Camera::GetForwardDir() const noexcept { return m_forward; }
+
 Math::float4x4 Camera::GetViewMatrix() const noexcept { return m_view; }
+
 Math::float3 Camera::GetPosition() const noexcept { return m_eye; }
 } // namespace Horizon

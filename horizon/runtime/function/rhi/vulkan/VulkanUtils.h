@@ -19,11 +19,6 @@ struct VulkanRendererContext {
     std::array<u32, 3> command_queue_familiy_indices;
     std::array<VkQueue, 3> command_queues;
     std::array<VkFence, 3> fences;
-    VkSurfaceKHR surface;
-    VkSurfaceFormatKHR optimal_surface_format;
-    VkSwapchainKHR swap_chain;
-    std::vector<VkImage> swap_chain_images;
-    std::vector<VkImageView> swap_chain_image_views;
 };
 
 VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) noexcept;

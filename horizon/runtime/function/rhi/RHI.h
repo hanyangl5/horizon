@@ -17,6 +17,7 @@
 #include <runtime/function/rhi/Semaphore.h>
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/Sampler.h>
+#include <runtime/function/rhi/SwapChain.h>
 
 namespace Horizon::RHI {
 
@@ -27,10 +28,13 @@ struct QueueSubmitInfo {
     std::vector<CommandList *> command_lists;
     std::vector<Semaphore *> wait_semaphores;
     std::vector<Semaphore *> signal_semaphores;
+    bool wait_image_acquired = false;
+    bool signal_render_complete = false;
 };
 
 struct QueuePresentInfo {
-    std::vector<Semaphore *> wait_semaphores;
+    //std::vector<Semaphore *> wait_semaphores; // we only need to wait render complete semaphore
+    SwapChain *swap_chain;
 };
 
 class RHI {
@@ -55,7 +59,7 @@ class RHI {
 
     virtual Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) = 0;
 
-    virtual void CreateSwapChain(Window *window) = 0;
+    virtual Resource<SwapChain> CreateSwapChain(const SwapChainCreateInfo &create_info) = 0;
 
     std::vector<char> ReadFile(const char* path) const;
 
@@ -85,18 +89,15 @@ class RHI {
     // submit command list to command queue
     virtual void SubmitCommandLists(const QueueSubmitInfo& queue_submit_info) = 0;
 
-    virtual void AcquireNextImage(Semaphore* image_acquired_semaphore, u32 swap_chain_image_index) = 0;
+    virtual void AcquireNextFrame(SwapChain* swap_chain) = 0;
 
     virtual void Present(const QueuePresentInfo& queue_present_info) = 0;
 
+    void SetWindow(Window *window) noexcept { m_window = window; }
+
   protected:
-    u32 m_back_buffer_count{3};
     u32 m_current_frame_index{0};
-
-    // std::unordered_map<u64, Pipeline *> pipeline_map; // TODO: manage by rg
-
-  private:
-    std::shared_ptr<Window> m_window{};
+    Window *m_window{};
 };
 
 } // namespace Horizon::RHI

@@ -13,9 +13,9 @@ InputSystem::~InputSystem() noexcept {}
 
 void InputSystem::Tick() {
     glfwPollEvents();
-    // ProcessMouseInput();
-    // ProcessKeyboardInput();
-    // m_camera->UpdateViewMatrix();
+    ProcessMouseInput();
+    ProcessKeyboardInput();
+    m_camera->UpdateViewMatrix();
 }
 
 void InputSystem::ProcessKeyboardInput() {

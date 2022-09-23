@@ -2,7 +2,7 @@
 
 #include <d3d12.h>
 #include <directxtk12/SimpleMath.h>
-
+#include <DirectXCollision.h>
 #include <runtime/core/utils/Definations.h>
 
 namespace Horizon::Math {
@@ -22,6 +22,8 @@ using quaternion = DirectX::SimpleMath::Quaternion;
 using plane = DirectX::SimpleMath::Plane;
 using ray = DirectX::SimpleMath::Ray;
 using color = DirectX::SimpleMath::Color;
+
+using BoundingFrustum = DirectX::BoundingFrustum;
 
 inline float3 Normalize(const float3 &f) {
     float3 ret;
