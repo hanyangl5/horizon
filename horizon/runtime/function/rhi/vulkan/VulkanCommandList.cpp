@@ -276,10 +276,10 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         vk_texture->m_stage_buffer =
             std::make_unique<VulkanBuffer>(m_context,
                                            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
-                                                            ResourceState::RESOURCE_STATE_COPY_SOURCE, texture_size },
+                                                            ResourceState::RESOURCE_STATE_COPY_SOURCE, texture_size},
                                            MemoryFlag::CPU_VISABLE_MEMORY);
     }
-     memcpy(vk_texture->m_stage_buffer->m_allocation_info.pMappedData, texture_data.data,
+    memcpy(vk_texture->m_stage_buffer->m_allocation_info.pMappedData, texture_data.data,
            static_cast<u64>(texture_size));
 
     // barrier 1
@@ -296,7 +296,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         bmb.buffer = vk_texture->m_stage_buffer.get();
         bmb.src_state = RESOURCE_STATE_HOST_WRITE;
         bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
-
 
         BarrierDesc desc{};
 
@@ -321,14 +320,62 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
     vkCmdCopyBufferToImage(m_command_buffer, vk_texture->m_stage_buffer->m_buffer, vk_texture->m_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
+
     {
+        BarrierDesc desc2{};
+        // handle mipmap generation, FIX : blit cannot call from tranfer command
+        //if (texture->mip_map_level > 1) 
+        //{
+        //    TextureBarrierDesc mip_map_barrier{};
+        //    mip_map_barrier.texture = texture;
+
+        //    i32 mip_w = texture->m_width, mip_h = texture->m_height;
+
+        //    for (u32 i = 0; i < texture->mip_map_level; i++) {
+        //        mip_map_barrier.first_mip_level = i - 1;
+        //        mip_map_barrier.mip_level_count = 1;
+        //        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+        //        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        //        desc2.texture_memory_barriers.emplace_back(mip_map_barrier);
+
+        //        // todo provide blit
+        //        {
+        //            VkImageBlit blit{};
+        //            blit.srcOffsets[0] = {0, 0, 0};
+        //            blit.srcOffsets[1] = {mip_w, mip_h, 1};
+        //            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //            blit.srcSubresource.mipLevel = i - 1;
+        //            blit.srcSubresource.baseArrayLayer = 0;
+        //            blit.srcSubresource.layerCount = 1;
+        //            blit.dstOffsets[0] = {0, 0, 0};
+        //            blit.dstOffsets[1] = {mip_w > 1 ? mip_w / 2 : 1, mip_h > 1 ? mip_h / 2 : 1, 1};
+        //            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //            blit.dstSubresource.mipLevel = i;
+        //            blit.dstSubresource.baseArrayLayer = 0;
+        //            blit.dstSubresource.layerCount = 1;
+
+        //            vkCmdBlitImage(m_command_buffer, vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        //                           vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+        //                           VK_FILTER_LINEAR);
+        //        }
+        //        mip_map_barrier.first_mip_level = i-1;
+        //        mip_map_barrier.mip_level_count = 1;
+        //        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        //        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+        //        desc2.texture_memory_barriers.emplace_back(mip_map_barrier);
+        //        if (mip_w > 1)
+        //            mip_w /= 2;
+        //        if (mip_h > 1)
+        //            mip_h /= 2;
+        //    }
+        //}
+
         // transition layout, transfer dst -> usage
         TextureBarrierDesc tmb2{};
         tmb2.texture = texture;
         tmb2.src_state = RESOURCE_STATE_COPY_DEST;
         tmb2.dst_state = texture->m_state;
 
-        BarrierDesc desc2{};
 
         desc2.texture_memory_barriers.emplace_back(tmb2);
 
@@ -414,22 +461,23 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
         if (1) {
 
             barrier.image = vk_texture->m_image;
-            barrier.subresourceRange =
-                VkImageSubresourceRange{ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false), 0, 1, 0, 1};
+            barrier.subresourceRange.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false);
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
+            barrier.subresourceRange.levelCount = barrier_desc.mip_level_count;
+            // todo
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
             // barrier.subresourceRange.aspectMask =
             //     (VkImageAspectFlags)pTexture->mAspectMask;
-            // barrier.subresourceRange.baseMipLevel =
-            //     barrier_desc.mSubresourceBarrier ? barrier_desc.mMipLevel :
-            //     0;
-            // barrier.subresourceRange.levelCount =
-            //     barrier_desc.mSubresourceBarrier ? 1 :
-            //     VK_REMAINING_MIP_LEVELS;
+
+
             // barrier.subresourceRange.baseArrayLayer =
-            //     barrier_desc.mSubresourceBarrier ? barrier_desc.mArrayLayer :
-            //     0;
-            // barrier.subresourceRange.layerCount =
-            //     barrier_desc.mSubresourceBarrier ? 1 :
-            //     VK_REMAINING_ARRAY_LAYERS;
+            //      barrier_desc.mSubresourceBarrier ? barrier_desc.mArrayLayer :
+            //      0;
+            //  barrier.subresourceRange.layerCount =
+            //      barrier_desc.mSubresourceBarrier ? 1 :
+            //      VK_REMAINING_ARRAY_LAYERS;
 
             if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
                 ;

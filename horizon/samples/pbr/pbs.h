@@ -4,6 +4,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <filesystem>
 #include <unordered_set>
 
 #include <iniparser.h>
@@ -31,8 +32,8 @@ class Pbr {
   public:
     Pbr() {
         EngineConfig config{};
-        config.width = 800;
-        config.height = 600;
+        config.width = 1600;
+        config.height = 900;
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.offscreen = false;
         engine = std::make_unique<Engine>(config);
@@ -41,35 +42,45 @@ class Pbr {
         height = config.height;
     }
 
-    void Init();
+    void Init() {
+        InitAPI();
+        InitResources();
+    }
+    void InitAPI();
 
+    void InitResources();
+
+    void InitSphere();
+    
     void run();
 
   private:
     std::unique_ptr<Engine> engine{};
-    std::string asset_path = "C:/FILES/horizon/horizon/assets/";
+    std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";
     u32 width, height;
 
     Resource<Camera> m_camera{};
     Horizon::RHI::RHI *rhi;
     Resource<SwapChain> swap_chain;
-    std::string vs_path;
-    std::string ps_path;
+    std::filesystem::path vs_path, ps_path, cs_path;
+
     Shader *vs, *ps;
+    Shader *cs;
     RenderTarget *rt0;
     Resource<RenderTarget> depth;
 
-    Pipeline *pipeline;
+    GraphicsPipelineCreateInfo info{};
+    Pipeline *graphics_pass;
 
     Mesh *mesh;
-
+    std::vector<Mesh *> meshes;
     Resource<Sampler> sampler;
 
     Camera *cam;
-    GraphicsPipelineCreateInfo info{};
     struct CameraUb {
         Math::float4x4 vp;
         Math::float3 camera_pos;
+        f32 exposure;
     } camera_ub;
 
     Resource<Buffer> camera_buffer;

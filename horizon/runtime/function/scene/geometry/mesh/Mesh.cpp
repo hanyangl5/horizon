@@ -53,15 +53,15 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
             auto &tex = m.material_textures[type];
 
             TextureCreateInfo create_info{};
+
             if (tex.url == "") {
                 create_info.width = 1;
                 create_info.height = 1;
-                create_info.depth = 1;
             } else {
                 create_info.width = tex.width;
                 create_info.height = tex.height;
-                create_info.depth = 1;
             }
+            create_info.depth = 1;
             create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
             create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
             create_info.descriptor_type = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
@@ -70,7 +70,6 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
             tex.texture = rhi->CreateTexture(create_info);
         }
         for (auto &[type, tex] : m.material_textures) {
-
         }
     }
 }
@@ -146,13 +145,13 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
 
-        //for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
-        //    ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
-        //    assert(ret == aiReturn_SUCCESS);
-        //    std::filesystem::path abs_path = m_path;
-        //    abs_path /= temp_path.C_Str();
-        //    materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
-        //}
+        // for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
+        //     ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
+        //     assert(ret == aiReturn_SUCCESS);
+        //     std::filesystem::path abs_path = m_path;
+        //     abs_path /= temp_path.C_Str();
+        //     materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
+        // }
     }
 
     // load textures
@@ -248,7 +247,7 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
         m_mesh_primitives[m].index_offset = static_cast<u32>(m_indices.size());
         m_mesh_primitives[m].index_count = mesh->mNumFaces * 3;
         m_mesh_primitives[m].material_id = mesh->mMaterialIndex;
-        memcpy(&m_mesh_primitives[m].aabb, &mesh->mAABB,sizeof(AABB));
+        memcpy(&m_mesh_primitives[m].aabb, &mesh->mAABB, sizeof(AABB));
 
         for (u32 f = 0; f < mesh->mNumFaces; f++) {
             // use global indices
@@ -274,27 +273,94 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     assimp_importer.FreeScene();
 }
 
-void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) {
+void Mesh::LoadMesh(BasicGeometry::Shapes basic_geometry) {
     switch (basic_geometry) {
-    case Horizon::BasicGeometry::BasicGeometry::QUAD:
+    case Horizon::BasicGeometry::Shapes::QUAD:
         m_vertices = std::vector<Vertex>(BasicGeometry::quad_vertices.begin(), BasicGeometry::quad_vertices.end());
         m_indices = std::vector<Index>(BasicGeometry::quad_indices.begin(), BasicGeometry::quad_indices.end());
         break;
-    case Horizon::BasicGeometry::BasicGeometry::TRIANGLE:
+    case Horizon::BasicGeometry::Shapes::TRIANGLE:
         m_vertices =
             std::vector<Vertex>(BasicGeometry::triangle_vertices.begin(), BasicGeometry::triangle_vertices.end());
         m_indices = std::vector<Index>(BasicGeometry::triangle_indices.begin(), BasicGeometry::triangle_indices.end());
         break;
-    case Horizon::BasicGeometry::BasicGeometry::CUBE:
+    case Horizon::BasicGeometry::Shapes::CUBE:
         m_vertices = std::vector<Vertex>(BasicGeometry::cube_vertices.begin(), BasicGeometry::cube_vertices.end());
 
         m_indices = std::vector<Index>(BasicGeometry::cube_indices.begin(), BasicGeometry::cube_indices.end());
 
         break;
-    case Horizon::BasicGeometry::BasicGeometry::SPHERE:
-        // load from file
-        break;
-    case Horizon::BasicGeometry::BasicGeometry::CAPSULE:
+    case Horizon::BasicGeometry::Shapes::SPHERE: {
+
+        if (BasicGeometry::sphere_inited) {
+            m_vertices = BasicGeometry::sphere_vertices;
+            m_indices = BasicGeometry::sphere_indices;
+        } else {
+            BasicGeometry::sphere_inited = true;
+
+            const unsigned int X_SEGMENTS = 64;
+            const unsigned int Y_SEGMENTS = 64;
+
+            std::vector<Math::float3> positions;
+            std::vector<Math::float3> normals;
+            std::vector<Math::float2> uv;
+
+            for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
+                for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
+                    float xSegment = (float)x / (float)X_SEGMENTS;
+                    float ySegment = (float)y / (float)Y_SEGMENTS;
+                    float xPos = std::cos(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
+                    float yPos = std::cos(ySegment * Math::_PI);
+                    float zPos = std::sin(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
+
+                    positions.push_back(Math::float3(xPos, yPos, zPos));
+                    uv.push_back(Math::float2(xSegment, ySegment));
+                    normals.push_back(Math::float3(xPos, yPos, zPos));
+                }
+            }
+
+            bool oddRow = false;
+            for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
+                if (!oddRow) // even rows: y == 0, y == 2; and so on
+                {
+                    for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
+                        BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
+                        BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                    }
+                } else {
+                    for (int x = X_SEGMENTS; x >= 0; --x) {
+                        BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                        BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
+                    }
+                }
+                oddRow = !oddRow;
+            }
+            u32 indexCount = static_cast<unsigned int>(m_indices.size());
+
+            std::vector<Vertex> data;
+            for (unsigned int i = 0; i < positions.size(); ++i) {
+
+                Vertex vertex{};
+                vertex.pos = {positions[i].x, positions[i].y, positions[i].z};
+
+                if (vertex_attribute_flag & VertexAttributeType::NORMAL && !normals.empty()) {
+
+                    vertex.normal = {normals[i].x, normals[i].y, normals[i].z};
+                }
+                if (vertex_attribute_flag & VertexAttributeType::UV0 && !uv.empty()) {
+
+                    vertex.uv0 = {uv[i].x, uv[i].y};
+                }
+                if (vertex_attribute_flag & VertexAttributeType::UV1) {
+                }
+                BasicGeometry::sphere_vertices.push_back(vertex);
+
+                m_vertices = BasicGeometry::sphere_vertices;
+                m_indices = BasicGeometry::sphere_indices;
+            }
+        }
+    } break;
+    case Horizon::BasicGeometry::Shapes::CAPSULE:
         // load from file
         break;
     default:
@@ -310,6 +376,11 @@ void Mesh::LoadMesh(BasicGeometry::BasicGeometry basic_geometry) {
     n.parent = 0;
     n.mesh_primitives.emplace_back(&m_mesh_primitives[0]);
     m_nodes.push_back(std::move(n));
+
+    materials.resize(1);
+    materials[0].material_params.base_color_factor = Math::float3(1.0, 1.0, 1.0);
+    materials[0].material_params.metallic_factor = 0.0;
+    materials[0].material_params.roughness_factor = 1.0;
 }
 
 u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices.size()); }
@@ -328,29 +399,29 @@ void Mesh::UploadResources(RHI::CommandList *transfer) {
 
     // upload textures
     // insert barrier for texture for layout transition
-   BarrierDesc barrier_desc{};
-    
+    BarrierDesc barrier_desc{};
+
     for (auto &m : materials) {
-       transfer->UpdateBuffer(m.param_buffer.get(), &m.material_params, sizeof(m.material_params));
+        transfer->UpdateBuffer(m.param_buffer.get(), &m.material_params, sizeof(m.material_params));
 
-       BarrierDesc empty_texture_barrier{};
-       for (auto &[type, tex] : m.material_textures) {
-           // we don't upload empty texture, but have to transit image layout
-           if (tex.url == "") {
-               TextureBarrierDesc tex_barrier{};
-               tex_barrier.texture = tex.texture.get();
-               tex_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-               tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+        BarrierDesc empty_texture_barrier{};
+        for (auto &[type, tex] : m.material_textures) {
+            // we don't upload empty texture, but have to transit image layout
+            if (tex.url == "") {
+                TextureBarrierDesc tex_barrier{};
+                tex_barrier.texture = tex.texture.get();
+                tex_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+                tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
 
-               empty_texture_barrier.texture_memory_barriers.push_back(tex_barrier);
-               continue;
-           }
-           TextureUpdateDesc desc{};
-           desc.data = tex.data;
-           transfer->UpdateTexture(tex.texture.get(), desc);
-       }
-       transfer->InsertBarrier(empty_texture_barrier);
-   }
+                empty_texture_barrier.texture_memory_barriers.push_back(tex_barrier);
+                continue;
+            }
+            TextureUpdateDesc desc{};
+            desc.data = tex.data;
+            transfer->UpdateTexture(tex.texture.get(), desc);
+        }
+        transfer->InsertBarrier(empty_texture_barrier);
+    }
     transfer->InsertBarrier(barrier_desc);
 }
 

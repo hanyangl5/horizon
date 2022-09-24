@@ -31,7 +31,8 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
     VSOutput vsout;
     vsout.position = mul(float4(vsin.position, 1.0), mul(Get(model_matrix), Get(vp))); // column major
     vsout.world_pos = mul(float4(vsin.position, 1.0), Get(model_matrix)).xyz;
-    vsout.normal = vsin.normal;
+    //transpose(inverse(model)
+    vsout.normal = normalize(mul(float4(vsin.normal, 0.0), Get(model_matrix)).xyz);;
     vsout.uv = vsin.uv0;
     RETURN(vsout);
 }

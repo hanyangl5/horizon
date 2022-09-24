@@ -3,6 +3,7 @@ build
 horizon/3rd_party/DirectXShaderCompiler
 horizon/assets/models
 horizon/assets/generated_shaders
+horizon/assets/envrionment
 out
 horizon/tools/HSLCompiler/generators/__pycache__
 horizon/tools/HSLCompiler/__pycache__

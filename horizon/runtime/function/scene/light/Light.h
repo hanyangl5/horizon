@@ -5,7 +5,9 @@
 namespace Horizon {
 
 // light unit: lux for direct light, lumen for punctual light
-enum class LightType { DIRECT_LIGHT = 0, POINT_LIGHT, SPOT_LIGHT };
+enum class LightType { DIRECTIONAL_LIGHT = 0, POINT_LIGHT, SPOT_LIGHT };
+
+enum class LightUnit { LUX, LUMEN, CANDELA };
 
 struct LightParams {
     Math::float4 color_intensity = Math::float4(0.0); // r, g, b, intensity
@@ -20,31 +22,35 @@ class Light {
   public:
     Light() noexcept = default;
     ~Light() noexcept = default;
+    void *GetParamBuffer() { return &params; }
 
-  public:
+  protected:
+    void SetColor(const Math::float3 &color) noexcept;
+    void SetIntensity(f32 intensity, LightUnit uint) noexcept;
+    void SetPosition(const Math::float3 position) noexcept;
+    void SetFalloffRadius(f32 falloff) noexcept;
+    void SetSpotLightCone(f32 inner, f32 outer) noexcept;
+    void SetDirection(const Math::float3 &direction) noexcept;
+
+  protected:
     LightType m_type{};
     LightParams params{};
 };
 
 class DirectionalLight : public Light {
   public:
-    DirectionalLight(Math::color color, f32 intensity, Math::float3 direction) noexcept {
-        m_type = LightType::DIRECT_LIGHT;
-        params.color_intensity = Math::float4(color.x, color.y, color.z, intensity);
-        params.direction = direction;
-        params.direction.Normalize();
-        params.type = static_cast<u32>(m_type);
-    }
+    DirectionalLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction) noexcept;
 };
+
 class PointLight : public Light {
   public:
-    PointLight(Math::float3 color, f32 intensity, f32 radius) noexcept { m_type = LightType::POINT_LIGHT; }
+    PointLight(const Math::float3 &color, f32 intensity, f32 radius) noexcept;
 };
+
 class SpotLight : public Light {
   public:
-    SpotLight(Math::float3 color, f32 intensity, f32 inner_cone, f32 outer_cone) noexcept {
-        m_type = LightType::SPOT_LIGHT;
-    }
+    SpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction, f32 radius, f32 inner_cone,
+              f32 outer_cone) noexcept;
 };
 
 class AreaLight {};

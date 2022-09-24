@@ -61,7 +61,7 @@ class Mesh {
 
     void LoadMesh(const std::filesystem::path &path);
 
-    void LoadMesh(BasicGeometry::BasicGeometry basic_geometry);
+    void LoadMesh(BasicGeometry::Shapes basic_geometry);
 
     u32 GetVerticesCount() const noexcept;
 

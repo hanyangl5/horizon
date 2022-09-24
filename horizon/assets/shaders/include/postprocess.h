@@ -8,6 +8,6 @@ float3 TonemapACES(float3 x)
 	return (x * (A * x + B)) / (x * (C * x + D) + E);
 }
 
-float3 GammaCorrection(float3 x){
-	return pow( x, float3( 1.0 / 2.2 ));
-}
+// float3 GammaCorrection(float3 x){
+// 	return pow( x, float3( 1.0 / 2.2 ));
+// }

@@ -220,9 +220,9 @@ struct BXDF
 
 void InitBXDF( inout(BXDF) context, float3 N, float3 V, float3 L )
 {
-	context.NoL = dot(N, L);
-	context.NoV = dot(N, V);
-	context.VoL = dot(V, L);
+	context.NoL = saturate(dot(N, L));
+	context.NoV = saturate(dot(N, V));
+	context.VoL = saturate(dot(V, L));
 	float InvLenH = rsqrt( 2 + 2 * context.VoL );
 	context.NoH = saturate( ( context.NoL + context.NoV ) * InvLenH );
 	context.VoH = saturate( InvLenH + InvLenH * context.VoL );

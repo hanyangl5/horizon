@@ -47,6 +47,10 @@ class Camera {
 
     Math::float3 GetForwardDir() const noexcept;
 
+    f32 GetExposure() const noexcept;
+
+    void SetExposure(f32 aperture, f32 shutter_speed, f32 iso);
+
   private:
     Math::float3 m_eye, m_at, m_up;
     Math::float3 m_forward, m_right;
@@ -56,6 +60,12 @@ class Camera {
 
     f32 m_fov, m_aspect_ratio, m_near_plane, m_far_plane;
     f32 m_camera_speed{};
+
+    //exposure settings
+    f32 aperture;
+    f32 shutter_speed;
+    f32 iso;
+    f32 exposure;
 };
 
 

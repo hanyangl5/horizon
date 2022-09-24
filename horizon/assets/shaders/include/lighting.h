@@ -23,7 +23,7 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
     float3 light_dir;
 
     if(asuint(light.position_type).w == DIRECTIONAL_LIGHT) {
-        light_dir = -light.direction.xyz;
+        light_dir = -normalize(light.direction.xyz);
         attenuation = light.color_intensity.xyz * light.color_intensity.w;
     } else if(asuint(light.position_type).w == POINT_LIGHT) {
         light_dir = light.position_type.xyz - world_pos;
@@ -44,6 +44,11 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
         attenuation = lightAttenuation * light.color_intensity.xyz * light.color_intensity.w;
 
     }
+
+    if(dot(n, light_dir) < 0.0){
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
+
     BXDF bxdf;
     InitBXDF(bxdf, n, v, light_dir);
     

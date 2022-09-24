@@ -36,11 +36,12 @@ Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &cont
     vk_swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     vk_swap_chain_create_info.surface = surface;
     vk_swap_chain_create_info.minImageCount = m_back_buffer_count;
-    vk_swap_chain_create_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;     // optimal_surface_format.format;
+    vk_swap_chain_create_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;              // optimal_surface_format.format;
     vk_swap_chain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // optimal_surface_format.colorSpace;
     vk_swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
     vk_swap_chain_create_info.imageArrayLayers = 1;
-    vk_swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    vk_swap_chain_create_info.imageUsage =
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
     vk_swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
     vk_swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;

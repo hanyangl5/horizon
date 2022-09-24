@@ -10,11 +10,13 @@
 
 namespace Horizon::BasicGeometry {
 
-enum class BasicGeometry { QUAD, TRIANGLE, CUBE, SPHERE, CAPSULE };
+enum class Shapes { QUAD, TRIANGLE, CUBE, SPHERE, CAPSULE };
 
 extern std::array<Vertex, 24> cube_vertices;
 
 extern std::array<Index, 36> cube_indices;
+
+static bool sphere_inited = false;
 
 extern std::vector<Vertex> sphere_vertices;
 

@@ -8,7 +8,8 @@ float3 OpaqueBrdf(MaterialProperties mat, BXDF bxdf) {
 
     float D = D_GGX(mat.roughness2, bxdf.NoH);
     float G = Vis_SmithJoint(mat.roughness2, bxdf.NoV, bxdf.NoL);
-    float3 F = F_Schlick(mat.f0, float3(1.0, 1.0, 1.0), bxdf.NoH);
+    float f90 = saturate(dot(mat.f0, float3(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33)));
+    float3 F = F_Schlick(mat.f0, float3(f90, f90, f90), bxdf.NoH);
 
     float3 FDG = D * G * F;
 
@@ -17,10 +18,9 @@ float3 OpaqueBrdf(MaterialProperties mat, BXDF bxdf) {
 
     float3 diffuse = kd * Diffuse_Lambert(mat.albedo);
 
-    float3 specular = ks * FDG / (4.0 * bxdf.NoL * bxdf.NoV + 0.0001);
+    float3 specular = ks * FDG;
 
-    return diffuse;
-    //   +specular;
+    return diffuse + specular;
 }
 
 //Masked()

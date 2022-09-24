@@ -315,6 +315,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
             std::reinterpret_pointer_cast<VulkanSemaphore>(semaphore_ctx.swap_chain_acquire_semaphore)
                 .get()
                 ->m_semaphore);
+        wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
     }
 
     u32 signal_semaphore_count = queue_submit_info.signal_semaphores.size();
@@ -346,7 +347,6 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     submit_info.pSignalSemaphores = signal_semaphores.data();
 
     submit_info.pWaitDstStageMask = wait_stages.data();
-
     auto &fence = m_vulkan.fences[queue_submit_info.queue_type];
 
     vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, fence);

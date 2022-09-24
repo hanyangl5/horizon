@@ -36,7 +36,7 @@ void VulkanPipeline::SetComputeShader(Shader *cs) {
         CreateComputePipeline();
     }
 
-    m_descriptor_set_allocator.CreateDescriptorPool(m_pipeline_layout_desc.descriptor_set_hash_key);
+    m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
 void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
@@ -53,15 +53,24 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
         CreateGraphicsPipeline();
     }
 
-    m_descriptor_set_allocator.CreateDescriptorPool(m_pipeline_layout_desc.descriptor_set_hash_key);
+    m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
 Resource<DescriptorSet> VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
+    
+    if (m_descriptor_set_allocator.pool_created == false) {
+        m_descriptor_set_allocator.CreateDescriptorPool();
+        m_descriptor_set_allocator.pool_created = true;
+    }
+
+    auto &resource = m_descriptor_set_allocator.pipeline_descriptor_set_resources[this];
+
     u32 freq = static_cast<u32>(frequency);
     assert(("descriptor pool not allocated", m_descriptor_set_allocator.m_descriptor_pools[freq] != VK_NULL_HANDLE));
 
-    u32 counter = m_descriptor_set_allocator.m_used_set_counter[static_cast<u32>(frequency)]++;
-    VkDescriptorSet set = m_descriptor_set_allocator.allocated_sets[freq].sets[counter];
+    u32 counter = resource.m_used_set_counter[static_cast<u32>(frequency)]++;
+    VkDescriptorSet set =
+        m_descriptor_set_allocator.pipeline_descriptor_set_resources[this].allocated_sets[freq][counter];
 
     if (counter >= m_descriptor_set_allocator.m_reserved_max_sets[static_cast<u32>(frequency)]) {
         LOG_ERROR("descriptor set overflow");
