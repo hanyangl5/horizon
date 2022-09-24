@@ -2,8 +2,15 @@
 
 void Pbr::Init() {
 
+
     
     rhi = engine->m_render_system->GetRhi();
+
+    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0), Math::float3(0.0, 0.0, 0.0),
+                                                         Math::float3(0.0, 1.0, 0.0));
+    m_camera->SetCameraSpeed(0.1);
+    engine->m_render_system->SetCamera(m_camera.get());
+    engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
 
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
     vs_path = asset_path + "shaders/pbr.vert.hsl";
@@ -96,7 +103,7 @@ void Pbr::Init() {
 
     sampler = rhi->GetSampler(sampler_desc);
 
-    cam = engine->m_render_system->GetMainCamera();
+    cam = engine->m_render_system->GetDebugCamera();
 
     cam->SetPerspectiveProjectionMatrix(90.0f, (float)width / (float)height, 0.1f, 100.0f);
 
@@ -250,7 +257,7 @@ void Pbr::run() {
             BarrierDesc swap_chain_image_barrier{};
 
             TextureBarrierDesc tb;
-            tb.src_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
             tb.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
             tb.texture = swap_chain->GetRenderTarget()->GetTexture();
             swap_chain_image_barrier.texture_memory_barriers.push_back(tb);

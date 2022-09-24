@@ -50,6 +50,7 @@ class Pbr {
     std::string asset_path = "C:/FILES/horizon/horizon/assets/";
     u32 width, height;
 
+    Resource<Camera> m_camera{};
     Horizon::RHI::RHI *rhi;
     Resource<SwapChain> swap_chain;
     std::string vs_path;

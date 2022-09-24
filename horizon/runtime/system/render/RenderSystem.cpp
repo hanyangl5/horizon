@@ -15,8 +15,6 @@ class Window;
 RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend) noexcept : m_window(window) {
 
     InitializeRenderAPI(backend);
-    m_debug_camera =
-        std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0), Math::float3(0.0, 0.0, 0.0), Math::float3(0.0, 1.0, 0.0));
 }
 
 RenderSystem::~RenderSystem() noexcept {}
@@ -37,7 +35,11 @@ void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
     LOG_DEBUG("size of render api {}", sizeof(*m_rhi.get()));
     m_rhi->SetWindow(m_window);
 }
-Camera *RenderSystem::GetMainCamera() const { return m_debug_camera.get(); }
+
+Camera *RenderSystem::GetDebugCamera() const {
+    assert(m_debug_camera != nullptr);
+    return m_debug_camera;
+}
 
 // Shader *RenderSystem::CreateShader(
 //     ShaderType type, const std::string &entry_point, u32 compile_flags,

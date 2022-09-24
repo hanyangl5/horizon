@@ -31,7 +31,9 @@ class RenderSystem {
     RenderSystem &operator=(RenderSystem &&rhs) noexcept = delete;
 
   public:
-    Camera *GetMainCamera() const;
+    void SetCamera(Camera *camera) noexcept { m_debug_camera = camera; }
+
+    Camera *GetDebugCamera() const;
 
     RHI::RHI *GetRhi() noexcept { return m_rhi.get(); }
 
@@ -40,7 +42,7 @@ class RenderSystem {
 
   private:
     Window *m_window{};
-    std::unique_ptr<Camera> m_debug_camera;
+    Camera *m_debug_camera{};
     std::unique_ptr<RHI::RHI> m_rhi{};
 };
 } // namespace Horizon

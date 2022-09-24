@@ -2,16 +2,21 @@
 
 namespace Horizon {
 
-InputSystem::InputSystem(Window *window, Camera *camera) noexcept : m_window(window), m_camera(camera) {
+InputSystem::InputSystem(Window *window) noexcept : m_window(window) {
     m_window = window;
-    m_camera = camera;
     m_last_x = window->GetWidth() / 2.0f;
     m_last_y = window->GetHeight() / 2.0f;
     m_first_mouse = true;
 }
 InputSystem::~InputSystem() noexcept {}
 
+void InputSystem::SetCamera(Camera *camera) noexcept { m_camera = camera; }
+
 void InputSystem::Tick() {
+
+    assert(m_camera != nullptr);
+    assert(m_camera->GetCameraSpeed() != 0);
+
     glfwPollEvents();
     ProcessMouseInput();
     ProcessKeyboardInput();
@@ -19,6 +24,7 @@ void InputSystem::Tick() {
 }
 
 void InputSystem::ProcessKeyboardInput() {
+
 
     if (GetKeyPress(Key::ESCAPE)) {
         m_window->close();

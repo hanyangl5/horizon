@@ -554,7 +554,7 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
 
     //auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
 
-    auto cam = engine->m_render_system->GetMainCamera();
+    auto cam = engine->m_render_system->GetDebugCamera();
     cam->SetPerspectiveProjectionMatrix(90.0f, (float)width / (float)height, 0.1f, 100.0f);
     auto camvp = cam->GetViewProjectionMatrix();
     // row major
