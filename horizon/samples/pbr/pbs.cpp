@@ -1,31 +1,35 @@
 #include "pbs.h"
 
-void Pbr::InitAPI() {    
+void Pbr::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
-    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0), Math::float3(0.0, 0.0, 0.0),
-                                                         Math::float3(0.0, 1.0, 0.0));
+    m_camera =
+        std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0), Math::float3(0.0, 0.0, 0.0), Math::float3(0.0, 1.0, 0.0));
     m_camera->SetCameraSpeed(0.1);
     m_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
     engine->m_render_system->SetCamera(m_camera.get());
     engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
 
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
- 
 }
 
 void Pbr::InitResources() {
 
-    vs_path = asset_path / "shaders/pbr.vert.hsl";
-    ps_path = asset_path / "shaders/pbr.frag.hsl";
-    cs_path = asset_path / "shaders/post_process.comp.hsl";
-    
+    opaque_vs_path = asset_path / "shaders/lit_opaque.vert.hsl";
+    opaque_ps_path = asset_path / "shaders/lit_opaque.frag.hsl";
 
-    vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, vs_path);
+    masked_vs_path = asset_path / "shaders/lit_masked.vert.hsl";
+    masked_ps_path = asset_path / "shaders/lit_masked.frag.hsl";
 
-    ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, ps_path);
+    opaque_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, opaque_vs_path);
 
-    //cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, cs_path);
+    opaque_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, opaque_ps_path);
+
+        masked_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, masked_vs_path);
+
+    masked_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, masked_ps_path);
+
+    // cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, cs_path);
 
     // auto rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
     //                                                           RenderTargetType::COLOR, width, height});
@@ -33,9 +37,9 @@ void Pbr::InitResources() {
     depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                            RenderTargetType::DEPTH_STENCIL, width, height});
 
-    info.vertex_input_state.attribute_count = 4;
+    graphics_pass_ci.vertex_input_state.attribute_count = 4;
 
-    auto &pos = info.vertex_input_state.attributes[0];
+    auto &pos = graphics_pass_ci.vertex_input_state.attributes[0];
     pos.attrib_format = VertexAttribFormat::F32; // position
     pos.portion = 3;
     pos.binding = 0;
@@ -43,7 +47,7 @@ void Pbr::InitResources() {
     pos.offset = 0;
     pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
 
-    auto &normal = info.vertex_input_state.attributes[1];
+    auto &normal = graphics_pass_ci.vertex_input_state.attributes[1];
     normal.attrib_format = VertexAttribFormat::F32; // normal, TOOD: SN16 is a better format
     normal.portion = 3;
     normal.binding = 0;
@@ -51,7 +55,7 @@ void Pbr::InitResources() {
     normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     normal.offset = offsetof(Vertex, normal);
 
-    auto &uv0 = info.vertex_input_state.attributes[2];
+    auto &uv0 = graphics_pass_ci.vertex_input_state.attributes[2];
     uv0.attrib_format = VertexAttribFormat::F32; // uv0 TOOD: UN16 is a better format
     uv0.portion = 2;
     uv0.binding = 0;
@@ -59,7 +63,7 @@ void Pbr::InitResources() {
     uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     uv0.offset = offsetof(Vertex, uv0);
 
-    auto &uv1 = info.vertex_input_state.attributes[3];
+    auto &uv1 = graphics_pass_ci.vertex_input_state.attributes[3];
     uv1.attrib_format = VertexAttribFormat::F32; // uv1 TOOD: UN16 is a better format
     uv1.portion = 2;
     uv1.binding = 0;
@@ -67,39 +71,42 @@ void Pbr::InitResources() {
     uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     uv1.offset = offsetof(Vertex, uv1);
 
-    info.view_port_state.width = width;
-    info.view_port_state.height = height;
+    graphics_pass_ci.view_port_state.width = width;
+    graphics_pass_ci.view_port_state.height = height;
 
-    info.depth_stencil_state.depth_func = DepthFunc::LESS;
-    info.depth_stencil_state.depthNear = 0.0f;
-    info.depth_stencil_state.depthNear = 1.0f;
-    info.depth_stencil_state.depth_test = true;
-    info.depth_stencil_state.depth_write = true;
-    info.depth_stencil_state.stencil_enabled = false;
+    graphics_pass_ci.depth_stencil_state.depth_func = DepthFunc::LESS;
+    graphics_pass_ci.depth_stencil_state.depthNear = 0.0f;
+    graphics_pass_ci.depth_stencil_state.depthNear = 1.0f;
+    graphics_pass_ci.depth_stencil_state.depth_test = true;
+    graphics_pass_ci.depth_stencil_state.depth_write = true;
+    graphics_pass_ci.depth_stencil_state.stencil_enabled = false;
 
-    info.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
+    graphics_pass_ci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
 
-    info.multi_sample_state.sample_count = 1;
+    graphics_pass_ci.multi_sample_state.sample_count = 1;
 
-    info.rasterization_state.cull_mode = CullMode::BACK;
-    info.rasterization_state.discard = false;
-    info.rasterization_state.fill_mode = FillMode::TRIANGLE;
-    info.rasterization_state.front_face = FrontFace::CCW;
+    graphics_pass_ci.rasterization_state.cull_mode = CullMode::BACK;
+    graphics_pass_ci.rasterization_state.discard = false;
+    graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
+    graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
 
-    info.render_target_formats.color_attachment_count = 1;
-    info.render_target_formats.color_attachment_formats = std::vector<TextureFormat>{rt0->GetTexture()->m_format};
-    info.render_target_formats.has_depth = true;
-    info.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
+    graphics_pass_ci.render_target_formats.color_attachment_count = 1;
+    graphics_pass_ci.render_target_formats.color_attachment_formats = std::vector<TextureFormat>{rt0->GetTexture()->m_format};
+    graphics_pass_ci.render_target_formats.has_depth = true;
+    graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 
-    graphics_pass = rhi->CreateGraphicsPipeline(info);
+    opaque_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
 
+    graphics_pass_ci.rasterization_state.discard = true;
+
+    masked_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
 
     mesh = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-    //mesh->LoadMesh(asset_path /"models/DamagedHelmet/DamagedHelmet.gltf");
-    mesh->LoadMesh(asset_path /"models/FlightHelmet/glTF/FlightHelmet.gltf");
+    mesh->LoadMesh(asset_path /"models/DamagedHelmet/DamagedHelmet.gltf");
+    // mesh->LoadMesh(asset_path /"models/FlightHelmet/glTF/FlightHelmet.gltf");
     //mesh->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
     mesh->CreateGpuResources(rhi);
-    //InitSphere();
+    // InitSphere();
     SamplerDesc sampler_desc{};
     sampler_desc.min_filter = FilterType::FILTER_LINEAR;
     sampler_desc.mag_filter = FilterType::FILTER_LINEAR;
@@ -123,46 +130,45 @@ void Pbr::InitResources() {
     light_count_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
-    directional_light = new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0, Math::float3(0.0, 0.0, -1.0));
+
+    light_buffer =
+        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(LightParams)});
+
+    std::random_device seed;
+    std::ranlux48 engine(seed());
+    std::uniform_real_distribution<f32> random_position(-10.0, 10.0);
+    std::uniform_real_distribution<f32> random_color(0.5, 1.0);
+
+    for (unsigned int i = 0; i < 64; i++) {
+        // calculate slightly random offsets
+        float xPos = random_position(engine);
+        float yPos = random_position(engine);
+        float zPos = random_position(engine) + 2.0f;
+
+        // also calculate random color
+        float rColor = random_color(engine);
+        float gColor = random_color(engine);
+        float bColor = random_color(engine);
+
+        Math::float3 pos(xPos, yPos, zPos);
+        Math::float3 col(rColor, gColor, bColor);
+
+        //lights.push_back(new PointLight(col, 1000000.0, pos, 10.0));
+    }
+
+    lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0, Math::float3(0.0, 0.0, -1.0)));
+    for (auto &l : lights) {
+        lights_param_buffer.push_back(l->GetParamBuffer());
+    }
+    light_count = lights.size();
+    light_count_buffer =
+        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
 
     light_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                      sizeof(LightParams)});
-}
-
-void Pbr::InitSphere() {
-    int nrRows = 7;
-    int nrColumns = 7;
-    float spacing = 2.5;
-    
-    for (int i = 0; i < nrRows; i++) {
-
-        for (int j = 0; j < nrColumns; j++) {
-            Mesh *sphere = new Mesh(
-                MeshDesc{{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0}});
-            sphere->LoadMesh(BasicGeometry::Shapes::SPHERE);
-            sphere->GetNodes()[0].model_matrix;
-            meshes.push_back(sphere);
-            //sphere->CreateGpuResources(rhi);
-        }
-    }
-
-    // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns
-    // respectively
-    for (int row = 0; row < nrRows; ++row) {
-        //shader.setFloat("metallic", (float)row / (float)nrRows);
-        //for (int col = 0; col < nrColumns; ++col) {
-        //    // we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit
-        //    // off on direct lighting.
-        //    shader.setFloat("roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
-
-        //    model = Math::float4x4(1.0f);
-        //    model = glm::translate(model,
-        //                           glm::vec3((col - (nrColumns / 2)) * spacing, (row - (nrRows / 2)) * spacing, 0.0f));
-        //    shader.setMat4("model", model);
-        //    renderSphere();
-        //}
-    }
+                                                      sizeof(LightParams) * light_count});
 }
 
 void Pbr::run() {
@@ -170,24 +176,27 @@ void Pbr::run() {
     auto resource_uploaded_semaphore = rhi->GetSemaphore();
     bool resources_uploaded = false;
 
-
     for (;;) {
-
-        //Horizon::RDC::StartFrameCapture();
+        culled_mesh = 0;
+        total_mesh = 0;
+        // Horizon::RDC::StartFrameCapture();
         engine->m_input_system->Tick();
 
         rhi->AcquireNextFrame(swap_chain.get());
         camera_ub.vp = cam->GetViewProjectionMatrix();
         camera_ub.camera_pos = cam->GetPosition();
         camera_ub.exposure = cam->GetExposure();
-        graphics_pass->SetGraphicsShader(vs, ps);
-        //post_process_pass->SetComputeShader(cs);
-        auto per_frame_descriptor_set = graphics_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+        opaque_pass->SetGraphicsShader(opaque_vs, opaque_ps);
+        masked_pass->SetGraphicsShader(masked_vs, masked_ps);
+
+
+        auto opaque_pass_per_frame_ds = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
         transfer->BeginRecording();
-        transfer->UpdateBuffer(light_buffer.get(), directional_light->GetParamBuffer(), sizeof(LightParams));
+        transfer->UpdateBuffer(light_buffer.get(), lights_param_buffer.data(),
+                               lights_param_buffer.size() * sizeof(LightParams));
         transfer->UpdateBuffer(light_count_buffer.get(), &light_count, sizeof(light_count) * 4);
         transfer->UpdateBuffer(camera_buffer.get(), &camera_ub, sizeof(CameraUb));
 
@@ -207,10 +216,10 @@ void Pbr::run() {
         }
 
         // perframe descriptor set
-        per_frame_descriptor_set->SetResource(camera_buffer.get(), 0);
-        per_frame_descriptor_set->SetResource(light_buffer.get(), 2);
-        per_frame_descriptor_set->SetResource(light_count_buffer.get(), 1);
-        per_frame_descriptor_set->Update();
+        opaque_pass_per_frame_ds->SetResource(camera_buffer.get(), 0);
+        opaque_pass_per_frame_ds->SetResource(light_buffer.get(), 2);
+        opaque_pass_per_frame_ds->SetResource(light_count_buffer.get(), 1);
+        opaque_pass_per_frame_ds->Update();
 
         // material descriptor set
         for (auto &node : mesh->GetNodes()) {
@@ -222,32 +231,51 @@ void Pbr::run() {
                 materials.emplace(&mesh->GetMaterial(m->material_id));
             }
 
+            // opaque material
             for (auto &material : materials) {
-                material->material_descriptor_set = graphics_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+                if (material->GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
 
-                // material.material_params.param_bitmask;
-                // if (material->material_params.param_bitmask & HAS_BASE_COLOR) {
-                material->material_descriptor_set->SetResource(
-                    material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
-                //}
-                // if (material->material_params.param_bitmask & HAS_NORMAL) {
-                material->material_descriptor_set->SetResource(
-                    material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
-                //}
-                // if (material->material_params.param_bitmask & HAS_METALLIC_ROUGHNESS) {
-                material->material_descriptor_set->SetResource(
-                    material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
-                //}
-                material->material_descriptor_set->SetResource(sampler.get(), 3);
-                material->material_descriptor_set->SetResource(material->param_buffer.get(), 4);
-                material->material_descriptor_set->Update();
+                    material->material_descriptor_set =
+                        opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), 3);
+
+                    material->material_descriptor_set->SetResource(sampler.get(), 4);
+                    material->material_descriptor_set->SetResource(material->param_buffer.get(), 5);
+                    material->material_descriptor_set->Update();
+                } else if (material->GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
+
+                    material->material_descriptor_set =
+                        masked_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), 3);
+                    material->material_descriptor_set->SetResource(
+                        material->material_textures.at(MaterialTextureType::ALPHA_MASK).texture.get(), 4);
+
+                    material->material_descriptor_set->SetResource(sampler.get(), 5);
+                    material->material_descriptor_set->SetResource(material->param_buffer.get(), 6);
+                    material->material_descriptor_set->Update();
+                }
             }
         }
 
         auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
         cl->BeginRecording();
 
-        
         {
             BarrierDesc swap_chain_image_barrier{};
 
@@ -260,7 +288,6 @@ void Pbr::run() {
             cl->InsertBarrier(swap_chain_image_barrier);
         }
 
-
         RenderPassBeginInfo begin_info{};
         begin_info.render_area = Rect{0, 0, width, height};
         begin_info.render_targets[0].data = swap_chain->GetRenderTarget();
@@ -268,27 +295,51 @@ void Pbr::run() {
         begin_info.depth_stencil.data = depth.get();
         begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
 
-        cl->BeginRenderPass(begin_info);
-        cl->BindPipeline(graphics_pass);
-
         u32 offset = 0;
         auto vb = mesh->GetVertexBuffer();
         cl->BindVertexBuffers(1, &vb, &offset);
         cl->BindIndexBuffer(mesh->GetIndexBuffer(), 0);
 
-        cl->BindDescriptorSets(graphics_pass, per_frame_descriptor_set.get());
+        cl->BeginRenderPass(begin_info);
+        cl->BindPipeline(opaque_pass);
+
+        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds.get());
 
         for (auto &node : mesh->GetNodes()) {
             if (node.mesh_primitives.empty()) {
                 continue;
             }
             auto mat = node.GetModelMatrix().Transpose();
-            cl->BindPushConstant(graphics_pass, "model_matrix", &mat);
+            cl->BindPushConstant(opaque_pass, "model_matrix", &mat);
 
             for (auto &m : node.mesh_primitives) {
                 auto &material = mesh->GetMaterial(m->material_id);
-                cl->BindDescriptorSets(graphics_pass, material.material_descriptor_set.get());
-                cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
+                if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
+
+                    cl->BindDescriptorSets(opaque_pass, material.material_descriptor_set.get());
+                    cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
+                }
+            }
+        }
+
+        cl->BindPipeline(masked_pass);
+
+        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds.get());
+
+        for (auto &node : mesh->GetNodes()) {
+            if (node.mesh_primitives.empty()) {
+                continue;
+            }
+            auto mat = node.GetModelMatrix().Transpose();
+            cl->BindPushConstant(masked_pass, "model_matrix", &mat);
+
+            for (auto &m : node.mesh_primitives) {
+                auto &material = mesh->GetMaterial(m->material_id);
+                if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
+
+                    cl->BindDescriptorSets(masked_pass, material.material_descriptor_set.get());
+                    cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
+                }
             }
         }
 
@@ -320,16 +371,17 @@ void Pbr::run() {
         }
 
         {
-            QueuePresentInfo info{};
-            info.swap_chain = swap_chain.get();
-            rhi->Present(info);
+            QueuePresentInfo opaque_pass_ci{};
+            opaque_pass_ci.swap_chain = swap_chain.get();
+            rhi->Present(opaque_pass_ci);
         }
-        //Horizon::RDC::EndFrameCapture();
+        // Horizon::RDC::EndFrameCapture();
+        //LOG_DEBUG("total mesh: {} culled mesh: {}", total_mesh, culled_mesh);
     }
-    rhi->DestroyPipeline(graphics_pass);
-    //rhi->DestroyPipeline(post_process_pass);
-    rhi->DestroyShader(vs);
-    rhi->DestroyShader(ps);
-    rhi->DestroyShader(cs);
+    //rhi->DestroyPipeline(graphics_pass);
+    //// rhi->DestroyPipeline(post_process_pass);
+    //rhi->DestroyShader(vs);
+    //rhi->DestroyShader(ps);
+    //rhi->DestroyShader(cs);
     LOG_INFO("draw done");
 }

@@ -28,16 +28,16 @@ void Light::SetIntensity(f32 intensity, LightUnit unit) noexcept {
         break;
     case LightType::SPOT_LIGHT: {
 
-        //float cosOuter = std::sqrt(spotParams.cosOuterSquared);
-        //if (unit == LightUnit::LUMEN) {
-        //    // li = lp / (2 * pi * (1 - cos(cone_outer / 2)))
-        //    luminousIntensity = luminousPower / (Math::_2PI * (1.0f - cosOuter));
-        //} else if (unit == LightUnit::CANDELA)
-        //    // intensity specified directly in candela, no conversion needed
-        //    luminousIntensity = luminousPower;
+        // float cosOuter = std::sqrt(spotParams.cosOuterSquared);
+        // if (unit == LightUnit::LUMEN) {
+        //     // li = lp / (2 * pi * (1 - cos(cone_outer / 2)))
+        //     luminousIntensity = luminousPower / (Math::_2PI * (1.0f - cosOuter));
+        // } else if (unit == LightUnit::CANDELA)
+        //     // intensity specified directly in candela, no conversion needed
+        //     luminousIntensity = luminousPower;
         //// lp = li * (2 * pi * (1 - cos(cone_outer / 2)))
 
-        //luminousPower = luminousIntensity * (Math::_2PI * (1.0f - cosOuter));
+        // luminousPower = luminousIntensity * (Math::_2PI * (1.0f - cosOuter));
 
         // spotParams.luminousPower = luminousPower;
         break;
@@ -60,21 +60,29 @@ void Light::SetDirection(const Math::float3 &direction) noexcept {
     params.direction = direction;
 }
 
-DirectionalLight::DirectionalLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction) noexcept {
+DirectionalLight::DirectionalLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction) noexcept {\
+    m_type = LightType::DIRECTIONAL_LIGHT;
+    params.type = static_cast<u32>(LightType::DIRECTIONAL_LIGHT);
     SetColor(color);
     SetIntensity(intensity, LightUnit::LUX);
     SetDirection(direction);
 }
 
-PointLight::PointLight(const Math::float3 &color, f32 intensity, f32 radius) noexcept {
+PointLight::PointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, f32 radius) noexcept {
+    m_type = LightType::POINT_LIGHT;
+    params.type = static_cast<u32>(LightType::POINT_LIGHT);
     SetColor(color);
     SetIntensity(intensity, LightUnit::LUMEN);
+    SetPosition(position);
     SetFalloffRadius(radius);
 }
 
-SpotLight::SpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction, f32 radius,
-                     f32 inner_cone, f32 outer_cone) noexcept {
+SpotLight::SpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
+                     const Math::float3 &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept {
+    m_type = LightType::SPOT_LIGHT;
+    params.type = static_cast<u32>(LightType::SPOT_LIGHT);
     SetColor(color);
+    SetPosition(position);
     SetDirection(direction);
     SetFalloffRadius(radius);
     SetSpotLightCone(inner_cone, outer_cone);

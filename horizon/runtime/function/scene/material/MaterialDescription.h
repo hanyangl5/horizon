@@ -16,9 +16,16 @@ enum MaterialParamFlags {
     HAS_NORMAL = 0x10,
     HAS_METALLIC_ROUGHNESS = 0x100,
     HAS_EMISSIVE = 0x1000,
+    HAS_ALPHA = 0x10000
 };
 
-enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSIVE };
+enum class ShadingModel {
+    SHADING_MODEL_UNLIT,
+    SHADING_MODEL_OPAQUE,
+    SHADING_MODEL_MASKED
+};
+
+enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSIVE, ALPHA_MASK };
 
 class MaterialTextureDescription {
   public:
@@ -44,7 +51,7 @@ struct MaterialParams {
     Math::float3 emmissive_factor;
     f32 metallic_factor;
     u32 param_bitmask;
-    u32 pad0, pad1, pad2;
+    u32 shading_model_id, pad1, pad2;
 };
 
 class Material {
@@ -57,10 +64,12 @@ class Material {
     Material(Material &&rhs) noexcept {};
     Material &operator=(Material &&rhs) noexcept {};
 
+    ShadingModel GetShadingModelID() noexcept { return shading_model; }
   public:
     Resource<RHI::DescriptorSet> material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
     MaterialParams material_params{};
+    ShadingModel shading_model{ShadingModel::SHADING_MODEL_OPAQUE};
     Resource<RHI::Buffer> param_buffer{};
     //  Material* materials
 };

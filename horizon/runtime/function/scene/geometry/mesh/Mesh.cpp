@@ -48,7 +48,7 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
                                                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                             sizeof(m.material_params)});
         std::vector<MaterialTextureType> types{MaterialTextureType::BASE_COLOR, MaterialTextureType::NORMAL,
-                                               MaterialTextureType::METALLIC_ROUGHTNESS};
+                                               MaterialTextureType::METALLIC_ROUGHTNESS, MaterialTextureType::EMISSIVE, MaterialTextureType::ALPHA_MASK};
         for (auto &type : types) {
             auto &tex = m.material_textures[type];
 
@@ -110,10 +110,11 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
     for (u32 i = 0; i < scene->mNumMaterials; i++) {
 
-        // maybe useful?
         aiShadingMode shadingMode;
         scene->mMaterials[i]->Get(AI_MATKEY_SHADING_MODEL, shadingMode);
-
+        if (shadingMode != aiShadingMode::aiShadingMode_PBR_BRDF) {
+            LOG_ERROR("FIXME: not pbr material")
+        }
         aiString temp_path;
 
         // base color textures
@@ -145,13 +146,26 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
 
-        // for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
-        //     ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
-        //     assert(ret == aiReturn_SUCCESS);
-        //     std::filesystem::path abs_path = m_path;
-        //     abs_path /= temp_path.C_Str();
-        //     materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
-        // }
+         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
+             ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
+             assert(ret == aiReturn_SUCCESS);
+             std::filesystem::path abs_path = m_path.parent_path();
+             abs_path /= temp_path.C_Str();
+             materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
+             materials[i].material_params.param_bitmask |= HAS_EMISSIVE;
+         }
+
+        // alpha mask
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_OPACITY);
+             t++) {
+             ret = scene->mMaterials[i]->GetTexture(aiTextureType_OPACITY, t, &temp_path);
+            assert(ret == aiReturn_SUCCESS);
+            std::filesystem::path abs_path = m_path.parent_path();
+            abs_path /= temp_path.C_Str();
+            materials[i].material_textures.emplace(MaterialTextureType::ALPHA_MASK, abs_path);
+            materials[i].material_params.param_bitmask |= HAS_ALPHA;
+            materials[i].shading_model = ShadingModel::SHADING_MODEL_MASKED;
+        }
     }
 
     // load textures
@@ -208,7 +222,7 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     // probably to request more postprocessing than we do in this example.
     const aiScene *scene =
         assimp_importer.ReadFile(path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-                                                            aiProcess_GenSmoothNormals | aiProcess_FlipUVs);
+                                                            aiProcess_GenSmoothNormals | aiProcess_FlipUVs |aiProcess_GenBoundingBoxes);
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -236,6 +250,9 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
             if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals()) {
                 memcpy(&vertex.normal, &mesh->mNormals[v], sizeof(Math::float3));
             }
+            //if (vertex_attribute_flag & VertexAttributeType::TBN && mesh->HasTangentsAndBitangents()) {
+            //    memcpy(&vertex.tbn, &mesh->mTangents[v], sizeof(Math::float3));
+            //}
             if (vertex_attribute_flag & VertexAttributeType::UV0 && mesh->HasTextureCoords(0)) {
                 memcpy(&vertex.uv0, &mesh->mTextureCoords[0][v], sizeof(Math::float2));
             }
@@ -292,73 +309,73 @@ void Mesh::LoadMesh(BasicGeometry::Shapes basic_geometry) {
         break;
     case Horizon::BasicGeometry::Shapes::SPHERE: {
 
-        if (BasicGeometry::sphere_inited) {
-            m_vertices = BasicGeometry::sphere_vertices;
-            m_indices = BasicGeometry::sphere_indices;
-        } else {
-            BasicGeometry::sphere_inited = true;
+        //if (BasicGeometry::sphere_inited) {
+        //    m_vertices = BasicGeometry::sphere_vertices;
+        //    m_indices = BasicGeometry::sphere_indices;
+        //} else {
+        //    BasicGeometry::sphere_inited = true;
 
-            const unsigned int X_SEGMENTS = 64;
-            const unsigned int Y_SEGMENTS = 64;
+        //    const unsigned int X_SEGMENTS = 64;
+        //    const unsigned int Y_SEGMENTS = 64;
 
-            std::vector<Math::float3> positions;
-            std::vector<Math::float3> normals;
-            std::vector<Math::float2> uv;
+        //    std::vector<Math::float3> positions;
+        //    std::vector<Math::float3> normals;
+        //    std::vector<Math::float2> uv;
 
-            for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
-                for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
-                    float xSegment = (float)x / (float)X_SEGMENTS;
-                    float ySegment = (float)y / (float)Y_SEGMENTS;
-                    float xPos = std::cos(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
-                    float yPos = std::cos(ySegment * Math::_PI);
-                    float zPos = std::sin(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
+        //    for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
+        //        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
+        //            float xSegment = (float)x / (float)X_SEGMENTS;
+        //            float ySegment = (float)y / (float)Y_SEGMENTS;
+        //            float xPos = std::cos(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
+        //            float yPos = std::cos(ySegment * Math::_PI);
+        //            float zPos = std::sin(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
 
-                    positions.push_back(Math::float3(xPos, yPos, zPos));
-                    uv.push_back(Math::float2(xSegment, ySegment));
-                    normals.push_back(Math::float3(xPos, yPos, zPos));
-                }
-            }
+        //            positions.push_back(Math::float3(xPos, yPos, zPos));
+        //            uv.push_back(Math::float2(xSegment, ySegment));
+        //            normals.push_back(Math::float3(xPos, yPos, zPos));
+        //        }
+        //    }
 
-            bool oddRow = false;
-            for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
-                if (!oddRow) // even rows: y == 0, y == 2; and so on
-                {
-                    for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
-                        BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
-                        BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-                    }
-                } else {
-                    for (int x = X_SEGMENTS; x >= 0; --x) {
-                        BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-                        BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
-                    }
-                }
-                oddRow = !oddRow;
-            }
-            u32 indexCount = static_cast<unsigned int>(m_indices.size());
+        //    bool oddRow = false;
+        //    for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
+        //        if (!oddRow) // even rows: y == 0, y == 2; and so on
+        //        {
+        //            for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
+        //                BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
+        //                BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+        //            }
+        //        } else {
+        //            for (int x = X_SEGMENTS; x >= 0; --x) {
+        //                BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+        //                BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
+        //            }
+        //        }
+        //        oddRow = !oddRow;
+        //    }
+        //    u32 indexCount = static_cast<unsigned int>(m_indices.size());
 
-            std::vector<Vertex> data;
-            for (unsigned int i = 0; i < positions.size(); ++i) {
+        //    std::vector<Vertex> data;
+        //    for (unsigned int i = 0; i < positions.size(); ++i) {
 
-                Vertex vertex{};
-                vertex.pos = {positions[i].x, positions[i].y, positions[i].z};
+        //        Vertex vertex{};
+        //        vertex.pos = {positions[i].x, positions[i].y, positions[i].z};
 
-                if (vertex_attribute_flag & VertexAttributeType::NORMAL && !normals.empty()) {
+        //        if (vertex_attribute_flag & VertexAttributeType::NORMAL && !normals.empty()) {
 
-                    vertex.normal = {normals[i].x, normals[i].y, normals[i].z};
-                }
-                if (vertex_attribute_flag & VertexAttributeType::UV0 && !uv.empty()) {
+        //            vertex.normal = {normals[i].x, normals[i].y, normals[i].z};
+        //        }
+        //        if (vertex_attribute_flag & VertexAttributeType::UV0 && !uv.empty()) {
 
-                    vertex.uv0 = {uv[i].x, uv[i].y};
-                }
-                if (vertex_attribute_flag & VertexAttributeType::UV1) {
-                }
-                BasicGeometry::sphere_vertices.push_back(vertex);
+        //            vertex.uv0 = {uv[i].x, uv[i].y};
+        //        }
+        //        if (vertex_attribute_flag & VertexAttributeType::UV1) {
+        //        }
+        //        BasicGeometry::sphere_vertices.push_back(vertex);
 
-                m_vertices = BasicGeometry::sphere_vertices;
-                m_indices = BasicGeometry::sphere_indices;
-            }
-        }
+        //        m_vertices = BasicGeometry::sphere_vertices;
+        //        m_indices = BasicGeometry::sphere_indices;
+        //    }
+        //}
     } break;
     case Horizon::BasicGeometry::Shapes::CAPSULE:
         // load from file

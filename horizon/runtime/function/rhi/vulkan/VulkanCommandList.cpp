@@ -376,7 +376,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         tmb2.src_state = RESOURCE_STATE_COPY_DEST;
         tmb2.dst_state = texture->m_state;
 
-
         desc2.texture_memory_barriers.emplace_back(tmb2);
 
         InsertBarrier(desc2);

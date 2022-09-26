@@ -22,7 +22,7 @@ class Light {
   public:
     Light() noexcept = default;
     ~Light() noexcept = default;
-    void *GetParamBuffer() { return &params; }
+    LightParams GetParamBuffer() { return params; }
 
   protected:
     void SetColor(const Math::float3 &color) noexcept;
@@ -44,13 +44,13 @@ class DirectionalLight : public Light {
 
 class PointLight : public Light {
   public:
-    PointLight(const Math::float3 &color, f32 intensity, f32 radius) noexcept;
+    PointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, f32 radius) noexcept;
 };
 
 class SpotLight : public Light {
   public:
-    SpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction, f32 radius, f32 inner_cone,
-              f32 outer_cone) noexcept;
+    SpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, const Math::float3 &direction,
+              f32 radius, f32 inner_cone, f32 outer_cone) noexcept;
 };
 
 class AreaLight {};

@@ -6,7 +6,7 @@
 #include <string>
 #include <filesystem>
 #include <unordered_set>
-
+#include <random>
 #include <iniparser.h>
 
 #include <argparse/argparse.hpp>
@@ -62,19 +62,29 @@ class Pbr {
     Resource<Camera> m_camera{};
     Horizon::RHI::RHI *rhi;
     Resource<SwapChain> swap_chain;
-    std::filesystem::path vs_path, ps_path, cs_path;
 
-    Shader *vs, *ps;
-    Shader *cs;
+    // pass resources
+
+    std::filesystem::path opaque_vs_path, opaque_ps_path;
+    Shader *opaque_vs, *opaque_ps;
+
     RenderTarget *rt0;
     Resource<RenderTarget> depth;
+    Resource<Sampler> sampler;
 
-    GraphicsPipelineCreateInfo info{};
-    Pipeline *graphics_pass;
+    GraphicsPipelineCreateInfo graphics_pass_ci{};
+    Pipeline *opaque_pass;
+
+    std::filesystem::path masked_vs_path, masked_ps_path;
+    Shader *masked_vs, *masked_ps;
+
+    Pipeline *masked_pass;
+
+
+    //
 
     Mesh *mesh;
     std::vector<Mesh *> meshes;
-    Resource<Sampler> sampler;
 
     Camera *cam;
     struct CameraUb {
@@ -88,8 +98,12 @@ class Pbr {
     u32 light_count = 1;
 
     Resource<Buffer> light_count_buffer;
-    Light *directional_light;
-
+    //Light *directional_light;
+    std::vector<Light *> lights;
+    std::vector<LightParams> lights_param_buffer;
     Resource<Buffer> light_buffer;
     bool resources_uploaded = false;
+
+    u32 culled_mesh{};
+    u32 total_mesh{};
 };
