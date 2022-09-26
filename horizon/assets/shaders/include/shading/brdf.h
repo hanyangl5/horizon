@@ -1,5 +1,5 @@
-#include "common_math.h"
-#include "fastmath.hsl"
+#include "../common/common_math.h"
+#include "../common/fastmath.hsl"
 
 float3 Diffuse_Lambert( float3 DiffuseColor )
 {
