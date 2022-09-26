@@ -119,8 +119,8 @@ def main():
         if args.compile:
             hsl_assert(dst_dir, filename=args.hsl_input, message='Missing destination binary directory')
             if not os.path.exists(args.binaryDestination): os.makedirs(args.binaryDestination)
-            #bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath) )
-            bin_filepath = args.hsl_input + "." + str(folder_map[language])
+            bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath))+".hsl"
+            #bin_filepath = args.hsl_input + "." + str(folder_map[language])
             
             status = gen_map[language].compile(out_filepath, bin_filepath)
             if status != 0: return 1

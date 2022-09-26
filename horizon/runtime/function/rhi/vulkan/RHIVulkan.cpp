@@ -61,9 +61,8 @@ Resource<SwapChain> RHIVulkan::CreateSwapChain(const SwapChainCreateInfo& create
 }
 
 Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) {
-    std::filesystem::path path = file_name;
-    path += ".VULKAN";
-    auto spirv_code = ReadFile(path.generic_string().c_str());
+    auto _file_name = file_name.parent_path() / "bin" / "VULKAN" / file_name.filename();
+    auto spirv_code = ReadFile(_file_name.generic_string().c_str());
     return new VulkanShader(m_vulkan, type, spirv_code);
 }
 

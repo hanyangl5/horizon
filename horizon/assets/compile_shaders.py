@@ -6,12 +6,10 @@ def CompileShaders():
     from hsl import main
 
     argv = sys.argv[:]
+ 
+    output_dir = 'shaders'
 
-    output_dir = 'generated_shaders'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    languages = ['VULKAN', 'DIRECT3D12']
+    languages = ['VULKAN', 'DIRECT3D12']    
     
     shader_dir = "shaders"
     for lang in languages:
@@ -20,8 +18,8 @@ def CompileShaders():
         for hsl_file in [os.path.join(shader_dir, _file) for _file in os.listdir(shader_dir) if _file.endswith('.hsl')]:
             print("compile hsl:", hsl_file)
             sys.argv = argv[:]
-            sys.argv += ['-d', output_dir]
-            sys.argv += ['-b', shader_dir]
+            sys.argv += ['-d', os.path.join('shaders','generated')]
+            sys.argv += ['-b', os.path.join('shaders', 'bin', lang)]
             sys.argv += ['-l', lang]
             sys.argv += ['--compile']
             sys.argv += [hsl_file]
