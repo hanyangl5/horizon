@@ -1,6 +1,7 @@
 #include "include/shading/material_params_defination.hsl"
 #include "include/shading/light_defination.h"
 #include "include/shading/lighting.h"
+
 #include "include/postprocess/postprocess.h"
 
 RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
@@ -8,8 +9,10 @@ RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
 RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
 RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
 RES(Tex2D(float4), alpha_texture, UPDATE_FREQ_PER_BATCH, t4, binding = 4);
+// RES(Tex2D(float4), irradiance_map, UPDATE_FREQ_PER_BATCH, t5, binding = 5);
 
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 5);
+// RES(SamplerState, cubemap_sampler, UPDATE_FREQ_PER_BATCH, s1, binding = 6);
 
 CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 6)
 {
@@ -51,7 +54,7 @@ STRUCT(PSOutput)
 PSOutput PS_MAIN(VSOutput vsout)
 {
     INIT_MAIN;
-    PSOutput psout;
+    //PSOutput psout;
 
     uint has_metallic_roughness = Get(param_bitmask) & HAS_METALLIC_ROUGHNESS;
     uint has_normal = Get(param_bitmask) & HAS_NORMAL;

@@ -65,21 +65,26 @@ class Pbr {
 
     // pass resources
 
-    std::filesystem::path opaque_vs_path, opaque_ps_path;
+
     Shader *opaque_vs, *opaque_ps;
 
-    RenderTarget *rt0;
+    Resource<RenderTarget> rt0;
     Resource<RenderTarget> depth;
     Resource<Sampler> sampler;
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
     Pipeline *opaque_pass;
 
-    std::filesystem::path masked_vs_path, masked_ps_path;
     Shader *masked_vs, *masked_ps;
 
     Pipeline *masked_pass;
 
+    Shader *generate_mipmap_cs;
+    Pipeline *generate_mipmap_pass;
+
+    Shader *post_process_cs;
+    Pipeline *post_process_pass;
+    Resource<Texture> post_process_image;
 
     //
 
@@ -104,6 +109,11 @@ class Pbr {
     Resource<Buffer> light_buffer;
     bool resources_uploaded = false;
 
+    std::filesystem::path ibl_iem_path;
+    std::filesystem::path ibl_pfem_path;
+    std::filesystem::path ibl_brdf_lut_path;
+
+    Resource<Texture> ibl_iem, ibl_pfem, ibl_brdf_lut;
     u32 culled_mesh{};
     u32 total_mesh{};
 };

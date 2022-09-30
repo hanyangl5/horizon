@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <memory>
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
@@ -38,7 +39,7 @@ void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u3
     std::vector<VkDeviceSize> vk_offsets(buffer_count);
     for (u32 i = 0; i < buffer_count; i++) {
         assert(("vertex buffer not valid",
-                buffers[i]->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
+                buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
         vk_buffers[i] = reinterpret_cast<VulkanBuffer *>(buffers[i])->m_buffer;
         vk_offsets[i] = offsets[i];
     }
@@ -51,7 +52,7 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
-    assert(("index buffer not valid", buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER));
+    assert(("index buffer not valid", buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER));
 
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
@@ -370,15 +371,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         //    }
         //}
 
-        // transition layout, transfer dst -> usage
-        TextureBarrierDesc tmb2{};
-        tmb2.texture = texture;
-        tmb2.src_state = RESOURCE_STATE_COPY_DEST;
-        tmb2.dst_state = texture->m_state;
-
-        desc2.texture_memory_barriers.emplace_back(tmb2);
-
-        InsertBarrier(desc2);
     }
 }
 

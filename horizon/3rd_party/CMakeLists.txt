@@ -1,10 +1,10 @@
 project(third_party)
 
-set(third_party_folder "third_party")
+set(third_party_folder "Horizon/third_party")
 
 add_library(${PROJECT_NAME} 3rd_party.cpp)
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER ${third_party_folder})
 
 
 
@@ -109,3 +109,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 
 find_package(meshoptimizer CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)
+
+# add_subdirectory(tiny_ktx)
+# target_link_libraries(${PROJECT_NAME} PRIVATE tiny_ktx)

@@ -41,7 +41,7 @@ Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &cont
     vk_swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
     vk_swap_chain_create_info.imageArrayLayers = 1;
     vk_swap_chain_create_info.imageUsage =
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     vk_swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
     vk_swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -69,14 +69,13 @@ Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &cont
     image_view_create_info.subresourceRange.levelCount = 1;
     image_view_create_info.subresourceRange.baseArrayLayer = 0;
     image_view_create_info.subresourceRange.layerCount = 1;
-
     for (u32 i = 0; i < swap_chain_image_views.size(); i++) {
         image_view_create_info.image = swap_chain_images[i];
         CHECK_VK_RESULT(
             vkCreateImageView(m_context.device, &image_view_create_info, nullptr, &swap_chain_image_views[i]));
         render_targets.push_back(
-            new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                     RenderTargetType::COLOR, width, height}));
+            new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_UNDEFINED,
+                                                                     RenderTargetType::UNDEFINED, width, height}));
         auto tx = reinterpret_cast<VulkanTexture *>(render_targets[i]->GetTexture());
         tx->m_image_view = swap_chain_image_views[i];
         tx->m_image = swap_chain_images[i];

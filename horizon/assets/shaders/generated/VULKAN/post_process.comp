@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-26 22:05:17.332731
+// 2022-09-30 21:28:54.738999
 // "C:\FILES\horizon\horizon\assets\shaders\post_process.comp.hsl"
 //--------------------------------------
 
@@ -323,7 +323,7 @@ vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture
 #define SampleTex2DProj(TEX, SMP, P) _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
 vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
 
-// #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
+// #define SampleTex3D1(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
 #define SampleTex3D(TEX, SMP, P) _SampleTex3D((TEX), (SMP), vec3((P).xyz))
 vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P) { return texture(sampler3D(TEX, SMP), P); }
 
@@ -889,7 +889,8 @@ bool WaveIsFirstLane() { return gl_SubGroupInvocationARB == 0; }
 #line 1 "C:/FILES/horizon/horizon/assets/shaders/post_process.comp.hsl"
 #define _Getcolor_image color_image
 layout(UPDATE_FREQ_PER_FRAME, binding = 0, rgba32f)  uniform RWTex2D(float4) color_image;
-
+#define _Getout_color_image out_color_image
+layout(UPDATE_FREQ_PER_FRAME, binding = 1, rgba32f)  uniform RWTex2D(float4) out_color_image;
 NUM_THREADS(8, 8, 1)
 void main()
 #line 4
@@ -900,7 +901,7 @@ void main()
 //    INIT_MAIN;
     
     float4 color  = LoadRWTex2D(Get(color_image), threadID.xy);
-    Write2D(Get(color_image), threadID.xy, color);
+    Write2D(Get(out_color_image), threadID.xy, color);
 
     {
     	return;

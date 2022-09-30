@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-26 22:05:17.005741
+// 2022-09-30 21:30:47.925274
 // "C:\FILES\horizon\horizon\assets\shaders\lit_masked.frag.hsl"
 //--------------------------------------
 
@@ -323,7 +323,7 @@ vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture
 #define SampleTex2DProj(TEX, SMP, P) _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
 vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
 
-// #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
+// #define SampleTex3D1(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
 #define SampleTex3D(TEX, SMP, P) _SampleTex3D((TEX), (SMP), vec3((P).xyz))
 vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P) { return texture(sampler3D(TEX, SMP), P); }
 
@@ -1682,6 +1682,7 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
 }
 
 #line 4 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_masked.frag.hsl"
+
 #line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/postprocess/postprocess.h"
 float3 TonemapACES(float3 x)
 {
@@ -1696,123 +1697,125 @@ float3 TonemapACES(float3 x)
 // float3 GammaCorrection(float3 x){
 // 	return pow( x, float3( 1.0 / 2.2 ));
 // }
-#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_masked.frag.hsl"
+#line 6 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_masked.frag.hsl"
 
 #define _Getbase_color_texture base_color_texture
-#line 6
+#line 7
 RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
 #define _Getnormal_texture normal_texture
-#line 7
+#line 8
 RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
 #define _Getmetallic_roughness_texture metallic_roughness_texture
-#line 8
+#line 9
 RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
 #define _Getemissive_texture emissive_texture
-#line 9
+#line 10
 RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
 #define _Getalpha_texture alpha_texture
-#line 10
+#line 11
 RES(Tex2D(float4), alpha_texture, UPDATE_FREQ_PER_BATCH, t4, binding = 4);
+// RES(Tex2D(float4), irradiance_map, UPDATE_FREQ_PER_BATCH, t5, binding = 5);
 
 #define _Getdefault_sampler default_sampler
-#line 12
+#line 14
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 5);
+// RES(SamplerState, cubemap_sampler, UPDATE_FREQ_PER_BATCH, s1, binding = 6);
 
 CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 6)
 {
 #define _Getbase_color_roughness base_color_roughness
-#line 16
+#line 19
     DATA(float4, base_color_roughness, None);
 #define _Getemmissive_factor_metallic emmissive_factor_metallic
-#line 17
+#line 20
     DATA(float4, emmissive_factor_metallic, None);
 #define _Getparam_bitmask param_bitmask
-#line 18
+#line 21
     DATA(uint, param_bitmask, None);
 };
 
 CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 #define _Getvp vp
-#line 23
+#line 26
     DATA(float4x4, vp, None);
 #define _Getcamera_position_exposure camera_position_exposure
-#line 24
+#line 27
     DATA(float4, camera_position_exposure, None);
 };
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 1)
 {
 #define _Getlight_count light_count
-#line 29
+#line 32
     DATA(uint, light_count, None);
 };
 
 CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 2)
 {
 #define _Getlight_data light_data
-#line 34
+#line 37
     DATA(LightParams, light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
 };
 
 
 STRUCT(VSOutput)
 {
-#define _position_1791
-#line 40
-	DATA(float4, position, SV_Position);
-#define _world_pos_1796
-#line 41
-    DATA(float3, world_pos, POSITION);
-#define _normal_1801
-#line 42
-	DATA(float3, normal, NORMAL);
-#define _uv_1806
+#define _position_1794
 #line 43
+	DATA(float4, position, SV_Position);
+#define _world_pos_1799
+#line 44
+    DATA(float3, world_pos, POSITION);
+#define _normal_1804
+#line 45
+	DATA(float3, normal, NORMAL);
+#define _uv_1809
+#line 46
 	DATA(float2, uv, TEXCOORD0);
 };
-#ifdef _world_pos_1796
+#ifdef _world_pos_1799
 layout(location = 0) in(float3) vsout_world_pos;
 #endif
-#ifdef _normal_1801
+#ifdef _normal_1804
 layout(location = 1) in(float3) vsout_normal;
 #endif
-#ifdef _uv_1806
+#ifdef _uv_1809
 layout(location = 2) in(float2) vsout_uv;
 #endif
-#line 45
+#line 48
 
 STRUCT(PSOutput)
 {
-#define _color_1825
-#line 48
+#define _color_1828
+#line 51
     DATA(float4, color, SV_Target0);
 };
-#ifdef _color_1825
+#ifdef _color_1828
 layout(location = 0) out(float4) out_PSOutput_color;
 #endif
-#line 50
+#line 53
 
 void main()
-#line 51
+#line 54
 //PSOutput PS_MAIN(VSOutput vsout)
 {
 	VSOutput vsout;
-#ifdef _position_1791
+#ifdef _position_1794
 	vsout.position = float4(float4(gl_FragCoord.xyz, 1.0f / gl_FragCoord.w));
 #endif
-#ifdef _world_pos_1796
+#ifdef _world_pos_1799
 	vsout.world_pos = vsout_world_pos;
 #endif
-#ifdef _normal_1801
+#ifdef _normal_1804
 	vsout.normal = vsout_normal;
 #endif
-#ifdef _uv_1806
+#ifdef _uv_1809
 	vsout.uv = vsout_uv;
 #endif
-#line 53
+#line 56
 //    INIT_MAIN;
-    PSOutput psout;
+    //PSOutput psout;
 
     uint has_metallic_roughness = Get(param_bitmask) & HAS_METALLIC_ROUGHNESS;
     uint has_normal = Get(param_bitmask) & HAS_NORMAL;
@@ -1846,12 +1849,12 @@ void main()
     
     {
     	PSOutput out_PSOutput = psout;
-#ifdef _color_1825
+#ifdef _color_1828
     	out_PSOutput_color = out_PSOutput.color;
 #endif
     	return;
     }
-#line 86
+#line 89
 //    RETURN(psout);
     
 }

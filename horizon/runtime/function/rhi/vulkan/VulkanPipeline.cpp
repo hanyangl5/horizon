@@ -66,7 +66,8 @@ Resource<DescriptorSet> VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency
     auto &resource = m_descriptor_set_allocator.pipeline_descriptor_set_resources[this];
 
     u32 freq = static_cast<u32>(frequency);
-    assert(("descriptor pool not allocated", m_descriptor_set_allocator.m_descriptor_pools[freq] != VK_NULL_HANDLE));
+    assert(("descriptor pool not allocated",
+            m_descriptor_set_allocator.m_descriptor_pools[freq].back() != VK_NULL_HANDLE));
 
     u32 counter = resource.m_used_set_counter[static_cast<u32>(frequency)]++;
     VkDescriptorSet set =

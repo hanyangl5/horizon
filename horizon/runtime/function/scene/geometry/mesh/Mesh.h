@@ -81,12 +81,16 @@ class Mesh {
     void CreateGpuResources(RHI::RHI *rhi);
 
     Material &GetMaterial(u32 index) noexcept { return materials[index]; }
+
+    void GenerateMipMaps(RHI::Pipeline *pipeline, RHI::CommandList *compute);
+
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 
     void ProcessMaterials(const aiScene *scene);
 
     void GenerateMeshCluster();
+
 
   private:
     u32 vertex_attribute_flag{};

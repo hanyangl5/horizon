@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-26 22:05:16.922692
+// 2022-09-30 21:30:47.845364
 // "C:\FILES\horizon\horizon\assets\shaders\generate_mipmap.comp.hsl"
 //--------------------------------------
 
@@ -323,7 +323,7 @@ vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture
 #define SampleTex2DProj(TEX, SMP, P) _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
 vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
 
-// #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
+// #define SampleTex3D1(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
 #define SampleTex3D(TEX, SMP, P) _SampleTex3D((TEX), (SMP), vec3((P).xyz))
 vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P) { return texture(sampler3D(TEX, SMP), P); }
 

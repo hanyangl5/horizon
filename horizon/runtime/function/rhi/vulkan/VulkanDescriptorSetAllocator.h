@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <deque>
 
 #include <spirv_reflect.h>
 #include <vulkan/vulkan.h>
@@ -25,6 +26,12 @@ struct DescriptorSetLayout {
 
 struct DescriptorPoolSizeDesc {
     std::unordered_map<VkDescriptorType, u32> required_descriptor_count_per_type;
+};
+
+struct PipelineDescriptorSetResource {
+    std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> layout_hash_key;
+    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
+    std::array<std::vector<VkDescriptorSet>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> allocated_sets;
 };
 
 class VulkanDescriptorSetAllocator {
@@ -56,23 +63,17 @@ class VulkanDescriptorSetAllocator {
   public:
     const VulkanRendererContext &m_context;
 
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{1, 1, 30, 1};
-    
-
+    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{1, 1, 16, 16}; // per batch / per draw descriptor set are deafult has 16 descriptors
     std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
+
     u64 m_empty_descriptor_set_layout_hash_key{};
+    VkDescriptorSet m_empty_descriptor_set{};
+
     std::unordered_map<u64, DescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
 
-    VkDescriptorSet m_empty_descriptor_set{};
-    std::array<VkDescriptorPool, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_descriptor_pools{};
+    std::array<std::deque<VkDescriptorPool>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_descriptor_pools{};
 
-    struct PipelineDescriptorSetResource {
-        std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> layout_hash_key;
-        std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
-        std::array<std::vector<VkDescriptorSet>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> allocated_sets;
-       ;
-    };
-    std::unordered_map < Pipeline *, PipelineDescriptorSetResource > pipeline_descriptor_set_resources;
+    std::unordered_map <Pipeline *, PipelineDescriptorSetResource> pipeline_descriptor_set_resources;
 
     bool pool_created = false;
     // ----------

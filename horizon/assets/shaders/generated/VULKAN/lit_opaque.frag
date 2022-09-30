@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-26 22:05:17.166713
+// 2022-09-30 21:28:54.583001
 // "C:\FILES\horizon\horizon\assets\shaders\lit_opaque.frag.hsl"
 //--------------------------------------
 
@@ -323,7 +323,7 @@ vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture
 #define SampleTex2DProj(TEX, SMP, P) _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
 vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
 
-// #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
+// #define SampleTex3D1(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
 #define SampleTex3D(TEX, SMP, P) _SampleTex3D((TEX), (SMP), vec3((P).xyz))
 vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P) { return texture(sampler3D(TEX, SMP), P); }
 
@@ -1682,6 +1682,28 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
 }
 
 #line 4 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/ibl.h"
+
+float3 ComputeIBL(MaterialProperties mat,
+	float NoV, float3 N, float3 V, TexCube(float4) iemCubemap, TexCube(float4) pmremCubemap, Tex2D(float4) environmentBRDF, SamplerState ibl_sampler)
+{
+    float3 albedo = mat.albedo;
+    float metalness = mat.metallic;
+    float roughness = mat.roughness;
+
+	float3 F0 = float3(0.04f, 0.04f, 0.04f);
+    float3 diffuse = (1.0 - metalness) * albedo;
+	float3 specular = lerp(F0, albedo, metalness);
+
+	float3 R = normalize(reflect(-V, N));
+
+	float3 irradiance = SampleTexCube(iemCubemap, ibl_sampler, N).rgb;
+	float3 radiance = SampleLvlTexCube(pmremCubemap, ibl_sampler, R, roughness * 10.0).rgb;
+	float2 brdf = SampleTex2D(environmentBRDF, ibl_sampler, float2(NoV, roughness)).rg;
+
+	return irradiance * diffuse + radiance * (specular * brdf.x + brdf.y);
+}
+#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
 #line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/postprocess/postprocess.h"
 float3 TonemapACES(float3 x)
 {
@@ -1696,118 +1718,131 @@ float3 TonemapACES(float3 x)
 // float3 GammaCorrection(float3 x){
 // 	return pow( x, float3( 1.0 / 2.2 ));
 // }
-#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 6 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
 
+
+// per material resources TODO: register for dx12
+
+// material
 #define _Getbase_color_texture base_color_texture
-#line 6
+#line 11
 RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
 #define _Getnormal_texture normal_texture
-#line 7
+#line 12
 RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
 #define _Getmetallic_roughness_texture metallic_roughness_texture
-#line 8
+#line 13
 RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
 #define _Getemissive_texture emissive_texture
-#line 9
+#line 14
 RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
 
+// ibl 
+// RES(TexCube(float4), iem, UPDATE_FREQ_PER_BATCH, t4, binding = 4);
+// RES(TexCube(float4), pfem, UPDATE_FREQ_PER_BATCH, t5, binding = 5);
+// RES(Tex2D(float4), brdf_lut, UPDATE_FREQ_PER_BATCH, t6, binding = 6);
+
 #define _Getdefault_sampler default_sampler
-#line 11
+#line 21
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 4);
+// RES(SamplerState, ibl_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 8);
 
 CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 5)
 {
 #define _Getbase_color_roughness base_color_roughness
-#line 15
+#line 26
     DATA(float4, base_color_roughness, None);
 #define _Getemmissive_factor_metallic emmissive_factor_metallic
-#line 16
+#line 27
     DATA(float4, emmissive_factor_metallic, None);
 #define _Getparam_bitmask param_bitmask
-#line 17
+#line 28
     DATA(uint, param_bitmask, None);
 };
+
+
+// per frame resources
 
 CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 #define _Getvp vp
-#line 22
+#line 36
     DATA(float4x4, vp, None);
 #define _Getcamera_position_exposure camera_position_exposure
-#line 23
+#line 37
     DATA(float4, camera_position_exposure, None);
 };
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 1)
 {
 #define _Getlight_count light_count
-#line 28
+#line 42
     DATA(uint, light_count, None);
 };
 
 CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 2)
 {
 #define _Getlight_data light_data
-#line 33
+#line 47
     DATA(LightParams, light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
 };
 
 
 STRUCT(VSOutput)
 {
-#define _position_1788
-#line 39
+#define _position_1824
+#line 53
 	DATA(float4, position, SV_Position);
-#define _world_pos_1793
-#line 40
+#define _world_pos_1829
+#line 54
     DATA(float3, world_pos, POSITION);
-#define _normal_1798
-#line 41
+#define _normal_1834
+#line 55
 	DATA(float3, normal, NORMAL);
-#define _uv_1803
-#line 42
+#define _uv_1839
+#line 56
 	DATA(float2, uv, TEXCOORD0);
 };
-#ifdef _world_pos_1793
+#ifdef _world_pos_1829
 layout(location = 0) in(float3) vsout_world_pos;
 #endif
-#ifdef _normal_1798
+#ifdef _normal_1834
 layout(location = 1) in(float3) vsout_normal;
 #endif
-#ifdef _uv_1803
+#ifdef _uv_1839
 layout(location = 2) in(float2) vsout_uv;
 #endif
-#line 44
+#line 58
 
 STRUCT(PSOutput)
 {
-#define _color_1822
-#line 47
+#define _color_1858
+#line 61
     DATA(float4, color, SV_Target0);
 };
-#ifdef _color_1822
+#ifdef _color_1858
 layout(location = 0) out(float4) out_PSOutput_color;
 #endif
-#line 49
+#line 63
 
 void main()
-#line 50
+#line 64
 //PSOutput PS_MAIN(VSOutput vsout)
 {
 	VSOutput vsout;
-#ifdef _position_1788
+#ifdef _position_1824
 	vsout.position = float4(float4(gl_FragCoord.xyz, 1.0f / gl_FragCoord.w));
 #endif
-#ifdef _world_pos_1793
+#ifdef _world_pos_1829
 	vsout.world_pos = vsout_world_pos;
 #endif
-#ifdef _normal_1798
+#ifdef _normal_1834
 	vsout.normal = vsout_normal;
 #endif
-#ifdef _uv_1803
+#ifdef _uv_1839
 	vsout.uv = vsout_uv;
 #endif
-#line 52
+#line 66
 //    INIT_MAIN;
     PSOutput psout;
 
@@ -1825,15 +1860,21 @@ void main()
     mat.roughness = mr.y;
     mat.roughness2 = Pow2(mr.y);
     mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
-    
+
     float3 n = normalize(vsout.normal);
     float3 v = - normalize(vsout.world_pos - Get(camera_position_exposure).xyz);
 
     float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
 
+    // direct lighting
     for(uint i = 0; i < Get(light_count); i++) {
         radiance += Radiance(mat, Get(light_data)[i], n, v, vsout.world_pos);
     }
+
+    // ibl
+    //float3 ambient = ComputeIBL(mat, dot(n, v), n, v, Get(iem), Get(pfem), Get(brdf_lut), ibl_sampler);
+
+    //radiance += ambient;
 
     // radiance.xyz += mat.emissive; // EMISSIVE?
 
@@ -1844,12 +1885,12 @@ void main()
     psout.color = radiance;
     {
     	PSOutput out_PSOutput = psout;
-#ifdef _color_1822
+#ifdef _color_1858
     	out_PSOutput_color = out_PSOutput.color;
 #endif
     	return;
     }
-#line 86
+#line 106
 //    RETURN(psout);
     
 }

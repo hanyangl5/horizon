@@ -15,9 +15,9 @@ void VulkanDescriptorSet::SetResource(Buffer *buffer, u32 binding) {
 
     auto &write = writes[binding];
 
-    if (buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
+    if (buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER) {
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    } else if (buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
+    } else if (buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     }
 
@@ -40,12 +40,11 @@ void VulkanDescriptorSet::SetResource(Texture *texture, u32 binding) {
 
     auto &write = writes[binding];
 
-    if (texture->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE) {
+    if (DESCRIPTOR_TYPE_RW_TEXTURE == (texture->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE)) {
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    } else if (texture->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_TEXTURE) {
+    } else if (DESCRIPTOR_TYPE_TEXTURE == (texture->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_TEXTURE)) {
         write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     }
-
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.pNext = nullptr;
     write.dstBinding = binding;

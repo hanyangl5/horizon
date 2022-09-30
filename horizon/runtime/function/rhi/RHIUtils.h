@@ -32,6 +32,8 @@ enum CommandQueueType { GRAPHICS = 0, COMPUTE, TRANSFER };
 
 enum class PipelineType { UNDIFINED, GRAPHICS = 0, COMPUTE, RAY_TRACING };
 
+using DescriptorTypes = u32;
+
 enum DescriptorType {
     DESCRIPTOR_TYPE_UNDEFINED = 0,
     DESCRIPTOR_TYPE_SAMPLER = 0x01,
@@ -79,8 +81,6 @@ enum DescriptorType {
     DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT,
 };
 
-// using DescriptorType = u32;
-
 enum class ShaderType {
     VERTEX_SHADER,
     PIXEL_SHADER,
@@ -101,11 +101,14 @@ enum class TextureType {
     TEXTURE_TYPE_1D = 0,
     TEXTURE_TYPE_2D,
     TEXTURE_TYPE_3D,
+    TEXTURE_TYPE_CUBE
 };
 
 enum class TextureFormat {
+
+    TEXTURE_FORMAT_UNDEFINED = 0,
     // unsigned int
-    TEXTURE_FORMAT_R8_UINT = 0,
+    TEXTURE_FORMAT_R8_UINT,
     TEXTURE_FORMAT_RG8_UINT,
     TEXTURE_FORMAT_RGB8_UINT,
     TEXTURE_FORMAT_RGBA8_UINT,
@@ -201,19 +204,20 @@ enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
 
 struct BufferCreateInfo {
     // u32 buffer_usage_flags;
-    DescriptorType descriptor_type;
+    DescriptorTypes descriptor_types;
     ResourceState initial_state;
     u64 size;
     // void* data;
 };
 
 struct TextureCreateInfo {
-    DescriptorType descriptor_type;
+    DescriptorTypes descriptor_types;
     ResourceState initial_state;
     TextureType texture_type;
     TextureFormat texture_format;
     // TextureUsage texture_usage;
     u32 width, height, depth = 1;
+    bool generate_mip_map = false;
 };
 
 using SwapChainFormat = TextureFormat;
@@ -353,7 +357,7 @@ struct Rect {
 
 using RenderTargetFormat = TextureFormat;
 
-enum class RenderTargetType { COLOR, DEPTH_STENCIL };
+enum class RenderTargetType { COLOR, DEPTH_STENCIL, UNDEFINED };
 
 struct RenderTargetCreateInfo {
     RenderTargetFormat rt_format;

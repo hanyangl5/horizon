@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-26 22:05:17.568742
+// 2022-09-30 21:28:54.952008
 // "C:\FILES\horizon\horizon\assets\shaders\lit_masked.frag.hsl"
 //--------------------------------------
 
@@ -1711,6 +1711,7 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
 }
 
 #line 4 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_masked.frag.hsl"
+
 #line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/postprocess/postprocess.h"
 float3 TonemapACES(float3 x)
 {
@@ -1725,41 +1726,43 @@ float3 TonemapACES(float3 x)
 // float3 GammaCorrection(float3 x){
 // 	return pow( x, float3( 1.0 / 2.2 ));
 // }
-#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_masked.frag.hsl"
+#line 6 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_masked.frag.hsl"
 
 RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
 RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
 RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
 RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
 RES(Tex2D(float4), alpha_texture, UPDATE_FREQ_PER_BATCH, t4, binding = 4);
+// RES(Tex2D(float4), irradiance_map, UPDATE_FREQ_PER_BATCH, t5, binding = 5);
 
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 5);
+// RES(SamplerState, cubemap_sampler, UPDATE_FREQ_PER_BATCH, s1, binding = 6);
 
 CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 6)
 {
     float4 base_color_roughness;
     float4 emmissive_factor_metallic;
     uint param_bitmask;
-#line 19
+#line 22
 };
 
 CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
     float4x4 vp;
     float4 camera_position_exposure;
-#line 25
+#line 28
 };
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 1)
 {
     uint light_count;
-#line 30
+#line 33
 };
 
 CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 2)
 {
     LightParams light_data[MAX_DYNAMIC_LIGHT_COUNT];
-#line 35
+#line 38
 };
 
 
@@ -1769,13 +1772,13 @@ STRUCT(VSOutput)
     DATA(float3, world_pos, POSITION);
 	DATA(float3, normal, NORMAL);
 	DATA(float2, uv, TEXCOORD0);
-#line 44
+#line 47
 };
 
 STRUCT(PSOutput)
 {
     DATA(float4, color, SV_Target0);
-#line 49
+#line 52
 };
 
 PSOutput PS_MAIN(VSOutput vsout)

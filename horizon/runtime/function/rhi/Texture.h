@@ -15,7 +15,7 @@ class Texture {
     Texture &operator=(Texture &&rhs) noexcept = delete;
     // virtual void *GetBufferPointer() noexcept = 0;
   public:
-    DescriptorType m_descriptor_type;
+    DescriptorTypes m_descriptor_types;
     ResourceState m_state{};
     const TextureType m_type{};
     const TextureFormat m_format{};

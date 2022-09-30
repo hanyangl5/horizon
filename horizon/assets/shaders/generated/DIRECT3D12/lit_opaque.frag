@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-26 22:05:17.721748
+// 2022-09-30 21:28:55.109224
 // "C:\FILES\horizon\horizon\assets\shaders\lit_opaque.frag.hsl"
 //--------------------------------------
 
@@ -1711,6 +1711,28 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
 }
 
 #line 4 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/ibl.h"
+
+float3 ComputeIBL(MaterialProperties mat,
+	float NoV, float3 N, float3 V, TexCube(float4) iemCubemap, TexCube(float4) pmremCubemap, Tex2D(float4) environmentBRDF, SamplerState ibl_sampler)
+{
+    float3 albedo = mat.albedo;
+    float metalness = mat.metallic;
+    float roughness = mat.roughness;
+
+	float3 F0 = float3(0.04f, 0.04f, 0.04f);
+    float3 diffuse = (1.0 - metalness) * albedo;
+	float3 specular = lerp(F0, albedo, metalness);
+
+	float3 R = normalize(reflect(-V, N));
+
+	float3 irradiance = SampleTexCube(iemCubemap, ibl_sampler, N).rgb;
+	float3 radiance = SampleLvlTexCube(pmremCubemap, ibl_sampler, R, roughness * 10.0).rgb;
+	float2 brdf = SampleTex2D(environmentBRDF, ibl_sampler, float2(NoV, roughness)).rg;
+
+	return irradiance * diffuse + radiance * (specular * brdf.x + brdf.y);
+}
+#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
 #line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/postprocess/postprocess.h"
 float3 TonemapACES(float3 x)
 {
@@ -1725,40 +1747,53 @@ float3 TonemapACES(float3 x)
 // float3 GammaCorrection(float3 x){
 // 	return pow( x, float3( 1.0 / 2.2 ));
 // }
-#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 6 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
 
+
+// per material resources TODO: register for dx12
+
+// material
 RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
 RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
 RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
 RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
 
+// ibl 
+// RES(TexCube(float4), iem, UPDATE_FREQ_PER_BATCH, t4, binding = 4);
+// RES(TexCube(float4), pfem, UPDATE_FREQ_PER_BATCH, t5, binding = 5);
+// RES(Tex2D(float4), brdf_lut, UPDATE_FREQ_PER_BATCH, t6, binding = 6);
+
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 4);
+// RES(SamplerState, ibl_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 8);
 
 CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 5)
 {
     float4 base_color_roughness;
     float4 emmissive_factor_metallic;
     uint param_bitmask;
-#line 18
+#line 29
 };
+
+
+// per frame resources
 
 CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
     float4x4 vp;
     float4 camera_position_exposure;
-#line 24
+#line 38
 };
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 1)
 {
     uint light_count;
-#line 29
+#line 43
 };
 
 CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 2)
 {
     LightParams light_data[MAX_DYNAMIC_LIGHT_COUNT];
-#line 34
+#line 48
 };
 
 
@@ -1768,13 +1803,13 @@ STRUCT(VSOutput)
     DATA(float3, world_pos, POSITION);
 	DATA(float3, normal, NORMAL);
 	DATA(float2, uv, TEXCOORD0);
-#line 43
+#line 57
 };
 
 STRUCT(PSOutput)
 {
     DATA(float4, color, SV_Target0);
-#line 48
+#line 62
 };
 
 PSOutput PS_MAIN(VSOutput vsout)
@@ -1796,15 +1831,21 @@ PSOutput PS_MAIN(VSOutput vsout)
     mat.roughness = mr.y;
     mat.roughness2 = Pow2(mr.y);
     mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
-    
+
     float3 n = normalize(vsout.normal);
     float3 v = - normalize(vsout.world_pos - Get(camera_position_exposure).xyz);
 
     float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
 
+    // direct lighting
     for(uint i = 0; i < Get(light_count); i++) {
         radiance += Radiance(mat, Get(light_data)[i], n, v, vsout.world_pos);
     }
+
+    // ibl
+    //float3 ambient = ComputeIBL(mat, dot(n, v), n, v, Get(iem), Get(pfem), Get(brdf_lut), ibl_sampler);
+
+    //radiance += ambient;
 
     // radiance.xyz += mat.emissive; // EMISSIVE?
 
