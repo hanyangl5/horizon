@@ -1,7 +1,7 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-30 21:28:54.663999
-// "C:\FILES\horizon\horizon\assets\shaders\lit_opaque.vert.hsl"
+// 2022-10-05 00:52:44.414271
+// "D:\codes\horizon\horizon\assets\shaders\lit_opaque.vert.hsl"
 //--------------------------------------
 
 #version 450 core
@@ -323,7 +323,7 @@ vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture
 #define SampleTex2DProj(TEX, SMP, P) _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
 vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
 
-// #define SampleTex3D1(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
+// #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
 #define SampleTex3D(TEX, SMP, P) _SampleTex3D((TEX), (SMP), vec3((P).xyz))
 vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P) { return texture(sampler3D(TEX, SMP), P); }
 
@@ -886,7 +886,7 @@ bool WaveIsFirstLane() { return gl_SubGroupInvocationARB == 0; }
 
 #endif // _VULKAN_H
 
-#line 1 "C:/FILES/horizon/horizon/assets/shaders/lit_opaque.vert.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/shaders/lit_opaque.vert.hsl"
 
 CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {

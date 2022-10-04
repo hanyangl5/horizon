@@ -9,7 +9,7 @@ def CompileShaders():
  
     output_dir = 'shaders'
 
-    languages = ['VULKAN', 'DIRECT3D12']    
+    languages = ['VULKAN']    
     
     shader_dir = "shaders"
     for lang in languages:

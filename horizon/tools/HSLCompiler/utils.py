@@ -631,3 +631,33 @@ def get_fn_table(lines):
     #     print(k, v)
     # sys.exit(0)
     return table
+
+
+class Descriptor:
+    def __init__(self, name, descriptor_type, vk_binding, dx_registor):
+        self.name = name
+        self.vk_binding = vk_binding
+        self.dx_registor = dx_registor
+        self.descriptor_type = descriptor_type
+        
+def serialize_descriptor(descriptor):
+    return {
+        "name" : descriptor.name,
+        "type" : descriptor.descriptor_type,
+        "vk_binding" : descriptor.vk_binding,
+        "dx_registor" : descriptor.dx_registor
+    }
+
+class PushConstant:
+    def __init__(self, size, dx_registor):
+        self.size=vk_binding
+        self.dx_registor=dx_registor
+
+class DescriptorSets:
+    def __init__(self):
+        self.data=dict()
+        self.data['UPDATE_FREQ_NONE'] = []
+        self.data['UPDATE_FREQ_PER_FRAME'] = []
+        self.data['UPDATE_FREQ_PER_BATCH'] = []
+        self.data['UPDATE_FREQ_PER_DRAW'] = []
+

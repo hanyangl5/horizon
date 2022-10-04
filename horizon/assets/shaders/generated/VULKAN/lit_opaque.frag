@@ -1,7 +1,7 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-30 21:28:54.583001
-// "C:\FILES\horizon\horizon\assets\shaders\lit_opaque.frag.hsl"
+// 2022-10-05 00:52:44.302733
+// "D:\codes\horizon\horizon\assets\shaders\lit_opaque.frag.hsl"
 //--------------------------------------
 
 #version 450 core
@@ -323,7 +323,7 @@ vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture
 #define SampleTex2DProj(TEX, SMP, P) _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
 vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
 
-// #define SampleTex3D1(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
+// #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
 #define SampleTex3D(TEX, SMP, P) _SampleTex3D((TEX), (SMP), vec3((P).xyz))
 vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P) { return texture(sampler3D(TEX, SMP), P); }
 
@@ -886,8 +886,8 @@ bool WaveIsFirstLane() { return gl_SubGroupInvocationARB == 0; }
 
 #endif // _VULKAN_H
 
-#line 1 "C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/material_params_defination.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/material_params_defination.hsl"
 #define HAS_BASE_COLOR 0x01
 #define HAS_NORMAL 0x10
 #define HAS_METALLIC_ROUGHNESS  0x100
@@ -903,8 +903,8 @@ struct MaterialProperties{
     float roughness2;
     float3 emissive;
 };
-#line 2 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/light_defination.h"
+#line 2 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/light_defination.h"
 struct LightParams{
     float4 color_intensity; // r, g, b, intensity
     float4 position_type; // x, y, z, type
@@ -917,11 +917,11 @@ struct LightParams{
 #define DIRECTIONAL_LIGHT 0
 #define POINT_LIGHT 1
 #define SPOT_LIGHT 2
-#line 3 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/lighting.h"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/shading_models.h"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/../common/common_math.h"
+#line 3 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/lighting.h"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/shading_models.h"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/../common/common_math.h"
 #define PI 3.1415926535897932384626433f
 #define HALF_PI 1.57079632679489661923f
 
@@ -935,8 +935,8 @@ float Pow4(float x) {return x * x * x * x;}
 
 float Pow5(float x) {return x * x * x * x * x;}
 
-#line 2 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/../common/fastmath.hsl"
+#line 2 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/../common/fastmath.hsl"
 
 /*
     horizon fast math lib
@@ -972,9 +972,9 @@ float Pow5(float x) {return x * x * x * x * x;}
     THE SOFTWARE.
 ********************************************************************************/
 
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/../common/common_math.h"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/../common/common_math.h"
 
-#line 37 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/../common/fastmath.hsl"
+#line 37 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/../common/fastmath.hsl"
 
 // utils
 
@@ -1321,7 +1321,7 @@ float AsinFast4( float x )
 // 	uint param = uint((f + 127.0) * 8388608.0);
 // 	return asfloat (param);
 // }
-#line 3 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 3 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
 
 float3 Diffuse_Lambert( float3 DiffuseColor )
 {
@@ -1369,7 +1369,7 @@ float3 Diffuse_Gotanda( float3 DiffuseColor, float Roughness, float NoV, float N
 	return DiffuseColor / PI * Lr;
 #else
 
-#line 49 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 49 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
 	float a2_13 = a2 + 1.36053;
 	float Fr = ( 1 - ( 0.542026*a2 + 0.303573*a ) / a2_13 ) * ( 1 - pow( 1 - NoV, 5 - 4*a2 ) / a2_13 ) * ( ( -0.733996*a2*a + 1.50912*a2 - 1.16402*a ) * pow( 1 - NoV, 1 + rcp(39*a2*a2+1) ) + 1 );
 	float Lm = ( max( 1 - 2*a, 0 ) * ( 1 - Pow5( 1 - NoL ) ) + min( 2*a, 1 ) ) * ( 1 - 0.5*a + 0.5*a * NoL );
@@ -1379,7 +1379,7 @@ float3 Diffuse_Gotanda( float3 DiffuseColor, float Roughness, float NoV, float N
 	return DiffuseColor / PI * Lr;
 #endif
 
-#line 57 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 57 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
 }
 
 // [ Chan 2018, "Material Advances in Call of Duty: WWII" ]
@@ -1445,12 +1445,12 @@ float D_GGXaniso( float ax, float ay, float NoH, float XoH, float YoH )
 	return (1.0f / PI) * a2 * Pow2(a2 / S);
 #else
 
-#line 121 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 121 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
 	float d = XoH*XoH / (ax*ax) + YoH*YoH / (ay*ay) + NoH*NoH;
 	return 1.0f / ( PI * ax*ay * d*d );
 #endif
 
-#line 124 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/brdf.h"
+#line 124 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/brdf.h"
 }
 
 float Vis_Implicit()
@@ -1584,10 +1584,10 @@ void InitBXDF( inout(BXDF) context, float3 N, float3 X, float3 Y, float3 V, floa
 	context.YoL = dot(Y, L);
 	context.YoH = (context.YoL + context.YoV) * InvLenH;
 }
-#line 2 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/shading_models.h"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/material_params_defination.hsl"
+#line 2 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/shading_models.h"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/material_params_defination.hsl"
 
-#line 3 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/shading_models.h"
+#line 3 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/shading_models.h"
 
 // UnLit
 
@@ -1622,7 +1622,7 @@ float3 OpaqueBrdf(MaterialProperties mat, BXDF bxdf) {
 // Skin
 // Eye
 
-#line 2 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/lighting.h"
+#line 2 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/lighting.h"
 
 float DistanceFalloff(float dist, float r, float3 light_dir) {
     // Brian Karis, 2013. Real Shading in Unreal Engine 4.
@@ -1681,8 +1681,8 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
     return float4(radiance, 1.0);
 }
 
-#line 4 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/shading/ibl.h"
+#line 4 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/shading/ibl.h"
 
 float3 ComputeIBL(MaterialProperties mat,
 	float NoV, float3 N, float3 V, TexCube(float4) iemCubemap, TexCube(float4) pmremCubemap, Tex2D(float4) environmentBRDF, SamplerState ibl_sampler)
@@ -1703,8 +1703,8 @@ float3 ComputeIBL(MaterialProperties mat,
 
 	return irradiance * diffuse + radiance * (specular * brdf.x + brdf.y);
 }
-#line 5 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
-#line 1 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/include/postprocess/postprocess.h"
+#line 5 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/include/postprocess/postprocess.h"
 float3 TonemapACES(float3 x)
 {
 	const float A = 2.51f;
@@ -1718,7 +1718,7 @@ float3 TonemapACES(float3 x)
 // float3 GammaCorrection(float3 x){
 // 	return pow( x, float3( 1.0 / 2.2 ));
 // }
-#line 6 "C:/FILES/horizon/horizon/assets/C:/FILES/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
+#line 6 "D:/codes/horizon/horizon/assets/D:/codes/horizon/horizon/assets/shaders/lit_opaque.frag.hsl"
 
 
 // per material resources TODO: register for dx12
