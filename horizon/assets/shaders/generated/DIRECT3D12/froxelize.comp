@@ -1,7 +1,7 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-30 21:28:54.815005
-// "C:\FILES\horizon\horizon\assets\shaders\froxelize.comp.hsl"
+// 2022-10-04 20:54:15.519784
+// "D:\codes\horizon\horizon\assets\shaders\froxelize.comp.hsl"
 //--------------------------------------
 
 #define DIRECT3D12
@@ -915,7 +915,7 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 
 #endif // _D3D_H
 
-#line 1 "C:/FILES/horizon/horizon/assets/shaders/froxelize.comp.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/shaders/froxelize.comp.hsl"
 
 #define THREADS_PER_FROXEL_X 8u
 #define THREADS_PER_FROXEL_Y 8u

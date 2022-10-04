@@ -8,38 +8,19 @@ void Light::SetColor(const Math::float3 &color) noexcept {
     params.color_intensity.z = color.z;
 }
 
-void Light::SetIntensity(f32 intensity, LightUnit unit) noexcept {
+void Light::SetIntensity(f32 intensity) noexcept {
 
-    float luminousPower = intensity;
     float luminousIntensity;
     switch (m_type) {
     case LightType::DIRECTIONAL_LIGHT:
-        // luminousPower is in lux, nothing to do.
-        luminousIntensity = luminousPower;
-        break;
     case LightType::POINT_LIGHT:
-        if (unit == LightUnit::LUMEN) {
-            // li = lp / (4 * pi)
-            luminousIntensity = luminousPower * Math::_1DIVPI * 0.25f;
-        } else if (unit == LightUnit::CANDELA) {
-            // intensity specified directly in candela, no conversion needed
-            luminousIntensity = luminousPower;
-        }
+        luminousIntensity = intensity;
         break;
     case LightType::SPOT_LIGHT: {
 
-        // float cosOuter = std::sqrt(spotParams.cosOuterSquared);
-        // if (unit == LightUnit::LUMEN) {
-        //     // li = lp / (2 * pi * (1 - cos(cone_outer / 2)))
-        //     luminousIntensity = luminousPower / (Math::_2PI * (1.0f - cosOuter));
-        // } else if (unit == LightUnit::CANDELA)
-        //     // intensity specified directly in candela, no conversion needed
-        //     luminousIntensity = luminousPower;
-        //// lp = li * (2 * pi * (1 - cos(cone_outer / 2)))
+        float cosOuter; //= std::sqrt(spotParams.cosOuterSquared);
 
-        // luminousPower = luminousIntensity * (Math::_2PI * (1.0f - cosOuter));
-
-        // spotParams.luminousPower = luminousPower;
+        luminousIntensity = intensity * (Math::_2PI * (1.0f - cosOuter));
         break;
     }
     }
@@ -64,7 +45,7 @@ DirectionalLight::DirectionalLight(const Math::float3 &color, f32 intensity, con
     m_type = LightType::DIRECTIONAL_LIGHT;
     params.type = static_cast<u32>(LightType::DIRECTIONAL_LIGHT);
     SetColor(color);
-    SetIntensity(intensity, LightUnit::LUX);
+    SetIntensity(intensity);
     SetDirection(direction);
 }
 
@@ -72,7 +53,7 @@ PointLight::PointLight(const Math::float3 &color, f32 intensity, const Math::flo
     m_type = LightType::POINT_LIGHT;
     params.type = static_cast<u32>(LightType::POINT_LIGHT);
     SetColor(color);
-    SetIntensity(intensity, LightUnit::LUMEN);
+    SetIntensity(intensity);
     SetPosition(position);
     SetFalloffRadius(radius);
 }
@@ -86,7 +67,7 @@ SpotLight::SpotLight(const Math::float3 &color, f32 intensity, const Math::float
     SetDirection(direction);
     SetFalloffRadius(radius);
     SetSpotLightCone(inner_cone, outer_cone);
-    SetIntensity(intensity, LightUnit::LUMEN);
+    SetIntensity(intensity);
 }
 
 } // namespace Horizon

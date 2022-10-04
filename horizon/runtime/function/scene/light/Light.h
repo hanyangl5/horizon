@@ -7,8 +7,6 @@ namespace Horizon {
 // light unit: lux for direct light, lumen for punctual light
 enum class LightType { DIRECTIONAL_LIGHT = 0, POINT_LIGHT, SPOT_LIGHT };
 
-enum class LightUnit { LUX, LUMEN, CANDELA };
-
 struct LightParams {
     Math::float4 color_intensity = Math::float4(0.0); // r, g, b, intensity
     Math::float3 position = Math::float3(0.0);
@@ -26,7 +24,7 @@ class Light {
 
   protected:
     void SetColor(const Math::float3 &color) noexcept;
-    void SetIntensity(f32 intensity, LightUnit uint) noexcept;
+    void SetIntensity(f32 intensity) noexcept;
     void SetPosition(const Math::float3 position) noexcept;
     void SetFalloffRadius(f32 falloff) noexcept;
     void SetSpotLightCone(f32 inner, f32 outer) noexcept;

@@ -166,9 +166,9 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
         aiShadingMode shadingMode;
         scene->mMaterials[i]->Get(AI_MATKEY_SHADING_MODEL, shadingMode);
-        if (shadingMode != aiShadingMode::aiShadingMode_PBR_BRDF) {
-            LOG_ERROR("FIXME: not pbr material")
-        }
+        //if (shadingMode != aiShadingMode::aiShadingMode_PBR_BRDF) {
+        //    LOG_ERROR("FIXME: not pbr material")
+        //}
         aiString temp_path;
 
         // base color textures

@@ -14,6 +14,7 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
+#include <runtime/core/units/Units.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>

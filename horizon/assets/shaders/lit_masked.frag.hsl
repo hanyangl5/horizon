@@ -54,7 +54,7 @@ STRUCT(PSOutput)
 PSOutput PS_MAIN(VSOutput vsout)
 {
     INIT_MAIN;
-    //PSOutput psout;
+    PSOutput psout;
 
     uint has_metallic_roughness = Get(param_bitmask) & HAS_METALLIC_ROUGHNESS;
     uint has_normal = Get(param_bitmask) & HAS_NORMAL;

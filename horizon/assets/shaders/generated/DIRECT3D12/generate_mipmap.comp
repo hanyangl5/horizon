@@ -1,7 +1,7 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-09-30 21:28:54.881006
-// "C:\FILES\horizon\horizon\assets\shaders\generate_mipmap.comp.hsl"
+// 2022-10-04 20:54:15.608436
+// "D:\codes\horizon\horizon\assets\shaders\generate_mipmap.comp.hsl"
 //--------------------------------------
 
 #define DIRECT3D12
@@ -915,7 +915,7 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 
 #endif // _D3D_H
 
-#line 1 "C:/FILES/horizon/horizon/assets/shaders/generate_mipmap.comp.hsl"
+#line 1 "D:/codes/horizon/horizon/assets/shaders/generate_mipmap.comp.hsl"
 // TODO : https://github.com/nvpro-samples/vk_compute_mipmaps provides a better solution
 
 /*
