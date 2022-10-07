@@ -24,7 +24,7 @@ if not 'HSL_COMPILER_DXC' in os.environ:
 
 from utils import *
 import generators, compilers
-from generators.layout_desc import generate_descriptor_set_layout_description
+from generators.root_sig_desc import generate_root_signature_description
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--destination', help='output directory', required=True)
@@ -128,11 +128,9 @@ def main():
     shader_code = lines = open(args.hsl_input).read()
 
     layout_desc_path,_filename = os.path.split(args.hsl_input)
+    layout_desc_path = os.path.join(os.path.join(args.destination, 'rsd'), _filename) + ".rsd"
 
-    layout_desc_path = os.path.join(os.path.join(os.path.join(
-        layout_desc_path, 'generated'),'sld'),_filename) + ".sld"
-
-    generate_descriptor_set_layout_description(
+    generate_root_signature_description(
         shader_code, layout_desc_path)
     
     return 0

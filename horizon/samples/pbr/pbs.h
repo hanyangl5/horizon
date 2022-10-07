@@ -11,6 +11,8 @@
 
 #include <argparse/argparse.hpp>
 
+#include <runtime/core/utils/definations.h>
+#include <runtime/core/math/Math.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
@@ -50,14 +52,12 @@ class Pbr {
     void InitAPI();
 
     void InitResources();
-
-    void InitSphere();
     
     void run();
 
   private:
     std::unique_ptr<Engine> engine{};
-    std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";
+    std::filesystem::path asset_path = "D:/codes/horizon/horizon/assets";
     u32 width, height;
 
     Resource<Camera> m_camera{};
@@ -118,3 +118,4 @@ class Pbr {
     u32 culled_mesh{};
     u32 total_mesh{};
 };
+

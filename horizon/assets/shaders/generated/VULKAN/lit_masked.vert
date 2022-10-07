@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-10-05 00:52:44.204725
+// 2022-10-06 21:07:34.539941
 // "D:\codes\horizon\horizon\assets\shaders\lit_masked.vert.hsl"
 //--------------------------------------
 

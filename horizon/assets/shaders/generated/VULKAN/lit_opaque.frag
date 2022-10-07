@@ -1,6 +1,6 @@
 //--------------------------------------
 // Generated from Horizon Shading Language
-// 2022-10-05 00:52:44.302733
+// 2022-10-06 21:07:34.697941
 // "D:\codes\horizon\horizon\assets\shaders\lit_opaque.frag.hsl"
 //--------------------------------------
 

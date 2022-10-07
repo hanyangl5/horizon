@@ -634,10 +634,10 @@ def get_fn_table(lines):
 
 
 class Descriptor:
-    def __init__(self, name, descriptor_type, vk_binding, dx_registor):
+    def __init__(self, name, descriptor_type, vk_binding, dx_register):
         self.name = name
         self.vk_binding = vk_binding
-        self.dx_registor = dx_registor
+        self.dx_register = dx_register
         self.descriptor_type = descriptor_type
         
 def serialize_descriptor(descriptor):
@@ -645,13 +645,13 @@ def serialize_descriptor(descriptor):
         "name" : descriptor.name,
         "type" : descriptor.descriptor_type,
         "vk_binding" : descriptor.vk_binding,
-        "dx_registor" : descriptor.dx_registor
+        "dx_register" : descriptor.dx_register
     }
 
 class PushConstant:
-    def __init__(self, size, dx_registor):
+    def __init__(self, size, dx_register):
         self.size=vk_binding
-        self.dx_registor=dx_registor
+        self.dx_register=dx_register
 
 class DescriptorSets:
     def __init__(self):

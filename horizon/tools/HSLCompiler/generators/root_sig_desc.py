@@ -23,7 +23,7 @@ class HSLLexer(object):
         #'UPDATE_FREQ_PER_BATCH',
         #'UPDATE_FREQ_PER_DRAW',
         #'BINDING',
-        #'REGISTOR',
+        #'register',
         #'LPAREN',
         #'RPAREN',
     )
@@ -34,7 +34,7 @@ class HSLLexer(object):
     t_CBUFFER = r'CBUFFER'
     #t_DATA = r'DATA'
     #t_BINDING = r'binding = \d+'
-    #t_REGISTOR = r'[buts]\d+'
+    #t_register = r'[buts]\d+'
     #t_UPDATE_FREQ_NONE = r'UPDATE_FREQ_NONE'
     #t_UPDATE_FREQ_PER_FRAME = r'UPDATE_FREQ_PER_FRAME'
     #t_UPDATE_FREQ_PER_BATCH = r'UPDATE_FREQ_PER_BATCH'
@@ -75,7 +75,7 @@ class HSLLexer(object):
             self.tks.append(tok)
 
 
-def generate_descriptor_set_layout_description(text, out_path):
+def generate_root_signature_description(text, out_path):
     sets_descriptions = DescriptorSets()
     json_blob = []
     hsl_lexer = HSLLexer()

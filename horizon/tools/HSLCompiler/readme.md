@@ -2,8 +2,8 @@ HSL(Horizon Shading Language) is a modified version of [HSL(ForgeShadingLanguage
 
 ### Shader Resource Binding in Horizon
 
-Previously I adopt FSL as shading language for cross platform usage. FSL expose the update frequency and binding/registor when declare shader resources.
+Previously I adopt FSL as shading language for cross platform usage. FSL expose the update frequency and binding/register when declare shader resources.
 
-compared with reflect layout from compiled shaders (spirv and dxil), I thinks its better to parse the shader source file directly,
+compared with reflect pipeline layout / root signature from compiled shaders (spirv and dxil), I thinks its better to parse the shader source file directly,
 
-so a .dsl layout file are generated after shader compiled 
+so a .rsd file are generated after shader compiled 

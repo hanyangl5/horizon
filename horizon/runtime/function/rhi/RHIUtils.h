@@ -375,6 +375,20 @@ struct DrawParam {
 
 enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
 
+struct DescriptorSetDesc {
+    std::string name{};
+    DescriptorType type{};
+    u32 vk_binding{};
+    std::string dx_reg{}; // todo : type -> reg type
+    ResourceUpdateFrequency update_frequency;
+};
+
+struct RootSignatureDesc {
+    std::vector<DescriptorSetDesc>
+        descs{};
+};
+
+
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
 
 struct PushConstantDesc {

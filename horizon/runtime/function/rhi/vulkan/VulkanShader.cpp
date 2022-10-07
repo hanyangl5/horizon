@@ -2,8 +2,9 @@
 
 namespace Horizon::RHI {
 
-VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char>& spirv_code) noexcept
-    : m_context(context), Shader(type) {
+VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char> &spirv_code,
+                           std::vector<char> &sld_code) noexcept
+    : m_context(context), Shader(type, sld_code) {
     VkShaderModuleCreateInfo shader_module_create_info{};
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shader_module_create_info.codeSize = spirv_code.size();

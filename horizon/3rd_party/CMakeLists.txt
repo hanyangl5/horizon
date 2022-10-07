@@ -112,3 +112,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)
 
 # add_subdirectory(tiny_ktx)
 # target_link_libraries(${PROJECT_NAME} PRIVATE tiny_ktx)
+
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)

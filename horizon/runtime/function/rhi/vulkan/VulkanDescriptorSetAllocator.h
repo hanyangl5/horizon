@@ -57,7 +57,7 @@ class VulkanDescriptorSetAllocator {
     PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
                                                            PipelineType pipeline_type);
 
-    void ReflectDescriptorSetLayoutFromShader(
+    void QueryDescriptorSetLayoutFromShader(
         VulkanShader *shader, std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_create_in,
         std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_bindings);
   public:

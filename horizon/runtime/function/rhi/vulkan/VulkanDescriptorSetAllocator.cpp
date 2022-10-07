@@ -41,7 +41,7 @@ VulkanDescriptorSetAllocator::CreateDescriptorSetLayoutFromShader(std::unordered
         layout_bindings{};
 
     for (auto &[type, shader] : shader_map) {
-        ReflectDescriptorSetLayoutFromShader(reinterpret_cast<VulkanShader *>(shader), layout_create_infos,
+        QueryDescriptorSetLayoutFromShader(reinterpret_cast<VulkanShader *>(shader), layout_create_infos,
                                              layout_bindings);
     }
 
@@ -84,7 +84,7 @@ VulkanDescriptorSetAllocator::CreateDescriptorSetLayoutFromShader(std::unordered
 }
 
 // TODO: use spirv cross instead of sprirv reflect
-void VulkanDescriptorSetAllocator::ReflectDescriptorSetLayoutFromShader(
+void VulkanDescriptorSetAllocator::QueryDescriptorSetLayoutFromShader(
     VulkanShader *shader,
     std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_create_infos,
     std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>,

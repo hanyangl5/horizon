@@ -328,6 +328,10 @@ void VulkanPipeline::CreateComputePipeline() {
 }
 void VulkanPipeline::CreatePipelineLayout() {
 
+    for (auto &[type, shader ]: shader_map) {
+        auto vk_shader = reinterpret_cast<VulkanShader *>(shader);
+    }
+
     m_pipeline_layout_desc =
         m_descriptor_set_allocator.CreateDescriptorSetLayoutFromShader(shader_map, m_create_info.type);
     std::vector<VkDescriptorSetLayout> layouts;
