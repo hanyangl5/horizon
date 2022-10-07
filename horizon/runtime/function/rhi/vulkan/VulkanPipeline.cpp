@@ -21,22 +21,17 @@ VulkanPipeline::~VulkanPipeline() noexcept {
     vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
-
-void VulkanPipeline::CreatePipelineResources() {}
-
 void VulkanPipeline::SetComputeShader(Shader *cs) {
     assert(("shader is not compute shader", cs->GetType() == ShaderType::COMPUTE_SHADER));
     assert(("pipeline is not compute shader", m_create_info.type == PipelineType::COMPUTE));
 
-    if (m_pipeline == VK_NULL_HANDLE) {
-        shader_map[ShaderType::COMPUTE_SHADER] = cs;
-
+    if (m_cs == nullptr) {
+        m_cs = cs;
         CreatePipelineLayout();
-
         CreateComputePipeline();
     }
 
-    m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
+    // m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
 void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
@@ -44,20 +39,20 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
     assert(("shader is not pixel shader", ps->GetType() == ShaderType::PIXEL_SHADER));
     assert(("pipeline is not graphics pipeline", m_create_info.type == PipelineType::GRAPHICS));
 
-    if (m_pipeline == VK_NULL_HANDLE) {
-        shader_map[ShaderType::VERTEX_SHADER] = vs;
-        shader_map[ShaderType::PIXEL_SHADER] = ps;
+    if (m_vs == nullptr && m_ps == nullptr) {
+        m_vs = vs;
+        m_ps = ps;
 
         CreatePipelineLayout();
 
         CreateGraphicsPipeline();
     }
 
-    m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
+    // m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
 Resource<DescriptorSet> VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
-    
+
     if (m_descriptor_set_allocator.pool_created == false) {
         m_descriptor_set_allocator.CreateDescriptorPool();
         m_descriptor_set_allocator.pool_created = true;
@@ -73,7 +68,7 @@ Resource<DescriptorSet> VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency
     VkDescriptorSet set =
         m_descriptor_set_allocator.pipeline_descriptor_set_resources[this].allocated_sets[freq][counter];
 
-    if (counter >= m_descriptor_set_allocator.m_reserved_max_sets[static_cast<u32>(frequency)]) {
+    if (counter >= m_reserved_max_sets[static_cast<u32>(frequency)]) {
         LOG_ERROR("descriptor set overflow");
         return {};
     }
@@ -106,17 +101,19 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         // shader stage
         {
 
-            shader_stage_create_infos.reserve(shader_map.size());
+            shader_stage_create_infos.resize(2);
+            {
+                auto vs = reinterpret_cast<VulkanShader *>(m_vs);
+                shader_stage_create_infos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+                shader_stage_create_infos[0].stage = ToVkShaderStageBit(vs->GetType());
+                shader_stage_create_infos[0].module = vs->m_shader_module;
+                shader_stage_create_infos[0].pName = "main";
 
-            // no invalid shader in shader map
-            for (auto &[type, shader] : shader_map) {
-                auto sm = reinterpret_cast<VulkanShader *>(shader);
-                VkPipelineShaderStageCreateInfo info{};
-                info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-                info.stage = ToVkShaderStageBit(sm->GetType());
-                info.module = sm->m_shader_module;
-                info.pName = "main";
-                shader_stage_create_infos.push_back(std::move(info));
+                auto ps = reinterpret_cast<VulkanShader *>(m_ps);
+                shader_stage_create_infos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+                shader_stage_create_infos[1].stage = ToVkShaderStageBit(ps->GetType());
+                shader_stage_create_infos[1].module = ps->m_shader_module;
+                shader_stage_create_infos[1].pName = "main";
             }
 
             graphics_pipeline_create_info.stageCount = shader_stage_create_infos.size();
@@ -304,9 +301,9 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 }
 
 void VulkanPipeline::CreateComputePipeline() {
-    assert(("shader not exist", shader_map[ShaderType::COMPUTE_SHADER] != nullptr));
+    assert(("shader not exist", m_cs != nullptr));
 
-    auto cs = reinterpret_cast<VulkanShader *>(shader_map[ShaderType::COMPUTE_SHADER]);
+    auto cs = reinterpret_cast<VulkanShader *>(m_cs);
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -326,45 +323,68 @@ void VulkanPipeline::CreateComputePipeline() {
     CHECK_VK_RESULT(
         vkCreateComputePipelines(m_context.device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline));
 }
+
 void VulkanPipeline::CreatePipelineLayout() {
-
-    for (auto &[type, shader ]: shader_map) {
-        auto vk_shader = reinterpret_cast<VulkanShader *>(shader);
-    }
-
-    m_pipeline_layout_desc =
-        m_descriptor_set_allocator.CreateDescriptorSetLayoutFromShader(shader_map, m_create_info.type);
-    std::vector<VkDescriptorSetLayout> layouts;
-    layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
-    for (auto &key : m_pipeline_layout_desc.descriptor_set_hash_key) {
-        if (key == 0) {
-            continue;
-        }
-        layouts.emplace_back(m_descriptor_set_allocator.FindLayout(key));
-    }
-
-    for (auto &[type, shader] : shader_map) {
-        ReflectPushConstants(reinterpret_cast<VulkanShader *>(shader), m_pipeline_layout_desc);
-    }
-
-    std::vector<VkPushConstantRange> push_constant_ranges{};
-    push_constant_ranges.reserve(m_pipeline_layout_desc.push_constants.size());
-
-    for (auto &[name, pc] : m_pipeline_layout_desc.push_constants) {
-        push_constant_ranges.emplace_back(VkPushConstantRange{
-            ToVkShaderStageFlags(pc.shader_stages),
-            pc.offset,
-            pc.size,
-        });
-    }
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_create_info.setLayoutCount = static_cast<u32>(layouts.size());
-    pipeline_layout_create_info.pSetLayouts = layouts.data();
-    pipeline_layout_create_info.pushConstantRangeCount = static_cast<u32>(push_constant_ranges.size());
-    pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges.data();
+
+    std::vector<Shader *> shaders{};
+    if (GetType() == PipelineType::GRAPHICS) {
+        shaders.push_back(m_vs);
+        shaders.push_back(m_ps);
+    } else if (GetType() == PipelineType::COMPUTE) {
+        shaders.push_back(m_cs);
+    }
+
+    // if no descriptor declared in shader
+    bool need_descriptorset = false;
+    for (auto &shader : shaders) {
+        if (!reinterpret_cast<VulkanShader *>(shader)->GetRootSignatureDesc().descs.empty()) {
+            need_descriptorset = true;
+            break;
+        }
+    }
+
+    if (need_descriptorset) {
+
+        m_pipeline_layout_desc =
+            m_descriptor_set_allocator.CreateDescriptorSetLayoutFromShader(shaders, m_create_info.type);
+
+        std::vector<VkDescriptorSetLayout> layouts;
+        layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
+        for (auto &key : m_pipeline_layout_desc.descriptor_set_hash_key) {
+
+            layouts.emplace_back(m_descriptor_set_allocator.FindLayout(key));
+        }
+
+        for (auto &shader : shaders) {
+            ReflectPushConstants(reinterpret_cast<VulkanShader *>(shader), m_pipeline_layout_desc);
+        }
+
+        std::vector<VkPushConstantRange> push_constant_ranges{};
+        push_constant_ranges.reserve(m_pipeline_layout_desc.push_constants.size());
+
+        for (auto &[name, pc] : m_pipeline_layout_desc.push_constants) {
+            push_constant_ranges.emplace_back(VkPushConstantRange{
+                ToVkShaderStageFlags(pc.shader_stages),
+                pc.offset,
+                pc.size,
+            });
+        }
+
+        pipeline_layout_create_info.setLayoutCount = static_cast<u32>(layouts.size());
+        pipeline_layout_create_info.pSetLayouts = layouts.data();
+        pipeline_layout_create_info.pushConstantRangeCount = static_cast<u32>(push_constant_ranges.size());
+        pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges.data();
+    } else {
+        pipeline_layout_create_info.setLayoutCount = 0;
+        pipeline_layout_create_info.pSetLayouts = nullptr;
+        pipeline_layout_create_info.pushConstantRangeCount = 0;
+        pipeline_layout_create_info.pPushConstantRanges = nullptr;
+    }
+
     CHECK_VK_RESULT(
         vkCreatePipelineLayout(m_context.device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout));
 }

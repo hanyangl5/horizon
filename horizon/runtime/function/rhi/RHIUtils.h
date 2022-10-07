@@ -17,7 +17,7 @@ namespace Horizon {
 // descriptor set
 static constexpr u32 DESCRIPTOR_SET_UPDATE_FREQUENCIES = 4;
 
-static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
+//static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
 
 // render info
 static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
@@ -375,7 +375,7 @@ struct DrawParam {
 
 enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
 
-struct DescriptorSetDesc {
+struct DescriptorDesc {
     std::string name{};
     DescriptorType type{};
     u32 vk_binding{};
@@ -384,8 +384,7 @@ struct DescriptorSetDesc {
 };
 
 struct RootSignatureDesc {
-    std::vector<DescriptorSetDesc>
-        descs{};
+    std::vector<DescriptorDesc> descs{};
 };
 
 
@@ -497,6 +496,37 @@ inline VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode) {
     default:
         LOG_ERROR("invali address mode");
         return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+    }
+}
+
+inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type) {
+    switch (type) {
+    case DESCRIPTOR_TYPE_UNDEFINED:
+        assert(false && "Invalid DescriptorInfo Type");
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    case DESCRIPTOR_TYPE_SAMPLER:
+        return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case DESCRIPTOR_TYPE_TEXTURE:
+        return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case DESCRIPTOR_TYPE_CONSTANT_BUFFER:
+        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case DESCRIPTOR_TYPE_RW_TEXTURE:
+        return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    case DESCRIPTOR_TYPE_BUFFER:
+    case DESCRIPTOR_TYPE_RW_BUFFER:
+        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    case DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+        return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    case DESCRIPTOR_TYPE_TEXEL_BUFFER:
+        return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
+        return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+    case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    default:
+        assert(false && "Invalid DescriptorInfo Type");
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+        break;
     }
 }
 

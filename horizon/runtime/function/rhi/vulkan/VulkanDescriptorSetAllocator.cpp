@@ -9,11 +9,7 @@
 namespace Horizon::RHI {
 
 VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept
-    : m_context(context) {}
-
-PipelineLayoutDesc
-VulkanDescriptorSetAllocator::CreateDescriptorSetLayoutFromShader(std::unordered_map<ShaderType, Shader *> &shader_map,
-                                                                  PipelineType pipeline_type) {
+    : m_context(context) {
 
     // create empty layout
     if (m_empty_descriptor_set == VK_NULL_HANDLE || m_empty_descriptor_set_layout_hash_key == 0) {
@@ -30,24 +26,24 @@ VulkanDescriptorSetAllocator::CreateDescriptorSetLayoutFromShader(std::unordered
         CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout));
 
         m_empty_descriptor_set_layout_hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
-        m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, DescriptorSetLayout{layout});
+        m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, layout);
     }
+}
 
-    PipelineLayoutDesc layout_desc;
-    std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> layout_create_infos{};
+PipelineLayoutDesc
+VulkanDescriptorSetAllocator::CreateDescriptorSetLayoutFromShader(std::vector<Shader *> &shaders,
+                                                                  PipelineType pipeline_type) {
+    PipelineLayoutDesc layout_desc{};
 
-    std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>,
-               DESCRIPTOR_SET_UPDATE_FREQUENCIES>
-        layout_bindings{};
+    std::array<std::vector<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> bindings{};
 
-    for (auto &[type, shader] : shader_map) {
-        QueryDescriptorSetLayoutFromShader(reinterpret_cast<VulkanShader *>(shader), layout_create_infos,
-                                             layout_bindings);
+    for (auto &shader : shaders) {
+        QueryDescriptorSetLayoutFromShader(reinterpret_cast<VulkanShader *>(shader), bindings);
     }
 
     // fill empty bindings
     {
-        for (auto &e : layout_bindings) {
+        for (auto &e : bindings) {
             for (u32 i = 0; i < e.size(); i++) {
                 if (e[i].descriptorCount == 0) {
                     e[i].binding = i;
@@ -55,82 +51,66 @@ VulkanDescriptorSetAllocator::CreateDescriptorSetLayoutFromShader(std::unordered
             }
         }
     }
-    // crete layouts
-    for (u32 i = 0; i < layout_create_infos.size(); i++) {
-        if (layout_create_infos[i].sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO) {
 
-            layout_create_infos[i].bindingCount = static_cast<u32>(layout_bindings[i].size());
-            layout_create_infos[i].pBindings = layout_bindings[i].data();
-            u64 hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(layout_create_infos[i]);
+    std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> layout_create_infos{};
 
-            auto res = m_descriptor_set_layout_map.find(hash_key);
+    // create layouts
+    for (u32 i = 0; i < bindings.size(); i++) {
+        // empty descriptor set
+        if (bindings[i].empty()) {
+            layout_desc.descriptor_set_hash_key[i] = m_empty_descriptor_set_layout_hash_key;
+        } else {
+            layout_create_infos[i].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            layout_create_infos[i].bindingCount = static_cast<u32>(bindings[i].size());
+            layout_create_infos[i].pBindings = bindings[i].data();
+            u64 key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(layout_create_infos[i]);
+
+            auto res = m_descriptor_set_layout_map.find(key);
 
             if (res == m_descriptor_set_layout_map.end()) {
                 VkDescriptorSetLayout layout;
                 CHECK_VK_RESULT(
                     vkCreateDescriptorSetLayout(m_context.device, &layout_create_infos[i], nullptr, &layout));
-                m_descriptor_set_layout_map.emplace(hash_key, DescriptorSetLayout{layout});
+                m_descriptor_set_layout_map.emplace(key, layout);
             } else {
-                LOG_INFO("descriptorset exist");
+                LOG_DEBUG("layout exist");
             }
-            layout_desc.descriptor_set_hash_key[i] = hash_key;
-        } else {
-            // fill empty layout
-            layout_desc.descriptor_set_hash_key[i] = m_empty_descriptor_set_layout_hash_key;
+            layout_desc.descriptor_set_hash_key[i] = key;
         }
     }
 
     return layout_desc;
 }
 
-// TODO: use spirv cross instead of sprirv reflect
 void VulkanDescriptorSetAllocator::QueryDescriptorSetLayoutFromShader(
     VulkanShader *shader,
-    std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_create_infos,
-    std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>,
-               DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_bindings) {
-    SpvReflectShaderModule module;
-    SpvReflectResult result =
-        spvReflectCreateShaderModule(shader->m_spirv_code.size(), shader->m_spirv_code.data(), &module);
-    assert(result == SPV_REFLECT_RESULT_SUCCESS);
+    std::array<std::vector<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &bindings) {
 
-    uint32_t count = 0;
-    result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
-    assert(result == SPV_REFLECT_RESULT_SUCCESS);
-
-    std::vector<SpvReflectDescriptorSet *> sets(count);
-    result = spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
-    assert(result == SPV_REFLECT_RESULT_SUCCESS);
-    for (u32 i = 0; i < sets.size(); i++) {
-        const auto &refl_set = *(sets[i]);
-        auto &layout_create_info = layout_create_infos[refl_set.set];
-        layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        auto &bindings = layout_bindings[refl_set.set];
-        // bindings.resize(refl_set.binding_count);
-
-        for (u32 binding = 0; binding < refl_set.binding_count; binding++) {
-            const SpvReflectDescriptorBinding &spv_binding = *(refl_set.bindings[binding]);
-            u32 index = spv_binding.binding;
-            bindings[index].binding = spv_binding.binding; // binding index
-            bindings[index].descriptorType =
-                static_cast<VkDescriptorType>(spv_binding.descriptor_type); // descriptor type
-            bindings[index].descriptorCount = 1;                            // descriptor count
-            bindings[index].stageFlags |= ToVkShaderStageBit(shader->GetType());
-
-            // descriptor pool size
-            {
-                u32 frequency = refl_set.set;
-                descriptor_pool_size_descs[frequency]
-                    .required_descriptor_count_per_type[bindings[index].descriptorType]++;
-            }
-        }
+    // resize vector
+    auto &vk_max_binding_index = shader->GetVkMaxBindingIndex();
+    for (u32 i = 0; i < bindings.size(); i++) {
+        bindings[i].resize(vk_max_binding_index[i]);
     }
-    spvReflectDestroyShaderModule(&module);
+
+    // sort shader descriptors
+    auto &rsd = shader->GetRootSignatureDesc();
+
+    for (auto &descriptor : rsd.descs) {
+        auto &binding = bindings[static_cast<u32>(descriptor.update_frequency)];
+        binding[descriptor.vk_binding].binding = descriptor.vk_binding;
+        binding[descriptor.vk_binding].descriptorCount = 1;
+        binding[descriptor.vk_binding].descriptorType = util_to_vk_descriptor_type(descriptor.type);
+        binding[descriptor.vk_binding].pImmutableSamplers = nullptr;
+        binding[descriptor.vk_binding].stageFlags = VK_SHADER_STAGE_ALL;
+
+        descriptor_pool_size_descs[static_cast<u32>(descriptor.update_frequency)]
+            .required_descriptor_count_per_type[binding[descriptor.vk_binding].descriptorType]++;
+    }
 }
 
 VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
     for (auto &layout : m_descriptor_set_layout_map) {
-        vkDestroyDescriptorSetLayout(m_context.device, layout.second.layout, nullptr);
+        vkDestroyDescriptorSetLayout(m_context.device, layout.second, nullptr);
     }
 
     // all descriptor sets allocated from the pool are implicitly freed and become invalid
@@ -146,7 +126,6 @@ void VulkanDescriptorSetAllocator::UpdateDescriptorPoolInfo(
     Pipeline *pipeline, const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &descriptor_set_hash_key) {
 
     pipeline_descriptor_set_resources[pipeline].layout_hash_key = descriptor_set_hash_key;
-
 }
 
 void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
@@ -223,7 +202,7 @@ void VulkanDescriptorSetAllocator::ResetDescriptorPool() {
     pool_created = false;
 }
 VkDescriptorSetLayout VulkanDescriptorSetAllocator::FindLayout(u64 key) const {
-    return m_descriptor_set_layout_map.at(key).layout;
+    return m_descriptor_set_layout_map.at(key);
 }
 
 } // namespace Horizon::RHI

@@ -20,10 +20,6 @@ namespace Horizon::RHI {
 class Pipeline;
 class VulkanPipeline;
 
-struct DescriptorSetLayout {
-    VkDescriptorSetLayout layout;
-};
-
 struct DescriptorPoolSizeDesc {
     std::unordered_map<VkDescriptorType, u32> required_descriptor_count_per_type;
 };
@@ -33,6 +29,9 @@ struct PipelineDescriptorSetResource {
     std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
     std::array<std::vector<VkDescriptorSet>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> allocated_sets;
 };
+
+static constexpr std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{
+    1, 1, 16, 16}; // per batch / per draw descriptor set are deafult has 16 descriptors
 
 class VulkanDescriptorSetAllocator {
   public:
@@ -54,22 +53,21 @@ class VulkanDescriptorSetAllocator {
 
     void CreateDescriptorPool();
 
-    PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
+    PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::vector<Shader *> &shader_map,
                                                            PipelineType pipeline_type);
 
     void QueryDescriptorSetLayoutFromShader(
-        VulkanShader *shader, std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_create_in,
-        std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_bindings);
+        VulkanShader *shader, std::array<std::vector<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_bindings);
   public:
     const VulkanRendererContext &m_context;
 
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{1, 1, 16, 16}; // per batch / per draw descriptor set are deafult has 16 descriptors
+
     std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
 
     u64 m_empty_descriptor_set_layout_hash_key{};
     VkDescriptorSet m_empty_descriptor_set{};
 
-    std::unordered_map<u64, DescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
+    std::unordered_map<u64, VkDescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
 
     std::array<std::deque<VkDescriptorPool>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_descriptor_pools{};
 

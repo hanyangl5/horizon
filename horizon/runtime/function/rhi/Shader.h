@@ -19,10 +19,11 @@ class Shader {
     ShaderType GetType() const noexcept;
     const std::string &GetEntryPoint() const noexcept;
 
-  private:
+  protected:
     const ShaderType m_type{};
     std::string m_entry_point{};
     RootSignatureDesc rsd;
+    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> vk_binding_count{}; // TODO: any smarter way?
 
 };
 

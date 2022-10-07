@@ -1,6 +1,6 @@
 """
 """
-from enum import Enum
+from enum import Enum, IntEnum
 import datetime, os, sys
 from shutil import copyfile
 
@@ -633,6 +633,32 @@ def get_fn_table(lines):
     return table
 
 
+class ShaderResourceDescriptorType(IntEnum):
+    DESCRIPTOR_TYPE_UNDEFINED = 0
+    DESCRIPTOR_TYPE_SAMPLER = 0x01
+    # SRV Read only texture
+    DESCRIPTOR_TYPE_TEXTURE = (DESCRIPTOR_TYPE_SAMPLER << 1)
+    # UAV Texture
+    DESCRIPTOR_TYPE_RW_TEXTURE = (DESCRIPTOR_TYPE_TEXTURE << 1)
+    # SRV Read only buffer
+    DESCRIPTOR_TYPE_BUFFER = (DESCRIPTOR_TYPE_RW_TEXTURE << 1)
+    DESCRIPTOR_TYPE_BUFFER_RAW = (DESCRIPTOR_TYPE_BUFFER | (DESCRIPTOR_TYPE_BUFFER << 1))
+    # UAV Buffer
+    DESCRIPTOR_TYPE_RW_BUFFER = (DESCRIPTOR_TYPE_BUFFER << 2)
+    DESCRIPTOR_TYPE_RW_BUFFER_RAW = (DESCRIPTOR_TYPE_RW_BUFFER | (DESCRIPTOR_TYPE_RW_BUFFER << 1))
+    # Uniform buffer
+    DESCRIPTOR_TYPE_CONSTANT_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2)
+    # Push constant / Root constant
+    DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_CONSTANT_BUFFER << 1)
+    # IA
+    DESCRIPTOR_TYPE_VERTEX_BUFFER = (DESCRIPTOR_TYPE_ROOT_CONSTANT << 1)
+    DESCRIPTOR_TYPE_INDEX_BUFFER = (DESCRIPTOR_TYPE_VERTEX_BUFFER << 1)
+    DESCRIPTOR_TYPE_INDIRECT_BUFFER = (DESCRIPTOR_TYPE_INDEX_BUFFER << 1)
+    # Cubemap SRV
+    DESCRIPTOR_TYPE_TEXTURE_CUBE = (DESCRIPTOR_TYPE_TEXTURE | (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 1))
+
+
+
 class Descriptor:
     def __init__(self, name, descriptor_type, vk_binding, dx_register):
         self.name = name
@@ -643,8 +669,8 @@ class Descriptor:
 def serialize_descriptor(descriptor):
     return {
         "name" : descriptor.name,
-        "type" : descriptor.descriptor_type,
-        "vk_binding" : descriptor.vk_binding,
+        "type" : int(descriptor.descriptor_type),
+        "vk_binding" : int(descriptor.vk_binding),
         "dx_register" : descriptor.dx_register
     }
 

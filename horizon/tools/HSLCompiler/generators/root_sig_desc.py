@@ -7,9 +7,8 @@ import re
 import json
 import sys
 sys.path.insert(0, '../')
-from utils import Descriptor, DescriptorSets, getMacro, serialize_descriptor
+from utils import Descriptor, DescriptorSets, getMacro, serialize_descriptor, ShaderResourceDescriptorType
 
-#literals = [ '{', '}' ]
 
 class HSLLexer(object):
     tokens = (
@@ -74,6 +73,55 @@ class HSLLexer(object):
             #print(tok)
             self.tks.append(tok)
 
+def StrToDescriptorType(in_str):
+    if in_str.startswith('SamplerState'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_SAMPLER
+    elif in_str.startswith('Buffer'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_BUFFER
+    elif in_str.startswith('WBuffer'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_BUFFER
+    elif in_str.startswith('RWBuffer'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_BUFFER
+    elif in_str.startswith('ByteBuffer'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_UNDEFINED # TODO: 
+    elif in_str.startswith('RWByteBuffer'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_UNDEFINED # TODO:
+    elif in_str.startswith('Tex1D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_TEXTURE
+    elif in_str.startswith('Tex2D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_TEXTURE
+    elif in_str.startswith('Tex3D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_TEXTURE
+    elif in_str.startswith('TexCube'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_TEXTURE
+        # rw texture
+    elif in_str.startswith('RTex1D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('RTex2D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('RTex3D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('RTexCube'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+
+    elif in_str.startswith('WTex1D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('WTex2D'):   
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE  
+    elif in_str.startswith('WTex3D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('WTexCube'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+                
+    elif in_str.startswith('RWTex1D'):
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('RWTex2D'):  
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('RWTex3D'):  
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+    elif in_str.startswith('RWTexCube'):    
+        return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
+        # TODO texture array
 
 def generate_root_signature_description(text, out_path):
     sets_descriptions = DescriptorSets()
@@ -90,13 +138,15 @@ def generate_root_signature_description(text, out_path):
         if l.startswith('CBUFFER'):
             assert (len(elements) == 4)
             [name, freq, reg, binding] = elements
+            binding = binding.split('=')[1]
             sets_descriptions.data[freq].append(
-                Descriptor(name, 'CBUFFER', binding, reg))
+                Descriptor(name, ShaderResourceDescriptorType.DESCRIPTOR_TYPE_CONSTANT_BUFFER, binding, reg))
         elif l.startswith('RES'):
             assert (len(elements) == 5)
             [ds_type, name, freq, reg, binding] = elements
+            binding = binding.split('=')[1]
             sets_descriptions.data[freq].append(
-                Descriptor(name, ds_type, binding,  reg))
+                Descriptor(name, StrToDescriptorType(ds_type), binding,  reg))
         # TODO: push constant
 
     with open(out_path, 'w', encoding='UTF-8') as fp:

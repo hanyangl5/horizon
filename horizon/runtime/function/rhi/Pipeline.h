@@ -31,7 +31,7 @@ class Pipeline {
 
   protected:
     // array contain all kinds of shaders
-    std::unordered_map<ShaderType, Shader *> shader_map{};
+    Shader *m_vs, *m_ps, *m_cs;
     PipelineCreateInfo m_create_info{};
 };
 } // namespace Horizon::RHI

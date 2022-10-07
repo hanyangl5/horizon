@@ -38,7 +38,7 @@ void VulkanDescriptorSet::SetResource(Texture *texture, u32 binding) {
     vk_texture->texture_info.imageLayout = util_to_vk_image_layout(texture->m_state);
     vk_texture->texture_info.imageView = vk_texture->m_image_view;
 
-    auto &write = writes[binding];
+    VkWriteDescriptorSet write;
 
     if (DESCRIPTOR_TYPE_RW_TEXTURE == (texture->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE)) {
         write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;

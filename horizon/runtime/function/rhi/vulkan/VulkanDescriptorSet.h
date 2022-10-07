@@ -34,6 +34,6 @@ class VulkanDescriptorSet : public DescriptorSet {
   public:
     const VulkanRendererContext &m_context;
     VkDescriptorSet m_set;
-    std::array<VkWriteDescriptorSet, MAX_BINDING_PER_DESCRIPTOR_SET> writes{};
+    std::vector<VkWriteDescriptorSet> writes{};
 };
 } // namespace Horizon::RHI

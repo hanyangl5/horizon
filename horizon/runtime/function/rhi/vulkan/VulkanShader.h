@@ -18,10 +18,12 @@ class VulkanShader : public Shader {
     VulkanShader(VulkanShader &&rhs) noexcept = delete;
     VulkanShader &operator=(VulkanShader &&rhs) noexcept = delete;
 
+    RootSignatureDesc &GetRootSignatureDesc()  { return rsd; }
+    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &GetVkMaxBindingIndex() { return vk_binding_count; }
   public:
     const VulkanRendererContext &m_context;
     VkShaderModule m_shader_module{};
-    std::vector<char> m_spirv_code;
+    std::vector<char> m_spirv_code; // TODO: remove this after generate push constant in rsd
 };
 
 } // namespace Horizon::RHI

@@ -57,7 +57,7 @@ class Pbr {
 
   private:
     std::unique_ptr<Engine> engine{};
-    std::filesystem::path asset_path = "C:/FILES/codes/horizon/horizon/assets";
+    std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";
     u32 width, height;
 
     Resource<Camera> m_camera{};
