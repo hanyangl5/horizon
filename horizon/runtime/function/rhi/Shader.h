@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 
 #include <runtime/function/rhi/RHIUtils.h>
 
@@ -8,7 +9,7 @@
 namespace Horizon::RHI {
 class Shader {
   public:
-    Shader(ShaderType type, const std::vector<char>& rsd_code) noexcept;
+    Shader(ShaderType type, const std::filesystem::path &rsd_path) noexcept;
     virtual ~Shader() noexcept = default;
 
     Shader(const Shader &rhs) noexcept = delete;
@@ -17,13 +18,12 @@ class Shader {
     Shader &operator=(Shader &&rhs) noexcept = delete;
 
     ShaderType GetType() const noexcept;
-    const std::string &GetEntryPoint() const noexcept;
 
+    const std::filesystem::path &GetRootSignatureDescriptionPath() const noexcept { return m_rsd_path; }
   protected:
     const ShaderType m_type{};
-    std::string m_entry_point{};
-    RootSignatureDesc rsd;
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> vk_binding_count{}; // TODO: any smarter way?
+    const std::filesystem::path m_rsd_path; // lazy read
+
 
 };
 

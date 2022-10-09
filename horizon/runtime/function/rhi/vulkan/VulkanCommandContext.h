@@ -27,11 +27,11 @@ class VulkanCommandContext : public CommandContext {
     virtual void Reset() override;
 
   private:
-    const VulkanRendererContext &m_context;
+    const VulkanRendererContext &m_context{};
     // each thread has pools to allocate graphics/compute/transfer commandlist
     std::array<VkCommandPool, 3> m_command_pools{};
 
     std::array<std::vector<std::unique_ptr<VulkanCommandList>>, 3> m_command_lists{};
-    std::array<u32, 3> m_command_lists_count;
+    std::array<u32, 3> m_command_lists_count{};
 };
 } // namespace Horizon::RHI

@@ -70,11 +70,11 @@ class VulkanCommandList : public CommandList {
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
   private:
-    const VulkanRendererContext &m_context;
+    const VulkanRendererContext &m_context{};
     Resource<VulkanBuffer> GetStageBuffer(const BufferCreateInfo &buffer_create_info);
 
   public:
-    VkCommandBuffer m_command_buffer;
+    VkCommandBuffer m_command_buffer{};
 };
 
 } // namespace Horizon::RHI

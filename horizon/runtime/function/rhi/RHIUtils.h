@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <fstream>
 
 #include "dx12/stdafx.h"
 #include <d3d12.h>
@@ -373,18 +374,16 @@ struct DrawParam {
     u32 firstInstance;
 };
 
-enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
+enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, USER_DEFINED0, USER_DEFINED1 };
 
 struct DescriptorDesc {
-    std::string name{};
     DescriptorType type{};
     u32 vk_binding{};
     std::string dx_reg{}; // todo : type -> reg type
-    ResourceUpdateFrequency update_frequency;
 };
 
 struct RootSignatureDesc {
-    std::vector<DescriptorDesc> descs{};
+    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> _descs{};
 };
 
 
@@ -396,7 +395,7 @@ struct PushConstantDesc {
     u32 shader_stages;
 };
 
-struct PipelineLayoutDesc {
+struct VkPipelineLayoutDesc {
   public:
     std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_set_hash_key{};
     std::unordered_map<std::string, PushConstantDesc>
@@ -530,4 +529,18 @@ inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type) {
     }
 }
 
+
+inline std::vector<char> ReadFile(const char *path) {
+    std::ifstream file(path, std::ios::ate | std::ios::binary);
+    if (!file.is_open()) {
+        LOG_ERROR("failed to open shader file: {}", path);
+    }
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+
+    return buffer;
+}
 } // namespace Horizon

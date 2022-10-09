@@ -18,11 +18,11 @@ class VulkanSwapChain : public SwapChain{
     void AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept override;
 
   public:
-    const VulkanRendererContext &m_context;
-    VkSurfaceKHR surface;
-    VkSurfaceFormatKHR optimal_surface_format;
-    VkSwapchainKHR swap_chain;
-    std::vector<VkImage> swap_chain_images;
-    std::vector<VkImageView> swap_chain_image_views;
+    const VulkanRendererContext &m_context{};
+    VkSurfaceKHR surface{};
+    VkSurfaceFormatKHR optimal_surface_format{};
+    VkSwapchainKHR swap_chain{};
+    std::vector<VkImage> swap_chain_images{};
+    std::vector<VkImageView> swap_chain_image_views{};
 };
 } // namespace Horizon::RHI

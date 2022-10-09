@@ -10,15 +10,16 @@
 #include <runtime/function/rhi/RHIUtils.h>
 
 namespace Horizon {
+
 struct VulkanRendererContext {
-    VkInstance instance;
-    VkPhysicalDevice active_gpu;
+    VkInstance instance{};
+    VkPhysicalDevice active_gpu{};
     // VkPhysicalDeviceProperties* vk_active_gpu_properties;
-    VkDevice device;
-    VmaAllocator vma_allocator;
-    std::array<u32, 3> command_queue_familiy_indices;
-    std::array<VkQueue, 3> command_queues;
-    std::array<VkFence, 3> fences;
+    VkDevice device{};
+    VmaAllocator vma_allocator{};
+    std::array<u32, 3> command_queue_familiy_indices{};
+    std::array<VkQueue, 3> command_queues{};
+    std::array<VkFence, 3> fences{};
 };
 
 VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) noexcept;

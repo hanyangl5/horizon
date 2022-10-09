@@ -209,6 +209,10 @@ void Pbr::run() {
     auto resource_uploaded_semaphore = rhi->GetSemaphore();
     bool resources_uploaded = false;
 
+    opaque_pass->SetGraphicsShader(opaque_vs, opaque_ps);
+    masked_pass->SetGraphicsShader(masked_vs, masked_ps);
+    post_process_pass->SetComputeShader(post_process_cs);
+
     for (;;) {
 
         // Horizon::RDC::StartFrameCapture();
@@ -219,9 +223,7 @@ void Pbr::run() {
         camera_ub.vp = cam->GetViewProjectionMatrix();
         camera_ub.camera_pos = cam->GetPosition();
         camera_ub.exposure = cam->GetExposure();
-        opaque_pass->SetGraphicsShader(opaque_vs, opaque_ps);
-        masked_pass->SetGraphicsShader(masked_vs, masked_ps);
-        post_process_pass->SetComputeShader(post_process_cs);
+
 
         auto opaque_pass_per_frame_ds = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 

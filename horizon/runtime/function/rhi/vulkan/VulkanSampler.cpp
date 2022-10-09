@@ -30,3 +30,8 @@ Horizon::RHI::VulkanSampler::VulkanSampler(const VulkanRendererContext &context,
 }
 
 Horizon::RHI::VulkanSampler::~VulkanSampler() noexcept { vkDestroySampler(m_context.device, m_sampler, nullptr); }
+
+VkDescriptorImageInfo *Horizon::RHI::VulkanSampler::GetDescriptorImageInfo() noexcept {
+    descriptor_image_info.sampler = m_sampler;
+    return &descriptor_image_info;
+}

@@ -48,31 +48,56 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
         CreateGraphicsPipeline();
     }
 
-    // m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
-Resource<DescriptorSet> VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
+std::vector<DescriptorSet *> VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) {
+    //new VulkanDescriptorSet();
 
-    if (m_descriptor_set_allocator.pool_created == false) {
-        m_descriptor_set_allocator.CreateDescriptorPool();
-        m_descriptor_set_allocator.pool_created = true;
-    }
+    // m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
+
+    //if (m_descriptor_set_allocator.pool_created == false) {
+    //    m_descriptor_set_allocator.CreateDescriptorPool();
+    //    m_descriptor_set_allocator.pool_created = true;
+    //}
 
     auto &resource = m_descriptor_set_allocator.pipeline_descriptor_set_resources[this];
-
     u32 freq = static_cast<u32>(frequency);
+
+    if (resource.layout_hash_key[freq] == m_descriptor_set_allocator.m_empty_descriptor_set_layout_hash_key) {
+        LOG_ERROR("return an empty descriptor set");
+        return {};
+    }
+
     assert(("descriptor pool not allocated",
             m_descriptor_set_allocator.m_descriptor_pools[freq].back() != VK_NULL_HANDLE));
 
     u32 counter = resource.m_used_set_counter[static_cast<u32>(frequency)]++;
+
     VkDescriptorSet set =
         m_descriptor_set_allocator.pipeline_descriptor_set_resources[this].allocated_sets[freq][counter];
 
-    if (counter >= m_reserved_max_sets[static_cast<u32>(frequency)]) {
-        LOG_ERROR("descriptor set overflow");
-        return {};
+        auto &resource = m_descriptor_set_allocator.pipeline_descriptor_set_resources.at(this);
+    u32 freq = static_cast<u32>(frequency);
+    // allocate sets to be used
+    VkDescriptorSetAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+    VkDescriptorSetLayout layout = m_descriptor_set_allocator.FindLayout(resource.layout_hash_key[freq]);
+
+    std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
+    resource.allocated_sets[freq].resize(m_reserved_max_sets[freq]);
+
+    alloc_info.descriptorPool = m_descriptor_set_allocator.m_descriptor_pools[static_cast<u32>(freq)].back();
+    alloc_info.descriptorSetCount = m_reserved_max_sets[freq];
+    alloc_info.pSetLayouts = layouts.data();
+
+    CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, resource.allocated_sets[freq].data()));
+
+    std::vector<DescriptorSet *> sets(count);
+    for (u32 i = 0; i < count; i++) {
+        sets[i] = new DescriptorSet()
     }
-    return std::make_unique<VulkanDescriptorSet>(m_context, frequency, set);
+    return sets;
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() {
@@ -330,28 +355,14 @@ void VulkanPipeline::CreatePipelineLayout() {
 
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-    std::vector<Shader *> shaders{};
-    if (GetType() == PipelineType::GRAPHICS) {
-        shaders.push_back(m_vs);
-        shaders.push_back(m_ps);
-    } else if (GetType() == PipelineType::COMPUTE) {
-        shaders.push_back(m_cs);
-    }
+    ParseRootSignature();
 
     // if no descriptor declared in shader
-    bool need_descriptorset = false;
-    for (auto &shader : shaders) {
-        if (!reinterpret_cast<VulkanShader *>(shader)->GetRootSignatureDesc().descs.empty()) {
-            need_descriptorset = true;
-            break;
-        }
-    }
+    bool need_descriptorset = !rsd._descs.empty();
 
     if (need_descriptorset) {
 
-        m_pipeline_layout_desc =
-            m_descriptor_set_allocator.CreateDescriptorSetLayoutFromShader(shaders, m_create_info.type);
-
+        m_descriptor_set_allocator.CreateDescriptorSetLayout(this);
         std::vector<VkDescriptorSetLayout> layouts;
         layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
         for (auto &key : m_pipeline_layout_desc.descriptor_set_hash_key) {
@@ -389,7 +400,7 @@ void VulkanPipeline::CreatePipelineLayout() {
         vkCreatePipelineLayout(m_context.device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout));
 }
 
-void VulkanPipeline::ReflectPushConstants(VulkanShader *shader, PipelineLayoutDesc &layout_desc) {
+void VulkanPipeline::ReflectPushConstants(VulkanShader *shader, VkPipelineLayoutDesc &layout_desc) {
     SpvReflectShaderModule module;
     SpvReflectResult result =
         spvReflectCreateShaderModule(shader->m_spirv_code.size(), shader->m_spirv_code.data(), &module);

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <fstream>
 #include <memory>
 #include <thread>
 #include <unordered_map>
@@ -61,12 +60,9 @@ class RHI {
 
     virtual Resource<SwapChain> CreateSwapChain(const SwapChainCreateInfo &create_info) = 0;
 
-    std::vector<char> ReadFile(const char* path) const;
-
     virtual Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path& file_name) = 0;
     
     virtual void DestroyShader(Shader *shader_program) = 0;
-    // virtual void CreateRenderTarget() = 0;
 
     virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) = 0;
 

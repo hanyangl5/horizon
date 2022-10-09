@@ -82,8 +82,8 @@ class RHIVulkan : public RHI {
 
   private:
     VulkanRendererContext m_vulkan{};
-    SwapChainSemaphoreContext semaphore_ctx;
-    std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator = nullptr;
+    SwapChainSemaphoreContext semaphore_ctx{};
+    std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator{};
     // pipeline map
     // resource manager, auto
 };

@@ -66,7 +66,7 @@ class Material {
 
     ShadingModel GetShadingModelID() noexcept { return shading_model; }
   public:
-    Resource<RHI::DescriptorSet> material_descriptor_set{};
+    RHI::DescriptorSet* material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
     MaterialParams material_params{};
     ShadingModel shading_model{ShadingModel::SHADING_MODEL_OPAQUE};

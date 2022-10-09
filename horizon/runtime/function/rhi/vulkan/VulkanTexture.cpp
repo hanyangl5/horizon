@@ -15,7 +15,7 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     image_create_info.extent.height = m_height;
     image_create_info.extent.depth = m_depth;
     image_create_info.mipLevels = mip_map_level;
-       
+
     image_create_info.arrayLayers = 1;
     image_create_info.format = ToVkImageFormat(m_format);
     image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -56,6 +56,16 @@ VulkanTexture::~VulkanTexture() noexcept {
     if (m_image_view != VK_NULL_HANDLE) {
         vkDestroyImageView(m_context.device, m_image_view, nullptr);
     }
+}
+
+VkDescriptorImageInfo *VulkanTexture::GetDescriptorImageInfo(DescriptorType descriptor_type) noexcept {
+    descriptor_image_info.imageView = m_image_view;
+    if (DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE == (descriptor_type & DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE)) {
+        descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    } else if (DescriptorType::DESCRIPTOR_TYPE_TEXTURE == (descriptor_type & DescriptorType::DESCRIPTOR_TYPE_TEXTURE)) {
+        descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+    return &descriptor_image_info;
 }
 
 } // namespace Horizon::RHI
