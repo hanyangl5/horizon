@@ -65,6 +65,9 @@ class Material {
     Material &operator=(Material &&rhs) noexcept {};
 
     ShadingModel GetShadingModelID() noexcept { return shading_model; }
+
+    void InitDescriptorSet();
+    void ResetDescriptorSet();
   public:
     RHI::DescriptorSet* material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};

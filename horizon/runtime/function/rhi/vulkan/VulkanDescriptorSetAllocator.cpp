@@ -30,7 +30,7 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
     }
 }
 
-void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline* pipeline) {
+void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pipeline) {
 
     auto &rsd = pipeline->GetRootSignatureDesc();
 
@@ -46,21 +46,13 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline* pip
             binding.descriptorType = util_to_vk_descriptor_type(descriptor.type);
             bindings[freq].push_back(binding);
 
-            // pool create info
+            // explicit descriptor count for each pool
+            // pipeline_descriptor_set_resources[pipeline]
+            //    .descriptor_pool_size_descs[freq]
+            //    .required_descriptor_count_per_type[binding.descriptorType]++;
+            // LOG_INFO("size: {}", sizeof(PipelineDescriptorSetResource));
         }
     }
-
-
-    // fill empty bindings
-    //{
-    //    for (auto &e : bindings) {
-    //        for (u32 i = 0; i < e.size(); i++) {
-    //            if (e[i].descriptorCount == 0) {
-    //                e[i].binding = i;
-    //            }
-    //        }
-    //    }
-    //}
 
     std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> layout_create_infos{};
 
@@ -88,9 +80,7 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline* pip
             pipeline->m_pipeline_layout_desc.descriptor_set_hash_key[i] = key;
         }
     }
-
 }
-
 
 VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
 
@@ -100,26 +90,41 @@ VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
 
     // all descriptor sets allocated from the pool are implicitly freed and become invalid
 
-    //for (auto &pool : m_descriptor_pools) {
-    //    /*pool.clear();*/
-    //    for (auto p : pool) {
-    //        vkDestroyDescriptorPool(m_context.device, p, nullptr);
-    //    }
-    //}
+    // for (auto &pool : m_descriptor_pools) {
+    //     /*pool.clear();*/
+    //     for (auto p : pool) {
+    //         vkDestroyDescriptorPool(m_context.device, p, nullptr);
+    //     }
+    // }
+
+    vkDestroyDescriptorPool(m_context.device, m_temp_descriptor_pool, nullptr);
 }
 
-void VulkanDescriptorSetAllocator::UpdateDescriptorPoolInfo(
-    Pipeline *pipeline, const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &descriptor_set_hash_key) {
-
-    pipeline_descriptor_set_resources[pipeline].layout_hash_key = descriptor_set_hash_key;
-}
 
 void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
+    std::array<VkDescriptorType, 5> types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                          VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                          VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
+    std::vector<VkDescriptorPoolSize> pool_sizes{};
+    for (auto type : types) {
+        pool_sizes.push_back(VkDescriptorPoolSize{type, 2048});
+    }
 
-    //for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
-    //    if (m_descriptor_pools[freq].empty()) {
-    //        std::vector<VkDescriptorPoolSize> poolSizes(
-    //            descriptor_pool_size_descs[freq].required_descriptor_count_per_type.size());
+    VkDescriptorPoolCreateInfo pool_create_info{};
+    pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_create_info.pNext = nullptr;
+    pool_create_info.flags = 0;
+
+    pool_create_info.maxSets = 2048;
+    pool_create_info.poolSizeCount = static_cast<u32>(pool_sizes.size());
+    pool_create_info.pPoolSizes = pool_sizes.data();
+
+    CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_temp_descriptor_pool));
+
+    // for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
+    //     if (m_descriptor_pools[freq].empty()) {
+    //         std::vector<VkDescriptorPoolSize> poolSizes(
+    //             descriptor_pool_size_descs[freq].required_descriptor_count_per_type.size());
 
     //        u32 i = 0;
     //        for (auto &[type, count] : descriptor_pool_size_descs[freq].required_descriptor_count_per_type) {
@@ -134,7 +139,7 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
     //        pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     //        pool_create_info.pNext = nullptr;
     //        pool_create_info.flags = 0;
-    //          
+    //
     //        pool_create_info.maxSets = m_reserved_max_sets[freq] * pipeline_descriptor_set_resources.size();
     //        pool_create_info.poolSizeCount = static_cast<u32>(poolSizes.size());
     //        pool_create_info.pPoolSizes = poolSizes.data();
@@ -154,7 +159,7 @@ void VulkanDescriptorSetAllocator::ResetDescriptorPool() {
     for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
 
         for (auto &[pipeline, resource] : pipeline_descriptor_set_resources) {
-            resource.m_used_set_counter[freq] = 0;
+            //resource.m_used_set_counter[freq] = 0;
         }
         if (!m_descriptor_pools.empty()) {
             // reset all descriptorpool and free all descriptors
@@ -164,7 +169,7 @@ void VulkanDescriptorSetAllocator::ResetDescriptorPool() {
         }
     }
 }
-VkDescriptorSetLayout VulkanDescriptorSetAllocator::FindLayout(u64 key) const {
+VkDescriptorSetLayout VulkanDescriptorSetAllocator::GetVkDescriptorSetLayout(u64 key) const {
     return m_descriptor_set_layout_map.at(key);
 }
 

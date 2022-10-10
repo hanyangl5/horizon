@@ -76,9 +76,9 @@ class Pbr {
     GraphicsPipelineCreateInfo graphics_pass_ci{};
     Pipeline *opaque_pass;
 
-    Shader *masked_vs, *masked_ps;
+    //Shader *masked_vs, *masked_ps;
 
-    Pipeline *masked_pass;
+    //Pipeline *masked_pass;
 
     Shader *generate_mipmap_cs;
     Pipeline *generate_mipmap_pass;

@@ -349,9 +349,9 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     submit_info.pSignalSemaphores = signal_semaphores.data();
 
     submit_info.pWaitDstStageMask = wait_stages.data();
-    auto &fence = m_vulkan.fences[queue_submit_info.queue_type];
+    //auto &fence = m_vulkan.fences[queue_submit_info.queue_type]; // TODO multi pipeline
 
-    vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, fence);
+    vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, nullptr);
 }
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {

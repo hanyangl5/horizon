@@ -19,7 +19,7 @@ class VulkanBuffer : public Buffer {
     VulkanBuffer(VulkanBuffer &&rhs) noexcept = delete;
     VulkanBuffer &operator=(VulkanBuffer &&rhs) noexcept = delete;
 
-    VkDescriptorBufferInfo *GetDescriptorBufferInfo(u32 offset = 0, u32 size = VK_WHOLE_SIZE) noexcept;
+    VkDescriptorBufferInfo *GetDescriptorBufferInfo(u32 offset , u32 size) noexcept;
 
   public:
     const VulkanRendererContext &m_context{};

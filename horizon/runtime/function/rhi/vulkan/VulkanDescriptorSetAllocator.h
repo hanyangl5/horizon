@@ -25,10 +25,9 @@ struct DescriptorPoolSizeDesc {
 };
 
 struct PipelineDescriptorSetResource {
-    std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> layout_hash_key;
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
-    std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_index{};
+    //std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
+    //std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
+    //std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_index{};
 };
 
 static constexpr std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{
@@ -47,7 +46,7 @@ class VulkanDescriptorSetAllocator {
   public:
     void ResetDescriptorPool();
 
-    VkDescriptorSetLayout FindLayout(u64 key) const;
+    VkDescriptorSetLayout GetVkDescriptorSetLayout(u64 key) const;
 
     // delay the pool creation and set allocation after all shader seted;
     void UpdateDescriptorPoolInfo(Pipeline *pipeline, const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &);
@@ -67,6 +66,7 @@ class VulkanDescriptorSetAllocator {
     std::unordered_map<Pipeline *, PipelineDescriptorSetResource> pipeline_descriptor_set_resources{};
     std::vector<DescriptorSet *> allocated_sets{};
     std::vector<VkDescriptorPool> m_descriptor_pools{};
+    VkDescriptorPool m_temp_descriptor_pool{};
 };
 
 } // namespace Horizon::RHI

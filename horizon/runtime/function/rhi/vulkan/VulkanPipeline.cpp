@@ -45,10 +45,28 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
         CreatePipelineLayout();
         CreateGraphicsPipeline();
     }
-
 }
 
-DescriptorSet * VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) {
+DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) {
+
+    if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
+        m_descriptor_set_allocator.CreateDescriptorPool();
+    }
+
+    VkDescriptorSetAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+    VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+        this->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
+
+    alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
+    alloc_info.descriptorSetCount = 1;
+    alloc_info.pSetLayouts = &layout;
+    VkDescriptorSet vk_ds;
+    vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds);
+    DescriptorSet *set = new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+    return set;
+
     ////new VulkanDescriptorSet();
 
     //// m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
@@ -96,7 +114,7 @@ DescriptorSet * VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequen
     //    sets[i] = new DescriptorSet()
     //}
     //return sets;
-    return {};
+    //return {};
 }
 
 void VulkanPipeline::CreateGraphicsPipeline() {
@@ -369,7 +387,7 @@ void VulkanPipeline::CreatePipelineLayout() {
         layouts.reserve(m_pipeline_layout_desc.descriptor_set_hash_key.size());
         for (auto &key : m_pipeline_layout_desc.descriptor_set_hash_key) {
 
-            layouts.emplace_back(m_descriptor_set_allocator.FindLayout(key));
+            layouts.emplace_back(m_descriptor_set_allocator.GetVkDescriptorSetLayout(key));
         }
         
         push_constant_ranges.reserve(rsd.push_constants.size());

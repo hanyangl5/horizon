@@ -82,8 +82,9 @@ class Mesh {
 
     Material &GetMaterial(u32 index) noexcept { return materials[index]; }
 
-    void GenerateMipMaps(RHI::Pipeline *pipeline, RHI::CommandList *compute);
+    std::vector<Material> &GetMaterials() noexcept { return materials; }
 
+    void GenerateMipMaps(RHI::Pipeline *pipeline, RHI::CommandList *compute);
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 

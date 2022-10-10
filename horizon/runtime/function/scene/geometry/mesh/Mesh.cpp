@@ -44,6 +44,7 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
     m_index_buffer = rhi->CreateBuffer(index_buffer_create_info);
 
     for (auto &m : materials) {
+
         m.param_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                             sizeof(m.material_params)});

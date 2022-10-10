@@ -16,7 +16,8 @@ namespace Horizon::RHI {
 
 class VulkanDescriptorSet : public DescriptorSet {
   public:
-    VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency, VkDescriptorSet set) noexcept;
+    VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency,
+                        const std::unordered_map<std::string, DescriptorDesc> & write_descs, VkDescriptorSet set) noexcept;
     virtual ~VulkanDescriptorSet() noexcept {}; 
 
     VulkanDescriptorSet(const VulkanDescriptorSet &rhs) noexcept = delete;

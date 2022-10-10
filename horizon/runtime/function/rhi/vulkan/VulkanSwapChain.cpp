@@ -41,7 +41,7 @@ Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &cont
     vk_swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
     vk_swap_chain_create_info.imageArrayLayers = 1;
     vk_swap_chain_create_info.imageUsage =
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     vk_swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
     vk_swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;

@@ -32,9 +32,9 @@ void Pbr::InitResources() {
 
         opaque_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, opaque_ps_path);
 
-        masked_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, masked_vs_path);
+        //masked_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, masked_vs_path);
 
-        masked_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, masked_ps_path);
+        //masked_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, masked_ps_path);
 
         generate_mipmap_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, generate_mipmap_cs_path);
 
@@ -112,9 +112,9 @@ void Pbr::InitResources() {
 
         opaque_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
 
-        graphics_pass_ci.rasterization_state.discard = true;
+        //graphics_pass_ci.rasterization_state.discard = true;
 
-        masked_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
+        //masked_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
 
         post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
 
@@ -207,11 +207,23 @@ void Pbr::InitResources() {
 void Pbr::run() {
 
     auto resource_uploaded_semaphore = rhi->GetSemaphore();
-    bool resources_uploaded = false;
-
+    bool first_frame = false;
+    bool &resources_uploaded = first_frame;
     opaque_pass->SetGraphicsShader(opaque_vs, opaque_ps);
-    masked_pass->SetGraphicsShader(masked_vs, masked_ps);
+    //masked_pass->SetGraphicsShader(masked_vs, masked_ps);
     post_process_pass->SetComputeShader(post_process_cs);
+
+
+    // init descriptor set
+
+    auto opaque_pass_per_frame_ds = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+
+    for (auto &mat : mesh->GetMaterials()) {
+        mat.material_descriptor_set = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+    }
+
+    auto pp_ds = post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+
 
     for (;;) {
 
@@ -225,7 +237,6 @@ void Pbr::run() {
         camera_ub.exposure = cam->GetExposure();
 
 
-        auto opaque_pass_per_frame_ds = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
@@ -276,55 +287,45 @@ void Pbr::run() {
         opaque_pass_per_frame_ds->Update();
 
         // material descriptor set
-        for (auto &node : mesh->GetNodes()) {
-            if (node.mesh_primitives.empty()) {
-                continue;
-            }
-            std::unordered_set<Material *> materials{};
-            for (const auto &m : node.mesh_primitives) {
-                materials.emplace(&mesh->GetMaterial(m->material_id));
-            }
+        for (auto &material : mesh->GetMaterials()) {
+            if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
 
-            // opaque material
-            for (auto &material : materials) {
-                if (material->GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
+                material.material_descriptor_set->SetResource(
+                    material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(),
+                    "base_color_texture");
+                material.material_descriptor_set->SetResource(
+                    material.material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
+                material.material_descriptor_set->SetResource(
+                    material.material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(),
+                    "metallic_roughness_texture");
+                material.material_descriptor_set->SetResource(
+                    material.material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), "emissive_texture");
 
-                    material->material_descriptor_set =
-                        opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+                material.material_descriptor_set->SetResource(sampler.get(), "default_sampler");
+                material.material_descriptor_set->SetResource(material.param_buffer.get(), "MaterialParamsUb");
+                material.material_descriptor_set->Update();
+            } else if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
 
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), "base_color_texture");
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), "metallic_roughness_texture");
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), "emissive_texture");
+                // material.material_descriptor_set =
+                //     masked_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
 
-                    material->material_descriptor_set->SetResource(sampler.get(), "default_sampler");
-                    material->material_descriptor_set->SetResource(material->param_buffer.get(), "MaterialParamsUb");
-                    material->material_descriptor_set->Update();
-                } else if (material->GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
+                // material.material_descriptor_set->SetResource(
+                //     material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(),
+                //     "base_color_texture");
+                // material.material_descriptor_set->SetResource(
+                //     material.material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
+                // material.material_descriptor_set->SetResource(
+                //     material.material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(),
+                //     "metallic_roughness_texture");
+                // material.material_descriptor_set->SetResource(
+                //         material.material_textures.at(MaterialTextureType::EMISSIVE).texture.get(),
+                //         "emissive_texture");
+                // material.material_descriptor_set->SetResource(
+                //     material.material_textures.at(MaterialTextureType::ALPHA_MASK).texture.get(), "alpha_texture");
 
-                    material->material_descriptor_set =
-                        masked_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
-
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), "base_color_texture");
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(),
-                        "metallic_roughness_texture");
-                    material->material_descriptor_set->SetResource(
-                            material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), "emissive_texture");
-                    material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::ALPHA_MASK).texture.get(), "alpha_texture");
-
-                    material->material_descriptor_set->SetResource(sampler.get(), "default_sampler");
-                    material->material_descriptor_set->SetResource(material->param_buffer.get(), "MaterialParamsUb");
-                    material->material_descriptor_set->Update();
-                }
+                // material.material_descriptor_set->SetResource(sampler.get(), "default_sampler");
+                // material.material_descriptor_set->SetResource(material.param_buffer.get(), "MaterialParamsUb");
+                // material.material_descriptor_set->Update();
             }
         }
 
@@ -365,7 +366,7 @@ void Pbr::run() {
                 continue;
             }
             auto mat = node.GetModelMatrix().Transpose();
-            cl->BindPushConstant(opaque_pass, "model_matrix", &mat);
+            cl->BindPushConstant(opaque_pass, "root_constant_model_mat", &mat);
 
             for (auto &m : node.mesh_primitives) {
                 auto &material = mesh->GetMaterial(m->material_id);
@@ -377,26 +378,26 @@ void Pbr::run() {
             }
         }
 
-        cl->BindPipeline(masked_pass);
+        //cl->BindPipeline(masked_pass);
 
-        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds);
+        //cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds);
 
-        for (auto &node : mesh->GetNodes()) {
-            if (node.mesh_primitives.empty()) {
-                continue;
-            }
-            auto mat = node.GetModelMatrix().Transpose();
-            cl->BindPushConstant(masked_pass, "model_matrix", &mat);
+        //for (auto &node : mesh->GetNodes()) {
+        //    if (node.mesh_primitives.empty()) {
+        //        continue;
+        //    }
+        //    auto mat = node.GetModelMatrix().Transpose();
+        //    cl->BindPushConstant(masked_pass, "model_matrix", &mat);
 
-            for (auto &m : node.mesh_primitives) {
-                auto &material = mesh->GetMaterial(m->material_id);
-                if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
+        //    for (auto &m : node.mesh_primitives) {
+        //        auto &material = mesh->GetMaterial(m->material_id);
+        //        if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
 
-                    cl->BindDescriptorSets(masked_pass, material.material_descriptor_set);
-                    cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
-                }
-            }
-        }
+        //            cl->BindDescriptorSets(masked_pass, material.material_descriptor_set);
+        //            cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
+        //        }
+        //    }
+        //}
 
         cl->EndRenderPass();
 
@@ -414,22 +415,21 @@ void Pbr::run() {
 
         cl->EndRecording();
 
-        auto gp_semaphore = rhi->GetSemaphore();
+        //auto gp_semaphore = rhi->GetSemaphore();
         {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::GRAPHICS;
             submit_info.command_lists.push_back(cl);
-            submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
-            submit_info.signal_semaphores.push_back(gp_semaphore.get());
+            //submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
+            //submit_info.signal_semaphores.push_back(gp_semaphore.get());
             submit_info.wait_image_acquired = true;
             rhi->SubmitCommandLists(submit_info);
         }
-
+        auto pp_semaphore = rhi->GetSemaphore();
         {
-            auto ds = post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
-            ds->SetResource(rt0->GetTexture(), "Source");
-            ds->SetResource(post_process_image.get(), "Destination");
-            ds->Update();
+            pp_ds->SetResource(rt0->GetTexture(), "color_image");
+            pp_ds->SetResource(post_process_image.get(), "out_color_image");
+            pp_ds->Update();
 
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
             compute->BeginRecording();
@@ -447,7 +447,7 @@ void Pbr::run() {
             }
 
             compute->BindPipeline(post_process_pass);
-            compute->BindDescriptorSets(post_process_pass, ds);
+            compute->BindDescriptorSets(post_process_pass, pp_ds);
             compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
             compute->EndRecording();
 
@@ -455,12 +455,52 @@ void Pbr::run() {
                 QueueSubmitInfo submit_info{};
                 submit_info.queue_type = CommandQueueType::COMPUTE;
                 submit_info.command_lists.push_back(compute);
-                submit_info.wait_semaphores.push_back(gp_semaphore.get());
-                submit_info.signal_render_complete = true;
+                //submit_info.wait_semaphores.push_back(gp_semaphore.get());
+                //submit_info.signal_semaphores.push_back(pp_semaphore.get());
+                //submit_info.signal_render_complete = true;
                 rhi->SubmitCommandLists(submit_info);
             }
         }
 
+        {
+            auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
+            transfer->BeginRecording();
+            {
+                BarrierDesc swap_chain_image_barrier{};
+
+                TextureBarrierDesc tb;
+                tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+                tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb.texture = swap_chain->GetRenderTarget()->GetTexture();
+                swap_chain_image_barrier.texture_memory_barriers.push_back(tb);
+
+                transfer->InsertBarrier(swap_chain_image_barrier);
+            }
+            transfer->CopyTexture(rt0->GetTexture(), swap_chain->GetRenderTarget()->GetTexture());
+            {
+                BarrierDesc swap_chain_image_barrier{};
+
+                TextureBarrierDesc tb;
+                tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
+                tb.texture = swap_chain->GetRenderTarget()->GetTexture();
+                swap_chain_image_barrier.texture_memory_barriers.push_back(tb);
+
+                transfer->InsertBarrier(swap_chain_image_barrier);
+            }
+            transfer->EndRecording();
+            {
+                QueueSubmitInfo submit_info{};
+                submit_info.queue_type = CommandQueueType::TRANSFER;
+                submit_info.command_lists.push_back(transfer);
+                // submit_info.wait_semaphores.push_back(gp_semaphore.get());
+                // submit_info.signal_semaphores.push_back(pp_semaphore.get());
+                submit_info.signal_render_complete = true;
+                rhi->SubmitCommandLists(submit_info);
+            }
+        }
+        
+        swap_chain->GetRenderTarget();
         {
             QueuePresentInfo opaque_pass_ci{};
             opaque_pass_ci.swap_chain = swap_chain.get();

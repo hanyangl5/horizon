@@ -78,8 +78,8 @@ enum DescriptorType {
     DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS = (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT << 1),
     DESCRIPTOR_TYPE_SHADER_BINDING_TABLE = (DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS << 1),
 #endif
-    DESCRIPTOR_TYPE_COLOR_ATTACHMENT,
-    DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT,
+    DESCRIPTOR_TYPE_COLOR_ATTACHMENT = (DESCRIPTOR_TYPE_RAY_TRACING << 1),
+    DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT = (DESCRIPTOR_TYPE_COLOR_ATTACHMENT << 1),
 };
 
 enum class ShaderType {
@@ -108,6 +108,7 @@ enum class TextureType {
 enum class TextureFormat {
 
     TEXTURE_FORMAT_UNDEFINED = 0,
+    TEXTURE_FORMAT_DUMMY_COLOR,
     // unsigned int
     TEXTURE_FORMAT_R8_UINT,
     TEXTURE_FORMAT_RG8_UINT,
@@ -212,7 +213,7 @@ struct BufferCreateInfo {
 };
 
 struct TextureCreateInfo {
-    DescriptorTypes descriptor_types;
+    DescriptorTypes descriptor_types{};
     ResourceState initial_state;
     TextureType texture_type;
     TextureFormat texture_format;
