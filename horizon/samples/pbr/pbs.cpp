@@ -270,9 +270,9 @@ void Pbr::run() {
         //}
 
         // perframe descriptor set
-        opaque_pass_per_frame_ds->SetResource(camera_buffer.get(), 0);
-        opaque_pass_per_frame_ds->SetResource(light_buffer.get(), 2);
-        opaque_pass_per_frame_ds->SetResource(light_count_buffer.get(), 1);
+        opaque_pass_per_frame_ds->SetResource(camera_buffer.get(), "CameraParamsUb");
+        opaque_pass_per_frame_ds->SetResource(light_buffer.get(), "LightDataUb");
+        opaque_pass_per_frame_ds->SetResource(light_count_buffer.get(), "LightCountUb");
         opaque_pass_per_frame_ds->Update();
 
         // material descriptor set
@@ -293,16 +293,16 @@ void Pbr::run() {
                         opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
 
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
+                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), "base_color_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
+                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
+                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), "metallic_roughness_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), 3);
+                        material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), "emissive_texture");
 
-                    material->material_descriptor_set->SetResource(sampler.get(), 4);
-                    material->material_descriptor_set->SetResource(material->param_buffer.get(), 5);
+                    material->material_descriptor_set->SetResource(sampler.get(), "default_sampler");
+                    material->material_descriptor_set->SetResource(material->param_buffer.get(), "MaterialParamsUb");
                     material->material_descriptor_set->Update();
                 } else if (material->GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
 
@@ -310,18 +310,19 @@ void Pbr::run() {
                         masked_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
 
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), 0);
+                        material->material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), "base_color_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), 1);
+                        material->material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(), 2);
+                        material->material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(),
+                        "metallic_roughness_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), 3);
+                            material->material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), "emissive_texture");
                     material->material_descriptor_set->SetResource(
-                        material->material_textures.at(MaterialTextureType::ALPHA_MASK).texture.get(), 4);
+                        material->material_textures.at(MaterialTextureType::ALPHA_MASK).texture.get(), "alpha_texture");
 
-                    material->material_descriptor_set->SetResource(sampler.get(), 5);
-                    material->material_descriptor_set->SetResource(material->param_buffer.get(), 6);
+                    material->material_descriptor_set->SetResource(sampler.get(), "default_sampler");
+                    material->material_descriptor_set->SetResource(material->param_buffer.get(), "MaterialParamsUb");
                     material->material_descriptor_set->Update();
                 }
             }
@@ -357,7 +358,7 @@ void Pbr::run() {
         cl->BeginRenderPass(begin_info);
         cl->BindPipeline(opaque_pass);
 
-        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds.get());
+        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds);
 
         for (auto &node : mesh->GetNodes()) {
             if (node.mesh_primitives.empty()) {
@@ -370,7 +371,7 @@ void Pbr::run() {
                 auto &material = mesh->GetMaterial(m->material_id);
                 if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
 
-                    cl->BindDescriptorSets(opaque_pass, material.material_descriptor_set.get());
+                    cl->BindDescriptorSets(opaque_pass, material.material_descriptor_set);
                     cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
                 }
             }
@@ -378,7 +379,7 @@ void Pbr::run() {
 
         cl->BindPipeline(masked_pass);
 
-        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds.get());
+        cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds);
 
         for (auto &node : mesh->GetNodes()) {
             if (node.mesh_primitives.empty()) {
@@ -391,7 +392,7 @@ void Pbr::run() {
                 auto &material = mesh->GetMaterial(m->material_id);
                 if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
 
-                    cl->BindDescriptorSets(masked_pass, material.material_descriptor_set.get());
+                    cl->BindDescriptorSets(masked_pass, material.material_descriptor_set);
                     cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
                 }
             }
@@ -426,9 +427,8 @@ void Pbr::run() {
 
         {
             auto ds = post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
-            ds->SetResource(rt0->GetTexture(), 0);
-            ds->SetResource(sampler.get(), 1);
-            ds->SetResource(post_process_image.get(), 2);
+            ds->SetResource(rt0->GetTexture(), "Source");
+            ds->SetResource(post_process_image.get(), "Destination");
             ds->Update();
 
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
@@ -447,7 +447,7 @@ void Pbr::run() {
             }
 
             compute->BindPipeline(post_process_pass);
-            compute->BindDescriptorSets(post_process_pass, ds.get());
+            compute->BindDescriptorSets(post_process_pass, ds);
             compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
             compute->EndRecording();
 

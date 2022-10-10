@@ -2,9 +2,9 @@
 
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/Shader.h>
-#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSet.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
 namespace Horizon::RHI {
 
@@ -25,18 +25,18 @@ class VulkanPipeline : public Pipeline {
 
     void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
-    std::vector<DescriptorSet *> GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) override; 
-    
+    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count = 1) override;
+
     const RootSignatureDesc &GetRootSignatureDesc() const noexcept { return rsd; }
-    
+
   private:
     void CreateGraphicsPipeline();
     void CreateComputePipeline();
     void CreatePipelineLayout();
-    
-    void ReflectPushConstants(VulkanShader * shader, VkPipelineLayoutDesc& layout_desc);
 
-    // void CreateRTPipeline() noexcept;  
+    void ReflectPushConstants(VulkanShader *shader, VkPipelineLayoutDesc &layout_desc);
+
+    // void CreateRTPipeline() noexcept;
   public:
     const VulkanRendererContext &m_context{};
     VulkanDescriptorSetAllocator &m_descriptor_set_allocator;

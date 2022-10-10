@@ -95,7 +95,7 @@ enum ShaderStageFlags {
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
-    SHADER_STAGE_TESS_SHADER = 8,
+    //SHADER_STAGE_TESS_SHADER = 8,
 };
 
 enum class TextureType {
@@ -382,24 +382,23 @@ struct DescriptorDesc {
     std::string dx_reg{}; // todo : type -> reg type
 };
 
-struct RootSignatureDesc {
-    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> _descs{};
-};
-
-
-u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
-
 struct PushConstantDesc {
     u32 size;
     u32 offset;
     u32 shader_stages;
 };
 
+struct RootSignatureDesc {
+    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptors{};
+    std::unordered_map<std::string, PushConstantDesc> push_constants;
+};
+
+
+u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
+
 struct VkPipelineLayoutDesc {
   public:
     std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_set_hash_key{};
-    std::unordered_map<std::string, PushConstantDesc>
-        push_constants{}; // TODO: vulkan only allow one pc per stage, pc in directx12 is cbuffer
 };
 
 inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {

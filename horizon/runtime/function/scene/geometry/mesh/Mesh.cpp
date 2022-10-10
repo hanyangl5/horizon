@@ -101,7 +101,7 @@ void Mesh::GenerateMipMaps(RHI::Pipeline* pipeline, RHI::CommandList *compute) {
         for (auto &[type, tex] : m.material_textures) {
             if (tex.url == "")
                 continue;
-            compute->BindDescriptorSets(pipeline, m.material_descriptor_set.get());
+            compute->BindDescriptorSets(pipeline, m.material_descriptor_set);
             compute->Dispatch(tex.width, tex.height, 1);
         }
     }

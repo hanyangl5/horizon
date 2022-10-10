@@ -37,8 +37,8 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline* pip
     std::array<std::vector<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> bindings{};
 
     for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
-        bindings[freq].reserve(rsd._descs[freq].size());
-        for (auto &[name, descriptor] : rsd._descs[freq]) {
+        bindings[freq].reserve(rsd.descriptors[freq].size());
+        for (auto &[name, descriptor] : rsd.descriptors[freq]) {
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = descriptor.vk_binding;
             binding.descriptorCount = 1;
@@ -116,34 +116,34 @@ void VulkanDescriptorSetAllocator::UpdateDescriptorPoolInfo(
 
 void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
 
-    for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
-        if (m_descriptor_pools[freq].empty()) {
-            std::vector<VkDescriptorPoolSize> poolSizes(
-                descriptor_pool_size_descs[freq].required_descriptor_count_per_type.size());
+    //for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
+    //    if (m_descriptor_pools[freq].empty()) {
+    //        std::vector<VkDescriptorPoolSize> poolSizes(
+    //            descriptor_pool_size_descs[freq].required_descriptor_count_per_type.size());
 
-            u32 i = 0;
-            for (auto &[type, count] : descriptor_pool_size_descs[freq].required_descriptor_count_per_type) {
-                poolSizes[i++] = VkDescriptorPoolSize{type, count * m_reserved_max_sets[freq]};
-            }
+    //        u32 i = 0;
+    //        for (auto &[type, count] : descriptor_pool_size_descs[freq].required_descriptor_count_per_type) {
+    //            poolSizes[i++] = VkDescriptorPoolSize{type, count * m_reserved_max_sets[freq]};
+    //        }
 
-            if (poolSizes.empty()) {
-                continue;
-            }
+    //        if (poolSizes.empty()) {
+    //            continue;
+    //        }
 
-            VkDescriptorPoolCreateInfo pool_create_info{};
-            pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            pool_create_info.pNext = nullptr;
-            pool_create_info.flags = 0;
-              
-            pool_create_info.maxSets = m_reserved_max_sets[freq] * pipeline_descriptor_set_resources.size();
-            pool_create_info.poolSizeCount = static_cast<u32>(poolSizes.size());
-            pool_create_info.pPoolSizes = poolSizes.data();
+    //        VkDescriptorPoolCreateInfo pool_create_info{};
+    //        pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    //        pool_create_info.pNext = nullptr;
+    //        pool_create_info.flags = 0;
+    //          
+    //        pool_create_info.maxSets = m_reserved_max_sets[freq] * pipeline_descriptor_set_resources.size();
+    //        pool_create_info.poolSizeCount = static_cast<u32>(poolSizes.size());
+    //        pool_create_info.pPoolSizes = poolSizes.data();
 
-            VkDescriptorPool ds_pool{};
-            CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &ds_pool));
-            m_descriptor_pools[freq].push_back(ds_pool);
-        }
-    }
+    //        VkDescriptorPool ds_pool{};
+    //        CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &ds_pool));
+    //        m_descriptor_pools[freq].push_back(ds_pool);
+    //    }
+    //}
 }
 
 void VulkanDescriptorSetAllocator::ResetDescriptorPool() {

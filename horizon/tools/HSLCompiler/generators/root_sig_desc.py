@@ -7,71 +7,16 @@ import re
 import json
 import sys
 sys.path.insert(0, '../')
-from utils import Descriptor, DescriptorSets, getMacro, serialize_descriptor, ShaderResourceDescriptorType
+from utils import Descriptor, PushConstant, RootSignatureDesc, getMacro, ShaderResourceDescriptorType, PushConstantShaderStage, get_stage_from_entry, Stages
 
-
-class HSLLexer(object):
-    tokens = (
-
-        #'PUSH_CONSTANT',
-        'RES',
-        'CBUFFER',
-        #'DATA',
-        #'UPDATE_FREQ_NONE',
-        #'UPDATE_FREQ_PER_FRAME',
-        #'UPDATE_FREQ_PER_BATCH',
-        #'UPDATE_FREQ_PER_DRAW',
-        #'BINDING',
-        #'register',
-        #'LPAREN',
-        #'RPAREN',
-    )
-
-    # recognize keyword: CBUFFER(...), PUSH_CONSTANT(...) and RES(...).
-    #t_PUSH_CONSTANT = r'PUSH_CONSTANT'
-    t_RES = r'RES'
-    t_CBUFFER = r'CBUFFER'
-    #t_DATA = r'DATA'
-    #t_BINDING = r'binding = \d+'
-    #t_register = r'[buts]\d+'
-    #t_UPDATE_FREQ_NONE = r'UPDATE_FREQ_NONE'
-    #t_UPDATE_FREQ_PER_FRAME = r'UPDATE_FREQ_PER_FRAME'
-    #t_UPDATE_FREQ_PER_BATCH = r'UPDATE_FREQ_PER_BATCH'
-    #t_UPDATE_FREQ_PER_DRAW = r'UPDATE_FREQ_PER_DRAW'
-
-    # t_LPAREN  = r'\('
-    # t_RPAREN  = r'\)'
-    # t_COMMA = r','
-    # t_LBRACE = r'\{'
-    # t_RBRACE = r'\}'
-    # t_SEG = r';'
-
-    def t_newline(self, t):
-        r'\n+'
-        t.lexer.lineno += len(t.value)
-
-    def t_error(self, t):
-        #print("Illegal character '%s'" % t.value[0])
-        t.lexer.skip(1)
-
-    # C or C++ comment (ignore)
-    def t_ccode_comment(self, t):
-        r'(/\*(.|\n)*?\*/)|(//.*)'
-        pass
-
-    # Build the lexer
-    def build(self, **kwargs):
-        self.lexer = lex.lex(module=self, **kwargs)
-        self.tks = []
-
-    def test(self, data):
-        self.lexer.input(data)
-        while True:
-            tok = self.lexer.token()
-            if not tok:
-                break
-            #print(tok)
-            self.tks.append(tok)
+# should consistant with defination in cpp code
+def GetIntShaderType(shader_stage):
+    if shader_stage == Stages.VERT:
+        return 1
+    if shader_stage == Stages.FRAG:
+        return 2
+    if shader_stage == Stages.COMP:
+        return 4
 
 def StrToDescriptorType(in_str):
     if in_str.startswith('SamplerState'):
@@ -123,33 +68,70 @@ def StrToDescriptorType(in_str):
         return ShaderResourceDescriptorType.DESCRIPTOR_TYPE_RW_TEXTURE
         # TODO texture array
 
+def getFloatSize1(data_type):
+    _map = {
+    'bool'      : 1,
+    'int'       : 1,
+    'int2'      : 2, 
+    'int3'      : 4,
+    'int4'      : 4,
+    'uint'      : 1,
+    'uint2'     : 2,
+    'uint3'     : 4,
+    'uint4'     : 4,
+    'float'     : 1,
+    'float2'    : 2,
+    'float3'    : 4,
+    'float4'    : 4,
+    'float2x2'  : 4,
+    'float3x3'  : 12,
+    'float4x4'  : 16,
+    'double2'   : 2,
+    'double3'   : 4,
+    'double4'   : 4,
+    'double2x2' : 4,
+    'double3x3' : 12,
+    'double4x4' : 16,
+    }
+    return _map[data_type]
+
 def generate_root_signature_description(text, out_path):
-    sets_descriptions = DescriptorSets()
-    json_blob = []
-    hsl_lexer = HSLLexer()
-    hsl_lexer.build()
-    hsl_lexer.test(text)
+    
+    parsing_pushconstant = None
+    push_constant_size = 0
+    root_signature_desc = RootSignatureDesc()
     lines = text.splitlines()
-    for i in range(len(hsl_lexer.tks)):
-        lines[i] = lines[hsl_lexer.tks[i].lineno-1].replace(" ", "")
-    lines = list(set(lines[0:len(hsl_lexer.tks)]))
+    shader_stage, _ = get_stage_from_entry(text)
+    shader_stage = GetIntShaderType(shader_stage)
+
     for l in lines:
         elements = getMacro(l)
         if l.startswith('CBUFFER'):
             assert (len(elements) == 4)
             [name, freq, reg, binding] = elements
-            binding = binding.split('=')[1]
-            sets_descriptions.data[freq].append(
+            binding = int(binding.split('=')[1])
+            root_signature_desc.data[freq].append(
                 Descriptor(name, ShaderResourceDescriptorType.DESCRIPTOR_TYPE_CONSTANT_BUFFER, binding, reg))
         elif l.startswith('RES'):
             assert (len(elements) == 5)
             [ds_type, name, freq, reg, binding] = elements
-            binding = binding.split('=')[1]
-            sets_descriptions.data[freq].append(
+            binding = int(binding.split('=')[1])
+            root_signature_desc.data[freq].append(
                 Descriptor(name, StrToDescriptorType(ds_type), binding,  reg))
-        # TODO: push constant
+
+        # parse root constant / push constant
+        if l.startswith('PUSH_CONSTANT'):
+            parsing_pushconstant = tuple(getMacro(l))
+        if 'DATA' in l and parsing_pushconstant:
+            push_constant_size += 4 * getFloatSize1(getMacro(l)[0])
+        if '};' in l and parsing_pushconstant:
+            print("stage", shader_stage)
+            root_signature_desc.data['PUSH_CONSTANT'].append(PushConstant(parsing_pushconstant[0], push_constant_size, parsing_pushconstant[1], shader_stage))
+            parsing_pushconstant = None
+            push_constant_size = 0
+
 
     with open(out_path, 'w', encoding='UTF-8') as fp:
-        fp.write(json.dumps(sets_descriptions.data,
-                 indent=2, ensure_ascii=False, default= serialize_descriptor))
+        fp.write(json.dumps(root_signature_desc.data,
+                 indent=2, ensure_ascii=False, default = lambda obj : obj.__dict__))
         print("")

@@ -657,6 +657,12 @@ class ShaderResourceDescriptorType(IntEnum):
     # Cubemap SRV
     DESCRIPTOR_TYPE_TEXTURE_CUBE = (DESCRIPTOR_TYPE_TEXTURE | (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 1))
 
+class PushConstantShaderStage(IntEnum):
+    SHADER_STAGE_INVALID = 0
+    SHADER_STAGE_VERTEX_SHADER = 1
+    SHADER_STAGE_PIXEL_SHADER = 2
+    SHADER_STAGE_COMPUTE_SHADER = 4
+    SHADER_STAGE_TESS_SHADER = 8
 
 
 class Descriptor:
@@ -666,24 +672,18 @@ class Descriptor:
         self.dx_register = dx_register
         self.descriptor_type = descriptor_type
         
-def serialize_descriptor(descriptor):
-    return {
-        "name" : descriptor.name,
-        "type" : int(descriptor.descriptor_type),
-        "vk_binding" : int(descriptor.vk_binding),
-        "dx_register" : descriptor.dx_register
-    }
-
 class PushConstant:
-    def __init__(self, size, dx_register):
-        self.size=vk_binding
-        self.dx_register=dx_register
-
-class DescriptorSets:
+    def __init__(self, name, size, dx_register, stage):
+        self.name = name
+        self.size = size
+        self.dx_register = dx_register
+        self.stage = stage
+class RootSignatureDesc:
     def __init__(self):
         self.data=dict()
         self.data['UPDATE_FREQ_NONE'] = []
         self.data['UPDATE_FREQ_PER_FRAME'] = []
         self.data['UPDATE_FREQ_PER_BATCH'] = []
         self.data['UPDATE_FREQ_PER_DRAW'] = []
+        self.data['PUSH_CONSTANT'] = []
 

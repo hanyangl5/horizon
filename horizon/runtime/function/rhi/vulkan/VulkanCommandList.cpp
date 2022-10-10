@@ -529,8 +529,8 @@ void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &
     assert(("command list is not recording", is_recoring == true));
     assert(("cannot bind push constant using transfer command list", m_type != CommandQueueType::TRANSFER));
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
-    auto res = vk_pipeline->m_pipeline_layout_desc.push_constants.find(name);
-    if (res == vk_pipeline->m_pipeline_layout_desc.push_constants.end()) {
+    auto res = vk_pipeline->GetRootSignatureDesc().push_constants.find(name);
+    if (res == vk_pipeline->GetRootSignatureDesc().push_constants.end()) {
         LOG_ERROR("pipeline doesn't have push constant {}", name);
         return;
     } else {
