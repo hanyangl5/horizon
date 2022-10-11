@@ -7,9 +7,9 @@ namespace TEST::SceneManagement {
 
 using namespace Horizon;
 
-class SceneManagementTest {
+class Bench {
   public:
-    SceneManagementTest() {
+    Bench() {
         EngineConfig config{};
         config.width = 800;
         config.height = 600;
@@ -25,10 +25,10 @@ class SceneManagementTest {
 };
 
 
-TEST_CASE_FIXTURE(SceneManagementTest, "multithread mesh load benchmark") {
+TEST_CASE_FIXTURE(Bench, "multithread mesh load benchmark") {
 
     auto &tp = engine->tp;
-    constexpr u32 mesh_count = 500;
+    constexpr u32 mesh_count = 10;
     std::vector<Mesh> meshes(mesh_count);
 
     std::vector<std::string> paths = {asset_path + "models/DamagedHelmet/DamagedHelmet.gltf",
