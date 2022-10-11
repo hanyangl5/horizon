@@ -24,6 +24,8 @@ RHIVulkan::RHIVulkan() noexcept {}
 RHIVulkan::~RHIVulkan() noexcept {
 
     for (auto &type : fences) {
+        if (type.empty())
+            continue;
         vkWaitForFences(m_vulkan.device, type.size(), type.data(), VK_TRUE, UINT64_MAX);
         for (auto fence : type) {
             vkDestroyFence(m_vulkan.device, fence, nullptr);
@@ -454,14 +456,14 @@ CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
 }
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) {
-    if (fences[queue_type].empty())
+    if (fence_index[queue_type] == 0)
         return;
     vkWaitForFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data(), VK_TRUE,
                     UINT64_MAX);
 }
 
 void RHIVulkan::ResetFence(CommandQueueType queue_type) {
-    if (fences[queue_type].empty())
+    if (fence_index[queue_type] == 0)
         return;
     vkResetFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data());
     fence_index[queue_type] = 0;
