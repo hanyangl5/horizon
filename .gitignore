@@ -6,7 +6,7 @@ horizon/assets/generated_shaders
 horizon/assets/envrionment
 horizon/assets/shaders
 horizon/assets/shaders/generated
-horizon/3rd_party/
+horizon/3rd_party/DirectXShaderCompiler
 out
 horizon/tools/HSLCompiler/generators/__pycache__
 horizon/tools/HSLCompiler/__pycache__
