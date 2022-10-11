@@ -24,7 +24,7 @@ if not 'HSL_COMPILER_DXC' in os.environ:
 
 from utils import *
 import generators, compilers
-
+from generators.root_sig_desc import generate_root_signature_description
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--destination', help='output directory', required=True)
@@ -119,12 +119,20 @@ def main():
         if args.compile:
             hsl_assert(dst_dir, filename=args.hsl_input, message='Missing destination binary directory')
             if not os.path.exists(args.binaryDestination): os.makedirs(args.binaryDestination)
-            #bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath) )
-            bin_filepath = args.hsl_input + "." + str(folder_map[language])
+            bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath))+".hsl"
+            #bin_filepath = args.hsl_input + "." + str(folder_map[language])
             
             status = gen_map[language].compile(out_filepath, bin_filepath)
             if status != 0: return 1
 
+    shader_code = lines = open(args.hsl_input).read()
+
+    layout_desc_path,_filename = os.path.split(args.hsl_input)
+    layout_desc_path = os.path.join(os.path.join(args.destination, 'rsd'), _filename) + ".rsd"
+
+    generate_root_signature_description(
+        shader_code, layout_desc_path)
+    
     return 0
 
 if __name__ == '__main__':

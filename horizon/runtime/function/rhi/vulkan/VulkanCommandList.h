@@ -46,9 +46,13 @@ class VulkanCommandList : public CommandList {
 
     virtual void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) override;
 
+    virtual void CopyTexture(Texture *src_texture, Texture *dst_texture) override;
+
     void CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer);
 
-    // void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) override;
+    void CopyTexture(VulkanTexture *src_texture, VulkanTexture *dst_texture);
+
+    //void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) override;
     // 
     // void CopyTextureToBuffer(VulkanTexture *src_texture, VulkanBuffer *dst_buffer) override;
 
@@ -70,11 +74,11 @@ class VulkanCommandList : public CommandList {
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
   private:
-    const VulkanRendererContext &m_context;
+    const VulkanRendererContext &m_context{};
     Resource<VulkanBuffer> GetStageBuffer(const BufferCreateInfo &buffer_create_info);
 
   public:
-    VkCommandBuffer m_command_buffer;
+    VkCommandBuffer m_command_buffer{};
 };
 
 } // namespace Horizon::RHI

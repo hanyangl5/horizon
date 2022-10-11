@@ -19,7 +19,7 @@ class VulkanRenderTarget : public RenderTarget {
     VulkanRenderTarget &operator=(VulkanRenderTarget &&rhs) noexcept = delete;
 
   public:
-    const VulkanRendererContext &m_context;
+    const VulkanRendererContext &m_context{};
 };
 
 } // namespace Horizon::RHI

@@ -23,8 +23,8 @@ class VulkanSemaphore : public Semaphore {
     u32 GetWaitStage() noexcept override;
 
   public:
-    const VulkanRendererContext &m_context;
-    VkSemaphore m_semaphore;
+    const VulkanRendererContext &m_context{};
+    VkSemaphore m_semaphore{};
 };
 
 } // namespace Horizon::RHI

@@ -14,7 +14,7 @@ class Buffer {
     Buffer(Buffer &&rhs) noexcept = delete;
     Buffer &operator=(Buffer &&rhs) noexcept = delete;
   public:
-    const DescriptorType m_descriptor_type{};
+    const DescriptorTypes m_descriptor_types{};
     ResourceState m_resource_state{};
     const u64 m_size{};
 };

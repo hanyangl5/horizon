@@ -1,7 +1,7 @@
 #pragma once
 
-#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Buffer.h>
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Texture.h>
 
 namespace Horizon {
@@ -16,23 +16,24 @@ struct BufferBarrierDesc {
     // CommandQueueType src_queue, dst_queue;
     ResourceState src_state{}, dst_state{};
     CommandQueueType queue{}; // only the other queue type is need
-    QueueOp queue_op = QueueOp::IGNORED;
+    QueueOp queue_op{QueueOp::IGNORED};
 };
 
 struct TextureBarrierDesc {
     RHI::Texture *texture;
     // MemoryAccessFlags src_access_mask, dst_access_mask;
     // TextureUsage src_usage, dst_usage; // transition image layout
-    ResourceState src_state, dst_state;
-
+    ResourceState src_state{}, dst_state{};
+    u32 first_mip_level{};
+    u32 mip_level_count{1};
     // CommandQueueType src_queue, dst_queue;
     CommandQueueType queue; // only the other queue type is need
-    QueueOp queue_op = QueueOp::IGNORED;
+    QueueOp queue_op{QueueOp::IGNORED};
 };
 
 struct BarrierDesc {
     // u32 src_stage, dst_stage;
-    std::vector<BufferBarrierDesc> buffer_memory_barriers;
-    std::vector<TextureBarrierDesc> texture_memory_barriers;
+    std::vector<BufferBarrierDesc> buffer_memory_barriers{};
+    std::vector<TextureBarrierDesc> texture_memory_barriers{};
 };
 } // namespace Horizon

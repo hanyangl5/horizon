@@ -2,7 +2,7 @@
 
 #include <d3d12.h>
 #include <directxtk12/SimpleMath.h>
-
+#include <DirectXCollision.h>
 #include <runtime/core/utils/Definations.h>
 
 namespace Horizon::Math {
@@ -22,6 +22,8 @@ using quaternion = DirectX::SimpleMath::Quaternion;
 using plane = DirectX::SimpleMath::Plane;
 using ray = DirectX::SimpleMath::Ray;
 using color = DirectX::SimpleMath::Color;
+
+using BoundingFrustum = DirectX::BoundingFrustum;
 
 inline float3 Normalize(const float3 &f) {
     float3 ret;
@@ -44,8 +46,7 @@ inline float4x4 LookAt(const float3 &eye, const float3 &target, const float3 &up
 // }
 
 inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane, float far_plane) {
-    float rad = fov * _PI / 180.0f;
-    auto mat = DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(rad, aspect_ratio, near_plane, far_plane);
+    auto mat = DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(fov, aspect_ratio, near_plane, far_plane);
     mat; // reversed-z
     return std::move(mat);
 }

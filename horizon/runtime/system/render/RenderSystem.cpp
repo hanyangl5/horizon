@@ -33,9 +33,13 @@ void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
     }
     m_rhi->InitializeRenderer();
     LOG_DEBUG("size of render api {}", sizeof(*m_rhi.get()));
-    m_rhi->CreateSwapChain(m_window);
+    m_rhi->SetWindow(m_window);
 }
-Camera *RenderSystem::GetMainCamera() const { return {}; }
+
+Camera *RenderSystem::GetDebugCamera() const {
+    assert(m_debug_camera != nullptr);
+    return m_debug_camera;
+}
 
 // Shader *RenderSystem::CreateShader(
 //     ShaderType type, const std::string &entry_point, u32 compile_flags,

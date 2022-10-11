@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <deque>
 #include <vector>
 
 #include <spirv_reflect.h>
@@ -10,22 +11,27 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/function/rhi/vulkan/VulkanTexture.h>
-#include <runtime/function/rhi/vulkan/VulkanShader.h>
 #include <runtime/function/rhi/vulkan/VulkanSampler.h>
+#include <runtime/function/rhi/vulkan/VulkanShader.h>
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon::RHI {
 
 class Pipeline;
 class VulkanPipeline;
 
-struct DescriptorSetLayout {
-    VkDescriptorSetLayout layout;
-};
-
 struct DescriptorPoolSizeDesc {
     std::unordered_map<VkDescriptorType, u32> required_descriptor_count_per_type;
 };
+
+struct PipelineDescriptorSetResource {
+    //std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
+    //std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
+    //std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_index{};
+};
+
+static constexpr std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{
+    1, 1, 16, 16}; // per batch / per draw descriptorpool can allocate 16 descriptorsets
 
 class VulkanDescriptorSetAllocator {
   public:
@@ -40,33 +46,28 @@ class VulkanDescriptorSetAllocator {
   public:
     void ResetDescriptorPool();
 
-    VkDescriptorSetLayout FindLayout(u64 key) const;
+    VkDescriptorSetLayout GetVkDescriptorSetLayout(u64 key) const;
 
-    void CreateDescriptorPool(const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES>&);
-    PipelineLayoutDesc CreateDescriptorSetLayoutFromShader(::std::unordered_map<ShaderType, Shader *> &shader_map,
-                                                           PipelineType pipeline_type);
+    // delay the pool creation and set allocation after all shader seted;
+    void UpdateDescriptorPoolInfo(Pipeline *pipeline, const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &);
 
-    void ReflectDescriptorSetLayoutFromShader(
-        VulkanShader *shader, std::array<VkDescriptorSetLayoutCreateInfo, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_create_in,
-        std::array<std::array<VkDescriptorSetLayoutBinding, MAX_BINDING_PER_DESCRIPTOR_SET>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &layout_bindings);
+    void CreateDescriptorPool();
+
+    void CreateDescriptorSetLayout(VulkanPipeline *pipeline);
+
   public:
-    const VulkanRendererContext &m_context;
+    const VulkanRendererContext &m_context{};
 
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{1, 1, 30, 1};
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
-
-    std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
     u64 m_empty_descriptor_set_layout_hash_key{};
-    std::unordered_map<u64, DescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
-
     VkDescriptorSet m_empty_descriptor_set{};
-    std::array<VkDescriptorPool, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_descriptor_pools{};
 
-    struct AllocatedDescriptorSet {
-        std::vector<VkDescriptorSet> sets;
-    };
-    std::array<AllocatedDescriptorSet, DESCRIPTOR_SET_UPDATE_FREQUENCIES> allocated_sets{};
-    // ----------
+    std::unordered_map<u64, VkDescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
+
+    std::unordered_map<Pipeline *, PipelineDescriptorSetResource> pipeline_descriptor_set_resources{};
+    std::vector<DescriptorSet *> allocated_sets{};
+    std::vector<VkDescriptorPool> m_descriptor_pools{};
+    VkDescriptorPool m_temp_descriptor_pool{};
+
 };
 
 } // namespace Horizon::RHI

@@ -25,7 +25,8 @@ class Camera {
 
     Math::float4x4 GetProjectionMatrix() const noexcept;
 
-    // void setLookAt(vec3 position, vec3 at, vec3 up = vec3(0.0f, 1.0f, 0.0f));
+    //void setLookAt(Math::float3 position, Math::float3 at, Math::float3 up = Math::float3(0.0f, 1.0f, 0.0f));
+
     Math::float4x4 GetViewMatrix() const noexcept;
 
     Math::float3 GetPosition() const noexcept;
@@ -42,9 +43,13 @@ class Camera {
 
     void UpdateViewMatrix() noexcept;
 
-    Math::float4x4 GetInvViewProjectionMatrix() const noexcept;
+    Math::float4x4 GetViewProjectionMatrix() const noexcept;
 
     Math::float3 GetForwardDir() const noexcept;
+
+    f32 GetExposure() const noexcept;
+
+    void SetExposure(f32 aperture, f32 shutter_speed, f32 iso);
 
   private:
     Math::float3 m_eye, m_at, m_up;
@@ -54,7 +59,15 @@ class Camera {
     f32 m_yaw = -90.0f, m_pitch = 0.0f;
 
     f32 m_fov, m_aspect_ratio, m_near_plane, m_far_plane;
-    f32 m_camera_speed;
+    f32 m_camera_speed{};
+
+    //exposure settings
+    f32 aperture;
+    f32 shutter_speed;
+    f32 iso;
+    f32 exposure;
 };
+
+
 
 } // namespace Horizon

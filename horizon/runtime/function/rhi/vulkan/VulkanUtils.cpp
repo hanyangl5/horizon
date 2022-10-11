@@ -120,16 +120,17 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept {
     return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkImageUsageFlags util_to_vk_image_usage(DescriptorType usage) noexcept {
+VkImageUsageFlags util_to_vk_image_usage(DescriptorTypes types) noexcept {
     VkImageUsageFlags result = 0;
-    if (DESCRIPTOR_TYPE_TEXTURE == (usage & DESCRIPTOR_TYPE_TEXTURE))
+    if (DESCRIPTOR_TYPE_TEXTURE == (types & DESCRIPTOR_TYPE_TEXTURE))
         result |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (DESCRIPTOR_TYPE_RW_TEXTURE == (usage & DESCRIPTOR_TYPE_RW_TEXTURE))
+    if (DESCRIPTOR_TYPE_RW_TEXTURE == (types & DESCRIPTOR_TYPE_RW_TEXTURE))
         result |= VK_IMAGE_USAGE_STORAGE_BIT;
-    if (usage == DescriptorType::DESCRIPTOR_TYPE_COLOR_ATTACHMENT)
-        result = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    if (usage == DescriptorType::DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT)
-        result = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    if (DESCRIPTOR_TYPE_COLOR_ATTACHMENT == (types & DESCRIPTOR_TYPE_COLOR_ATTACHMENT))
+        result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    if (DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT == (types & DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT))
+        result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    assert(result != 0);
     return result;
 }
 
@@ -383,7 +384,7 @@ VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) 
     return result;
 }
 
-VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed) noexcept {
+VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorTypes usage, bool typed) noexcept {
     VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     if (usage & DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;

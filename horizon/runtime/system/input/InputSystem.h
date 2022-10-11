@@ -15,7 +15,7 @@ class InputSystem {
     enum class INPUT_STATE { PRESS, RELEASE };
 
   public:
-    InputSystem(Window *window, Camera *camera) noexcept;
+    InputSystem(Window *window) noexcept;
 
     ~InputSystem() noexcept;
 
@@ -27,6 +27,7 @@ class InputSystem {
 
     InputSystem &operator=(InputSystem &&rhs) noexcept = delete;
 
+    void SetCamera(Camera *camera) noexcept;
   public:
     void Tick();
 

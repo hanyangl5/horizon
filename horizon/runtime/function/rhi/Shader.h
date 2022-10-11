@@ -1,27 +1,30 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 
 #include <runtime/function/rhi/RHIUtils.h>
+
 
 namespace Horizon::RHI {
 class Shader {
   public:
-    // Shader(ShaderType type, IDxcBlob* dxil_byte_code) noexcept;
-    Shader(ShaderType type) noexcept;
+    Shader(ShaderType type, const std::filesystem::path &rsd_path) noexcept;
     virtual ~Shader() noexcept = default;
+
     Shader(const Shader &rhs) noexcept = delete;
     Shader &operator=(const Shader &rhs) noexcept = delete;
     Shader(Shader &&rhs) noexcept = delete;
     Shader &operator=(Shader &&rhs) noexcept = delete;
-    // virtual void* GetBufferPointer() const noexcept = 0;
-    // virtual u64 GetBufferSize() const noexcept = 0;
-    ShaderType GetType() const noexcept;
-    const std::string &GetEntryPoint() const noexcept;
 
-  private:
+    ShaderType GetType() const noexcept;
+
+    const std::filesystem::path &GetRootSignatureDescriptionPath() const noexcept { return m_rsd_path; }
+  protected:
     const ShaderType m_type{};
-    std::string m_entry_point{};
+    const std::filesystem::path m_rsd_path; // lazy read
+
+
 };
 
 } // namespace Horizon::RHI

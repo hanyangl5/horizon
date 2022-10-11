@@ -10,14 +10,14 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanSampler.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
 
 namespace Horizon::RHI {
 
 class VulkanDescriptorSet : public DescriptorSet {
   public:
-    VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency, VkDescriptorSet set) noexcept;
-    virtual ~VulkanDescriptorSet() noexcept {};
+    VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency,
+                        const std::unordered_map<std::string, DescriptorDesc> & write_descs, VkDescriptorSet set) noexcept;
+    virtual ~VulkanDescriptorSet() noexcept {}; 
 
     VulkanDescriptorSet(const VulkanDescriptorSet &rhs) noexcept = delete;
     VulkanDescriptorSet &operator=(const VulkanDescriptorSet &rhs) noexcept = delete;
@@ -25,15 +25,17 @@ class VulkanDescriptorSet : public DescriptorSet {
     VulkanDescriptorSet &operator=(VulkanDescriptorSet &&rhs) noexcept = delete;
 
   public:
-    void SetResource(Buffer *resource, u32 binding) override;
-    void SetResource(Texture *resource, u32 binding) override;
-    void SetResource(Sampler *resource, u32 binding) override;
+    void SetResource(Buffer *resource,  const std::string& resource_name) override;
+    void SetResource(Texture *resource, const std::string& resource_name) override;
+    void SetResource(Sampler *resource, const std::string& resource_name) override;
 
     void Update() override;
 
   public:
-    const VulkanRendererContext &m_context;
-    VkDescriptorSet m_set;
-    std::array<VkWriteDescriptorSet, MAX_BINDING_PER_DESCRIPTOR_SET> writes{};
+    const VulkanRendererContext &m_context{};
+    const std::unordered_map<std::string, DescriptorDesc> &write_descs{}; // move to base class?
+    std::vector<VkWriteDescriptorSet> writes{};
+
+    VkDescriptorSet m_set{};
 };
 } // namespace Horizon::RHI

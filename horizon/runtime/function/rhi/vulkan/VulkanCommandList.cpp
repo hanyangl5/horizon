@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <memory>
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
@@ -38,7 +39,7 @@ void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u3
     std::vector<VkDeviceSize> vk_offsets(buffer_count);
     for (u32 i = 0; i < buffer_count; i++) {
         assert(("vertex buffer not valid",
-                buffers[i]->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
+                buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
         vk_buffers[i] = reinterpret_cast<VulkanBuffer *>(buffers[i])->m_buffer;
         vk_offsets[i] = offsets[i];
     }
@@ -51,7 +52,7 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
-    assert(("index buffer not valid", buffer->m_descriptor_type == DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER));
+    assert(("index buffer not valid", buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER));
 
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
@@ -230,18 +231,24 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
 }
 
 void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
-    if (!is_recoring) {
-        LOG_ERROR("command buffer isn't recording");
-        return;
-    }
-    if (m_type != CommandQueueType::TRANSFER) {
-        LOG_ERROR("invalid commands for current commandlist, expect transfer "
-                  "commandlist");
-        return;
-    }
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect transfer "
+            "commandlist",
+            m_type == CommandQueueType::TRANSFER));
+
     auto vk_src_buffer = reinterpret_cast<VulkanBuffer *>(src_buffer);
     auto vk_dst_buffer = reinterpret_cast<VulkanBuffer *>(dst_buffer);
     CopyBuffer(vk_src_buffer, vk_dst_buffer);
+}
+
+void VulkanCommandList::CopyTexture(Texture *src_texture, Texture *dst_texture) {
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect transfer "
+            "commandlist",
+            m_type == CommandQueueType::TRANSFER));
+    auto vk_src_texture = reinterpret_cast<VulkanTexture *>(src_texture);
+    auto vk_dst_texture = reinterpret_cast<VulkanTexture *>(dst_texture);
+    CopyTexture(vk_src_texture, vk_dst_texture);
 }
 
 void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer) {
@@ -250,6 +257,31 @@ void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_b
     region.size = dst_buffer->m_size;
     vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
 }
+
+void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *dst_texture) {
+    VkImageCopy cregion;
+    cregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.srcSubresource.mipLevel = 0;
+    cregion.srcSubresource.baseArrayLayer = 0;
+    cregion.srcSubresource.layerCount = 1;
+    cregion.srcOffset.x = 0;
+    cregion.srcOffset.y = 0;
+    cregion.srcOffset.z = 0;
+    cregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.dstSubresource.mipLevel = 0;
+    cregion.dstSubresource.baseArrayLayer = 0;
+    cregion.dstSubresource.layerCount = 1;
+    cregion.dstOffset.x = 0;
+    cregion.dstOffset.y = 0;
+    cregion.dstOffset.z = 0;
+    cregion.extent.width = src_texture->m_width;
+    cregion.extent.height = src_texture->m_height;
+    cregion.extent.depth = 1;
+    vkCmdCopyImage(m_command_buffer, src_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst_texture->m_image,
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion);
+}
+
+//void VulkanCommandList::CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) {}
 
 // void VulkanCommandList::CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) {
 //     //vkCmdCopyBufferToImage();
@@ -276,10 +308,10 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         vk_texture->m_stage_buffer =
             std::make_unique<VulkanBuffer>(m_context,
                                            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
-                                                            ResourceState::RESOURCE_STATE_COPY_SOURCE, texture_size },
+                                                            ResourceState::RESOURCE_STATE_COPY_SOURCE, texture_size},
                                            MemoryFlag::CPU_VISABLE_MEMORY);
     }
-     memcpy(vk_texture->m_stage_buffer->m_allocation_info.pMappedData, texture_data.data,
+    memcpy(vk_texture->m_stage_buffer->m_allocation_info.pMappedData, texture_data.data,
            static_cast<u64>(texture_size));
 
     // barrier 1
@@ -296,7 +328,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         bmb.buffer = vk_texture->m_stage_buffer.get();
         bmb.src_state = RESOURCE_STATE_HOST_WRITE;
         bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
-
 
         BarrierDesc desc{};
 
@@ -321,18 +352,56 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
     vkCmdCopyBufferToImage(m_command_buffer, vk_texture->m_stage_buffer->m_buffer, vk_texture->m_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
+
     {
-        // transition layout, transfer dst -> usage
-        TextureBarrierDesc tmb2{};
-        tmb2.texture = texture;
-        tmb2.src_state = RESOURCE_STATE_COPY_DEST;
-        tmb2.dst_state = texture->m_state;
-
         BarrierDesc desc2{};
+        // handle mipmap generation, FIX : blit cannot call from tranfer command
+        //if (texture->mip_map_level > 1) 
+        //{
+        //    TextureBarrierDesc mip_map_barrier{};
+        //    mip_map_barrier.texture = texture;
 
-        desc2.texture_memory_barriers.emplace_back(tmb2);
+        //    i32 mip_w = texture->m_width, mip_h = texture->m_height;
 
-        InsertBarrier(desc2);
+        //    for (u32 i = 0; i < texture->mip_map_level; i++) {
+        //        mip_map_barrier.first_mip_level = i - 1;
+        //        mip_map_barrier.mip_level_count = 1;
+        //        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+        //        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        //        desc2.texture_memory_barriers.emplace_back(mip_map_barrier);
+
+        //        // todo provide blit
+        //        {
+        //            VkImageBlit blit{};
+        //            blit.srcOffsets[0] = {0, 0, 0};
+        //            blit.srcOffsets[1] = {mip_w, mip_h, 1};
+        //            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //            blit.srcSubresource.mipLevel = i - 1;
+        //            blit.srcSubresource.baseArrayLayer = 0;
+        //            blit.srcSubresource.layerCount = 1;
+        //            blit.dstOffsets[0] = {0, 0, 0};
+        //            blit.dstOffsets[1] = {mip_w > 1 ? mip_w / 2 : 1, mip_h > 1 ? mip_h / 2 : 1, 1};
+        //            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //            blit.dstSubresource.mipLevel = i;
+        //            blit.dstSubresource.baseArrayLayer = 0;
+        //            blit.dstSubresource.layerCount = 1;
+
+        //            vkCmdBlitImage(m_command_buffer, vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        //                           vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+        //                           VK_FILTER_LINEAR);
+        //        }
+        //        mip_map_barrier.first_mip_level = i-1;
+        //        mip_map_barrier.mip_level_count = 1;
+        //        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        //        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+        //        desc2.texture_memory_barriers.emplace_back(mip_map_barrier);
+        //        if (mip_w > 1)
+        //            mip_w /= 2;
+        //        if (mip_h > 1)
+        //            mip_h /= 2;
+        //    }
+        //}
+
     }
 }
 
@@ -414,22 +483,28 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
         if (1) {
 
             barrier.image = vk_texture->m_image;
-            barrier.subresourceRange =
-                VkImageSubresourceRange{ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false), 0, 1, 0, 1};
+
+            if (vk_texture->m_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR) {
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            } else {
+                barrier.subresourceRange.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false);
+            }
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
+            barrier.subresourceRange.levelCount = barrier_desc.mip_level_count;
+            // todo
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
             // barrier.subresourceRange.aspectMask =
             //     (VkImageAspectFlags)pTexture->mAspectMask;
-            // barrier.subresourceRange.baseMipLevel =
-            //     barrier_desc.mSubresourceBarrier ? barrier_desc.mMipLevel :
-            //     0;
-            // barrier.subresourceRange.levelCount =
-            //     barrier_desc.mSubresourceBarrier ? 1 :
-            //     VK_REMAINING_MIP_LEVELS;
+
+
             // barrier.subresourceRange.baseArrayLayer =
-            //     barrier_desc.mSubresourceBarrier ? barrier_desc.mArrayLayer :
-            //     0;
-            // barrier.subresourceRange.layerCount =
-            //     barrier_desc.mSubresourceBarrier ? 1 :
-            //     VK_REMAINING_ARRAY_LAYERS;
+            //      barrier_desc.mSubresourceBarrier ? barrier_desc.mArrayLayer :
+            //      0;
+            //  barrier.subresourceRange.layerCount =
+            //      barrier_desc.mSubresourceBarrier ? 1 :
+            //      VK_REMAINING_ARRAY_LAYERS;
 
             if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
                 ;
@@ -490,8 +565,8 @@ void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &
     assert(("command list is not recording", is_recoring == true));
     assert(("cannot bind push constant using transfer command list", m_type != CommandQueueType::TRANSFER));
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
-    auto res = vk_pipeline->m_pipeline_layout_desc.push_constants.find(name);
-    if (res == vk_pipeline->m_pipeline_layout_desc.push_constants.end()) {
+    auto res = vk_pipeline->GetRootSignatureDesc().push_constants.find(name);
+    if (res == vk_pipeline->GetRootSignatureDesc().push_constants.end()) {
         LOG_ERROR("pipeline doesn't have push constant {}", name);
         return;
     } else {
