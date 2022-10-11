@@ -1,6 +1,6 @@
 """
 """
-from enum import Enum
+from enum import Enum, IntEnum
 import datetime, os, sys
 from shutil import copyfile
 
@@ -631,3 +631,59 @@ def get_fn_table(lines):
     #     print(k, v)
     # sys.exit(0)
     return table
+
+
+class ShaderResourceDescriptorType(IntEnum):
+    DESCRIPTOR_TYPE_UNDEFINED = 0
+    DESCRIPTOR_TYPE_SAMPLER = 0x01
+    # SRV Read only texture
+    DESCRIPTOR_TYPE_TEXTURE = (DESCRIPTOR_TYPE_SAMPLER << 1)
+    # UAV Texture
+    DESCRIPTOR_TYPE_RW_TEXTURE = (DESCRIPTOR_TYPE_TEXTURE << 1)
+    # SRV Read only buffer
+    DESCRIPTOR_TYPE_BUFFER = (DESCRIPTOR_TYPE_RW_TEXTURE << 1)
+    DESCRIPTOR_TYPE_BUFFER_RAW = (DESCRIPTOR_TYPE_BUFFER | (DESCRIPTOR_TYPE_BUFFER << 1))
+    # UAV Buffer
+    DESCRIPTOR_TYPE_RW_BUFFER = (DESCRIPTOR_TYPE_BUFFER << 2)
+    DESCRIPTOR_TYPE_RW_BUFFER_RAW = (DESCRIPTOR_TYPE_RW_BUFFER | (DESCRIPTOR_TYPE_RW_BUFFER << 1))
+    # Uniform buffer
+    DESCRIPTOR_TYPE_CONSTANT_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2)
+    # Push constant / Root constant
+    DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_CONSTANT_BUFFER << 1)
+    # IA
+    DESCRIPTOR_TYPE_VERTEX_BUFFER = (DESCRIPTOR_TYPE_ROOT_CONSTANT << 1)
+    DESCRIPTOR_TYPE_INDEX_BUFFER = (DESCRIPTOR_TYPE_VERTEX_BUFFER << 1)
+    DESCRIPTOR_TYPE_INDIRECT_BUFFER = (DESCRIPTOR_TYPE_INDEX_BUFFER << 1)
+    # Cubemap SRV
+    DESCRIPTOR_TYPE_TEXTURE_CUBE = (DESCRIPTOR_TYPE_TEXTURE | (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 1))
+
+class PushConstantShaderStage(IntEnum):
+    SHADER_STAGE_INVALID = 0
+    SHADER_STAGE_VERTEX_SHADER = 1
+    SHADER_STAGE_PIXEL_SHADER = 2
+    SHADER_STAGE_COMPUTE_SHADER = 4
+    SHADER_STAGE_TESS_SHADER = 8
+
+
+class Descriptor:
+    def __init__(self, name, descriptor_type, vk_binding, dx_register):
+        self.name = name
+        self.vk_binding = vk_binding
+        self.dx_register = dx_register
+        self.descriptor_type = descriptor_type
+        
+class PushConstant:
+    def __init__(self, name, size, dx_register, stage):
+        self.name = name
+        self.size = size
+        self.dx_register = dx_register
+        self.stage = stage
+class RootSignatureDesc:
+    def __init__(self):
+        self.data=dict()
+        self.data['UPDATE_FREQ_NONE'] = []
+        self.data['UPDATE_FREQ_PER_FRAME'] = []
+        self.data['UPDATE_FREQ_PER_BATCH'] = []
+        self.data['UPDATE_FREQ_PER_DRAW'] = []
+        self.data['PUSH_CONSTANT'] = []
+

@@ -549,16 +549,20 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
     sampler_desc.address_w = AddressMode::ADDRESS_MODE_REPEAT;
 
     auto sampler = rhi->GetSampler(sampler_desc);
-    auto view =
-        Math::LookAt(Math::float3(0.0f, 0.0f, 1.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
+    //auto view =
+    //    Math::LookAt(Math::float3(0.0f, 0.0f, 1.0f), Math::float3(0.0f, 0.0f, 0.0f), Math::float3(0.0f, 1.0f, 0.0f));
 
-    auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
+    //auto projection = Math::Perspective(90.0f, (float)width / (float)height, 0.1f, 100.0f);
 
+    auto cam = engine->m_render_system->GetDebugCamera();
+    cam->SetPerspectiveProjectionMatrix(90.0f, (float)width / (float)height, 0.1f, 100.0f);
+    auto camvp = cam->GetViewProjectionMatrix();
     // row major
-    auto vp = view * projection;
-    vp = vp.Transpose();
+    //auto vp = view * projection;
+
+    //vp = vp.Transpose();
     auto vp_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(vp)});
+                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float4x4)});
 
     auto image_acquired_semaphore = rhi->GetSemaphore();
     auto resource_uploaded_semaphore = rhi->GetSemaphore();
@@ -572,6 +576,8 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
 
         pipeline->SetGraphicsShader(vs, ps);
 
+        auto camvp = cam->GetViewProjectionMatrix();
+
         
         auto per_frame_descriptor_set = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
@@ -579,7 +585,7 @@ TEST_CASE_FIXTURE(RHITest, "texture and material") {
 
         transfer->BeginRecording();
         
-        transfer->UpdateBuffer(vp_buffer.get(), &vp, sizeof(Math::float4x4));
+        transfer->UpdateBuffer(vp_buffer.get(), &camvp, sizeof(Math::float4x4));
 
         if (!resources_uploaded) {
             resources_uploaded = true;

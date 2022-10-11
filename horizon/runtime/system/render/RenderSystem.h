@@ -31,43 +31,9 @@ class RenderSystem {
     RenderSystem &operator=(RenderSystem &&rhs) noexcept = delete;
 
   public:
-    Camera *GetMainCamera() const;
+    void SetCamera(Camera *camera) noexcept { m_debug_camera = camera; }
 
-    // Resource<Buffer>
-    // CreateBuffer(const BufferCreateInfo &buffer_create_info) noexcept;
-
-    // Resource<Texture>
-    // CreateTexture(const TextureCreateInfo &texture_create_info) noexcept;
-
-    // Shader *CreateShader(ShaderType type,
-    //                                    const std::string &entry_point,
-    //                                    u32 compile_flags,
-    //                                    std::string file_name) noexcept;
-    // void DestroyShader(Shader *shader_program) noexcept;
-
-    // Pipeline *CreateGraphicsPipeline(
-    //     const GraphicsPipelineCreateInfo &create_info) noexcept;
-
-    // Pipeline *CreateComputePipeline(
-    //     const ComputePipelineCreateInfo &create_info) noexcept;
-
-    // CommandList *GetCommandList(CommandQueueType type) noexcept;
-
-    // void WaitGpuExecution(CommandQueueType queue_type) noexcept;
-
-    // void ResetCommandResources() noexcept;
-
-    // // submit command list to command queue
-    // void SubmitCommandLists(CommandQueueType queue,
-    //                         std::vector<CommandList *> &command_lists)
-    //                         noexcept;
-
-    // void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
-    //                  u32 binding) noexcept;
-
-    // void SetResource(Texture *texture) noexcept;
-
-    // void UpdateDescriptors() noexcept;
+    Camera *GetDebugCamera() const;
 
     RHI::RHI *GetRhi() noexcept { return m_rhi.get(); }
 
@@ -76,7 +42,7 @@ class RenderSystem {
 
   private:
     Window *m_window{};
-
+    Camera *m_debug_camera{};
     std::unique_ptr<RHI::RHI> m_rhi{};
 };
 } // namespace Horizon

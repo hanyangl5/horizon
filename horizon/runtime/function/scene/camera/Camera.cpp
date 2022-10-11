@@ -5,7 +5,7 @@ Camera::Camera(Math::float3 eye, Math::float3 at, Math::float3 up) noexcept : m_
     m_forward = Math::Normalize(m_at - m_eye);
     m_right = Math::Cross(m_forward, m_up);
     UpdateViewMatrix();
-    // setLookAt(eye, at, up);
+    //setLookAt(eye, at, up);
 }
 
 void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane) noexcept {
@@ -13,7 +13,7 @@ void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearP
     m_aspect_ratio = aspect_ratio;
     m_near_plane = nearPlane;
     m_far_plane = farPlane;
-    // m_projection = Math::perspective(fov, aspect_ratio, nearPlane, farPlane);
+    m_projection = Math::Perspective(fov, aspect_ratio, nearPlane, farPlane);
     // m_projection = ReversePerspective(fov, aspect_ratio, nearPlane,
     // farPlane);
 }
@@ -78,11 +78,39 @@ void Camera::UpdateViewMatrix() noexcept {
 
     m_view = Math::LookAt(m_eye, m_eye + m_forward, m_up);
 }
-Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
-    // TODO: the directx matrix calculation rule
-    return (m_projection * m_view).Invert();
+Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept {
+    auto vp = m_view * m_projection;
+    vp = vp.Transpose();
+    return vp;
 }
 Math::float3 Camera::GetForwardDir() const noexcept { return m_forward; }
+
+f32 Camera::GetExposure() const noexcept { return exposure; }
+
+void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
+    aperture = aperture;
+    shutter_speed = shutter_speed;
+    iso = iso;
+
+    // With N = aperture, t = shutter speed and S = sensitivity,
+    // we can compute EV100 knowing that:
+    //
+    // EVs = log2(N^2 / t)
+    // and
+    // EVs = EV100 + log2(S / 100)
+    //
+    // We can therefore find:
+    //
+    // EV100 = EVs - log2(S / 100)
+    // EV100 = log2(N^2 / t) - log2(S / 100)
+    // EV100 = log2((N^2 / t) * (100 / S))
+    //
+    // Reference: https://en.wikipedia.org/wiki/Exposure_value
+    f32 ev100 = std::log2((aperture * aperture) / shutter_speed * 100.0f / iso);
+    exposure = 1.0 / (pow(2.0, ev100) * 1.2);
+}
+
 Math::float4x4 Camera::GetViewMatrix() const noexcept { return m_view; }
+
 Math::float3 Camera::GetPosition() const noexcept { return m_eye; }
 } // namespace Horizon

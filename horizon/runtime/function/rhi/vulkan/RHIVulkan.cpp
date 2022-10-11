@@ -4,10 +4,6 @@
 
 #define VMA_IMPLEMENTATION
 
-#ifdef _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
-#endif
-
 #include <vulkan/vulkan.hpp>
 
 #include <runtime/function/rhi/vulkan/RHIVulkan.h>
@@ -27,18 +23,17 @@ RHIVulkan::RHIVulkan() noexcept {}
 
 RHIVulkan::~RHIVulkan() noexcept {
 
-    vkWaitForFences(m_vulkan.device, m_vulkan.fences.size(), m_vulkan.fences.data(), VK_TRUE, UINT64_MAX);
-
-    for (auto &fence : m_vulkan.fences) {
-        vkDestroyFence(m_vulkan.device, fence, nullptr);
+    for (auto &type : fences) {
+        vkWaitForFences(m_vulkan.device, type.size(), type.data(), VK_TRUE, UINT64_MAX);
+        for (auto fence : type) {
+            vkDestroyFence(m_vulkan.device, fence, nullptr);
+        }
     }
 
     thread_command_context = nullptr;
 
     m_descriptor_set_allocator = nullptr; // release
 
-    DestroySwapChain();
-    vkDestroySurfaceKHR(m_vulkan.instance, m_vulkan.surface, nullptr);
     vmaDestroyAllocator(m_vulkan.vma_allocator);
     vkDestroyDevice(m_vulkan.device, nullptr);
     vkDestroyInstance(m_vulkan.instance, nullptr);
@@ -62,76 +57,17 @@ Resource<RenderTarget> RHIVulkan::CreateRenderTarget(const RenderTargetCreateInf
     return std::make_unique<VulkanRenderTarget>(m_vulkan, render_target_create_info);
 }
 
-void RHIVulkan::CreateSwapChain(Window *window) {
-    // create window surface
-    VkWin32SurfaceCreateInfoKHR surface_create_info{};
-    surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surface_create_info.hinstance = GetModuleHandle(nullptr);
-    ;
-    surface_create_info.hwnd = window->GetWin32Window();
-    CHECK_VK_RESULT(vkCreateWin32SurfaceKHR(m_vulkan.instance, &surface_create_info, nullptr, &m_vulkan.surface));
-
-    u32 surface_format_count = 0;
-    // Get surface formats count
-    CHECK_VK_RESULT(
-        vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count, nullptr));
-    std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
-    CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_vulkan.active_gpu, m_vulkan.surface, &surface_format_count,
-                                                         surface_formats.data()));
-
-    m_vulkan.optimal_surface_format = surface_formats.back();
-
-    // create swap chain
-
-    VkSwapchainCreateInfoKHR swap_chain_create_info{};
-    swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swap_chain_create_info.surface = m_vulkan.surface;
-    swap_chain_create_info.minImageCount = m_back_buffer_count;
-    swap_chain_create_info.imageFormat = m_vulkan.optimal_surface_format.format;
-    swap_chain_create_info.imageColorSpace = m_vulkan.optimal_surface_format.colorSpace;
-    swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
-    swap_chain_create_info.imageArrayLayers = 1;
-    swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
-    swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    swap_chain_create_info.clipped = VK_TRUE;
-    swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swap_chain_create_info.queueFamilyIndexCount = 0;
-
-    CHECK_VK_RESULT(vkCreateSwapchainKHR(m_vulkan.device, &swap_chain_create_info, nullptr, &m_vulkan.swap_chain));
-
-    // u32 image_count = 0;
-    // vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain,
-    // &image_count, nullptr);  // Get images
-    m_vulkan.swap_chain_images.resize(m_back_buffer_count);
-    vkGetSwapchainImagesKHR(m_vulkan.device, m_vulkan.swap_chain, &m_back_buffer_count,
-                            m_vulkan.swap_chain_images.data()); // Get images
-
-    m_vulkan.swap_chain_image_views.resize(m_back_buffer_count);
-
-    VkImageViewCreateInfo image_view_create_info{};
-    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    image_view_create_info.format = m_vulkan.optimal_surface_format.format;
-    image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    image_view_create_info.subresourceRange.baseMipLevel = 0;
-    image_view_create_info.subresourceRange.levelCount = 1;
-    image_view_create_info.subresourceRange.baseArrayLayer = 0;
-    image_view_create_info.subresourceRange.layerCount = 1;
-
-    for (u32 i = 0; i < m_vulkan.swap_chain_image_views.size(); i++) {
-        image_view_create_info.image = m_vulkan.swap_chain_images[i];
-        CHECK_VK_RESULT(
-            vkCreateImageView(m_vulkan.device, &image_view_create_info, nullptr, &m_vulkan.swap_chain_image_views[i]));
-    }
+Resource<SwapChain> RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info) {
+    return std::make_unique<VulkanSwapChain>(m_vulkan, create_info, m_window);
 }
 
 Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) {
-    std::filesystem::path path = file_name;
-    path += ".VULKAN";
-    auto spirv_code = ReadFile(path.string().c_str());
-    return new VulkanShader(m_vulkan, type, spirv_code);
+    auto _shader_bin_path = file_name.parent_path() / "bin" / "VULKAN" / file_name.filename();
+    auto spirv_code = ReadFile(_shader_bin_path.generic_string().c_str());
+    auto rsd_path = file_name.parent_path() / "generated" / "rsd" / file_name.filename();
+    rsd_path += ".rsd";
+    auto sld_code = ReadFile(rsd_path.generic_string().c_str());
+    return new VulkanShader(m_vulkan, type, spirv_code, rsd_path);
 }
 
 void RHIVulkan::DestroyShader(Shader *shader_program) {
@@ -331,22 +267,21 @@ void RHIVulkan::InitializeVMA() {
     CHECK_VK_RESULT(vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator));
 }
 
-void RHIVulkan::CreateSyncObjects() {
-    VkFenceCreateInfo fence_create_info{};
-    fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+void RHIVulkan::CreateSyncObjects() {}
 
-    for (auto &fence : m_vulkan.fences) {
+VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept {
+    VkFence fence{};
+    // return an exisiting fence
+    if (fence_index[type] < fences[type].size()) {
+        fence = fences[type][fence_index[type]];
+    } else {
+        VkFenceCreateInfo fence_create_info{};
+        fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info, nullptr, &fence));
+        fences[type].push_back(fence);
     }
-}
-
-void RHIVulkan::DestroySwapChain() {
-    for (u32 i = 0; i < m_vulkan.swap_chain_images.size(); i++) {
-        vkDestroyImageView(m_vulkan.device, m_vulkan.swap_chain_image_views[i], nullptr);
-        // vkDestroyImage(m_vulkan.device, m_vulkan.swap_chain_images[i],
-        // nullptr);
-    }
-    vkDestroySwapchainKHR(m_vulkan.device, m_vulkan.swap_chain, nullptr);
+    fence_index[type]++;
+    return fence;
 }
 
 void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
@@ -382,12 +317,35 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
         wait_stages[i] = queue_submit_info.wait_semaphores[i]->GetWaitStage();
     }
 
+    // signal render complete semaphore
+    if (queue_submit_info.wait_image_acquired == true) {
+        wait_semaphores.push_back(
+            std::reinterpret_pointer_cast<VulkanSemaphore>(semaphore_ctx.swap_chain_acquire_semaphore)
+                .get()
+                ->m_semaphore);
+        wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    }
+
     u32 signal_semaphore_count = queue_submit_info.signal_semaphores.size();
     std::vector<VkSemaphore> signal_semaphores(signal_semaphore_count);
 
     for (u32 i = 0; i < signal_semaphore_count; i++) {
         signal_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.signal_semaphores[i])->m_semaphore;
         queue_submit_info.signal_semaphores[i]->AddWaitStage(queue_submit_info.queue_type);
+    }
+
+    // signal render complete semaphore
+    if (queue_submit_info.signal_render_complete == true) {
+
+        if (!semaphore_ctx.swap_chain_release_semaphore) {
+            semaphore_ctx.swap_chain_release_semaphore = std::move(GetSemaphore());
+        }
+
+        signal_semaphores.push_back(
+            std::reinterpret_pointer_cast<VulkanSemaphore>(semaphore_ctx.swap_chain_release_semaphore)
+                .get()
+                ->m_semaphore);
+        wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT); // correct stage?
     }
 
     submit_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
@@ -398,35 +356,9 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 
     submit_info.pWaitDstStageMask = wait_stages.data();
 
-    auto &fence = m_vulkan.fences[queue_submit_info.queue_type];
+    auto fence = GetFence(queue_submit_info.queue_type);
 
     vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, fence);
-}
-
-void RHIVulkan::AcquireNextImage(Semaphore *image_acquired_semaphore, u32 swap_chain_image_index) {
-    m_current_frame_index = swap_chain_image_index;
-    auto s = reinterpret_cast<VulkanSemaphore *>(image_acquired_semaphore)->m_semaphore;
-
-    VkResult res =
-        vkAcquireNextImageKHR(m_vulkan.device, m_vulkan.swap_chain, UINT64_MAX, s, nullptr, &m_current_frame_index);
-    if (res == VK_ERROR_OUT_OF_DATE_KHR) {
-        LOG_ERROR("vkAcquireNextImageKHR returned VK_ERROR_OUT_OF_DATE_KHR.");
-        return;
-    }
-
-    // Commonly returned immediately following swapchain resize.
-    // Vulkan spec states that this return value constitutes a successful call to vkAcquireNextImageKHR
-    // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
-    if (res == VK_SUBOPTIMAL_KHR) {
-        LOG_ERROR("vkAcquireNextImageKHR returned VK_SUBOPTIMAL_KHR. If window was just resized, ignore this message.");
-        // pSignalSemaphore->mVulkan.mSignaled = true;
-        return;
-    }
-    // VkSemaphoreSignalInfo info{};
-    // info.semaphore = s;
-    // info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
-    // info.value = 1;
-    // vkSignalSemaphore(m_vulkan.device,)
 }
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
@@ -434,22 +366,82 @@ void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    u32 wait_semaphore_count = queue_present_info.wait_semaphores.size();
-    std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
+    // u32 wait_semaphore_count = queue_present_info.wait_semaphores.size();
+    // std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
 
-    for (u32 i = 0; i < wait_semaphore_count; i++) {
-        wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_present_info.wait_semaphores[i])->m_semaphore;
-    }
+    // for (u32 i = 0; i < wait_semaphore_count; i++) {
+    //     wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_present_info.wait_semaphores[i])->m_semaphore;
+    // }
+    std::vector<VkSemaphore> wait_semaphores{};
+    wait_semaphores.push_back(
+        std::reinterpret_pointer_cast<VulkanSemaphore>(semaphore_ctx.swap_chain_release_semaphore).get()->m_semaphore);
 
     present_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
     present_info.pWaitSemaphores = wait_semaphores.data();
 
-    VkSwapchainKHR swapChains[] = {m_vulkan.swap_chain};
+    auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(queue_present_info.swap_chain);
+
+    VkSwapchainKHR swapChains[] = {vk_swap_chain->swap_chain};
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapChains;
-    present_info.pImageIndices = &m_current_frame_index;
+    present_info.pImageIndices = &vk_swap_chain->image_index;
 
     CHECK_VK_RESULT(vkQueuePresentKHR(m_vulkan.command_queues[CommandQueueType::GRAPHICS], &present_info));
+    vk_swap_chain->current_frame_index++;
+    vk_swap_chain->current_frame_index = vk_swap_chain->current_frame_index % vk_swap_chain->m_back_buffer_count;
+}
+
+void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
+
+    auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(swap_chain);
+
+    std::shared_ptr<Semaphore> sm;
+    if (semaphore_ctx.recycled_semaphores.empty()) {
+        sm = std::move(GetSemaphore());
+
+    } else {
+        sm = semaphore_ctx.recycled_semaphores.back();
+        semaphore_ctx.recycled_semaphores.pop_back();
+    }
+
+    VkResult res = vkAcquireNextImageKHR(m_vulkan.device, vk_swap_chain->swap_chain, UINT64_MAX,
+                                         std::reinterpret_pointer_cast<VulkanSemaphore>(sm)->m_semaphore, nullptr,
+                                         &vk_swap_chain->image_index);
+
+    if (res != VK_SUCCESS) {
+        semaphore_ctx.recycled_semaphores.push_back(sm);
+        LOG_ERROR("failed to acqurei next image");
+        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
+            // resize(context.swapchain_dimensions.width, context.swapchain_dimensions.height);
+            // res = acquire_next_image(context, &index);
+        }
+
+        if (res != VK_SUCCESS) {
+            // vkQueueWaitIdle(context.queue);
+            // return;
+        }
+    }
+
+    // RESET RHI RESOURCES
+    {
+
+        WaitGpuExecution(CommandQueueType::GRAPHICS);
+        WaitGpuExecution(CommandQueueType::COMPUTE);
+        WaitGpuExecution(CommandQueueType::TRANSFER);
+        ResetFence(CommandQueueType::GRAPHICS);
+        ResetFence(CommandQueueType::COMPUTE);
+        ResetFence(CommandQueueType::TRANSFER);
+        ResetRHIResources();
+    }
+
+    // Recycle the old semaphore back into the semaphore manager.
+    auto old_semaphore = std::reinterpret_pointer_cast<VulkanSemaphore>(semaphore_ctx.swap_chain_acquire_semaphore);
+
+    if (old_semaphore != nullptr && old_semaphore->m_semaphore != VK_NULL_HANDLE) {
+        semaphore_ctx.recycled_semaphores.push_back(old_semaphore);
+    }
+
+    semaphore_ctx.swap_chain_acquire_semaphore = sm;
 }
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
@@ -462,11 +454,17 @@ CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
 }
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) {
-    vkWaitForFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type], VK_TRUE, UINT64_MAX);
+    if (fences[queue_type].empty())
+        return;
+    vkWaitForFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data(), VK_TRUE,
+                    UINT64_MAX);
 }
 
 void RHIVulkan::ResetFence(CommandQueueType queue_type) {
-    vkResetFences(m_vulkan.device, 1, &m_vulkan.fences[queue_type]);
+    if (fences[queue_type].empty())
+        return;
+    vkResetFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data());
+    fence_index[queue_type] = 0;
 }
 
 void RHIVulkan::ResetRHIResources() {

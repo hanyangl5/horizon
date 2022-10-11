@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <fstream>
 
 #include "dx12/stdafx.h"
 #include <d3d12.h>
@@ -17,7 +18,7 @@ namespace Horizon {
 // descriptor set
 static constexpr u32 DESCRIPTOR_SET_UPDATE_FREQUENCIES = 4;
 
-static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
+//static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
 
 // render info
 static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
@@ -31,6 +32,8 @@ enum class RenderBackend { RENDER_BACKEND_NONE, RENDER_BACKEND_VULKAN, RENDER_BA
 enum CommandQueueType { GRAPHICS = 0, COMPUTE, TRANSFER };
 
 enum class PipelineType { UNDIFINED, GRAPHICS = 0, COMPUTE, RAY_TRACING };
+
+using DescriptorTypes = u32;
 
 enum DescriptorType {
     DESCRIPTOR_TYPE_UNDEFINED = 0,
@@ -75,11 +78,9 @@ enum DescriptorType {
     DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS = (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT << 1),
     DESCRIPTOR_TYPE_SHADER_BINDING_TABLE = (DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS << 1),
 #endif
-    DESCRIPTOR_TYPE_COLOR_ATTACHMENT,
-    DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT,
+    DESCRIPTOR_TYPE_COLOR_ATTACHMENT = (DESCRIPTOR_TYPE_RAY_TRACING << 1),
+    DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT = (DESCRIPTOR_TYPE_COLOR_ATTACHMENT << 1),
 };
-
-// using DescriptorType = u32;
 
 enum class ShaderType {
     VERTEX_SHADER,
@@ -94,18 +95,22 @@ enum ShaderStageFlags {
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
-    SHADER_STAGE_TESS_SHADER = 8,
+    //SHADER_STAGE_TESS_SHADER = 8,
 };
 
 enum class TextureType {
     TEXTURE_TYPE_1D = 0,
     TEXTURE_TYPE_2D,
     TEXTURE_TYPE_3D,
+    TEXTURE_TYPE_CUBE
 };
 
 enum class TextureFormat {
+
+    TEXTURE_FORMAT_UNDEFINED = 0,
+    TEXTURE_FORMAT_DUMMY_COLOR,
     // unsigned int
-    TEXTURE_FORMAT_R8_UINT = 0,
+    TEXTURE_FORMAT_R8_UINT,
     TEXTURE_FORMAT_RG8_UINT,
     TEXTURE_FORMAT_RGB8_UINT,
     TEXTURE_FORMAT_RGBA8_UINT,
@@ -194,26 +199,33 @@ enum ResourceState {
     RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE = 0x4000,
     RESOURCE_STATE_SHADING_RATE_SOURCE = 0x8000,
     RESOURCE_STATE_HOST_READ = 0x10000,
-    RESOURCE_STATE_HOST_WRITE = 0x20000
+    RESOURCE_STATE_HOST_WRITE = 0x20000 
 };
 
 enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
 
 struct BufferCreateInfo {
     // u32 buffer_usage_flags;
-    DescriptorType descriptor_type;
+    DescriptorTypes descriptor_types;
     ResourceState initial_state;
     u64 size;
     // void* data;
 };
 
 struct TextureCreateInfo {
-    DescriptorType descriptor_type;
+    DescriptorTypes descriptor_types{};
     ResourceState initial_state;
     TextureType texture_type;
     TextureFormat texture_format;
     // TextureUsage texture_usage;
     u32 width, height, depth = 1;
+    bool generate_mip_map = false;
+};
+
+using SwapChainFormat = TextureFormat;
+
+struct SwapChainCreateInfo {
+    u32 back_buffer_count;
 };
 
 // dx12
@@ -347,7 +359,7 @@ struct Rect {
 
 using RenderTargetFormat = TextureFormat;
 
-enum class RenderTargetType { COLOR, DEPTH_STENCIL };
+enum class RenderTargetType { COLOR, DEPTH_STENCIL, UNDEFINED };
 
 struct RenderTargetCreateInfo {
     RenderTargetFormat rt_format;
@@ -363,9 +375,13 @@ struct DrawParam {
     u32 firstInstance;
 };
 
-enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW };
+enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, USER_DEFINED0, USER_DEFINED1 };
 
-u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
+struct DescriptorDesc {
+    DescriptorType type{};
+    u32 vk_binding{};
+    std::string dx_reg{}; // todo : type -> reg type
+};
 
 struct PushConstantDesc {
     u32 size;
@@ -373,11 +389,17 @@ struct PushConstantDesc {
     u32 shader_stages;
 };
 
-struct PipelineLayoutDesc {
+struct RootSignatureDesc {
+    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptors{};
+    std::unordered_map<std::string, PushConstantDesc> push_constants;
+};
+
+
+u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
+
+struct VkPipelineLayoutDesc {
   public:
     std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_set_hash_key{};
-    std::unordered_map<std::string, PushConstantDesc>
-        push_constants{}; // TODO: vulkan only allow one pc per stage, pc in directx12 is cbuffer
 };
 
 inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
@@ -476,4 +498,49 @@ inline VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode) {
     }
 }
 
+inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type) {
+    switch (type) {
+    case DESCRIPTOR_TYPE_UNDEFINED:
+        assert(false && "Invalid DescriptorInfo Type");
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    case DESCRIPTOR_TYPE_SAMPLER:
+        return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case DESCRIPTOR_TYPE_TEXTURE:
+        return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case DESCRIPTOR_TYPE_CONSTANT_BUFFER:
+        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case DESCRIPTOR_TYPE_RW_TEXTURE:
+        return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    case DESCRIPTOR_TYPE_BUFFER:
+    case DESCRIPTOR_TYPE_RW_BUFFER:
+        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    case DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+        return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    case DESCRIPTOR_TYPE_TEXEL_BUFFER:
+        return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
+        return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+    case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    default:
+        assert(false && "Invalid DescriptorInfo Type");
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+        break;
+    }
+}
+
+
+inline std::vector<char> ReadFile(const char *path) {
+    std::ifstream file(path, std::ios::ate | std::ios::binary);
+    if (!file.is_open()) {
+        LOG_ERROR("failed to open shader file: {}", path);
+    }
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+
+    return buffer;
+}
 } // namespace Horizon

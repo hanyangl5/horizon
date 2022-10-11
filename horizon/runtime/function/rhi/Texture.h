@@ -15,13 +15,14 @@ class Texture {
     Texture &operator=(Texture &&rhs) noexcept = delete;
     // virtual void *GetBufferPointer() noexcept = 0;
   public:
-    const DescriptorType m_descriptor_type;
+    DescriptorTypes m_descriptor_types;
     ResourceState m_state{};
     const TextureType m_type{};
     const TextureFormat m_format{};
 
     const u32 m_width{}, m_height{}, m_depth{};
     const u32 m_channels{4};
+    u32 mip_map_level{};
 
   protected:
 };

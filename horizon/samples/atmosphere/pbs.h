@@ -11,12 +11,9 @@
 
 #include <argparse/argparse.hpp>
 
-#include <runtime/core/utils/definations.h>
-#include <runtime/core/math/Math.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
-#include <runtime/core/units/Units.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>
@@ -52,6 +49,8 @@ class Pbr {
     void InitAPI();
 
     void InitResources();
+
+    void InitSphere();
     
     void run();
 
@@ -66,26 +65,21 @@ class Pbr {
 
     // pass resources
 
-
+    std::filesystem::path opaque_vs_path, opaque_ps_path;
     Shader *opaque_vs, *opaque_ps;
 
-    Resource<RenderTarget> rt0;
+    RenderTarget *rt0;
     Resource<RenderTarget> depth;
     Resource<Sampler> sampler;
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
     Pipeline *opaque_pass;
 
-    //Shader *masked_vs, *masked_ps;
+    std::filesystem::path masked_vs_path, masked_ps_path;
+    Shader *masked_vs, *masked_ps;
 
-    //Pipeline *masked_pass;
+    Pipeline *masked_pass;
 
-    Shader *generate_mipmap_cs;
-    Pipeline *generate_mipmap_pass;
-
-    Shader *post_process_cs;
-    Pipeline *post_process_pass;
-    Resource<Texture> post_process_image;
 
     //
 
@@ -110,12 +104,6 @@ class Pbr {
     Resource<Buffer> light_buffer;
     bool resources_uploaded = false;
 
-    std::filesystem::path ibl_iem_path;
-    std::filesystem::path ibl_pfem_path;
-    std::filesystem::path ibl_brdf_lut_path;
-
-    Resource<Texture> ibl_iem, ibl_pfem, ibl_brdf_lut;
     u32 culled_mesh{};
     u32 total_mesh{};
 };
-
