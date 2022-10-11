@@ -1,6 +1,6 @@
-#include "pbs.h"
+#include "vbuffer.h"
 
-void Pbr::InitAPI() {
+void VisibilityBuffer::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
     m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0_m), Math::float3(0.0, 0.0, 0.0),
@@ -13,7 +13,7 @@ void Pbr::InitAPI() {
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
 }
 
-void Pbr::InitResources() {
+void VisibilityBuffer::InitResources() {
 
     // shaders
     {
@@ -31,18 +31,13 @@ void Pbr::InitResources() {
 
         opaque_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, opaque_ps_path);
 
-        // masked_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, masked_vs_path);
-
-        // masked_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, masked_ps_path);
-
-        generate_mipmap_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, generate_mipmap_cs_path);
 
         post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, postprocess_cs_path);
     }
 
     // graphics pass
     {
-        rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA16_SFLOAT,
+        rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA32_UINT,
                                                              RenderTargetType::COLOR, width, height});
 
         // rt0 = swap_chain->GetRenderTarget();
@@ -203,7 +198,7 @@ void Pbr::InitResources() {
     }
 }
 
-void Pbr::run() {
+void VisibilityBuffer::run() {
 
     auto resource_uploaded_semaphore = rhi->GetSemaphore();
     bool first_frame = false;

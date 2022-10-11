@@ -31,9 +31,9 @@
 using namespace Horizon;
 using namespace Horizon::RHI;
 
-class Pbr {
+class VisibilityBuffer {
   public:
-    Pbr() {
+    VisibilityBuffer() {
         EngineConfig config{};
         config.width = 1600;
         config.height = 900;
@@ -66,9 +66,6 @@ class Pbr {
 
     // pass resources
 
-
-    Shader *opaque_vs, *opaque_ps;
-
     Resource<RenderTarget> rt0;
     Resource<RenderTarget> depth;
     Resource<Sampler> sampler;
@@ -76,14 +73,20 @@ class Pbr {
     GraphicsPipelineCreateInfo graphics_pass_ci{};
     Pipeline *opaque_pass;
 
-    //Shader *masked_vs, *masked_ps;
+    Shader *vbuffer_vs, *vbuffer_ps;
+    Shader *resolve_vs, *resolve_ps;
 
-    //Pipeline *masked_pass;
-
-    Shader *generate_mipmap_cs;
-    Pipeline *generate_mipmap_pass;
-
+    //Shader *resolve_cs;
+    Shader *shading_cs;
     Shader *post_process_cs;
+
+    Pipeline *vbuffer_pass{};     // generate v buffer
+    Pipeline *resolve_pass{};     // vbuffer -> gbuffer
+    Pipeline *shading_pass{};     // shading
+    Pipeline *postprocess_pass{}; // post_process
+
+    
+
     Pipeline *post_process_pass;
     Resource<Texture> post_process_image;
 
