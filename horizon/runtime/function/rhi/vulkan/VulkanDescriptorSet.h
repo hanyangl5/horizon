@@ -10,7 +10,6 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanSampler.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
-#include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
 
 namespace Horizon::RHI {
 

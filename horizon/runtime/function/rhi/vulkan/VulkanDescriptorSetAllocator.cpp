@@ -156,19 +156,24 @@ void VulkanDescriptorSetAllocator::ResetDescriptorPool() {
     for (auto &set : allocated_sets) {
         delete set;
     }
-    for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
+    allocated_sets.clear();
+    if (m_temp_descriptor_pool)
+    vkResetDescriptorPool(m_context.device, m_temp_descriptor_pool, 0);
 
-        for (auto &[pipeline, resource] : pipeline_descriptor_set_resources) {
-            //resource.m_used_set_counter[freq] = 0;
-        }
-        if (!m_descriptor_pools.empty()) {
-            // reset all descriptorpool and free all descriptors
-            for (auto &pool : m_descriptor_pools) {
-                vkResetDescriptorPool(m_context.device, pool, 0);
-            }
-        }
-    }
+    //for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
+
+    //    for (auto &[pipeline, resource] : pipeline_descriptor_set_resources) {
+    //        //resource.m_used_set_counter[freq] = 0;
+    //    }
+    //    if (!m_descriptor_pools.empty()) {
+    //        // reset all descriptorpool and free all descriptors
+    //        for (auto &pool : m_descriptor_pools) {
+    //            vkResetDescriptorPool(m_context.device, pool, 0);
+    //        }
+    //    }
+    //}
 }
+
 VkDescriptorSetLayout VulkanDescriptorSetAllocator::GetVkDescriptorSetLayout(u64 key) const {
     return m_descriptor_set_layout_map.at(key);
 }

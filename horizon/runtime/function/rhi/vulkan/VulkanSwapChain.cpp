@@ -69,12 +69,13 @@ Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &cont
     image_view_create_info.subresourceRange.levelCount = 1;
     image_view_create_info.subresourceRange.baseArrayLayer = 0;
     image_view_create_info.subresourceRange.layerCount = 1;
+
     for (u32 i = 0; i < swap_chain_image_views.size(); i++) {
         image_view_create_info.image = swap_chain_images[i];
         CHECK_VK_RESULT(
             vkCreateImageView(m_context.device, &image_view_create_info, nullptr, &swap_chain_image_views[i]));
         render_targets.push_back(
-            new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_UNDEFINED,
+            new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
                                                                      RenderTargetType::UNDEFINED, width, height}));
         auto tx = reinterpret_cast<VulkanTexture *>(render_targets[i]->GetTexture());
         tx->m_image_view = swap_chain_image_views[i];

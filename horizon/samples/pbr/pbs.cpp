@@ -1,11 +1,10 @@
 #include "pbs.h"
 
-
 void Pbr::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
-    m_camera =
-        std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0_m), Math::float3(0.0, 0.0, 0.0), Math::float3(0.0, 1.0_m, 0.0));
+    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0_m), Math::float3(0.0, 0.0, 0.0),
+                                        Math::float3(0.0, 1.0_m, 0.0));
     m_camera->SetCameraSpeed(0.1);
     m_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
     engine->m_render_system->SetCamera(m_camera.get());
@@ -16,7 +15,7 @@ void Pbr::InitAPI() {
 
 void Pbr::InitResources() {
 
-    // shaders 
+    // shaders
     {
         std::filesystem::path opaque_vs_path = asset_path / "shaders/lit_opaque.vert.hsl";
         std::filesystem::path opaque_ps_path = asset_path / "shaders/lit_opaque.frag.hsl";
@@ -32,22 +31,21 @@ void Pbr::InitResources() {
 
         opaque_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, opaque_ps_path);
 
-        //masked_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, masked_vs_path);
+        // masked_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, masked_vs_path);
 
-        //masked_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, masked_ps_path);
+        // masked_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, masked_ps_path);
 
         generate_mipmap_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, generate_mipmap_cs_path);
 
         post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, postprocess_cs_path);
     }
 
-
     // graphics pass
     {
         rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                   RenderTargetType::COLOR, width, height});
- 
-        //rt0 = swap_chain->GetRenderTarget();
+                                                             RenderTargetType::COLOR, width, height});
+
+        // rt0 = swap_chain->GetRenderTarget();
         depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                RenderTargetType::DEPTH_STENCIL, width, height});
 
@@ -112,9 +110,9 @@ void Pbr::InitResources() {
 
         opaque_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
 
-        //graphics_pass_ci.rasterization_state.discard = true;
+        // graphics_pass_ci.rasterization_state.discard = true;
 
-        //masked_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
+        // masked_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
 
         post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
 
@@ -123,12 +121,8 @@ void Pbr::InitResources() {
             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
     }
 
-
     // compute pass
-    { 
-        generate_mipmap_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
-    }
-
+    { generate_mipmap_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
 
     // resources{
 
@@ -151,7 +145,7 @@ void Pbr::InitResources() {
 
     sampler = rhi->GetSampler(sampler_desc);
 
-    // camera 
+    // camera
     {
         cam = engine->m_render_system->GetDebugCamera();
 
@@ -198,10 +192,7 @@ void Pbr::InitResources() {
         light_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                           sizeof(LightParams) * light_count});
-
     }
-
-    
 }
 
 void Pbr::run() {
@@ -210,20 +201,8 @@ void Pbr::run() {
     bool first_frame = false;
     bool &resources_uploaded = first_frame;
     opaque_pass->SetGraphicsShader(opaque_vs, opaque_ps);
-    //masked_pass->SetGraphicsShader(masked_vs, masked_ps);
+    // masked_pass->SetGraphicsShader(masked_vs, masked_ps);
     post_process_pass->SetComputeShader(post_process_cs);
-
-
-    // init descriptor set
-
-    auto opaque_pass_per_frame_ds = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
-
-    for (auto &mat : mesh->GetMaterials()) {
-        mat.material_descriptor_set = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
-    }
-
-    auto pp_ds = post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
-
 
     for (;;) {
 
@@ -236,7 +215,8 @@ void Pbr::run() {
         camera_ub.camera_pos = cam->GetPosition();
         camera_ub.exposure = cam->GetExposure();
 
-
+        auto opaque_pass_per_frame_ds = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+        auto pp_ds = post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
         auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
 
@@ -257,12 +237,13 @@ void Pbr::run() {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::TRANSFER;
             submit_info.command_lists.push_back(transfer);
+            if (!resources_uploaded)
             submit_info.signal_semaphores.push_back(resource_uploaded_semaphore.get());
             rhi->SubmitCommandLists(submit_info);
         }
 
         //// generate mip map
-        //{ 
+        //{
         //    auto comp = rhi->GetCommandList(CommandQueueType::COMPUTE);
         //    comp->BeginRecording();
 
@@ -289,10 +270,9 @@ void Pbr::run() {
         // material descriptor set
         for (auto &material : mesh->GetMaterials()) {
             if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
-
+                material.material_descriptor_set = opaque_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
                 material.material_descriptor_set->SetResource(
-                    material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(),
-                    "base_color_texture");
+                    material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(), "base_color_texture");
                 material.material_descriptor_set->SetResource(
                     material.material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
                 material.material_descriptor_set->SetResource(
@@ -378,16 +358,16 @@ void Pbr::run() {
             }
         }
 
-        //cl->BindPipeline(masked_pass);
+        // cl->BindPipeline(masked_pass);
 
-        //cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds);
+        // cl->BindDescriptorSets(opaque_pass, opaque_pass_per_frame_ds);
 
-        //for (auto &node : mesh->GetNodes()) {
-        //    if (node.mesh_primitives.empty()) {
-        //        continue;
-        //    }
-        //    auto mat = node.GetModelMatrix().Transpose();
-        //    cl->BindPushConstant(masked_pass, "model_matrix", &mat);
+        // for (auto &node : mesh->GetNodes()) {
+        //     if (node.mesh_primitives.empty()) {
+        //         continue;
+        //     }
+        //     auto mat = node.GetModelMatrix().Transpose();
+        //     cl->BindPushConstant(masked_pass, "model_matrix", &mat);
 
         //    for (auto &m : node.mesh_primitives) {
         //        auto &material = mesh->GetMaterial(m->material_id);
@@ -415,17 +395,17 @@ void Pbr::run() {
 
         cl->EndRecording();
 
-        //auto gp_semaphore = rhi->GetSemaphore();
+        // auto gp_semaphore = rhi->GetSemaphore();
         {
             QueueSubmitInfo submit_info{};
             submit_info.queue_type = CommandQueueType::GRAPHICS;
             submit_info.command_lists.push_back(cl);
-            //submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
-            //submit_info.signal_semaphores.push_back(gp_semaphore.get());
+            // submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
+            // submit_info.signal_semaphores.push_back(gp_semaphore.get());
             submit_info.wait_image_acquired = true;
             rhi->SubmitCommandLists(submit_info);
         }
-        auto pp_semaphore = rhi->GetSemaphore();
+        //auto pp_semaphore = rhi->GetSemaphore();
         {
             pp_ds->SetResource(rt0->GetTexture(), "color_image");
             pp_ds->SetResource(post_process_image.get(), "out_color_image");
@@ -435,15 +415,15 @@ void Pbr::run() {
             compute->BeginRecording();
 
             {
-                BarrierDesc swap_chain_image_barrier{};
+                BarrierDesc rt0_barrier{};
 
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
                 tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb.texture = post_process_image.get();
-                swap_chain_image_barrier.texture_memory_barriers.push_back(tb);
+                rt0_barrier.texture_memory_barriers.push_back(tb);
 
-                compute->InsertBarrier(swap_chain_image_barrier);
+                compute->InsertBarrier(rt0_barrier);
             }
 
             compute->BindPipeline(post_process_pass);
@@ -455,9 +435,9 @@ void Pbr::run() {
                 QueueSubmitInfo submit_info{};
                 submit_info.queue_type = CommandQueueType::COMPUTE;
                 submit_info.command_lists.push_back(compute);
-                //submit_info.wait_semaphores.push_back(gp_semaphore.get());
-                //submit_info.signal_semaphores.push_back(pp_semaphore.get());
-                //submit_info.signal_render_complete = true;
+                // submit_info.wait_semaphores.push_back(gp_semaphore.get());
+                // submit_info.signal_semaphores.push_back(pp_semaphore.get());
+                // submit_info.signal_render_complete = true;
                 rhi->SubmitCommandLists(submit_info);
             }
         }
@@ -470,18 +450,24 @@ void Pbr::run() {
 
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-                tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                 tb.texture = swap_chain->GetRenderTarget()->GetTexture();
                 swap_chain_image_barrier.texture_memory_barriers.push_back(tb);
 
+                TextureBarrierDesc tb2;
+                tb2.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb2.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                tb2.texture = post_process_image.get();
+                swap_chain_image_barrier.texture_memory_barriers.push_back(tb2);
+
                 transfer->InsertBarrier(swap_chain_image_barrier);
             }
-            transfer->CopyTexture(rt0->GetTexture(), swap_chain->GetRenderTarget()->GetTexture());
+            transfer->CopyTexture(post_process_image.get(), swap_chain->GetRenderTarget()->GetTexture());
             {
                 BarrierDesc swap_chain_image_barrier{};
 
                 TextureBarrierDesc tb;
-                tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                 tb.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
                 tb.texture = swap_chain->GetRenderTarget()->GetTexture();
                 swap_chain_image_barrier.texture_memory_barriers.push_back(tb);
@@ -499,20 +485,19 @@ void Pbr::run() {
                 rhi->SubmitCommandLists(submit_info);
             }
         }
-        
-        swap_chain->GetRenderTarget();
+        //rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
         {
             QueuePresentInfo opaque_pass_ci{};
             opaque_pass_ci.swap_chain = swap_chain.get();
             rhi->Present(opaque_pass_ci);
         }
         // Horizon::RDC::EndFrameCapture();
-        //LOG_DEBUG("total mesh: {} culled mesh: {}", total_mesh, culled_mesh);
+        // LOG_DEBUG("total mesh: {} culled mesh: {}", total_mesh, culled_mesh);
     }
-    //rhi->DestroyPipeline(graphics_pass);
+    // rhi->DestroyPipeline(graphics_pass);
     //// rhi->DestroyPipeline(post_process_pass);
-    //rhi->DestroyShader(vs);
-    //rhi->DestroyShader(ps);
-    //rhi->DestroyShader(cs);
+    // rhi->DestroyShader(vs);
+    // rhi->DestroyShader(ps);
+    // rhi->DestroyShader(cs);
     LOG_INFO("draw done");
 }

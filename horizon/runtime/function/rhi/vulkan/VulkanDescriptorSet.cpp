@@ -30,14 +30,13 @@ void VulkanDescriptorSet::SetResource(Buffer *buffer, const std::string &resourc
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetResource(Texture *texture, const std::string& resource_name) {
+void VulkanDescriptorSet::SetResource(Texture *texture, const std::string &resource_name) {
     auto res = write_descs.find(resource_name);
     if (res == write_descs.end()) {
         LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
         return;
     }
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
-
 
     VkWriteDescriptorSet write;
 
@@ -74,14 +73,6 @@ void VulkanDescriptorSet::SetResource(Sampler *sampler, const std::string &resou
 }
 
 void VulkanDescriptorSet::Update() {
-
-    std::vector<VkWriteDescriptorSet> valid_writes;
-
-    for (auto &val : writes) {
-        if (val.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
-            valid_writes.emplace_back(val);
-    }
-
-    vkUpdateDescriptorSets(m_context.device, static_cast<u32>(valid_writes.size()), valid_writes.data(), 0, nullptr);
+    vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 } // namespace Horizon::RHI

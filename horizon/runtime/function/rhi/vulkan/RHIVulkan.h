@@ -79,11 +79,13 @@ class RHIVulkan : public RHI {
     void InitializeVMA();
     void CreateSyncObjects();
     void DestroySwapChain();
-
+    VkFence GetFence(CommandQueueType type) noexcept;
   private:
     VulkanRendererContext m_vulkan{};
     SwapChainSemaphoreContext semaphore_ctx{};
     std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator{};
+    std::array<std::vector<VkFence>, 3> fences{};
+    std::array<u32, 3> fence_index{};
     // pipeline map
     // resource manager, auto
 };

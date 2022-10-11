@@ -65,6 +65,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
     VkDescriptorSet vk_ds;
     vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds);
     DescriptorSet *set = new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+    m_descriptor_set_allocator.allocated_sets.push_back(set);
     return set;
 
     ////new VulkanDescriptorSet();

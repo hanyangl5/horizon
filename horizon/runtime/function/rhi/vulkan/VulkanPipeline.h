@@ -34,8 +34,6 @@ class VulkanPipeline : public Pipeline {
     void CreateComputePipeline();
     void CreatePipelineLayout();
 
-    void ReflectPushConstants(VulkanShader *shader, VkPipelineLayoutDesc &layout_desc);
-
     // void CreateRTPipeline() noexcept;
   public:
     const VulkanRendererContext &m_context{};

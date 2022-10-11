@@ -67,6 +67,7 @@ class VulkanDescriptorSetAllocator {
     std::vector<DescriptorSet *> allocated_sets{};
     std::vector<VkDescriptorPool> m_descriptor_pools{};
     VkDescriptorPool m_temp_descriptor_pool{};
+
 };
 
 } // namespace Horizon::RHI

@@ -277,8 +277,8 @@ void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *d
     cregion.extent.width = src_texture->m_width;
     cregion.extent.height = src_texture->m_height;
     cregion.extent.depth = 1;
-    vkCmdCopyImage(m_command_buffer, src_texture->m_image, VK_IMAGE_LAYOUT_GENERAL, dst_texture->m_image,
-                   VK_IMAGE_LAYOUT_GENERAL, 1, &cregion);
+    vkCmdCopyImage(m_command_buffer, src_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst_texture->m_image,
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion);
 }
 
 //void VulkanCommandList::CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) {}
@@ -484,9 +484,10 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 
             barrier.image = vk_texture->m_image;
 
-            barrier.subresourceRange.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false);
             if (vk_texture->m_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR) {
                 barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            } else {
+                barrier.subresourceRange.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false);
             }
             barrier.subresourceRange.baseArrayLayer = 0;
             barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
