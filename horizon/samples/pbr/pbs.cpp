@@ -42,7 +42,7 @@ void Pbr::InitResources() {
 
     // graphics pass
     {
-        rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+        rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA16_SFLOAT,
                                                              RenderTargetType::COLOR, width, height});
 
         // rt0 = swap_chain->GetRenderTarget();
@@ -122,16 +122,16 @@ void Pbr::InitResources() {
     }
 
     // compute pass
-    { generate_mipmap_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
+    //{ generate_mipmap_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
 
     // resources{
 
     {
         mesh =
             new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-        mesh->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-        // mesh->LoadMesh(asset_path /"models/FlightHelmet/glTF/FlightHelmet.gltf");
-        // mesh->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        //mesh->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
+        mesh->LoadMesh(asset_path /"models/FlightHelmet/glTF/FlightHelmet.gltf");
+        //mesh->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
         mesh->CreateGpuResources(rhi);
     }
 
@@ -177,7 +177,7 @@ void Pbr::InitResources() {
             Math::float3 pos(xPos, yPos, zPos);
             Math::float3 col(rColor, gColor, bColor);
 
-            // lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
+            lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
         }
 
         lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));
@@ -409,6 +409,8 @@ void Pbr::run() {
         {
             pp_ds->SetResource(rt0->GetTexture(), "color_image");
             pp_ds->SetResource(post_process_image.get(), "out_color_image");
+            pp_ds->SetResource(camera_buffer.get(), "CameraParamsUb");
+
             pp_ds->Update();
 
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
