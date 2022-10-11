@@ -45,6 +45,8 @@ class Camera {
 
     Math::float4x4 GetViewProjectionMatrix() const noexcept;
 
+    Math::float4x4 GetInvViewProjectionMatrix() const noexcept;
+
     Math::float3 GetForwardDir() const noexcept;
 
     f32 GetExposure() const noexcept;

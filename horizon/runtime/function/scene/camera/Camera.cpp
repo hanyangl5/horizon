@@ -78,8 +78,16 @@ void Camera::UpdateViewMatrix() noexcept {
 
     m_view = Math::LookAt(m_eye, m_eye + m_forward, m_up);
 }
+
 Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept {
     auto vp = m_view * m_projection;
+    vp = vp.Transpose();
+    return vp;
+}
+
+Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
+    auto vp = m_view * m_projection;
+    vp = vp.Invert();
     vp = vp.Transpose();
     return vp;
 }

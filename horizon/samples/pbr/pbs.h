@@ -66,26 +66,27 @@ class Pbr {
 
     // pass resources
 
+    Shader *geometry_vs, *geometry_ps;
+    Pipeline *geometry_pass;
 
-    Shader *opaque_vs, *opaque_ps;
+    Shader *shading_cs;
+    Pipeline *shading_pass;
 
-    Resource<RenderTarget> rt0;
+    Resource<RenderTarget> gbuffer0;
+    Resource<RenderTarget> gbuffer1;
+    Resource<RenderTarget> gbuffer2;
+    Resource<RenderTarget> gbuffer3;
+
     Resource<RenderTarget> depth;
+
     Resource<Sampler> sampler;
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
-    Pipeline *opaque_pass;
-
-    //Shader *masked_vs, *masked_ps;
-
-    //Pipeline *masked_pass;
-
-    Shader *generate_mipmap_cs;
-    Pipeline *generate_mipmap_pass;
 
     Shader *post_process_cs;
     Pipeline *post_process_pass;
-    Resource<Texture> post_process_image;
+    Resource<Texture> shading_color_image;
+    Resource<Texture> pp_color_image;
 
     std::vector<Mesh *> meshes;
 
@@ -96,6 +97,14 @@ class Pbr {
         f32 exposure;
     } camera_ub;
 
+    struct DeferredShadingConstants {
+        Math::float4x4 inverse_vp;
+        Math::float4 camera_pos;
+        u32 width;
+        u32 height;
+        u32 pad0, pad1;
+    } deferred_shading_constants;
+
     Resource<Buffer> camera_buffer;
 
     u32 light_count = 1;
@@ -105,6 +114,7 @@ class Pbr {
     std::vector<Light *> lights;
     std::vector<LightParams> lights_param_buffer;
     Resource<Buffer> light_buffer;
+    Resource<Buffer> deferred_shading_constants_buffer;
     bool resources_uploaded = false;
 
     std::filesystem::path ibl_iem_path;
