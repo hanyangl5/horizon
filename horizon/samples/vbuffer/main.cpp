@@ -2,10 +2,10 @@
 
 int main() {
 
-    VisibilityBuffer vbuffer;
+    // VisibilityBuffer vbuffer;
 
-    vbuffer.Init();
+    // vbuffer.Init();
 
-    vbuffer.run();
+    // vbuffer.run();
 
 }

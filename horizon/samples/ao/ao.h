@@ -11,9 +11,12 @@
 
 #include <argparse/argparse.hpp>
 
+#include <runtime/core/utils/definations.h>
+#include <runtime/core/math/Math.h>
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
+#include <runtime/core/units/Units.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>
@@ -28,9 +31,9 @@
 using namespace Horizon;
 using namespace Horizon::RHI;
 
-class Pbr {
+class AO {
   public:
-    Pbr() {
+    AO() {
         EngineConfig config{};
         config.width = 1600;
         config.height = 900;
@@ -49,8 +52,6 @@ class Pbr {
     void InitAPI();
 
     void InitResources();
-
-    void InitSphere();
     
     void run();
 
@@ -65,25 +66,28 @@ class Pbr {
 
     // pass resources
 
-    std::filesystem::path opaque_vs_path, opaque_ps_path;
-    Shader *opaque_vs, *opaque_ps;
+    Shader *geometry_vs, *geometry_ps;
+    Pipeline *geometry_pass;
 
-    RenderTarget *rt0;
+    Shader *shading_cs;
+    Pipeline *shading_pass;
+
+    Resource<RenderTarget> gbuffer0;
+    Resource<RenderTarget> gbuffer1;
+    Resource<RenderTarget> gbuffer2;
+    Resource<RenderTarget> gbuffer3;
+
     Resource<RenderTarget> depth;
+
     Resource<Sampler> sampler;
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
-    Pipeline *opaque_pass;
 
-    std::filesystem::path masked_vs_path, masked_ps_path;
-    Shader *masked_vs, *masked_ps;
+    Shader *post_process_cs;
+    Pipeline *post_process_pass;
+    Resource<Texture> shading_color_image;
+    Resource<Texture> pp_color_image;
 
-    Pipeline *masked_pass;
-
-
-    //
-
-    Mesh *mesh;
     std::vector<Mesh *> meshes;
 
     Camera *cam;
@@ -92,6 +96,14 @@ class Pbr {
         Math::float3 camera_pos;
         f32 exposure;
     } camera_ub;
+
+    struct DeferredShadingConstants {
+        Math::float4x4 inverse_vp;
+        Math::float4 camera_pos;
+        u32 width;
+        u32 height;
+        u32 pad0, pad1;
+    } deferred_shading_constants;
 
     Resource<Buffer> camera_buffer;
 
@@ -102,8 +114,15 @@ class Pbr {
     std::vector<Light *> lights;
     std::vector<LightParams> lights_param_buffer;
     Resource<Buffer> light_buffer;
+    Resource<Buffer> deferred_shading_constants_buffer;
     bool resources_uploaded = false;
 
+    std::filesystem::path ibl_iem_path;
+    std::filesystem::path ibl_pfem_path;
+    std::filesystem::path ibl_brdf_lut_path;
+
+    Resource<Texture> ibl_iem, ibl_pfem, ibl_brdf_lut;
     u32 culled_mesh{};
     u32 total_mesh{};
 };
+
