@@ -71,6 +71,7 @@ class VisibilityBuffer {
     Resource<Sampler> sampler;
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
+    Shader *opaque_vs, *opaque_ps;
     Pipeline *opaque_pass;
 
     Shader *vbuffer_vs, *vbuffer_ps;

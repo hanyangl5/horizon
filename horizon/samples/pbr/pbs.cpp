@@ -36,11 +36,11 @@ void Pbr::InitResources() {
 
     // graphics pass
     {
-        gbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R10G10B10A2_UNORM,
+        gbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM,
                                                              RenderTargetType::COLOR, width, height});
         gbuffer1 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                                                   RenderTargetType::COLOR, width, height});
-        gbuffer2 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R10G10B10A2_UNORM,
+        gbuffer2 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                                                   RenderTargetType::COLOR, width, height});
         gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                                                   RenderTargetType::COLOR, width, height});
@@ -182,7 +182,7 @@ void Pbr::InitResources() {
             Math::float3 pos(xPos, yPos, zPos);
             Math::float3 col(rColor, gColor, bColor);
 
-            lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
+            //lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
         }
 
         lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));

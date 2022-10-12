@@ -125,7 +125,6 @@ def generate_root_signature_description(text, out_path):
         if 'DATA' in l and parsing_pushconstant:
             push_constant_size += 4 * getFloatSize1(getMacro(l)[0])
         if '};' in l and parsing_pushconstant:
-            print("stage", shader_stage)
             root_signature_desc.data['PUSH_CONSTANT'].append(PushConstant(parsing_pushconstant[0], push_constant_size, parsing_pushconstant[1], shader_stage))
             parsing_pushconstant = None
             push_constant_size = 0

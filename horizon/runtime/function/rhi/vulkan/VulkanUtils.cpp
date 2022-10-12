@@ -346,12 +346,6 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
         return VK_FORMAT_R32G32B32_SFLOAT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT:
         return VK_FORMAT_R32G32B32A32_SFLOAT;
-
-    case Horizon::TextureFormat::TEXTURE_FORMAT_R10G10B10A2_UNORM:
-        return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-    //case Horizon::TextureFormat::TEXTURE_FORMAT_R11G11B10_UNORM:
-    //    return VK_FORMAT_B10G11R11_UFLOAT_PACK32; 
-    //case Horizon::TextureFormat::TEXTURE_FORMAT_R10G10B10A2_SFLOAT:
     //case Horizon::TextureFormat::TEXTURE_FORMAT_R11G11B10_SFLOAT:
     case Horizon::TextureFormat::TEXTURE_FORMAT_D32_SFLOAT:
         return VK_FORMAT_D32_SFLOAT;

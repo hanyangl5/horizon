@@ -37,7 +37,7 @@ void VisibilityBuffer::InitResources() {
 
     // graphics pass
     {
-        rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA32_UINT,
+        rt0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA16_SFLOAT,
                                                              RenderTargetType::COLOR, width, height});
 
         // rt0 = swap_chain->GetRenderTarget();
@@ -180,7 +180,7 @@ void VisibilityBuffer::InitResources() {
             Math::float3 pos(xPos, yPos, zPos);
             Math::float3 col(rColor, gColor, bColor);
 
-            lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
+            //lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
         }
 
         lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));
