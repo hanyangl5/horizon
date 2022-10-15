@@ -4,9 +4,11 @@ horizon/3rd_party/DirectXShaderCompiler
 horizon/assets/models
 horizon/assets/generated_shaders
 horizon/assets/envrionment
-horizon/assets/shaders
+horizon/assets/shaders/bin
 horizon/assets/shaders/generated
 horizon/3rd_party/DirectXShaderCompiler
+horizon/3rd_party/ibl
 out
 horizon/tools/HSLCompiler/generators/__pycache__
 horizon/tools/HSLCompiler/__pycache__
+horizon/samples/vbuffer

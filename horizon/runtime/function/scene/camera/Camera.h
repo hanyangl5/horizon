@@ -25,6 +25,8 @@ class Camera {
 
     Math::float4x4 GetProjectionMatrix() const noexcept;
 
+    Math::float4x4 GetInvProjectionMatrix() const noexcept;
+
     //void setLookAt(Math::float3 position, Math::float3 at, Math::float3 up = Math::float3(0.0f, 1.0f, 0.0f));
 
     Math::float4x4 GetViewMatrix() const noexcept;
@@ -45,8 +47,11 @@ class Camera {
 
     Math::float4x4 GetViewProjectionMatrix() const noexcept;
 
+    Math::float4x4 GetInvViewProjectionMatrix() const noexcept;
+
     Math::float3 GetForwardDir() const noexcept;
 
+    f32 GetEv100() const noexcept { return ev100; }
     f32 GetExposure() const noexcept;
 
     void SetExposure(f32 aperture, f32 shutter_speed, f32 iso);
@@ -65,6 +70,7 @@ class Camera {
     f32 aperture;
     f32 shutter_speed;
     f32 iso;
+    f32 ev100;
     f32 exposure;
 };
 

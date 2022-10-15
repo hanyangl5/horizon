@@ -1,0 +1,101 @@
+#include "include/shading/material_params_defination.hsl"
+#include "include/shading/light_defination.h"
+#include "include/shading/lighting.h"
+#include "include/shading/ibl.h"
+#include "include/postprocess/postprocess.h"
+
+
+// per material resources TODO: register for dx12
+
+// material
+RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
+RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
+RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
+RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
+
+// ibl 
+// RES(TexCube(float4), iem, UPDATE_FREQ_PER_BATCH, t4, binding = 4);
+// RES(TexCube(float4), pfem, UPDATE_FREQ_PER_BATCH, t5, binding = 5);
+// RES(Tex2D(float4), brdf_lut, UPDATE_FREQ_PER_BATCH, t6, binding = 6);
+
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 4);
+// RES(SamplerState, ibl_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 8);
+
+CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 5)
+{
+    DATA(float4, base_color_roughness, None);
+    DATA(float4, emmissive_factor_metallic, None);
+    DATA(uint, param_bitmask, None);
+};
+
+
+// per frame resources
+
+CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+    DATA(float4x4, vp, None);
+    DATA(float4, camera_position_exposure, None);
+};
+
+CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 1)
+{
+    DATA(uint, light_count, None);
+};
+
+CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 2)
+{
+    DATA(LightParams, light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
+};
+
+
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+    DATA(float3, world_pos, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv, TEXCOORD0);
+};
+
+STRUCT(PSOutput)
+{
+    DATA(float4, color, SV_Target0);
+};
+
+PSOutput PS_MAIN(VSOutput vsout)
+{
+    INIT_MAIN;
+    PSOutput psout;
+
+    uint has_metallic_roughness = Get(param_bitmask) & HAS_METALLIC_ROUGHNESS;
+    uint has_normal = Get(param_bitmask) & HAS_NORMAL;
+    uint has_base_color = Get(param_bitmask) & HAS_BASE_COLOR;
+    uint has_emissive = Get(param_bitmask) & HAS_EMISSIVE;
+
+    MaterialProperties mat;
+    mat.albedo = has_base_color != 0 ? SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv).xyz : float3(1.0, 1.0, 1.0);
+    mat.normal = has_normal != 0 ? SampleTex2D(Get(normal_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0); // normal map
+    float2 mr = has_metallic_roughness != 0 ? SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv).xy : float2(0.0, 1.0);
+    mat.emissive = has_emissive != 0 ? SampleTex2D(Get(emissive_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0);
+    mat.metallic = mr.x;
+    mat.roughness = mr.y;
+    mat.roughness2 = Pow2(mr.y);
+    mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
+
+    float3 n = vsout.normal;
+    float3 v = - normalize(vsout.world_pos - Get(camera_position_exposure).xyz);
+
+    float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
+
+    // direct lighting
+    for(uint i = 0; i < Get(light_count); i++) {
+        radiance += Radiance(mat, Get(light_data)[i], n, v, vsout.world_pos);
+    }
+    radiance.xyz = n;
+    // ibl
+    //float3 ambient = ComputeIBL(mat, dot(n, v), n, v, Get(iem), Get(pfem), Get(brdf_lut), ibl_sampler);
+    //radiance += ambient;
+    // radiance.xyz += mat.emissive; // EMISSIVE?
+    psout.color = radiance;
+    RETURN(psout);
+    
+}

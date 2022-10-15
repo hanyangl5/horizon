@@ -40,7 +40,7 @@ class MaterialTextureDescription {
     MaterialTextureDescription &operator=(MaterialTextureDescription &&rhs) noexcept { url = rhs.url; };
 
     std::filesystem::path url{};
-    u32 width{}, height{}, channels{};
+    u32 width{}, height{};
     void *data{};
     Resource<RHI::Texture> texture{};
 };

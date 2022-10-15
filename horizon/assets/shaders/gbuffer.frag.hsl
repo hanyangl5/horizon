@@ -1,0 +1,91 @@
+#include "include/shading/material_params_defination.hsl"
+#include "include/shading/light_defination.h"
+#include "include/shading/lighting.h"
+#include "include/shading/ibl.h"
+#include "include/postprocess/postprocess.h"
+
+
+// per material resources TODO: register for dx12
+
+// material
+RES(Tex2D(float4), base_color_texture, UPDATE_FREQ_PER_BATCH, t0, binding = 0);
+RES(Tex2D(float4), normal_texture, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
+RES(Tex2D(float4), metallic_roughness_texture, UPDATE_FREQ_PER_BATCH, t2, binding = 2);
+RES(Tex2D(float4), emissive_texture, UPDATE_FREQ_PER_BATCH, t3, binding = 3);
+
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_BATCH, s0, binding = 4);
+
+CBUFFER(MaterialParamsUb, UPDATE_FREQ_PER_BATCH, b2, binding = 5)
+{
+    DATA(float4, base_color_roughness, None);
+    DATA(float4, emmissive_factor_metallic, None);
+    DATA(uint, param_bitmask, None);
+};
+
+// per frame resources
+
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+    DATA(float3, world_pos, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv, TEXCOORD0);
+    DATA(float3, tangent, TANGENT);
+};
+
+STRUCT(PSOutput)
+{
+    DATA(float4, gbuffer0, SV_Target0);
+    DATA(float4, gbuffer1, SV_Target0);
+    DATA(float4, gbuffer2, SV_Target0);
+    DATA(float4, gbuffer3, SV_Target0);
+};
+
+/*
+    gbuffer layout
+    [normal, shading_model_id] [8, 8, 8, 8]
+    [base_color,  metallic] [8, 8, 8, 8]
+    [emissive, _] [8, 8, 8, 8] 
+    [ao, alpha, roughness, _] [8, 8, 8, 8]
+*/
+PSOutput PS_MAIN(VSOutput vsout)
+{
+    INIT_MAIN;
+    PSOutput psout;
+
+    uint has_metallic_roughness = Get(param_bitmask) & HAS_METALLIC_ROUGHNESS;
+    uint has_normal = Get(param_bitmask) & HAS_NORMAL;
+    uint has_base_color = Get(param_bitmask) & HAS_BASE_COLOR;
+    uint has_emissive = Get(param_bitmask) & HAS_EMISSIVE;
+
+    float3 albedo = has_base_color != 0 ? SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv).xyz : float3(1.0, 1.0, 1.0);
+    float3 normal_map = has_normal != 0 ? SampleTex2D(Get(normal_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0); // normal map
+    float2 mr = has_metallic_roughness != 0 ? SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv).xy : float2(0.0, 1.0);
+    float3 emissive = has_emissive != 0 ? SampleTex2D(Get(emissive_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0);
+    float metallic = mr.x;
+    float roughness = mr.y;
+
+    normal_map = 2.0 * normal_map - 1.0; // [-1, 1]
+
+    float3 gbuffer_normal;
+
+    if(has_normal != 0) {
+        // construct TBN
+        float3 normal = normalize( vsout.normal );
+        float3 tangent = normalize( vsout.tangent );
+        float3 bitangent = normalize(cross(tangent, normal));
+        // Calculate pixel normal using the normal map and the tangent space vectors
+        float3x3 tbn = make_f3x3_rows(tangent, bitangent, normal);
+        gbuffer_normal = normalize(mul(normal_map, tbn));
+    } else {
+        gbuffer_normal = vsout.normal;
+    }
+    gbuffer_normal = vsout.normal;
+    psout.gbuffer0 = float4(gbuffer_normal.x, gbuffer_normal.y, gbuffer_normal.z, asfloat(0));
+    psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, metallic);
+    psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);
+    psout.gbuffer3 = float4(0.0, 1.0, roughness, 0.0);
+
+    RETURN(psout);
+    
+}

@@ -347,7 +347,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
             std::reinterpret_pointer_cast<VulkanSemaphore>(semaphore_ctx.swap_chain_release_semaphore)
                 .get()
                 ->m_semaphore);
-        wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT); // correct stage?
+        wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT); // correct stage?
     }
 
     submit_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
@@ -387,7 +387,6 @@ void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapChains;
     present_info.pImageIndices = &vk_swap_chain->image_index;
-
     CHECK_VK_RESULT(vkQueuePresentKHR(m_vulkan.command_queues[CommandQueueType::GRAPHICS], &present_info));
     vk_swap_chain->current_frame_index++;
     vk_swap_chain->current_frame_index = vk_swap_chain->current_frame_index % vk_swap_chain->m_back_buffer_count;
@@ -426,10 +425,6 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
 
     // RESET RHI RESOURCES
     {
-
-        WaitGpuExecution(CommandQueueType::GRAPHICS);
-        WaitGpuExecution(CommandQueueType::COMPUTE);
-        WaitGpuExecution(CommandQueueType::TRANSFER);
         ResetFence(CommandQueueType::GRAPHICS);
         ResetFence(CommandQueueType::COMPUTE);
         ResetFence(CommandQueueType::TRANSFER);
@@ -456,10 +451,12 @@ CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
 }
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) {
+    assert(fence_index[queue_type] != UINT_MAX); // no need to wait twice
     if (fence_index[queue_type] == 0)
         return;
     vkWaitForFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data(), VK_TRUE,
                     UINT64_MAX);
+    fence_index[queue_type] = UINT_MAX;
 }
 
 void RHIVulkan::ResetFence(CommandQueueType queue_type) {
@@ -467,6 +464,7 @@ void RHIVulkan::ResetFence(CommandQueueType queue_type) {
         return;
     vkResetFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data());
     fence_index[queue_type] = 0;
+    
 }
 
 void RHIVulkan::ResetRHIResources() {

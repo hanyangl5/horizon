@@ -1,0 +1,41 @@
+CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+    DATA(float4x4, vp, None);
+    DATA(float4, camera_position, None);
+};
+
+PUSH_CONSTANT(root_constant_model_mat, b1){
+    DATA(float4x4, model, None);
+};
+
+STRUCT(VSInput)
+{
+	DATA(float3, position, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv0, UV0);
+	DATA(float2, uv1, UV1);
+	DATA(float3, tangent, TANGENT);
+};
+
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+    DATA(float3, world_pos, POSITION);
+	DATA(float3, normal, NORMAL);
+	DATA(float2, uv, TEXCOORD0);
+	DATA(float3, tangent, TANGENT);
+};
+
+VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
+{
+    INIT_MAIN;
+    VSOutput vsout;
+    vsout.position = mul(float4(vsin.position, 1.0), mul(Get(model), Get(vp))); // column major
+    vsout.world_pos = mul(float4(vsin.position, 1.0), Get(model)).xyz;
+    //transpose(inverse(model)
+    vsout.normal = normalize(mul(float4(vsin.normal, 0.0), Get(model)).xyz);;
+    vsout.uv = vsin.uv0;
+    vsout.tangent = vsin.tangent;
+    vsout.tangent = normalize(mul(float4(vsin.tangent, 0.0), Get(model)).xyz);;
+    RETURN(vsout);
+}

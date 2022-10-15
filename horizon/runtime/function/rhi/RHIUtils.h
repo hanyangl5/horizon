@@ -174,6 +174,12 @@ enum class TextureFormat {
     TEXTURE_FORMAT_RGB32_SFLOAT,
     TEXTURE_FORMAT_RGBA32_SFLOAT,
 
+    TEXTURE_FORMAT_R10G10B10A2_UNORM,
+    TEXTURE_FORMAT_R11G11B10_UNORM,
+    TEXTURE_FORMAT_R10G10B10A2_SNORM,
+    TEXTURE_FORMAT_R11G11B10_SFLOAT,
+    TEXTURE_FORMAT_R11G11B10_UFLOAT,
+
     TEXTURE_FORMAT_D32_SFLOAT,
 
 };
@@ -425,6 +431,12 @@ struct ClearValueDepthStencil {
     u32 stencil;
 };
 
+struct BufferUpdateDesc {
+    void *data;
+    u64 size;
+    u64 offset;
+};
+
 struct TextureUpdateDesc {
     void *data;
     u32 row_length;
@@ -543,4 +555,7 @@ inline std::vector<char> ReadFile(const char *path) {
 
     return buffer;
 }
+
+u32 GetBytesFromTextureFormat(TextureFormat format);
+
 } // namespace Horizon

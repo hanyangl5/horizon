@@ -5,7 +5,14 @@
 
 namespace Horizon {
 
-enum VertexAttributeType { POSTION = 1, NORMAL = 2, TBN = 4, UV0 = 8, UV1 = 16 };
+enum VertexAttributeType {
+    POSTION = 1,
+    NORMAL = 2,
+    UV0 = 4,
+    UV1 = 8,
+    TANGENT = 16,
+    // BITANGENT = 32
+};
 
 struct Vertex {
   public:
@@ -13,6 +20,7 @@ struct Vertex {
     Math::float3 normal;
     //Math::float4 tbn;
     Math::float2 uv0, uv1;
+    Math::float3 tangent;
 };
 
 using Index = u32;

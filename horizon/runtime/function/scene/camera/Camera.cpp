@@ -18,7 +18,17 @@ void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearP
     // farPlane);
 }
 
-Math::float4x4 Camera::GetProjectionMatrix() const noexcept { return m_projection; }
+Math::float4x4 Camera::GetProjectionMatrix() const noexcept {
+    auto p = m_projection;
+    p = p.Transpose();
+    return p;
+}
+
+Math::float4x4 Camera::GetInvProjectionMatrix() const noexcept {
+    auto inv_p = m_projection.Invert();
+    inv_p = inv_p.Transpose();
+    return inv_p;
+}
 
 Math::float3 Camera::GetFov() const noexcept { return Math::float3(); }
 
@@ -78,8 +88,16 @@ void Camera::UpdateViewMatrix() noexcept {
 
     m_view = Math::LookAt(m_eye, m_eye + m_forward, m_up);
 }
+
 Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept {
     auto vp = m_view * m_projection;
+    vp = vp.Transpose();
+    return vp;
+}
+
+Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
+    auto vp = m_view * m_projection;
+    vp = vp.Invert();
     vp = vp.Transpose();
     return vp;
 }
@@ -106,11 +124,15 @@ void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     // EV100 = log2((N^2 / t) * (100 / S))
     //
     // Reference: https://en.wikipedia.org/wiki/Exposure_value
-    f32 ev100 = std::log2((aperture * aperture) / shutter_speed * 100.0f / iso);
+    ev100 = std::log2((aperture * aperture) / shutter_speed * 100.0f / iso);
     exposure = 1.0 / (pow(2.0, ev100) * 1.2);
 }
 
-Math::float4x4 Camera::GetViewMatrix() const noexcept { return m_view; }
+Math::float4x4 Camera::GetViewMatrix() const noexcept {
+    auto v = m_view;
+    v = v.Transpose();
+    return v;
+}
 
 Math::float3 Camera::GetPosition() const noexcept { return m_eye; }
 } // namespace Horizon

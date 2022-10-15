@@ -1,4 +1,4 @@
-project(ao)
+project(vbuffer)
 
 file(GLOB APP_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB APP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
