@@ -1,22 +1,23 @@
+
 #pragma once
 #include <chrono>
+#include <filesystem>
+#include <iniparser.h>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <shared_mutex>
 #include <string>
-#include <filesystem>
 #include <unordered_set>
-#include <random>
-#include <iniparser.h>
 
 #include <argparse/argparse.hpp>
 
-#include <runtime/core/utils/definations.h>
-#include <runtime/core/math/Math.h>
 #include <runtime/core/log/Log.h>
+#include <runtime/core/math/Math.h>
+#include <runtime/core/units/Units.h>
+#include <runtime/core/utils/definations.h>
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
-#include <runtime/core/units/Units.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>
@@ -31,9 +32,11 @@
 using namespace Horizon;
 using namespace Horizon::RHI;
 
-class AO {
+// SSAO
+
+class SSAO {
   public:
-    AO() {
+    SSAO() {
         EngineConfig config{};
         config.width = 1600;
         config.height = 900;
@@ -52,7 +55,7 @@ class AO {
     void InitAPI();
 
     void InitResources();
-    
+
     void InitPipelineResources(); // create pass related resource, shader, pipeline, buffer/tex/rt
 
     void InitSceneResources(); // create scene related resrouces, mesh, light
@@ -73,7 +76,7 @@ class AO {
     Shader *geometry_vs, *geometry_ps;
     Pipeline *geometry_pass;
 
-    Shader *ao_cs;
+    Shader *ssao_cs;
 
     Pipeline *ssao_pass;
 
@@ -152,7 +155,10 @@ class AO {
     Resource<Texture> ssao_blur_image;
     Resource<Texture> shading_color_image;
     Resource<Texture> pp_color_image;
-    
-
 };
 
+// HBAO
+
+// HDAO
+
+// GTAO

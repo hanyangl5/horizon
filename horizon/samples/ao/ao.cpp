@@ -1,6 +1,6 @@
 #include "ao.h"
 
-void AO::InitAPI() {
+void SSAO::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
     m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0_m), Math::float3(0.0, 0.0, 0.0),
@@ -11,14 +11,14 @@ void AO::InitAPI() {
     engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
 }
 
-void AO::InitResources() {
+void SSAO::InitResources() {
 
     InitPipelineResources();
 
     InitSceneResources();
 }
 
-void AO::InitPipelineResources() {
+void SSAO::InitPipelineResources() {
 
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
 
@@ -31,7 +31,7 @@ void AO::InitPipelineResources() {
 
         shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/deferred_shading.comp.hsl");
 
-        ao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ao.comp.hsl");
+        ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ao.comp.hsl");
 
         ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ssao_blur.comp.hsl");
 
@@ -157,7 +157,6 @@ void AO::InitPipelineResources() {
             DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
 
-
         SamplerDesc sampler_desc{};
         sampler_desc.min_filter = FilterType::FILTER_LINEAR;
         sampler_desc.mag_filter = FilterType::FILTER_LINEAR;
@@ -183,19 +182,19 @@ void AO::InitPipelineResources() {
     }
 }
 
-void AO::InitSceneResources() {
+void SSAO::InitSceneResources() {
     // scene resources
 
     // mesh
     {
         auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf", engine->tp.get());
+        mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
         mesh1->CreateGpuResources(rhi);
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf",engine->tp.get());
+        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
         mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);
@@ -254,16 +253,16 @@ void AO::InitSceneResources() {
     }
 }
 
-void AO::run() {
+void SSAO::run() {
 
     bool first_frame = true;
 
     geometry_pass->SetGraphicsShader(geometry_vs, geometry_ps);
-    ssao_pass->SetComputeShader(ao_cs);
+    ssao_pass->SetComputeShader(ssao_cs);
     ssao_blur_pass->SetComputeShader(ssao_blur_cs);
     shading_pass->SetComputeShader(shading_cs);
     post_process_pass->SetComputeShader(post_process_cs);
-    
+
     ssao_constansts.width = width;
     ssao_constansts.height = height;
 
@@ -322,11 +321,11 @@ void AO::run() {
             transfer->UpdateBuffer(deferred_shading_constants_buffer.get(), &deferred_shading_constants,
                                    sizeof(DeferredShadingConstants));
             transfer->UpdateBuffer(exposure_constants_buffer.get(), &exposure_constants, sizeof(ExposureConstant));
-            //if (first_frame) {
-                transfer->UpdateBuffer(ssao_constants_buffer.get(), &ssao_constansts, sizeof(SSAOConstant));
-                TextureUpdateDesc desc{};
-                desc.data = ssao_noise_tex_val.data();
-                transfer->UpdateTexture(ssao_noise_tex.get(), desc);
+            // if (first_frame) {
+            transfer->UpdateBuffer(ssao_constants_buffer.get(), &ssao_constansts, sizeof(SSAOConstant));
+            TextureUpdateDesc desc{};
+            desc.data = ssao_noise_tex_val.data();
+            transfer->UpdateTexture(ssao_noise_tex.get(), desc);
             //}
 
             if (first_frame) {
@@ -519,7 +518,7 @@ void AO::run() {
                 compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
             }
 
-                        {
+            {
                 BarrierDesc barrier{};
 
                 TextureBarrierDesc tb1;

@@ -2,7 +2,7 @@
 
 int main() {
 
-    AO ao;
+    SSAO ao;
 
     ao.Init();
 

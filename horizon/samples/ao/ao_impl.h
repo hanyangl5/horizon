@@ -1,7 +1,0 @@
-// SSAO
-
-// HBAO
-
-// HDAO
-
-// GTAO

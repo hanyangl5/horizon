@@ -268,8 +268,7 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
-void Mesh::LoadMesh(const std::filesystem::path &path, BS::thread_pool* tp) {
-    m_tp = tp;
+void Mesh::LoadMesh(const std::filesystem::path &path) {
     m_path = path;
     // check mesh if loaded
     if (!m_vertices.empty()) {

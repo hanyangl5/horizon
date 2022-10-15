@@ -61,7 +61,7 @@ class Mesh {
     Mesh(Mesh &&rhs) noexcept = delete;
     Mesh &operator=(Mesh &&rhs) noexcept = delete;
 
-    void LoadMesh(const std::filesystem::path &path, BS::thread_pool* tp);
+    void LoadMesh(const std::filesystem::path &path);
 
     void LoadMesh(BasicGeometry::Shapes basic_geometry);
 
