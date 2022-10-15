@@ -7,6 +7,8 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
@@ -59,7 +61,7 @@ class Mesh {
     Mesh(Mesh &&rhs) noexcept = delete;
     Mesh &operator=(Mesh &&rhs) noexcept = delete;
 
-    void LoadMesh(const std::filesystem::path &path);
+    void LoadMesh(const std::filesystem::path &path, BS::thread_pool* tp);
 
     void LoadMesh(BasicGeometry::Shapes basic_geometry);
 

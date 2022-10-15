@@ -77,6 +77,9 @@ class AO {
 
     Pipeline *ssao_pass;
 
+    Shader *ssao_blur_cs;
+    Pipeline *ssao_blur_pass;
+
     Shader *shading_cs;
     Pipeline *shading_pass;
 
@@ -111,15 +114,17 @@ class AO {
         u32 pad0, pad1;
     } deferred_shading_constants;
 
-    static constexpr u32 SSAO_KERNEL_SIZE = 64;
+    static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
     struct SSAOConstant {
         Math::float4x4 p;
         Math::float4x4 inv_p;
+        Math::float4x4 view_mat;
         u32 width;
         u32 height;
-        u32 noise_tex_width = SSAO_NOISE_TEX_WIDTH, noise_tex_height = SSAO_NOISE_TEX_HEIGHT;
-        std::array<Math::float4, 64> kernels;
+        f32 noise_scale_x;
+        f32 noise_scale_y;
+        std::array<Math::float4, SSAO_KERNEL_SIZE> kernels;
     } ssao_constansts;
 
     struct ExposureConstant {
@@ -143,7 +148,8 @@ class AO {
     std::array<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
     Resource<Texture> ssao_noise_tex;
 
-    Resource<Texture> ao_factor_image;
+    Resource<Texture> ssao_factor_image;
+    Resource<Texture> ssao_blur_image;
     Resource<Texture> shading_color_image;
     Resource<Texture> pp_color_image;
     

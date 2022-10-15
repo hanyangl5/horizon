@@ -128,7 +128,11 @@ void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     exposure = 1.0 / (pow(2.0, ev100) * 1.2);
 }
 
-Math::float4x4 Camera::GetViewMatrix() const noexcept { return m_view; }
+Math::float4x4 Camera::GetViewMatrix() const noexcept {
+    auto v = m_view;
+    v = v.Transpose();
+    return v;
+}
 
 Math::float3 Camera::GetPosition() const noexcept { return m_eye; }
 } // namespace Horizon

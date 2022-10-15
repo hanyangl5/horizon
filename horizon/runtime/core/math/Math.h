@@ -1,8 +1,8 @@
 #pragma once
 
+#include <DirectXCollision.h>
 #include <d3d12.h>
 #include <directxtk12/SimpleMath.h>
-#include <DirectXCollision.h>
 #include <runtime/core/utils/Definations.h>
 
 namespace Horizon::Math {
@@ -50,5 +50,7 @@ inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane, flo
     mat; // reversed-z
     return std::move(mat);
 }
+
+template <typename T> inline T Lerp(T a, T b, f32 t) { return a + t * (b - a); }
 
 } // namespace Horizon::Math

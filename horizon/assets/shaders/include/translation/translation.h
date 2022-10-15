@@ -4,3 +4,9 @@ float3 ReconstructWorldPos(float4x4 inverse_vp, float depth, vec2 fragCoord) {
     pos.xyz /= pos.w;
     return pos.xyz; 
 }
+
+float LinearDepth(float depth, float _near, float _far)
+{
+    float z = depth * 2.0f - 1.0f; // 回到NDC
+    return (2.0f * _near * _far) / (_far + _near - z * (_far - _near));  
+}

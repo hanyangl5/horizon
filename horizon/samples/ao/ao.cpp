@@ -33,6 +33,8 @@ void AO::InitPipelineResources() {
 
         ao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ao.comp.hsl");
 
+        ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ssao_blur.comp.hsl");
+
         post_process_cs =
             rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/post_process.comp.hsl");
     }
@@ -124,7 +126,10 @@ void AO::InitPipelineResources() {
         }
 
         // AO PASS
-        { ssao_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
+        {
+            ssao_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
+            ssao_blur_pass = rhi->CreateComputePipeline({});
+        }
 
         // SHADING PASS
         { shading_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
@@ -132,9 +137,17 @@ void AO::InitPipelineResources() {
         // PP PASS
         { post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
 
-        ao_factor_image = rhi->CreateTexture(TextureCreateInfo{
+        ssao_factor_image = rhi->CreateTexture(TextureCreateInfo{
             DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false});
+            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
+
+        ssao_noise_tex = rhi->CreateTexture(
+            TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                              TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT,
+                              SSAO_NOISE_TEX_WIDTH, SSAO_NOISE_TEX_HEIGHT, 1, false});
+        ssao_blur_image = rhi->CreateTexture(TextureCreateInfo{
+            DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
 
         shading_color_image = rhi->CreateTexture(TextureCreateInfo{
             DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
@@ -144,10 +157,6 @@ void AO::InitPipelineResources() {
             DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
 
-        ssao_noise_tex = rhi->CreateTexture(
-            TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                              TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT,
-                              SSAO_NOISE_TEX_WIDTH, SSAO_NOISE_TEX_HEIGHT, 1, false});
 
         SamplerDesc sampler_desc{};
         sampler_desc.min_filter = FilterType::FILTER_LINEAR;
@@ -181,12 +190,12 @@ void AO::InitSceneResources() {
     {
         auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
+        mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf", engine->tp.get());
         mesh1->CreateGpuResources(rhi);
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf",engine->tp.get());
         mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);
@@ -251,22 +260,23 @@ void AO::run() {
 
     geometry_pass->SetGraphicsShader(geometry_vs, geometry_ps);
     ssao_pass->SetComputeShader(ao_cs);
+    ssao_blur_pass->SetComputeShader(ssao_blur_cs);
     shading_pass->SetComputeShader(shading_cs);
     post_process_pass->SetComputeShader(post_process_cs);
-
+    
     ssao_constansts.width = width;
     ssao_constansts.height = height;
 
     std::uniform_real_distribution<float> rnd_dist(0.0, 1.0); // random floats between [0.0, 1.0]
     std::default_random_engine generator;
 
-    for (unsigned int i = 0; i < 64; ++i) {
+    for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i) {
         Math::float3 sample(rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator));
         sample.Normalize();
         sample *= rnd_dist(generator);
-        // float scale = (float)i / 64.0;
-        // scale = (0.1f, 1.0f, scale * scale);
-        // sample *= scale;
+        float scale = float(i) / float(SSAO_KERNEL_SIZE);
+        scale = Math::Lerp(0.1f, 1.0f, scale * scale);
+
         ssao_constansts.kernels[i] = Math::float4(sample);
     }
     // ssao noise tex
@@ -294,6 +304,9 @@ void AO::run() {
 
         ssao_constansts.p = cam->GetProjectionMatrix();
         ssao_constansts.inv_p = cam->GetInvProjectionMatrix();
+        ssao_constansts.view_mat = cam->GetViewMatrix();
+        ssao_constansts.noise_scale_x = width / SSAO_NOISE_TEX_WIDTH;
+        ssao_constansts.noise_scale_y = height / SSAO_NOISE_TEX_HEIGHT;
 
         auto resource_uploaded_semaphore = rhi->GetSemaphore();
 
@@ -459,7 +472,9 @@ void AO::run() {
                 barrier.texture_memory_barriers.push_back(tb1);
                 tb1.texture = pp_color_image.get();
                 barrier.texture_memory_barriers.push_back(tb1);
-                tb1.texture = ao_factor_image.get();
+                tb1.texture = ssao_factor_image.get();
+                barrier.texture_memory_barriers.push_back(tb1);
+                tb1.texture = ssao_blur_image.get();
                 barrier.texture_memory_barriers.push_back(tb1);
                 tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
@@ -493,7 +508,7 @@ void AO::run() {
                 ao_ds->SetResource(depth->GetTexture(), "depth_tex");
                 ao_ds->SetResource(gbuffer0->GetTexture(), "normal_tex");
                 ao_ds->SetResource(sampler.get(), "default_sampler");
-                ao_ds->SetResource(ao_factor_image.get(), "ao_factor_tex");
+                ao_ds->SetResource(ssao_factor_image.get(), "ao_factor_tex");
                 ao_ds->SetResource(ssao_constants_buffer.get(), "SSAOConstant");
                 ao_ds->SetResource(ssao_noise_tex.get(), "ssao_noise_tex");
                 ao_ds->Update();
@@ -503,13 +518,38 @@ void AO::run() {
 
                 compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
             }
+
+                        {
+                BarrierDesc barrier{};
+
+                TextureBarrierDesc tb1;
+                tb1.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb1.texture = ssao_factor_image.get();
+                barrier.texture_memory_barriers.push_back(tb1);
+                compute->InsertBarrier(barrier);
+            }
+
+            auto ao_blur_ds = ssao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+
+            {
+                ao_blur_ds->SetResource(ssao_factor_image.get(), "ssao_blur_in");
+                ao_blur_ds->SetResource(ssao_blur_image.get(), "ssao_blur_out");
+
+                ao_blur_ds->Update();
+
+                compute->BindPipeline(ssao_blur_pass);
+                compute->BindDescriptorSets(ssao_blur_pass, ao_blur_ds);
+
+                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+            }
             {
                 BarrierDesc barrier{};
 
                 TextureBarrierDesc tb1;
                 tb1.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb1.texture = ao_factor_image.get();
+                tb1.texture = ssao_blur_image.get();
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
@@ -528,7 +568,7 @@ void AO::run() {
                 shading_ds->SetResource(light_count_buffer.get(), "LightCountUb");
                 shading_ds->SetResource(light_buffer.get(), "LightDataUb");
                 shading_ds->SetResource(shading_color_image.get(), "out_color");
-                shading_ds->SetResource(ao_factor_image.get(), "ao_tex");
+                shading_ds->SetResource(ssao_blur_image.get(), "ao_tex");
                 shading_ds->Update();
 
                 compute->BindPipeline(shading_pass);

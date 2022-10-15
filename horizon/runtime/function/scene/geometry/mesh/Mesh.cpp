@@ -223,18 +223,22 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         }
     }
 
-    // load textures
-
-    for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
-            int width, height, channels;
-            u8 *data = stbi_load(tex.url.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
-            assert(("failed to load texture", data != nullptr));
-            tex.width = width;
-            tex.height = height;
-            tex.data = data;
+    //// async load material textures
+    auto &mats = this->materials;
+    auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
+        for (int v = r.begin(); v < r.end(); v++) {
+            for (auto &[type, tex] : mats[v].material_textures) {
+                int width, height, channels;
+                u8 *data = stbi_load(tex.url.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+                assert(("failed to load texture", data != nullptr));
+                tex.width = width;
+                tex.height = height;
+                tex.data = data;
+            }
         }
-    }
+    };
+
+    tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
 }
 
 // TODO:
@@ -264,7 +268,8 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
-void Mesh::LoadMesh(const std::filesystem::path &path) {
+void Mesh::LoadMesh(const std::filesystem::path &path, BS::thread_pool* tp) {
+    m_tp = tp;
     m_path = path;
     // check mesh if loaded
     if (!m_vertices.empty()) {

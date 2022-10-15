@@ -1,87 +1,82 @@
-// #include "include/translation/translation.h"
-// #define USE_SSAO
-// #include "include/ao/ssao.h"
-// #include "include/common/noise.hsl"
+#include "include/translation/translation.h"
+#define USE_SSAO
+#include "include/ao/ssao.h"
+#include "include/common/noise.hsl"
 
-// // 
+// 
 
-// RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
-// RES(Tex2D(float4), normal_tex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
-// RES(Tex2D(float2), ssao_noise_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
-// RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 3);
-// RES(RWTex2D(float), ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
+RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+RES(Tex2D(float4), normal_tex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
+RES(Tex2D(float2), ssao_noise_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 3);
+RES(RWTex2D(float4), ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
 
-// #ifdef USE_SSAO
-// CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
-// {
-//     DATA(float4x4, camera_projection, None);
-//     DATA(float4x4, camera_inv_projection, None);
-//     DATA(uint2, resolution, None);
-//     DATA(uint2, noise_tex_resolution, None);
-//     DATA(float4, kernels[64], None); // tangent space kernels
-// };
-// #endif
+#ifdef USE_SSAO
+CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
+{
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_inv_projection, None);
+    DATA(float4x4, camera_view, None);
+    DATA(uint2, resolution, None);
+    DATA(float2, noise_scale, None);
+    DATA(float4, kernels[SSAO_SAMPLE_COUNT], None); // tangent space kernels
+};
+#endif
 
-// NUM_THREADS(8, 8, 1)
-// void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
-// {
-//     INIT_MAIN;
+NUM_THREADS(8, 8, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+{
+    INIT_MAIN;
 
-//     uint2 _resolution = Get(resolution.xy) - uint2(1.0, 1.0);
-//     float2 uv = float2(threadID.xy) / float2(_resolution);
+    uint2 _resolution = Get(resolution.xy) - uint2(1.0, 1.0);
 
-//     float depth = SampleTex2D(Get(depth_tex), default_sampler, uv).r;
-//     float3 normal = SampleTex2D(Get(normal_tex), default_sampler, uv).xyz;
-    
-//     // view pos
-//     float3 view_pos = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
+    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+        RETURN();
+    }
 
-//     float ao_factor = 0.0;
+    float2 uv = float2(threadID.xy) / float2(_resolution);
 
-// #ifdef USE_SSAO
-//     uint2 noise_resolution = Get(noise_tex_resolution);
-//     // simulate linear sampler
-//     float2 noise_uv = uv * float2(Get(noise_tex_resolution)) / float2(Get(resolution));
+    float depth = SampleTex2D(Get(depth_tex), default_sampler, uv).r;
+    float3 view_pos = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
 
-//     float3 rvec = SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xyz * 2.0 - 1.0;
-//     float3 tangent = normalize(rvec - normal * dot(rvec, normal));
-// 	float3 bitangent = cross(tangent, normal);
-// 	float3x3  tbn = make_f3x3_cols(tangent, bitangent, normal);
+    float3 normal = SampleTex2D(Get(normal_tex), default_sampler, uv).xyz;
+    float3 view_normal = mul(float4(normal, 0.0), Get(camera_view)).xyz; // view space normal
 
-//     for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++){
-//         float3 sample_pos = normalize(mul(Get(kernels)[i].xyz, tbn));
-//         sample_pos = view_pos + sample_pos * SSAO_SAMPLE_RADIUS;
+    float ao_factor = 0.0;
 
-//         float4 clip_pos = mul(float4(sample_pos, 1.0), Get(camera_projection));
-//         clip_pos.xyz /= clip_pos.w;
-//         clip_pos.xy = clip_pos.xy * 0.5 + 0.5;
+#ifdef USE_SSAO
+    float2 noise_uv = uv * Get(noise_scale).xy;
 
-//         // view pos
-//         float sample_z = SampleTex2D(Get(depth_tex), default_sampler, clip_pos.xy).r;
-//         float3 sample_view_pos = ReconstructWorldPos(Get(camera_inv_projection), sample_z, clip_pos.xy);
-//         float linearZ = -sample_view_pos.z;
-            
-//         // occluded
-//         float range_falloff = lerp(0.0, 1.0, SSAO_SAMPLE_RADIUS / abs(linearZ - view_pos.z));
-//         if(linearZ >= view_pos.z + SSAO_BIAS) {
-//             ao_factor += range_falloff * 1.0f;
-//         }
-        
-//     }
+    float3 rvec = float3(SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xy, 0.0) * 2.0 - 1.0;;
+    float3 tangent = normalize(rvec - view_normal * dot(rvec, view_normal));
+	float3 bitangent = cross(tangent, view_normal);
+	float3x3  tbn = make_f3x3_rows(tangent, bitangent, view_normal);
 
-//     ao_factor /= SSAO_SAMPLE_COUNT;
-//     ao_factor = 1.0 - ao_factor;
-// #endif
-//     float4 out_color = float4(ao_factor, 0.0, 0.0, 0.0);
+    for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++){
+        float3 sample_pos = view_pos + mul(Get(kernels)[i].xyz, tbn) * SSAO_SAMPLE_RADIUS;
 
-//     {
-//         //float4 clip_pos = mul(float4(view_pos, 1.0), Get(camera_projection));
-//         //clip_pos.xyz /= clip_pos.w;
-//         //clip_pos.xy = clip_pos.xy * 0.5 + 0.5;
-//         //out_color.x = clip_pos.z;
-//     }
-//     Write2D(Get(ao_factor_tex), threadID.xy, out_color);
+        float4 offset = mul(float4(sample_pos, 1.0), Get(camera_projection));
+        offset.xyz /= offset.w;
+        offset.xy = offset.xy * 0.5 + 0.5;
+        offset.y = 1.0 - offset.y;
 
-//     RETURN();
-// }
+        float sample_z = SampleTex2D(Get(depth_tex), default_sampler, offset.xy).r;
+        // we need to compare depth in linear space
+        float linearZ = ReconstructWorldPos(Get(camera_inv_projection), sample_z, offset.xy).z;
+        // occluded
+        float range_falloff = lerp(0.0, 1.0, SSAO_SAMPLE_RADIUS / abs(linearZ - view_pos.z)); // closer samples contribute more occlusion
+        if(linearZ >= sample_pos.z + SSAO_BIAS) {
+            ao_factor += range_falloff * 1.0f;
+        }
+    }
+
+    ao_factor /= SSAO_SAMPLE_COUNT;
+    ao_factor = 1.0 - ao_factor;
+#endif
+    float4 out_color = float4(ao_factor, 0.0, 0.0, 0.0);
+
+    Write2D(Get(ao_factor_tex), threadID.xy, out_color);
+
+    RETURN();
+}
 

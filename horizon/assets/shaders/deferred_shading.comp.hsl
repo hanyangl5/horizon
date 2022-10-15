@@ -33,13 +33,18 @@ CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 8)
 
 RES(RWTex2D(float4), out_color, UPDATE_FREQ_PER_FRAME, t3, binding = 9);
 
-RES(RTex2D(float), ao_tex, UPDATE_FREQ_PER_FRAME, t4, binding = 10);
+RES(RTex2D(float4), ao_tex, UPDATE_FREQ_PER_FRAME, t4, binding = 10);
 
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
     INIT_MAIN;
     uint2 _resolution = Get(resolution).xy - uint2(1.0, 1.0);
+
+    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+        RETURN();
+    }
+
     float2 uv = float2(threadID.xy) / float2(_resolution);
     float4 gbuffer0 = SampleTex2D(Get(gbuffer0_tex), default_sampler, uv);
     float4 gbuffer1 = SampleTex2D(Get(gbuffer1_tex), default_sampler, uv);
