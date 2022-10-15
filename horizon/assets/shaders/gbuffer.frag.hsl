@@ -30,6 +30,7 @@ STRUCT(VSOutput)
     DATA(float3, world_pos, POSITION);
 	DATA(float3, normal, NORMAL);
 	DATA(float2, uv, TEXCOORD0);
+    DATA(float3, tangent, TANGENT);
 };
 
 STRUCT(PSOutput)
@@ -58,18 +59,32 @@ PSOutput PS_MAIN(VSOutput vsout)
     uint has_emissive = Get(param_bitmask) & HAS_EMISSIVE;
 
     float3 albedo = has_base_color != 0 ? SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv).xyz : float3(1.0, 1.0, 1.0);
-    float3 normal = has_normal != 0 ? SampleTex2D(Get(normal_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0); // normal map
+    float3 normal_map = has_normal != 0 ? SampleTex2D(Get(normal_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0); // normal map
     float2 mr = has_metallic_roughness != 0 ? SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv).xy : float2(0.0, 1.0);
     float3 emissive = has_emissive != 0 ? SampleTex2D(Get(emissive_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0);
     float metallic = mr.x;
     float roughness = mr.y;
 
-    float3 n = vsout.normal;
+    normal_map = 2.0 * normal_map - 1.0; // [-1, 1]
 
-    psout.gbuffer0 = float4(n.x, n.y, n.z, asfloat(0));
+    float3 gbuffer_normal;
+
+    if(has_normal != 0) {
+        // construct TBN
+        float3 normal = normalize( vsout.normal );
+        float3 tangent = normalize( vsout.tangent );
+        float3 bitangent = normalize(cross(tangent, normal));
+        // Calculate pixel normal using the normal map and the tangent space vectors
+        float3x3 tbn = make_f3x3_cols(tangent, bitangent, normal);
+        gbuffer_normal = normalize(mul(normal_map, tbn));
+    } else {
+        gbuffer_normal = vsout.normal;
+    }
+gbuffer_normal = vsout.normal;
+    psout.gbuffer0 = float4(gbuffer_normal.x, gbuffer_normal.y, gbuffer_normal.z, asfloat(0));
     psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, metallic);
-    psout.gbuffer2 = float4(0.0, 0.0, 0.0, 0.0); // TODO: emissive
-    psout.gbuffer3 = float4(0.0, 0.0, roughness, 0.0);
+    psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);
+    psout.gbuffer3 = float4(0.0, 1.0, roughness, 0.0);
 
     RETURN(psout);
     

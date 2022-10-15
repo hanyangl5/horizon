@@ -165,7 +165,7 @@ void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect compute "
             "commandlist",
-            m_type == CommandQueueType::COMPUTE));
+            (m_type == CommandQueueType::COMPUTE || m_type == CommandQueueType::GRAPHICS)));
 
     vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 }
@@ -182,7 +182,7 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
     assert(("invalid commands for current commandlist, expect transfer "
             "commandlist",
             m_type == CommandQueueType::TRANSFER));
-    assert(buffer->m_size == size);
+    assert(buffer->m_size >= size);
 
     // cannot update static buffer more than once
     // TODO: refractor with new RAII resource
@@ -232,9 +232,9 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
 
 void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
     assert(("command list is not recording", is_recoring == true));
-    assert(("invalid commands for current commandlist, expect transfer "
-            "commandlist",
-            m_type == CommandQueueType::TRANSFER));
+    //assert(("invalid commands for current commandlist, expect transfer "
+    //        "commandlist",
+    //        m_type == CommandQueueType::TRANSFER));
 
     auto vk_src_buffer = reinterpret_cast<VulkanBuffer *>(src_buffer);
     auto vk_dst_buffer = reinterpret_cast<VulkanBuffer *>(dst_buffer);
@@ -243,9 +243,9 @@ void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
 
 void VulkanCommandList::CopyTexture(Texture *src_texture, Texture *dst_texture) {
     assert(("command list is not recording", is_recoring == true));
-    assert(("invalid commands for current commandlist, expect transfer "
-            "commandlist",
-            m_type == CommandQueueType::TRANSFER));
+    //assert(("invalid commands for current commandlist, expect transfer "
+    //        "commandlist",
+    //        m_type == CommandQueueType::TRANSFER));
     auto vk_src_texture = reinterpret_cast<VulkanTexture *>(src_texture);
     auto vk_dst_texture = reinterpret_cast<VulkanTexture *>(dst_texture);
     CopyTexture(vk_src_texture, vk_dst_texture);
@@ -302,7 +302,9 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
 
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
-    VkDeviceSize texture_size = texture->m_width * texture->m_height * texture->m_channels;
+    VkDeviceSize texture_size =
+        texture->m_width * texture->m_height *
+        texture->m_byte_per_pixel; // channel * format, ex: pixelSize of rgba32f is 4 * 4, pixelSize of rg16f is 2 * 2
     if (!vk_texture->m_stage_buffer) {
 
         vk_texture->m_stage_buffer =
@@ -339,8 +341,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = 0;

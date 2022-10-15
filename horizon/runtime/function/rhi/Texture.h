@@ -21,8 +21,8 @@ class Texture {
     const TextureFormat m_format{};
 
     const u32 m_width{}, m_height{}, m_depth{};
-    const u32 m_channels{4};
     u32 mip_map_level{};
+    const u32 m_byte_per_pixel{};
 
   protected:
 };

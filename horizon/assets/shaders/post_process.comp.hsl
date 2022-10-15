@@ -2,10 +2,9 @@
 RES(RWTex2D(float4), color_image, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
 RES(RWTex2D(float4), out_color_image, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
 
-CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 2)
+CBUFFER(exposure_constants, UPDATE_FREQ_PER_FRAME, b0, binding = 2)
 {
-    DATA(float4x4, vp, None);
-    DATA(float4, camera_position_exposure, None);
+    DATA(float4, exposure_ev100__, None);
 };
 
 NUM_THREADS(8, 8, 1)
@@ -15,7 +14,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     
     float4 color  = LoadRWTex2D(Get(color_image), threadID.xy);
 
-    color.xyz *= Get(camera_position_exposure).w;
+    color.xyz *= Get(exposure_ev100__).x;
 
     color.xyz = TonemapACES(color.xyz);
     

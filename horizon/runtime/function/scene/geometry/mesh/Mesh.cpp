@@ -65,7 +65,7 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
             create_info.depth = 1;
             create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
             create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
-            create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE;
+            create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
 
             tex.texture = rhi->CreateTexture(create_info);
@@ -232,7 +232,6 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(("failed to load texture", data != nullptr));
             tex.width = width;
             tex.height = height;
-            tex.channels = channels;
             tex.data = data;
         }
     }
@@ -277,7 +276,7 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     // probably to request more postprocessing than we do in this example.
     const aiScene *scene =
         assimp_importer.ReadFile(path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-                                                            aiProcess_GenSmoothNormals | aiProcess_FlipUVs |aiProcess_GenBoundingBoxes);
+                                                            aiProcess_GenSmoothNormals | aiProcess_FlipUVs |aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -313,6 +312,9 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
             }
             if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(1)) {
                 memcpy(&vertex.uv1, &mesh->mTextureCoords[1][v], sizeof(Math::float2));
+            }
+            if (vertex_attribute_flag & VertexAttributeType::TANGENT && mesh->HasTangentsAndBitangents()) {
+                memcpy(&vertex.tangent, &mesh->mTangents[v], sizeof(Math::float3));
             }
             m_vertices.emplace_back(vertex);
         }

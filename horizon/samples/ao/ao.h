@@ -53,6 +53,10 @@ class AO {
 
     void InitResources();
     
+    void InitPipelineResources(); // create pass related resource, shader, pipeline, buffer/tex/rt
+
+    void InitSceneResources(); // create scene related resrouces, mesh, light
+
     void run();
 
   private:
@@ -68,6 +72,10 @@ class AO {
 
     Shader *geometry_vs, *geometry_ps;
     Pipeline *geometry_pass;
+
+    Shader *ao_cs;
+
+    Pipeline *ssao_pass;
 
     Shader *shading_cs;
     Pipeline *shading_pass;
@@ -85,8 +93,6 @@ class AO {
 
     Shader *post_process_cs;
     Pipeline *post_process_pass;
-    Resource<Texture> shading_color_image;
-    Resource<Texture> pp_color_image;
 
     std::vector<Mesh *> meshes;
 
@@ -94,7 +100,7 @@ class AO {
     struct CameraUb {
         Math::float4x4 vp;
         Math::float3 camera_pos;
-        f32 exposure;
+        f32 ev100;
     } camera_ub;
 
     struct DeferredShadingConstants {
@@ -105,24 +111,42 @@ class AO {
         u32 pad0, pad1;
     } deferred_shading_constants;
 
+    static constexpr u32 SSAO_KERNEL_SIZE = 64;
+
+    struct SSAOConstant {
+        Math::float4x4 p;
+        Math::float4x4 inv_p;
+        u32 width;
+        u32 height;
+        u32 noise_tex_width = SSAO_NOISE_TEX_WIDTH, noise_tex_height = SSAO_NOISE_TEX_HEIGHT;
+        std::array<Math::float4, 64> kernels;
+    } ssao_constansts;
+
+    struct ExposureConstant {
+        Math::float4 exposure_ev100__;
+    } exposure_constants;
+
     Resource<Buffer> camera_buffer;
 
     u32 light_count = 1;
 
     Resource<Buffer> light_count_buffer;
-    //Light *directional_light;
     std::vector<Light *> lights;
     std::vector<LightParams> lights_param_buffer;
     Resource<Buffer> light_buffer;
     Resource<Buffer> deferred_shading_constants_buffer;
-    bool resources_uploaded = false;
+    Resource<Buffer> ssao_constants_buffer;
+    Resource<Buffer> exposure_constants_buffer;
 
-    std::filesystem::path ibl_iem_path;
-    std::filesystem::path ibl_pfem_path;
-    std::filesystem::path ibl_brdf_lut_path;
+    static constexpr u32 SSAO_NOISE_TEX_WIDTH = 4;
+    static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
+    std::array<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
+    Resource<Texture> ssao_noise_tex;
 
-    Resource<Texture> ibl_iem, ibl_pfem, ibl_brdf_lut;
-    u32 culled_mesh{};
-    u32 total_mesh{};
+    Resource<Texture> ao_factor_image;
+    Resource<Texture> shading_color_image;
+    Resource<Texture> pp_color_image;
+    
+
 };
 

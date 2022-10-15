@@ -128,12 +128,14 @@ void Pbr::InitResources() {
         auto mesh1 =
             new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
         // mesh->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-        mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
+        mesh1->LoadMesh(asset_path / "models/rhulk/Rhulk, Disciple of the Witness.gltf");
+
         mesh1->CreateGpuResources(rhi);
 
         auto mesh2 =
             new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        //mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        mesh2->LoadMesh(asset_path / "models/riven/Riven (rigged by BreamVr).gltf");
         mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);

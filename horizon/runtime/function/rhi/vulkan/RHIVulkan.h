@@ -86,7 +86,6 @@ class RHIVulkan : public RHI {
     std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator{};
     std::array<std::vector<VkFence>, 3> fences{};
     std::array<u32, 3> fence_index{};
-    // pipeline map
-    // resource manager, auto
+
 };
 } // namespace Horizon::RHI
