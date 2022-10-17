@@ -42,10 +42,11 @@ $f_s = \frac{F(h, l)· G(l, v, h) ·D(h)}{4 · |n · l||n·v|}$
 崎岖不平的微表面会产生遮挡，遮挡函数G1(w, w_h)表示微表面法线为h时，从v方向观察能看到表面的比例w
 
 用入射和出射都会有概率被遮挡，用$G_2 = G_1(l,m)G_1(v,m)$表示
-$G_2(l, v) = \frac{0.5}{(\mu_o)}$
 
+maskshadowfunction可以消掉下面的NoV和NoL
 
-heiz14的文章中发现smithggx和ggx结合可以消掉下面的denom，
+learnopengl用的是schlick
+ue用的是smithggx
 
 ## subsurface scatter brdf
 
