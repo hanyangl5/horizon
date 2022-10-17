@@ -189,12 +189,16 @@ void SSAO::InitSceneResources() {
     {
         auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
+        //mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
+        //mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
+        mesh1->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
         mesh1->CreateGpuResources(rhi);
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
         mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        //mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
+        //mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
         mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);
@@ -233,7 +237,7 @@ void SSAO::InitSceneResources() {
             Math::float3 pos(xPos, yPos, zPos);
             Math::float3 col(rColor, gColor, bColor);
 
-            // lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
+            //lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
         }
 
         lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));
@@ -274,8 +278,7 @@ void SSAO::run() {
         sample.Normalize();
         sample *= rnd_dist(generator);
         float scale = float(i) / float(SSAO_KERNEL_SIZE);
-        scale = Math::Lerp(0.1f, 1.0f, scale * scale);
-
+        sample *= Math::Lerp(0.1f, 1.0f, scale * scale);
         ssao_constansts.kernels[i] = Math::float4(sample);
     }
     // ssao noise tex

@@ -16,22 +16,20 @@ struct BXDF
     float YoM;
 };
 
-void InitBXDF( inout(BXDF) context, float3 N, float3 V, float3 L )
+void InitBXDF( inout(BXDF) bxdf, float3 N, float3 V, float3 L )
 {
-	context.NoL = dot(N, L);
-	context.NoV = dot(N, V);
-	context.VoL = dot(V, L);
-	float InvLenH = rsqrt( 2 + 2 * context.VoL );
-	context.NoM = saturate( ( context.NoL + context.NoV ) * InvLenH );
-	context.VoM = saturate( InvLenH + InvLenH * context.VoL );
-	context.NoL = saturate( context.NoL );
-	context.NoV = saturate( abs( context.NoV ) + 1e-5 );
-	context.XoV = 0.0f;
-	context.XoL = 0.0f;
-	context.XoM = 0.0f;
-	context.YoV = 0.0f;
-	context.YoL = 0.0f;
-	context.YoM = 0.0f;
+	bxdf.NoL = saturate(dot(N, L));
+	bxdf.NoV = saturate(dot(N, V));
+	bxdf.VoL = saturate(dot(V, L));
+	float3 M = (V + L) / 2.0;
+	bxdf.NoM = saturate(dot(N, M));
+	bxdf.VoM = saturate(dot(V, M));
+	// bxdf.XoV = 0.0f;
+	// bxdf.XoL = 0.0f;
+	// bxdf.XoM = 0.0f;
+	// bxdf.YoV = 0.0f;
+	// bxdf.YoL = 0.0f;
+	// bxdf.YoM = 0.0f;
 }
 
 float3 Diffuse_Lambert(float3 albedo) {
@@ -44,15 +42,15 @@ float3 Fresnel_Schlick(float3 F0, float LoM) { return F0 + (1.0 - F0) * Pow5(1 -
 
 float NDF_GGX(float roughness2, float NoM) { 
 	float d = ( NoM * roughness2 - NoM ) * NoM + 1.0;
-	return roughness2 * _1DIVPI/ ( d * d );
+	return roughness2 * _1DIVPI / ( d * d );
 }
 
 // float NDF_Aniso_GGX()
 
-float Vis_SmithGGXCombined(float rougness2, float NoV, float NoL) 
+float Vis_SmithGGXCombined(float roughness2, float NoV, float NoL) 
 {
-	float Vis_SmithV = NoL * sqrt(NoV * (NoV - NoV * rougness2) + rougness2);
-	float Vis_SmithL = NoV * sqrt(NoL * (NoL - NoL * rougness2) + rougness2);
+	float Vis_SmithV = NoL * sqrt(NoV * (NoV - NoV * roughness2) + roughness2);
+	float Vis_SmithL = NoV * sqrt(NoL * (NoL - NoL * roughness2) + roughness2);
 	return 0.5  / (Vis_SmithV + Vis_SmithL);
 }
 
