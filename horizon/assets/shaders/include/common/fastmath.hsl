@@ -201,13 +201,13 @@ float3 NormalizeFast0(float3 v) {
 // max absolute error 9.0x10^-3
 // Eberly's polynomial degree 1 - respect bounds
 // 4 VGPR, 12 FR (8 FR, 1 QR), 1 scalar
-// input [-1, 1] and output [0, PI]
+// input [-1, 1] and output [0, _PI]
 float AcosFast(float x) 
 {
     float _x = abs(x);
-    float res = -0.156583f * _x + (0.5 * PI);
+    float res = -0.156583f * _x + (0.5 * _PI);
     res *= sqrt(1.0f - _x);
-    return (x >= 0) ? res : PI - res;
+    return (x >= 0) ? res : _PI - res;
 }
 
 float2 AcosFast( float2 x )
@@ -228,10 +228,10 @@ float4 AcosFast( float4 x )
 
 // Same cost as AcosFast + 1 FR
 // Same error
-// input [-1, 1] and output [-PI/2, PI/2]
+// input [-1, 1] and output [-_PI/2, _PI/2]
 float AsinFast( float x )
 {
-    return (0.5 * PI) - AcosFast(x);
+    return (0.5 * _PI) - AcosFast(x);
 }
 
 float2 AsinFast( float2 x)
@@ -252,7 +252,7 @@ float4 AsinFast( float4 x )
 // max absolute error 1.3x10^-3
 // Eberly's odd polynomial degree 5 - respect bounds
 // 4 VGPR, 14 FR (10 FR, 1 QR), 2 scalar
-// input [0, infinity] and output [0, PI/2]
+// input [0, infinity] and output [0, _PI/2]
 float AtanFastPos( float x ) 
 { 
     float t0 = (x < 1.0f) ? x : 1.0f / x;
@@ -261,11 +261,11 @@ float AtanFastPos( float x )
     poly = -0.301895f + poly * t1;
     poly = 1.0f + poly * t1;
     poly = poly * t0;
-    return (x < 1.0f) ? poly : (0.5 * PI) - poly;
+    return (x < 1.0f) ? poly : (0.5 * _PI) - poly;
 }
 
 // 4 VGPR, 16 FR (12 FR, 1 QR), 2 scalar
-// input [-infinity, infinity] and output [-PI/2, PI/2]
+// input [-infinity, infinity] and output [-_PI/2, _PI/2]
 float AtanFast( float x )
 {
     float t0 = AtanFastPos( abs(x) );
@@ -300,8 +300,8 @@ float Atan2Fast( float y, float x )
 	t0 = t0 * t4 + 1.0;
 	t3 = t0 * t3;
 
-	t3 = abs(y) > abs(x) ? (0.5 * PI) - t3 : t3;
-	t3 = x < 0 ? PI - t3 : t3;
+	t3 = abs(y) > abs(x) ? (0.5 * _PI) - t3 : t3;
+	t3 = x < 0 ? _PI - t3 : t3;
 	t3 = y < 0 ? -t3 : t3;
 
 	return t3;
@@ -340,7 +340,7 @@ float AcosFast4(float x)
 
 	// Acos function mirroring
 	// check per platform if compiles to a selector - no branch neeeded
-	return x >= 0.0f ? s : PI - s;
+	return x >= 0.0f ? s : _PI - s;
 }
 
 // 4th order polynomial approximation
@@ -348,7 +348,7 @@ float AcosFast4(float x)
 // 7 * 10^-5 radians precision 
 float AsinFast4( float x )
 {
-	return (0.5 * PI) - AcosFast4(x);
+	return (0.5 * _PI) - AcosFast4(x);
 }
 
 // some functions may already optimized on modern platform

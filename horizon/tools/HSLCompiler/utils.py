@@ -491,7 +491,7 @@ def preprocessed_from_file(filepath, line_directives, files_seen=None):
     files_seen += [filepath]
     
     dirname = os.path.dirname(filepath)
-    lines = open(filepath).readlines()
+    lines = open(filepath, encoding = 'utf-8').readlines()
     result = []
 
     working_directory = fixpath(os.getcwd()) + '/'
