@@ -83,3 +83,6 @@ disney将这两种情况混合起来计算一个diffuse
 # ref
 
 https://www.one-tab.com/page/6WWtv26xQxaOvDl-Ywy7FQ
+https://zhuanlan.zhihu.com/p/95824400
+https://zhuanlan.zhihu.com/p/61962884
+https://ubm-twvideo01.s3.amazonaws.com/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
