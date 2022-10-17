@@ -14,3 +14,8 @@ float Pow3(float x) {return x * x * x;}
 float Pow4(float x) {return x * x * x * x;}
 
 float Pow5(float x) {return x * x * x * x * x;}
+
+float SmoothStep(float e0, float e1, float x) { 
+    float t = saturate((x - e0) / e1 - e0);
+    return t * t * (3.0 - 2.0 * t);
+}
