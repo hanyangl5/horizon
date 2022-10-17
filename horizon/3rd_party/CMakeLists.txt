@@ -4,7 +4,7 @@ set(third_party_folder "third_party")
 
 add_library(${PROJECT_NAME} 3rd_party.cpp)
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon/ThirdParty")
 
 
 
@@ -109,3 +109,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 
 find_package(meshoptimizer CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)
+
+find_package(meshoptimizer CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)
+
+find_package(imgui CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
+
+
+find_package(unofficial-nativefiledialog CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::nativefiledialog::nfd)
