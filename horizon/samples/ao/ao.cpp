@@ -3,7 +3,7 @@
 void SSAO::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
-    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0_m), Math::float3(0.0, 0.0, 0.0),
+    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 10.0_m), Math::float3(0.0, 0.0, 0.0),
                                         Math::float3(0.0, 1.0_m, 0.0));
     m_camera->SetCameraSpeed(0.1);
     m_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
@@ -209,7 +209,7 @@ void SSAO::InitSceneResources() {
     {
         cam = engine->m_render_system->GetDebugCamera();
 
-        cam->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
+        cam->SetPerspectiveProjectionMatrix(75.0_deg, (float)width / (float)height, 0.1f, 100.0f);
 
         camera_buffer =
             rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,

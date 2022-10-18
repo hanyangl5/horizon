@@ -73,9 +73,10 @@ $f_{diff}  = \frac{\rho_{ss}}{\pi}$
 smooth subsurface的特性：subsurface的irregular和scattering length相比很小，所以这种subsurface不受粗糙度影响，那么diffuse的部分就等于 1 - pow(1-nol, 5)，outgoing light也有refraction，要再乘 1-pow(1-nov, 5)
 
 ### rough subsurface
+
 rough subsurface的特性：scattering length 和subsurface的irregular和相比很小，粗糙度会影响diffuse的强度，主要是逆反射，表面越粗糙，逆反射越强，在grazing angle处最为明显。
 
-disney将这两种情况混合起来计算一个diffuse
+disney将这两种情况混合起来计算一个diffuse，次表面散射使用Hanrahan-Krueger brdf，用一个subsurface参数混合这两者
 
 
 ## disney 
