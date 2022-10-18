@@ -1,5 +1,0 @@
-
-namespace Horizon::MaterialEditor {
-
-
-}
