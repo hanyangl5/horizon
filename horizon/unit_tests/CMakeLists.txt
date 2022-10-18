@@ -10,4 +10,4 @@ add_executable(${PROJECT_NAME} ${APP_HEADERS} ${APP_SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC runtime)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/horizon)
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon/Tests")

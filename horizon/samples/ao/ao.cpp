@@ -202,7 +202,7 @@ void SSAO::InitSceneResources() {
         mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);
-        meshes.push_back(mesh2);
+        //meshes.push_back(mesh2);
     }
 
     // camera
