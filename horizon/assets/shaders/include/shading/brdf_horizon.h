@@ -60,3 +60,4 @@ float Vis_Aniso_SmithGGXCombined(float ax, float ay, float NoV, float NoL, float
 	float Vis_SmithL = NoV * length(float3(ax * XoL, ay * YoL, NoL));
 	return 0.5  / (Vis_SmithV + Vis_SmithL);
 }
+

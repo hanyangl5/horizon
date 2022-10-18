@@ -52,7 +52,7 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
     BXDF bxdf;
     InitBXDF(bxdf, n, v, light_dir);
     
-    float3 radiance = Brdf_Opaque_Default(mat, bxdf) * attenuation * bxdf.NoL;
+    float3 radiance = Brdf_Sheen_Burley12(mat, bxdf) * attenuation * bxdf.NoL;
     
     return float4(radiance, 1.0);
 }

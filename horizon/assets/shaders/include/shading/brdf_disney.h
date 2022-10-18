@@ -20,20 +20,21 @@ https://github.com/wdas/brdf/blob/425f6ef183f3e57c2a351622790ca8ea472ddfe1/src/b
 
 #include "../common/common_math.h"
 #include "../common/fastmath.hsl"
+#include "../common/luminance.h"
 
-struct MaterialProperties_Disney12{
-    float3 baseColor;
-    float metallic;
-    float subsurface;
-    float specular;
-    float roughness;
-    float specularTint;
-    float anisotropic;
-    float sheen;
-    float sheenTint;
-    float clearcoat;
-    float clearcoatGloss;
-};
+// struct MaterialProperties_Disney12{
+//     float3 baseColor;
+//     float metallic;
+//     float subsurface;
+//     float specular;
+//     float roughness;
+//     float specularTint;
+//     float anisotropic;
+//     float sheen;
+//     float sheenTint;
+//     float clearcoat;
+//     float clearcoatGloss;
+// };
 
 /*
 explaination: 
@@ -90,20 +91,23 @@ float NDF_GTR2(float NdotH, float a)
     return a2 / (_PI * t*t);
 }
 
-// float NDF_GTR2_Aniso(float NoH, float XoH, float YoH, float ax, float ay)
-// {
-//     return 1 / (_PI * ax*ay * sqr( sqr(XoH/ax) + sqr(YoH/ay) + NoH*NoH ));
-// }
+float NDF_GTR2_Aniso(float NoH, float XoH, float YoH, float ax, float ay)
+{
+    return 1 / (_PI * ax*ay * Pow2( Pow2(XoH/ax) + Pow2(YoH/ay) + NoH*NoH ));
+}
 
-// float3 Sheen(float shin_tint, float sheen, float3 Fresnel, ) {
-//     return FH * sheen * Csheen;
-//         float3 Cdlin = mon2lin(mat.baseColor);
-//     float Cdlum = .3*Cdlin[0] + .6*Cdlin[1]  + .1*Cdlin[2]; // luminance approx.
+float Vis_smithG_GGX_Aniso(float NdotV, float VdotX, float VdotY, float ax, float ay)
+{
+    return 1 / (NdotV + Pow2t( Pow2(VdotX*ax) + Pow2(VdotY*ay) + Pow2(NdotV) ));
+}
 
-//     float3 Ctint = Cdlum > 0 ? Cdlin/Cdlum : float3(1); // normalize lum. to isolate hue+sat
-//     float3 Cspec0 = mix(mat.specular*.08*mix(float3(1), Ctint, mat.specularTint), Cdlin, mat.metallic);
-//     float3 Csheen = mix(float3(1), Ctint, mat.sheenTint);
-// }
+
+float3 Sheen_Burley12(float3 albedo, float sheen_tint, float sheen, float3 fresnel) {
+    float l = Luminance(albedo); // luminance approx.
+    float3 c_tint = l > 0.0 ? albedo / l: float3(1.0, 1.0, 1.0); // normalize lum. to isolate hue+sat
+    float3 c_sheen = mix(float3(1), c_tint, sheen_tint);
+    return fresnel * sheen * c_sheen * albedo * _1DIVPI;
+}
 
 // color baseColor .82 .67 .16
 // float metallic 0 1 0
@@ -117,30 +121,12 @@ float NDF_GTR2(float NdotH, float a)
 // float clearcoat 0 1 0
 // float clearcoatGloss 0 1 1
 
-// float sqr(float x) { return x*x; }
-
-// float SchlickFresnel(float u)
-// {
-//     float m = clamp(1-u, 0, 1);
-//     float m2 = m*m;
-//     return m2*m2*m; // pow(m,5)
-// }
 
 // float smithG_GGX(float NdotV, float alphaG)
 // {
 //     float a = alphaG*alphaG;
 //     float b = NdotV*NdotV;
-//     return 1 / (NdotV + sqrt(a + b - a*b));
-// }
-
-// float smithG_GGX_aniso(float NdotV, float VdotX, float VdotY, float ax, float ay)
-// {
-//     return 1 / (NdotV + sqrt( sqr(VdotX*ax) + sqr(VdotY*ay) + sqr(NdotV) ));
-// }
-
-// float3 mon2lin(float3 x)
-// {
-//     return float3(pow(x[0], 2.2), pow(x[1], 2.2), pow(x[2], 2.2));
+//     return 1 / (NdotV + Pow2t(a + b - a*b));
 // }
 
 
@@ -175,9 +161,9 @@ float NDF_GTR2(float NdotH, float a)
 //     float ss = 1.25 * (Fss * (1 / (NdotL + NdotV) - .5) + .5);
 
 //     // mat.specular
-//     float aspect = sqrt(1-mat.anisotropic*.9);
-//     float ax = max(.001, sqr(mat.roughness)/aspect);
-//     float ay = max(.001, sqr(mat.roughness)*aspect);
+//     float aspect = Pow2t(1-mat.anisotropic*.9);
+//     float ax = max(.001, Pow2(mat.roughness)/aspect);
+//     float ay = max(.001, Pow2(mat.roughness)*aspect);
 //     float Ds = GTR2_aniso(NdotH, dot(H, X), dot(H, Y), ax, ay);
 //     float FH = SchlickFresnel(LdotH);
 //     float3 Fs = mix(Cspec0, float3(1), FH);

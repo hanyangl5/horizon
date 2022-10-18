@@ -196,10 +196,11 @@ void SSAO::InitSceneResources() {
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        //mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
         //mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
         //mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-        mesh2->CreateGpuResources(rhi);
+        //mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
+        //mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);
         //meshes.push_back(mesh2);
