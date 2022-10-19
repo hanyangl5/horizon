@@ -56,10 +56,20 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     //mat.normal
     mat.albedo = gbuffer1.xyz;
 
-    mat.metallic = gbuffer3.x;
+    mat.metallic =gbuffer3.x;
     mat.roughness = gbuffer3.y;
     mat.roughness2 = Pow2(mat.roughness);
     mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
+
+    // disney
+    {
+        // mat.anisotropic = 0.0;
+        // mat.sheen = gbuffer3.x;
+        // mat.sheen_tint = 0.5;
+        // mat.subsurface = gbuffer3.x;
+        // mat.clearcoat = gbuffer3.x;
+        // mat.clearcoat_gloss = 0.5;
+    }
 
     float3 world_pos = ReconstructWorldPos(Get(inverse_vp),SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
     float3 n =  normalize(gbuffer0.xyz);
