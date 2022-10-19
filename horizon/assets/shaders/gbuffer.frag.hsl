@@ -58,17 +58,13 @@ PSOutput PS_MAIN(VSOutput vsout)
     uint has_base_color = Get(param_bitmask) & HAS_BASE_COLOR;
     uint has_emissive = Get(param_bitmask) & HAS_EMISSIVE;
 
-    float3 albedo = has_base_color != 0 ? SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv).xyz : float3(1.0, 1.0, 1.0);
+    float3 albedo = has_base_color != 0 ? pow(SampleTex2D(Get(base_color_texture), default_sampler, vsout.uv).xyz, float3(2.2)) : float3(1.0, 1.0, 1.0);
     float3 normal_map = has_normal != 0 ? SampleTex2D(Get(normal_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0); // normal map
-    float2 mr = has_metallic_roughness != 0 ? SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv).yz : float2(0.0, 1.0);
-    float3 emissive = has_emissive != 0 ? SampleTex2D(Get(emissive_texture), default_sampler, vsout.uv).xyz : float3(0.0, 0.0, 0.0);
-    float metallic = mr.y;
-    float roughness = mr.x;
-
+    float2 mr = has_metallic_roughness != 0 ? SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv).yz : float2(1.0, 0.0);
+    float3 emissive = has_emissive != 0 ? pow(SampleTex2D(Get(emissive_texture), default_sampler, vsout.uv).xyz,  float3(2.2)) : float3(0.0, 0.0, 0.0);
     normal_map = 2.0 * normal_map - 1.0; // [-1, 1]
-
+    
     float3 gbuffer_normal;
-
     // enable normal map after mipmap
     // if(has_normal != 0) {
     //     // construct TBN
@@ -85,7 +81,7 @@ PSOutput PS_MAIN(VSOutput vsout)
     psout.gbuffer0 = float4(gbuffer_normal.x, gbuffer_normal.y, gbuffer_normal.z, asfloat(0));
     psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, 0.0);
     psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);
-    psout.gbuffer3 = float4(metallic, roughness, 1.0, 0.0);
+    psout.gbuffer3 = float4(mr.y, mr.x, 1.0, 0.0);
 
     RETURN(psout);
     

@@ -3,7 +3,7 @@
 void SSAO::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
-    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 1.0_m), Math::float3(0.0, 0.0, 0.0),
+    m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 10.0_m), Math::float3(0.0, 0.0, 0.0),
                                         Math::float3(0.0, 1.0_m, 0.0));
     m_camera->SetCameraSpeed(0.1);
     m_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
@@ -196,10 +196,11 @@ void SSAO::InitSceneResources() {
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        //mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
         //mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
         //mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-        mesh2->CreateGpuResources(rhi);
+        //mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
+        //mesh2->CreateGpuResources(rhi);
 
         meshes.push_back(mesh1);
         //meshes.push_back(mesh2);
@@ -209,7 +210,7 @@ void SSAO::InitSceneResources() {
     {
         cam = engine->m_render_system->GetDebugCamera();
 
-        cam->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
+        cam->SetPerspectiveProjectionMatrix(75.0_deg, (float)width / (float)height, 0.1f, 100.0f);
 
         camera_buffer =
             rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,

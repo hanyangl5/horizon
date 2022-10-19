@@ -1,3 +1,4 @@
+# -*- coding=utf-8 -*-
 def CompileShaders():
     import os, sys
     _filedir = os.path.abspath(os.path.dirname(__file__))

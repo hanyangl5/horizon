@@ -1,6 +1,6 @@
-struct LightParams{
+struct LightParams {
     float4 color_intensity; // r, g, b, intensity
-    float4 position_type; // x, y, z, type
+    float4 position_type;   // x, y, z, type
     float4 direction;
     float4 radius_inner_outer; // radius, innerradius, outerradius
 };

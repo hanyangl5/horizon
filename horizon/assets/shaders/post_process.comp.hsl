@@ -17,7 +17,9 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     color.xyz *= Get(exposure_ev100__).x;
 
     color.xyz = TonemapACES(color.xyz);
-    
+
+    color.xyz = GammaCorrection(color.xyz);
+
     Write2D(Get(out_color_image), threadID.xy, color);
 
     RETURN();
