@@ -6,6 +6,10 @@ horizon is a real time render framework.
 
 ---
 
+[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/sc33JSBKVQ)
+
+---
+
 # Build From Source
 
 **NOTES:** Horizon is not designed for cross-platform and portability, so build or run correctly on other platform is not guaranteed.
