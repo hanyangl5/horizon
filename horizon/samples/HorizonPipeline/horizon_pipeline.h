@@ -32,11 +32,11 @@
 using namespace Horizon;
 using namespace Horizon::RHI;
 
-// SSAO
+// HorizonPipeline
 
-class SSAO {
+class HorizonPipeline {
   public:
-    SSAO() {
+    HorizonPipeline() {
         EngineConfig config{};
         config.width = 1600;
         config.height = 900;
