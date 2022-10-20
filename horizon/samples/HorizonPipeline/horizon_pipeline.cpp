@@ -1,6 +1,6 @@
-#include "ao.h"
+#include "horizon_pipeline.h"
 
-void SSAO::InitAPI() {
+void HorizonPipeline::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
 
     m_camera = std::make_unique<Camera>(Math::float3(0.0, 0.0, 10.0_m), Math::float3(0.0, 0.0, 0.0),
@@ -11,14 +11,14 @@ void SSAO::InitAPI() {
     engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
 }
 
-void SSAO::InitResources() {
+void HorizonPipeline::InitResources() {
 
     InitPipelineResources();
 
     InitSceneResources();
 }
 
-void SSAO::InitPipelineResources() {
+void HorizonPipeline::InitPipelineResources() {
 
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
 
@@ -182,7 +182,7 @@ void SSAO::InitPipelineResources() {
     }
 }
 
-void SSAO::InitSceneResources() {
+void HorizonPipeline::InitSceneResources() {
     // scene resources
 
     // mesh
@@ -258,7 +258,7 @@ void SSAO::InitSceneResources() {
     }
 }
 
-void SSAO::run() {
+void HorizonPipeline::run() {
 
     bool first_frame = true;
 
