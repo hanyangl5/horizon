@@ -12,20 +12,14 @@ namespace Horizon {
 
 class Window;
 
-RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend) noexcept : m_window(window) {
-
-    InitializeRenderAPI(backend);
-}
-
-RenderSystem::~RenderSystem() noexcept {}
-
-void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
+RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend, bool offscreen) noexcept
+    : m_window(window) {
 
     switch (backend) {
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-        m_rhi = std::make_unique<RHI::RHIVulkan>();
+        m_rhi = std::make_unique<RHI::RHIVulkan>(offscreen);
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_DX12:
         // m_rhi = std::make_unique<RHI::RHIDX12>();
@@ -34,6 +28,13 @@ void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
     m_rhi->InitializeRenderer();
     LOG_DEBUG("size of render api {}", sizeof(*m_rhi.get()));
     m_rhi->SetWindow(m_window);
+}
+
+RenderSystem::~RenderSystem() noexcept {}
+
+void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
+
+
 }
 
 Camera *RenderSystem::GetDebugCamera() const {

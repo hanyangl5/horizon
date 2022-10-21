@@ -94,6 +94,7 @@ class RHI {
   protected:
     u32 m_current_frame_index{0};
     Window *m_window{};
+    bool m_offscreen{false};
 };
 
 } // namespace Horizon::RHI

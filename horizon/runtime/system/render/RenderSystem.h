@@ -18,7 +18,7 @@ using CommandList = RHI::CommandList;
 
 class RenderSystem {
   public:
-    RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend) noexcept;
+    RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend, bool offscreen = false) noexcept;
 
     ~RenderSystem() noexcept;
 
