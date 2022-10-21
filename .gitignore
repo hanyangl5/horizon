@@ -8,6 +8,7 @@ horizon/assets/shaders/bin
 horizon/assets/shaders/generated
 horizon/3rd_party/DirectXShaderCompiler
 horizon/3rd_party/ibl
+horizon/3rd_party/HorizonMath
 out
 horizon/tools/HSLCompiler/generators/__pycache__
 horizon/tools/HSLCompiler/__pycache__

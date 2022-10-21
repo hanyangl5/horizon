@@ -8,14 +8,25 @@ Camera::Camera(Math::float3 eye, Math::float3 at, Math::float3 up) noexcept : m_
     //setLookAt(eye, at, up);
 }
 
-void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 nearPlane, f32 farPlane) noexcept {
+void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
     m_fov = fov;
     m_aspect_ratio = aspect_ratio;
-    m_near_plane = nearPlane;
-    m_far_plane = farPlane;
-    m_projection = Math::Perspective(fov, aspect_ratio, nearPlane, farPlane);
+    m_near_plane = near_plane;
+    m_far_plane = far_plane;
+    m_projection = Math::Perspective(fov, aspect_ratio, near_plane, far_plane);
     // m_projection = ReversePerspective(fov, aspect_ratio, nearPlane,
     // farPlane);
+}
+
+void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
+
+    m_aspect_ratio = aspect_ratio;
+    m_near_plane = near_plane;
+    m_far_plane = far_plane;
+
+    f32 h = (0.5 * near_plane) * ((SENSOR_SIZE * 1000.0) / focal_length);
+    f32 w = h * aspect_ratio;
+    m_projection =  DirectX::SimpleMath::Matrix::CreatePerspective(w, h, near_plane, far_plane);
 }
 
 Math::float4x4 Camera::GetProjectionMatrix() const noexcept {
