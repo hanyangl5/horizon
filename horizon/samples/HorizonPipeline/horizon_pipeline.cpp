@@ -191,7 +191,7 @@ void HorizonPipeline::InitSceneResources() {
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
         //mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
         //mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-        mesh1->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+        mesh1->LoadMesh(asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
         mesh1->CreateGpuResources(rhi);
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
@@ -210,7 +210,8 @@ void HorizonPipeline::InitSceneResources() {
     {
         cam = engine->m_render_system->GetDebugCamera();
 
-        cam->SetPerspectiveProjectionMatrix(75.0_deg, (float)width / (float)height, 0.1f, 100.0f);
+        cam->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
+        //cam->SetLensProjectionMatrix(18.0, (float)width / (float)height, 0.1f, 100.0f);
 
         camera_buffer =
             rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,

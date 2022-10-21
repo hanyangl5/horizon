@@ -23,6 +23,9 @@ class Camera {
   public:
     void SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near, f32 far) noexcept;
 
+    // milimeters
+    void SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near, f32 far) noexcept;
+
     Math::float4x4 GetProjectionMatrix() const noexcept;
 
     Math::float4x4 GetInvProjectionMatrix() const noexcept;
@@ -72,6 +75,9 @@ class Camera {
     f32 iso;
     f32 ev100;
     f32 exposure;
+
+    // a 35mm camera has a 36x24mm wide frame size
+    static constexpr const float SENSOR_SIZE = 0.024f; // 24mm
 };
 
 
