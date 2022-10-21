@@ -45,3 +45,18 @@ cmake . -B build
 open solution **Horizon** and build all solution.
 
 <!-- ./app.exe -config_path D:/codes/horizon/horizon/app/EngineConfig.ini -->
+
+# Features
+
+- Physically Based Rendering
+
+![](docs/figs/samples/pbs_burley_standard.png)
+
+- GPU Instancing
+
+![](docs/figs/samples/gpuinstancing.png)
+
+- Precomputed Atmospheric Scattering
+
+![](docs/figs/samples/atmosphere2.png)
+![](docs/figs/samples/atmosphere1.png)
