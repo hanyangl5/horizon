@@ -22,3 +22,4 @@
 #include <runtime/interface/Engine.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
+#include <runtime/function/texture_loader/TextureLoader.h>
