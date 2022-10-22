@@ -4,9 +4,7 @@
 
 #include <meshoptimizer.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-
-#include <stb_image.h>
+#include <runtime/function/image_loader/image_loader.h>
 
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -24,7 +22,7 @@ Mesh::~Mesh() noexcept {
     // delete
     for (auto &m : materials) {
         for (auto &[type, tex] : m.material_textures) {
-            stbi_image_free(tex.data);
+            //stbi_image_free(tex.data);
         }
     }
 }
@@ -223,22 +221,22 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         }
     }
 
-    //// async load material textures
-    auto &mats = this->materials;
-    auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
-        for (int v = r.begin(); v < r.end(); v++) {
-            for (auto &[type, tex] : mats[v].material_textures) {
-                int width, height, channels;
-                u8 *data = stbi_load(tex.url.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
-                assert(("failed to load texture", data != nullptr));
-                tex.width = width;
-                tex.height = height;
-                tex.data = data;
-            }
-        }
-    };
+    ////// async load material textures
+    //auto &mats = this->materials;
+    //auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
+    //    for (int v = r.begin(); v < r.end(); v++) {
+    //        for (auto &[type, tex] : mats[v].material_textures) {
+    //            int width, height, channels;
+    //            u8 *data = stbi_load(tex.url.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    //            assert(("failed to load texture", data != nullptr));
+    //            tex.width = width;
+    //            tex.height = height;
+    //            tex.data = data;
+    //        }
+    //    }
+    //};
 
-    tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
+    //tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
 }
 
 // TODO:

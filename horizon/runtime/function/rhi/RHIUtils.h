@@ -546,6 +546,7 @@ inline std::vector<char> ReadFile(const char *path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         LOG_ERROR("failed to open shader file: {}", path);
+        return {};
     }
     size_t fileSize = (size_t)file.tellg();
     std::vector<char> buffer(fileSize);
