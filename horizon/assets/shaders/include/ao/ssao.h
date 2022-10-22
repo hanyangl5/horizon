@@ -1,5 +1,5 @@
 #ifdef USE_SSAO
 #define SSAO_SAMPLE_COUNT 32
-#define SSAO_SAMPLE_RADIUS 0.5
+#define SSAO_SAMPLE_RADIUS 1.0
 #define SSAO_BIAS 0.025
 #endif

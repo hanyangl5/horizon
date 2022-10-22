@@ -179,9 +179,6 @@ void VulkanCommandList::DispatchIndirect() {
 // transfer commands
 void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
     assert(("command list is not recording", is_recoring == true));
-    assert(("invalid commands for current commandlist, expect transfer "
-            "commandlist",
-            m_type == CommandQueueType::TRANSFER));
     assert(buffer->m_size >= size);
 
     // cannot update static buffer more than once
@@ -295,10 +292,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         LOG_ERROR("command buffer isn't recording");
         return;
     }
-    if (m_type != CommandQueueType::TRANSFER) {
-        LOG_ERROR("invalid commands for current commandlist, expect transfer "
-                  "commandlist");
-    }
+
 
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
@@ -548,7 +542,7 @@ void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *se
 
 void VulkanCommandList::GenerateMipMap(Texture *texture, bool alllevels) {
 
-    assert(texture->mip_map_level > 1);
+    if(texture->mip_map_level == 1) return;
 
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 

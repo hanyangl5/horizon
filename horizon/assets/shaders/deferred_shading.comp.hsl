@@ -82,8 +82,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
         radiance += Radiance(mat, Get(light_data)[i], n, v, world_pos);
     }
 
-    //float3 diffuse_ambient = 10000.0 * mat.albedo; // TODO: ibl with sh
-    //radiance.xyz += diffuse_ambient * LoadRWTex2D(Get(ao_tex), threadID.xy).r;
+    float3 diffuse_ambient = 10000.0 * mat.albedo; // TODO: ibl with sh
+    radiance.xyz += diffuse_ambient * LoadRWTex2D(Get(ao_tex), threadID.xy).r;
     Write2D(Get(out_color), threadID.xy, radiance);
     RETURN();
     
