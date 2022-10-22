@@ -35,6 +35,11 @@ RES(RWTex2D(float4), out_color, UPDATE_FREQ_PER_FRAME, t3, binding = 9);
 
 RES(RTex2D(float4), ao_tex, UPDATE_FREQ_PER_FRAME, t4, binding = 10);
 
+CBUFFER(DiffuseIrradianceSH3, UPDATE_FREQ_PER_FRAME, b0, binding = 11)
+{
+    DATA(float3, sh[9], None);
+};
+
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
@@ -82,8 +87,10 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
         radiance += Radiance(mat, Get(light_data)[i], n, v, world_pos);
     }
 
-    float3 diffuse_ambient = 10000.0 * mat.albedo; // TODO: ibl with sh
-    radiance.xyz += diffuse_ambient * LoadRWTex2D(Get(ao_tex), threadID.xy).r;
+    float3 ambient = float3(0.0);
+    float3 ks = Fresnel_Schlick(mat.f0, saturate(dot(v, n)));
+    ambient += Irradiance_SphericalHarmonics(Get(sh), n) * (1.0 - ks) * mat.albedo;;
+    radiance.xyz += ambient * LoadRWTex2D(Get(ao_tex), threadID.xy).r;
     Write2D(Get(out_color), threadID.xy, radiance);
     RETURN();
     

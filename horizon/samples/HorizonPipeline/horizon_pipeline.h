@@ -117,6 +117,13 @@ class HorizonPipeline {
         u32 pad0, pad1;
     } deferred_shading_constants;
 
+    struct DiffuseIrradianceSH3 {
+        std::array<Math::float4, 9> sh;
+    }diffuse_irradiance_sh3_constants;
+    Resource<Buffer> diffuse_irradiance_sh3_buffer;
+    Resource<Texture> prefiltered_irradiance_env_map;
+    Resource<Texture> brdf_lut;
+
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
     struct SSAOConstant {
@@ -145,7 +152,7 @@ class HorizonPipeline {
     Resource<Buffer> deferred_shading_constants_buffer;
     Resource<Buffer> ssao_constants_buffer;
     Resource<Buffer> exposure_constants_buffer;
-
+    
     static constexpr u32 SSAO_NOISE_TEX_WIDTH = 4;
     static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
     std::array<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;

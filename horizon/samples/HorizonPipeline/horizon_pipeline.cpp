@@ -179,84 +179,100 @@ void HorizonPipeline::InitPipelineResources() {
         exposure_constants_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                        sizeof(ExposureConstant)});
+
+        diffuse_irradiance_sh3_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                                    ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                                    sizeof(DiffuseIrradianceSH3)});
     }
 }
 
-void HorizonPipeline::InitSceneResources() {
+void HorizonPipeline::InitSceneResources(){
     // scene resources
 
     // mesh
-    {
-        auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                       VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        //mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
-        //mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-        mesh1->LoadMesh(asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-        mesh1->CreateGpuResources(rhi);
+    {auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
+// mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
+// mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
+mesh1->LoadMesh(asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+mesh1->CreateGpuResources(rhi);
 
-        auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                       VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
-        //mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
-        //mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-        //mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
-        mesh2->CreateGpuResources(rhi);
+auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0 |
+                               VertexAttributeType::TANGENT});
+mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+// mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer
+// Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
+// mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+// mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
+mesh2->CreateGpuResources(rhi);
 
-        //meshes.push_back(mesh1);
-        meshes.push_back(mesh2);
+meshes.push_back(mesh1);
+// meshes.push_back(mesh2);
+}
+
+// camera
+{
+    cam = engine->m_render_system->GetDebugCamera();
+
+    cam->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
+    // cam->SetLensProjectionMatrix(18.0, (float)width / (float)height, 0.1f, 100.0f);
+
+    camera_buffer =
+        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(CameraUb)});
+}
+
+// light
+{
+    std::random_device seed;
+    std::ranlux48 engine(seed());
+    std::uniform_real_distribution<f32> random_position(-10.0, 10.0);
+    std::uniform_real_distribution<f32> random_color(0.5, 1.0);
+
+    for (unsigned int i = 0; i < 64; i++) {
+        // calculate slightly random offsets
+        float xPos = random_position(engine);
+        float yPos = random_position(engine);
+        float zPos = random_position(engine) + 2.0f;
+
+        // also calculate random color
+        float rColor = random_color(engine);
+        float gColor = random_color(engine);
+        float bColor = random_color(engine);
+
+        Math::float3 pos(xPos, yPos, zPos);
+        Math::float3 col(rColor, gColor, bColor);
+
+        // lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
     }
 
-    // camera
-    {
-        cam = engine->m_render_system->GetDebugCamera();
+    lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));
 
-        cam->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
-        //cam->SetLensProjectionMatrix(18.0, (float)width / (float)height, 0.1f, 100.0f);
-
-        camera_buffer =
-            rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                               ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(CameraUb)});
+    for (auto &l : lights) {
+        lights_param_buffer.push_back(l->GetParamBuffer());
     }
+    light_count = lights.size();
 
-    // light
-    {
-        std::random_device seed;
-        std::ranlux48 engine(seed());
-        std::uniform_real_distribution<f32> random_position(-10.0, 10.0);
-        std::uniform_real_distribution<f32> random_color(0.5, 1.0);
+    light_count_buffer =
+        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
 
-        for (unsigned int i = 0; i < 64; i++) {
-            // calculate slightly random offsets
-            float xPos = random_position(engine);
-            float yPos = random_position(engine);
-            float zPos = random_position(engine) + 2.0f;
-
-            // also calculate random color
-            float rColor = random_color(engine);
-            float gColor = random_color(engine);
-            float bColor = random_color(engine);
-
-            Math::float3 pos(xPos, yPos, zPos);
-            Math::float3 col(rColor, gColor, bColor);
-
-            //lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
-        }
-
-        lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));
-
-        for (auto &l : lights) {
-            lights_param_buffer.push_back(l->GetParamBuffer());
-        }
-        light_count = lights.size();
-
-        light_count_buffer =
-            rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                               ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
-
-        light_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                          sizeof(LightParams) * light_count});
-    }
+    light_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                      ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                      sizeof(LightParams) * light_count});
+}
+// ibl
+{
+    diffuse_irradiance_sh3_constants.sh = {Math::float4{0.474948436021805f, 0.480556935071945f, 0.501606047153473f, 0.0f},
+                                           Math::float4{0.351380050182343f, 0.371190130710602f, 0.468852639198303f, 0.0f},
+                                           Math::float4{0.224167078733444f, 0.204228252172470f, 0.201337367296219f, 0.0f},
+                                           Math::float4{0.076594874262810f, -0.067332319915295f, -0.062507018446922f, 0.0f},
+                                           Math::float4{0.061358224600554f, -0.054993789643049f, -0.051467958837748f, 0.0f},
+                                           Math::float4{0.172064036130905f, 0.162797480821609f, 0.160090863704681f, 0.0f},
+                                           Math::float4{0.035116069018841f, 0.028756374493241f, 0.022267108783126f, 0.0f},
+                                           Math::float4{0.056562144309282f, -0.050596039742231f, -0.045287083834410f, 0.0f},
+                                           Math::float4{0.004470882471651f, -0.008455731905997f, -0.017041536048055f, 0.0f}};
+}
 }
 
 void HorizonPipeline::run() {
@@ -326,12 +342,15 @@ void HorizonPipeline::run() {
             transfer->UpdateBuffer(deferred_shading_constants_buffer.get(), &deferred_shading_constants,
                                    sizeof(DeferredShadingConstants));
             transfer->UpdateBuffer(exposure_constants_buffer.get(), &exposure_constants, sizeof(ExposureConstant));
-            // if (first_frame) {
+            if (first_frame) {
             transfer->UpdateBuffer(ssao_constants_buffer.get(), &ssao_constansts, sizeof(SSAOConstant));
+
+            transfer->UpdateBuffer(diffuse_irradiance_sh3_buffer.get(), &diffuse_irradiance_sh3_constants,
+                                   sizeof(diffuse_irradiance_sh3_constants));
             TextureUpdateDesc desc{};
-            desc.data = ssao_noise_tex_val.data();
-            transfer->UpdateTexture(ssao_noise_tex.get(), desc);
-            //}
+                desc.data = ssao_noise_tex_val.data();
+                transfer->UpdateTexture(ssao_noise_tex.get(), desc);
+            }
 
             if (first_frame) {
                 // upload mesh
@@ -510,9 +529,11 @@ void HorizonPipeline::run() {
                 barrier.texture_memory_barriers.push_back(tb1);
                 tb1.texture = ssao_blur_image.get();
                 barrier.texture_memory_barriers.push_back(tb1);
-                tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                tb1.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                tb1.texture = ssao_noise_tex.get();
+                if (first_frame) {
+                    tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                    tb1.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                    tb1.texture = ssao_noise_tex.get();
+                }
                 barrier.texture_memory_barriers.push_back(tb1);
 
                 cl->InsertBarrier(barrier);
@@ -603,6 +624,7 @@ void HorizonPipeline::run() {
                 shading_ds->SetResource(light_buffer.get(), "LightDataUb");
                 shading_ds->SetResource(shading_color_image.get(), "out_color");
                 shading_ds->SetResource(ssao_blur_image.get(), "ao_tex");
+                shading_ds->SetResource(diffuse_irradiance_sh3_buffer.get(), "DiffuseIrradianceSH3");
                 shading_ds->Update();
 
                 compute->BindPipeline(shading_pass);

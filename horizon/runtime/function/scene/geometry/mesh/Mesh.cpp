@@ -67,7 +67,7 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
             create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
             create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            create_info.generate_mip_map = true;
+            create_info.generate_mip_map = false;
             tex.texture = rhi->CreateTexture(create_info);
         }
         for (auto &[type, tex] : m.material_textures) {
