@@ -56,6 +56,10 @@ open solution **Horizon** and build all solution.
 
 ![](docs/figs/samples/gpuinstancing.png)
 
+- SSAO
+
+[](docs/figs/samples/ssao.png)
+
 - Precomputed Atmospheric Scattering
 
 ![](docs/figs/samples/atmosphere2.png)
