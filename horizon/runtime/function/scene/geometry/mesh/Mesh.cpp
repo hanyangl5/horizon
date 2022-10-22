@@ -67,7 +67,7 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
             create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
             create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-
+            create_info.generate_mip_map = true;
             tex.texture = rhi->CreateTexture(create_info);
         }
         for (auto &[type, tex] : m.material_textures) {
@@ -492,16 +492,16 @@ void Mesh::UploadResources(RHI::CommandList *transfer) {
             } else {
                 tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
                 tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                //tex_barrier.queue = CommandQueueType::GRAPHICS;
-                //tex_barrier.queue_op = QueueOp::RELEASE;
+                // tex_barrier.queue = CommandQueueType::GRAPHICS;
+                // tex_barrier.queue_op = QueueOp::RELEASE;
                 TextureUpdateDesc desc{};
                 desc.data = tex.data;
                 transfer->UpdateTexture(tex.texture.get(), desc);
             }
-            barrier_desc.texture_memory_barriers.emplace_back(tex_barrier);
+            //barrier_desc.texture_memory_barriers.emplace_back(tex_barrier);
         }
     }
-    transfer->InsertBarrier(barrier_desc);
+    //transfer->InsertBarrier(barrier_desc);
 }
 
 const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }

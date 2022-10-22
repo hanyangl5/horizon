@@ -196,14 +196,14 @@ void HorizonPipeline::InitSceneResources() {
 
         auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                        VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        //mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
+        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
         //mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
         //mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
         //mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
-        //mesh2->CreateGpuResources(rhi);
+        mesh2->CreateGpuResources(rhi);
 
-        meshes.push_back(mesh1);
-        //meshes.push_back(mesh2);
+        //meshes.push_back(mesh1);
+        meshes.push_back(mesh2);
     }
 
     // camera
@@ -316,7 +316,7 @@ void HorizonPipeline::run() {
 
         // resource upload
         {
-            auto transfer = rhi->GetCommandList(CommandQueueType::TRANSFER);
+            auto transfer = rhi->GetCommandList(CommandQueueType::GRAPHICS);
 
             transfer->BeginRecording();
             transfer->UpdateBuffer(light_buffer.get(), lights_param_buffer.data(),
@@ -337,6 +337,36 @@ void HorizonPipeline::run() {
                 // upload mesh
                 for (auto &mesh : meshes) {
                     mesh->UploadResources(transfer);
+
+                    for (auto &mat : mesh->GetMaterials()) {
+                        for (auto &[type, texture] : mat.material_textures) {
+                            {
+                                BarrierDesc desc{};
+                                TextureBarrierDesc mip_map_barrier{};
+                                mip_map_barrier.texture = texture.texture.get();
+                                mip_map_barrier.first_mip_level = 0;
+                                mip_map_barrier.mip_level_count = 1;
+                                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+                                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                                desc.texture_memory_barriers.emplace_back(mip_map_barrier);
+                                transfer->InsertBarrier(desc);
+                            }
+                            transfer->GenerateMipMap(texture.texture.get(), true);
+
+                            {
+                                BarrierDesc desc{};
+                                TextureBarrierDesc mip_map_barrier{};
+                                mip_map_barrier.texture = texture.texture.get();
+
+                                mip_map_barrier.first_mip_level = 0;
+                                mip_map_barrier.mip_level_count = texture.texture->mip_map_level;
+                                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                                desc.texture_memory_barriers.emplace_back(mip_map_barrier);
+                                transfer->InsertBarrier(desc);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -344,7 +374,7 @@ void HorizonPipeline::run() {
 
             {
                 QueueSubmitInfo submit_info{};
-                submit_info.queue_type = CommandQueueType::TRANSFER;
+                submit_info.queue_type = CommandQueueType::GRAPHICS;
                 submit_info.command_lists.push_back(transfer);
                 submit_info.signal_semaphores.push_back(resource_uploaded_semaphore.get());
                 rhi->SubmitCommandLists(submit_info);

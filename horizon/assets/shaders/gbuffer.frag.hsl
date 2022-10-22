@@ -65,19 +65,18 @@ PSOutput PS_MAIN(VSOutput vsout)
     normal_map = 2.0 * normal_map - 1.0; // [-1, 1]
     
     float3 gbuffer_normal;
-    // enable normal map after mipmap
-    // if(has_normal != 0) {
-    //     // construct TBN
-    //     float3 normal = normalize( vsout.normal );
-    //     float3 tangent = normalize( vsout.tangent );
-    //     float3 bitangent = normalize(cross(tangent, normal));
-    //     // Calculate pixel normal using the normal map and the tangent space vectors
-    //     float3x3 tbn = make_f3x3_rows(tangent, bitangent, normal);
-    //     gbuffer_normal = normalize(mul(normal_map, tbn));
-    // } else {
-    //     gbuffer_normal = normalize(vsout.normal);
-    // }
-    gbuffer_normal = normalize(vsout.normal);
+    
+    if(has_normal != 0) {
+        // construct TBN
+        float3 normal = normalize( vsout.normal );
+        float3 tangent = normalize( vsout.tangent );
+        float3 bitangent = normalize(cross(tangent, normal));
+        // Calculate pixel normal using the normal map and the tangent space vectors
+        float3x3 tbn = make_f3x3_rows(tangent, bitangent, normal);
+        gbuffer_normal = normalize(mul(normal_map, tbn));
+    } else {
+        gbuffer_normal = normalize(vsout.normal);
+    }
     psout.gbuffer0 = float4(gbuffer_normal.x, gbuffer_normal.y, gbuffer_normal.z, asfloat(0));
     psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, 0.0);
     psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);

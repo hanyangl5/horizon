@@ -8,9 +8,10 @@ Texture::Texture(const TextureCreateInfo &texture_create_info) noexcept
       m_width(texture_create_info.width), m_height(texture_create_info.height), m_depth(texture_create_info.depth),
       m_byte_per_pixel(GetBytesFromTextureFormat(m_format)) {
 
-    mip_map_level = texture_create_info.generate_mip_map == true
-                        ? static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1
-                        : 1;
+    mip_map_level =
+        texture_create_info.generate_mip_map == true
+            ? std::min(MAX_MIP_LEVEL, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height))))) + 1
+            : 1;
 }
 
 } // namespace Horizon::RHI

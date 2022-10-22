@@ -19,7 +19,7 @@
 
 namespace Horizon::RHI {
 
-RHIVulkan::RHIVulkan() noexcept {}
+RHIVulkan::RHIVulkan(bool offscreen) noexcept { m_offscreen = offscreen; }
 
 RHIVulkan::~RHIVulkan() noexcept {
 
@@ -464,7 +464,6 @@ void RHIVulkan::ResetFence(CommandQueueType queue_type) {
         return;
     vkResetFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data());
     fence_index[queue_type] = 0;
-    
 }
 
 void RHIVulkan::ResetRHIResources() {

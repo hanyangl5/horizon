@@ -25,7 +25,7 @@ namespace Horizon::RHI {
 
 class RHIVulkan : public RHI {
   public:
-    RHIVulkan() noexcept;
+    RHIVulkan(bool offscreen) noexcept;
     virtual ~RHIVulkan() noexcept;
 
     RHIVulkan(const RHIVulkan &rhs) noexcept = delete;

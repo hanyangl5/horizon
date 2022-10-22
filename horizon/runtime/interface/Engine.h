@@ -30,8 +30,7 @@ class Engine final {
     std::unique_ptr<Window> m_window{};
     std::unique_ptr<RenderSystem> m_render_system{};
     std::unique_ptr<InputSystem> m_input_system{};
-    // https://github.com/bshoshany/thread-pool
-    std::unique_ptr<BS::thread_pool> tp;
+
 };
 
 } // namespace Horizon

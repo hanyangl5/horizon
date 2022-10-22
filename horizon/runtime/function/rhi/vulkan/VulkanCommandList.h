@@ -73,6 +73,8 @@ class VulkanCommandList : public CommandList {
 
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
+    void GenerateMipMap(Texture* texture, bool alllevels) override;
+
   private:
     const VulkanRendererContext &m_context{};
     Resource<VulkanBuffer> GetStageBuffer(const BufferCreateInfo &buffer_create_info);
