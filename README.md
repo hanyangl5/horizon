@@ -58,7 +58,7 @@ open solution **Horizon** and build all solution.
 
 - SSAO
 
-[](docs/figs/samples/ssao.png)
+![](docs/figs/samples/ssao.png)
 
 - Precomputed Atmospheric Scattering
 
