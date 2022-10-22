@@ -232,9 +232,9 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
 
 void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
     assert(("command list is not recording", is_recoring == true));
-    //assert(("invalid commands for current commandlist, expect transfer "
-    //        "commandlist",
-    //        m_type == CommandQueueType::TRANSFER));
+    // assert(("invalid commands for current commandlist, expect transfer "
+    //         "commandlist",
+    //         m_type == CommandQueueType::TRANSFER));
 
     auto vk_src_buffer = reinterpret_cast<VulkanBuffer *>(src_buffer);
     auto vk_dst_buffer = reinterpret_cast<VulkanBuffer *>(dst_buffer);
@@ -243,9 +243,9 @@ void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
 
 void VulkanCommandList::CopyTexture(Texture *src_texture, Texture *dst_texture) {
     assert(("command list is not recording", is_recoring == true));
-    //assert(("invalid commands for current commandlist, expect transfer "
-    //        "commandlist",
-    //        m_type == CommandQueueType::TRANSFER));
+    // assert(("invalid commands for current commandlist, expect transfer "
+    //         "commandlist",
+    //         m_type == CommandQueueType::TRANSFER));
     auto vk_src_texture = reinterpret_cast<VulkanTexture *>(src_texture);
     auto vk_dst_texture = reinterpret_cast<VulkanTexture *>(dst_texture);
     CopyTexture(vk_src_texture, vk_dst_texture);
@@ -281,7 +281,7 @@ void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *d
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion);
 }
 
-//void VulkanCommandList::CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) {}
+// void VulkanCommandList::CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) {}
 
 // void VulkanCommandList::CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) {
 //     //vkCmdCopyBufferToImage();
@@ -351,58 +351,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
     // TODO : use CopyBufferToTexture
     vkCmdCopyBufferToImage(m_command_buffer, vk_texture->m_stage_buffer->m_buffer, vk_texture->m_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-
-    {
-        BarrierDesc desc2{};
-        // handle mipmap generation, FIX : blit cannot call from tranfer command
-        //if (texture->mip_map_level > 1) 
-        //{
-        //    TextureBarrierDesc mip_map_barrier{};
-        //    mip_map_barrier.texture = texture;
-
-        //    i32 mip_w = texture->m_width, mip_h = texture->m_height;
-
-        //    for (u32 i = 0; i < texture->mip_map_level; i++) {
-        //        mip_map_barrier.first_mip_level = i - 1;
-        //        mip_map_barrier.mip_level_count = 1;
-        //        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-        //        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-        //        desc2.texture_memory_barriers.emplace_back(mip_map_barrier);
-
-        //        // todo provide blit
-        //        {
-        //            VkImageBlit blit{};
-        //            blit.srcOffsets[0] = {0, 0, 0};
-        //            blit.srcOffsets[1] = {mip_w, mip_h, 1};
-        //            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        //            blit.srcSubresource.mipLevel = i - 1;
-        //            blit.srcSubresource.baseArrayLayer = 0;
-        //            blit.srcSubresource.layerCount = 1;
-        //            blit.dstOffsets[0] = {0, 0, 0};
-        //            blit.dstOffsets[1] = {mip_w > 1 ? mip_w / 2 : 1, mip_h > 1 ? mip_h / 2 : 1, 1};
-        //            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        //            blit.dstSubresource.mipLevel = i;
-        //            blit.dstSubresource.baseArrayLayer = 0;
-        //            blit.dstSubresource.layerCount = 1;
-
-        //            vkCmdBlitImage(m_command_buffer, vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        //                           vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
-        //                           VK_FILTER_LINEAR);
-        //        }
-        //        mip_map_barrier.first_mip_level = i-1;
-        //        mip_map_barrier.mip_level_count = 1;
-        //        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-        //        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-        //        desc2.texture_memory_barriers.emplace_back(mip_map_barrier);
-        //        if (mip_w > 1)
-        //            mip_w /= 2;
-        //        if (mip_h > 1)
-        //            mip_h /= 2;
-        //    }
-        //}
-
-    }
 }
 
 void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
@@ -489,7 +437,6 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             } else {
                 barrier.subresourceRange.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false);
             }
-            barrier.subresourceRange.baseArrayLayer = 0;
             barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
             barrier.subresourceRange.levelCount = barrier_desc.mip_level_count;
             // todo
@@ -497,7 +444,6 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             barrier.subresourceRange.layerCount = 1;
             // barrier.subresourceRange.aspectMask =
             //     (VkImageAspectFlags)pTexture->mAspectMask;
-
 
             // barrier.subresourceRange.baseArrayLayer =
             //      barrier_desc.mSubresourceBarrier ? barrier_desc.mArrayLayer :
@@ -598,6 +544,64 @@ void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *se
 
     vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
                             static_cast<u32>(set->update_frequency), 1, &vk_set->m_set, 0, 0); // TODO: batch update
+}
+
+void VulkanCommandList::GenerateMipMap(Texture *texture, bool alllevels) {
+
+    assert(texture->mip_map_level > 1);
+
+    auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
+
+    i32 mip_w = texture->m_width, mip_h = texture->m_height;
+    
+    for (u32 i = 1; i < texture->mip_map_level; i++) {
+        {
+            BarrierDesc desc{};
+            TextureBarrierDesc mip_map_barrier{};
+            mip_map_barrier.texture = texture;
+            mip_map_barrier.first_mip_level = i;
+            mip_map_barrier.mip_level_count = 1;
+            mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+            mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+            desc.texture_memory_barriers.emplace_back(mip_map_barrier);
+
+            InsertBarrier(desc);
+        }
+        {
+            VkImageBlit blit{};
+            blit.srcOffsets[0] = {0, 0, 0};
+            blit.srcOffsets[1] = {mip_w, mip_h, 1};
+            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.srcSubresource.mipLevel = i - 1;
+            blit.srcSubresource.baseArrayLayer = 0;
+            blit.srcSubresource.layerCount = 1;
+            blit.dstOffsets[0] = {0, 0, 0};
+            blit.dstOffsets[1] = {mip_w > 1 ? mip_w / 2 : 1, mip_h > 1 ? mip_h / 2 : 1, 1};
+            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.dstSubresource.mipLevel = i;
+            blit.dstSubresource.baseArrayLayer = 0;
+            blit.dstSubresource.layerCount = 1;
+
+            vkCmdBlitImage(m_command_buffer, vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           vk_texture->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+        }
+        {
+            BarrierDesc desc{};
+            TextureBarrierDesc mip_map_barrier{};
+            mip_map_barrier.texture = texture;
+            mip_map_barrier.first_mip_level = i;
+            mip_map_barrier.mip_level_count = 1;
+            mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+            mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+            desc.texture_memory_barriers.emplace_back(mip_map_barrier);
+            InsertBarrier(desc);
+        }
+        if (mip_w > 1)
+            mip_w /= 2;
+        if (mip_h > 1)
+            mip_h /= 2;
+    }
+
 }
 
 Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(const BufferCreateInfo &buffer_create_info) {

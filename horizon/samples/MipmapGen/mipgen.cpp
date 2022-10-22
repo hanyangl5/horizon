@@ -222,18 +222,20 @@ void MipmapGen::run() {
         transfer->UpdateTexture(texture_resources[i].texture.get(), desc);
         //
     }
-    {
-        BarrierDesc barrier{};
-        for (auto &r : texture_resources) {
+    //{
+    //    BarrierDesc barrier{};
+    //    for (auto &r : texture_resources) {
 
-            TextureBarrierDesc tb1;
-            tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-            tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-            tb1.texture = r.texture.get();
-            barrier.texture_memory_barriers.push_back(tb1);
-        }
-        transfer->InsertBarrier(barrier);
-    }
+    //        TextureBarrierDesc tb1;
+    //        tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+    //        tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+    //        tb1.texture = r.texture.get();
+    //        tb1.first_mip_level = 0;
+    //        tb1.mip_level_count = r.texture->mip_map_level;
+    //        barrier.texture_memory_barriers.push_back(tb1);
+    //    }
+    //    transfer->InsertBarrier(barrier);
+    //}
 
     transfer->EndRecording();
 
@@ -245,6 +247,57 @@ void MipmapGen::run() {
         submit_info.signal_semaphores.push_back(resource_uploaded_semaphore.get());
         rhi->SubmitCommandLists(submit_info);
     }
+
+    auto mipmapgen_semaphore = rhi->GetSemaphore();
+    {
+
+        auto mipmap = rhi->GetCommandList(CommandQueueType::GRAPHICS);
+        mipmap->BeginRecording();
+
+
+
+
+        for (auto &r : texture_resources) {
+
+            {
+                BarrierDesc desc{};
+                TextureBarrierDesc mip_map_barrier{};
+                mip_map_barrier.texture = r.texture.get();
+                mip_map_barrier.first_mip_level = 0;
+                mip_map_barrier.mip_level_count = 1;
+                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                desc.texture_memory_barriers.emplace_back(mip_map_barrier);
+                mipmap->InsertBarrier(desc);
+            }
+            mipmap->GenerateMipMap(r.texture.get(), true);
+
+            {
+                BarrierDesc desc{};
+                TextureBarrierDesc mip_map_barrier{};
+                mip_map_barrier.texture = r.texture.get();
+                mip_map_barrier.first_mip_level = 0;
+                mip_map_barrier.mip_level_count = r.texture->mip_map_level;
+                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                desc.texture_memory_barriers.emplace_back(mip_map_barrier);
+                mipmap->InsertBarrier(desc);
+            }
+        }
+
+       
+
+        mipmap->EndRecording();
+        {
+            QueueSubmitInfo submit_info{};
+            submit_info.command_lists.push_back(mipmap);
+            submit_info.queue_type = CommandQueueType::GRAPHICS;
+            submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
+            submit_info.signal_semaphores.push_back(mipmapgen_semaphore.get());
+            rhi->SubmitCommandLists(submit_info);
+        }
+    }
+
     // begin compute pipeline
 
     for (auto &r : texture_resources) {
@@ -267,6 +320,7 @@ void MipmapGen::run() {
 
         compute->BindPushConstant(mipgen_pass, "RootConstant", &mipSize);
         compute->Dispatch(r.width / 8 + 1, r.height / 8 + 1, 1);
+
         // for (u32 i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i) {
         //     mipSizeX >>= 1;
         //     mipSizeY >>= 1;
@@ -279,7 +333,7 @@ void MipmapGen::run() {
         QueueSubmitInfo submit_info{};
         submit_info.command_lists.push_back(compute);
         submit_info.queue_type = CommandQueueType::COMPUTE;
-        submit_info.wait_semaphores.push_back(resource_uploaded_semaphore.get());
+        submit_info.wait_semaphores.push_back(mipmapgen_semaphore.get());
         rhi->SubmitCommandLists(submit_info);
         rhi->WaitGpuExecution(CommandQueueType::COMPUTE);
     }
@@ -287,7 +341,7 @@ void MipmapGen::run() {
 
     for (auto &res : texture_resources) {
         stbi_image_free(res.data);
-        }
+    }
     rhi->DestroyPipeline(mipgen_pass);
     rhi->DestroyShader(mipgen_cs);
 }

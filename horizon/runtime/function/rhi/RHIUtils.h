@@ -558,4 +558,6 @@ inline std::vector<char> ReadFile(const char *path) {
 
 u32 GetBytesFromTextureFormat(TextureFormat format);
 
+static constexpr u32 MAX_MIP_LEVEL = 6;
+
 } // namespace Horizon

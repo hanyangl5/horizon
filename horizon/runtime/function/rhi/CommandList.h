@@ -3,21 +3,21 @@
 #include <variant>
 
 #include <runtime/core/math/Math.h>
-#include <runtime/function/rhi/Buffer.h>
-#include <runtime/function/rhi/Texture.h>
-#include <runtime/function/rhi/RenderTarget.h>
-#include <runtime/function/rhi/Pipeline.h>
-#include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/ResourceBarrier.h>
 #include <runtime/function/resource/IndexBuffer.h>
 #include <runtime/function/resource/VertexBuffer.h>
+#include <runtime/function/rhi/Buffer.h>
+#include <runtime/function/rhi/Pipeline.h>
+#include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/RenderTarget.h>
+#include <runtime/function/rhi/ResourceBarrier.h>
+#include <runtime/function/rhi/Texture.h>
 
 namespace Horizon::RHI {
 
 // TODO: move these definations to RHIUtils.h
 
-struct RenderTargetInfo{
-    RenderTarget* data{};
+struct RenderTargetInfo {
+    RenderTarget *data{};
     std::variant<ClearValueColor, ClearValueDepthStencil> clear_color{};
 };
 
@@ -56,22 +56,25 @@ class CommandList {
     virtual void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) = 0;
     virtual void CopyBuffer(Buffer *dst_buffer, Buffer *src_buffer) = 0;
     virtual void CopyTexture(Texture *src_texture, Texture *dst_texture) = 0;
-    //virtual void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) = 0;
+    // virtual void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) = 0;
 
     virtual void InsertBarrier(const BarrierDesc &desc) = 0;
 
     virtual void BindPipeline(Pipeline *pipeline) = 0;
-     
-    virtual void BindPushConstant(Pipeline *pipeline, const std::string& name, void *data) = 0;
+
+    virtual void BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) = 0;
 
     virtual void ClearBuffer(Buffer *buffer, f32 clear_value) = 0;
 
-    virtual void ClearTextrue(Texture* texture, const Math::float4& clear_value) = 0;
+    virtual void ClearTextrue(Texture *texture, const Math::float4 &clear_value) = 0;
 
     // bind by index save string lookup
     virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;
 
     virtual void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) = 0;
+
+    virtual void GenerateMipMap(Texture *texture, bool alllevels = true) = 0;
+
   protected:
     bool is_recoring{false};
     CommandQueueType m_type{};
