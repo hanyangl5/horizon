@@ -49,14 +49,22 @@ open solution **Horizon** and build all solution.
 # Features
 
 - Physically Based Rendering
+  - physical light unit
+  - physical camera and exposure
+  - pbr shading with energy compensation
+  - irradiance map and spherical harmonics
+  - prefiltered irradiance enviroment map and split sum approximation
+  - (disney principled brdf)
+ 
+![](docs/figs/samples/pbs.png)
 
-![](docs/figs/samples/pbr.png)
-
-- GPU Instancing
-
-![](docs/figs/samples/gpuinstancing.png)
+- SSAO
+  - ssao
+  - gaussian blur
+ 
+![](docs/figs/samples/ssao.png)
 
 - Precomputed Atmospheric Scattering
-
-![](docs/figs/samples/atmosphere2.png)
-![](docs/figs/samples/atmosphere1.png)
+  - Eric Bruneton version
+ 
+![](docs/figs/samples/atmosphere.png)
