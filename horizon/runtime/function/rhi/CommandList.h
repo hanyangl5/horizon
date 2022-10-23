@@ -12,7 +12,7 @@
 #include <runtime/function/rhi/ResourceBarrier.h>
 #include <runtime/function/rhi/Texture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 // TODO: move these definations to RHIUtils.h
 
@@ -79,4 +79,4 @@ class CommandList {
     bool is_recoring{false};
     CommandQueueType m_type{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

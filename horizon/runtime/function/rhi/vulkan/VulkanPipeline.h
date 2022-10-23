@@ -6,7 +6,7 @@
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanPipeline : public Pipeline {
   public:
@@ -45,4 +45,4 @@ class VulkanPipeline : public Pipeline {
     VkRect2D scissor{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

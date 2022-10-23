@@ -18,7 +18,8 @@ CBUFFER(DeferredShadingConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 6)
 {
     DATA(float4x4, inverse_vp, None);
     DATA(float4, camera_pos_exposure, None);
-    DATA(uint4, resolution, None);
+    DATA(uint2, resolution, None);
+    DATA(float2, ibl_intensity, None);
 };
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 7)
@@ -39,6 +40,9 @@ CBUFFER(DiffuseIrradianceSH3, UPDATE_FREQ_PER_FRAME, b0, binding = 11)
 {
     DATA(float3, sh[9], None);
 };
+
+RES(TexCube(float4), specular_map, UPDATE_FREQ_PER_FRAME, t5, binding = 12);
+RES(Tex2D(float4), specular_brdf_lut, UPDATE_FREQ_PER_FRAME, t5, binding = 13);
 
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
@@ -79,19 +83,21 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     float3 world_pos = ReconstructWorldPos(Get(inverse_vp),SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
     float3 n =  normalize(gbuffer0.xyz);
     float3 v = -normalize(world_pos - Get(camera_pos_exposure).xyz);
-
+    float NoV = saturate(dot(n, v));
     float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
 
     // direct lighting
     for(uint i = 0; i < Get(light_count); i++) {
         radiance += Radiance(mat, Get(light_data)[i], n, v, world_pos);
     }
-
-    float3 ambient = float3(0.0);
-    float3 ks = Fresnel_Schlick(mat.f0, saturate(dot(v, n)));
-    ambient += Irradiance_SphericalHarmonics(Get(sh), n) * (1.0 - ks) * mat.albedo;;
-    radiance.xyz += ambient * LoadRWTex2D(Get(ao_tex), threadID.xy).r;
+  
+    // indirect light
+    float3 reflect_dir = normalize(2.0 * dot(n, v) * n - v);
+    float3 specular = SampleLvlTexCube(Get(specular_map), default_sampler, reflect_dir, mat.roughness * 8.0).xyz; // 256x256 at miplevel0
+    float2 ibl_uv = float2(mat.roughness, NoV);
+    float2 env = SampleTex2D(Get(specular_brdf_lut), default_sampler, ibl_uv).xy;
+    float3 ambient = IBL(Get(sh), specular, env, n, NoV, mat) * LoadRWTex2D(Get(ao_tex), threadID.xy).r * Get(ibl_intensity).x;
+    //radiance.xyz += ambient;
     Write2D(Get(out_color), threadID.xy, radiance);
     RETURN();
-    
 }

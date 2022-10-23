@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char> &spirv_code,
                            const std::filesystem::path &rsd_path) noexcept
@@ -20,4 +20,4 @@ VulkanShader::~VulkanShader() noexcept {
     vkDestroyShaderModule(m_context.device, m_shader_module, nullptr);
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

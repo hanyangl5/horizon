@@ -225,7 +225,8 @@ struct TextureCreateInfo {
     TextureFormat texture_format;
     // TextureUsage texture_usage;
     u32 width, height, depth = 1;
-    bool generate_mip_map = false;
+    bool enanble_mipmap = false;
+    u32 array_layer = 1;
 };
 
 using SwapChainFormat = TextureFormat;
@@ -431,6 +432,20 @@ struct ClearValueDepthStencil {
     u32 stencil;
 };
 
+
+struct TextureDataDesc {
+    u32 width;
+    u32 height;
+    u32 depth;
+    u32 layer_count = 1;
+    u32 mipmap_count = 1;
+    TextureFormat format;
+    TextureType type;
+    std::vector<char> raw_data;
+    // we don't have a unified runtime format for mipmap/layer, so we have to store that
+    std::vector<std::vector<u32>> data_offset_map;
+};
+
 struct BufferUpdateDesc {
     void *data;
     u64 size;
@@ -438,9 +453,14 @@ struct BufferUpdateDesc {
 };
 
 struct TextureUpdateDesc {
-    void *data;
-    u32 row_length;
-    u32 height;
+    u64 size = 0;
+    //u32 row_length;
+    //u32 height;
+    u32 first_mip_level = 0;
+    u32 mip_level_count = 1;
+    u32 first_layer = 0;
+    u32 layer_count = 1;
+    TextureDataDesc *texture_data_desc{};
 };
 
 enum class MipMapMode { MIPMAP_MODE_NEAREST = 0, MIPMAP_MODE_LINEAR };
@@ -559,6 +579,6 @@ inline std::vector<char> ReadFile(const char *path) {
 
 u32 GetBytesFromTextureFormat(TextureFormat format);
 
-static constexpr u32 MAX_MIP_LEVEL = 6;
+static constexpr u32 MAX_MIP_LEVEL = 12;
 
 } // namespace Horizon

@@ -15,7 +15,7 @@
 //#include <runtime/function/rhi/dx12/DX12CommandContext.h>
 //#include <runtime/function/rhi/dx12/DX12Texture.h>
 //
-// namespace Horizon::RHI {
+// namespace Horizon::Backend {
 //
 // class RHIDX12 : public RHI {
 //  public:
@@ -79,4 +79,4 @@
 //        IDXGISwapChain3 *swap_chain;
 //    } m_dx12{};
 //};
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

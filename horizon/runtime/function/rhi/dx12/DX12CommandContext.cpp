@@ -1,7 +1,7 @@
 //#include "DX12CommandContext.h"
 //#include "DX12Buffer.h"
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //DX12CommandContext::DX12CommandContext(ID3D12Device *device) noexcept
 //    : m_device(device) {
@@ -61,4 +61,4 @@
 //
 //    m_command_lists_count.fill(0);
 //}
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

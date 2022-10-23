@@ -11,7 +11,7 @@
 #include <runtime/function/rhi/vulkan/VulkanSampler.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanDescriptorSet : public DescriptorSet {
   public:
@@ -38,4 +38,4 @@ class VulkanDescriptorSet : public DescriptorSet {
 
     VkDescriptorSet m_set{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

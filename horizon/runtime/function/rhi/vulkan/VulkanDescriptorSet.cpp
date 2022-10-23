@@ -1,6 +1,6 @@
 #include "VulkanDescriptorSet.h"
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanDescriptorSet::VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency,
                                          const std::unordered_map<std::string, DescriptorDesc> &write_descs,
@@ -75,4 +75,4 @@ void VulkanDescriptorSet::SetResource(Sampler *sampler, const std::string &resou
 void VulkanDescriptorSet::Update() {
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

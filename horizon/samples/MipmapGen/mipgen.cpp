@@ -193,7 +193,7 @@ void MipmapGen::InitSceneResources() {
         create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
         create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE;
         create_info.initial_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-        create_info.generate_mip_map = true;
+        create_info.enanble_mipmap = true;
         r.texture = (rhi->CreateTexture(create_info));
 
         r.width = width;

@@ -6,7 +6,7 @@
 #include <runtime/function/rhi/Semaphore.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanSemaphore : public Semaphore {
   public:
@@ -27,4 +27,4 @@ class VulkanSemaphore : public Semaphore {
     VkSemaphore m_semaphore{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

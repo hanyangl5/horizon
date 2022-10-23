@@ -11,323 +11,60 @@ void HorizonPipeline::InitAPI() {
     engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
 }
 
-void HorizonPipeline::InitResources() {
-
-    InitPipelineResources();
-
-    InitSceneResources();
-}
+void HorizonPipeline::InitResources() { InitPipelineResources(); }
 
 void HorizonPipeline::InitPipelineResources() {
 
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
 
-    // shaders
     {
-
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/gbuffer.vert.hsl");
-
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/gbuffer.frag.hsl");
-
-        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/deferred_shading.comp.hsl");
-
-        ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ao.comp.hsl");
-
-        ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ssao_blur.comp.hsl");
-
-        post_process_cs =
-            rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/post_process.comp.hsl");
-    }
-
-    {
-        // geometry pass
-        {
-            gbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM,
-                                                                      RenderTargetType::COLOR, width, height});
-            gbuffer1 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                      RenderTargetType::COLOR, width, height});
-            gbuffer2 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                      RenderTargetType::COLOR, width, height});
-            gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                      RenderTargetType::COLOR, width, height});
-
-            depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
-                                                                   RenderTargetType::DEPTH_STENCIL, width, height});
-
-            graphics_pass_ci.vertex_input_state.attribute_count = 5;
-
-            auto &pos = graphics_pass_ci.vertex_input_state.attributes[0];
-            pos.attrib_format = VertexAttribFormat::F32; // position
-            pos.portion = 3;
-            pos.binding = 0;
-            pos.location = 0;
-            pos.offset = 0;
-            pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-
-            auto &normal = graphics_pass_ci.vertex_input_state.attributes[1];
-            normal.attrib_format = VertexAttribFormat::F32; // normal, TOOD: SN16 is a better format
-            normal.portion = 3;
-            normal.binding = 0;
-            normal.location = 1;
-            normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-            normal.offset = offsetof(Vertex, normal);
-
-            auto &uv0 = graphics_pass_ci.vertex_input_state.attributes[2];
-            uv0.attrib_format = VertexAttribFormat::F32; // uv0 TOOD: UN16 is a better format
-            uv0.portion = 2;
-            uv0.binding = 0;
-            uv0.location = 2;
-            uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-            uv0.offset = offsetof(Vertex, uv0);
-
-            auto &uv1 = graphics_pass_ci.vertex_input_state.attributes[3];
-            uv1.attrib_format = VertexAttribFormat::F32; // uv1 TOOD: UN16 is a better format
-            uv1.portion = 2;
-            uv1.binding = 0;
-            uv1.location = 3;
-            uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-            uv1.offset = offsetof(Vertex, uv1);
-
-            auto &tangent = graphics_pass_ci.vertex_input_state.attributes[4];
-            tangent.attrib_format = VertexAttribFormat::F32;
-            tangent.portion = 3;
-            tangent.binding = 0;
-            tangent.location = 4;
-            tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-            tangent.offset = offsetof(Vertex, tangent);
-
-            graphics_pass_ci.view_port_state.width = width;
-            graphics_pass_ci.view_port_state.height = height;
-
-            graphics_pass_ci.depth_stencil_state.depth_func = DepthFunc::LESS;
-            graphics_pass_ci.depth_stencil_state.depthNear = 0.0f;
-            graphics_pass_ci.depth_stencil_state.depthNear = 1.0f;
-            graphics_pass_ci.depth_stencil_state.depth_test = true;
-            graphics_pass_ci.depth_stencil_state.depth_write = true;
-            graphics_pass_ci.depth_stencil_state.stencil_enabled = false;
-
-            graphics_pass_ci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
-
-            graphics_pass_ci.multi_sample_state.sample_count = 1;
-
-            graphics_pass_ci.rasterization_state.cull_mode = CullMode::BACK;
-            graphics_pass_ci.rasterization_state.discard = false;
-            graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
-            graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
-
-            graphics_pass_ci.render_target_formats.color_attachment_count = 4;
-            graphics_pass_ci.render_target_formats.color_attachment_formats =
-                std::vector<TextureFormat>{gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format,
-                                           gbuffer2->GetTexture()->m_format, gbuffer3->GetTexture()->m_format};
-            graphics_pass_ci.render_target_formats.has_depth = true;
-            graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
-
-            geometry_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
-        }
-
-        // AO PASS
-        {
-            ssao_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
-            ssao_blur_pass = rhi->CreateComputePipeline({});
-        }
-
-        // SHADING PASS
-        { shading_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
-
-        // PP PASS
-        { post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{}); }
-
-        ssao_factor_image = rhi->CreateTexture(TextureCreateInfo{
-            DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
-
-        ssao_noise_tex = rhi->CreateTexture(
-            TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                              TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT,
-                              SSAO_NOISE_TEX_WIDTH, SSAO_NOISE_TEX_HEIGHT, 1, false});
-        ssao_blur_image = rhi->CreateTexture(TextureCreateInfo{
-            DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
-
-        shading_color_image = rhi->CreateTexture(TextureCreateInfo{
-            DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT, width, height, 1, false});
-
-        pp_color_image = rhi->CreateTexture(TextureCreateInfo{
-            DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-            TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
 
         SamplerDesc sampler_desc{};
         sampler_desc.min_filter = FilterType::FILTER_LINEAR;
         sampler_desc.mag_filter = FilterType::FILTER_LINEAR;
         sampler_desc.mip_map_mode = MipMapMode::MIPMAP_MODE_LINEAR;
-        sampler_desc.address_u = AddressMode::ADDRESS_MODE_REPEAT;
-        sampler_desc.address_v = AddressMode::ADDRESS_MODE_REPEAT;
-        sampler_desc.address_w = AddressMode::ADDRESS_MODE_REPEAT;
+        sampler_desc.address_u = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
 
         sampler = rhi->GetSampler(sampler_desc);
     }
-    // buffers
-    {
-        deferred_shading_constants_buffer = rhi->CreateBuffer(
-            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(DeferredShadingConstants)});
 
-        ssao_constants_buffer =
-            rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                               ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(SSAOConstant)});
-        exposure_constants_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                                       sizeof(ExposureConstant)});
-
-        diffuse_irradiance_sh3_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                                    ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                                    sizeof(DiffuseIrradianceSH3)});
-    }
+    deferred = std::make_unique<DeferredData>(rhi);
+    ssao = std::make_unique<SSAOData>(rhi);
+    post_process = std::make_unique<PostProcessData>(rhi);
+    scene = std::make_unique<SceneData>(rhi, engine->m_render_system->GetDebugCamera());
 }
 
-void HorizonPipeline::InitSceneResources(){
-    // scene resources
+void HorizonPipeline::UpdatePipelineResources() {
 
-    // mesh
-    {auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-// mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
-// mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-mesh1->LoadMesh(asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-mesh1->CreateGpuResources(rhi);
+    auto cam = scene->cam;
+    scene->camera_ub.vp = cam->GetViewProjectionMatrix();
+    scene->camera_ub.camera_pos = cam->GetPosition();
+    scene->camera_ub.ev100 = cam->GetEv100();
 
-auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0 |
-                               VertexAttributeType::TANGENT});
-mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
-// mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer
-// Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
-// mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-// mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
-mesh2->CreateGpuResources(rhi);
+    post_process->exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
-meshes.push_back(mesh1);
-// meshes.push_back(mesh2);
-}
+    deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
+    deferred->deferred_shading_constants.inverse_vp = cam->GetInvViewProjectionMatrix();
 
-// camera
-{
-    cam = engine->m_render_system->GetDebugCamera();
-
-    cam->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
-    // cam->SetLensProjectionMatrix(18.0, (float)width / (float)height, 0.1f, 100.0f);
-
-    camera_buffer =
-        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(CameraUb)});
-}
-
-// light
-{
-    std::random_device seed;
-    std::ranlux48 engine(seed());
-    std::uniform_real_distribution<f32> random_position(-10.0, 10.0);
-    std::uniform_real_distribution<f32> random_color(0.5, 1.0);
-
-    for (unsigned int i = 0; i < 64; i++) {
-        // calculate slightly random offsets
-        float xPos = random_position(engine);
-        float yPos = random_position(engine);
-        float zPos = random_position(engine) + 2.0f;
-
-        // also calculate random color
-        float rColor = random_color(engine);
-        float gColor = random_color(engine);
-        float bColor = random_color(engine);
-
-        Math::float3 pos(xPos, yPos, zPos);
-        Math::float3 col(rColor, gColor, bColor);
-
-        // lights.push_back(new PointLight(col, 1000000.0_lm, pos, 10.0));
-    }
-
-    lights.push_back(new DirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0)));
-
-    for (auto &l : lights) {
-        lights_param_buffer.push_back(l->GetParamBuffer());
-    }
-    light_count = lights.size();
-
-    light_count_buffer =
-        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
-
-    light_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                      ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                      sizeof(LightParams) * light_count});
-}
-// ibl
-{
-    diffuse_irradiance_sh3_constants.sh = {Math::float4{0.474948436021805f, 0.480556935071945f, 0.501606047153473f, 0.0f},
-                                           Math::float4{0.351380050182343f, 0.371190130710602f, 0.468852639198303f, 0.0f},
-                                           Math::float4{0.224167078733444f, 0.204228252172470f, 0.201337367296219f, 0.0f},
-                                           Math::float4{0.076594874262810f, -0.067332319915295f, -0.062507018446922f, 0.0f},
-                                           Math::float4{0.061358224600554f, -0.054993789643049f, -0.051467958837748f, 0.0f},
-                                           Math::float4{0.172064036130905f, 0.162797480821609f, 0.160090863704681f, 0.0f},
-                                           Math::float4{0.035116069018841f, 0.028756374493241f, 0.022267108783126f, 0.0f},
-                                           Math::float4{0.056562144309282f, -0.050596039742231f, -0.045287083834410f, 0.0f},
-                                           Math::float4{0.004470882471651f, -0.008455731905997f, -0.017041536048055f, 0.0f}};
-}
+    ssao->ssao_constansts.p = cam->GetProjectionMatrix();
+    ssao->ssao_constansts.inv_p = cam->GetInvProjectionMatrix();
+    ssao->ssao_constansts.view_mat = cam->GetViewMatrix();
+    ssao->ssao_constansts.noise_scale_x = _width / SSAOData::SSAO_NOISE_TEX_WIDTH;
+    ssao->ssao_constansts.noise_scale_y = _height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
 }
 
 void HorizonPipeline::run() {
 
     bool first_frame = true;
 
-    geometry_pass->SetGraphicsShader(geometry_vs, geometry_ps);
-    ssao_pass->SetComputeShader(ssao_cs);
-    ssao_blur_pass->SetComputeShader(ssao_blur_cs);
-    shading_pass->SetComputeShader(shading_cs);
-    post_process_pass->SetComputeShader(post_process_cs);
-
-    ssao_constansts.width = width;
-    ssao_constansts.height = height;
-
-    std::uniform_real_distribution<float> rnd_dist(0.0, 1.0); // random floats between [0.0, 1.0]
-    std::default_random_engine generator;
-
-    for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i) {
-        Math::float3 sample(rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator));
-        sample.Normalize();
-        sample *= rnd_dist(generator);
-        float scale = float(i) / float(SSAO_KERNEL_SIZE);
-        sample *= Math::Lerp(0.1f, 1.0f, scale * scale);
-        ssao_constansts.kernels[i] = Math::float4(sample);
-    }
-    // ssao noise tex
-    for (u32 i = 0; i < ssao_noise_tex_val.size(); i++) {
-        ssao_noise_tex_val[i] = Math::float2(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f);
-    }
-
-    deferred_shading_constants.width = width;
-    deferred_shading_constants.height = height;
-
     for (;;) {
 
         engine->m_input_system->Tick();
 
         rhi->AcquireNextFrame(swap_chain.get());
-
-        camera_ub.vp = cam->GetViewProjectionMatrix();
-        camera_ub.camera_pos = cam->GetPosition();
-        camera_ub.ev100 = cam->GetEv100();
-
-        exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
-
-        deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
-        deferred_shading_constants.inverse_vp = cam->GetInvViewProjectionMatrix();
-
-        ssao_constansts.p = cam->GetProjectionMatrix();
-        ssao_constansts.inv_p = cam->GetInvProjectionMatrix();
-        ssao_constansts.view_mat = cam->GetViewMatrix();
-        ssao_constansts.noise_scale_x = width / SSAO_NOISE_TEX_WIDTH;
-        ssao_constansts.noise_scale_y = height / SSAO_NOISE_TEX_HEIGHT;
-
+        UpdatePipelineResources();
         auto resource_uploaded_semaphore = rhi->GetSemaphore();
 
         // resource upload
@@ -335,59 +72,144 @@ void HorizonPipeline::run() {
             auto transfer = rhi->GetCommandList(CommandQueueType::GRAPHICS);
 
             transfer->BeginRecording();
-            transfer->UpdateBuffer(light_buffer.get(), lights_param_buffer.data(),
-                                   lights_param_buffer.size() * sizeof(LightParams));
-            transfer->UpdateBuffer(light_count_buffer.get(), &light_count, sizeof(light_count) * 4);
-            transfer->UpdateBuffer(camera_buffer.get(), &camera_ub, sizeof(CameraUb));
-            transfer->UpdateBuffer(deferred_shading_constants_buffer.get(), &deferred_shading_constants,
-                                   sizeof(DeferredShadingConstants));
-            transfer->UpdateBuffer(exposure_constants_buffer.get(), &exposure_constants, sizeof(ExposureConstant));
-            if (first_frame) {
-            transfer->UpdateBuffer(ssao_constants_buffer.get(), &ssao_constansts, sizeof(SSAOConstant));
 
-            transfer->UpdateBuffer(diffuse_irradiance_sh3_buffer.get(), &diffuse_irradiance_sh3_constants,
-                                   sizeof(diffuse_irradiance_sh3_constants));
-            TextureUpdateDesc desc{};
-                desc.data = ssao_noise_tex_val.data();
-                transfer->UpdateTexture(ssao_noise_tex.get(), desc);
-            }
-
+            // upload textures, vertex/index buffer
             if (first_frame) {
+
                 // upload mesh
-                for (auto &mesh : meshes) {
+                for (auto &mesh : scene->meshes) {
                     mesh->UploadResources(transfer);
+                }
+                BarrierDesc barrier1{};
 
+                for (auto &mesh : scene->meshes) {
                     for (auto &mat : mesh->GetMaterials()) {
                         for (auto &[type, texture] : mat.material_textures) {
-                            {
-                                BarrierDesc desc{};
-                                TextureBarrierDesc mip_map_barrier{};
-                                mip_map_barrier.texture = texture.texture.get();
-                                mip_map_barrier.first_mip_level = 0;
-                                mip_map_barrier.mip_level_count = 1;
-                                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-                                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                                desc.texture_memory_barriers.emplace_back(mip_map_barrier);
-                                transfer->InsertBarrier(desc);
-                            }
-                            transfer->GenerateMipMap(texture.texture.get(), true);
-
-                            {
-                                BarrierDesc desc{};
-                                TextureBarrierDesc mip_map_barrier{};
-                                mip_map_barrier.texture = texture.texture.get();
-
-                                mip_map_barrier.first_mip_level = 0;
-                                mip_map_barrier.mip_level_count = texture.texture->mip_map_level;
-                                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                                desc.texture_memory_barriers.emplace_back(mip_map_barrier);
-                                transfer->InsertBarrier(desc);
-                            }
+                            TextureBarrierDesc mip_map_barrier{};
+                            mip_map_barrier.texture = texture.texture.get();
+                            mip_map_barrier.first_mip_level = 0;
+                            mip_map_barrier.mip_level_count = 1;
+                            mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                            mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                            barrier1.texture_memory_barriers.emplace_back(mip_map_barrier);
                         }
                     }
                 }
+
+                transfer->InsertBarrier(barrier1);
+
+                for (auto &mesh : scene->meshes) {
+                    for (auto &mat : mesh->GetMaterials()) {
+                        for (auto &[type, texture] : mat.material_textures) {
+                            transfer->GenerateMipMap(texture.texture.get(), true);
+                        }
+                    }
+                }
+                BarrierDesc barrier2{};
+                for (auto &mesh : scene->meshes) {
+                    for (auto &mat : mesh->GetMaterials()) {
+                        for (auto &[type, texture] : mat.material_textures) {
+                            TextureBarrierDesc mip_map_barrier{};
+                            mip_map_barrier.texture = texture.texture.get();
+                            mip_map_barrier.first_mip_level = 0;
+                            mip_map_barrier.mip_level_count = texture.texture->mip_map_level;
+                            mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                            mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                            barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);
+                        }
+                    }
+                }
+                transfer->InsertBarrier(barrier2);
             }
+
+            // scene data
+            transfer->UpdateBuffer(scene->light_buffer.get(), scene->lights_param_buffer.data(),
+                                   scene->lights_param_buffer.size() * sizeof(LightParams));
+            transfer->UpdateBuffer(scene->light_count_buffer.get(), &scene->light_count,
+                                   sizeof(scene->light_count) * 4);
+            transfer->UpdateBuffer(scene->camera_buffer.get(), &scene->camera_ub, sizeof(SceneData::CameraUb));
+
+            // deferred data
+            transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer.get(),
+                                   &deferred->deferred_shading_constants, sizeof(deferred->deferred_shading_constants));
+            // post process data
+            transfer->UpdateBuffer(post_process->exposure_constants_buffer.get(), &post_process->exposure_constants,
+                                   sizeof(PostProcessData::ExposureConstant));
+            transfer->UpdateBuffer(ssao->ssao_constants_buffer.get(), &ssao->ssao_constansts,
+                                   sizeof(SSAOData::SSAOConstant));
+            if (first_frame) {
+
+                transfer->UpdateBuffer(deferred->diffuse_irradiance_sh3_buffer.get(),
+                                       &deferred->diffuse_irradiance_sh3_constants,
+                                       sizeof(deferred->diffuse_irradiance_sh3_constants));
+                {
+                    TextureUpdateDesc desc{};
+                    desc.texture_data_desc = &ssao->ssao_noise_tex_data_desc;
+                    desc.size = GetBytesFromTextureFormat(ssao->ssao_noise_tex->m_format) *
+                                SSAOData::SSAO_NOISE_TEX_WIDTH * SSAOData::SSAO_NOISE_TEX_HEIGHT; //
+                    transfer->UpdateTexture(ssao->ssao_noise_tex.get(), desc);
+                }
+                // prefilered_irradiance_env_ma
+                {
+                    TextureUpdateDesc desc2{};
+                    desc2.first_layer = 0;
+                    desc2.layer_count = 6;
+                    desc2.first_mip_level = 0;
+                    desc2.mip_level_count = deferred->prefiltered_irradiance_env_map->mip_map_level;
+                    desc2.size = sizeof(char) * deferred->prefilered_irradiance_env_map_data.raw_data.size();
+                    desc2.texture_data_desc = &deferred->prefilered_irradiance_env_map_data;
+                    transfer->UpdateTexture(deferred->prefiltered_irradiance_env_map.get(), desc2);
+                }
+                {
+                    TextureUpdateDesc desc2{};
+                    desc2.first_layer = 0;
+                    desc2.layer_count = 1;
+                    desc2.first_mip_level = 0;
+                    desc2.mip_level_count = 1;
+                    desc2.size = sizeof(char) * deferred->brdf_lut_data_desc.raw_data.size();
+                    desc2.texture_data_desc = &deferred->brdf_lut_data_desc;
+                    transfer->UpdateTexture(deferred->brdf_lut.get(), desc2);
+                }
+            }
+
+
+            
+            BarrierDesc barrier{};
+            TextureBarrierDesc tb;
+            // pass resources
+            tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+            tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+
+            tb.texture = deferred->shading_color_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+            tb.texture = post_process->pp_color_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+            tb.texture = ssao->ssao_factor_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+            tb.texture = ssao->ssao_blur_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+
+            // pass constants
+            if (first_frame) {
+                tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                tb.texture = ssao->ssao_noise_tex.get();
+                barrier.texture_memory_barriers.push_back(tb);
+
+                tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                // brdf lut
+                tb.texture = deferred->brdf_lut.get();
+                barrier.texture_memory_barriers.push_back(tb);
+                // pfem
+                tb.texture = deferred->prefiltered_irradiance_env_map.get();
+                tb.first_layer = 0;
+                tb.first_mip_level = 0;
+                tb.layer_count = 6;
+                tb.mip_level_count = deferred->prefilered_irradiance_env_map_data.mipmap_count;
+                barrier.texture_memory_barriers.push_back(tb);
+            }
+            transfer->InsertBarrier(barrier);
 
             transfer->EndRecording();
 
@@ -400,18 +222,18 @@ void HorizonPipeline::run() {
             }
         }
 
-        auto geometry_pass_per_frame_ds = geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+        auto geometry_pass_per_frame_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
         // perframe descriptor set
-        geometry_pass_per_frame_ds->SetResource(camera_buffer.get(), "CameraParamsUb");
+        geometry_pass_per_frame_ds->SetResource(scene->camera_buffer.get(), "CameraParamsUb");
         geometry_pass_per_frame_ds->Update();
 
         // material descriptor set
-        for (auto &mesh : meshes) {
+        for (auto &mesh : scene->meshes) {
             for (auto &material : mesh->GetMaterials()) {
                 if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
                     material.material_descriptor_set =
-                        geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
+                        deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
                     material.material_descriptor_set->SetResource(
                         material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(),
                         "base_color_texture");
@@ -443,39 +265,39 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
                 tb.dst_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
-                tb.texture = gbuffer0->GetTexture();
+                tb.texture = deferred->gbuffer0->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = gbuffer1->GetTexture();
+                tb.texture = deferred->gbuffer1->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = gbuffer2->GetTexture();
+                tb.texture = deferred->gbuffer2->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = gbuffer3->GetTexture();
+                tb.texture = deferred->gbuffer3->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
                 tb.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
-                tb.texture = depth->GetTexture();
+                tb.texture = deferred->depth->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
                 cl->InsertBarrier(image_barriers);
             }
 
             RenderPassBeginInfo begin_info{};
-            begin_info.render_area = Rect{0, 0, width, height};
-            begin_info.render_targets[0].data = gbuffer0.get();
+            begin_info.render_area = Rect{0, 0, _width, _height};
+            begin_info.render_targets[0].data = deferred->gbuffer0.get();
             begin_info.render_targets[0].clear_color = ClearValueColor{Math::float4(0.0)};
-            begin_info.render_targets[1].data = gbuffer1.get();
+            begin_info.render_targets[1].data = deferred->gbuffer1.get();
             begin_info.render_targets[1].clear_color = ClearValueColor{Math::float4(0.0)};
-            begin_info.render_targets[2].data = gbuffer2.get();
+            begin_info.render_targets[2].data = deferred->gbuffer2.get();
             begin_info.render_targets[2].clear_color = ClearValueColor{Math::float4(0.0)};
-            begin_info.render_targets[3].data = gbuffer3.get();
+            begin_info.render_targets[3].data = deferred->gbuffer3.get();
             begin_info.render_targets[3].clear_color = ClearValueColor{Math::float4(0.0)};
-            begin_info.depth_stencil.data = depth.get();
+            begin_info.depth_stencil.data = deferred->depth.get();
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
 
-            cl->BindDescriptorSets(geometry_pass, geometry_pass_per_frame_ds);
+            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
 
             cl->BeginRenderPass(begin_info);
 
-            cl->BindPipeline(geometry_pass);
-            for (auto &mesh : meshes) {
+            cl->BindPipeline(deferred->geometry_pass);
+            for (auto &mesh : scene->meshes) {
                 u32 offset = 0;
                 auto vb = mesh->GetVertexBuffer();
                 cl->BindVertexBuffers(1, &vb, &offset);
@@ -486,13 +308,13 @@ void HorizonPipeline::run() {
                         continue;
                     }
                     auto mat = node.GetModelMatrix().Transpose();
-                    cl->BindPushConstant(geometry_pass, "root_constant_model_mat", &mat);
+                    cl->BindPushConstant(deferred->geometry_pass, "root_constant_model_mat", &mat);
 
                     for (auto &m : node.mesh_primitives) {
                         auto &material = mesh->GetMaterial(m->material_id);
                         if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
 
-                            cl->BindDescriptorSets(geometry_pass, material.material_descriptor_set);
+                            cl->BindDescriptorSets(deferred->geometry_pass, material.material_descriptor_set);
                             cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
                         }
                     }
@@ -506,36 +328,19 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
                 tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                tb.texture = gbuffer0->GetTexture();
+                tb.texture = deferred->gbuffer0->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = gbuffer1->GetTexture();
+                tb.texture = deferred->gbuffer1->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = gbuffer2->GetTexture();
+                tb.texture = deferred->gbuffer2->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = gbuffer3->GetTexture();
+                tb.texture = deferred->gbuffer3->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
                 tb.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
-                tb.texture = depth->GetTexture();
+                tb.texture = deferred->depth->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
 
-                TextureBarrierDesc tb1;
-                tb1.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-                tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb1.texture = shading_color_image.get();
-                barrier.texture_memory_barriers.push_back(tb1);
-                tb1.texture = pp_color_image.get();
-                barrier.texture_memory_barriers.push_back(tb1);
-                tb1.texture = ssao_factor_image.get();
-                barrier.texture_memory_barriers.push_back(tb1);
-                tb1.texture = ssao_blur_image.get();
-                barrier.texture_memory_barriers.push_back(tb1);
-                if (first_frame) {
-                    tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                    tb1.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                    tb1.texture = ssao_noise_tex.get();
-                }
-                barrier.texture_memory_barriers.push_back(tb1);
-
+       
                 cl->InsertBarrier(barrier);
             }
 
@@ -557,21 +362,21 @@ void HorizonPipeline::run() {
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
             compute->BeginRecording();
 
-            auto ao_ds = ssao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto ao_ds = ssao->ssao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // ao pass
             {
-                ao_ds->SetResource(depth->GetTexture(), "depth_tex");
-                ao_ds->SetResource(gbuffer0->GetTexture(), "normal_tex");
+                ao_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
+                ao_ds->SetResource(deferred->gbuffer0->GetTexture(), "normal_tex");
                 ao_ds->SetResource(sampler.get(), "default_sampler");
-                ao_ds->SetResource(ssao_factor_image.get(), "ao_factor_tex");
-                ao_ds->SetResource(ssao_constants_buffer.get(), "SSAOConstant");
-                ao_ds->SetResource(ssao_noise_tex.get(), "ssao_noise_tex");
+                ao_ds->SetResource(ssao->ssao_factor_image.get(), "ao_factor_tex");
+                ao_ds->SetResource(ssao->ssao_constants_buffer.get(), "SSAOConstant");
+                ao_ds->SetResource(ssao->ssao_noise_tex.get(), "ssao_noise_tex");
                 ao_ds->Update();
 
-                compute->BindPipeline(ssao_pass);
-                compute->BindDescriptorSets(ssao_pass, ao_ds);
+                compute->BindPipeline(ssao->ssao_pass);
+                compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
 
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
             }
 
             {
@@ -580,23 +385,23 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb1;
                 tb1.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb1.texture = ssao_factor_image.get();
+                tb1.texture = ssao->ssao_factor_image.get();
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
 
-            auto ao_blur_ds = ssao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto ao_blur_ds = ssao->ssao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
             {
-                ao_blur_ds->SetResource(ssao_factor_image.get(), "ssao_blur_in");
-                ao_blur_ds->SetResource(ssao_blur_image.get(), "ssao_blur_out");
+                ao_blur_ds->SetResource(ssao->ssao_factor_image.get(), "ssao_blur_in");
+                ao_blur_ds->SetResource(ssao->ssao_blur_image.get(), "ssao_blur_out");
 
                 ao_blur_ds->Update();
 
-                compute->BindPipeline(ssao_blur_pass);
-                compute->BindDescriptorSets(ssao_blur_pass, ao_blur_ds);
+                compute->BindPipeline(ssao->ssao_blur_pass);
+                compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
 
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
             }
             {
                 BarrierDesc barrier{};
@@ -604,32 +409,34 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb1;
                 tb1.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb1.texture = ssao_blur_image.get();
+                tb1.texture = ssao->ssao_blur_image.get();
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
 
-            auto shading_ds = shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto shading_ds = deferred->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // shading pass
             {
 
-                shading_ds->SetResource(gbuffer0->GetTexture(), "gbuffer0_tex");
-                shading_ds->SetResource(gbuffer1->GetTexture(), "gbuffer1_tex");
-                shading_ds->SetResource(gbuffer2->GetTexture(), "gbuffer2_tex");
-                shading_ds->SetResource(gbuffer3->GetTexture(), "gbuffer3_tex");
-                shading_ds->SetResource(depth->GetTexture(), "depth_tex");
+                shading_ds->SetResource(deferred->gbuffer0->GetTexture(), "gbuffer0_tex");
+                shading_ds->SetResource(deferred->gbuffer1->GetTexture(), "gbuffer1_tex");
+                shading_ds->SetResource(deferred->gbuffer2->GetTexture(), "gbuffer2_tex");
+                shading_ds->SetResource(deferred->gbuffer3->GetTexture(), "gbuffer3_tex");
+                shading_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
                 shading_ds->SetResource(sampler.get(), "default_sampler");
-                shading_ds->SetResource(deferred_shading_constants_buffer.get(), "DeferredShadingConstants");
-                shading_ds->SetResource(light_count_buffer.get(), "LightCountUb");
-                shading_ds->SetResource(light_buffer.get(), "LightDataUb");
-                shading_ds->SetResource(shading_color_image.get(), "out_color");
-                shading_ds->SetResource(ssao_blur_image.get(), "ao_tex");
-                shading_ds->SetResource(diffuse_irradiance_sh3_buffer.get(), "DiffuseIrradianceSH3");
+                shading_ds->SetResource(deferred->deferred_shading_constants_buffer.get(), "DeferredShadingConstants");
+                shading_ds->SetResource(scene->light_count_buffer.get(), "LightCountUb");
+                shading_ds->SetResource(scene->light_buffer.get(), "LightDataUb");
+                shading_ds->SetResource(deferred->shading_color_image.get(), "out_color");
+                shading_ds->SetResource(ssao->ssao_blur_image.get(), "ao_tex");
+                shading_ds->SetResource(deferred->diffuse_irradiance_sh3_buffer.get(), "DiffuseIrradianceSH3");
+                shading_ds->SetResource(deferred->prefiltered_irradiance_env_map.get(), "specular_map");
+                shading_ds->SetResource(deferred->brdf_lut.get(), "specular_brdf_lut");
                 shading_ds->Update();
 
-                compute->BindPipeline(shading_pass);
-                compute->BindDescriptorSets(shading_pass, shading_ds);
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->BindPipeline(deferred->shading_pass);
+                compute->BindDescriptorSets(deferred->shading_pass, shading_ds);
+                compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
             }
 
             {
@@ -638,23 +445,23 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb.texture = shading_color_image.get();
+                tb.texture = deferred->shading_color_image.get();
                 color_image_barrier.texture_memory_barriers.push_back(tb);
 
                 compute->InsertBarrier(color_image_barrier);
             }
 
-            auto pp_ds = post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto pp_ds = post_process->post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             {
-                pp_ds->SetResource(shading_color_image.get(), "color_image");
-                pp_ds->SetResource(pp_color_image.get(), "out_color_image");
-                pp_ds->SetResource(exposure_constants_buffer.get(), "exposure_constants");
+                pp_ds->SetResource(deferred->shading_color_image.get(), "color_image");
+                pp_ds->SetResource(post_process->pp_color_image.get(), "out_color_image");
+                pp_ds->SetResource(post_process->exposure_constants_buffer.get(), "exposure_constants");
 
                 pp_ds->Update();
 
-                compute->BindPipeline(post_process_pass);
-                compute->BindDescriptorSets(post_process_pass, pp_ds);
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->BindPipeline(post_process->post_process_pass);
+                compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
+                compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
             }
 
             {
@@ -670,13 +477,13 @@ void HorizonPipeline::run() {
                     TextureBarrierDesc tb2;
                     tb2.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                     tb2.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                    tb2.texture = pp_color_image.get();
+                    tb2.texture = post_process->pp_color_image.get();
                     pp_image_barrier.texture_memory_barriers.push_back(tb2);
 
                     compute->InsertBarrier(pp_image_barrier);
                 }
 
-                compute->CopyTexture(pp_color_image.get(), swap_chain->GetRenderTarget()->GetTexture());
+                compute->CopyTexture(post_process->pp_color_image.get(), swap_chain->GetRenderTarget()->GetTexture());
 
                 {
                     BarrierDesc swap_chain_image_barrier{};
@@ -719,10 +526,6 @@ void HorizonPipeline::run() {
         }
         // Horizon::RDC::EndFrameCapture();
     }
-    // rhi->DestroyPipeline(graphics_pass);
-    //// rhi->DestroyPipeline(post_process_pass);
-    // rhi->DestroyShader(vs);
-    // rhi->DestroyShader(ps);
-    // rhi->DestroyShader(cs);
+
     LOG_INFO("draw done");
 }

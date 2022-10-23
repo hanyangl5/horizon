@@ -30,7 +30,7 @@
 #include <runtime/system/render/RenderSystem.h>
 
 using namespace Horizon;
-using namespace Horizon::RHI;
+using namespace Horizon::Backend;
 
 // MipGen, a sample for general compute
 
@@ -71,7 +71,7 @@ class MipmapGen {
 
     std::vector<TextureData> texture_resources{};
 
-    Horizon::RHI::RHI *rhi;
+    Horizon::Backend::RHI *rhi;
 
 
     Shader *mipgen_cs;

@@ -3,7 +3,7 @@
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class Texture {
   public:
@@ -26,4 +26,4 @@ class Texture {
 
   protected:
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

@@ -1,8 +1,8 @@
 #include <runtime/function/rhi/CommandContext.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 CommandContext::CommandContext() noexcept {}
 
 CommandContext::~CommandContext() noexcept {}
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

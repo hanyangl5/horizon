@@ -63,7 +63,7 @@ PSOutput PS_MAIN(VSOutput vsout)
     float2 mr = has_metallic_roughness != 0 ? SampleTex2D(Get(metallic_roughness_texture), default_sampler, vsout.uv).yz : float2(1.0, 0.0);
     float3 emissive = has_emissive != 0 ? pow(SampleTex2D(Get(emissive_texture), default_sampler, vsout.uv).xyz,  float3(2.2)) : float3(0.0, 0.0, 0.0);
     normal_map = (2.0 * normal_map - 1.0); // [-1, 1]
-    
+
     float3 gbuffer_normal;
     
     if(has_normal != 0) {

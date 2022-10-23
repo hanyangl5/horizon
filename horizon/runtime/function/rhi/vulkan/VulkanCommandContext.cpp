@@ -1,7 +1,7 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanCommandContext::VulkanCommandContext(const VulkanRendererContext &context) noexcept : m_context(context) {
     m_command_lists_count.fill(0);
@@ -61,4 +61,4 @@ void VulkanCommandContext::Reset() {
     m_command_lists_count.fill(0);
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

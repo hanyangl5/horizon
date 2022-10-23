@@ -1,7 +1,7 @@
 #include "VulkanRenderTarget.h"
 #include "VulkanTexture.h"
 
-Horizon::RHI::VulkanRenderTarget::VulkanRenderTarget(const VulkanRendererContext &context,
+Horizon::Backend::VulkanRenderTarget::VulkanRenderTarget(const VulkanRendererContext &context,
                                                      const RenderTargetCreateInfo &render_target_create_info) noexcept
     : RenderTarget(render_target_create_info), m_context(context) {
     TextureCreateInfo create_info{};
@@ -23,7 +23,7 @@ Horizon::RHI::VulkanRenderTarget::VulkanRenderTarget(const VulkanRendererContext
     m_texture = new VulkanTexture(m_context, create_info);
 }
 
-Horizon::RHI::VulkanRenderTarget::~VulkanRenderTarget() noexcept {
+Horizon::Backend::VulkanRenderTarget::~VulkanRenderTarget() noexcept {
     delete m_texture;
     m_texture = nullptr;
 }

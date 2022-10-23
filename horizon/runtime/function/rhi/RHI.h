@@ -18,7 +18,7 @@
 #include <runtime/function/rhi/Sampler.h>
 #include <runtime/function/rhi/SwapChain.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 extern thread_local std::unique_ptr<CommandContext> thread_command_context;
 
@@ -97,4 +97,4 @@ class RHI {
     bool m_offscreen{false};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

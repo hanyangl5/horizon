@@ -7,7 +7,7 @@
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanBuffer : public Buffer {
   public:
@@ -30,4 +30,4 @@ class VulkanBuffer : public Buffer {
     Resource<VulkanBuffer> m_stage_buffer{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

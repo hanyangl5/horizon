@@ -1,4 +1,4 @@
-
+#include "material_params_defination.hsl"
 // float3 ComputeIBL(MaterialProperties mat,
 // 	float NoV, float3 N, float3 V, TexCube(float4) iemCubemap, TexCube(float4) pmremCubemap, Tex2D(float4)
 // environmentBRDF, SamplerState ibl_sampler)
@@ -25,4 +25,19 @@ float3 Irradiance_SphericalHarmonics(float3 sh[9], float3 normal) {
                    sh[5] * (normal.y * normal.z) + sh[6] * (3.0 * normal.z * normal.z - 1.0) +
                    sh[7] * (normal.z * normal.x) + sh[8] * (normal.x * normal.x - normal.y * normal.y),
                0.0);
+}
+
+float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
+    return F0 + (max(float3(1.0 - roughness), F0) - F0) * Pow5(clamp(1.0 - cosTheta, 0.0, 1.0));
+}
+
+float3 IBL(float3 sh[9], float3 specular, float2 env, float3 normal, float NoV, MaterialProperties mat) {
+    float3 specular_color = (mat.f0 * env.x + env.y) * specular;
+    float3 diffuse_color = Irradiance_SphericalHarmonics(sh, normal) * Diffuse_Lambert(mat.albedo);
+
+    float3 f = fresnelSchlickRoughness(NoV, mat.f0, mat.roughness);
+    float3 kd = (float3(1.0) - f) * (1.0 - mat.metallic);
+    diffuse_color *= kd;
+    float3 ibl_color = specular_color;
+    return ibl_color;
 }

@@ -3,7 +3,7 @@
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
 //#include <runtime/function/rhi/dx12/DX12CommandList.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //DX12CommandList::DX12CommandList(
 //    CommandQueueType type, ID3D12GraphicsCommandList6 *command_list) noexcept
@@ -255,4 +255,4 @@
 //    }
 //}
 //
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

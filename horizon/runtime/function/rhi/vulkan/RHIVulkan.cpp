@@ -17,7 +17,7 @@
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 RHIVulkan::RHIVulkan(bool offscreen) noexcept { m_offscreen = offscreen; }
 
@@ -489,4 +489,4 @@ Resource<Sampler> RHIVulkan::GetSampler(const SamplerDesc &sampler_desc) {
     return std::make_unique<VulkanSampler>(m_vulkan, sampler_desc);
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

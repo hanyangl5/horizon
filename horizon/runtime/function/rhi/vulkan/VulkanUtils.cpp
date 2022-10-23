@@ -234,6 +234,7 @@ VkImageType ToVkImageType(TextureType type) noexcept {
     case Horizon::TextureType::TEXTURE_TYPE_1D:
         return VK_IMAGE_TYPE_1D;
     case Horizon::TextureType::TEXTURE_TYPE_2D:
+    case Horizon::TextureType::TEXTURE_TYPE_CUBE:
         return VK_IMAGE_TYPE_2D;
     case Horizon::TextureType::TEXTURE_TYPE_3D:
         return VK_IMAGE_TYPE_3D;

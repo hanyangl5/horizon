@@ -1,6 +1,6 @@
 #include <runtime/function/rhi/Texture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 Texture::Texture(const TextureCreateInfo &texture_create_info) noexcept
     : m_descriptor_types(texture_create_info.descriptor_types), m_type(texture_create_info.texture_type),
@@ -9,9 +9,9 @@ Texture::Texture(const TextureCreateInfo &texture_create_info) noexcept
       m_byte_per_pixel(GetBytesFromTextureFormat(m_format)) {
 
     mip_map_level =
-        texture_create_info.generate_mip_map == true
+        texture_create_info.enanble_mipmap == true
             ? std::min(MAX_MIP_LEVEL, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height))))) + 1
             : 1;
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

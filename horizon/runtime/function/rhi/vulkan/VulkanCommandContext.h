@@ -8,7 +8,7 @@
 #include <runtime/function/rhi/vulkan/VulkanCommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanCommandContext : public CommandContext {
   public:
@@ -34,4 +34,4 @@ class VulkanCommandContext : public CommandContext {
     std::array<std::vector<std::unique_ptr<VulkanCommandList>>, 3> m_command_lists{};
     std::array<u32, 3> m_command_lists_count{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

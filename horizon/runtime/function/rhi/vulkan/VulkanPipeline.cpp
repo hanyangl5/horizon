@@ -1,7 +1,7 @@
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
@@ -416,4 +416,4 @@ void VulkanPipeline::CreatePipelineLayout() {
         vkCreatePipelineLayout(m_context.device, &pipeline_layout_create_info, nullptr, &m_pipeline_layout));
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

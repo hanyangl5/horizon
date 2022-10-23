@@ -1,5 +1,7 @@
 #include "TextureLoader.h"
 
+#include <unordered_map>
+
 #include <runtime/core/log/Log.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -8,18 +10,16 @@
 
 #include "ddspp.h"
 
-#define DDSKTX_IMPLEMENT
-#include "dds_ktx.h"
-
 namespace Horizon {
 
-TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format){
+TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format) {
     switch (format) {
     case ddspp::UNKNOWN:
         break;
     case ddspp::R32G32B32A32_TYPELESS:
         break;
     case ddspp::R32G32B32A32_FLOAT:
+        return TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT;
         break;
     case ddspp::R32G32B32A32_UINT:
         break;
@@ -36,8 +36,10 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format){
     case ddspp::R16G16B16A16_TYPELESS:
         break;
     case ddspp::R16G16B16A16_FLOAT:
+        return TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT;
         break;
     case ddspp::R16G16B16A16_UNORM:
+        return TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM;
         break;
     case ddspp::R16G16B16A16_UINT:
         break;
@@ -345,12 +347,13 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format){
     return {};
 }
 
-TextureDataInfo TextureLoader::Load(const std::filesystem::path &path) {
-    TextureDataInfo texture_info{};
+TextureDataDesc TextureLoader::Load(const std::filesystem::path &path) {
+    TextureDataDesc texture_info{};
     auto &extension = path.extension();
-    if (extension == "png") {
-
+    if (extension == ".png") {
+        LoadPNG(path, texture_info);
     } else if (extension == ".jpg" || extension == ".jpeg") {
+        LoadJPG(path, texture_info);
     } else if (extension == ".dds") {
         LoadDDS(path, texture_info);
 
@@ -361,22 +364,35 @@ TextureDataInfo TextureLoader::Load(const std::filesystem::path &path) {
     return texture_info;
 }
 
-void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureDataInfo &texture_info) {
-    int width, height, channels;
+void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+    int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
+    texture_info.layer_count = 1;
+    texture_info.raw_data = {data, data + texture_info.width * texture_info.height * 4};
+    texture_info.mipmap_count = 1;
+    texture_info.layer_count = 1;
+    stbi_image_free(data);
 }
-void TextureLoader::LoadHDR(const std::filesystem::path &path, TextureDataInfo &texture_info) {
-    int width, height, channels;
+void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+    int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
+    texture_info.layer_count = 1;
+    texture_info.raw_data = {data, data + texture_info.width * texture_info.height * 4};
+    texture_info.mipmap_count = 1;
+    texture_info.layer_count = 1;
+    stbi_image_free(data);
 }
+void TextureLoader::LoadHDR(const std::filesystem::path &path, TextureDataDesc &texture_info) {}
 
-void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataInfo &texture_info) {
+void TextureLoader::LoadKTX(const std::filesystem::path &path, TextureDataDesc &texture_info) {}
+
+void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &texture_info) {
 
     auto raw_data = ReadFile(path.string().c_str());
     if (raw_data.empty()) {
@@ -384,16 +400,30 @@ void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataInfo &
     }
 
     ddspp::Descriptor desc;
-    ddspp::decode_header(reinterpret_cast<unsigned char*> (raw_data.data()), desc);
+    ddspp::decode_header(reinterpret_cast<unsigned char *>(raw_data.data()), desc);
 
-    texture_info.array_size = desc.arraySize;
     texture_info.width = desc.width;
     texture_info.height = desc.height;
     texture_info.mipmap_count = desc.numMips;
-    texture_info.type = static_cast<TextureType>(desc.type);
 
+    texture_info.type = static_cast<TextureType>(desc.type);
+    texture_info.layer_count = desc.arraySize;
+    if (texture_info.type == TextureType::TEXTURE_TYPE_CUBE) {
+        texture_info.layer_count = 6;
+    } 
     texture_info.format = GetTextureFormatFromDXGIForamt(desc.format);
     raw_data = {raw_data.begin() + desc.headerSize, raw_data.end()};
-    texture_info.data.swap(raw_data);
+    texture_info.raw_data.swap(raw_data);
+
+    texture_info.data_offset_map.resize(6, std::vector<u32>(desc.numMips));
+
+    for (u32 layer = 0; layer < texture_info.layer_count; layer++) {
+        for (u32 mip = 0; mip < desc.numMips; mip++) {
+            texture_info.data_offset_map[layer][mip] = ddspp::get_offset(desc, mip, layer);
+        }
+    }
 }
+
+
+
 } // namespace Horizon

@@ -9,12 +9,12 @@
 
 namespace Horizon {
 
-using Buffer = RHI::Buffer;
-using Texture = RHI::Texture;
-using RenderTarget = RHI::RenderTarget;
-using Shader = RHI::Shader;
-using Pipeline = RHI::Pipeline;
-using CommandList = RHI::CommandList;
+using Buffer = Backend::Buffer;
+using Texture = Backend::Texture;
+using RenderTarget = Backend::RenderTarget;
+using Shader = Backend::Shader;
+using Pipeline = Backend::Pipeline;
+using CommandList = Backend::CommandList;
 
 class RenderSystem {
   public:
@@ -35,7 +35,7 @@ class RenderSystem {
 
     Camera *GetDebugCamera() const;
 
-    RHI::RHI *GetRhi() noexcept { return m_rhi.get(); }
+    Backend::RHI *GetRhi() noexcept { return m_rhi.get(); }
 
   private:
     void InitializeRenderAPI(RenderBackend backend);
@@ -43,6 +43,6 @@ class RenderSystem {
   private:
     Window *m_window{};
     Camera *m_debug_camera{};
-    std::unique_ptr<RHI::RHI> m_rhi{};
+    std::unique_ptr<Backend::RHI> m_rhi{};
 };
 } // namespace Horizon

@@ -8,6 +8,7 @@
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/DescriptorSet.h>
+#include <runtime/function/texture_loader/TextureLoader.h>
 
 namespace Horizon {
 
@@ -40,9 +41,8 @@ class MaterialTextureDescription {
     MaterialTextureDescription &operator=(MaterialTextureDescription &&rhs) noexcept { url = rhs.url; };
 
     std::filesystem::path url{};
-    u32 width{}, height{};
-    void *data{};
-    Resource<RHI::Texture> texture{};
+    Resource<Backend::Texture> texture{};
+    TextureDataDesc texture_data_desc{};
 };
 
 struct MaterialParams {
@@ -69,11 +69,11 @@ class Material {
     void InitDescriptorSet();
     void ResetDescriptorSet();
   public:
-    RHI::DescriptorSet* material_descriptor_set{};
+    Backend::DescriptorSet* material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
     MaterialParams material_params{};
     ShadingModel shading_model{ShadingModel::SHADING_MODEL_OPAQUE};
-    Resource<RHI::Buffer> param_buffer{};
+    Resource<Backend::Buffer> param_buffer{};
     //  Material* materials
 };
 } // namespace Horizon

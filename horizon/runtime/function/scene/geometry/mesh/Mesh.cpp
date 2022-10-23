@@ -4,7 +4,7 @@
 
 #include <meshoptimizer.h>
 
-#include <runtime/function/image_loader/image_loader.h>
+#include <runtime/function/texture_loader/TextureLoader.h>
 
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -23,11 +23,12 @@ Mesh::~Mesh() noexcept {
     for (auto &m : materials) {
         for (auto &[type, tex] : m.material_textures) {
             //stbi_image_free(tex.data);
+
         }
     }
 }
 
-void Mesh::CreateGpuResources(RHI::RHI *rhi) {
+void Mesh::CreateGpuResources(Backend::RHI *rhi) {
 
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = GetVerticesCount() * sizeof(Vertex);
@@ -57,74 +58,20 @@ void Mesh::CreateGpuResources(RHI::RHI *rhi) {
                 create_info.width = 1;
                 create_info.height = 1;
             } else {
-                create_info.width = tex.width;
-                create_info.height = tex.height;
+                create_info.width = tex.texture_data_desc.width;
+                create_info.height = tex.texture_data_desc.height;
             }
             create_info.depth = 1;
             create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
             create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
             create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            create_info.generate_mip_map = false;
+            create_info.enanble_mipmap = true;
             tex.texture = rhi->CreateTexture(create_info);
         }
         for (auto &[type, tex] : m.material_textures) {
         }
     }
-}
-
-void Mesh::GenerateMipMaps(RHI::Pipeline* pipeline, RHI::CommandList *compute) {
-
-    BarrierDesc acquire_barrier{};
-    BarrierDesc release_barrier{};
-    for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
-            if (tex.url == "")
-                continue;
-            TextureBarrierDesc tex_barrier{};
-            tex_barrier.texture = tex.texture.get();
-            tex_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-            tex_barrier.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-            tex_barrier.queue = CommandQueueType::TRANSFER;
-            tex_barrier.queue_op = QueueOp::ACQUIRE;
-            tex_barrier.first_mip_level = 0;
-            tex_barrier.mip_level_count = tex.texture.get()->mip_map_level;
-            acquire_barrier.texture_memory_barriers.push_back(tex_barrier);
-            
-        }
-    }
-    compute->InsertBarrier(acquire_barrier);
-
-    auto per_draw_ds = pipeline->GetDescriptorSet(ResourceUpdateFrequency::PER_DRAW);
-    for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
-            if (tex.url == "")
-                continue;
-            compute->BindDescriptorSets(pipeline, m.material_descriptor_set);
-            compute->Dispatch(tex.width, tex.height, 1);
-        }
-    }
-
-    for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
-            if (tex.url == "")
-                continue;
-            tex.texture = nullptr;
-
-            TextureBarrierDesc tex_barrier{};
-            tex_barrier.texture = tex.texture.get();
-            tex_barrier.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-            tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            tex_barrier.queue = CommandQueueType::GRAPHICS;
-            tex_barrier.queue_op = QueueOp::RELEASE;
-            tex_barrier.first_mip_level = 0;
-            tex_barrier.mip_level_count = tex.texture.get()->mip_map_level;
-            acquire_barrier.texture_memory_barriers.push_back(tex_barrier);
-        }
-    }
-    compute->InsertBarrier(release_barrier); // acquire
-
-
 }
 
 void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
@@ -221,22 +168,19 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         }
     }
 
-    ////// async load material textures
-    //auto &mats = this->materials;
-    //auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
-    //    for (int v = r.begin(); v < r.end(); v++) {
-    //        for (auto &[type, tex] : mats[v].material_textures) {
-    //            int width, height, channels;
-    //            u8 *data = stbi_load(tex.url.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    //            assert(("failed to load texture", data != nullptr));
-    //            tex.width = width;
-    //            tex.height = height;
-    //            tex.data = data;
-    //        }
-    //    }
-    //};
+    //// async load material textures
+    auto &mats = this->materials;
+    auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
+        for (int v = r.begin(); v < r.end(); v++) {
+            for (auto &[type, tex] : mats[v].material_textures) {
+                int width, height, channels;
+                tex.texture_data_desc = TextureLoader::Load(tex.url.string().c_str());
+            }
+        }
+    };
 
-    //tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
+    tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
+    int a = 5;
 }
 
 // TODO:
@@ -463,11 +407,11 @@ u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices
 
 u32 Mesh::GetIndicesCount() const noexcept { return static_cast<u32>(m_indices.size()); }
 
-RHI::Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get(); }
+Backend::Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get(); }
 
-RHI::Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
+Backend::Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
 
-void Mesh::UploadResources(RHI::CommandList *transfer) {
+void Mesh::UploadResources(Backend::CommandList *transfer) {
 
     // upload vertex and index buffer
     transfer->UpdateBuffer(m_vertex_buffer.get(), m_vertices.data(), m_vertex_buffer->m_size);
@@ -493,7 +437,7 @@ void Mesh::UploadResources(RHI::CommandList *transfer) {
                 // tex_barrier.queue = CommandQueueType::GRAPHICS;
                 // tex_barrier.queue_op = QueueOp::RELEASE;
                 TextureUpdateDesc desc{};
-                desc.data = tex.data;
+                desc.texture_data_desc = &tex.texture_data_desc;
                 transfer->UpdateTexture(tex.texture.get(), desc);
             }
             //barrier_desc.texture_memory_barriers.emplace_back(tex_barrier);

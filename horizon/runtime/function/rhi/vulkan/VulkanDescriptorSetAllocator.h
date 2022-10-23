@@ -15,7 +15,7 @@
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class Pipeline;
 class VulkanPipeline;
@@ -70,4 +70,4 @@ class VulkanDescriptorSetAllocator {
 
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

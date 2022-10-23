@@ -5,7 +5,7 @@
 namespace TEST {
 
 using namespace Horizon;
-using namespace Horizon::RHI;
+using namespace Horizon::Backend;
 
 class RHITest {
   public:

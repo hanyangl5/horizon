@@ -7,7 +7,7 @@
 #include <runtime/function/rhi/Sampler.h>
 #include <runtime/function/rhi/Texture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class DescriptorSet {
   public:
@@ -30,4 +30,4 @@ class DescriptorSet {
     ResourceUpdateFrequency update_frequency{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

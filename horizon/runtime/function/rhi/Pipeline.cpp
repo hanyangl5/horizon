@@ -4,7 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 Pipeline::Pipeline() noexcept {}
 
@@ -66,4 +66,4 @@ void Pipeline::ParseRootSignatureFromShader(Shader *shader) {
     }
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

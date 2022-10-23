@@ -3,7 +3,7 @@
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/SwapChain.h>
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanSwapChain : public SwapChain{
   public:
@@ -25,4 +25,4 @@ class VulkanSwapChain : public SwapChain{
     std::vector<VkImage> swap_chain_images{};
     std::vector<VkImageView> swap_chain_image_views{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

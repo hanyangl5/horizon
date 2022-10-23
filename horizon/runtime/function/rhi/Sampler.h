@@ -2,7 +2,7 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 class Sampler {
   public:
     Sampler() noexcept {};
@@ -16,4 +16,4 @@ class Sampler {
   public:
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend
