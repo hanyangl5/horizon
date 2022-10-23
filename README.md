@@ -50,7 +50,7 @@ open solution **Horizon** and build all solution.
 
 - Physically Based Rendering
 
-![](docs/figs/samples/pbr.png)
+![](docs/figs/samples/pbs.png)
 
 - GPU Instancing
 
