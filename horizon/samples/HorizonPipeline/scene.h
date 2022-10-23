@@ -24,4 +24,13 @@ class SceneData {
     std::vector<Light *> lights;
     std::vector<LightParams> lights_param_buffer;
     Resource<Buffer> light_buffer;
+
+    
+    // each mesh one draw call
+    std::vector<Resource<Buffer>> indirect_draw_command_buffers;
+    std::vector<std::vector<IndirectDrawCommand>> scene_indirect_draw_commands;
+
+    u32 draw_count = 0;
+    Resource<Buffer> indirect_draw_command_buffer1;
+    std::vector<IndirectDrawCommand> scene_indirect_draw_command1;
 };

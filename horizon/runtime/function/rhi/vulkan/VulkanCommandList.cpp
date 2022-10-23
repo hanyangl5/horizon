@@ -93,8 +93,8 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         color_attachment_info[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment_info[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         VkClearValue clear_value;
-        auto &cc = std::get<ClearValueColor>(begin_info.render_targets[i].clear_color);
-        clear_value.color = {cc.color.x, cc.color.y, cc.color.z, cc.color.w};
+        auto &cc = std::get<ClearColorValue>(begin_info.render_targets[i].clear_color);
+        memcpy(&clear_value.color, &cc, 4 * 4);
         color_attachment_info[i].clearValue = clear_value;
     }
 
@@ -159,6 +159,15 @@ void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u
 }
 
 void VulkanCommandList::DrawIndirect() {}
+
+void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) {
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect graphics "
+            "commandlist",
+            m_type == CommandQueueType::GRAPHICS));
+    vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count,
+                             stride);
+}
 
 // compute commands
 void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) {

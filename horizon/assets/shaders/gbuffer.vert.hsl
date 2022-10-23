@@ -24,6 +24,7 @@ STRUCT(VSOutput)
 	DATA(float3, normal, NORMAL);
 	DATA(float2, uv, TEXCOORD0);
 	DATA(float3, tangent, TANGENT);
+    DATA(FLAT(uint), instance_id, None);
 };
 
 VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
@@ -37,5 +38,6 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
     vsout.uv = vsin.uv0;
     vsout.tangent = vsin.tangent;
     vsout.tangent = normalize(mul(float4(vsin.tangent, 0.0), Get(model)).xyz);;
+    vsout.instance_id = InstanceID;
     RETURN(vsout);
 }

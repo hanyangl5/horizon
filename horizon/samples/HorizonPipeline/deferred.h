@@ -2,13 +2,18 @@
 
 #include "config.h"
 
+
 class DeferredData {
   public:
     DeferredData(Backend::RHI *rhi) noexcept;
     ~DeferredData() noexcept = default;
 
+    Shader *culling_cs;
+    Pipeline *culling_pass;
+    // visible mesh instance id
+    // // 
     // pass resources
-
+    
     GraphicsPipelineCreateInfo graphics_pass_ci{};
 
     Shader *geometry_vs, *geometry_ps;
@@ -32,6 +37,7 @@ class DeferredData {
     Resource<RenderTarget> gbuffer1;
     Resource<RenderTarget> gbuffer2;
     Resource<RenderTarget> gbuffer3;
+    Resource<RenderTarget> vbuffer0;
 
     Resource<RenderTarget> depth;
 
@@ -48,4 +54,5 @@ class DeferredData {
     Resource<Texture> brdf_lut;
 
     Resource<Sampler> ibl_sampler{};
+
 };

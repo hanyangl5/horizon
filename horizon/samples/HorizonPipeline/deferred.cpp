@@ -12,7 +12,8 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
                                                                   RenderTargetType::COLOR, _width, _height});
         gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                                                   RenderTargetType::COLOR, _width, _height});
-
+        vbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_UINT,
+                                                                  RenderTargetType::COLOR, _width, _height});
         depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                RenderTargetType::DEPTH_STENCIL, _width, _height});
 
@@ -77,10 +78,10 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
         graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
         graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
 
-        graphics_pass_ci.render_target_formats.color_attachment_count = 4;
+        graphics_pass_ci.render_target_formats.color_attachment_count = 5;
         graphics_pass_ci.render_target_formats.color_attachment_formats =
-            std::vector<TextureFormat>{gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format,
-                                       gbuffer2->GetTexture()->m_format, gbuffer3->GetTexture()->m_format};
+            std::vector<TextureFormat>{gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format, gbuffer2->GetTexture()->m_format,
+            gbuffer3->GetTexture()->m_format, vbuffer0->GetTexture()->m_format};
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 

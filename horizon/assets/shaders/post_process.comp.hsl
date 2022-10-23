@@ -1,4 +1,5 @@
 #include "include/postprocess/postprocess.h"
+#include "include/common/hash.hsl"
 RES(RWTex2D(float4), color_image, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
 RES(RWTex2D(float4), out_color_image, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
 
@@ -6,6 +7,8 @@ CBUFFER(exposure_constants, UPDATE_FREQ_PER_FRAME, b0, binding = 2)
 {
     DATA(float4, exposure_ev100__, None);
 };
+
+RES(RTex2D(uint2), vbuffer0, UPDATE_FREQ_PER_FRAME, t3, binding = 3);
 
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
@@ -20,7 +23,10 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     color.xyz = GammaCorrection(color.xyz);
 
+    uint2 v0  = LoadRWTex2D(Get(vbuffer0), threadID.xy).xy;
+    color.xyz = hash1to3(v0.y);
     Write2D(Get(out_color_image), threadID.xy, color);
+
 
     RETURN();
 }

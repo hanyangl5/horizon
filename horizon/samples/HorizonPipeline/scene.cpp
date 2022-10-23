@@ -73,4 +73,38 @@ SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
         meshes.push_back(mesh1);
         meshes.push_back(mesh2);
     }
+
+    
+
+    {
+
+        //scene_indirect_draw_commands.reserve(meshes.size());
+        //indirect_draw_command_buffers.reserve(meshes.size());
+        for (u32 i = 0; i < meshes.size(); i++) {
+            //indirect_draw_command_buffers.push_back(rhi->CreateBuffer(BufferCreateInfo{
+            //    DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+            //    sizeof(IndirectDrawCommand) * meshes[i]->m_mesh_primitives.size()}));
+            //scene_indirect_draw_commands[i].reserve(meshes[i]->m_mesh_primitives.size());
+            for (u32 j = 0; j < meshes[i]->m_mesh_primitives.size(); j++) {
+                draw_count++;
+                auto &primitive = meshes[i]->m_mesh_primitives[j];
+                IndirectDrawCommand command{};
+                command.index_count = primitive.index_count;
+                command.first_instance = primitive.index_offset;
+                command.vertex_offset = 0;
+                command.instance_count = 1;
+                command.first_instance = 0;
+                //scene_indirect_draw_commands[i].push_back(command);
+
+                //test
+                scene_indirect_draw_command1.push_back(command);
+            }
+        }
+    }
+
+    //test
+    indirect_draw_command_buffer1 = rhi->CreateBuffer(BufferCreateInfo{
+                DescriptorType::DESCRIPTOR_TYPE_INDIRECT_BUFFER, ResourceState::RESOURCE_STATE_INDIRECT_ARGUMENT,
+                sizeof(IndirectDrawCommand) * draw_count});
+
 }

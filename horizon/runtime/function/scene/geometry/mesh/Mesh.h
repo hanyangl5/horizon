@@ -87,6 +87,7 @@ class Mesh {
     std::vector<Material> &GetMaterials() noexcept { return materials; }
 
     void GenerateMipMaps(Backend::Pipeline *pipeline, Backend::CommandList *compute);
+
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 
@@ -98,6 +99,8 @@ class Mesh {
   private:
     u32 vertex_attribute_flag{};
     std::filesystem::path m_path{};
+
+  public:
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};

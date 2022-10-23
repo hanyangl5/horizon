@@ -129,6 +129,9 @@ void HorizonPipeline::run() {
                                    sizeof(scene->light_count) * 4);
             transfer->UpdateBuffer(scene->camera_buffer.get(), &scene->camera_ub, sizeof(SceneData::CameraUb));
 
+            transfer->UpdateBuffer(scene->indirect_draw_command_buffer1.get(), scene->scene_indirect_draw_command1.data(),
+                                   scene->scene_indirect_draw_command1.size() * sizeof(IndirectDrawCommand));
+
             // deferred data
             transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer.get(),
                                    &deferred->deferred_shading_constants, sizeof(deferred->deferred_shading_constants));
@@ -211,6 +214,9 @@ void HorizonPipeline::run() {
             }
             transfer->InsertBarrier(barrier);
 
+
+
+
             transfer->EndRecording();
 
             {
@@ -273,6 +279,8 @@ void HorizonPipeline::run() {
                 image_barriers.texture_memory_barriers.push_back(tb);
                 tb.texture = deferred->gbuffer3->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
+                tb.texture = deferred->vbuffer0->GetTexture();
+                image_barriers.texture_memory_barriers.push_back(tb);
                 tb.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb.texture = deferred->depth->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
@@ -282,13 +290,15 @@ void HorizonPipeline::run() {
             RenderPassBeginInfo begin_info{};
             begin_info.render_area = Rect{0, 0, _width, _height};
             begin_info.render_targets[0].data = deferred->gbuffer0.get();
-            begin_info.render_targets[0].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[0].clear_color = {};
             begin_info.render_targets[1].data = deferred->gbuffer1.get();
-            begin_info.render_targets[1].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[1].clear_color = {};
             begin_info.render_targets[2].data = deferred->gbuffer2.get();
-            begin_info.render_targets[2].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[2].clear_color = {};
             begin_info.render_targets[3].data = deferred->gbuffer3.get();
-            begin_info.render_targets[3].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[3].clear_color = {};
+            begin_info.render_targets[4].data = deferred->vbuffer0.get();
+            begin_info.render_targets[4].clear_color = {};
             begin_info.depth_stencil.data = deferred->depth.get();
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
 
@@ -320,6 +330,26 @@ void HorizonPipeline::run() {
                     }
                 }
             }
+
+
+            
+            //u32 draw_offset = 0;
+            //for (u32 m = 0; m < scene->meshes.size(); m++) {
+            //    auto &mesh = scene->meshes[m];
+            //    u32 offset = 0;
+            //    auto vb = mesh->GetVertexBuffer();
+            //    cl->BindVertexBuffers(1, &vb, &offset);
+            //    cl->BindIndexBuffer(mesh->GetIndexBuffer(), 0);
+            //    u32 count = mesh->m_mesh_primitives.size();
+            //    auto mat = Math::float4x4::Identity;
+            //    cl->BindPushConstant(deferred->geometry_pass, "root_constant_model_mat", &mat);
+            //    cl->BindDescriptorSets(deferred->geometry_pass, mesh->materials[0].material_descriptor_set);
+            //    cl->DrawIndirectIndexedInstanced(scene->indirect_draw_command_buffer1.get(),
+            //                                     sizeof(IndirectDrawCommand) * draw_offset, count,
+            //                                     sizeof(IndirectDrawCommand));
+            //    draw_offset += count;
+            //}
+
             cl->EndRenderPass();
 
             {
@@ -338,6 +368,10 @@ void HorizonPipeline::run() {
                 barrier.texture_memory_barriers.push_back(tb);
                 tb.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb.texture = deferred->depth->GetTexture();
+                barrier.texture_memory_barriers.push_back(tb);
+                tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
+                tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb.texture = deferred->vbuffer0->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
 
        
@@ -457,6 +491,7 @@ void HorizonPipeline::run() {
                 pp_ds->SetResource(deferred->shading_color_image.get(), "color_image");
                 pp_ds->SetResource(post_process->pp_color_image.get(), "out_color_image");
                 pp_ds->SetResource(post_process->exposure_constants_buffer.get(), "exposure_constants");
+                pp_ds->SetResource(deferred->vbuffer0->GetTexture(), "vbuffer0");
 
                 pp_ds->Update();
 

@@ -423,9 +423,11 @@ inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
     }
 }
 
-struct ClearValueColor {
-    Math::float4 color;
-};
+typedef union ClearColorValue {
+    f32 float32[4];
+    i32 int32[4];
+    u32 uint32[4];
+} ClearColorValue;
 
 struct ClearValueDepthStencil {
     f32 depth;
@@ -581,4 +583,12 @@ u32 GetBytesFromTextureFormat(TextureFormat format);
 
 static constexpr u32 MAX_MIP_LEVEL = 12;
 
+
+struct IndirectDrawCommand {
+    u32 index_count;
+    u32 instance_count = 1;
+    u32 first_index;
+    i32 vertex_offset;
+    u32 first_instance;
+};
 } // namespace Horizon
