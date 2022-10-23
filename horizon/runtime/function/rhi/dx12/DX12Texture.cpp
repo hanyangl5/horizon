@@ -1,6 +1,6 @@
 //#include <runtime/function/rhi/dx12/DX12Texture.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //DX12Texture::DX12Texture(D3D12MA::Allocator *allocator,
 //                         const TextureCreateInfo &texture_create_info) noexcept
@@ -34,4 +34,4 @@
 //
 //DX12Texture::~DX12Texture() noexcept { m_allocation->Release(); }
 //
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

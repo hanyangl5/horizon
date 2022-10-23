@@ -21,7 +21,7 @@
 #include <runtime/function/rhi/vulkan/VulkanSwapChain.h>
 
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class RHIVulkan : public RHI {
   public:
@@ -88,4 +88,4 @@ class RHIVulkan : public RHI {
     std::array<u32, 3> fence_index{};
 
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

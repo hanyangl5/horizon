@@ -69,24 +69,24 @@ class Mesh {
 
     u32 GetIndicesCount() const noexcept;
 
-    RHI::Buffer *GetVertexBuffer() noexcept;
+    Backend::Buffer *GetVertexBuffer() noexcept;
 
-    RHI::Buffer *GetIndexBuffer() noexcept;
+    Backend::Buffer *GetIndexBuffer() noexcept;
 
     // receive a recording command list
-    void UploadResources(RHI::CommandList *transfer);
+    void UploadResources(Backend::CommandList *transfer);
 
     const std::vector<Node> &GetNodes() const noexcept;
 
     // void GenerateMeshLet() noexcept;
 
-    void CreateGpuResources(RHI::RHI *rhi);
+    void CreateGpuResources(Backend::RHI *rhi);
 
     Material &GetMaterial(u32 index) noexcept { return materials[index]; }
 
     std::vector<Material> &GetMaterials() noexcept { return materials; }
 
-    void GenerateMipMaps(RHI::Pipeline *pipeline, RHI::CommandList *compute);
+    void GenerateMipMaps(Backend::Pipeline *pipeline, Backend::CommandList *compute);
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 
@@ -105,7 +105,7 @@ class Mesh {
     std::vector<Material> materials{};
 
     // gpu buffer
-    Resource<RHI::Buffer> m_vertex_buffer{}, m_index_buffer{};
+    Resource<Backend::Buffer> m_vertex_buffer{}, m_index_buffer{};
     // Material* materials
 };
 } // namespace Horizon

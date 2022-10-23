@@ -1,6 +1,6 @@
 #include "VulkanSampler.h"
 
-Horizon::RHI::VulkanSampler::VulkanSampler(const VulkanRendererContext &context, const SamplerDesc &desc) noexcept
+Horizon::Backend::VulkanSampler::VulkanSampler(const VulkanRendererContext &context, const SamplerDesc &desc) noexcept
     : m_context(context) {
 
     float minSamplerLod = 0;
@@ -29,9 +29,9 @@ Horizon::RHI::VulkanSampler::VulkanSampler(const VulkanRendererContext &context,
     vkCreateSampler(m_context.device, &sampler_create_info, nullptr, &m_sampler);
 }
 
-Horizon::RHI::VulkanSampler::~VulkanSampler() noexcept { vkDestroySampler(m_context.device, m_sampler, nullptr); }
+Horizon::Backend::VulkanSampler::~VulkanSampler() noexcept { vkDestroySampler(m_context.device, m_sampler, nullptr); }
 
-VkDescriptorImageInfo *Horizon::RHI::VulkanSampler::GetDescriptorImageInfo() noexcept {
+VkDescriptorImageInfo *Horizon::Backend::VulkanSampler::GetDescriptorImageInfo() noexcept {
     descriptor_image_info.sampler = m_sampler;
     return &descriptor_image_info;
 }

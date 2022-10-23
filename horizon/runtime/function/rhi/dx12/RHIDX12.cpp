@@ -1,7 +1,7 @@
 //#include <runtime/function/rhi/dx12/DX12Config.h>
 //#include <runtime/function/rhi/dx12/RHIDX12.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //RHIDX12::RHIDX12() noexcept {}
 //
@@ -202,4 +202,4 @@
 //        D3D12MA::CreateAllocator(&allocatorDesc, &m_dx12.d3dma_allocator));
 //}
 //
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

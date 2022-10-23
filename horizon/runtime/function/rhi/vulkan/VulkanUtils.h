@@ -56,4 +56,25 @@ VkPolygonMode ToVkPolygonMode(FillMode fill_mode) noexcept;
 
 VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept;
 
+inline VkImageViewType ToVkImageViewType(TextureType type) noexcept {
+    switch (type) {
+    case Horizon::TextureType::TEXTURE_TYPE_1D:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_1D;
+        break;
+    case Horizon::TextureType::TEXTURE_TYPE_2D:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+        break;
+    case Horizon::TextureType::TEXTURE_TYPE_3D:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_3D;
+
+        break;
+    case Horizon::TextureType::TEXTURE_TYPE_CUBE:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_CUBE;
+        break;
+    default:
+        assert(false);
+        return {};
+        break;
+    }
+}
 } // namespace Horizon

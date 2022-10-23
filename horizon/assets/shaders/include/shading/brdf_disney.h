@@ -64,6 +64,13 @@ float3 DiffuseBurley12(float3 albedo, float roughness, float LoH, float NoL, flo
     return albedo * _1DIVPI * f_theta_v * f_theta_l;
 }
 
+float3 DiffuseFrostbite14(float3 albedo, float roughness, float LoH, float NoL, float NoV) {
+
+    float linear_roughness = Pow2(roughness);
+    float energy_normalization = lerp(1.0, 1.0 / 1.51, linear_roughness);
+    return energy_normalization * DiffuseBurley12(albedo, roughness, LoH, NoL, NoV);
+}
+
 // Based on Hanrahan-Krueger brdf approximation of isotropic bssrdf
 // 1.25 scale is used to (roughly) preserve albedo
 // Fss90 used to "flatten" retroreflection based on roughness

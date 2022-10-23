@@ -3,7 +3,7 @@
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/RHIUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class Buffer {
   public:
@@ -18,4 +18,4 @@ class Buffer {
     ResourceState m_resource_state{};
     const u64 m_size{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

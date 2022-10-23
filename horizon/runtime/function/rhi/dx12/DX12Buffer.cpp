@@ -1,7 +1,7 @@
 //
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //DX12Buffer::DX12Buffer(D3D12MA::Allocator *allocator,
 //                       const BufferCreateInfo &buffer_create_info,
@@ -35,4 +35,4 @@
 //void *DX12Buffer::GetBufferPointer() noexcept {
 //    return m_allocation->GetResource();
 //}
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

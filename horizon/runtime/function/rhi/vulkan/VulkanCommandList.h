@@ -9,7 +9,7 @@
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanCommandList : public CommandList {
   public:
@@ -83,4 +83,4 @@ class VulkanCommandList : public CommandList {
     VkCommandBuffer m_command_buffer{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

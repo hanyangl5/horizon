@@ -8,7 +8,7 @@
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
 //#include <runtime/function/rhi/dx12/DX12CommandList.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //class DX12CommandContext : public CommandContext {
 //  public:
@@ -28,4 +28,4 @@
 //    std::array<std::vector<DX12CommandList *>, 3> m_command_lists{};
 //    std::array<u32, 3> m_command_lists_count{};
 //};
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

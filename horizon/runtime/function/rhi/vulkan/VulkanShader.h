@@ -7,7 +7,7 @@
 #include <d3d12shader.h>
 #include <dxc/dxcapi.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 class VulkanShader : public Shader {
   public:
     VulkanShader(const VulkanRendererContext &context, ShaderType type,
@@ -24,4 +24,4 @@ class VulkanShader : public Shader {
     std::vector<char> m_spirv_code{}; // TODO: remove this after generate push constant in rsd
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

@@ -9,7 +9,7 @@ namespace Horizon {
 enum QueueOp { IGNORED, RELEASE, ACQUIRE };
 
 struct BufferBarrierDesc {
-    RHI::Buffer *buffer{};
+    Backend::Buffer *buffer{};
     // u32 offset;
     // u64 size;
     // u32 src_access_mask, dst_access_mask;
@@ -20,12 +20,14 @@ struct BufferBarrierDesc {
 };
 
 struct TextureBarrierDesc {
-    RHI::Texture *texture;
+    Backend::Texture *texture;
     // MemoryAccessFlags src_access_mask, dst_access_mask;
     // TextureUsage src_usage, dst_usage; // transition image layout
     ResourceState src_state{}, dst_state{};
     u32 first_mip_level{};
     u32 mip_level_count{1};
+    u32 first_layer{};
+    u32 layer_count{1};
     // CommandQueueType src_queue, dst_queue;
     CommandQueueType queue; // only the other queue type is need
     QueueOp queue_op{QueueOp::IGNORED};

@@ -2,7 +2,7 @@
 
 #include <runtime/function/rhi/RHIUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 class Semaphore {
   public:
     Semaphore() noexcept {};
@@ -23,4 +23,4 @@ class Semaphore {
     u32 flags{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

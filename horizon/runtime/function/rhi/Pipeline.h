@@ -10,7 +10,7 @@
 #include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/Texture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class Pipeline {
   public:
@@ -41,4 +41,4 @@ class Pipeline {
     RootSignatureDesc rsd{};
     std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> vk_binding_count{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

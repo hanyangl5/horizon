@@ -10,7 +10,7 @@
 //
 //#include <D3D12MemAlloc.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //
 //class DX12CommandList : public CommandList {
 //  public:
@@ -55,4 +55,4 @@
 //    void *mapped_data{};
 //};
 //
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

@@ -7,7 +7,7 @@
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context, CommandQueueType type,
                                      VkCommandBuffer command_buffer) noexcept
@@ -297,8 +297,8 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
     VkDeviceSize texture_size =
-        texture->m_width * texture->m_height *
-        texture->m_byte_per_pixel; // channel * format, ex: pixelSize of rgba32f is 4 * 4, pixelSize of rg16f is 2 * 2
+        texture_data.size != 0 ? texture_data.size : texture_data.texture_data_desc->raw_data.size();
+
     if (!vk_texture->m_stage_buffer) {
 
         vk_texture->m_stage_buffer =
@@ -307,7 +307,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
                                                             ResourceState::RESOURCE_STATE_COPY_SOURCE, texture_size},
                                            MemoryFlag::CPU_VISABLE_MEMORY);
     }
-    memcpy(vk_texture->m_stage_buffer->m_allocation_info.pMappedData, texture_data.data,
+    memcpy(vk_texture->m_stage_buffer->m_allocation_info.pMappedData, texture_data.texture_data_desc->raw_data.data(),
            static_cast<u64>(texture_size));
 
     // barrier 1
@@ -318,7 +318,10 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         tmb.texture = texture;
         tmb.src_state = RESOURCE_STATE_UNDEFINED;
         tmb.dst_state = RESOURCE_STATE_COPY_DEST;
-
+        tmb.first_mip_level = texture_data.first_mip_level;
+        tmb.mip_level_count = texture_data.mip_level_count;
+        tmb.first_layer = texture_data.first_layer;
+        tmb.layer_count = texture_data.layer_count;
         // barrier for stage upload
         BufferBarrierDesc bmb{};
         bmb.buffer = vk_texture->m_stage_buffer.get();
@@ -332,19 +335,29 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
 
         InsertBarrier(desc);
     }
+    std::vector<VkBufferImageCopy> regions{};
 
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {texture->m_width, texture->m_height, texture->m_depth};
+    for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++) {
+
+        for (u32 mip = texture_data.first_mip_level; mip < texture_data.first_mip_level + texture_data.mip_level_count;
+             mip++) {
+            VkBufferImageCopy region{};
+            region.bufferOffset = !texture_data.texture_data_desc->data_offset_map.empty()
+                                      ? texture_data.texture_data_desc->data_offset_map[layer][mip]
+                                      : 0;
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = mip; // update level 0
+            region.imageSubresource.baseArrayLayer = layer;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = {0, 0, 0};
+            region.imageExtent = {texture->m_width >> mip, texture->m_height >> mip, texture->m_depth};
+            regions.push_back(region);
+        }
+    }
 
     // TODO : use CopyBufferToTexture
     vkCmdCopyBufferToImage(m_command_buffer, vk_texture->m_stage_buffer->m_buffer, vk_texture->m_image,
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<u32>(regions.size()), regions.data());
 }
 
 void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
@@ -434,8 +447,8 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
             barrier.subresourceRange.levelCount = barrier_desc.mip_level_count;
             // todo
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
+            barrier.subresourceRange.baseArrayLayer = barrier_desc.first_layer;
+            barrier.subresourceRange.layerCount = barrier_desc.layer_count;
             // barrier.subresourceRange.aspectMask =
             //     (VkImageAspectFlags)pTexture->mAspectMask;
 
@@ -602,4 +615,4 @@ Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(const BufferCreateInfo 
     return std::make_unique<VulkanBuffer>(m_context, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

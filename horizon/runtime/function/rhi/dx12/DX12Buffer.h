@@ -5,7 +5,7 @@
 //#include "stdafx.h"
 //#include <runtime/function/rhi/Buffer.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //class DX12Buffer : public Buffer {
 //  public:
 //    DX12Buffer(D3D12MA::Allocator *allocator,
@@ -18,4 +18,4 @@
 //    D3D12MA::Allocation *m_allocation{};
 //    D3D12MA::Allocator *m_allocator{};
 //};
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

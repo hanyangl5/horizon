@@ -6,7 +6,7 @@
 #include <runtime/function/rhi/ResourceCache.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept
     : m_context(context) {
@@ -178,4 +178,4 @@ VkDescriptorSetLayout VulkanDescriptorSetAllocator::GetVkDescriptorSetLayout(u64
     return m_descriptor_set_layout_map.at(key);
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

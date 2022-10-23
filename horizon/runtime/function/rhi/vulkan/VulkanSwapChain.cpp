@@ -8,7 +8,7 @@
 #include "VulkanSwapChain.h"
 #include "VulkanRenderTarget.h"
 
-Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &context,
+Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &context,
                                                const SwapChainCreateInfo &swap_chain_create_info,
                                                Window *window) noexcept
     : SwapChain(swap_chain_create_info, window), m_context(context) {
@@ -83,7 +83,7 @@ Horizon::RHI::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &cont
     }
 }
 
-Horizon::RHI::VulkanSwapChain::~VulkanSwapChain() noexcept {
+Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept {
 
 
     for (u32 i = 0; i < swap_chain_images.size(); i++) {
@@ -95,7 +95,7 @@ Horizon::RHI::VulkanSwapChain::~VulkanSwapChain() noexcept {
     vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
 }
 
-void Horizon::RHI::VulkanSwapChain::AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept {
+void Horizon::Backend::VulkanSwapChain::AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept {
 
 
 }

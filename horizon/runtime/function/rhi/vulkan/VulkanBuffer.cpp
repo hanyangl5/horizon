@@ -1,7 +1,7 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCreateInfo &buffer_create_info,
                            MemoryFlag memory_flag) noexcept
@@ -35,4 +35,4 @@ VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 si
     return &buffer_info;
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

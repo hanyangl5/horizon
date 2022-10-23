@@ -76,7 +76,11 @@ TEST_CASE_FIXTURE(Bench, "multithread mesh load benchmark") {
     LOG_INFO("spend {} ms to load {} meshes using tbb", dur, mesh_count);
 }
 
+TEST_CASE("image loader") {
+    auto data = Horizon::TextureLoader::Load("C:/FILES/horizon/horizon/assets/models/Art/Art/PBR/blue_tiles_01/2K/Albedo.dds");
 
+    
+}
 
 
 } // namespace TEST::SceneManagement

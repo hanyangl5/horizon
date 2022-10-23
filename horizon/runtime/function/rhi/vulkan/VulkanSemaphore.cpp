@@ -1,6 +1,6 @@
 #include "VulkanSemaphore.h"
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanSemaphore::VulkanSemaphore(const VulkanRendererContext &context) noexcept : m_context(context) {
     VkSemaphoreCreateInfo semaphore_create_info{};
@@ -39,4 +39,4 @@ u32 VulkanSemaphore::GetWaitStage() noexcept {
     return wait_flags;
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

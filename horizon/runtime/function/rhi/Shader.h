@@ -6,7 +6,7 @@
 #include <runtime/function/rhi/RHIUtils.h>
 
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 class Shader {
   public:
     Shader(ShaderType type, const std::filesystem::path &rsd_path) noexcept;
@@ -27,4 +27,4 @@ class Shader {
 
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

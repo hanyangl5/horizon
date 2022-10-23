@@ -5,7 +5,7 @@
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 class VulkanTexture : public Texture {
   public:
     VulkanTexture(const VulkanRendererContext& context, const TextureCreateInfo &buffer_create_info) noexcept;
@@ -24,4 +24,4 @@ class VulkanTexture : public Texture {
     Resource<VulkanBuffer> m_stage_buffer{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

@@ -6,7 +6,7 @@
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanRenderTarget : public RenderTarget {
   public:
@@ -22,4 +22,4 @@ class VulkanRenderTarget : public RenderTarget {
     const VulkanRendererContext &m_context{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

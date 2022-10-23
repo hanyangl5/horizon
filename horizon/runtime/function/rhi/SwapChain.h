@@ -7,7 +7,7 @@
 #include <runtime/function/rhi/RenderTarget.h>
 #include <runtime/function/rhi/Semaphore.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 struct SwapChainSemaphoreContext {
     // std::vector<Semaphore *> recycled_semaphores;
@@ -46,4 +46,4 @@ class SwapChain {
 
   protected:
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

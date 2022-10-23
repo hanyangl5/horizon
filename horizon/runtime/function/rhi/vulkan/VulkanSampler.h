@@ -6,7 +6,7 @@
 #include <runtime/function/rhi/Sampler.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class VulkanSampler : public Sampler {
   public:
@@ -25,4 +25,4 @@ class VulkanSampler : public Sampler {
     VkDescriptorImageInfo descriptor_image_info{};
 };
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

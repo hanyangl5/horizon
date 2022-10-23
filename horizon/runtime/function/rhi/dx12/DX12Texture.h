@@ -5,7 +5,7 @@
 //#include "stdafx.h"
 //#include <runtime/function/rhi/Texture.h>
 //
-//namespace Horizon::RHI {
+//namespace Horizon::Backend {
 //class DX12Texture : public Texture {
 //  public:
 //    DX12Texture(D3D12MA::Allocator *allocator,
@@ -16,4 +16,4 @@
 //    D3D12MA::Allocation *m_allocation{};
 //    D3D12MA::Allocator *m_allocator{};
 //};
-//} // namespace Horizon::RHI
+//} // namespace Horizon::Backend

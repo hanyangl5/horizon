@@ -3,7 +3,7 @@
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/RHIUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class CommandContext {
   public:
@@ -20,4 +20,4 @@ class CommandContext {
   protected:
   private:
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

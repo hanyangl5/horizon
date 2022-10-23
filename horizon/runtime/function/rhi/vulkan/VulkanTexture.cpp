@@ -1,7 +1,7 @@
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanUtils.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
                              const TextureCreateInfo &texture_create_info) noexcept
@@ -25,6 +25,11 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     image_create_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_create_info.arrayLayers = texture_create_info.array_layer;
+    if (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_CUBE) {
+        image_create_info.arrayLayers = 6;
+        image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    }
 
     VmaAllocationCreateInfo allocation_creat_info{};
     allocation_creat_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -38,14 +43,14 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
         VkImageViewCreateInfo image_view_create_info{};
         image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         image_view_create_info.image = m_image;
-        image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        image_view_create_info.viewType = ToVkImageViewType(texture_create_info.texture_type);
         image_view_create_info.format = ToVkImageFormat(texture_create_info.texture_format);
         image_view_create_info.subresourceRange = {};
         image_view_create_info.subresourceRange.aspectMask = ToVkAspectMaskFlags(image_view_create_info.format, false);
         image_view_create_info.subresourceRange.baseMipLevel = 0;
         image_view_create_info.subresourceRange.levelCount = mip_map_level;
         image_view_create_info.subresourceRange.baseArrayLayer = 0;
-        image_view_create_info.subresourceRange.layerCount = 1;
+        image_view_create_info.subresourceRange.layerCount = texture_create_info.array_layer;
 
         CHECK_VK_RESULT(vkCreateImageView(m_context.device, &image_view_create_info, nullptr, &m_image_view));
     }
@@ -68,4 +73,4 @@ VkDescriptorImageInfo *VulkanTexture::GetDescriptorImageInfo(DescriptorType desc
     return &descriptor_image_info;
 }
 
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend

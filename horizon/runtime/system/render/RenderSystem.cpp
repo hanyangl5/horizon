@@ -19,10 +19,10 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-        m_rhi = std::make_unique<RHI::RHIVulkan>(offscreen);
+        m_rhi = std::make_unique<Backend::RHIVulkan>(offscreen);
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_DX12:
-        // m_rhi = std::make_unique<RHI::RHIDX12>();
+        // m_rhi = std::make_unique<Backend::RHIDX12>();
         break;
     }
     m_rhi->InitializeRenderer();

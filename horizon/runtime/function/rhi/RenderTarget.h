@@ -3,7 +3,7 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/Texture.h>
 
-namespace Horizon::RHI {
+namespace Horizon::Backend {
 
 class RenderTarget {
   public:
@@ -20,4 +20,4 @@ class RenderTarget {
   public:
     Texture *m_texture{};
 };
-} // namespace Horizon::RHI
+} // namespace Horizon::Backend
