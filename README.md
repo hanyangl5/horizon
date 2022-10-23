@@ -57,10 +57,6 @@ open solution **Horizon** and build all solution.
 
 ![](docs/figs/samples/pbs.png)
 
-- GPU Instancing
-
-![](docs/figs/samples/gpuinstancing.png)
-
 - SSAO
   - ssao
   - gaussian blur
@@ -70,5 +66,4 @@ open solution **Horizon** and build all solution.
 - Precomputed Atmospheric Scattering
   - Eric Bruneton version
  
-![](docs/figs/samples/atmosphere2.png)
-![](docs/figs/samples/atmosphere1.png)
+![](docs/figs/samples/atmosphere.png)
