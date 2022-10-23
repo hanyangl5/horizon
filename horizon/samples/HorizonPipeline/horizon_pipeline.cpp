@@ -23,9 +23,9 @@ void HorizonPipeline::InitPipelineResources() {
         sampler_desc.min_filter = FilterType::FILTER_LINEAR;
         sampler_desc.mag_filter = FilterType::FILTER_LINEAR;
         sampler_desc.mip_map_mode = MipMapMode::MIPMAP_MODE_LINEAR;
-        sampler_desc.address_u = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_desc.address_u = AddressMode::ADDRESS_MODE_REPEAT;
+        sampler_desc.address_v = AddressMode::ADDRESS_MODE_REPEAT;
+        sampler_desc.address_w = AddressMode::ADDRESS_MODE_REPEAT;
 
         sampler = rhi->GetSampler(sampler_desc);
     }
@@ -432,6 +432,7 @@ void HorizonPipeline::run() {
                 shading_ds->SetResource(deferred->diffuse_irradiance_sh3_buffer.get(), "DiffuseIrradianceSH3");
                 shading_ds->SetResource(deferred->prefiltered_irradiance_env_map.get(), "specular_map");
                 shading_ds->SetResource(deferred->brdf_lut.get(), "specular_brdf_lut");
+                shading_ds->SetResource(deferred->ibl_sampler.get(), "ibl_sampler");
                 shading_ds->Update();
 
                 compute->BindPipeline(deferred->shading_pass);

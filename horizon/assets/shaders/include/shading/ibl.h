@@ -38,6 +38,6 @@ float3 IBL(float3 sh[9], float3 specular, float2 env, float3 normal, float NoV, 
     float3 f = fresnelSchlickRoughness(NoV, mat.f0, mat.roughness);
     float3 kd = (float3(1.0) - f) * (1.0 - mat.metallic);
     diffuse_color *= kd;
-    float3 ibl_color = specular_color;
+    float3 ibl_color = diffuse_color + specular_color;
     return ibl_color;
 }

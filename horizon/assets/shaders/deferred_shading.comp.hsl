@@ -43,6 +43,7 @@ CBUFFER(DiffuseIrradianceSH3, UPDATE_FREQ_PER_FRAME, b0, binding = 11)
 
 RES(TexCube(float4), specular_map, UPDATE_FREQ_PER_FRAME, t5, binding = 12);
 RES(Tex2D(float4), specular_brdf_lut, UPDATE_FREQ_PER_FRAME, t5, binding = 13);
+RES(SamplerState, ibl_sampler, UPDATE_FREQ_PER_FRAME, t5, binding = 14);
 
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
@@ -97,11 +98,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
   
     // indirect light
     float3 reflect_dir = normalize(2.0 * dot(n, v) * n - v);
-    float3 specular = SampleLvlTexCube(Get(specular_map), default_sampler, reflect_dir, mat.roughness * 8.0).xyz; // 256x256 at miplevel0
+    float3 specular = SampleLvlTexCube(Get(specular_map), ibl_sampler, reflect_dir, mat.roughness * 8.0).xyz; // 256x256 at miplevel0
     float2 ibl_uv = float2(mat.roughness, NoV);
-    float2 env = SampleTex2D(Get(specular_brdf_lut), default_sampler, ibl_uv).xy;
+    float2 env = SampleTex2D(Get(specular_brdf_lut), ibl_sampler, ibl_uv).xy;
     float3 ambient = IBL(Get(sh), specular, env, n, NoV, mat) * LoadRWTex2D(Get(ao_tex), threadID.xy).r * Get(ibl_intensity).x;
-    //radiance.xyz += ambient;
+    radiance.xyz += ambient;
     Write2D(Get(out_color), threadID.xy, radiance);
     RETURN();
 }
