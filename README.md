@@ -54,7 +54,8 @@ open solution **Horizon** and build all solution.
   - pbr shading with energy compensation
   - irradiance map and spherical harmonics
   - prefiltered irradiance enviroment map and split sum approximation
-
+  - (disney principled brdf)
+ 
 ![](docs/figs/samples/pbs.png)
 
 - SSAO
