@@ -1,0 +1,3 @@
+
+#define MAX_DRAW_COUNT 2048
+#define MAX_MATERIAL_COUNT 2048

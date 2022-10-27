@@ -49,25 +49,55 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
 
 DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) {
 
-    if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
-        m_descriptor_set_allocator.CreateDescriptorPool();
+    if (frequency == ResourceUpdateFrequency::BINDLESS) {
+    
+            if (!m_descriptor_set_allocator.m_bindless_descriptor_pool) {
+            m_descriptor_set_allocator.CreateBindlessDescriptorPool();
+        }
+
+        VkDescriptorSetAllocateInfo alloc_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        alloc_info.descriptorPool = m_descriptor_set_allocator.m_bindless_descriptor_pool;
+
+        alloc_info.descriptorSetCount = 1;
+        VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+            this->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
+        alloc_info.pSetLayouts = &layout;
+
+        VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info{
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT};
+        u32 max_binding = m_descriptor_set_allocator.k_max_bindless_resources - 1;
+        count_info.descriptorSetCount = 1;
+        // This number is the max allocatable count
+        count_info.pDescriptorCounts = &max_binding;
+        alloc_info.pNext = &count_info;
+        VkDescriptorSet vk_ds;
+        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
+        DescriptorSet *set =
+            new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+        m_descriptor_set_allocator.allocated_sets.push_back(set);
+        return set;
+    } else {
+
+        if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
+            m_descriptor_set_allocator.CreateDescriptorPool();
+        }
+
+        VkDescriptorSetAllocateInfo alloc_info{};
+        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+        VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+            this->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
+
+        alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
+        alloc_info.descriptorSetCount = 1;
+        alloc_info.pSetLayouts = &layout;
+        VkDescriptorSet vk_ds;
+        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
+        DescriptorSet *set =
+            new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+        m_descriptor_set_allocator.allocated_sets.push_back(set);
+        return set;
     }
-
-    VkDescriptorSetAllocateInfo alloc_info{};
-    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-
-    VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
-        this->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
-
-    alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
-    alloc_info.descriptorSetCount = 1;
-    alloc_info.pSetLayouts = &layout;
-    VkDescriptorSet vk_ds;
-    vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds);
-    DescriptorSet *set = new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
-    m_descriptor_set_allocator.allocated_sets.push_back(set);
-    return set;
-
     ////new VulkanDescriptorSet();
 
     //// m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
@@ -117,6 +147,9 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
     //return sets;
     //return {};
 }
+
+DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) { 
+    return {}; }
 
 void VulkanPipeline::CreateGraphicsPipeline() {
 

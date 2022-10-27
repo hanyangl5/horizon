@@ -16,7 +16,7 @@ namespace Horizon {
 // definations
 
 // descriptor set
-static constexpr u32 DESCRIPTOR_SET_UPDATE_FREQUENCIES = 4;
+static constexpr u32 DESCRIPTOR_SET_UPDATE_FREQUENCIES = 5;
 
 //static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
 
@@ -382,7 +382,7 @@ struct DrawParam {
     u32 firstInstance;
 };
 
-enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, USER_DEFINED0, USER_DEFINED1 };
+enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, BINDLESS, USER_DEFINED1 };
 
 struct DescriptorDesc {
     DescriptorType type{};

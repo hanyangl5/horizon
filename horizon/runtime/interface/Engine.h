@@ -8,7 +8,7 @@
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/interface/EngineConfig.h>
 
-#include <runtime/function/scene/scene_manager/SceneManager.h>
+#include <runtime/function/scene/asset_manager/SceneManager.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 

@@ -21,7 +21,6 @@ class VulkanShader : public Shader {
   public:
     const VulkanRendererContext &m_context{};
     VkShaderModule m_shader_module{};
-    std::vector<char> m_spirv_code{}; // TODO: remove this after generate push constant in rsd
 };
 
 } // namespace Horizon::Backend

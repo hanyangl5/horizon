@@ -152,7 +152,7 @@ def vulkan(hsl, dst):
     shader = getShader(hsl, dst)
 
     shader_src = getHeader(hsl)
-    shader_src += [ '#version 450 core\n', '#extension GL_GOOGLE_include_directive : require\nprecision highp float;\nprecision highp int;\n\n']
+    shader_src += [ '#version 460 core\n', '#extension GL_GOOGLE_include_directive : require\nprecision highp float;\nprecision highp int;\n\n']
     shader_src += ['#define STAGE_', shader.stage.name, '\n']
 
     if shader.enable_waveops:

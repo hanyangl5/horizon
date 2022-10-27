@@ -100,7 +100,7 @@ class Mesh {
     u32 vertex_attribute_flag{};
     std::filesystem::path m_path{};
 
-  public:
+  public: 
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};

@@ -19,60 +19,8 @@ using namespace Assimp;
 Mesh::Mesh(const MeshDesc &desc) noexcept { vertex_attribute_flag = desc.vertex_attribute_flag; }
 
 Mesh::~Mesh() noexcept {
-    // delete
-    for (auto &m : materials) {
-        for (auto &[type, tex] : m.material_textures) {
-            //stbi_image_free(tex.data);
-
-        }
-    }
 }
 
-void Mesh::CreateGpuResources(Backend::RHI *rhi) {
-
-    BufferCreateInfo vertex_buffer_create_info{};
-    vertex_buffer_create_info.size = GetVerticesCount() * sizeof(Vertex);
-    vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    m_vertex_buffer = rhi->CreateBuffer(vertex_buffer_create_info);
-
-    BufferCreateInfo index_buffer_create_info{};
-    index_buffer_create_info.size = GetIndicesCount() * sizeof(Index);
-    index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
-    index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-    m_index_buffer = rhi->CreateBuffer(index_buffer_create_info);
-
-    for (auto &m : materials) {
-
-        m.param_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                            sizeof(m.material_params)});
-        std::vector<MaterialTextureType> types{MaterialTextureType::BASE_COLOR, MaterialTextureType::NORMAL,
-                                               MaterialTextureType::METALLIC_ROUGHTNESS, MaterialTextureType::EMISSIVE, MaterialTextureType::ALPHA_MASK};
-        for (auto &type : types) {
-            auto &tex = m.material_textures[type];
-
-            TextureCreateInfo create_info{};
-
-            if (tex.url == "") {
-                create_info.width = 1;
-                create_info.height = 1;
-            } else {
-                create_info.width = tex.texture_data_desc.width;
-                create_info.height = tex.texture_data_desc.height;
-            }
-            create_info.depth = 1;
-            create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
-            create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
-            create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
-            create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            create_info.enanble_mipmap = true;
-            tex.texture = rhi->CreateTexture(create_info);
-        }
-        for (auto &[type, tex] : m.material_textures) {
-        }
-    }
-}
 
 void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
     if (!node) {
@@ -293,115 +241,6 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     assimp_importer.FreeScene();
 }
 
-void Mesh::LoadMesh(BasicGeometry::Shapes basic_geometry) {
-    switch (basic_geometry) {
-    case Horizon::BasicGeometry::Shapes::QUAD:
-        m_vertices = std::vector<Vertex>(BasicGeometry::quad_vertices.begin(), BasicGeometry::quad_vertices.end());
-        m_indices = std::vector<Index>(BasicGeometry::quad_indices.begin(), BasicGeometry::quad_indices.end());
-        break;
-    case Horizon::BasicGeometry::Shapes::TRIANGLE:
-        m_vertices =
-            std::vector<Vertex>(BasicGeometry::triangle_vertices.begin(), BasicGeometry::triangle_vertices.end());
-        m_indices = std::vector<Index>(BasicGeometry::triangle_indices.begin(), BasicGeometry::triangle_indices.end());
-        break;
-    case Horizon::BasicGeometry::Shapes::CUBE:
-        m_vertices = std::vector<Vertex>(BasicGeometry::cube_vertices.begin(), BasicGeometry::cube_vertices.end());
-
-        m_indices = std::vector<Index>(BasicGeometry::cube_indices.begin(), BasicGeometry::cube_indices.end());
-
-        break;
-    case Horizon::BasicGeometry::Shapes::SPHERE: {
-
-        //if (BasicGeometry::sphere_inited) {
-        //    m_vertices = BasicGeometry::sphere_vertices;
-        //    m_indices = BasicGeometry::sphere_indices;
-        //} else {
-        //    BasicGeometry::sphere_inited = true;
-
-        //    const unsigned int X_SEGMENTS = 64;
-        //    const unsigned int Y_SEGMENTS = 64;
-
-        //    std::vector<Math::float3> positions;
-        //    std::vector<Math::float3> normals;
-        //    std::vector<Math::float2> uv;
-
-        //    for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
-        //        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
-        //            float xSegment = (float)x / (float)X_SEGMENTS;
-        //            float ySegment = (float)y / (float)Y_SEGMENTS;
-        //            float xPos = std::cos(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
-        //            float yPos = std::cos(ySegment * Math::_PI);
-        //            float zPos = std::sin(xSegment * 2.0f * Math::_PI) * std::sin(ySegment * Math::_PI);
-
-        //            positions.push_back(Math::float3(xPos, yPos, zPos));
-        //            uv.push_back(Math::float2(xSegment, ySegment));
-        //            normals.push_back(Math::float3(xPos, yPos, zPos));
-        //        }
-        //    }
-
-        //    bool oddRow = false;
-        //    for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
-        //        if (!oddRow) // even rows: y == 0, y == 2; and so on
-        //        {
-        //            for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
-        //                BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
-        //                BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-        //            }
-        //        } else {
-        //            for (int x = X_SEGMENTS; x >= 0; --x) {
-        //                BasicGeometry::sphere_indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-        //                BasicGeometry::sphere_indices.push_back(y * (X_SEGMENTS + 1) + x);
-        //            }
-        //        }
-        //        oddRow = !oddRow;
-        //    }
-        //    u32 indexCount = static_cast<unsigned int>(m_indices.size());
-
-        //    std::vector<Vertex> data;
-        //    for (unsigned int i = 0; i < positions.size(); ++i) {
-
-        //        Vertex vertex{};
-        //        vertex.pos = {positions[i].x, positions[i].y, positions[i].z};
-
-        //        if (vertex_attribute_flag & VertexAttributeType::NORMAL && !normals.empty()) {
-
-        //            vertex.normal = {normals[i].x, normals[i].y, normals[i].z};
-        //        }
-        //        if (vertex_attribute_flag & VertexAttributeType::UV0 && !uv.empty()) {
-
-        //            vertex.uv0 = {uv[i].x, uv[i].y};
-        //        }
-        //        if (vertex_attribute_flag & VertexAttributeType::UV1) {
-        //        }
-        //        BasicGeometry::sphere_vertices.push_back(vertex);
-
-        //        m_vertices = BasicGeometry::sphere_vertices;
-        //        m_indices = BasicGeometry::sphere_indices;
-        //    }
-        //}
-    } break;
-    case Horizon::BasicGeometry::Shapes::CAPSULE:
-        // load from file
-        break;
-    default:
-        break;
-    }
-    MeshPrimitive m{};
-    m.index_count = static_cast<u32>(m_indices.size());
-    m.index_offset = 0;
-
-    m_mesh_primitives.push_back(std::move(m));
-
-    Node n{};
-    n.parent = 0;
-    n.mesh_primitives.emplace_back(&m_mesh_primitives[0]);
-    m_nodes.push_back(std::move(n));
-
-    materials.resize(1);
-    materials[0].material_params.base_color_factor = Math::float3(1.0, 1.0, 1.0);
-    materials[0].material_params.metallic_factor = 0.0;
-    materials[0].material_params.roughness_factor = 1.0;
-}
 
 u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices.size()); }
 
@@ -411,40 +250,6 @@ Backend::Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get()
 
 Backend::Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
 
-void Mesh::UploadResources(Backend::CommandList *transfer) {
-
-    // upload vertex and index buffer
-    transfer->UpdateBuffer(m_vertex_buffer.get(), m_vertices.data(), m_vertex_buffer->m_size);
-    transfer->UpdateBuffer(m_index_buffer.get(), m_indices.data(), m_index_buffer->m_size);
-
-    // upload textures
-    // insert barrier for texture for layout transition
-    BarrierDesc barrier_desc{};
-
-    for (auto &m : materials) {
-        transfer->UpdateBuffer(m.param_buffer.get(), &m.material_params, sizeof(m.material_params));
-
-        for (auto &[type, tex] : m.material_textures) {
-            // we don't upload empty texture, but have to transit image layout
-            TextureBarrierDesc tex_barrier{};
-            tex_barrier.texture = tex.texture.get();
-            if (tex.url == "") {
-                tex_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-                tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            } else {
-                tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
-                tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                // tex_barrier.queue = CommandQueueType::GRAPHICS;
-                // tex_barrier.queue_op = QueueOp::RELEASE;
-                TextureUpdateDesc desc{};
-                desc.texture_data_desc = &tex.texture_data_desc;
-                transfer->UpdateTexture(tex.texture.get(), desc);
-            }
-            //barrier_desc.texture_memory_barriers.emplace_back(tex_barrier);
-        }
-    }
-    //transfer->InsertBarrier(barrier_desc);
-}
 
 const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 

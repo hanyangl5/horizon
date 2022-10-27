@@ -89,9 +89,9 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
     }
 
     {
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/gbuffer.vert.hsl");
+        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/gbuffer1.vert.hsl");
 
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/gbuffer.frag.hsl");
+        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/gbuffer1.frag.hsl");
 
         shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/deferred_shading.comp.hsl");
     }

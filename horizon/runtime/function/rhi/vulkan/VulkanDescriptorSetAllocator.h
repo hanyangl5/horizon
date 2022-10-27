@@ -52,6 +52,7 @@ class VulkanDescriptorSetAllocator {
     void UpdateDescriptorPoolInfo(Pipeline *pipeline, const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &);
 
     void CreateDescriptorPool();
+    void CreateBindlessDescriptorPool();
 
     void CreateDescriptorSetLayout(VulkanPipeline *pipeline);
 
@@ -67,6 +68,12 @@ class VulkanDescriptorSetAllocator {
     std::vector<DescriptorSet *> allocated_sets{};
     std::vector<VkDescriptorPool> m_descriptor_pools{};
     VkDescriptorPool m_temp_descriptor_pool{};
+
+
+    // bindless
+    static constexpr u32 k_max_bindless_resources = 2048;
+
+    VkDescriptorPool m_bindless_descriptor_pool{};
 
 };
 
