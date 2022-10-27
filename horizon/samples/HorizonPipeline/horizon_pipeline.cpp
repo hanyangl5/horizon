@@ -75,54 +75,10 @@ void HorizonPipeline::run() {
 
             // upload textures, vertex/index buffer
             if (first_frame) {
-
-                // upload mesh
-                for (auto &mesh : scene->meshes) {
-                    mesh->UploadResources(transfer);
-                }
-                BarrierDesc barrier1{};
-
-                for (auto &mesh : scene->meshes) {
-                    for (auto &mat : mesh->GetMaterials()) {
-                        for (auto &[type, texture] : mat.material_textures) {
-                            TextureBarrierDesc mip_map_barrier{};
-                            mip_map_barrier.texture = texture.texture.get();
-                            mip_map_barrier.first_mip_level = 0;
-                            mip_map_barrier.mip_level_count = 1;
-                            mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                            mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                            barrier1.texture_memory_barriers.emplace_back(mip_map_barrier);
-                        }
-                    }
-                }
-
-                transfer->InsertBarrier(barrier1);
-
-                for (auto &mesh : scene->meshes) {
-                    for (auto &mat : mesh->GetMaterials()) {
-                        for (auto &[type, texture] : mat.material_textures) {
-                            transfer->GenerateMipMap(texture.texture.get(), true);
-                        }
-                    }
-                }
-                BarrierDesc barrier2{};
-                for (auto &mesh : scene->meshes) {
-                    for (auto &mat : mesh->GetMaterials()) {
-                        for (auto &[type, texture] : mat.material_textures) {
-                            TextureBarrierDesc mip_map_barrier{};
-                            mip_map_barrier.texture = texture.texture.get();
-                            mip_map_barrier.first_mip_level = 0;
-                            mip_map_barrier.mip_level_count = texture.texture->mip_map_level;
-                            mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                            mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                            barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);
-                        }
-                    }
-                }
-                transfer->InsertBarrier(barrier2);
+                scene->scene_manager->UploadMeshResources(transfer);
             }
-
             // scene data
+
             transfer->UpdateBuffer(scene->light_buffer.get(), scene->lights_param_buffer.data(),
                                    scene->lights_param_buffer.size() * sizeof(LightParams));
             transfer->UpdateBuffer(scene->light_count_buffer.get(), &scene->light_count,
@@ -172,8 +128,6 @@ void HorizonPipeline::run() {
                 }
             }
 
-
-            
             BarrierDesc barrier{};
             TextureBarrierDesc tb;
             // pass resources
@@ -226,32 +180,21 @@ void HorizonPipeline::run() {
 
         // perframe descriptor set
         geometry_pass_per_frame_ds->SetResource(scene->camera_buffer.get(), "CameraParamsUb");
+        geometry_pass_per_frame_ds->SetResource(scene->scene_manager->draw_parameter_buffer.get(), "per_draw_data");
+        geometry_pass_per_frame_ds->SetResource(scene->scene_manager->material_description_buffer.get(),
+                                                "material_descriptions");
+        geometry_pass_per_frame_ds->SetResource(sampler.get(), "default_sampler");
         geometry_pass_per_frame_ds->Update();
 
-        // material descriptor set
-        for (auto &mesh : scene->meshes) {
-            for (auto &material : mesh->GetMaterials()) {
-                if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
-                    material.material_descriptor_set =
-                        deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_BATCH);
-                    material.material_descriptor_set->SetResource(
-                        material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get(),
-                        "base_color_texture");
-                    material.material_descriptor_set->SetResource(
-                        material.material_textures.at(MaterialTextureType::NORMAL).texture.get(), "normal_texture");
-                    material.material_descriptor_set->SetResource(
-                        material.material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get(),
-                        "metallic_roughness_texture");
-                    material.material_descriptor_set->SetResource(
-                        material.material_textures.at(MaterialTextureType::EMISSIVE).texture.get(), "emissive_texture");
+        auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
+        std::vector<Texture *> material_textures{};
 
-                    material.material_descriptor_set->SetResource(sampler.get(), "default_sampler");
-                    material.material_descriptor_set->SetResource(material.param_buffer.get(), "MaterialParamsUb");
-                    material.material_descriptor_set->Update();
-                } else if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_MASKED) {
-                }
-            }
+        for (auto &tex : scene->scene_manager->textures) {
+            material_textures.push_back(tex.get());
         }
+
+        geometry_pass_bindless_ds->SetBindlessResource(material_textures, "material_textures");
+        geometry_pass_bindless_ds->Update();
         // geometry pass
 
         auto gp_semaphore = rhi->GetSemaphore();
@@ -273,6 +216,8 @@ void HorizonPipeline::run() {
                 image_barriers.texture_memory_barriers.push_back(tb);
                 tb.texture = deferred->gbuffer3->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
+                tb.texture = deferred->vbuffer0->GetTexture();
+                image_barriers.texture_memory_barriers.push_back(tb);
                 tb.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb.texture = deferred->depth->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
@@ -282,44 +227,41 @@ void HorizonPipeline::run() {
             RenderPassBeginInfo begin_info{};
             begin_info.render_area = Rect{0, 0, _width, _height};
             begin_info.render_targets[0].data = deferred->gbuffer0.get();
-            begin_info.render_targets[0].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[0].clear_color = {};
             begin_info.render_targets[1].data = deferred->gbuffer1.get();
-            begin_info.render_targets[1].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[1].clear_color = {};
             begin_info.render_targets[2].data = deferred->gbuffer2.get();
-            begin_info.render_targets[2].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[2].clear_color = {};
             begin_info.render_targets[3].data = deferred->gbuffer3.get();
-            begin_info.render_targets[3].clear_color = ClearValueColor{Math::float4(0.0)};
+            begin_info.render_targets[3].clear_color = {};
+            begin_info.render_targets[4].data = deferred->vbuffer0.get();
+            begin_info.render_targets[4].clear_color = {};
             begin_info.depth_stencil.data = deferred->depth.get();
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
 
             cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
+            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
 
             cl->BeginRenderPass(begin_info);
 
             cl->BindPipeline(deferred->geometry_pass);
-            for (auto &mesh : scene->meshes) {
+
+            u32 draw_offset = 0;
+
+            for (u32 mesh_data = 0; mesh_data < scene->scene_manager->mesh_data.size(); mesh_data++) {
+                auto &mesh = scene->scene_manager->mesh_data[mesh_data];
+                auto ib = scene->scene_manager->index_buffers[mesh.index_buffer_offset].get();
+                auto vb = scene->scene_manager->vertex_buffers[mesh.vertex_buffer_offset].get();
                 u32 offset = 0;
-                auto vb = mesh->GetVertexBuffer();
                 cl->BindVertexBuffers(1, &vb, &offset);
-                cl->BindIndexBuffer(mesh->GetIndexBuffer(), 0);
+                cl->BindIndexBuffer(ib, 0);
+                cl->BindPushConstant(deferred->geometry_pass, "DrawRootConstant", &mesh.draw_offset);
 
-                for (auto &node : mesh->GetNodes()) {
-                    if (node.mesh_primitives.empty()) {
-                        continue;
-                    }
-                    auto mat = node.GetModelMatrix().Transpose();
-                    cl->BindPushConstant(deferred->geometry_pass, "root_constant_model_mat", &mat);
-
-                    for (auto &m : node.mesh_primitives) {
-                        auto &material = mesh->GetMaterial(m->material_id);
-                        if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
-
-                            cl->BindDescriptorSets(deferred->geometry_pass, material.material_descriptor_set);
-                            cl->DrawIndexedInstanced(m->index_count, m->index_offset, 0);
-                        }
-                    }
-                }
+                cl->DrawIndirectIndexedInstanced(scene->scene_manager->indirect_draw_command_buffer1.get(),
+                                                 sizeof(IndirectDrawCommand) * mesh.draw_offset, mesh.draw_count,
+                                                 sizeof(IndirectDrawCommand));
             }
+
             cl->EndRenderPass();
 
             {
@@ -339,8 +281,11 @@ void HorizonPipeline::run() {
                 tb.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb.texture = deferred->depth->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
+                tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
+                tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                tb.texture = deferred->vbuffer0->GetTexture();
+                barrier.texture_memory_barriers.push_back(tb);
 
-       
                 cl->InsertBarrier(barrier);
             }
 
@@ -457,6 +402,7 @@ void HorizonPipeline::run() {
                 pp_ds->SetResource(deferred->shading_color_image.get(), "color_image");
                 pp_ds->SetResource(post_process->pp_color_image.get(), "out_color_image");
                 pp_ds->SetResource(post_process->exposure_constants_buffer.get(), "exposure_constants");
+                pp_ds->SetResource(deferred->vbuffer0->GetTexture(), "vbuffer0");
 
                 pp_ds->Update();
 

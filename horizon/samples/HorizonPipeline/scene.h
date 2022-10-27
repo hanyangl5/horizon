@@ -7,8 +7,6 @@ class SceneData {
     SceneData(Backend::RHI *rhi, Camera *camera) noexcept;
     ~SceneData() noexcept = default;
 
-    std::vector<Mesh *> meshes;
-
     Camera *cam;
     struct CameraUb {
         Math::float4x4 vp;
@@ -24,4 +22,7 @@ class SceneData {
     std::vector<Light *> lights;
     std::vector<LightParams> lights_param_buffer;
     Resource<Buffer> light_buffer;
+
+    std::unique_ptr<SceneManager> scene_manager{};
+
 };

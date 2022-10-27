@@ -18,7 +18,7 @@ namespace Horizon::Backend {
 
 struct RenderTargetInfo {
     RenderTarget *data{};
-    std::variant<ClearValueColor, ClearValueDepthStencil> clear_color{};
+    std::variant<ClearColorValue, ClearValueDepthStencil> clear_color{};
 };
 
 struct RenderPassBeginInfo {
@@ -48,7 +48,7 @@ class CommandList {
     virtual void DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count = 1,
                                       u32 first_instance = 0) = 0;
     virtual void DrawIndirect() = 0;
-
+    virtual void DrawIndirectIndexedInstanced(Buffer* buffer, u32 offset, u32 draw_count, u32 stride) = 0;
     virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) = 0;
     virtual void DispatchIndirect() = 0;
 
@@ -57,7 +57,7 @@ class CommandList {
     virtual void CopyBuffer(Buffer *dst_buffer, Buffer *src_buffer) = 0;
     virtual void CopyTexture(Texture *src_texture, Texture *dst_texture) = 0;
     // virtual void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) = 0;
-
+    
     virtual void InsertBarrier(const BarrierDesc &desc) = 0;
 
     virtual void BindPipeline(Pipeline *pipeline) = 0;

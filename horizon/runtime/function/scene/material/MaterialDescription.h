@@ -33,15 +33,8 @@ class MaterialTextureDescription {
     MaterialTextureDescription() noexcept = default;
     MaterialTextureDescription(const std::filesystem::path url) noexcept : url(url){};
 
-    ~MaterialTextureDescription() noexcept { texture = nullptr; }
-
-    MaterialTextureDescription(const MaterialTextureDescription &rhs) { url = rhs.url; };
-    MaterialTextureDescription &operator=(const MaterialTextureDescription &rhs) noexcept { url = rhs.url; };
-    MaterialTextureDescription(MaterialTextureDescription &&rhs) noexcept { url = rhs.url; };
-    MaterialTextureDescription &operator=(MaterialTextureDescription &&rhs) noexcept { url = rhs.url; };
-
+    ~MaterialTextureDescription() noexcept { }
     std::filesystem::path url{};
-    Resource<Backend::Texture> texture{};
     TextureDataDesc texture_data_desc{};
 };
 

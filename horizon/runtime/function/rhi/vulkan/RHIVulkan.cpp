@@ -195,9 +195,15 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
 void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
     PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
 
+    VkPhysicalDeviceShaderDrawParametersFeatures shader_draw_parameters_features{};
+    shader_draw_parameters_features.shaderDrawParameters = true;
+    shader_draw_parameters_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+
     VkPhysicalDeviceDynamicRenderingFeatures dyanmic_rendering_features{};
+
     dyanmic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
     dyanmic_rendering_features.dynamicRendering = true;
+    dyanmic_rendering_features.pNext = &shader_draw_parameters_features;
 
     VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
     descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
@@ -205,6 +211,7 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
     descriptor_indexing_features.runtimeDescriptorArray = VK_TRUE;
     descriptor_indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
     descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
 
     std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(m_vulkan.command_queues.size());
 

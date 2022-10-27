@@ -38,6 +38,8 @@ void Pipeline::ParseRootSignatureFromShader(Shader *shader) {
             freq = ResourceUpdateFrequency::PER_BATCH;
         } else if (frequency.key() == "UPDATE_FREQ_PER_DRAW") {
             freq = ResourceUpdateFrequency::PER_DRAW;
+        } else if (frequency.key() == "UPDATE_FREQ_BINDLESS") {
+            freq = ResourceUpdateFrequency::BINDLESS;
         } else {
             continue;
         }

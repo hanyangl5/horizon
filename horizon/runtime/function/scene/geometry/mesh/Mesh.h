@@ -42,7 +42,7 @@ struct Node {
     u32 parent{};
     Math::float4x4 model_matrix{};
     std::vector<u32> childs{};
-    std::vector<MeshPrimitive *> mesh_primitives{};
+    std::vector<u32> mesh_primitives{};
     const Math::float4x4 &GetModelMatrix() const { return model_matrix; }
 };
 
@@ -87,6 +87,7 @@ class Mesh {
     std::vector<Material> &GetMaterials() noexcept { return materials; }
 
     void GenerateMipMaps(Backend::Pipeline *pipeline, Backend::CommandList *compute);
+
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
 
@@ -98,12 +99,15 @@ class Mesh {
   private:
     u32 vertex_attribute_flag{};
     std::filesystem::path m_path{};
+
+  public: 
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};
     std::vector<Node> m_nodes{};
     std::vector<Material> materials{};
 
+    Math::float4x4 transform = Math::float4x4::Identity;
     // gpu buffer
     Resource<Backend::Buffer> m_vertex_buffer{}, m_index_buffer{};
     // Material* materials

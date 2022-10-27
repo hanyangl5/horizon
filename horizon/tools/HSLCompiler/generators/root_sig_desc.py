@@ -116,6 +116,7 @@ def generate_root_signature_description(text, out_path):
             assert (len(elements) == 5)
             [ds_type, name, freq, reg, binding] = elements
             binding = int(binding.split('=')[1])
+            name = name.split('[')[0]
             root_signature_desc.data[freq].append(
                 Descriptor(name, StrToDescriptorType(ds_type), binding,  reg))
 

@@ -29,24 +29,25 @@ class VulkanCommandList : public CommandList {
     virtual void BindIndexBuffer(Buffer *buffer, u32 offset) override;
 
     // graphics commands
-    virtual void BeginRenderPass(const RenderPassBeginInfo &begin_info) override;
-    virtual void EndRenderPass() override;
+    void BeginRenderPass(const RenderPassBeginInfo &begin_info) override;
+    void EndRenderPass() override;
 
-    virtual void DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count = 1,
+    void DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count = 1,
                                u32 first_instance = 0) override;
 
     virtual void DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count = 1,
                                       u32 first_instance = 0) override;
-    virtual void DrawIndirect() override;
+    void DrawIndirect() override;
+    void DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) override;
     // compute commands
     virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) override;
     virtual void DispatchIndirect() override;
 
-    virtual void UpdateBuffer(Buffer *buffer, void *data, u64 size) override;
+    void UpdateBuffer(Buffer *buffer, void *data, u64 size) override;
 
-    virtual void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) override;
+    void CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) override;
 
-    virtual void CopyTexture(Texture *src_texture, Texture *dst_texture) override;
+    void CopyTexture(Texture *src_texture, Texture *dst_texture) override;
 
     void CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer);
 

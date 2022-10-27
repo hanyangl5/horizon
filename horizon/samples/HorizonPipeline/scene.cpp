@@ -1,6 +1,7 @@
 #include "scene.h"
 
 SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
+
     // camera
     {
         cam = camera;
@@ -52,25 +53,32 @@ SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
                                                           sizeof(LightParams) * light_count});
     }
 
-    // mesh
-    {
-        auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                       VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        // mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
-        // mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-        mesh1->LoadMesh(asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-        mesh1->CreateGpuResources(rhi);
+    
+    scene_manager = std::make_unique<SceneManager>();
 
-        auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                       VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-        mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
-        // mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer
-        // Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
-        // mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-        // mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
-        mesh2->CreateGpuResources(rhi);
+    auto sphere = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                           asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
 
-        meshes.push_back(mesh1);
-        meshes.push_back(mesh2);
-    }
+    auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
+    sphere->transform = m;
+    scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                           asset_path / "models/Sponza/glTF/Sponza.gltf");
+
+
+    //auto busterDrone = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+    //                       asset_path / "models/Cauldron-Media/buster_drone/busterDrone.gltf");
+
+    //m = Math::float4x4::CreateTranslation(Math::float3(0.0, 5.0, 0.0));
+    //busterDrone->transform = m;
+    auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                           asset_path / "models/Cauldron-Media/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    m = Math::float4x4::CreateTranslation(Math::float3(5.0, 5.0, 0.0));
+    helmet->transform = m;
+
+
+    scene_manager->CreateMeshResources(rhi);
 }

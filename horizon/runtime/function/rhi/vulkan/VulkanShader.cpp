@@ -13,7 +13,6 @@ VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type
     shader_module_create_info.pCode = (uint32_t *)spirv_code.data();
     CHECK_VK_RESULT(vkCreateShaderModule(m_context.device, &shader_module_create_info, nullptr, &m_shader_module));
 
-    m_spirv_code.swap(spirv_code);
 }
 
 VulkanShader::~VulkanShader() noexcept {
