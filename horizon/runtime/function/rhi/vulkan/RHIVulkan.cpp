@@ -211,6 +211,7 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
     descriptor_indexing_features.runtimeDescriptorArray = VK_TRUE;
     descriptor_indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
     descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
 
     std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(m_vulkan.command_queues.size());
 

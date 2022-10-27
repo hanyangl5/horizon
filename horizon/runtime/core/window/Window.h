@@ -48,6 +48,6 @@ class Window {
   private:
     GLFWwindow *m_window;
     u32 width, height;
-    bool vsync_enabled = true;
+    bool vsync_enabled = false;
 };
 } // namespace Horizon

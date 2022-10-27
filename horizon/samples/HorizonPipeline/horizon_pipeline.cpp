@@ -76,163 +76,105 @@ void HorizonPipeline::run() {
             // upload textures, vertex/index buffer
             if (first_frame) {
                 scene->scene_manager->UploadMeshResources(transfer);
-                //    // upload mesh
-                //    for (auto &mesh : scene->meshes) {
-                //        mesh->UploadResources(transfer);
-                //    }
-                //    BarrierDesc barrier1{};
-
-                //    for (auto &mesh : scene->meshes) {
-                //        for (auto &mat : mesh->GetMaterials()) {
-                //            for (auto &[type, texture] : mat.material_textures) {
-                //                TextureBarrierDesc mip_map_barrier{};
-                //                mip_map_barrier.texture = texture.texture.get();
-                //                mip_map_barrier.first_mip_level = 0;
-                //                mip_map_barrier.mip_level_count = 1;
-                //                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                //                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                //                barrier1.texture_memory_barriers.emplace_back(mip_map_barrier);
-                //            }
-                //        }
-                //    }
-
-                //    transfer->InsertBarrier(barrier1);
-
-                //    for (auto &mesh : scene->meshes) {
-                //        for (auto &mat : mesh->GetMaterials()) {
-                //            for (auto &[type, texture] : mat.material_textures) {
-                //                transfer->GenerateMipMap(texture.texture.get(), true);
-                //            }
-                //        }
-                //    }
-                //    BarrierDesc barrier2{};
-                //    for (auto &mesh : scene->meshes) {
-                //        for (auto &mat : mesh->GetMaterials()) {
-                //            for (auto &[type, texture] : mat.material_textures) {
-                //                TextureBarrierDesc mip_map_barrier{};
-                //                mip_map_barrier.texture = texture.texture.get();
-                //                mip_map_barrier.first_mip_level = 0;
-                //                mip_map_barrier.mip_level_count = texture.texture->mip_map_level;
-                //                mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                //                mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                //                barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);
-                //            }
-                //        }
-                //    }
-                //    transfer->InsertBarrier(barrier2);
-                //}
             }
-                // scene data
-                
+            // scene data
 
-                transfer->UpdateBuffer(scene->light_buffer.get(), scene->lights_param_buffer.data(),
-                                       scene->lights_param_buffer.size() * sizeof(LightParams));
-                transfer->UpdateBuffer(scene->light_count_buffer.get(), &scene->light_count,
-                                       sizeof(scene->light_count) * 4);
-                transfer->UpdateBuffer(scene->camera_buffer.get(), &scene->camera_ub, sizeof(SceneData::CameraUb));
+            transfer->UpdateBuffer(scene->light_buffer.get(), scene->lights_param_buffer.data(),
+                                   scene->lights_param_buffer.size() * sizeof(LightParams));
+            transfer->UpdateBuffer(scene->light_count_buffer.get(), &scene->light_count,
+                                   sizeof(scene->light_count) * 4);
+            transfer->UpdateBuffer(scene->camera_buffer.get(), &scene->camera_ub, sizeof(SceneData::CameraUb));
 
-                // transfer->UpdateBuffer(scene->indirect_draw_command_buffer1.get(),
-                //                        scene->scene_indirect_draw_command1.data(),
-                //                        scene->scene_indirect_draw_command1.size() * sizeof(IndirectDrawCommand));
+            // deferred data
+            transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer.get(),
+                                   &deferred->deferred_shading_constants, sizeof(deferred->deferred_shading_constants));
+            // post process data
+            transfer->UpdateBuffer(post_process->exposure_constants_buffer.get(), &post_process->exposure_constants,
+                                   sizeof(PostProcessData::ExposureConstant));
+            transfer->UpdateBuffer(ssao->ssao_constants_buffer.get(), &ssao->ssao_constansts,
+                                   sizeof(SSAOData::SSAOConstant));
+            if (first_frame) {
 
-                // transfer->UpdateBuffer(scene->material_description_buffer.get(), scene->material_descs.data(),
-                //                        scene->material_descs.size() * sizeof(SceneData::MaterialDesc));
-
-                // transfer->UpdateBuffer(scene->draw_parameter_buffer.get(), scene->draw_params.data(),
-                //                        scene->draw_params.size() * sizeof(SceneData::DrawParameters));
-
-                // deferred data
-                transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer.get(),
-                                       &deferred->deferred_shading_constants,
-                                       sizeof(deferred->deferred_shading_constants));
-                // post process data
-                transfer->UpdateBuffer(post_process->exposure_constants_buffer.get(), &post_process->exposure_constants,
-                                       sizeof(PostProcessData::ExposureConstant));
-                transfer->UpdateBuffer(ssao->ssao_constants_buffer.get(), &ssao->ssao_constansts,
-                                       sizeof(SSAOData::SSAOConstant));
-                if (first_frame) {
-
-                    transfer->UpdateBuffer(deferred->diffuse_irradiance_sh3_buffer.get(),
-                                           &deferred->diffuse_irradiance_sh3_constants,
-                                           sizeof(deferred->diffuse_irradiance_sh3_constants));
-                    {
-                        TextureUpdateDesc desc{};
-                        desc.texture_data_desc = &ssao->ssao_noise_tex_data_desc;
-                        desc.size = GetBytesFromTextureFormat(ssao->ssao_noise_tex->m_format) *
-                                    SSAOData::SSAO_NOISE_TEX_WIDTH * SSAOData::SSAO_NOISE_TEX_HEIGHT; //
-                        transfer->UpdateTexture(ssao->ssao_noise_tex.get(), desc);
-                    }
-                    // prefilered_irradiance_env_ma
-                    {
-                        TextureUpdateDesc desc2{};
-                        desc2.first_layer = 0;
-                        desc2.layer_count = 6;
-                        desc2.first_mip_level = 0;
-                        desc2.mip_level_count = deferred->prefiltered_irradiance_env_map->mip_map_level;
-                        desc2.size = sizeof(char) * deferred->prefilered_irradiance_env_map_data.raw_data.size();
-                        desc2.texture_data_desc = &deferred->prefilered_irradiance_env_map_data;
-                        transfer->UpdateTexture(deferred->prefiltered_irradiance_env_map.get(), desc2);
-                    }
-                    {
-                        TextureUpdateDesc desc2{};
-                        desc2.first_layer = 0;
-                        desc2.layer_count = 1;
-                        desc2.first_mip_level = 0;
-                        desc2.mip_level_count = 1;
-                        desc2.size = sizeof(char) * deferred->brdf_lut_data_desc.raw_data.size();
-                        desc2.texture_data_desc = &deferred->brdf_lut_data_desc;
-                        transfer->UpdateTexture(deferred->brdf_lut.get(), desc2);
-                    }
-                }
-
-                BarrierDesc barrier{};
-                TextureBarrierDesc tb;
-                // pass resources
-                tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-                tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-
-                tb.texture = deferred->shading_color_image.get();
-                barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = post_process->pp_color_image.get();
-                barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = ssao->ssao_factor_image.get();
-                barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = ssao->ssao_blur_image.get();
-                barrier.texture_memory_barriers.push_back(tb);
-
-                // pass constants
-                if (first_frame) {
-                    tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                    tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                    tb.texture = ssao->ssao_noise_tex.get();
-                    barrier.texture_memory_barriers.push_back(tb);
-
-                    tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                    tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                    // brdf lut
-                    tb.texture = deferred->brdf_lut.get();
-                    barrier.texture_memory_barriers.push_back(tb);
-                    // pfem
-                    tb.texture = deferred->prefiltered_irradiance_env_map.get();
-                    tb.first_layer = 0;
-                    tb.first_mip_level = 0;
-                    tb.layer_count = 6;
-                    tb.mip_level_count = deferred->prefilered_irradiance_env_map_data.mipmap_count;
-                    barrier.texture_memory_barriers.push_back(tb);
-                }
-                transfer->InsertBarrier(barrier);
-
-                transfer->EndRecording();
-
+                transfer->UpdateBuffer(deferred->diffuse_irradiance_sh3_buffer.get(),
+                                       &deferred->diffuse_irradiance_sh3_constants,
+                                       sizeof(deferred->diffuse_irradiance_sh3_constants));
                 {
-                    QueueSubmitInfo submit_info{};
-                    submit_info.queue_type = CommandQueueType::GRAPHICS;
-                    submit_info.command_lists.push_back(transfer);
-                    submit_info.signal_semaphores.push_back(resource_uploaded_semaphore.get());
-                    rhi->SubmitCommandLists(submit_info);
+                    TextureUpdateDesc desc{};
+                    desc.texture_data_desc = &ssao->ssao_noise_tex_data_desc;
+                    desc.size = GetBytesFromTextureFormat(ssao->ssao_noise_tex->m_format) *
+                                SSAOData::SSAO_NOISE_TEX_WIDTH * SSAOData::SSAO_NOISE_TEX_HEIGHT; //
+                    transfer->UpdateTexture(ssao->ssao_noise_tex.get(), desc);
+                }
+                // prefilered_irradiance_env_ma
+                {
+                    TextureUpdateDesc desc2{};
+                    desc2.first_layer = 0;
+                    desc2.layer_count = 6;
+                    desc2.first_mip_level = 0;
+                    desc2.mip_level_count = deferred->prefiltered_irradiance_env_map->mip_map_level;
+                    desc2.size = sizeof(char) * deferred->prefilered_irradiance_env_map_data.raw_data.size();
+                    desc2.texture_data_desc = &deferred->prefilered_irradiance_env_map_data;
+                    transfer->UpdateTexture(deferred->prefiltered_irradiance_env_map.get(), desc2);
+                }
+                {
+                    TextureUpdateDesc desc2{};
+                    desc2.first_layer = 0;
+                    desc2.layer_count = 1;
+                    desc2.first_mip_level = 0;
+                    desc2.mip_level_count = 1;
+                    desc2.size = sizeof(char) * deferred->brdf_lut_data_desc.raw_data.size();
+                    desc2.texture_data_desc = &deferred->brdf_lut_data_desc;
+                    transfer->UpdateTexture(deferred->brdf_lut.get(), desc2);
                 }
             }
-        
+
+            BarrierDesc barrier{};
+            TextureBarrierDesc tb;
+            // pass resources
+            tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+            tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+
+            tb.texture = deferred->shading_color_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+            tb.texture = post_process->pp_color_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+            tb.texture = ssao->ssao_factor_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+            tb.texture = ssao->ssao_blur_image.get();
+            barrier.texture_memory_barriers.push_back(tb);
+
+            // pass constants
+            if (first_frame) {
+                tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                tb.texture = ssao->ssao_noise_tex.get();
+                barrier.texture_memory_barriers.push_back(tb);
+
+                tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                // brdf lut
+                tb.texture = deferred->brdf_lut.get();
+                barrier.texture_memory_barriers.push_back(tb);
+                // pfem
+                tb.texture = deferred->prefiltered_irradiance_env_map.get();
+                tb.first_layer = 0;
+                tb.first_mip_level = 0;
+                tb.layer_count = 6;
+                tb.mip_level_count = deferred->prefilered_irradiance_env_map_data.mipmap_count;
+                barrier.texture_memory_barriers.push_back(tb);
+            }
+            transfer->InsertBarrier(barrier);
+
+            transfer->EndRecording();
+
+            {
+                QueueSubmitInfo submit_info{};
+                submit_info.queue_type = CommandQueueType::GRAPHICS;
+                submit_info.command_lists.push_back(transfer);
+                submit_info.signal_semaphores.push_back(resource_uploaded_semaphore.get());
+                rhi->SubmitCommandLists(submit_info);
+            }
+        }
 
         auto geometry_pass_per_frame_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
@@ -244,29 +186,13 @@ void HorizonPipeline::run() {
         geometry_pass_per_frame_ds->SetResource(sampler.get(), "default_sampler");
         geometry_pass_per_frame_ds->Update();
 
-        
         auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
         std::vector<Texture *> material_textures{};
 
         for (auto &tex : scene->scene_manager->textures) {
             material_textures.push_back(tex.get());
         }
-        material_textures.push_back(ssao->ssao_noise_tex.get());
-        // material descriptor set
-        //for (auto &mesh : scene->meshes) {
-        //    for (auto &material : mesh->GetMaterials()) {
-        //        if (material.GetShadingModelID() == ShadingModel::SHADING_MODEL_OPAQUE) {
-        //            material_textures.push_back(
-        //                material.material_textures.at(MaterialTextureType::BASE_COLOR).texture.get());
-        //            material_textures.push_back(
-        //                material.material_textures.at(MaterialTextureType::NORMAL).texture.get());
-        //            material_textures.push_back(
-        //                material.material_textures.at(MaterialTextureType::METALLIC_ROUGHTNESS).texture.get());
-        //            material_textures.push_back(
-        //                material.material_textures.at(MaterialTextureType::EMISSIVE).texture.get());
-        //        }
-        //    }
-        //}
+
         geometry_pass_bindless_ds->SetBindlessResource(material_textures, "material_textures");
         geometry_pass_bindless_ds->Update();
         // geometry pass
@@ -329,7 +255,7 @@ void HorizonPipeline::run() {
                 u32 offset = 0;
                 cl->BindVertexBuffers(1, &vb, &offset);
                 cl->BindIndexBuffer(ib, 0);
-                cl->BindPushConstant(deferred->geometry_pass, "DrawRootConstant", &draw_offset);
+                cl->BindPushConstant(deferred->geometry_pass, "DrawRootConstant", &mesh.draw_offset);
 
                 cl->DrawIndirectIndexedInstanced(scene->scene_manager->indirect_draw_command_buffer1.get(),
                                                  sizeof(IndirectDrawCommand) * mesh.draw_offset, mesh.draw_count,
@@ -360,7 +286,6 @@ void HorizonPipeline::run() {
                 tb.texture = deferred->vbuffer0->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
 
-       
                 cl->InsertBarrier(barrier);
             }
 

@@ -81,43 +81,43 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
         LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
         return;
     }
-//    {
-//    auto &texture_descriptors = bindless_image_descriptors[resource_name];
-//
-//    for (auto &texture : resource) {
-//        auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
-//
-//        texture_descriptors.push_back(*vk_texture->GetDescriptorImageInfo(res->second.type));
-//    }
-//
-//    VkWriteDescriptorSet write{};
-//    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//    write.dstBinding = res->second.vk_binding;
-//    write.dstArrayElement = 0;
-//    write.descriptorType = write.descriptorType = util_to_vk_descriptor_type(res->second.type);
-//
-//    write.descriptorCount = static_cast<uint32_t>(resource.size());
-//    write.pBufferInfo = 0;
-//    write.dstSet = m_set;
-//    write.pImageInfo = texture_descriptors.data();
-//    writes.push_back(write);
-//}
-    u32 id = 0;
-    for (auto &tex : resource) {
-        auto vk_texture = reinterpret_cast<VulkanTexture *>(tex);
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstBinding = res->second.vk_binding;
-        write.dstArrayElement = id;
-        write.descriptorType = write.descriptorType = util_to_vk_descriptor_type(res->second.type);
+    {
+    auto &texture_descriptors = bindless_image_descriptors[resource_name];
 
-        write.descriptorCount = 1;
-        write.pBufferInfo = 0;
-        write.dstSet = m_set;
-        write.pImageInfo = vk_texture->GetDescriptorImageInfo(res->second.type);
-        writes.push_back(write);
-        id++;
+    for (auto &texture : resource) {
+        auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
+
+        texture_descriptors.push_back(*vk_texture->GetDescriptorImageInfo(res->second.type));
     }
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = res->second.vk_binding;
+    write.dstArrayElement = 0;
+    write.descriptorType = write.descriptorType = util_to_vk_descriptor_type(res->second.type);
+
+    write.descriptorCount = static_cast<uint32_t>(resource.size());
+    write.pBufferInfo = 0;
+    write.dstSet = m_set;
+    write.pImageInfo = texture_descriptors.data();
+    writes.push_back(write);
+}
+    //u32 id = 0;
+    //for (auto &tex : resource) {
+    //    auto vk_texture = reinterpret_cast<VulkanTexture *>(tex);
+    //    VkWriteDescriptorSet write{};
+    //    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    write.dstBinding = res->second.vk_binding;
+    //    write.dstArrayElement = id;
+    //    write.descriptorType = write.descriptorType = util_to_vk_descriptor_type(res->second.type);
+
+    //    write.descriptorCount = 1;
+    //    write.pBufferInfo = 0;
+    //    write.dstSet = m_set;
+    //    write.pImageInfo = vk_texture->GetDescriptorImageInfo(res->second.type);
+    //    writes.push_back(write);
+    //    id++;
+    //}
 
 }
 void VulkanDescriptorSet::SetBindlessResource(std::vector<Sampler *> &resource, const std::string &resource_name) {}

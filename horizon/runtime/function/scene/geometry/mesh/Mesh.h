@@ -42,7 +42,7 @@ struct Node {
     u32 parent{};
     Math::float4x4 model_matrix{};
     std::vector<u32> childs{};
-    std::vector<MeshPrimitive *> mesh_primitives{};
+    std::vector<u32> mesh_primitives{};
     const Math::float4x4 &GetModelMatrix() const { return model_matrix; }
 };
 
@@ -107,6 +107,7 @@ class Mesh {
     std::vector<Node> m_nodes{};
     std::vector<Material> materials{};
 
+    Math::float4x4 transform = Math::float4x4::Identity;
     // gpu buffer
     Resource<Backend::Buffer> m_vertex_buffer{}, m_index_buffer{};
     // Material* materials

@@ -1,7 +1,6 @@
 #include "scene.h"
 
 SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
-    scene_manager = std::make_unique<SceneManager>();
 
     // camera
     {
@@ -54,63 +53,32 @@ SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
                                                           sizeof(LightParams) * light_count});
     }
 
+    
+    scene_manager = std::make_unique<SceneManager>();
 
-    //scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-    //                       asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+    auto sphere = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                           asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+
+    auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
+    sphere->transform = m;
     scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                     VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
                            asset_path / "models/Sponza/glTF/Sponza.gltf");
-    
+
+
+    //auto busterDrone = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+    //                       asset_path / "models/Cauldron-Media/buster_drone/busterDrone.gltf");
+
+    //m = Math::float4x4::CreateTranslation(Math::float3(0.0, 5.0, 0.0));
+    //busterDrone->transform = m;
+    auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                           asset_path / "models/Cauldron-Media/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    m = Math::float4x4::CreateTranslation(Math::float3(5.0, 5.0, 0.0));
+    helmet->transform = m;
+
+
     scene_manager->CreateMeshResources(rhi);
-    //// mesh
-    //{
-    //    auto mesh1 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-    //                                   VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-    //    // mesh1->LoadMesh(asset_path / "models/FlightHelmet/glTF/FlightHelmet.gltf");
-    //    // mesh1->LoadMesh(asset_path / "models/DamagedHelmet/DamagedHelmet.gltf");
-    //    mesh1->LoadMesh(asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-    //    mesh1->CreateGpuResources(rhi);
-
-    //    auto mesh2 = new Mesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-    //                                   VertexAttributeType::UV0 | VertexAttributeType::TANGENT});
-    //    mesh2->LoadMesh(asset_path / "models/Sponza/glTF/Sponza.gltf");
-    //    // mesh2->LoadMesh("C://Users//hylu//OneDrive//Program//Computer
-    //    // Graphics//models//Main.1_Sponza//NewSponza_Main_glTF_002.gltf");
-    //    // mesh2->LoadMesh("C:/Users/hylu/Downloads/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/Cauldron-Media-6e7b1a5608f5f18ff4e38541eec147bc9099a759/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-    //    // mesh2->LoadMesh(asset_path / "models/dragon/untitled.gltf");
-    //    mesh2->CreateGpuResources(rhi);
-
-    //    meshes.push_back(mesh1);
-    //    meshes.push_back(mesh2);
-    //}
-
-    
-
-    {
-
-        // scene_indirect_draw_commands.reserve(meshes.size());
-        // indirect_draw_command_buffers.reserve(meshes.size());
-        // for (u32 i = 0; i < meshes.size(); i++) {
-        //     //indirect_draw_command_buffers.push_back(rhi->CreateBuffer(BufferCreateInfo{
-        //     //    DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-        //     //    sizeof(IndirectDrawCommand) * meshes[i]->m_mesh_primitives.size()}));
-        //     //scene_indirect_draw_commands[i].reserve(meshes[i]->m_mesh_primitives.size());
-        //     for (u32 j = 0; j < meshes[i]->m_mesh_primitives.size(); j++) {
-        //         draw_count++;
-        //         auto &primitive = meshes[i]->m_mesh_primitives[j];
-        //         IndirectDrawCommand command{};
-        //         command.index_count = primitive.index_count;
-        //         command.first_index = primitive.index_offset;
-        //         command.vertex_offset = 0;
-        //         command.instance_count = 1;
-        //         command.first_instance = 0;
-        //         //scene_indirect_draw_commands[i].push_back(command);
-
-        //        //test
-        //        scene_indirect_draw_command1.push_back(command);
-        //    }
-        //}
-    }
-
 }

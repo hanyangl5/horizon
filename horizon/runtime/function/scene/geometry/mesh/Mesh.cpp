@@ -35,7 +35,7 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
     n.mesh_primitives.resize(node->mNumMeshes);
 
     for (u32 i = 0; i < node->mNumMeshes; i++) {
-        n.mesh_primitives[i] = &m_mesh_primitives[node->mMeshes[i]];
+        n.mesh_primitives[i] = node->mMeshes[i];
     }
 
     n.childs.resize(node->mNumChildren);

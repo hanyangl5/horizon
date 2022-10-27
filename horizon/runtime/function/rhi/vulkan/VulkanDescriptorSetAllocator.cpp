@@ -101,21 +101,22 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
         bindings[bindless_freq].push_back(binding);
     }
 
-    // layout create info
-    VkDescriptorSetLayoutCreateInfo bindless_descriptorset_layout_create_info{};
-    bindless_descriptorset_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO; 
-    bindless_descriptorset_layout_create_info.bindingCount = static_cast<u32>(bindings[bindless_freq].size());
-    bindless_descriptorset_layout_create_info.pBindings = bindings[bindless_freq].data();
-    bindless_descriptorset_layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
 
     // binding flags
     VkDescriptorSetLayoutBindingFlagsCreateInfoEXT set_layout_binding_flags{};
     set_layout_binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
     set_layout_binding_flags.bindingCount = static_cast<u32>(bindings[bindless_freq].size());
-    std::vector<VkDescriptorBindingFlagsEXT> flags(bindings[bindless_freq].size(),
+    std::vector<VkDescriptorBindingFlags> flags(bindings[bindless_freq].size(),
                                                    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
     set_layout_binding_flags.pBindingFlags = flags.data();
 
+        // layout create info
+    VkDescriptorSetLayoutCreateInfo bindless_descriptorset_layout_create_info{};
+    bindless_descriptorset_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO; 
+    bindless_descriptorset_layout_create_info.bindingCount = static_cast<u32>(bindings[bindless_freq].size());
+    bindless_descriptorset_layout_create_info.pBindings = bindings[bindless_freq].data();
+    bindless_descriptorset_layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+    bindless_descriptorset_layout_create_info.pNext = &set_layout_binding_flags;
 
     u64 key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(bindless_descriptorset_layout_create_info);
 

@@ -17,7 +17,7 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : width(_wid
         glfwTerminate();
         LOG_ERROR("failed to init window");
     }
-
+    glfwMakeContextCurrent(m_window);
     glfwSwapInterval(vsync_enabled ? 1 : 0);
     LOG_DEBUG("vsync : {}", vsync_enabled); // TODO: vsync not working now
 }

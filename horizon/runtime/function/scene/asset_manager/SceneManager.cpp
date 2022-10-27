@@ -37,6 +37,21 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
         index_buffers.push_back(rhi->CreateBuffer(index_buffer_create_info));
         vertex_buffer_offset++;
         index_buffer_offset++;
+
+        // indirect draw command
+        for (auto &primitive : mesh->m_mesh_primitives) {
+            IndirectDrawCommand command{};
+            command.index_count = primitive.index_count;
+            command.first_index = primitive.index_offset;
+            command.vertex_offset = 0;
+            command.instance_count = 1;
+            command.first_instance = 0;
+            scene_indirect_draw_command1.push_back(command);
+            draw_params.push_back(DrawParameters{});
+            draw_params.back().material_index = primitive.material_id + material_offset;
+        }
+
+
         for (auto &material : mesh->materials) {
 
             MaterialDesc desc{};
@@ -94,35 +109,25 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
                                                                      ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                      sizeof(MaterialDesc) * material_descs.size()});
 
-    material_offset = 0;
+    //material_offset = 0;
+    u32 primitive_offset = 0;
     for (auto &mesh : meshes) {
+
         for (auto &node : mesh->GetNodes()) {
-            if (node.mesh_primitives.empty()) {
-                continue;
-            }
-            auto mat = node.GetModelMatrix().Transpose();
-            // model_matrices.push_back(mat);
+            
+            auto mat = (node.GetModelMatrix() * mesh->transform).Transpose();
+                
             for (auto &m : node.mesh_primitives) {
-                draw_params.push_back({mat, m->material_id + material_offset});
-
-                draw_count++;
-                auto &primitive = *m;
-                IndirectDrawCommand command{};
-                command.index_count = primitive.index_count;
-                command.first_index = primitive.index_offset;
-                command.vertex_offset = 0;
-                command.instance_count = 1;
-                command.first_instance = 0;
-                scene_indirect_draw_command1.push_back(command);
+                draw_params[primitive_offset + m].model_matrix = mat;
             }
+            
         }
-        material_offset += mesh->materials.size();
+        primitive_offset += mesh->m_mesh_primitives.size();
     }
-
     // test
     indirect_draw_command_buffer1 = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_INDIRECT_BUFFER,
                                                                        ResourceState::RESOURCE_STATE_INDIRECT_ARGUMENT,
-        sizeof(IndirectDrawCommand) * scene_indirect_draw_command1.size()});
+                                                                       sizeof(IndirectDrawCommand) * draw_offset});
 
     draw_parameter_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER,
                                                                ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
@@ -158,7 +163,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
         resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
     }
 
-    //commandlist->InsertBarrier(resource_upload_barrier);
+    // commandlist->InsertBarrier(resource_upload_barrier);
 
     BarrierDesc mip_barrier1{};
     for (u32 tex = 0; tex < textures.size(); tex++) {
