@@ -23,6 +23,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     color.xyz = GammaCorrection(color.xyz);
 
+    //uint2 v0  = LoadRWTex2D(Get(vbuffer0), threadID.xy).xy;
+    //color.xyz = hash1to3(v0.y);
     Write2D(Get(out_color_image), threadID.xy, color);
 
 

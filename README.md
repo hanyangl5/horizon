@@ -52,7 +52,7 @@ open solution **Horizon** and build all solution.
   - physical light unit
   - physical camera and exposure
   - pbr shading with energy compensation
-  - irradiance map and spherical harmonics
+  - diffuse irradiance with spherical harmonics
   - prefiltered irradiance enviroment map and split sum approximation
   - (disney principled brdf)
  
