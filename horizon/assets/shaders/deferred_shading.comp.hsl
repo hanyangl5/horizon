@@ -72,9 +72,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     float roughness = max(0.045f, gbuffer3.y);
 
     float alpha = gbuffer3.z;
-    // if (alpha != 1.0) {
-
-    // }
 
     mat.roughness = roughness;
     mat.roughness2 = Pow2(roughness);

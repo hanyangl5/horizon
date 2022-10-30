@@ -120,8 +120,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
 find_package(unofficial-nativefiledialog CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::nativefiledialog::nfd)
 
-find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
-target_include_directories(${PROJECT_NAME} PRIVATE ${CGLTF_INCLUDE_DIRS})
+# find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
+# target_include_directories(${PROJECT_NAME} PRIVATE ${CGLTF_INCLUDE_DIRS})
 
 # find_package(mimalloc CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME} PRIVATE mimalloc mimalloc-static)
