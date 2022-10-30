@@ -30,6 +30,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
         vertex_buffers.push_back(rhi->CreateBuffer(vertex_buffer_create_info));
+
         BufferCreateInfo index_buffer_create_info{};
         index_buffer_create_info.size = mesh->GetIndicesCount() * sizeof(Index);
         index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
@@ -50,7 +51,6 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
             draw_params.push_back(DrawParameters{});
             draw_params.back().material_index = primitive.material_id + material_offset;
         }
-
 
         for (auto &material : mesh->materials) {
 
@@ -98,6 +98,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
 
             material_offset++;
             desc.param_bitmask = material.material_params.param_bitmask;
+            desc.blend_state = static_cast<u32>(material.blend_state);
             desc.base_color = material.material_params.base_color_factor;
             desc.emissive = material.material_params.emmissive_factor;
             desc.metallic_roughness =
@@ -109,18 +110,17 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
                                                                      ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                      sizeof(MaterialDesc) * material_descs.size()});
 
-    //material_offset = 0;
+    // material_offset = 0;
     u32 primitive_offset = 0;
     for (auto &mesh : meshes) {
 
         for (auto &node : mesh->GetNodes()) {
-            
+
             auto mat = (node.GetModelMatrix() * mesh->transform).Transpose();
-                
+
             for (auto &m : node.mesh_primitives) {
                 draw_params[primitive_offset + m].model_matrix = mat;
             }
-            
         }
         primitive_offset += mesh->m_mesh_primitives.size();
     }
@@ -132,6 +132,10 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
     draw_parameter_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER,
                                                                ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                sizeof(DrawParameters) * draw_params.size()});
+
+    empty_vertex_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER,
+                                                             ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+                                                             1});
 }
 
 void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {

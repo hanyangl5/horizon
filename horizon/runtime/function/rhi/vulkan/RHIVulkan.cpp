@@ -47,13 +47,16 @@ void RHIVulkan::InitializeRenderer() {
 }
 
 Resource<Buffer> RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) {
-
     return std::make_unique<VulkanBuffer>(m_vulkan, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 }
+
+Buffer *RHIVulkan::CreateBuffer1(const BufferCreateInfo &buffer_create_info) { return nullptr; }
 
 Resource<Texture> RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) {
     return std::make_unique<VulkanTexture>(m_vulkan, texture_create_info);
 }
+
+Texture *RHIVulkan::CreateTexture1(const TextureCreateInfo &texture_create_info) { return nullptr; }
 
 Resource<RenderTarget> RHIVulkan::CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) {
     return std::make_unique<VulkanRenderTarget>(m_vulkan, render_target_create_info);

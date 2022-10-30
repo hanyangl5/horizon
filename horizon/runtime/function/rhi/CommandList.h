@@ -3,8 +3,6 @@
 #include <variant>
 
 #include <runtime/core/math/Math.h>
-#include <runtime/function/resource/IndexBuffer.h>
-#include <runtime/function/resource/VertexBuffer.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/Pipeline.h>
 #include <runtime/function/rhi/RHIUtils.h>

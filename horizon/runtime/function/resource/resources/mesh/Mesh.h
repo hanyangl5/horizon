@@ -7,23 +7,22 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/function/rhi/Buffer.h>
-#include <runtime/function/rhi/RHI.h>
-#include <runtime/function/rhi/Texture.h>
-#include <runtime/function/rhi/Semaphore.h>
 #include <runtime/function/rhi/Pipeline.h>
+#include <runtime/function/rhi/RHI.h>
+#include <runtime/function/rhi/Semaphore.h>
+#include <runtime/function/rhi/Texture.h>
 
 #include <runtime/function/scene/material/MaterialDescription.h>
 
-#include "BasicGeometry.h"
-#include "../vertex/VertexDescription.h"
 #include "../aabb/AABB.h"
+#include "../vertex/VertexDescription.h"
 
 namespace Horizon {
 
@@ -63,15 +62,13 @@ class Mesh {
 
     void LoadMesh(const std::filesystem::path &path);
 
-    void LoadMesh(BasicGeometry::Shapes basic_geometry);
-
     u32 GetVerticesCount() const noexcept;
 
     u32 GetIndicesCount() const noexcept;
 
-    Backend::Buffer *GetVertexBuffer() noexcept;
+    Buffer *GetVertexBuffer() noexcept;
 
-    Backend::Buffer *GetIndexBuffer() noexcept;
+    Buffer *GetIndexBuffer() noexcept;
 
     // receive a recording command list
     void UploadResources(Backend::CommandList *transfer);
@@ -95,12 +92,11 @@ class Mesh {
 
     void GenerateMeshCluster();
 
-
   private:
     u32 vertex_attribute_flag{};
     std::filesystem::path m_path{};
 
-  public: 
+  public:
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};
@@ -109,7 +105,30 @@ class Mesh {
 
     Math::float4x4 transform = Math::float4x4::Identity;
     // gpu buffer
-    Resource<Backend::Buffer> m_vertex_buffer{}, m_index_buffer{};
+    Resource<Buffer> m_vertex_buffer{}, m_index_buffer{};
+    u32 vertex_buffer_index;
+    u32 index_buffer_index;
     // Material* materials
 };
+
+// the smallest unit mesh to process loading, drawcall, material
+//class MeshFragment {
+//    u32 vertex_buffer_index;
+//    u32 index_buffer_index;
+//    u32 material_index;
+//};
+
+struct MeshFragmentResource {
+    std::vector<Vertex> vertices;
+    std::vector<Index> indices;
+    u32 material_index;
+    Math::float4x4 model_matrix;
+    AABB aabb;
+};
+
+struct HMesh {
+    std::vector<MeshFragmentResource> mesh_fragments;
+    std::vector<Material> load;
+};
+
 } // namespace Horizon

@@ -21,7 +21,8 @@
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/scene/geometry/mesh/Mesh.h>
+#include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/resource/resource_loader/mesh/MeshLoader.h>
 #include <runtime/function/scene/light/Light.h>
 
 #include <runtime/interface/Engine.h>

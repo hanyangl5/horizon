@@ -19,7 +19,7 @@ struct MaterialDescription {
     uint alpha_mask_texture_index;
     uint subsurface_scattering_texture_index;
     uint param_bitmask;
-    uint pad0;
+    uint blend_state;
     float3 base_color;
     float pad1;
     float3 emissive;
@@ -32,6 +32,11 @@ RES(Tex2D(float4), material_textures[], UPDATE_FREQ_BINDLESS, t3, binding = 0);
 RES(Buffer(MaterialDescription), material_descriptions[], UPDATE_FREQ_PER_FRAME, t3, binding = 3);
 
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 4);
+
+// PUSH_CONSTANT(ShadingModeID, b0)
+// {
+//     DATA(uint, shading_model_id, None);
+// }
 
 // per frame resources
 
@@ -76,7 +81,13 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
             ? pow(SampleTex2D(Get(material_textures)[material.base_color_texture_index], default_sampler, vsout.uv).xyz,
                   float3(2.2))
             : material.base_color;
-
+    float alpha =
+        material.blend_state != BLEND_STATE_OPAQUE
+            ? SampleLvlTex2D(Get(material_textures)[material.base_color_texture_index], default_sampler, vsout.uv, 0).w
+            : 1.0;
+    if(alpha < 0.5) {
+        discard; // correction of alpha channel mipmap
+    }
     float3 normal_map =
         has_normal != 0
             ? SampleTex2D(Get(material_textures)[material.normal_texture_index], default_sampler, vsout.uv).xyz
@@ -110,8 +121,8 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
     psout.gbuffer0 = float4(gbuffer_normal.x, gbuffer_normal.y, gbuffer_normal.z, asfloat(0));
     psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, 0.0);
     psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);
-    psout.gbuffer3 = float4(mr.y, mr.x, 1.0, 0.0);
+    psout.gbuffer3 = float4(mr.y, mr.x, alpha, 0.0);
     psout.vbuffer0 = uint2(vsout.instance_id, tri_id);
-
+    
     RETURN(psout);
 }

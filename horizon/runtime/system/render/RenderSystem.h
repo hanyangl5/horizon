@@ -9,13 +9,6 @@
 
 namespace Horizon {
 
-using Buffer = Backend::Buffer;
-using Texture = Backend::Texture;
-using RenderTarget = Backend::RenderTarget;
-using Shader = Backend::Shader;
-using Pipeline = Backend::Pipeline;
-using CommandList = Backend::CommandList;
-
 class RenderSystem {
   public:
     RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend, bool offscreen = false) noexcept;

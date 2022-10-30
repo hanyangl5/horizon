@@ -193,7 +193,13 @@ void HorizonPipeline::run() {
             material_textures.push_back(tex.get());
         }
 
+        std::vector<Buffer *> veretx_buffers{};
+        for (auto &vb : scene->scene_manager->vertex_buffers) {
+            veretx_buffers.push_back(vb.get());
+        }
+
         geometry_pass_bindless_ds->SetBindlessResource(material_textures, "material_textures");
+        //geometry_pass_bindless_ds->SetBindlessResource(veretx_buffers, "vertex_buffers");
         geometry_pass_bindless_ds->Update();
         // geometry pass
 

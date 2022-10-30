@@ -41,7 +41,7 @@ class VulkanDescriptorSet : public DescriptorSet {
     std::vector<VkWriteDescriptorSet> writes{};
     std::vector<VkDescriptorImageInfo> texture_descriptors{};
     std::unordered_map<std::string, std::vector<VkDescriptorImageInfo>> bindless_image_descriptors;
-    std::unordered_map<std::string, std::vector<VkDescriptorImageInfo>> bindless_buffer_descriptors;
+    std::unordered_map<std::string, std::vector<VkDescriptorBufferInfo>> bindless_buffer_descriptors;
     VkDescriptorSet m_set{};
 };
 } // namespace Horizon::Backend
