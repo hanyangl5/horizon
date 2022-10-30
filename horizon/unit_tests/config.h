@@ -18,7 +18,7 @@
 #include <runtime/core/window/Window.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/RHI.h>
-#include <runtime/function/scene/geometry/mesh/Mesh.h>
+#include <runtime/function/resource/mesh/Mesh.h>
 #include <runtime/interface/Engine.h>
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>

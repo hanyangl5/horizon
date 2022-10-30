@@ -8,7 +8,7 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/scene/camera/Camera.h>
-#include <runtime/function/scene/geometry/mesh/Mesh.h>
+#include <runtime/function/resource/resources/mesh/Mesh.h>
 #include <runtime/function/scene/light/Light.h>
 
 namespace Horizon {
@@ -35,7 +35,7 @@ struct MaterialDesc {
     u32 alpha_mask_texture_index;
     u32 subsurface_scattering_texture_index;
     u32 param_bitmask;
-    u32 pad0;
+    u32 blend_state;
     Math::float3 base_color;
     f32 pad1;
     Math::float3 emissive;
@@ -43,6 +43,7 @@ struct MaterialDesc {
     Math::float2 metallic_roughness;
     Math::float2 pad3;
 };
+
 class SceneManager {
   public:
     SceneManager() noexcept;
@@ -62,32 +63,32 @@ class SceneManager {
     // Light *AddSpotLight(Math::float3 color, f32 intensity, f32 inner_cone,
     //                     f32 outer_cone) noexcept;
     // Camera *SetMainCamera() noexcept;
-    void GetVertexBuffers(std::vector<Backend::Buffer *> &vertex_buffers, std::vector<u32> &offsets);
+    void GetVertexBuffers(std::vector<Buffer *> &vertex_buffers, std::vector<u32> &offsets);
 
   public:
     std::vector<Resource<Mesh>> meshes;
     std::vector<std::unique_ptr<Light>> lights;
     std::vector<TextureUpdateDesc> textuer_upload_desc{};
     std::vector<Resource<Backend::Texture>> textures;
-    std::vector<Resource<Backend::Buffer>> vertex_buffers;
-    std::vector<Resource<Backend::Buffer>> index_buffers;
+    std::vector<Resource<Buffer>> vertex_buffers;
+    std::vector<Resource<Buffer>> index_buffers;
 
     std::vector<DrawParameters> draw_params{};
     std::vector<MaterialDesc> material_descs{};
     std::vector<MeshData> mesh_data;
-    Resource<Backend::Buffer> draw_parameter_buffer{};
-    Resource<Backend::Buffer> material_description_buffer{};
+    Resource<Buffer> draw_parameter_buffer{};
+    Resource<Buffer> material_description_buffer{};
 
         
     // each mesh one draw call
-    //std::vector<Resource<Backend::Buffer>> indirect_draw_command_buffers;
+    //std::vector<Resource<Buffer>> indirect_draw_command_buffers;
     //std::vector<std::vector<IndirectDrawCommand>> scene_indirect_draw_commands;
 
     u32 draw_count = 0;
-    Resource<Backend::Buffer> indirect_draw_command_buffer1;
+    Resource<Buffer> indirect_draw_command_buffer1;
     std::vector<IndirectDrawCommand> scene_indirect_draw_command1;
     // std::unique_ptr<SceneManager> scene_manager;
-
+    Resource<Buffer> empty_vertex_buffer;
 
     // std::vector<Buffer *> buffers;
 };

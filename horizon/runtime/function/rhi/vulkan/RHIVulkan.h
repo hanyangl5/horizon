@@ -17,9 +17,8 @@
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
 #include <runtime/function/rhi/vulkan/VulkanDescriptorSetAllocator.h>
-#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 #include <runtime/function/rhi/vulkan/VulkanSwapChain.h>
-
+#include <runtime/function/rhi/vulkan/VulkanTexture.h>
 
 namespace Horizon::Backend {
 
@@ -36,14 +35,16 @@ class RHIVulkan : public RHI {
     void InitializeRenderer() override;
 
     Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
+    Buffer *CreateBuffer1(const BufferCreateInfo &buffer_create_info) override;
 
     Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) override;
+    Texture *CreateTexture1(const TextureCreateInfo &texture_create_info) override;
 
     Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) override;
 
-    Resource<SwapChain> CreateSwapChain(const SwapChainCreateInfo& create_info) override;
+    Resource<SwapChain> CreateSwapChain(const SwapChainCreateInfo &create_info) override;
 
-    Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path& file_name);
+    Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name);
 
     void DestroyShader(Shader *shader_program) override;
 
@@ -68,8 +69,9 @@ class RHIVulkan : public RHI {
     // submit command list to command queue
     void SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) override;
 
-    void Present(const QueuePresentInfo& quue_present_info) override;
-    void AcquireNextFrame(SwapChain* swap_chain) override;
+    void Present(const QueuePresentInfo &quue_present_info) override;
+    void AcquireNextFrame(SwapChain *swap_chain) override;
+
   private:
     void InitializeVulkanRenderer(const std::string &app_name);
     void CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
@@ -80,12 +82,12 @@ class RHIVulkan : public RHI {
     void CreateSyncObjects();
     void DestroySwapChain();
     VkFence GetFence(CommandQueueType type) noexcept;
+
   private:
     VulkanRendererContext m_vulkan{};
     SwapChainSemaphoreContext semaphore_ctx{};
     std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator{};
     std::array<std::vector<VkFence>, 3> fences{};
     std::array<u32, 3> fence_index{};
-
 };
 } // namespace Horizon::Backend

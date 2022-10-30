@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
+#include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
 #include <runtime/function/rhi/Buffer.h>
+#include <runtime/function/rhi/DescriptorSet.h>
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/Texture.h>
-#include <runtime/function/rhi/DescriptorSet.h>
-#include <runtime/function/texture_loader/TextureLoader.h>
 
 namespace Horizon {
 
@@ -20,11 +20,10 @@ enum MaterialParamFlags {
     HAS_ALPHA = 0x10000
 };
 
-enum class ShadingModel {
-    SHADING_MODEL_UNLIT,
-    SHADING_MODEL_OPAQUE,
-    SHADING_MODEL_MASKED
-};
+enum class BlendState { BLEND_STATE_OPAQUE, BLEND_STATE_MASKED, BLEND_STATE_TRANSPARENT };
+
+// each correspond a seperate pso/drawcall
+enum class ShadingModel { SHADING_MODEL_LIT, SHADING_MODEL_UNLIT, SHADING_MODEL_SUBSURFACE, SHADING_MODEL_TWO_SIDE };
 
 enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSIVE, ALPHA_MASK };
 
@@ -33,7 +32,7 @@ class MaterialTextureDescription {
     MaterialTextureDescription() noexcept = default;
     MaterialTextureDescription(const std::filesystem::path url) noexcept : url(url){};
 
-    ~MaterialTextureDescription() noexcept { }
+    ~MaterialTextureDescription() noexcept {}
     std::filesystem::path url{};
     TextureDataDesc texture_data_desc{};
 };
@@ -44,7 +43,7 @@ struct MaterialParams {
     Math::float3 emmissive_factor;
     f32 metallic_factor;
     u32 param_bitmask;
-    u32 shading_model_id, pad1, pad2;
+    u32 shading_model_id, two_side, pad;
 };
 
 class Material {
@@ -61,12 +60,14 @@ class Material {
 
     void InitDescriptorSet();
     void ResetDescriptorSet();
+
   public:
-    Backend::DescriptorSet* material_descriptor_set{};
+    Backend::DescriptorSet *material_descriptor_set{};
     std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
     MaterialParams material_params{};
-    ShadingModel shading_model{ShadingModel::SHADING_MODEL_OPAQUE};
-    Resource<Backend::Buffer> param_buffer{};
+    ShadingModel shading_model{ShadingModel::SHADING_MODEL_LIT};
+    BlendState blend_state{BlendState::BLEND_STATE_OPAQUE};
+    Resource<Buffer> param_buffer{};
     //  Material* materials
 };
 } // namespace Horizon

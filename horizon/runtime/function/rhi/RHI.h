@@ -53,8 +53,10 @@ class RHI {
     virtual void InitializeRenderer() = 0;
 
     virtual Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) = 0;
+    virtual Buffer *CreateBuffer1(const BufferCreateInfo &buffer_create_info) = 0;
 
     virtual Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) = 0;
+    virtual Texture *CreateTexture1(const TextureCreateInfo &texture_create_info) = 0;
 
     virtual Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) = 0;
 
@@ -98,3 +100,12 @@ class RHI {
 };
 
 } // namespace Horizon::Backend
+
+namespace Horizon {
+    using Buffer = Backend::Buffer;
+    using Texture = Backend::Texture;
+    using RenderTarget = Backend::RenderTarget;
+    using Shader = Backend::Shader;
+    using Pipeline = Backend::Pipeline;
+    using CommandList = Backend::CommandList;
+}

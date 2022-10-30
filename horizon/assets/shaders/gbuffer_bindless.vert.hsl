@@ -23,7 +23,6 @@ STRUCT(PerDrawData)
 
 RES(Buffer(PerDrawData), per_draw_data, UPDATE_FREQ_PER_FRAME, t3, binding = 1);
 
-
 STRUCT(VSInput)
 {
 	DATA(float3, position, POSITION);
@@ -32,6 +31,15 @@ STRUCT(VSInput)
 	DATA(float2, uv1, UV1);
 	DATA(float3, tangent, TANGENT);
 };
+
+// // 52bytes vertex layout
+
+// STRUCT(PackedVsInput)
+// {
+// 	DATA(float, packed[VERETX_LAYOUT_STRIDE], None);
+// };
+
+// RES(Buffer(PackedVsInput), vertex_buffers[], UPDATE_FREQ_BINDLESS, t3, binding = 2);
 
 STRUCT(VSOutput)
 {
@@ -46,7 +54,7 @@ STRUCT(VSOutput)
 #endif
 };
 
-VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
+VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint) vertex_id)
 {
     INIT_MAIN;
     VSOutput vsout;
@@ -57,6 +65,13 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID )
     mesh_id += Get(mesh_id_offset);
     float4x4 model = Get(per_draw_data)[mesh_id].model_matrix;
 
+    // float vbp[VERETX_LAYOUT_STRIDE] = Get(vertex_buffers)[0][mesh_id + vertex_id].packed;
+    // vsin.position = GetVertexPositionFromPackedVertexBuffer(vbp);
+    // vsin.normal = GetVertexNormalFromPackedVertexBuffer(vbp);
+    // vsin.uv0 = GetVertexUv0FromPackedVertexBuffer(vbp);
+    // vsin.uv1 = GetVertexUv1FromPackedVertexBuffer(vbp);
+    // vsin.tangent = GetVertexTangentFromPackedVertexBuffer(vbp);
+    
     vsout.position = mul(float4(vsin.position, 1.0), mul(model, Get(vp))); // column major
     vsout.world_pos = mul(float4(vsin.position, 1.0), model).xyz;
     //transpose(inverse(model)

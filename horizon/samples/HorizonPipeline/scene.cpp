@@ -56,28 +56,26 @@ SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
     
     scene_manager = std::make_unique<SceneManager>();
 
-    auto sphere = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-                           asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+    //auto sphere = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+    //                       asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
 
-    auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
-    sphere->transform = m;
+    //MeshLoader::Load(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+    //                       asset_path / "models/Sponza/glTF/Sponza.gltf");
+
+    //auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
+    //sphere->transform = m;
     scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                     VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
                            asset_path / "models/Sponza/glTF/Sponza.gltf");
 
 
-    //auto busterDrone = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+    //auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
     //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-    //                       asset_path / "models/Cauldron-Media/buster_drone/busterDrone.gltf");
-
-    //m = Math::float4x4::CreateTranslation(Math::float3(0.0, 5.0, 0.0));
-    //busterDrone->transform = m;
-    auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-                           asset_path / "models/Cauldron-Media/DamagedHelmet/glTF/DamagedHelmet.gltf");
-    m = Math::float4x4::CreateTranslation(Math::float3(5.0, 5.0, 0.0));
-    helmet->transform = m;
+    //                       asset_path / "models/Cauldron-Media/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    //m = Math::float4x4::CreateTranslation(Math::float3(5.0, 5.0, 0.0));
+    //helmet->transform = m;
 
 
     scene_manager->CreateMeshResources(rhi);

@@ -4,10 +4,11 @@
 
 #include <meshoptimizer.h>
 
-#include <runtime/function/texture_loader/TextureLoader.h>
+#include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
 
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <assimp/pbrmaterial.h>
 
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/RHI.h>
@@ -18,9 +19,7 @@ using namespace Assimp;
 
 Mesh::Mesh(const MeshDesc &desc) noexcept { vertex_attribute_flag = desc.vertex_attribute_flag; }
 
-Mesh::~Mesh() noexcept {
-}
-
+Mesh::~Mesh() noexcept {}
 
 void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
     if (!node) {
@@ -58,11 +57,34 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
     for (u32 i = 0; i < scene->mNumMaterials; i++) {
 
-        aiShadingMode shadingMode;
-        scene->mMaterials[i]->Get(AI_MATKEY_SHADING_MODEL, shadingMode);
-        //if (shadingMode != aiShadingMode::aiShadingMode_PBR_BRDF) {
-        //    LOG_ERROR("FIXME: not pbr material")
-        //}
+        
+        bool unlit;
+        scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
+        if (unlit == true) {
+            materials[i].shading_model = ShadingModel::SHADING_MODEL_UNLIT;
+        }
+        // shading model
+        bool two_side;
+        scene->mMaterials[i]->Get(AI_MATKEY_TWOSIDED, two_side);
+        if (two_side == true) {
+            materials[i].shading_model = ShadingModel::SHADING_MODEL_TWO_SIDE;
+        }
+        // blend state
+
+        aiString alphaMode;
+        scene->mMaterials[i]->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
+        if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
+            materials[i].blend_state = BlendState::BLEND_STATE_TRANSPARENT;
+        } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
+            materials[i].blend_state = BlendState::BLEND_STATE_MASKED;
+            // float maskThreshold = 0.5;
+            // material->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
+            // matConfig.maskThreshold = maskThreshold;
+        } else if (strcmp(alphaMode.C_Str(), "OPAQUE") == 0) {
+            materials[i].blend_state = BlendState::BLEND_STATE_OPAQUE;
+        }
+        
+
         aiString temp_path;
 
         // base color textures
@@ -93,27 +115,16 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
             materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
-
-         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
-             ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
-             assert(ret == aiReturn_SUCCESS);
-             std::filesystem::path abs_path = m_path.parent_path();
-             abs_path /= temp_path.C_Str();
-             materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
-             materials[i].material_params.param_bitmask |= HAS_EMISSIVE;
-         }
-
-        // alpha mask
-        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_OPACITY);
-             t++) {
-             ret = scene->mMaterials[i]->GetTexture(aiTextureType_OPACITY, t, &temp_path);
+        
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
+            ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.emplace(MaterialTextureType::ALPHA_MASK, abs_path);
-            materials[i].material_params.param_bitmask |= HAS_ALPHA;
-            materials[i].shading_model = ShadingModel::SHADING_MODEL_MASKED;
+            materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
+            materials[i].material_params.param_bitmask |= HAS_EMISSIVE;
         }
+
     }
 
     //// async load material textures
@@ -168,9 +179,9 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
-    const aiScene *scene =
-        assimp_importer.ReadFile(path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-                                                            aiProcess_GenSmoothNormals | aiProcess_FlipUVs |aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
+    const aiScene *scene = assimp_importer.ReadFile(
+        path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                                   aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -198,9 +209,9 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
             if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals()) {
                 memcpy(&vertex.normal, &mesh->mNormals[v], sizeof(Math::float3));
             }
-            //if (vertex_attribute_flag & VertexAttributeType::TBN && mesh->HasTangentsAndBitangents()) {
-            //    memcpy(&vertex.tbn, &mesh->mTangents[v], sizeof(Math::float3));
-            //}
+            // if (vertex_attribute_flag & VertexAttributeType::TBN && mesh->HasTangentsAndBitangents()) {
+            //     memcpy(&vertex.tbn, &mesh->mTangents[v], sizeof(Math::float3));
+            // }
             if (vertex_attribute_flag & VertexAttributeType::UV0 && mesh->HasTextureCoords(0)) {
                 memcpy(&vertex.uv0, &mesh->mTextureCoords[0][v], sizeof(Math::float2));
             }
@@ -241,15 +252,13 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     assimp_importer.FreeScene();
 }
 
-
 u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices.size()); }
 
 u32 Mesh::GetIndicesCount() const noexcept { return static_cast<u32>(m_indices.size()); }
 
-Backend::Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get(); }
+Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get(); }
 
-Backend::Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
-
+Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
 
 const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 

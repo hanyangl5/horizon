@@ -72,7 +72,33 @@ void VulkanDescriptorSet::SetResource(Sampler *sampler, const std::string &resou
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) {}
+void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) {
+    assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
+    auto res = write_descs.find(resource_name);
+    if (res == write_descs.end()) {
+        LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
+        return;
+    }
+
+    auto &buffer_descriptors = bindless_buffer_descriptors[resource_name];
+
+    for (auto &buffer : resource) {
+        auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
+
+        buffer_descriptors.push_back(*vk_buffer->GetDescriptorBufferInfo(0, buffer->m_size));
+    }
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = res->second.vk_binding;
+    write.dstArrayElement = 0;
+    write.descriptorType = write.descriptorType = util_to_vk_descriptor_type(res->second.type);
+
+    write.descriptorCount = static_cast<uint32_t>(resource.size());
+    write.pBufferInfo = buffer_descriptors.data();
+    write.dstSet = m_set;
+    writes.push_back(write);
+}
 void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) {
 
     assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
