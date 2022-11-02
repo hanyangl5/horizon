@@ -1,10 +1,5 @@
 #pragma once
 
-#include <array>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "vk_mem_alloc.h"
 
 #include <runtime/core/log/Log.h>
@@ -34,15 +29,13 @@ class RHIVulkan : public RHI {
 
     void InitializeRenderer() override;
 
-    Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
-    Buffer *CreateBuffer1(const BufferCreateInfo &buffer_create_info) override;
+    Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
 
-    Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) override;
-    Texture *CreateTexture1(const TextureCreateInfo &texture_create_info) override;
+    Texture *CreateTexture(const TextureCreateInfo &texture_create_info) override;
 
-    Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) override;
+    RenderTarget *CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) override;
 
-    Resource<SwapChain> CreateSwapChain(const SwapChainCreateInfo &create_info) override;
+    SwapChain *CreateSwapChain(const SwapChainCreateInfo &create_info) override;
 
     Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name);
 
@@ -62,9 +55,21 @@ class RHIVulkan : public RHI {
 
     void DestroyPipeline(Pipeline *pipeline) override;
 
-    Resource<Semaphore> GetSemaphore() override;
+    Semaphore *CreateSemaphore1() override;
 
-    Resource<Sampler> GetSampler(const SamplerDesc &sampler_desc) override;
+    Sampler *CreateSampler(const SamplerDesc &sampler_desc) override;
+
+    void DestroyBuffer(Buffer *buffer) override;
+
+    void DestroyTexture(Texture *texture) override;
+
+    void DestroyRenderTarget(RenderTarget *render_target) override;
+
+    void DestroySwapChain(SwapChain *swap_chain) override;
+
+    void DestroySemaphore(Semaphore *semaphore) override;
+
+    void DestroySampler(Sampler *sampler) override;
 
     // submit command list to command queue
     void SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) override;
@@ -73,11 +78,11 @@ class RHIVulkan : public RHI {
     void AcquireNextFrame(SwapChain *swap_chain) override;
 
   private:
-    void InitializeVulkanRenderer(const std::string &app_name);
-    void CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
-                        std::vector<const char *> &instance_extensions);
+    void InitializeVulkanRenderer(const Container::String &app_name);
+    void CreateInstance(const Container::String &app_name, Container::Array<const char *> &instance_layers,
+                        Container::Array<const char *> &instance_extensions);
     void PickGPU(VkInstance instance, VkPhysicalDevice *gpu);
-    void CreateDevice(std::vector<const char *> &device_extensions);
+    void CreateDevice(Container::Array<const char *> &device_extensions);
     void InitializeVMA();
     void CreateSyncObjects();
     void DestroySwapChain();
@@ -86,8 +91,8 @@ class RHIVulkan : public RHI {
   private:
     VulkanRendererContext m_vulkan{};
     SwapChainSemaphoreContext semaphore_ctx{};
-    std::unique_ptr<VulkanDescriptorSetAllocator> m_descriptor_set_allocator{};
-    std::array<std::vector<VkFence>, 3> fences{};
-    std::array<u32, 3> fence_index{};
+    VulkanDescriptorSetAllocator *m_descriptor_set_allocator{};
+    Container::FixedArray<Container::Array<VkFence>, 3> fences{};
+    Container::FixedArray<u32, 3> fence_index{};
 };
 } // namespace Horizon::Backend

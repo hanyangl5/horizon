@@ -7,7 +7,9 @@
 #include <d3d12.h>
 #include <vulkan/vulkan.h>
 
-#include <memory>
+
+#include "../memory/Alloc.h"
+#include "../container/Container.h"
 
 namespace Horizon {
 
@@ -22,10 +24,6 @@ using i64 = int64_t;
 
 using f32 = float;
 using f64 = double;
-
-template <typename T> using Resource = std::unique_ptr<T>;
-
-// template <typename T> using StaticResource;
 
 #define USE_ASYNC_COMPUTE_TRANSFER 1
 #define RENDERDOC_ENABLED 1

@@ -27,7 +27,7 @@ class VulkanBuffer : public Buffer {
     VmaAllocation m_memory{};
     VmaAllocationInfo m_allocation_info{};
     VkDescriptorBufferInfo buffer_info{};
-    Resource<VulkanBuffer> m_stage_buffer{};
+    VulkanBuffer* m_stage_buffer{};
 };
 
 } // namespace Horizon::Backend

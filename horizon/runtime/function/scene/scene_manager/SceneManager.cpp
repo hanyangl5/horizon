@@ -2,15 +2,13 @@
 
 namespace Horizon {
 
-SceneManager::SceneManager() noexcept {}
+SceneManager::SceneManager(ResourceManager *resource_manager) noexcept : resource_manager(resource_manager) {}
 
 SceneManager::~SceneManager() noexcept {}
 
-Mesh *SceneManager::AddMesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept {
-    auto &m = meshes.emplace_back(std::make_unique<Mesh>(desc));
-    m->LoadMesh(path);
-    return m.get();
-}
+void SceneManager::AddMesh(Mesh *mesh) { scene_meshes.push_back(mesh); }
+
+void SceneManager::RemoveMesh(Mesh *mesh) {}
 
 void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
 
@@ -20,22 +18,22 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
     u32 material_offset = 0;
     u32 draw_offset = 0;
     u32 draw_count = 0;
-    for (auto &mesh : meshes) {
+    for (auto &mesh : scene_meshes) {
         draw_count = mesh->m_mesh_primitives.size();
         mesh_data.push_back(
             MeshData{texture_offset, vertex_buffer_offset, index_buffer_offset, draw_offset, draw_count});
         draw_offset += draw_count;
         BufferCreateInfo vertex_buffer_create_info{};
-        vertex_buffer_create_info.size = mesh->GetVerticesCount() * sizeof(Vertex);
+        vertex_buffer_create_info.size = mesh->m_vertices.size() * sizeof(Vertex);
         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        vertex_buffers.push_back(rhi->CreateBuffer(vertex_buffer_create_info));
+        vertex_buffers.push_back(resource_manager->CreateGpuBuffer(vertex_buffer_create_info));
 
         BufferCreateInfo index_buffer_create_info{};
-        index_buffer_create_info.size = mesh->GetIndicesCount() * sizeof(Index);
+        index_buffer_create_info.size = mesh->m_indices.size() * sizeof(Index);
         index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
         index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-        index_buffers.push_back(rhi->CreateBuffer(index_buffer_create_info));
+        index_buffers.push_back(resource_manager->CreateGpuBuffer(index_buffer_create_info));
         vertex_buffer_offset++;
         index_buffer_offset++;
 
@@ -89,7 +87,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
                 create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
                 create_info.enanble_mipmap = true;
 
-                textures.push_back(rhi->CreateTexture(create_info));
+                material_textures.push_back(resource_manager->CreateGpuTexture(create_info));
                 TextureUpdateDesc update_desc{};
                 update_desc.texture_data_desc = &tex.texture_data_desc;
                 textuer_upload_desc.push_back(update_desc);
@@ -106,13 +104,13 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
             material_descs.push_back(desc);
         }
     }
-    material_description_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER,
-                                                                     ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                                     sizeof(MaterialDesc) * material_descs.size()});
+    material_description_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(MaterialDesc) * material_descs.size()});
 
     // material_offset = 0;
     u32 primitive_offset = 0;
-    for (auto &mesh : meshes) {
+    for (auto &mesh : scene_meshes) {
 
         for (auto &node : mesh->GetNodes()) {
 
@@ -125,54 +123,51 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
         primitive_offset += mesh->m_mesh_primitives.size();
     }
     // test
-    indirect_draw_command_buffer1 = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_INDIRECT_BUFFER,
-                                                                       ResourceState::RESOURCE_STATE_INDIRECT_ARGUMENT,
-                                                                       sizeof(IndirectDrawCommand) * draw_offset});
+    indirect_draw_command_buffer1 = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_INDIRECT_BUFFER,
+                         ResourceState::RESOURCE_STATE_INDIRECT_ARGUMENT, sizeof(IndirectDrawCommand) * draw_offset});
 
-    draw_parameter_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER,
-                                                               ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                               sizeof(DrawParameters) * draw_params.size()});
+    draw_parameter_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(DrawParameters) * draw_params.size()});
 
-    empty_vertex_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER,
-                                                             ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-                                                             1});
+    empty_vertex_buffer = resource_manager->GetEmptyVertexBuffer();
 }
 
 void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
 
-    for (u32 i = 0; i < meshes.size(); i++) {
-        auto &mesh = meshes[i];
+    for (u32 i = 0; i < scene_meshes.size(); i++) {
+        auto &mesh = scene_meshes[i];
         // upload vertex and index buffer
-        commandlist->UpdateBuffer(vertex_buffers[i].get(), mesh->m_vertices.data(), vertex_buffers[i]->m_size);
-        commandlist->UpdateBuffer(index_buffers[i].get(), mesh->m_indices.data(), index_buffers[i]->m_size);
+        commandlist->UpdateBuffer(vertex_buffers[i], mesh->m_vertices.data(), vertex_buffers[i]->m_size);
+        commandlist->UpdateBuffer(index_buffers[i], mesh->m_indices.data(), index_buffers[i]->m_size);
     }
 
-    commandlist->UpdateBuffer(indirect_draw_command_buffer1.get(), scene_indirect_draw_command1.data(),
+    commandlist->UpdateBuffer(indirect_draw_command_buffer1, scene_indirect_draw_command1.data(),
                               scene_indirect_draw_command1.size() * sizeof(IndirectDrawCommand));
 
-    commandlist->UpdateBuffer(material_description_buffer.get(), material_descs.data(),
+    commandlist->UpdateBuffer(material_description_buffer, material_descs.data(),
                               material_descs.size() * sizeof(MaterialDesc));
 
-    commandlist->UpdateBuffer(draw_parameter_buffer.get(), draw_params.data(),
-                              draw_params.size() * sizeof(DrawParameters));
+    commandlist->UpdateBuffer(draw_parameter_buffer, draw_params.data(), draw_params.size() * sizeof(DrawParameters));
 
     // UPLOAD TEXTURES
     BarrierDesc resource_upload_barrier{};
     TextureBarrierDesc tex_barrier{};
     tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
     tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-    for (u32 tex = 0; tex < textures.size(); tex++) {
-        commandlist->UpdateTexture(textures[tex].get(), textuer_upload_desc[tex]);
-        tex_barrier.texture = textures[tex].get();
+    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+        commandlist->UpdateTexture(material_textures[tex], textuer_upload_desc[tex]);
+        tex_barrier.texture = material_textures[tex];
         resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
     }
 
     // commandlist->InsertBarrier(resource_upload_barrier);
 
     BarrierDesc mip_barrier1{};
-    for (u32 tex = 0; tex < textures.size(); tex++) {
+    for (u32 tex = 0; tex < material_textures.size(); tex++) {
         TextureBarrierDesc mip_map_barrier{};
-        mip_map_barrier.texture = textures[tex].get();
+        mip_map_barrier.texture = material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
         mip_map_barrier.mip_level_count = 1;
         mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
@@ -181,32 +176,21 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     }
     commandlist->InsertBarrier(mip_barrier1);
 
-    for (u32 tex = 0; tex < textures.size(); tex++) {
-        commandlist->GenerateMipMap(textures[tex].get(), true);
+    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+        commandlist->GenerateMipMap(material_textures[tex], true);
     }
 
     BarrierDesc mip_barrier2{};
-    for (u32 tex = 0; tex < textures.size(); tex++) {
+    for (u32 tex = 0; tex < material_textures.size(); tex++) {
         TextureBarrierDesc mip_map_barrier{};
-        mip_map_barrier.texture = textures[tex].get();
+        mip_map_barrier.texture = material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
-        mip_map_barrier.mip_level_count = textures[tex]->mip_map_level;
+        mip_map_barrier.mip_level_count = material_textures[tex]->mip_map_level;
         mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
         mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
         mip_barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);
     }
     commandlist->InsertBarrier(mip_barrier2);
-}
-
-void SceneManager::GetVertexBuffers(std::vector<Backend::Buffer *> &vertex_buffers, std::vector<u32> &offsets) {
-    vertex_buffers.reserve(meshes.size());
-    offsets.reserve(meshes.size());
-    u32 vertex_offset;
-    for (auto &mesh : meshes) {
-        vertex_buffers.push_back(mesh->GetVertexBuffer());
-        offsets.push_back(vertex_offset);
-        vertex_offset += mesh->GetVerticesCount();
-    }
 }
 
 // Mesh *SceneManager::AddMesh(BasicGeometry basic_geometry) noexcept {
@@ -218,21 +202,21 @@ void SceneManager::GetVertexBuffers(std::vector<Backend::Buffer *> &vertex_buffe
 // Light *SceneManager::AddDirectionalLight(Math::color color, f32 intensity,
 //                                          Math::float3 direction) noexcept {
 //     auto &l = lights.emplace_back(
-//         std::make_unique<DirectionalLight>(color, intensity, direction));
+//         Memory::Alloc<DirectionalLight>(color, intensity, direction));
 //     return l.get();
 // }
 //
 // Light *SceneManager::AddPointLight(Math::float3 color, f32 intensity,
 //                                    f32 radius) noexcept {
 //     auto &l = lights.emplace_back(
-//         std::make_unique<PointLight>(color, intensity, radius));
+//         Memory::Alloc<PointLight>(color, intensity, radius));
 //     return l.get();
 // }
 //
 // Light *SceneManager::AddSpotLight(Math::float3 color, f32 intensity,
 //                                   f32 inner_cone, f32 outer_cone) noexcept {
 //     auto &l = lights.emplace_back(
-//         std::make_unique<SpotLight>(color, intensity, inner_cone, outer_cone));
+//         Memory::Alloc<SpotLight>(color, intensity, inner_cone, outer_cone));
 //     return l.get();
 // }
 } // namespace Horizon

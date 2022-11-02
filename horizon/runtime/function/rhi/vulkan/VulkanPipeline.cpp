@@ -131,7 +131,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
 
     // VkDescriptorSetLayout layout = m_descriptor_set_allocator.FindLayout(resource.layout_hash_key[freq]);
 
-    // std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
+    // Container::Array<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
     // resource.allocated_sets[freq].resize(m_reserved_max_sets[freq]);
 
     // alloc_info.descriptorPool = m_descriptor_set_allocator.m_descriptor_pools[static_cast<u32>(freq)].back();
@@ -140,7 +140,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
 
     // CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, resource.allocated_sets[freq].data()));
 
-    // std::vector<DescriptorSet *> sets(count);
+    // Container::Array<DescriptorSet *> sets(count);
     // for (u32 i = 0; i < count; i++) {
     //     sets[i] = new DescriptorSet()
     // }
@@ -154,16 +154,18 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 
     auto ci = m_create_info.gpci;
     {
+        auto stack_memory = Memory::GetStackMemoryResource(1024);
         VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
         graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         graphics_pipeline_create_info.flags = 0;
         graphics_pipeline_create_info.pNext = nullptr;
 
         uint32_t input_binding_count = 0;
-        std::array<VkVertexInputBindingDescription, MAX_BINDING_COUNT> input_bindings = {{0}};
+        Container::FixedArray<VkVertexInputBindingDescription, MAX_BINDING_COUNT> input_bindings = {{0}};
         uint32_t input_attribute_count = 0;
-        std::array<VkVertexInputAttributeDescription, MAX_ATTRIBUTE_COUNT> input_attributes = {{0}};
-        std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos{};
+        Container::FixedArray<VkVertexInputAttributeDescription, MAX_ATTRIBUTE_COUNT> input_attributes = {{0}};
+        Container::Array<VkPipelineShaderStageCreateInfo> shader_stage_create_infos(&stack_memory);
+        LOG_INFO("{}", sizeof(VkPipelineShaderStageCreateInfo));
         VkPipelineRasterizationStateCreateInfo rasterization_state_create_info{};
         VkPipelineMultisampleStateCreateInfo multi_sample_state_create_info{};
         VkPipelineColorBlendStateCreateInfo color_blend_state_create_info{};
@@ -172,7 +174,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{};
         VkPipelineViewportStateCreateInfo view_port_state_create_info{};
         VkPipelineRenderingCreateInfo rendering_create_info{};
-        std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_state{};
+        Container::Array<VkPipelineColorBlendAttachmentState> color_blend_attachment_state(&stack_memory);
         // shader stage
         {
 
@@ -351,8 +353,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         rendering_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
         rendering_create_info.colorAttachmentCount = ci->render_target_formats.color_attachment_count;
 
-        std::vector<VkFormat> formats(ci->render_target_formats.color_attachment_count);
-
+        Container::Array<VkFormat> formats(ci->render_target_formats.color_attachment_count, &stack_memory);
         for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; i++) {
             formats[i] = ToVkImageFormat(ci->render_target_formats.color_attachment_formats[i]);
         }
@@ -410,8 +411,10 @@ void VulkanPipeline::CreatePipelineLayout() {
     // if no descriptor declared in shader
     bool need_descriptorset = !rsd.descriptors.empty();
 
-    std::vector<VkDescriptorSetLayout> layouts{};
-    std::vector<VkPushConstantRange> push_constant_ranges{};
+    auto stack_memory = Memory::GetStackMemoryResource(1024);
+    
+    Container::Array<VkDescriptorSetLayout> layouts(&stack_memory);
+    Container::Array<VkPushConstantRange> push_constant_ranges(&stack_memory);
 
     if (need_descriptorset) {
 

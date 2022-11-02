@@ -2,7 +2,7 @@
 //
 //#include "stdafx.h"
 //
-//#include <array>
+//
 //
 //#include <runtime/function/rhi/CommandList.h>
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>

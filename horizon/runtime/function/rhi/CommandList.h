@@ -20,7 +20,7 @@ struct RenderTargetInfo {
 };
 
 struct RenderPassBeginInfo {
-    std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
+    Container::FixedArray<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
     RenderTargetInfo depth_stencil{};
     Rect render_area{};
 };
@@ -60,7 +60,7 @@ class CommandList {
 
     virtual void BindPipeline(Pipeline *pipeline) = 0;
 
-    virtual void BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) = 0;
+    virtual void BindPushConstant(Pipeline *pipeline, const Container::String &name, void *data) = 0;
 
     virtual void ClearBuffer(Buffer *buffer, f32 clear_value) = 0;
 

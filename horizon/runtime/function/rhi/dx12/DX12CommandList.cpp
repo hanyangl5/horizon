@@ -236,7 +236,7 @@
 //        return;
 //    }
 //
-//    std::vector<D3D12_RESOURCE_BARRIER> barriers{};
+//    Container::Array<D3D12_RESOURCE_BARRIER> barriers{};
 //
 //    m_command_list->ResourceBarrier(barriers.size(), barriers.data());
 //}
@@ -249,7 +249,7 @@
 //    if (m_stage_buffer) {
 //        return m_stage_buffer.get();
 //    } else {
-//        m_stage_buffer = std::make_unique<DX12Buffer>(
+//        m_stage_buffer = Memory::Alloc<DX12Buffer>(
 //            allocator, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
 //        return m_stage_buffer.get();
 //    }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+
 #include <filesystem>
 
 #include <runtime/function/rhi/RHIUtils.h>

@@ -3,11 +3,11 @@
 namespace Horizon::Backend {
 
 VulkanDescriptorSet::VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency,
-                                         const std::unordered_map<std::string, DescriptorDesc> &write_descs,
+                                         const Container::HashMap<Container::String, DescriptorDesc> &write_descs,
                                          VkDescriptorSet set) noexcept
     : DescriptorSet(frequency), m_context(context), m_set(set), write_descs(write_descs) {}
 
-void VulkanDescriptorSet::SetResource(Buffer *buffer, const std::string &resource_name) {
+void VulkanDescriptorSet::SetResource(Buffer *buffer, const Container::String &resource_name) {
     auto res = write_descs.find(resource_name);
     if (res == write_descs.end()) {
         LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
@@ -30,7 +30,7 @@ void VulkanDescriptorSet::SetResource(Buffer *buffer, const std::string &resourc
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetResource(Texture *texture, const std::string &resource_name) {
+void VulkanDescriptorSet::SetResource(Texture *texture, const Container::String &resource_name) {
     auto res = write_descs.find(resource_name);
     if (res == write_descs.end()) {
         LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
@@ -51,7 +51,7 @@ void VulkanDescriptorSet::SetResource(Texture *texture, const std::string &resou
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetResource(Sampler *sampler, const std::string &resource_name) {
+void VulkanDescriptorSet::SetResource(Sampler *sampler, const Container::String &resource_name) {
     auto res = write_descs.find(resource_name);
     if (res == write_descs.end()) {
         LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
@@ -72,7 +72,7 @@ void VulkanDescriptorSet::SetResource(Sampler *sampler, const std::string &resou
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) {
+void VulkanDescriptorSet::SetBindlessResource(Container::Array<Buffer *> &resource, const Container::String &resource_name) {
     assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
     auto res = write_descs.find(resource_name);
     if (res == write_descs.end()) {
@@ -99,7 +99,8 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, c
     write.dstSet = m_set;
     writes.push_back(write);
 }
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) {
+
+void VulkanDescriptorSet::SetBindlessResource(Container::Array<Texture *> &resource, const Container::String &resource_name) {
 
     assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
     auto res = write_descs.find(resource_name);
@@ -128,7 +129,7 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
     write.pImageInfo = texture_descriptors.data();
     writes.push_back(write);
 }
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Sampler *> &resource, const std::string &resource_name) {}
+void VulkanDescriptorSet::SetBindlessResource(Container::Array<Sampler *> &resource, const Container::String &resource_name) {}
 
 void VulkanDescriptorSet::Update() {
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);

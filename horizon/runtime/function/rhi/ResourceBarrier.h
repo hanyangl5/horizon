@@ -35,7 +35,7 @@ struct TextureBarrierDesc {
 
 struct BarrierDesc {
     // u32 src_stage, dst_stage;
-    std::vector<BufferBarrierDesc> buffer_memory_barriers{};
-    std::vector<TextureBarrierDesc> texture_memory_barriers{};
+    Container::Array<BufferBarrierDesc> buffer_memory_barriers{};
+    Container::Array<TextureBarrierDesc> texture_memory_barriers{};
 };
 } // namespace Horizon

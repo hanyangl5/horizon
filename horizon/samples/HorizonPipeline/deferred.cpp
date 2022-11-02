@@ -1,6 +1,6 @@
 #include "deferred.h"
 
-DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
+DeferredData::DeferredData(RHI* rhi) noexcept {
 
     // geometry pass
     {
@@ -77,11 +77,12 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
         graphics_pass_ci.rasterization_state.discard = false;
         graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
         graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
-
+    
         graphics_pass_ci.render_target_formats.color_attachment_count = 5;
+        
         graphics_pass_ci.render_target_formats.color_attachment_formats =
-            std::vector<TextureFormat>{gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format, gbuffer2->GetTexture()->m_format,
-            gbuffer3->GetTexture()->m_format, vbuffer0->GetTexture()->m_format};
+            Container::Array<TextureFormat>{gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format, gbuffer2->GetTexture()->m_format,
+            gbuffer3->GetTexture()->m_format, vbuffer0->GetTexture()->m_format}; // TODO use stack memory
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 
@@ -163,7 +164,7 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
     sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
 
-    ibl_sampler = rhi->GetSampler(sampler_desc);
+    ibl_sampler = rhi->CreateSampler(sampler_desc);
 
     deferred_shading_constants.width = _width;
     deferred_shading_constants.height = _height;

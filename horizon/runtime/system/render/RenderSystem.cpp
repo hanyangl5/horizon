@@ -19,23 +19,26 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-        m_rhi = std::make_unique<Backend::RHIVulkan>(offscreen);
+        m_rhi = Memory::Alloc<Backend::RHIVulkan>(offscreen);
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_DX12:
-        // m_rhi = std::make_unique<Backend::RHIDX12>();
+        // m_rhi = Memory::Alloc<Backend::RHIDX12>();
         break;
     }
     m_rhi->InitializeRenderer();
-    LOG_DEBUG("size of render api {}", sizeof(*m_rhi.get()));
+    LOG_DEBUG("size of render api {}", sizeof(*m_rhi));
     m_rhi->SetWindow(m_window);
+    m_resource_manager = Memory::Alloc<ResourceManager>(m_rhi);
+    m_scene_manager = Memory::Alloc<SceneManager>(m_resource_manager);
 }
 
-RenderSystem::~RenderSystem() noexcept {}
-
-void RenderSystem::InitializeRenderAPI(RenderBackend backend) {
-
-
+RenderSystem::~RenderSystem() noexcept {
+    Memory::Free(m_rhi);
+    Memory::Free(m_scene_manager);
+    Memory::Free(m_resource_manager);
 }
+
+void RenderSystem::InitializeRenderAPI(RenderBackend backend) {}
 
 Camera *RenderSystem::GetDebugCamera() const {
     assert(m_debug_camera != nullptr);
@@ -43,8 +46,8 @@ Camera *RenderSystem::GetDebugCamera() const {
 }
 
 // Shader *RenderSystem::CreateShader(
-//     ShaderType type, const std::string &entry_point, u32 compile_flags,
-//     std::string file_name) noexcept {
+//     ShaderType type, const Container::String &entry_point, u32 compile_flags,
+//     Container::String file_name) noexcept {
 //     return m_rhi->CreateShader(type, entry_point, compile_flags,
 //                                              file_name);
 // }
@@ -64,12 +67,12 @@ Camera *RenderSystem::GetDebugCamera() const {
 //     return m_rhi->CreateComputePipeline(create_info);
 // }
 
-// Resource<Buffer> RenderSystem::CreateBuffer(
+// Buffer* RenderSystem::CreateBuffer(
 //     const BufferCreateInfo &buffer_create_info) noexcept {
 //     return m_rhi->CreateBuffer(buffer_create_info);
 // }
 
-// Resource<Texture> RenderSystem::CreateTexture(
+// Texture* RenderSystem::CreateTexture(
 //     const TextureCreateInfo &texture_create_info) noexcept {
 //     return m_rhi->CreateTexture(texture_create_info);
 // }
@@ -87,7 +90,7 @@ Camera *RenderSystem::GetDebugCamera() const {
 // // submit command list to command queue
 // void RenderSystem::SubmitCommandLists(
 //     CommandQueueType queue,
-//     std::vector<CommandList *> &command_lists) noexcept {
+//     Container::Array<CommandList *> &command_lists) noexcept {
 //     m_rhi->SubmitCommandLists(queue, command_lists);
 // }
 

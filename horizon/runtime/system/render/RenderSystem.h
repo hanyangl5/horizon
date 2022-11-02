@@ -6,6 +6,8 @@
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/scene/camera/Camera.h>
+#include <runtime/function/resource/resource_manager/ResourceManager.h>
+#include <runtime/function/scene/scene_manager/SceneManager.h>
 
 namespace Horizon {
 
@@ -22,13 +24,15 @@ class RenderSystem {
     RenderSystem(RenderSystem &&rhs) noexcept = delete;
 
     RenderSystem &operator=(RenderSystem &&rhs) noexcept = delete;
+    
+    SceneManager *GetSceneManager() noexcept { return m_scene_manager; };
 
   public:
     void SetCamera(Camera *camera) noexcept { m_debug_camera = camera; }
 
     Camera *GetDebugCamera() const;
 
-    Backend::RHI *GetRhi() noexcept { return m_rhi.get(); }
+    Backend::RHI *GetRhi() noexcept { return m_rhi; }
 
   private:
     void InitializeRenderAPI(RenderBackend backend);
@@ -36,6 +40,8 @@ class RenderSystem {
   private:
     Window *m_window{};
     Camera *m_debug_camera{};
-    std::unique_ptr<Backend::RHI> m_rhi{};
+    ResourceManager *m_resource_manager{};
+    SceneManager *m_scene_manager{};
+    Backend::RHI* m_rhi{};
 };
 } // namespace Horizon

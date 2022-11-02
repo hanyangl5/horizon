@@ -7,7 +7,10 @@ namespace Horizon::Backend {
 
 class Buffer {
   public:
-    Buffer(const BufferCreateInfo &buffer_create_info) noexcept;
+    using allocator_type = std::pmr::polymorphic_allocator<std::byte>;
+    allocator_type get_allocator() const noexcept;
+  public:
+    Buffer(const BufferCreateInfo &buffer_create_info, const allocator_type &alloc = {}) noexcept;
     virtual ~Buffer() noexcept = default;
     Buffer(const Buffer &rhs) noexcept = delete;
     Buffer &operator=(const Buffer &rhs) noexcept = delete;

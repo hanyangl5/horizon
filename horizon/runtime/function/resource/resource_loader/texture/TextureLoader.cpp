@@ -1,6 +1,6 @@
 #include "TextureLoader.h"
 
-#include <unordered_map>
+
 
 #include <runtime/core/log/Log.h>
 
@@ -415,7 +415,7 @@ void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &
     raw_data = {raw_data.begin() + desc.headerSize, raw_data.end()};
     texture_info.raw_data.swap(raw_data);
 
-    texture_info.data_offset_map.resize(6, std::vector<u32>(desc.numMips));
+    texture_info.data_offset_map.resize(6, Container::Array<u32>(desc.numMips));
 
     for (u32 layer = 0; layer < texture_info.layer_count; layer++) {
         for (u32 mip = 0; mip < desc.numMips; mip++) {

@@ -16,15 +16,15 @@ class RHITest {
         // config.asset_path =
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.offscreen = false;
-        engine = std::make_unique<Engine>(config);
+        engine = Memory::Alloc<Engine>(config);
 
         width = config.width;
         height = config.height;
     }
 
   public:
-    std::unique_ptr<Engine> engine{};
-    std::string asset_path = "C:/FILES/horizon/horizon/assets/";
+    Engine* engine{};
+    Container::String asset_path = "C:/FILES/horizon/horizon/assets/";
     u32 width, height;
 };
 
@@ -32,10 +32,10 @@ TEST_CASE_FIXTURE(RHITest, "multi thread command list recording") {
     auto &tp = engine->tp;
     auto rhi = engine->m_render_system->GetRhi();
     constexpr u32 cmdlist_count = 20;
-    std::vector<CommandList *> cmdlists(cmdlist_count);
-    std::vector<std::future<void>> results(cmdlist_count);
+    Container::Array<CommandList *> cmdlists(cmdlist_count);
+    Container::Array<std::future<void>> results(cmdlist_count);
 
-    std::vector<Resource<Buffer>> buffers;
+    Container::Array<Buffer*> buffers;
 
     for (u32 i = 0; i < cmdlist_count; i++) {
         buffers.emplace_back(
