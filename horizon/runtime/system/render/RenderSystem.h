@@ -33,7 +33,7 @@ class RenderSystem {
 
     Camera *GetDebugCamera() const;
 
-    Backend::RHI *GetRhi() noexcept { return m_rhi.get(); }
+    Backend::RHI *GetRhi() noexcept { return m_rhi; }
 
   private:
     void InitializeRenderAPI(RenderBackend backend);

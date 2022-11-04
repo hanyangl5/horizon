@@ -20,7 +20,7 @@ struct RenderTargetInfo {
 };
 
 struct RenderPassBeginInfo {
-    std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{}; // TODO(hylu): FixedArray
+    Container::FixedArray<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
     RenderTargetInfo depth_stencil{};
     Rect render_area{};
 };

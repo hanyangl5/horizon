@@ -73,5 +73,6 @@ _NODISCARD UniquePtr<T> MakeUnique(Args &&...args) { // make a unique_ptr
 template <class T, class... Args, std::enable_if_t<std::extent_v<T> != 0, int> = 0>
 void MakeUnique(Args &&...) = delete;
 
+namespace Horizon::Memory {
 
 } // namespace Horizon::Memory

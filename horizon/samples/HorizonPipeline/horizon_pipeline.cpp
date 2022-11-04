@@ -6,7 +6,7 @@ void HorizonPipeline::InitAPI() {
                                         Math::float3(0.0, 1.0_m, 0.0));
     m_camera->SetCameraSpeed(0.1);
     m_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
-    engine->m_render_system->SetCamera(m_camera.get());
+    engine->m_render_system->SetCamera(m_camera);
     engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
 }
 
