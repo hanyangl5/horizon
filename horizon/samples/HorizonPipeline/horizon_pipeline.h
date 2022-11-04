@@ -11,12 +11,12 @@
 class HorizonPipeline {
   public:
     HorizonPipeline() {
-        EngineConfig config{};
+        HorizonConfig config{};
         config.width = _width;
         config.height = _height;
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.offscreen = false;
-        engine = std::make_unique<Engine>(config);
+        engine = std::make_unique<HorizonRuntime>(config);
     }
 
     void Init() {
@@ -34,7 +34,7 @@ class HorizonPipeline {
     void run();
 
   private:
-    std::unique_ptr<Engine> engine{};
+    std::unique_ptr<HorizonRuntime> engine{};
     std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";
 
     Memory::UniquePtr<Camera> m_camera{};

@@ -20,6 +20,7 @@ struct RenderTargetInfo {
 };
 
 struct RenderPassBeginInfo {
+    u32 render_target_count{};
     Container::FixedArray<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
     RenderTargetInfo depth_stencil{};
     Rect render_area{};

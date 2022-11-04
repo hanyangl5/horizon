@@ -68,6 +68,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
+    assert(begin_info.render_target_count < MAX_RENDER_TARGET_COUNT);
 
     VkRenderingInfo info{};
     info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -82,28 +83,30 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
 
     auto stack_memory = Memory::GetStackMemoryResource(1024);
 
+    // color attachment info
     Container::Array<VkRenderingAttachmentInfo> color_attachment_info(&stack_memory);
-    VkRenderingAttachmentInfo depth_attachment_info{};
-    u32 color_render_target_count = 0;
-    while (begin_info.render_targets[++color_render_target_count].data != nullptr)
-        ;
-    color_attachment_info.resize(color_render_target_count);
+    color_attachment_info.reserve(begin_info.render_target_count);
 
-    for (u32 i = 0; i < color_render_target_count; i++) {
+    for (u32 i = 0; i < begin_info.render_target_count; i++) {
+        VkRenderingAttachmentInfo info{};
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.render_targets[i].data->GetTexture());
-        color_attachment_info[i].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        color_attachment_info[i].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        color_attachment_info[i].imageView = t->m_image_view;
-        color_attachment_info[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        color_attachment_info[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        info.imageView = t->m_image_view;
+        info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         VkClearValue clear_value;
         auto &cc = std::get<ClearColorValue>(begin_info.render_targets[i].clear_color);
         memcpy(&clear_value.color, &cc, 4 * 4);
-        color_attachment_info[i].clearValue = clear_value;
+        info.clearValue = clear_value;
+        color_attachment_info.push_back(std::move(info));
     }
 
     info.colorAttachmentCount = color_attachment_info.size();
     info.pColorAttachments = color_attachment_info.data();
+
+    // depth attachment info
+    VkRenderingAttachmentInfo depth_attachment_info{};
 
     if (begin_info.depth_stencil.data) {
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth_stencil.data->GetTexture());

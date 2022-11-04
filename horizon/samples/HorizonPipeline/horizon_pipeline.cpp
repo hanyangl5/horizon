@@ -233,6 +233,7 @@ void HorizonPipeline::run() {
             }
 
             RenderPassBeginInfo begin_info{};
+            begin_info.render_target_count = 5;
             begin_info.render_area = Rect{0, 0, _width, _height};
             begin_info.render_targets[0].data = deferred->gbuffer0;
             begin_info.render_targets[0].clear_color = {};

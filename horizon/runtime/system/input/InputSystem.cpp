@@ -27,7 +27,7 @@ void InputSystem::ProcessKeyboardInput() {
 
 
     if (GetKeyPress(Key::ESCAPE)) {
-        m_window->close();
+        m_window->Close();
     }
     if (GetKeyPress(Key::KEY_W)) {
         m_camera->Move(Direction::FORWARD);
