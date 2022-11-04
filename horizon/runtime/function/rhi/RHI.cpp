@@ -1,5 +1,4 @@
-#include <runtime/function/rhi/RHI.h>
-#include <runtime/function/rhi/ResourceCache.h>
+#include "RHI.h"
 
 namespace Horizon::Backend {
 

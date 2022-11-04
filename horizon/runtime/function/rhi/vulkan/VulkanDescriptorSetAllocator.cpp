@@ -10,7 +10,6 @@ namespace Horizon::Backend {
 
 VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept
     : m_context(context) {
-
     // create empty layout
     if (m_empty_descriptor_set == VK_NULL_HANDLE || m_empty_descriptor_set_layout_hash_key == 0) {
 
@@ -31,7 +30,6 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
 }
 
 void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pipeline) {
-
     auto &rsd = pipeline->GetRootSignatureDesc();
     auto stack_memory = Memory::GetStackMemoryResource(1024);
     Container::FixedArray<Container::Array<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> bindings{}; // FIXME: how to pass memory_resource?
@@ -134,7 +132,6 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
 }
 
 VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
-
     for (auto &layout : m_descriptor_set_layout_map) {
         vkDestroyDescriptorSetLayout(m_context.device, layout.second, nullptr);
     }
@@ -204,7 +201,6 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
 }
 
 void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
-
     Container::FixedArray<VkDescriptorType, 5> types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                           VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                                           VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
@@ -227,7 +223,6 @@ void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
 }
 
 void VulkanDescriptorSetAllocator::ResetDescriptorPool() {
-
     for (auto &set : allocated_sets) {
         delete set;
     }

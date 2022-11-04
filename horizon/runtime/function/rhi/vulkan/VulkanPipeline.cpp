@@ -1,4 +1,5 @@
-#include <runtime/function/rhi/vulkan/VulkanPipeline.h>
+#include "VulkanPipeline.h"
+
 #include <runtime/function/rhi/vulkan/VulkanShader.h>
 
 namespace Horizon::Backend {
@@ -251,10 +252,10 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
         }
 
-        // tessllation
+        // tessllation state
         { graphics_pipeline_create_info.pTessellationState = nullptr; }
 
-        // viewport
+        // viewport state
 
         {
             view_port_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -283,6 +284,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             graphics_pipeline_create_info.pViewportState = &view_port_state_create_info;
         }
 
+        // rasterization state
         {
 
             rasterization_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -315,7 +317,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         // color blend state
         {
             // TODO:
-            color_blend_attachment_state.reserve(ci->render_target_formats.color_attachment_count);
+            color_blend_attachment_state.resize(ci->render_target_formats.color_attachment_count); // TODO(hylu): reserve and construct
             for (auto &state : color_blend_attachment_state) {
                 state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                                        VK_COLOR_COMPONENT_A_BIT;

@@ -1,5 +1,4 @@
-#include <runtime/function/rhi/vulkan/VulkanTexture.h>
-#include <runtime/function/rhi/vulkan/VulkanUtils.h>
+#include "VulkanTexture.h"
 
 namespace Horizon::Backend {
 

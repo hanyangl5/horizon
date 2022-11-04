@@ -1,5 +1,4 @@
-#include <runtime/function/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/function/rhi/vulkan/VulkanUtils.h>
+#include "VulkanBuffer.h"
 
 namespace Horizon::Backend {
 
@@ -27,10 +26,14 @@ VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCre
                                     &m_memory, &m_allocation_info));
 }
 
-VulkanBuffer::~VulkanBuffer() noexcept { vmaDestroyBuffer(m_context.vma_allocator, m_buffer, m_memory); }
+VulkanBuffer::~VulkanBuffer() noexcept {
+    if (m_stage_buffer) {
+        Memory::Free<VulkanBuffer>(m_stage_buffer);
+    }
+    vmaDestroyBuffer(m_context.vma_allocator, m_buffer, m_memory);
+}
 
 VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 size) noexcept {
-
     buffer_info = {m_buffer, offset, m_size};
     return &buffer_info;
 }
