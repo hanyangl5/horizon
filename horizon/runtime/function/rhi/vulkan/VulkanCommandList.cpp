@@ -1,9 +1,9 @@
-#include <algorithm>
+#include "VulkanCommandList.h"
 
+#include <algorithm>
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
-#include <runtime/function/rhi/vulkan/VulkanCommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 

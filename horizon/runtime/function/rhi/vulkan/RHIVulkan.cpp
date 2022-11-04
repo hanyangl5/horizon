@@ -1,12 +1,10 @@
-#include <filesystem>
+#include "RHIVulkan.h"
 
+#include <filesystem>
 #include <thread>
 
 #define VMA_IMPLEMENTATION
-
 #include <vulkan/vulkan.hpp>
-
-#include <runtime/function/rhi/vulkan/RHIVulkan.h>
 
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
@@ -22,7 +20,6 @@ namespace Horizon::Backend {
 RHIVulkan::RHIVulkan(bool offscreen) noexcept { m_offscreen = offscreen; }
 
 RHIVulkan::~RHIVulkan() noexcept {
-
     for (auto &type : fences) {
         if (type.empty())
             continue;
@@ -82,7 +79,6 @@ void RHIVulkan::DestroyShader(Shader *shader_program) {
 }
 
 void RHIVulkan::InitializeVulkanRenderer(const Container::String &app_name) {
-
     auto stack_memory = Memory::GetStackMemoryResource(4096);
     Container::Array<const char *> instance_layers(&stack_memory);
     Container::Array<const char *> instance_extensions(&stack_memory);
@@ -109,7 +105,6 @@ void RHIVulkan::InitializeVulkanRenderer(const Container::String &app_name) {
 
 void RHIVulkan::CreateInstance(const Container::String &app_name, Container::Array<const char *> &instance_layers,
                                Container::Array<const char *> &instance_extensions) {
-
     u32 layer_count{0}, extension_count{0};
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
     vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
