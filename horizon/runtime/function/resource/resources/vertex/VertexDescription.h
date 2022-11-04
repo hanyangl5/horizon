@@ -18,7 +18,6 @@ struct Vertex {
   public:
     Math::float3 pos;
     Math::float3 normal;
-    //Math::float4 tbn;
     Math::float2 uv0, uv1;
     Math::float3 tangent;
 };

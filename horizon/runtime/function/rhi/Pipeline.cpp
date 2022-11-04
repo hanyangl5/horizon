@@ -45,7 +45,7 @@ void Pipeline::ParseRootSignatureFromShader(Shader *shader) {
         }
 
         for (auto &descriptor : frequency.value()) {
-            auto name = descriptor["name"].get<std::string>();
+            auto name = descriptor["name"].get<Container::String>();
             desc.type = static_cast<DescriptorType>(descriptor["descriptor_type"].get<u32>());
             desc.vk_binding = descriptor["vk_binding"].get<u32>();
             // auto reg = descriptor["dx_register"]; TODO
@@ -59,7 +59,7 @@ void Pipeline::ParseRootSignatureFromShader(Shader *shader) {
     auto &pc_descs = json_data["PUSH_CONSTANT"];
     if (!pc_descs.empty()) {
         for (auto &pc_desc : pc_descs) {
-            auto pc_name = pc_desc["name"].get<std::string>();
+            auto pc_name = pc_desc["name"].get<Container::String>();
             auto &dst = rsd.push_constants[pc_name];
             dst.size = pc_desc["size"].get<u32>();
             dst.offset = 0;

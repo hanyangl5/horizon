@@ -2,8 +2,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include <array>
-
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/function/rhi/vulkan/VulkanTexture.h>
@@ -64,7 +62,7 @@ class VulkanCommandList : public CommandList {
     virtual void BindPipeline(Pipeline *pipeline) override;
 
 
-    void BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) override;
+    void BindPushConstant(Pipeline *pipeline, const Container::String &name, void *data) override;
 
     void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
 
@@ -78,7 +76,7 @@ class VulkanCommandList : public CommandList {
 
   private:
     const VulkanRendererContext &m_context{};
-    Resource<VulkanBuffer> GetStageBuffer(const BufferCreateInfo &buffer_create_info);
+    VulkanBuffer* GetStageBuffer(const BufferCreateInfo &buffer_create_info);
 
   public:
     VkCommandBuffer m_command_buffer{};

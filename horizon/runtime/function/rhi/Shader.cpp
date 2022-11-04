@@ -1,6 +1,6 @@
 #include "Shader.h"
 
-#include <string>
+
 #include <utility>
 #include <algorithm>
 

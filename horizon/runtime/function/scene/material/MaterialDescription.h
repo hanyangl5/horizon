@@ -1,8 +1,8 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
-#include <vector>
+
+
 
 #include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
 #include <runtime/function/rhi/Buffer.h>
@@ -49,7 +49,7 @@ struct MaterialParams {
 class Material {
   public:
     Material() noexcept = default;
-    ~Material() noexcept { material_descriptor_set = nullptr; }
+    ~Material() noexcept { }
 
     Material(const Material &rhs){};
     Material &operator=(const Material &rhs) noexcept {};
@@ -62,12 +62,11 @@ class Material {
     void ResetDescriptorSet();
 
   public:
-    Backend::DescriptorSet *material_descriptor_set{};
-    std::unordered_map<MaterialTextureType, MaterialTextureDescription> material_textures{};
+    Container::HashMap<MaterialTextureType, MaterialTextureDescription> material_textures{};
     MaterialParams material_params{};
     ShadingModel shading_model{ShadingModel::SHADING_MODEL_LIT};
     BlendState blend_state{BlendState::BLEND_STATE_OPAQUE};
-    Resource<Buffer> param_buffer{};
+    Buffer* param_buffer{};
     //  Material* materials
 };
 } // namespace Horizon

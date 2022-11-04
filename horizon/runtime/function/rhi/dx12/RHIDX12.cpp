@@ -17,15 +17,15 @@
 //    InitializeDX12Renderer();
 //}
 //
-//Resource<Buffer>
+//Buffer*
 //RHIDX12::CreateBuffer(const BufferCreateInfo &create_info) noexcept {
-//    return std::make_unique<DX12Buffer>(m_dx12.d3dma_allocator, create_info,
+//    return Memory::Alloc<DX12Buffer>(m_dx12.d3dma_allocator, create_info,
 //                                        MemoryFlag::DEDICATE_GPU_MEMORY);
 //}
 //
-//Resource<Texture>
+//Texture*
 //RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info) noexcept {
-//    return std::make_unique<DX12Texture>(m_dx12.d3dma_allocator,
+//    return Memory::Alloc<DX12Texture>(m_dx12.d3dma_allocator,
 //                                         texture_create_info);
 //}
 //
@@ -55,9 +55,9 @@
 //}
 //
 //Shader *RHIDX12::CreateShader(ShaderType type,
-//                                            const std::string &entry_point,
+//                                            const Container::String &entry_point,
 //                                            u32 compile_flags,
-//                                            std::string file_name) noexcept {
+//                                            Container::String file_name) noexcept {
 //    auto dxil_blob{m_shader_compiler->CompileFromFile(
 //        ShaderTargetPlatform::DXIL, type, entry_point, compile_flags,
 //        file_name)};
@@ -77,7 +77,7 @@
 //CommandList *RHIDX12::GetCommandList(CommandQueueType type) noexcept {
 //    if (!thread_command_context) {
 //        thread_command_context =
-//            std::make_unique<DX12CommandContext>(m_dx12.device);
+//            Memory::Alloc<DX12CommandContext>(m_dx12.device);
 //    }
 //
 //    return thread_command_context->GetCommandList(type);
@@ -100,7 +100,7 @@
 //
 //void RHIDX12::SubmitCommandLists(
 //    CommandQueueType queue_type,
-//    std::vector<CommandList *> &command_lists) noexcept {
+//    Container::Array<CommandList *> &command_lists) noexcept {
 //    // submit command lists
 //    // submit command lists
 //    // for (auto& command_list : *command_list) {

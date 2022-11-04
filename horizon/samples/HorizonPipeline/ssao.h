@@ -25,17 +25,17 @@ class SSAOData {
         u32 height;
         f32 noise_scale_x;
         f32 noise_scale_y;
-        std::array<Math::float4, SSAO_KERNEL_SIZE> kernels;
+        Container::FixedArray<Math::float4, SSAO_KERNEL_SIZE> kernels;
     } ssao_constansts;
 
     static constexpr u32 SSAO_NOISE_TEX_WIDTH = 4;
     static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
-    std::array<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
+    Container::FixedArray<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
     TextureDataDesc ssao_noise_tex_data_desc{};
-    Resource<Texture> ssao_noise_tex;
+    Texture* ssao_noise_tex;
 
-    Resource<Texture> ssao_factor_image;
-    Resource<Texture> ssao_blur_image;
+    Texture* ssao_factor_image;
+    Texture* ssao_blur_image;
 
-    Resource<Buffer> ssao_constants_buffer;
+    Buffer* ssao_constants_buffer;
 };

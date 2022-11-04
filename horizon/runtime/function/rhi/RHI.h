@@ -1,10 +1,8 @@
 #pragma once
 
-#include <memory>
 #include <thread>
-#include <unordered_map>
+
 #include <utility>
-#include <vector>
 
 #include <runtime/core/window/Window.h>
 
@@ -13,26 +11,26 @@
 #include <runtime/function/rhi/CommandList.h>
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/RenderTarget.h>
-#include <runtime/function/rhi/Semaphore.h>
-#include <runtime/function/rhi/Texture.h>
 #include <runtime/function/rhi/Sampler.h>
+#include <runtime/function/rhi/Semaphore.h>
 #include <runtime/function/rhi/SwapChain.h>
+#include <runtime/function/rhi/Texture.h>
 
 namespace Horizon::Backend {
 
-extern thread_local std::unique_ptr<CommandContext> thread_command_context;
+extern thread_local CommandContext *thread_command_context;
 
 struct QueueSubmitInfo {
     CommandQueueType queue_type;
-    std::vector<CommandList *> command_lists;
-    std::vector<Semaphore *> wait_semaphores;
-    std::vector<Semaphore *> signal_semaphores;
+    Container::Array<CommandList *> command_lists;
+    Container::Array<Semaphore *> wait_semaphores;
+    Container::Array<Semaphore *> signal_semaphores;
     bool wait_image_acquired = false;
     bool signal_render_complete = false;
 };
 
 struct QueuePresentInfo {
-    //std::vector<Semaphore *> wait_semaphores; // we only need to wait render complete semaphore
+    // Container::Array<Semaphore *> wait_semaphores; // we only need to wait render complete semaphore
     SwapChain *swap_chain;
 };
 
@@ -52,18 +50,24 @@ class RHI {
 
     virtual void InitializeRenderer() = 0;
 
-    virtual Resource<Buffer> CreateBuffer(const BufferCreateInfo &buffer_create_info) = 0;
-    virtual Buffer *CreateBuffer1(const BufferCreateInfo &buffer_create_info) = 0;
+    virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) = 0;
 
-    virtual Resource<Texture> CreateTexture(const TextureCreateInfo &texture_create_info) = 0;
-    virtual Texture *CreateTexture1(const TextureCreateInfo &texture_create_info) = 0;
+    virtual void DestroyBuffer(Buffer *buffer) = 0;
 
-    virtual Resource<RenderTarget> CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) = 0;
+    virtual Texture *CreateTexture(const TextureCreateInfo &texture_create_info) = 0;
 
-    virtual Resource<SwapChain> CreateSwapChain(const SwapChainCreateInfo &create_info) = 0;
+    virtual void DestroyTexture(Texture *texture) = 0;
 
-    virtual Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path& file_name) = 0;
-    
+    virtual RenderTarget *CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) = 0;
+
+    virtual void DestroyRenderTarget(RenderTarget *render_target) = 0;
+
+    virtual SwapChain *CreateSwapChain(const SwapChainCreateInfo &create_info) = 0;
+
+    virtual void DestroySwapChain(SwapChain *swap_chain) = 0;
+
+    virtual Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) = 0;
+
     virtual void DestroyShader(Shader *shader_program) = 0;
 
     virtual Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) = 0;
@@ -74,9 +78,13 @@ class RHI {
 
     virtual CommandList *GetCommandList(CommandQueueType type) = 0;
 
-    virtual Resource<Semaphore> GetSemaphore() = 0;
+    virtual Semaphore *CreateSemaphore1() = 0;
 
-    virtual Resource<Sampler> GetSampler(const SamplerDesc &sampler_desc) = 0;
+    virtual void DestroySemaphore(Semaphore *semaphore) = 0;
+
+    virtual Sampler *CreateSampler(const SamplerDesc &sampler_desc) = 0;
+
+    virtual void DestroySampler(Sampler *sampler) = 0;
 
     virtual void WaitGpuExecution(CommandQueueType queue_type) = 0;
 
@@ -85,11 +93,11 @@ class RHI {
     virtual void ResetFence(CommandQueueType queue_type) = 0;
 
     // submit command list to command queue
-    virtual void SubmitCommandLists(const QueueSubmitInfo& queue_submit_info) = 0;
+    virtual void SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) = 0;
 
-    virtual void AcquireNextFrame(SwapChain* swap_chain) = 0;
+    virtual void AcquireNextFrame(SwapChain *swap_chain) = 0;
 
-    virtual void Present(const QueuePresentInfo& queue_present_info) = 0;
+    virtual void Present(const QueuePresentInfo &queue_present_info) = 0;
 
     void SetWindow(Window *window) noexcept { m_window = window; }
 
@@ -102,10 +110,10 @@ class RHI {
 } // namespace Horizon::Backend
 
 namespace Horizon {
-    using Buffer = Backend::Buffer;
-    using Texture = Backend::Texture;
-    using RenderTarget = Backend::RenderTarget;
-    using Shader = Backend::Shader;
-    using Pipeline = Backend::Pipeline;
-    using CommandList = Backend::CommandList;
-}
+using Buffer = Backend::Buffer;
+using Texture = Backend::Texture;
+using RenderTarget = Backend::RenderTarget;
+using Shader = Backend::Shader;
+using Pipeline = Backend::Pipeline;
+using CommandList = Backend::CommandList;
+} // namespace Horizon

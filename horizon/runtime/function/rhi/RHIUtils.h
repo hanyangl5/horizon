@@ -1,6 +1,6 @@
 #pragma once
 
-#include <array>
+
 #include <fstream>
 
 #include "dx12/stdafx.h"
@@ -248,12 +248,12 @@ struct ViewportCreateInfo {
 
 //// vertex input state vk
 // struct VertexInputState {
-//     std::vector<VkVertexInputBindingDescription> binding_descriptions;
-//     std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+//     Container::Array<VkVertexInputBindingDescription> binding_descriptions;
+//     Container::Array<VkVertexInputAttributeDescription> attribute_descriptions;
 // };
 //
 // struct VertexInputStateDx12 {
-//     std::vector<D3D12_INPUT_ELEMENT_DESC> input_element_descs;
+//     Container::Array<D3D12_INPUT_ELEMENT_DESC> input_element_descs;
 //     D3D12_INPUT_LAYOUT_DESC input_layout_desc;
 // };
 
@@ -334,8 +334,8 @@ struct MultiSampleState {
 };
 
 struct RenderTargetFormats {
-    u32 color_attachment_count = 0;
-    std::vector<TextureFormat> color_attachment_formats;
+    u32 color_attachment_count;
+    Container::Array<TextureFormat> color_attachment_formats;
     bool has_depth = true, has_stencil = false;
     TextureFormat depth_stencil_format;
 };
@@ -387,7 +387,7 @@ enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, BINDL
 struct DescriptorDesc {
     DescriptorType type{};
     u32 vk_binding{};
-    std::string dx_reg{}; // todo : type -> reg type
+    Container::String dx_reg{}; // todo : type -> reg type
 };
 
 struct PushConstantDesc {
@@ -397,8 +397,8 @@ struct PushConstantDesc {
 };
 
 struct RootSignatureDesc {
-    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptors{};
-    std::unordered_map<std::string, PushConstantDesc> push_constants;
+    Container::FixedArray<Container::HashMap<Container::String, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptors{};
+    Container::HashMap<Container::String, PushConstantDesc> push_constants;
 };
 
 
@@ -406,7 +406,7 @@ u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 porti
 
 struct VkPipelineLayoutDesc {
   public:
-    std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_set_hash_key{};
+    Container::FixedArray<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_set_hash_key{};
 };
 
 inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
@@ -443,9 +443,9 @@ struct TextureDataDesc {
     u32 mipmap_count = 1;
     TextureFormat format;
     TextureType type;
-    std::vector<char> raw_data;
+    Container::Array<char> raw_data;
     // we don't have a unified runtime format for mipmap/layer, so we have to store that
-    std::vector<std::vector<u32>> data_offset_map;
+    Container::Array<Container::Array<u32>> data_offset_map;
 };
 
 struct BufferUpdateDesc {
@@ -564,14 +564,14 @@ inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type) {
 }
 
 
-inline std::vector<char> ReadFile(const char *path) {
+inline Container::Array<char> ReadFile(const char *path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         LOG_ERROR("failed to open shader file: {}", path);
         return {};
     }
     size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
+    Container::Array<char> buffer(fileSize);
     file.seekg(0);
     file.read(buffer.data(), fileSize);
     file.close();

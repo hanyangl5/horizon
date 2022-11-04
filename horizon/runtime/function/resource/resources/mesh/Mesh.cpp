@@ -6,9 +6,9 @@
 
 #include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
 
+#include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
-#include <assimp/pbrmaterial.h>
 
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/RHI.h>
@@ -17,7 +17,8 @@ namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc) noexcept { vertex_attribute_flag = desc.vertex_attribute_flag; }
+Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path, const allocator_type& alloc) noexcept
+    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path) {}
 
 Mesh::~Mesh() noexcept {}
 
@@ -49,15 +50,15 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
 
 void Mesh::ProcessMaterials(const aiScene *scene) {
 
-    std::vector<aiMaterial *> ms;
-    std::vector<std::string> strs;
+    auto stack_memory = Memory::GetStackMemoryResource(1024);
+    
+    Container::Array<aiMaterial *> ms(&stack_memory);
     materials.resize(scene->mNumMaterials);
 
     aiReturn ret;
 
     for (u32 i = 0; i < scene->mNumMaterials; i++) {
 
-        
         bool unlit;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
         if (unlit == true) {
@@ -83,7 +84,6 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         } else if (strcmp(alphaMode.C_Str(), "OPAQUE") == 0) {
             materials[i].blend_state = BlendState::BLEND_STATE_OPAQUE;
         }
-        
 
         aiString temp_path;
 
@@ -115,7 +115,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
             materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
-        
+
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
@@ -124,7 +124,6 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
             materials[i].material_params.param_bitmask |= HAS_EMISSIVE;
         }
-
     }
 
     //// async load material textures
@@ -142,22 +141,6 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
     int a = 5;
 }
 
-// TODO:
-void Mesh::GenerateMeshCluster() {
-    const size_t max_vertices = 64;
-    const size_t max_triangles = 124;
-    const float cone_weight = 0.0f;
-
-    size_t max_meshlets = meshopt_buildMeshletsBound(m_indices.size(), max_vertices, max_triangles);
-    std::vector<meshopt_Meshlet> meshlets(max_meshlets);
-    std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
-    std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
-
-    size_t meshlet_count = meshopt_buildMeshlets(
-        meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), m_indices.data(), m_indices.size(),
-        &m_vertices[0].pos.x, m_vertices.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
-}
-
 u32 SubNodeCount(const aiNode *node) noexcept {
     int n = node->mNumChildren;
 
@@ -169,8 +152,8 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
-void Mesh::LoadMesh(const std::filesystem::path &path) {
-    m_path = path;
+void Mesh::Load() {
+
     // check mesh if loaded
     if (!m_vertices.empty()) {
         LOG_ERROR("mesh already loaded");
@@ -180,8 +163,8 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
     const aiScene *scene = assimp_importer.ReadFile(
-        path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                   aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
+        m_path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                                     aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -252,14 +235,6 @@ void Mesh::LoadMesh(const std::filesystem::path &path) {
     assimp_importer.FreeScene();
 }
 
-u32 Mesh::GetVerticesCount() const noexcept { return static_cast<u32>(m_vertices.size()); }
-
-u32 Mesh::GetIndicesCount() const noexcept { return static_cast<u32>(m_indices.size()); }
-
-Buffer *Mesh::GetVertexBuffer() noexcept { return m_vertex_buffer.get(); }
-
-Buffer *Mesh::GetIndexBuffer() noexcept { return m_index_buffer.get(); }
-
-const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
+const Container::Array<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
 
 } // namespace Horizon

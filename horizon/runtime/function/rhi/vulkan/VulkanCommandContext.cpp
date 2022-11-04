@@ -15,6 +15,7 @@ VulkanCommandContext::~VulkanCommandContext() noexcept {
     }
     for (auto &cls : m_command_lists) {
         for (auto &cl : cls) {
+            Memory::Free(cl);
             cl = nullptr; // release VulkanCommandLists
         }
     }
@@ -42,11 +43,11 @@ CommandList *VulkanCommandContext::GetCommandList(CommandQueueType type) {
         command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         command_buffer_allocate_info.commandBufferCount = 1;
         CHECK_VK_RESULT(vkAllocateCommandBuffers(m_context.device, &command_buffer_allocate_info, &command_buffer));
-        m_command_lists[type].emplace_back(std::make_unique<VulkanCommandList>(m_context, type, command_buffer));
+        m_command_lists[type].emplace_back(Memory::Alloc<VulkanCommandList>(m_context, type, command_buffer));
     }
 
     m_command_lists_count[type]++;
-    return m_command_lists[type][count].get();
+    return m_command_lists[type][count];
 }
 
 void VulkanCommandContext::Reset() {

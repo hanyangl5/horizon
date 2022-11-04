@@ -84,7 +84,7 @@ void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
         m_pitch = -89.0f;
 }
 void Camera::UpdateViewMatrix() noexcept {
-    // calculate the new Front std::vector
+    // calculate the new Front vector
     Math::float3 front;
     front.x = cos(Math::Radians(m_yaw)) * cos(Math::Radians(m_pitch));
     front.y = sin(Math::Radians(m_pitch));

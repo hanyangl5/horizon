@@ -1,7 +1,7 @@
 #include "scene.h"
 
-SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
-
+SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi, Camera *camera) noexcept {
+    m_scene_manager = scene_manager;
     // camera
     {
         cam = camera;
@@ -53,8 +53,6 @@ SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
                                                           sizeof(LightParams) * light_count});
     }
 
-    
-    scene_manager = std::make_unique<SceneManager>();
 
     //auto sphere = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
     //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
@@ -66,9 +64,10 @@ SceneData::SceneData(Backend::RHI *rhi, Camera *camera) noexcept {
 
     //auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
     //sphere->transform = m;
-    scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-                           asset_path / "models/Sponza/glTF/Sponza.gltf");
+    auto sponza = scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                                       VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                                              asset_path / "models/Sponza/glTF/Sponza.gltf");
+    scene_manager->AddMesh(sponza);
 
 
     //auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |

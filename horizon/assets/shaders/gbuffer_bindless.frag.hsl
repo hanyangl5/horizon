@@ -81,13 +81,16 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
             ? pow(SampleTex2D(Get(material_textures)[material.base_color_texture_index], default_sampler, vsout.uv).xyz,
                   float3(2.2))
             : material.base_color;
-    float alpha =
-        material.blend_state != BLEND_STATE_OPAQUE
-            ? SampleLvlTex2D(Get(material_textures)[material.base_color_texture_index], default_sampler, vsout.uv, 0).w
-            : 1.0;
-    if(alpha < 0.5) {
-        discard; // correction of alpha channel mipmap
+    float alpha = 1.0;
+    // uniform branching
+    if (material.blend_state == BLEND_STATE_MASKED) {
+        alpha =
+            SampleLvlTex2D(Get(material_textures)[material.base_color_texture_index], default_sampler, vsout.uv, 0).w;
+        if (alpha<0.5) {
+            discard;
+        }
     }
+
     float3 normal_map =
         has_normal != 0
             ? SampleTex2D(Get(material_textures)[material.normal_texture_index], default_sampler, vsout.uv).xyz

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <runtime/core/singleton/public_singleton.h>
 
 namespace Horizon {

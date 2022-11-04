@@ -20,10 +20,10 @@ Horizon::Backend::VulkanRenderTarget::VulkanRenderTarget(const VulkanRendererCon
     create_info.width = render_target_create_info.width;
     create_info.height = render_target_create_info.height;
     create_info.depth = 1;
-    m_texture = new VulkanTexture(m_context, create_info);
+    m_texture = Memory::Alloc<VulkanTexture>(m_context, create_info);
 }
 
 Horizon::Backend::VulkanRenderTarget::~VulkanRenderTarget() noexcept {
-    delete m_texture;
+    Memory::Free(m_texture);
     m_texture = nullptr;
 }

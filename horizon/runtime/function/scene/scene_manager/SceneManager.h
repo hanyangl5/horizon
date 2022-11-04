@@ -1,14 +1,12 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
-#include <runtime/function/scene/camera/Camera.h>
+#include <runtime/function/resource/resource_manager/ResourceManager.h>
 #include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/scene/camera/Camera.h>
 #include <runtime/function/scene/light/Light.h>
 
 namespace Horizon {
@@ -46,10 +44,12 @@ struct MaterialDesc {
 
 class SceneManager {
   public:
-    SceneManager() noexcept;
+    SceneManager(ResourceManager *resource_manager) noexcept;
     ~SceneManager() noexcept;
 
-    Mesh *AddMesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept;
+    void AddMesh(Mesh *mesh);
+
+    void RemoveMesh(Mesh *mesh);
 
     void CreateMeshResources(Backend::RHI *rhi);
 
@@ -63,34 +63,28 @@ class SceneManager {
     // Light *AddSpotLight(Math::float3 color, f32 intensity, f32 inner_cone,
     //                     f32 outer_cone) noexcept;
     // Camera *SetMainCamera() noexcept;
-    void GetVertexBuffers(std::vector<Buffer *> &vertex_buffers, std::vector<u32> &offsets);
+    void GetVertexBuffers(Container::Array<Buffer *> &vertex_buffers, Container::Array<u32> &offsets);
 
   public:
-    std::vector<Resource<Mesh>> meshes;
-    std::vector<std::unique_ptr<Light>> lights;
-    std::vector<TextureUpdateDesc> textuer_upload_desc{};
-    std::vector<Resource<Backend::Texture>> textures;
-    std::vector<Resource<Buffer>> vertex_buffers;
-    std::vector<Resource<Buffer>> index_buffers;
+    ResourceManager *resource_manager;
 
-    std::vector<DrawParameters> draw_params{};
-    std::vector<MaterialDesc> material_descs{};
-    std::vector<MeshData> mesh_data;
-    Resource<Buffer> draw_parameter_buffer{};
-    Resource<Buffer> material_description_buffer{};
+    Container::Array<Mesh *> scene_meshes{};
+    Container::Array<Light*> lights;
+    Container::Array<TextureUpdateDesc> textuer_upload_desc{};
+    Container::Array<Backend::Texture *> material_textures;
+    Container::Array<Buffer *> vertex_buffers;
+    Container::Array<Buffer *> index_buffers;
 
-        
-    // each mesh one draw call
-    //std::vector<Resource<Buffer>> indirect_draw_command_buffers;
-    //std::vector<std::vector<IndirectDrawCommand>> scene_indirect_draw_commands;
+    Container::Array<DrawParameters> draw_params{};
+    Container::Array<MaterialDesc> material_descs{};
+    Container::Array<MeshData> mesh_data;
+    Buffer *draw_parameter_buffer{};
+    Buffer *material_description_buffer{};
 
     u32 draw_count = 0;
-    Resource<Buffer> indirect_draw_command_buffer1;
-    std::vector<IndirectDrawCommand> scene_indirect_draw_command1;
-    // std::unique_ptr<SceneManager> scene_manager;
-    Resource<Buffer> empty_vertex_buffer;
-
-    // std::vector<Buffer *> buffers;
+    Buffer *indirect_draw_command_buffer1;
+    Container::Array<IndirectDrawCommand> scene_indirect_draw_command1;
+    Buffer *empty_vertex_buffer;
 };
 
 } // namespace Horizon

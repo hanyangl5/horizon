@@ -2,10 +2,13 @@
 
 #include <vulkan/vulkan.h>
 
+#include <runtime/core/memory/Alloc.h>
 #include <runtime/core/window/Window.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/scene/camera/Camera.h>
+#include <runtime/function/resource/resource_manager/ResourceManager.h>
+#include <runtime/function/scene/scene_manager/SceneManager.h>
 
 namespace Horizon {
 
@@ -22,6 +25,8 @@ class RenderSystem {
     RenderSystem(RenderSystem &&rhs) noexcept = delete;
 
     RenderSystem &operator=(RenderSystem &&rhs) noexcept = delete;
+    
+    SceneManager *GetSceneManager() noexcept { return m_scene_manager.get(); };
 
   public:
     void SetCamera(Camera *camera) noexcept { m_debug_camera = camera; }
@@ -36,6 +41,8 @@ class RenderSystem {
   private:
     Window *m_window{};
     Camera *m_debug_camera{};
-    std::unique_ptr<Backend::RHI> m_rhi{};
+    Memory::UniquePtr<ResourceManager>m_resource_manager{};
+    Memory::UniquePtr<SceneManager>m_scene_manager{};
+    Memory::UniquePtr<Backend::RHI> m_rhi{};
 };
 } // namespace Horizon

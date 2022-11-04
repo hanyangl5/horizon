@@ -1,8 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-#include <vector>
-
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/DescriptorSet.h>
 #include <runtime/function/rhi/RHIUtils.h>
@@ -39,6 +36,6 @@ class Pipeline {
     Shader *m_vs{}, *m_ps{}, *m_cs{};
     PipelineCreateInfo m_create_info{};
     RootSignatureDesc rsd{};
-    std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> vk_binding_count{};
+    Container::FixedArray<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> vk_binding_count{};
 };
 } // namespace Horizon::Backend

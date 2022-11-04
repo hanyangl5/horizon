@@ -10,12 +10,12 @@
 namespace Horizon::Backend {
 
 struct SwapChainSemaphoreContext {
-    // std::vector<Semaphore *> recycled_semaphores;
+    // Container::Array<Semaphore *> recycled_semaphores;
     // Semaphore *swap_chain_acquire_semaphore{};
     // Semaphore *swap_chain_release_semaphore{};
-    std::vector<std::shared_ptr<Semaphore>> recycled_semaphores;
-    std::shared_ptr<Semaphore> swap_chain_acquire_semaphore{};
-    std::shared_ptr<Semaphore> swap_chain_release_semaphore{};
+    Container::Array<Semaphore*> recycled_semaphores;
+    Semaphore* swap_chain_acquire_semaphore{};
+    Semaphore* swap_chain_release_semaphore{};
 };
 
 class SwapChain {
@@ -37,7 +37,7 @@ class SwapChain {
     RenderTarget *GetRenderTarget() noexcept { return render_targets[current_frame_index]; }
 
   public:
-    std::vector<RenderTarget *> render_targets{};
+    Container::Array<RenderTarget *> render_targets{};
     u32 m_back_buffer_count{};
     u32 current_frame_index{0};
     u32 image_index{};

@@ -2,7 +2,7 @@
 //
 //#include "stdafx.h"
 //
-//#include <array>
+//
 //
 //#include <runtime/function/rhi/CommandContext.h>
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
@@ -23,9 +23,9 @@
 //  private:
 //    ID3D12Device *m_device;
 //    // each thread has pools to allocate graphics/compute/transfer commandlist
-//    std::array<ID3D12CommandAllocator *, 3> m_command_pools{};
+//    Container::FixedArray<ID3D12CommandAllocator *, 3> m_command_pools{};
 //
-//    std::array<std::vector<DX12CommandList *>, 3> m_command_lists{};
-//    std::array<u32, 3> m_command_lists_count{};
+//    Container::FixedArray<Container::Array<DX12CommandList *>, 3> m_command_lists{};
+//    Container::FixedArray<u32, 3> m_command_lists_count{};
 //};
 //} // namespace Horizon::Backend

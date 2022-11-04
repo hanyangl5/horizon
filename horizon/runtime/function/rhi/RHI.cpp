@@ -3,7 +3,7 @@
 
 namespace Horizon::Backend {
 
-thread_local std::unique_ptr<CommandContext> thread_command_context;
+thread_local CommandContext *thread_command_context;
 
 RHI::RHI() noexcept {}
 

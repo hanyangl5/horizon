@@ -11,7 +11,7 @@ namespace Horizon::Backend {
 class VulkanShader : public Shader {
   public:
     VulkanShader(const VulkanRendererContext &context, ShaderType type,
-                        std::vector<char>& spirv_code, const std::filesystem::path& rsd_path) noexcept;
+                        Container::Array<char>& spirv_code, const std::filesystem::path& rsd_path) noexcept;
     virtual ~VulkanShader() noexcept;
     VulkanShader(const VulkanShader &rhs) noexcept = delete;
     VulkanShader &operator=(const VulkanShader &rhs) noexcept = delete;
