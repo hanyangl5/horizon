@@ -334,7 +334,7 @@ struct MultiSampleState {
 };
 
 struct RenderTargetFormats {
-    u32 color_attachment_count;
+    u32 color_attachment_count = 0;
     Container::Array<TextureFormat> color_attachment_formats;
     bool has_depth = true, has_stencil = false;
     TextureFormat depth_stencil_format;

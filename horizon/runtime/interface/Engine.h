@@ -1,17 +1,15 @@
 #pragma once
 
-
-#include <BS_thread_pool.hpp>
-
 #include <runtime/core/memory/Alloc.h>
 #include <runtime/core/window/Window.h>
-#include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/interface/EngineConfig.h>
 
+#include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/scene/scene_manager/SceneManager.h>
+
 #include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 
+#include <runtime/interface/EngineConfig.h>
 namespace Horizon {
 class Engine final {
   public:
