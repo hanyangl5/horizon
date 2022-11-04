@@ -51,7 +51,7 @@ template <typename T> using UniquePtr = std::unique_ptr<T>;
 template <typename T, typename... Args, std::enable_if_t<!std::is_array_v<T>, int> = 0>
 _NODISCARD UniquePtr<T> MakeUnique(std::pmr::memory_resource &allocator, Args &&...args) { // make a unique_ptr
     void *memory = allocator.allocate(sizeof(T), alignof(std::max_align_t));
-    T* object = new (memory) T(std::forward<Args>(args)...);
+    T *object = new (memory) T(std::forward<Args>(args)...);
     return UniquePtr<T>(object);
 }
 
@@ -63,16 +63,14 @@ _NODISCARD UniquePtr<T> MakeUnique(Args &&...args) { // make a unique_ptr
 // we prefer using Container::Array than using unique_ptr<T[]>
 // TODO(hylu): https://stackoverflow.com/questions/16711697/is-there-any-use-for-unique-ptr-with-array
 
-//template <class T, std::enable_if_t<std::is_array_v<T> && std::extent_v<T> == 0, int> = 0>
+// template <class T, std::enable_if_t<std::is_array_v<T> && std::extent_v<T> == 0, int> = 0>
 //_NODISCARD UniquePtr<T> MakeUnique(std::pmr::memory_resource &allocator, const size_t _Size) { // make a unique_ptr
-//    using _Elem = std::remove_extent_t<T>;
-//    void *memory = allocator.allocate(sizeof(T) * _Size, alignof(std::max_align_t));
-//    return UniquePtr<T>(new (memory) _Elem[_Size]());
-//}
+//     using _Elem = std::remove_extent_t<T>;
+//     void *memory = allocator.allocate(sizeof(T) * _Size, alignof(std::max_align_t));
+//     return UniquePtr<T>(new (memory) _Elem[_Size]());
+// }
 
 template <class T, class... Args, std::enable_if_t<std::extent_v<T> != 0, int> = 0>
 void MakeUnique(Args &&...) = delete;
-
-namespace Horizon::Memory {
 
 } // namespace Horizon::Memory

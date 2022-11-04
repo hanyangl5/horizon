@@ -385,8 +385,6 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
     auto stack_memory = Memory::GetStackMemoryResource(1024);
 
-    auto stack_memory = Memory::GetStackMemoryResource(1024);
-
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
