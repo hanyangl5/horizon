@@ -1,4 +1,12 @@
-﻿#pragma once
+﻿/*****************************************************************//**
+ * \file   Allocators.h
+ * \brief  global and local memory allocator
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
+#pragma once
 
 #include <memory>
 #include <memory_resource>

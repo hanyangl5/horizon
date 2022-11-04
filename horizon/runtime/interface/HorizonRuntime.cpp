@@ -1,9 +1,18 @@
-#include "Engine.h"
+/*****************************************************************//**
+ * \file   HorizonRuntime.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
+#include "HorizonRuntime.h"
+
 #include <thread>
 
 namespace Horizon {
 
-Engine::Engine(const EngineConfig &config) noexcept {
+HorizonRuntime::HorizonRuntime(const HorizonConfig &config) noexcept {
 
     Memory::initialize();
     if (!config.offscreen)
@@ -13,10 +22,12 @@ Engine::Engine(const EngineConfig &config) noexcept {
     if (!config.offscreen)
         m_input_system = Memory::MakeUnique<InputSystem>(m_window.get());
 }
-Engine::~Engine() noexcept { Memory::destroy(); }
 
-void Engine::BeginNewFrame() const {
+HorizonRuntime::~HorizonRuntime() noexcept {
+    Memory::destroy(); 
+}
 
+void HorizonRuntime::BeginNewFrame() const {
     auto rhi = m_render_system->GetRhi();
     rhi->ResetRHIResources();
     rhi->ResetFence(CommandQueueType::GRAPHICS);
@@ -25,12 +36,13 @@ void Engine::BeginNewFrame() const {
     LOG_DEBUG("begin frame");
 }
 
-void Engine::EndFrame() const {
-    // TODO: wait for gpu execution?
+void HorizonRuntime::EndFrame() const {
+    // TODO(hylu): wait for gpu execution?
     auto rhi = m_render_system->GetRhi();
     rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
     rhi->WaitGpuExecution(CommandQueueType::COMPUTE);
     rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
     LOG_DEBUG("end frame");
 }
+
 } // namespace Horizon

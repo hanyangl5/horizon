@@ -30,9 +30,9 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
 
     m_rhi->SetWindow(m_window);
 
-    m_resource_manager = std::make_unique<ResourceManager>(m_rhi.get());
+    m_resource_manager = Memory::MakeUnique<ResourceManager>(m_rhi.get());
 
-    m_scene_manager = std::make_unique<SceneManager>(m_resource_manager.get());
+    m_scene_manager = Memory::MakeUnique<SceneManager>(m_resource_manager.get());
 }
 
 RenderSystem::~RenderSystem() noexcept {}

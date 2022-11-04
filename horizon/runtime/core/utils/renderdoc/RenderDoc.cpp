@@ -1,5 +1,15 @@
+/*****************************************************************//**
+ * \file   RenderDoc.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #include "RenderDoc.h"
+
 #include <runtime/core/log/Log.h>
+
 #ifdef RENDERDOC_ENABLED
 
 void Horizon::RDC::InitializeRenderDoc() noexcept {

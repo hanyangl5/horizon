@@ -1,3 +1,11 @@
+/*****************************************************************//**
+ * \file   definations.h
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #pragma once
 
 #define NOMINMAX
@@ -6,7 +14,6 @@
 
 #include <d3d12.h>
 #include <vulkan/vulkan.h>
-
 
 #include "../memory/Alloc.h"
 #include "../container/Container.h"
@@ -27,4 +34,5 @@ using f64 = double;
 
 #define USE_ASYNC_COMPUTE_TRANSFER 1
 #define RENDERDOC_ENABLED 1
+
 } // namespace Horizon

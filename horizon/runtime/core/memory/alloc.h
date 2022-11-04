@@ -1,8 +1,17 @@
+/*****************************************************************//**
+ * \file   Alloc.h
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #pragma once
 
 #include <memory>
 #include <memory_resource>
 #include <type_traits>
+#include <xtr1common>
 
 #include "Allocators.h"
 
@@ -25,25 +34,24 @@ template <typename T, typename... Args> T *Alloc(Args &&...args) {
 }
 
 template <typename T> void Free(std::pmr::memory_resource &allocator, T *ptr) {
-    if (!ptr)
+    if (!ptr) {
         return;
+    }
     ptr->~T();
     allocator.deallocate(ptr, sizeof(T), alignof(std::max_align_t));
 }
 
 template <typename T> void Free(T *ptr) {
-    if (!ptr)
+    if (!ptr) {
         return;
+    }
     Free(*Horizon::Memory::global_memory_resource, ptr);
 }
-
-#define STACK_MEMORY_RESOURCE(size, memory) std::pmr::monotonic_buffer_resource memory(size);
 
 inline std::pmr::monotonic_buffer_resource GetStackMemoryResource(size_t size = 1024) {
     return std::pmr::monotonic_buffer_resource(size);
 }
 
-#include <xtr1common>
 // smart_ptr with pmr
 
 template <typename T> using UniquePtr = std::unique_ptr<T>;

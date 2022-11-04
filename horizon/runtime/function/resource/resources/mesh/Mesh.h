@@ -55,8 +55,6 @@ class Mesh {
     Mesh(const MeshDesc &desc, const std::filesystem::path &path, const allocator_type &alloc = {}) noexcept;
     ~Mesh() noexcept;
 
-    std::pmr::vector<char> mBuffer;
-
     Mesh(const Mesh &rhs) noexcept = delete;
     Mesh &operator=(const Mesh &rhs) noexcept = delete;
     Mesh(Mesh &&rhs) noexcept = delete;

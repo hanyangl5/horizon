@@ -35,15 +35,15 @@ class ResourceManager {
 
   public:
     Backend::RHI *m_rhi{};
-    std::unordered_set<Buffer *> allocated_buffers;
+    Container::HashSet<Buffer *> allocated_buffers;
     Buffer *empty_vertex_buffer;
 
-    std::unordered_set<Texture *> allocated_textures;
+    Container::HashSet<Texture *> allocated_textures;
 
     // Container::HashMap<u64, MeshFragmentResource> mesh_fragment_resources; //TODO
 
-    std::unordered_set<Mesh *> meshes;
-    std::unordered_set<Material *> materials;
+    Container::HashSet<Mesh *> meshes;
+    Container::HashSet<Material *> materials;
 };
 
 } // namespace Horizon

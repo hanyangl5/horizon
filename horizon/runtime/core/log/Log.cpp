@@ -1,3 +1,11 @@
+/*****************************************************************//**
+ * \file   Log.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #include <spdlog/sinks/stdout_color_sinks.h> // or "../stdout_sinks.h" if no colors needed
 
 #include "Log.h"
