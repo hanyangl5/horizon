@@ -299,7 +299,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
         }
 
-        // TODO: mulitsampling
+        // TODO(hylu): mulitsampling
         {
 
             multi_sample_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -316,7 +316,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 
         // color blend state
         {
-            // TODO:
             color_blend_attachment_state.resize(ci->render_target_formats.color_attachment_count); // TODO(hylu): reserve and construct
             for (auto &state : color_blend_attachment_state) {
                 state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |

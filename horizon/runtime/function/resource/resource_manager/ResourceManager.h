@@ -40,7 +40,7 @@ class ResourceManager {
 
     Container::HashSet<Texture *> allocated_textures;
 
-    // Container::HashMap<u64, MeshFragmentResource> mesh_fragment_resources; //TODO
+    // Container::HashMap<u64, MeshFragmentResource> mesh_fragment_resources; // TODO(hylu): split mesh to meshfragment
 
     Container::HashSet<Mesh *> meshes;
     Container::HashSet<Material *> materials;

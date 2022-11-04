@@ -12,7 +12,7 @@
 
 namespace Horizon {
 
-Window::Window(const char *_name, u32 _width, u32 _height) noexcept : width(_width), height(_height) {
+Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_width), m_height(_height) {
     if (glfwInit() != GLFW_TRUE) {
         glfwTerminate();
         LOG_ERROR("failed to init glfw");
@@ -26,8 +26,8 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : width(_wid
         LOG_ERROR("failed to init window");
     }
     glfwMakeContextCurrent(m_window);
-    glfwSwapInterval(vsync_enabled ? 1 : 0);
-    LOG_DEBUG("vsync : {}", vsync_enabled); // TODO: vsync not working now
+    glfwSwapInterval(m_vsync_enabled ? 1 : 0);
+    LOG_DEBUG("vsync : {}", m_vsync_enabled); // TODO(hylu): vsync not working now
 }
 
 Window::~Window() noexcept {
@@ -36,11 +36,11 @@ Window::~Window() noexcept {
 }
 
 u32 Window::GetWidth() const noexcept {
-    return width; 
+    return m_width; 
 }
 
 u32 Window::GetHeight() const noexcept {
-    return height; 
+    return m_height; 
 }
 
 GLFWwindow *Window::GetWindow() const noexcept {

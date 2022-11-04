@@ -16,7 +16,7 @@ class Semaphore {
   public:
     virtual void AddWaitStage(CommandQueueType queue_type) noexcept = 0;
 
-    // TODO: how to deal with semaphore signal/wait multiple times, how flags change.
+    // TODO(hylu): how to deal with semaphore signal/wait multiple times, how flags change.
     virtual u32 GetWaitStage() noexcept = 0;
 
   protected:

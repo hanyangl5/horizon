@@ -23,6 +23,6 @@ struct Vertex {
 };
 
 using Index = u32;
-// TODO: multiple vertex description
+// TODO(hylu): multiple vertex description
 
 } // namespace Horizon

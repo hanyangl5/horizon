@@ -371,7 +371,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         }
     }
 
-    // TODO : use CopyBufferToTexture
+    // TODO(hylu) : use CopyBufferToTexture
     vkCmdCopyBufferToImage(m_command_buffer, vk_texture->m_stage_buffer->m_buffer, vk_texture->m_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<u32>(regions.size()), regions.data());
 }
@@ -568,7 +568,7 @@ void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *se
     auto vk_set = reinterpret_cast<VulkanDescriptorSet *>(set);
 
     vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
-                            static_cast<u32>(set->update_frequency), 1, &vk_set->m_set, 0, 0); // TODO: batch update
+                            static_cast<u32>(set->update_frequency), 1, &vk_set->m_set, 0, 0); // TODO(hylu): batch update
 }
 
 void VulkanCommandList::GenerateMipMap(Texture *texture, bool alllevels) {

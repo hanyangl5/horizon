@@ -75,7 +75,7 @@ void Camera::Move(Direction direction) noexcept {
 }
 void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
     m_yaw += xoffset;
-    m_pitch -= yoffset; // TODO: unify axis in different API
+    m_pitch -= yoffset; // TODO(hylu): unify axis in different API
 
     // prevent locked
     if (m_pitch > 89.0f)
