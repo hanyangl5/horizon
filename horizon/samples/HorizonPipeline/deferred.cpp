@@ -118,17 +118,18 @@ DeferredData::DeferredData(RHI* rhi) noexcept {
         // ibl
 
         diffuse_irradiance_sh3_constants.sh = {
-            Math::float4{0.474948436021805f, 0.480556935071945f, 0.501606047153473f, 0.0f},
-            Math::float4{0.351380050182343f, 0.371190130710602f, 0.468852639198303f, 0.0f},
-            Math::float4{0.224167078733444f, 0.204228252172470f, 0.201337367296219f, 0.0f},
-            Math::float4{0.076594874262810f, -0.067332319915295f, -0.062507018446922f, 0.0f},
-            Math::float4{0.061358224600554f, -0.054993789643049f, -0.051467958837748f, 0.0f},
-            Math::float4{0.172064036130905f, 0.162797480821609f, 0.160090863704681f, 0.0f},
-            Math::float4{0.035116069018841f, 0.028756374493241f, 0.022267108783126f, 0.0f},
-            Math::float4{0.056562144309282f, -0.050596039742231f, -0.045287083834410f, 0.0f},
-            Math::float4{0.004470882471651f, -0.008455731905997f, -0.017041536048055f, 0.0f}};
+            Math::float4{0.473198890686035, 0.519405245780945, 0.554664373397827, 0.0f},
+            Math::float4{0.416269570589066, 0.466901600360870, 0.595043838024139, 0.0f},
+            Math::float4{0.070390045642853, 0.072113677859306, 0.075183071196079, 0.0f},
+            Math::float4{0.200731590390205, -0.189936503767967, -0.178353592753410, 0.0f},
+            Math::float4{0.165346711874008, -0.156177446246147, -0.144699439406395, 0.0f},
+            Math::float4{0.037444319576025, 0.041276078671217, 0.046160303056240, 0.0f},
+            Math::float4{0.007342631462961, -0.009751657955348, -0.015737744048238, 0.0f},
+            Math::float4{0.023010414093733, -0.011694960296154, 0.001283747726120, 0.0f},
+            Math::float4{0.000401695695473, -0.013503036461771, -0.041937090456486, 0.0f}
+        };
 
-        prefilered_irradiance_env_map_data = TextureLoader::Load(asset_path / "envrionment/hdr29/aSpecularHDR.dds");
+        prefilered_irradiance_env_map_data = TextureLoader::Load(asset_path / "envrionment/football/footballSpecularHDR.dds");
         
         {
             TextureCreateInfo texture_create_info{};
@@ -142,7 +143,7 @@ DeferredData::DeferredData(RHI* rhi) noexcept {
             texture_create_info.texture_format = prefilered_irradiance_env_map_data.format;
             prefiltered_irradiance_env_map = rhi->CreateTexture(texture_create_info);
         }
-        brdf_lut_data_desc = TextureLoader::Load(asset_path / "envrionment/hdr29/aBrdf.dds");
+        brdf_lut_data_desc = TextureLoader::Load(asset_path / "envrionment/football/footballBrdf.dds");
         {
             TextureCreateInfo texture_create_info{};
             texture_create_info.width = brdf_lut_data_desc.width;
