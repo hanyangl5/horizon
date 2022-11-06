@@ -29,7 +29,7 @@ class DescriptorSets(Enum):
     UPDATE_FREQ_PER_FRAME = 1
     UPDATE_FREQ_PER_BATCH = 2
     UPDATE_FREQ_PER_DRAW = 3
-    UPDATE_FREQ_USER = 4
+    UPDATE_FREQ_BINDLESS = 4
     space4 = 5
     space5 = 6
     space6 = 7
@@ -685,5 +685,6 @@ class RootSignatureDesc:
         self.data['UPDATE_FREQ_PER_FRAME'] = []
         self.data['UPDATE_FREQ_PER_BATCH'] = []
         self.data['UPDATE_FREQ_PER_DRAW'] = []
+        self.data['UPDATE_FREQ_BINDLESS'] = []
         self.data['PUSH_CONSTANT'] = []
 

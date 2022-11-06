@@ -1,2 +1,1 @@
 add_subdirectory(HorizonPipeline)
-add_subdirectory(MipmapGen)

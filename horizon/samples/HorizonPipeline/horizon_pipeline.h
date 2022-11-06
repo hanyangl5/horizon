@@ -2,21 +2,21 @@
 #pragma once
 #include "config.h"
 #include "deferred.h"
-#include "ssao.h"
 #include "post_process.h"
-#include  "scene.h"
+#include "scene.h"
+#include "ssao.h"
 
 // HorizonPipeline
 
 class HorizonPipeline {
   public:
     HorizonPipeline() {
-        EngineConfig config{};
+        HorizonConfig config{};
         config.width = _width;
         config.height = _height;
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.offscreen = false;
-        engine = std::make_unique<Engine>(config);
+        engine = std::make_unique<HorizonRuntime>(config);
     }
 
     void Init() {
@@ -34,21 +34,18 @@ class HorizonPipeline {
     void run();
 
   private:
-    std::unique_ptr<Engine> engine{};
+    std::unique_ptr<HorizonRuntime> engine{};
     std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";
 
-    Resource<Camera> m_camera{};
-    Horizon::Backend::RHI *rhi;
-    Resource<SwapChain> swap_chain;
+    Horizon::Backend::RHI *rhi{};
+    SwapChain *swap_chain{};
 
     // pass resources
 
-    Resource<Sampler> sampler;
+    Sampler *sampler;
 
     std::unique_ptr<DeferredData> deferred{};
     std::unique_ptr<SSAOData> ssao{};
     std::unique_ptr<PostProcessData> post_process{};
     std::unique_ptr<SceneData> scene{};
-    
-    
 };

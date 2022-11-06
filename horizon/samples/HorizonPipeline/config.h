@@ -3,12 +3,9 @@
 #include <chrono>
 #include <filesystem>
 #include <iniparser.h>
-#include <memory>
 #include <mutex>
 #include <random>
 #include <shared_mutex>
-#include <string>
-#include <unordered_set>
 
 #include <argparse/argparse.hpp>
 
@@ -21,12 +18,12 @@
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/scene/geometry/mesh/Mesh.h>
+#include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/resource/resource_loader/mesh/MeshLoader.h>
 #include <runtime/function/scene/light/Light.h>
 
-#include <runtime/interface/Engine.h>
+#include <runtime/interface/HorizonRuntime.h>
 
-#include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 
 

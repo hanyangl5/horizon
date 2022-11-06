@@ -1,9 +1,9 @@
+#include "VulkanCommandList.h"
+
 #include <algorithm>
-#include <memory>
 
 #include <runtime/function/rhi/RHIUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
-#include <runtime/function/rhi/vulkan/VulkanCommandList.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
 
@@ -35,8 +35,10 @@ void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u3
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
 
-    std::vector<VkBuffer> vk_buffers(buffer_count);
-    std::vector<VkDeviceSize> vk_offsets(buffer_count);
+    auto stack_memory = Memory::GetStackMemoryResource(1024);
+
+    Container::Array<VkBuffer> vk_buffers(buffer_count, &stack_memory);
+    Container::Array<VkDeviceSize> vk_offsets(buffer_count, &stack_memory);
     for (u32 i = 0; i < buffer_count; i++) {
         assert(("vertex buffer not valid",
                 buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
@@ -66,6 +68,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
+    assert(begin_info.render_target_count < MAX_RENDER_TARGET_COUNT);
 
     VkRenderingInfo info{};
     info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -78,28 +81,32 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         VkRect2D{VkOffset2D{static_cast<int>(begin_info.render_area.x), static_cast<int>(begin_info.render_area.y)},
                  VkExtent2D{begin_info.render_area.w, begin_info.render_area.h}};
 
-    std::vector<VkRenderingAttachmentInfo> color_attachment_info{};
-    VkRenderingAttachmentInfo depth_attachment_info{};
-    u32 color_render_target_count = 0;
-    while (begin_info.render_targets[++color_render_target_count].data != nullptr)
-        ;
-    color_attachment_info.resize(color_render_target_count);
+    auto stack_memory = Memory::GetStackMemoryResource(1024);
 
-    for (u32 i = 0; i < color_render_target_count; i++) {
+    // color attachment info
+    Container::Array<VkRenderingAttachmentInfo> color_attachment_info(&stack_memory);
+    color_attachment_info.reserve(begin_info.render_target_count);
+
+    for (u32 i = 0; i < begin_info.render_target_count; i++) {
+        VkRenderingAttachmentInfo info{};
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.render_targets[i].data->GetTexture());
-        color_attachment_info[i].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        color_attachment_info[i].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        color_attachment_info[i].imageView = t->m_image_view;
-        color_attachment_info[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        color_attachment_info[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        info.imageView = t->m_image_view;
+        info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         VkClearValue clear_value;
-        auto &cc = std::get<ClearValueColor>(begin_info.render_targets[i].clear_color);
-        clear_value.color = {cc.color.x, cc.color.y, cc.color.z, cc.color.w};
-        color_attachment_info[i].clearValue = clear_value;
+        auto &cc = std::get<ClearColorValue>(begin_info.render_targets[i].clear_color);
+        memcpy(&clear_value.color, &cc, 4 * 4);
+        info.clearValue = clear_value;
+        color_attachment_info.push_back(std::move(info));
     }
 
     info.colorAttachmentCount = color_attachment_info.size();
     info.pColorAttachments = color_attachment_info.data();
+
+    // depth attachment info
+    VkRenderingAttachmentInfo depth_attachment_info{};
 
     if (begin_info.depth_stencil.data) {
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth_stencil.data->GetTexture());
@@ -160,6 +167,15 @@ void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u
 
 void VulkanCommandList::DrawIndirect() {}
 
+void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) {
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect graphics "
+            "commandlist",
+            m_type == CommandQueueType::GRAPHICS));
+    vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count,
+                             stride);
+}
+
 // compute commands
 void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) {
     assert(("command list is not recording", is_recoring == true));
@@ -191,9 +207,9 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
         if (!vk_buffer->m_stage_buffer) {
 
             vk_buffer->m_stage_buffer =
-                std::make_unique<VulkanBuffer>(m_context,
+                Memory::Alloc<VulkanBuffer>(m_context,
                                                BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
-                                                                ResourceState::RESOURCE_STATE_COPY_SOURCE, size},
+                                                                ResourceState::RESOURCE_STATE_COPY_SOURCE, buffer->m_size},
                                                MemoryFlag::CPU_VISABLE_MEMORY);
         }
         // if cpu data does not change, don't upload // buffer handle is
@@ -210,7 +226,7 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
         // barrier for stage upload
         {
             BufferBarrierDesc bmb{};
-            bmb.buffer = vk_buffer->m_stage_buffer.get();
+            bmb.buffer = vk_buffer->m_stage_buffer;
             bmb.src_state = RESOURCE_STATE_HOST_WRITE;
             bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
 
@@ -221,7 +237,7 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
         }
 
         // copy to gpu buffer
-        CopyBuffer(vk_buffer->m_stage_buffer.get(), vk_buffer);
+        CopyBuffer(vk_buffer->m_stage_buffer, vk_buffer);
 
         // release queue ownership barrier, controlled by render graph?
     }
@@ -302,7 +318,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
     if (!vk_texture->m_stage_buffer) {
 
         vk_texture->m_stage_buffer =
-            std::make_unique<VulkanBuffer>(m_context,
+            Memory::Alloc<VulkanBuffer>(m_context,
                                            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_UNDEFINED,
                                                             ResourceState::RESOURCE_STATE_COPY_SOURCE, texture_size},
                                            MemoryFlag::CPU_VISABLE_MEMORY);
@@ -324,7 +340,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         tmb.layer_count = texture_data.layer_count;
         // barrier for stage upload
         BufferBarrierDesc bmb{};
-        bmb.buffer = vk_texture->m_stage_buffer.get();
+        bmb.buffer = vk_texture->m_stage_buffer;
         bmb.src_state = RESOURCE_STATE_HOST_WRITE;
         bmb.dst_state = RESOURCE_STATE_COPY_SOURCE;
 
@@ -335,7 +351,10 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
 
         InsertBarrier(desc);
     }
-    std::vector<VkBufferImageCopy> regions{};
+
+    auto stack_memory = Memory::GetStackMemoryResource(4096);
+
+    Container::Array<VkBufferImageCopy> regions(&stack_memory);
 
     for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++) {
 
@@ -355,7 +374,7 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         }
     }
 
-    // TODO : use CopyBufferToTexture
+    // TODO(hylu) : use CopyBufferToTexture
     vkCmdCopyBufferToImage(m_command_buffer, vk_texture->m_stage_buffer->m_buffer, vk_texture->m_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<u32>(regions.size()), regions.data());
 }
@@ -369,8 +388,10 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
     VkAccessFlags src_access_flags = 0;
     VkAccessFlags dst_access_flags = 0;
 
-    std::vector<VkBufferMemoryBarrier> buffer_memory_barriers(desc.buffer_memory_barriers.size());
-    std::vector<VkImageMemoryBarrier> texture_memory_barriers(desc.texture_memory_barriers.size());
+    auto stack_memory = Memory::GetStackMemoryResource(4096);
+
+    Container::Array<VkBufferMemoryBarrier> buffer_memory_barriers(desc.buffer_memory_barriers.size(), &stack_memory);
+    Container::Array<VkImageMemoryBarrier> texture_memory_barriers(desc.texture_memory_barriers.size(), &stack_memory);
 
     for (u32 i = 0; i < desc.buffer_memory_barriers.size(); i++) {
         const auto &barrier_desc = desc.buffer_memory_barriers[i];
@@ -514,7 +535,7 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 
-void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) {
+void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const Container::String &name, void *data) {
     assert(("command list is not recording", is_recoring == true));
     assert(("cannot bind push constant using transfer command list", m_type != CommandQueueType::TRANSFER));
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
@@ -550,7 +571,7 @@ void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *se
     auto vk_set = reinterpret_cast<VulkanDescriptorSet *>(set);
 
     vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
-                            static_cast<u32>(set->update_frequency), 1, &vk_set->m_set, 0, 0); // TODO: batch update
+                            static_cast<u32>(set->update_frequency), 1, &vk_set->m_set, 0, 0); // TODO(hylu): batch update
 }
 
 void VulkanCommandList::GenerateMipMap(Texture *texture, bool alllevels) {
@@ -611,8 +632,8 @@ void VulkanCommandList::GenerateMipMap(Texture *texture, bool alllevels) {
 
 }
 
-Resource<VulkanBuffer> VulkanCommandList::GetStageBuffer(const BufferCreateInfo &buffer_create_info) {
-    return std::make_unique<VulkanBuffer>(m_context, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
+VulkanBuffer* VulkanCommandList::GetStageBuffer(const BufferCreateInfo &buffer_create_info) {
+    return Memory::Alloc<VulkanBuffer>(m_context, buffer_create_info, MemoryFlag::CPU_VISABLE_MEMORY);
 }
 
 } // namespace Horizon::Backend

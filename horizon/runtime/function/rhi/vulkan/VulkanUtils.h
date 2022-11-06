@@ -1,8 +1,8 @@
 #pragma once
 
-#include <array>
+
 #include <functional>
-#include <vector>
+
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
@@ -17,8 +17,8 @@ struct VulkanRendererContext {
     // VkPhysicalDeviceProperties* vk_active_gpu_properties;
     VkDevice device{};
     VmaAllocator vma_allocator{};
-    std::array<u32, 3> command_queue_familiy_indices{};
-    std::array<VkQueue, 3> command_queues{};
+    Container::FixedArray<u32, 3> command_queue_familiy_indices{};
+    Container::FixedArray<VkQueue, 3> command_queues{};
 };
 
 VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) noexcept;

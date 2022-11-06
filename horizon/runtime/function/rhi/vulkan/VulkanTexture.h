@@ -21,7 +21,7 @@ class VulkanTexture : public Texture {
     VkImageView m_image_view{};
     VmaAllocation m_memory{};
     VkDescriptorImageInfo descriptor_image_info{};
-    Resource<VulkanBuffer> m_stage_buffer{};
+    VulkanBuffer* m_stage_buffer{};
 };
 
 } // namespace Horizon::Backend

@@ -22,7 +22,7 @@ class VulkanSwapChain : public SwapChain{
     VkSurfaceKHR surface{};
     VkSurfaceFormatKHR optimal_surface_format{};
     VkSwapchainKHR swap_chain{};
-    std::vector<VkImage> swap_chain_images{};
-    std::vector<VkImageView> swap_chain_image_views{};
+    Container::Array<VkImage> swap_chain_images{};
+    Container::Array<VkImageView> swap_chain_image_views{};
 };
 } // namespace Horizon::Backend

@@ -1,10 +1,18 @@
+/*****************************************************************//**
+ * \file   Window.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #include "Window.h"
 
 #include <runtime/core/log/Log.h>
 
 namespace Horizon {
 
-Window::Window(const char *_name, u32 _width, u32 _height) noexcept : width(_width), height(_height) {
+Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_width), m_height(_height) {
     if (glfwInit() != GLFW_TRUE) {
         glfwTerminate();
         LOG_ERROR("failed to init glfw");
@@ -17,23 +25,34 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : width(_wid
         glfwTerminate();
         LOG_ERROR("failed to init window");
     }
-
-    glfwSwapInterval(vsync_enabled ? 1 : 0);
-    LOG_DEBUG("vsync : {}", vsync_enabled); // TODO: vsync not working now
+    glfwMakeContextCurrent(m_window);
+    glfwSwapInterval(m_vsync_enabled ? 1 : 0);
+    LOG_DEBUG("vsync : {}", m_vsync_enabled); // TODO(hylu): vsync not working now
 }
+
 Window::~Window() noexcept {
     glfwDestroyWindow(m_window);
     glfwTerminate();
 }
 
-u32 Window::GetWidth() const noexcept { return width; }
+u32 Window::GetWidth() const noexcept {
+    return m_width; 
+}
 
-u32 Window::GetHeight() const noexcept { return height; }
+u32 Window::GetHeight() const noexcept {
+    return m_height; 
+}
 
-GLFWwindow *Window::GetWindow() const noexcept { return m_window; }
+GLFWwindow *Window::GetWindow() const noexcept {
+    return m_window; 
+}
 
-int Window::ShouldClose() const noexcept { return glfwWindowShouldClose(m_window); }
+int Window::ShouldClose() const noexcept {
+    return glfwWindowShouldClose(m_window); 
+}
 
-void Window::close() noexcept { glfwSetWindowShouldClose(m_window, true); }
+void Window::Close() noexcept {
+    glfwSetWindowShouldClose(m_window, true); 
+}
 
 } // namespace Horizon

@@ -27,8 +27,10 @@ class VulkanPipeline : public Pipeline {
 
     DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count = 1) override;
 
-    const RootSignatureDesc &GetRootSignatureDesc() const noexcept { return rsd; }
+    DescriptorSet *GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) override;
 
+    const RootSignatureDesc &GetRootSignatureDesc() const noexcept { return rsd; }
+    
   private:
     void CreateGraphicsPipeline();
     void CreateComputePipeline();

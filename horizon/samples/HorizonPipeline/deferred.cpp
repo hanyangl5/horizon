@@ -1,6 +1,6 @@
 #include "deferred.h"
 
-DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
+DeferredData::DeferredData(RHI* rhi) noexcept {
 
     // geometry pass
     {
@@ -12,7 +12,8 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
                                                                   RenderTargetType::COLOR, _width, _height});
         gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                                                   RenderTargetType::COLOR, _width, _height});
-
+        vbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_UINT,
+                                                                  RenderTargetType::COLOR, _width, _height});
         depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                RenderTargetType::DEPTH_STENCIL, _width, _height});
 
@@ -76,11 +77,13 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
         graphics_pass_ci.rasterization_state.discard = false;
         graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
         graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
-
-        graphics_pass_ci.render_target_formats.color_attachment_count = 4;
+    
+        graphics_pass_ci.render_target_formats.color_attachment_count = 5;
+        
         graphics_pass_ci.render_target_formats.color_attachment_formats =
-            std::vector<TextureFormat>{gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format,
-                                       gbuffer2->GetTexture()->m_format, gbuffer3->GetTexture()->m_format};
+            Container::Array<TextureFormat>{
+                gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format, gbuffer2->GetTexture()->m_format,
+                gbuffer3->GetTexture()->m_format, vbuffer0->GetTexture()->m_format};
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 
@@ -88,9 +91,9 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
     }
 
     {
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/gbuffer.vert.hsl");
+        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/gbuffer_bindless.vert.hsl");
 
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/gbuffer.frag.hsl");
+        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/gbuffer_bindless.frag.hsl");
 
         shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/deferred_shading.comp.hsl");
     }
@@ -162,7 +165,7 @@ DeferredData::DeferredData(Backend::RHI *rhi) noexcept {
     sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
 
-    ibl_sampler = rhi->GetSampler(sampler_desc);
+    ibl_sampler = rhi->CreateSampler(sampler_desc);
 
     deferred_shading_constants.width = _width;
     deferred_shading_constants.height = _height;

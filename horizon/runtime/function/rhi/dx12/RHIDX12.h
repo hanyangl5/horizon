@@ -1,7 +1,7 @@
 //#pragma once
 //
-//#include <string>
-//#include <vector>
+//
+//
 //
 //#include <D3D12MemAlloc.h>
 //
@@ -24,18 +24,18 @@
 //
 //    void InitializeRenderer() noexcept override;
 //
-//    Resource<Buffer>
+//    Buffer*
 //    CreateBuffer(const BufferCreateInfo &create_info) noexcept override;
 //
-//    Resource<Texture> CreateTexture(
+//    Texture* CreateTexture(
 //        const TextureCreateInfo &texture_create_info) noexcept override;
 //
 //    void CreateSwapChain(Window *window) noexcept override;
 //
 //    Shader *CreateShader(ShaderType type,
-//                                       const std::string &entry_point,
+//                                       const Container::String &entry_point,
 //                                       u32 compile_flags,
-//                                       std::string file_name) noexcept
+//                                       Container::String file_name) noexcept
 //                                       override;
 //
 //    void DestroyShader(Shader *shader_program) noexcept
@@ -53,7 +53,7 @@
 //    // submit command list to command queue
 //    void SubmitCommandLists(
 //        CommandQueueType queue_type,
-//        std::vector<CommandList *> &command_lists) noexcept override;
+//        Container::Array<CommandList *> &command_lists) noexcept override;
 //
 //    void SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
 //                     u32 binding) noexcept override;
@@ -74,8 +74,8 @@
 //        IDXGIAdapter4 *active_gpu;
 //        D3D12MA::Allocator *d3dma_allocator;
 //        // ID3D12CommandQueue *graphics_queue, *compute_queue,
-//        *transfer_queue; std::array<ID3D12CommandQueue *, 3> queues;
-//        std::array<ID3D12Fence *, 3> fences;
+//        *transfer_queue; Container::FixedArray<ID3D12CommandQueue *, 3> queues;
+//        Container::FixedArray<ID3D12Fence *, 3> fences;
 //        IDXGISwapChain3 *swap_chain;
 //    } m_dx12{};
 //};

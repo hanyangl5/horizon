@@ -1,11 +1,6 @@
 #include "horizon_pipeline.h"
-
 int main() {
-
-    HorizonPipeline ao;
-
-    ao.Init();
-
-    ao.run();
-
+    HorizonPipeline horizon_pipeline;
+    horizon_pipeline.Init();
+    horizon_pipeline.run();
 }

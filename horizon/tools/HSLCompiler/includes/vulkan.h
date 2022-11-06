@@ -81,6 +81,9 @@
 #ifndef UPDATE_FREQ_PER_DRAW
 #define UPDATE_FREQ_PER_DRAW set = 3
 #endif
+#ifndef UPDATE_FREQ_BINDLESS
+#define UPDATE_FREQ_BINDLESS set = 4
+#endif
 #define UPDATE_FREQ_USER UPDATE_FREQ_NONE
 #define space4 UPDATE_FREQ_NONE
 #define space5 UPDATE_FREQ_NONE

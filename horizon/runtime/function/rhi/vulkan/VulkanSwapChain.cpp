@@ -24,7 +24,8 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     // Get surface formats count
     CHECK_VK_RESULT(
         vkGetPhysicalDeviceSurfaceFormatsKHR(m_context.active_gpu, surface, &surface_format_count, nullptr));
-    std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
+    auto stack_memory = Memory::GetStackMemoryResource(32);
+    Container::Array<VkSurfaceFormatKHR> surface_formats(surface_format_count, &stack_memory);
     CHECK_VK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_context.active_gpu, surface, &surface_format_count,
                                                          surface_formats.data()));
 

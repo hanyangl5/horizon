@@ -1,6 +1,12 @@
-#pragma once
+/*****************************************************************//**
+ * \file   Log.h
+ * \brief  log functions
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
 
-#include <string>
+#pragma once
 
 #include <spdlog/spdlog.h>
 
@@ -9,10 +15,10 @@
 
 namespace Horizon {
 
-inline std::string HrToString(HRESULT hr) {
+inline Container::String HrToString(HRESULT hr) {
     char s_str[64] = {};
     sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<UINT>(hr));
-    return std::string(s_str);
+    return Container::String(s_str);
 }
 
 class Log : public PublicSingleton<Log> {
@@ -49,15 +55,15 @@ class Log : public PublicSingleton<Log> {
     std::shared_ptr<spdlog::logger> m_logger;
 };
 
-#define LOG_DEBUG(...) Log::GetInstance().Debug("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_DEBUG(...) Log::GetInstance().Debug("[" + Container::String(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define LOG_INFO(...) Log::GetInstance().Info("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_INFO(...) Log::GetInstance().Info("[" + Container::String(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define LOG_WARN(...) Log::GetInstance().Warn("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_WARN(...) Log::GetInstance().Warn("[" + Container::String(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define LOG_ERROR(...) Log::GetInstance().Error("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_ERROR(...) Log::GetInstance().Error("[" + Container::String(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define LOG_FATAL(...) Log::GetInstance().Fatal("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_FATAL(...) Log::GetInstance().Fatal("[" + Container::String(__FUNCTION__) + "] " + __VA_ARGS__);
 
 #define CHECK_VK_RESULT(res) Log::GetInstance().CheckVulkanResult(res, __FUNCTION__, __LINE__);
 

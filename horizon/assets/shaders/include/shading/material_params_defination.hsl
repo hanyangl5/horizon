@@ -22,3 +22,6 @@ struct MaterialProperties {
     float clearcoat;       // 0
     float clearcoat_gloss; // 0.5
 };
+
+#define BLEND_STATE_OPAQUE 0
+#define BLEND_STATE_MASKED 1
