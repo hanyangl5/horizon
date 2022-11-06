@@ -10,7 +10,6 @@
 
 namespace Horizon {
 
-
 class MeshLoader {
   public:
     static Mesh *Load(const MeshDesc &desc, const std::filesystem::path &path);

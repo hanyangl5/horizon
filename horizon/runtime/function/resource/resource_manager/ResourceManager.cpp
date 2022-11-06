@@ -1,7 +1,8 @@
 #include "ResourceManager.h"
 
 namespace Horizon {
-ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : m_rhi(rhi) {}
+ResourceManager::ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
+    : m_rhi(rhi) {}
 
 ResourceManager::~ResourceManager() noexcept { ClearAllResources(); }
 

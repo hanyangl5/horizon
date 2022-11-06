@@ -48,11 +48,8 @@ struct MeshDesc {
 
 class Mesh {
   public:
-    using allocator_type = std::pmr::polymorphic_allocator<std::byte>;
-    allocator_type get_allocator() const noexcept;
-
-  public:
-    Mesh(const MeshDesc &desc, const std::filesystem::path &path, const allocator_type &alloc = {}) noexcept;
+    Mesh(const MeshDesc &desc, const std::filesystem::path &path,
+         std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
     ~Mesh() noexcept;
 
     Mesh(const Mesh &rhs) noexcept = delete;
@@ -85,11 +82,9 @@ class Mesh {
     Container::Array<Material> materials{};
 
     Math::float4x4 transform = Math::float4x4::Identity;
-    // gpu buffer
-    Buffer* m_vertex_buffer{}, *m_index_buffer{};
+
     u32 vertex_buffer_index;
     u32 index_buffer_index;
-    // Material* materials
 };
 
 // the smallest unit mesh to process loading, drawcall, material

@@ -1,12 +1,12 @@
 /*****************************************************************//**
- * \file   Alloc.cpp
+ * \file   Memory.cpp
  * \brief  
  * 
  * \author hylu
  * \date   November 2022
  *********************************************************************/
 
-#include "Alloc.h"
+#include "Memory.h"
 
 namespace Horizon::Memory {
 

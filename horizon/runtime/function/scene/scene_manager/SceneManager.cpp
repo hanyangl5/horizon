@@ -1,17 +1,34 @@
+/*****************************************************************//**
+ * \file   SceneManager.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #include "SceneManager.h"
 
 namespace Horizon {
 
-SceneManager::SceneManager(ResourceManager *resource_manager) noexcept : resource_manager(resource_manager) {}
+SceneManager::SceneManager(ResourceManager *resource_manager,
+                           std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
+    : resource_manager(resource_manager), scene_meshes(allocator), textuer_upload_desc(allocator),
+      material_textures(allocator), vertex_buffers(allocator), index_buffers(allocator), draw_params(allocator),
+      material_descs(allocator), mesh_data(allocator), scene_indirect_draw_command1(allocator), lights(allocator),
+      lights_param_buffer(allocator) {}
 
-SceneManager::~SceneManager() noexcept {}
+SceneManager::~SceneManager() noexcept {
+}
 
-void SceneManager::AddMesh(Mesh *mesh) { scene_meshes.push_back(mesh); }
+void SceneManager::AddMesh(Mesh *mesh) {
+    scene_meshes.push_back(mesh); 
+}
 
-void SceneManager::RemoveMesh(Mesh *mesh) {}
+void SceneManager::RemoveMesh(Mesh *mesh) {
+
+}
 
 void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
-
     u32 texture_offset = 0;
     u32 vertex_buffer_offset = 0;
     u32 index_buffer_offset = 0;
@@ -199,24 +216,85 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
 //     return m.get();
 // }
 //
-// Light *SceneManager::AddDirectionalLight(Math::color color, f32 intensity,
-//                                          Math::float3 direction) noexcept {
-//     auto &l = lights.emplace_back(
-//         Memory::Alloc<DirectionalLight>(color, intensity, direction));
-//     return l.get();
-// }
-//
-// Light *SceneManager::AddPointLight(Math::float3 color, f32 intensity,
-//                                    f32 radius) noexcept {
-//     auto &l = lights.emplace_back(
-//         Memory::Alloc<PointLight>(color, intensity, radius));
-//     return l.get();
-// }
-//
-// Light *SceneManager::AddSpotLight(Math::float3 color, f32 intensity,
-//                                   f32 inner_cone, f32 outer_cone) noexcept {
-//     auto &l = lights.emplace_back(
-//         Memory::Alloc<SpotLight>(color, intensity, inner_cone, outer_cone));
-//     return l.get();
-// }
-} // namespace Horizon
+ Light *SceneManager::AddDirectionalLight(const Math::float3& color, f32 intensity,
+                                          const Math::float3& direction) noexcept {
+    Light *light = Memory::Alloc<DirectionalLight>(color, intensity, direction);
+    lights.emplace_back(light);
+    light_count++;
+    return light;
+ }
+
+ Light *SceneManager::AddPointLight(const Math::float3& color, f32 intensity,
+                                    const Math::float3& position, f32 radius) noexcept {
+     Light *light = Memory::Alloc<PointLight>(color, intensity, position, radius);
+     lights.emplace_back(light);
+     light_count++;
+     return light;
+ }
+
+ Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
+                                   const Math::float3 &direction, float radius, f32 inner_cone,
+                                   f32 outer_cone) noexcept {
+     Light *light = Memory::Alloc<SpotLight>(color, intensity, position, direction, radius, inner_cone, outer_cone);
+     lights.emplace_back(light);
+     light_count++;
+     return light;
+ }
+
+std::tuple<Camera*, CameraController*> SceneManager::AddCamera(const CameraSetting &setting, const Math::float3 &position, const Math::float3 &at,
+                                 const Math::float3 &up) {
+     if (main_camera != nullptr) {
+         LOG_WARN("multi veiw is not supported yet");
+     }
+     main_camera = Memory::MakeUnique<Camera>(setting, position, at, up);
+     if (setting.moveable) {
+         camera_controller = Memory::MakeUnique<CameraController>(main_camera.get());
+     }
+     return {main_camera.get(), camera_controller.get()};
+ }
+
+ Buffer* SceneManager::GetCameraBuffer() const noexcept { 
+     return camera_buffer;
+ }
+
+ void SceneManager::CreateLightResources(Backend::RHI *rhi) {
+     for (auto &l : lights) {
+         lights_param_buffer.push_back(l->GetParamBuffer());
+     }
+     light_count = lights.size();
+
+     light_count_buffer =
+         resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
+
+     light_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                       sizeof(LightParams) * light_count});
+ }
+
+ void SceneManager::UploadLightResources(Backend::CommandList *commandlist) {
+     commandlist->UpdateBuffer(light_buffer, lights_param_buffer.data(),
+                               lights_param_buffer.size() * sizeof(LightParams));
+     commandlist->UpdateBuffer(light_count_buffer, &light_count, sizeof(light_count) * 4);
+
+ }
+
+ Buffer *SceneManager::GetLightCountBuffer() const noexcept {
+    return light_count_buffer;
+ }
+
+ Buffer *SceneManager::GetLightParamBuffer() const noexcept { 
+     return light_buffer;
+ }
+ 
+ void SceneManager::CreateCameraResources(Backend::RHI *rhi) {
+     camera_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                                        sizeof(CameraUb)});
+ }
+
+ void SceneManager::UploadCameraResources(Backend::CommandList *commandlist) {
+      commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
+ }
+
+ } // namespace Horizon

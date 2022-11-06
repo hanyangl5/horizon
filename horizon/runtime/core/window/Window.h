@@ -23,7 +23,7 @@
 #include <GLFW/glfw3native.h>
 #endif
 
-#include <runtime/core/memory/Alloc.h>
+#include <runtime/core/memory/Memory.h>
 #include <runtime/core/utils/Definations.h>
 
 namespace Horizon {

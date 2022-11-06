@@ -1,14 +1,39 @@
+/*****************************************************************//**
+ * \file   Camera.h
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #pragma once
 
 #include <runtime/core/math/Math.h>
+#include <runtime/core/window/WindowInput.h>
 
 namespace Horizon {
 
-enum class Direction { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
+enum class ProjectionMode {
+    PERSPECTIVE,
+    ORTHOGRAPHIC
+};
+
+enum class CameraType {
+    FLY,
+    ORBIT,
+    CINEMETIC
+};
+
+struct CameraSetting {
+    ProjectionMode project_mode{};
+    CameraType camera_type{};
+    bool moveable = true;
+};
 
 class Camera {
   public:
-    Camera(Math::float3 position, Math::float3 at, Math::float3 up) noexcept;
+    Camera(const CameraSetting& setting, const Math::float3 &position, const Math::float3 &at,
+           const Math::float3 &up) noexcept;
 
     ~Camera() noexcept = default;
 
@@ -43,7 +68,7 @@ class Camera {
     void SetCameraSpeed(f32 speed) noexcept;
     f32 GetCameraSpeed() const noexcept;
 
-    void Move(Direction direction) noexcept;
+    void Move(Input::Direction direction) noexcept;
     void Rotate(f32 yaw, f32 pitch) noexcept;
 
     void UpdateViewMatrix() noexcept;
@@ -59,6 +84,7 @@ class Camera {
 
     void SetExposure(f32 aperture, f32 shutter_speed, f32 iso);
 
+    const Math::float2 GetSensitivity() const noexcept;
   private:
     Math::float3 m_eye, m_at, m_up;
     Math::float3 m_forward, m_right;
@@ -78,6 +104,9 @@ class Camera {
 
     // a 35mm camera has a 36x24mm wide frame size
     static constexpr const float SENSOR_SIZE = 0.024f; // 24mm
+    
+    // controller setting
+    Math::float2 m_sensitivity = Math::float2(1.0f);
 };
 
 

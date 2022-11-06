@@ -24,7 +24,6 @@
 
 #include <runtime/interface/HorizonRuntime.h>
 
-#include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 
 

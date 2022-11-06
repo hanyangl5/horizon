@@ -30,19 +30,16 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
 
     m_rhi->SetWindow(m_window);
 
-    m_resource_manager = Memory::MakeUnique<ResourceManager>(m_rhi.get());
+    auto allocator = Memory::GetGlobalAllocator();
 
-    m_scene_manager = Memory::MakeUnique<SceneManager>(m_resource_manager.get());
+    m_resource_manager = Memory::MakeUnique<ResourceManager>(m_rhi.get(), allocator);
+
+    m_scene_manager = Memory::MakeUnique<SceneManager>(m_resource_manager.get(), allocator);
 }
 
 RenderSystem::~RenderSystem() noexcept {}
 
 void RenderSystem::InitializeRenderAPI(RenderBackend backend) {}
-
-Camera *RenderSystem::GetDebugCamera() const {
-    assert(m_debug_camera != nullptr);
-    return m_debug_camera;
-}
 
 // Shader *RenderSystem::CreateShader(
 //     ShaderType type, const Container::String &entry_point, u32 compile_flags,

@@ -8,12 +8,11 @@
 
 #pragma once
 
-#include <runtime/core/memory/Alloc.h>
+#include <runtime/core/memory/Memory.h>
 #include <runtime/core/window/Window.h>
 
 #include <runtime/function/rhi/RHIUtils.h>
 
-#include <runtime/system/input/InputSystem.h>
 #include <runtime/system/render/RenderSystem.h>
 
 #include <runtime/interface/HorizonConfig.h>
@@ -36,7 +35,6 @@ class HorizonRuntime final {
   public:
     Memory::UniquePtr<Window> m_window{};
     Memory::UniquePtr<RenderSystem> m_render_system{};
-    Memory::UniquePtr<InputSystem> m_input_system{};
 };
 
 } // namespace Horizon

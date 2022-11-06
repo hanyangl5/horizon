@@ -37,7 +37,6 @@ class HorizonPipeline {
     std::unique_ptr<HorizonRuntime> engine{};
     std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";
 
-    Memory::UniquePtr<Camera> m_camera{};
     Horizon::Backend::RHI *rhi{};
     SwapChain *swap_chain{};
 

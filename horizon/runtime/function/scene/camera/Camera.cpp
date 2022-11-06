@@ -1,7 +1,19 @@
+/*****************************************************************//**
+ * \file   Camera.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   November 2022
+ *********************************************************************/
+
 #include "Camera.h"
 
 namespace Horizon {
-Camera::Camera(Math::float3 eye, Math::float3 at, Math::float3 up) noexcept : m_eye(eye), m_at(at), m_up(up) {
+
+using namespace Input;
+
+Camera::Camera(const CameraSetting& setting, const Math::float3 &eye, const Math::float3 &at, const Math::float3 &up) noexcept
+    : m_eye(eye), m_at(at), m_up(up) {
     m_forward = Math::Normalize(m_at - m_eye);
     m_right = Math::Cross(m_forward, m_up);
     UpdateViewMatrix();
@@ -41,13 +53,21 @@ Math::float4x4 Camera::GetInvProjectionMatrix() const noexcept {
     return inv_p;
 }
 
-Math::float3 Camera::GetFov() const noexcept { return Math::float3(); }
+Math::float3 Camera::GetFov() const noexcept {
+     return Math::float3(); 
+}
 
-Math::float2 Camera::GetNearFarPlane() const noexcept { return Math::float2(m_near_plane, m_far_plane); }
+Math::float2 Camera::GetNearFarPlane() const noexcept {
+     return Math::float2(m_near_plane, m_far_plane); 
+}
 
-void Camera::SetCameraSpeed(f32 speed) noexcept { m_camera_speed = speed; }
+void Camera::SetCameraSpeed(f32 speed) noexcept {
+     m_camera_speed = speed; 
+}
 
-f32 Camera::GetCameraSpeed() const noexcept { return m_camera_speed; }
+f32 Camera::GetCameraSpeed() const noexcept {
+     return m_camera_speed; 
+}
 
 void Camera::Move(Direction direction) noexcept {
     switch (direction) {
@@ -73,9 +93,10 @@ void Camera::Move(Direction direction) noexcept {
         break;
     }
 }
+
 void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
-    m_yaw += xoffset;
-    m_pitch -= yoffset; // TODO(hylu): unify axis in different API
+    m_yaw += xoffset * m_sensitivity.x;
+    m_pitch -= yoffset * m_sensitivity.y; // TODO(hylu): unify axis in different API
 
     // prevent locked
     if (m_pitch > 89.0f)
@@ -83,6 +104,7 @@ void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
     if (m_pitch < -89.0f)
         m_pitch = -89.0f;
 }
+
 void Camera::UpdateViewMatrix() noexcept {
     // calculate the new Front vector
     Math::float3 front;
@@ -112,9 +134,14 @@ Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
     vp = vp.Transpose();
     return vp;
 }
-Math::float3 Camera::GetForwardDir() const noexcept { return m_forward; }
 
-f32 Camera::GetExposure() const noexcept { return exposure; }
+Math::float3 Camera::GetForwardDir() const noexcept {
+    return m_forward; 
+}
+
+f32 Camera::GetExposure() const noexcept {
+    return exposure; 
+}
 
 void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     aperture = aperture;
@@ -139,11 +166,18 @@ void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     exposure = 1.0 / (pow(2.0, ev100) * 1.2);
 }
 
+const Math::float2 Camera::GetSensitivity() const noexcept {
+    return m_sensitivity; 
+}
+
 Math::float4x4 Camera::GetViewMatrix() const noexcept {
     auto v = m_view;
     v = v.Transpose();
     return v;
 }
 
-Math::float3 Camera::GetPosition() const noexcept { return m_eye; }
+Math::float3 Camera::GetPosition() const noexcept {
+    return m_eye; 
+}
+
 } // namespace Horizon

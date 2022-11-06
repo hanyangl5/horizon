@@ -17,8 +17,10 @@ namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path, const allocator_type& alloc) noexcept
-    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path) {}
+Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path,
+           std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
+    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path), m_mesh_primitives(allocator),
+      m_vertices(allocator), m_indices(allocator), m_nodes(allocator), materials(allocator) {}
 
 Mesh::~Mesh() noexcept {}
 

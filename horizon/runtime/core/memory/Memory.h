@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Alloc.h
+ * \file   Memory.h
  * \brief  
  * 
  * \author hylu
@@ -47,6 +47,10 @@ template <typename T> void Free(T *ptr) {
     }
     Free(*Horizon::Memory::global_memory_resource, ptr);
 }
+
+inline std::pmr::memory_resource *GetGlobalAllocator() {
+    return global_memory_resource; 
+};
 
 inline std::pmr::monotonic_buffer_resource GetStackMemoryResource(size_t size = 1024) {
     return std::pmr::monotonic_buffer_resource(size);

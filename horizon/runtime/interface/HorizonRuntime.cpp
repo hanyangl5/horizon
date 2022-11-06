@@ -13,14 +13,15 @@
 namespace Horizon {
 
 HorizonRuntime::HorizonRuntime(const HorizonConfig &config) noexcept {
-
     Memory::initialize();
-    if (!config.offscreen)
+    if (!config.offscreen) {
         m_window = Memory::MakeUnique<Window>("horizon", config.width, config.height);
-    m_render_system =
-        Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(), config.render_backend, config.offscreen);
-    if (!config.offscreen)
-        m_input_system = Memory::MakeUnique<InputSystem>(m_window.get());
+        m_render_system = Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(),
+                                                           config.render_backend, config.offscreen);
+    } else {
+        m_render_system = Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(),
+                                                           config.render_backend, true);
+    }
 }
 
 HorizonRuntime::~HorizonRuntime() noexcept {

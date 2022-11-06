@@ -2,12 +2,7 @@
 
 void HorizonPipeline::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
-    m_camera = Memory::MakeUnique<Camera>(Math::float3(0.0, 0.0, 10.0_m), Math::float3(0.0, 0.0, 0.0),
-                                        Math::float3(0.0, 1.0_m, 0.0));
-    m_camera->SetCameraSpeed(0.1);
-    m_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
-    engine->m_render_system->SetCamera(m_camera.get());
-    engine->m_input_system->SetCamera(engine->m_render_system->GetDebugCamera());
+
 }
 
 void HorizonPipeline::InitResources() { InitPipelineResources(); }
@@ -32,18 +27,19 @@ void HorizonPipeline::InitPipelineResources() {
     deferred = Memory::MakeUnique<DeferredData>(rhi);
     ssao = Memory::MakeUnique<SSAOData>(rhi);
     post_process = Memory::MakeUnique<PostProcessData>(rhi);
-    scene = Memory::MakeUnique<SceneData>(engine->m_render_system->GetSceneManager(), rhi,
-                                        engine->m_render_system->GetDebugCamera());
+    scene = Memory::MakeUnique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
 }
 
 void HorizonPipeline::UpdatePipelineResources() {
 
-    auto cam = scene->cam;
-    scene->camera_ub.vp = cam->GetViewProjectionMatrix();
-    scene->camera_ub.camera_pos = cam->GetPosition();
-    scene->camera_ub.ev100 = cam->GetEv100();
+    auto cam = scene->scene_camera;
 
-    post_process->exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
+    scene->m_scene_manager->camera_ub.vp = cam->GetViewProjectionMatrix();
+    scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
+    scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
+
+    post_process->exposure_constants.exposure_ev100__ =
+        Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
     deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
     deferred->deferred_shading_constants.inverse_vp = cam->GetInvViewProjectionMatrix();
@@ -60,8 +56,7 @@ void HorizonPipeline::run() {
     bool first_frame = true;
 
     while (!engine->m_window->ShouldClose()) {
-
-        engine->m_input_system->Tick();
+        scene->scene_camera_controller->ProcessInput(engine->m_window.get());
 
         rhi->AcquireNextFrame(swap_chain);
         UpdatePipelineResources();
@@ -78,12 +73,8 @@ void HorizonPipeline::run() {
                 scene->m_scene_manager->UploadMeshResources(transfer);
             }
             // scene data
-
-            transfer->UpdateBuffer(scene->light_buffer, scene->lights_param_buffer.data(),
-                                   scene->lights_param_buffer.size() * sizeof(LightParams));
-            transfer->UpdateBuffer(scene->light_count_buffer, &scene->light_count,
-                                   sizeof(scene->light_count) * 4);
-            transfer->UpdateBuffer(scene->camera_buffer, &scene->camera_ub, sizeof(SceneData::CameraUb));
+            scene->m_scene_manager->UploadLightResources(transfer);
+            scene->m_scene_manager->UploadCameraResources(transfer);
 
             // deferred data
             transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer,
@@ -178,7 +169,7 @@ void HorizonPipeline::run() {
         auto geometry_pass_per_frame_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
         // perframe descriptor set
-        geometry_pass_per_frame_ds->SetResource(scene->camera_buffer, "CameraParamsUb");
+        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->draw_parameter_buffer, "per_draw_data");
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->material_description_buffer,
                                                 "material_descriptions");
@@ -379,8 +370,8 @@ void HorizonPipeline::run() {
                 shading_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
                 shading_ds->SetResource(sampler, "default_sampler");
                 shading_ds->SetResource(deferred->deferred_shading_constants_buffer, "DeferredShadingConstants");
-                shading_ds->SetResource(scene->light_count_buffer, "LightCountUb");
-                shading_ds->SetResource(scene->light_buffer, "LightDataUb");
+                shading_ds->SetResource(scene->m_scene_manager->GetLightCountBuffer(), "LightCountUb");
+                shading_ds->SetResource(scene->m_scene_manager->GetLightParamBuffer(), "LightDataUb");
                 shading_ds->SetResource(deferred->shading_color_image, "out_color");
                 shading_ds->SetResource(ssao->ssao_blur_image, "ao_tex");
                 shading_ds->SetResource(deferred->diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3");

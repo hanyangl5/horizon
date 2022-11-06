@@ -9,12 +9,15 @@
 #pragma once
 
 #include <filesystem>
+#include <tuple>
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
+
 #include <runtime/function/resource/resource_manager/ResourceManager.h>
 #include <runtime/function/resource/resources/mesh/Mesh.h>
 #include <runtime/function/scene/camera/Camera.h>
+#include <runtime/function/scene/camera/CameraController.h>
 #include <runtime/function/scene/light/Light.h>
 
 namespace Horizon {
@@ -52,36 +55,48 @@ struct MaterialDesc {
 
 class SceneManager {
   public:
-    SceneManager(ResourceManager *resource_manager) noexcept;
+    SceneManager(ResourceManager *resource_manager, std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
     ~SceneManager() noexcept;
 
+    // mesh
     void AddMesh(Mesh *mesh);
-
     void RemoveMesh(Mesh *mesh);
-
     void CreateMeshResources(Backend::RHI *rhi);
-
     void UploadMeshResources(Backend::CommandList *commandlist);
-    // Light *AddDirectionalLight(
-    //     Math::color color, f32 intensity,
-    //     Math::float3
-    //         directiona) noexcept; // temperature, soource radius, length
-    // Light *AddPointLight(Math::float3 color, f32 intensity,
-    //                      f32 radius) noexcept;
-    // Light *AddSpotLight(Math::float3 color, f32 intensity, f32 inner_cone,
-    //                     f32 outer_cone) noexcept;
-    // Camera *SetMainCamera() noexcept;
+
+    // light
+    Light *AddDirectionalLight(const Math::float3 &color, f32 intensity,
+                               const Math::float3 &directiona) noexcept; // temperature, soource radius, length
+    Light *AddPointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, f32 radius) noexcept;
+    Light *AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
+                        const Math::float3 &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept;
+    void CreateLightResources(Backend::RHI *rhi);
+    void UploadLightResources(Backend::CommandList *commandlist);
+    Buffer *GetLightCountBuffer() const noexcept;
+    Buffer *GetLightParamBuffer() const noexcept;
+
+    // camera
+
+    Buffer* GetCameraBuffer() const noexcept;
+    // TODO(hylu): multiview
+    std::tuple<Camera *, CameraController *> AddCamera(const CameraSetting &setting, const Math::float3 &position,
+                                                       const Math::float3 &at,
+                      const Math::float3 &up);
+    void CreateCameraResources(Backend::RHI *rhi);
+    void UploadCameraResources(Backend::CommandList *commandlist);
+
+    // miscs
     void GetVertexBuffers(Container::Array<Buffer *> &vertex_buffers, Container::Array<u32> &offsets);
 
   public:
-    ResourceManager *resource_manager;
+    ResourceManager *resource_manager{};
 
     Container::Array<Mesh *> scene_meshes{};
-    Container::Array<Light*> lights;
+
     Container::Array<TextureUpdateDesc> textuer_upload_desc{};
-    Container::Array<Backend::Texture *> material_textures;
-    Container::Array<Buffer *> vertex_buffers;
-    Container::Array<Buffer *> index_buffers;
+    Container::Array<Backend::Texture *> material_textures{};
+    Container::Array<Buffer *> vertex_buffers{};
+    Container::Array<Buffer *> index_buffers{};
 
     Container::Array<DrawParameters> draw_params{};
     Container::Array<MaterialDesc> material_descs{};
@@ -89,10 +104,31 @@ class SceneManager {
     Buffer *draw_parameter_buffer{};
     Buffer *material_description_buffer{};
 
-    u32 draw_count = 0;
-    Buffer *indirect_draw_command_buffer1;
-    Container::Array<IndirectDrawCommand> scene_indirect_draw_command1;
-    Buffer *empty_vertex_buffer;
+    u32 draw_count{0};
+    Buffer *indirect_draw_command_buffer1{};
+    Container::Array<IndirectDrawCommand> scene_indirect_draw_command1{};
+    Buffer *empty_vertex_buffer{};
+
+    // camera
+
+    Memory::UniquePtr<Camera> main_camera{};
+    struct CameraUb {
+        Math::float4x4 vp;
+        Math::float3 camera_pos;
+        f32 ev100;
+    }camera_ub{};
+
+    Buffer *camera_buffer{};
+
+    Memory::UniquePtr<CameraController> camera_controller{};
+
+    // light
+
+    u32 light_count{};
+    Buffer *light_count_buffer{};
+    Container::Array<Light *> lights{};
+    Container::Array<LightParams> lights_param_buffer{};
+    Buffer *light_buffer{};
 };
 
 } // namespace Horizon

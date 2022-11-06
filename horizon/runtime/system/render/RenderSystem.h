@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <runtime/core/memory/Alloc.h>
+#include <runtime/core/memory/Memory.h>
 #include <runtime/core/window/Window.h>
 
 #include <runtime/function/rhi/RHI.h>
@@ -29,10 +29,6 @@ class RenderSystem {
     SceneManager *GetSceneManager() noexcept { return m_scene_manager.get(); };
 
   public:
-    void SetCamera(Camera *camera) noexcept { m_debug_camera = camera; }
-
-    Camera *GetDebugCamera() const;
-
     Backend::RHI *GetRhi() noexcept { return m_rhi.get(); }
 
   private:
@@ -40,7 +36,6 @@ class RenderSystem {
 
   private:
     Window *m_window{};
-    Camera *m_debug_camera{};
     Memory::UniquePtr<ResourceManager>m_resource_manager{};
     Memory::UniquePtr<SceneManager>m_scene_manager{};
     Memory::UniquePtr<Backend::RHI> m_rhi{};
