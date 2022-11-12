@@ -93,7 +93,7 @@ class SceneManager {
 
     Container::Array<Mesh *> scene_meshes{};
 
-    Container::Array<TextureUpdateDesc> textuer_upload_desc{};
+    Container::Array<TextureUpdateDesc> material_texture_upload_desc{};
     Container::Array<Backend::Texture *> material_textures{};
     Container::Array<Buffer *> vertex_buffers{};
     Container::Array<Buffer *> index_buffers{};
@@ -129,6 +129,10 @@ class SceneManager {
     Container::Array<Light *> lights{};
     Container::Array<LightParams> lights_param_buffer{};
     Buffer *light_buffer{};
+
+    // decal
+    Container::Array<TextureUpdateDesc> decal_texture_upload_descs{};
+    Container::Array<Texture *> decal_textures;
 };
 
 } // namespace Horizon

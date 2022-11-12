@@ -12,7 +12,7 @@ namespace Horizon {
 
 SceneManager::SceneManager(ResourceManager *resource_manager,
                            std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
-    : resource_manager(resource_manager), scene_meshes(allocator), textuer_upload_desc(allocator),
+    : resource_manager(resource_manager), scene_meshes(allocator), material_texture_upload_desc(allocator),
       material_textures(allocator), vertex_buffers(allocator), index_buffers(allocator), draw_params(allocator),
       material_descs(allocator), mesh_data(allocator), scene_indirect_draw_command1(allocator), lights(allocator),
       lights_param_buffer(allocator) {}
@@ -107,7 +107,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
                 material_textures.push_back(resource_manager->CreateGpuTexture(create_info));
                 TextureUpdateDesc update_desc{};
                 update_desc.texture_data_desc = &tex.texture_data_desc;
-                textuer_upload_desc.push_back(update_desc);
+                material_texture_upload_desc.push_back(update_desc);
                 texture_offset++;
             }
 
@@ -174,7 +174,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
     tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
     for (u32 tex = 0; tex < material_textures.size(); tex++) {
-        commandlist->UpdateTexture(material_textures[tex], textuer_upload_desc[tex]);
+        commandlist->UpdateTexture(material_textures[tex], material_texture_upload_desc[tex]);
         tex_barrier.texture = material_textures[tex];
         resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
     }
