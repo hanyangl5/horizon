@@ -30,7 +30,7 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept {
 
     ssao_constansts.width = _width;
     ssao_constansts.height = _height;
-
+    
     std::uniform_real_distribution<float> rnd_dist(0.0, 1.0); // random floats between [0.0, 1.0]
     std::default_random_engine generator;
 

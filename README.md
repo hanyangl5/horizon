@@ -59,3 +59,7 @@ build and run
   - Eric Bruneton version
  
 ![](docs/figs/samples/atmosphere.png)
+
+- Temoral Antialiasing
+
+![](docs/figs/samples/taa.png)
