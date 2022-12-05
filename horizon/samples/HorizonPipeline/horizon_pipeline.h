@@ -5,6 +5,7 @@
 #include "post_process.h"
 #include "scene.h"
 #include "ssao.h"
+#include "antialiasing.h"
 
 // HorizonPipeline
 
@@ -47,5 +48,6 @@ class HorizonPipeline {
     std::unique_ptr<DeferredData> deferred{};
     std::unique_ptr<SSAOData> ssao{};
     std::unique_ptr<PostProcessData> post_process{};
+    std::unique_ptr<AntialiasingData> antialiasing{};
     std::unique_ptr<SceneData> scene{};
 };

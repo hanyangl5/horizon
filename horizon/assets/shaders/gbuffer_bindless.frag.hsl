@@ -51,6 +51,8 @@ STRUCT(VSOutput)
 #ifdef VULKAN
     DATA(FLAT(uint), material_id, None);
 #endif
+    DATA(float4, prev_pos, None);
+    DATA(float4, curr_pos, None);
 };
 
 STRUCT(PSOutput) {
@@ -58,7 +60,8 @@ STRUCT(PSOutput) {
     DATA(float4, gbuffer1, SV_Target0);
     DATA(float4, gbuffer2, SV_Target0);
     DATA(float4, gbuffer3, SV_Target0);
-    DATA(uint2, vbuffer0, SV_Target0);
+    DATA(float2, gbuffer4, SV_Target0);
+    //DATA(uint2, vbuffer0, SV_Target0);
 };
 
 PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id) 
@@ -125,7 +128,12 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
     psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, 0.0);
     psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);
     psout.gbuffer3 = float4(mr.y, mr.x, alpha, 0.0);
-    psout.vbuffer0 = uint2(vsout.instance_id, tri_id);
+    float4 prev_pos = vsout.prev_pos;
+    prev_pos.xyz /= prev_pos.w; // [-1, 1]
+    float4 curr_pos = vsout.curr_pos;
+    curr_pos.xyz /= curr_pos.w;
+    psout.gbuffer4 = float2(curr_pos.xy - prev_pos.xy) * 0.5;// motionvector
+    //psout.vbuffer0 = uint2(vsout.instance_id, tri_id);
     
     RETURN(psout);
 }

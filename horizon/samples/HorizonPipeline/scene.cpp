@@ -30,7 +30,7 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
     auto sponza =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                                            VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-                                                  asset_path / "models/Sponza/glTF/Sponza.gltf");
+        asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
     scene_manager->AddMesh(sponza);
 
     //auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |

@@ -27,6 +27,7 @@ void HorizonPipeline::InitPipelineResources() {
     deferred = Memory::MakeUnique<DeferredData>(rhi);
     ssao = Memory::MakeUnique<SSAOData>(rhi);
     post_process = Memory::MakeUnique<PostProcessData>(rhi);
+    antialiasing = Memory::MakeUnique<AntialiasingData>(rhi);
     scene = Memory::MakeUnique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
 }
 
@@ -34,7 +35,18 @@ void HorizonPipeline::UpdatePipelineResources() {
 
     auto cam = scene->scene_camera;
 
-    scene->m_scene_manager->camera_ub.vp = cam->GetViewProjectionMatrix();
+    // taa jitter
+    if (1) {
+        auto& jitter_offset = antialiasing->GetJitterOffset();
+        auto &view = cam->GetViewMatrix();
+        auto &proj = cam->GetProjectionMatrix();
+        proj._13 += (jitter_offset.x - 0.5) / _width;
+        proj._23 += (jitter_offset.y - 0.5) / _height;
+        auto vp = proj * view;
+
+        scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
+        scene->m_scene_manager->camera_ub.vp = vp;
+    }
     scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
 
@@ -134,8 +146,17 @@ void HorizonPipeline::run() {
             tb.texture = ssao->ssao_blur_image;
             barrier.texture_memory_barriers.push_back(tb);
 
+            tb.texture = antialiasing->output_color_texture;
+            barrier.texture_memory_barriers.push_back(tb);
+
+
             // pass constants
             if (first_frame) {
+                tb.texture = antialiasing->previous_color_texture;
+                tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+                tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                barrier.texture_memory_barriers.push_back(tb);
+
                 tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                 tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
                 tb.texture = ssao->ssao_noise_tex;
@@ -153,6 +174,11 @@ void HorizonPipeline::run() {
                 tb.layer_count = 6;
                 tb.mip_level_count = deferred->prefilered_irradiance_env_map_data.mipmap_count;
                 barrier.texture_memory_barriers.push_back(tb);
+            } else {
+                 tb.texture = antialiasing->previous_color_texture;
+                 tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                 tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                 barrier.texture_memory_barriers.push_back(tb);
             }
             transfer->InsertBarrier(barrier);
 
@@ -215,8 +241,10 @@ void HorizonPipeline::run() {
                 image_barriers.texture_memory_barriers.push_back(tb);
                 tb.texture = deferred->gbuffer3->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->vbuffer0->GetTexture();
+                tb.texture = deferred->gbuffer4->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
+                //tb.texture = deferred->vbuffer0->GetTexture();
+                //image_barriers.texture_memory_barriers.push_back(tb);
                 tb.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb.texture = deferred->depth->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
@@ -234,7 +262,7 @@ void HorizonPipeline::run() {
             begin_info.render_targets[2].clear_color = {};
             begin_info.render_targets[3].data = deferred->gbuffer3;
             begin_info.render_targets[3].clear_color = {};
-            begin_info.render_targets[4].data = deferred->vbuffer0;
+            begin_info.render_targets[4].data = deferred->gbuffer4;
             begin_info.render_targets[4].clear_color = {};
             begin_info.depth_stencil.data = deferred->depth;
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
@@ -278,13 +306,16 @@ void HorizonPipeline::run() {
                 barrier.texture_memory_barriers.push_back(tb);
                 tb.texture = deferred->gbuffer3->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
+
                 tb.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb.texture = deferred->depth->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
                 tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
                 tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb.texture = deferred->vbuffer0->GetTexture();
+                tb.texture = deferred->gbuffer4->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
+                //tb.texture = deferred->vbuffer0->GetTexture();
+                //barrier.texture_memory_barriers.push_back(tb);
 
                 cl->InsertBarrier(barrier);
             }
@@ -358,7 +389,14 @@ void HorizonPipeline::run() {
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
-
+            //auto light_culling_ds = deferred->light_culling_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            ////light_culling_ds->SetResource();
+            //// light culling
+            //{
+            //    compute->BindPipeline(deferred->light_culling_pass);
+            //    compute->BindDescriptorSets(deferred->light_culling_pass, light_culling_ds);
+            //    compute->Dispatch(deferred->slices[0], deferred->slices[1], deferred->slices[2]);
+            //}
             auto shading_ds = deferred->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // shading pass
             {
@@ -402,7 +440,6 @@ void HorizonPipeline::run() {
                 pp_ds->SetResource(deferred->shading_color_image, "color_image");
                 pp_ds->SetResource(post_process->pp_color_image, "out_color_image");
                 pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
-                pp_ds->SetResource(deferred->vbuffer0->GetTexture(), "vbuffer0");
 
                 pp_ds->Update();
 
@@ -414,35 +451,69 @@ void HorizonPipeline::run() {
             {
                 {
                     BarrierDesc pp_image_barrier{};
-
-                    TextureBarrierDesc tb;
-                    tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
-                    tb.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                    tb.texture = swap_chain->GetRenderTarget()->GetTexture();
-                    pp_image_barrier.texture_memory_barriers.push_back(tb);
-
-                    TextureBarrierDesc tb2;
-                    tb2.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                    tb2.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-                    tb2.texture = post_process->pp_color_image;
-                    pp_image_barrier.texture_memory_barriers.push_back(tb2);
+                    {
+                        TextureBarrierDesc tb;
+                        tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+                        tb.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                        tb.texture = swap_chain->GetRenderTarget()->GetTexture();
+                        pp_image_barrier.texture_memory_barriers.push_back(tb);
+                    }
 
                     compute->InsertBarrier(pp_image_barrier);
                 }
 
-                compute->CopyTexture(post_process->pp_color_image, swap_chain->GetRenderTarget()->GetTexture());
+                auto taa_ds = antialiasing->taa_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+                {
+                    taa_ds->SetResource(antialiasing->previous_color_texture, "prev_color_tex");
+                    taa_ds->SetResource(post_process->pp_color_image, "curr_color_tex");
+                    taa_ds->SetResource(deferred->gbuffer4->GetTexture(), "mv_tex");
+                    taa_ds->SetResource(antialiasing->output_color_texture, "out_color_tex");
+
+                    taa_ds->Update();
+
+                    compute->BindPipeline(antialiasing->taa_pass);
+                    compute->BindDescriptorSets(antialiasing->taa_pass, taa_ds);
+                    compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
+                }
+                {
+                    BarrierDesc barrier{};
+
+                    {
+                        TextureBarrierDesc tb;
+                        tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                        tb.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                        tb.texture = antialiasing->output_color_texture;
+                        barrier.texture_memory_barriers.push_back(tb);
+                    }
+
+                    compute->InsertBarrier(barrier);
+                }
+
+                compute->CopyTexture(antialiasing->output_color_texture, swap_chain->GetRenderTarget()->GetTexture());
 
                 {
-                    BarrierDesc swap_chain_image_barrier{};
+                    BarrierDesc barrier{};
 
                     TextureBarrierDesc tb;
                     tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                     tb.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
                     tb.texture = swap_chain->GetRenderTarget()->GetTexture();
-                    swap_chain_image_barrier.texture_memory_barriers.push_back(tb);
+                    barrier.texture_memory_barriers.push_back(tb);
 
-                    compute->InsertBarrier(swap_chain_image_barrier);
+                     tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                     tb.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                     tb.texture = antialiasing->previous_color_texture;
+                     barrier.texture_memory_barriers.push_back(tb);
+
+                     //tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                     //tb.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                     //tb.texture = post_process->pp_color_image;
+                     //barrier.texture_memory_barriers.push_back(tb);
+                    compute->InsertBarrier(barrier);
+
                 }
+
+                compute->CopyTexture(antialiasing->output_color_texture, antialiasing->previous_color_texture);
             }
             compute->EndRecording();
             {
