@@ -68,3 +68,7 @@ open solution **Horizon** and build all solution.
   - Eric Bruneton version
  
 ![](docs/figs/samples/atmosphere.png)
+
+- Temoral Antialiasing
+
+![](docs/figs/samples/taa.png)
