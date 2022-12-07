@@ -37,15 +37,21 @@ void HorizonPipeline::UpdatePipelineResources() {
 
     // taa jitter
     if (1) {
-        auto& jitter_offset = antialiasing->GetJitterOffset();
+        auto &jitter_offset = antialiasing->GetJitterOffset();
         auto &view = cam->GetViewMatrix();
         auto &proj = cam->GetProjectionMatrix();
-        proj._13 += (jitter_offset.x - 0.5) / _width;
-        proj._23 += (jitter_offset.y - 0.5) / _height;
+        f32 offset_x = (jitter_offset.x - 0.5) / _width;
+        f32 offset_y = (jitter_offset.y - 0.5) / _height;
+
+        antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
+        antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
+        proj._13 += offset_x;
+        proj._23 += offset_y;
         auto vp = proj * view;
 
         scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
         scene->m_scene_manager->camera_ub.vp = vp;
+
     }
     scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
@@ -200,6 +206,7 @@ void HorizonPipeline::run() {
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->material_description_buffer,
                                                 "material_descriptions");
         geometry_pass_per_frame_ds->SetResource(sampler, "default_sampler");
+        geometry_pass_per_frame_ds->SetResource(antialiasing->taa_prev_curr_offset_buffer, "TAAOffsets");
         geometry_pass_per_frame_ds->Update();
 
         auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);

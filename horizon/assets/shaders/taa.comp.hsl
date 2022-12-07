@@ -27,7 +27,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     
     prev_color = clamp(prev_color, c_min, c_max);
 
-    // Karis, Brian. "High-quality temporal supersampling
+    // Karis, Brian. "High-quality temporal supersampling, result blur
     float w0 = Luminance(prev_color) * (1.0 - 0.05);
     float w1 = Luminance(curr_color) * 0.05;
     float w = w1 / (w0 + w1);

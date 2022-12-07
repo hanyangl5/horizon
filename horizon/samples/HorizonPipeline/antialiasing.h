@@ -19,4 +19,11 @@ class AntialiasingData {
 
     Container::FixedArray<Math::float2, TAA_SAMPLE_COUNT> taa_samples;
     u32 taa_sample_index = 0;
+
+    struct TAAPrevCurrOffset {
+        Math::float2 prev_offset;
+        Math::float2 curr_offset;
+    } taa_prev_curr_offset;
+
+    Buffer* taa_prev_curr_offset_buffer;
 };

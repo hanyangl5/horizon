@@ -33,6 +33,11 @@ RES(Buffer(MaterialDescription), material_descriptions[], UPDATE_FREQ_PER_FRAME,
 
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 4);
 
+CBUFFER(TAAOffsets, UPDATE_FREQ_PER_FRAME, b2, binding = 6)
+{
+    DATA(float4, taa_prev_curr_offset, None);
+};
+
 // PUSH_CONSTANT(ShadingModeID, b0)
 // {
 //     DATA(uint, shading_model_id, None);
@@ -128,10 +133,14 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
     psout.gbuffer1 = float4(albedo.x, albedo.y, albedo.z, 0.0);
     psout.gbuffer2 = float4(emissive.x, emissive.y, emissive.z, 0.0);
     psout.gbuffer3 = float4(mr.y, mr.x, alpha, 0.0);
+
+    // Temporal Antialiasing In Uncharted 4, Ke XU
     float4 prev_pos = vsout.prev_pos;
     prev_pos.xyz /= prev_pos.w; // [-1, 1]
+    prev_pos.xy -= Get(taa_prev_curr_offset).xy;
     float4 curr_pos = vsout.curr_pos;
     curr_pos.xyz /= curr_pos.w;
+    curr_pos.xy -= Get(taa_prev_curr_offset).zw; 
     psout.gbuffer4 = float2(curr_pos.xy - prev_pos.xy) * 0.5;// motionvector
     //psout.vbuffer0 = uint2(vsout.instance_id, tri_id);
     
