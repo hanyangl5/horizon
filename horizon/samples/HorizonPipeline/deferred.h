@@ -8,8 +8,10 @@ class DeferredData {
     DeferredData(RHI* rhi) noexcept;
     ~DeferredData() noexcept = default;
 
-    Shader *culling_cs;
-    Pipeline *culling_pass;
+    Shader *light_culling_cs;
+    Pipeline *light_culling_pass;
+    Buffer *light_list;
+    Container::FixedArray<u32, 3> slices;
     // visible mesh instance id
     // // 
     // pass resources
@@ -37,7 +39,8 @@ class DeferredData {
     RenderTarget* gbuffer1;
     RenderTarget* gbuffer2;
     RenderTarget* gbuffer3;
-    RenderTarget* vbuffer0;
+    RenderTarget* gbuffer4;
+    //RenderTarget* vbuffer0;
 
     RenderTarget* depth;
 

@@ -7,7 +7,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/horizon)
 set(SOLUTION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-include("C:/FILES/vcpkg/scripts/buildsystems/vcpkg.cmake")
-
 add_subdirectory(horizon)

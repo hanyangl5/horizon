@@ -29,22 +29,13 @@ clone the repo with
 git clone https://github.com/v4vendeta/horizon.git
 ~~~
 
-modify vcpkg path in CMakeLists.txt in project root directory
-
-~~~
-include(/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake)
-~~~
-
-
 use CMkae to generate solution file
 
 ~~~
-cmake . -B build
+cmake . -B build -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
 ~~~
 
-open solution **Horizon** and build all solution.
-
-<!-- ./app.exe -config_path D:/codes/horizon/horizon/app/EngineConfig.ini -->
+build and run
 
 # Features
 
@@ -68,3 +59,7 @@ open solution **Horizon** and build all solution.
   - Eric Bruneton version
  
 ![](docs/figs/samples/atmosphere.png)
+
+- Temoral Antialiasing
+
+![](docs/figs/samples/taa.png)

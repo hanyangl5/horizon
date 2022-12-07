@@ -2,6 +2,14 @@
 
 DeferredData::DeferredData(RHI* rhi) noexcept {
 
+    // light culling pass
+    {
+        //slices = {16, 9, 16};
+        //culling_cs;
+        //culling_pass;
+        //light_list;
+    }
+
     // geometry pass
     {
         gbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM,
@@ -12,7 +20,7 @@ DeferredData::DeferredData(RHI* rhi) noexcept {
                                                                   RenderTargetType::COLOR, _width, _height});
         gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                                                   RenderTargetType::COLOR, _width, _height});
-        vbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_UINT,
+        gbuffer4 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT,
                                                                   RenderTargetType::COLOR, _width, _height});
         depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                RenderTargetType::DEPTH_STENCIL, _width, _height});
@@ -83,7 +91,7 @@ DeferredData::DeferredData(RHI* rhi) noexcept {
         graphics_pass_ci.render_target_formats.color_attachment_formats =
             Container::Array<TextureFormat>{
                 gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format, gbuffer2->GetTexture()->m_format,
-                gbuffer3->GetTexture()->m_format, vbuffer0->GetTexture()->m_format};
+                gbuffer3->GetTexture()->m_format, gbuffer4->GetTexture()->m_format};
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 

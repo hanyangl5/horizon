@@ -114,6 +114,7 @@ class SceneManager {
     Memory::UniquePtr<Camera> main_camera{};
     struct CameraUb {
         Math::float4x4 vp;
+        Math::float4x4 prev_vp;
         Math::float3 camera_pos;
         f32 ev100;
     }camera_ub{};
