@@ -24,6 +24,10 @@ AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept {
                    Math::float2(0.312500, 0.370370), Math::float2(0.812500, 0.703704), Math::float2(0.187500, 0.148148),
                    Math::float2(0.687500, 0.481481), Math::float2(0.437500, 0.814815), Math::float2(0.937500, 0.259259),
                    Math::float2(0.031250, 0.592593)};
+
+    taa_prev_curr_offset_buffer =
+        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(TAAPrevCurrOffset)});
 }
 
 const Math::float2& AntialiasingData::GetJitterOffset() noexcept {

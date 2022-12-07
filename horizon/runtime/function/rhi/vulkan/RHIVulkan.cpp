@@ -158,37 +158,48 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
 
         auto stack_memory = Memory::GetStackMemoryResource(1024);
 
-        Container::Array<VkQueueFamilyProperties> queue_family_properties(queue_family_count, &stack_memory);
+        Container::Array<VkQueueFamilyProperties> queue_family_properties(&stack_memory);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  nullptr); // Get queue family properties
-        if (queue_family_count != 3) {
+        if (queue_family_count < 3) {
+            LOG_ERROR("less than 3 queue");
             continue;
         }
+        queue_family_properties.resize(queue_family_count);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  queue_family_properties.data()); // Get queue family properties
 
         for (u32 i = 0; i < queue_family_count; i++) {
             // TOOD: print gpu info, runtime swith gpu
 
+            // graphics queue
             if (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-                *gpu = physical_device;
                 m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] = i;
-                // break;
             }
+            
             // dedicate compute queue
             if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
                 m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE] = i;
+                if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
+                    m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE]) {
+                    gpu_support_async_compute = true;
+                }
             }
             // dedicate transfer queue
             if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
                 !(queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
                 m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER] = i;
+                if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
+                    m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE]) {
+                    gpu_support_async_transfer = true;
+                }
             }
+            *gpu = physical_device;
         }
         if (gpu != VK_NULL_HANDLE) {
             break;
@@ -257,18 +268,21 @@ void RHIVulkan::CreateDevice(Container::Array<const char *> &device_extensions) 
                      &m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
     // vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index,
     // 0, &m_vulkan.m_present_queue);
-    vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER], 0,
-                     &m_vulkan.command_queues[CommandQueueType::TRANSFER]);
-    vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE], 0,
-                     &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
+    if (gpu_support_async_transfer) {
+        vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER], 0,
+                         &m_vulkan.command_queues[CommandQueueType::TRANSFER]);
+    }
+    if (gpu_support_async_compute) {
+        vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE], 0,
+                         &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
+    }
+    // TODO(hyl5): gpu don't support async compute/transfer
 
-#ifdef USE_ASYNC_COMPUTE_TRANSFER
     LOG_DEBUG("using async compute & transfer, graphics queue: {}, compute "
               "queue: {}, transfer queue: {}",
               m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
               m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
               m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
-#endif // USE_ASYNC_COMPUTE
 }
 
 void RHIVulkan::InitializeVMA() {

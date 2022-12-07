@@ -105,6 +105,8 @@ class RHI {
     u32 m_current_frame_index{0};
     Window *m_window{};
     bool m_offscreen{false};
+    bool gpu_support_async_compute{false};
+    bool gpu_support_async_transfer{false};
 };
 
 } // namespace Horizon::Backend
