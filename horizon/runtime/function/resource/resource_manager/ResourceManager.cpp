@@ -25,10 +25,16 @@ Buffer *ResourceManager::GetEmptyVertexBuffer() {
     return empty_vertex_buffer;
 }
 
-Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, std::filesystem::path path) {
+Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, const std::filesystem::path& path) {
     auto mesh = MeshLoader::Load(desc, path);
     meshes.emplace(mesh);
     return mesh;
+}
+
+Decal *ResourceManager::LoadDecal(const std::filesystem::path &path) {
+    Decal *decal = Memory::Alloc<Decal>(path);
+    decals.emplace(decal);
+    return decal;
 }
 
 void ResourceManager::OffloadMesh(Mesh *mesh) {

@@ -12,6 +12,7 @@
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/resource/resources/decal/Decal.h>
 #include <runtime/function/resource/resources/vertex/VertexDescription.h>
 #include <runtime/function/resource/resource_loader/mesh/MeshLoader.h>
 #include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
@@ -38,10 +39,14 @@ class ResourceManager {
     Buffer *GetEmptyVertexBuffer();
 
     // uuid
-    Mesh *LoadMesh(const MeshDesc &desc, std::filesystem::path path);
+    Mesh *LoadMesh(const MeshDesc &desc, const std::filesystem::path &path);
 
     void OffloadMesh(Mesh *mesh);
 
+    Decal *LoadDecal(const std::filesystem::path &path);
+
+    void OffloadDecal(Decal *decal);
+    
     void ClearAllResources();
 
   public:
@@ -54,6 +59,7 @@ class ResourceManager {
     // Container::HashMap<u64, MeshFragmentResource> mesh_fragment_resources; // TODO(hylu): split mesh to meshfragment
 
     Container::HashSet<Mesh *> meshes;
+    Container::HashSet<Decal *> decals;
     Container::HashSet<Material *> materials;
 };
 

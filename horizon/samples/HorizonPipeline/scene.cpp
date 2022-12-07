@@ -21,18 +21,19 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
     //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
     //                       asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
 
-    //MeshLoader::Load(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-    //                       asset_path / "models/Sponza/glTF/Sponza.gltf");
+    auto sponza = scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
+                                    VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
+                           asset_path / "models/Sponza/glTF/Sponza.gltf");
 
     //auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
     //sphere->transform = m;
-    auto sponza =
+    auto sphere =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                                            VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
         asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
     scene_manager->AddMesh(sponza);
 
+    //scene_manager->AddMesh();
     //auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
     //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
     //                       asset_path / "models/Cauldron-Media/DamagedHelmet/glTF/DamagedHelmet.gltf");
