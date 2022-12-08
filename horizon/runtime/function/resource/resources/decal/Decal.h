@@ -14,6 +14,8 @@
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/RHIUtils.h>
 
+#include <runtime/function/resource/resources/mesh/Mesh.h>
+
 namespace Horizon {
 
 class Decal {
@@ -29,7 +31,7 @@ class Decal {
 
   public:
     const std::filesystem::path &m_path;
-    TextureDataDesc texture_data_desc;
+    Material* decal_material;
 };
 
 } // namespace Horizon

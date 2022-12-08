@@ -1,0 +1,12 @@
+{
+  "shading_model": "lit",
+  "blend_state" : "opaque",
+  "textures": [
+    {
+      "base_color": "",
+      "normal": "",
+      "metallic_roughness": "",
+      "emissive": ""
+    }
+  ]
+}
