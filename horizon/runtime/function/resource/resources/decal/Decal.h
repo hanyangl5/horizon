@@ -14,7 +14,9 @@
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/RHIUtils.h>
 
-#include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/component/Transform.h>
+#include <runtime/function/scene/material/MaterialDescription.h>
+#include <runtime/function/resource/resources/vertex/VertexDescription.h>
 
 namespace Horizon {
 
@@ -32,6 +34,9 @@ class Decal {
   public:
     const std::filesystem::path &m_path;
     Material* decal_material;
+    Transform transform;
+    static Container::FixedArray<Vertex, 24> decal_vertices;
+    static Container::FixedArray<Index, 36> decal_indices;
 };
 
 } // namespace Horizon

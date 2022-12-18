@@ -202,7 +202,7 @@ void HorizonPipeline::run() {
 
         // perframe descriptor set
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
-        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->draw_parameter_buffer, "per_draw_data");
+        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->instance_parameter_buffer, "per_draw_data");
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->material_description_buffer,
                                                 "material_descriptions");
         geometry_pass_per_frame_ds->SetResource(sampler, "default_sampler");
@@ -293,8 +293,8 @@ void HorizonPipeline::run() {
                 cl->BindPushConstant(deferred->geometry_pass, "DrawRootConstant", &mesh.draw_offset);
 
                 cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->indirect_draw_command_buffer1,
-                                                 sizeof(IndirectDrawCommand) * mesh.draw_offset, mesh.draw_count,
-                                                 sizeof(IndirectDrawCommand));
+                                                 sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
+                                                 sizeof(DrawIndexedInstancedCommand));
             }
 
             cl->EndRenderPass();

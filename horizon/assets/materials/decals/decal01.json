@@ -1,0 +1,12 @@
+{
+  "shading_model": "lit",
+  "blend_state" : "MASKED",
+  "textures": 
+    {
+      "base_color": "decal01_bc.jpg",
+      "normal": "decal01_normal.jpg",
+      "metallic_roughness": "",
+      "emissive": ""
+    }
+  
+}

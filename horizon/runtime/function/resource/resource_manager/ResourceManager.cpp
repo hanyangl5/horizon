@@ -37,6 +37,8 @@ Decal *ResourceManager::LoadDecal(const std::filesystem::path &path) {
     return decal;
 }
 
+void ResourceManager::OffloadDecal(Decal *decal) {}
+
 void ResourceManager::OffloadMesh(Mesh *mesh) {
     if (meshes.find(mesh) != meshes.end()) {
         meshes.erase(mesh);

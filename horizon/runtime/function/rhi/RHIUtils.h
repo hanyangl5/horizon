@@ -584,7 +584,7 @@ u32 GetBytesFromTextureFormat(TextureFormat format);
 static constexpr u32 MAX_MIP_LEVEL = 12;
 
 
-struct IndirectDrawCommand {
+struct DrawIndexedInstancedCommand {
     u32 index_count;
     u32 instance_count = 1;
     u32 first_index;

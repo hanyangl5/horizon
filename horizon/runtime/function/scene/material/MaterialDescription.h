@@ -66,7 +66,6 @@ class Material {
     MaterialParams material_params{};
     ShadingModel shading_model{ShadingModel::SHADING_MODEL_LIT};
     BlendState blend_state{BlendState::BLEND_STATE_OPAQUE};
-    Buffer* param_buffer{};
     //  Material* materials
 };
 } // namespace Horizon

@@ -1,5 +1,7 @@
 #include "scene.h"
 
+#include <random>
+
 SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
     m_scene_manager = scene_manager;
 
@@ -41,6 +43,8 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
     //helmet->transform = m;
 
     scene_manager->CreateMeshResources(rhi);
+    
+    scene_manager->resource_manager->LoadDecal(asset_path / "materials/decals/decal01.json");
     // light
 
     std::random_device seed;

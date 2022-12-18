@@ -30,7 +30,7 @@ struct MeshData {
     u32 draw_count;
 };
 
-struct DrawParameters {
+struct InstanceParameters {
     Math::float4x4 model_matrix;
     u32 material_index;
     u32 pad[3];
@@ -61,9 +61,13 @@ class SceneManager {
     // mesh
     void AddMesh(Mesh *mesh);
     void RemoveMesh(Mesh *mesh);
+    void AddDecal(Decal *decal);
+    void RemoveDecal(Decal *decal);
     void CreateMeshResources(Backend::RHI *rhi);
     void UploadMeshResources(Backend::CommandList *commandlist);
 
+    void CreateDecalResources(Backend::RHI *rhi);
+    void UploadDecalResources(Backend::CommandList *commandlist);
     // light
     Light *AddDirectionalLight(const Math::float3 &color, f32 intensity,
                                const Math::float3 &directiona) noexcept; // temperature, soource radius, length
@@ -92,23 +96,37 @@ class SceneManager {
     ResourceManager *resource_manager{};
 
     Container::Array<Mesh *> scene_meshes{};
+    Container::Array<Decal *> scene_decals{};
+
+    u32 texture_offset = 0;
 
     Container::Array<TextureUpdateDesc> textuer_upload_desc{};
     Container::Array<Backend::Texture *> material_textures{};
     Container::Array<Buffer *> vertex_buffers{};
     Container::Array<Buffer *> index_buffers{};
 
-    Container::Array<DrawParameters> draw_params{};
+    Container::Array<InstanceParameters> instance_params{};
     Container::Array<MaterialDesc> material_descs{};
     Container::Array<MeshData> mesh_data;
-    Buffer *draw_parameter_buffer{};
+    Buffer *instance_parameter_buffer{};
     Buffer *material_description_buffer{};
 
     u32 draw_count{0};
     Buffer *indirect_draw_command_buffer1{};
-    Container::Array<IndirectDrawCommand> scene_indirect_draw_command1{};
+    Container::Array<DrawIndexedInstancedCommand> scene_indirect_draw_command1{};
     Buffer *empty_vertex_buffer{};
 
+    // decal resources
+    u32 decal_draw_count{0};
+    Container::Array<InstanceParameters> decal_instance_params{};
+
+    Container::Array<MaterialDesc> decal_material_descs{};
+
+    Container::Array<DrawIndexedInstancedCommand> decal_indirect_draw_command{};
+
+    Buffer *decal_indirect_draw_command_buffer1{};
+    Buffer *decal_instance_parameter_buffer{};
+    Buffer *decal_material_description_buffer{};
     // camera
 
     Memory::UniquePtr<Camera> main_camera{};

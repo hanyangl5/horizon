@@ -4,9 +4,13 @@
 
 class DecalData {
   public:
-    DecalData(Backend::RHI *rhi) noexcept;
+    DecalData(Backend::RHI *rhi, SceneManager* scene_manager) noexcept;
     ~DecalData() noexcept = default;
 
-    Shader *decal_cs;
+    SceneManager *m_scene_manager;
+
+    Shader *decal_ps;
+    Shader *decal_vs;
+
     Pipeline *decal_pass;
 };
