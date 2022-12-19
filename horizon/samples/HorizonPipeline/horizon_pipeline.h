@@ -6,6 +6,7 @@
 #include "scene.h"
 #include "ssao.h"
 #include "antialiasing.h"
+#include "decal.h"
 
 // HorizonPipeline
 
@@ -46,6 +47,7 @@ class HorizonPipeline {
     Sampler *sampler;
 
     std::unique_ptr<DeferredData> deferred{};
+    std::unique_ptr<DecalData> decal{};
     std::unique_ptr<SSAOData> ssao{};
     std::unique_ptr<PostProcessData> post_process{};
     std::unique_ptr<AntialiasingData> antialiasing{};

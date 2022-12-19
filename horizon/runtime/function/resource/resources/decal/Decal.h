@@ -35,8 +35,6 @@ class Decal {
     const std::filesystem::path &m_path;
     Material* decal_material;
     Transform transform;
-    static Container::FixedArray<Vertex, 24> decal_vertices;
-    static Container::FixedArray<Index, 36> decal_indices;
 };
 
 } // namespace Horizon

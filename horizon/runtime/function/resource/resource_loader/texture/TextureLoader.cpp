@@ -364,6 +364,9 @@ void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureD
     int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
+    if (!data) {
+        LOG_ERROR("failed to load {}", path.string().c_str());
+    }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
     texture_info.layer_count = 1;

@@ -79,6 +79,9 @@ class SceneManager {
     Buffer *GetLightCountBuffer() const noexcept;
     Buffer *GetLightParamBuffer() const noexcept;
 
+    Buffer *GetUnitCubeVertexBuffer() const noexcept;
+    Buffer *GetUnitCubeIndexBuffer() const noexcept;
+
     // camera
 
     Buffer* GetCameraBuffer() const noexcept;
@@ -93,12 +96,18 @@ class SceneManager {
     void GetVertexBuffers(Container::Array<Buffer *> &vertex_buffers, Container::Array<u32> &offsets);
 
   public:
+    // built-in resources
+
+    Buffer *cube_vertex_buffer{};
+    Buffer *cube_index_buffer{};
+
+  public:
     ResourceManager *resource_manager{};
 
     Container::Array<Mesh *> scene_meshes{};
     Container::Array<Decal *> scene_decals{};
 
-    u32 texture_offset = 0;
+    
 
     Container::Array<TextureUpdateDesc> textuer_upload_desc{};
     Container::Array<Backend::Texture *> material_textures{};
@@ -117,6 +126,10 @@ class SceneManager {
     Buffer *empty_vertex_buffer{};
 
     // decal resources
+
+        Container::Array<TextureUpdateDesc> decal_textuer_upload_desc{};
+    Container::Array<Backend::Texture *> decal_material_textures{};
+
     u32 decal_draw_count{0};
     Container::Array<InstanceParameters> decal_instance_params{};
 

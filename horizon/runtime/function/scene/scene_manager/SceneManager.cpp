@@ -15,7 +15,9 @@ SceneManager::SceneManager(ResourceManager *resource_manager,
     : resource_manager(resource_manager), scene_meshes(allocator), textuer_upload_desc(allocator),
       material_textures(allocator), vertex_buffers(allocator), index_buffers(allocator), instance_params(allocator),
       material_descs(allocator), mesh_data(allocator), scene_indirect_draw_command1(allocator), lights(allocator),
-      lights_param_buffer(allocator) {}
+      lights_param_buffer(allocator) {
+
+}
 
 SceneManager::~SceneManager() noexcept {
 }
@@ -36,6 +38,7 @@ void SceneManager::RemoveDecal(Decal *decal) {
 
 void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
     
+    u32 texture_offset = 0;
     u32 material_offset = 0;
     u32 vertex_buffer_offset = 0;
     u32 index_buffer_offset = 0;
@@ -218,6 +221,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
 
 void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
 
+    u32 texture_offset = 0;
     u32 material_offset = 0;
     decal_draw_count++;
     DrawIndexedInstancedCommand command{};
@@ -266,10 +270,10 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
             create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
             create_info.enanble_mipmap = true;
 
-            material_textures.push_back(resource_manager->CreateGpuTexture(create_info));
+            decal_material_textures.push_back(resource_manager->CreateGpuTexture(create_info));
             TextureUpdateDesc update_desc{};
             update_desc.texture_data_desc = &tex.texture_data_desc;
-            textuer_upload_desc.push_back(update_desc);
+            decal_textuer_upload_desc.push_back(update_desc);
             texture_offset++;
         }
         //material_offset++;
@@ -286,17 +290,14 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         InstanceParameters instance_param{};
         instance_param.model_matrix = decal->transform.GetTransformMatrix();
         instance_param.material_index = material_offset;
-        decal_instance_params.push_back(instance_param);
+        decal_instance_params.push_back(std::move(instance_param));
     }
 
     decal_indirect_draw_command.push_back(command);
 
-        Buffer *decal_indirect_draw_command_buffer1{};
-    Buffer *decal_instance_parameter_buffer{};
-    Buffer *decal_material_description_buffer{};
     decal_material_description_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(MaterialDesc) * material_descs.size()});
+                         sizeof(MaterialDesc) * decal_material_descs.size()});
     decal_indirect_draw_command_buffer1 = resource_manager->CreateGpuBuffer(BufferCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_INDIRECT_BUFFER, ResourceState::RESOURCE_STATE_INDIRECT_ARGUMENT,
         sizeof(DrawIndexedInstancedCommand) * decal_indirect_draw_command.size()});
@@ -308,10 +309,14 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
 
 void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
 
-    commandlist->UpdateBuffer(material_description_buffer, material_descs.data(),
-                              material_descs.size() * sizeof(MaterialDesc));
+    commandlist->UpdateBuffer(decal_material_description_buffer, decal_material_descs.data(),
+                              decal_material_descs.size() * sizeof(MaterialDesc));
 
-    commandlist->UpdateBuffer(instance_parameter_buffer, instance_params.data(), instance_params.size() * sizeof(InstanceParameters));
+    commandlist->UpdateBuffer(decal_instance_parameter_buffer, decal_instance_params.data(),
+                              decal_instance_params.size() * sizeof(InstanceParameters));
+
+    commandlist->UpdateBuffer(decal_indirect_draw_command_buffer1, decal_indirect_draw_command.data(),
+                              decal_indirect_draw_command.size() * sizeof(DrawIndexedInstancedCommand));
 
     // UPLOAD TEXTURES
     BarrierDesc resource_upload_barrier{};
@@ -442,4 +447,27 @@ std::tuple<Camera*, CameraController*> SceneManager::AddCamera(const CameraSetti
       commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
  }
 
+ Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept {
+     if (!cube_vertex_buffer) {
+         BufferCreateInfo vertex_buffer_create_info{};
+         vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
+         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+         const_cast<Buffer *>(cube_vertex_buffer) =
+             resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
+     }
+     return cube_vertex_buffer;
+ }
+
+ Buffer *SceneManager::GetUnitCubeIndexBuffer() const noexcept {
+     if (!cube_index_buffer) {
+         BufferCreateInfo index_buffer_create_info{};
+         index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
+         index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+         index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+         const_cast<Buffer *>(cube_index_buffer) =
+             resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
+     }
+     return cube_index_buffer;
+ }
  } // namespace Horizon

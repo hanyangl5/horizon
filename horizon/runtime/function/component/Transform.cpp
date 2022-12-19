@@ -8,6 +8,12 @@
 
 #include "Transform.h"
 
+namespace Horizon {
+
 Horizon::Transform::Transform() {}
 
 Horizon::Transform::~Transform() {}
+
+Math::float4x4 Horizon::Transform::GetTransformMatrix() const noexcept { return Math::float4x4(); }
+
+} // namespace Horizon

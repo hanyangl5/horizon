@@ -89,6 +89,7 @@ void HorizonPipeline::run() {
             // upload textures, vertex/index buffer
             if (first_frame) {
                 scene->m_scene_manager->UploadMeshResources(transfer);
+                scene->m_scene_manager->UploadDecalResources(transfer);
             }
             // scene data
             scene->m_scene_manager->UploadLightResources(transfer);
@@ -299,6 +300,24 @@ void HorizonPipeline::run() {
 
             cl->EndRenderPass();
 
+            // deferred decal
+            {
+                //auto decal_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
+                cl->BeginRenderPass(begin_info);
+
+                auto vb = scene->m_scene_manager->GetUnitCubeVertexBuffer();
+                auto ib = scene->m_scene_manager->GetUnitCubeIndexBuffer();
+                u32 offset = 0;
+                cl->BindVertexBuffers(1, &vb, &offset);
+                cl->BindIndexBuffer(ib, 0);
+                //cl->BindPipeline(decal->decal_pass);
+                //cl->BindDescriptorSets(decal->decal_pass, decal_ds);
+                cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->decal_indirect_draw_command_buffer1,
+                                                 0, 1,
+                                                 sizeof(DrawIndexedInstancedCommand));
+
+                cl->EndRenderPass();
+            }
             {
                 BarrierDesc barrier{};
 

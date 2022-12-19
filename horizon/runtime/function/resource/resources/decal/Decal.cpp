@@ -41,12 +41,13 @@ Horizon::Decal::Decal(const std::filesystem::path &path, std::pmr::polymorphic_a
     auto &texs = json_data["textures"];
     for (auto &tex : texs.items()) {
         if (tex.key() == "base_color") {
-            std::filesystem::path bc_path = path / tex.value();
+            std::filesystem::path bc_path = path.parent_path() / tex.value();
             decal_material->material_textures[MaterialTextureType::BASE_COLOR].texture_data_desc =
                 TextureLoader::Load(bc_path.string().c_str());
             decal_material->material_params.param_bitmask |= HAS_BASE_COLOR;
+            
         } else if (tex.key() == "normal") {
-            std::filesystem::path normal_path = path / tex.value();
+            std::filesystem::path normal_path = path.parent_path() / tex.value();
             decal_material->material_textures[MaterialTextureType::NORMAL].texture_data_desc =
                 TextureLoader::Load(normal_path.string().c_str());
             decal_material->material_params.param_bitmask |= HAS_NORMAL;

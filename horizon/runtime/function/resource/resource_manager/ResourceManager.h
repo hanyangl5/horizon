@@ -19,6 +19,9 @@
 
 namespace Horizon {
 
+extern Container::FixedArray<Vertex, 24> cube_vertices;
+extern Container::FixedArray<Index, 36> cube_indices;
+
 class ResourceManager {
   public:
     ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
