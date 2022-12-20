@@ -16,13 +16,13 @@ PUSH_CONSTANT(DrawRootConstant, b1){
 };
 
 
-STRUCT(PerDrawData)
+STRUCT(InstanceParameter)
 {
     DATA(float4x4,  model_matrix, None);
     DATA(uint, material_id, None);
 };
 
-RES(Buffer(PerDrawData), per_draw_data, UPDATE_FREQ_PER_FRAME, t3, binding = 1);
+RES(Buffer(InstanceParameter), instance_parameter, UPDATE_FREQ_PER_FRAME, t3, binding = 1);
 
 STRUCT(VSInput)
 {
@@ -66,7 +66,7 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint
     mesh_id = gl_DrawID;
 #endif
     mesh_id += Get(mesh_id_offset);
-    float4x4 model = Get(per_draw_data)[mesh_id].model_matrix;
+    float4x4 model = Get(instance_parameter)[mesh_id].model_matrix;
 
     // float vbp[VERETX_LAYOUT_STRIDE] = Get(vertex_buffers)[0][mesh_id + vertex_id].packed;
     // vsin.position = GetVertexPositionFromPackedVertexBuffer(vbp);
@@ -83,7 +83,7 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint
     vsout.tangent = vsin.tangent;
     vsout.tangent = normalize(mul(float4(vsin.tangent, 0.0), model).xyz);;
     vsout.instance_id = InstanceID;
-    vsout.material_id = Get(per_draw_data)[mesh_id].material_id;
+    vsout.material_id = Get(instance_parameter)[mesh_id].material_id;
     vsout.prev_pos = mul(float4(vsin.position, 1.0), mul(model, Get(prev_vp)));; // old
     vsout.curr_pos = mul(float4(vsin.position, 1.0), mul(model, Get(vp)));; // new
     RETURN(vsout);

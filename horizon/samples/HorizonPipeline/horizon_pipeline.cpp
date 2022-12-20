@@ -25,6 +25,7 @@ void HorizonPipeline::InitPipelineResources() {
     }
 
     deferred = Memory::MakeUnique<DeferredData>(rhi);
+    decal = Memory::MakeUnique<DecalData>(rhi, nullptr, deferred.get());
     ssao = Memory::MakeUnique<SSAOData>(rhi);
     post_process = Memory::MakeUnique<PostProcessData>(rhi);
     antialiasing = Memory::MakeUnique<AntialiasingData>(rhi);
@@ -67,6 +68,7 @@ void HorizonPipeline::UpdatePipelineResources() {
     ssao->ssao_constansts.view_mat = cam->GetViewMatrix();
     ssao->ssao_constansts.noise_scale_x = _width / SSAOData::SSAO_NOISE_TEX_WIDTH;
     ssao->ssao_constansts.noise_scale_y = _height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
+
 }
 
 void HorizonPipeline::run() {
@@ -88,6 +90,7 @@ void HorizonPipeline::run() {
 
             // upload textures, vertex/index buffer
             if (first_frame) {
+                scene->m_scene_manager->UploadBuiltInResources(transfer);
                 scene->m_scene_manager->UploadMeshResources(transfer);
                 scene->m_scene_manager->UploadDecalResources(transfer);
             }
@@ -203,7 +206,7 @@ void HorizonPipeline::run() {
 
         // perframe descriptor set
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
-        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->instance_parameter_buffer, "per_draw_data");
+        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->instance_parameter_buffer, "instance_parameter");
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->material_description_buffer,
                                                 "material_descriptions");
         geometry_pass_per_frame_ds->SetResource(sampler, "default_sampler");
@@ -302,7 +305,26 @@ void HorizonPipeline::run() {
 
             // deferred decal
             {
-                //auto decal_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
+                auto decal_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+
+                decal_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
+                decal_ds->SetResource(scene->m_scene_manager->decal_instance_parameter_buffer, "decal_instance_parameter");
+                decal_ds->SetResource(scene->m_scene_manager->decal_material_description_buffer,
+                                      "decal_material_descriptions");
+                decal_ds->SetResource(sampler, "default_sampler");
+                decal_ds->Update();
+
+                auto decal_pass_bindless_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
+
+                Container::Array<Texture *> decal_material_textures(&stack_memory);
+
+                for (auto &tex : scene->m_scene_manager->decal_material_textures) {
+                    decal_material_textures.push_back(tex);
+                }
+
+                decal_pass_bindless_ds->SetBindlessResource(decal_material_textures, "decal_material_textures");
+                decal_pass_bindless_ds->Update();
+
                 cl->BeginRenderPass(begin_info);
 
                 auto vb = scene->m_scene_manager->GetUnitCubeVertexBuffer();
@@ -310,8 +332,9 @@ void HorizonPipeline::run() {
                 u32 offset = 0;
                 cl->BindVertexBuffers(1, &vb, &offset);
                 cl->BindIndexBuffer(ib, 0);
-                //cl->BindPipeline(decal->decal_pass);
-                //cl->BindDescriptorSets(decal->decal_pass, decal_ds);
+                cl->BindPipeline(decal->decal_pass);
+                cl->BindDescriptorSets(decal->decal_pass, decal_ds);
+                cl->BindDescriptorSets(decal->decal_pass, decal_pass_bindless_ds);
                 cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->decal_indirect_draw_command_buffer1,
                                                  0, 1,
                                                  sizeof(DrawIndexedInstancedCommand));

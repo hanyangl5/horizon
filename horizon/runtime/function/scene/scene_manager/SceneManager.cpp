@@ -447,27 +447,35 @@ std::tuple<Camera*, CameraController*> SceneManager::AddCamera(const CameraSetti
       commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
  }
 
- Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept {
-     if (!cube_vertex_buffer) {
-         BufferCreateInfo vertex_buffer_create_info{};
-         vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
-         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
-         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-         const_cast<Buffer *>(cube_vertex_buffer) =
-             resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
+ void SceneManager::CreateBuiltInResources(Backend::RHI *rhi) {
+     BufferCreateInfo vertex_buffer_create_info{};
+     vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
+     vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+     vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+     const_cast<Buffer *>(cube_vertex_buffer) =
+         resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
+     BufferCreateInfo index_buffer_create_info{};
+     index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
+     index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+     index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+     const_cast<Buffer *>(cube_index_buffer) =
+         resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
+ }
+
+ void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist) {
+     if (cube_vertex_buffer) {
+         commandlist->UpdateBuffer(cube_vertex_buffer, cube_vertices.data(), sizeof(Vertex) * cube_vertices.size());
      }
+     if (cube_index_buffer) {
+         commandlist->UpdateBuffer(cube_index_buffer, cube_indices.data(), sizeof(Index) * cube_indices.size());
+     }
+ }
+
+ Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept {
      return cube_vertex_buffer;
  }
 
  Buffer *SceneManager::GetUnitCubeIndexBuffer() const noexcept {
-     if (!cube_index_buffer) {
-         BufferCreateInfo index_buffer_create_info{};
-         index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
-         index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
-         index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-         const_cast<Buffer *>(cube_index_buffer) =
-             resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
-     }
      return cube_index_buffer;
  }
  } // namespace Horizon

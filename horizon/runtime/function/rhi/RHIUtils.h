@@ -591,4 +591,13 @@ struct DrawIndexedInstancedCommand {
     i32 vertex_offset;
     u32 first_instance;
 };
+
+enum class LoadOp {
+
+};
+
+enum class StoreOp {
+
+};
+
 } // namespace Horizon

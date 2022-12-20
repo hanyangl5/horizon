@@ -95,6 +95,9 @@ class SceneManager {
     // miscs
     void GetVertexBuffers(Container::Array<Buffer *> &vertex_buffers, Container::Array<u32> &offsets);
 
+    void CreateBuiltInResources(Backend::RHI *rhi);
+    void UploadBuiltInResources(Backend::CommandList* commandlist);
+
   public:
     // built-in resources
 

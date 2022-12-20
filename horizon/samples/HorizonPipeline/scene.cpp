@@ -5,6 +5,8 @@
 SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
     m_scene_manager = scene_manager;
 
+    scene_manager->CreateBuiltInResources(rhi);
+
     auto [camera, controller] = m_scene_manager->AddCamera(CameraSetting{ProjectionMode::PERSPECTIVE, CameraType::FLY, true}, Math::float3(0.0, 0.0, 10.0_m),
                                              Math::float3(0.0, 0.0, 0.0),
                                           Math::float3(0.0, 1.0_m, 0.0));

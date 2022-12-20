@@ -22,7 +22,7 @@ STRUCT(InstanceParameter)
     DATA(uint, material_id, None);
 };
 
-RES(Buffer(InstanceParameter), per_draw_data, UPDATE_FREQ_PER_FRAME, t3, binding = 1);
+RES(Buffer(InstanceParameter), decal_instance_parameter, UPDATE_FREQ_PER_FRAME, t3, binding = 1);
 
 STRUCT(VSInput)
 {
@@ -44,8 +44,6 @@ STRUCT(VSOutput)
 #ifdef VULKAN
     DATA(FLAT(uint), material_id, None);
 #endif
-    DATA(float4, curr_pos, None);
-    DATA(float4, prev_pos, None);
 };
 
 VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint) vertex_id)
@@ -57,7 +55,7 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint
     mesh_id = gl_DrawID;
 #endif
     mesh_id += Get(mesh_id_offset);
-    float4x4 model = Get(per_draw_data)[mesh_id].model_matrix;
+    float4x4 model = Get(decal_instance_parameter)[mesh_id].model_matrix;
 
     // float vbp[VERETX_LAYOUT_STRIDE] = Get(vertex_buffers)[0][mesh_id + vertex_id].packed;
     // vsin.position = GetVertexPositionFromPackedVertexBuffer(vbp);
@@ -74,8 +72,6 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint
     vsout.tangent = vsin.tangent;
     vsout.tangent = normalize(mul(float4(vsin.tangent, 0.0), model).xyz);;
     vsout.instance_id = InstanceID;
-    vsout.material_id = Get(per_draw_data)[mesh_id].material_id;
-    vsout.prev_pos = mul(float4(vsin.position, 1.0), mul(model, Get(prev_vp)));; // old
-    vsout.curr_pos = mul(float4(vsin.position, 1.0), mul(model, Get(vp)));; // new
+    vsout.material_id = Get(decal_instance_parameter)[mesh_id].material_id;
     RETURN(vsout);
 }
