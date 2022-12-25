@@ -592,12 +592,18 @@ struct DrawIndexedInstancedCommand {
     u32 first_instance;
 };
 
-enum class LoadOp {
-
+enum class RenderTargetLoadOp {
+    INVALID,
+    DONT_CARE,
+    LOAD,
+    CLEAR,
 };
 
-enum class StoreOp {
-
+enum class RenderTargetStoreOp {
+    INALID,
+    DONT_CARE,
+    STORE,
+    NONE
 };
 
 } // namespace Horizon

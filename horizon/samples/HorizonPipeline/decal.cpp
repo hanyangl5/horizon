@@ -54,7 +54,7 @@ DecalData::DecalData(Backend::RHI *rhi, SceneManager *scene_manager, DeferredDat
     graphics_pass_ci.depth_stencil_state.depthNear = 0.0f;
     graphics_pass_ci.depth_stencil_state.depthNear = 1.0f;
     graphics_pass_ci.depth_stencil_state.depth_test = true;
-    graphics_pass_ci.depth_stencil_state.depth_write = true;
+    graphics_pass_ci.depth_stencil_state.depth_write = false;
     graphics_pass_ci.depth_stencil_state.stencil_enabled = false;
 
     graphics_pass_ci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
@@ -77,4 +77,12 @@ DecalData::DecalData(Backend::RHI *rhi, SceneManager *scene_manager, DeferredDat
 
     decal_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
     decal_pass->SetGraphicsShader(decal_vs, decal_ps);
+
+    scene_depth_texture = rhi->CreateTexture(
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                          TextureType::TEXTURE_TYPE_2D, deferred_data->depth->GetTexture()->m_format,
+                          deferred_data->depth->GetTexture()->m_width, deferred_data->depth->GetTexture()->m_height});
+    decal_constants_buffer = rhi->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(DecalConstants)});
+
 }

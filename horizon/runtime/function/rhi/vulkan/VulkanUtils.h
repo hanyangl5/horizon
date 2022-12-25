@@ -77,4 +77,9 @@ inline VkImageViewType ToVkImageViewType(TextureType type) noexcept {
         break;
     }
 }
+
+VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op);
+
+VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op);
+
 } // namespace Horizon

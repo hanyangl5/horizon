@@ -18,7 +18,9 @@ PUSH_CONSTANT(DrawRootConstant, b1){
 
 STRUCT(InstanceParameter)
 {
-    DATA(float4x4,  model_matrix, None);
+    DATA(float4x4,  model, None);
+    DATA(float4x4,  decal_to_world, None);
+    DATA(float4x4,  world_to_decal, None);
     DATA(uint, material_id, None);
 };
 
@@ -55,23 +57,11 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint
     mesh_id = gl_DrawID;
 #endif
     mesh_id += Get(mesh_id_offset);
-    float4x4 model = Get(decal_instance_parameter)[mesh_id].model_matrix;
-
-    // float vbp[VERETX_LAYOUT_STRIDE] = Get(vertex_buffers)[0][mesh_id + vertex_id].packed;
-    // vsin.position = GetVertexPositionFromPackedVertexBuffer(vbp);
-    // vsin.normal = GetVertexNormalFromPackedVertexBuffer(vbp);
-    // vsin.uv0 = GetVertexUv0FromPackedVertexBuffer(vbp);
-    // vsin.uv1 = GetVertexUv1FromPackedVertexBuffer(vbp);
-    // vsin.tangent = GetVertexTangentFromPackedVertexBuffer(vbp);
-    
-    vsout.position = mul(float4(vsin.position, 1.0), mul(model, Get(vp))); // column major
-    vsout.world_pos = mul(float4(vsin.position, 1.0), model).xyz;
-    //transpose(inverse(model)
-    vsout.normal = normalize(mul(float4(vsin.normal, 0.0), model).xyz);;
-    vsout.uv = vsin.uv0;
-    vsout.tangent = vsin.tangent;
-    vsout.tangent = normalize(mul(float4(vsin.tangent, 0.0), model).xyz);;
+    float4x4 decal_to_world = Get(decal_instance_parameter)[InstanceID].decal_to_world;
+    float4x4 model = Get(decal_instance_parameter)[InstanceID].model;
+    float4 pos = decal_to_world * float4(vsin.position, 1.0);
+    vsout.position = vp * model * pos;
     vsout.instance_id = InstanceID;
-    vsout.material_id = Get(decal_instance_parameter)[mesh_id].material_id;
+    vsout.material_id = Get(decal_instance_parameter)[InstanceID].material_id;
     RETURN(vsout);
 }

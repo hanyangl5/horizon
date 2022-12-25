@@ -48,8 +48,7 @@ void HorizonPipeline::UpdatePipelineResources() {
         antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
         proj._13 += offset_x;
         proj._23 += offset_y;
-        auto vp = proj * view;
-
+        auto vp = view * proj;
         scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
         scene->m_scene_manager->camera_ub.vp = vp;
 
@@ -60,15 +59,21 @@ void HorizonPipeline::UpdatePipelineResources() {
     post_process->exposure_constants.exposure_ev100__ =
         Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
+    auto inverse_vp = cam->GetInvViewProjectionMatrix();
+
     deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
-    deferred->deferred_shading_constants.inverse_vp = cam->GetInvViewProjectionMatrix();
+    deferred->deferred_shading_constants.inverse_vp = inverse_vp;
 
     ssao->ssao_constansts.p = cam->GetProjectionMatrix();
-    ssao->ssao_constansts.inv_p = cam->GetInvProjectionMatrix();
+    ssao->ssao_constansts.inv_p = inverse_vp;
     ssao->ssao_constansts.view_mat = cam->GetViewMatrix();
     ssao->ssao_constansts.noise_scale_x = _width / SSAOData::SSAO_NOISE_TEX_WIDTH;
     ssao->ssao_constansts.noise_scale_y = _height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
 
+    decal->decal_constants.inverse_vp = inverse_vp;
+    //decal->decal_constants.inverse_view_projection = cam->GetInvViewProjectionMatrix();
+    decal->decal_constants.resolution[0] = _width;
+    decal->decal_constants.resolution[1] = _height;
 }
 
 void HorizonPipeline::run() {
@@ -106,6 +111,8 @@ void HorizonPipeline::run() {
                                    sizeof(PostProcessData::ExposureConstant));
             transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ssao_constansts,
                                    sizeof(SSAOData::SSAOConstant));
+
+            transfer->UpdateBuffer(decal->decal_constants_buffer, &decal->decal_constants, sizeof(DecalData::DecalConstants));
             if (first_frame) {
 
                 transfer->UpdateBuffer(deferred->diffuse_irradiance_sh3_buffer,
@@ -267,17 +274,28 @@ void HorizonPipeline::run() {
             begin_info.render_area = Rect{0, 0, _width, _height};
             begin_info.render_targets[0].data = deferred->gbuffer0;
             begin_info.render_targets[0].clear_color = {};
+            begin_info.render_targets[0].load_op = RenderTargetLoadOp::CLEAR;
+            begin_info.render_targets[0].store_op = RenderTargetStoreOp::STORE;
             begin_info.render_targets[1].data = deferred->gbuffer1;
             begin_info.render_targets[1].clear_color = {};
+            begin_info.render_targets[1].load_op = RenderTargetLoadOp::CLEAR;
+            begin_info.render_targets[1].store_op = RenderTargetStoreOp::STORE;
             begin_info.render_targets[2].data = deferred->gbuffer2;
             begin_info.render_targets[2].clear_color = {};
+            begin_info.render_targets[2].load_op = RenderTargetLoadOp::CLEAR;
+            begin_info.render_targets[2].store_op = RenderTargetStoreOp::STORE;
             begin_info.render_targets[3].data = deferred->gbuffer3;
             begin_info.render_targets[3].clear_color = {};
+            begin_info.render_targets[3].load_op = RenderTargetLoadOp::CLEAR;
+            begin_info.render_targets[3].store_op = RenderTargetStoreOp::STORE;
             begin_info.render_targets[4].data = deferred->gbuffer4;
             begin_info.render_targets[4].clear_color = {};
+            begin_info.render_targets[4].load_op = RenderTargetLoadOp::CLEAR;
+            begin_info.render_targets[4].store_op = RenderTargetStoreOp::STORE;
             begin_info.depth_stencil.data = deferred->depth;
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
-
+            begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
+            begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
             cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
             cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
 
@@ -302,6 +320,32 @@ void HorizonPipeline::run() {
             }
 
             cl->EndRenderPass();
+            {
+                BarrierDesc barrier1{};
+                TextureBarrierDesc tb1{};
+                tb1.texture = deferred->depth->GetTexture();
+                tb1.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
+                tb1.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                barrier1.texture_memory_barriers.push_back(std::move(tb1));
+                tb1.texture = decal->scene_depth_texture;
+                tb1.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
+                tb1.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                barrier1.texture_memory_barriers.push_back(std::move(tb1));
+                cl->InsertBarrier(barrier1);
+
+                cl->CopyTexture(deferred->depth->GetTexture(), decal->scene_depth_texture);
+                BarrierDesc barrier2{};
+                tb1.texture = deferred->depth->GetTexture();
+                tb1.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+                tb1.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
+                barrier2.texture_memory_barriers.push_back(std::move(tb1));
+                tb1.texture = decal->scene_depth_texture;
+                tb1.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                tb1.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+                barrier2.texture_memory_barriers.push_back(std::move(tb1));
+                cl->InsertBarrier(barrier2);
+
+            }
 
             // deferred decal
             {
@@ -312,6 +356,8 @@ void HorizonPipeline::run() {
                 decal_ds->SetResource(scene->m_scene_manager->decal_material_description_buffer,
                                       "decal_material_descriptions");
                 decal_ds->SetResource(sampler, "default_sampler");
+                decal_ds->SetResource(decal->scene_depth_texture, "depth_tex");
+                decal_ds->SetResource(decal->decal_constants_buffer, "DecalConstants");
                 decal_ds->Update();
 
                 auto decal_pass_bindless_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
@@ -324,6 +370,15 @@ void HorizonPipeline::run() {
 
                 decal_pass_bindless_ds->SetBindlessResource(decal_material_textures, "decal_material_textures");
                 decal_pass_bindless_ds->Update();
+
+                begin_info.render_targets[0].load_op = RenderTargetLoadOp::LOAD;
+                begin_info.render_targets[1].load_op = RenderTargetLoadOp::LOAD;
+                begin_info.render_targets[2].load_op = RenderTargetLoadOp::LOAD;
+                begin_info.render_targets[3].load_op = RenderTargetLoadOp::LOAD;
+                begin_info.render_targets[4].load_op = RenderTargetLoadOp::LOAD;
+                begin_info.depth_stencil.load_op = RenderTargetLoadOp::LOAD;
+                begin_info.depth_stencil.store_op = RenderTargetStoreOp::NONE;
+
 
                 cl->BeginRenderPass(begin_info);
 
@@ -338,7 +393,6 @@ void HorizonPipeline::run() {
                 cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->decal_indirect_draw_command_buffer1,
                                                  0, 1,
                                                  sizeof(DrawIndexedInstancedCommand));
-
                 cl->EndRenderPass();
             }
             {

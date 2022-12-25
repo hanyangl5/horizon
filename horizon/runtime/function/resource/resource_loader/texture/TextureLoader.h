@@ -24,5 +24,7 @@ class TextureLoader {
     // dds
     static void LoadDDS(const std::filesystem::path &path, TextureDataDesc &texture_info);
 
+    static void LoadTGA(const std::filesystem::path &path, TextureDataDesc &texture_info);
+
 };
 } // namespace Horizon

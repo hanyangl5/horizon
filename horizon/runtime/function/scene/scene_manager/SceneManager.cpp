@@ -140,7 +140,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
 
         for (auto &node : mesh->GetNodes()) {
 
-            auto mat = (node.GetModelMatrix() * mesh->transform).Transpose();
+            auto mat = (node.GetModelMatrix() * mesh->transform);
 
             for (auto &m : node.mesh_primitives) {
                 instance_params[primitive_offset + m].model_matrix = mat;
@@ -287,8 +287,15 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         decal_material_descs.push_back(desc);
 
         command.instance_count++; // each instance an decal (default mesh)
-        InstanceParameters instance_param{};
-        instance_param.model_matrix = decal->transform.GetTransformMatrix();
+        DecalInstanceParameters instance_param{};
+        instance_param.model = decal->transform.GetTransformMatrix();
+        auto projector_view = Math::LookAt(Math::float3(0, 0, 0), Math::float3(0, 1, 0), Math::float3(0, 1, 0));
+        auto projector_projection = Math::Ortho(2, 2, 0.01, 1.0);
+
+        auto vp = projector_view * projector_projection;
+        
+        instance_param.decal_to_world = (vp.Invert());
+        instance_param.world_to_decal = vp;
         instance_param.material_index = material_offset;
         decal_instance_params.push_back(std::move(instance_param));
     }
@@ -304,7 +311,7 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
 
     decal_instance_parameter_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(InstanceParameters) * decal_instance_params.size()});
+                         sizeof(DecalInstanceParameters) * decal_instance_params.size()});
 }
 
 void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
@@ -313,7 +320,7 @@ void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
                               decal_material_descs.size() * sizeof(MaterialDesc));
 
     commandlist->UpdateBuffer(decal_instance_parameter_buffer, decal_instance_params.data(),
-                              decal_instance_params.size() * sizeof(InstanceParameters));
+                              decal_instance_params.size() * sizeof(DecalInstanceParameters));
 
     commandlist->UpdateBuffer(decal_indirect_draw_command_buffer1, decal_indirect_draw_command.data(),
                               decal_indirect_draw_command.size() * sizeof(DrawIndexedInstancedCommand));
@@ -323,18 +330,18 @@ void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
     TextureBarrierDesc tex_barrier{};
     tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
     tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
-        commandlist->UpdateTexture(material_textures[tex], textuer_upload_desc[tex]);
-        tex_barrier.texture = material_textures[tex];
+    for (u32 tex = 0; tex < decal_material_textures.size(); tex++) {
+        commandlist->UpdateTexture(decal_material_textures[tex], decal_textuer_upload_desc[tex]);
+        tex_barrier.texture = decal_material_textures[tex];
         resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
     }
 
     // commandlist->InsertBarrier(resource_upload_barrier);
 
     BarrierDesc mip_barrier1{};
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+    for (u32 tex = 0; tex < decal_material_textures.size(); tex++) {
         TextureBarrierDesc mip_map_barrier{};
-        mip_map_barrier.texture = material_textures[tex];
+        mip_map_barrier.texture = decal_material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
         mip_map_barrier.mip_level_count = 1;
         mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
@@ -343,16 +350,16 @@ void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
     }
     commandlist->InsertBarrier(mip_barrier1);
 
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
-        commandlist->GenerateMipMap(material_textures[tex], true);
+    for (u32 tex = 0; tex < decal_material_textures.size(); tex++) {
+        commandlist->GenerateMipMap(decal_material_textures[tex], true);
     }
 
     BarrierDesc mip_barrier2{};
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+    for (u32 tex = 0; tex < decal_material_textures.size(); tex++) {
         TextureBarrierDesc mip_map_barrier{};
-        mip_map_barrier.texture = material_textures[tex];
+        mip_map_barrier.texture = decal_material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
-        mip_map_barrier.mip_level_count = material_textures[tex]->mip_map_level;
+        mip_map_barrier.mip_level_count = decal_material_textures[tex]->mip_map_level;
         mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
         mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
         mip_barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);

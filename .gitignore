@@ -2,6 +2,7 @@
 build
 horizon/3rd_party/DirectXShaderCompiler
 horizon/assets/models
+horizon/assets/materials
 horizon/assets/generated_shaders
 horizon/assets/envrionment
 horizon/assets/shaders/bin

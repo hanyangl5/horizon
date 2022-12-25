@@ -12,5 +12,15 @@ class DecalData {
     Shader *decal_ps;
     Shader *decal_vs;
 
-    Pipeline *decal_pass;
+    Pipeline *decal_pass{};
+
+    Texture *scene_depth_texture{};
+
+    struct DecalConstants {
+        Math::float4x4 inverse_vp;
+        u32 resolution[2];
+        u32 pad[2];
+    } decal_constants;
+
+    Buffer *decal_constants_buffer{};
 };

@@ -59,6 +59,8 @@ class Camera {
 
     Math::float4x4 GetViewMatrix() const noexcept;
 
+    Math::float4x4 GetInvViewMatrix() const noexcept;
+
     Math::float3 GetPosition() const noexcept;
 
     Math::float3 GetFov() const noexcept;

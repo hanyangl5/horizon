@@ -19,7 +19,7 @@
 
 namespace Horizon {
 
-extern Container::FixedArray<Vertex, 24> cube_vertices;
+extern Container::FixedArray<Vertex, 36> cube_vertices;
 extern Container::FixedArray<Index, 36> cube_indices;
 
 class ResourceManager {

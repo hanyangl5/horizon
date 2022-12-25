@@ -43,13 +43,11 @@ void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 nea
 
 Math::float4x4 Camera::GetProjectionMatrix() const noexcept {
     auto p = m_projection;
-    p = p.Transpose();
     return p;
 }
 
 Math::float4x4 Camera::GetInvProjectionMatrix() const noexcept {
     auto inv_p = m_projection.Invert();
-    inv_p = inv_p.Transpose();
     return inv_p;
 }
 
@@ -124,14 +122,12 @@ void Camera::UpdateViewMatrix() noexcept {
 
 Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept {
     auto vp = m_view * m_projection;
-    vp = vp.Transpose();
     return vp;
 }
 
 Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
     auto vp = m_view * m_projection;
     vp = vp.Invert();
-    vp = vp.Transpose();
     return vp;
 }
 
@@ -172,7 +168,11 @@ const Math::float2 Camera::GetSensitivity() const noexcept {
 
 Math::float4x4 Camera::GetViewMatrix() const noexcept {
     auto v = m_view;
-    v = v.Transpose();
+    return v;
+}
+
+Math::float4x4 Camera::GetInvViewMatrix() const noexcept {
+    auto v = m_view.Invert();
     return v;
 }
 

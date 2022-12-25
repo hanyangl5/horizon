@@ -75,16 +75,15 @@ VSOutput VS_MAIN( VSInput vsin, SV_InstanceID(uint) InstanceID, SV_VertexID(uint
     // vsin.uv1 = GetVertexUv1FromPackedVertexBuffer(vbp);
     // vsin.tangent = GetVertexTangentFromPackedVertexBuffer(vbp);
     
-    vsout.position = mul(float4(vsin.position, 1.0), mul(model, Get(vp))); // column major
-    vsout.world_pos = mul(float4(vsin.position, 1.0), model).xyz;
+    vsout.position = vp * model * float4(vsin.position, 1.0);
+    vsout.world_pos = (model * float4(vsin.position, 1.0)).xyz;
     //transpose(inverse(model)
-    vsout.normal = normalize(mul(float4(vsin.normal, 0.0), model).xyz);;
+    vsout.normal = normalize((model * float4(vsin.normal, 0.0)).xyz);
     vsout.uv = vsin.uv0;
-    vsout.tangent = vsin.tangent;
-    vsout.tangent = normalize(mul(float4(vsin.tangent, 0.0), model).xyz);;
+    vsout.tangent = normalize((model * float4(vsin.tangent, 0.0)).xyz);
     vsout.instance_id = InstanceID;
     vsout.material_id = Get(instance_parameter)[mesh_id].material_id;
-    vsout.prev_pos = mul(float4(vsin.position, 1.0), mul(model, Get(prev_vp)));; // old
-    vsout.curr_pos = mul(float4(vsin.position, 1.0), mul(model, Get(vp)));; // new
+    vsout.prev_pos = prev_vp * model * float4(vsin.position, 1.0); // old
+    vsout.curr_pos = vp * model * float4(vsin.position, 1.0); // new
     RETURN(vsout);
 }

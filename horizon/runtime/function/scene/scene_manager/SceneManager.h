@@ -36,6 +36,14 @@ struct InstanceParameters {
     u32 pad[3];
 };
 
+struct DecalInstanceParameters {
+    Math::float4x4 model;
+    Math::float4x4 decal_to_world;
+    Math::float4x4 world_to_decal;
+    u32 material_index;
+    u32 pad[3];
+};
+
 struct MaterialDesc {
     u32 base_color_texture_index;
     u32 normal_texture_index;
@@ -134,7 +142,7 @@ class SceneManager {
     Container::Array<Backend::Texture *> decal_material_textures{};
 
     u32 decal_draw_count{0};
-    Container::Array<InstanceParameters> decal_instance_params{};
+    Container::Array<DecalInstanceParameters> decal_instance_params{};
 
     Container::Array<MaterialDesc> decal_material_descs{};
 
