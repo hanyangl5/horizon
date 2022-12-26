@@ -18,9 +18,9 @@ class SSAOData {
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
     struct SSAOConstant {
-        Math::float4x4 p;
-        Math::float4x4 inv_p;
-        Math::float4x4 view_mat;
+        Math::float4x4 proj;
+        Math::float4x4 inv_proj;
+        Math::float4x4 view;
         u32 width;
         u32 height;
         f32 noise_scale_x;

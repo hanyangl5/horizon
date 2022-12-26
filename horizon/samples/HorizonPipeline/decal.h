@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "deferred.h"
+
 class DecalData {
   public:
     DecalData(Backend::RHI *rhi, SceneManager *scene_manager, DeferredData *deferred_data) noexcept;

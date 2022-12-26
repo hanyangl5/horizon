@@ -37,36 +37,35 @@ void HorizonPipeline::UpdatePipelineResources() {
     auto cam = scene->scene_camera;
 
     // taa jitter
-    if (1) {
-        auto &jitter_offset = antialiasing->GetJitterOffset();
-        auto &view = cam->GetViewMatrix();
-        auto &proj = cam->GetProjectionMatrix();
-        f32 offset_x = (jitter_offset.x - 0.5) / _width;
-        f32 offset_y = (jitter_offset.y - 0.5) / _height;
+    
+    auto &jitter_offset = antialiasing->GetJitterOffset();
+    auto &view = cam->GetViewMatrix();
+    auto &proj = cam->GetProjectionMatrix();
+    f32 offset_x = (jitter_offset.x - 0.5) / _width;
+    f32 offset_y = (jitter_offset.y - 0.5) / _height;
 
-        antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
-        antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
-        proj._13 += offset_x;
-        proj._23 += offset_y;
-        auto vp = view * proj;
-        scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
-        scene->m_scene_manager->camera_ub.vp = vp;
+    antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
+    antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
+    proj._13 += offset_x;
+    proj._23 += offset_y;
 
-    }
+    auto vp = view * proj;
+    auto inverse_vp = vp.Invert();
+
+    scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
+    scene->m_scene_manager->camera_ub.vp = vp;
+
     scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
 
-    post_process->exposure_constants.exposure_ev100__ =
-        Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
-
-    auto inverse_vp = cam->GetInvViewProjectionMatrix();
+    post_process->exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
     deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
     deferred->deferred_shading_constants.inverse_vp = inverse_vp;
 
-    ssao->ssao_constansts.p = cam->GetProjectionMatrix();
-    ssao->ssao_constansts.inv_p = inverse_vp;
-    ssao->ssao_constansts.view_mat = cam->GetViewMatrix();
+    ssao->ssao_constansts.proj = proj;
+    ssao->ssao_constansts.inv_proj = proj.Invert();
+    ssao->ssao_constansts.view = view;
     ssao->ssao_constansts.noise_scale_x = _width / SSAOData::SSAO_NOISE_TEX_WIDTH;
     ssao->ssao_constansts.noise_scale_y = _height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
 
@@ -111,6 +110,9 @@ void HorizonPipeline::run() {
                                    sizeof(PostProcessData::ExposureConstant));
             transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ssao_constansts,
                                    sizeof(SSAOData::SSAOConstant));
+            transfer->UpdateBuffer(antialiasing->taa_prev_curr_offset_buffer, &antialiasing->taa_prev_curr_offset,
+                                   sizeof(AntialiasingData::TAAPrevCurrOffset));
+            
 
             transfer->UpdateBuffer(decal->decal_constants_buffer, &decal->decal_constants, sizeof(DecalData::DecalConstants));
             if (first_frame) {
