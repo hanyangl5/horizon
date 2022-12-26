@@ -114,7 +114,7 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
                   float3(2.2))
             : material.emissive;
 
-    normal_map = (2.0 * normal_map - 1.0); // [-1, 1]
+    normal_map = normalize(2.0 * normal_map - 1.0); // [-1, 1]
 
     float3 gbuffer_normal;
 
@@ -124,8 +124,8 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
         float3 tangent = normalize(vsout.tangent);
         float3 bitangent = normalize(cross(tangent, normal));
         // Calculate pixel normal using the normal map and the tangent space vectors
-        float3x3 tbn = make_f3x3_rows(tangent, bitangent, normal);
-        gbuffer_normal = normalize(mul(normal_map, tbn));
+        float3x3 tbn = make_f3x3_cols(tangent, bitangent, normal);
+        gbuffer_normal = normalize(tbn * normal_map);
     } else {
         gbuffer_normal = normalize(vsout.normal);
     }

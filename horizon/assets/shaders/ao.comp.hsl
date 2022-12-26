@@ -16,7 +16,7 @@ RES(RWTex2D(float4), ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
 CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
 {
     DATA(float4x4, camera_projection, None);
-    DATA(float4x4, camera_inv_projection, None);
+    DATA(float4x4, camera_inv_projection, None); // we only care about view space
     DATA(float4x4, camera_view, None);
     DATA(uint2, resolution, None);
     DATA(float2, noise_scale, None);
@@ -42,8 +42,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     float3 normal = SampleTex2D(Get(normal_tex), default_sampler, uv).xyz;
     
-    float3 view_normal = mul(float4(normal, 0.0), Get(camera_view)).xyz; // view space normal
-    normal = normalize(normal);
+    float3 view_normal = (Get(camera_view) * float4(normal, 0.0)).xyz; // view space normal
     view_normal = normalize(view_normal);
 
     float ssao_factor = 0.0;
@@ -53,12 +52,12 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     float3 rvec = float3(SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xy, 0.0);
     float3 tangent = normalize(rvec - view_normal * dot(rvec, view_normal));
 	float3 bitangent = cross(tangent, view_normal);
-	float3x3  tbn = make_f3x3_rows(tangent, bitangent, view_normal);
+	float3x3  tbn = make_f3x3_cols(tangent, bitangent, view_normal);
 
     for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++){
-        float3 sample_pos = view_pos + mul(Get(kernels)[i].xyz, tbn) * SSAO_SAMPLE_RADIUS;
+        float3 sample_pos = view_pos + mul(tbn, Get(kernels)[i].xyz) * SSAO_SAMPLE_RADIUS;
 
-        float4 offset = mul(float4(sample_pos, 1.0), Get(camera_projection));
+        float4 offset = Get(camera_projection) * float4(sample_pos, 1.0);
         offset.xyz /= offset.w;
         offset.xy = offset.xy * 0.5 + 0.5;
         offset.y = 1.0 - offset.y;

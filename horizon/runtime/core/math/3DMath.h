@@ -53,4 +53,10 @@ inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane, flo
     mat; // reversed-z
     return std::move(mat);
 }
+
+inline float4x4 Ortho(float width, float height, float near_plane, float far_plane) {
+    auto mat = DirectX::SimpleMath::Matrix::CreateOrthographic(width, height, near_plane, far_plane);
+    mat; // reversed-z
+    return std::move(mat);
+}
 }

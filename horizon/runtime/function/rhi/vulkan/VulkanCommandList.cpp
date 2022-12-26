@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/vulkan/VulkanUtils.h>
 #include <runtime/function/rhi/ResourceBarrier.h>
 #include <runtime/function/rhi/vulkan/VulkanPipeline.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>
@@ -93,8 +94,8 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         info.imageView = t->m_image_view;
-        info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        info.loadOp = ToVkLoadOp(begin_info.render_targets[i].load_op);
+        info.storeOp = ToVkStoreOp(begin_info.render_targets[i].store_op);
         VkClearValue clear_value;
         auto &cc = std::get<ClearColorValue>(begin_info.render_targets[i].clear_color);
         memcpy(&clear_value.color, &cc, 4 * 4);
@@ -114,8 +115,8 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depth_attachment_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
         depth_attachment_info.imageView = t->m_image_view;
-        depth_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depth_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depth_attachment_info.loadOp = ToVkLoadOp(begin_info.depth_stencil.load_op);
+        depth_attachment_info.storeOp = ToVkStoreOp(begin_info.depth_stencil.store_op);
         VkClearValue clear_value;
         auto &cc = std::get<ClearValueDepthStencil>(begin_info.depth_stencil.clear_color);
         clear_value.depthStencil = {cc.depth, cc.stencil};
@@ -272,15 +273,16 @@ void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_b
 }
 
 void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *dst_texture) {
+    src_texture->m_format;
     VkImageCopy cregion;
-    cregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.srcSubresource.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(src_texture->m_format), false);
     cregion.srcSubresource.mipLevel = 0;
     cregion.srcSubresource.baseArrayLayer = 0;
     cregion.srcSubresource.layerCount = 1;
     cregion.srcOffset.x = 0;
     cregion.srcOffset.y = 0;
     cregion.srcOffset.z = 0;
-    cregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.dstSubresource.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(dst_texture->m_format), false);
     cregion.dstSubresource.mipLevel = 0;
     cregion.dstSubresource.baseArrayLayer = 0;
     cregion.dstSubresource.layerCount = 1;

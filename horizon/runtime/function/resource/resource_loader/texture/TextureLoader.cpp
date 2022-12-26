@@ -353,6 +353,9 @@ TextureDataDesc TextureLoader::Load(const std::filesystem::path &path) {
     } else if (extension == ".dds") {
         LoadDDS(path, texture_info);
 
+    } else if (extension == ".tga") {
+        LoadTGA(path, texture_info);
+
     } else if (extension == ".ktx") {
     } else {
         LOG_ERROR("{} format is not supportted", extension.string().c_str());
@@ -364,6 +367,9 @@ void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureD
     int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
+    if (!data) {
+        LOG_ERROR("failed to load {}", path.string().c_str());
+    }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
     texture_info.layer_count = 1;
@@ -376,6 +382,9 @@ void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &
     int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
+    if (!data) {
+        LOG_ERROR("failed to load {}", path.string().c_str());
+    }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
     texture_info.layer_count = 1;
@@ -420,6 +429,19 @@ void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &
     }
 }
 
-
-
+void TextureLoader::LoadTGA(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+    int channels;
+    u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
+                         STBI_rgb_alpha);
+    if (!data) {
+        LOG_ERROR("failed to load {}", path.string().c_str());
+    }
+    texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
+    texture_info.type = TextureType::TEXTURE_TYPE_2D;
+    texture_info.layer_count = 1;
+    texture_info.raw_data = {data, data + texture_info.width * texture_info.height * 4};
+    texture_info.mipmap_count = 1;
+    texture_info.layer_count = 1;
+    stbi_image_free(data);
+}
 } // namespace Horizon

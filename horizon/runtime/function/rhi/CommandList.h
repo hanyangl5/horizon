@@ -17,6 +17,8 @@ namespace Horizon::Backend {
 struct RenderTargetInfo {
     RenderTarget *data{};
     std::variant<ClearColorValue, ClearValueDepthStencil> clear_color{};
+    RenderTargetLoadOp load_op;
+    RenderTargetStoreOp store_op;
 };
 
 struct RenderPassBeginInfo {

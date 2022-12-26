@@ -351,7 +351,7 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
     case Horizon::TextureFormat::TEXTURE_FORMAT_D32_SFLOAT:
         return VK_FORMAT_D32_SFLOAT;
     default:
-        LOG_ERROR("invalid format");
+        //LOG_ERROR("invalid format"); // TODO TEXTURE_FORMAT_DUMMY_COLOR
         return VK_FORMAT_MAX_ENUM;
     }
 }
@@ -644,6 +644,33 @@ VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept {
     default:
         return VkCompareOp::VK_COMPARE_OP_MAX_ENUM;
         break;
+    }
+}
+VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op) {
+    switch (load_op) {
+    case Horizon::RenderTargetLoadOp::DONT_CARE:
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    case Horizon::RenderTargetLoadOp::LOAD:
+        return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case Horizon::RenderTargetLoadOp::CLEAR:
+        return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case Horizon::RenderTargetLoadOp::INVALID:
+    default:
+        return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+    }
+}
+
+VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op) {
+    switch (store_op) {
+    case Horizon::RenderTargetStoreOp::DONT_CARE:
+        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    case Horizon::RenderTargetStoreOp::STORE:
+        return VK_ATTACHMENT_STORE_OP_STORE;
+    case Horizon::RenderTargetStoreOp::NONE:
+        return VK_ATTACHMENT_STORE_OP_NONE;
+    case Horizon::RenderTargetStoreOp::INALID:
+    default:
+        return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
     }
 }
 

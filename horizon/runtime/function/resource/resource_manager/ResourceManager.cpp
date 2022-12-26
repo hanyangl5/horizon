@@ -25,11 +25,19 @@ Buffer *ResourceManager::GetEmptyVertexBuffer() {
     return empty_vertex_buffer;
 }
 
-Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, std::filesystem::path path) {
+Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, const std::filesystem::path& path) {
     auto mesh = MeshLoader::Load(desc, path);
     meshes.emplace(mesh);
     return mesh;
 }
+
+Decal *ResourceManager::LoadDecal(const std::filesystem::path &path) {
+    Decal *decal = Memory::Alloc<Decal>(path);
+    decals.emplace(decal);
+    return decal;
+}
+
+void ResourceManager::OffloadDecal(Decal *decal) {}
 
 void ResourceManager::OffloadMesh(Mesh *mesh) {
     if (meshes.find(mesh) != meshes.end()) {
@@ -74,4 +82,50 @@ void ResourceManager::DestroyGpuTexture(Texture *texture) {
         m_rhi->DestroyTexture(texture);
     }
 }
+
+Container::FixedArray<Vertex, 36> cube_vertices{
+    // Top
+    Vertex{Math::float3(1, -1, 1), Math::float3(-0, -1, 0), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, -1, -1), Math::float3(-0, -1, 0), Math::float2(-1, 1)},
+    Vertex{Math::float3(1, -1, -1), Math::float3(-0, -1, 0), Math::float2(0, 1)},
+    Vertex{Math::float3(-1, 1, -1), Math::float3(0, 1, -0), Math::float2(0, 0)},
+    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(0, 1, -0), Math::float2(1, -1)},
+    Vertex{Math::float3(1, 1, -0.999999), Math::float3(0, 1, -0), Math::float2(1, 0)},
+    Vertex{Math::float3(1, 1, -0.999999), Math::float3(1, -0, -0), Math::float2(1, 0)},
+    Vertex{Math::float3(1, -1, 1), Math::float3(1, -0, -0), Math::float2(0, -1)},
+    Vertex{Math::float3(1, -1, -1), Math::float3(1, -0, -0), Math::float2(1, -1)},
+    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(-0, -0, 1), Math::float2(1, 0)},
+    Vertex{Math::float3(-1, -1, 1), Math::float3(-0, -0, 1), Math::float2(-0, -1)},
+    Vertex{Math::float3(1, -1, 1), Math::float3(-0, -0, 1), Math::float2(1, -1)},
+    Vertex{Math::float3(-1, -1, 1), Math::float3(-1, -0, -0), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, 1, -1), Math::float3(-1, -0, -0), Math::float2(1, 1)},
+    Vertex{Math::float3(-1, -1, -1), Math::float3(-1, -0, -0), Math::float2(1, 0)},
+    Vertex{Math::float3(1, -1, -1), Math::float3(0, 0, -1), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, 1, -1), Math::float3(0, 0, -1), Math::float2(-1, 1)},
+    Vertex{Math::float3(1, 1, -0.999999), Math::float3(0, 0, -1), Math::float2(0, 1)},
+    Vertex{Math::float3(1, -1, 1), Math::float3(0, -1, 0), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, -1, 1), Math::float3(0, -1, 0), Math::float2(-1, 0)},
+    Vertex{Math::float3(-1, -1, -1), Math::float3(0, -1, 0), Math::float2(-1, 1)},
+    Vertex{Math::float3(-1, 1, -1), Math::float3(0, 1, 0), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, 1, 1), Math::float3(0, 1, 0), Math::float2(-0, -1)},
+    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(0, 1, 0), Math::float2(1, -1)},
+    Vertex{Math::float3(1, 1, -0.999999), Math::float3(1, 0, 1e-06), Math::float2(1, 0)},
+    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(1, 0, 1e-06), Math::float2(-0, 0)},
+    Vertex{Math::float3(1, -1, 1), Math::float3(1, 0, 1e-06), Math::float2(0, -1)},
+    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(-0, 0, 1), Math::float2(1, 0)},
+    Vertex{Math::float3(-1, 1, 1), Math::float3(-0, 0, 1), Math::float2(-0, 0)},
+    Vertex{Math::float3(-1, -1, 1), Math::float3(-0, 0, 1), Math::float2(-0, -1)},
+    Vertex{Math::float3(-1, -1, 1), Math::float3(-1, -0, -0), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, 1, 1), Math::float3(-1, -0, -0), Math::float2(0, 1)},
+    Vertex{Math::float3(-1, 1, -1), Math::float3(-1, -0, -0), Math::float2(1, 1)},
+    Vertex{Math::float3(1, -1, -1), Math::float3(0, 0, -1), Math::float2(0, 0)},
+    Vertex{Math::float3(-1, -1, -1), Math::float3(0, 0, -1), Math::float2(-1, 0)},
+    Vertex{Math::float3(-1, 1, -1), Math::float3(0, 0, -1), Math::float2(-1, 1)}
+
+};
+
+Container::FixedArray<Index, 36> cube_indices{0,  1,  2,  3,  4,  5,  6,  7,  8,   9,  10, 11, 12, 13, 14, 15, 16, 17,
+                                              18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35};
+;
+
 } // namespace Horizon
