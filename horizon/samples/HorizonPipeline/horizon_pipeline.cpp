@@ -70,7 +70,6 @@ void HorizonPipeline::UpdatePipelineResources() {
     ssao->ssao_constansts.noise_scale_y = _height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
 
     decal->decal_constants.inverse_vp = inverse_vp;
-    //decal->decal_constants.inverse_view_projection = cam->GetInvViewProjectionMatrix();
     decal->decal_constants.resolution[0] = _width;
     decal->decal_constants.resolution[1] = _height;
 }

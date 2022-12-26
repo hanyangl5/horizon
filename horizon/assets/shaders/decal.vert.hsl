@@ -15,7 +15,6 @@ PUSH_CONSTANT(DrawRootConstant, b1){
     DATA(uint, mesh_id_offset, None);
 };
 
-
 STRUCT(InstanceParameter)
 {
     DATA(float4x4,  model, None);

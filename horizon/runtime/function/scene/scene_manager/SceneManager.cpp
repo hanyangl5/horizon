@@ -287,15 +287,27 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         decal_material_descs.push_back(desc);
 
         command.instance_count++; // each instance an decal (default mesh)
+        command.instance_count = 0; // TODO: enable decal
         DecalInstanceParameters instance_param{};
         instance_param.model = decal->transform.GetTransformMatrix();
         auto projector_view = Math::LookAt(Math::float3(0, 0, 0), Math::float3(0, 1, 0), Math::float3(0, 1, 0));
         auto projector_projection = Math::Ortho(2, 2, 0.01, 1.0);
 
-        auto vp = projector_view * projector_projection;
-        
-        instance_param.decal_to_world = (vp.Invert());
-        instance_param.world_to_decal = vp;
+
+        // decal oritation
+        Math::float3 n = Math::Normalize(Math::float3(1, 0, 0));
+        Math::float3 up = Math::float3(0, 1, 0);
+        Math::float3 u = Math::Normalize(Math::Cross(up, n));
+        Math::float3 v = Math::Normalize(Math::Cross(n, u));
+
+        Math::float4x4 world_to_decal = Math::float4x4{u, v, n};
+        world_to_decal = world_to_decal.Transpose();
+        auto &decal_position = decal->transform.GetTranslation();
+        world_to_decal._14 = decal_position.Dot(u);
+        world_to_decal._24 = decal_position.Dot(v);
+        world_to_decal._34 = decal_position.Dot(n);
+        instance_param.decal_to_world = world_to_decal.Invert();
+        instance_param.world_to_decal = world_to_decal;
         instance_param.material_index = material_offset;
         decal_instance_params.push_back(std::move(instance_param));
     }
