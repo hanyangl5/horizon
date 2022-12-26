@@ -1,1 +1,0 @@
-https://www.poliigon.com/textures/decals/stickers
