@@ -21,44 +21,22 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
     scene_camera->SetPerspectiveProjectionMatrix(90.0_deg, (float)_width / (float)_height, 0.1f, 100.0f);
     // cam->SetLensProjectionMatrix(18.0, (float)width / (float)height, 0.1f, 100.0f);
 
-    //auto sphere = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-    //                       asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-
     auto sponza = scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                     VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
                            asset_path / "models/Sponza/glTF/Sponza.gltf");
 
-    //auto m = Math::float4x4::CreateTranslation(Math::float3(0.0, 20.0, 0.0));
-    //sphere->transform = m;
     auto sphere =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                                            VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
         asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+    sphere->transform.SetPosition(Math::float3{0, 10, 0});
     scene_manager->AddMesh(sponza);
-
-    //auto cube = scene_manager->resource_manager->LoadMesh(
-    //    MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0 |
-    //             VertexAttributeType::TANGENT},
-    //    "C:/Users/hylu/OneDrive/mycode/DredgenGraphicEngine/Dredgen-gl/resources/models/Cube/glTF/Cube.gltf");
-    ////scene_manager->AddMesh(cube);
-    //for (auto &v : cube->m_vertices) {
-    //    LOG_INFO("Vertex(Math::float3({},{},{}),Math::float3({},{},{}), Math::float2({},{})),", v.pos.x, v.pos.y,
-    //             v.pos.z, v.normal.x, v.normal.y, v.normal.z, v.uv0.x, v.uv0.y);
-    //}
-    //scene_manager->AddMesh();
-    //auto helmet = scene_manager->AddMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-    //                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
-    //                       asset_path / "models/Cauldron-Media/DamagedHelmet/glTF/DamagedHelmet.gltf");
-    //m = Math::float4x4::CreateTranslation(Math::float3(5.0, 5.0, 0.0));
-    //helmet->transform = m;
+    scene_manager->AddMesh(sphere);
 
     scene_manager->CreateMeshResources(rhi);
 
- /*   auto decal = scene_manager->resource_manager->LoadDecal(asset_path / "materials/decals/decal01.json");*/
     auto decal02 = scene_manager->resource_manager->LoadDecal(asset_path / "materials/decals/decal02.json");
-    
-    //scene_manager->AddDecal(decal);
+
     scene_manager->AddDecal(decal02);
 
     scene_manager->CreateDecalResources(rhi);

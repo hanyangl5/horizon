@@ -59,4 +59,7 @@ inline float4x4 Ortho(float width, float height, float near_plane, float far_pla
     mat; // reversed-z
     return std::move(mat);
 }
+
+static float3 DefaultOrientation = Math::float3{0, 0, 1};
+
 }

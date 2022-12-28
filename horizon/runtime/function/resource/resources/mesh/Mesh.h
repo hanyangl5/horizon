@@ -21,6 +21,7 @@
 
 #include "../aabb/AABB.h"
 #include "../vertex/VertexDescription.h"
+#include <runtime/function/component/Transform.h>
 
 namespace Horizon {
 
@@ -81,7 +82,7 @@ class Mesh {
     Container::Array<Node> m_nodes{};
     Container::Array<Material> materials{};
 
-    Math::float4x4 transform = Math::float4x4::Identity;
+    Transform transform;
 
     u32 vertex_buffer_index;
     u32 index_buffer_index;

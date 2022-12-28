@@ -140,7 +140,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
 
         for (auto &node : mesh->GetNodes()) {
 
-            auto mat = (node.GetModelMatrix() * mesh->transform);
+            auto mat = (node.GetModelMatrix() * mesh->transform.GetTransformMatrix());
 
             for (auto &m : node.mesh_primitives) {
                 instance_params[primitive_offset + m].model_matrix = mat;
@@ -290,12 +290,9 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         command.instance_count = 0; // TODO: enable decal
         DecalInstanceParameters instance_param{};
         instance_param.model = decal->transform.GetTransformMatrix();
-        auto projector_view = Math::LookAt(Math::float3(0, 0, 0), Math::float3(0, 1, 0), Math::float3(0, 1, 0));
-        auto projector_projection = Math::Ortho(2, 2, 0.01, 1.0);
-
 
         // decal oritation
-        Math::float3 n = Math::Normalize(Math::float3(1, 0, 0));
+        Math::float3 n = decal->transform.GetOrientation();
         Math::float3 up = Math::float3(0, 1, 0);
         Math::float3 u = Math::Normalize(Math::Cross(up, n));
         Math::float3 v = Math::Normalize(Math::Cross(n, u));
