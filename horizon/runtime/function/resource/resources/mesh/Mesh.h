@@ -43,8 +43,14 @@ struct Node {
     const Math::float4x4 &GetModelMatrix() const { return model_matrix; }
 };
 
+enum class MeshType {
+    STATIC,
+    DEFORMABLE
+};
+
 struct MeshDesc {
     u32 vertex_attribute_flag{};
+    MeshType mesh_type = MeshType::STATIC;
 };
 
 class Mesh {

@@ -78,6 +78,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
         if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
             materials[i].blend_state = BlendState::BLEND_STATE_TRANSPARENT;
+            materials[i].blend_state = BlendState::BLEND_STATE_MASKED; // TODO()
         } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
             materials[i].blend_state = BlendState::BLEND_STATE_MASKED;
             // float maskThreshold = 0.5;

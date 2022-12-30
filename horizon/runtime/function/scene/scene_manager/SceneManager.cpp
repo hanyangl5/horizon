@@ -298,11 +298,10 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         Math::float3 v = Math::Normalize(Math::Cross(n, u));
 
         Math::float4x4 world_to_decal = Math::float4x4{u, v, n};
-        world_to_decal = world_to_decal.Transpose();
         auto &decal_position = decal->transform.GetTranslation();
-        world_to_decal._14 = decal_position.Dot(u);
-        world_to_decal._24 = decal_position.Dot(v);
-        world_to_decal._34 = decal_position.Dot(n);
+        world_to_decal._14 = -decal_position.Dot(u);
+        world_to_decal._24 = -decal_position.Dot(v);
+        world_to_decal._34 = -decal_position.Dot(n);
         instance_param.decal_to_world = world_to_decal.Invert();
         instance_param.world_to_decal = world_to_decal;
         instance_param.material_index = material_offset;
