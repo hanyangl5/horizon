@@ -8,16 +8,23 @@
 
 #pragma once
 
+// standard libraries
+
+// third party libraries
+#include <d3d12.h>
+#include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
+// project headers
 #include <runtime/core/singleton/public_singleton.h>
-#include <runtime/core/utils/Definations.h>
+#include <runtime/core/utils/definations.h>
+#include <runtime/core/container/container.h>
 
 namespace Horizon {
 
 inline Container::String HrToString(HRESULT hr) {
     char s_str[64] = {};
-    sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<UINT>(hr));
+    sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<u32>(hr));
     return Container::String(s_str);
 }
 

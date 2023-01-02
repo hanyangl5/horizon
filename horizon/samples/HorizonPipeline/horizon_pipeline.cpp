@@ -2,7 +2,6 @@
 
 void HorizonPipeline::InitAPI() {
     rhi = engine->m_render_system->GetRhi();
-
 }
 
 void HorizonPipeline::InitResources() { InitPipelineResources(); }
@@ -24,11 +23,12 @@ void HorizonPipeline::InitPipelineResources() {
         sampler = rhi->CreateSampler(sampler_desc);
     }
 
-    deferred = Memory::MakeUnique<DeferredData>(rhi);
-    decal = Memory::MakeUnique<DecalData>(rhi, nullptr, deferred.get());
+    geometry = Memory::MakeUnique<GeometryData>(rhi);
+    shading = Memory::MakeUnique<ShadingData>(rhi);
+    decal = Memory::MakeUnique<DecalData>(rhi, nullptr, geometry.get());
     ssao = Memory::MakeUnique<SSAOData>(rhi);
     post_process = Memory::MakeUnique<PostProcessData>(rhi);
-    antialiasing = Memory::MakeUnique<AntialiasingData>(rhi);
+    antialiasing = Memory::MakeUnique<TAAData>(rhi);
     scene = Memory::MakeUnique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
 }
 
@@ -58,20 +58,23 @@ void HorizonPipeline::UpdatePipelineResources() {
     scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
 
+    scene->m_scene_manager->scene_constants.camera_view = inverse_vp;
+    scene->m_scene_manager->scene_constants.camera_projection = proj;
+    scene->m_scene_manager->scene_constants.camera_view_projection = vp;
+    scene->m_scene_manager->scene_constants.camera_inverse_view_projection = inverse_vp;
+    scene->m_scene_manager->scene_constants.camera_pos = cam->GetPosition();
+    scene->m_scene_manager->scene_constants.ibl_intensity = 10000.0f;
+    scene->m_scene_manager->scene_constants.resolution[0] = _width;
+    scene->m_scene_manager->scene_constants.resolution[1] = _height;
+
+
     post_process->exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
-    deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
-    deferred->deferred_shading_constants.inverse_vp = inverse_vp;
 
-    ssao->ssao_constansts.proj = proj;
     ssao->ssao_constansts.inv_proj = proj.Invert();
-    ssao->ssao_constansts.view = view;
     ssao->ssao_constansts.noise_scale_x = _width / SSAOData::SSAO_NOISE_TEX_WIDTH;
     ssao->ssao_constansts.noise_scale_y = _height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
 
-    decal->decal_constants.inverse_vp = inverse_vp;
-    decal->decal_constants.resolution[0] = _width;
-    decal->decal_constants.resolution[1] = _height;
 }
 
 void HorizonPipeline::run() {
@@ -102,23 +105,22 @@ void HorizonPipeline::run() {
             scene->m_scene_manager->UploadCameraResources(transfer);
 
             // deferred data
-            transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer,
-                                   &deferred->deferred_shading_constants, sizeof(deferred->deferred_shading_constants));
+            transfer->UpdateBuffer(scene->m_scene_manager->scene_constants_buffer,
+                                   &scene->m_scene_manager->scene_constants,
+                                   sizeof(scene->m_scene_manager->scene_constants));
             // post process data
             transfer->UpdateBuffer(post_process->exposure_constants_buffer, &post_process->exposure_constants,
                                    sizeof(PostProcessData::ExposureConstant));
             transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ssao_constansts,
                                    sizeof(SSAOData::SSAOConstant));
             transfer->UpdateBuffer(antialiasing->taa_prev_curr_offset_buffer, &antialiasing->taa_prev_curr_offset,
-                                   sizeof(AntialiasingData::TAAPrevCurrOffset));
+                                   sizeof(TAAData::TAAPrevCurrOffset));
             
-
-            transfer->UpdateBuffer(decal->decal_constants_buffer, &decal->decal_constants, sizeof(DecalData::DecalConstants));
             if (first_frame) {
 
-                transfer->UpdateBuffer(deferred->diffuse_irradiance_sh3_buffer,
-                                       &deferred->diffuse_irradiance_sh3_constants,
-                                       sizeof(deferred->diffuse_irradiance_sh3_constants));
+                transfer->UpdateBuffer(shading->diffuse_irradiance_sh3_buffer,
+                                       &shading->diffuse_irradiance_sh3_constants,
+                                       sizeof(shading->diffuse_irradiance_sh3_constants));
                 {
                     TextureUpdateDesc desc{};
                     desc.texture_data_desc = &ssao->ssao_noise_tex_data_desc;
@@ -132,10 +134,10 @@ void HorizonPipeline::run() {
                     desc2.first_layer = 0;
                     desc2.layer_count = 6;
                     desc2.first_mip_level = 0;
-                    desc2.mip_level_count = deferred->prefiltered_irradiance_env_map->mip_map_level;
-                    desc2.size = sizeof(char) * deferred->prefilered_irradiance_env_map_data.raw_data.size();
-                    desc2.texture_data_desc = &deferred->prefilered_irradiance_env_map_data;
-                    transfer->UpdateTexture(deferred->prefiltered_irradiance_env_map, desc2);
+                    desc2.mip_level_count = shading->prefiltered_irradiance_env_map->mip_map_level;
+                    desc2.size = sizeof(char) * shading->prefilered_irradiance_env_map_data.raw_data.size();
+                    desc2.texture_data_desc = &shading->prefilered_irradiance_env_map_data;
+                    transfer->UpdateTexture(shading->prefiltered_irradiance_env_map, desc2);
                 }
                 {
                     TextureUpdateDesc desc2{};
@@ -143,9 +145,9 @@ void HorizonPipeline::run() {
                     desc2.layer_count = 1;
                     desc2.first_mip_level = 0;
                     desc2.mip_level_count = 1;
-                    desc2.size = sizeof(char) * deferred->brdf_lut_data_desc.raw_data.size();
-                    desc2.texture_data_desc = &deferred->brdf_lut_data_desc;
-                    transfer->UpdateTexture(deferred->brdf_lut, desc2);
+                    desc2.size = sizeof(char) * shading->brdf_lut_data_desc.raw_data.size();
+                    desc2.texture_data_desc = &shading->brdf_lut_data_desc;
+                    transfer->UpdateTexture(shading->brdf_lut, desc2);
                 }
             }
 
@@ -155,13 +157,13 @@ void HorizonPipeline::run() {
             tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
             tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
 
-            tb.texture = deferred->shading_color_image;
+            tb.texture = shading->shading_color_texture;
             barrier.texture_memory_barriers.push_back(tb);
-            tb.texture = post_process->pp_color_image;
+            tb.texture = post_process->pp_color_texture;
             barrier.texture_memory_barriers.push_back(tb);
-            tb.texture = ssao->ssao_factor_image;
+            tb.texture = ssao->ssao_factor_texture;
             barrier.texture_memory_barriers.push_back(tb);
-            tb.texture = ssao->ssao_blur_image;
+            tb.texture = ssao->ssao_blur_texture;
             barrier.texture_memory_barriers.push_back(tb);
 
             tb.texture = antialiasing->output_color_texture;
@@ -183,14 +185,14 @@ void HorizonPipeline::run() {
                 tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                 tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
                 // brdf lut
-                tb.texture = deferred->brdf_lut;
+                tb.texture = shading->brdf_lut;
                 barrier.texture_memory_barriers.push_back(tb);
                 // pfem
-                tb.texture = deferred->prefiltered_irradiance_env_map;
+                tb.texture = shading->prefiltered_irradiance_env_map;
                 tb.first_layer = 0;
                 tb.first_mip_level = 0;
                 tb.layer_count = 6;
-                tb.mip_level_count = deferred->prefilered_irradiance_env_map_data.mipmap_count;
+                tb.mip_level_count = shading->prefilered_irradiance_env_map_data.mipmap_count;
                 barrier.texture_memory_barriers.push_back(tb);
             } else {
                  tb.texture = antialiasing->previous_color_texture;
@@ -210,7 +212,7 @@ void HorizonPipeline::run() {
                 rhi->SubmitCommandLists(submit_info);
             }
         }
-        auto geometry_pass_per_frame_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+        auto geometry_pass_per_frame_ds = geometry->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
         // perframe descriptor set
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
@@ -221,7 +223,7 @@ void HorizonPipeline::run() {
         geometry_pass_per_frame_ds->SetResource(antialiasing->taa_prev_curr_offset_buffer, "TAAOffsets");
         geometry_pass_per_frame_ds->Update();
 
-        auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
+        auto geometry_pass_bindless_ds = geometry->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
 
         auto stack_memory = Memory::GetStackMemoryResource(4096);
 
@@ -252,20 +254,20 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
                 tb.dst_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
-                tb.texture = deferred->gbuffer0->GetTexture();
+                tb.texture = geometry->gbuffer0->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer1->GetTexture();
+                tb.texture = geometry->gbuffer1->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer2->GetTexture();
+                tb.texture = geometry->gbuffer2->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer3->GetTexture();
+                tb.texture = geometry->gbuffer3->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer4->GetTexture();
+                tb.texture = geometry->gbuffer4->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
-                //tb.texture = deferred->vbuffer0->GetTexture();
+                //tb.texture = geometry->vbuffer0->GetTexture();
                 //image_barriers.texture_memory_barriers.push_back(tb);
                 tb.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
-                tb.texture = deferred->depth->GetTexture();
+                tb.texture = geometry->depth->GetTexture();
                 image_barriers.texture_memory_barriers.push_back(tb);
                 cl->InsertBarrier(image_barriers);
             }
@@ -273,36 +275,36 @@ void HorizonPipeline::run() {
             RenderPassBeginInfo begin_info{};
             begin_info.render_target_count = 5;
             begin_info.render_area = Rect{0, 0, _width, _height};
-            begin_info.render_targets[0].data = deferred->gbuffer0;
+            begin_info.render_targets[0].data = geometry->gbuffer0;
             begin_info.render_targets[0].clear_color = {};
             begin_info.render_targets[0].load_op = RenderTargetLoadOp::CLEAR;
             begin_info.render_targets[0].store_op = RenderTargetStoreOp::STORE;
-            begin_info.render_targets[1].data = deferred->gbuffer1;
+            begin_info.render_targets[1].data = geometry->gbuffer1;
             begin_info.render_targets[1].clear_color = {};
             begin_info.render_targets[1].load_op = RenderTargetLoadOp::CLEAR;
             begin_info.render_targets[1].store_op = RenderTargetStoreOp::STORE;
-            begin_info.render_targets[2].data = deferred->gbuffer2;
+            begin_info.render_targets[2].data = geometry->gbuffer2;
             begin_info.render_targets[2].clear_color = {};
             begin_info.render_targets[2].load_op = RenderTargetLoadOp::CLEAR;
             begin_info.render_targets[2].store_op = RenderTargetStoreOp::STORE;
-            begin_info.render_targets[3].data = deferred->gbuffer3;
+            begin_info.render_targets[3].data = geometry->gbuffer3;
             begin_info.render_targets[3].clear_color = {};
             begin_info.render_targets[3].load_op = RenderTargetLoadOp::CLEAR;
             begin_info.render_targets[3].store_op = RenderTargetStoreOp::STORE;
-            begin_info.render_targets[4].data = deferred->gbuffer4;
+            begin_info.render_targets[4].data = geometry->gbuffer4;
             begin_info.render_targets[4].clear_color = {};
             begin_info.render_targets[4].load_op = RenderTargetLoadOp::CLEAR;
             begin_info.render_targets[4].store_op = RenderTargetStoreOp::STORE;
-            begin_info.depth_stencil.data = deferred->depth;
+            begin_info.depth_stencil.data = geometry->depth;
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
             begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
             begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
-            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
-            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
+            cl->BindDescriptorSets(geometry->geometry_pass, geometry_pass_per_frame_ds);
+            cl->BindDescriptorSets(geometry->geometry_pass, geometry_pass_bindless_ds);
 
             cl->BeginRenderPass(begin_info);
 
-            cl->BindPipeline(deferred->geometry_pass);
+            cl->BindPipeline(geometry->geometry_pass);
 
             u32 draw_offset = 0;
 
@@ -313,18 +315,18 @@ void HorizonPipeline::run() {
                 u32 offset = 0;
                 cl->BindVertexBuffers(1, &vb, &offset);
                 cl->BindIndexBuffer(ib, 0);
-                cl->BindPushConstant(deferred->geometry_pass, "DrawRootConstant", &mesh.draw_offset);
+                cl->BindPushConstant(geometry->geometry_pass, "DrawRootConstant", &mesh.draw_offset);
 
                 cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->indirect_draw_command_buffer1,
-                                                 sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
-                                                 sizeof(DrawIndexedInstancedCommand));
+                                                 sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset,
+                                                 mesh.draw_count, sizeof(DrawIndexedInstancedCommand));
             }
 
             cl->EndRenderPass();
             {
                 BarrierDesc barrier1{};
                 TextureBarrierDesc tb1{};
-                tb1.texture = deferred->depth->GetTexture();
+                tb1.texture = geometry->depth->GetTexture();
                 tb1.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
                 barrier1.texture_memory_barriers.push_back(std::move(tb1));
@@ -334,9 +336,9 @@ void HorizonPipeline::run() {
                 barrier1.texture_memory_barriers.push_back(std::move(tb1));
                 cl->InsertBarrier(barrier1);
 
-                cl->CopyTexture(deferred->depth->GetTexture(), decal->scene_depth_texture);
+                cl->CopyTexture(geometry->depth->GetTexture(), decal->scene_depth_texture);
                 BarrierDesc barrier2{};
-                tb1.texture = deferred->depth->GetTexture();
+                tb1.texture = geometry->depth->GetTexture();
                 tb1.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
                 barrier2.texture_memory_barriers.push_back(std::move(tb1));
@@ -345,7 +347,6 @@ void HorizonPipeline::run() {
                 tb1.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
                 barrier2.texture_memory_barriers.push_back(std::move(tb1));
                 cl->InsertBarrier(barrier2);
-
             }
 
             // deferred decal
@@ -353,12 +354,13 @@ void HorizonPipeline::run() {
                 auto decal_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
                 decal_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
-                decal_ds->SetResource(scene->m_scene_manager->decal_instance_parameter_buffer, "decal_instance_parameter");
+                decal_ds->SetResource(scene->m_scene_manager->decal_instance_parameter_buffer,
+                                      "decal_instance_parameter");
                 decal_ds->SetResource(scene->m_scene_manager->decal_material_description_buffer,
                                       "decal_material_descriptions");
                 decal_ds->SetResource(sampler, "default_sampler");
                 decal_ds->SetResource(decal->scene_depth_texture, "depth_tex");
-                decal_ds->SetResource(decal->decal_constants_buffer, "DecalConstants");
+                decal_ds->SetResource(scene->m_scene_manager->scene_constants_buffer, "SceneConstants");
                 decal_ds->Update();
 
                 auto decal_pass_bindless_ds = decal->decal_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
@@ -380,7 +382,6 @@ void HorizonPipeline::run() {
                 begin_info.depth_stencil.load_op = RenderTargetLoadOp::LOAD;
                 begin_info.depth_stencil.store_op = RenderTargetStoreOp::NONE;
 
-
                 cl->BeginRenderPass(begin_info);
 
                 auto vb = scene->m_scene_manager->GetUnitCubeVertexBuffer();
@@ -391,8 +392,7 @@ void HorizonPipeline::run() {
                 cl->BindPipeline(decal->decal_pass);
                 cl->BindDescriptorSets(decal->decal_pass, decal_ds);
                 cl->BindDescriptorSets(decal->decal_pass, decal_pass_bindless_ds);
-                cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->decal_indirect_draw_command_buffer1,
-                                                 0, 1,
+                cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->decal_indirect_draw_command_buffer1, 0, 1,
                                                  sizeof(DrawIndexedInstancedCommand));
                 cl->EndRenderPass();
             }
@@ -402,28 +402,75 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
                 tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-                tb.texture = deferred->gbuffer0->GetTexture();
+                tb.texture = geometry->gbuffer0->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer1->GetTexture();
+                tb.texture = geometry->gbuffer1->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer2->GetTexture();
+                tb.texture = geometry->gbuffer2->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                tb.texture = deferred->gbuffer3->GetTexture();
+                tb.texture = geometry->gbuffer3->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
 
                 tb.src_state = ResourceState::RESOURCE_STATE_DEPTH_WRITE;
-                tb.texture = deferred->depth->GetTexture();
+                tb.texture = geometry->depth->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
                 tb.src_state = ResourceState::RESOURCE_STATE_RENDER_TARGET;
                 tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb.texture = deferred->gbuffer4->GetTexture();
+                tb.texture = geometry->gbuffer4->GetTexture();
                 barrier.texture_memory_barriers.push_back(tb);
-                //tb.texture = deferred->vbuffer0->GetTexture();
+                //tb.texture = geometry->vbuffer0->GetTexture();
                 //barrier.texture_memory_barriers.push_back(tb);
 
                 cl->InsertBarrier(barrier);
             }
+            // shadow
+            /*
+            {
+                for (u32 shadow_map_idx = 0; shadow_map_idx < scene->m_scene_manager->shadow_map_count;
+                     shadow_map_idx++) {
 
+                    RenderPassBeginInfo begin_info{};
+                    begin_info.render_target_count = 0;
+                    begin_info.render_area = Rect{0, 0, _width, _height};
+                    begin_info.depth_stencil.data = shadow_map->depth;
+                    begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
+                    begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
+                    begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
+                    //cl->BindDescriptorSets(shadow_map->shadow_map_pass, geometry_pass_per_frame_ds);
+                    //cl->BindDescriptorSets(shadow_map->shadow_map_pass, geometry_pass_bindless_ds);
+
+                    cl->BeginRenderPass(begin_info);
+
+                    cl->BindPipeline(shadow_map->shadow_map_pass);
+
+                    u32 draw_offset = 0;
+
+                    for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
+                        auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];
+                        auto ib = scene->m_scene_manager->index_buffers[mesh.index_buffer_offset];
+                        auto vb = scene->m_scene_manager->vertex_buffers[mesh.vertex_buffer_offset];
+                        u32 offset = 0;
+                        cl->BindVertexBuffers(1, &vb, &offset);
+                        cl->BindIndexBuffer(ib, 0);
+                        struct ShadowMapDrawRootConstant {
+                            u32 shadow_map_idx;
+                            u32 mesh_draw_offset;
+                        } shadow_map_draw_root_constant;
+                        shadow_map_draw_root_constant.shadow_map_idx = shadow_map_idx;
+                        shadow_map_draw_root_constant.mesh_draw_offset = mesh.draw_offset;
+
+                        cl->BindPushConstant(geometry->geometry_pass, "ShadowMapDrawRootConstant",
+                                             &shadow_map_draw_root_constant);
+
+                        cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->indirect_draw_command_buffer1,
+                                                         sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset,
+                                                         mesh.draw_count, sizeof(DrawIndexedInstancedCommand));
+                    }
+
+                    cl->EndRenderPass();
+                }
+            }
+            */
             cl->EndRecording();
 
             {
@@ -437,24 +484,26 @@ void HorizonPipeline::run() {
             }
         }
 
+
         // all following pass use compute queue
         {
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
             compute->BeginRecording();
 
-            auto ao_ds = ssao->ssao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto ssao_ds = ssao->ssao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // ao pass
             {
-                ao_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
-                ao_ds->SetResource(deferred->gbuffer0->GetTexture(), "normal_tex");
-                ao_ds->SetResource(sampler, "default_sampler");
-                ao_ds->SetResource(ssao->ssao_factor_image, "ao_factor_tex");
-                ao_ds->SetResource(ssao->ssao_constants_buffer, "SSAOConstant");
-                ao_ds->SetResource(ssao->ssao_noise_tex, "ssao_noise_tex");
-                ao_ds->Update();
+                ssao_ds->SetResource(geometry->depth->GetTexture(), "depth_tex");
+                ssao_ds->SetResource(geometry->gbuffer0->GetTexture(), "normal_tex");
+                ssao_ds->SetResource(sampler, "default_sampler");
+                ssao_ds->SetResource(ssao->ssao_factor_texture, "ao_factor_tex");
+                ssao_ds->SetResource(ssao->ssao_constants_buffer, "SSAOConstant");
+                ssao_ds->SetResource(scene->m_scene_manager->scene_constants_buffer, "SceneConstants");
+                ssao_ds->SetResource(ssao->ssao_noise_tex, "ssao_noise_tex");
+                ssao_ds->Update();
 
                 compute->BindPipeline(ssao->ssao_pass);
-                compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
+                compute->BindDescriptorSets(ssao->ssao_pass, ssao_ds);
 
                 compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
             }
@@ -465,7 +514,7 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb1;
                 tb1.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb1.texture = ssao->ssao_factor_image;
+                tb1.texture = ssao->ssao_factor_texture;
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
@@ -473,8 +522,8 @@ void HorizonPipeline::run() {
             auto ao_blur_ds = ssao->ssao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
             {
-                ao_blur_ds->SetResource(ssao->ssao_factor_image, "ssao_blur_in");
-                ao_blur_ds->SetResource(ssao->ssao_blur_image, "ssao_blur_out");
+                ao_blur_ds->SetResource(ssao->ssao_factor_texture, "ssao_blur_in");
+                ao_blur_ds->SetResource(ssao->ssao_blur_texture, "ssao_blur_out");
 
                 ao_blur_ds->Update();
 
@@ -489,41 +538,41 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb1;
                 tb1.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb1.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb1.texture = ssao->ssao_blur_image;
+                tb1.texture = ssao->ssao_blur_texture;
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
-            //auto light_culling_ds = deferred->light_culling_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            //auto light_culling_ds = geometry->light_culling_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             ////light_culling_ds->SetResource();
             //// light culling
             //{
-            //    compute->BindPipeline(deferred->light_culling_pass);
-            //    compute->BindDescriptorSets(deferred->light_culling_pass, light_culling_ds);
-            //    compute->Dispatch(deferred->slices[0], deferred->slices[1], deferred->slices[2]);
+            //    compute->BindPipeline(geometry->light_culling_pass);
+            //    compute->BindDescriptorSets(geometry->light_culling_pass, light_culling_ds);
+            //    compute->Dispatch(geometry->slices[0], geometry->slices[1], geometry->slices[2]);
             //}
-            auto shading_ds = deferred->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto shading_ds = shading->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // shading pass
             {
 
-                shading_ds->SetResource(deferred->gbuffer0->GetTexture(), "gbuffer0_tex");
-                shading_ds->SetResource(deferred->gbuffer1->GetTexture(), "gbuffer1_tex");
-                shading_ds->SetResource(deferred->gbuffer2->GetTexture(), "gbuffer2_tex");
-                shading_ds->SetResource(deferred->gbuffer3->GetTexture(), "gbuffer3_tex");
-                shading_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
+                shading_ds->SetResource(geometry->gbuffer0->GetTexture(), "gbuffer0_tex");
+                shading_ds->SetResource(geometry->gbuffer1->GetTexture(), "gbuffer1_tex");
+                shading_ds->SetResource(geometry->gbuffer2->GetTexture(), "gbuffer2_tex");
+                shading_ds->SetResource(geometry->gbuffer3->GetTexture(), "gbuffer3_tex");
+                shading_ds->SetResource(geometry->depth->GetTexture(), "depth_tex");
                 shading_ds->SetResource(sampler, "default_sampler");
-                shading_ds->SetResource(deferred->deferred_shading_constants_buffer, "DeferredShadingConstants");
+                shading_ds->SetResource(scene->m_scene_manager->scene_constants_buffer, "SceneConstants");
                 shading_ds->SetResource(scene->m_scene_manager->GetLightCountBuffer(), "LightCountUb");
                 shading_ds->SetResource(scene->m_scene_manager->GetLightParamBuffer(), "LightDataUb");
-                shading_ds->SetResource(deferred->shading_color_image, "out_color");
-                shading_ds->SetResource(ssao->ssao_blur_image, "ao_tex");
-                shading_ds->SetResource(deferred->diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3");
-                shading_ds->SetResource(deferred->prefiltered_irradiance_env_map, "specular_map");
-                shading_ds->SetResource(deferred->brdf_lut, "specular_brdf_lut");
-                shading_ds->SetResource(deferred->ibl_sampler, "ibl_sampler");
+                shading_ds->SetResource(shading->shading_color_texture, "out_color");
+                shading_ds->SetResource(ssao->ssao_blur_texture, "ao_tex");
+                shading_ds->SetResource(shading->diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3");
+                shading_ds->SetResource(shading->prefiltered_irradiance_env_map, "specular_map");
+                shading_ds->SetResource(shading->brdf_lut, "specular_brdf_lut");
+                shading_ds->SetResource(shading->ibl_sampler, "ibl_sampler");
                 shading_ds->Update();
 
-                compute->BindPipeline(deferred->shading_pass);
-                compute->BindDescriptorSets(deferred->shading_pass, shading_ds);
+                compute->BindPipeline(shading->shading_pass);
+                compute->BindDescriptorSets(shading->shading_pass, shading_ds);
                 compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
             }
 
@@ -533,7 +582,7 @@ void HorizonPipeline::run() {
                 TextureBarrierDesc tb;
                 tb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                 tb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                tb.texture = deferred->shading_color_image;
+                tb.texture = shading->shading_color_texture;
                 color_image_barrier.texture_memory_barriers.push_back(tb);
 
                 compute->InsertBarrier(color_image_barrier);
@@ -541,8 +590,8 @@ void HorizonPipeline::run() {
 
             auto pp_ds = post_process->post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             {
-                pp_ds->SetResource(deferred->shading_color_image, "color_image");
-                pp_ds->SetResource(post_process->pp_color_image, "out_color_image");
+                pp_ds->SetResource(shading->shading_color_texture, "color_image");
+                pp_ds->SetResource(post_process->pp_color_texture, "out_color_image");
                 pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
 
                 pp_ds->Update();
@@ -569,9 +618,10 @@ void HorizonPipeline::run() {
                 auto taa_ds = antialiasing->taa_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
                 {
                     taa_ds->SetResource(antialiasing->previous_color_texture, "prev_color_tex");
-                    taa_ds->SetResource(post_process->pp_color_image, "curr_color_tex");
-                    taa_ds->SetResource(deferred->gbuffer4->GetTexture(), "mv_tex");
+                    taa_ds->SetResource(post_process->pp_color_texture, "curr_color_tex");
+                    taa_ds->SetResource(geometry->gbuffer4->GetTexture(), "mv_tex");
                     taa_ds->SetResource(antialiasing->output_color_texture, "out_color_tex");
+                    taa_ds->SetResource(scene->m_scene_manager->scene_constants_buffer, "SceneConstants");
 
                     taa_ds->Update();
 
@@ -647,6 +697,6 @@ void HorizonPipeline::run() {
         }
         // Horizon::RDC::EndFrameCapture();
     }
-
+    
     LOG_INFO("draw done");
 }

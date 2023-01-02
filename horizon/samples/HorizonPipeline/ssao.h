@@ -5,7 +5,7 @@
 class SSAOData {
   public:
     SSAOData(Backend::RHI *rhi) noexcept;
-
+    SSAOData() noexcept;
     // pass resources
     Shader *ssao_cs;
 
@@ -18,13 +18,10 @@ class SSAOData {
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
     struct SSAOConstant {
-        Math::float4x4 proj;
         Math::float4x4 inv_proj;
-        Math::float4x4 view;
-        u32 width;
-        u32 height;
         f32 noise_scale_x;
         f32 noise_scale_y;
+        u32 pad0[2];
         Container::FixedArray<Math::float4, SSAO_KERNEL_SIZE> kernels;
     } ssao_constansts;
 
@@ -34,8 +31,8 @@ class SSAOData {
     TextureDataDesc ssao_noise_tex_data_desc{};
     Texture* ssao_noise_tex;
 
-    Texture* ssao_factor_image;
-    Texture* ssao_blur_image;
+    Texture* ssao_factor_texture;
+    Texture* ssao_blur_texture;
 
     Buffer* ssao_constants_buffer;
 };

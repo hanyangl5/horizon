@@ -2,10 +2,10 @@
 
 #include "config.h"
 
-class AntialiasingData {
+class TAAData {
   public:
-    AntialiasingData(Backend::RHI *rhi) noexcept;
-    ~AntialiasingData() noexcept = default;
+    TAAData(Backend::RHI *rhi) noexcept;
+    ~TAAData() noexcept = default;
 
     const Math::float2 &GetJitterOffset() noexcept;
 

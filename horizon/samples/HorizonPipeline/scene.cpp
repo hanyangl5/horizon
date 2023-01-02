@@ -31,14 +31,14 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
         asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
     sphere->transform.SetPosition(Math::float3{0, 10, 0});
 
-    auto tree1 = scene_manager->resource_manager->LoadMesh(
-        MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0 |
-                 VertexAttributeType::TANGENT},
-        asset_path / "models/PKG_B_Ivy/NewSponza_IvyGrowth_glTF.gltf");
+    //auto tree1 = scene_manager->resource_manager->LoadMesh(
+    //    MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0 |
+    //             VertexAttributeType::TANGENT},
+    //    asset_path / "models/PKG_B_Ivy/NewSponza_IvyGrowth_glTF.gltf");
 
-    //scene_manager->AddMesh(sponza);
-    //scene_manager->AddMesh(sphere);
-    scene_manager->AddMesh(tree1);
+    scene_manager->AddMesh(sponza);
+    scene_manager->AddMesh(sphere);
+    //scene_manager->AddMesh(tree1);
 
     scene_manager->CreateMeshResources(rhi);
 

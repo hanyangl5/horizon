@@ -1,6 +1,6 @@
 /*****************************************************************//**
  * \file   Memory.h
- * \brief  
+ * \brief  defination of the memory resources
  * 
  * \author hylu
  * \date   November 2022

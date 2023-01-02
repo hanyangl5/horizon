@@ -34,4 +34,4 @@ namespace Horizon {
 
  f32 operator"" _deg(long double);
 
-} // namespace Horizon
+ } // namespace Horizon

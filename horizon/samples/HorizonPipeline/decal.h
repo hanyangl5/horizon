@@ -1,11 +1,11 @@
 #pragma once
 
 #include "config.h"
-#include "deferred.h"
+#include "geometry.h"
 
 class DecalData {
   public:
-    DecalData(Backend::RHI *rhi, SceneManager *scene_manager, DeferredData *deferred_data) noexcept;
+    DecalData(Backend::RHI *rhi, SceneManager *scene_manager, GeometryData *geometry_data) noexcept;
     ~DecalData() noexcept = default;
 
     SceneManager *m_scene_manager;
@@ -17,11 +17,4 @@ class DecalData {
 
     Texture *scene_depth_texture{};
 
-    struct DecalConstants {
-        Math::float4x4 inverse_vp;
-        u32 resolution[2];
-        u32 pad[2];
-    } decal_constants;
-
-    Buffer *decal_constants_buffer{};
 };

@@ -1,6 +1,6 @@
 #include "antialiasing.h"
 
-AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept {
+TAAData::TAAData(Backend::RHI *rhi) noexcept {
     // PP PASS
     taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/taa.comp.hsl");
     taa_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
@@ -25,7 +25,7 @@ AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept {
                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(TAAPrevCurrOffset)});
 }
 
-const Math::float2& AntialiasingData::GetJitterOffset() noexcept {
+const Math::float2& TAAData::GetJitterOffset() noexcept {
     taa_sample_index %= TAA_SAMPLE_COUNT;
     return taa_samples[taa_sample_index++];
     

@@ -1,12 +1,14 @@
-
 #pragma once
+
 #include "config.h"
-#include "deferred.h"
+#include "geometry.h"
+#include "decal.h"
+#include "shadow.h"
+#include "shading.h"
 #include "post_process.h"
 #include "scene.h"
 #include "ssao.h"
 #include "antialiasing.h"
-#include "decal.h"
 
 // HorizonPipeline
 
@@ -46,10 +48,13 @@ class HorizonPipeline {
 
     Sampler *sampler;
 
-    std::unique_ptr<DeferredData> deferred{};
+    std::unique_ptr<GeometryData> geometry{};
+    std::unique_ptr<ShadowMapData> shadow_map{};
+    std::unique_ptr<ConatactShadowData> contact_shadow{};
     std::unique_ptr<DecalData> decal{};
     std::unique_ptr<SSAOData> ssao{};
+    std::unique_ptr<ShadingData> shading{};
     std::unique_ptr<PostProcessData> post_process{};
-    std::unique_ptr<AntialiasingData> antialiasing{};
+    std::unique_ptr<TAAData> antialiasing{};
     std::unique_ptr<SceneData> scene{};
 };

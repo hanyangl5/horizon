@@ -13,7 +13,8 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/core/units/Units.h>
 #include <runtime/core/utils/definations.h>
-#include <runtime/core/utils/renderdoc/RenderDoc.h>
+#include <runtime/core/utils/functions.h>
+#include <runtime/core/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
 
 #include <runtime/function/rhi/RHI.h>
@@ -30,6 +31,6 @@
 using namespace Horizon;
 using namespace Horizon::Backend;
 
-static constexpr u32 _width = 1600, _height = 900;
+static constexpr u32 _width = 3200, _height = 1800;
 
 static std::filesystem::path asset_path = "C:/FILES/horizon/horizon/assets";

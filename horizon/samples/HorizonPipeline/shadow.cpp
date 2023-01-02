@@ -1,8 +1,12 @@
-#include "decal.h"
+#include "shadow.h"
 
-DecalData::DecalData(Backend::RHI *rhi, SceneManager *scene_manager, GeometryData *geometry_data) noexcept {
-    decal_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/decal.vert.hsl");
-    decal_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/decal.frag.hsl");
+ConatactShadowData::ConatactShadowData(RHI *rhi) noexcept {}
+
+ConatactShadowData::~ConatactShadowData() noexcept {}
+
+ShadowMapData::ShadowMapData(RHI *rhi) noexcept {
+    shadow_map_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, asset_path / "shaders/decal.vert.hsl");
+    shadow_map_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, asset_path / "shaders/decal.frag.hsl");
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
     graphics_pass_ci.vertex_input_state.attribute_count = 5;
@@ -66,21 +70,13 @@ DecalData::DecalData(Backend::RHI *rhi, SceneManager *scene_manager, GeometryDat
     graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
     graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
 
-    graphics_pass_ci.render_target_formats.color_attachment_count = 5;
+    graphics_pass_ci.render_target_formats.color_attachment_count = 0;
 
-    graphics_pass_ci.render_target_formats.color_attachment_formats = Container::Array<TextureFormat>{
-        geometry_data->gbuffer0->GetTexture()->m_format, geometry_data->gbuffer1->GetTexture()->m_format,
-        geometry_data->gbuffer2->GetTexture()->m_format,
-        geometry_data->gbuffer3->GetTexture()->m_format, geometry_data->gbuffer4->GetTexture()->m_format};
     graphics_pass_ci.render_target_formats.has_depth = true;
-    graphics_pass_ci.render_target_formats.depth_stencil_format = geometry_data->depth->GetTexture()->m_format;
+    graphics_pass_ci.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
 
-    decal_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
-    decal_pass->SetGraphicsShader(decal_vs, decal_ps);
-
-    scene_depth_texture = rhi->CreateTexture(
-        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                          TextureType::TEXTURE_TYPE_2D, geometry_data->depth->GetTexture()->m_format,
-                          geometry_data->depth->GetTexture()->m_width, geometry_data->depth->GetTexture()->m_height});
+    shadow_map_pass = rhi->CreateGraphicsPipeline(graphics_pass_ci);
+    shadow_map_pass->SetGraphicsShader(shadow_map_vs, shadow_map_ps);
 
 }
+ShadowMapData::~ShadowMapData() noexcept {}

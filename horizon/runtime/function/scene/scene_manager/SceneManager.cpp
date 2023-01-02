@@ -320,6 +320,10 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
     decal_instance_parameter_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(DecalInstanceParameters) * decal_instance_params.size()});
+
+    scene_constants_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                         ResourceState::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, sizeof(SceneConstants)});
 }
 
 void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {

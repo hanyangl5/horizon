@@ -8,14 +8,17 @@
 
 #pragma once
 
-#include <cassert>
-
-#include "../Definations.h"
-
 #ifdef RENDERDOC_ENABLED
 
+// standard libraries
+#include <cassert>
+
+// third party libraries
 #include <libloaderapi.h>
 #include "renderdoc_app.h"
+
+// project headers
+#include <runtime/core/utils/definations.h>
 
 namespace Horizon::RDC {
 

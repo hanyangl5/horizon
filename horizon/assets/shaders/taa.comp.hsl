@@ -4,6 +4,20 @@ RES(RTex2D(float4), curr_color_tex, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
 RES(RTex2D(float2), mv_tex, UPDATE_FREQ_PER_FRAME, u2, binding = 2);
 RES(RWTex2D(float4), out_color_tex, UPDATE_FREQ_PER_FRAME, u1, binding = 3);
 
+CBUFFER(SceneConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
+{
+    DATA(float4x4, camera_view, None);
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_view_projection, None);
+    DATA(float4x4, camera_inverse_view_projection, None);
+    DATA(uint2, resolution, None);
+    DATA(uint2, pad0, None);
+    DATA(float3, camera_pos, None);
+    DATA(uint, pad1, None);
+    DATA(float, ibl_intensity, None);
+};
+
+
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
@@ -13,7 +27,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     float2 motion_vector  = LoadRWTex2D(Get(mv_tex), threadID.xy).xy;
 
-    uint2 previous_sample = threadID.xy - uint2(motion_vector * float2(1600, 900));
+    uint2 previous_sample = threadID.xy - uint2(motion_vector * Get(resolution));
     float3 prev_color  = LoadRWTex2D(Get(prev_color_tex), previous_sample).xyz;
 
     // Apply clamping on the history color.

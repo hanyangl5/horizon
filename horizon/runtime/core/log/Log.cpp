@@ -37,7 +37,7 @@ void Log::CheckVulkanResult(VkResult _res, const char *func_name, int line) cons
 void Log::CheckDXResult(HRESULT hr, const char *func_name, int line) const noexcept {
     if (FAILED(hr)) {
         m_logger->error("[function: {}], [line: {}], directx result checking failed:{}", func_name, line,
-                        HrToString(hr));
+                        HrToString(hr).c_str());
     }
 }
 

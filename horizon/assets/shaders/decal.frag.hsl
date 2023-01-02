@@ -46,10 +46,17 @@ RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 4);
 
 RES(Tex2D(float), depth_tex, UPDATE_FREQ_PER_FRAME, t3, binding = 5);
 
-CBUFFER(DecalConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 6)
+CBUFFER(SceneConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 6)
 {
-    DATA(float4x4, inverse_vp, None);
-    DATA(uint4, resolution, None);
+    DATA(float4x4, camera_view, None);
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_view_projection, None);
+    DATA(float4x4, camera_inverse_view_projection, None);
+    DATA(uint2, resolution, None);
+    DATA(uint2, pad_0, None);
+    DATA(float3, camera_pos, None);
+    DATA(uint, pad_1, None);
+    DATA(float, ibl_intensity, None);
 };
 
 // PUSH_CONSTANT(ShadingModeID, b0)
@@ -87,7 +94,7 @@ PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id)
     PSOutput psout;
 
     // float2 uv = vsout.position.xy / float2(Get(resolution.xy));
-    // float3 world_pos = ReconstructWorldPos(Get(inverse_vp), SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
+    // float3 world_pos = ReconstructWorldPos(Get(camera_inverse_view_projection), SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
 
     // float4x4 world_to_decal = Get(decal_instance_parameter)[vsout.instance_id].world_to_decal;
     // float4 decal_pos = world_to_decal * float4(world_pos, 1.0);

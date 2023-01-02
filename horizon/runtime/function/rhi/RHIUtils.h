@@ -8,6 +8,7 @@
 
 #include <runtime/core/log/Log.h>
 #include <runtime/core/math/Math.h>
+#include <runtime/core/container/Container.h>
 #include <runtime/core/utils/Definations.h>
 #include <runtime/function/rhi/vulkan/VulkanConfig.h>
 

@@ -12,12 +12,6 @@
 
 #include <cstdint>
 
-#include <d3d12.h>
-#include <vulkan/vulkan.h>
-
-#include "../memory/Memory.h"
-#include "../container/Container.h"
-
 namespace Horizon {
 
 using u8 = uint8_t;

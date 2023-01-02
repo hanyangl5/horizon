@@ -14,6 +14,6 @@ class PostProcessData {
         Math::float4 exposure_ev100__;
     } exposure_constants;
 
-    Texture* pp_color_image;
+    Texture* pp_color_texture;
     Buffer* exposure_constants_buffer;
 };

@@ -10,4 +10,5 @@ class SceneData {
 
     Camera *scene_camera;
     CameraController *scene_camera_controller;
+
 };

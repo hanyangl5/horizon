@@ -14,12 +14,17 @@ RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t3, binding = 4);
 
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 5);
 
-CBUFFER(DeferredShadingConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 6)
+CBUFFER(SceneConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 15)
 {
-    DATA(float4x4, inverse_vp, None);
-    DATA(float4, camera_pos_exposure, None);
+    DATA(float4x4, camera_view, None);
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_view_projection, None);
+    DATA(float4x4, camera_inverse_view_projection, None);
     DATA(uint2, resolution, None);
-    DATA(float2, ibl_intensity, None);
+    DATA(uint2, pad0, None);
+    DATA(float3, camera_pos, None);
+    DATA(uint, pad1, None);
+    DATA(float, ibl_intensity, None);
 };
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 7)
@@ -87,9 +92,9 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
         // mat.clearcoat_gloss = 0.5;
     }
 
-    float3 world_pos = ReconstructWorldPos(Get(inverse_vp),SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
+    float3 world_pos = ReconstructWorldPos(Get(camera_inverse_view_projection),SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
     float3 n =  normalize(gbuffer0.xyz);
-    float3 v = -normalize(world_pos - Get(camera_pos_exposure).xyz);
+    float3 v = -normalize(world_pos - Get(camera_pos).xyz);
     float NoV = saturate(dot(n, v));
     float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
 
@@ -104,7 +109,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     float2 ibl_uv = float2(mat.roughness, NoV);
     float2 env = SampleTex2D(Get(specular_brdf_lut), ibl_sampler, ibl_uv).xy;
     float3 ambient = IBL(Get(sh), specular, env, n, NoV, mat) * LoadRWTex2D(Get(ao_tex), threadID.xy).r * Get(ibl_intensity).x;
-    //radiance.xyz += ambient;
+    radiance.xyz += ambient;
     Write2D(Get(out_color), threadID.xy, radiance);
     RETURN();
 }

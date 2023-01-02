@@ -38,21 +38,21 @@ bool GlobalMemoryAllocator::do_is_equal(const std::pmr::memory_resource &other) 
     return this == &other;
 }
 
-LocalMemoryAllocator::LocalMemoryAllocator() noexcept {
-}
-
-LocalMemoryAllocator::~LocalMemoryAllocator() noexcept {
-}
-
-void *LocalMemoryAllocator::do_allocate(size_t bytes, size_t alignment) { 
-    return nullptr; 
-}
-
-void LocalMemoryAllocator::do_deallocate(void *ptr, size_t bytes, size_t alignment) {
-}
-
-bool LocalMemoryAllocator::do_is_equal(const std::pmr::memory_resource &other) const noexcept { 
-    return false; 
-}
+//LocalMemoryAllocator::LocalMemoryAllocator() noexcept {
+//}
+//
+//LocalMemoryAllocator::~LocalMemoryAllocator() noexcept {
+//}
+//
+//void *LocalMemoryAllocator::do_allocate(size_t bytes, size_t alignment) { 
+//    return nullptr; 
+//}
+//
+//void LocalMemoryAllocator::do_deallocate(void *ptr, size_t bytes, size_t alignment) {
+//}
+//
+//bool LocalMemoryAllocator::do_is_equal(const std::pmr::memory_resource &other) const noexcept { 
+//    return false; 
+//}
 
 } // namespace Horizon::Memory

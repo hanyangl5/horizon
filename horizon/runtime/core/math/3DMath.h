@@ -1,6 +1,6 @@
 /*****************************************************************//**
  * \file   3DMath.h
- * \brief  
+ * \brief  3D math classes and functions
  * 
  * \author hylu
  * \date   December 2022
@@ -33,33 +33,27 @@ inline float3 Normalize(const float3 &f) {
     return ret;
 }
 
-inline float3 Cross(const float3 &lhs, const float3 &rhs) { return lhs.Cross(rhs); }
+inline float3 Cross(const float3 &lhs, const float3 &rhs) { 
+    return lhs.Cross(rhs); 
+}
 
-inline f32 Radians(f32 angle) { return angle * _PI / 180.0f; }
+inline f32 Radians(f32 angle) {
+    return angle * _PI / 180.0f; 
+}
 
 inline float4x4 LookAt(const float3 &eye, const float3 &target, const float3 &up) {
     return DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);
 }
 
-// inline float4x4 PerspectiveProjection(float width, float height,
-//                                       float near_plane, float far_plane) {
-//     return DirectX::SimpleMath::Matrix::CreatePerspective(width, height,
-//     near_plane,
-//                                                    far_plane);
-// }
-
 inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane, float far_plane) {
-    auto mat = DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(fov, aspect_ratio, near_plane, far_plane);
-    mat; // reversed-z
-    return std::move(mat);
+    return DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(fov, aspect_ratio, near_plane, far_plane);
 }
 
 inline float4x4 Ortho(float width, float height, float near_plane, float far_plane) {
-    auto mat = DirectX::SimpleMath::Matrix::CreateOrthographic(width, height, near_plane, far_plane);
-    mat; // reversed-z
-    return std::move(mat);
+    return DirectX::SimpleMath::Matrix::CreateOrthographic(width, height, near_plane, far_plane);
 }
 
+// default orientation of transform
 static float3 DefaultOrientation = Math::float3{0, 0, 1};
 
 }

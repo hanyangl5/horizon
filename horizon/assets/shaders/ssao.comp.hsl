@@ -12,14 +12,24 @@ RES(Tex2D(float2), ssao_noise_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 3);
 RES(RWTex2D(float4), ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
 
-
-CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
+CBUFFER(SceneConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
 {
-    DATA(float4x4, camera_projection, None);
-    DATA(float4x4, camera_inv_projection, None); // we only care about view space
     DATA(float4x4, camera_view, None);
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_view_projection, None);
+    DATA(float4x4, camera_inverse_view_projection, None);
     DATA(uint2, resolution, None);
+    DATA(uint2, pad_0, None);
+    DATA(float3, camera_pos, None);
+    DATA(uint, pad_1, None);
+    DATA(float, ibl_intensity, None);
+};
+
+CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 6)
+{
+    DATA(float4x4, camera_inv_projection, None); // we only care about view space
     DATA(float2, noise_scale, None);
+    DATA(float2, pad0, None);
     DATA(float4, kernels[SSAO_SAMPLE_COUNT], None); // tangent space kernels
 };
 

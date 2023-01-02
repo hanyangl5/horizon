@@ -32,17 +32,17 @@ class GlobalMemoryAllocator : public std::pmr::memory_resource {
 
 // TODO(hylu): our memory allocator need to support multithreading cases
 
-class LocalMemoryAllocator : public std::pmr::memory_resource {
-  public:
-    LocalMemoryAllocator() noexcept;
-    ~LocalMemoryAllocator() noexcept;
-
-  private:
-    void *do_allocate(size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
-
-    void do_deallocate(void *ptr, size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
-
-    bool do_is_equal(const std::pmr::memory_resource &other) const noexcept override;
-};
+//class LocalMemoryAllocator : public std::pmr::memory_resource {
+//  public:
+//    LocalMemoryAllocator() noexcept;
+//    ~LocalMemoryAllocator() noexcept;
+//
+//  private:
+//    void *do_allocate(size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
+//
+//    void do_deallocate(void *ptr, size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
+//
+//    bool do_is_equal(const std::pmr::memory_resource &other) const noexcept override;
+//};
 
 } // namespace Horizon::Memory

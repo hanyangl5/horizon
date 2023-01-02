@@ -118,8 +118,6 @@ class SceneManager {
     Container::Array<Mesh *> scene_meshes{};
     Container::Array<Decal *> scene_decals{};
 
-    
-
     Container::Array<TextureUpdateDesc> textuer_upload_desc{};
     Container::Array<Backend::Texture *> material_textures{};
     Container::Array<Buffer *> vertex_buffers{};
@@ -138,7 +136,7 @@ class SceneManager {
 
     // decal resources
 
-        Container::Array<TextureUpdateDesc> decal_textuer_upload_desc{};
+    Container::Array<TextureUpdateDesc> decal_textuer_upload_desc{};
     Container::Array<Backend::Texture *> decal_material_textures{};
 
     u32 decal_draw_count{0};
@@ -172,6 +170,29 @@ class SceneManager {
     Container::Array<Light *> lights{};
     Container::Array<LightParams> lights_param_buffer{};
     Buffer *light_buffer{};
+
+    // scene constants
+
+    Buffer *scene_constants_buffer;
+    struct SceneConstants {
+        Math::float4x4 camera_view;
+        Math::float4x4 camera_projection;
+        Math::float4x4 camera_view_projection;
+        Math::float4x4 camera_inverse_view_projection;
+        u32 resolution[2];
+        u32 pad0[2];
+        Math::float3 camera_pos;
+        u32 pad1;
+        f32 ibl_intensity;
+    } scene_constants;
+
+    // shadow resources
+
+    struct ShadowMapData {
+        Math::float4x4 view_projection;
+    };
+    u32 shadow_map_count;
+    Container::Array<ShadowMapData> shadow_map_data;
 };
 
 } // namespace Horizon
