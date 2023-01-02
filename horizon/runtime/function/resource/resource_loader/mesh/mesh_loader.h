@@ -1,8 +1,14 @@
-// load scene from gltf/fbx file
+/*****************************************************************//**
+ * \file   mesh_loader.h
+ * \brief  load scene from gltf/fbx file
+ * 
+ * \author hylu
+ * \date   January 2023
+ *********************************************************************/
+
 #pragma once
 
 #include <filesystem>
-
 
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/resource/resources/mesh/Mesh.h>

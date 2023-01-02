@@ -10,7 +10,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../../resource_loader/texture/TextureLoader.h"
+#include "../../resource_loader/texture/texture_loader.h"
 
 Horizon::Decal::Decal(const std::filesystem::path &path, std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
     : m_path(path) {

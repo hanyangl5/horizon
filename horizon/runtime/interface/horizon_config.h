@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   HorizonConfig.h
+ * \file   InitilizationConfig.h
  * \brief  
  * 
  * \author hylu
@@ -19,7 +19,7 @@ enum class ApplicationType {
     GENERAL_COMPUTE
 };
 
-struct HorizonConfig {
+struct InitilizationConfig {
     u32 width, height;
     RenderBackend render_backend;
     Container::String asset_path;

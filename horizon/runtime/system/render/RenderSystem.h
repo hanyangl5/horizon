@@ -7,8 +7,8 @@
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/scene/camera/Camera.h>
-#include <runtime/function/resource/resource_manager/ResourceManager.h>
-#include <runtime/function/scene/scene_manager/SceneManager.h>
+#include <runtime/function/resource/resource_manager/resource_manager.h>
+#include <runtime/function/scene/scene_manager/scene_manager.h>
 
 namespace Horizon {
 

@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   CameraController.h
+ * \file   camera_controller.h
  * \brief  
  * 
  * \author hylu

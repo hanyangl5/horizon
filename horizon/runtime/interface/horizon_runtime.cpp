@@ -6,13 +6,13 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "HorizonRuntime.h"
+#include "horizon_runtime.h"
 
 #include <thread>
 
 namespace Horizon {
 
-HorizonRuntime::HorizonRuntime(const HorizonConfig &config) noexcept {
+HorizonRuntime::HorizonRuntime(const InitilizationConfig &config) noexcept {
     Memory::initialize();
     if (!config.offscreen) {
         m_window = Memory::MakeUnique<Window>("horizon", config.width, config.height);

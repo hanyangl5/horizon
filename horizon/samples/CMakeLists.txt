@@ -1,1 +1,1 @@
-add_subdirectory(HorizonPipeline)
+add_subdirectory(horizon_pipeline)

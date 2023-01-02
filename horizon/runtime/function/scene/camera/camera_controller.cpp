@@ -6,9 +6,9 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "CameraController.h"
+#include "camera_controller.h"
 
-#include <runtime/core/window/WindowInput.h>
+#include <runtime/core/window/window_input.h>
 
 namespace Horizon {
 

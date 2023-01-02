@@ -1,4 +1,4 @@
-#include "TextureLoader.h"
+#include "texture_loader.h"
 
 #include "ddspp.h"
 #define STB_IMAGE_IMPLEMENTATION

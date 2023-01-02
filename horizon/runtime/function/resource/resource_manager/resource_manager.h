@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   ResourceManager.h
+ * \file   resource_manager.h
  * \brief  
  * 
  * \author hylu
@@ -13,9 +13,9 @@
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/resource/resources/mesh/Mesh.h>
 #include <runtime/function/resource/resources/decal/Decal.h>
-#include <runtime/function/resource/resources/vertex/VertexDescription.h>
-#include <runtime/function/resource/resource_loader/mesh/MeshLoader.h>
-#include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
+#include <runtime/function/resource/resources/vertex/vertex_description.h>
+#include <runtime/function/resource/resource_loader/mesh/mesh_loader.h>
+#include <runtime/function/resource/resource_loader/texture/texture_loader.h>
 
 namespace Horizon {
 

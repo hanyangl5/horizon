@@ -15,13 +15,13 @@
 
 #include <runtime/system/render/RenderSystem.h>
 
-#include <runtime/interface/HorizonConfig.h>
+#include <runtime/interface/horizon_config.h>
 
 namespace Horizon {
 
 class HorizonRuntime final {
   public:
-    HorizonRuntime(const HorizonConfig &config) noexcept;
+    HorizonRuntime(const InitilizationConfig &config) noexcept;
     ~HorizonRuntime() noexcept;
 
     HorizonRuntime(const HorizonRuntime &rhs) noexcept = delete;

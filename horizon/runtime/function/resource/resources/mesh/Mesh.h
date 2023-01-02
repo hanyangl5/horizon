@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <thread>
 
 #include <assimp/Importer.hpp>
@@ -17,11 +16,11 @@
 #include <runtime/function/rhi/Semaphore.h>
 #include <runtime/function/rhi/Texture.h>
 
-#include <runtime/function/scene/material/MaterialDescription.h>
+#include <runtime/function/scene/material/material_description.h>
 
-#include "../aabb/AABB.h"
-#include "../vertex/VertexDescription.h"
-#include <runtime/function/component/Transform.h>
+#include <runtime/function/resource/resources/vertex/vertex_description.h>
+#include <runtime/function/resource/resources/aabb/aabb.h>
+#include <runtime/function/component/transform.h>
 
 namespace Horizon {
 

@@ -6,7 +6,7 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "WindowInput.h"
+#include "window_input.h"
 
 namespace Horizon::Input {
 

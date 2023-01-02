@@ -15,8 +15,8 @@
 #include <runtime/function/rhi/RHIUtils.h>
 
 #include <runtime/function/component/Transform.h>
-#include <runtime/function/scene/material/MaterialDescription.h>
-#include <runtime/function/resource/resources/vertex/VertexDescription.h>
+#include <runtime/function/scene/material/material_description.h>
+#include <runtime/function/resource/resources/vertex/vertex_description.h>
 
 namespace Horizon {
 

@@ -4,7 +4,7 @@
 
 #include <meshoptimizer.h>
 
-#include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
+#include <runtime/function/resource/resource_loader/texture/texture_loader.h>
 
 #include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>

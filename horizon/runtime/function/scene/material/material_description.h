@@ -2,9 +2,7 @@
 
 #include <filesystem>
 
-
-
-#include <runtime/function/resource/resource_loader/texture/TextureLoader.h>
+#include <runtime/function/resource/resource_loader/texture/texture_loader.h>
 #include <runtime/function/rhi/Buffer.h>
 #include <runtime/function/rhi/DescriptorSet.h>
 #include <runtime/function/rhi/RHI.h>

@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   SceneManager.h
+ * \file   scene_manager.h
  * \brief  
  * 
  * \author hylu
@@ -14,10 +14,10 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/function/resource/resource_manager/ResourceManager.h>
+#include <runtime/function/resource/resource_manager/resource_manager.h>
 #include <runtime/function/resource/resources/mesh/Mesh.h>
 #include <runtime/function/scene/camera/Camera.h>
-#include <runtime/function/scene/camera/CameraController.h>
+#include <runtime/function/scene/camera/camera_controller.h>
 #include <runtime/function/scene/light/Light.h>
 
 namespace Horizon {

@@ -15,7 +15,7 @@
 class HorizonPipeline {
   public:
     HorizonPipeline() {
-        HorizonConfig config{};
+        InitilizationConfig config{};
         config.width = _width;
         config.height = _height;
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;

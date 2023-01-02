@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <runtime/core/math/Math.h>
-#include <runtime/core/window/WindowInput.h>
+#include <runtime/core/math/math.h>
+#include <runtime/core/window/window_input.h>
 
 namespace Horizon {
 
