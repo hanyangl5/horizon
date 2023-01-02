@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   RenderDoc.cpp
+ * \file   renderDoc.cpp
  * \brief  
  * 
  * \author hylu

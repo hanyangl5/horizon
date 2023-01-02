@@ -1,6 +1,6 @@
 /*****************************************************************//**
- * \file   Log.cpp
- * \brief  
+ * \file   log.cpp
+ * \brief  log function implementations
  * 
  * \author hylu
  * \date   November 2022

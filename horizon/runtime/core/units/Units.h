@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Units.h
+ * \file   units.h
  * \brief  user defined literals for physical unit
  * 
  * \author hylu

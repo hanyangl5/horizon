@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   3DMath.h
+ * \file   3dmath.h
  * \brief  3D math classes and functions
  * 
  * \author hylu

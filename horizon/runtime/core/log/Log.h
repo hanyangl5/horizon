@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Log.h
+ * \file   log.h
  * \brief  log functions
  * 
  * \author hylu

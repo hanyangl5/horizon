@@ -1,10 +1,18 @@
+/*****************************************************************//**
+ * \file   texture_loader.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   January 2023
+ *********************************************************************/
+
 #include "texture_loader.h"
 
 #include "ddspp.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <runtime/core/log/Log.h>
+#include <runtime/core/log/log.h>
 
 namespace Horizon {
 

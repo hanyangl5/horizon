@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Memory.h
+ * \file   memory.h
  * \brief  defination of the memory resources
  * 
  * \author hylu

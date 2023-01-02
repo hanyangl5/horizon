@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Allocators.cpp
+ * \file   allocators.cpp
  * \brief  
  * 
  * \author hylu

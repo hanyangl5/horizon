@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Component.h
+ * \file   component.h
  * \brief  
  * 
  * \author hylu

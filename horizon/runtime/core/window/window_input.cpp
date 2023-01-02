@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   WindowInput.cpp
+ * \file   window_inpu.cpp
  * \brief  
  * 
  * \author hylu

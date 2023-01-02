@@ -1,11 +1,9 @@
 #include "Shader.h"
 
-
 #include <utility>
 #include <algorithm>
 
 #include <nlohmann/json.hpp>
-
 
 namespace Horizon::Backend {
 

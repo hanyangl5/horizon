@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   WindowInput.h
+ * \file   window_input.h
  * \brief  
  * 
  * \author hylu

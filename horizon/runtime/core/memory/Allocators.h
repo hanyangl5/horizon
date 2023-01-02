@@ -1,5 +1,5 @@
 ﻿/*****************************************************************//**
- * \file   Allocators.h
+ * \file   allocators.h
  * \brief  global and local memory allocator
  * 
  * \author hylu

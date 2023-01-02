@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   CEMath.h
+ * \file   cemath.h
  * \brief  const expression math functions
  * 
  * \author hylu
