@@ -11,7 +11,7 @@
 #include <runtime/core/memory/Memory.h>
 #include <runtime/core/window/Window.h>
 
-#include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/rhi_utils.h>
 
 #include <runtime/system/render/RenderSystem.h>
 

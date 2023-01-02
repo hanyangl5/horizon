@@ -7,14 +7,14 @@
 #include <runtime/core/window/Window.h>
 
 #include <runtime/function/rhi/Buffer.h>
-#include <runtime/function/rhi/CommandContext.h>
-#include <runtime/function/rhi/CommandList.h>
-#include <runtime/function/rhi/RHIUtils.h>
-#include <runtime/function/rhi/RenderTarget.h>
-#include <runtime/function/rhi/Sampler.h>
-#include <runtime/function/rhi/Semaphore.h>
-#include <runtime/function/rhi/SwapChain.h>
-#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/command_context.h>
+#include <runtime/function/rhi/command_list.h>
+#include <runtime/function/rhi/rhi_utils.h>
+#include <runtime/function/rhi/render_target.h>
+#include <runtime/function/rhi/sampler.h>
+#include <runtime/function/rhi/semaphore.h>
+#include <runtime/function/rhi/swap_chain.h>
+#include <runtime/function/rhi/texture.h>
 
 namespace Horizon::Backend {
 

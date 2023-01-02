@@ -3,10 +3,10 @@
 #include <filesystem>
 
 #include <runtime/function/resource/resource_loader/texture/texture_loader.h>
-#include <runtime/function/rhi/Buffer.h>
-#include <runtime/function/rhi/DescriptorSet.h>
-#include <runtime/function/rhi/RHI.h>
-#include <runtime/function/rhi/Texture.h>
+#include <runtime/function/rhi/buffer.h>
+#include <runtime/function/rhi/descriptor_set.h>
+#include <runtime/function/rhi/rhi.h>
+#include <runtime/function/rhi/texture.h>
 
 namespace Horizon {
 

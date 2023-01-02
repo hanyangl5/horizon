@@ -9,7 +9,7 @@
 //#include <runtime/core/utils/Definations.h>
 //#include <runtime/function/rhi/Pipeline.h>
 //#include <runtime/function/rhi/RHI.h>
-//#include <runtime/function/rhi/RHIUtils.h>
+//#include <runtime/function/rhi/rhi_utils.h>
 //#include <runtime/function/rhi/Shader.h>
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>
 //#include <runtime/function/rhi/dx12/DX12CommandContext.h>

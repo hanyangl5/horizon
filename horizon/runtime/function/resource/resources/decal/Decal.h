@@ -12,7 +12,7 @@
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
-#include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/rhi_utils.h>
 
 #include <runtime/function/component/Transform.h>
 #include <runtime/function/scene/material/material_description.h>

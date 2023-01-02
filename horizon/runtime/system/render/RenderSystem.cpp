@@ -4,9 +4,8 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/core/path/Path.h>
 #include <runtime/function/rhi/RHI.h>
-#include <runtime/function/rhi/ResourceBarrier.h>
-#include <runtime/function/rhi/dx12/RHIDX12.h>
-#include <runtime/function/rhi/vulkan/RHIVulkan.h>
+#include <runtime/function/rhi/resource_barrier.h>
+#include <runtime/function/rhi/vulkan/rhi_vulkan.h>
 
 namespace Horizon {
 
@@ -41,63 +40,4 @@ RenderSystem::~RenderSystem() noexcept {}
 
 void RenderSystem::InitializeRenderAPI(RenderBackend backend) {}
 
-// Shader *RenderSystem::CreateShader(
-//     ShaderType type, const Container::String &entry_point, u32 compile_flags,
-//     Container::String file_name) noexcept {
-//     return m_rhi->CreateShader(type, entry_point, compile_flags,
-//                                              file_name);
-// }
-
-// void RenderSystem::DestroyShader(
-//     Shader *shader_program) noexcept {
-//     m_rhi->DestroyShader(shader_program);
-// }
-
-// Pipeline *RenderSystem::CreateGraphicsPipeline(
-//     const GraphicsPipelineCreateInfo &create_info) noexcept {
-//     return m_rhi->CreateGraphicsPipeline(create_info);
-// }
-
-// Pipeline *RenderSystem::CreateComputePipeline(
-//     const ComputePipelineCreateInfo &create_info) noexcept {
-//     return m_rhi->CreateComputePipeline(create_info);
-// }
-
-// Buffer* RenderSystem::CreateBuffer(
-//     const BufferCreateInfo &buffer_create_info) noexcept {
-//     return m_rhi->CreateBuffer(buffer_create_info);
-// }
-
-// Texture* RenderSystem::CreateTexture(
-//     const TextureCreateInfo &texture_create_info) noexcept {
-//     return m_rhi->CreateTexture(texture_create_info);
-// }
-// CommandList *RenderSystem::GetCommandList(CommandQueueType type) noexcept {
-//     return m_rhi->GetCommandList(type);
-// }
-// void RenderSystem::WaitGpuExecution(CommandQueueType queue_type) noexcept {
-//     m_rhi->WaitGpuExecution(queue_type);
-// }
-
-// void RenderSystem::ResetCommandResources() noexcept {
-//     return m_rhi->ResetCommandResources();
-// }
-
-// // submit command list to command queue
-// void RenderSystem::SubmitCommandLists(
-//     CommandQueueType queue,
-//     Container::Array<CommandList *> &command_lists) noexcept {
-//     m_rhi->SubmitCommandLists(queue, command_lists);
-// }
-
-// void RenderSystem::SetResource(Buffer *buffer, Pipeline *pipeline, u32 set,
-//                                u32 binding) noexcept {
-//     m_rhi->SetResource(buffer, pipeline, set, binding);
-// }
-// void RenderSystem::SetResource(Texture *texture) noexcept {
-//     m_rhi->SetResource(texture);
-// }
-// void RenderSystem::UpdateDescriptors() noexcept {
-//     m_rhi->UpdateDescriptors();
-// }
 } // namespace Horizon

@@ -15,7 +15,7 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/renderdoc/RenderDoc.h>
 #include <runtime/core/window/Window.h>
-#include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/rhi_utils.h>
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/resource/mesh/Mesh.h>
 #include <runtime/interface/Engine.h>

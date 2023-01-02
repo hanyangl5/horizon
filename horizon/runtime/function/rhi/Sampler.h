@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/function/rhi/RHIUtils.h>
+#include <runtime/function/rhi/rhi_utils.h>
 
 namespace Horizon::Backend {
 class Sampler {
