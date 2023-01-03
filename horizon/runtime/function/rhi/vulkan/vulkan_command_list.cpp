@@ -166,9 +166,15 @@ void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u
     vkCmdDrawIndexed(m_command_buffer, index_count, instance_count, first_index, first_vertex, first_instance);
 }
 
-void VulkanCommandList::DrawIndirect() {}
+void VulkanCommandList::DrawIndirectInstanced(Buffer *buffer, u64 offset, u32 draw_count, u32 stride) { 
+    assert(("command list is not recording", is_recoring == true));
+    assert(("invalid commands for current commandlist, expect graphics "
+            "commandlist",
+            m_type == CommandQueueType::GRAPHICS));
+    vkCmdDrawIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count, stride);
+}
 
-void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) {
+void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u64 offset, u32 draw_count, u32 stride) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect graphics "
             "commandlist",
@@ -186,11 +192,12 @@ void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group
 
     vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 }
-void VulkanCommandList::DispatchIndirect() {
+void VulkanCommandList::DispatchIndirect(Buffer* buffer, u64 offset) {
     assert(("command list is not recording", is_recoring == true));
     assert(("invalid commands for current commandlist, expect compute "
             "commandlist",
             m_type == CommandQueueType::COMPUTE));
+    vkCmdDispatchIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset);
 }
 
 // transfer commands
@@ -399,37 +406,28 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
         const auto &barrier_desc = desc.buffer_memory_barriers[i];
         auto &barrier = buffer_memory_barriers[i];
         const auto &vk_buffer = reinterpret_cast<VulkanBuffer *>(barrier_desc.buffer);
+        barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-        if (RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.src_state &&
-            RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.dst_state) {
-            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER; //-V522
-            barrier.pNext = NULL;
-
-            barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-        } else {
-            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-            barrier.pNext = NULL;
-
-            barrier.srcAccessMask = util_to_vk_access_flags(barrier_desc.src_state);
-            barrier.dstAccessMask = util_to_vk_access_flags(barrier_desc.dst_state);
-        }
+        barrier.srcAccessMask = ToVkAccessFlags(barrier_desc.src_state);
+        barrier.dstAccessMask = ToVkAccessFlags(barrier_desc.dst_state);
 
         if (1) {
             barrier.buffer = vk_buffer->m_buffer;
-            barrier.size = VK_WHOLE_SIZE;
-            barrier.offset = 0;
+            barrier.size =
+                desc.buffer_memory_barriers[i].size != 0 ? desc.buffer_memory_barriers[i].size : VK_WHOLE_SIZE;
+            barrier.offset = desc.buffer_memory_barriers[i].offset;
 
-            if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
-                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-            } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
-                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-            } else {
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            }
+            // TODO(hylu): enable qfo
+            //if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
+            //    barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
+            //    barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
+            //} else if (barrier_desc.queue_op == QueueOp::RELEASE) {
+            //    barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
+            //    barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
+            //} else {
+            //    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            //    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            //}
 
             src_access_flags |= barrier.srcAccessMask;
             dst_access_flags |= barrier.dstAccessMask;
@@ -443,20 +441,11 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.pNext = nullptr;
-        if (RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.src_state &&
-            RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.dst_state) {
 
-            barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        } else {
-
-            barrier.srcAccessMask = util_to_vk_access_flags(barrier_desc.src_state);
-            barrier.dstAccessMask = util_to_vk_access_flags(barrier_desc.dst_state);
-            barrier.oldLayout = util_to_vk_image_layout(barrier_desc.src_state);
-            barrier.newLayout = util_to_vk_image_layout(barrier_desc.dst_state);
-        }
+        barrier.srcAccessMask = ToVkAccessFlags(barrier_desc.src_state);
+        barrier.dstAccessMask = ToVkAccessFlags(barrier_desc.dst_state);
+        barrier.oldLayout = ToVkImageLayout(barrier_desc.src_state);
+        barrier.newLayout = ToVkImageLayout(barrier_desc.dst_state);
 
         if (1) {
 
@@ -469,30 +458,20 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             }
             barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
             barrier.subresourceRange.levelCount = barrier_desc.mip_level_count;
-            // todo
             barrier.subresourceRange.baseArrayLayer = barrier_desc.first_layer;
             barrier.subresourceRange.layerCount = barrier_desc.layer_count;
-            // barrier.subresourceRange.aspectMask =
-            //     (VkImageAspectFlags)pTexture->mAspectMask;
 
-            // barrier.subresourceRange.baseArrayLayer =
-            //      barrier_desc.mSubresourceBarrier ? barrier_desc.mArrayLayer :
-            //      0;
-            //  barrier.subresourceRange.layerCount =
-            //      barrier_desc.mSubresourceBarrier ? 1 :
-            //      VK_REMAINING_ARRAY_LAYERS;
-
-            if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
-                ;
-                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-            } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
-                barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-                barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-            } else {
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            }
+            // TODO(hylu): enable qfo
+            //if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
+            //    barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
+            //    barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
+            //} else if (barrier_desc.queue_op == QueueOp::RELEASE) {
+            //    barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
+            //    barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
+            //} else {
+            //    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            //    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            //}
 
             src_access_flags |= barrier.srcAccessMask;
             dst_access_flags |= barrier.dstAccessMask;
@@ -502,8 +481,8 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
         dst_access_flags |= barrier.dstAccessMask;
     }
 
-    VkPipelineStageFlags src_stage_flags{util_determine_pipeline_stage_flags(src_access_flags, m_type)};
-    VkPipelineStageFlags dst_stage_flags{util_determine_pipeline_stage_flags(dst_access_flags, m_type)};
+    VkPipelineStageFlags src_stage_flags{ToPipelineStageFlags(src_access_flags, m_type)};
+    VkPipelineStageFlags dst_stage_flags{ToPipelineStageFlags(dst_access_flags, m_type)};
 
     if (!buffer_memory_barriers.empty() || !texture_memory_barriers.empty()) {
         vkCmdPipelineBarrier(m_command_buffer, src_stage_flags, dst_stage_flags, 0, 0, nullptr,
@@ -555,7 +534,6 @@ void VulkanCommandList::BindPushConstant(Pipeline *pipeline, u32 index, void *da
 
 void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value) {
     assert(("command list is not recording", is_recoring == true));
-    assert(("clear buffer can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
     // vkCmdFillBuffer();
 }
 

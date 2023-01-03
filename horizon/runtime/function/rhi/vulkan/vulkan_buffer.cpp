@@ -8,7 +8,7 @@ VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCre
     VkBufferCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = buffer_create_info.size;
-    create_info.usage = util_to_vk_buffer_usage(buffer_create_info.descriptor_types, false);
+    create_info.usage = ToVkBufferUsageFlags(buffer_create_info.descriptor_types, false);
     create_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 

@@ -32,7 +32,7 @@ VkShaderStageFlagBits ToVkShaderStageBit(ShaderType type) noexcept {
     }
 }
 
-VkAccessFlags util_to_vk_access_flags(ResourceState state) noexcept {
+VkAccessFlags ToVkAccessFlags(ResourceState state) noexcept {
     VkAccessFlags ret = 0;
 
     if (state & RESOURCE_STATE_HOST_READ) {
@@ -87,7 +87,7 @@ VkAccessFlags util_to_vk_access_flags(ResourceState state) noexcept {
     return ret;
 }
 
-VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept {
+VkImageLayout ToVkImageLayout(ResourceState usage) noexcept {
     if (usage & RESOURCE_STATE_COPY_SOURCE)
         return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
@@ -120,7 +120,7 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept {
     return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkImageUsageFlags util_to_vk_image_usage(DescriptorTypes types) noexcept {
+VkImageUsageFlags ToVkImageUsage(DescriptorTypes types) noexcept {
     VkImageUsageFlags result = 0;
     if (DESCRIPTOR_TYPE_TEXTURE == (types & DESCRIPTOR_TYPE_TEXTURE))
         result |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -134,7 +134,7 @@ VkImageUsageFlags util_to_vk_image_usage(DescriptorTypes types) noexcept {
     return result;
 }
 
-VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
+VkPipelineStageFlags ToPipelineStageFlags(VkAccessFlags accessFlags,
                                                          CommandQueueType queueType) noexcept {
     VkPipelineStageFlags flags = 0;
 
@@ -385,7 +385,7 @@ VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) 
     return result;
 }
 
-VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorTypes usage, bool typed) noexcept {
+VkBufferUsageFlags ToVkBufferUsageFlags(DescriptorTypes usage, bool typed) noexcept {
     VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     if (usage & DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -646,7 +646,7 @@ VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept {
         break;
     }
 }
-VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op) {
+VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op) noexcept {
     switch (load_op) {
     case Horizon::RenderTargetLoadOp::DONT_CARE:
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -660,7 +660,7 @@ VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op) {
     }
 }
 
-VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op) {
+VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op) noexcept {
     switch (store_op) {
     case Horizon::RenderTargetStoreOp::DONT_CARE:
         return VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -671,6 +671,28 @@ VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op) {
     case Horizon::RenderTargetStoreOp::INALID:
     default:
         return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+    }
+}
+
+VkImageViewType ToVkImageViewType(TextureType type) noexcept {
+    switch (type) {
+    case Horizon::TextureType::TEXTURE_TYPE_1D:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_1D;
+        break;
+    case Horizon::TextureType::TEXTURE_TYPE_2D:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+        break;
+    case Horizon::TextureType::TEXTURE_TYPE_3D:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_3D;
+
+        break;
+    case Horizon::TextureType::TEXTURE_TYPE_CUBE:
+        return VkImageViewType::VK_IMAGE_VIEW_TYPE_CUBE;
+        break;
+    default:
+        assert(false);
+        return {};
+        break;
     }
 }
 

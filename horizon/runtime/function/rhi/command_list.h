@@ -48,10 +48,10 @@ class CommandList {
     virtual void DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count = 1, u32 first_instance = 0) = 0;
     virtual void DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count = 1,
                                       u32 first_instance = 0) = 0;
-    virtual void DrawIndirect() = 0;
-    virtual void DrawIndirectIndexedInstanced(Buffer* buffer, u32 offset, u32 draw_count, u32 stride) = 0;
+    virtual void DrawIndirectInstanced(Buffer *buffer, u64 offset, u32 draw_count, u32 stride) = 0;
+    virtual void DrawIndirectIndexedInstanced(Buffer* buffer, u64 offset, u32 draw_count, u32 stride) = 0;
     virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) = 0;
-    virtual void DispatchIndirect() = 0;
+    virtual void DispatchIndirect(Buffer *buffer, u64 offset) = 0;
 
     virtual void UpdateBuffer(Buffer *buffer, void *data, u64 size) = 0;
     virtual void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) = 0;

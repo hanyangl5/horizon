@@ -35,11 +35,11 @@ class VulkanCommandList : public CommandList {
 
     virtual void DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count = 1,
                                       u32 first_instance = 0) override;
-    void DrawIndirect() override;
-    void DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) override;
+    void DrawIndirectInstanced(Buffer *buffer, u64 offset, u32 draw_count, u32 stride) override;
+    void DrawIndirectIndexedInstanced(Buffer *buffer, u64 offset, u32 draw_count, u32 stride) override;
     // compute commands
     virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) override;
-    virtual void DispatchIndirect() override;
+    virtual void DispatchIndirect(Buffer *buffer, u64 offset) override;
 
     void UpdateBuffer(Buffer *buffer, void *data, u64 size) override;
 
@@ -61,9 +61,9 @@ class VulkanCommandList : public CommandList {
 
     virtual void BindPipeline(Pipeline *pipeline) override;
 
-
     void BindPushConstant(Pipeline *pipeline, const Container::String &name, void *data) override;
 
+    // TODO(hylu) bind push constant by index(hashing?)
     void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
 
     void ClearBuffer(Buffer *buffer, f32 clear_value) override;

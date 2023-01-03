@@ -20,7 +20,7 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    image_create_info.usage |= util_to_vk_image_usage(m_descriptor_types);
+    image_create_info.usage |= ToVkImageUsage(m_descriptor_types);
     image_create_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;

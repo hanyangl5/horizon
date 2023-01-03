@@ -10,8 +10,8 @@ enum QueueOp { IGNORED, RELEASE, ACQUIRE };
 
 struct BufferBarrierDesc {
     Backend::Buffer *buffer{};
-    // u32 offset;
-    // u64 size;
+    u64 size{};
+    u64 offset{};
     // u32 src_access_mask, dst_access_mask;
     // CommandQueueType src_queue, dst_queue;
     ResourceState src_state{}, dst_state{};
