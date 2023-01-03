@@ -3,7 +3,7 @@
 #include "vk_mem_alloc.h"
 
 #include <runtime/core/log/Log.h>
-#include <runtime/core/utils/Definations.h>
+#include <runtime/core/utils/definations.h>
 
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/rhi_utils.h>

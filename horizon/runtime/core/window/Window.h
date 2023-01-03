@@ -8,6 +8,12 @@
 
 #pragma once
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 #include <cstdint>
 
 // include windows.h before glfw3 to prevent compile warning

@@ -1,5 +1,11 @@
 #include "Light.h"
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 namespace Horizon {
 
 void Light::SetColor(const Math::float3 &color) noexcept {

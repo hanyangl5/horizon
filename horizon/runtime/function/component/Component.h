@@ -8,6 +8,12 @@
 
 #pragma once
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 namespace Horizon {
 
 class Component {

@@ -1,4 +1,18 @@
+/*****************************************************************//**
+ * \file   resource_manager.cpp
+ * \brief  
+ * 
+ * \author hylu
+ * \date   January 2023
+ *********************************************************************/
+
 #include "resource_manager.h"
+
+// standard libraries
+
+// third party libraries
+
+// project headers
 
 namespace Horizon {
 ResourceManager::ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator) noexcept

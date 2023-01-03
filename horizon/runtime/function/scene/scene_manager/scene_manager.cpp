@@ -8,6 +8,12 @@
 
 #include "scene_manager.h"
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 namespace Horizon {
 
 SceneManager::SceneManager(ResourceManager *resource_manager,

@@ -8,11 +8,17 @@
 
 #pragma once
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 #include <DirectXCollision.h>
 #include <d3d12.h>
 #include <directxtk12/SimpleMath.h>
 
-#include <runtime/core/utils/Definations.h>
+#include <runtime/core/utils/definations.h>
 
 namespace Horizon::Math {
 

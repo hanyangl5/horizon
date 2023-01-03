@@ -8,6 +8,12 @@
 
 #include "mesh_loader.h"
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 // TODO: replace assimp with fbxsdk and cgltf
 
 namespace Horizon {

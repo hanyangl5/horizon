@@ -5,7 +5,14 @@
  * \author hylu
  * \date   December 2022
  *********************************************************************/
+
 #pragma once
+
+// standard libraries
+
+// third party libraries
+
+// project headers
 
 #include "Component.h"
 

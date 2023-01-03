@@ -8,6 +8,12 @@
 
 #include "texture_loader.h"
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 #include "ddspp.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

@@ -2,7 +2,7 @@
 
 #include <runtime/core/window/Window.h>
 
-#include <runtime/core/utils/Definations.h>
+#include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/rhi_utils.h>
 #include <runtime/function/rhi/render_target.h>
 #include <runtime/function/rhi/Semaphore.h>

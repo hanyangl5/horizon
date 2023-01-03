@@ -6,7 +6,7 @@
 //#include <D3D12MemAlloc.h>
 //
 //#include <runtime/core/log/Log.h>
-//#include <runtime/core/utils/Definations.h>
+//#include <runtime/core/utils/definations.h>
 //#include <runtime/function/rhi/Pipeline.h>
 //#include <runtime/function/rhi/RHI.h>
 //#include <runtime/function/rhi/rhi_utils.h>

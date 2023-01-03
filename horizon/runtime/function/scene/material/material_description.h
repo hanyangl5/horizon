@@ -1,5 +1,11 @@
 #pragma once
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 #include <filesystem>
 
 #include <runtime/function/resource/resource_loader/texture/texture_loader.h>

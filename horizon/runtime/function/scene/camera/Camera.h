@@ -8,6 +8,12 @@
 
 #pragma once
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 #include <runtime/core/math/math.h>
 #include <runtime/core/window/window_input.h>
 

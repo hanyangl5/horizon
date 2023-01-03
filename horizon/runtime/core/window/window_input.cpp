@@ -8,6 +8,12 @@
 
 #include "window_input.h"
 
+// standard libraries
+
+// third party libraries
+
+// project headers
+
 namespace Horizon::Input {
 
 static f32 last_x;

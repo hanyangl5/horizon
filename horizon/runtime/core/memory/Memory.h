@@ -8,12 +8,16 @@
 
 #pragma once
 
+// standard libraries
 #include <memory>
 #include <memory_resource>
 #include <type_traits>
 #include <xtr1common>
 
-#include "Allocators.h"
+// third party libraries
+
+// project headers
+#include "allocators.h"
 
 namespace Horizon::Memory {
 
