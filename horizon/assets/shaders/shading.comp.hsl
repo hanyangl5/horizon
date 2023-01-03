@@ -29,12 +29,18 @@ CBUFFER(SceneConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 15)
 
 CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 7)
 {
-    DATA(uint, light_count, None);
+    DATA(uint, directional_light_count, None);
+    DATA(uint, local_light_count, None);
 };
 
-CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 8)
+CBUFFER(DirectionalLightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 8)
 {
-    DATA(LightParams, light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
+    DATA(LightParams, directional_light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
+};
+
+CBUFFER(LocalLightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 16)
+{
+    DATA(LightParams, local_light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
 };
 
 RES(RWTex2D(float4), out_color, UPDATE_FREQ_PER_FRAME, t3, binding = 9);
@@ -82,16 +88,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     mat.roughness2 = Pow2(roughness);
     mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
 
-    // disney
-    {
-        // mat.anisotropic = 0.0;
-        // mat.sheen = gbuffer3.x;
-        // mat.sheen_tint = 0.5;
-        // mat.subsurface = gbuffer3.x;
-        // mat.clearcoat = gbuffer3.x;
-        // mat.clearcoat_gloss = 0.5;
-    }
-
     float3 world_pos = ReconstructWorldPos(Get(camera_inverse_view_projection),SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
     float3 n =  normalize(gbuffer0.xyz);
     float3 v = -normalize(world_pos - Get(camera_pos).xyz);
@@ -99,8 +95,12 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
 
     // direct lighting
-    for(uint i = 0; i < Get(light_count); i++) {
-        radiance += Radiance(mat, Get(light_data)[i], n, v, world_pos);
+    for(uint i = 0; i < Get(directional_light_count); i++) {
+        radiance += RadianceDirectionalLight(mat, Get(directional_light_data)[i], n, v, world_pos);
+    }
+
+    for(uint i = 0; i < Get(local_light_count); i++) {
+        radiance += RadianceLocalLight(mat, Get(local_light_data)[i], n, v, world_pos);
     }
   
     // indirect light

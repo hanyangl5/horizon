@@ -562,7 +562,8 @@ void HorizonPipeline::run() {
                 shading_ds->SetResource(sampler, "default_sampler");
                 shading_ds->SetResource(scene->m_scene_manager->scene_constants_buffer, "SceneConstants");
                 shading_ds->SetResource(scene->m_scene_manager->GetLightCountBuffer(), "LightCountUb");
-                shading_ds->SetResource(scene->m_scene_manager->GetLightParamBuffer(), "LightDataUb");
+                shading_ds->SetResource(scene->m_scene_manager->GetDirectionalLightParamBuffer(), "DirectionalLightDataUb");
+                shading_ds->SetResource(scene->m_scene_manager->GetLocalLightParamBuffer(), "LocalLightDataUb");
                 shading_ds->SetResource(shading->shading_color_texture, "out_color");
                 shading_ds->SetResource(ssao->ssao_blur_texture, "ao_tex");
                 shading_ds->SetResource(shading->diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3");

@@ -85,7 +85,8 @@ class SceneManager {
     void CreateLightResources(Backend::RHI *rhi);
     void UploadLightResources(Backend::CommandList *commandlist);
     Buffer *GetLightCountBuffer() const noexcept;
-    Buffer *GetLightParamBuffer() const noexcept;
+    Buffer *GetDirectionalLightParamBuffer() const noexcept;
+    Buffer *GetLocalLightParamBuffer() const noexcept;
 
     Buffer *GetUnitCubeVertexBuffer() const noexcept;
     Buffer *GetUnitCubeIndexBuffer() const noexcept;
@@ -165,11 +166,18 @@ class SceneManager {
 
     // light
 
-    u32 light_count{};
+    struct LightCount {
+        u32 directional_light_count{};
+        u32 local_light_count{};
+    } light_count;
+
     Buffer *light_count_buffer{};
-    Container::Array<Light *> lights{};
-    Container::Array<LightParams> lights_param_buffer{};
-    Buffer *light_buffer{};
+    Container::Array<Light *> directional_lights{};
+    Container::Array<Light *> local_lights{};
+    Container::Array<LightParams> directional_lights_params{};
+    Container::Array<LightParams> local_lights_params{};
+    Buffer *directional_light_buffer{};
+    Buffer *local_light_buffer{};
 
     // scene constants
 

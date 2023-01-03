@@ -14,8 +14,10 @@ SceneManager::SceneManager(ResourceManager *resource_manager,
                            std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
     : resource_manager(resource_manager), scene_meshes(allocator), textuer_upload_desc(allocator),
       material_textures(allocator), vertex_buffers(allocator), index_buffers(allocator), instance_params(allocator),
-      material_descs(allocator), mesh_data(allocator), scene_indirect_draw_command1(allocator), lights(allocator),
-      lights_param_buffer(allocator) {
+      material_descs(allocator), mesh_data(allocator), scene_indirect_draw_command1(allocator),
+      directional_lights(allocator),
+      local_lights(allocator), directional_lights_params(allocator),
+      local_lights_params(allocator) {
 
 }
 
@@ -385,116 +387,120 @@ void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
 //     return m.get();
 // }
 //
- Light *SceneManager::AddDirectionalLight(const Math::float3& color, f32 intensity,
-                                          const Math::float3& direction) noexcept {
+
+Light *SceneManager::AddDirectionalLight(const Math::float3 &color, f32 intensity,
+                                         const Math::float3 &direction) noexcept {
     Light *light = Memory::Alloc<DirectionalLight>(color, intensity, direction);
-    lights.emplace_back(light);
-    light_count++;
+    directional_lights.emplace_back(light);
+    light_count.directional_light_count++;
     return light;
- }
+}
 
- Light *SceneManager::AddPointLight(const Math::float3& color, f32 intensity,
-                                    const Math::float3& position, f32 radius) noexcept {
-     Light *light = Memory::Alloc<PointLight>(color, intensity, position, radius);
-     lights.emplace_back(light);
-     light_count++;
-     return light;
- }
+Light *SceneManager::AddPointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
+                                   f32 radius) noexcept {
+    Light *light = Memory::Alloc<PointLight>(color, intensity, position, radius);
+    local_lights.emplace_back(light);
+    light_count.local_light_count++;
+    return light;
+}
 
- Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
-                                   const Math::float3 &direction, float radius, f32 inner_cone,
-                                   f32 outer_cone) noexcept {
-     Light *light = Memory::Alloc<SpotLight>(color, intensity, position, direction, radius, inner_cone, outer_cone);
-     lights.emplace_back(light);
-     light_count++;
-     return light;
- }
+Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
+                                  const Math::float3 &direction, float radius, f32 inner_cone,
+                                  f32 outer_cone) noexcept {
+    Light *light = Memory::Alloc<SpotLight>(color, intensity, position, direction, radius, inner_cone, outer_cone);
+    local_lights.emplace_back(light);
+    light_count.local_light_count++;
+    return light;
+}
 
-std::tuple<Camera*, CameraController*> SceneManager::AddCamera(const CameraSetting &setting, const Math::float3 &position, const Math::float3 &at,
-                                 const Math::float3 &up) {
-     if (main_camera != nullptr) {
-         LOG_WARN("multi veiw is not supported yet");
-     }
-     main_camera = Memory::MakeUnique<Camera>(setting, position, at, up);
-     if (setting.moveable) {
-         camera_controller = Memory::MakeUnique<CameraController>(main_camera.get());
-     }
-     return {main_camera.get(), camera_controller.get()};
- }
+std::tuple<Camera *, CameraController *> SceneManager::AddCamera(const CameraSetting &setting,
+                                                                 const Math::float3 &position, const Math::float3 &at,
+                                                                 const Math::float3 &up) {
+    if (main_camera != nullptr) {
+        LOG_WARN("multi veiw is not supported yet");
+    }
+    main_camera = Memory::MakeUnique<Camera>(setting, position, at, up);
+    if (setting.moveable) {
+        camera_controller = Memory::MakeUnique<CameraController>(main_camera.get());
+    }
+    return {main_camera.get(), camera_controller.get()};
+}
 
- Buffer* SceneManager::GetCameraBuffer() const noexcept { 
-     return camera_buffer;
- }
+Buffer *SceneManager::GetCameraBuffer() const noexcept { return camera_buffer; }
 
- void SceneManager::CreateLightResources(Backend::RHI *rhi) {
-     for (auto &l : lights) {
-         lights_param_buffer.push_back(l->GetParamBuffer());
-     }
-     light_count = lights.size();
+void SceneManager::CreateLightResources(Backend::RHI *rhi) {
+    for (auto &l : directional_lights) {
+        directional_lights_params.push_back(l->GetParamBuffer());
+    }
+    for (auto &l : local_lights) {
+        local_lights_params.push_back(l->GetParamBuffer());
+    }
+    light_count.directional_light_count = directional_lights_params.size();
+    light_count.local_light_count = local_lights_params.size();
 
-     light_count_buffer =
-         resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4 * sizeof(u32)});
+    light_count_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         4 * sizeof(u32)});
 
-     light_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                       sizeof(LightParams) * light_count});
- }
+    directional_light_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(LightParams) * light_count.directional_light_count});
 
- void SceneManager::UploadLightResources(Backend::CommandList *commandlist) {
-     commandlist->UpdateBuffer(light_buffer, lights_param_buffer.data(),
-                               lights_param_buffer.size() * sizeof(LightParams));
-     commandlist->UpdateBuffer(light_count_buffer, &light_count, sizeof(light_count) * 4);
+    local_light_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(LightParams) * light_count.local_light_count});
+}
 
- }
+void SceneManager::UploadLightResources(Backend::CommandList *commandlist) {
+    commandlist->UpdateBuffer(directional_light_buffer, directional_lights_params.data(),
+                              directional_lights_params.size() * sizeof(LightParams));
+    commandlist->UpdateBuffer(local_light_buffer, local_lights_params.data(),
+                              local_lights_params.size() * sizeof(LightParams));
+    commandlist->UpdateBuffer(light_count_buffer, &light_count, sizeof(light_count));
+}
 
- Buffer *SceneManager::GetLightCountBuffer() const noexcept {
-    return light_count_buffer;
- }
+Buffer *SceneManager::GetLightCountBuffer() const noexcept { return light_count_buffer; }
 
- Buffer *SceneManager::GetLightParamBuffer() const noexcept { 
-     return light_buffer;
- }
- 
- void SceneManager::CreateCameraResources(Backend::RHI *rhi) {
-     camera_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                                        sizeof(CameraUb)});
- }
+Buffer *SceneManager::GetDirectionalLightParamBuffer() const noexcept { return directional_light_buffer; }
 
- void SceneManager::UploadCameraResources(Backend::CommandList *commandlist) {
-      commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
- }
+Buffer *SceneManager::GetLocalLightParamBuffer() const noexcept { return local_light_buffer; }
 
- void SceneManager::CreateBuiltInResources(Backend::RHI *rhi) {
-     BufferCreateInfo vertex_buffer_create_info{};
-     vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
-     vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
-     vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-     const_cast<Buffer *>(cube_vertex_buffer) =
-         resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
-     BufferCreateInfo index_buffer_create_info{};
-     index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
-     index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
-     index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-     const_cast<Buffer *>(cube_index_buffer) =
-         resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
- }
+void SceneManager::CreateCameraResources(Backend::RHI *rhi) {
+    camera_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                                       sizeof(CameraUb)});
+}
 
- void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist) {
-     if (cube_vertex_buffer) {
-         commandlist->UpdateBuffer(cube_vertex_buffer, cube_vertices.data(), sizeof(Vertex) * cube_vertices.size());
-     }
-     if (cube_index_buffer) {
-         commandlist->UpdateBuffer(cube_index_buffer, cube_indices.data(), sizeof(Index) * cube_indices.size());
-     }
- }
+void SceneManager::UploadCameraResources(Backend::CommandList *commandlist) {
+    commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
+}
 
- Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept {
-     return cube_vertex_buffer;
- }
+void SceneManager::CreateBuiltInResources(Backend::RHI *rhi) {
+    BufferCreateInfo vertex_buffer_create_info{};
+    vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
+    vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+    const_cast<Buffer *>(cube_vertex_buffer) =
+        resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
+    BufferCreateInfo index_buffer_create_info{};
+    index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
+    index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
+    index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
+    const_cast<Buffer *>(cube_index_buffer) =
+        resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
+}
 
- Buffer *SceneManager::GetUnitCubeIndexBuffer() const noexcept {
-     return cube_index_buffer;
- }
- } // namespace Horizon
+void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist) {
+    if (cube_vertex_buffer) {
+        commandlist->UpdateBuffer(cube_vertex_buffer, cube_vertices.data(), sizeof(Vertex) * cube_vertices.size());
+    }
+    if (cube_index_buffer) {
+        commandlist->UpdateBuffer(cube_index_buffer, cube_indices.data(), sizeof(Index) * cube_indices.size());
+    }
+}
+
+Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept { return cube_vertex_buffer; }
+
+Buffer *SceneManager::GetUnitCubeIndexBuffer() const noexcept { return cube_index_buffer; }
+
+} // namespace Horizon

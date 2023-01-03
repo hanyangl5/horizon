@@ -18,32 +18,39 @@ float AngleFalloff(float innerRadius, float outerRadius, float3 direction, float
     return attenuation * attenuation;
 }
 
-float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, float3 world_pos) {
+float4 RadianceDirectionalLight(MaterialProperties mat, LightParams light, float3 n, float3 v, float3 world_pos) {
     float3 attenuation;
     float3 light_dir;
 
-    if (asuint(light.position_type).w == DIRECTIONAL_LIGHT) {
-        light_dir = -normalize(light.direction.xyz);
-        attenuation = light.color_intensity.xyz * light.color_intensity.w;
-    } else if (asuint(light.position_type).w == POINT_LIGHT) {
-        light_dir = light.position_type.xyz - world_pos;
-        float dist = length(light_dir);
-        light_dir = normalize(light_dir);
+    light_dir = -normalize(light.direction.xyz);
+    attenuation = light.color * light.intensity;
 
-        float lightAttenuation = DistanceFalloff(dist, light.radius_inner_outer.x, light_dir);
+    if (dot(n, light_dir) < 0.0) {
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
 
-        attenuation = lightAttenuation * light.color_intensity.xyz * light.color_intensity.w;
-    } else if (asuint(light.position_type).w == SPOT_LIGHT) {
+    BXDF bxdf;
+    InitBXDF(bxdf, n, v, light_dir);
 
-        light_dir = light.position_type.xyz - world_pos;
-        float dist = length(light_dir);
-        light_dir = normalize(light_dir);
+    float3 radiance = Brdf_Opaque_Default(mat, bxdf) * attenuation * bxdf.NoL;
+    return float4(radiance, 1.0);
+}
 
-        float lightAttenuation =
-            DistanceFalloff(dist, light.radius_inner_outer.x, light_dir) *
-            AngleFalloff(light.radius_inner_outer.y, light.radius_inner_outer.z, light.direction.xyz, light_dir);
 
-        attenuation = lightAttenuation * light.color_intensity.xyz * light.color_intensity.w;
+float4 RadianceLocalLight(MaterialProperties mat, LightParams light, float3 n, float3 v, float3 world_pos) {
+    float3 attenuation;
+    float3 light_dir;
+    light_dir = light.position - world_pos;
+    float dist = length(light_dir);
+    light_dir = normalize(light_dir);
+    float distance_attenuation = DistanceFalloff(dist, light.falloff, light_dir);
+
+    if (light.type == POINT_LIGHT) {
+        attenuation = distance_attenuation * light.color * light.intensity;
+    } else if (light.type == SPOT_LIGHT) {
+        float angle_attenuation =
+            AngleFalloff(light.spot_cone_inner_outer.x, light.spot_cone_inner_outer.y, light.direction, light_dir);
+        attenuation = distance_attenuation * angle_attenuation * light.color * light.intensity;
     }
 
     if (dot(n, light_dir) < 0.0) {
@@ -56,3 +63,4 @@ float4 Radiance(MaterialProperties mat, LightParams light, float3 n, float3 v, f
     float3 radiance = Brdf_Opaque_Default(mat, bxdf) * attenuation * bxdf.NoL;
     return float4(radiance, 1.0);
 }
+
