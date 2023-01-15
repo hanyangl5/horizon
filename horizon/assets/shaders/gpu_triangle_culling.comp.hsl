@@ -1,0 +1,34 @@
+// compact a big index buffer of visible mesh to save cpu bind index buffer
+
+#include "include/platform/platform.hsl"
+#include "include/common/common_math.hsl"
+#include "include/indirectcommand/indirect_command.hsl"
+#include "include/geometry/geometry.hsl"
+
+ENABLE_WAVEOPS()
+
+RES(RBuffer(MeshInfo), mesh_infos, UPDATE_FREQ_PER_FRAME, u1, binding = 2);
+RES(RWBuffer(uint), mesh_index_offsets, UPDATE_FREQ_PER_FRAME, u1, binding = 3);
+RES(RWBuffer(uint), visible_meshes, UPDATE_FREQ_PER_FRAME, u1, binding = 7);
+
+RES(Buffer(uint3), index_buffers[], UPDATE_FREQ_BINDLESS, t3, binding = 2);
+RES(Buffer(uint3), compacted_index_buffer, UPDATE_FREQ_PER_FRAME, t3, binding = 2); // compact rest triangle into new index buffer
+
+// uint GetMeshID(uint index_id) { return Get(mesh_id_list)[index_id]; }
+
+NUM_THREADS(WORK_GROUP_SIZE, 1, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) thread_id, SV_GroupThreadID(uint3) lane_id) 
+{
+    INIT_MAIN;
+
+    // uint index_id = thread_id.x;
+    // uint mesh_id = GetMeshID(thread_id.x);
+    // uint index_offset = GetIndexOffset(mesh_id, index_id);
+    // compacted_index_buffer[index_id] = Get(index_buffers)[mesh_id][index_offset];
+
+    // if (index_id > Get(mesh_index_offsets)[current_mesh_id]) {
+    //     AtomicAdd(current_mesh_id, 1);
+    // }
+
+    RETURN();
+}

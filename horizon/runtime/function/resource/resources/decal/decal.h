@@ -1,4 +1,4 @@
-/*****************************************************************//**
+/*****************************************************************/ /**
  * \file   Decal.h
  * \brief  
  * 
@@ -15,15 +15,14 @@
 #include <runtime/function/rhi/rhi_utils.h>
 
 #include <runtime/function/component/Transform.h>
-#include <runtime/function/scene/material/material_description.h>
 #include <runtime/function/resource/resources/vertex/vertex_description.h>
+#include <runtime/function/scene/material/material_description.h>
 
 namespace Horizon {
 
 class Decal {
   public:
-    Decal(const std::filesystem::path &path,
-         std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
+    Decal(const std::filesystem::path &path, std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
     ~Decal() noexcept;
 
     Decal(const Decal &rhs) noexcept = delete;
@@ -33,7 +32,7 @@ class Decal {
 
   public:
     const std::filesystem::path &m_path;
-    Material* decal_material;
+    Material *decal_material;
     Transform transform;
 };
 

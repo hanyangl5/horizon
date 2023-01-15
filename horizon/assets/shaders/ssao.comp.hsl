@@ -1,7 +1,7 @@
-#include "include/translation/translation.h"
-#include "include/common/common_math.h"
+#include "include/translation/translation.hsl"
+#include "include/common/common_math.hsl"
 #define USE_SSAO
-#include "include/ao/ssao.h"
+#include "include/ao/ssao.hsl"
 #include "include/common/noise.hsl"
 
 // 
@@ -35,17 +35,17 @@ CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 6)
 
 
 NUM_THREADS(8, 8, 1)
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+void CS_MAIN( SV_DispatchThreadID(uint3) thread_id) 
 {
     INIT_MAIN;
 
     uint2 _resolution = Get(resolution.xy) - uint2(1.0, 1.0);
 
-    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+    if(thread_id.x>_resolution.x || thread_id.y>_resolution.y) {
         RETURN();
     }
 
-    float2 uv = float2(threadID.xy) / float2(_resolution);
+    float2 uv = float2(thread_id.xy) / float2(_resolution);
 
     float depth = SampleTex2D(Get(depth_tex), default_sampler, uv).r;
     float3 view_pos = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
@@ -88,7 +88,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     float4 out_color = float4(ssao_factor, 0.0, 0.0, 0.0);
 
-    Write2D(Get(ao_factor_tex), threadID.xy, out_color);
+    Write2D(Get(ao_factor_tex), thread_id.xy, out_color);
 
     RETURN();
 }

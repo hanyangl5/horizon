@@ -33,7 +33,7 @@
     THE SOFTWARE.
 ********************************************************************************/
 
-#include "common_math.h"
+#include "common_math.hsl"
 
 // utils
 

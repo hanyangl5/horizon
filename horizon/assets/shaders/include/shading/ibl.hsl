@@ -1,5 +1,5 @@
-#include "../common/common_math.h"
-#include "brdf_horizon.h"
+#include "../common/common_math.hsl"
+#include "brdf_horizon.hsl"
 #include "material_params_defination.hsl"
 // float3 ComputeIBL(MaterialProperties mat,
 // 	float NoV, float3 N, float3 V, TexCube(float4) iemCubemap, TexCube(float4) pmremCubemap, Tex2D(float4)

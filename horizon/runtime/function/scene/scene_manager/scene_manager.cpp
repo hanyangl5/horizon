@@ -76,7 +76,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
             DrawIndexedInstancedCommand command{};
             command.index_count = primitive.index_count;
             command.first_index = primitive.index_offset;
-            command.vertex_offset = 0;
+            command.first_vertex = 0;
             command.instance_count = 1;
             command.first_instance = 0;
             scene_indirect_draw_command1.push_back(command);
@@ -236,7 +236,7 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
     command.index_count = 36;
     command.first_index = 0;
     command.first_instance = 0;
-    command.vertex_offset = 0;
+    command.first_vertex = 0;
     command.instance_count = 0;
     
     

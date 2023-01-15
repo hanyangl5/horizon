@@ -14,8 +14,7 @@
 // third party libraries
 
 // project headers
-
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 
 namespace Horizon {
 

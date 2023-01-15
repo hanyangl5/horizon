@@ -1,4 +1,4 @@
-#include "shading_models.h"
+#include "shading_models.hsl"
 
 float DistanceFalloff(float dist, float r, float3 light_dir) {
     // Brian Karis, 2013. Real Shading in Unreal Engine 4.

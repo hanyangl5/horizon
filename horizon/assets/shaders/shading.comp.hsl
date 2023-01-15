@@ -1,9 +1,9 @@
 #include "include/shading/material_params_defination.hsl"
-#include "include/shading/light_defination.h"
-#include "include/shading/lighting.h"
-#include "include/shading/ibl.h"
-#include "include/postprocess/postprocess.h"
-#include "include/translation/translation.h"
+#include "include/shading/light_defination.hsl"
+#include "include/shading/lighting.hsl"
+#include "include/shading/ibl.hsl"
+#include "include/postprocess/postprocess.hsl"
+#include "include/translation/translation.hsl"
 // per frame resources
 
 RES(Tex2D(float4), gbuffer0_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
@@ -57,23 +57,23 @@ RES(Tex2D(float4), specular_brdf_lut, UPDATE_FREQ_PER_FRAME, t5, binding = 13);
 RES(SamplerState, ibl_sampler, UPDATE_FREQ_PER_FRAME, t5, binding = 14);
 
 NUM_THREADS(8, 8, 1)
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+void CS_MAIN( SV_DispatchThreadID(uint3) thread_id, SV_GroupID(uint3) groupID) 
 {
     INIT_MAIN;
     uint2 _resolution = Get(resolution).xy - uint2(1.0, 1.0);
 
-    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+    if(thread_id.x>_resolution.x || thread_id.y>_resolution.y) {
         RETURN();
     }
 
-    float2 uv = float2(threadID.xy) / float2(_resolution);
+    float2 uv = float2(thread_id.xy) / float2(_resolution);
     float4 gbuffer0 = SampleTex2D(Get(gbuffer0_tex), default_sampler, uv);
     float4 gbuffer1 = SampleTex2D(Get(gbuffer1_tex), default_sampler, uv);
     float4 gbuffer2 = SampleTex2D(Get(gbuffer2_tex), default_sampler, uv);
     float4 gbuffer3 = SampleTex2D(Get(gbuffer3_tex), default_sampler, uv);
     
     MaterialProperties mat;
-
+    mat.material_id = groupID.z;
     //mat.normal
     mat.albedo = gbuffer1.xyz;
 
@@ -108,8 +108,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
     float3 specular = SampleLvlTexCube(Get(specular_map), ibl_sampler, reflect_dir, mat.roughness * 8.0).xyz; // 256x256 at miplevel0
     float2 ibl_uv = float2(mat.roughness, NoV);
     float2 env = SampleTex2D(Get(specular_brdf_lut), ibl_sampler, ibl_uv).xy;
-    float3 ambient = IBL(Get(sh), specular, env, n, NoV, mat) * LoadRWTex2D(Get(ao_tex), threadID.xy).r * Get(ibl_intensity).x;
+    float3 ambient = IBL(Get(sh), specular, env, n, NoV, mat) * LoadRWTex2D(Get(ao_tex), thread_id.xy).r * Get(ibl_intensity).x;
     radiance.xyz += ambient;
-    Write2D(Get(out_color), threadID.xy, radiance);
+    Write2D(Get(out_color), thread_id.xy, radiance);
     RETURN();
 }

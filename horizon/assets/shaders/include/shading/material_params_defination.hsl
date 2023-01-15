@@ -21,6 +21,7 @@ struct MaterialProperties {
     float subsurface;      // 0
     float clearcoat;       // 0
     float clearcoat_gloss; // 0.5
+    uint material_id;
 };
 
 #define BLEND_STATE_OPAQUE 0

@@ -1,4 +1,4 @@
-#include "../common/common_math.h"
+#include "../common/common_math.hsl"
 #include "../common/fastmath.hsl"
 
 struct BXDF {

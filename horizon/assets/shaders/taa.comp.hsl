@@ -1,4 +1,4 @@
-#include "include/common/luminance.h"
+#include "include/common/luminance.hsl"
 RES(RTex2D(float4), prev_color_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
 RES(RTex2D(float4), curr_color_tex, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
 RES(RTex2D(float2), mv_tex, UPDATE_FREQ_PER_FRAME, u2, binding = 2);
@@ -19,22 +19,22 @@ CBUFFER(SceneConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
 
 
 NUM_THREADS(8, 8, 1)
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+void CS_MAIN( SV_DispatchThreadID(uint3) thread_id) 
 {
     INIT_MAIN;
 
-    float3 curr_color  = LoadRWTex2D(Get(curr_color_tex), threadID.xy).xyz;
+    float3 curr_color  = LoadRWTex2D(Get(curr_color_tex), thread_id.xy).xyz;
 
-    float2 motion_vector  = LoadRWTex2D(Get(mv_tex), threadID.xy).xy;
+    float2 motion_vector  = LoadRWTex2D(Get(mv_tex), thread_id.xy).xy;
 
-    uint2 previous_sample = threadID.xy - uint2(motion_vector * Get(resolution));
+    uint2 previous_sample = thread_id.xy - uint2(motion_vector * Get(resolution));
     float3 prev_color  = LoadRWTex2D(Get(prev_color_tex), previous_sample).xyz;
 
     // Apply clamping on the history color.
-    float3 c0 = LoadRWTex2D(Get(curr_color_tex), threadID.xy + int2(1, 0)).xyz;
-    float3 c1 = LoadRWTex2D(Get(curr_color_tex), threadID.xy + int2(-1, 0)).xyz;
-    float3 c2 = LoadRWTex2D(Get(curr_color_tex), threadID.xy + int2(0, 1)).xyz;
-    float3 c3 = LoadRWTex2D(Get(curr_color_tex), threadID.xy + int2(0, -1)).xyz;
+    float3 c0 = LoadRWTex2D(Get(curr_color_tex), thread_id.xy + int2(1, 0)).xyz;
+    float3 c1 = LoadRWTex2D(Get(curr_color_tex), thread_id.xy + int2(-1, 0)).xyz;
+    float3 c2 = LoadRWTex2D(Get(curr_color_tex), thread_id.xy + int2(0, 1)).xyz;
+    float3 c3 = LoadRWTex2D(Get(curr_color_tex), thread_id.xy + int2(0, -1)).xyz;
     
     float3 c_min = fast_min(curr_color, fast_min(c0, fast_min(c1, fast_min(c2, c3))));
     float3 c_max = fast_max(curr_color, fast_max(c0, fast_max(c1, fast_max(c2, c3))));;
@@ -48,7 +48,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     float4 final_color = float4((1.0 - w) * prev_color + w * curr_color, 1.0);
 
-    Write2D(Get(out_color_tex), threadID.xy, final_color);
+    Write2D(Get(out_color_tex), thread_id.xy, final_color);
 
     RETURN();
 }

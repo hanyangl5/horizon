@@ -9,11 +9,6 @@
 #pragma once
 
 // standard libraries
-
-// third party libraries
-
-// project headers
-
 #include <array>
 #include <map>
 #include <set>
@@ -22,7 +17,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../memory/Memory.h"
+// third party libraries
+
+// project headers
+#include <core/memory/memory.h>
 
 namespace Horizon::Container {
 

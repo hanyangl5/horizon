@@ -24,4 +24,6 @@ class ShadingData {
 
     Sampler* ibl_sampler{};
 
+    Buffer *shading_buffer{};
+
 };

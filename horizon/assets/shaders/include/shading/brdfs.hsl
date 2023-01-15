@@ -18,9 +18,9 @@ https://github.com/wdas/brdf/blob/425f6ef183f3e57c2a351622790ca8ea472ddfe1/src/b
 
 */
 
-#include "../common/common_math.h"
+#include "../common/common_math.hsl"
 #include "../common/fastmath.hsl"
-#include "../common/luminance.h"
+#include "../common/luminance.hsl"
 
 // struct MaterialProperties_Disney12{
 //     float3 baseColor;
@@ -139,7 +139,7 @@ float3 SubsurfaceBurley15(float3 albedo, float roughness, float NoL, float NoV, 
 
 // unreal 5.1
 
-// #include "../common/common_math.h"
+// #include "../common/common_math.hsl"
 // #include "../common/fastmath.hsl"
 
 // float3 Diffuse_Lambert( float3 DiffuseColor )

@@ -19,3 +19,9 @@ float SmoothStep(float e0, float e1, float x) {
     float t = saturate((x - e0) / e1 - e0);
     return t * t * (3.0 - 2.0 * t);
 }
+
+float Dot(float4 x, float4 y) { return x.x * y.x + x.y * y.y + x.z * y.z + x.w * y.w; }
+
+uint AlignUp (float a, float b) {
+    return uint((a + (b - 1)) / b);
+}

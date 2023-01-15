@@ -72,6 +72,7 @@ ShadingData::ShadingData(RHI *rhi) noexcept {
     ibl_sampler = rhi->CreateSampler(sampler_desc);
 
     shading_pass->SetComputeShader(shading_cs);
+
 }
 
 ShadingData::~ShadingData() noexcept {}

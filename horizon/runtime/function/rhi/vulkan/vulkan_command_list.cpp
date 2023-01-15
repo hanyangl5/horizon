@@ -181,6 +181,7 @@ void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u64 offset,
             m_type == CommandQueueType::GRAPHICS));
     vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count,
                              stride);
+    //vkCmdDrawIndexedIndirectCount(); drawcount is calculated on gpu
 }
 
 // compute commands

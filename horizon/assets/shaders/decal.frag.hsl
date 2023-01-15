@@ -1,14 +1,14 @@
 #ifdef VULKAN
-#extension GL_EXT_nonuniform_qualifier : enable // how to hide this?
+#extension GL_EXT_nonuniform_qualifier : enable
 #endif
 
-#include "include/common/bindless.h"
-#include "include/postprocess/postprocess.h"
-#include "include/shading/ibl.h"
-#include "include/shading/light_defination.h"
-#include "include/shading/lighting.h"
+#include "include/common/bindless.hsl"
+#include "include/postprocess/postprocess.hsl"
+#include "include/shading/ibl.hsl"
+#include "include/shading/light_defination.hsl"
+#include "include/shading/lighting.hsl"
 #include "include/shading/material_params_defination.hsl"
-#include "include/translation/translation.h"
+#include "include/translation/translation.hsl"
 // per material resources TODO: register for dx12
 
 struct MaterialDescription {

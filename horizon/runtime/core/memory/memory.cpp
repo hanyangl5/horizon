@@ -6,7 +6,7 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "Memory.h"
+#include "memory.h"
 
 // standard libraries
 

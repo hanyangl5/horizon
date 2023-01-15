@@ -1,0 +1,23 @@
+
+// STRUCT(MaterialDispatchCommand){
+
+// };
+
+// RES(RWBuffer(MaterialDispatchCommand), material_dispatch_command, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
+
+CBUFFER(exposure_constants, UPDATE_FREQ_PER_FRAME, b0, binding = 2)
+{
+    DATA(float4, exposure_ev100__, None);
+};
+
+NUM_THREADS(8, 8, 1)
+void CS_MAIN(SV_DispatchThreadID(uint3) thread_id) 
+{
+    INIT_MAIN;
+
+    // uint tile_index;
+    // Get(material_dispatch_command)[gbuffer.material_id].tile_bit_mask[tile_index] = true;
+    // InterLockedAdd(Get(material_dispatch_command)[gbuffer.material_id].active_tile_count);
+    RETURN();
+}
+

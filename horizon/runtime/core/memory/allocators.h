@@ -8,17 +8,17 @@
 
 #pragma once
 
+#ifndef NDEBUG
+//#define MEMORY_RESOURCE_TRACKING
+#endif
+
 // standard libraries
+#include <memory>
+#include <memory_resource>
 
 // third party libraries
 
 // project headers
-#include <memory>
-#include <memory_resource>
-
-#ifndef NDEBUG
-//#define MEMORY_RESOURCE_TRACKING
-#endif
 
 namespace Horizon::Memory {
 

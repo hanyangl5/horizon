@@ -6,17 +6,15 @@
  * \date   November 2022
  *********************************************************************/
 
+#include "allocators.h"
+
 // standard libraries
 
 // third party libraries
-
-// project headers
-
-#include "Allocators.h"
-
 #include <mimalloc.h>
 
-#include "../log/Log.h"
+// project headers
+#include <runtime/core/log/log.h>
 
 namespace Horizon::Memory {
 

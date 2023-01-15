@@ -26,8 +26,8 @@ enum MaterialParamFlags {
 
 enum class BlendState { BLEND_STATE_OPAQUE, BLEND_STATE_MASKED, BLEND_STATE_TRANSPARENT };
 
-// each correspond a seperate pso/drawcall
-enum class ShadingModel { SHADING_MODEL_LIT, SHADING_MODEL_UNLIT, SHADING_MODEL_SUBSURFACE, SHADING_MODEL_TWO_SIDE };
+// each correspond a drawcall
+enum class ShadingModel { SHADING_MODEL_LIT, SHADING_MODEL_UNLIT, SHADING_MODEL_SUBSURFACE, SHADING_MODEL_TWO_SIDE, SHADING_MODEL_EYE, SHADING_MODEL_CLOTH };
 
 enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSIVE, ALPHA_MASK };
 
@@ -61,9 +61,6 @@ class Material {
     Material &operator=(Material &&rhs) noexcept {};
 
     ShadingModel GetShadingModelID() noexcept { return shading_model; }
-
-    void InitDescriptorSet();
-    void ResetDescriptorSet();
 
   public:
     Container::HashMap<MaterialTextureType, MaterialTextureDescription> material_textures{};

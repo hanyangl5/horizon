@@ -2,11 +2,11 @@
 #extension GL_EXT_nonuniform_qualifier : enable // how to hide this?
 #endif
 
-#include "include/common/bindless.h"
-#include "include/postprocess/postprocess.h"
-#include "include/shading/ibl.h"
-#include "include/shading/light_defination.h"
-#include "include/shading/lighting.h"
+#include "include/common/bindless.hsl"
+#include "include/postprocess/postprocess.hsl"
+#include "include/shading/ibl.hsl"
+#include "include/shading/light_defination.hsl"
+#include "include/shading/lighting.hsl"
 #include "include/shading/material_params_defination.hsl"
 
 // per material resources TODO: register for dx12

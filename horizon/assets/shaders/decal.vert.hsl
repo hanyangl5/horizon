@@ -1,7 +1,6 @@
-#include "include/common/bindless.h"
+#include "include/common/bindless.hsl"
 #ifdef VULKAN
-#extension GL_EXT_nonuniform_qualifier : enable // how to hide this?
-#extension GL_ARB_shader_draw_parameters : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 #endif
 
 CBUFFER(CameraParamsUb, UPDATE_FREQ_PER_FRAME, b0, binding = 0)

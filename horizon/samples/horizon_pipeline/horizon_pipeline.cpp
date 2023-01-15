@@ -308,6 +308,20 @@ void HorizonPipeline::run() {
 
             u32 draw_offset = 0;
 
+            auto stack_memory = Memory::GetStackMemoryResource();
+
+            Container::Array<Buffer *> vbs(&stack_memory);
+            Container::Array<u32> offsets(&stack_memory);
+            vbs.reserve(scene->m_scene_manager->mesh_data.size());
+            offsets.reserve(scene->m_scene_manager->mesh_data.size());
+            for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
+                auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];
+                vbs[mesh_data] = scene->m_scene_manager->vertex_buffers[mesh.vertex_buffer_offset];
+                offsets[mesh_data] = 0;
+            }
+
+            Buffer * empty_vertex_buffer = scene->m_scene_manager->empty_vertex_buffer;
+
             for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
                 auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];
                 auto ib = scene->m_scene_manager->index_buffers[mesh.index_buffer_offset];
@@ -317,6 +331,9 @@ void HorizonPipeline::run() {
                 cl->BindIndexBuffer(ib, 0);
                 cl->BindPushConstant(geometry->geometry_pass, "DrawRootConstant", &mesh.draw_offset);
 
+                cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->indirect_draw_command_buffer1,
+                                                 sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset,
+                                                 mesh.draw_count, sizeof(DrawIndexedInstancedCommand));
                 cl->DrawIndirectIndexedInstanced(scene->m_scene_manager->indirect_draw_command_buffer1,
                                                  sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset,
                                                  mesh.draw_count, sizeof(DrawIndexedInstancedCommand));
@@ -550,10 +567,24 @@ void HorizonPipeline::run() {
             //    compute->BindDescriptorSets(geometry->light_culling_pass, light_culling_ds);
             //    compute->Dispatch(geometry->slices[0], geometry->slices[1], geometry->slices[2]);
             //}
-            auto shading_ds = shading->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+
+            // classify material tile
+
+            
+            
+            // generate material dispatch command
+            //{
+            //    auto light_culling_ds =
+            //        geometry->light_culling_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            //    //light_culling_ds->SetResource();
+            //    compute->BindPipeline(geometry->light_culling_pass);
+            //    compute->BindDescriptorSets(geometry->light_culling_pass, light_culling_ds);
+            //    compute->Dispatch(geometry->slices[0], geometry->slices[1], geometry->slices[2]);
+            //}
+            
             // shading pass
             {
-
+                auto shading_ds = shading->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
                 shading_ds->SetResource(geometry->gbuffer0->GetTexture(), "gbuffer0_tex");
                 shading_ds->SetResource(geometry->gbuffer1->GetTexture(), "gbuffer1_tex");
                 shading_ds->SetResource(geometry->gbuffer2->GetTexture(), "gbuffer2_tex");
@@ -575,6 +606,7 @@ void HorizonPipeline::run() {
                 compute->BindPipeline(shading->shading_pass);
                 compute->BindDescriptorSets(shading->shading_pass, shading_ds);
                 compute->Dispatch(_width / 8 + 1, _height / 8 + 1, 1);
+                // compute->DispatchIndirect(shading->shading_buffer, 0);
             }
 
             {

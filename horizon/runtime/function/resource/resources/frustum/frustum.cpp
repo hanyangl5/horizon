@@ -1,19 +1,13 @@
 /*****************************************************************//**
- * \file   path.cpp
- * \brief  
+ * \file   FILE_NAME
+ * \brief  BRIEF
  * 
- * \author hylu
- * \date   November 2022
+ * \author XXX
+ * \date   XXX
  *********************************************************************/
 
-#include "path.h"
-
 // standard libraries
-#include <filesystem>
 
 // third party libraries
 
 // project headers
-
-namespace Horizon {
-} // namespace Horizon

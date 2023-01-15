@@ -589,7 +589,7 @@ struct DrawIndexedInstancedCommand {
     u32 index_count;
     u32 instance_count = 1;
     u32 first_index;
-    i32 vertex_offset;
+    i32 first_vertex;
     u32 first_instance;
 };
 

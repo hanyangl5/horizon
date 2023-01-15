@@ -9,12 +9,11 @@
 #pragma once
 
 // standard libraries
+#include <type_traits>
 
 // third party libraries
 
 // project headers
-
-#include <type_traits>
 
 namespace Horizon {
 
