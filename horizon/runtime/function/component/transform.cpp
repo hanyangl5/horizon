@@ -20,44 +20,44 @@ Horizon::Transform::Transform() {}
 
 Horizon::Transform::~Transform() {}
 
-void Transform::SetPosition(const Math::float3 &pos) noexcept {
+void Transform::SetPosition(const math::Vector3f &pos) noexcept {
     need_recalculation = true;
     m_position = pos;
 }
 
-void Transform::SetRotation(const Math::float3 &rot) noexcept {
+void Transform::SetRotation(const math::Vector3f &rot) noexcept {
     need_recalculation = true;
-    m_rotation = Math::quaternion::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
+    //m_rotation = math::quaternion::CreateFromYawPitchRoll(rot.y, rot.x, rot.z);
 }
 
-void Transform::SetScale(const Math::float3 &scale) noexcept {
+void Transform::SetScale(const math::Vector3f &scale) noexcept {
     need_recalculation = true;
     m_scale = scale;
 }
 
-Math::float4x4 Horizon::Transform::GetTransformMatrix() noexcept {
+math::Matrix44f Horizon::Transform::GetTransformMatrix() noexcept {
     if (need_recalculation) {
-        Math::float4x4 t = Math::float4x4::CreateTranslation(m_position);
-        Math::float4x4 r = Math::float4x4::CreateFromQuaternion(m_rotation);
-        Math::float4x4 s = Math::float4x4::CreateScale(m_scale);
+        math::Matrix44f t = math::Matrix44f::CreateTranslation(m_position);
+        math::Matrix44f r = math::Matrix44f::CreateFromQuaternion(m_rotation);
+        math::Matrix44f s = math::Matrix44f::CreateScale(m_scale);
         m_transform_matrix = s * r * t;
         need_recalculation = false;
     }
     return m_transform_matrix;
 }
 
-Math::float3 Transform::GetOrientation() noexcept {
+math::Vector3f Transform::GetOrientation() noexcept {
 
-    //Math::float4x4 r = Math::float4x4::CreateFromQuaternion(m_rotation);
+    //math::Matrix44f r = math::Matrix44f::CreateFromQuaternion(m_rotation);
     //m_orientation =
-    //    Math::float4(Math::DefaultOrientation.x, Math::DefaultOrientation.y, Math::DefaultOrientation.z, 0.0f) * r;
+    //    math::Vector4f(math::DefaultOrientation.x, math::DefaultOrientation.y, math::DefaultOrientation.z, 0.0f) * r;
     return m_orientation;
 }
 
-Math::float3 Transform::GetTranslation() const noexcept { return m_position; }
+math::Vector3f Transform::GetTranslation() const noexcept { return m_position; }
 
-Math::float3 Transform::GetRotation() const noexcept { return m_rotation.ToEuler(); }
+math::Vector3f Transform::GetRotation() const noexcept { return m_rotation.ToEuler(); }
 
-Math::float3 Transform::GetScale() const noexcept { return m_scale; }
+math::Vector3f Transform::GetScale() const noexcept { return m_scale; }
 
 } // namespace Horizon

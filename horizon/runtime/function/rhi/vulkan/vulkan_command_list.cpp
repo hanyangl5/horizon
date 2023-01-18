@@ -538,7 +538,7 @@ void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value) {
     // vkCmdFillBuffer();
 }
 
-void VulkanCommandList::ClearTextrue(Texture *texture, const Math::float4 &clear_value) {
+void VulkanCommandList::ClearTextrue(Texture *texture, const math::Vector4f &clear_value) {
     assert(("command list is not recording", is_recoring == true));
     assert(("clear texture can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
     // vkCmdClearColorImage();

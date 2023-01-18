@@ -7,9 +7,9 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
 
     scene_manager->CreateBuiltInResources(rhi);
 
-    auto [camera, controller] = m_scene_manager->AddCamera(CameraSetting{ProjectionMode::PERSPECTIVE, CameraType::FLY, true}, Math::float3(0.0, 0.0, 10.0_m),
-                                             Math::float3(0.0, 0.0, 0.0),
-                                          Math::float3(0.0, 1.0_m, 0.0));
+    auto [camera, controller] = m_scene_manager->AddCamera(CameraSetting{ProjectionMode::PERSPECTIVE, CameraType::FLY, true}, math::Vector3f(0.0, 0.0, 10.0_m),
+                                             math::Vector3f(0.0, 0.0, 0.0),
+                                          math::Vector3f(0.0, 1.0_m, 0.0));
 
     scene_camera = camera;
     scene_camera_controller = controller;
@@ -29,7 +29,7 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                                            VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
         asset_path / "models/Cauldron-Media/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
-    sphere->transform.SetPosition(Math::float3{0, 10, 0});
+    sphere->transform.SetPosition(math::Vector3f{0, 10, 0});
 
     //auto tree1 = scene_manager->resource_manager->LoadMesh(
     //    MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL | VertexAttributeType::UV0 |
@@ -65,12 +65,12 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
         float gColor = random_color(engine);
         float bColor = random_color(engine);
 
-        Math::float3 pos(xPos, yPos, zPos);
-        Math::float3 col(rColor, gColor, bColor);
+        math::Vector3f pos(xPos, yPos, zPos);
+        math::Vector3f col(rColor, gColor, bColor);
 
         scene_manager->AddPointLight(col, 1000000.0_lm, pos, 10.0);
     }
-    scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0));
+    scene_manager->AddDirectionalLight(math::Vector3f(1.0, 1.0, 1.0), 120000.0_lux, math::Vector3f(0.0, 0.0, -1.0));
 
     
     scene_manager->CreateLightResources(rhi);

@@ -7,7 +7,7 @@
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/function/rhi/Buffer.h>
@@ -36,10 +36,10 @@ struct MeshPrimitive {
 
 struct Node {
     u32 parent{};
-    Math::float4x4 model_matrix{};
+    math::Matrix44f model_matrix{};
     Container::Array<u32> childs{};
     Container::Array<u32> mesh_primitives{};
-    const Math::float4x4 &GetModelMatrix() const { return model_matrix; }
+    const math::Matrix44f &GetModelMatrix() const { return model_matrix; }
 };
 
 enum class MeshType {
@@ -72,7 +72,7 @@ class Mesh {
     Container::Array<Material> &GetMaterials() noexcept { return materials; }
 
   private:
-    void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);
+    void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const math::Matrix44f &model_matrx);
 
     void ProcessMaterials(const aiScene *scene);
 
@@ -104,7 +104,7 @@ class Mesh {
 //     Container::Array<Vertex> vertices;
 //     Container::Array<Index> indices;
 //     u32 material_index;
-//     Math::float4x4 model_matrix;
+//     math::Matrix44f model_matrix;
 //     AABB aabb;
 // };
 //

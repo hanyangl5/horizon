@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 
 namespace Horizon {
 
@@ -16,10 +16,10 @@ enum VertexAttributeType {
 
 struct Vertex {
   public:
-    Math::float3 pos;
-    Math::float3 normal;
-    Math::float2 uv0, uv1;
-    Math::float3 tangent;
+    math::Vector3f pos;
+    math::Vector3f normal;
+    math::Vector2f uv0, uv1;
+    math::Vector3f tangent;
 };
 
 using Index = u32;

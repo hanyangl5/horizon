@@ -13,10 +13,8 @@
 // third party libraries
 
 // project headers
-
-#include "Window.h"
-
-#include "../math/Math.h"
+#include <runtime/core/math/math.h>
+#include <runtime/core/window/window.h>
 
 namespace Horizon::Input {
 
@@ -34,7 +32,7 @@ extern bool first_mouse;
 
 Direction ProcessKeyboardInput(Window *window);
 
-Math::float2 ProcessMouseInput(Window *window);
+math::Vector2f ProcessMouseInput(Window *window);
 
 bool GetKeyPress(Window *window, Key inputKey);
 

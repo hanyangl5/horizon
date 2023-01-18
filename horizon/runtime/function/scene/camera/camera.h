@@ -38,8 +38,8 @@ struct CameraSetting {
 
 class Camera {
   public:
-    Camera(const CameraSetting& setting, const Math::float3 &position, const Math::float3 &at,
-           const Math::float3 &up) noexcept;
+    Camera(const CameraSetting& setting, const math::Vector3f &position, const math::Vector3f &at,
+           const math::Vector3f &up) noexcept;
 
     ~Camera() noexcept = default;
 
@@ -57,21 +57,21 @@ class Camera {
     // milimeters
     void SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near, f32 far) noexcept;
 
-    Math::float4x4 GetProjectionMatrix() const noexcept;
+    math::Matrix44f GetProjectionMatrix() const noexcept;
 
-    Math::float4x4 GetInvProjectionMatrix() const noexcept;
+    math::Matrix44f GetInvProjectionMatrix() const noexcept;
 
-    //void setLookAt(Math::float3 position, Math::float3 at, Math::float3 up = Math::float3(0.0f, 1.0f, 0.0f));
+    //void setLookAt(math::Vector3f position, math::Vector3f at, math::Vector3f up = math::Vector3f(0.0f, 1.0f, 0.0f));
 
-    Math::float4x4 GetViewMatrix() const noexcept;
+    math::Matrix44f GetViewMatrix() const noexcept;
 
-    Math::float4x4 GetInvViewMatrix() const noexcept;
+    math::Matrix44f GetInvViewMatrix() const noexcept;
 
-    Math::float3 GetPosition() const noexcept;
+    math::Vector3f GetPosition() const noexcept;
 
-    Math::float3 GetFov() const noexcept;
+    math::Vector3f GetFov() const noexcept;
 
-    Math::float2 GetNearFarPlane() const noexcept;
+    math::Vector2f GetNearFarPlane() const noexcept;
 
     void SetCameraSpeed(f32 speed) noexcept;
     f32 GetCameraSpeed() const noexcept;
@@ -81,22 +81,22 @@ class Camera {
 
     void UpdateViewMatrix() noexcept;
 
-    Math::float4x4 GetViewProjectionMatrix() const noexcept;
+    math::Matrix44f GetViewProjectionMatrix() const noexcept;
 
-    Math::float4x4 GetInvViewProjectionMatrix() const noexcept;
+    math::Matrix44f GetInvViewProjectionMatrix() const noexcept;
 
-    Math::float3 GetForwardDir() const noexcept;
+    math::Vector3f GetForwardDir() const noexcept;
 
     f32 GetEv100() const noexcept { return ev100; }
     f32 GetExposure() const noexcept;
 
     void SetExposure(f32 aperture, f32 shutter_speed, f32 iso);
 
-    const Math::float2 GetSensitivity() const noexcept;
+    const math::Vector2f GetSensitivity() const noexcept;
   private:
-    Math::float3 m_eye, m_at, m_up;
-    Math::float3 m_forward, m_right;
-    Math::float4x4 m_view, m_projection;
+    math::Vector3f m_eye, m_at, m_up;
+    math::Vector3f m_forward, m_right;
+    math::Matrix44f m_view, m_projection;
 
     f32 m_yaw = -90.0f, m_pitch = 0.0f;
 
@@ -114,7 +114,7 @@ class Camera {
     static constexpr const float SENSOR_SIZE = 0.024f; // 24mm
     
     // controller setting
-    Math::float2 m_sensitivity = Math::float2(1.0f);
+    math::Vector2f m_sensitivity = math::Vector2f(1.0f, 1.0);
 };
 
 

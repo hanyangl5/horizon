@@ -45,7 +45,7 @@ void HorizonPipeline::UpdatePipelineResources() {
     f32 offset_y = (jitter_offset.y - 0.5) / _height;
 
     antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
-    antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
+    antialiasing->taa_prev_curr_offset.curr_offset = math::Vector2f{offset_x, offset_y};
     proj._13 += offset_x;
     proj._23 += offset_y;
 
@@ -68,7 +68,7 @@ void HorizonPipeline::UpdatePipelineResources() {
     scene->m_scene_manager->scene_constants.resolution[1] = _height;
 
 
-    post_process->exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
+    post_process->exposure_constants.exposure_ev100__ = math::Vector4f(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
 
     ssao->ssao_constansts.inv_proj = proj.Invert();

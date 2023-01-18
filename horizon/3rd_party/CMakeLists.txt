@@ -36,8 +36,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
 
 
 # directxtk
-find_package(directxtk12 REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC Microsoft::DirectXTK12)
+# find_package(directxtk12 REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PUBLIC Microsoft::DirectXTK12)
 
 
 # directx shader compiler

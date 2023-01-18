@@ -134,7 +134,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
             desc.base_color = material.material_params.base_color_factor;
             desc.emissive = material.material_params.emmissive_factor;
             desc.metallic_roughness =
-                Math::float2(material.material_params.metallic_factor, material.material_params.roughness_factor);
+                math::Vector2f(material.material_params.metallic_factor, material.material_params.roughness_factor);
             material_descs.push_back(desc);
         }
     }
@@ -291,7 +291,7 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         desc.base_color = material.material_params.base_color_factor;
         desc.emissive = material.material_params.emmissive_factor;
         desc.metallic_roughness =
-            Math::float2(material.material_params.metallic_factor, material.material_params.roughness_factor);
+            math::Vector2f(material.material_params.metallic_factor, material.material_params.roughness_factor);
         decal_material_descs.push_back(desc);
 
         command.instance_count++; // each instance an decal (default mesh)
@@ -300,16 +300,16 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         instance_param.model = decal->transform.GetTransformMatrix();
 
         // decal oritation
-        Math::float3 n = decal->transform.GetOrientation();
-        Math::float3 up = Math::float3(0, 1, 0);
-        Math::float3 u = Math::Normalize(Math::Cross(up, n));
-        Math::float3 v = Math::Normalize(Math::Cross(n, u));
+        math::Vector3f n = decal->transform.GetOrientation();
+        math::Vector3f up = math::Vector3f(0, 1, 0);
+        math::Vector3f u = math::Normalize(math::Cross(up, n));
+        math::Vector3f v = math::Normalize(math::Cross(n, u));
 
-        Math::float4x4 world_to_decal = Math::float4x4{u, v, n};
+        math::Matrix44f world_to_decal = math::Matrix44f{u, v, n};
         auto &decal_position = decal->transform.GetTranslation();
-        world_to_decal._14 = -decal_position.Dot(u);
-        world_to_decal._24 = -decal_position.Dot(v);
-        world_to_decal._34 = -decal_position.Dot(n);
+        world_to_decal._14 = -math::dot(decal_position, u);
+        world_to_decal._24 = -math::dot(decal_position, v);
+        world_to_decal._34 = -math::dot(decal_position, n);
         instance_param.decal_to_world = world_to_decal.Invert();
         instance_param.world_to_decal = world_to_decal;
         instance_param.material_index = material_offset;
@@ -394,15 +394,15 @@ void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
 // }
 //
 
-Light *SceneManager::AddDirectionalLight(const Math::float3 &color, f32 intensity,
-                                         const Math::float3 &direction) noexcept {
+Light *SceneManager::AddDirectionalLight(const math::Vector3f &color, f32 intensity,
+                                         const math::Vector3f &direction) noexcept {
     Light *light = Memory::Alloc<DirectionalLight>(color, intensity, direction);
     directional_lights.emplace_back(light);
     light_count.directional_light_count++;
     return light;
 }
 
-Light *SceneManager::AddPointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
+Light *SceneManager::AddPointLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position,
                                    f32 radius) noexcept {
     Light *light = Memory::Alloc<PointLight>(color, intensity, position, radius);
     local_lights.emplace_back(light);
@@ -410,8 +410,8 @@ Light *SceneManager::AddPointLight(const Math::float3 &color, f32 intensity, con
     return light;
 }
 
-Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
-                                  const Math::float3 &direction, float radius, f32 inner_cone,
+Light *SceneManager::AddSpotLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position,
+                                  const math::Vector3f &direction, float radius, f32 inner_cone,
                                   f32 outer_cone) noexcept {
     Light *light = Memory::Alloc<SpotLight>(color, intensity, position, direction, radius, inner_cone, outer_cone);
     local_lights.emplace_back(light);
@@ -420,8 +420,8 @@ Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, cons
 }
 
 std::tuple<Camera *, CameraController *> SceneManager::AddCamera(const CameraSetting &setting,
-                                                                 const Math::float3 &position, const Math::float3 &at,
-                                                                 const Math::float3 &up) {
+                                                                 const math::Vector3f &position, const math::Vector3f &at,
+                                                                 const math::Vector3f &up) {
     if (main_camera != nullptr) {
         LOG_WARN("multi veiw is not supported yet");
     }

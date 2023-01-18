@@ -45,7 +45,7 @@ Direction ProcessKeyboardInput(Window *window) {
     return {};
 }
 
-Math::float2 ProcessMouseInput(Window *window) {
+math::Vector2f ProcessMouseInput(Window *window) {
     f64 xposIn, yposIn;
     glfwGetCursorPos(window->GetWindow(), &xposIn, &yposIn);
 
@@ -69,7 +69,7 @@ Math::float2 ProcessMouseInput(Window *window) {
     last_y = ypos;
 
     if (GetMouseButtonPress(window, MouseButton::RIGHT_BUTTON)) {
-        return Math::float2{xoffset, yoffset};
+        return math::Vector2f{xoffset, yoffset};
     } else if (GetMouseButtonRelease(window, MouseButton::RIGHT_BUTTON)) {
         first_mouse = true;
     }

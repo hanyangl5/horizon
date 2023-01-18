@@ -8,7 +8,7 @@
 
 namespace Horizon {
 
-void Light::SetColor(const Math::float3 &color) noexcept {
+void Light::SetColor(const math::Vector3f &color) noexcept {
     params.color_intensity.x = color.x;
     params.color_intensity.y = color.y;
     params.color_intensity.z = color.z;
@@ -22,12 +22,12 @@ void Light::SetIntensity(f32 intensity) noexcept {
         break;
     case LightType::SPOT_LIGHT:
         // https://google.github.io/filament/Filament.htm
-        params.intensity = intensity / Math::_2PI * (1 - cos(params.spot_cone_inner_outer.y / 2));
+        params.intensity = intensity / math::_2PI * (1 - cos(params.spot_cone_inner_outer.y / 2));
         break;
     }
 }
 
-void Light::SetPosition(const Math::float3 position) noexcept {
+void Light::SetPosition(const math::Vector3f position) noexcept {
     assert(m_type != LightType::DIRECTIONAL_LIGHT);
     params.position = position;
 }
@@ -36,7 +36,7 @@ void Light::SetFalloff(f32 falloff) noexcept {
     params.falloff = falloff;
 }
 
-void Light::SetDirection(const Math::float3 &direction) noexcept {
+void Light::SetDirection(const math::Vector3f &direction) noexcept {
     assert(m_type == LightType::DIRECTIONAL_LIGHT || m_type == LightType::SPOT_LIGHT);
     params.direction = direction;
 }
@@ -57,11 +57,11 @@ void Light::SetLength(f32 length) noexcept {
     params.radius_length.y = length; 
 }
 
-void Light::SetOrientation(const Math::float3 &orientation) noexcept {
+void Light::SetOrientation(const math::Vector3f &orientation) noexcept {
     params.orientation = orientation; 
 }
 
-DirectionalLight::DirectionalLight(const Math::float3 &color, f32 intensity, const Math::float3 &direction) noexcept {\
+DirectionalLight::DirectionalLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &direction) noexcept {\
     m_type = LightType::DIRECTIONAL_LIGHT;
     params.type = static_cast<u32>(LightType::DIRECTIONAL_LIGHT);
     SetColor(color);
@@ -69,7 +69,7 @@ DirectionalLight::DirectionalLight(const Math::float3 &color, f32 intensity, con
     SetDirection(direction);
 }
 
-PointLight::PointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, f32 radius) noexcept {
+PointLight::PointLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position, f32 radius) noexcept {
     m_type = LightType::POINT_LIGHT;
     params.type = static_cast<u32>(LightType::POINT_LIGHT);
     SetColor(color);
@@ -78,8 +78,8 @@ PointLight::PointLight(const Math::float3 &color, f32 intensity, const Math::flo
     SetFalloff(radius);
 }
 
-SpotLight::SpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
-                     const Math::float3 &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept {
+SpotLight::SpotLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position,
+                     const math::Vector3f &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept {
     m_type = LightType::SPOT_LIGHT;
     params.type = static_cast<u32>(LightType::SPOT_LIGHT);
     SetColor(color);

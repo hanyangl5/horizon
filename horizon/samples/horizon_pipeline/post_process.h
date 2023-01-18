@@ -11,7 +11,7 @@ class PostProcessData {
     Pipeline *post_process_pass;
 
     struct ExposureConstant {
-        Math::float4 exposure_ev100__;
+        math::Vector4f exposure_ev100__;
     } exposure_constants;
 
     Texture* pp_color_texture;

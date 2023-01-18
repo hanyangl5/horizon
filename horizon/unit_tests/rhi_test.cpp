@@ -40,10 +40,10 @@
 //     for (u32 i = 0; i < cmdlist_count; i++) {
 //         buffers.emplace_back(
 //             rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-//                                                ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3)}));
+//                                                ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(math::Vector3f)}));
 
 //         results[i] = std::move(tp->submit([&rhi, &cmdlists, &buffers, i]() {
-//             Math::float3 data{static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+//             math::Vector3f data{static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
 //                               static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
 //                               static_cast<float>(rand()) / static_cast<float>(RAND_MAX)};
 

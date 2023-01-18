@@ -10,7 +10,7 @@
 
 #include <filesystem>
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/rhi_utils.h>
 

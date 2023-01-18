@@ -6,15 +6,14 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "Window.h"
+#include "window.h"
 
 // standard libraries
 
 // third party libraries
 
 // project headers
-
-#include <runtime/core/log/Log.h>
+#include <runtime/core/log/log.h>
 
 namespace Horizon {
 

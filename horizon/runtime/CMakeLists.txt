@@ -1,6 +1,6 @@
 project(runtime)
 
-file(GLOB_RECURSE HEADER_FILES "*.h")
+file(GLOB_RECURSE HEADER_FILES "*.h" "*.hpp")
 file(GLOB_RECURSE SOURCE_FILES "*.cpp")
 
 #source_group(TREE "${ENGINE_ROOT_DIR}/schema" FILES ${SCHEMA_FILES})

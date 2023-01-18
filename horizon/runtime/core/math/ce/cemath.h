@@ -11,7 +11,7 @@
 #include <random>
 #include <type_traits>
 
-namespace Horizon::Math::CE {
+namespace Horizon::math::CE {
 
 // template <typename T> typename constexpr bool IsOdd(T x) {
 //     if constexpr (!std::is_integral<T>()) {
@@ -142,4 +142,4 @@ namespace Horizon::Math::CE {
 // }
 
 
-} // namespace Horizon::Math::CE
+} // namespace Horizon::math::CE

@@ -18,16 +18,16 @@ class SSAOData {
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
     struct SSAOConstant {
-        Math::float4x4 inv_proj;
+        math::Matrix44f inv_proj;
         f32 noise_scale_x;
         f32 noise_scale_y;
         u32 pad0[2];
-        Container::FixedArray<Math::float4, SSAO_KERNEL_SIZE> kernels;
+        Container::FixedArray<math::Vector4f, SSAO_KERNEL_SIZE> kernels;
     } ssao_constansts;
 
     static constexpr u32 SSAO_NOISE_TEX_WIDTH = 4;
     static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
-    Container::FixedArray<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
+    Container::FixedArray<math::Vector2f, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
     TextureDataDesc ssao_noise_tex_data_desc{};
     Texture* ssao_noise_tex;
 

@@ -32,16 +32,16 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept {
     std::default_random_engine generator;
 
     for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i) {
-        Math::float3 sample(rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator));
+        math::Vector3f sample(rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator));
         sample.Normalize();
         sample *= rnd_dist(generator);
         float scale = float(i) / float(SSAO_KERNEL_SIZE);
         sample *= Lerp(0.1f, 1.0f, scale * scale);
-        ssao_constansts.kernels[i] = Math::float4(sample);
+        ssao_constansts.kernels[i] = math::Vector4f(sample);
     }
     // ssao noise tex
     for (u32 i = 0; i < ssao_noise_tex_val.size(); i++) {
-        ssao_noise_tex_val[i] = Math::float2(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f);
+        ssao_noise_tex_val[i] = math::Vector2f(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f);
     }
     char *begin = reinterpret_cast<char *>(&ssao_noise_tex_val[0]);
     char *end = reinterpret_cast<char *>(&ssao_noise_tex_val[ssao_noise_tex_val.size() - 1]);

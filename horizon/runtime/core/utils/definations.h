@@ -10,7 +10,12 @@
 
 #define NOMINMAX
 
+// standard libraries
 #include <cstdint>
+
+// third party libraries
+
+// project headers
 
 namespace Horizon {
 

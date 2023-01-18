@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <tuple>
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/function/resource/resource_manager/resource_manager.h>
@@ -37,15 +37,15 @@ struct MeshData {
 };
 
 struct InstanceParameters {
-    Math::float4x4 model_matrix;
+    math::Matrix44f model_matrix;
     u32 material_index;
     u32 pad[3];
 };
 
 struct DecalInstanceParameters {
-    Math::float4x4 model;
-    Math::float4x4 decal_to_world;
-    Math::float4x4 world_to_decal;
+    math::Matrix44f model;
+    math::Matrix44f decal_to_world;
+    math::Matrix44f world_to_decal;
     u32 material_index;
     u32 pad[3];
 };
@@ -59,12 +59,12 @@ struct MaterialDesc {
     u32 subsurface_scattering_texture_index;
     u32 param_bitmask;
     u32 blend_state;
-    Math::float3 base_color;
+    math::Vector3f base_color;
     f32 pad1;
-    Math::float3 emissive;
+    math::Vector3f emissive;
     f32 pad2;
-    Math::float2 metallic_roughness;
-    Math::float2 pad3;
+    math::Vector2f metallic_roughness;
+    math::Vector2f pad3;
 };
 
 class SceneManager {
@@ -83,11 +83,11 @@ class SceneManager {
     void CreateDecalResources(Backend::RHI *rhi);
     void UploadDecalResources(Backend::CommandList *commandlist);
     // light
-    Light *AddDirectionalLight(const Math::float3 &color, f32 intensity,
-                               const Math::float3 &directiona) noexcept; // temperature, soource radius, length
-    Light *AddPointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, f32 radius) noexcept;
-    Light *AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
-                        const Math::float3 &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept;
+    Light *AddDirectionalLight(const math::Vector3f &color, f32 intensity,
+                               const math::Vector3f &directiona) noexcept; // temperature, soource radius, length
+    Light *AddPointLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position, f32 radius) noexcept;
+    Light *AddSpotLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position,
+                        const math::Vector3f &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept;
     void CreateLightResources(Backend::RHI *rhi);
     void UploadLightResources(Backend::CommandList *commandlist);
     Buffer *GetLightCountBuffer() const noexcept;
@@ -101,9 +101,9 @@ class SceneManager {
 
     Buffer* GetCameraBuffer() const noexcept;
     // TODO(hylu): multiview
-    std::tuple<Camera *, CameraController *> AddCamera(const CameraSetting &setting, const Math::float3 &position,
-                                                       const Math::float3 &at,
-                      const Math::float3 &up);
+    std::tuple<Camera *, CameraController *> AddCamera(const CameraSetting &setting, const math::Vector3f &position,
+                                                       const math::Vector3f &at,
+                      const math::Vector3f &up);
     void CreateCameraResources(Backend::RHI *rhi);
     void UploadCameraResources(Backend::CommandList *commandlist);
 
@@ -160,9 +160,9 @@ class SceneManager {
 
     Memory::UniquePtr<Camera> main_camera{};
     struct CameraUb {
-        Math::float4x4 vp;
-        Math::float4x4 prev_vp;
-        Math::float3 camera_pos;
+        math::Matrix44f vp;
+        math::Matrix44f prev_vp;
+        math::Vector3f camera_pos;
         f32 ev100;
     }camera_ub{};
 
@@ -189,13 +189,13 @@ class SceneManager {
 
     Buffer *scene_constants_buffer;
     struct SceneConstants {
-        Math::float4x4 camera_view;
-        Math::float4x4 camera_projection;
-        Math::float4x4 camera_view_projection;
-        Math::float4x4 camera_inverse_view_projection;
+        math::Matrix44f camera_view;
+        math::Matrix44f camera_projection;
+        math::Matrix44f camera_view_projection;
+        math::Matrix44f camera_inverse_view_projection;
         u32 resolution[2];
         u32 pad0[2];
-        Math::float3 camera_pos;
+        math::Vector3f camera_pos;
         u32 pad1;
         f32 ibl_intensity;
     } scene_constants;
@@ -203,7 +203,7 @@ class SceneManager {
     // shadow resources
 
     struct ShadowMapData {
-        Math::float4x4 view_projection;
+        math::Matrix44f view_projection;
     };
     u32 shadow_map_count;
     Container::Array<ShadowMapData> shadow_map_data;

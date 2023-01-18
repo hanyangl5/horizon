@@ -20,7 +20,7 @@
 // third party libraries
 
 // project headers
-#include <core/memory/memory.h>
+#include <runtime/core/memory/memory.h>
 
 namespace Horizon::Container {
 

@@ -10,7 +10,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include <runtime/core/log/Log.h>
+#include <runtime/core/log/log.h>
 #include <runtime/function/rhi/RHI.h>
 
 namespace Horizon {
@@ -24,14 +24,14 @@ Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path,
 
 Mesh::~Mesh() noexcept {}
 
-void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
+void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const math::Matrix44f &parent_model_matrx) {
     if (!node) {
         return;
     }
     auto &n = m_nodes[index];
     // update node model matrix
     auto &t = node->mTransformation;
-    Math::float4x4 m(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
+    math::Matrix44f m(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
     n.model_matrix = m * parent_model_matrx;
 
     n.mesh_primitives.resize(node->mNumMeshes);
@@ -190,22 +190,22 @@ void Mesh::Load() {
 
             Vertex vertex{};
 
-            memcpy(&vertex.pos, &mesh->mVertices[v], sizeof(Math::float3));
+            memcpy(&vertex.pos, &mesh->mVertices[v], sizeof(math::Vector3f));
 
             if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals()) {
-                memcpy(&vertex.normal, &mesh->mNormals[v], sizeof(Math::float3));
+                memcpy(&vertex.normal, &mesh->mNormals[v], sizeof(math::Vector3f));
             }
             // if (vertex_attribute_flag & VertexAttributeType::TBN && mesh->HasTangentsAndBitangents()) {
-            //     memcpy(&vertex.tbn, &mesh->mTangents[v], sizeof(Math::float3));
+            //     memcpy(&vertex.tbn, &mesh->mTangents[v], sizeof(math::Vector3f));
             // }
             if (vertex_attribute_flag & VertexAttributeType::UV0 && mesh->HasTextureCoords(0)) {
-                memcpy(&vertex.uv0, &mesh->mTextureCoords[0][v], sizeof(Math::float2));
+                memcpy(&vertex.uv0, &mesh->mTextureCoords[0][v], sizeof(math::Vector2f));
             }
             if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(1)) {
-                memcpy(&vertex.uv1, &mesh->mTextureCoords[1][v], sizeof(Math::float2));
+                memcpy(&vertex.uv1, &mesh->mTextureCoords[1][v], sizeof(math::Vector2f));
             }
             if (vertex_attribute_flag & VertexAttributeType::TANGENT && mesh->HasTangentsAndBitangents()) {
-                memcpy(&vertex.tangent, &mesh->mTangents[v], sizeof(Math::float3));
+                memcpy(&vertex.tangent, &mesh->mTangents[v], sizeof(math::Vector3f));
             }
             m_vertices.emplace_back(vertex);
         }
@@ -229,7 +229,7 @@ void Mesh::Load() {
     u32 node_count = CalculateNodeCount(scene) + 1;
 
     m_nodes.resize(node_count);
-    ProcessNode(scene, scene->mRootNode, 0, Math::float4x4::Identity);
+    ProcessNode(scene, scene->mRootNode, 0, math::Matrix44f::Identity);
 
     ProcessMaterials(scene);
 

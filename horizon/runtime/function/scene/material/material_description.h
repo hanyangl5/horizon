@@ -42,9 +42,9 @@ class MaterialTextureDescription {
 };
 
 struct MaterialParams {
-    Math::float3 base_color_factor;
+    math::Vector3f base_color_factor;
     f32 roughness_factor;
-    Math::float3 emmissive_factor;
+    math::Vector3f emmissive_factor;
     f32 metallic_factor;
     u32 param_bitmask;
     u32 shading_model_id, two_side, pad;

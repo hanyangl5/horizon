@@ -14,7 +14,7 @@
 
 // project headers
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/window/Window.h>
 #include <runtime/function/scene/camera/Camera.h>
 

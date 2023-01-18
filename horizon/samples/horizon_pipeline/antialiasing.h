@@ -7,7 +7,7 @@ class TAAData {
     TAAData(Backend::RHI *rhi) noexcept;
     ~TAAData() noexcept = default;
 
-    const Math::float2 &GetJitterOffset() noexcept;
+    const math::Vector2f &GetJitterOffset() noexcept;
 
     Shader *taa_cs;
     Pipeline *taa_pass;
@@ -17,12 +17,12 @@ class TAAData {
 
     static constexpr u32 TAA_SAMPLE_COUNT = 16;
 
-    Container::FixedArray<Math::float2, TAA_SAMPLE_COUNT> taa_samples;
+    Container::FixedArray<math::Vector2f, TAA_SAMPLE_COUNT> taa_samples;
     u32 taa_sample_index = 0;
 
     struct TAAPrevCurrOffset {
-        Math::float2 prev_offset;
-        Math::float2 curr_offset;
+        math::Vector2f prev_offset;
+        math::Vector2f curr_offset;
     } taa_prev_curr_offset;
 
     Buffer* taa_prev_curr_offset_buffer;

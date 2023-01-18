@@ -16,7 +16,7 @@
 
 #include "Component.h"
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 
 namespace Horizon {
 
@@ -25,23 +25,23 @@ class Transform : public Component {
     Transform();
     ~Transform();
 
-    void SetPosition(const Math::float3 &pos) noexcept;
-    void SetRotation(const Math::float3 &rot) noexcept;
-    void SetScale(const Math::float3 &scale) noexcept;
+    void SetPosition(const math::Vector3f &pos) noexcept;
+    void SetRotation(const math::Vector3f &rot) noexcept;
+    void SetScale(const math::Vector3f &scale) noexcept;
 
-    Math::float4x4 GetTransformMatrix() noexcept;
-    Math::float3 GetOrientation() noexcept;
-    Math::float3 GetTranslation() const noexcept;
-    Math::float3 GetRotation() const noexcept;
-    Math::float3 GetScale() const noexcept;
+    math::Matrix44f GetTransformMatrix() noexcept;
+    math::Vector3f GetOrientation() noexcept;
+    math::Vector3f GetTranslation() const noexcept;
+    math::Vector3f GetRotation() const noexcept;
+    math::Vector3f GetScale() const noexcept;
 
   private:
     bool need_recalculation = true;
-    Math::float4x4 m_transform_matrix = Math::float4x4::Identity;
-    Math::float3 m_position;
-    Math::quaternion m_rotation;
-    Math::float3 m_scale = Math::float3(1.0, 1.0, 1.0);
-    Math::float3 m_orientation = Math::DefaultOrientation;
+    math::Matrix44f m_transform_matrix;
+    math::Vector3f m_position;
+    math::Quat m_rotation;
+    math::Vector3f m_scale = math::Vector3f(1.0, 1.0, 1.0);
+    math::Vector3f m_orientation = math::DEFAULT_ORIENTATION;
 };
 
 } // namespace Horizon

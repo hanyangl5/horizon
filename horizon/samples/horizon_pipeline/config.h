@@ -9,8 +9,8 @@
 
 #include <argparse/argparse.hpp>
 
-#include <runtime/core/log/Log.h>
-#include <runtime/core/math/Math.h>
+#include <runtime/core/log/log.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/units/Units.h>
 #include <runtime/core/utils/definations.h>
 #include <runtime/core/utils/functions.h>

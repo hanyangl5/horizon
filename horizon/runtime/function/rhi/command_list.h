@@ -2,7 +2,7 @@
 
 #include <variant>
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/function/rhi/buffer.h>
 #include <runtime/function/rhi/texture.h>
 #include <runtime/function/rhi/pipeline.h>
@@ -67,7 +67,7 @@ class CommandList {
 
     virtual void ClearBuffer(Buffer *buffer, f32 clear_value) = 0;
 
-    virtual void ClearTextrue(Texture *texture, const Math::float4 &clear_value) = 0;
+    virtual void ClearTextrue(Texture *texture, const math::Vector4f &clear_value) = 0;
 
     // bind by index save string lookup
     virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;

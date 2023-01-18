@@ -35,7 +35,7 @@ f32 operator""_km(long double x) {
  }
 
  f32 operator""_lm(long double x) {
-     return static_cast<f32>(x * Math::_1DIVPI * 0.25f); 
+     return static_cast<f32>(x * math::_1DIVPI * 0.25f); 
  }
 
  f32 operator""_cd(long double x) {
@@ -47,7 +47,7 @@ f32 operator""_km(long double x) {
  }
 
  f32 operator""_deg(long double x) {
-     return static_cast<f32>(x * Math::_PI / 180.0f); 
+     return static_cast<f32>(x * math::_PI / 180.0f); 
  }
 
 } // namespace Horizon

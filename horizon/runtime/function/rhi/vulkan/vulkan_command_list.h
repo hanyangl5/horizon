@@ -68,7 +68,7 @@ class VulkanCommandList : public CommandList {
 
     void ClearBuffer(Buffer *buffer, f32 clear_value) override;
 
-    void ClearTextrue(Texture *texture, const Math::float4 &clear_value) override;
+    void ClearTextrue(Texture *texture, const math::Vector4f &clear_value) override;
 
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 

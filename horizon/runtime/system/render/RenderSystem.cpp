@@ -1,7 +1,7 @@
 #include "RenderSystem.h"
 
 #include <iostream>
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/path/Path.h>
 #include <runtime/function/rhi/RHI.h>
 #include <runtime/function/rhi/resource_barrier.h>
