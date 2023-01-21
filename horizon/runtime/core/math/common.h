@@ -8,8 +8,9 @@
 
 #pragma once
 
+#ifndef NOMINMAX
 #define NOMINMAX
-
+#endif
 // standard libraries
 #include <cstdint>
 

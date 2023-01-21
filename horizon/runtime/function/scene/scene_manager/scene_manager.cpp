@@ -307,10 +307,10 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
 
         math::Matrix44f world_to_decal = math::Matrix44f{u, v, n};
         auto &decal_position = decal->transform.GetTranslation();
-        world_to_decal._14 = -math::dot(decal_position, u);
-        world_to_decal._24 = -math::dot(decal_position, v);
-        world_to_decal._34 = -math::dot(decal_position, n);
-        instance_param.decal_to_world = world_to_decal.Invert();
+        world_to_decal(1, 4) = -math::dot(decal_position, u);
+        world_to_decal(2, 4) = -math::dot(decal_position, v);
+        world_to_decal(3, 4) = -math::dot(decal_position, n);
+        instance_param.decal_to_world = math::Invert(world_to_decal);
         instance_param.world_to_decal = world_to_decal;
         instance_param.material_index = material_offset;
         decal_instance_params.push_back(std::move(instance_param));

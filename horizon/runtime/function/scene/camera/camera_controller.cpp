@@ -33,7 +33,7 @@ void CameraController::ProcessInput(Window* window) {
     auto direction = Input::ProcessKeyboardInput(window);
     m_camera->Move(direction);
     auto rotation = Input::ProcessMouseInput(window);
-    m_camera->Rotate(rotation.x, rotation.y);
+    m_camera->Rotate(rotation.x(), rotation.y());
     m_camera->UpdateViewMatrix();
 }
 

@@ -35,14 +35,14 @@ class Vector {
     };
 
     // Vector2
-    constexpr Vector(T x, T y) noexcept {
+    constexpr Vector(const T &x, const T &y) noexcept {
       static_assert(dimension == 2);
       e[0] = x;
       e[1] = y;
     };
 
     // Vector3
-    constexpr Vector(T x, T y, T z) noexcept {
+    constexpr Vector(const T &x, const T &y, const T &z) noexcept {
       static_assert(dimension == 3);
       e[0] = x;
       e[1] = y;
@@ -50,7 +50,7 @@ class Vector {
     };
 
     // constrcut Vector3 by [Vector2, z]
-    constexpr Vector(Vector<2, T> xy, T z) noexcept {
+    constexpr Vector(const Vector<2, T> &xy, const T &z) noexcept {
       static_assert(dimension == 3);
       e[0] = xy.at(0);
       e[1] = xy.at(1);
@@ -58,7 +58,7 @@ class Vector {
     };
 
     // Vector4
-    constexpr Vector(T x, T y, T z, T w) noexcept {
+    constexpr Vector(const T &x, const T &y, const T &z, const T &w) noexcept {
       static_assert(dimension == 4);
       e[0] = x;
       e[1] = y;
@@ -67,7 +67,7 @@ class Vector {
     };
 
     // constrcut Vector4 by [vec2, y, z]
-    constexpr Vector(Vector<2, T> xy, T z, T w) noexcept {
+    constexpr Vector(const Vector<2, T> &xy, const T &z, const T &w) noexcept {
       static_assert(dimension == 4);
       e[0] = xy.at(0);
       e[1] = xy.at(1);
@@ -76,7 +76,7 @@ class Vector {
     };
 
     // constrcut Vector4 by [vec3, z]
-    constexpr Vector(Vector<3, T> xyz, T w) noexcept {
+    constexpr Vector(const Vector<3, T>& xyz, const T &w) noexcept {
       static_assert(dimension == 4);
       e[0] = xyz.at(0);
       e[1] = xyz.at(1);
@@ -84,149 +84,106 @@ class Vector {
       e[3] = w;
     };
 
+    constexpr Vector(const Vector &rhs) noexcept = default;
+    constexpr Vector &operator=(const Vector &rhs) noexcept = default;
+    constexpr Vector(Vector &&rhs) noexcept = default;
+    constexpr Vector &operator=(Vector &&rhs) noexcept = default;
+
     ~Vector() noexcept {
       static_assert(dimension <= MAX_DIMENSION);
     }
 
-    constexpr T at(u32 i) const {
+    constexpr const T& at(u32 i) const {
       assert(i <= dimension);
       return e[i]; 
     }
 
-    constexpr T& operator()(u32 i) {
+    constexpr T& at(u32 i) {
       assert(i <= dimension);
       return e[i]; 
     }
 
-    Vector(const Vector &rhs) noexcept = default;
-    Vector &operator=(const Vector &rhs) noexcept = default;
-    Vector(Vector &&rhs) noexcept = default;
-    Vector &operator=(Vector &&rhs) noexcept = default;
-        
-    // overload operators
-    constexpr auto operator+(const Vector<dimension, T>& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        ret(i) = at(i) + rhs.at(i);
-      }
-      return ret;
+    constexpr T& x() {
+      static_assert(dimension >= 1);
+      return at(0);
     }
 
-    constexpr auto operator-(const Vector<dimension, T>& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        ret(i) = at(i) - rhs.at(i);
-      }
-      return ret;
+    constexpr T& y() {
+      static_assert(dimension >= 2);
+      return at(1);
     }
 
-    constexpr auto operator*(const Vector<dimension, T>& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        ret(i) = at(i) * rhs.at(i);
-      }
-      return ret;
+    constexpr T& z() {
+      static_assert(dimension >= 3);
+      return at(2);
     }
 
-    constexpr auto operator/(const Vector<dimension, T>& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        assert(rhs.at(i) != T(0)); // divide 0
-        ret(i) = at(i) / rhs.at(i);
-      }
-      return ret;
+    constexpr T& w() {
+      static_assert(dimension >= 4);
+      return at(3);
     }
 
-    constexpr auto& operator+=(const Vector<dimension, T>& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-        (*this)(i) += rhs.at(i);
-      }
-      return *this;
+    constexpr const T &x() const {
+      static_assert(dimension >= 1);
+      return at(0);
     }
 
-    constexpr auto& operator-=(const Vector<dimension, T>& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-        (*this)(i) -= rhs.at(i);
-      }
-      return *this;
+    constexpr const T &y() const  {
+      static_assert(dimension >= 2);
+      return at(1);
     }
 
-    constexpr auto& operator*=(const Vector<dimension, T>& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-        assert(rhs.at(i) != T(0)); // divide 0
-        (*this)(i) *= rhs.at(i);
-      }
-      return *this;
+    constexpr const T &z() const {
+      static_assert(dimension >= 3);
+      return at(2);
     }
 
-    constexpr auto& operator/=(const Vector<dimension, T>& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-          (*this)(i) /= rhs.at(i);
-      }
-      return *this;
-    }
-    constexpr auto operator+(const T& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        ret(i) = at(i) + rhs;
-      }
-      return ret;
+    constexpr const T &w() const {
+      static_assert(dimension >= 4);
+      return at(3);
     }
 
-    constexpr auto operator-(const T& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        ret(i) = at(i) - rhs;
-      }
-      return ret;
+    constexpr T &r() {
+      static_assert(dimension >= 1);
+      return at(0);
     }
 
-    constexpr auto operator*(const T& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        ret(i) = at(i) * rhs;
-      }
-      return ret;
+    constexpr T &g() {
+      static_assert(dimension >= 2);
+      return at(1);
     }
 
-    constexpr auto operator/(const T& rhs) {
-      Vector<dimension, T> ret;
-      for (u32 i = 0; i < dimension;i++) {
-        assert(rhs != T(0)); // divide 0
-        ret(i) = at(i) / rhs;
-      }
-      return ret;
+    constexpr T &b() {
+      static_assert(dimension >= 3);
+      return at(2);
     }
 
-    constexpr auto& operator+=(const T& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-        (*this)(i) += rhs;
-      }
-      return *this;
+    constexpr T &a() {
+      static_assert(dimension >= 4);
+      return at(3);
     }
 
-    constexpr auto& operator-=(const T& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-        (*this)(i) -= rhs;
-      }
-      return *this;
+    constexpr const T &r() const {
+      static_assert(dimension >= 1);
+      return at(0);
     }
 
-    constexpr auto& operator*=(const T& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-        assert(rhs.at(i) != T(0)); // divide 0
-        (*this)(i) *= rhs;
-      }
-      return *this;
+    constexpr const T &g() const {
+      static_assert(dimension >= 2);
+      return at(1);
     }
 
-    constexpr auto& operator/=(const T& rhs) {
-      for (u32 i = 0; i < dimension;i++) {
-          (*this)(i) /= rhs;
-      }
-      return *this;
+    constexpr const T &b() const {
+      static_assert(dimension >= 3);
+      return at(2);
     }
-private:
+
+    constexpr const T &a() const {
+      static_assert(dimension >= 4);
+      return at(3);
+    }
+
+  private:
   std::array<T, dimension> e{};
 };
 

@@ -44,7 +44,7 @@ void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 nea
 
     f32 h = (0.5 * near_plane) * ((SENSOR_SIZE * 1000.0) / focal_length);
     f32 w = h * aspect_ratio;
-    m_projection =  DirectX::SimpleMath::Matrix::CreatePerspective(w, h, near_plane, far_plane);
+    m_projection =  math::CreatePerspectiveProjectionMatrix(w, h, near_plane, far_plane);
 }
 
 math::Matrix44f Camera::GetProjectionMatrix() const noexcept {
@@ -53,8 +53,7 @@ math::Matrix44f Camera::GetProjectionMatrix() const noexcept {
 }
 
 math::Matrix44f Camera::GetInvProjectionMatrix() const noexcept {
-    auto inv_p = m_projection.Invert();
-    return inv_p;
+    return math::Invert(m_projection);
 }
 
 math::Vector3f Camera::GetFov() const noexcept {
@@ -99,8 +98,8 @@ void Camera::Move(Direction direction) noexcept {
 }
 
 void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
-    m_yaw += xoffset * m_sensitivity.x;
-    m_pitch -= yoffset * m_sensitivity.y; // TODO(hylu): unify axis in different API
+    m_yaw += xoffset * m_sensitivity.x();
+    m_pitch -= yoffset * m_sensitivity.y(); // TODO(hylu): unify axis in different API
 
     // prevent locked
     if (m_pitch > 89.0f)
@@ -112,9 +111,9 @@ void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
 void Camera::UpdateViewMatrix() noexcept {
     // calculate the new Front vector
     math::Vector3f front;
-    front.x = cos(math::Radians(m_yaw)) * cos(math::Radians(m_pitch));
-    front.y = sin(math::Radians(m_pitch));
-    front.z = sin(math::Radians(m_yaw)) * cos(math::Radians(m_pitch));
+    front.x() = cos(math::Radians(m_yaw)) * cos(math::Radians(m_pitch));
+    front.y() = sin(math::Radians(m_pitch));
+    front.z() = sin(math::Radians(m_yaw)) * cos(math::Radians(m_pitch));
 
     m_forward = math::Normalize(front);
     m_right = math::Normalize(math::Cross(m_forward, math::Vector3f(0.0, 1.0,
@@ -123,18 +122,15 @@ void Camera::UpdateViewMatrix() noexcept {
                                                                           // down which results in slower Movement.
     m_up = math::Normalize(math::Cross(m_right, m_forward));
 
-    m_view = math::LookAt(m_eye, m_eye + m_forward, m_up);
+    m_view = math::CreateLookAt(m_eye, m_eye + m_forward, m_up);
 }
 
 math::Matrix44f Camera::GetViewProjectionMatrix() const noexcept {
-    auto vp = m_view * m_projection;
-    return vp;
+    return m_view * m_projection;
 }
 
 math::Matrix44f Camera::GetInvViewProjectionMatrix() const noexcept {
-    auto vp = m_view * m_projection;
-    vp = vp.Invert();
-    return vp;
+    return math::Invert(m_view * m_projection);
 }
 
 math::Vector3f Camera::GetForwardDir() const noexcept {
@@ -173,13 +169,11 @@ const math::Vector2f Camera::GetSensitivity() const noexcept {
 }
 
 math::Matrix44f Camera::GetViewMatrix() const noexcept {
-    auto v = m_view;
-    return v;
+    return m_view;
 }
 
 math::Matrix44f Camera::GetInvViewMatrix() const noexcept {
-    auto v = m_view.Invert();
-    return v;
+    return math::Invert(m_view);
 }
 
 math::Vector3f Camera::GetPosition() const noexcept {

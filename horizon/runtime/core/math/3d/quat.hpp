@@ -37,14 +37,10 @@ class Quaternion {
         e[3] = w;
     };
 
-    ~Quaternion() noexcept { static_assert(dimension <= MAX_DIMENSION); }
-
-    constexpr T at(u32 i) const {
-        assert(i <= 4);
-        return e[i];
+    ~Quaternion() noexcept {
     }
 
-    constexpr T &operator()(u32 i) {
+    constexpr T at(u32 i) const {
         assert(i <= 4);
         return e[i];
     }
@@ -177,9 +173,50 @@ class Quaternion {
     //    }
     //    return *this;
     //}
+    
 
+    
+    constexpr T &x() {
+        static_assert(dimension >= 1);
+        return e.at(0);
+    }
+
+    constexpr T &y() {
+        static_assert(dimension >= 2);
+        return e.at(1);
+    }
+
+    constexpr T &z() {
+        static_assert(dimension >= 3);
+        return e.at(2);
+    }
+
+    constexpr T &w() {
+        static_assert(dimension >= 4);
+        return e.at(3);
+    }
+
+    constexpr const T &x() const {
+        static_assert(dimension >= 1);
+        return e.at(0);
+    }
+
+    constexpr const T &y() const {
+        static_assert(dimension >= 2);
+        return e.at(1);
+    }
+
+    constexpr const T &z() const {
+        static_assert(dimension >= 3);
+        return e.at(2);
+    }
+
+    constexpr const T &w() const {
+        static_assert(dimension >= 4);
+        return e.at(3);
+    }
   private:
-    std::array<T, 4> e{};
+    Vector<4, T> e{};
 };
 
 } // namespace Horizon::math

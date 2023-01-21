@@ -20,11 +20,6 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon/ThirdParty")
 
 #target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/dx12)
 
-# ini parser
-
-find_package(unofficial-iniparser CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC unofficial::iniparser::iniparser)
-
 # find vulkan
 find_package(Vulkan REQUIRED)
 target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})
@@ -70,21 +65,21 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${STB_INCLUDE_DIRS})
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
-find_package(unofficial-spirv-reflect CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::spirv-reflect::spirv-reflect)
+# find_package(unofficial-spirv-reflect CONFIG REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::spirv-reflect::spirv-reflect)
 
-find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
-target_include_directories(${PROJECT_NAME} PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIRS})
+# find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
+# target_include_directories(${PROJECT_NAME} PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIRS})
 
-find_package(EnTT CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
+# find_package(EnTT CONFIG REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
 
 # this is heuristically generated, and may not be correct
 # find_package(spirv_cross_c CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-c)
 
-find_package(spirv_cross_core CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-core)
+# find_package(spirv_cross_core CONFIG REQUIRED)
+# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-core)
 
 # find_package(spirv_cross_cpp CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-cpp)
@@ -110,15 +105,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 find_package(meshoptimizer CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)
 
-find_package(meshoptimizer CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE meshoptimizer::meshoptimizer)
+# find_package(imgui CONFIG REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
 
-find_package(imgui CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
-
-
-find_package(unofficial-nativefiledialog CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::nativefiledialog::nfd)
+# find_package(unofficial-nativefiledialog CONFIG REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::nativefiledialog::nfd)
 
 # find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
 # target_include_directories(${PROJECT_NAME} PRIVATE ${CGLTF_INCLUDE_DIRS})

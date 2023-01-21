@@ -18,9 +18,4 @@ namespace Horizon::math {
 
 static Vector<3> DEFAULT_ORIENTATION{0, 0, 1};
 
-Matrix<4, 4> Horizon::math::CreateOrthoProjectionMatrix() { return {}; }
-
-Matrix<4, 4> Horizon::math::CreateLookAt() { return {}; }
 }
-
-

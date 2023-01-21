@@ -9,9 +9,9 @@
 namespace Horizon {
 
 void Light::SetColor(const math::Vector3f &color) noexcept {
-    params.color_intensity.x = color.x;
-    params.color_intensity.y = color.y;
-    params.color_intensity.z = color.z;
+    params.color_intensity.x() = color.x();
+    params.color_intensity.y() = color.y();
+    params.color_intensity.z() = color.z();
 }
 
 void Light::SetIntensity(f32 intensity) noexcept {
@@ -22,7 +22,7 @@ void Light::SetIntensity(f32 intensity) noexcept {
         break;
     case LightType::SPOT_LIGHT:
         // https://google.github.io/filament/Filament.htm
-        params.intensity = intensity / math::_2PI * (1 - cos(params.spot_cone_inner_outer.y / 2));
+        params.intensity = intensity / math::_2PI * (1 - cos(params.spot_cone_inner_outer.y() / 2));
         break;
     }
 }
@@ -41,21 +41,13 @@ void Light::SetDirection(const math::Vector3f &direction) noexcept {
     params.direction = direction;
 }
 
-void Light::SetSpotLightInnerCone(f32 inner) noexcept {
-    params.spot_cone_inner_outer.x = inner; 
-}
+void Light::SetSpotLightInnerCone(f32 inner) noexcept { params.spot_cone_inner_outer.x() = inner; }
 
-void Light::SetSpotLightOuterCone(f32 outer) noexcept {
-    params.spot_cone_inner_outer.y = outer; 
-}
+void Light::SetSpotLightOuterCone(f32 outer) noexcept { params.spot_cone_inner_outer.y() = outer; }
 
-void Light::SetRadius(f32 radius) noexcept {
-    params.radius_length.x = radius; 
-}
+void Light::SetRadius(f32 radius) noexcept { params.radius_length.x() = radius; }
 
-void Light::SetLength(f32 length) noexcept {
-    params.radius_length.y = length; 
-}
+void Light::SetLength(f32 length) noexcept { params.radius_length.y() = length; }
 
 void Light::SetOrientation(const math::Vector3f &orientation) noexcept {
     params.orientation = orientation; 

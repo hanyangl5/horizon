@@ -3,10 +3,6 @@
 #include <mutex>
 #include <shared_mutex>
 
-
-
-#include <iniparser.h>
-
 #include <argparse/argparse.hpp>
 
 #include <tbb/parallel_for.h>

@@ -32,111 +32,62 @@ class Matrix {
 
     constexpr Matrix(const T (&_e)[dimension_m * dimension_n]) noexcept {
         static_assert(dimension_m <= MAX_DIMENSION && dimension_n <= MAX_DIMENSION);
-        for (u32 i = 0; i < dimension_m; i++) {
-            for (u32 j = 0; j < dimension_n; j++) {
-                e[i * dimension_n + j] = _e[i * dimension_n + j];
+        // SIMD for 4x4 matrix
+        if constexpr (dimension_m == dimension_n == MAX_DIMENSION) {
+        
+        } else {
+            for (u32 i = 0; i < dimension_m; i++) {
+                for (u32 j = 0; j < dimension_n; j++) {
+                    e[i * dimension_n + j] = _e[i * dimension_n + j];
+                }
             }
         }
     }
 
-    constexpr Matrix(const T (&_e)[16]) noexcept {
-        static_assert(dimension_m == 4 && dimension_n == 4);
-        for (u32 i = 0; i < dimension_m; i++) {
-            for (u32 j = 0; j < dimension_n; j++) {
-                e[i * dimension_n + j] = _e[i * dimension_n + j];
+    constexpr Matrix(const Vector<3, T> &x, const Vector<3, T> &y, const Vector<3, T> &z) noexcept {
+        static_assert((dimension_m == dimension_n) && ((dimension_m == 4) || (dimension_m == 3)));
+        // SIMD for 4x4 matrix
+        if constexpr (dimension_m == dimension_n == MAX_DIMENSION) {
+
+        } else {
+            for (u32 j = 0; j < 3; j++) {
+                e[0 * dimension_n + j] = x.at(j);
+            }
+            for (u32 j = 0; j < 3; j++) {
+                e[1 * dimension_n + j] = y.at(j);
+            }
+
+            for (u32 j = 0; j < 3; j++) {
+                e[2 * dimension_n + j] = z.at(j);
             }
         }
     }
-
-    constexpr Matrix(const Vector<dimension_n, T> *_e[dimension_m]) noexcept {
-        for (u32 i = 0; i < dimension_m; i++) {
-            for (u32 j = 0; j < dimension_n; j++) {
-                e(i, j) = _e(i, j);
-            }
-        }
-    }
-
     ~Matrix() noexcept {
     }
 
-    constexpr T at(u32 i) const {
+    constexpr const T& at(u32 i) const {
       assert(i <= dimension_m * dimension_n);
       return e[i]; 
     }
 
-    constexpr T at(u32 row, u32 column) const {
+    constexpr const T& at(u32 row, u32 column) const {
       assert(row <= dimension_m && column <= dimension_n);
       return this->at(row * dimension_n + column); 
     }
     
-    constexpr T& operator()(u32 i) {
+    constexpr T& at(u32 i) {
       assert(i <= dimension_m * dimension_n);
-      return e[i]; 
+      return e[i];
     }
 
-    constexpr T& operator()(u32 row, u32 column) {
+    constexpr T& at(u32 row, u32 column) {
       assert(row <= dimension_m && column <= dimension_n);
-      return (*this)(row * dimension_n + column); 
+      return this->at(row * dimension_n + column);
     }
 
-        
     // overload operators
     constexpr auto operator+(const Matrix<dimension_m, dimension_n, T>& rhs) {
 
-    }
-
-    constexpr auto operator-(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    constexpr auto operator*(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    constexpr auto operator/(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    constexpr auto& operator+=(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    constexpr auto& operator-=(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    constexpr auto& operator*=(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    constexpr auto& operator/=(const Matrix<dimension_m, dimension_n, T>& rhs) {
-
-    }
-
-    // matrix vector multiplication
-    constexpr auto operator*(const Vector<dimension_n, T>& rhs)
-    {
-        Vector<dimension_m, T> ret;
-        for (u32 i = 0; i < dimension_m;i++) {
-            for (u32 j = 0; j < dimension_n;j++){
-                ret(i) += this->at(i, j) * rhs.at(j);
-            }
-        }
-        return ret;
-    }
-
-    template<u32 dimension_m, u32 dimension_n, u32 dimension_o, typename T = f32>
-    constexpr auto operator*(const Matrix<dimension_n, dimension_o, T>& rhs)
-    {
-        Matrix<dimension_m, dimension_o, T> ret;
-        for (u32 i = 0; i < dimension_m; i++) {
-            for (u32 j = 0; j < dimension_o; j++) {
-                for (u32 k = 0; k < dimension_n; k++) {
-                    ret(i, j) += this->at(i, k) * rhs.at(k, j);
-                }
-            }
-        }
-        return ret;
     }
 
     Matrix(const Matrix &rhs) noexcept = default;

@@ -37,9 +37,9 @@ void Transform::SetScale(const math::Vector3f &scale) noexcept {
 
 math::Matrix44f Horizon::Transform::GetTransformMatrix() noexcept {
     if (need_recalculation) {
-        math::Matrix44f t = math::Matrix44f::CreateTranslation(m_position);
-        math::Matrix44f r = math::Matrix44f::CreateFromQuaternion(m_rotation);
-        math::Matrix44f s = math::Matrix44f::CreateScale(m_scale);
+        math::Matrix44f t = math::CreateTranslation(m_position);
+        math::Matrix44f r = math::CreateFromQuaternion(m_rotation);
+        math::Matrix44f s = math::CreateScale(m_scale);
         m_transform_matrix = s * r * t;
         need_recalculation = false;
     }
@@ -56,7 +56,7 @@ math::Vector3f Transform::GetOrientation() noexcept {
 
 math::Vector3f Transform::GetTranslation() const noexcept { return m_position; }
 
-math::Vector3f Transform::GetRotation() const noexcept { return m_rotation.ToEuler(); }
+math::Vector3f Transform::GetRotation() const noexcept { return math::ToEular(m_rotation); }
 
 math::Vector3f Transform::GetScale() const noexcept { return m_scale; }
 
