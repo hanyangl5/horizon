@@ -1,9 +1,13 @@
 // compact a big index buffer of visible mesh to save cpu bind index buffer
-
+// counter to https://github.com/ConfettiFX/The-Forge/blob/06dcb5cea31e30f9509309b1d7557167397a71a4/Examples_3/Unit_Tests/src/15a_VisibilityBufferOIT/Shaders/FSL/triangle_filtering.comp.fsl
 #include "include/platform/platform.hsl"
 #include "include/common/common_math.hsl"
 #include "include/indirectcommand/indirect_command.hsl"
 #include "include/geometry/geometry.hsl"
+
+#define ENABLE_CULL_BACKFACE			1
+#define ENABLE_CULL_FRUSTUM				1
+#define ENABLE_CULL_SMALL_PRIMITIVES	1
 
 ENABLE_WAVEOPS()
 
@@ -32,3 +36,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) thread_id, SV_GroupThreadID(uint3) lane
 
     RETURN();
 }
+
+// triangle culling cull single triangle to reduce vertex count into gpu.
+reduced IA, VS, stage

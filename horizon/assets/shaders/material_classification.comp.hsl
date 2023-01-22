@@ -1,0 +1,8 @@
+NUM_THREADS(8, 8, 1)
+void CS_MAIN(SV_DispatchThreadID(uint3) thread_id) 
+{
+    INIT_MAIN;
+
+    RETURN();
+}
+

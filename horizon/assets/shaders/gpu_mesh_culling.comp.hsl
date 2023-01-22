@@ -1,7 +1,7 @@
 #include "include/platform/platform.hsl"
 #include "include/common/common_math.hsl"
 #include "include/indirectcommand/indirect_command.hsl"
-#include "include/geometry/geometry.hsl"
+#include "include/translation/translation.hsl"
 
 ENABLE_WAVEOPS()
 
@@ -62,18 +62,18 @@ void CS_MAIN( SV_DispatchThreadID(uint3) thread_id, SV_GroupThreadID(uint3) lane
     uint global_draw_offset;
     uint global_index_offset;
 
-    uint local_draw_offset = WavePrefixSum(!culled);
-    uint local_index_offset = WavePrefixSum(!Get(mesh_infos)[mesh_id].index_count);
+    uint local_draw_offset = WavePrefixSum(uint(!culled));
+    uint local_index_offset = WavePrefixSum(Get(mesh_infos)[mesh_id].index_count);
 
     if (lane_id.x == 0) {
         uint summed_index_count = WaveActiveSum(Get(mesh_infos)[mesh_id].index_count);
-        AtomicAdd(Get(draw_count), visible_mesh_count, global_draw_offset);
-        AtomicAdd(Get(compact_index_buffer_dispatch_command).x, summed_index_count, global_index_offset); // larger than the actual count
+        AtomicAdd(Get(draw_count)[0], visible_mesh_count, global_draw_offset);
+        AtomicAdd(Get(compact_index_buffer_dispatch_command)[0].x, summed_index_count, global_index_offset); // slightly larger than the actual index count
     }
     
     if (!culled) {
         // global plus local to save synchronization between wavefront
-        uint draw_offset = global_draw_offset + local_draw_offset
+        uint draw_offset = global_draw_offset + local_draw_offset;
         uint index_offset = global_index_offset + local_index_offset;
         // compact the draw command buffer
         // Get(indirect_draw_command)[draw_offset].index_count = Get(mesh_infos)[mesh_id].index_count;
@@ -82,13 +82,13 @@ void CS_MAIN( SV_DispatchThreadID(uint3) thread_id, SV_GroupThreadID(uint3) lane
         // Get(indirect_draw_command)[draw_offset].first_vertex = 0;
         // Get(indirect_draw_command)[draw_offset].first_instance = 0;
 
-        Get(visible_meshes)[draw_offset].mesh_id = mesh_id;
-        Get(mesh_index_offsets)[draw_offset].index_offset = index_offset;
+        Get(visible_meshes)[draw_offset] = mesh_id;
+        Get(mesh_index_offsets)[draw_offset] = index_offset;
     }
 
     // if the last mesh, divide index buffer count by WORK_GROUP_SIZE
     if (thread_id.x == (mesh_count - 1)) {
-        Get(compact_index_buffer_dispatch_command).x = AlignUp(Get(compact_index_buffer_dispatch_command).x, WORK_GROUP_SIZE);
+        Get(compact_index_buffer_dispatch_command)[0].x = AlignUp(Get(compact_index_buffer_dispatch_command)[0].x, WORK_GROUP_SIZE);
     }
     
     RETURN();

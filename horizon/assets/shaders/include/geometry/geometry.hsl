@@ -22,5 +22,6 @@ ExpandedAABB GetExpandedAABB(AABB aabb) {
 struct MeshInfo {
     float3 center;
     AABB aabb;
-    float4 transform;
+    float4x4 transform;
+    uint index_count;
 };
