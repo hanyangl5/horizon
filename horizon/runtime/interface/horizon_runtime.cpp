@@ -22,10 +22,10 @@ HorizonRuntime::HorizonRuntime(const InitilizationConfig &config) noexcept {
     Memory::initialize();
     if (!config.offscreen) {
         m_window = Memory::MakeUnique<Window>("horizon", config.width, config.height);
-        m_render_system = Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(),
+        m_render_system = Memory::MakeUnique<RenderSystem>(m_window.get(),
                                                            config.render_backend, config.offscreen);
     } else {
-        m_render_system = Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(),
+        m_render_system = Memory::MakeUnique<RenderSystem>(m_window.get(),
                                                            config.render_backend, true);
     }
 }

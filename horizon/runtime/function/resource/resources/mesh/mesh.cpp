@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "mesh.h"
 
 #include <algorithm>
 
@@ -11,15 +11,15 @@
 #include <assimp/scene.h>
 
 #include <runtime/core/log/log.h>
-#include <runtime/function/rhi/RHI.h>
+#include <runtime/function/rhi/rhi.h>
 
 namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path,
+Mesh::Mesh(const MeshDesc &desc,
            std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
-    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path), m_mesh_primitives(allocator),
+    : vertex_attribute_flag(desc.vertex_attribute_flag), m_mesh_primitives(allocator),
       m_vertices(allocator), m_indices(allocator), m_nodes(allocator), materials(allocator) {}
 
 Mesh::~Mesh() noexcept {}
@@ -61,31 +61,33 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
     for (u32 i = 0; i < scene->mNumMaterials; i++) {
 
+        materials[i] = Memory::Alloc<Material>();
+
         bool unlit;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
         if (unlit == true) {
-            materials[i].shading_model = ShadingModel::SHADING_MODEL_UNLIT;
+            materials[i]->shading_model = ShadingModel::SHADING_MODEL_UNLIT;
         }
         // shading model
         bool two_side;
         scene->mMaterials[i]->Get(AI_MATKEY_TWOSIDED, two_side);
         if (two_side == true) {
-            materials[i].shading_model = ShadingModel::SHADING_MODEL_TWO_SIDE;
+            materials[i]->shading_model = ShadingModel::SHADING_MODEL_TWO_SIDE;
         }
         // blend state
 
         aiString alphaMode;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
         if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
-            materials[i].blend_state = BlendState::BLEND_STATE_TRANSPARENT;
-            materials[i].blend_state = BlendState::BLEND_STATE_MASKED; // TODO()
+            materials[i]->blend_state = BlendState::BLEND_STATE_TRANSPARENT;
+            materials[i]->blend_state = BlendState::BLEND_STATE_MASKED; // TODO()
         } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
-            materials[i].blend_state = BlendState::BLEND_STATE_MASKED;
+            materials[i]->blend_state = BlendState::BLEND_STATE_MASKED;
             // float maskThreshold = 0.5;
             // material->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
             // matConfig.maskThreshold = maskThreshold;
         } else if (strcmp(alphaMode.C_Str(), "OPAQUE") == 0) {
-            materials[i].blend_state = BlendState::BLEND_STATE_OPAQUE;
+            materials[i]->blend_state = BlendState::BLEND_STATE_OPAQUE;
         }
 
         aiString temp_path;
@@ -96,8 +98,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.emplace(MaterialTextureType::BASE_COLOR, abs_path);
-            materials[i].material_params.param_bitmask |= HAS_BASE_COLOR;
+            materials[i]->material_textures.emplace(MaterialTextureType::BASE_COLOR, abs_path);
+            materials[i]->material_params.param_bitmask |= HAS_BASE_COLOR;
         }
         // normal
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_NORMALS); t++) {
@@ -105,8 +107,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.emplace(MaterialTextureType::NORMAL, abs_path);
-            materials[i].material_params.param_bitmask |= HAS_NORMAL;
+            materials[i]->material_textures.emplace(MaterialTextureType::NORMAL, abs_path);
+            materials[i]->material_params.param_bitmask |= HAS_NORMAL;
         }
         // metallic roughness
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS);
@@ -115,8 +117,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
-            materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
+            materials[i]->material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
+            materials[i]->material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
 
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
@@ -124,24 +126,23 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
             abs_path /= temp_path.C_Str();
-            materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
-            materials[i].material_params.param_bitmask |= HAS_EMISSIVE;
+            materials[i]->material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
+            materials[i]->material_params.param_bitmask |= HAS_EMISSIVE;
         }
     }
 
     //// async load material textures
     auto &mats = this->materials;
     auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
-        for (int v = r.begin(); v < r.end(); v++) {
-            for (auto &[type, tex] : mats[v].material_textures) {
-                int width, height, channels;
+        for (auto v = r.begin(); v < r.end(); v++) {
+            for (auto &[type, tex] : mats[v]->material_textures) {
+                //int width, height, channels;
                 tex.texture_data_desc = TextureLoader::Load(tex.url.string().c_str());
             }
         }
     };
 
-    tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
-    int a = 5;
+    tbb::parallel_for(tbb::blocked_range<u32>(0, static_cast<u32>(materials.size())), LoadMesh);
 }
 
 u32 SubNodeCount(const aiNode *node) noexcept {
@@ -155,8 +156,8 @@ u32 SubNodeCount(const aiNode *node) noexcept {
 
 u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
 
-void Mesh::Load() {
-
+void Mesh::Load(const std::filesystem::path &path) {
+    m_path = path;
     // check mesh if loaded
     if (!m_vertices.empty()) {
         LOG_ERROR("mesh already loaded");
@@ -165,9 +166,9 @@ void Mesh::Load() {
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
-    const aiScene *scene = assimp_importer.ReadFile(
-        m_path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                     aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
+    constexpr int flags = aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace | aiProcess_Triangulate |
+                aiProcess_GenSmoothNormals | aiProcess_FlipUVs;
+    const aiScene *scene = assimp_importer.ReadFile(m_path.string().c_str(), static_cast<u32>(flags));
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -220,7 +221,7 @@ void Mesh::Load() {
             m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[1]);
             m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[2]);
         }
-        index_offset = m_vertices.size();
+        index_offset = static_cast<u32>(m_vertices.size());
     }
 
     m_vertices.shrink_to_fit();
@@ -238,6 +239,6 @@ void Mesh::Load() {
     assimp_importer.FreeScene();
 }
 
-const Container::Array<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
+const Container::Array<MeshNode> &Mesh::GetNodes() const noexcept { return m_nodes; }
 
 } // namespace Horizon

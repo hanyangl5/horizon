@@ -13,14 +13,16 @@
 // third party libraries
 
 // project headers
+#include  <runtime/core/utils/functions.h>
 
 namespace Horizon {
+
 ResourceManager::ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
-    : m_rhi(rhi) {}
+    : m_rhi(rhi),allocated_buffers(allocator), allocated_textures(allocator), meshes(allocator), decals(allocator), materials(allocator) {}
 
 ResourceManager::~ResourceManager() noexcept { ClearAllResources(); }
 
-Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info, const Container::String &name) {
+Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info) {
     auto buffer = m_rhi->CreateBuffer(buffer_create_info);
     allocated_buffers.emplace(buffer);
     return buffer;
@@ -51,7 +53,13 @@ Decal *ResourceManager::LoadDecal(const std::filesystem::path &path) {
     return decal;
 }
 
-void ResourceManager::OffloadDecal(Decal *decal) {}
+void ResourceManager::OffloadDecal(Decal *decal) {
+    if (decals.find(decal) != decals.end()) {
+        decals.erase(decal);
+        Memory::Free(decal);
+        decal = nullptr;
+    }
+}
 
 void ResourceManager::OffloadMesh(Mesh *mesh) {
     if (meshes.find(mesh) != meshes.end()) {
@@ -83,8 +91,7 @@ void ResourceManager::DestroyGpuBuffer(Buffer *buffer) {
     }
 }
 
-Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info,
-                                           const Container::String &name) {
+Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info) {
     auto texture = m_rhi->CreateTexture(texture_create_info);
     allocated_textures.emplace(texture);
     return texture;
@@ -103,12 +110,12 @@ Container::FixedArray<Vertex, 36> cube_vertices{
     Vertex{math::Vector3f(-1, -1, -1), math::Vector3f(-0, -1, 0), math::Vector2f(-1, 1)},
     Vertex{math::Vector3f(1, -1, -1), math::Vector3f(-0, -1, 0), math::Vector2f(0, 1)},
     Vertex{math::Vector3f(-1, 1, -1), math::Vector3f(0, 1, -0), math::Vector2f(0, 0)},
-    Vertex{math::Vector3f(0.999999, 1, 1.000001), math::Vector3f(0, 1, -0), math::Vector2f(1, -1)},
-    Vertex{math::Vector3f(1, 1, -0.999999), math::Vector3f(0, 1, -0), math::Vector2f(1, 0)},
-    Vertex{math::Vector3f(1, 1, -0.999999), math::Vector3f(1, -0, -0), math::Vector2f(1, 0)},
+    Vertex{math::Vector3f(1.0, 1, 1.0), math::Vector3f(0, 1, -0), math::Vector2f(1, -1)},
+    Vertex{math::Vector3f(1, 1, -1.0), math::Vector3f(0, 1, -0), math::Vector2f(1, 0)},
+    Vertex{math::Vector3f(1, 1, -1.0), math::Vector3f(1, -0, -0), math::Vector2f(1, 0)},
     Vertex{math::Vector3f(1, -1, 1), math::Vector3f(1, -0, -0), math::Vector2f(0, -1)},
     Vertex{math::Vector3f(1, -1, -1), math::Vector3f(1, -0, -0), math::Vector2f(1, -1)},
-    Vertex{math::Vector3f(0.999999, 1, 1.000001), math::Vector3f(-0, -0, 1), math::Vector2f(1, 0)},
+    Vertex{math::Vector3f(1.0, 1, 1.0), math::Vector3f(-0, -0, 1), math::Vector2f(1, 0)},
     Vertex{math::Vector3f(-1, -1, 1), math::Vector3f(-0, -0, 1), math::Vector2f(-0, -1)},
     Vertex{math::Vector3f(1, -1, 1), math::Vector3f(-0, -0, 1), math::Vector2f(1, -1)},
     Vertex{math::Vector3f(-1, -1, 1), math::Vector3f(-1, -0, -0), math::Vector2f(0, 0)},
@@ -116,17 +123,17 @@ Container::FixedArray<Vertex, 36> cube_vertices{
     Vertex{math::Vector3f(-1, -1, -1), math::Vector3f(-1, -0, -0), math::Vector2f(1, 0)},
     Vertex{math::Vector3f(1, -1, -1), math::Vector3f(0, 0, -1), math::Vector2f(0, 0)},
     Vertex{math::Vector3f(-1, 1, -1), math::Vector3f(0, 0, -1), math::Vector2f(-1, 1)},
-    Vertex{math::Vector3f(1, 1, -0.999999), math::Vector3f(0, 0, -1), math::Vector2f(0, 1)},
+    Vertex{math::Vector3f(1, 1, -1.0), math::Vector3f(0, 0, -1), math::Vector2f(0, 1)},
     Vertex{math::Vector3f(1, -1, 1), math::Vector3f(0, -1, 0), math::Vector2f(0, 0)},
     Vertex{math::Vector3f(-1, -1, 1), math::Vector3f(0, -1, 0), math::Vector2f(-1, 0)},
     Vertex{math::Vector3f(-1, -1, -1), math::Vector3f(0, -1, 0), math::Vector2f(-1, 1)},
     Vertex{math::Vector3f(-1, 1, -1), math::Vector3f(0, 1, 0), math::Vector2f(0, 0)},
     Vertex{math::Vector3f(-1, 1, 1), math::Vector3f(0, 1, 0), math::Vector2f(-0, -1)},
-    Vertex{math::Vector3f(0.999999, 1, 1.000001), math::Vector3f(0, 1, 0), math::Vector2f(1, -1)},
-    Vertex{math::Vector3f(1, 1, -0.999999), math::Vector3f(1, 0, 1e-06), math::Vector2f(1, 0)},
-    Vertex{math::Vector3f(0.999999, 1, 1.000001), math::Vector3f(1, 0, 1e-06), math::Vector2f(-0, 0)},
-    Vertex{math::Vector3f(1, -1, 1), math::Vector3f(1, 0, 1e-06), math::Vector2f(0, -1)},
-    Vertex{math::Vector3f(0.999999, 1, 1.000001), math::Vector3f(-0, 0, 1), math::Vector2f(1, 0)},
+    Vertex{math::Vector3f(1.0, 1, 1.0), math::Vector3f(0, 1, 0), math::Vector2f(1, -1)},
+    Vertex{math::Vector3f(1, 1, -1.0), math::Vector3f(1, 0, 0.0), math::Vector2f(1, 0)},
+    Vertex{math::Vector3f(1.0, 1, 1.0), math::Vector3f(1, 0, 0.0), math::Vector2f(-0, 0)},
+    Vertex{math::Vector3f(1, -1, 1), math::Vector3f(1, 0, 0.0), math::Vector2f(0, -1)},
+    Vertex{math::Vector3f(1.0, 1, 1.0), math::Vector3f(-0, 0, 1), math::Vector2f(1, 0)},
     Vertex{math::Vector3f(-1, 1, 1), math::Vector3f(-0, 0, 1), math::Vector2f(-0, 0)},
     Vertex{math::Vector3f(-1, -1, 1), math::Vector3f(-0, 0, 1), math::Vector2f(-0, -1)},
     Vertex{math::Vector3f(-1, -1, 1), math::Vector3f(-1, -0, -0), math::Vector2f(0, 0)},

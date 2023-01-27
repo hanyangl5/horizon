@@ -8,14 +8,19 @@
 
 #include "Decal.h"
 
-#include <nlohmann/json.hpp>
+// standard library
 
-#include "../../resource_loader/texture/texture_loader.h"
+// 
+//#include <nlohmann/json.hpp>
 
-Horizon::Decal::Decal(const std::filesystem::path &path, std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
-    : m_path(path) {
+//
+#include <runtime/function/rhi/texture.h>
+
+namespace Horizon {
+
+Decal::Decal(const std::filesystem::path &path) noexcept : m_path(path) {
     auto decal_material_desc = ReadFile(path.generic_string().c_str());
-    nlohmann::json json_data = nlohmann::json::parse(decal_material_desc);
+    /*nlohmann::json json_data = nlohmann::json::parse(decal_material_desc);
 
     decal_material = Memory::Alloc<Material>();
 
@@ -45,14 +50,16 @@ Horizon::Decal::Decal(const std::filesystem::path &path, std::pmr::polymorphic_a
             decal_material->material_textures[MaterialTextureType::BASE_COLOR].texture_data_desc =
                 TextureLoader::Load(bc_path.string().c_str());
             decal_material->material_params.param_bitmask |= HAS_BASE_COLOR;
-            
+
         } else if (tex.key() == "normal") {
             std::filesystem::path normal_path = path.parent_path() / tex.value();
             decal_material->material_textures[MaterialTextureType::NORMAL].texture_data_desc =
                 TextureLoader::Load(normal_path.string().c_str());
             decal_material->material_params.param_bitmask |= HAS_NORMAL;
         }
-    }
+    }*/
 }
 
-Horizon::Decal::~Decal() noexcept {}
+Decal::~Decal() noexcept {}
+
+} // namespace Horizon

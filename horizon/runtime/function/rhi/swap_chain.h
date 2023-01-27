@@ -5,7 +5,7 @@
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/rhi_utils.h>
 #include <runtime/function/rhi/render_target.h>
-#include <runtime/function/rhi/Semaphore.h>
+#include <runtime/function/rhi/semaphore.h>
 
 namespace Horizon::Backend {
 
@@ -31,9 +31,6 @@ class SwapChain {
     SwapChain &operator=(const SwapChain &rhs) noexcept = delete;
     SwapChain(SwapChain &&rhs) noexcept = delete;
     SwapChain &operator=(SwapChain &&rhs) noexcept = delete;
-
-    virtual void AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept = 0;
-
     RenderTarget *GetRenderTarget() noexcept { return render_targets[current_frame_index]; }
 
   public:

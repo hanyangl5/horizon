@@ -1,0 +1,62 @@
+#include "include/translation/translation.hlsl"
+#include "include/common/common_math.hlsl"
+#define USE_SSAO
+#include "include/ao/ssao.hlsl"
+#include "include/common/noise.hlsl"
+
+// 
+
+RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+RES(Tex2D(float4), normal_tex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
+RES(Tex2D(float2), ssao_noise_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 3);
+RES(RWTexture2D<float4>, ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
+
+
+CBUFFER(SSRConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
+{
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_inv_projection, None); // we only care about view space
+    DATA(float4x4, camera_view, None);
+    DATA(uint2, resolution, None);
+    DATA(float2, noise_scale, None);
+    DATA(float4, kernels[SSAO_SAMPLE_COUNT], None); // tangent space kernels
+};
+
+
+NUM_THREADS(8, 8, 1)
+void CS_MAIN( uint3 thread_id: SV_DispatchThreadID) 
+{
+    INIT_MAIN;
+
+    // uint2 _resolution = Get(resolution.xy) - uint2(1.0, 1.0);
+
+    // if (thread_id.x>_resolution.x || thread_id.y>_resolution.y) {
+    //     RETURN();
+    // }
+
+    // float2 uv = float2(thread_id.xy) / float2(_resolution);
+
+
+    // float depth = SampleTex2D(Get(depth_tex), default_sampler, uv).r;
+    // float3 normal = SampleTex2D(Get(normal_tex), default_sampler, uv).xyz;
+    // float3 albedo = LoadRWTex2D(Get(curr_color_tex), thread_id.xy + int2(1, 0)).xyz;
+    
+    // float3 view_normal = (Get(camera_view) * float4(normal, 0.0)).xyz; // view space normal
+    // float3 view_pos = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
+    // float3 view_dir = normalize(float3(0.0) - view_pos);
+    // float3 reflect_dir = reflect(-view_dir, view_normal);
+
+    // float3 ray_pos = view_pos;
+    // for (uint step = 0; step < SSR_MARCH_STEP; step++) {
+    //     ray_pos += step * step_length;
+    //     float4 clip_pos = projection * float4(ray_pos, 1.0);
+    //     clip_pos.xyz /= clip_pos.w;
+    //     float2 screen_pos = (clip_pos.xy * 0.5 + 0.5) * Get(screen_resolution);
+    // }
+
+    // Write2D(Get(ao_factor_tex), thread_id.xy, out_color);
+
+    RETURN();
+}
+

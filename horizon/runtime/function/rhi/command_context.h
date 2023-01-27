@@ -16,8 +16,6 @@ class CommandContext {
 
     virtual CommandList *GetCommandList(CommandQueueType type) = 0;
     virtual void Reset() = 0;
-
-  protected:
-  private:
 };
+
 } // namespace Horizon::Backend

@@ -8,8 +8,6 @@
 
 #pragma once
 
-#define NOMINMAX
-
 // standard libraries
 #include <cstdint>
 

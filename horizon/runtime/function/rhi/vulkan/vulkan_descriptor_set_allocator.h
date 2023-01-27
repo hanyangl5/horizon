@@ -1,6 +1,5 @@
 #pragma once
 
-#include <spirv_reflect.h>
 #include <vulkan/vulkan.h>
 
 #include <runtime/core/utils/definations.h>

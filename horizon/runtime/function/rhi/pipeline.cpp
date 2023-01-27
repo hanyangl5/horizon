@@ -1,8 +1,10 @@
-#include "Pipeline.h"
+#include "pipeline.h"
 
 #include <algorithm>
 
 #include <nlohmann/json.hpp>
+
+#include <runtime/core/utils/functions.h>
 
 namespace Horizon::Backend {
 
@@ -52,7 +54,7 @@ void Pipeline::ParseRootSignatureFromShader(Shader *shader) {
             rsd.descriptors[static_cast<u32>(freq)].try_emplace(name, desc);
 
             vk_binding_count[static_cast<u32>(freq)] =
-                std::max(vk_binding_count[static_cast<u32>(freq)], desc.vk_binding + 1);
+                Max(vk_binding_count[static_cast<u32>(freq)], desc.vk_binding + 1);
         }
     }
 

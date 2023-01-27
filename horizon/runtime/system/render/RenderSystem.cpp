@@ -3,7 +3,7 @@
 #include <iostream>
 #include <runtime/core/math/math.h>
 #include <runtime/core/path/Path.h>
-#include <runtime/function/rhi/RHI.h>
+#include <runtime/function/rhi/rhi.h>
 #include <runtime/function/rhi/resource_barrier.h>
 #include <runtime/function/rhi/vulkan/rhi_vulkan.h>
 
@@ -11,7 +11,7 @@ namespace Horizon {
 
 class Window;
 
-RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend, bool offscreen) noexcept
+RenderSystem::RenderSystem(Window *window, RenderBackend backend, bool offscreen) noexcept
     : m_window(window) {
     switch (backend) {
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
@@ -37,7 +37,5 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
 }
 
 RenderSystem::~RenderSystem() noexcept {}
-
-void RenderSystem::InitializeRenderAPI(RenderBackend backend) {}
 
 } // namespace Horizon

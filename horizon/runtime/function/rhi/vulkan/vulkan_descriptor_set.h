@@ -36,9 +36,10 @@ class VulkanDescriptorSet : public DescriptorSet {
     const VulkanRendererContext &m_context{};
     const Container::HashMap<Container::String, DescriptorDesc> &write_descs{}; // move to base class?
     Container::Array<VkWriteDescriptorSet> writes{};
-    Container::Array<VkDescriptorImageInfo> texture_descriptors{};
     Container::HashMap<Container::String, Container::Array<VkDescriptorImageInfo>> bindless_image_descriptors;
     Container::HashMap<Container::String, Container::Array<VkDescriptorBufferInfo>> bindless_buffer_descriptors;
+    Container::HashMap<Container::String, Container::Array<VkDescriptorImageInfo>> bindless_sampler_descriptors;
+
     VkDescriptorSet m_set{};
 };
 } // namespace Horizon::Backend

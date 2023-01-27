@@ -64,15 +64,15 @@ class VulkanCommandList : public CommandList {
     void BindPushConstant(Pipeline *pipeline, const Container::String &name, void *data) override;
 
     // TODO(hylu) bind push constant by index(hashing?)
-    void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
+    //void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
 
-    void ClearBuffer(Buffer *buffer, f32 clear_value) override;
+    void ClearBuffer(Buffer *buffer, const BufferClearInfo& buffer_clear_info) override;
 
-    void ClearTextrue(Texture *texture, const math::Vector4f &clear_value) override;
+    void ClearTextrue(Texture *texture, const TextureClearInfo &texture_clear_info) override;
 
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
-    void GenerateMipMap(Texture* texture, bool alllevels) override;
+    void GenerateMipMap(Texture* texture) override;
 
   private:
     const VulkanRendererContext &m_context{};

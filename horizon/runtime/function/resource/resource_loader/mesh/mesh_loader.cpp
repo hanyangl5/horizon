@@ -13,27 +13,28 @@
 // third party libraries
 
 // project headers
+#include <runtime/core/memory/memory.h>
 
 // TODO: replace assimp with fbxsdk and cgltf
 
 namespace Horizon {
 
 Mesh *MeshLoader::Load(const MeshDesc &desc, const std::filesystem::path &path) {
-    Mesh *mesh = new Mesh(desc, path);
+    Mesh *mesh = Memory::Alloc<Mesh>(desc);
 
-    auto &extension = path.extension();
+    auto extension = path.extension();
     if (extension == ".gltf") {
-        LoadGlTF2(desc, path, *mesh);
+        LoadGlTF2(path, *mesh);
     } else if (extension == ".fbx") {
-        LoadFBX(desc, path, *mesh);
+        LoadFBX(path, *mesh);
     } else {
         LOG_ERROR("{} format is not supportted", extension.string().c_str());
     }
     return mesh;
 }
 
-void MeshLoader::LoadGlTF2(const MeshDesc &desc, const std::filesystem::path &path, Mesh &mesh) { mesh.Load(); }
+void MeshLoader::LoadGlTF2(const std::filesystem::path &path, Mesh &mesh) { mesh.Load(path); }
 
-void MeshLoader::LoadFBX(const MeshDesc &desc, const std::filesystem::path &path, Mesh &mesh) { mesh.Load(); }
+void MeshLoader::LoadFBX(const std::filesystem::path &path, Mesh &mesh) { mesh.Load(path); }
 
 } // namespace Horizon

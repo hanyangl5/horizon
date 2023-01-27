@@ -41,13 +41,13 @@ void HorizonPipeline::UpdatePipelineResources() {
     auto &jitter_offset = antialiasing->GetJitterOffset();
     auto &view = cam->GetViewMatrix();
     auto &proj = cam->GetProjectionMatrix();
-    f32 offset_x = (jitter_offset.x - 0.5) / _width;
-    f32 offset_y = (jitter_offset.y - 0.5) / _height;
+    f32 offset_x = (jitter_offset.x() - 0.5) / _width;
+    f32 offset_y = (jitter_offset.y() - 0.5) / _height;
 
     antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
     antialiasing->taa_prev_curr_offset.curr_offset = math::Vector2f{offset_x, offset_y};
-    proj._13 += offset_x;
-    proj._23 += offset_y;
+    proj.at(0, 2) += offset_x;
+    proj.at(1, 2) += offset_y;
 
     auto vp = view * proj;
     auto inverse_vp = vp.Invert();

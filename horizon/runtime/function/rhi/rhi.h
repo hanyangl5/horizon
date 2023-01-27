@@ -1,12 +1,14 @@
 #pragma once
 
+// standard libraries
 #include <thread>
-
 #include <utility>
 
-#include <runtime/core/window/Window.h>
+// third party libraries
 
-#include <runtime/function/rhi/Buffer.h>
+// project headers
+#include <runtime/core/window/window.h>
+#include <runtime/function/rhi/buffer.h>
 #include <runtime/function/rhi/command_context.h>
 #include <runtime/function/rhi/command_list.h>
 #include <runtime/function/rhi/rhi_utils.h>
@@ -66,7 +68,8 @@ class RHI {
 
     virtual void DestroySwapChain(SwapChain *swap_chain) = 0;
 
-    virtual Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) = 0;
+    // TODO: modify this with new shader system
+    virtual Shader *CreateShader(ShaderType type, const std::filesystem::path &file_name) = 0;
 
     virtual void DestroyShader(Shader *shader_program) = 0;
 
@@ -100,6 +103,8 @@ class RHI {
     virtual void Present(const QueuePresentInfo &queue_present_info) = 0;
 
     void SetWindow(Window *window) noexcept { m_window = window; }
+
+    //virtual void SetDebugName(void *resource, const Container::String &name) = 0;
 
   protected:
     u32 m_current_frame_index{0};

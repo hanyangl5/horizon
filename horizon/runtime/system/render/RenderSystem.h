@@ -5,7 +5,7 @@
 #include <runtime/core/memory/Memory.h>
 #include <runtime/core/window/Window.h>
 
-#include <runtime/function/rhi/RHI.h>
+#include <runtime/function/rhi/rhi.h>
 #include <runtime/function/scene/camera/Camera.h>
 #include <runtime/function/resource/resource_manager/resource_manager.h>
 #include <runtime/function/scene/scene_manager/scene_manager.h>
@@ -14,7 +14,7 @@ namespace Horizon {
 
 class RenderSystem {
   public:
-    RenderSystem(u32 width, u32 height, Window *window, RenderBackend backend, bool offscreen = false) noexcept;
+    RenderSystem(Window *window, RenderBackend backend, bool offscreen = false) noexcept;
 
     ~RenderSystem() noexcept;
 
@@ -30,9 +30,6 @@ class RenderSystem {
 
   public:
     Backend::RHI *GetRhi() noexcept { return m_rhi.get(); }
-
-  private:
-    void InitializeRenderAPI(RenderBackend backend);
 
   private:
     Window *m_window{};

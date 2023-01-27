@@ -94,6 +94,7 @@ class Camera {
 
     const math::Vector2f GetSensitivity() const noexcept;
   private:
+    CameraSetting m_setting;
     math::Vector3f m_eye, m_at, m_up;
     math::Vector3f m_forward, m_right;
     math::Matrix44f m_view, m_projection;

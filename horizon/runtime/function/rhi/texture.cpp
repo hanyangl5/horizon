@@ -1,4 +1,14 @@
-#include <runtime/function/rhi/Texture.h>
+/*****************************************************************//**
+ * \file   texture.cpp
+ * \brief  
+ * 
+ * \author hanyanglu
+ * \date   January 2023
+ *********************************************************************/
+
+#include "texture.h"
+
+#include <runtime/core/utils/functions.h>
 
 namespace Horizon::Backend {
 
@@ -10,7 +20,7 @@ Texture::Texture(const TextureCreateInfo &texture_create_info) noexcept
 
     mip_map_level =
         texture_create_info.enanble_mipmap == true
-            ? std::min(MAX_MIP_LEVEL, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height))))) + 1
+            ? Min(MAX_MIP_LEVEL, static_cast<uint32_t>(std::floor(std::log2(Max(m_width, m_height))))) + 1
             : 1;
 }
 

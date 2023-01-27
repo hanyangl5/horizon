@@ -1,7 +1,6 @@
 #pragma once
 
-#include "vk_mem_alloc.h"
-#include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 #include <runtime/core/utils/definations.h>
 #include <runtime/function/rhi/buffer.h>
@@ -19,7 +18,7 @@ class VulkanBuffer : public Buffer {
     VulkanBuffer(VulkanBuffer &&rhs) noexcept = delete;
     VulkanBuffer &operator=(VulkanBuffer &&rhs) noexcept = delete;
 
-    VkDescriptorBufferInfo *GetDescriptorBufferInfo(u32 offset , u32 size) noexcept;
+    VkDescriptorBufferInfo *GetDescriptorBufferInfo(u64 offset, u64 size) noexcept;
 
   public:
     const VulkanRendererContext &m_context{};

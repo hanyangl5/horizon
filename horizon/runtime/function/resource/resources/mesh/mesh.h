@@ -1,6 +1,15 @@
+/*****************************************************************//**
+ * \file   mesh.h
+ * \brief  
+ * 
+ * \author hanyanglu
+ * \date   January 2023
+ *********************************************************************/
+
 #pragma once
 
 #include <thread>
+#include <filesystem>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -9,12 +18,7 @@
 
 #include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
-
-#include <runtime/function/rhi/Buffer.h>
-#include <runtime/function/rhi/Pipeline.h>
-#include <runtime/function/rhi/RHI.h>
-#include <runtime/function/rhi/Semaphore.h>
-#include <runtime/function/rhi/Texture.h>
+#include <runtime/core/memory/allocators.h>
 
 #include <runtime/function/scene/material/material_description.h>
 
@@ -34,7 +38,7 @@ struct MeshPrimitive {
     AABB aabb;
 };
 
-struct Node {
+struct MeshNode {
     u32 parent{};
     math::Matrix44f model_matrix{};
     Container::Array<u32> childs{};
@@ -54,7 +58,7 @@ struct MeshDesc {
 
 class Mesh {
   public:
-    Mesh(const MeshDesc &desc, const std::filesystem::path &path,
+    Mesh(const MeshDesc &desc,
          std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
     ~Mesh() noexcept;
 
@@ -63,13 +67,13 @@ class Mesh {
     Mesh(Mesh &&rhs) noexcept = delete;
     Mesh &operator=(Mesh &&rhs) noexcept = delete;
 
-    void Load();
+    void Load(const std::filesystem::path& path);
 
-    const Container::Array<Node> &GetNodes() const noexcept;
+    const Container::Array<MeshNode> &GetNodes() const noexcept;
 
-    Material &GetMaterial(u32 index) noexcept { return materials[index]; }
+    Material &GetMaterial(u32 index) noexcept { return *materials[index]; }
 
-    Container::Array<Material> &GetMaterials() noexcept { return materials; }
+    const Container::Array<Material*> &GetMaterials() const noexcept { return materials; }
 
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const math::Matrix44f &model_matrx);
@@ -84,8 +88,8 @@ class Mesh {
     Container::Array<MeshPrimitive> m_mesh_primitives{};
     Container::Array<Vertex> m_vertices{};
     Container::Array<Index> m_indices{};
-    Container::Array<Node> m_nodes{};
-    Container::Array<Material> materials{};
+    Container::Array<MeshNode> m_nodes{};
+    Container::Array<Material*> materials{};
 
     Transform transform;
 

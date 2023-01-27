@@ -33,8 +33,8 @@ VulkanBuffer::~VulkanBuffer() noexcept {
     vmaDestroyBuffer(m_context.vma_allocator, m_buffer, m_memory);
 }
 
-VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 size) noexcept {
-    buffer_info = {m_buffer, offset, m_size};
+VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u64 offset, u64 size) noexcept {
+    buffer_info = {m_buffer, offset, size};
     return &buffer_info;
 }
 

@@ -1,6 +1,6 @@
 /*****************************************************************//**
- * \file   public_singleton.h
- * \brief  from https://github.com/BoomingTech/Pilot/blob/main/engine/source/runtime/core/base/public_singleton.h
+ * \file   singleton.h
+ * \brief  
  * 
  * \author hylu
  * \date   November 2022
@@ -10,22 +10,23 @@
 
 // standard libraries
 #include <type_traits>
-
+#include <memory>
 // third party libraries
 
 // project headers
+#include <runtime/core/memory/memory.h>
 
 namespace Horizon {
 
-template <typename T> class PublicSingleton {
+template <typename T> class Singleton {
   protected:
-    PublicSingleton() = default;
-    virtual ~PublicSingleton() noexcept = default;
+    Singleton() = default;
+    virtual ~Singleton() noexcept = default;
 
-    PublicSingleton(const PublicSingleton &) = delete;
-    PublicSingleton &operator=(const PublicSingleton &) = delete;
+    Singleton(const Singleton &) = delete;
+    Singleton &operator=(const Singleton &) = delete;
   public:
-    static T &GetInstance() noexcept(std::is_nothrow_constructible<T>::value) {
+    static T &get() noexcept(std::is_nothrow_constructible<T>::value) {
         static T instance;
         return instance;
     }

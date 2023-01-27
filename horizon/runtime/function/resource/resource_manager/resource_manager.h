@@ -16,8 +16,8 @@
 
 #include <runtime/core/memory/Memory.h>
 
-#include <runtime/function/rhi/RHI.h>
-#include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/rhi/rhi.h>
+#include <runtime/function/resource/resources/mesh/mesh.h>
 #include <runtime/function/resource/resources/decal/Decal.h>
 #include <runtime/function/resource/resources/vertex/vertex_description.h>
 #include <runtime/function/resource/resource_loader/mesh/mesh_loader.h>
@@ -33,11 +33,11 @@ class ResourceManager {
     ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
     ~ResourceManager() noexcept;
 
-    Buffer *CreateGpuBuffer(const BufferCreateInfo &buffer_create_info, const Container::String &name = "");
+    Buffer *CreateGpuBuffer(const BufferCreateInfo &buffer_create_info);
 
     void DestroyGpuBuffer(Buffer *buffer);
 
-    Texture *CreateGpuTexture(const TextureCreateInfo &texture_create_info, const Container::String &name = "");
+    Texture *CreateGpuTexture(const TextureCreateInfo &texture_create_info);
 
     void DestroyGpuTexture(Texture *texture);
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/function/rhi/Pipeline.h>
+#include <runtime/function/rhi/pipeline.h>
 #include <runtime/function/rhi/Shader.h>
 #include <runtime/function/rhi/vulkan/vulkan_descriptor_set.h>
 #include <runtime/function/rhi/vulkan/vulkan_descriptor_set_allocator.h>
@@ -25,9 +25,7 @@ class VulkanPipeline : public Pipeline {
 
     void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
-    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count = 1) override;
-
-    DescriptorSet *GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) override;
+    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency) override;
 
     const RootSignatureDesc &GetRootSignatureDesc() const noexcept { return rsd; }
     

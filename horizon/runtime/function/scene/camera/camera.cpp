@@ -19,11 +19,10 @@ namespace Horizon {
 using namespace Input;
 
 Camera::Camera(const CameraSetting& setting, const math::Vector3f &eye, const math::Vector3f &at, const math::Vector3f &up) noexcept
-    : m_eye(eye), m_at(at), m_up(up) {
+    : m_eye(eye), m_at(at), m_up(up),m_setting(setting) {
     m_forward = math::Normalize(m_at - m_eye);
     m_right = math::Cross(m_forward, m_up);
     UpdateViewMatrix();
-    //setLookAt(eye, at, up);
 }
 
 void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
@@ -31,7 +30,7 @@ void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_
     m_aspect_ratio = aspect_ratio;
     m_near_plane = near_plane;
     m_far_plane = far_plane;
-    m_projection = math::CreatePerspectiveProjectionMatrix(fov, aspect_ratio, near_plane, far_plane);
+    m_projection = math::CreatePerspectiveProjectionMatrix2(fov, aspect_ratio, near_plane, far_plane);
     // m_projection = ReversePerspective(fov, aspect_ratio, nearPlane,
     // farPlane);
 }
@@ -42,9 +41,9 @@ void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 nea
     m_near_plane = near_plane;
     m_far_plane = far_plane;
 
-    f32 h = (0.5 * near_plane) * ((SENSOR_SIZE * 1000.0) / focal_length);
+    f32 h = (0.5f * near_plane) * ((SENSOR_SIZE * 1000.0f) / focal_length);
     f32 w = h * aspect_ratio;
-    m_projection =  math::CreatePerspectiveProjectionMatrix(w, h, near_plane, far_plane);
+    m_projection =  math::CreatePerspectiveProjectionMatrix1(w, h, near_plane, far_plane);
 }
 
 math::Matrix44f Camera::GetProjectionMatrix() const noexcept {
@@ -111,9 +110,9 @@ void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
 void Camera::UpdateViewMatrix() noexcept {
     // calculate the new Front vector
     math::Vector3f front;
-    front.x() = cos(math::Radians(m_yaw)) * cos(math::Radians(m_pitch));
-    front.y() = sin(math::Radians(m_pitch));
-    front.z() = sin(math::Radians(m_yaw)) * cos(math::Radians(m_pitch));
+    front.x() = math::Cos(math::Radians(m_yaw)) * math::Cos(math::Radians(m_pitch));
+    front.y() = math::Sin(math::Radians(m_pitch));
+    front.z() = math::Sin(math::Radians(m_yaw)) * math::Cos(math::Radians(m_pitch));
 
     m_forward = math::Normalize(front);
     m_right = math::Normalize(math::Cross(m_forward, math::Vector3f(0.0, 1.0,
@@ -141,10 +140,10 @@ f32 Camera::GetExposure() const noexcept {
     return exposure; 
 }
 
-void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
-    aperture = aperture;
-    shutter_speed = shutter_speed;
-    iso = iso;
+void Camera::SetExposure(f32 _aperture, f32 _shutter_speed, f32 _iso) {
+    this->aperture = _aperture;
+    this->shutter_speed = _shutter_speed;
+    this->iso = _iso;
 
     // With N = aperture, t = shutter speed and S = sensitivity,
     // we can compute EV100 knowing that:
@@ -161,7 +160,7 @@ void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     //
     // Reference: https://en.wikipedia.org/wiki/Exposure_value
     ev100 = std::log2((aperture * aperture) / shutter_speed * 100.0f / iso);
-    exposure = 1.0 / (pow(2.0, ev100) * 1.2);
+    exposure = 1.0f/ (pow(2.0f, ev100) * 1.2f);
 }
 
 const math::Vector2f Camera::GetSensitivity() const noexcept {

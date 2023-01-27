@@ -21,7 +21,7 @@
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/function/resource/resource_manager/resource_manager.h>
-#include <runtime/function/resource/resources/mesh/Mesh.h>
+#include <runtime/function/resource/resources/mesh/mesh.h>
 #include <runtime/function/scene/camera/Camera.h>
 #include <runtime/function/scene/camera/camera_controller.h>
 #include <runtime/function/scene/light/Light.h>
@@ -77,10 +77,10 @@ class SceneManager {
     void RemoveMesh(Mesh *mesh);
     void AddDecal(Decal *decal);
     void RemoveDecal(Decal *decal);
-    void CreateMeshResources(Backend::RHI *rhi);
+    void CreateMeshResources();
     void UploadMeshResources(Backend::CommandList *commandlist);
 
-    void CreateDecalResources(Backend::RHI *rhi);
+    void CreateDecalResources();
     void UploadDecalResources(Backend::CommandList *commandlist);
     // light
     Light *AddDirectionalLight(const math::Vector3f &color, f32 intensity,
@@ -88,7 +88,7 @@ class SceneManager {
     Light *AddPointLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position, f32 radius) noexcept;
     Light *AddSpotLight(const math::Vector3f &color, f32 intensity, const math::Vector3f &position,
                         const math::Vector3f &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept;
-    void CreateLightResources(Backend::RHI *rhi);
+    void CreateLightResources();
     void UploadLightResources(Backend::CommandList *commandlist);
     Buffer *GetLightCountBuffer() const noexcept;
     Buffer *GetDirectionalLightParamBuffer() const noexcept;
@@ -104,13 +104,13 @@ class SceneManager {
     std::tuple<Camera *, CameraController *> AddCamera(const CameraSetting &setting, const math::Vector3f &position,
                                                        const math::Vector3f &at,
                       const math::Vector3f &up);
-    void CreateCameraResources(Backend::RHI *rhi);
+    void CreateCameraResources();
     void UploadCameraResources(Backend::CommandList *commandlist);
 
     // miscs
     void GetVertexBuffers(Container::Array<Buffer *> &vertex_buffers, Container::Array<u32> &offsets);
 
-    void CreateBuiltInResources(Backend::RHI *rhi);
+    void CreateBuiltInResources();
     void UploadBuiltInResources(Backend::CommandList* commandlist);
 
   public:

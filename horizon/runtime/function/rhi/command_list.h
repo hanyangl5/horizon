@@ -65,16 +65,16 @@ class CommandList {
 
     virtual void BindPushConstant(Pipeline *pipeline, const Container::String &name, void *data) = 0;
 
-    virtual void ClearBuffer(Buffer *buffer, f32 clear_value) = 0;
+    virtual void ClearBuffer(Buffer *buffer, const BufferClearInfo& buffer_clear_info) = 0;
 
-    virtual void ClearTextrue(Texture *texture, const math::Vector4f &clear_value) = 0;
+    virtual void ClearTextrue(Texture *texture, const TextureClearInfo &texture_clear_info) = 0;
 
     // bind by index save string lookup
-    virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;
+    //virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;
 
     virtual void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) = 0;
 
-    virtual void GenerateMipMap(Texture *texture, bool alllevels = true) = 0;
+    virtual void GenerateMipMap(Texture *texture) = 0;
 
   protected:
     bool is_recoring{false};

@@ -65,39 +65,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${STB_INCLUDE_DIRS})
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
-# find_package(unofficial-spirv-reflect CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::spirv-reflect::spirv-reflect)
-
-# find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
-# target_include_directories(${PROJECT_NAME} PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIRS})
-
 # find_package(EnTT CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
-
-# this is heuristically generated, and may not be correct
-# find_package(spirv_cross_c CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-c)
-
-# find_package(spirv_cross_core CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-core)
-
-# find_package(spirv_cross_cpp CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-cpp)
-
-# find_package(spirv_cross_glsl CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-glsl)
-
-# find_package(spirv_cross_hlsl CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-hlsl)
-
-# find_package(spirv_cross_msl CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-msl)
-
-# find_package(spirv_cross_reflect CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-reflect)
-
-# find_package(spirv_cross_util CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME}  PRIVATE spirv-cross-util)
 
 find_package(TBB CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)

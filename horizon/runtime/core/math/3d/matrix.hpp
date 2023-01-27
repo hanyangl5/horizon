@@ -15,6 +15,7 @@
 
 // project headers
 #include <runtime/core/utils/definations.h>
+#include <runtime/core/platform/platform.h>
 #include <runtime/core/math/3d/vector.hpp>
 
 namespace Horizon::math {
@@ -33,7 +34,8 @@ class Matrix {
     constexpr Matrix(const T (&_e)[dimension_m * dimension_n]) noexcept {
         static_assert(dimension_m <= MAX_DIMENSION && dimension_n <= MAX_DIMENSION);
         // SIMD for 4x4 matrix
-        if constexpr (dimension_m == dimension_n == MAX_DIMENSION) {
+        if constexpr (PLATFORM_SUPPORT_SSE3_INTRINSICS && (dimension_m <= MAX_DIMENSION) &&
+                      (dimension_n <= MAX_DIMENSION)) {
         
         } else {
             for (u32 i = 0; i < dimension_m; i++) {
@@ -47,8 +49,8 @@ class Matrix {
     constexpr Matrix(const Vector<3, T> &x, const Vector<3, T> &y, const Vector<3, T> &z) noexcept {
         static_assert((dimension_m == dimension_n) && ((dimension_m == 4) || (dimension_m == 3)));
         // SIMD for 4x4 matrix
-        if constexpr (dimension_m == dimension_n == MAX_DIMENSION) {
-
+        if constexpr (PLATFORM_SUPPORT_SSE3_INTRINSICS && (dimension_m <= MAX_DIMENSION) &&
+                      (dimension_n <= MAX_DIMENSION)) {
         } else {
             for (u32 j = 0; j < 3; j++) {
                 e[0 * dimension_n + j] = x.at(j);
@@ -101,7 +103,7 @@ class Matrix {
             return;
         }
         for (u32 i = 0; i < dimension_m;i++) {
-            (*this)(i, i) = T(1);
+            this->at(i, i) = T(1);
         }
     }
 

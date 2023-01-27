@@ -1,3 +1,11 @@
+/*****************************************************************//**
+ * \file   texture.h
+ * \brief  
+ * 
+ * \author hanyanglu
+ * \date   January 2023
+ *********************************************************************/
+
 #pragma once
 
 #include <runtime/core/utils/definations.h>
@@ -23,7 +31,6 @@ class Texture {
     const u32 m_width{}, m_height{}, m_depth{};
     u32 mip_map_level{};
     const u32 m_byte_per_pixel{};
-
-  protected:
 };
+
 } // namespace Horizon::Backend

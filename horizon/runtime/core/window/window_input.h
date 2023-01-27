@@ -26,10 +26,6 @@ enum class INPUT_STATE { PRESS, RELEASE };
 
 enum class Direction { INVALID, FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
-extern f32 last_x;
-extern f32 last_y;
-extern bool first_mouse;
-
 Direction ProcessKeyboardInput(Window *window);
 
 math::Vector2f ProcessMouseInput(Window *window);

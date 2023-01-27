@@ -3,8 +3,8 @@
 
 #include <fstream>
 
-#include "dx12/stdafx.h"
-#include <d3d12.h>
+//#include "dx12/stdafx.h"
+//#include <d3d12.h>
 
 #include <runtime/core/log/log.h>
 #include <runtime/core/math/math.h>
@@ -216,7 +216,6 @@ struct BufferCreateInfo {
     DescriptorTypes descriptor_types;
     ResourceState initial_state;
     u64 size;
-    // void* data;
 };
 
 struct TextureCreateInfo {
@@ -425,9 +424,9 @@ inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
 }
 
 typedef union ClearColorValue {
-    f32 float32[4];
-    i32 int32[4];
-    u32 uint32[4];
+    Container::FixedArray<f32, 4> float32;
+    Container::FixedArray<i32, 4> int32;
+    Container::FixedArray<u32, 4> uint32;
 } ClearColorValue;
 
 struct ClearValueDepthStencil {
@@ -435,6 +434,26 @@ struct ClearValueDepthStencil {
     u32 stencil;
 };
 
+
+//union ClearValue {
+//    f32 valuef;
+//    u32 valueu;
+//    i32 valuei;
+//};
+
+struct BufferClearInfo {
+    u64 offset;
+    u64 size;
+    u32 clear_value;
+};
+
+struct TextureClearInfo {
+    u32 first_mip_level{};
+    u32 mip_level_count{1};
+    u32 first_layer{};
+    u32 layer_count{1};
+    ClearColorValue clear_value;
+};
 
 struct TextureDataDesc {
     u32 width;
@@ -607,4 +626,208 @@ enum class RenderTargetStoreOp {
     NONE
 };
 
+
+enum class ShaderOptimizationLevel { DEBUG, O3 };
+
+// only support sm6 now
+enum class ShaderTargetProfile {
+    // 60
+    VS_6_0,
+    PS_6_0,
+    GS_6_0,
+    HS_6_0,
+    DS_6_0,
+    CS_6_0,
+    MS_6_0,
+    // 61
+    VS_6_1,
+    PS_6_1,
+    GS_6_1,
+    HS_6_1,
+    DS_6_1,
+    CS_6_1,
+    MS_6_1,
+    // 62
+    VS_6_2,
+    PS_6_2,
+    GS_6_2,
+    HS_6_2,
+    DS_6_2,
+    CS_6_2,
+    MS_6_2,
+    // 63
+    VS_6_3,
+    PS_6_3,
+    GS_6_3,
+    HS_6_3,
+    DS_6_3,
+    CS_6_3,
+    MS_6_3,
+    // 64
+    VS_6_4,
+    PS_6_4,
+    GS_6_4,
+    HS_6_4,
+    DS_6_4,
+    CS_6_4,
+    MS_6_4,
+    // 65
+    VS_6_5,
+    PS_6_5,
+    GS_6_5,
+    HS_6_5,
+    DS_6_5,
+    CS_6_5,
+    MS_6_5,
+    // 66
+    VS_6_6,
+    PS_6_6,
+    GS_6_6,
+    HS_6_6,
+    DS_6_6,
+    CS_6_6,
+    MS_6_6,
+    // 67
+    VS_6_7,
+    PS_6_7,
+    GS_6_7,
+    HS_6_7,
+    DS_6_7,
+    CS_6_7,
+    MS_6_7,
+};
+
+inline const wchar_t* ToDxcTargetProfile(ShaderTargetProfile tp) {
+    switch (tp) {
+    case Horizon::ShaderTargetProfile::VS_6_0:
+        return L"vs_6_0";
+    case Horizon::ShaderTargetProfile::PS_6_0:
+        return L"ps_6_0";
+    case Horizon::ShaderTargetProfile::GS_6_0:
+        return L"gs_6_0";
+    case Horizon::ShaderTargetProfile::HS_6_0:
+        return L"hs_6_0";
+    case Horizon::ShaderTargetProfile::DS_6_0:
+        return L"ds_6_0";
+    case Horizon::ShaderTargetProfile::CS_6_0:
+        return L"cs_6_0";
+    case Horizon::ShaderTargetProfile::MS_6_0:
+        return L"ms_6_0";
+    case Horizon::ShaderTargetProfile::VS_6_1:
+        return L"vs_6_1";
+    case Horizon::ShaderTargetProfile::PS_6_1:
+        return L"ps_6_1";
+    case Horizon::ShaderTargetProfile::GS_6_1:
+        return L"gs_6_1";
+    case Horizon::ShaderTargetProfile::HS_6_1:
+        return L"hs_6_1";
+    case Horizon::ShaderTargetProfile::DS_6_1:
+        return L"ds_6_1";
+    case Horizon::ShaderTargetProfile::CS_6_1:
+        return L"cs_6_1";
+    case Horizon::ShaderTargetProfile::MS_6_1:
+        return L"ms_6_1";
+    case Horizon::ShaderTargetProfile::VS_6_2:
+        return L"vs_6_2";
+    case Horizon::ShaderTargetProfile::PS_6_2:
+        return L"ps_6_2";
+    case Horizon::ShaderTargetProfile::GS_6_2:
+        return L"gs_6_2";
+    case Horizon::ShaderTargetProfile::HS_6_2:
+        return L"hs_6_2";
+    case Horizon::ShaderTargetProfile::DS_6_2:
+        return L"ds_6_2";
+    case Horizon::ShaderTargetProfile::CS_6_2:
+        return L"cs_6_2";
+    case Horizon::ShaderTargetProfile::MS_6_2:
+        return L"ms_6_2";
+    case Horizon::ShaderTargetProfile::VS_6_3:
+        return L"vs_6_3";
+    case Horizon::ShaderTargetProfile::PS_6_3:
+        return L"ps_6_3";
+    case Horizon::ShaderTargetProfile::GS_6_3:
+        return L"gs_6_3";
+    case Horizon::ShaderTargetProfile::HS_6_3:
+        return L"hs_6_3";
+    case Horizon::ShaderTargetProfile::DS_6_3:
+        return L"ds_6_3";
+    case Horizon::ShaderTargetProfile::CS_6_3:
+        return L"cs_6_3";
+    case Horizon::ShaderTargetProfile::MS_6_3:
+        return L"ms_6_3";
+    case Horizon::ShaderTargetProfile::VS_6_4:
+        return L"vs_6_4";
+    case Horizon::ShaderTargetProfile::PS_6_4:
+        return L"ps_6_4";
+    case Horizon::ShaderTargetProfile::GS_6_4:
+        return L"gs_6_4";
+    case Horizon::ShaderTargetProfile::HS_6_4:
+        return L"hs_6_4";
+    case Horizon::ShaderTargetProfile::DS_6_4:
+        return L"ds_6_4";
+    case Horizon::ShaderTargetProfile::CS_6_4:
+        return L"cs_6_4";
+    case Horizon::ShaderTargetProfile::MS_6_4:
+        return L"ms_6_4";
+    case Horizon::ShaderTargetProfile::VS_6_5:
+        return L"vs_6_5";
+    case Horizon::ShaderTargetProfile::PS_6_5:
+        return L"ps_6_5";
+    case Horizon::ShaderTargetProfile::GS_6_5:
+        return L"gs_6_5";
+    case Horizon::ShaderTargetProfile::HS_6_5:
+        return L"hs_6_5";
+    case Horizon::ShaderTargetProfile::DS_6_5:
+        return L"ds_6_5";
+    case Horizon::ShaderTargetProfile::CS_6_5:
+        return L"cs_6_5";
+    case Horizon::ShaderTargetProfile::MS_6_5:
+        return L"ms_6_5";
+    case Horizon::ShaderTargetProfile::VS_6_6:
+        return L"vs_6_6";
+    case Horizon::ShaderTargetProfile::PS_6_6:
+        return L"ps_6_6";
+    case Horizon::ShaderTargetProfile::GS_6_6:
+        return L"gs_6_6";
+    case Horizon::ShaderTargetProfile::HS_6_6:
+        return L"hs_6_6";
+    case Horizon::ShaderTargetProfile::DS_6_6:
+        return L"ds_6_6";
+    case Horizon::ShaderTargetProfile::CS_6_6:
+        return L"cs_6_6";
+    case Horizon::ShaderTargetProfile::MS_6_6:
+        return L"ms_6_6";
+    case Horizon::ShaderTargetProfile::VS_6_7:
+        return L"vs_6_7";
+    case Horizon::ShaderTargetProfile::PS_6_7:
+        return L"ps_6_7";
+    case Horizon::ShaderTargetProfile::GS_6_7:
+        return L"gs_6_7";
+    case Horizon::ShaderTargetProfile::HS_6_7:
+        return L"hs_6_7";
+    case Horizon::ShaderTargetProfile::DS_6_7:
+        return L"ds_6_7";
+    case Horizon::ShaderTargetProfile::CS_6_7:
+        return L"cs_6_7";
+    case Horizon::ShaderTargetProfile::MS_6_7:
+        return L"ms_6_7";
+    default:
+        return L""; // error
+    }
+}
+
+enum class ShaderTargetAPI {
+    SPIRV, DXIL
+};
+
+struct ShaderCompilationArgs {
+    Container::String entry_point;
+    ShaderTargetProfile target_profile;
+    ShaderOptimizationLevel optimization_level;
+    ShaderTargetAPI target_api;
+    Container::String output_file_name;
+    Container::String include_path;
+};
+
 } // namespace Horizon
+

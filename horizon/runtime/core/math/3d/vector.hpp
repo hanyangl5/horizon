@@ -18,6 +18,18 @@
 // project headers
 #include <runtime/core/utils/definations.h>
 
+#define VECTOR_ACCESS(CHARACTER, INDEX, LENGTH)                                                                       \
+    constexpr T &CHARACTER() {                                                                                         \
+        static_assert(dimension >= LENGTH);                                                                       \
+        return at(INDEX);                                                                                              \
+    }
+
+#define VECTOR_ACCESS_CONST(CHARACTER, INDEX, LENGTH)                                                                        \
+    constexpr const T &CHARACTER() const {                                                                                         \
+        static_assert(dimension >= LENGTH);                                                                            \
+        return at(INDEX);                                                                                              \
+    }
+
 namespace Horizon::math {
 
 template<u32 dimension, typename T = f32>
@@ -103,88 +115,26 @@ class Vector {
       return e[i]; 
     }
 
-    constexpr T& x() {
-      static_assert(dimension >= 1);
-      return at(0);
-    }
-
-    constexpr T& y() {
-      static_assert(dimension >= 2);
-      return at(1);
-    }
-
-    constexpr T& z() {
-      static_assert(dimension >= 3);
-      return at(2);
-    }
-
-    constexpr T& w() {
-      static_assert(dimension >= 4);
-      return at(3);
-    }
-
-    constexpr const T &x() const {
-      static_assert(dimension >= 1);
-      return at(0);
-    }
-
-    constexpr const T &y() const  {
-      static_assert(dimension >= 2);
-      return at(1);
-    }
-
-    constexpr const T &z() const {
-      static_assert(dimension >= 3);
-      return at(2);
-    }
-
-    constexpr const T &w() const {
-      static_assert(dimension >= 4);
-      return at(3);
-    }
-
-    constexpr T &r() {
-      static_assert(dimension >= 1);
-      return at(0);
-    }
-
-    constexpr T &g() {
-      static_assert(dimension >= 2);
-      return at(1);
-    }
-
-    constexpr T &b() {
-      static_assert(dimension >= 3);
-      return at(2);
-    }
-
-    constexpr T &a() {
-      static_assert(dimension >= 4);
-      return at(3);
-    }
-
-    constexpr const T &r() const {
-      static_assert(dimension >= 1);
-      return at(0);
-    }
-
-    constexpr const T &g() const {
-      static_assert(dimension >= 2);
-      return at(1);
-    }
-
-    constexpr const T &b() const {
-      static_assert(dimension >= 3);
-      return at(2);
-    }
-
-    constexpr const T &a() const {
-      static_assert(dimension >= 4);
-      return at(3);
-    }
+    VECTOR_ACCESS(x, 0, 1)
+    VECTOR_ACCESS(y, 1, 2)
+    VECTOR_ACCESS(z, 2, 3)
+    VECTOR_ACCESS(w, 3, 4)
+    VECTOR_ACCESS(r, 0, 1)
+    VECTOR_ACCESS(g, 1, 2)
+    VECTOR_ACCESS(b, 2, 3)
+    VECTOR_ACCESS(a, 3, 4)
+   
+    VECTOR_ACCESS_CONST(x, 0, 1)
+    VECTOR_ACCESS_CONST(y, 1, 2)
+    VECTOR_ACCESS_CONST(z, 2, 3)
+    VECTOR_ACCESS_CONST(w, 3, 4)
+    VECTOR_ACCESS_CONST(r, 0, 1)
+    VECTOR_ACCESS_CONST(g, 1, 2)
+    VECTOR_ACCESS_CONST(b, 2, 3)
+    VECTOR_ACCESS_CONST(a, 3, 4)
 
   private:
-  std::array<T, dimension> e{};
+    std::array<T, dimension> e{};
 };
 
 }

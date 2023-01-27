@@ -25,6 +25,7 @@
 namespace Horizon::Container {
 
 using String = std::pmr::string;
+using WString = std::pmr::wstring;
 template <typename T, size_t size> using FixedArray = std::array<T, size>;
 template <typename T> using Array = std::pmr::vector<T>;
 template <typename T> using Set = std::pmr::set<T>;

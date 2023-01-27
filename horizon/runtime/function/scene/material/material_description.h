@@ -1,18 +1,24 @@
+/*****************************************************************//**
+ * \file   material_description.h
+ * \brief  
+ * 
+ * \author hanyanglu
+ * \date   January 2023
+ *********************************************************************/
+
 #pragma once
 
 // standard libraries
+#include <filesystem>
 
 // third party libraries
 
 // project headers
-
-#include <filesystem>
-
-#include <runtime/function/resource/resource_loader/texture/texture_loader.h>
 #include <runtime/function/rhi/buffer.h>
+#include <runtime/function/rhi/texture.h>
 #include <runtime/function/rhi/descriptor_set.h>
 #include <runtime/function/rhi/rhi.h>
-#include <runtime/function/rhi/texture.h>
+#include <runtime/function/resource/resource_loader/texture/texture_loader.h>
 
 namespace Horizon {
 
@@ -34,7 +40,7 @@ enum class MaterialTextureType { BASE_COLOR, NORMAL, METALLIC_ROUGHTNESS, EMISSI
 class MaterialTextureDescription {
   public:
     MaterialTextureDescription() noexcept = default;
-    MaterialTextureDescription(const std::filesystem::path url) noexcept : url(url){};
+    MaterialTextureDescription(const std::filesystem::path& url) noexcept : url(url) {};
 
     ~MaterialTextureDescription() noexcept {}
     std::filesystem::path url{};
@@ -52,13 +58,13 @@ struct MaterialParams {
 
 class Material {
   public:
-    Material() noexcept = default;
-    ~Material() noexcept { }
+    Material(std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept : material_textures(allocator){};
+    ~Material() noexcept = default;
 
-    Material(const Material &rhs){};
-    Material &operator=(const Material &rhs) noexcept {};
-    Material(Material &&rhs) noexcept {};
-    Material &operator=(Material &&rhs) noexcept {};
+    Material(const Material &rhs) = delete;
+    Material &operator=(const Material &rhs) noexcept = delete;
+    Material(Material &&rhs) noexcept = delete;
+    Material &operator=(Material &&rhs) noexcept = delete;
 
     ShadingModel GetShadingModelID() noexcept { return shading_model; }
 

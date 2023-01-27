@@ -12,8 +12,9 @@
 #include <thread>
 
 #define VMA_IMPLEMENTATION
-#include <vulkan/vulkan.hpp>
+#include "vk_mem_alloc.h"
 
+#include <runtime/core/utils/functions.h>
 #include <runtime/function/rhi/vulkan/vulkan_buffer.h>
 #include <runtime/function/rhi/vulkan/vulkan_command_context.h>
 #include <runtime/function/rhi/vulkan/vulkan_pipeline.h>
@@ -31,7 +32,7 @@ RHIVulkan::~RHIVulkan() noexcept {
     for (auto &type : fences) {
         if (type.empty())
             continue;
-        vkWaitForFences(m_vulkan.device, type.size(), type.data(), VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_vulkan.device, static_cast<u32>(type.size()), type.data(), VK_TRUE, UINT64_MAX);
         for (auto fence : type) {
             vkDestroyFence(m_vulkan.device, fence, nullptr);
         }
@@ -69,13 +70,13 @@ SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info) {
     return Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) {
+Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &file_name) {
     auto _shader_bin_path = file_name.parent_path() / "bin" / "VULKAN" / file_name.filename();
     auto spirv_code = ReadFile(_shader_bin_path.generic_string().c_str());
     auto rsd_path = file_name.parent_path() / "generated" / "rsd" / file_name.filename();
     rsd_path += ".rsd";
     auto sld_code = ReadFile(rsd_path.generic_string().c_str());
-    return new VulkanShader(m_vulkan, type, spirv_code, rsd_path);
+    return Memory::Alloc<VulkanShader>(m_vulkan, type, spirv_code, rsd_path);
 }
 
 void RHIVulkan::DestroyShader(Shader *shader_program) {
@@ -128,9 +129,9 @@ void RHIVulkan::CreateInstance(const Container::String &app_name, Container::Arr
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = app_name.data();
-    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "Horizon Engine";
-    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.applicationVersion = MakeVersion(0, 0, 1);
+    app_info.pEngineName = "Horizon Render Framework";
+    app_info.engineVersion = MakeVersion(0, 0, 1);
     app_info.apiVersion = VULKAN_API_VERSION;
 
     VkInstanceCreateInfo instance_create_info{};
@@ -162,11 +163,11 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
     // pick gpu
 
     for (const auto &physical_device : physical_devices) {
-        u32 queue_family_count = m_vulkan.command_queues.size();
+        u32 queue_family_count = static_cast<u32>(m_vulkan.command_queues.size());
 
-        auto stack_memory = Memory::GetStackMemoryResource(1024);
+        auto stack_memory1 = Memory::GetStackMemoryResource(1024);
 
-        Container::Array<VkQueueFamilyProperties> queue_family_properties(&stack_memory);
+        Container::Array<VkQueueFamilyProperties> queue_family_properties(&stack_memory1);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  nullptr); // Get queue family properties
         if (queue_family_count < 3) {
@@ -350,7 +351,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
 
-    u32 wait_semaphore_count = queue_submit_info.wait_semaphores.size();
+    u32 wait_semaphore_count = static_cast<u32>(queue_submit_info.wait_semaphores.size());
     Container::Array<VkSemaphore> wait_semaphores(wait_semaphore_count, &stack_memory);
     Container::Array<VkPipelineStageFlags> wait_stages(wait_semaphore_count, &stack_memory);
     for (u32 i = 0; i < wait_semaphore_count; i++) {
@@ -366,7 +367,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
         wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
     }
 
-    u32 signal_semaphore_count = queue_submit_info.signal_semaphores.size();
+    u32 signal_semaphore_count = static_cast<u32>(queue_submit_info.signal_semaphores.size());
     Container::Array<VkSemaphore> signal_semaphores(signal_semaphore_count, &stack_memory);
 
     for (u32 i = 0; i < signal_semaphore_count; i++) {
@@ -478,6 +479,18 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
     semaphore_ctx.swap_chain_acquire_semaphore = sm;
 }
 
+//void RHIVulkan::SetDebugName(void *resource, const Container::String &name) {
+//    //// Check for a valid function pointer
+//    //if (resource!=nullptr) {
+//    //    VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+//    //    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+//    //    nameInfo.objectType = objectType;
+//    //    nameInfo.object = reinterpret_cast<u64>(resource);
+//    //    nameInfo.pObjectName = name.c_str();
+//    //    pfnDebugMarkerSetObjectName(m_vulkan.device, &nameInfo);
+//    //}
+//}
+
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
 
     if (!thread_command_context) {
@@ -511,11 +524,11 @@ void RHIVulkan::ResetRHIResources() {
 }
 
 Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) {
-    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator);
+    return Memory::Alloc<VulkanPipeline>(m_vulkan, create_info, *m_descriptor_set_allocator);
 }
 
 Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &create_info) {
-    return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator);
+    return Memory::Alloc<VulkanPipeline>(m_vulkan, create_info, *m_descriptor_set_allocator);
 }
 
 void RHIVulkan::DestroyPipeline(Pipeline *pipeline) { delete pipeline; }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/function/rhi/rhi_utils.h>
-#include <runtime/function/rhi/Semaphore.h>
+#include <runtime/function/rhi/semaphore.h>
 #include <runtime/function/rhi/vulkan/vulkan_command_list.h>
 
 namespace Horizon::Backend {
@@ -17,6 +17,7 @@ class VulkanSemaphore : public Semaphore {
     VulkanSemaphore &operator=(VulkanSemaphore &&rhs) noexcept = delete;
 
   public:
+    // TODO: clarify usage
     void AddWaitStage(CommandQueueType queue_type) noexcept override;
     u32 GetWaitStage() noexcept override;
 

@@ -16,6 +16,6 @@
 
 namespace Horizon::math {
 
-static Vector<3> DEFAULT_ORIENTATION{0, 0, 1};
+Vector<3> DEFAULT_ORIENTATION{0, 0, 1};
 
-}
+} // namespace Horizon::math

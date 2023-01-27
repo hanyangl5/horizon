@@ -23,8 +23,9 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
 
         VkDescriptorSetLayout layout;
         CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout));
-
-        m_empty_descriptor_set_layout_hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
+        u64 seed = 0;
+        HashCombine(seed, set_layout_create_info);
+        m_empty_descriptor_set_layout_hash_key = seed;
         m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, layout);
     }
 }
@@ -215,7 +216,7 @@ void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
     pool_create_info.pNext = nullptr;
     pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
 
-    pool_create_info.maxSets = pool_sizes.size() * k_max_bindless_resources;
+    pool_create_info.maxSets = static_cast<u32>(pool_sizes.size()) * k_max_bindless_resources;
     pool_create_info.poolSizeCount = static_cast<u32>(pool_sizes.size());
     pool_create_info.pPoolSizes = pool_sizes.data();
 

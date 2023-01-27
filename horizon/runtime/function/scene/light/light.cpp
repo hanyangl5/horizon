@@ -22,7 +22,7 @@ void Light::SetIntensity(f32 intensity) noexcept {
         break;
     case LightType::SPOT_LIGHT:
         // https://google.github.io/filament/Filament.htm
-        params.intensity = intensity / math::_2PI * (1 - cos(params.spot_cone_inner_outer.y() / 2));
+        params.intensity = intensity / math::_2PI * (1 - math::Cos(params.spot_cone_inner_outer.y() / 2));
         break;
     }
 }

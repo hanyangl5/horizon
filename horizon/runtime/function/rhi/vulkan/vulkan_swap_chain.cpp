@@ -76,7 +76,7 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
         CHECK_VK_RESULT(
             vkCreateImageView(m_context.device, &image_view_create_info, nullptr, &swap_chain_image_views[i]));
         render_targets.push_back(
-            new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
+            Memory::Alloc<VulkanRenderTarget>(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
                                                                      RenderTargetType::UNDEFINED, width, height}));
         auto tx = reinterpret_cast<VulkanTexture *>(render_targets[i]->GetTexture());
         tx->m_image_view = swap_chain_image_views[i];
@@ -94,9 +94,4 @@ Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept {
     }
     vkDestroySwapchainKHR(m_context.device, swap_chain, nullptr);
     vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
-}
-
-void Horizon::Backend::VulkanSwapChain::AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept {
-
-
 }

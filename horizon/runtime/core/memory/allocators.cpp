@@ -35,7 +35,7 @@ void GlobalMemoryAllocator::do_deallocate(void *ptr, size_t bytes, size_t alignm
 #ifdef MEMORY_RESOURCE_TRACKING
     LOG_DEBUG("deallocate {} Bytes with alignment {}", bytes, alignment);
 #endif
-    mi_free_aligned(ptr, alignment);
+    mi_free_size_aligned(ptr, bytes, alignment);
 }
 
 bool GlobalMemoryAllocator::do_is_equal(const std::pmr::memory_resource &other) const noexcept {

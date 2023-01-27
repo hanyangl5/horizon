@@ -35,25 +35,25 @@ void SceneManager::AddMesh(Mesh *mesh) {
 }
 
 void SceneManager::RemoveMesh(Mesh *mesh) {
-
+    mesh->m_nodes; //TODO:
 }
 
 void SceneManager::AddDecal(Decal *decal) { scene_decals.push_back(decal); }
 
 void SceneManager::RemoveDecal(Decal *decal) {
-
+    decal->m_path;
+    //TODO:
 }
 
-void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
+void SceneManager::CreateMeshResources() {
     
     u32 texture_offset = 0;
     u32 material_offset = 0;
     u32 vertex_buffer_offset = 0;
     u32 index_buffer_offset = 0;
     u32 draw_offset = 0;
-    u32 draw_count = 0;
     for (auto &mesh : scene_meshes) {
-        draw_count = mesh->m_mesh_primitives.size();
+        draw_count = static_cast<u32>(mesh->m_mesh_primitives.size());
         mesh_data.push_back(
             MeshData{texture_offset, vertex_buffer_offset, index_buffer_offset, draw_offset, draw_count});
         draw_offset += draw_count;
@@ -88,7 +88,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
 
             MaterialDesc desc{};
 
-            for (auto &[type, tex] : material.material_textures) {
+            for (auto &[type, tex] : material->material_textures) {
                 switch (type) {
                 case MaterialTextureType::BASE_COLOR:
                     desc.base_color_texture_index = texture_offset;
@@ -129,12 +129,12 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
             }
 
             material_offset++;
-            desc.param_bitmask = material.material_params.param_bitmask;
-            desc.blend_state = static_cast<u32>(material.blend_state);
-            desc.base_color = material.material_params.base_color_factor;
-            desc.emissive = material.material_params.emmissive_factor;
+            desc.param_bitmask = material->material_params.param_bitmask;
+            desc.blend_state = static_cast<u32>(material->blend_state);
+            desc.base_color = material->material_params.base_color_factor;
+            desc.emissive = material->material_params.emmissive_factor;
             desc.metallic_roughness =
-                math::Vector2f(material.material_params.metallic_factor, material.material_params.roughness_factor);
+                math::Vector2f(material->material_params.metallic_factor, material->material_params.roughness_factor);
             material_descs.push_back(desc);
         }
     }
@@ -154,7 +154,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
                 instance_params[primitive_offset + m].model_matrix = mat;
             }
         }
-        primitive_offset += mesh->m_mesh_primitives.size();
+        primitive_offset += static_cast<u32>(mesh->m_mesh_primitives.size());
     }
     // test
     indirect_draw_command_buffer1 = resource_manager->CreateGpuBuffer(
@@ -211,7 +211,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     commandlist->InsertBarrier(mip_barrier1);
 
     for (u32 tex = 0; tex < material_textures.size(); tex++) {
-        commandlist->GenerateMipMap(material_textures[tex], true);
+        commandlist->GenerateMipMap(material_textures[tex]);
     }
 
     BarrierDesc mip_barrier2{};
@@ -227,7 +227,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     commandlist->InsertBarrier(mip_barrier2);
 }
 
-void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
+void SceneManager::CreateDecalResources() {
 
     u32 texture_offset = 0;
     u32 material_offset = 0;
@@ -285,13 +285,13 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
             texture_offset++;
         }
         //material_offset++;
-        auto &material = *decal->decal_material;
-        desc.param_bitmask = material.material_params.param_bitmask;
-        desc.blend_state = static_cast<u32>(material.blend_state);
-        desc.base_color = material.material_params.base_color_factor;
-        desc.emissive = material.material_params.emmissive_factor;
+        auto &material = decal->decal_material;
+        desc.param_bitmask = material->material_params.param_bitmask;
+        desc.blend_state = static_cast<u32>(material->blend_state);
+        desc.base_color = material->material_params.base_color_factor;
+        desc.emissive = material->material_params.emmissive_factor;
         desc.metallic_roughness =
-            math::Vector2f(material.material_params.metallic_factor, material.material_params.roughness_factor);
+            math::Vector2f(material->material_params.metallic_factor, material->material_params.roughness_factor);
         decal_material_descs.push_back(desc);
 
         command.instance_count++; // each instance an decal (default mesh)
@@ -306,10 +306,10 @@ void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
         math::Vector3f v = math::Normalize(math::Cross(n, u));
 
         math::Matrix44f world_to_decal = math::Matrix44f{u, v, n};
-        auto &decal_position = decal->transform.GetTranslation();
-        world_to_decal(1, 4) = -math::dot(decal_position, u);
-        world_to_decal(2, 4) = -math::dot(decal_position, v);
-        world_to_decal(3, 4) = -math::dot(decal_position, n);
+        math::Vector3f decal_position = decal->transform.GetTranslation();
+        world_to_decal.at(1, 4) = -math::dot(decal_position, u);
+        world_to_decal.at(2, 4) = -math::dot(decal_position, v);
+        world_to_decal.at(3, 4) = -math::dot(decal_position, n);
         instance_param.decal_to_world = math::Invert(world_to_decal);
         instance_param.world_to_decal = world_to_decal;
         instance_param.material_index = material_offset;
@@ -371,7 +371,7 @@ void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
     commandlist->InsertBarrier(mip_barrier1);
 
     for (u32 tex = 0; tex < decal_material_textures.size(); tex++) {
-        commandlist->GenerateMipMap(decal_material_textures[tex], true);
+        commandlist->GenerateMipMap(decal_material_textures[tex]);
     }
 
     BarrierDesc mip_barrier2{};
@@ -434,15 +434,15 @@ std::tuple<Camera *, CameraController *> SceneManager::AddCamera(const CameraSet
 
 Buffer *SceneManager::GetCameraBuffer() const noexcept { return camera_buffer; }
 
-void SceneManager::CreateLightResources(Backend::RHI *rhi) {
+void SceneManager::CreateLightResources() {
     for (auto &l : directional_lights) {
         directional_lights_params.push_back(l->GetParamBuffer());
     }
     for (auto &l : local_lights) {
         local_lights_params.push_back(l->GetParamBuffer());
     }
-    light_count.directional_light_count = directional_lights_params.size();
-    light_count.local_light_count = local_lights_params.size();
+    light_count.directional_light_count = static_cast<u32>(directional_lights_params.size());
+    light_count.local_light_count = static_cast<u32>(local_lights_params.size());
 
     light_count_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
@@ -471,7 +471,7 @@ Buffer *SceneManager::GetDirectionalLightParamBuffer() const noexcept { return d
 
 Buffer *SceneManager::GetLocalLightParamBuffer() const noexcept { return local_light_buffer; }
 
-void SceneManager::CreateCameraResources(Backend::RHI *rhi) {
+void SceneManager::CreateCameraResources() {
     camera_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                        sizeof(CameraUb)});
@@ -481,19 +481,19 @@ void SceneManager::UploadCameraResources(Backend::CommandList *commandlist) {
     commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
 }
 
-void SceneManager::CreateBuiltInResources(Backend::RHI *rhi) {
+void SceneManager::CreateBuiltInResources() {
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
     vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    const_cast<Buffer *>(cube_vertex_buffer) =
-        resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
+    (cube_vertex_buffer) =
+        resource_manager->CreateGpuBuffer(vertex_buffer_create_info);
     BufferCreateInfo index_buffer_create_info{};
     index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
     index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
     index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-    const_cast<Buffer *>(cube_index_buffer) =
-        resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
+    (cube_index_buffer) =
+        resource_manager->CreateGpuBuffer(index_buffer_create_info);
 }
 
 void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist) {

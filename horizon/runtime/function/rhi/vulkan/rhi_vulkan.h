@@ -1,16 +1,18 @@
 #pragma once
 
-#include "vk_mem_alloc.h"
+// standard libraries
+#include <filesystem>
 
-#include <runtime/core/log/log.h>
+// third party libraries
+
+// project headers
 #include <runtime/core/utils/definations.h>
-
-#include <runtime/function/rhi/RHI.h>
+#include <runtime/core/log/log.h>
+#include <runtime/function/rhi/rhi.h>
 #include <runtime/function/rhi/rhi_utils.h>
 #include <runtime/function/rhi/vulkan/vulkan_utils.h>
-
-#include <runtime/function/rhi/vulkan/vulkan_buffer.h>
 #include <runtime/function/rhi/vulkan/vulkan_config.h>
+#include <runtime/function/rhi/vulkan/vulkan_buffer.h>
 #include <runtime/function/rhi/vulkan/vulkan_descriptor_set_allocator.h>
 #include <runtime/function/rhi/vulkan/vulkan_swap_chain.h>
 #include <runtime/function/rhi/vulkan/vulkan_texture.h>
@@ -37,7 +39,7 @@ class RHIVulkan : public RHI {
 
     SwapChain *CreateSwapChain(const SwapChainCreateInfo &create_info) override;
 
-    Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name);
+    Shader *CreateShader(ShaderType type, const std::filesystem::path &file_name);
 
     void DestroyShader(Shader *shader_program) override;
 
@@ -77,6 +79,7 @@ class RHIVulkan : public RHI {
     void Present(const QueuePresentInfo &quue_present_info) override;
     void AcquireNextFrame(SwapChain *swap_chain) override;
 
+    //void SetDebugName(void *resource, const Container::String &name) override;
   private:
     void InitializeVulkanRenderer(const Container::String &app_name);
     void CreateInstance(const Container::String &app_name, Container::Array<const char *> &instance_layers,

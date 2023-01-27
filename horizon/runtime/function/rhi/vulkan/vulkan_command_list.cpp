@@ -71,14 +71,14 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
             m_type == CommandQueueType::GRAPHICS));
     assert(begin_info.render_target_count < MAX_RENDER_TARGET_COUNT);
 
-    VkRenderingInfo info{};
-    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    info.flags = 0;
-    info.pNext = nullptr;
-    info.layerCount = 1;
-    info.viewMask = 0;
+    VkRenderingInfo vk_rendering_info{};
+    vk_rendering_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    vk_rendering_info.flags = 0;
+    vk_rendering_info.pNext = nullptr;
+    vk_rendering_info.layerCount = 1;
+    vk_rendering_info.viewMask = 0;
 
-    info.renderArea =
+    vk_rendering_info.renderArea =
         VkRect2D{VkOffset2D{static_cast<int>(begin_info.render_area.x), static_cast<int>(begin_info.render_area.y)},
                  VkExtent2D{begin_info.render_area.w, begin_info.render_area.h}};
 
@@ -89,22 +89,22 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     color_attachment_info.reserve(begin_info.render_target_count);
 
     for (u32 i = 0; i < begin_info.render_target_count; i++) {
-        VkRenderingAttachmentInfo info{};
+        VkRenderingAttachmentInfo vk_rendering_attachment_info{};
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.render_targets[i].data->GetTexture());
-        info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        info.imageView = t->m_image_view;
-        info.loadOp = ToVkLoadOp(begin_info.render_targets[i].load_op);
-        info.storeOp = ToVkStoreOp(begin_info.render_targets[i].store_op);
+        vk_rendering_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        vk_rendering_attachment_info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        vk_rendering_attachment_info.imageView = t->m_image_view;
+        vk_rendering_attachment_info.loadOp = ToVkLoadOp(begin_info.render_targets[i].load_op);
+        vk_rendering_attachment_info.storeOp = ToVkStoreOp(begin_info.render_targets[i].store_op);
         VkClearValue clear_value;
         auto &cc = std::get<ClearColorValue>(begin_info.render_targets[i].clear_color);
         memcpy(&clear_value.color, &cc, 4 * 4);
-        info.clearValue = clear_value;
-        color_attachment_info.push_back(std::move(info));
+        vk_rendering_attachment_info.clearValue = clear_value;
+        color_attachment_info.push_back(std::move(vk_rendering_attachment_info));
     }
 
-    info.colorAttachmentCount = color_attachment_info.size();
-    info.pColorAttachments = color_attachment_info.data();
+    vk_rendering_info.colorAttachmentCount = static_cast<u32>(color_attachment_info.size());
+    vk_rendering_info.pColorAttachments = color_attachment_info.data();
 
     // depth attachment info
     VkRenderingAttachmentInfo depth_attachment_info{};
@@ -121,7 +121,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
         auto &cc = std::get<ClearValueDepthStencil>(begin_info.depth_stencil.clear_color);
         clear_value.depthStencil = {cc.depth, cc.stencil};
         depth_attachment_info.clearValue = clear_value;
-        info.pDepthAttachment = &depth_attachment_info;
+        vk_rendering_info.pDepthAttachment = &depth_attachment_info;
     }
 
     // not use stencil attachment yet
@@ -136,7 +136,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     //    info.pStencilAttachment = &stencil_attachment_info;
     //}
 
-    vkCmdBeginRendering(m_command_buffer, &info);
+    vkCmdBeginRendering(m_command_buffer, &vk_rendering_info);
 }
 
 void VulkanCommandList::EndRenderPass() {
@@ -487,8 +487,8 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 
     if (!buffer_memory_barriers.empty() || !texture_memory_barriers.empty()) {
         vkCmdPipelineBarrier(m_command_buffer, src_stage_flags, dst_stage_flags, 0, 0, nullptr,
-                             buffer_memory_barriers.size(), buffer_memory_barriers.data(),
-                             texture_memory_barriers.size(), texture_memory_barriers.data());
+                             static_cast<u32>(buffer_memory_barriers.size()), buffer_memory_barriers.data(),
+                             static_cast<u32>(texture_memory_barriers.size()), texture_memory_barriers.data());
     }
 }
 
@@ -531,17 +531,31 @@ void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const Container::St
     }
 }
 
-void VulkanCommandList::BindPushConstant(Pipeline *pipeline, u32 index, void *data) {}
+//void VulkanCommandList::BindPushConstant(Pipeline *pipeline, u32 index, void *data) {}
 
-void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value) {
+void VulkanCommandList::ClearBuffer(Buffer *buffer, const BufferClearInfo& buffer_clear_info) {
     assert(("command list is not recording", is_recoring == true));
-    // vkCmdFillBuffer();
+    vkCmdFillBuffer(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, buffer_clear_info.offset,
+                    buffer_clear_info.size, buffer_clear_info.clear_value);
 }
 
-void VulkanCommandList::ClearTextrue(Texture *texture, const math::Vector4f &clear_value) {
+void VulkanCommandList::ClearTextrue(Texture *texture, const TextureClearInfo&texture_clear_info) {
     assert(("command list is not recording", is_recoring == true));
     assert(("clear texture can only call by transfer command list", m_type == CommandQueueType::TRANSFER));
-    // vkCmdClearColorImage();
+    
+    VkClearColorValue clear_color{};
+    memcpy(&clear_color, &texture_clear_info.clear_value, sizeof(ClearColorValue));
+
+    VkImageSubresourceRange subresource_ranges{};
+    subresource_ranges.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(texture->m_format), false);
+    subresource_ranges.baseMipLevel = texture_clear_info.first_mip_level;
+    subresource_ranges.levelCount = texture_clear_info.mip_level_count;
+    subresource_ranges.baseArrayLayer = texture_clear_info.first_layer;
+    subresource_ranges.layerCount = texture_clear_info.layer_count;
+    vkCmdClearColorImage(m_command_buffer, reinterpret_cast<VulkanTexture *>(texture)->m_image,
+                         ToVkImageLayout(texture->m_state), &clear_color, 1, &subresource_ranges);
+
+    
 }
 
 void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) {
@@ -555,7 +569,7 @@ void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *se
                             static_cast<u32>(set->update_frequency), 1, &vk_set->m_set, 0, 0); // TODO(hylu): batch update
 }
 
-void VulkanCommandList::GenerateMipMap(Texture *texture, bool alllevels) {
+void VulkanCommandList::GenerateMipMap(Texture *texture) {
 
     if(texture->mip_map_level == 1) return;
 

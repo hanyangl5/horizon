@@ -48,7 +48,7 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
     }
 }
 
-DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) {
+DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
 
     if (frequency == ResourceUpdateFrequency::BINDLESS) {
 
@@ -73,8 +73,8 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         alloc_info.pNext = &count_info;
         VkDescriptorSet vk_ds;
         CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
-        DescriptorSet *set =
-            new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+        DescriptorSet *set = Memory::Alloc<VulkanDescriptorSet>(m_context, frequency,
+                                                                rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
     } else {
@@ -95,7 +95,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         VkDescriptorSet vk_ds;
         CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
         DescriptorSet *set =
-            new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+            Memory::Alloc<VulkanDescriptorSet>(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
     }
@@ -149,8 +149,6 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
     // return {};
 }
 
-DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) { return {}; }
-
 void VulkanPipeline::CreateGraphicsPipeline() {
 
     auto ci = m_create_info.gpci;
@@ -194,7 +192,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
                     ps->m_shader_module, "main", nullptr});
             }
 
-            graphics_pipeline_create_info.stageCount = shader_stage_create_infos.size();
+            graphics_pipeline_create_info.stageCount = static_cast<u32>(shader_stage_create_infos.size());
             graphics_pipeline_create_info.pStages = shader_stage_create_infos.data();
         }
 

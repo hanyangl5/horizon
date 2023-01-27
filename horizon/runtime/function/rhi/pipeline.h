@@ -24,8 +24,7 @@ class Pipeline {
     virtual void SetComputeShader(Shader *vs) = 0;
     virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
 
-    virtual DescriptorSet * GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count = 1) = 0;
-    virtual DescriptorSet *GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) = 0;
+    virtual DescriptorSet * GetDescriptorSet(ResourceUpdateFrequency frequency) = 0;
   protected:
 
     void ParseRootSignature(); 

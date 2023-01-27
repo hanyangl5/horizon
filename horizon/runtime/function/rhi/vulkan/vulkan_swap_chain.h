@@ -15,9 +15,6 @@ class VulkanSwapChain : public SwapChain{
     VulkanSwapChain &operator=(const VulkanSwapChain &rhs) noexcept = delete;
     VulkanSwapChain(VulkanSwapChain &&rhs) noexcept = delete;
     VulkanSwapChain &operator=(VulkanSwapChain &&rhs) noexcept = delete;
-
-    void AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept override;
-
   public:
     const VulkanRendererContext &m_context{};
     VkSurfaceKHR surface{};

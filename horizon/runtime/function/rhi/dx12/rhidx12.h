@@ -7,8 +7,8 @@
 //
 //#include <runtime/core/log/log.h>
 //#include <runtime/core/utils/definations.h>
-//#include <runtime/function/rhi/Pipeline.h>
-//#include <runtime/function/rhi/RHI.h>
+//#include <runtime/function/rhi/pipeline.h>
+//#include <runtime/function/rhi/rhi.h>
 //#include <runtime/function/rhi/rhi_utils.h>
 //#include <runtime/function/rhi/Shader.h>
 //#include <runtime/function/rhi/dx12/DX12Buffer.h>

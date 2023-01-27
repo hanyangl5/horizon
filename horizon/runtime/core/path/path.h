@@ -17,7 +17,7 @@
 
 namespace Horizon {
 
-class Path : public PublicSingleton<Path> {
+class Path : public Singleton<Path> {
   private:
 };
 

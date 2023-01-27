@@ -17,6 +17,12 @@
 // project headers
 #include <runtime/core/utils/definations.h>
 
+#define QUATERNION_ACCESS(CHARACTER, INDEX)                                                                         \
+    constexpr T &CHARACTER() { return e.at(INDEX); }
+
+#define QUATERNION_ACCESS_CONST(CHARACTER, INDEX)                                                                   \
+    constexpr const T &CHARACTER() const { return e.at(INDEX); }
+
 namespace Horizon::math {
 
 template<typename T = f32>
@@ -174,47 +180,16 @@ class Quaternion {
     //    return *this;
     //}
     
+    QUATERNION_ACCESS(x, 0)
+    QUATERNION_ACCESS(y, 1)
+    QUATERNION_ACCESS(z, 2)
+    QUATERNION_ACCESS(w, 3)
 
-    
-    constexpr T &x() {
-        static_assert(dimension >= 1);
-        return e.at(0);
-    }
+    QUATERNION_ACCESS_CONST(x, 0)
+    QUATERNION_ACCESS_CONST(y, 1)
+    QUATERNION_ACCESS_CONST(z, 2)
+    QUATERNION_ACCESS_CONST(w, 3)
 
-    constexpr T &y() {
-        static_assert(dimension >= 2);
-        return e.at(1);
-    }
-
-    constexpr T &z() {
-        static_assert(dimension >= 3);
-        return e.at(2);
-    }
-
-    constexpr T &w() {
-        static_assert(dimension >= 4);
-        return e.at(3);
-    }
-
-    constexpr const T &x() const {
-        static_assert(dimension >= 1);
-        return e.at(0);
-    }
-
-    constexpr const T &y() const {
-        static_assert(dimension >= 2);
-        return e.at(1);
-    }
-
-    constexpr const T &z() const {
-        static_assert(dimension >= 3);
-        return e.at(2);
-    }
-
-    constexpr const T &w() const {
-        static_assert(dimension >= 4);
-        return e.at(3);
-    }
   private:
     Vector<4, T> e{};
 };

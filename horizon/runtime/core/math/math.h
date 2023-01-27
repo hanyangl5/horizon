@@ -16,6 +16,7 @@
 #include <runtime/core/utils/definations.h>
 #include <runtime/core/math/common.h>
 #include <runtime/core/math/3d/3dmath.h>
+#include <runtime/core/math/circular/circular.h>
 
 namespace Horizon::math {
 
@@ -27,7 +28,6 @@ using Matrix44f = Matrix<4, 4, f32>;
 
 using Quat = Quaternion<f32>;
 
-extern Vector<3> DEFAULT_ORIENTATION;
 }
 
 // #include "cemath/cemath.h"

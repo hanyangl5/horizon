@@ -25,7 +25,7 @@ void VulkanDescriptorSet::SetResource(Buffer *buffer, const Container::String &r
     write.dstSet = m_set;
     write.dstArrayElement = 0;
     write.descriptorCount = 1;
-    write.pBufferInfo = vk_buffer->GetDescriptorBufferInfo(0, buffer->m_size);
+    write.pBufferInfo = vk_buffer->GetDescriptorBufferInfo(0, buffer->m_size); // TODO: offset
 
     writes.push_back(write);
 }
@@ -38,7 +38,7 @@ void VulkanDescriptorSet::SetResource(Texture *texture, const Container::String 
     }
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
-    VkWriteDescriptorSet write;
+    VkWriteDescriptorSet write{};
 
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.pNext = nullptr;
@@ -129,7 +129,35 @@ void VulkanDescriptorSet::SetBindlessResource(Container::Array<Texture *> &resou
     write.pImageInfo = texture_descriptors.data();
     writes.push_back(write);
 }
-void VulkanDescriptorSet::SetBindlessResource(Container::Array<Sampler *> &resource, const Container::String &resource_name) {}
+
+void VulkanDescriptorSet::SetBindlessResource(Container::Array<Sampler *> &resource, const Container::String &resource_name) {
+    assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
+    auto res = write_descs.find(resource_name);
+    if (res == write_descs.end()) {
+        LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
+        return;
+    }
+
+    auto &sampler_descriptors = bindless_sampler_descriptors[resource_name];
+
+    for (auto &sampler : resource) {
+        auto vk_sampler = reinterpret_cast<VulkanSampler *>(sampler);
+
+        sampler_descriptors.push_back(*vk_sampler->GetDescriptorImageInfo());
+    }
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = res->second.vk_binding;
+    write.dstArrayElement = 0;
+    write.descriptorType = write.descriptorType = util_to_vk_descriptor_type(res->second.type);
+
+    write.descriptorCount = static_cast<uint32_t>(resource.size());
+    write.pBufferInfo = 0;
+    write.dstSet = m_set;
+    write.pImageInfo = sampler_descriptors.data();
+    writes.push_back(write);
+}
 
 void VulkanDescriptorSet::Update() {
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
