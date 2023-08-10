@@ -3,7 +3,8 @@
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
-#include "tiny_gltf.h"
+
+#include <tiny_gltf.h>
 
 #include <runtime/function/rhi/vulkan/Device.h>
 #include <runtime/function/rhi/vulkan/CommandBuffer.h>
@@ -32,7 +33,7 @@ namespace Horizon {
 	class Mesh {
 	public:
 		Mesh(std::shared_ptr<Device> device, Math::mat4 model) noexcept;
-		~Mesh() noexcept;
+		~Mesh() noexcept = default;
 
 		std::shared_ptr<Device> m_device;;
 		std::vector<std::shared_ptr<MeshPrimitive>> primitives;

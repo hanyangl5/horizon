@@ -1,0 +1,57 @@
+---
+Checks: "-*,
+        cppcoreguidelines-*,
+        fuchsia-multiple-inheritance,
+        fuchsia-virtual-inheritance,
+        fuchsia-statically-constructed-objects,
+        google-explicit-constructor,
+        google-default-arguments,
+        google-global-names-in-headers,
+        google-readability-todo,
+        google-readability-casting,
+        llvm-*,        
+        performance-*,
+        bugprone-*,
+        modernize-*,
+        readability-*,
+        -modernize-use-auto,
+        -modernize-use-trailing-return-type,
+        -cppcoreguidelines-pro-type-reinterpret-cast,
+        -readability-magic-numbers,
+        -readability-identifier-*,
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+        -readability-function-cognitive-complexity,
+        -cppcoreguidelines-macro-usage,
+        -cppcoreguidelines-owning-memory,
+        -readability-static-accessed-through-instance,
+        -readability-avoid-const-params-in-decls,
+        -cppcoreguidelines-avoid-non-const-global-variables,
+        -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+        -bugprone-easily-swappable-parameters,
+        -readability-uppercase-literal-suffix,
+        -cppcoreguidelines-no-malloc,
+        -cppcoreguidelines-avoid-magic-numbers,
+        -cppcoreguidelines-pro-bounds-constant-array-index,
+        -cppcoreguidelines-pro-type-union-access,
+        -readability-inconsistent-declaration-parameter-name,
+        -readability-non-const-parameter,
+        -cppcoreguidelines-pro-type-member-init,
+        -modernize-use-nodiscard,
+        -llvm-include-order,
+"
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+FormatStyle:     none
+
+# CheckOptions:
+#   - key: readability-identifier-length.IgnoredVariableNames
+#     value: 'x|y|z'
+#     value: 'w|h'
+#   - key: readability-identifier-length.IgnoredParameterNames
+#     value: 'x|y|z'
+#     value: 'w|h'
+
+
+
+
+

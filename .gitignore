@@ -6,3 +6,4 @@ docs/design.md
 docs/figs
 assets/models
 bin
+config/config.hpp

@@ -10,8 +10,9 @@ namespace Horizon {
 	private:
 		std::string GetAssetsPath() const noexcept;
 	public:
-		std::string GetModelPath(std::string _path) const noexcept;
-		std::string GetShaderPath(std::string _path) const noexcept;
+		std::string GetModelPath(const std::string& _path) const noexcept;
+          std::string GetTexturePath(const std::string &_path) const noexcept;
+                std::string GetShaderPath(const std::string &_path) const noexcept;
 	};
 }
 

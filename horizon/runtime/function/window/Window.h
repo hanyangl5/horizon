@@ -4,9 +4,10 @@
 
 #include <runtime/core/math/Math.h>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
+// #ifdef _WIN32
+// #define NOMINMAX
+// #include <Windows.h>
+// #endif
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN

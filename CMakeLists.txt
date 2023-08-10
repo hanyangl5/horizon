@@ -5,7 +5,12 @@ project(Horizon)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/horizon)
-set(SOLUTION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+add_subdirectory(thirdparty)
+
+add_subdirectory(config)
+
 add_subdirectory(horizon)

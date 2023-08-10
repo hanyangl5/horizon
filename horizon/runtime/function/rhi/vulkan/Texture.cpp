@@ -1,19 +1,6 @@
 #include "Texture.h"
 
-#include <vulkan/vulkan.hpp>
-#ifndef TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_IMPLEMENTATION
-#endif // !TINYGLTF_IMPLEMENTATION
-
-#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#endif
-
-#ifndef STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#endif // !STB_IMAGE_IMPLEMENTATION
-
-#include "tiny_gltf.h"
+#include <stb_image.h>
 
 #include <runtime/core/log/Log.h>
 
@@ -33,7 +20,7 @@ namespace Horizon {
 		bool deleteBuffer = false;
 		if (gltfimage.component == 3) {
 			// Most devices don't support RGB only on Vulkan so convert if necessary
-			// TODO: Check actual format support and transform only if required
+			// TODO(hyl5): Check actual format support and transform only if required
 			buffer_size = gltfimage.width * gltfimage.height * 4;
 			buffer = new unsigned char[buffer_size];
 			unsigned char* rgba = buffer;

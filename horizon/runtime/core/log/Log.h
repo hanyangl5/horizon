@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>

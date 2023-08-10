@@ -160,8 +160,8 @@ namespace Horizon
 		pipelineShaderStageCreateInfos[1].module = create_info.ps->Get();
 		pipelineShaderStageCreateInfos[1].pName = "main";
 
-		auto& bindingDescription = Vertex::getBindingDescription();
-		auto& attributeDescriptions = Vertex::getAttributeDescriptions();
+		auto bindingDescription = Vertex::getBindingDescription();
+		auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
 		vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

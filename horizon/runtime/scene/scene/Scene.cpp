@@ -165,7 +165,7 @@ namespace Horizon {
 	std::shared_ptr<DescriptorSetLayouts> Scene::GetGeometryPassDescriptorLayouts() const noexcept
 	{
 		std::shared_ptr<DescriptorSetLayouts> layouts = std::make_shared<DescriptorSetLayouts>();
-		VkDescriptorSetLayout materialSetLayout;
+		VkDescriptorSetLayout materialSetLayout = VK_NULL_HANDLE;
 		for (auto& model : m_models) {
 			if (model.second->GetMaterialDescriptorSet()) {
 				materialSetLayout = model.second->GetMaterialDescriptorSet()->GetLayout();

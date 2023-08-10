@@ -29,8 +29,12 @@ else(Vulkan_FOUND)
 endif(Vulkan_FOUND)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Horizon")
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
 
-#output dir
-set(CMAKE_DEBUG_POSTFIX "_d")
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/../../bin) 
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog glm glfw tinygltf_lib)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/config)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC 
+${CMAKE_SOURCE_DIR}/thirdparty/spdlog/include 
+${CMAKE_SOURCE_DIR}/thirdparty/glfw/include 
+${CMAKE_SOURCE_DIR}/thirdparty/tinygltf_impl
+${CMAKE_SOURCE_DIR}/thirdparty/stb/include)

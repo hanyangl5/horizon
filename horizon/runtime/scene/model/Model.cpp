@@ -118,7 +118,7 @@ namespace Horizon {
 
 		if (!m_empty_texture) {
 			m_empty_texture = std::make_shared<Texture>(m_device, m_command_buffer);
-			m_empty_texture->loadFromFile(Path::GetInstance().GetModelPath("black.bmp"), VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_empty_texture->loadFromFile(Path::GetInstance().GetTexturePath("black.jpg"), VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	}
 
@@ -455,13 +455,8 @@ namespace Horizon {
 		//std::shared_ptr<DescriptorSetInfo> setInfo = std::make_shared<DescriptorSetInfo>();
 		//setInfo->AddBinding(DESCRIPTOR_TYPE_UNIFORM_BUFFER, SHADER_STAGE_VERTEX_SHADER);
 		//meshDescriptorSet = std::make_shared<DescriptorSet>(m_device, setInfo);
-	}
-
-	Mesh::~Mesh()
-	{
-
-	}
-
+        }
+        
 	MeshPrimitive::MeshPrimitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, std::shared_ptr<Material> material) noexcept : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
 		hasIndices = indexCount > 0;
 	}
