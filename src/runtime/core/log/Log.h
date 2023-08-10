@@ -3,10 +3,8 @@
 #include <memory>
 #include <string>
 
-
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
-
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/singleton/public_singleton.h>

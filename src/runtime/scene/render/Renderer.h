@@ -24,7 +24,7 @@ class Renderer {
   public:
     Renderer(u32 width, u32 height, std::shared_ptr<Window> window) noexcept;
     ~Renderer() noexcept;
-	
+
     Renderer(const Renderer &) = default;
     Renderer(Renderer &&) = delete;
     Renderer &operator=(const Renderer &) = default;

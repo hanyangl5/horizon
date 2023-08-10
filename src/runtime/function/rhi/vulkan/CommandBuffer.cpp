@@ -4,7 +4,6 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/vulkan/Texture.h>
 
-
 namespace Horizon {
 
 CommandBuffer::CommandBuffer(RenderContext &render_context, std::shared_ptr<Device> device)

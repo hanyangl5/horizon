@@ -3,7 +3,6 @@
 #include <runtime/function/rhi/RenderContext.h>
 #include <runtime/function/rhi/vulkan/VulkanEnums.h>
 
-
 namespace Horizon {
 LightPass::LightPass(std::shared_ptr<Scene> _scene, std::shared_ptr<PipelineManager> _pipeline_manager,
                      std::shared_ptr<Device> _device, RenderContext &_render_context) noexcept
@@ -11,10 +10,8 @@ LightPass::LightPass(std::shared_ptr<Scene> _scene, std::shared_ptr<PipelineMana
     CreateResources();
     GraphicsPipelineCreateInfo LightPassPipelineCreateInfo;
     LightPassPipelineCreateInfo.name = "LightPass";
-    LightPassPipelineCreateInfo.vs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("simplevs.vert.spv"));
-    LightPassPipelineCreateInfo.ps =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("shading.frag.spv"));
+    LightPassPipelineCreateInfo.vs = std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("simplevs.vert.spv"));
+    LightPassPipelineCreateInfo.ps = std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("shading.frag.spv"));
     LightPassPipelineCreateInfo.descriptor_layouts = m_descriptor_set_layout;
 
     std::vector<AttachmentCreateInfo> LightPassAttachmentsCreateInfo{

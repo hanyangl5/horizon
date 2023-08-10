@@ -7,10 +7,8 @@
 #include <runtime/function/window/Window.h>
 #include <runtime/scene/render/Renderer.h>
 
-
 class App {
   public:
-  
     App(Horizon::u32 _width, Horizon::u32 _height) noexcept;
     ~App() noexcept = default;
     App(const App &) = delete;

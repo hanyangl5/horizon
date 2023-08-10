@@ -7,7 +7,6 @@
 #include <runtime/function/rhi/vulkan/Texture.h>
 #include <runtime/function/rhi/vulkan/UniformBuffer.h>
 
-
 namespace Horizon {
 class Atmosphere {
   public:

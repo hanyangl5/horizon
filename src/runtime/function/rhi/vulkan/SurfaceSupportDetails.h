@@ -5,28 +5,26 @@
 #include <vulkan/vulkan.hpp>
 
 namespace Horizon {
-	class SurfaceSupportDetails
-	{
-	public:
-		SurfaceSupportDetails() = default;
+class SurfaceSupportDetails {
+  public:
+    SurfaceSupportDetails() = default;
 
-		SurfaceSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface);
+    SurfaceSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface);
 
-		VkSurfaceCapabilitiesKHR getCapabilities() const noexcept;
+    VkSurfaceCapabilitiesKHR getCapabilities() const noexcept;
 
-		std::vector<VkSurfaceFormatKHR> getFormats() const noexcept;
+    std::vector<VkSurfaceFormatKHR> getFormats() const noexcept;
 
-		std::vector<VkPresentModeKHR> getPresentModes() const noexcept;
+    std::vector<VkPresentModeKHR> getPresentModes() const noexcept;
 
-		bool suitable() const noexcept;
+    bool suitable() const noexcept;
 
-	private:
-		VkSurfaceCapabilitiesKHR capabilities;
+  private:
+    VkSurfaceCapabilitiesKHR capabilities;
 
-		std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkSurfaceFormatKHR> formats;
 
-		std::vector<VkPresentModeKHR> presentModes;
+    std::vector<VkPresentModeKHR> presentModes;
+};
 
-	};
-
-}
+} // namespace Horizon

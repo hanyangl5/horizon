@@ -8,18 +8,19 @@
 
 namespace Horizon {
 
-	class Surface
-	{
-	public:
-		Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
-		~Surface();
-		VkSurfaceKHR Get()const noexcept;
-	private:
-		void createSurface();
-	private:
-		std::shared_ptr<Instance> m_instance = nullptr;
-		std::shared_ptr<Window> m_window = nullptr;
-		VkSurfaceKHR m_surface;
-	};
+class Surface {
+  public:
+    Surface(std::shared_ptr<Instance> instance, std::shared_ptr<Window> window);
+    ~Surface();
+    VkSurfaceKHR Get() const noexcept;
 
-}
+  private:
+    void createSurface();
+
+  private:
+    std::shared_ptr<Instance> m_instance = nullptr;
+    std::shared_ptr<Window> m_window = nullptr;
+    VkSurfaceKHR m_surface;
+};
+
+} // namespace Horizon
