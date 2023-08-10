@@ -13,4 +13,6 @@ add_subdirectory(thirdparty)
 
 add_subdirectory(config)
 
-add_subdirectory(horizon)
+add_subdirectory(src)
+
+add_subdirectory(example)
