@@ -1,8 +1,15 @@
 # Precomputed Atmospheric Scattering
- 
+
 ![](https://github.com/hanyangl5/horizon/blob/main/docs/figs/samples/atmosphere.png?raw=true)
 
-# Build From Source
+## Build status
+
+| Platform |       Clang        |        MSVC        |
+| -------- | :----------------: | :----------------: |
+| Windows  | :heavy_check_mark: | :heavy_check_mark: |
+
+
+## Build From Source
 
 On Windows:
 
@@ -12,15 +19,14 @@ On Windows:
 
 clone the branch PrecomputeAtmosphericScattering
 
-~~~
+```
 git clone -b PrecomputeAtmosphericScattering https://github.com/hanayangl5/horizon.git
-~~~
+```
 
 use CMake to generate solution file
 
-~~~
+```
 cmake -D build .
-~~~
+```
 
 build and run `example/atmosphere`
-
