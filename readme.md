@@ -20,7 +20,7 @@ On Windows:
 clone the branch PrecomputeAtmosphericScattering
 
 ```
-git clone -b PrecomputeAtmosphericScattering https://github.com/hanayangl5/horizon.git
+git clone -b PrecomputeAtmosphericScattering https://github.com/hanyangl5/horizon.git
 ```
 
 use CMake to generate solution file
