@@ -42,14 +42,14 @@ latest update is under branch [`main`](https://github.com/hanyangl5/horizon/tree
   - pbr shading with energy compensation
   - IBL diffuse irradiance with spherical harmonics, specular with split sum approximation
  
-![](https://github.com/hanyangl5/horizon/tree/main/docs/figs/samples/pbs.png)
+![](https://raw.githubusercontent.com/hanyangl5/horizon/main/docs/figs/samples/pbs.png)
 
 - SSAO
   - ssao
   - gaussian blur
  
-![](https://github.com/hanyangl5/horizon/tree/main/docs/figs/samples/ssao.png)
+![](https://raw.githubusercontent.com/hanyangl5/horizon/main/docs/figs/samples/ssao.png)
 
 - Temoral Antialiasing
 
-![](https://github.com/hanyangl5/horizon/tree/main/docs/figs/samples/taa.png)
+![](https://raw.githubusercontent.com/hanyangl5/horizon/main/docs/figs/samples/taa.png)
