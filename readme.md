@@ -30,3 +30,26 @@ cmake -D build .
 ```
 
 build and run `example/atmosphere`
+
+
+## Other Features
+
+latest update is under branch [`main`](https://github.com/hanyangl5/horizon/tree/main)
+
+- Physically Based Rendering
+  - physical light unit
+  - physical camera and exposure
+  - pbr shading with energy compensation
+  - IBL diffuse irradiance with spherical harmonics, specular with split sum approximation
+ 
+![](https://github.com/hanyangl5/horizon/tree/main/docs/figs/samples/pbs.png)
+
+- SSAO
+  - ssao
+  - gaussian blur
+ 
+![](https://github.com/hanyangl5/horizon/tree/main/docs/figs/samples/ssao.png)
+
+- Temoral Antialiasing
+
+![](https://github.com/hanyangl5/horizon/tree/main/docs/figs/samples/taa.png)
