@@ -228,7 +228,7 @@ void HorizonPipeline::run() {
         //geometry_pass_bindless_ds->SetBindlessResource(veretx_buffers, "vertex_buffers");
         geometry_pass_bindless_ds->Update();
         // geometry pass
-        
+
         auto gp_semaphore = rhi->CreateSemaphore1();
         {
             auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);

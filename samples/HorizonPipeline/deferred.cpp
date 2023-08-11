@@ -194,14 +194,13 @@ DeferredData::~DeferredData() noexcept {
     m_rhi->DestroyPipeline(shading_pass);
 
     m_rhi->DestroyBuffer(deferred_shading_constants_buffer);
-    
+
     m_rhi->DestroyRenderTarget(depth);
     m_rhi->DestroyRenderTarget(gbuffer0);
     m_rhi->DestroyRenderTarget(gbuffer1);
     m_rhi->DestroyRenderTarget(gbuffer2);
     m_rhi->DestroyRenderTarget(gbuffer3);
     m_rhi->DestroyRenderTarget(gbuffer4);
-
 
     m_rhi->DestroyTexture(shading_color_image);
 

@@ -17,7 +17,7 @@ HorizonRuntime::HorizonRuntime(const HorizonConfig &config) noexcept {
     if (!config.offscreen) {
         m_window = std::make_unique<Window>("horizon", config.width, config.height);
         m_render_system = std::make_unique<RenderSystem>(config.width, config.width, m_window.get(),
-                                                           config.render_backend, config.offscreen);
+                                                         config.render_backend, config.offscreen);
     } else {
         m_render_system =
             std::make_unique<RenderSystem>(config.width, config.width, m_window.get(), config.render_backend, true);
@@ -27,8 +27,9 @@ HorizonRuntime::HorizonRuntime(const HorizonConfig &config) noexcept {
 HorizonRuntime::~HorizonRuntime() noexcept {
     m_window = nullptr;
     m_render_system = nullptr;
-    
-    Memory::destroy(); }
+
+    Memory::destroy();
+}
 
 void HorizonRuntime::BeginNewFrame() const {
     auto rhi = m_render_system->GetRhi();
