@@ -1,6 +1,7 @@
+# Horizon
+
 ![](docs/figs/horizon_224.png)
 
-# [Horizon](https://github.com/v4vendeta/horizon/)
 
 horizon is a real time render framework for my graduation project.
 
@@ -28,3 +29,40 @@ horizon is a real time render framework for my graduation project.
 - Temoral Antialiasing
 
 ![](docs/figs/samples/taa.png)
+
+## Build status
+
+| Platform |       MSVC        |
+| -------- |:----------------: |
+| Windows  |:heavy_check_mark: |
+
+
+## Build From Source
+
+On Windows:
+
+- Vulkan SDK 1.1
+- CMake 3.10
+- Git
+
+clone the branch PrecomputeAtmosphericScattering
+
+```
+git clone -b main https://github.com/hanyangl5/horizon.git --recursive
+```
+
+use CMake to generate solution file
+
+```
+cmake -D build .
+```
+
+build the project and copy `build/third_party/assimp/bin/assimp*.dll` to `build/samples/HorizonPipeline/[Debug/Release]/` 
+
+then run `HorizonPipeline.exe`
+
+the app default load the sponza scene taken from [glTF-Sample-Models](https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/Sponza)
+
+## License
+
+[MIT](LICENSE) © hanyangl5

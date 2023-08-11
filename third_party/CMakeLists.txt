@@ -45,7 +45,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json glfw DirectXTK12 spd
 
 set_property(TARGET ${PROJECT_NAME} nlohmann_json glfw DirectXTK12 spdlog VulkanMemoryAllocator
     assimp uninstall unit zlibstatic
-    docs
     update_mappings
     tbb
     PROPERTY FOLDER "ThirdParty")
