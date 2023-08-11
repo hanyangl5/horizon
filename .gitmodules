@@ -1,7 +1,6 @@
 [submodule "third_party/nlohmann_json"]
 	path = third_party/nlohmann_json
 	url = https://github.com/nlohmann/json.git
-	url = https://github.com/KhronosGroup/Vulkan-Docs.git
 [submodule "third_party/glfw3"]
 	path = third_party/glfw3
 	url = https://github.com/glfw/glfw.git
