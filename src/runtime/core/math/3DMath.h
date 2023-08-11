@@ -9,8 +9,8 @@
 #pragma once
 
 #include <DirectXCollision.h>
-#include <d3d12.h>
 #include <SimpleMath.h>
+#include <d3d12.h>
 
 #include "CommonMath.h"
 #include <runtime/core/utils/definations.h>
