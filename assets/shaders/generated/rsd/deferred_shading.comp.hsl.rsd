@@ -1,0 +1,99 @@
+{
+  "UPDATE_FREQ_NONE": [],
+  "UPDATE_FREQ_PER_FRAME": [
+    {
+      "name": "gbuffer0_tex",
+      "vk_binding": 0,
+      "dx_register": "t0",
+      "descriptor_type": 2
+    },
+    {
+      "name": "gbuffer1_tex",
+      "vk_binding": 1,
+      "dx_register": "t1",
+      "descriptor_type": 2
+    },
+    {
+      "name": "gbuffer2_tex",
+      "vk_binding": 2,
+      "dx_register": "t2",
+      "descriptor_type": 2
+    },
+    {
+      "name": "gbuffer3_tex",
+      "vk_binding": 3,
+      "dx_register": "t3",
+      "descriptor_type": 2
+    },
+    {
+      "name": "depth_tex",
+      "vk_binding": 4,
+      "dx_register": "t3",
+      "descriptor_type": 2
+    },
+    {
+      "name": "default_sampler",
+      "vk_binding": 5,
+      "dx_register": "s0",
+      "descriptor_type": 1
+    },
+    {
+      "name": "DeferredShadingConstants",
+      "vk_binding": 6,
+      "dx_register": "b0",
+      "descriptor_type": 128
+    },
+    {
+      "name": "LightCountUb",
+      "vk_binding": 7,
+      "dx_register": "b4",
+      "descriptor_type": 128
+    },
+    {
+      "name": "LightDataUb",
+      "vk_binding": 8,
+      "dx_register": "b5",
+      "descriptor_type": 128
+    },
+    {
+      "name": "out_color",
+      "vk_binding": 9,
+      "dx_register": "t3",
+      "descriptor_type": 4
+    },
+    {
+      "name": "ao_tex",
+      "vk_binding": 10,
+      "dx_register": "t4",
+      "descriptor_type": 4
+    },
+    {
+      "name": "DiffuseIrradianceSH3",
+      "vk_binding": 11,
+      "dx_register": "b0",
+      "descriptor_type": 128
+    },
+    {
+      "name": "specular_map",
+      "vk_binding": 12,
+      "dx_register": "t5",
+      "descriptor_type": 2
+    },
+    {
+      "name": "specular_brdf_lut",
+      "vk_binding": 13,
+      "dx_register": "t5",
+      "descriptor_type": 2
+    },
+    {
+      "name": "ibl_sampler",
+      "vk_binding": 14,
+      "dx_register": "t5",
+      "descriptor_type": 1
+    }
+  ],
+  "UPDATE_FREQ_PER_BATCH": [],
+  "UPDATE_FREQ_PER_DRAW": [],
+  "UPDATE_FREQ_BINDLESS": [],
+  "PUSH_CONSTANT": []
+}

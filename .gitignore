@@ -1,0 +1,6 @@
+.vscode
+build
+out
+tools/HSLCompiler/generators/__pycache__
+tools/HSLCompiler/__pycache__
+config/config.hpp

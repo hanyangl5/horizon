@@ -1,0 +1,25 @@
+[submodule "third_party/nlohmann_json"]
+	path = third_party/nlohmann_json
+	url = https://github.com/nlohmann/json.git
+	url = https://github.com/KhronosGroup/Vulkan-Docs.git
+[submodule "third_party/glfw3"]
+	path = third_party/glfw3
+	url = https://github.com/glfw/glfw.git
+[submodule "third_party/directxtk12"]
+	path = third_party/directxtk12
+	url = https://github.com/microsoft/DirectXTK12.git
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "third_party/VulkanMemoryAllocator"]
+	path = third_party/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "third_party/assimp"]
+	path = third_party/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "third_party/spirv-reflect"]
+	path = third_party/spirv-reflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
+[submodule "third_party/oneTBB"]
+	path = third_party/oneTBB
+	url = https://github.com/oneapi-src/oneTBB.git

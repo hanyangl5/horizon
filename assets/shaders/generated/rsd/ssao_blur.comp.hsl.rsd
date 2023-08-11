@@ -1,0 +1,21 @@
+{
+  "UPDATE_FREQ_NONE": [],
+  "UPDATE_FREQ_PER_FRAME": [
+    {
+      "name": "ssao_blur_in",
+      "vk_binding": 0,
+      "dx_register": "u0",
+      "descriptor_type": 4
+    },
+    {
+      "name": "ssao_blur_out",
+      "vk_binding": 1,
+      "dx_register": "u1",
+      "descriptor_type": 4
+    }
+  ],
+  "UPDATE_FREQ_PER_BATCH": [],
+  "UPDATE_FREQ_PER_DRAW": [],
+  "UPDATE_FREQ_BINDLESS": [],
+  "PUSH_CONSTANT": []
+}

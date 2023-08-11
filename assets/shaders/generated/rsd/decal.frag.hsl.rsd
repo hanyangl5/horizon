@@ -1,0 +1,46 @@
+{
+  "UPDATE_FREQ_NONE": [],
+  "UPDATE_FREQ_PER_FRAME": [
+    {
+      "name": "decal_instance_parameter",
+      "vk_binding": 1,
+      "dx_register": "t3",
+      "descriptor_type": 8
+    },
+    {
+      "name": "decal_material_descriptions",
+      "vk_binding": 3,
+      "dx_register": "t3",
+      "descriptor_type": 8
+    },
+    {
+      "name": "default_sampler",
+      "vk_binding": 4,
+      "dx_register": "s0",
+      "descriptor_type": 1
+    },
+    {
+      "name": "depth_tex",
+      "vk_binding": 5,
+      "dx_register": "t3",
+      "descriptor_type": 2
+    },
+    {
+      "name": "DecalConstants",
+      "vk_binding": 6,
+      "dx_register": "b0",
+      "descriptor_type": 128
+    }
+  ],
+  "UPDATE_FREQ_PER_BATCH": [],
+  "UPDATE_FREQ_PER_DRAW": [],
+  "UPDATE_FREQ_BINDLESS": [
+    {
+      "name": "decal_material_textures",
+      "vk_binding": 0,
+      "dx_register": "t3",
+      "descriptor_type": 2
+    }
+  ],
+  "PUSH_CONSTANT": []
+}

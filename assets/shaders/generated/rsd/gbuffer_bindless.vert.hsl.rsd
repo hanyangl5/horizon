@@ -1,0 +1,28 @@
+{
+  "UPDATE_FREQ_NONE": [],
+  "UPDATE_FREQ_PER_FRAME": [
+    {
+      "name": "CameraParamsUb",
+      "vk_binding": 0,
+      "dx_register": "b0",
+      "descriptor_type": 128
+    },
+    {
+      "name": "instance_parameter",
+      "vk_binding": 1,
+      "dx_register": "t3",
+      "descriptor_type": 8
+    }
+  ],
+  "UPDATE_FREQ_PER_BATCH": [],
+  "UPDATE_FREQ_PER_DRAW": [],
+  "UPDATE_FREQ_BINDLESS": [],
+  "PUSH_CONSTANT": [
+    {
+      "name": "DrawRootConstant",
+      "size": 4,
+      "dx_register": "b1",
+      "stage": 1
+    }
+  ]
+}

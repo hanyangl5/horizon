@@ -1,0 +1,110 @@
+#include "include/shading/material_params_defination.hsl"
+#include "include/shading/light_defination.h"
+#include "include/shading/lighting.h"
+#include "include/shading/ibl.h"
+#include "include/postprocess/postprocess.h"
+#include "include/translation/translation.h"
+// per frame resources
+
+RES(Tex2D(float4), gbuffer0_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+RES(Tex2D(float4), gbuffer1_tex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
+RES(Tex2D(float4), gbuffer2_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
+RES(Tex2D(float4), gbuffer3_tex, UPDATE_FREQ_PER_FRAME, t3, binding = 3);
+RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t3, binding = 4);
+
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 5);
+
+CBUFFER(DeferredShadingConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 6)
+{
+    DATA(float4x4, inverse_vp, None);
+    DATA(float4, camera_pos_exposure, None);
+    DATA(uint2, resolution, None);
+    DATA(float2, ibl_intensity, None);
+};
+
+CBUFFER(LightCountUb, UPDATE_FREQ_PER_FRAME, b4, binding = 7)
+{
+    DATA(uint, light_count, None);
+};
+
+CBUFFER(LightDataUb, UPDATE_FREQ_PER_FRAME, b5, binding = 8)
+{
+    DATA(LightParams, light_data[MAX_DYNAMIC_LIGHT_COUNT], None);
+};
+
+RES(RWTex2D(float4), out_color, UPDATE_FREQ_PER_FRAME, t3, binding = 9);
+
+RES(RTex2D(float4), ao_tex, UPDATE_FREQ_PER_FRAME, t4, binding = 10);
+
+CBUFFER(DiffuseIrradianceSH3, UPDATE_FREQ_PER_FRAME, b0, binding = 11)
+{
+    DATA(float3, sh[9], None);
+};
+
+RES(TexCube(float4), specular_map, UPDATE_FREQ_PER_FRAME, t5, binding = 12);
+RES(Tex2D(float4), specular_brdf_lut, UPDATE_FREQ_PER_FRAME, t5, binding = 13);
+RES(SamplerState, ibl_sampler, UPDATE_FREQ_PER_FRAME, t5, binding = 14);
+
+NUM_THREADS(8, 8, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+{
+    INIT_MAIN;
+    uint2 _resolution = Get(resolution).xy - uint2(1.0, 1.0);
+
+    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+        RETURN();
+    }
+
+    float2 uv = float2(threadID.xy) / float2(_resolution);
+    float4 gbuffer0 = SampleTex2D(Get(gbuffer0_tex), default_sampler, uv);
+    float4 gbuffer1 = SampleTex2D(Get(gbuffer1_tex), default_sampler, uv);
+    float4 gbuffer2 = SampleTex2D(Get(gbuffer2_tex), default_sampler, uv);
+    float4 gbuffer3 = SampleTex2D(Get(gbuffer3_tex), default_sampler, uv);
+    
+    MaterialProperties mat;
+
+    //mat.normal
+    mat.albedo = gbuffer1.xyz;
+
+    mat.metallic = gbuffer3.x;
+
+    // adjust roughness to reduce specular aliasing
+    float roughness = max(0.045f, gbuffer3.y);
+
+    float alpha = gbuffer3.z;
+
+    mat.roughness = roughness;
+    mat.roughness2 = Pow2(roughness);
+    mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
+
+    // disney
+    {
+        // mat.anisotropic = 0.0;
+        // mat.sheen = gbuffer3.x;
+        // mat.sheen_tint = 0.5;
+        // mat.subsurface = gbuffer3.x;
+        // mat.clearcoat = gbuffer3.x;
+        // mat.clearcoat_gloss = 0.5;
+    }
+
+    float3 world_pos = ReconstructWorldPos(Get(inverse_vp),SampleTex2D(Get(depth_tex), default_sampler, uv).r, uv);
+    float3 n =  normalize(gbuffer0.xyz);
+    float3 v = -normalize(world_pos - Get(camera_pos_exposure).xyz);
+    float NoV = saturate(dot(n, v));
+    float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
+
+    // direct lighting
+    for(uint i = 0; i < Get(light_count); i++) {
+        radiance += Radiance(mat, Get(light_data)[i], n, v, world_pos);
+    }
+  
+    // indirect light
+    float3 reflect_dir = normalize(2.0 * dot(n, v) * n - v);
+    float3 specular = SampleLvlTexCube(Get(specular_map), ibl_sampler, reflect_dir, mat.roughness * 8.0).xyz; // 256x256 at miplevel0
+    float2 ibl_uv = float2(mat.roughness, NoV);
+    float2 env = SampleTex2D(Get(specular_brdf_lut), ibl_sampler, ibl_uv).xy;
+    float3 ambient = IBL(Get(sh), specular, env, n, NoV, mat) * LoadRWTex2D(Get(ao_tex), threadID.xy).r * Get(ibl_intensity).x;
+    //radiance.xyz += ambient;
+    Write2D(Get(out_color), threadID.xy, radiance);
+    RETURN();
+}
