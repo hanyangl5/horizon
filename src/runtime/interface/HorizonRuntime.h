@@ -33,8 +33,8 @@ class HorizonRuntime final {
     void EndFrame() const;
 
   public:
-    Memory::UniquePtr<Window> m_window{};
-    Memory::UniquePtr<RenderSystem> m_render_system{};
+    std::unique_ptr<Window> m_window{};
+    std::unique_ptr<RenderSystem> m_render_system{};
 };
 
 } // namespace Horizon

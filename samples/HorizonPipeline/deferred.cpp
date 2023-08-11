@@ -2,7 +2,7 @@
 
 extern std::filesystem::path asset_path;
 
-DeferredData::DeferredData(RHI *rhi) noexcept {
+DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
 
     // light culling pass
     {
@@ -183,4 +183,30 @@ DeferredData::DeferredData(RHI *rhi) noexcept {
 
     geometry_pass->SetGraphicsShader(geometry_vs, geometry_ps);
     shading_pass->SetComputeShader(shading_cs);
+}
+DeferredData::~DeferredData() noexcept {
+    m_rhi->DestroyShader(geometry_vs);
+    m_rhi->DestroyShader(geometry_ps);
+
+    m_rhi->DestroyShader(shading_cs);
+
+    m_rhi->DestroyPipeline(geometry_pass);
+    m_rhi->DestroyPipeline(shading_pass);
+
+    m_rhi->DestroyBuffer(deferred_shading_constants_buffer);
+    
+    m_rhi->DestroyRenderTarget(depth);
+    m_rhi->DestroyRenderTarget(gbuffer0);
+    m_rhi->DestroyRenderTarget(gbuffer1);
+    m_rhi->DestroyRenderTarget(gbuffer2);
+    m_rhi->DestroyRenderTarget(gbuffer3);
+    m_rhi->DestroyRenderTarget(gbuffer4);
+
+
+    m_rhi->DestroyTexture(shading_color_image);
+
+    m_rhi->DestroyBuffer(diffuse_irradiance_sh3_buffer);
+    m_rhi->DestroyTexture(brdf_lut);
+    m_rhi->DestroyTexture(prefiltered_irradiance_env_map);
+    m_rhi->DestroySampler(ibl_sampler);
 }

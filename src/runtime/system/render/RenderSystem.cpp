@@ -17,7 +17,7 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
     case Horizon::RenderBackend::RENDER_BACKEND_NONE:
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-        m_rhi = Memory::MakeUnique<Backend::RHIVulkan>(offscreen);
+        m_rhi = std::make_unique<Backend::RHIVulkan>(offscreen);
         break;
     case Horizon::RenderBackend::RENDER_BACKEND_DX12:
         // m_rhi = Memory::MakeUnique2<Backend::RHIDX12>();
@@ -31,12 +31,16 @@ RenderSystem::RenderSystem(u32 width, u32 height, Window *window, RenderBackend 
 
     auto allocator = Memory::GetGlobalAllocator();
 
-    m_resource_manager = Memory::MakeUnique<ResourceManager>(m_rhi.get(), allocator);
+    m_resource_manager = std::make_unique<ResourceManager>(m_rhi.get(), allocator);
 
-    m_scene_manager = Memory::MakeUnique<SceneManager>(m_resource_manager.get(), allocator);
+    m_scene_manager = std::make_unique<SceneManager>(m_resource_manager.get(), allocator);
 }
 
-RenderSystem::~RenderSystem() noexcept {}
+RenderSystem::~RenderSystem() noexcept {
+    m_scene_manager = nullptr;
+    m_resource_manager = nullptr;
+    m_rhi = nullptr;
+}
 
 void RenderSystem::InitializeRenderAPI(RenderBackend backend) {}
 

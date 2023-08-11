@@ -150,7 +150,7 @@ class SceneManager {
     //Buffer *decal_material_description_buffer{};
     // camera
 
-    Memory::UniquePtr<Camera> main_camera{};
+    std::unique_ptr<Camera> main_camera{};
     struct CameraUb {
         Math::float4x4 vp;
         Math::float4x4 prev_vp;
@@ -160,7 +160,7 @@ class SceneManager {
 
     Buffer *camera_buffer{};
 
-    Memory::UniquePtr<CameraController> camera_controller{};
+    std::unique_ptr<CameraController> camera_controller{};
 
     // light
 

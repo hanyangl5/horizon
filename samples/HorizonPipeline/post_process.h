@@ -4,8 +4,9 @@
 
 class PostProcessData {
   public:
-    PostProcessData(Backend::RHI *rhi) noexcept;
-    ~PostProcessData() noexcept = default;
+    explicit PostProcessData(Backend::RHI *rhi) noexcept;
+    ~PostProcessData() noexcept;
+    Backend::RHI *m_rhi;
 
     Shader *post_process_cs;
     Pipeline *post_process_pass;

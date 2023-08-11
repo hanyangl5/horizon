@@ -4,7 +4,10 @@
 
 class SSAOData {
   public:
-    SSAOData(Backend::RHI *rhi) noexcept;
+    explicit SSAOData(Backend::RHI *rhi) noexcept;
+    ~SSAOData() noexcept;
+
+    RHI *m_rhi;
 
     // pass resources
     Shader *ssao_cs;

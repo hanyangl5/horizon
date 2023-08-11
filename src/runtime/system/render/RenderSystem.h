@@ -36,8 +36,8 @@ class RenderSystem {
 
   private:
     Window *m_window{};
-    Memory::UniquePtr<ResourceManager> m_resource_manager{};
-    Memory::UniquePtr<SceneManager> m_scene_manager{};
-    Memory::UniquePtr<Backend::RHI> m_rhi{};
+    std::unique_ptr<ResourceManager> m_resource_manager{};
+    std::unique_ptr<SceneManager> m_scene_manager{};
+    std::unique_ptr<Backend::RHI> m_rhi{};
 };
 } // namespace Horizon

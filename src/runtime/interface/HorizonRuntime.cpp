@@ -15,16 +15,20 @@ namespace Horizon {
 HorizonRuntime::HorizonRuntime(const HorizonConfig &config) noexcept {
     Memory::initialize();
     if (!config.offscreen) {
-        m_window = Memory::MakeUnique<Window>("horizon", config.width, config.height);
-        m_render_system = Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(),
+        m_window = std::make_unique<Window>("horizon", config.width, config.height);
+        m_render_system = std::make_unique<RenderSystem>(config.width, config.width, m_window.get(),
                                                            config.render_backend, config.offscreen);
     } else {
         m_render_system =
-            Memory::MakeUnique<RenderSystem>(config.width, config.width, m_window.get(), config.render_backend, true);
+            std::make_unique<RenderSystem>(config.width, config.width, m_window.get(), config.render_backend, true);
     }
 }
 
-HorizonRuntime::~HorizonRuntime() noexcept { Memory::destroy(); }
+HorizonRuntime::~HorizonRuntime() noexcept {
+    m_window = nullptr;
+    m_render_system = nullptr;
+    
+    Memory::destroy(); }
 
 void HorizonRuntime::BeginNewFrame() const {
     auto rhi = m_render_system->GetRhi();

@@ -4,11 +4,12 @@
 
 class AntialiasingData {
   public:
-    AntialiasingData(Backend::RHI *rhi) noexcept;
-    ~AntialiasingData() noexcept = default;
+    explicit AntialiasingData(Backend::RHI *rhi) noexcept;
+    ~AntialiasingData() noexcept;
 
     const Math::float2 &GetJitterOffset() noexcept;
 
+    Backend::RHI *m_rhi;
     Shader *taa_cs;
     Pipeline *taa_pass;
 

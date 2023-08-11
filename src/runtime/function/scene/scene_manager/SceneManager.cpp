@@ -17,7 +17,27 @@ SceneManager::SceneManager(ResourceManager *resource_manager,
       material_descs(allocator), mesh_data(allocator), scene_indirect_draw_command1(allocator), lights(allocator),
       lights_param_buffer(allocator) {}
 
-SceneManager::~SceneManager() noexcept {}
+SceneManager::~SceneManager() noexcept {
+    // for (auto &b : vertex_buffers) {
+    //     resource_manager->DestroyGpuBuffer(b);
+    // }
+    // for (auto &b : index_buffers) {
+    //     resource_manager->DestroyGpuBuffer(b);
+    // }
+    // resource_manager->DestroyGpuBuffer(material_description_buffer);
+    // resource_manager->DestroyGpuBuffer(indirect_draw_command_buffer1);
+    // resource_manager->DestroyGpuBuffer(instance_parameter_buffer);
+    // resource_manager->DestroyGpuBuffer(empty_vertex_buffer);
+
+    // resource_manager->DestroyGpuBuffer(light_count_buffer);
+    // resource_manager->DestroyGpuBuffer(light_buffer);
+    // resource_manager->DestroyGpuBuffer(camera_buffer);
+    // resource_manager->DestroyGpuBuffer(cube_vertex_buffer);
+    // resource_manager->DestroyGpuBuffer(cube_index_buffer);
+    // for (auto &t : material_textures) {
+    //     resource_manager->DestroyGpuTexture(t);
+    // }
+}
 
 void SceneManager::AddMesh(Mesh *mesh) { scene_meshes.push_back(mesh); }
 
@@ -406,9 +426,9 @@ std::tuple<Camera *, CameraController *> SceneManager::AddCamera(const CameraSet
     if (main_camera != nullptr) {
         LOG_WARN("multi veiw is not supported yet");
     }
-    main_camera = Memory::MakeUnique<Camera>(setting, position, at, up);
+    main_camera = std::make_unique<Camera>(setting, position, at, up);
     if (setting.moveable) {
-        camera_controller = Memory::MakeUnique<CameraController>(main_camera.get());
+        camera_controller = std::make_unique<CameraController>(main_camera.get());
     }
     return {main_camera.get(), camera_controller.get()};
 }

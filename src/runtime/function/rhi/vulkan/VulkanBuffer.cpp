@@ -27,7 +27,7 @@ VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCre
 }
 
 VulkanBuffer::~VulkanBuffer() noexcept {
-    if (m_stage_buffer) {
+    if (m_stage_buffer != nullptr) {
         Memory::Free<VulkanBuffer>(m_stage_buffer);
     }
     vmaDestroyBuffer(m_context.vma_allocator, m_buffer, m_memory);

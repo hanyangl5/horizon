@@ -1,10 +1,16 @@
+//#define VMA_DEBUG_LOG(format, ...)                                                                                     \
+//    do {                                                                                                               \
+//        printf(format, __VA_ARGS__);                                                                                   \
+//        printf("\n");                                                                                                  \
+//    } while (false)
+
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 #include "RHIVulkan.h"
 
 #include <filesystem>
 #include <thread>
-
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
 
 #include <vulkan/vulkan.hpp>
 
@@ -36,6 +42,22 @@ RHIVulkan::~RHIVulkan() noexcept {
 
     Memory::Free(m_descriptor_set_allocator);
     m_descriptor_set_allocator = nullptr; // release
+
+    if (semaphore_ctx.swap_chain_release_semaphore != nullptr) {
+        vkDestroySemaphore(m_vulkan.device,
+                           reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_release_semaphore)->m_semaphore,
+                           nullptr);
+    }
+    if (semaphore_ctx.swap_chain_acquire_semaphore != nullptr) {
+        vkDestroySemaphore(m_vulkan.device,
+                           reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore)->m_semaphore,
+                           nullptr);
+    }
+    for (auto &s : semaphore_ctx.recycled_semaphores) {
+        if (s != nullptr) {
+            vkDestroySemaphore(m_vulkan.device, reinterpret_cast<VulkanSemaphore *>(s)->m_semaphore, nullptr);
+        }
+    }
 
     vmaDestroyAllocator(m_vulkan.vma_allocator);
     vkDestroyDevice(m_vulkan.device, nullptr);

@@ -56,6 +56,9 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
 }
 
 VulkanTexture::~VulkanTexture() noexcept {
+    if (m_stage_buffer != nullptr) {
+        Memory::Free<VulkanBuffer>(m_stage_buffer);
+    }
     vmaDestroyImage(m_context.vma_allocator, m_image, m_memory);
     if (m_image_view != VK_NULL_HANDLE) {
         vkDestroyImageView(m_context.device, m_image_view, nullptr);

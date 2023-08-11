@@ -151,6 +151,9 @@ VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
     // }
 
     vkDestroyDescriptorPool(m_context.device, m_temp_descriptor_pool, nullptr);
+    if (m_bindless_descriptor_pool!= VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(m_context.device, m_bindless_descriptor_pool, nullptr);
+    }
 }
 
 void VulkanDescriptorSetAllocator::CreateDescriptorPool() {

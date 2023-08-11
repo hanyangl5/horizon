@@ -1,7 +1,5 @@
 #pragma once
 
-#include "vk_mem_alloc.h"
-
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/definations.h>
 

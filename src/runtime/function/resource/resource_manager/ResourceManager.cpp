@@ -50,16 +50,16 @@ void ResourceManager::OffloadMesh(Mesh *mesh) {
 void ResourceManager::ClearAllResources() {
     for (auto &remain_buffer : allocated_buffers) {
         if (remain_buffer != nullptr) {
-            allocated_buffers.erase(remain_buffer);
             m_rhi->DestroyBuffer(remain_buffer);
         }
     }
     for (auto &remain_texture : allocated_textures) {
         if (remain_texture != nullptr) {
-            allocated_textures.erase(remain_texture);
             m_rhi->DestroyTexture(remain_texture);
         }
     }
+    allocated_textures.clear();
+    allocated_buffers.clear();
 }
 
 void ResourceManager::DestroyGpuBuffer(Buffer *buffer) {

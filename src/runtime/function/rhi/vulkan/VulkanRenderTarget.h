@@ -1,7 +1,5 @@
 #pragma once
 
-#include "vk_mem_alloc.h"
-
 #include <runtime/function/rhi/RenderTarget.h>
 #include <runtime/function/rhi/vulkan/VulkanCommandContext.h>
 #include <runtime/function/rhi/vulkan/VulkanRenderTarget.h>

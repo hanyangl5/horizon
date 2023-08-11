@@ -2,8 +2,9 @@
 
 extern std::filesystem::path asset_path;
 
-AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept {
+AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
     // PP PASS
+
     taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/taa.comp.hsl");
     taa_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     previous_color_texture = rhi->CreateTexture(TextureCreateInfo{
@@ -27,6 +28,13 @@ AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept {
                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(TAAPrevCurrOffset)});
 }
 
+AntialiasingData::~AntialiasingData() noexcept {
+    m_rhi->DestroyBuffer(taa_prev_curr_offset_buffer);
+    m_rhi->DestroyTexture(previous_color_texture);
+    m_rhi->DestroyTexture(output_color_texture);
+    m_rhi->DestroyShader(taa_cs);
+    m_rhi->DestroyPipeline(taa_pass);
+}
 const Math::float2 &AntialiasingData::GetJitterOffset() noexcept {
     taa_sample_index %= TAA_SAMPLE_COUNT;
     return taa_samples[taa_sample_index++];

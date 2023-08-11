@@ -21,11 +21,11 @@ void HorizonPipeline::InitPipelineResources() {
         sampler = rhi->CreateSampler(sampler_desc);
     }
 
-    deferred = Memory::MakeUnique<DeferredData>(rhi);
-    ssao = Memory::MakeUnique<SSAOData>(rhi);
-    post_process = Memory::MakeUnique<PostProcessData>(rhi);
-    antialiasing = Memory::MakeUnique<AntialiasingData>(rhi);
-    scene = Memory::MakeUnique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
+    deferred = std::make_unique<DeferredData>(rhi);
+    ssao = std::make_unique<SSAOData>(rhi);
+    post_process = std::make_unique<PostProcessData>(rhi);
+    antialiasing = std::make_unique<AntialiasingData>(rhi);
+    scene = std::make_unique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
 }
 
 void HorizonPipeline::UpdatePipelineResources() {
@@ -228,7 +228,7 @@ void HorizonPipeline::run() {
         //geometry_pass_bindless_ds->SetBindlessResource(veretx_buffers, "vertex_buffers");
         geometry_pass_bindless_ds->Update();
         // geometry pass
-
+        
         auto gp_semaphore = rhi->CreateSemaphore1();
         {
             auto cl = rhi->GetCommandList(CommandQueueType::GRAPHICS);
@@ -571,7 +571,8 @@ void HorizonPipeline::run() {
         rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
         rhi->WaitGpuExecution(CommandQueueType::COMPUTE);
         rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
-
+        rhi->DestroySemaphore(gp_semaphore);
+        rhi->DestroySemaphore(resource_uploaded_semaphore);
         if (first_frame) {
             first_frame = false;
         }

@@ -2,7 +2,7 @@
 
 extern std::filesystem::path asset_path;
 
-SSAOData::SSAOData(Backend::RHI *rhi) noexcept {
+SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
 
     ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ao.comp.hsl");
     ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/ssao_blur.comp.hsl");
@@ -54,4 +54,17 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept {
 
     ssao_pass->SetComputeShader(ssao_cs);
     ssao_blur_pass->SetComputeShader(ssao_blur_cs);
+}
+
+SSAOData::~SSAOData() noexcept {
+
+    m_rhi->DestroyShader(ssao_cs);
+    m_rhi->DestroyPipeline(ssao_pass);
+    m_rhi->DestroyShader(ssao_blur_cs);
+    m_rhi->DestroyPipeline(ssao_blur_pass);
+
+    m_rhi->DestroyTexture(ssao_noise_tex);
+    m_rhi->DestroyTexture(ssao_factor_image);
+    m_rhi->DestroyTexture(ssao_blur_image);
+    m_rhi->DestroyBuffer(ssao_constants_buffer);
 }

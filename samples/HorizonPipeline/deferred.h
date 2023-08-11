@@ -4,15 +4,11 @@
 
 class DeferredData {
   public:
-    DeferredData(RHI *rhi) noexcept;
-    ~DeferredData() noexcept = default;
+    explicit DeferredData(RHI *rhi) noexcept;
+    ~DeferredData() noexcept;
 
-    Shader *light_culling_cs;
-    Pipeline *light_culling_pass;
-    Buffer *light_list;
-    Container::FixedArray<u32, 3> slices;
-    // visible mesh instance id
-    // //
+    Backend::RHI *m_rhi;
+
     // pass resources
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};

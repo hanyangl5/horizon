@@ -21,7 +21,18 @@ class HorizonPipeline {
         config.offscreen = false;
         engine = std::make_unique<HorizonRuntime>(config);
     }
+    ~HorizonPipeline() {
+        rhi->DestroySampler(sampler);
+        rhi->DestroySwapChain(swap_chain);
 
+        deferred = nullptr;
+        ssao = nullptr;
+        post_process = nullptr;
+        antialiasing = nullptr;
+        scene = nullptr;
+
+        engine = nullptr;
+    }
     void Init() {
         InitAPI();
         InitResources();

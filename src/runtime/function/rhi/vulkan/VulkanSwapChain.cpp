@@ -89,8 +89,6 @@ Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept {
 
     for (u32 i = 0; i < swap_chain_images.size(); i++) {
         vkDestroyImageView(m_context.device, swap_chain_image_views[i], nullptr);
-        // vkDestroyImage(m_vulkan.device, m_vulkan.swap_chain_images[i],
-        // nullptr);
     }
     vkDestroySwapchainKHR(m_context.device, swap_chain, nullptr);
     vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
