@@ -48,7 +48,7 @@ void RenderPass::CreateRenderPass(const std::vector<AttachmentCreateInfo> &attac
     std::vector<VkAttachmentReference> attachmentReferences(attachmentCount);
     for (u32 i = 0; i < attachmentReferences.size(); i++) {
         attachmentReferences[i].attachment = i;
-        attachmentReferences[i].layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+        attachmentReferences[i].layout = VK_IMAGE_LAYOUT_GENERAL;
     }
     // set last attachment as depth
     if (m_has_depth_attachment) {

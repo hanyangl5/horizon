@@ -229,8 +229,22 @@ void Renderer::DrawFrame() noexcept {
             }
             m_atmosphere_pass->precomputed = true;
         }
+        {
+            BarrierDesc desc3;
 
-        //TODO: barrier
+            ImageMemoryBarrierDesc multi_scattering_barrier;
+            multi_scattering_barrier.src_access_mask = MemoryAccessFlags::ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            multi_scattering_barrier.dst_access_mask = MemoryAccessFlags::ACCESS_SHADER_READ_BIT;
+            multi_scattering_barrier.raw_image = m_geometry_pass->GetFrameBufferAttachment(3)->image;
+            multi_scattering_barrier.src_usage = TextureUsage::DEPTH_RT;
+            multi_scattering_barrier.dst_usage = TextureUsage::TEXTURE_USAGE_R;
+            desc3.image_memory_barriers.push_back(multi_scattering_barrier);
+
+            desc3.src_stage = PipelineStageFlags::PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+            desc3.dst_stage = PipelineStageFlags::PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+            InsertBarrier(i, m_command_buffer, desc3);
+        }
 
         m_fullscreen_triangle->Draw(i, m_command_buffer, m_atmosphere_pass->m_sky_pass,
                                     {m_atmosphere_pass->m_sky_descriptor_set});

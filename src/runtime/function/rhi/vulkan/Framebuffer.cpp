@@ -38,8 +38,12 @@ VkRenderPass Framebuffer::getRenderPass() const noexcept { return m_render_pass-
 
 std::shared_ptr<AttachmentDescriptor> Framebuffer::getDescriptorImageInfo(u32 attachment_index) {
     std::shared_ptr<AttachmentDescriptor> attachmentDescriptor = std::make_shared<AttachmentDescriptor>();
+    VkImageLayout layout = attachment_index == (m_frame_buffer_attachments.size() - 1)
+                               ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                               : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     attachmentDescriptor->imageDescriptorInfo = {m_sampler, m_frame_buffer_attachments[attachment_index].m_image_view,
                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    attachmentDescriptor->image = m_frame_buffer_attachments[attachment_index].m_image;
     return attachmentDescriptor;
 }
 

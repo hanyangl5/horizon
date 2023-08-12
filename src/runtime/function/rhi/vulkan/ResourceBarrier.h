@@ -19,7 +19,8 @@ struct BufferMemoryBarrierDesc {
 struct ImageMemoryBarrierDesc {
     MemoryAccessFlags src_access_mask, dst_access_mask;
     TextureUsage src_usage, dst_usage; // transition image layout
-    std::shared_ptr<Texture> texture;
+    std::shared_ptr<Texture> texture = nullptr;
+    VkImage raw_image = VK_NULL_HANDLE;
     u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED, dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED;
 };
 

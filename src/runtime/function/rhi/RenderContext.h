@@ -185,7 +185,7 @@ enum class TextureFormat {
 
 };
 
-enum TextureUsage { TEXTURE_USAGE_R, TEXTURE_USAGE_RW };
+enum TextureUsage { TEXTURE_USAGE_R, TEXTURE_USAGE_RW, DEPTH_RT, COLOR_RT };
 
 inline VkDescriptorType ToVkDescriptorType(DescriptorType type) noexcept {
     switch (type) {
@@ -356,6 +356,9 @@ inline VkImageLayout ToVkImageLayout(TextureUsage usage) {
         break;
     case Horizon::TEXTURE_USAGE_RW:
         return VK_IMAGE_LAYOUT_GENERAL;
+        break;
+    case Horizon::DEPTH_RT:
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL; // see src\runtime\function\rhi\vulkan\RenderPass.cpp line 43
         break;
     default:
         return VK_IMAGE_LAYOUT_MAX_ENUM;

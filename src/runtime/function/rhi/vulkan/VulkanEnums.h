@@ -25,6 +25,7 @@ struct DescriptorBase {
     //DescriptorType type;
     VkDescriptorImageInfo imageDescriptorInfo{};
     VkDescriptorBufferInfo bufferDescriptrInfo{};
+    VkImage image;
 };
 
 } // namespace Horizon

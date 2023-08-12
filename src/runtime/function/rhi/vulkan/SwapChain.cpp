@@ -97,8 +97,7 @@ VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(std::vector<VkSurfaceFormatKHR
             return availableFormat;
         }
     }
-
-    // first available format
+    LOG_ERROR("no avaliable surface format");
     return availableFormats[0];
 }
 
