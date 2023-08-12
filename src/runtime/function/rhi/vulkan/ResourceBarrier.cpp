@@ -26,7 +26,7 @@ void InsertBarrier(u32 i, std::shared_ptr<CommandBuffer> command_buffer, const B
         image_memory_barriers[i].dstAccessMask = ToVkMemoryAccessFlags(desc.image_memory_barriers[i].dst_access_mask);
         image_memory_barriers[i].oldLayout = ToVkImageLayout(desc.image_memory_barriers[i].src_usage);
         image_memory_barriers[i].newLayout = ToVkImageLayout(desc.image_memory_barriers[i].dst_usage);
-        // NOTE: hacked to fix validation error 
+        // NOTE: hacked to fix validation error
         if (desc.image_memory_barriers[i].texture == nullptr && desc.image_memory_barriers[i].raw_image != nullptr) {
             image_memory_barriers[i].image = desc.image_memory_barriers[i].raw_image;
             image_memory_barriers[i].subresourceRange = VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};

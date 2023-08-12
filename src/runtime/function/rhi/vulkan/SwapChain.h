@@ -46,8 +46,7 @@ class SwapChain {
 
   private:
     RenderContext &m_render_context;
-    const VkSurfaceFormatKHR PREFERRED_PRESENT_FORMAT = {VK_FORMAT_R8G8B8A8_UNORM,
-                                                         VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    const VkSurfaceFormatKHR PREFERRED_PRESENT_FORMAT = {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
     std::shared_ptr<Device> m_device = nullptr;
     std::shared_ptr<Surface> m_surface = nullptr;
