@@ -1,6 +1,5 @@
 #include "deferred.h"
 
-
 DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
 
     // light culling pass
@@ -87,8 +86,8 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
 
         graphics_pass_ci.render_target_formats.color_attachment_count = 1;
 
-        graphics_pass_ci.render_target_formats.color_attachment_formats = Container::Array<TextureFormat>{
-            gbuffer0->GetTexture()->m_format};
+        graphics_pass_ci.render_target_formats.color_attachment_formats =
+            Container::Array<TextureFormat>{gbuffer0->GetTexture()->m_format};
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 
@@ -114,7 +113,6 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
     shading_color_image = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
         TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
-
 
     SamplerDesc sampler_desc{};
     sampler_desc.min_filter = FilterType::FILTER_LINEAR;
@@ -150,7 +148,6 @@ DeferredData::~DeferredData() noexcept {
     //m_rhi->DestroyRenderTarget(gbuffer3);
 
     m_rhi->DestroyTexture(shading_color_image);
-
 
     m_rhi->DestroySampler(ibl_sampler);
 }

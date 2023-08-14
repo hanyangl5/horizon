@@ -21,7 +21,6 @@
 
 #include <runtime/system/render/RenderSystem.h>
 
-
 // TODO(hyl5) : move to source file
 using namespace Horizon;
 using namespace Horizon::Backend;
@@ -30,4 +29,3 @@ static constexpr u32 width = 1600, height = 900;
 
 extern std::filesystem::path shader_dir;
 extern std::filesystem::path asset_path;
-
