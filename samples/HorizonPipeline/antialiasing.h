@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config.h"
+#include "header.h"
 
 class AntialiasingData {
   public:

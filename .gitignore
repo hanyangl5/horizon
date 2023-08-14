@@ -4,3 +4,7 @@ out
 tools/HSLCompiler/generators/__pycache__
 tools/HSLCompiler/__pycache__
 config/config.hpp
+.cache
+
+samples/*/shaders/bin
+samples/*/shaders/generated

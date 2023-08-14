@@ -42,7 +42,6 @@ def get_compiler_from_env(varname, subpath = None, _assert=True):
 
 def vulkan(src, dst):
     print('--> compiling VULKAN (glslangValidator) {}'.format(src))
-    
     bin = get_compiler_from_env(*_config[Languages.VULKAN])
 
     ''' prepend glsl directives '''

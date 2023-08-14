@@ -1,19 +1,26 @@
 #include "deferred.h"
 
+
 DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
+
+    // light culling pass
+    {
+        //slices = {16, 9, 16};
+        //culling_cs;
+        //culling_pass;
+        //light_list;
+    }
 
     // geometry pass
     {
         gbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM,
                                                                   RenderTargetType::COLOR, width, height});
-        gbuffer1 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                  RenderTargetType::COLOR, width, height});
-        gbuffer2 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                  RenderTargetType::COLOR, width, height});
-        gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                  RenderTargetType::COLOR, width, height});
-        gbuffer4 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT,
-                                                                  RenderTargetType::COLOR, width, height});
+        //gbuffer1 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+        //                                                          RenderTargetType::COLOR, width, height});
+        //gbuffer2 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+        //                                                          RenderTargetType::COLOR, width, height});
+        //gbuffer3 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+        //                                                          RenderTargetType::COLOR, width, height});
         depth = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                RenderTargetType::DEPTH_STENCIL, width, height});
 
@@ -78,11 +85,10 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
         graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
         graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
 
-        graphics_pass_ci.render_target_formats.color_attachment_count = 5;
+        graphics_pass_ci.render_target_formats.color_attachment_count = 1;
 
         graphics_pass_ci.render_target_formats.color_attachment_formats = Container::Array<TextureFormat>{
-            gbuffer0->GetTexture()->m_format, gbuffer1->GetTexture()->m_format, gbuffer2->GetTexture()->m_format,
-            gbuffer3->GetTexture()->m_format, gbuffer4->GetTexture()->m_format};
+            gbuffer0->GetTexture()->m_format};
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;
 
@@ -101,61 +107,14 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
         deferred_shading_constants_buffer = rhi->CreateBuffer(
             BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                              ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(DeferredShadingConstants)});
-
-        diffuse_irradiance_sh3_buffer = rhi->CreateBuffer(
-            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(DiffuseIrradianceSH3)});
     }
 
     // SHADING PASS
     shading_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     shading_color_image = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT, width, height, 1, false});
-    {
+        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
 
-        // ibl
-
-        diffuse_irradiance_sh3_constants.sh = {
-            Math::float4{0.473198890686035, 0.519405245780945, 0.554664373397827, 0.0f},
-            Math::float4{0.416269570589066, 0.466901600360870, 0.595043838024139, 0.0f},
-            Math::float4{0.070390045642853, 0.072113677859306, 0.075183071196079, 0.0f},
-            Math::float4{0.200731590390205, -0.189936503767967, -0.178353592753410, 0.0f},
-            Math::float4{0.165346711874008, -0.156177446246147, -0.144699439406395, 0.0f},
-            Math::float4{0.037444319576025, 0.041276078671217, 0.046160303056240, 0.0f},
-            Math::float4{0.007342631462961, -0.009751657955348, -0.015737744048238, 0.0f},
-            Math::float4{0.023010414093733, -0.011694960296154, 0.001283747726120, 0.0f},
-            Math::float4{0.000401695695473, -0.013503036461771, -0.041937090456486, 0.0f}};
-
-        prefilered_irradiance_env_map_data =
-            TextureLoader::Load(asset_path / "envrionment/football/footballSpecularHDR.dds");
-
-        {
-            TextureCreateInfo texture_create_info{};
-            texture_create_info.width = prefilered_irradiance_env_map_data.width;
-            texture_create_info.height = prefilered_irradiance_env_map_data.height;
-            texture_create_info.array_layer = prefilered_irradiance_env_map_data.layer_count;
-            texture_create_info.enanble_mipmap = true;
-            texture_create_info.texture_type = TextureType::TEXTURE_TYPE_CUBE;
-            texture_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE_CUBE;
-            texture_create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            texture_create_info.texture_format = prefilered_irradiance_env_map_data.format;
-            prefiltered_irradiance_env_map = rhi->CreateTexture(texture_create_info);
-        }
-        brdf_lut_data_desc = TextureLoader::Load(asset_path / "envrionment/football/footballBrdf.dds");
-        {
-            TextureCreateInfo texture_create_info{};
-            texture_create_info.width = brdf_lut_data_desc.width;
-            texture_create_info.height = brdf_lut_data_desc.height;
-            texture_create_info.array_layer = brdf_lut_data_desc.layer_count;
-            texture_create_info.enanble_mipmap = false;
-            texture_create_info.texture_type = TextureType::TEXTURE_TYPE_2D;
-            texture_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE_CUBE;
-            texture_create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-            texture_create_info.texture_format = brdf_lut_data_desc.format;
-            brdf_lut = rhi->CreateTexture(texture_create_info);
-        }
-    }
 
     SamplerDesc sampler_desc{};
     sampler_desc.min_filter = FilterType::FILTER_LINEAR;
@@ -169,7 +128,6 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
 
     deferred_shading_constants.width = width;
     deferred_shading_constants.height = height;
-    deferred_shading_constants.ibl_intensity = 10000.0;
 
     geometry_pass->SetGraphicsShader(geometry_vs, geometry_ps);
     shading_pass->SetComputeShader(shading_cs);
@@ -187,15 +145,12 @@ DeferredData::~DeferredData() noexcept {
 
     m_rhi->DestroyRenderTarget(depth);
     m_rhi->DestroyRenderTarget(gbuffer0);
-    m_rhi->DestroyRenderTarget(gbuffer1);
-    m_rhi->DestroyRenderTarget(gbuffer2);
-    m_rhi->DestroyRenderTarget(gbuffer3);
-    m_rhi->DestroyRenderTarget(gbuffer4);
+    //m_rhi->DestroyRenderTarget(gbuffer1);
+    //m_rhi->DestroyRenderTarget(gbuffer2);
+    //m_rhi->DestroyRenderTarget(gbuffer3);
 
     m_rhi->DestroyTexture(shading_color_image);
 
-    m_rhi->DestroyBuffer(diffuse_irradiance_sh3_buffer);
-    m_rhi->DestroyTexture(brdf_lut);
-    m_rhi->DestroyTexture(prefiltered_irradiance_env_map);
+
     m_rhi->DestroySampler(ibl_sampler);
 }

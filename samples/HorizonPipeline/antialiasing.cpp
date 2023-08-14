@@ -1,11 +1,10 @@
 #include "antialiasing.h"
 
-extern std::filesystem::path asset_path;
 
 AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
     // PP PASS
 
-    taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, asset_path / "shaders/taa.comp.hsl");
+    taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "taa.comp.hsl");
     taa_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     previous_color_texture = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,

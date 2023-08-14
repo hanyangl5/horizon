@@ -13,7 +13,6 @@ if(MSVC)
     add_compile_options("/MP")
 endif()
 
-add_subdirectory(config)
 add_subdirectory(third_party)
 add_subdirectory(src)
 add_subdirectory(unit_tests)

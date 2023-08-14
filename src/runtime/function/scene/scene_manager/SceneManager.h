@@ -133,21 +133,6 @@ class SceneManager {
     Container::Array<DrawIndexedInstancedCommand> scene_indirect_draw_command1{};
     Buffer *empty_vertex_buffer{};
 
-    // decal resources
-
-    //Container::Array<TextureUpdateDesc> decal_textuer_upload_desc{};
-    //Container::Array<Backend::Texture *> decal_material_textures{};
-
-    //u32 decal_draw_count{0};
-    //Container::Array<DecalInstanceParameters> decal_instance_params{};
-
-    //Container::Array<MaterialDesc> decal_material_descs{};
-
-    //Container::Array<DrawIndexedInstancedCommand> decal_indirect_draw_command{};
-
-    //Buffer *decal_indirect_draw_command_buffer1{};
-    //Buffer *decal_instance_parameter_buffer{};
-    //Buffer *decal_material_description_buffer{};
     // camera
 
     std::unique_ptr<Camera> main_camera{};

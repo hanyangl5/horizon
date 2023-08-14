@@ -9,6 +9,22 @@ find_package(Vulkan REQUIRED)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${Vulkan_LIBRARIES})
 
+OPTION(BUILD_SHARED_LIBS
+    "Build package with shared libraries."
+    OFF
+)
+OPTION(ASSIMP_BUILD_TESTS
+    "If the test suite for Assimp is built in addition to the library."
+    OFF
+)
+OPTION(ASSIMP_INSTALL
+    "Disable this if you want to use assimp as a submodule."
+    OFF
+)
+OPTION(ASSIMP_WARNINGS_AS_ERRORS
+    "Treat all warnings as errors."
+    OFF
+)
 add_subdirectory(assimp)
 add_subdirectory(directxtk12)
 set(GLFW_LIBRARY_TYPE "STATIC")
@@ -48,7 +64,7 @@ add_subdirectory(VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json glfw DirectXTK12 spdlog GPUOpen::VulkanMemoryAllocator assimp tbb)
 
 set_property(TARGET ${PROJECT_NAME} nlohmann_json glfw DirectXTK12 spdlog VulkanMemoryAllocator
-    assimp uninstall unit zlibstatic
+    assimp uninstall zlibstatic
     update_mappings
     tbb
     PROPERTY FOLDER "ThirdParty")

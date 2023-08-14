@@ -12,6 +12,8 @@
 #extension GL_OVR_multiview2 : require
 #endif
 
+#extension GL_EXT_samplerless_texture_functions : require // how to hide this?
+                                           
 #define f4(X) vec4(X)
 #define f3(X) vec3(X)
 #define f2(X) vec2(X)
@@ -106,7 +108,8 @@
 
 #define select lerp
 
-bvec3 Equal(vec3 X, float Y) { return equal(X, vec3(Y)); }
+                                           bvec3
+                                           Equal(vec3 X, float Y) { return equal(X, vec3(Y)); }
 
 bvec2 LessThan(in(vec2)a, in(float)b) { return lessThan(a, vec2(b)); }
 bvec2 LessThan(in(vec2)a, in(vec2)b) { return lessThan(a, b); }
@@ -230,6 +233,11 @@ vec4 SampleLvlTexCube(textureCube NAME, sampler SAMPLER, vec3 COORD, float LEVEL
 vec4 _LoadTex2D(texture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch(sampler2D(TEX, SMP), P, lod); }
 uvec4 _LoadTex2D(utexture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch(usampler2D(TEX, SMP), P, lod); }
 ivec4 _LoadTex2D(itexture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch(isampler2D(TEX, SMP), P, lod); }
+
+#define LoadTex2D0(TEX, P, LOD) _LoadTex2D0((TEX), ivec2((P).xy), int(LOD))
+vec4 _LoadTex2D0(texture2D TEX, ivec2 P, int lod) { return texelFetch(TEX, P, lod); }
+uvec4 _LoadTex2D0(utexture2D TEX, ivec2 P, int lod) { return texelFetch(TEX, P, lod); }
+ivec4 _LoadTex2D0(itexture2D TEX, ivec2 P, int lod) { return texelFetch(TEX, P, lod); }
 
 #define LoadRWTex2D(TEX, P) imageLoad(TEX, ivec2(P))
 #define LoadRWTex3D(TEX, P) imageLoad(TEX, ivec3(P))

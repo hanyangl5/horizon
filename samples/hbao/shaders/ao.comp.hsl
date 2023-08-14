@@ -1,0 +1,84 @@
+#include "include/translation/translation.h"
+#include "include/common/common_math.h"
+#define USE_SSAO
+#include "include/ao/ssao.h"
+#include "include/common/noise.hsl"
+
+// 
+
+RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+RES(Tex2D(float4), normal_tex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
+RES(Tex2D(float2), ssao_noise_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
+RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 3);
+RES(RWTex2D(float4), ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
+
+
+CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
+{
+    DATA(float4x4, camera_projection, None);
+    DATA(float4x4, camera_inv_projection, None); // we only care about view space
+    DATA(float4x4, camera_view, None);
+    DATA(uint2, resolution, None);
+    DATA(float2, noise_scale, None);
+    DATA(float4, kernels[SSAO_SAMPLE_COUNT], None); // tangent space kernels
+};
+
+NUM_THREADS(8, 8, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+{
+    INIT_MAIN;
+
+    uint2 _resolution = Get(resolution.xy) - uint2(1.0, 1.0);
+
+    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+        RETURN();
+    }
+
+    float2 uv = float2(threadID.xy) / float2(_resolution);
+
+    float depth = LoadTex2D0(Get(depth_tex), threadID.xy, 0).r;
+    float3 view_pos = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
+
+    float3 normal = LoadTex2D0(Get(normal_tex), threadID.xy, 0).xyz;
+    
+    float3 view_normal = (Get(camera_view) * float4(normal, 0.0)).xyz; // view space normal
+    view_normal = normalize(view_normal);
+
+    float ssao_factor = 0.0;
+
+    float2 noise_uv = uv * Get(noise_scale).xy;
+
+    float3 rvec = float3(SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xy, 0.0);
+    float3 tangent = normalize(rvec - view_normal * dot(rvec, view_normal));
+	float3 bitangent = cross(tangent, view_normal);
+	float3x3  tbn = make_f3x3_cols(tangent, bitangent, view_normal);
+
+    for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++){
+        float3 sample_pos = view_pos + mul(tbn, Get(kernels)[i].xyz) * SSAO_SAMPLE_RADIUS;
+
+        float4 offset = Get(camera_projection) * float4(sample_pos, 1.0);
+        offset.xyz /= offset.w;
+        offset.xy = offset.xy * 0.5 + 0.5;
+        offset.y = 1.0 - offset.y;
+        if(AnyGreaterThan(offset.xy, float2(1.0, 1.0)) || AnyLessThan(offset.xy, float2(0.0, 0.0))) continue;
+        float sample_z = SampleTex2D(Get(depth_tex), default_sampler, offset.xy).r;
+        // we need to compare depth in linear space
+        float linearZ = ReconstructWorldPos(Get(camera_inv_projection), sample_z, offset.xy).z;
+        // occluded
+        float range_falloff = SmoothStep(0.0, 1.0, SSAO_SAMPLE_RADIUS / abs(linearZ - view_pos.z)); // closer samples contribute more occlusion
+        if(abs(linearZ - view_pos.z)> SSAO_SAMPLE_RADIUS) continue;
+        if(linearZ >= sample_pos.z + SSAO_BIAS) {
+            ssao_factor += 1.0 * 1.0f;
+        }
+    }
+
+    ssao_factor /= SSAO_SAMPLE_COUNT;
+    ssao_factor = 1.0 - ssao_factor;
+
+    float4 out_color = float4(ssao_factor, 0.0, 0.0, 0.0);
+
+    Write2D(Get(ao_factor_tex), threadID.xy, out_color);
+
+    RETURN();
+}
+

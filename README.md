@@ -57,9 +57,16 @@ use CMake to generate solution file
 cmake -D build .
 ```
 
-build the project and copy `build/third_party/assimp/bin/assimp*.dll` to `build/samples/HorizonPipeline/[Debug/Release]/` 
 
-then run `HorizonPipeline.exe`
+build the project
+
+run compile_shaders.py under project source file to compile project shaders
+
+```
+python compile_shaders.py
+```
+
+then run any samples
 
 the app default load the sponza scene taken from [glTF-Sample-Models](https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/Sponza)
 

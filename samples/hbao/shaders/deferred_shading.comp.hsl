@@ -1,0 +1,38 @@
+
+#include "include/translation/translation.h"
+
+
+    // per frame resources
+
+RES(Tex2D(float4), gbuffer0_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t3, binding = 4);
+
+CBUFFER(DeferredShadingConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 6)
+{
+    DATA(float4x4, inverse_vp, None);
+    DATA(float4, camera_pos_exposure, None);
+    DATA(uint2, resolution, None);
+};
+
+
+RES(RWTex2D(float4), out_color, UPDATE_FREQ_PER_FRAME, t3, binding = 9);
+
+RES(RTex2D(float4), ao_tex, UPDATE_FREQ_PER_FRAME, t4, binding = 10);
+
+NUM_THREADS(8, 8, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+{
+    INIT_MAIN;
+    uint2 _resolution = Get(resolution).xy - uint2(1.0, 1.0);
+
+    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+        RETURN();
+    }
+
+    float4 radiance = float4(0.0, 0.0, 0.0, 1.0);
+
+    float3 ambient = float3(1.0f, 1.0f, 1.0f) * LoadRWTex2D(Get(ao_tex), threadID.xy).r;
+    radiance.xyz += ambient;
+    Write2D(Get(out_color), threadID.xy, radiance);
+    RETURN();
+}

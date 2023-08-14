@@ -1,0 +1,32 @@
+#ifdef VULKAN
+#extension GL_EXT_nonuniform_qualifier : enable // how to hide this?
+#endif
+
+#include "include/common/bindless.h"
+
+// per material resources TODO: register for dx12
+
+// per frame resources
+
+STRUCT(VSOutput) {
+  DATA(float4, position, SV_Position);
+  DATA(float3, world_pos, POSITION);
+  DATA(float3, normal, NORMAL);
+  DATA(float2, uv, TEXCOORD0);
+  DATA(float3, tangent, TANGENT);
+};
+
+STRUCT(PSOutput) {
+   DATA(float4, gbuffer0, SV_Target0); 
+};
+
+PSOutput PS_MAIN(VSOutput vsout, SV_PrimitiveID(uint) tri_id) 
+{
+  INIT_MAIN;
+  PSOutput psout;
+
+  float3 gbuffer_normal = normalize(vsout.normal);
+  psout.gbuffer0 =
+      float4(gbuffer_normal.x, gbuffer_normal.y, gbuffer_normal.z, asfloat(0));
+  RETURN(psout);
+}

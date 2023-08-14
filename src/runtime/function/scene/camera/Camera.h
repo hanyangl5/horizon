@@ -86,7 +86,7 @@ class Camera {
     Math::float3 m_forward, m_right;
     Math::float4x4 m_view, m_projection;
 
-    f32 m_yaw = -90.0f, m_pitch = 0.0f;
+    f32 m_yaw = 0.0f, m_pitch = 0.0f;
 
     f32 m_fov, m_aspect_ratio, m_near_plane, m_far_plane;
     f32 m_camera_speed{};

@@ -1,9 +1,8 @@
 
 #pragma once
 
-#include "antialiasing.h"
 #include "deferred.h"
-#include "post_process.h"
+#include "header.h"
 #include "scene.h"
 #include "ssao.h"
 
@@ -25,8 +24,6 @@ class HorizonPipeline {
 
         deferred = nullptr;
         ssao = nullptr;
-        post_process = nullptr;
-        antialiasing = nullptr;
         scene = nullptr;
 
         engine = nullptr;
@@ -57,7 +54,5 @@ class HorizonPipeline {
 
     std::unique_ptr<DeferredData> deferred{};
     std::unique_ptr<SSAOData> ssao{};
-    std::unique_ptr<PostProcessData> post_process{};
-    std::unique_ptr<AntialiasingData> antialiasing{};
     std::unique_ptr<SceneData> scene{};
 };

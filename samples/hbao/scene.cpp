@@ -23,6 +23,7 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                                            VertexAttributeType::UV0 | VertexAttributeType::TANGENT},
                                                   asset_path / "models/Sponza/glTF/Sponza.gltf");
+
     scene_manager->AddMesh(sponza);
 
     scene_manager->CreateMeshResources(rhi);
