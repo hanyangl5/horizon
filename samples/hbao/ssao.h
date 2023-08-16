@@ -2,7 +2,7 @@
 
 #include "header.h"
 
-enum AO_METHOD :u32 { SSAO, HBAO, HDAO, GTAO, COUNT };
+enum AO_METHOD : u32 { SSAO, HBAO, HDAO, GTAO, COUNT };
 
 class AOData {
   public:
@@ -28,7 +28,6 @@ class AOData {
     static constexpr u32 HBAO_RAND_TEX_HEIGHT = 4;
     static constexpr u32 HBAO_RAND_SIZE = HBAO_RAND_TEX_WIDTH * HBAO_RAND_TEX_HEIGHT;
     static constexpr u32 HBAO_MAX_SAMPLES = 8;
-
 
     struct AOConstant {
         Math::float4x4 proj;

@@ -8,7 +8,6 @@
 
 #include <runtime/render/Render.h>
 
-
 class HorizonPipeline {
   public:
     HorizonPipeline() {

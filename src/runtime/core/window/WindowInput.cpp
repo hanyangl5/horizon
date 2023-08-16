@@ -39,7 +39,6 @@ Direction ProcessKeyboardInput(Window *window) {
     return {};
 }
 
-
 Math::float2 ProcessMouseInput(Window *window) {
     f64 xposIn, yposIn;
     glfwGetCursorPos(window->GetWindow(), &xposIn, &yposIn);
