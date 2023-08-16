@@ -40,7 +40,7 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
         sample.Normalize();
         sample *= rnd_dist(generator);
         float scale = float(i) / float(SSAO_KERNEL_SIZE);
-        sample *= Math::Lerp(0.1f, 1.0f, scale * scale);
+        sample *= Horizon::Lerp(0.1f, 1.0f, scale * scale);
         ssao_constansts.kernels[i] = Math::float4(sample);
     }
     // ssao noise tex

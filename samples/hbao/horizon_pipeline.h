@@ -6,17 +6,21 @@
 #include "scene.h"
 #include "ssao.h"
 
+#include <runtime/render/Render.h>
+
 // HorizonPipeline
 
 class HorizonPipeline {
   public:
     HorizonPipeline() {
-        HorizonConfig config{};
+        Config config{};
         config.width = width;
         config.height = height;
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
-        config.offscreen = false;
-        engine = std::make_unique<HorizonRuntime>(config);
+        config.app_type = Horizon::ApplicationType::GRAPHICS;
+        window = std::make_unique<Horizon::Window>("horizon", config.width, config.height);
+        config.window = window.get();
+        renderer = std::make_unique<Horizon::Renderer>(config);
     }
     ~HorizonPipeline() {
         rhi->DestroySampler(sampler);
@@ -25,8 +29,6 @@ class HorizonPipeline {
         deferred = nullptr;
         ssao = nullptr;
         scene = nullptr;
-
-        engine = nullptr;
     }
     void Init() {
         InitAPI();
@@ -43,8 +45,8 @@ class HorizonPipeline {
     void run();
 
   private:
-    std::unique_ptr<HorizonRuntime> engine{};
-
+    std::unique_ptr<Renderer> renderer{};
+    std::unique_ptr<Window> window;
     Horizon::Backend::RHI *rhi{};
     SwapChain *swap_chain{};
 

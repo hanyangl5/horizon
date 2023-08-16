@@ -1,9 +1,12 @@
 #include "include/translation/translation.h"
 #include "include/common/common_math.h"
-#define USE_SSAO
-#include "include/ao/ssao.h"
 #include "include/common/noise.hsl"
 
+#define SSAO_SAMPLE_COUNT 32
+#define SSAO_SAMPLE_RADIUS 1.0
+#define SSAO_BIAS 0.025
+const uint NUM_MARCH_DIRECTIONS = 8;
+const uint NUM_MARCH_STEPS = 4;
 // 
 
 RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
@@ -11,17 +14,115 @@ RES(Tex2D(float4), normal_tex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
 RES(Tex2D(float2), ssao_noise_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
 RES(SamplerState, default_sampler, UPDATE_FREQ_PER_FRAME, s0, binding = 3);
 RES(RWTex2D(float4), ao_factor_tex, UPDATE_FREQ_PER_FRAME, u0, binding = 4);
+RES(Tex2D(float4), hbao_rand_tex, UPDATE_FREQ_PER_FRAME, t2, binding = 6);
 
-
-CBUFFER(SSAOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
+CBUFFER(AOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
 {
     DATA(float4x4, camera_projection, None);
     DATA(float4x4, camera_inv_projection, None); // we only care about view space
     DATA(float4x4, camera_view, None);
     DATA(uint2, resolution, None);
     DATA(float2, noise_scale, None);
+    DATA(float, g_RadiusToScreen, None);
+    DATA(float, g_NDotVBias, None);
+    DATA(float, g_NegInvR2, None);
+    DATA(uint, ao_method, None);
     DATA(float4, kernels[SSAO_SAMPLE_COUNT], None); // tangent space kernels
 };
+
+float SSAO(float3 pos_vs, float3 normal_vs, float2 uv) {
+
+    float ssao_factor = 0.0;
+    float2 noise_uv = uv * Get(noise_scale).xy;
+    float3 rvec = float3(
+        SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xy, 0.0);
+    float3 tangent = normalize(rvec - normal_vs * dot(rvec, normal_vs));
+    float3 bitangent = cross(tangent, normal_vs);
+    float3x3 tbn = make_f3x3_cols(tangent, bitangent, normal_vs);
+
+    for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++) {
+      float3 sample_pos =
+          pos_vs + mul(tbn, Get(kernels)[i].xyz) * SSAO_SAMPLE_RADIUS;
+
+      float4 offset = Get(camera_projection) * float4(sample_pos, 1.0);
+      offset.xyz /= offset.w;
+      offset.xy = offset.xy * 0.5 + 0.5;
+      offset.y = 1.0 - offset.y;
+      // skip pixel outside screen
+      if (AnyGreaterThan(offset.xy, float2(1.0, 1.0)) ||
+          AnyLessThan(offset.xy, float2(0.0, 0.0)))
+        continue;
+      float sample_z =
+          SampleTex2D(Get(depth_tex), default_sampler, offset.xy).r;
+      // we need to compare depth in linear space
+      float linearZ =
+          ReconstructWorldPos(Get(camera_inv_projection), sample_z, offset.xy)
+              .z;
+      // occluded
+      float range_falloff = SmoothStep(
+          0.0, 1.0,
+          SSAO_SAMPLE_RADIUS /
+              abs(linearZ -
+                  pos_vs.z)); // closer samples contribute more occlusion
+      if (abs(linearZ - pos_vs.z) > SSAO_SAMPLE_RADIUS)
+        continue;
+      if (linearZ >= sample_pos.z + SSAO_BIAS) {
+        ssao_factor += 1.0 * range_falloff;
+      }
+    }
+
+    ssao_factor /= SSAO_SAMPLE_COUNT;
+    ssao_factor = 1.0f - ssao_factor;
+    return ssao_factor;
+}
+
+float2 RotateDirection(float2 Dir, float2 CosSin) {
+    return float2(Dir.x * CosSin.x - Dir.y * CosSin.y,
+                  Dir.x * CosSin.y + Dir.y * CosSin.x);
+}
+
+float Falloff(float DistanceSquare) {
+    // 1 scalar mad instruction
+    return DistanceSquare * g_NegInvR2 + 1.0;
+}
+
+float compute_ao(float3 pos_vs, float3 normal_vs, float3 sample_pos_vs) {
+    float3 v = sample_pos_vs-pos_vs;
+    float vov=dot(v, v);
+    float nov = dot(normal_vs, v) * sqrt(vov);
+    return saturate(nov - g_NDotVBias) * saturate(Falloff(vov));
+}
+
+float HBAO(float2 uv, uint2 xy, float radius_pixel, float3 pos_vs, float3 normal_vs) {
+    // cos, sin, rand
+    uint2 noise_xy = xy / 4;
+    float3 jitter = LoadTex2D0(hbao_rand_tex, noise_xy, 0).xyz;
+
+    float alpha = 2 * _PI / NUM_MARCH_DIRECTIONS;
+    float step = radius_pixel / (NUM_MARCH_STEPS + 1);
+    float ao;
+
+    for (uint i = 0; i < NUM_MARCH_DIRECTIONS; i++) {
+      float angle = i * alpha;
+      float2 dir = RotateDirection(float2(cos(angle), sin(angle)), jitter.xy);
+      float p = jitter.z * step + 1.0f;
+
+      for (uint j = 0; j < NUM_MARCH_STEPS; j++) {
+        float2 snapped_uv = round(p * dir) / (Get(resolution.xy) - float2(1.0, 1.0)) + uv;
+        float depth = LoadTex2D0(Get(depth_tex), xy, 0).r;
+        float3 s =
+            ReconstructWorldPos(Get(camera_inv_projection), depth, snapped_uv);
+        p += step;
+        ao += compute_ao(pos_vs, normal_vs, s);
+      }
+    }
+    return ao;
+}
+
+#define AO_METHOD_SSAO 0
+#define AO_METHOD_HBAO 1
+#define AO_METHOD_HDAO 2
+#define AO_METHOD_GTAO 3
 
 NUM_THREADS(8, 8, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
@@ -30,55 +131,32 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     uint2 _resolution = Get(resolution.xy) - uint2(1.0, 1.0);
 
-    if(threadID.x>_resolution.x || threadID.y>_resolution.y) {
+    if (threadID.x>_resolution.x || threadID.y>_resolution.y) {
         RETURN();
     }
 
     float2 uv = float2(threadID.xy) / float2(_resolution);
 
     float depth = LoadTex2D0(Get(depth_tex), threadID.xy, 0).r;
-    float3 view_pos = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
+    float3 pos_vs = ReconstructWorldPos(Get(camera_inv_projection), depth, uv);
 
-    float3 normal = LoadTex2D0(Get(normal_tex), threadID.xy, 0).xyz;
+    float3 normal_ws = LoadTex2D0(Get(normal_tex), threadID.xy, 0).xyz;
+
+    float3 normal_vs = normalize(
+        (Get(camera_view) * float4(normal_ws, 0.0)).xyz); // view space normal
     
-    float3 view_normal = (Get(camera_view) * float4(normal, 0.0)).xyz; // view space normal
-    view_normal = normalize(view_normal);
-
-    float ssao_factor = 0.0;
-
-    float2 noise_uv = uv * Get(noise_scale).xy;
-
-    float3 rvec = float3(SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xy, 0.0);
-    float3 tangent = normalize(rvec - view_normal * dot(rvec, view_normal));
-	float3 bitangent = cross(tangent, view_normal);
-	float3x3  tbn = make_f3x3_cols(tangent, bitangent, view_normal);
-
-    for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++){
-        float3 sample_pos = view_pos + mul(tbn, Get(kernels)[i].xyz) * SSAO_SAMPLE_RADIUS;
-
-        float4 offset = Get(camera_projection) * float4(sample_pos, 1.0);
-        offset.xyz /= offset.w;
-        offset.xy = offset.xy * 0.5 + 0.5;
-        offset.y = 1.0 - offset.y;
-        if(AnyGreaterThan(offset.xy, float2(1.0, 1.0)) || AnyLessThan(offset.xy, float2(0.0, 0.0))) continue;
-        float sample_z = SampleTex2D(Get(depth_tex), default_sampler, offset.xy).r;
-        // we need to compare depth in linear space
-        float linearZ = ReconstructWorldPos(Get(camera_inv_projection), sample_z, offset.xy).z;
-        // occluded
-        float range_falloff = SmoothStep(0.0, 1.0, SSAO_SAMPLE_RADIUS / abs(linearZ - view_pos.z)); // closer samples contribute more occlusion
-        if(abs(linearZ - view_pos.z)> SSAO_SAMPLE_RADIUS) continue;
-        if(linearZ >= sample_pos.z + SSAO_BIAS) {
-            ssao_factor += 1.0 * 1.0f;
-        }
+    float ao_factor = 1.0f;
+    if (ao_method == AO_METHOD_SSAO) {
+        ao_factor = SSAO(pos_vs, normal_vs, uv);
+    } else if (ao_method == AO_METHOD_HBAO) {
+        ao_factor = HBAO(uv, threadID.xy, Get(g_RadiusToScreen) / pos_vs.z,
+                         pos_vs, normal_vs);
     }
-
-    ssao_factor /= SSAO_SAMPLE_COUNT;
-    ssao_factor = 1.0 - ssao_factor;
-
-    float4 out_color = float4(ssao_factor, 0.0, 0.0, 0.0);
+        
+    
+    float4 out_color = float4(ao_factor, 0.0, 0.0, 0.0);
 
     Write2D(Get(ao_factor_tex), threadID.xy, out_color);
 
     RETURN();
 }
-

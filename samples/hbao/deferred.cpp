@@ -87,7 +87,7 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
 
         graphics_pass_ci.render_target_formats.color_attachment_count = 1;
 
-        graphics_pass_ci.render_target_formats.color_attachment_formats = Container::Array<TextureFormat>{
+        graphics_pass_ci.render_target_formats.color_attachment_formats = std::vector<TextureFormat>{
             gbuffer0->GetTexture()->m_format};
         graphics_pass_ci.render_target_formats.has_depth = true;
         graphics_pass_ci.render_target_formats.depth_stencil_format = depth->GetTexture()->m_format;

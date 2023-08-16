@@ -7,8 +7,8 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
 
     scene_manager->CreateBuiltInResources(rhi);
     auto [camera, controller] = m_scene_manager->AddCamera(
-        CameraSetting{ProjectionMode::PERSPECTIVE, CameraType::FLY, true}, Math::float3(0.0, 2.0, 0.0_m),
-        Math::float3(5.0, 2.0, 0.0), Math::float3(0.0, 1.0_m, 0.0));
+        CameraSetting{ProjectionMode::PERSPECTIVE, CameraType::FLY, true}, Math::float3(0.0, 2.0, 0.0),
+        Math::float3(5.0, 2.0, 0.0), Math::float3(0.0, 1.0, 0.0));
 
     scene_camera = camera;
     scene_camera_controller = controller;
@@ -17,7 +17,7 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
 
     scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
 
-    scene_camera->SetPerspectiveProjectionMatrix(90.0_deg, (float)width / (float)height, 0.1f, 100.0f);
+    scene_camera->SetPerspectiveProjectionMatrix(90.0 * Math::_PI / 180.0f, (float)width / (float)height, 0.1f, 100.0f);
 
     auto sponza =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
@@ -46,10 +46,11 @@ SceneData::SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept {
         Math::float3 pos(xPos, yPos, zPos);
         Math::float3 col(rColor, gColor, bColor);
 
-        scene_manager->AddPointLight(col, 1000000.0_lm, pos, 10.0);
+        // lumincance
+        scene_manager->AddPointLight(col, 1000000.0 * Math::_1DIVPI * 0.25f, pos, 10.0);
     }
 
-    scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0_lux, Math::float3(0.0, 0.0, -1.0));
+    scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0f, Math::float3(0.0, 0.0, -1.0));
 
     scene_manager->CreateLightResources(rhi);
     scene_manager->CreateCameraResources(rhi);

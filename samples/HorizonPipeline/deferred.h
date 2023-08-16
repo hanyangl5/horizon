@@ -43,7 +43,7 @@ class DeferredData {
 
     // ibl
     struct DiffuseIrradianceSH3 {
-        Container::FixedArray<Math::float4, 9> sh;
+        std::array<Math::float4, 9> sh;
     } diffuse_irradiance_sh3_constants;
     Buffer *diffuse_irradiance_sh3_buffer;
     TextureDataDesc prefilered_irradiance_env_map_data;

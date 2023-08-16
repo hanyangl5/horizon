@@ -1,6 +1,6 @@
 #include "horizon_pipeline.h"
 
-void HorizonPipeline::InitAPI() { rhi = engine->m_render_system->GetRhi(); }
+void HorizonPipeline::InitAPI() { rhi = renderer->GetRhi(); }
 
 void HorizonPipeline::InitResources() { InitPipelineResources(); }
 
@@ -25,7 +25,7 @@ void HorizonPipeline::InitPipelineResources() {
     ssao = std::make_unique<SSAOData>(rhi);
     post_process = std::make_unique<PostProcessData>(rhi);
     antialiasing = std::make_unique<AntialiasingData>(rhi);
-    scene = std::make_unique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
+    scene = std::make_unique<SceneData>(renderer->GetSceneManager(), rhi);
 }
 
 void HorizonPipeline::UpdatePipelineResources() {
@@ -70,8 +70,8 @@ void HorizonPipeline::run() {
 
     bool first_frame = true;
 
-    while (!engine->m_window->ShouldClose()) {
-        scene->scene_camera_controller->ProcessInput(engine->m_window.get());
+    while (!window->ShouldClose()) {
+        scene->scene_camera_controller->ProcessInput(window.get());
 
         rhi->AcquireNextFrame(swap_chain);
         UpdatePipelineResources();
@@ -210,15 +210,15 @@ void HorizonPipeline::run() {
 
         auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
 
-        auto stack_memory = Memory::GetStackMemoryResource(4096);
+        
 
-        Container::Array<Texture *> material_textures(&stack_memory);
+        std::vector<Texture *> material_textures;
 
         for (auto &tex : scene->m_scene_manager->material_textures) {
             material_textures.push_back(tex);
         }
 
-        Container::Array<Buffer *> veretx_buffers(&stack_memory);
+        std::vector<Buffer *> veretx_buffers;
         for (auto &vb : scene->m_scene_manager->vertex_buffers) {
             veretx_buffers.push_back(vb);
         }

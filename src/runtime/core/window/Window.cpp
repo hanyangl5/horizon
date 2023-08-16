@@ -8,9 +8,13 @@
 
 #include "Window.h"
 
+#include <sstream>
+
 #include <runtime/core/log/Log.h>
 
 namespace Horizon {
+double g_glfw_lastFrameTime = 0.0;
+unsigned int g_glfw_frameCount = 0;
 
 Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_width), m_height(_height) {
     if (glfwInit() != GLFW_TRUE) {
@@ -26,7 +30,7 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_w
         LOG_ERROR("failed to init window");
     }
     glfwMakeContextCurrent(m_window);
-    glfwSwapInterval(m_vsync_enabled ? 1 : 0);
+    glfwSwapInterval(0);
     LOG_DEBUG("vsync : {}", m_vsync_enabled); // TODO(hylu): vsync not working now
 }
 
@@ -41,7 +45,14 @@ u32 Window::GetHeight() const noexcept { return m_height; }
 
 GLFWwindow *Window::GetWindow() const noexcept { return m_window; }
 
-int Window::ShouldClose() const noexcept { return glfwWindowShouldClose(m_window); }
+void Window::UpdateWindowTitle(const char* title) {
+    glfwSetWindowTitle(m_window, title);
+}
+
+int Window::ShouldClose() const noexcept { 
+    
+    
+    return glfwWindowShouldClose(m_window); }
 
 void Window::Close() noexcept { glfwSetWindowShouldClose(m_window, true); }
 

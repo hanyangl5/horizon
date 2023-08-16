@@ -47,12 +47,13 @@ class Window {
 #endif
     int ShouldClose() const noexcept;
     void Close() noexcept;
+    void UpdateWindowTitle(const char* title);
 
   private:
     GLFWwindow *m_window{};
     u32 m_width{};
     u32 m_height{};
-    bool m_vsync_enabled{false};
+    bool m_vsync_enabled = false;
 };
 
 } // namespace Horizon

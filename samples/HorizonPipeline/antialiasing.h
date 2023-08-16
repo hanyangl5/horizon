@@ -18,7 +18,7 @@ class AntialiasingData {
 
     static constexpr u32 TAA_SAMPLE_COUNT = 16;
 
-    Container::FixedArray<Math::float2, TAA_SAMPLE_COUNT> taa_samples;
+    std::array<Math::float2, TAA_SAMPLE_COUNT> taa_samples;
     u32 taa_sample_index = 0;
 
     struct TAAPrevCurrOffset {
