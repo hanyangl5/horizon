@@ -9,9 +9,9 @@
 
 #include <runtime/core/log/Log.h>
 #include <runtime/core/memory/Memory.h>
-#include <runtime/resource/resource_loader/texture/TextureLoader.h>
 #include <runtime/rhi/RHI.h>
 
+#include <runtime/resource/resource_loader/texture/TextureLoader.h>
 namespace Horizon {
 
 using namespace Assimp;
@@ -170,12 +170,9 @@ void Mesh::Load() {
         return;
     }
 
-    // auto directory = path.substr(0, path.find_last_of('/'));
     u32 index_offset = 0;
 
     m_mesh_primitives.resize(scene->mNumMeshes);
-
-    // TOOD: aync load sub meshes
 
     // combine all mesh to a big vertex buffer
     for (u32 m = 0; m < scene->mNumMeshes; m++) {

@@ -2,14 +2,6 @@
 
 DeferredData::DeferredData(RHI *rhi) noexcept : mRhi(rhi) {
 
-    // light culling pass
-    {
-        //slices = {16, 9, 16};
-        //culling_cs;
-        //culling_pass;
-        //light_list;
-    }
-
     // geometry pass
     {
         gbuffer0 = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_SNORM,

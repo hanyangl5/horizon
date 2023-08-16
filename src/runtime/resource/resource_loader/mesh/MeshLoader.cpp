@@ -1,8 +1,5 @@
 #include "MeshLoader.h"
 
-//#define CGLTF_IMPLEMENTATION
-//#include <cgltf.h>
-
 namespace Horizon {
 
 Mesh *MeshLoader::Load(const MeshDesc &desc, const std::filesystem::path &path) {

@@ -11,7 +11,6 @@ enum VertexAttributeType {
     UV0 = 4,
     UV1 = 8,
     TANGENT = 16,
-    // BITANGENT = 32
 };
 
 struct Vertex {

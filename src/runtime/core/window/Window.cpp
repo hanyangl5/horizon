@@ -8,8 +8,6 @@
 
 #include "Window.h"
 
-#include <sstream>
-
 #include <runtime/core/log/Log.h>
 
 namespace Horizon {

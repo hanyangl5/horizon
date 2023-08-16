@@ -4,6 +4,8 @@
 
 #include "TextureLoader.h"
 
+#include <DXGIFormat.h>
+
 #include "ddspp.h"
 
 #include <runtime/core/log/Log.h>

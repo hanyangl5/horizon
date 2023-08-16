@@ -2,8 +2,6 @@
 
 #include <filesystem>
 
-#include <DXGIFormat.h>
-
 #include <runtime/core/utils/definations.h>
 #include <runtime/rhi/Enums.h>
 

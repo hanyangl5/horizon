@@ -19,9 +19,6 @@ Horizon::Backend::VulkanSampler::VulkanSampler(const VulkanRendererContext &cont
     sampler_create_info.mipLodBias = desc.mMipLodBias;
     sampler_create_info.anisotropyEnable = (desc.mMaxAnisotropy > 0.0f) ? VK_TRUE : VK_FALSE;
     sampler_create_info.maxAnisotropy = desc.mMaxAnisotropy;
-    // sampler_create_info.compareEnable =
-    //     (gVkComparisonFuncTranslator[pDesc->mCompareFunc] != VK_COMPARE_OP_NEVER) ? VK_TRUE : VK_FALSE;
-    // sampler_create_info.compareOp = gVkComparisonFuncTranslator[pDesc->mCompareFunc];
     sampler_create_info.minLod = minSamplerLod;
     sampler_create_info.maxLod = maxSamplerLod;
     sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;

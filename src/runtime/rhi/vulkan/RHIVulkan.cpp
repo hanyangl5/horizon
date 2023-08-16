@@ -1,19 +1,13 @@
-//#define VMA_DEBUG_LOG(format, ...)                                                                                     \
-//    do {                                                                                                               \
-//        printf(format, __VA_ARGS__);                                                                                   \
-//        printf("\n");                                                                                                  \
-//    } while (false)
-
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
-
 #include "RHIVulkan.h"
 
 #include <filesystem>
 #include <thread>
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
+#include <runtime/core/memory/Memory.h>
 #include <runtime/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/rhi/vulkan/VulkanCommandContext.h>
 #include <runtime/rhi/vulkan/VulkanPipeline.h>

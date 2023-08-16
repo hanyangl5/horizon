@@ -19,6 +19,8 @@ template <typename T> class PublicSingleton {
 
     PublicSingleton(const PublicSingleton &) = delete;
     PublicSingleton &operator=(const PublicSingleton &) = delete;
+    PublicSingleton(PublicSingleton &&) = delete;
+    PublicSingleton &operator=( PublicSingleton &&) = delete;
 
   public:
     static T &GetInstance() noexcept(std::is_nothrow_constructible<T>::value) {

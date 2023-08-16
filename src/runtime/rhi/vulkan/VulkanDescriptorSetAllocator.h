@@ -15,19 +15,6 @@ namespace Horizon::Backend {
 class Pipeline;
 class VulkanPipeline;
 
-struct DescriptorPoolSizeDesc {
-    std::unordered_map<VkDescriptorType, u32> required_descriptor_count_per_type;
-};
-
-struct PipelineDescriptorSetResource {
-    // std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_used_set_counter{0, 0, 0, 0};
-    // std::array<DescriptorPoolSizeDesc, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_size_descs{};
-    // std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptor_pool_index{};
-};
-
-static constexpr std::array<u32, DESCRIPTOR_SET_UPDATE_FREQUENCIES> m_reserved_max_sets{
-    1, 1, 16, 16}; // per batch / per draw descriptorpool can allocate 16 descriptorsets
-
 class VulkanDescriptorSetAllocator {
   public:
     VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept;
@@ -59,9 +46,7 @@ class VulkanDescriptorSetAllocator {
 
     std::unordered_map<u64, VkDescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
 
-    std::unordered_map<Pipeline *, PipelineDescriptorSetResource> pipeline_descriptor_set_resources{};
     std::vector<DescriptorSet *> allocated_sets{};
-    std::vector<VkDescriptorPool> m_descriptor_pools{};
     VkDescriptorPool m_temp_descriptor_pool{};
 
     // bindless

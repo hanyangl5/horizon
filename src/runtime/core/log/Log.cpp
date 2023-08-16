@@ -13,7 +13,7 @@
 namespace Horizon {
 
 Log::Log() noexcept {
-    m_logger = spdlog::stdout_color_mt("horizon logger");
+    m_logger = spdlog::stdout_color_mt("log");
     spdlog::set_default_logger(m_logger);
 #ifndef NDEBUG
     spdlog::set_level(spdlog::level::debug);
@@ -29,7 +29,7 @@ Log::~Log() noexcept {
 
 void Log::CheckVulkanResult(VkResult _res, const char *func_name, int line) const noexcept {
     if (_res != VK_SUCCESS) {
-        m_logger->error("[function: {}], [line: {}], vulkan result checking failed", func_name, line);
+        m_logger->error("[function: {}], [line: {}], vulkan error", func_name, line);
     }
     assert(_res == VK_SUCCESS);
 }

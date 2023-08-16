@@ -13,13 +13,7 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
                                                    Window *window) noexcept
     : SwapChain(swap_chain_create_info, window), m_context(context) {
     // create window surface
-    VkWin32SurfaceCreateInfoKHR surface_create_info{};
-    surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surface_create_info.hinstance = GetModuleHandle(nullptr);
-    ;
-    surface_create_info.hwnd = window->GetWin32Window();
-    CHECK_VK_RESULT(vkCreateWin32SurfaceKHR(m_context.instance, &surface_create_info, nullptr, &surface));
-
+    CHECK_VK_RESULT(glfwCreateWindowSurface(m_context.instance, window->GetWindow(), nullptr, &surface));
     u32 surface_format_count = 0;
     // Get surface formats count
     CHECK_VK_RESULT(
@@ -53,9 +47,6 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
 
     CHECK_VK_RESULT(vkCreateSwapchainKHR(m_context.device, &vk_swap_chain_create_info, nullptr, &swap_chain));
 
-    // u32 image_count = 0;
-    // vkGetSwapchainImagesKHR(m_context.device, m_context.swap_chain,
-    // &image_count, nullptr);  // Get images
     swap_chain_images.resize(m_back_buffer_count);
     vkGetSwapchainImagesKHR(m_context.device, swap_chain, &m_back_buffer_count,
                             swap_chain_images.data()); // Get images

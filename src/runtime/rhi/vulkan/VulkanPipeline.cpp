@@ -32,8 +32,6 @@ void VulkanPipeline::SetComputeShader(Shader *cs) {
         CreatePipelineLayout();
         CreateComputePipeline();
     }
-
-    // m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
 }
 
 void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
@@ -78,7 +76,8 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
             new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
-    } else {
+    }
+    
 
         if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
             m_descriptor_set_allocator.CreateDescriptorPool();
@@ -99,7 +98,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
             new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
-    }
+    
 }
 void VulkanPipeline::CreateGraphicsPipeline() {
     auto ci = m_create_info.gpci;
@@ -115,7 +114,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         uint32_t input_attribute_count = 0;
         std::array<VkVertexInputAttributeDescription, MAX_ATTRIBUTE_COUNT> input_attributes = {};
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
-        LOG_INFO("{}", sizeof(VkPipelineShaderStageCreateInfo));
         VkPipelineRasterizationStateCreateInfo rasterization_state_create_info{};
         VkPipelineMultisampleStateCreateInfo multi_sample_state_create_info{};
         VkPipelineColorBlendStateCreateInfo color_blend_state_create_info{};
@@ -254,11 +252,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             multi_sample_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
             multi_sample_state_create_info.sampleShadingEnable = VK_FALSE;
             multi_sample_state_create_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-            // multisamplingStateCreateInfo.minSampleShading = 1.0f; // Optional
-            // multisamplingStateCreateInfo.pSampleMask = nullptr; // Optional
-            // multisamplingStateCreateInfo.alphaToCoverageEnable = VK_FALSE; //
-            // Optional multisamplingStateCreateInfo.alphaToOneEnable = VK_FALSE; //
-            // Optional
 
             graphics_pipeline_create_info.pMultisampleState = &multi_sample_state_create_info;
         }
@@ -318,7 +311,6 @@ void VulkanPipeline::CreateGraphicsPipeline() {
                 ToVkImageFormat(ci->render_target_formats.depth_stencil_format);
 
         graphics_pipeline_create_info.pNext = &rendering_create_info;
-        // graphics_pipeline_create_info.renderPass = VK_NULL_HANDLE;
 
         graphics_pipeline_create_info.layout = m_pipeline_layout;
 

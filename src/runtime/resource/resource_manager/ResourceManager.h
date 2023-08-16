@@ -50,7 +50,6 @@ class ResourceManager {
 
     void ClearAllResources();
 
-  public:
     Backend::RHI *mRhi{};
     std::unordered_set<Buffer *> allocated_buffers;
     Buffer *empty_vertex_buffer;

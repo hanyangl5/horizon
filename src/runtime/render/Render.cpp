@@ -15,7 +15,6 @@ Renderer::Renderer(const Config &config) noexcept {
     bool bOffScreen =
         config.app_type == ApplicationType::OFFSCREEN_GRAPHICS || config.app_type == ApplicationType::GENERAL_COMPUTE;
     if (!bOffScreen && config.window == nullptr) {
-
         LOG_ERROR("invalid window {}", (void *)config.window);
         return;
     }

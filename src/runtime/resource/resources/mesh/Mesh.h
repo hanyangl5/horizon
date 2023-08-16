@@ -46,11 +46,6 @@ class Mesh {
     Mesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept;
     ~Mesh() noexcept;
 
-    Mesh(const Mesh &rhs) noexcept = delete;
-    Mesh &operator=(const Mesh &rhs) noexcept = delete;
-    Mesh(Mesh &&rhs) noexcept = delete;
-    Mesh &operator=(Mesh &&rhs) noexcept = delete;
-
     void Load();
 
     const std::vector<Node> &GetNodes() const noexcept;
@@ -68,7 +63,6 @@ class Mesh {
     u32 vertex_attribute_flag{};
     std::filesystem::path m_path{};
 
-  public:
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};
@@ -80,25 +74,5 @@ class Mesh {
     u32 vertex_buffer_index;
     u32 index_buffer_index;
 };
-
-// the smallest unit mesh to process loading, drawcall, material
-// class MeshFragment {
-//    u32 vertex_buffer_index;
-//    u32 index_buffer_index;
-//    u32 material_index;
-//};
-
-// struct MeshFragmentResource {
-//     std::vector<Vertex> vertices;
-//     std::vector<Index> indices;
-//     u32 material_index;
-//     Math::float4x4 model_matrix;
-//     AABB aabb;
-// };
-//
-// struct HMesh {
-//     std::vector<MeshFragmentResource> mesh_fragments;
-//     std::vector<Material> load;
-// };
 
 } // namespace Horizon

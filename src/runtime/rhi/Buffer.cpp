@@ -1,5 +1,5 @@
 #include "Buffer.h"
-
+#include <runtime/core/memory/Memory.h>
 namespace Horizon::Backend {
 
 Buffer::Buffer(const BufferCreateInfo &buffer_create_info) noexcept

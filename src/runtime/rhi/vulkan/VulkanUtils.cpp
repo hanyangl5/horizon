@@ -70,18 +70,6 @@ VkAccessFlags util_to_vk_access_flags(ResourceState state) noexcept {
     if (state & RESOURCE_STATE_PRESENT) {
         ret |= VK_ACCESS_MEMORY_READ_BIT;
     }
-    //#if defined(QUEST_VR)
-    //    if (state & RESOURCE_STATE_SHADING_RATE_SOURCE) {
-    //        ret |= VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
-    //    }
-    //#endif
-    //
-    //#ifdef VK_RAYTRACING_AVAILABLE
-    //    if (state & RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE) {
-    //        ret |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR |
-    //               VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
-    //    }
-    //#endif
 
     return ret;
 }
@@ -408,20 +396,6 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorTypes usage, bool typed) no
     if (usage & DESCRIPTOR_TYPE_INDIRECT_BUFFER) {
         result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     }
-#ifdef VK_RAYTRACING_AVAILABLE
-    if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE) {
-        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
-    }
-    if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT) {
-        result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
-    }
-    if (usage & DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS) {
-        result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    }
-    if (usage & DESCRIPTOR_TYPE_SHADER_BINDING_TABLE) {
-        result |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
-    }
-#endif
     return result;
 }
 
