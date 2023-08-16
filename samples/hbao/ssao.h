@@ -20,18 +20,12 @@ class SSAOData {
     //
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
-    
     static constexpr u32 HBAO_RAND_TEX_WIDTH = 4;
     static constexpr u32 HBAO_RAND_TEX_HEIGHT = 4;
     static constexpr u32 HBAO_RAND_SIZE = HBAO_RAND_TEX_WIDTH * HBAO_RAND_TEX_HEIGHT;
     static constexpr u32 HBAO_MAX_SAMPLES = 8;
 
-    enum AO_METHOD {
-        SSAO,
-        HBAO,
-        HDAO,
-        GTAO
-    };
+    enum AO_METHOD { SSAO, HBAO, HDAO, GTAO };
 
     struct AOConstant {
         Math::float4x4 proj;
@@ -59,7 +53,6 @@ class SSAOData {
 
     Buffer *ssao_constants_buffer;
 
-     TextureDataDesc hbao_noise_tex_data_desc{};
-    Texture *hbao_noise_tex;    
-    
+    TextureDataDesc hbao_noise_tex_data_desc{};
+    Texture *hbao_noise_tex;
 };

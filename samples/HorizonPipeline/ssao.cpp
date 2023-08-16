@@ -1,6 +1,5 @@
 #include "ssao.h"
 
-
 SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
 
     ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "ao.comp.hsl");

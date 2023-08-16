@@ -79,14 +79,13 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
     float meters2viewspace = 1.0f;
     float R = 2.0 * meters2viewspace;
     //float projScale = (float)height
-    ao_constansts.g_NegInvR2 = -1.0f / (R*R);
+    ao_constansts.g_NegInvR2 = -1.0f / (R * R);
     //ao_constansts.g_RadiusToScreen = R * 0.5f * projScale;
     ao_constansts.g_NDotVBias = std::min(std::max(0.0f, 0.5f), 1.0f);
     ao_constansts.ao_method = AO_METHOD::SSAO;
 
     ssao_pass->SetComputeShader(ssao_cs);
     ssao_blur_pass->SetComputeShader(ssao_blur_cs);
-    
 }
 
 SSAOData::~SSAOData() noexcept {

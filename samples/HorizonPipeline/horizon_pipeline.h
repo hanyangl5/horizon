@@ -19,7 +19,7 @@ class HorizonPipeline {
         config.render_backend = RenderBackend::RENDER_BACKEND_VULKAN;
         config.app_type = Horizon::ApplicationType::GRAPHICS;
         window = std::make_unique<Horizon::Window>("horizon", config.width, config.height);
-        
+
         config.window = window.get();
         renderer = std::make_unique<Horizon::Renderer>(config);
     }

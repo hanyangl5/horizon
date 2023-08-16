@@ -112,7 +112,7 @@ void RHIVulkan::CreateGpuQueryPool() {
 }
 
 void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) {
-    
+
     std::vector<const char *> instance_layers;
     std::vector<const char *> instance_extensions;
     std::vector<const char *> device_extensions;
@@ -147,8 +147,6 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
     u32 layer_count{0}, extension_count{0};
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
     vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
-
-    
 
     std::vector<VkLayerProperties> available_layers(layer_count);
     std::vector<VkExtensionProperties> available_extensions(extension_count);
@@ -192,7 +190,6 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
 
     for (const auto &physical_device : physical_devices) {
         u32 queue_family_count = m_vulkan.command_queues.size();
-
 
         std::vector<VkQueueFamilyProperties> queue_family_properties;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
@@ -267,8 +264,6 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
     descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
 
-    
-
     std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(m_vulkan.command_queues.size());
 
     f32 queue_priority = 1.0f;
@@ -299,7 +294,7 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
     device_create_info.enabledExtensionCount = static_cast<u32>(device_extensions.size());
     device_create_info.ppEnabledExtensionNames = device_extensions.data();
     device_create_info.pNext = &device_features;
-       
+
     CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info, nullptr, &m_vulkan.device));
 
     // retrive command queue
@@ -358,7 +353,6 @@ VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept {
 
 void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 
-    
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     // submit command buffers
@@ -432,7 +426,6 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
 }
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
-    
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

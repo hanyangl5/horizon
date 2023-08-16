@@ -44,8 +44,7 @@ class VulkanDescriptorSetAllocator {
     VkDescriptorSetLayout GetVkDescriptorSetLayout(u64 key) const;
 
     // delay the pool creation and set allocation after all shader seted;
-    void UpdateDescriptorPoolInfo(Pipeline *pipeline,
-                                  const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &);
+    void UpdateDescriptorPoolInfo(Pipeline *pipeline, const std::array<u64, DESCRIPTOR_SET_UPDATE_FREQUENCIES> &);
 
     void CreateDescriptorPool();
     void CreateBindlessDescriptorPool();

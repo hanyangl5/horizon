@@ -45,14 +45,9 @@ u32 Window::GetHeight() const noexcept { return m_height; }
 
 GLFWwindow *Window::GetWindow() const noexcept { return m_window; }
 
-void Window::UpdateWindowTitle(const char* title) {
-    glfwSetWindowTitle(m_window, title);
-}
+void Window::UpdateWindowTitle(const char *title) { glfwSetWindowTitle(m_window, title); }
 
-int Window::ShouldClose() const noexcept { 
-    
-    
-    return glfwWindowShouldClose(m_window); }
+int Window::ShouldClose() const noexcept { return glfwWindowShouldClose(m_window); }
 
 void Window::Close() noexcept { glfwSetWindowShouldClose(m_window, true); }
 

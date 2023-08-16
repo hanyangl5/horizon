@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-
 #include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -50,8 +49,6 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
 }
 
 void Mesh::ProcessMaterials(const aiScene *scene) {
-
-    
 
     std::vector<aiMaterial *> ms;
     materials.resize(scene->mNumMaterials);

@@ -73,7 +73,7 @@ class VulkanCommandList : public CommandList {
     void GenerateMipMap(Texture *texture, bool alllevels) override;
     void BeginQuery() override {
         //vkCmdBeginQuery(m_command_buffer, m_context.gpu_query_pool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
-        vkCmdWriteTimestamp(m_command_buffer,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , m_context.gpu_query_pool, 0);
+        vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, m_context.gpu_query_pool, 0);
     }
     void EndQuery() override {
         //vkCmdEndQuery(m_command_buffer, m_context.gpu_query_pool, 0);
@@ -83,7 +83,9 @@ class VulkanCommandList : public CommandList {
   private:
     const VulkanRendererContext &m_context{};
     VulkanBuffer *GetStageBuffer(const BufferCreateInfo &buffer_create_info);
-    public : VkCommandBuffer m_command_buffer{};
+
+  public:
+    VkCommandBuffer m_command_buffer{};
 };
 
 } // namespace Horizon::Backend

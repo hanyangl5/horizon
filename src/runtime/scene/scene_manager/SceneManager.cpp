@@ -12,13 +12,10 @@ namespace Horizon {
 
 SceneManager::SceneManager(ResourceManager *resource_manager) noexcept : resource_manager(resource_manager) {}
 
-SceneManager::~SceneManager() noexcept {
-
-}
+SceneManager::~SceneManager() noexcept {}
 void SceneManager::AddMesh(Mesh *mesh) { scene_meshes.push_back(mesh); }
 
 void SceneManager::RemoveMesh(Mesh *mesh) {}
-
 
 void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
 

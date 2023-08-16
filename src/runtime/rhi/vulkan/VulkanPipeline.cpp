@@ -155,7 +155,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 
     auto ci = m_create_info.gpci;
     {
-        
+
         VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
         graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         graphics_pipeline_create_info.flags = 0;
@@ -412,8 +412,6 @@ void VulkanPipeline::CreatePipelineLayout() {
 
     // if no descriptor declared in shader
     bool need_descriptorset = !rsd.descriptors.empty();
-
-    
 
     std::vector<VkDescriptorSetLayout> layouts;
     std::vector<VkPushConstantRange> push_constant_ranges;

@@ -47,7 +47,7 @@ class Window {
 #endif
     int ShouldClose() const noexcept;
     void Close() noexcept;
-    void UpdateWindowTitle(const char* title);
+    void UpdateWindowTitle(const char *title);
 
   private:
     GLFWwindow *m_window{};

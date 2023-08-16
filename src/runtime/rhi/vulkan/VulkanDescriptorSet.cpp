@@ -72,8 +72,7 @@ void VulkanDescriptorSet::SetResource(Sampler *sampler, const std::string &resou
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource,
-                                              const std::string &resource_name) {
+void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) {
     assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
     auto res = write_descs.find(resource_name);
     if (res == write_descs.end()) {
@@ -101,8 +100,7 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource,
     writes.push_back(write);
 }
 
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource,
-                                              const std::string &resource_name) {
+void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) {
 
     assert(update_frequency == ResourceUpdateFrequency::BINDLESS);
     auto res = write_descs.find(resource_name);
@@ -131,8 +129,7 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource,
     write.pImageInfo = texture_descriptors.data();
     writes.push_back(write);
 }
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Sampler *> &resource,
-                                              const std::string &resource_name) {}
+void VulkanDescriptorSet::SetBindlessResource(std::vector<Sampler *> &resource, const std::string &resource_name) {}
 
 void VulkanDescriptorSet::Update() {
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);

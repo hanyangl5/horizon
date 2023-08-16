@@ -37,8 +37,6 @@ void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u3
             "commandlist",
             m_type == CommandQueueType::GRAPHICS));
 
-    
-
     std::vector<VkBuffer> vk_buffers(buffer_count);
     std::vector<VkDeviceSize> vk_offsets(buffer_count);
     for (u32 i = 0; i < buffer_count; i++) {
@@ -82,8 +80,6 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     info.renderArea =
         VkRect2D{VkOffset2D{static_cast<int>(begin_info.render_area.x), static_cast<int>(begin_info.render_area.y)},
                  VkExtent2D{begin_info.render_area.w, begin_info.render_area.h}};
-
-    
 
     // color attachment info
     std::vector<VkRenderingAttachmentInfo> color_attachment_info;
@@ -354,8 +350,6 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
         InsertBarrier(desc);
     }
 
-    
-
     std::vector<VkBufferImageCopy> regions;
 
     for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++) {
@@ -389,8 +383,6 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 
     VkAccessFlags src_access_flags = 0;
     VkAccessFlags dst_access_flags = 0;
-
-    
 
     std::vector<VkBufferMemoryBarrier> buffer_memory_barriers(desc.buffer_memory_barriers.size());
     std::vector<VkImageMemoryBarrier> texture_memory_barriers(desc.texture_memory_barriers.size());

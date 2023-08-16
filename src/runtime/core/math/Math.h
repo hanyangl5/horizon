@@ -13,7 +13,6 @@
 #include <DirectXCollision.h>
 #include <SimpleMath.h>
 
-
 namespace Horizon {
 
 template <typename T> inline T Lerp(T a, T b, f32 t) { return a + t * (b - a); }

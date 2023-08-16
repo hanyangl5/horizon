@@ -34,9 +34,8 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
 
 void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pipeline) {
     auto &rsd = pipeline->GetRootSignatureDesc();
-    
-    std::array<std::vector<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES>
-        bindings{};
+
+    std::array<std::vector<VkDescriptorSetLayoutBinding>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> bindings{};
 
     for (u32 freq = 0; freq < DESCRIPTOR_SET_UPDATE_FREQUENCIES; freq++) {
         if (ResourceUpdateFrequency::BINDLESS == static_cast<ResourceUpdateFrequency>(freq)) {
@@ -102,9 +101,9 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
     set_layout_binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
     set_layout_binding_flags.bindingCount = static_cast<u32>(bindings[bindless_freq].size());
     std::vector<VkDescriptorBindingFlags> flags(bindings[bindless_freq].size(),
-                                                     VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
-                                                         VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
-                                                         VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
+                                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+                                                    VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+                                                    VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
     set_layout_binding_flags.pBindingFlags = flags.data();
 
     // layout create info
@@ -151,10 +150,10 @@ VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
 }
 
 void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
-    std::array<VkDescriptorType, 5> types{
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_DESCRIPTOR_TYPE_SAMPLER,
-        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
-    
+    std::array<VkDescriptorType, 5> types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                          VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                          VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
+
     std::vector<VkDescriptorPoolSize> pool_sizes;
     for (auto type : types) {
         pool_sizes.push_back(VkDescriptorPoolSize{type, 2048});
@@ -202,10 +201,10 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
 }
 
 void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
-    std::array<VkDescriptorType, 5> types{
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_DESCRIPTOR_TYPE_SAMPLER,
-        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
-    
+    std::array<VkDescriptorType, 5> types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                          VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                          VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
+
     std::vector<VkDescriptorPoolSize> pool_sizes;
     for (auto type : types) {
         pool_sizes.push_back(VkDescriptorPoolSize{type, k_max_bindless_resources});

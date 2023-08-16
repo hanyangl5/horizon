@@ -16,9 +16,7 @@
 #include <runtime/rhi/RHIUtils.h>
 #include <runtime/scene/light/Light.h>
 
-
 #include <runtime/render/Render.h>
-
 
 // TODO(hyl5) : move to source file
 using namespace Horizon;
@@ -28,4 +26,3 @@ static constexpr u32 width = 1600, height = 900;
 
 extern std::filesystem::path shader_dir;
 extern std::filesystem::path asset_path;
-

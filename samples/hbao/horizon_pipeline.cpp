@@ -1,6 +1,5 @@
 #include "horizon_pipeline.h"
 
-
 void HorizonPipeline::InitAPI() { rhi = renderer->GetRhi(); }
 
 void HorizonPipeline::InitResources() { InitPipelineResources(); }
@@ -151,8 +150,6 @@ void HorizonPipeline::run() {
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->instance_parameter_buffer,
                                                 "instance_parameter");
         geometry_pass_per_frame_ds->Update();
-
-        
 
         std::vector<Texture *> material_textures;
 

@@ -367,8 +367,7 @@ struct PushConstantDesc {
 };
 
 struct RootSignatureDesc {
-    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES>
-        descriptors{};
+    std::array<std::unordered_map<std::string, DescriptorDesc>, DESCRIPTOR_SET_UPDATE_FREQUENCIES> descriptors{};
     std::unordered_map<std::string, PushConstantDesc> push_constants;
 };
 

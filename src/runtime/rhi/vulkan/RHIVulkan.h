@@ -90,9 +90,8 @@ class RHIVulkan : public RHI {
     double QueryResult() override {
 
         std::vector<uint64_t> time_stamps(2);
-        vkGetQueryPoolResults(m_vulkan.device, m_vulkan.gpu_query_pool, 0, 2,
-                              time_stamps.size() * sizeof(uint64_t), time_stamps.data(), sizeof(uint64_t),
-                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+        vkGetQueryPoolResults(m_vulkan.device, m_vulkan.gpu_query_pool, 0, 2, time_stamps.size() * sizeof(uint64_t),
+                              time_stamps.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
         return float(time_stamps[1] - time_stamps[0]) * m_vulkan.timestampPeriod;
     }
 

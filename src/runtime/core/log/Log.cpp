@@ -34,5 +34,4 @@ void Log::CheckVulkanResult(VkResult _res, const char *func_name, int line) cons
     assert(_res == VK_SUCCESS);
 }
 
-
 } // namespace Horizon

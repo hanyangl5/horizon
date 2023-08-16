@@ -7,8 +7,8 @@
  *********************************************************************/
 
 #pragma once
-#include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan.h>
 
 #include <runtime/core/singleton/public_singleton.h>
 #include <runtime/core/utils/definations.h>
@@ -40,7 +40,6 @@ class Log : public PublicSingleton<Log> {
     }
 
     void CheckVulkanResult(VkResult _res, const char *func_name, int line) const noexcept;
-
 
   private:
     std::shared_ptr<spdlog::logger> m_logger;

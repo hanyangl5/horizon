@@ -210,8 +210,6 @@ void HorizonPipeline::run() {
 
         auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
 
-        
-
         std::vector<Texture *> material_textures;
 
         for (auto &tex : scene->m_scene_manager->material_textures) {

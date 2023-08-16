@@ -1,6 +1,5 @@
 #include "antialiasing.h"
 
-
 AntialiasingData::AntialiasingData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
     // PP PASS
 
