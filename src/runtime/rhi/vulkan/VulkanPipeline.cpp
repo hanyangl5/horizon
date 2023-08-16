@@ -77,28 +77,26 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
     }
-    
 
-        if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
-            m_descriptor_set_allocator.CreateDescriptorPool();
-        }
+    if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
+        m_descriptor_set_allocator.CreateDescriptorPool();
+    }
 
-        VkDescriptorSetAllocateInfo alloc_info{};
-        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    VkDescriptorSetAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-        VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
-            this->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
+    VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+        this->m_pipeline_layout_desc.descriptor_set_hash_key[static_cast<u32>(frequency)]);
 
-        alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
-        alloc_info.descriptorSetCount = 1;
-        alloc_info.pSetLayouts = &layout;
-        VkDescriptorSet vk_ds;
-        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
-        DescriptorSet *set =
-            new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
-        m_descriptor_set_allocator.allocated_sets.push_back(set);
-        return set;
-    
+    alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
+    alloc_info.descriptorSetCount = 1;
+    alloc_info.pSetLayouts = &layout;
+    VkDescriptorSet vk_ds;
+    CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
+    DescriptorSet *set =
+        new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
+    m_descriptor_set_allocator.allocated_sets.push_back(set);
+    return set;
 }
 void VulkanPipeline::CreateGraphicsPipeline() {
     auto ci = m_create_info.gpci;

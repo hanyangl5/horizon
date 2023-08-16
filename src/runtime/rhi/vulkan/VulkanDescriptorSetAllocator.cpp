@@ -160,7 +160,6 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
     pool_create_info.pPoolSizes = pool_sizes.data();
 
     CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_temp_descriptor_pool));
-
 }
 
 void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
