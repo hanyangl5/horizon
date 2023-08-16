@@ -2,15 +2,15 @@
 
 #include <algorithm>
 
-SSAOData::SSAOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
+AOData::AOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
 
-    ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ao.comp.hsl");
-    ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hsl");
+    ao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ao.comp.hsl");
+    ao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hsl");
 
     // AO PASS
     {
-        ssao_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
-        ssao_blur_pass = rhi->CreateComputePipeline({});
+        ao_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
+        ao_blur_pass = rhi->CreateComputePipeline({});
     }
 
     ssao_factor_image = rhi->CreateTexture(TextureCreateInfo{
@@ -51,15 +51,14 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
     for (u32 i = 0; i < ssao_noise_tex_val.size(); i++) {
         ssao_noise_tex_val[i] = Math::float2(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f);
     }
-    char *begin = reinterpret_cast<char *>(&ssao_noise_tex_val[0]);
-    char *end = reinterpret_cast<char *>(&ssao_noise_tex_val[ssao_noise_tex_val.size() - 1]);
-    ssao_noise_tex_data_desc.raw_data = {begin, end};
+    ssao_noise_tex_data_desc.raw_data = {(char *)ssao_noise_tex_val.data(),
+                                         (char *)ssao_noise_tex_val.data() + sizeof(ssao_noise_tex_val)};
 
     std::mt19937 rmt;
 
     float numDir = 8; // keep in sync to glsl
 
-    std::array<Math::float4, HBAO_RAND_SIZE * HBAO_MAX_SAMPLES> m_hbaoRandom;
+    std::array<Math::float4, HBAO_RAND_SIZE * HBAO_MAX_SAMPLES> hbao_rand;
 
     for (u32 i = 0; i < HBAO_RAND_SIZE * HBAO_MAX_SAMPLES; i++) {
         float Rand1 = static_cast<float>(rmt()) / 4294967296.0f;
@@ -67,36 +66,60 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
 
         // Use random rotation angles in [0,2PI/NUM_DIRECTIONS)
         float Angle = 2.f * Math::_PI * Rand1 / numDir;
-        m_hbaoRandom[i].x = cosf(Angle);
-        m_hbaoRandom[i].y = sinf(Angle);
-        m_hbaoRandom[i].z = Rand2;
-        m_hbaoRandom[i].w = 0;
+        hbao_rand[i].x = cosf(Angle);
+        hbao_rand[i].y = sinf(Angle);
+        hbao_rand[i].z = Rand2;
+        hbao_rand[i].w = 0;
     }
-    char *begin1 = reinterpret_cast<char *>(&m_hbaoRandom[0]);
-    char *end1 = reinterpret_cast<char *>(&m_hbaoRandom[m_hbaoRandom.size() - 1]);
-    hbao_noise_tex_data_desc.raw_data = {begin1, end1};
+    hbao_noise_tex_data_desc.raw_data = {(char *)hbao_rand.data(), (char *)hbao_rand.data() + sizeof(hbao_rand)};
 
     float meters2viewspace = 1.0f;
     float R = 2.0f * meters2viewspace;
-    //float projScale = (float)height
+    float projScale = (float)height / (tanf(Math::Radians(90.0f) * 0.5f) * 2.0f);
     ao_constansts.g_NegInvR2 = -1.0f / (R * R);
-    //ao_constansts.g_RadiusToScreen = R * 0.5f * projScale;
-    ao_constansts.g_NDotVBias = std::min(std::max(0.0f, 0.5f), 1.0f);
+    ao_constansts.g_RadiusToScreen = R * 0.5f * projScale;
+    ao_constansts.g_NDotVBias = std::min(std::max(0.0f, 0.1f), 1.0f);
     ao_constansts.ao_method = AO_METHOD::SSAO;
-
-    ssao_pass->SetComputeShader(ssao_cs);
-    ssao_blur_pass->SetComputeShader(ssao_blur_cs);
+    ao_constansts.noise_scale_x = width / AOData::SSAO_NOISE_TEX_WIDTH;
+    ao_constansts.noise_scale_y = height / AOData::SSAO_NOISE_TEX_HEIGHT;
+    ao_constansts.ao_method = mAoMethod;
+    ao_pass->SetComputeShader(ao_cs);
+    ao_blur_pass->SetComputeShader(ao_blur_cs);
 }
 
-SSAOData::~SSAOData() noexcept {
+AOData::~AOData() noexcept {
 
-    mRhi->DestroyShader(ssao_cs);
-    mRhi->DestroyPipeline(ssao_pass);
-    mRhi->DestroyShader(ssao_blur_cs);
-    mRhi->DestroyPipeline(ssao_blur_pass);
+    mRhi->DestroyShader(ao_cs);
+    mRhi->DestroyPipeline(ao_pass);
+    mRhi->DestroyShader(ao_blur_cs);
+    mRhi->DestroyPipeline(ao_blur_pass);
 
     mRhi->DestroyTexture(ssao_noise_tex);
     mRhi->DestroyTexture(ssao_factor_image);
     mRhi->DestroyTexture(ssao_blur_image);
     mRhi->DestroyBuffer(ssao_constants_buffer);
+    mRhi->DestroyTexture(hbao_noise_tex);
+}
+
+void AOData::SetAoMethod(AO_METHOD method) {
+    if (mAoMethod == method) {
+        return;
+    }
+    auto aoname = [](AO_METHOD m) -> std::string {
+        switch (m) {
+        case SSAO:
+            return "SSAO";
+        case HBAO:
+            return "HBAO";
+        case HDAO:
+            return "HDAO";
+        case GTAO:
+            return "GTAO";
+        default:
+            return "INVLAID";
+        }
+    };
+    LOG_INFO("switch to {}", aoname(method));
+    mAoMethod = method;
+    ao_constansts.ao_method = mAoMethod;
 }

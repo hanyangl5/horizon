@@ -17,7 +17,7 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept {
 
     scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
 
-    scene_camera->SetPerspectiveProjectionMatrix(90.0 * Math::_PI / 180.0f, (float)width / (float)height, 0.1f, 100.0f);
+    scene_camera->SetPerspectiveProjectionMatrix(Math::Radians(90.0f), (float)width / (float)height, 0.1f, 100.0f);
 
     auto sponza =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |

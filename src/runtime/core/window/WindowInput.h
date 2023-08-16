@@ -14,7 +14,20 @@
 
 namespace Horizon::Input {
 
-enum class Key { ESCAPE, SPACE, KEY_W, KEY_S, KEY_A, KEY_D, KEY_LCTRL, KEY_LSHIFT };
+enum class Key {
+    ESCAPE,
+    SPACE,
+    KEY_W,
+    KEY_S,
+    KEY_A,
+    KEY_D,
+    KEY_LCTRL,
+    KEY_LSHIFT,
+    KEY_1,
+    KEY_2,
+    KEY_3,
+    KEY_4,
+};
 
 enum class MouseButton { LEFT_BUTTON, RIGHT_BUTTON };
 
@@ -27,7 +40,6 @@ extern f32 last_y;
 extern bool first_mouse;
 
 Direction ProcessKeyboardInput(Window *window);
-
 Math::float2 ProcessMouseInput(Window *window);
 
 bool GetKeyPress(Window *window, Key inputKey);

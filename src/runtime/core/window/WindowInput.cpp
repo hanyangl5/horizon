@@ -39,6 +39,7 @@ Direction ProcessKeyboardInput(Window *window) {
     return {};
 }
 
+
 Math::float2 ProcessMouseInput(Window *window) {
     f64 xposIn, yposIn;
     glfwGetCursorPos(window->GetWindow(), &xposIn, &yposIn);
@@ -95,6 +96,18 @@ bool GetKeyPress(Window *window, Key inputKey) {
         break;
     case Key::KEY_LSHIFT:
         return glfwGetKey(window->GetWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+        break;
+    case Key::KEY_1:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_1) == GLFW_PRESS;
+        break;
+    case Key::KEY_2:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_2) == GLFW_PRESS;
+        break;
+    case Key::KEY_3:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_3) == GLFW_PRESS;
+        break;
+    case Key::KEY_4:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_4) == GLFW_PRESS;
         break;
     default:
         return false;

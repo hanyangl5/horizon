@@ -8,7 +8,6 @@
 
 #include <runtime/render/Render.h>
 
-// HorizonPipeline
 
 class HorizonPipeline {
   public:
@@ -42,7 +41,7 @@ class HorizonPipeline {
 
     void UpdatePipelineResources();
 
-    void run();
+    void Run();
 
   private:
     std::unique_ptr<Renderer> renderer{};
@@ -55,6 +54,8 @@ class HorizonPipeline {
     Sampler *sampler;
 
     std::unique_ptr<DeferredData> deferred{};
-    std::unique_ptr<SSAOData> ssao{};
+    std::unique_ptr<AOData> ssao{};
     std::unique_ptr<SceneData> scene{};
+
+    u32 current_ao_method = AO_METHOD::SSAO;
 };

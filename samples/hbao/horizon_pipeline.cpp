@@ -22,7 +22,7 @@ void HorizonPipeline::InitPipelineResources() {
     }
 
     deferred = std::make_unique<DeferredData>(rhi);
-    ssao = std::make_unique<SSAOData>(rhi);
+    ssao = std::make_unique<AOData>(rhi);
     scene = std::make_unique<SceneData>(renderer->GetSceneManager());
 }
 
@@ -50,17 +50,20 @@ void HorizonPipeline::UpdatePipelineResources() {
     ssao->ao_constansts.proj = proj;
     ssao->ao_constansts.inv_proj = proj.Invert();
     ssao->ao_constansts.view = view;
-    ssao->ao_constansts.noise_scale_x = width / SSAOData::SSAO_NOISE_TEX_WIDTH;
-    ssao->ao_constansts.noise_scale_y = height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
+    ssao->ao_constansts.noise_scale_x = width / AOData::SSAO_NOISE_TEX_WIDTH;
+    ssao->ao_constansts.noise_scale_y = height / AOData::SSAO_NOISE_TEX_HEIGHT;
 }
 
-void HorizonPipeline::run() {
+void HorizonPipeline::Run() {
 
     bool first_frame = true;
-
     while (!window->ShouldClose()) {
         scene->scene_camera_controller->ProcessInput(window.get());
-
+        if (Input::GetKeyPress(window.get(), Horizon::Input::Key::KEY_1)) {
+            ssao->SetAoMethod(SSAO);
+        } else if (Input::GetKeyPress(window.get(), Horizon::Input::Key::KEY_2)) {
+            ssao->SetAoMethod(HBAO);
+        }
         rhi->AcquireNextFrame(swap_chain);
         UpdatePipelineResources();
         auto resource_uploaded_semaphore = rhi->CreateSemaphore1();
@@ -85,21 +88,21 @@ void HorizonPipeline::run() {
             transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer, &deferred->deferred_shading_constants,
                                    sizeof(deferred->deferred_shading_constants));
             // ssao data
-            transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ao_constansts, sizeof(SSAOData::AOConstant));
+            //transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ao_constansts, sizeof(AOData::AOConstant));
             if (first_frame) {
 
                 {
                     TextureUpdateDesc desc{};
                     desc.texture_data_desc = &ssao->ssao_noise_tex_data_desc;
                     desc.size = GetBytesFromTextureFormat(ssao->ssao_noise_tex->m_format) *
-                                SSAOData::SSAO_NOISE_TEX_WIDTH * SSAOData::SSAO_NOISE_TEX_HEIGHT; //
+                                AOData::SSAO_NOISE_TEX_WIDTH * AOData::SSAO_NOISE_TEX_HEIGHT; //
                     transfer->UpdateTexture(ssao->ssao_noise_tex, desc);
                 }
                 {
                     TextureUpdateDesc desc{};
                     desc.texture_data_desc = &ssao->hbao_noise_tex_data_desc;
                     desc.size = GetBytesFromTextureFormat(ssao->hbao_noise_tex->m_format) *
-                                SSAOData::HBAO_RAND_TEX_WIDTH * SSAOData::HBAO_RAND_TEX_HEIGHT; //
+                                AOData::HBAO_RAND_TEX_WIDTH * AOData::HBAO_RAND_TEX_HEIGHT; //
                     transfer->UpdateTexture(ssao->hbao_noise_tex, desc);
                 }
             }
@@ -266,7 +269,8 @@ void HorizonPipeline::run() {
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
             compute->BeginRecording();
 
-            auto ao_ds = ssao->ssao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            compute->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ao_constansts, sizeof(AOData::AOConstant));
+            auto ao_ds = ssao->ao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // ao pass
             {
                 ao_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
@@ -278,8 +282,8 @@ void HorizonPipeline::run() {
                 ao_ds->SetResource(ssao->hbao_noise_tex, "hbao_rand_tex");
                 ao_ds->Update();
 
-                compute->BindPipeline(ssao->ssao_pass);
-                compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
+                compute->BindPipeline(ssao->ao_pass);
+                compute->BindDescriptorSets(ssao->ao_pass, ao_ds);
                 compute->BeginQuery();
                 compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
                 compute->EndQuery();
@@ -296,7 +300,7 @@ void HorizonPipeline::run() {
                 compute->InsertBarrier(barrier);
             }
 
-            auto ao_blur_ds = ssao->ssao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto ao_blur_ds = ssao->ao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
             {
                 ao_blur_ds->SetResource(ssao->ssao_factor_image, "ssao_blur_in");
@@ -304,8 +308,8 @@ void HorizonPipeline::run() {
 
                 ao_blur_ds->Update();
 
-                compute->BindPipeline(ssao->ssao_blur_pass);
-                compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
+                compute->BindPipeline(ssao->ao_blur_pass);
+                compute->BindDescriptorSets(ssao->ao_blur_pass, ao_blur_ds);
 
                 compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
             }

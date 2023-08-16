@@ -64,4 +64,5 @@ inline float4x4 Ortho(float width, float height, float near_plane, float far_pla
     auto mat = DirectX::SimpleMath::Matrix::CreateOrthographic(width, height, near_plane, far_plane);
     return mat;
 }
+
 } // namespace Horizon::Math

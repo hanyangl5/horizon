@@ -2,20 +2,24 @@
 
 #include "header.h"
 
-class SSAOData {
-  public:
-    explicit SSAOData(Backend::RHI *rhi) noexcept;
-    ~SSAOData() noexcept;
+enum AO_METHOD :u32 { SSAO, HBAO, HDAO, GTAO, COUNT };
 
+class AOData {
+  public:
+    explicit AOData(Backend::RHI *rhi) noexcept;
+    ~AOData() noexcept;
+
+    void SetAoMethod(AO_METHOD method);
+    AO_METHOD mAoMethod = AO_METHOD::HBAO;
     RHI *mRhi;
 
     // pass resources
-    Shader *ssao_cs;
+    Shader *ao_cs;
 
-    Pipeline *ssao_pass;
+    Pipeline *ao_pass;
 
-    Shader *ssao_blur_cs;
-    Pipeline *ssao_blur_pass;
+    Shader *ao_blur_cs;
+    Pipeline *ao_blur_pass;
 
     //
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
@@ -25,7 +29,6 @@ class SSAOData {
     static constexpr u32 HBAO_RAND_SIZE = HBAO_RAND_TEX_WIDTH * HBAO_RAND_TEX_HEIGHT;
     static constexpr u32 HBAO_MAX_SAMPLES = 8;
 
-    enum AO_METHOD { SSAO, HBAO, HDAO, GTAO };
 
     struct AOConstant {
         Math::float4x4 proj;
