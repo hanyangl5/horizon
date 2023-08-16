@@ -6,7 +6,7 @@ class PostProcessData {
   public:
     explicit PostProcessData(Backend::RHI *rhi) noexcept;
     ~PostProcessData() noexcept;
-    Backend::RHI *m_rhi;
+    Backend::RHI *mRhi;
 
     Shader *post_process_cs;
     Pipeline *post_process_pass;

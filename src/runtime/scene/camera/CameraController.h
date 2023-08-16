@@ -32,7 +32,6 @@ class CameraController {
     void ProcessInput(Window *window);
 
   private:
-    Window *m_window = nullptr;
     Camera *m_camera = nullptr;
 };
 

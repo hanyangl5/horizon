@@ -26,14 +26,14 @@ extern std::array<Index, 36> cube_indices;
 
 class ResourceManager {
   public:
-    ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
+    ResourceManager(Backend::RHI *rhi) noexcept;
     ~ResourceManager() noexcept;
 
-    Buffer *CreateGpuBuffer(const BufferCreateInfo &buffer_create_info, const std::string &name = "");
+    Buffer *CreateGpuBuffer(const BufferCreateInfo &buffer_create_info);
 
     void DestroyGpuBuffer(Buffer *buffer);
 
-    Texture *CreateGpuTexture(const TextureCreateInfo &texture_create_info, const std::string &name = "");
+    Texture *CreateGpuTexture(const TextureCreateInfo &texture_create_info);
 
     void DestroyGpuTexture(Texture *texture);
 
@@ -51,7 +51,7 @@ class ResourceManager {
     void ClearAllResources();
 
   public:
-    Backend::RHI *m_rhi{};
+    Backend::RHI *mRhi{};
     std::unordered_set<Buffer *> allocated_buffers;
     Buffer *empty_vertex_buffer;
 

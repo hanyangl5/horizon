@@ -1,8 +1,8 @@
 #include "post_process.h"
 
-PostProcessData::PostProcessData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
+PostProcessData::PostProcessData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
     // PP PASS
-    post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "post_process.comp.hsl");
+    post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hsl");
     post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     pp_color_image = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
@@ -15,8 +15,8 @@ PostProcessData::PostProcessData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
 
 PostProcessData::~PostProcessData() noexcept {
 
-    m_rhi->DestroyPipeline(post_process_pass);
-    m_rhi->DestroyShader(post_process_cs);
-    m_rhi->DestroyBuffer(exposure_constants_buffer);
-    m_rhi->DestroyTexture(pp_color_image);
+    mRhi->DestroyPipeline(post_process_pass);
+    mRhi->DestroyShader(post_process_cs);
+    mRhi->DestroyBuffer(exposure_constants_buffer);
+    mRhi->DestroyTexture(pp_color_image);
 }

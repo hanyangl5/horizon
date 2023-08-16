@@ -4,8 +4,6 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_for.h>
 
 #include <runtime/core/math/Math.h>
 #include <runtime/core/utils/definations.h>
@@ -45,8 +43,7 @@ struct MeshDesc {
 
 class Mesh {
   public:
-    Mesh(const MeshDesc &desc, const std::filesystem::path &path,
-         std::pmr::polymorphic_allocator<std::byte> allocator = {}) noexcept;
+    Mesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept;
     ~Mesh() noexcept;
 
     Mesh(const Mesh &rhs) noexcept = delete;

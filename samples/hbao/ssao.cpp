@@ -2,10 +2,10 @@
 
 #include <algorithm>
 
-SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
+SSAOData::SSAOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
 
-    ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "ao.comp.hsl");
-    ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "ssao_blur.comp.hsl");
+    ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ao.comp.hsl");
+    ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hsl");
 
     // AO PASS
     {
@@ -40,7 +40,7 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
     std::default_random_engine generator;
 
     for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i) {
-        Math::float3 sample(rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator) * 2.0 - 1.0, rnd_dist(generator));
+        Math::float3 sample(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f- 1.0f, rnd_dist(generator));
         sample.Normalize();
         sample *= rnd_dist(generator);
         float scale = float(i) / float(SSAO_KERNEL_SIZE);
@@ -61,7 +61,7 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
 
     std::array<Math::float4, HBAO_RAND_SIZE * HBAO_MAX_SAMPLES> m_hbaoRandom;
 
-    for (int i = 0; i < HBAO_RAND_SIZE * HBAO_MAX_SAMPLES; i++) {
+    for (u32 i = 0; i < HBAO_RAND_SIZE * HBAO_MAX_SAMPLES; i++) {
         float Rand1 = static_cast<float>(rmt()) / 4294967296.0f;
         float Rand2 = static_cast<float>(rmt()) / 4294967296.0f;
 
@@ -77,7 +77,7 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
     hbao_noise_tex_data_desc.raw_data = {begin1, end1};
 
     float meters2viewspace = 1.0f;
-    float R = 2.0 * meters2viewspace;
+    float R = 2.0f * meters2viewspace;
     //float projScale = (float)height
     ao_constansts.g_NegInvR2 = -1.0f / (R * R);
     //ao_constansts.g_RadiusToScreen = R * 0.5f * projScale;
@@ -90,13 +90,13 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : m_rhi(rhi) {
 
 SSAOData::~SSAOData() noexcept {
 
-    m_rhi->DestroyShader(ssao_cs);
-    m_rhi->DestroyPipeline(ssao_pass);
-    m_rhi->DestroyShader(ssao_blur_cs);
-    m_rhi->DestroyPipeline(ssao_blur_pass);
+    mRhi->DestroyShader(ssao_cs);
+    mRhi->DestroyPipeline(ssao_pass);
+    mRhi->DestroyShader(ssao_blur_cs);
+    mRhi->DestroyPipeline(ssao_blur_pass);
 
-    m_rhi->DestroyTexture(ssao_noise_tex);
-    m_rhi->DestroyTexture(ssao_factor_image);
-    m_rhi->DestroyTexture(ssao_blur_image);
-    m_rhi->DestroyBuffer(ssao_constants_buffer);
+    mRhi->DestroyTexture(ssao_noise_tex);
+    mRhi->DestroyTexture(ssao_factor_image);
+    mRhi->DestroyTexture(ssao_blur_image);
+    mRhi->DestroyBuffer(ssao_constants_buffer);
 }

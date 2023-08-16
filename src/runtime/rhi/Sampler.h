@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 
 namespace Horizon::Backend {
 class Sampler {

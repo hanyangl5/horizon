@@ -1,13 +1,13 @@
 #pragma once
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/Texture.h>
 
 namespace Horizon::Backend {
 
 class RenderTarget {
   public:
-    RenderTarget(const RenderTargetCreateInfo &render_target_create_info) noexcept {};
+    RenderTarget() noexcept {};
     virtual ~RenderTarget() noexcept { delete m_texture; };
 
     RenderTarget(const RenderTarget &rhs) noexcept = delete;

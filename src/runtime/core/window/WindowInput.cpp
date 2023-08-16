@@ -10,9 +10,9 @@
 
 namespace Horizon::Input {
 
-static f32 last_x;
-static f32 last_y;
-static bool first_mouse = true;
+f32 last_x;
+f32 last_y;
+bool first_mouse = true;
 
 Direction ProcessKeyboardInput(Window *window) {
     if (GetKeyPress(window, Key::ESCAPE)) {

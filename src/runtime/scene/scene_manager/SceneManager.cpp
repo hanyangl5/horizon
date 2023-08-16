@@ -7,6 +7,7 @@
  *********************************************************************/
 
 #include "SceneManager.h"
+#include <algorithm>
 
 namespace Horizon {
 
@@ -15,18 +16,22 @@ SceneManager::SceneManager(ResourceManager *resource_manager) noexcept : resourc
 SceneManager::~SceneManager() noexcept {}
 void SceneManager::AddMesh(Mesh *mesh) { scene_meshes.push_back(mesh); }
 
-void SceneManager::RemoveMesh(Mesh *mesh) {}
+void SceneManager::RemoveMesh(Mesh *mesh) {
+    auto iter = std::find(scene_meshes.begin(), scene_meshes.end(), mesh);
+    if (iter != scene_meshes.end()) {
+        scene_meshes.erase(iter);
+    }
+}
 
-void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
+void SceneManager::CreateMeshResources() {
 
     u32 texture_offset = 0;
     u32 material_offset = 0;
     u32 vertex_buffer_offset = 0;
     u32 index_buffer_offset = 0;
     u32 draw_offset = 0;
-    u32 draw_count = 0;
     for (auto &mesh : scene_meshes) {
-        draw_count = mesh->m_mesh_primitives.size();
+        draw_count =(u32) mesh->m_mesh_primitives.size();
         mesh_data.push_back(
             MeshData{texture_offset, vertex_buffer_offset, index_buffer_offset, draw_offset, draw_count});
         draw_offset += draw_count;
@@ -127,7 +132,7 @@ void SceneManager::CreateMeshResources(Backend::RHI *rhi) {
                 instance_params[primitive_offset + m].model_matrix = mat;
             }
         }
-        primitive_offset += mesh->m_mesh_primitives.size();
+        primitive_offset += (u32)mesh->m_mesh_primitives.size();
     }
     // test
     indirect_draw_command_buffer1 = resource_manager->CreateGpuBuffer(BufferCreateInfo{
@@ -185,7 +190,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     commandlist->InsertBarrier(mip_barrier1);
 
     for (u32 tex = 0; tex < material_textures.size(); tex++) {
-        commandlist->GenerateMipMap(material_textures[tex], true);
+        commandlist->GenerateMipMap(material_textures[tex]);
     }
 
     BarrierDesc mip_barrier2{};
@@ -405,11 +410,11 @@ std::tuple<Camera *, CameraController *> SceneManager::AddCamera(const CameraSet
 
 Buffer *SceneManager::GetCameraBuffer() const noexcept { return camera_buffer; }
 
-void SceneManager::CreateLightResources(Backend::RHI *rhi) {
+void SceneManager::CreateLightResources() {
     for (auto &l : lights) {
         lights_param_buffer.push_back(l->GetParamBuffer());
     }
-    light_count = lights.size();
+    light_count = (u32)lights.size();
 
     light_count_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
@@ -430,7 +435,7 @@ Buffer *SceneManager::GetLightCountBuffer() const noexcept { return light_count_
 
 Buffer *SceneManager::GetLightParamBuffer() const noexcept { return light_buffer; }
 
-void SceneManager::CreateCameraResources(Backend::RHI *rhi) {
+void SceneManager::CreateCameraResources() {
     camera_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                        sizeof(CameraUb)});
@@ -440,17 +445,17 @@ void SceneManager::UploadCameraResources(Backend::CommandList *commandlist) {
     commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
 }
 
-void SceneManager::CreateBuiltInResources(Backend::RHI *rhi) {
+void SceneManager::CreateBuiltInResources() {
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
     vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    Buffer *cube_vertex_buffer = resource_manager->CreateGpuBuffer(vertex_buffer_create_info, "__unit_cube_vb__");
+    cube_vertex_buffer = resource_manager->CreateGpuBuffer(vertex_buffer_create_info);
     BufferCreateInfo index_buffer_create_info{};
     index_buffer_create_info.size = cube_indices.size() * sizeof(Index);
     index_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER;
     index_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_INDEX_BUFFER;
-    Buffer *cube_index_buffer = resource_manager->CreateGpuBuffer(index_buffer_create_info, "__unit_cube_ib__");
+    cube_index_buffer = resource_manager->CreateGpuBuffer(index_buffer_create_info);
 }
 
 void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist) {

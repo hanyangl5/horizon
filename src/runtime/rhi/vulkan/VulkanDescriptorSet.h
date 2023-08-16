@@ -3,7 +3,7 @@
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/rhi/DescriptorSet.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 
 #include <runtime/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/rhi/vulkan/VulkanSampler.h>
@@ -30,7 +30,6 @@ class VulkanDescriptorSet : public DescriptorSet {
 
     void SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) override;
     void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) override;
-    void SetBindlessResource(std::vector<Sampler *> &resource, const std::string &resource_name) override;
 
     void Update() override;
 
@@ -38,7 +37,6 @@ class VulkanDescriptorSet : public DescriptorSet {
     const VulkanRendererContext &m_context{};
     const std::unordered_map<std::string, DescriptorDesc> &write_descs{}; // move to base class?
     std::vector<VkWriteDescriptorSet> writes{};
-    std::vector<VkDescriptorImageInfo> texture_descriptors{};
     std::unordered_map<std::string, std::vector<VkDescriptorImageInfo>> bindless_image_descriptors;
     std::unordered_map<std::string, std::vector<VkDescriptorBufferInfo>> bindless_buffer_descriptors;
     VkDescriptorSet m_set{};

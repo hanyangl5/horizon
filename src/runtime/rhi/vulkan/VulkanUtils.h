@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 
 namespace Horizon {
 

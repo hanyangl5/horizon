@@ -15,7 +15,7 @@ namespace Horizon {
 
 enum class ProjectionMode { PERSPECTIVE, ORTHOGRAPHIC };
 
-enum class CameraType { FLY, ORBIT, CINEMETIC };
+enum class CameraType { FLY };
 
 struct CameraSetting {
     ProjectionMode project_mode{};
@@ -43,6 +43,8 @@ class Camera {
 
     // milimeters
     void SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near, f32 far) noexcept;
+
+    void SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plane) noexcept;
 
     Math::float4x4 GetProjectionMatrix() const noexcept;
 
@@ -74,7 +76,7 @@ class Camera {
 
     Math::float3 GetForwardDir() const noexcept;
 
-    f32 GetEv100() const noexcept { return ev100; }
+    f32 GetEv100() const noexcept;
     f32 GetExposure() const noexcept;
 
     void SetExposure(f32 aperture, f32 shutter_speed, f32 iso);
@@ -82,21 +84,22 @@ class Camera {
     const Math::float2 GetSensitivity() const noexcept;
 
   private:
+    CameraSetting m_settings;
     Math::float3 m_eye, m_at, m_up;
     Math::float3 m_forward, m_right;
     Math::float4x4 m_view, m_projection;
 
     f32 m_yaw = 0.0f, m_pitch = 0.0f;
 
-    f32 m_fov, m_aspect_ratio, m_near_plane, m_far_plane;
+    f32 m_near_plane, m_far_plane;
     f32 m_camera_speed{};
 
     //exposure settings
-    f32 aperture;
-    f32 shutter_speed;
-    f32 iso;
-    f32 ev100;
-    f32 exposure;
+    f32 m_aperture;
+    f32 m_shutter_speed;
+    f32 m_iso;
+    f32 m_ev100;
+    f32 m_exposure;
 
     // a 35mm camera has a 36x24mm wide frame size
     static constexpr const float SENSOR_SIZE = 0.024f; // 24mm

@@ -1,6 +1,7 @@
 #include "deferred.h"
 
-DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
+
+DeferredData::DeferredData(RHI *rhi) noexcept : mRhi(rhi) {
 
     // light culling pass
     {
@@ -95,11 +96,11 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
     }
 
     {
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, shader_dir / "gbuffer_bindless.vert.hsl");
+        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.vert.hsl");
 
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, shader_dir / "gbuffer_bindless.frag.hsl");
+        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.frag.hsl");
 
-        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "deferred_shading.comp.hsl");
+        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "deferred_shading.comp.hsl");
     }
 
     {
@@ -131,23 +132,24 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
     shading_pass->SetComputeShader(shading_cs);
 }
 DeferredData::~DeferredData() noexcept {
-    m_rhi->DestroyShader(geometry_vs);
-    m_rhi->DestroyShader(geometry_ps);
+    mRhi->DestroyShader(geometry_vs);
+    mRhi->DestroyShader(geometry_ps);
 
-    m_rhi->DestroyShader(shading_cs);
+    mRhi->DestroyShader(shading_cs);
 
-    m_rhi->DestroyPipeline(geometry_pass);
-    m_rhi->DestroyPipeline(shading_pass);
+    mRhi->DestroyPipeline(geometry_pass);
+    mRhi->DestroyPipeline(shading_pass);
 
-    m_rhi->DestroyBuffer(deferred_shading_constants_buffer);
+    mRhi->DestroyBuffer(deferred_shading_constants_buffer);
 
-    m_rhi->DestroyRenderTarget(depth);
-    m_rhi->DestroyRenderTarget(gbuffer0);
-    //m_rhi->DestroyRenderTarget(gbuffer1);
-    //m_rhi->DestroyRenderTarget(gbuffer2);
-    //m_rhi->DestroyRenderTarget(gbuffer3);
+    mRhi->DestroyRenderTarget(depth);
+    mRhi->DestroyRenderTarget(gbuffer0);
+    //mRhi->DestroyRenderTarget(gbuffer1);
+    //mRhi->DestroyRenderTarget(gbuffer2);
+    //mRhi->DestroyRenderTarget(gbuffer3);
 
-    m_rhi->DestroyTexture(shading_color_image);
+    mRhi->DestroyTexture(shading_color_image);
 
-    m_rhi->DestroySampler(ibl_sampler);
+
+    mRhi->DestroySampler(ibl_sampler);
 }

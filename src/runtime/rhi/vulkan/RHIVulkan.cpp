@@ -5,7 +5,7 @@
 //    } while (false)
 
 #define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
+#include <vk_mem_alloc.h>
 
 #include "RHIVulkan.h"
 
@@ -31,7 +31,7 @@ RHIVulkan::~RHIVulkan() noexcept {
     for (auto &type : fences) {
         if (type.empty())
             continue;
-        vkWaitForFences(m_vulkan.device, type.size(), type.data(), VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_vulkan.device, (u32)type.size(), type.data(), VK_TRUE, UINT64_MAX);
         for (auto fence : type) {
             vkDestroyFence(m_vulkan.device, fence, nullptr);
         }
@@ -86,7 +86,7 @@ SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info) {
     return Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) {
+Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &file_name) {
     auto _shader_bin_path = file_name.parent_path() / "bin" / "VULKAN" / file_name.filename();
     auto spirv_code = ReadFile(_shader_bin_path.generic_string().c_str());
     auto rsd_path = file_name.parent_path() / "generated" / "rsd" / file_name.filename();
@@ -189,7 +189,7 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
     // pick gpu
 
     for (const auto &physical_device : physical_devices) {
-        u32 queue_family_count = m_vulkan.command_queues.size();
+        u32 queue_family_count = (u32)m_vulkan.command_queues.size();
 
         std::vector<VkQueueFamilyProperties> queue_family_properties;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
@@ -278,8 +278,8 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
         device_queue_create_info[i].pQueuePriorities = &queue_priority;
     }
 
-    VkPhysicalDeviceHostQueryResetFeaturesEXT host_query_reset_features{
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT};
+    VkPhysicalDeviceHostQueryResetFeaturesEXT host_query_reset_features{};
+    host_query_reset_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT;
     host_query_reset_features.pNext = &descriptor_indexing_features;
 
     VkPhysicalDeviceFeatures2 device_features{};
@@ -325,7 +325,7 @@ void RHIVulkan::InitializeVMA() {
     vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
     vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-    VmaAllocatorCreateInfo vma_create_info = {0};
+    VmaAllocatorCreateInfo vma_create_info{};
     vma_create_info.device = m_vulkan.device;
     vma_create_info.physicalDevice = m_vulkan.active_gpu;
     vma_create_info.instance = m_vulkan.instance;
@@ -376,7 +376,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
 
-    u32 wait_semaphore_count = queue_submit_info.wait_semaphores.size();
+    u32 wait_semaphore_count =(u32) queue_submit_info.wait_semaphores.size();
     std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
     std::vector<VkPipelineStageFlags> wait_stages(wait_semaphore_count);
     for (u32 i = 0; i < wait_semaphore_count; i++) {
@@ -392,7 +392,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
         wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
     }
 
-    u32 signal_semaphore_count = queue_submit_info.signal_semaphores.size();
+    u32 signal_semaphore_count = (u32)queue_submit_info.signal_semaphores.size();
     std::vector<VkSemaphore> signal_semaphores(signal_semaphore_count);
 
     for (u32 i = 0; i < signal_semaphore_count; i++) {

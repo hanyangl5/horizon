@@ -3,7 +3,7 @@
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/Sampler.h>
 #include <runtime/rhi/Texture.h>
 
@@ -26,7 +26,6 @@ class DescriptorSet {
 
     virtual void SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) = 0;
     virtual void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) = 0;
-    virtual void SetBindlessResource(std::vector<Sampler *> &resource, const std::string &resource_name) = 0;
     virtual void Update() = 0;
 
   public:

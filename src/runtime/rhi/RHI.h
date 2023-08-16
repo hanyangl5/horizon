@@ -9,7 +9,7 @@
 #include <runtime/rhi/Buffer.h>
 #include <runtime/rhi/CommandContext.h>
 #include <runtime/rhi/CommandList.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/RenderTarget.h>
 #include <runtime/rhi/Sampler.h>
 #include <runtime/rhi/Semaphore.h>
@@ -66,7 +66,7 @@ class RHI {
 
     virtual void DestroySwapChain(SwapChain *swap_chain) = 0;
 
-    virtual Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) = 0;
+    virtual Shader *CreateShader(ShaderType type, const std::filesystem::path &file_name) = 0;
 
     virtual void DestroyShader(Shader *shader_program) = 0;
 

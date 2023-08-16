@@ -6,7 +6,7 @@ namespace Horizon::Backend {
 
 VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char> &spirv_code,
                            const std::filesystem::path &rsd_path) noexcept
-    : m_context(context), Shader(type, rsd_path) {
+    : Shader(type, rsd_path), m_context(context) {
     VkShaderModuleCreateInfo shader_module_create_info{};
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shader_module_create_info.codeSize = spirv_code.size();

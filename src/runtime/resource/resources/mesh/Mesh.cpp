@@ -1,23 +1,22 @@
 #include "Mesh.h"
 
 #include <algorithm>
+#include <thread>
 
 #include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 #include <runtime/core/memory/Memory.h>
-#include <runtime/resource/resource_loader/texture/TextureLoader.h>
-
 #include <runtime/core/log/Log.h>
 #include <runtime/rhi/RHI.h>
+#include <runtime/resource/resource_loader/texture/TextureLoader.h>
 
 namespace Horizon {
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path,
-           std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
+Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept
     : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path) {}
 
 Mesh::~Mesh() noexcept {}
@@ -52,11 +51,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
     std::vector<aiMaterial *> ms;
     materials.resize(scene->mNumMaterials);
-
-    aiReturn ret;
-
+    [[maybe_unused]]aiReturn ret;
     for (u32 i = 0; i < scene->mNumMaterials; i++) {
-
         bool unlit;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
         if (unlit == true) {
@@ -76,9 +72,6 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].blend_state = BlendState::BLEND_STATE_TRANSPARENT;
         } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
             materials[i].blend_state = BlendState::BLEND_STATE_MASKED;
-            // float maskThreshold = 0.5;
-            // material->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
-            // matConfig.maskThreshold = maskThreshold;
         } else if (strcmp(alphaMode.C_Str(), "OPAQUE") == 0) {
             materials[i].blend_state = BlendState::BLEND_STATE_OPAQUE;
         }
@@ -124,19 +117,26 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         }
     }
 
-    //// async load material textures
+    // async load material textures
     auto &mats = this->materials;
-    auto LoadMesh = [&mats](const tbb::blocked_range<u32> &r) {
-        for (int v = r.begin(); v < r.end(); v++) {
-            for (auto &[type, tex] : mats[v].material_textures) {
-                int width, height, channels;
-                tex.texture_data_desc = TextureLoader::Load(tex.url.string().c_str());
-            }
-        }
-    };
+    std::vector<std::thread> threads;
+    u32 max_available_thread = std::thread::hardware_concurrency() - 1;
+    threads.reserve(max_available_thread);
 
-    tbb::parallel_for(tbb::blocked_range<u32>(0, materials.size()), LoadMesh);
-    int a = 5;
+    u32 block_image_size = (u32)mats.size() / max_available_thread + 1;
+
+    for (u32 i = 0; i < max_available_thread; ++i) {
+        threads.emplace_back([&mats, block_image_size, i]() {
+            for (u32 j = i * block_image_size; j < (i + 1) * block_image_size && j < mats.size(); ++j) {
+                for (auto &[type, tex] : mats[j].material_textures) {
+                    tex.texture_data_desc = TextureLoader::Load(tex.url.string().c_str());
+                }
+            }
+        });
+    }
+    for (auto &thread : threads) {
+        thread.join();
+    }
 }
 
 u32 SubNodeCount(const aiNode *node) noexcept {
@@ -161,8 +161,8 @@ void Mesh::Load() {
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
     const aiScene *scene = assimp_importer.ReadFile(
-        m_path.string().c_str(), aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                     aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace);
+        m_path.string().c_str(), (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                                     aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -215,7 +215,7 @@ void Mesh::Load() {
             m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[1]);
             m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[2]);
         }
-        index_offset = m_vertices.size();
+        index_offset = (u32)m_vertices.size();
     }
 
     m_vertices.shrink_to_fit();

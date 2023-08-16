@@ -14,34 +14,44 @@ using namespace Input;
 
 Camera::Camera(const CameraSetting &setting, const Math::float3 &eye, const Math::float3 &at,
                const Math::float3 &up) noexcept
-    : m_eye(eye), m_at(at), m_up(up) {
+    : m_settings(setting), m_eye(eye), m_at(at), m_up(up) {
     m_forward = Math::Normalize(m_at - m_eye);
     m_right = Math::Cross(m_forward, m_up);
     UpdateViewMatrix();
-    //setLookAt(eye, at, up);
 }
 
 void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
-    m_fov = fov;
-    m_aspect_ratio = aspect_ratio;
+    if (m_settings.project_mode != ProjectionMode::PERSPECTIVE) {
+
+        return;
+    }
     m_near_plane = near_plane;
     m_far_plane = far_plane;
     m_projection = Math::Perspective(fov, aspect_ratio, near_plane, far_plane);
-    // m_projection = ReversePerspective(fov, aspect_ratio, nearPlane,
-    // farPlane);
 }
 
 void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
+    if (m_settings.project_mode != ProjectionMode::PERSPECTIVE) {
 
-    m_aspect_ratio = aspect_ratio;
+        return;
+    }
     m_near_plane = near_plane;
     m_far_plane = far_plane;
 
-    f32 h = (0.5 * near_plane) * ((SENSOR_SIZE * 1000.0) / focal_length);
+    f32 h = (0.5f * near_plane) * ((SENSOR_SIZE * 1000.0f) / focal_length);
     f32 w = h * aspect_ratio;
     m_projection = DirectX::SimpleMath::Matrix::CreatePerspective(w, h, near_plane, far_plane);
 }
 
+void Camera::SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plane) noexcept {
+    if (m_settings.project_mode != ProjectionMode::ORTHOGRAPHIC) {
+
+        return;
+    }
+    m_near_plane = near_plane;
+    m_far_plane = far_plane;
+    m_projection = DirectX::SimpleMath::Matrix::CreateOrthographic(w, h, near_plane, far_plane);
+}
 Math::float4x4 Camera::GetProjectionMatrix() const noexcept {
     auto p = m_projection;
     return p;
@@ -125,13 +135,13 @@ Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
 }
 
 Math::float3 Camera::GetForwardDir() const noexcept { return m_forward; }
-
-f32 Camera::GetExposure() const noexcept { return exposure; }
+f32 Camera::GetEv100() const noexcept { return m_ev100; }
+f32 Camera::GetExposure() const noexcept { return m_exposure; }
 
 void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
-    aperture = aperture;
-    shutter_speed = shutter_speed;
-    iso = iso;
+    m_aperture = aperture;
+    m_shutter_speed = shutter_speed;
+    m_iso = iso;
 
     // With N = aperture, t = shutter speed and S = sensitivity,
     // we can compute EV100 knowing that:
@@ -147,8 +157,8 @@ void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     // EV100 = log2((N^2 / t) * (100 / S))
     //
     // Reference: https://en.wikipedia.org/wiki/Exposure_value
-    ev100 = std::log2((aperture * aperture) / shutter_speed * 100.0f / iso);
-    exposure = 1.0 / (pow(2.0, ev100) * 1.2);
+    m_ev100 = std::log2((aperture * aperture) / shutter_speed * 100.0f / iso);
+    m_exposure = 1.0f / (pow(2.0f, m_ev100) * 1.2f);
 }
 
 const Math::float2 Camera::GetSensitivity() const noexcept { return m_sensitivity; }

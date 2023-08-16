@@ -5,7 +5,7 @@ namespace Horizon::Backend {
 VulkanDescriptorSet::VulkanDescriptorSet(const VulkanRendererContext &context, ResourceUpdateFrequency frequency,
                                          const std::unordered_map<std::string, DescriptorDesc> &write_descs,
                                          VkDescriptorSet set) noexcept
-    : DescriptorSet(frequency), m_context(context), m_set(set), write_descs(write_descs) {}
+    : DescriptorSet(frequency), m_context(context), write_descs(write_descs) , m_set(set){}
 
 void VulkanDescriptorSet::SetResource(Buffer *buffer, const std::string &resource_name) {
     auto res = write_descs.find(resource_name);
@@ -25,7 +25,7 @@ void VulkanDescriptorSet::SetResource(Buffer *buffer, const std::string &resourc
     write.dstSet = m_set;
     write.dstArrayElement = 0;
     write.descriptorCount = 1;
-    write.pBufferInfo = vk_buffer->GetDescriptorBufferInfo(0, buffer->m_size);
+    write.pBufferInfo = vk_buffer->GetDescriptorBufferInfo(0, (u32)buffer->m_size);
 
     writes.push_back(write);
 }
@@ -85,7 +85,7 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, c
     for (auto &buffer : resource) {
         auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
-        buffer_descriptors.push_back(*vk_buffer->GetDescriptorBufferInfo(0, buffer->m_size));
+        buffer_descriptors.push_back(*vk_buffer->GetDescriptorBufferInfo(0, (u32)buffer->m_size));
     }
 
     VkWriteDescriptorSet write{};
@@ -109,12 +109,12 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
         return;
     }
 
-    auto &texture_descriptors = bindless_image_descriptors[resource_name];
+    auto &bindless_texture_descriptors = bindless_image_descriptors[resource_name];
 
     for (auto &texture : resource) {
         auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
-        texture_descriptors.push_back(*vk_texture->GetDescriptorImageInfo(res->second.type));
+        bindless_texture_descriptors.push_back(*vk_texture->GetDescriptorImageInfo(res->second.type));
     }
 
     VkWriteDescriptorSet write{};
@@ -126,10 +126,9 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
     write.descriptorCount = static_cast<uint32_t>(resource.size());
     write.pBufferInfo = 0;
     write.dstSet = m_set;
-    write.pImageInfo = texture_descriptors.data();
+    write.pImageInfo = bindless_texture_descriptors.data();
     writes.push_back(write);
 }
-void VulkanDescriptorSet::SetBindlessResource(std::vector<Sampler *> &resource, const std::string &resource_name) {}
 
 void VulkanDescriptorSet::Update() {
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);

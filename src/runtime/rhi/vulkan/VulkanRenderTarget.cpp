@@ -3,7 +3,7 @@
 #include <runtime/core/memory/Memory.h>
 Horizon::Backend::VulkanRenderTarget::VulkanRenderTarget(
     const VulkanRendererContext &context, const RenderTargetCreateInfo &render_target_create_info) noexcept
-    : RenderTarget(render_target_create_info), m_context(context) {
+    : m_context(context) {
     TextureCreateInfo create_info{};
     if (render_target_create_info.rt_type == RenderTargetType::COLOR) {
         create_info.descriptor_types |= DescriptorType::DESCRIPTOR_TYPE_COLOR_ATTACHMENT;

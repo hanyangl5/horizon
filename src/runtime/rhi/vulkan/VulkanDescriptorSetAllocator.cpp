@@ -5,7 +5,7 @@
 #define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
 #include <spirv_reflect.h>
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/ResourceCache.h>
 #include <runtime/rhi/vulkan/VulkanPipeline.h>
 
@@ -215,7 +215,7 @@ void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
     pool_create_info.pNext = nullptr;
     pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
 
-    pool_create_info.maxSets = pool_sizes.size() * k_max_bindless_resources;
+    pool_create_info.maxSets = (u32)pool_sizes.size() * k_max_bindless_resources;
     pool_create_info.poolSizeCount = static_cast<u32>(pool_sizes.size());
     pool_create_info.pPoolSizes = pool_sizes.data();
 

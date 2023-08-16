@@ -5,14 +5,14 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/rhi/Buffer.h>
 #include <runtime/rhi/Pipeline.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/RenderTarget.h>
 #include <runtime/rhi/ResourceBarrier.h>
 #include <runtime/rhi/Texture.h>
 
 namespace Horizon::Backend {
 
-// TODO: move these definations to RHIUtils.h
+// TODO: move these definations to Enums.h
 
 struct RenderTargetInfo {
     RenderTarget *data{};
@@ -67,20 +67,16 @@ class CommandList {
 
     virtual void ClearBuffer(Buffer *buffer, f32 clear_value) = 0;
 
-    virtual void ClearTextrue(Texture *texture, const Math::float4 &clear_value) = 0;
-
-    // bind by index save string lookup
-    virtual void BindPushConstant(Pipeline *pipeline, u32 index, void *data) = 0;
+    virtual void ClearTextrue(Texture *texture, const ClearColorValue &clear_value) = 0;
 
     virtual void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) = 0;
 
-    virtual void GenerateMipMap(Texture *texture, bool alllevels = true) = 0;
+    virtual void GenerateMipMap(Texture *texture) = 0;
 
     virtual void BeginQuery() = 0;
     virtual void EndQuery() = 0;
 
   protected:
-    bool is_recoring{false};
     CommandQueueType m_type{};
 };
 } // namespace Horizon::Backend

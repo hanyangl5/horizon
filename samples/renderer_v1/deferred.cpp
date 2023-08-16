@@ -1,6 +1,6 @@
 #include "deferred.h"
 
-DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
+DeferredData::DeferredData(RHI *rhi) noexcept : mRhi(rhi) {
 
     // geometry pass
     {
@@ -90,11 +90,11 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
     }
 
     {
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, 0, shader_dir / "gbuffer_bindless.vert.hsl");
+        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER,  shader_dir / "gbuffer_bindless.vert.hsl");
 
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, 0, shader_dir / "gbuffer_bindless.frag.hsl");
+        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER,  shader_dir / "gbuffer_bindless.frag.hsl");
 
-        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, 0, shader_dir / "deferred_shading.comp.hsl");
+        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER,  shader_dir / "deferred_shading.comp.hsl");
     }
 
     {
@@ -117,15 +117,15 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
         // ibl
 
         diffuse_irradiance_sh3_constants.sh = {
-            Math::float4{0.473198890686035, 0.519405245780945, 0.554664373397827, 0.0f},
-            Math::float4{0.416269570589066, 0.466901600360870, 0.595043838024139, 0.0f},
-            Math::float4{0.070390045642853, 0.072113677859306, 0.075183071196079, 0.0f},
-            Math::float4{0.200731590390205, -0.189936503767967, -0.178353592753410, 0.0f},
-            Math::float4{0.165346711874008, -0.156177446246147, -0.144699439406395, 0.0f},
-            Math::float4{0.037444319576025, 0.041276078671217, 0.046160303056240, 0.0f},
-            Math::float4{0.007342631462961, -0.009751657955348, -0.015737744048238, 0.0f},
-            Math::float4{0.023010414093733, -0.011694960296154, 0.001283747726120, 0.0f},
-            Math::float4{0.000401695695473, -0.013503036461771, -0.041937090456486, 0.0f}};
+            Math::float4{0.473198890686035f, 0.519405245780945f, 0.554664373397827f, 0.0f},
+            Math::float4{0.416269570589066f, 0.466901600360870f, 0.595043838024139f, 0.0f},
+            Math::float4{0.070390045642853f, 0.072113677859306f, 0.075183071196079f, 0.0f},
+            Math::float4{0.200731590390205f, -0.189936503767967f, -0.178353592753410f, 0.0f},
+            Math::float4{0.165346711874008f, -0.156177446246147f, -0.144699439406395f, 0.0f},
+            Math::float4{0.037444319576025f, 0.041276078671217f, 0.046160303056240f, 0.0f},
+            Math::float4{0.007342631462961f, -0.009751657955348f, -0.015737744048238f, 0.0f},
+            Math::float4{0.023010414093733f, -0.011694960296154f, 0.001283747726120f, 0.0f},
+            Math::float4{0.000401695695473f, -0.013503036461771f, -0.041937090456486f, 0.0f}};
 
         prefilered_irradiance_env_map_data =
             TextureLoader::Load(asset_path / "envrionment/football/footballSpecularHDR.dds");
@@ -175,27 +175,27 @@ DeferredData::DeferredData(RHI *rhi) noexcept : m_rhi(rhi) {
     shading_pass->SetComputeShader(shading_cs);
 }
 DeferredData::~DeferredData() noexcept {
-    m_rhi->DestroyShader(geometry_vs);
-    m_rhi->DestroyShader(geometry_ps);
+    mRhi->DestroyShader(geometry_vs);
+    mRhi->DestroyShader(geometry_ps);
 
-    m_rhi->DestroyShader(shading_cs);
+    mRhi->DestroyShader(shading_cs);
 
-    m_rhi->DestroyPipeline(geometry_pass);
-    m_rhi->DestroyPipeline(shading_pass);
+    mRhi->DestroyPipeline(geometry_pass);
+    mRhi->DestroyPipeline(shading_pass);
 
-    m_rhi->DestroyBuffer(deferred_shading_constants_buffer);
+    mRhi->DestroyBuffer(deferred_shading_constants_buffer);
 
-    m_rhi->DestroyRenderTarget(depth);
-    m_rhi->DestroyRenderTarget(gbuffer0);
-    m_rhi->DestroyRenderTarget(gbuffer1);
-    m_rhi->DestroyRenderTarget(gbuffer2);
-    m_rhi->DestroyRenderTarget(gbuffer3);
-    m_rhi->DestroyRenderTarget(gbuffer4);
+    mRhi->DestroyRenderTarget(depth);
+    mRhi->DestroyRenderTarget(gbuffer0);
+    mRhi->DestroyRenderTarget(gbuffer1);
+    mRhi->DestroyRenderTarget(gbuffer2);
+    mRhi->DestroyRenderTarget(gbuffer3);
+    mRhi->DestroyRenderTarget(gbuffer4);
 
-    m_rhi->DestroyTexture(shading_color_image);
+    mRhi->DestroyTexture(shading_color_image);
 
-    m_rhi->DestroyBuffer(diffuse_irradiance_sh3_buffer);
-    m_rhi->DestroyTexture(brdf_lut);
-    m_rhi->DestroyTexture(prefiltered_irradiance_env_map);
-    m_rhi->DestroySampler(ibl_sampler);
+    mRhi->DestroyBuffer(diffuse_irradiance_sh3_buffer);
+    mRhi->DestroyTexture(brdf_lut);
+    mRhi->DestroyTexture(prefiltered_irradiance_env_map);
+    mRhi->DestroySampler(ibl_sampler);
 }

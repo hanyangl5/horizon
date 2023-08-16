@@ -93,5 +93,3 @@ Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept {
     vkDestroySwapchainKHR(m_context.device, swap_chain, nullptr);
     vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
 }
-
-void Horizon::Backend::VulkanSwapChain::AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept {}

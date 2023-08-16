@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 
 namespace Horizon::Backend {
 class Shader {

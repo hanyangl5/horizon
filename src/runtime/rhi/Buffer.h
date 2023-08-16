@@ -2,17 +2,13 @@
 
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 
 namespace Horizon::Backend {
 
 class Buffer {
   public:
-    using allocator_type = std::pmr::polymorphic_allocator<std::byte>;
-    allocator_type get_allocator() const noexcept;
-
-  public:
-    Buffer(const BufferCreateInfo &buffer_create_info, const allocator_type &alloc = {}) noexcept;
+    Buffer(const BufferCreateInfo &buffer_create_info) noexcept;
     virtual ~Buffer() noexcept = default;
     Buffer(const Buffer &rhs) noexcept = delete;
     Buffer &operator=(const Buffer &rhs) noexcept = delete;

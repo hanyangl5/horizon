@@ -29,30 +29,26 @@ class Renderer {
     SceneManager *GetSceneManager() noexcept { return m_scene_manager.get(); };
 
     void BeginNewFrame() const {
-        m_rhi->ResetRHIResources();
-        m_rhi->ResetFence(CommandQueueType::GRAPHICS);
-        m_rhi->ResetFence(CommandQueueType::COMPUTE);
-        m_rhi->ResetFence(CommandQueueType::TRANSFER);
+        mRhi->ResetRHIResources();
+        mRhi->ResetFence(CommandQueueType::GRAPHICS);
+        mRhi->ResetFence(CommandQueueType::COMPUTE);
+        mRhi->ResetFence(CommandQueueType::TRANSFER);
         LOG_DEBUG("begin frame");
     };
     void EndFrame() const {
-        m_rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
-        m_rhi->WaitGpuExecution(CommandQueueType::COMPUTE);
-        m_rhi->WaitGpuExecution(CommandQueueType::TRANSFER);
+        mRhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
+        mRhi->WaitGpuExecution(CommandQueueType::COMPUTE);
+        mRhi->WaitGpuExecution(CommandQueueType::TRANSFER);
         LOG_DEBUG("end frame");
     };
 
   public:
-  public:
-    Backend::RHI *GetRhi() noexcept { return m_rhi.get(); }
-
-  private:
-    void InitializeRenderAPI(RenderBackend backend);
+    Backend::RHI *GetRhi() noexcept { return mRhi.get(); }
 
   private:
     Window *m_window{};
     std::unique_ptr<ResourceManager> m_resource_manager{};
     std::unique_ptr<SceneManager> m_scene_manager{};
-    std::unique_ptr<Backend::RHI> m_rhi{};
+    std::unique_ptr<Backend::RHI> mRhi{};
 };
 } // namespace Horizon

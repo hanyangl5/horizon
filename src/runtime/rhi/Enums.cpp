@@ -1,4 +1,4 @@
-#include "RHIUtils.h"
+#include "Enums.h"
 
 namespace Horizon {
 
@@ -107,7 +107,6 @@ u32 GetBytesFromTextureFormat(TextureFormat format) {
     default:
         LOG_ERROR("invalid format")
         return 0;
-        assert(false);
     }
 }
 } // namespace Horizon

@@ -23,7 +23,7 @@ void HorizonPipeline::InitPipelineResources() {
 
     deferred = std::make_unique<DeferredData>(rhi);
     ssao = std::make_unique<SSAOData>(rhi);
-    scene = std::make_unique<SceneData>(renderer->GetSceneManager(), rhi);
+    scene = std::make_unique<SceneData>(renderer->GetSceneManager());
 }
 
 void HorizonPipeline::UpdatePipelineResources() {
@@ -200,7 +200,6 @@ void HorizonPipeline::run() {
 
             cl->BindPipeline(deferred->geometry_pass);
 
-            u32 draw_offset = 0;
 
             for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
                 auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];

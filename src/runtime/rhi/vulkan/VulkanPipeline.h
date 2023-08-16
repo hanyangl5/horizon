@@ -25,9 +25,7 @@ class VulkanPipeline : public Pipeline {
 
     void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
-    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count = 1) override;
-
-    DescriptorSet *GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) override;
+    DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency) override;
 
     const RootSignatureDesc &GetRootSignatureDesc() const noexcept { return rsd; }
 
@@ -36,7 +34,6 @@ class VulkanPipeline : public Pipeline {
     void CreateComputePipeline();
     void CreatePipelineLayout();
 
-    // void CreateRTPipeline() noexcept;
   public:
     const VulkanRendererContext &m_context{};
     VulkanDescriptorSetAllocator &m_descriptor_set_allocator;

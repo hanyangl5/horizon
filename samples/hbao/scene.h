@@ -4,7 +4,7 @@
 
 class SceneData {
   public:
-    SceneData(SceneManager *scene_manager, Backend::RHI *rhi) noexcept;
+    SceneData(SceneManager *scene_manager) noexcept;
     ~SceneData() noexcept = default;
     SceneManager *m_scene_manager{};
 

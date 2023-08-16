@@ -50,10 +50,6 @@ class VulkanCommandList : public CommandList {
 
     void CopyTexture(VulkanTexture *src_texture, VulkanTexture *dst_texture);
 
-    //void CopyBufferToTexture(VulkanBuffer *src_buffer, VulkanTexture *dst_texture) override;
-    //
-    // void CopyTextureToBuffer(VulkanTexture *src_texture, VulkanBuffer *dst_buffer) override;
-
     void UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) override;
 
     virtual void InsertBarrier(const BarrierDesc &desc) override;
@@ -62,27 +58,18 @@ class VulkanCommandList : public CommandList {
 
     void BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) override;
 
-    void BindPushConstant(Pipeline *pipeline, u32 index, void *data) override;
-
     void ClearBuffer(Buffer *buffer, f32 clear_value) override;
 
-    void ClearTextrue(Texture *texture, const Math::float4 &clear_value) override;
+    void ClearTextrue(Texture *texture, const ClearColorValue &clear_value) override;
 
     void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
-    void GenerateMipMap(Texture *texture, bool alllevels) override;
-    void BeginQuery() override {
-        //vkCmdBeginQuery(m_command_buffer, m_context.gpu_query_pool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
-        vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, m_context.gpu_query_pool, 0);
-    }
-    void EndQuery() override {
-        //vkCmdEndQuery(m_command_buffer, m_context.gpu_query_pool, 0);
-        vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, m_context.gpu_query_pool, 1);
-    }
+    void GenerateMipMap(Texture *texture) override;
+    void BeginQuery() override;
+    void EndQuery() override;
 
   private:
     const VulkanRendererContext &m_context{};
-    VulkanBuffer *GetStageBuffer(const BufferCreateInfo &buffer_create_info);
 
   public:
     VkCommandBuffer m_command_buffer{};

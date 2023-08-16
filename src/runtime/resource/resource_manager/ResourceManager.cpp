@@ -1,13 +1,14 @@
 #include "ResourceManager.h"
+
 #include <runtime/core/memory/Memory.h>
+
 namespace Horizon {
-ResourceManager::ResourceManager(Backend::RHI *rhi, std::pmr::polymorphic_allocator<std::byte> allocator) noexcept
-    : m_rhi(rhi) {}
+ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : mRhi(rhi) {}
 
 ResourceManager::~ResourceManager() noexcept { ClearAllResources(); }
 
-Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info, const std::string &name) {
-    auto buffer = m_rhi->CreateBuffer(buffer_create_info);
+Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info) {
+    auto buffer = mRhi->CreateBuffer(buffer_create_info);
     allocated_buffers.emplace(buffer);
     return buffer;
 }
@@ -20,7 +21,7 @@ Buffer *ResourceManager::GetEmptyVertexBuffer() {
         vertex_buffer_create_info.size = 1;
         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        empty_vertex_buffer = m_rhi->CreateBuffer(vertex_buffer_create_info);
+        empty_vertex_buffer = mRhi->CreateBuffer(vertex_buffer_create_info);
     }
     return empty_vertex_buffer;
 }
@@ -42,12 +43,12 @@ void ResourceManager::OffloadMesh(Mesh *mesh) {
 void ResourceManager::ClearAllResources() {
     for (auto &remain_buffer : allocated_buffers) {
         if (remain_buffer != nullptr) {
-            m_rhi->DestroyBuffer(remain_buffer);
+            mRhi->DestroyBuffer(remain_buffer);
         }
     }
     for (auto &remain_texture : allocated_textures) {
         if (remain_texture != nullptr) {
-            m_rhi->DestroyTexture(remain_texture);
+            mRhi->DestroyTexture(remain_texture);
         }
     }
     allocated_textures.clear();
@@ -57,12 +58,12 @@ void ResourceManager::ClearAllResources() {
 void ResourceManager::DestroyGpuBuffer(Buffer *buffer) {
     if (allocated_buffers.find(buffer) != allocated_buffers.end()) {
         allocated_buffers.erase(buffer);
-        m_rhi->DestroyBuffer(buffer);
+        mRhi->DestroyBuffer(buffer);
     }
 }
 
-Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info, const std::string &name) {
-    auto texture = m_rhi->CreateTexture(texture_create_info);
+Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info) {
+    auto texture = mRhi->CreateTexture(texture_create_info);
     allocated_textures.emplace(texture);
     return texture;
 }
@@ -70,7 +71,7 @@ Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_crea
 void ResourceManager::DestroyGpuTexture(Texture *texture) {
     if (allocated_textures.find(texture) != allocated_textures.end()) {
         allocated_textures.erase(texture);
-        m_rhi->DestroyTexture(texture);
+        mRhi->DestroyTexture(texture);
     }
 }
 
@@ -80,12 +81,12 @@ std::array<Vertex, 36> cube_vertices{
     Vertex{Math::float3(-1, -1, -1), Math::float3(-0, -1, 0), Math::float2(-1, 1)},
     Vertex{Math::float3(1, -1, -1), Math::float3(-0, -1, 0), Math::float2(0, 1)},
     Vertex{Math::float3(-1, 1, -1), Math::float3(0, 1, -0), Math::float2(0, 0)},
-    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(0, 1, -0), Math::float2(1, -1)},
-    Vertex{Math::float3(1, 1, -0.999999), Math::float3(0, 1, -0), Math::float2(1, 0)},
-    Vertex{Math::float3(1, 1, -0.999999), Math::float3(1, -0, -0), Math::float2(1, 0)},
+    Vertex{Math::float3(1, 1, 1), Math::float3(0, 1, -0), Math::float2(1, -1)},
+    Vertex{Math::float3(1, 1, -1), Math::float3(0, 1, -0), Math::float2(1, 0)},
+    Vertex{Math::float3(1, 1, -1), Math::float3(1, -0, -0), Math::float2(1, 0)},
     Vertex{Math::float3(1, -1, 1), Math::float3(1, -0, -0), Math::float2(0, -1)},
     Vertex{Math::float3(1, -1, -1), Math::float3(1, -0, -0), Math::float2(1, -1)},
-    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(-0, -0, 1), Math::float2(1, 0)},
+    Vertex{Math::float3(1, 1, 1), Math::float3(-0, -0, 1), Math::float2(1, 0)},
     Vertex{Math::float3(-1, -1, 1), Math::float3(-0, -0, 1), Math::float2(-0, -1)},
     Vertex{Math::float3(1, -1, 1), Math::float3(-0, -0, 1), Math::float2(1, -1)},
     Vertex{Math::float3(-1, -1, 1), Math::float3(-1, -0, -0), Math::float2(0, 0)},
@@ -93,17 +94,17 @@ std::array<Vertex, 36> cube_vertices{
     Vertex{Math::float3(-1, -1, -1), Math::float3(-1, -0, -0), Math::float2(1, 0)},
     Vertex{Math::float3(1, -1, -1), Math::float3(0, 0, -1), Math::float2(0, 0)},
     Vertex{Math::float3(-1, 1, -1), Math::float3(0, 0, -1), Math::float2(-1, 1)},
-    Vertex{Math::float3(1, 1, -0.999999), Math::float3(0, 0, -1), Math::float2(0, 1)},
+    Vertex{Math::float3(1, 1, -1), Math::float3(0, 0, -1), Math::float2(0, 1)},
     Vertex{Math::float3(1, -1, 1), Math::float3(0, -1, 0), Math::float2(0, 0)},
     Vertex{Math::float3(-1, -1, 1), Math::float3(0, -1, 0), Math::float2(-1, 0)},
     Vertex{Math::float3(-1, -1, -1), Math::float3(0, -1, 0), Math::float2(-1, 1)},
     Vertex{Math::float3(-1, 1, -1), Math::float3(0, 1, 0), Math::float2(0, 0)},
     Vertex{Math::float3(-1, 1, 1), Math::float3(0, 1, 0), Math::float2(-0, -1)},
-    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(0, 1, 0), Math::float2(1, -1)},
-    Vertex{Math::float3(1, 1, -0.999999), Math::float3(1, 0, 1e-06), Math::float2(1, 0)},
-    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(1, 0, 1e-06), Math::float2(-0, 0)},
-    Vertex{Math::float3(1, -1, 1), Math::float3(1, 0, 1e-06), Math::float2(0, -1)},
-    Vertex{Math::float3(0.999999, 1, 1.000001), Math::float3(-0, 0, 1), Math::float2(1, 0)},
+    Vertex{Math::float3(1, 1, 1), Math::float3(0, 1, 0), Math::float2(1, -1)},
+    Vertex{Math::float3(1, 1, -1), Math::float3(1, 0, 0), Math::float2(1, 0)},
+    Vertex{Math::float3(1, 1, 1), Math::float3(1, 0, 0), Math::float2(-0, 0)},
+    Vertex{Math::float3(1, -1, 1), Math::float3(1, 0, 0), Math::float2(0, -1)},
+    Vertex{Math::float3(1, 1, 1), Math::float3(-0, 0, 1), Math::float2(1, 0)},
     Vertex{Math::float3(-1, 1, 1), Math::float3(-0, 0, 1), Math::float2(-0, 0)},
     Vertex{Math::float3(-1, -1, 1), Math::float3(-0, 0, 1), Math::float2(-0, -1)},
     Vertex{Math::float3(-1, -1, 1), Math::float3(-1, -0, -0), Math::float2(0, 0)},

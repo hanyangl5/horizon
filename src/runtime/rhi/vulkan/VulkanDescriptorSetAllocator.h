@@ -4,7 +4,7 @@
 
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/rhi/vulkan/VulkanSampler.h>
 #include <runtime/rhi/vulkan/VulkanShader.h>

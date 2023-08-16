@@ -17,12 +17,13 @@ void Light::SetIntensity(f32 intensity) noexcept {
         luminousIntensity = intensity;
         break;
     case LightType::SPOT_LIGHT: {
-
-        float cosOuter; //= std::sqrt(spotParams.cosOuterSquared);
+        float cosOuter = std::sqrt(cos(params.radius_inner_outer.z) * cos(params.radius_inner_outer.z));
 
         luminousIntensity = intensity * (Math::_2PI * (1.0f - cosOuter));
         break;
     }
+    default:
+        luminousIntensity = 0.0f;
     }
     params.color_intensity.w = luminousIntensity;
 }

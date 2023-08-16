@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/Texture.h>
 
 namespace Horizon {

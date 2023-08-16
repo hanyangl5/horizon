@@ -12,8 +12,8 @@
 
 #include <runtime/resource/resource_loader/mesh/MeshLoader.h>
 #include <runtime/resource/resources/mesh/Mesh.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/RHI.h>
-#include <runtime/rhi/RHIUtils.h>
 #include <runtime/scene/light/Light.h>
 
 #include <runtime/render/Render.h>

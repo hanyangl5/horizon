@@ -1,6 +1,6 @@
 #pragma once
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <vulkan/vulkan.h>
 
 namespace std {
@@ -36,7 +36,7 @@ template <> struct hash<Horizon::GraphicsPipelineCreateInfo> {
     }
 };
 template <> struct hash<Horizon::ComputePipelineCreateInfo> {
-    inline Horizon::u64 operator()(const Horizon::ComputePipelineCreateInfo &create_info) const {
+    inline Horizon::u64 operator()([[maybe_unused]]const Horizon::ComputePipelineCreateInfo &create_info) const {
         std::size_t seed = 0;
         //
         return seed;

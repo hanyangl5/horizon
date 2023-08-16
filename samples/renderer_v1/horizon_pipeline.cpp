@@ -25,7 +25,7 @@ void HorizonPipeline::InitPipelineResources() {
     ssao = std::make_unique<SSAOData>(rhi);
     post_process = std::make_unique<PostProcessData>(rhi);
     antialiasing = std::make_unique<AntialiasingData>(rhi);
-    scene = std::make_unique<SceneData>(renderer->GetSceneManager(), rhi);
+    scene = std::make_unique<SceneData>(renderer->GetSceneManager());
 }
 
 void HorizonPipeline::UpdatePipelineResources() {
@@ -37,8 +37,8 @@ void HorizonPipeline::UpdatePipelineResources() {
     auto &jitter_offset = antialiasing->GetJitterOffset();
     auto view = cam->GetViewMatrix();
     auto proj = cam->GetProjectionMatrix();
-    f32 offset_x = (jitter_offset.x - 0.5) / width;
-    f32 offset_y = (jitter_offset.y - 0.5) / height;
+    f32 offset_x = (jitter_offset.x - 0.5f) / width;
+    f32 offset_y = (jitter_offset.y - 0.5f) / height;
 
     antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
     antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
@@ -288,8 +288,6 @@ void HorizonPipeline::run() {
             cl->BeginRenderPass(begin_info);
 
             cl->BindPipeline(deferred->geometry_pass);
-
-            u32 draw_offset = 0;
 
             for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
                 auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];

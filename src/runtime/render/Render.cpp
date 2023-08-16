@@ -23,16 +23,16 @@ Renderer::Renderer(const Config &config) noexcept {
 
     switch (config.render_backend) {
     case Horizon::RenderBackend::RENDER_BACKEND_VULKAN:
-        m_rhi = std::make_unique<Backend::RHIVulkan>(bOffScreen);
+        mRhi = std::make_unique<Backend::RHIVulkan>(bOffScreen);
         break;
     default:
         return;
     }
-    m_rhi->InitializeRenderer();
+    mRhi->InitializeRenderer();
 
-    m_rhi->SetWindow(m_window);
+    mRhi->SetWindow(m_window);
 
-    m_resource_manager = std::make_unique<ResourceManager>(m_rhi.get());
+    m_resource_manager = std::make_unique<ResourceManager>(mRhi.get());
 
     m_scene_manager = std::make_unique<SceneManager>(m_resource_manager.get());
 }
@@ -40,9 +40,7 @@ Renderer::Renderer(const Config &config) noexcept {
 Renderer::~Renderer() noexcept {
     m_scene_manager = nullptr;
     m_resource_manager = nullptr;
-    m_rhi = nullptr;
+    mRhi = nullptr;
 }
-
-void Renderer::InitializeRenderAPI(RenderBackend backend) {}
 
 } // namespace Horizon

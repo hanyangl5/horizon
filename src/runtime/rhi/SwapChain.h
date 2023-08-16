@@ -3,16 +3,13 @@
 #include <runtime/core/window/Window.h>
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/RenderTarget.h>
 #include <runtime/rhi/Semaphore.h>
 
 namespace Horizon::Backend {
 
 struct SwapChainSemaphoreContext {
-    // std::vector<Semaphore *> recycled_semaphores;
-    // Semaphore *swap_chain_acquire_semaphore{};
-    // Semaphore *swap_chain_release_semaphore{};
     std::vector<Semaphore *> recycled_semaphores;
     Semaphore *swap_chain_acquire_semaphore{};
     Semaphore *swap_chain_release_semaphore{};
@@ -31,8 +28,6 @@ class SwapChain {
     SwapChain &operator=(const SwapChain &rhs) noexcept = delete;
     SwapChain(SwapChain &&rhs) noexcept = delete;
     SwapChain &operator=(SwapChain &&rhs) noexcept = delete;
-
-    virtual void AcquireNextFrame(SwapChainSemaphoreContext *recycled_sempahores) noexcept = 0;
 
     RenderTarget *GetRenderTarget() noexcept { return render_targets[current_frame_index]; }
 

@@ -9,7 +9,7 @@ class AntialiasingData {
 
     const Math::float2 &GetJitterOffset() noexcept;
 
-    Backend::RHI *m_rhi;
+    Backend::RHI *mRhi;
     Shader *taa_cs;
     Pipeline *taa_pass;
 

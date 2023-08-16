@@ -19,6 +19,3 @@
 [submodule "third_party/spirv-reflect"]
 	path = third_party/spirv-reflect
 	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
-[submodule "third_party/oneTBB"]
-	path = third_party/oneTBB
-	url = https://github.com/oneapi-src/oneTBB.git

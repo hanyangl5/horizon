@@ -1,11 +1,8 @@
 #pragma once
 
-#include <runtime/rhi/Buffer.h>
 #include <runtime/rhi/DescriptorSet.h>
-#include <runtime/rhi/RHIUtils.h>
-#include <runtime/rhi/Sampler.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/Shader.h>
-#include <runtime/rhi/Texture.h>
 
 namespace Horizon::Backend {
 
@@ -24,8 +21,7 @@ class Pipeline {
     virtual void SetComputeShader(Shader *vs) = 0;
     virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
 
-    virtual DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count = 1) = 0;
-    virtual DescriptorSet *GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) = 0;
+    virtual DescriptorSet *GetDescriptorSet(ResourceUpdateFrequency frequency) = 0;
 
   protected:
     void ParseRootSignature();

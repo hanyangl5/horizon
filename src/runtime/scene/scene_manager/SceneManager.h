@@ -69,20 +69,18 @@ class SceneManager {
     // mesh
     void AddMesh(Mesh *mesh);
     void RemoveMesh(Mesh *mesh);
-    //void AddDecal(Decal *decal);
+
     //void RemoveDecal(Decal *decal);
-    void CreateMeshResources(Backend::RHI *rhi);
+    void CreateMeshResources();
     void UploadMeshResources(Backend::CommandList *commandlist);
 
-    //void CreateDecalResources(Backend::RHI *rhi);
-    //void UploadDecalResources(Backend::CommandList *commandlist);
     // light
     Light *AddDirectionalLight(const Math::float3 &color, f32 intensity,
                                const Math::float3 &directiona) noexcept; // temperature, soource radius, length
     Light *AddPointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position, f32 radius) noexcept;
     Light *AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
                         const Math::float3 &direction, f32 radius, f32 inner_cone, f32 outer_cone) noexcept;
-    void CreateLightResources(Backend::RHI *rhi);
+    void CreateLightResources();
     void UploadLightResources(Backend::CommandList *commandlist);
     Buffer *GetLightCountBuffer() const noexcept;
     Buffer *GetLightParamBuffer() const noexcept;
@@ -96,13 +94,13 @@ class SceneManager {
     // TODO(hylu): multiview
     std::tuple<Camera *, CameraController *> AddCamera(const CameraSetting &setting, const Math::float3 &position,
                                                        const Math::float3 &at, const Math::float3 &up);
-    void CreateCameraResources(Backend::RHI *rhi);
+    void CreateCameraResources();
     void UploadCameraResources(Backend::CommandList *commandlist);
 
     // miscs
     void GetVertexBuffers(std::vector<Buffer *> &vertex_buffers, std::vector<u32> &offsets);
 
-    void CreateBuiltInResources(Backend::RHI *rhi);
+    void CreateBuiltInResources();
     void UploadBuiltInResources(Backend::CommandList *commandlist);
 
   public:

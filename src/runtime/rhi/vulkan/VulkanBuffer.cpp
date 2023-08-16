@@ -34,7 +34,7 @@ VulkanBuffer::~VulkanBuffer() noexcept {
 }
 
 VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 size) noexcept {
-    buffer_info = {m_buffer, offset, m_size};
+    buffer_info = {m_buffer, offset, size};
     return &buffer_info;
 }
 

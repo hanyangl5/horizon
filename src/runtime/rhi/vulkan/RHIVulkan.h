@@ -4,7 +4,7 @@
 #include <runtime/core/utils/definations.h>
 
 #include <runtime/rhi/RHI.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/vulkan/VulkanUtils.h>
 
 #include <runtime/rhi/vulkan/VulkanBuffer.h>
@@ -35,7 +35,7 @@ class RHIVulkan : public RHI {
 
     SwapChain *CreateSwapChain(const SwapChainCreateInfo &create_info) override;
 
-    Shader *CreateShader(ShaderType type, u32 compile_flags, const std::filesystem::path &file_name) override;
+    Shader *CreateShader(ShaderType type, const std::filesystem::path &file_name) override;
 
     void DestroyShader(Shader *shader_program) override;
 

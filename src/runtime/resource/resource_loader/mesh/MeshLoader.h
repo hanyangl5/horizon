@@ -5,7 +5,7 @@
 
 #include <runtime/core/utils/definations.h>
 #include <runtime/resource/resources/mesh/Mesh.h>
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 
 namespace Horizon {
 
@@ -14,8 +14,6 @@ class MeshLoader {
     static Mesh *Load(const MeshDesc &desc, const std::filesystem::path &path);
     // jpg, png
   private:
-    static void LoadGlTF2(const MeshDesc &desc, const std::filesystem::path &path, Mesh &mesh);
-
-    static void LoadFBX(const MeshDesc &desc, const std::filesystem::path &path, Mesh &mesh);
+    static void LoadGlTF2( Mesh &mesh);
 };
 } // namespace Horizon

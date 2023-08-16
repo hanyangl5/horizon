@@ -395,10 +395,6 @@ void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadHDR(const std::filesystem::path &path, TextureDataDesc &texture_info) {}
-
-void TextureLoader::LoadKTX(const std::filesystem::path &path, TextureDataDesc &texture_info) {}
-
 void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &texture_info) {
 
     auto raw_data = ReadFile(path.string().c_str());

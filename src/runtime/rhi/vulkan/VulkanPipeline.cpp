@@ -11,7 +11,7 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const Graph
     m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(std::move(&create_info));
 }
 
-VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const ComputePipelineCreateInfo &create_info,
+VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,[[maybe_unused]] const ComputePipelineCreateInfo &create_info,
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
     : m_context(context), m_descriptor_set_allocator(descriptor_set_manager) {
     m_create_info.type = PipelineType::COMPUTE;
@@ -48,7 +48,7 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
     }
 }
 
-DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency, u32 count) {
+DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequency) {
 
     if (frequency == ResourceUpdateFrequency::BINDLESS) {
 
@@ -99,60 +99,9 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
     }
-    ////new VulkanDescriptorSet();
 
-    //// m_descriptor_set_allocator.UpdateDescriptorPoolInfo(this, m_pipeline_layout_desc.descriptor_set_hash_key);
-
-    ////if (m_descriptor_set_allocator.pool_created == false) {
-    ////    m_descriptor_set_allocator.CreateDescriptorPool();
-    ////    m_descriptor_set_allocator.pool_created = true;
-    ////}
-
-    // auto &resource = m_descriptor_set_allocator.pipeline_descriptor_set_resources[this];
-    // u32 freq = static_cast<u32>(frequency);
-
-    // if (resource.layout_hash_key[freq] == m_descriptor_set_allocator.m_empty_descriptor_set_layout_hash_key) {
-    //     LOG_ERROR("return an empty descriptor set");
-    //     return {};
-    // }
-
-    // assert(("descriptor pool not allocated",
-    //         m_descriptor_set_allocator.m_descriptor_pools[freq].back() != VK_NULL_HANDLE));
-
-    // u32 counter = resource.m_used_set_counter[static_cast<u32>(frequency)]++;
-
-    // VkDescriptorSet set =
-    //     m_descriptor_set_allocator.pipeline_descriptor_set_resources[this].allocated_sets[freq][counter];
-
-    //    auto &resource = m_descriptor_set_allocator.pipeline_descriptor_set_resources.at(this);
-    // u32 freq = static_cast<u32>(frequency);
-    //// allocate sets to be used
-    // VkDescriptorSetAllocateInfo alloc_info{};
-    // alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-
-    // VkDescriptorSetLayout layout = m_descriptor_set_allocator.FindLayout(resource.layout_hash_key[freq]);
-
-    // std::vector<VkDescriptorSetLayout> layouts(m_reserved_max_sets[freq], layout);
-    // resource.allocated_sets[freq].resize(m_reserved_max_sets[freq]);
-
-    // alloc_info.descriptorPool = m_descriptor_set_allocator.m_descriptor_pools[static_cast<u32>(freq)].back();
-    // alloc_info.descriptorSetCount = m_reserved_max_sets[freq];
-    // alloc_info.pSetLayouts = layouts.data();
-
-    // CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, resource.allocated_sets[freq].data()));
-
-    // std::vector<DescriptorSet *> sets(count);
-    // for (u32 i = 0; i < count; i++) {
-    //     sets[i] = new DescriptorSet()
-    // }
-    // return sets;
-    // return {};
 }
-
-DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet(ResourceUpdateFrequency frequency) { return {}; }
-
 void VulkanPipeline::CreateGraphicsPipeline() {
-
     auto ci = m_create_info.gpci;
     {
 
@@ -162,9 +111,9 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         graphics_pipeline_create_info.pNext = nullptr;
 
         uint32_t input_binding_count = 0;
-        std::array<VkVertexInputBindingDescription, MAX_BINDING_COUNT> input_bindings = {{0}};
+        std::array<VkVertexInputBindingDescription, MAX_BINDING_COUNT> input_bindings = {};
         uint32_t input_attribute_count = 0;
-        std::array<VkVertexInputAttributeDescription, MAX_ATTRIBUTE_COUNT> input_attributes = {{0}};
+        std::array<VkVertexInputAttributeDescription, MAX_ATTRIBUTE_COUNT> input_attributes = {};
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
         LOG_INFO("{}", sizeof(VkPipelineShaderStageCreateInfo));
         VkPipelineRasterizationStateCreateInfo rasterization_state_create_info{};
@@ -194,7 +143,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
                     ps->m_shader_module, "main", nullptr});
             }
 
-            graphics_pipeline_create_info.stageCount = shader_stage_create_infos.size();
+            graphics_pipeline_create_info.stageCount = (u32)shader_stage_create_infos.size();
             graphics_pipeline_create_info.pStages = shader_stage_create_infos.data();
         }
 

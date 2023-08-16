@@ -1,6 +1,6 @@
 #pragma once
 
-#include <runtime/rhi/RHIUtils.h>
+#include <runtime/rhi/Enums.h>
 #include <runtime/rhi/Shader.h>
 #include <runtime/rhi/vulkan/VulkanUtils.h>
 
