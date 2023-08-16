@@ -11,7 +11,8 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const Graph
     m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(std::move(&create_info));
 }
 
-VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,[[maybe_unused]] const ComputePipelineCreateInfo &create_info,
+VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
+                               [[maybe_unused]] const ComputePipelineCreateInfo &create_info,
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
     : m_context(context), m_descriptor_set_allocator(descriptor_set_manager) {
     m_create_info.type = PipelineType::COMPUTE;
@@ -99,7 +100,6 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         m_descriptor_set_allocator.allocated_sets.push_back(set);
         return set;
     }
-
 }
 void VulkanPipeline::CreateGraphicsPipeline() {
     auto ci = m_create_info.gpci;

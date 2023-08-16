@@ -31,7 +31,7 @@ void SceneManager::CreateMeshResources() {
     u32 index_buffer_offset = 0;
     u32 draw_offset = 0;
     for (auto &mesh : scene_meshes) {
-        draw_count =(u32) mesh->m_mesh_primitives.size();
+        draw_count = (u32)mesh->m_mesh_primitives.size();
         mesh_data.push_back(
             MeshData{texture_offset, vertex_buffer_offset, index_buffer_offset, draw_offset, draw_count});
         draw_offset += draw_count;

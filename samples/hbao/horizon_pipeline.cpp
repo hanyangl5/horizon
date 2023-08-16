@@ -200,7 +200,6 @@ void HorizonPipeline::run() {
 
             cl->BindPipeline(deferred->geometry_pass);
 
-
             for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
                 auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];
                 auto ib = scene->m_scene_manager->index_buffers[mesh.index_buffer_offset];

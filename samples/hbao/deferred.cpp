@@ -1,6 +1,5 @@
 #include "deferred.h"
 
-
 DeferredData::DeferredData(RHI *rhi) noexcept : mRhi(rhi) {
 
     // light culling pass
@@ -149,7 +148,6 @@ DeferredData::~DeferredData() noexcept {
     //mRhi->DestroyRenderTarget(gbuffer3);
 
     mRhi->DestroyTexture(shading_color_image);
-
 
     mRhi->DestroySampler(ibl_sampler);
 }

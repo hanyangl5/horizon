@@ -376,7 +376,7 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     submit_info.commandBufferCount = static_cast<u32>(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
 
-    u32 wait_semaphore_count =(u32) queue_submit_info.wait_semaphores.size();
+    u32 wait_semaphore_count = (u32)queue_submit_info.wait_semaphores.size();
     std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
     std::vector<VkPipelineStageFlags> wait_stages(wait_semaphore_count);
     for (u32 i = 0; i < wait_semaphore_count; i++) {

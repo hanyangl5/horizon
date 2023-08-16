@@ -7,10 +7,10 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include <runtime/core/memory/Memory.h>
 #include <runtime/core/log/Log.h>
-#include <runtime/rhi/RHI.h>
+#include <runtime/core/memory/Memory.h>
 #include <runtime/resource/resource_loader/texture/TextureLoader.h>
+#include <runtime/rhi/RHI.h>
 
 namespace Horizon {
 
@@ -51,7 +51,7 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
     std::vector<aiMaterial *> ms;
     materials.resize(scene->mNumMaterials);
-    [[maybe_unused]]aiReturn ret;
+    [[maybe_unused]] aiReturn ret;
     for (u32 i = 0; i < scene->mNumMaterials; i++) {
         bool unlit;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
@@ -162,7 +162,7 @@ void Mesh::Load() {
     // probably to request more postprocessing than we do in this example.
     const aiScene *scene = assimp_importer.ReadFile(
         m_path.string().c_str(), (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                     aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
+                                       aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
 
     // If the import failed, report it
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {

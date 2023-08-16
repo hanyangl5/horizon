@@ -14,6 +14,6 @@ class MeshLoader {
     static Mesh *Load(const MeshDesc &desc, const std::filesystem::path &path);
     // jpg, png
   private:
-    static void LoadGlTF2( Mesh &mesh);
+    static void LoadGlTF2(Mesh &mesh);
 };
 } // namespace Horizon

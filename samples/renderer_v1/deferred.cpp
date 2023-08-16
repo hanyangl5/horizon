@@ -90,11 +90,11 @@ DeferredData::DeferredData(RHI *rhi) noexcept : mRhi(rhi) {
     }
 
     {
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER,  shader_dir / "gbuffer_bindless.vert.hsl");
+        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.vert.hsl");
 
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER,  shader_dir / "gbuffer_bindless.frag.hsl");
+        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.frag.hsl");
 
-        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER,  shader_dir / "deferred_shading.comp.hsl");
+        shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "deferred_shading.comp.hsl");
     }
 
     {

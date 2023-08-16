@@ -3,8 +3,8 @@
 #include <runtime/core/log/Log.h>
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/rhi/RHI.h>
 #include <runtime/rhi/Enums.h>
+#include <runtime/rhi/RHI.h>
 #include <runtime/rhi/vulkan/VulkanUtils.h>
 
 #include <runtime/rhi/vulkan/VulkanBuffer.h>

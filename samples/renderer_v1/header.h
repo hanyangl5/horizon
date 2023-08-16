@@ -13,8 +13,8 @@
 #include <runtime/render/Render.h>
 #include <runtime/resource/resource_loader/mesh/MeshLoader.h>
 #include <runtime/resource/resources/mesh/Mesh.h>
-#include <runtime/rhi/RHI.h>
 #include <runtime/rhi/Enums.h>
+#include <runtime/rhi/RHI.h>
 #include <runtime/scene/light/Light.h>
 
 // TODO(hyl5) : move to source file

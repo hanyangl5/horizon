@@ -12,7 +12,7 @@ VulkanSemaphore::VulkanSemaphore(const VulkanRendererContext &context) noexcept 
 
 VulkanSemaphore::~VulkanSemaphore() noexcept { vkDestroySemaphore(m_context.device, m_semaphore, nullptr); }
 
-void VulkanSemaphore::AddWaitStage([[maybe_unused]]CommandQueueType queue_type) noexcept {
+void VulkanSemaphore::AddWaitStage([[maybe_unused]] CommandQueueType queue_type) noexcept {
     flags |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     //switch (queue_type) {
     //case Horizon::GRAPHICS:

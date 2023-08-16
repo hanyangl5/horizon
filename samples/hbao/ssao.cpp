@@ -40,7 +40,7 @@ SSAOData::SSAOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
     std::default_random_engine generator;
 
     for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i) {
-        Math::float3 sample(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f- 1.0f, rnd_dist(generator));
+        Math::float3 sample(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator));
         sample.Normalize();
         sample *= rnd_dist(generator);
         float scale = float(i) / float(SSAO_KERNEL_SIZE);

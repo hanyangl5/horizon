@@ -25,9 +25,7 @@ void VulkanCommandList::BeginRecording() {
     vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
 }
 
-void VulkanCommandList::EndRecording() {
-    vkEndCommandBuffer(m_command_buffer);
-}
+void VulkanCommandList::EndRecording() { vkEndCommandBuffer(m_command_buffer); }
 
 void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets) {
 
@@ -595,7 +593,7 @@ void VulkanCommandList::GenerateMipMap(Texture *texture) {
             mip_h /= 2;
     }
 }
-void VulkanCommandList::BeginQuery()  {
+void VulkanCommandList::BeginQuery() {
     vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, m_context.gpu_query_pool, 0);
 }
 void VulkanCommandList::EndQuery() {

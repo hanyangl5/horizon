@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vk_mem_alloc.h>
 #include <runtime/rhi/Texture.h>
 #include <runtime/rhi/vulkan/VulkanBuffer.h>
 #include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <vk_mem_alloc.h>
 
 namespace Horizon::Backend {
 class VulkanTexture : public Texture {

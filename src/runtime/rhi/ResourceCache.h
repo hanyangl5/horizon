@@ -36,7 +36,7 @@ template <> struct hash<Horizon::GraphicsPipelineCreateInfo> {
     }
 };
 template <> struct hash<Horizon::ComputePipelineCreateInfo> {
-    inline Horizon::u64 operator()([[maybe_unused]]const Horizon::ComputePipelineCreateInfo &create_info) const {
+    inline Horizon::u64 operator()([[maybe_unused]] const Horizon::ComputePipelineCreateInfo &create_info) const {
         std::size_t seed = 0;
         //
         return seed;
