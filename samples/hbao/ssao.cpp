@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
-AOData::AOData(Backend::RHI *rhi, Camera *camera) noexcept : mRhi(rhi),m_camera(camera) {
-    
+AOData::AOData(Backend::RHI *rhi, Camera *camera) noexcept : mRhi(rhi), m_camera(camera) {
+
     ao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ao.comp.hsl");
     ao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hsl");
 
