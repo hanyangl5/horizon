@@ -1,0 +1,1 @@
+press wsad, space, l-ctrl to control the camera

@@ -1,6 +1,6 @@
 #include "horizon_pipeline.h"
 
-void HorizonPipeline::InitAPI() { rhi = engine->m_render_system->GetRhi(); }
+void HorizonPipeline::InitAPI() { rhi = renderer->GetRhi(); }
 
 void HorizonPipeline::InitResources() { InitPipelineResources(); }
 
@@ -22,8 +22,8 @@ void HorizonPipeline::InitPipelineResources() {
     }
 
     deferred = std::make_unique<DeferredData>(rhi);
-    ssao = std::make_unique<SSAOData>(rhi);
-    scene = std::make_unique<SceneData>(engine->m_render_system->GetSceneManager(), rhi);
+    ssao = std::make_unique<AOData>(rhi);
+    scene = std::make_unique<SceneData>(renderer->GetSceneManager());
 }
 
 void HorizonPipeline::UpdatePipelineResources() {
@@ -47,20 +47,23 @@ void HorizonPipeline::UpdatePipelineResources() {
     deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
     deferred->deferred_shading_constants.inverse_vp = inverse_vp;
 
-    ssao->ssao_constansts.proj = proj;
-    ssao->ssao_constansts.inv_proj = proj.Invert();
-    ssao->ssao_constansts.view = view;
-    ssao->ssao_constansts.noise_scale_x = width / SSAOData::SSAO_NOISE_TEX_WIDTH;
-    ssao->ssao_constansts.noise_scale_y = height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
+    ssao->ao_constansts.proj = proj;
+    ssao->ao_constansts.inv_proj = proj.Invert();
+    ssao->ao_constansts.view = view;
+    ssao->ao_constansts.noise_scale_x = width / AOData::SSAO_NOISE_TEX_WIDTH;
+    ssao->ao_constansts.noise_scale_y = height / AOData::SSAO_NOISE_TEX_HEIGHT;
 }
 
-void HorizonPipeline::run() {
+void HorizonPipeline::Run() {
 
     bool first_frame = true;
-
-    while (!engine->m_window->ShouldClose()) {
-        scene->scene_camera_controller->ProcessInput(engine->m_window.get());
-
+    while (!window->ShouldClose()) {
+        scene->scene_camera_controller->ProcessInput(window.get());
+        if (Input::GetKeyPress(window.get(), Horizon::Input::Key::KEY_1)) {
+            ssao->SetAoMethod(SSAO);
+        } else if (Input::GetKeyPress(window.get(), Horizon::Input::Key::KEY_2)) {
+            ssao->SetAoMethod(HBAO);
+        }
         rhi->AcquireNextFrame(swap_chain);
         UpdatePipelineResources();
         auto resource_uploaded_semaphore = rhi->CreateSemaphore1();
@@ -85,15 +88,22 @@ void HorizonPipeline::run() {
             transfer->UpdateBuffer(deferred->deferred_shading_constants_buffer, &deferred->deferred_shading_constants,
                                    sizeof(deferred->deferred_shading_constants));
             // ssao data
-            transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ssao_constansts, sizeof(SSAOData::SSAOConstant));
+            //transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ao_constansts, sizeof(AOData::AOConstant));
             if (first_frame) {
 
                 {
                     TextureUpdateDesc desc{};
                     desc.texture_data_desc = &ssao->ssao_noise_tex_data_desc;
                     desc.size = GetBytesFromTextureFormat(ssao->ssao_noise_tex->m_format) *
-                                SSAOData::SSAO_NOISE_TEX_WIDTH * SSAOData::SSAO_NOISE_TEX_HEIGHT; //
+                                AOData::SSAO_NOISE_TEX_WIDTH * AOData::SSAO_NOISE_TEX_HEIGHT; //
                     transfer->UpdateTexture(ssao->ssao_noise_tex, desc);
+                }
+                {
+                    TextureUpdateDesc desc{};
+                    desc.texture_data_desc = &ssao->hbao_noise_tex_data_desc;
+                    desc.size = GetBytesFromTextureFormat(ssao->hbao_noise_tex->m_format) *
+                                AOData::HBAO_RAND_TEX_WIDTH * AOData::HBAO_RAND_TEX_HEIGHT; //
+                    transfer->UpdateTexture(ssao->hbao_noise_tex, desc);
                 }
             }
 
@@ -115,6 +125,8 @@ void HorizonPipeline::run() {
                 tb.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
                 tb.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
                 tb.texture = ssao->ssao_noise_tex;
+                barrier.texture_memory_barriers.push_back(tb);
+                tb.texture = ssao->hbao_noise_tex;
                 barrier.texture_memory_barriers.push_back(tb);
             } else {
                 //tb.texture = antialiasing->previous_color_texture;
@@ -140,30 +152,18 @@ void HorizonPipeline::run() {
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb");
         geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->instance_parameter_buffer,
                                                 "instance_parameter");
-        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->material_description_buffer,
-                                                "material_descriptions");
-        geometry_pass_per_frame_ds->SetResource(sampler, "default_sampler");
         geometry_pass_per_frame_ds->Update();
 
-        auto geometry_pass_bindless_ds = deferred->geometry_pass->GetDescriptorSet(ResourceUpdateFrequency::BINDLESS);
-
-        auto stack_memory = Memory::GetStackMemoryResource(4096);
-
-        Container::Array<Texture *> material_textures(&stack_memory);
+        std::vector<Texture *> material_textures;
 
         for (auto &tex : scene->m_scene_manager->material_textures) {
             material_textures.push_back(tex);
         }
 
-        Container::Array<Buffer *> veretx_buffers(&stack_memory);
+        std::vector<Buffer *> veretx_buffers;
         for (auto &vb : scene->m_scene_manager->vertex_buffers) {
             veretx_buffers.push_back(vb);
         }
-
-        geometry_pass_bindless_ds->SetBindlessResource(material_textures, "material_textures");
-        //geometry_pass_bindless_ds->SetBindlessResource(veretx_buffers, "vertex_buffers");
-        geometry_pass_bindless_ds->Update();
-        // geometry pass
 
         auto gp_semaphore = rhi->CreateSemaphore1();
         {
@@ -198,13 +198,10 @@ void HorizonPipeline::run() {
             begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
             begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
             cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
-            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
 
             cl->BeginRenderPass(begin_info);
 
             cl->BindPipeline(deferred->geometry_pass);
-
-            u32 draw_offset = 0;
 
             for (u32 mesh_data = 0; mesh_data < scene->m_scene_manager->mesh_data.size(); mesh_data++) {
                 auto &mesh = scene->m_scene_manager->mesh_data[mesh_data];
@@ -272,21 +269,24 @@ void HorizonPipeline::run() {
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
             compute->BeginRecording();
 
-            auto ao_ds = ssao->ssao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            compute->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ao_constansts, sizeof(AOData::AOConstant));
+            auto ao_ds = ssao->ao_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // ao pass
             {
                 ao_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
                 ao_ds->SetResource(deferred->gbuffer0->GetTexture(), "normal_tex");
                 ao_ds->SetResource(sampler, "default_sampler");
                 ao_ds->SetResource(ssao->ssao_factor_image, "ao_factor_tex");
-                ao_ds->SetResource(ssao->ssao_constants_buffer, "SSAOConstant");
+                ao_ds->SetResource(ssao->ssao_constants_buffer, "AOConstant");
                 ao_ds->SetResource(ssao->ssao_noise_tex, "ssao_noise_tex");
+                ao_ds->SetResource(ssao->hbao_noise_tex, "hbao_rand_tex");
                 ao_ds->Update();
 
-                compute->BindPipeline(ssao->ssao_pass);
-                compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
-
+                compute->BindPipeline(ssao->ao_pass);
+                compute->BindDescriptorSets(ssao->ao_pass, ao_ds);
+                compute->BeginQuery();
                 compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->EndQuery();
             }
 
             {
@@ -300,7 +300,7 @@ void HorizonPipeline::run() {
                 compute->InsertBarrier(barrier);
             }
 
-            auto ao_blur_ds = ssao->ssao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+            auto ao_blur_ds = ssao->ao_blur_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
 
             {
                 ao_blur_ds->SetResource(ssao->ssao_factor_image, "ssao_blur_in");
@@ -308,8 +308,8 @@ void HorizonPipeline::run() {
 
                 ao_blur_ds->Update();
 
-                compute->BindPipeline(ssao->ssao_blur_pass);
-                compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
+                compute->BindPipeline(ssao->ao_blur_pass);
+                compute->BindDescriptorSets(ssao->ao_blur_pass, ao_blur_ds);
 
                 compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
             }
@@ -400,6 +400,9 @@ void HorizonPipeline::run() {
         if (first_frame) {
             first_frame = false;
         }
+        std::string ssao_time = std::string(std::to_string(rhi->QueryResult() / 1000000.0)) + " ms";
+
+        window->UpdateWindowTitle(ssao_time.c_str());
         // Horizon::RDC::EndFrameCapture();
     }
 

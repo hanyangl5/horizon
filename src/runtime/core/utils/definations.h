@@ -7,16 +7,10 @@
  *********************************************************************/
 
 #pragma once
-
+#ifndef NOMINMAX
 #define NOMINMAX
-
+#endif
 #include <cstdint>
-
-#include <d3d12.h>
-#include <vulkan/vulkan.h>
-
-#include "../container/Container.h"
-#include "../memory/Memory.h"
 
 namespace Horizon {
 

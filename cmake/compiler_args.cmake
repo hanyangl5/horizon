@@ -1,0 +1,8 @@
+function(configure_compile_options target)
+    target_compile_options(${PROJECT_NAME} PRIVATE -DNOMINMAX)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /MP /permissive /w14640 /W4 /WX /external:anglebrackets /external:W0 /GR-)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -Wshadow -pedantic -fms-extensions -Wno-language-extension-token -Wno-switch -Wno-missing-field-initializers)
+    endif()
+endfunction()

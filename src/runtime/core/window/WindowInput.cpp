@@ -10,9 +10,9 @@
 
 namespace Horizon::Input {
 
-static f32 last_x;
-static f32 last_y;
-static bool first_mouse = true;
+f32 last_x;
+f32 last_y;
+bool first_mouse = true;
 
 Direction ProcessKeyboardInput(Window *window) {
     if (GetKeyPress(window, Key::ESCAPE)) {
@@ -95,6 +95,18 @@ bool GetKeyPress(Window *window, Key inputKey) {
         break;
     case Key::KEY_LSHIFT:
         return glfwGetKey(window->GetWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+        break;
+    case Key::KEY_1:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_1) == GLFW_PRESS;
+        break;
+    case Key::KEY_2:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_2) == GLFW_PRESS;
+        break;
+    case Key::KEY_3:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_3) == GLFW_PRESS;
+        break;
+    case Key::KEY_4:
+        return glfwGetKey(window->GetWindow(), GLFW_KEY_4) == GLFW_PRESS;
         break;
     default:
         return false;

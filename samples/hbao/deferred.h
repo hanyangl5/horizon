@@ -7,7 +7,7 @@ class DeferredData {
     explicit DeferredData(RHI *rhi) noexcept;
     ~DeferredData() noexcept;
 
-    Backend::RHI *m_rhi;
+    Backend::RHI *mRhi;
 
     // pass resources
 
