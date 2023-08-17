@@ -7,10 +7,28 @@ add_library(${PROJECT_NAME} STATIC 3rd_party.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -fms-extensions )
 endif()
+
+
 # find vulkan
 find_package(Vulkan REQUIRED)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${Vulkan_LIBRARIES})
+
+if(Vulkan_FOUND)
+    message("found vulkan sdk")
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${Vulkan_LIBRARIES})
+else()
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        vulkan/include)
+
+    find_library(Vulkan_LIBRARY NAMES vulkan-1 PATHS vulkan/lib)
+
+    if(Vulkan_LIBRARY)
+        message("using bundled vulkan in ${Vulkan_LIBRARY}")
+        target_link_libraries(${PROJECT_NAME} PUBLIC ${Vulkan_LIBRARY})
+    else()
+        message("failed to find vulkan library")
+    endif()
+endif()
 
 OPTION(BUILD_SHARED_LIBS
     "Build package with shared libraries."

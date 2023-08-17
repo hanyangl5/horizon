@@ -5,7 +5,7 @@ on:
       - main
   push:
     branches:
-      - main
+      - develop
 
 jobs:
   Test:
@@ -15,14 +15,17 @@ jobs:
 
       matrix:
         os:
-          #- ubuntu-20.04
-          - windows-2022
-        arch: [x64]
-        cxx: [cxx17]
-        toolchain: [msvc, llvm]
+          - windows-latest
+        compiler:
+          - llvm-15.0.2
+          - gcc-11
+          - msvc
+        generator:
+          - "Ninja Multi-Config"
         build_type:
           - Release
-          - Debug
+        arch: [x64]
+        cxx: [cxx17]
 
     steps:
       - name: Check for llvm version mismatches
