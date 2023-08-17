@@ -22,9 +22,9 @@ Camera::Camera(const CameraSetting &setting, const Math::float3 &eye, const Math
 
 void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
     if (m_settings.project_mode != ProjectionMode::PERSPECTIVE) {
-
         return;
     }
+    m_fov = fov;
     m_near_plane = near_plane;
     m_far_plane = far_plane;
     m_projection = Math::Perspective(fov, aspect_ratio, near_plane, far_plane);
@@ -32,7 +32,6 @@ void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_
 
 void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
     if (m_settings.project_mode != ProjectionMode::PERSPECTIVE) {
-
         return;
     }
     m_near_plane = near_plane;
@@ -62,7 +61,7 @@ Math::float4x4 Camera::GetInvProjectionMatrix() const noexcept {
     return inv_p;
 }
 
-Math::float3 Camera::GetFov() const noexcept { return Math::float3(); }
+f32 Camera::GetFov() const noexcept { return m_fov; }
 
 Math::float2 Camera::GetNearFarPlane() const noexcept { return Math::float2(m_near_plane, m_far_plane); }
 

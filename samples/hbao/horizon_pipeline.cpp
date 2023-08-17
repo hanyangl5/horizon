@@ -21,9 +21,9 @@ void HorizonPipeline::InitPipelineResources() {
         sampler = rhi->CreateSampler(sampler_desc);
     }
 
-    deferred = std::make_unique<DeferredData>(rhi);
-    ssao = std::make_unique<AOData>(rhi);
     scene = std::make_unique<SceneData>(renderer->GetSceneManager());
+    deferred = std::make_unique<DeferredData>(rhi);
+    ssao = std::make_unique<AOData>(rhi, scene->scene_camera);
 }
 
 void HorizonPipeline::UpdatePipelineResources() {

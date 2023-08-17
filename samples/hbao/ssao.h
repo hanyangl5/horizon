@@ -6,13 +6,13 @@ enum AO_METHOD : u32 { SSAO, HBAO, HDAO, GTAO, COUNT };
 
 class AOData {
   public:
-    explicit AOData(Backend::RHI *rhi) noexcept;
+    explicit AOData(Backend::RHI *rhi, Camera *camera) noexcept;
     ~AOData() noexcept;
 
     void SetAoMethod(AO_METHOD method);
     AO_METHOD mAoMethod = AO_METHOD::HBAO;
     RHI *mRhi;
-
+    Camera *m_camera;
     // pass resources
     Shader *ao_cs;
 

@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
-AOData::AOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
-
+AOData::AOData(Backend::RHI *rhi, Camera *camera) noexcept : mRhi(rhi),m_camera(camera) {
+    
     ao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ao.comp.hsl");
     ao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hsl");
 
@@ -75,7 +75,7 @@ AOData::AOData(Backend::RHI *rhi) noexcept : mRhi(rhi) {
 
     float meters2viewspace = 1.0f;
     float R = 2.0f * meters2viewspace;
-    float projScale = (float)height / (tanf(Math::Radians(90.0f) * 0.5f) * 2.0f);
+    float projScale = (float)height / (tanf(m_camera->GetFov() * 0.5f) * 2.0f);
     ao_constansts.g_NegInvR2 = -1.0f / (R * R);
     ao_constansts.g_RadiusToScreen = R * 0.5f * projScale;
     ao_constansts.g_NDotVBias = std::min(std::max(0.0f, 0.1f), 1.0f);

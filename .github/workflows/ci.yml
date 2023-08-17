@@ -2,11 +2,10 @@ name: ci
 on:
   pull_request:
     branches:
-      - master
+      - main
   push:
     branches:
-      - develop
-      - master
+      - main
 
 jobs:
   Test:
@@ -20,7 +19,7 @@ jobs:
           - windows-2022
         arch: [x64]
         cxx: [cxx17]
-        toolchain: [msvc]
+        toolchain: [msvc, llvm]
         build_type:
           - Release
           - Debug

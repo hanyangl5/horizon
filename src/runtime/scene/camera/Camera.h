@@ -58,7 +58,7 @@ class Camera {
 
     Math::float3 GetPosition() const noexcept;
 
-    Math::float3 GetFov() const noexcept;
+    f32 GetFov() const noexcept;
 
     Math::float2 GetNearFarPlane() const noexcept;
 
@@ -91,6 +91,7 @@ class Camera {
 
     f32 m_yaw = 0.0f, m_pitch = 0.0f;
 
+    f32 m_fov;
     f32 m_near_plane, m_far_plane;
     f32 m_camera_speed{};
 
