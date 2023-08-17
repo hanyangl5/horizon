@@ -37,7 +37,7 @@ class Log : public PublicSingleton<Log> {
         m_logger->error(std::forward<args>(_args)...);
     }
 
-    void CheckVulkanResult(VkResult _res, const char* function, u32 line) const noexcept;
+    void CheckVulkanResult(VkResult _res, const char *function, u32 line) const noexcept;
 
   private:
     std::shared_ptr<spdlog::logger> m_logger;

@@ -40,7 +40,7 @@ void Instance::createInstance() {
     instance_create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     extensions.push_back("VK_KHR_portability_enumeration");
 #endif
-        instance_create_info.enabledExtensionCount = static_cast<u32>(extensions.size());
+    instance_create_info.enabledExtensionCount = static_cast<u32>(extensions.size());
     instance_create_info.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
