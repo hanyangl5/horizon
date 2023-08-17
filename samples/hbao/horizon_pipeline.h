@@ -55,6 +55,4 @@ class HorizonPipeline {
     std::unique_ptr<DeferredData> deferred{};
     std::unique_ptr<AOData> ssao{};
     std::unique_ptr<SceneData> scene{};
-
-    u32 current_ao_method = AO_METHOD::SSAO;
 };

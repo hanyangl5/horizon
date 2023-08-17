@@ -110,7 +110,7 @@ float HBAO(float2 uv, uint2 xy, float radius_pixel, float3 pos_vs,
 
     for (uint i = 0; i < NUM_MARCH_DIRECTIONS; i++) {
       float angle = i * alpha;
-      float2 dir = RotateDirection(float2(cos(angle), sin(angle)), jitter.xy);
+      float2 dir = RotateDirection(jitter.xy,float2(cos(angle), sin(angle)));
       float p = jitter.z * step + 1.0f;
 
       for (uint j = 0; j < NUM_MARCH_STEPS; j++) {
