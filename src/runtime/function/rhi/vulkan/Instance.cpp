@@ -35,7 +35,12 @@ void Instance::createInstance() {
     instance_create_info.pApplicationInfo = &appInfo;
     instance_create_info.flags = 0;
     auto extensions = m_validation_layer.getRequiredExtensions();
-    instance_create_info.enabledExtensionCount = static_cast<u32>(extensions.size());
+
+#if defined(__APPLE__)
+    instance_create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    extensions.push_back("VK_KHR_portability_enumeration");
+#endif
+        instance_create_info.enabledExtensionCount = static_cast<u32>(extensions.size());
     instance_create_info.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};

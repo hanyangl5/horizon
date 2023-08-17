@@ -37,7 +37,7 @@ class Log : public PublicSingleton<Log> {
         m_logger->error(std::forward<args>(_args)...);
     }
 
-    void CheckVulkanResult(VkResult _res) const noexcept;
+    void CheckVulkanResult(VkResult _res, const char* function, u32 line) const noexcept;
 
   private:
     std::shared_ptr<spdlog::logger> m_logger;
@@ -51,5 +51,5 @@ class Log : public PublicSingleton<Log> {
 
 #define LOG_ERROR(...) Log::GetInstance().Error("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define CHECK_VK_RESULT(res) Log::GetInstance().CheckVulkanResult(res);
+#define CHECK_VK_RESULT(res) Log::GetInstance().CheckVulkanResult(res, __FUNCTION__, __LINE__);
 } // namespace Horizon

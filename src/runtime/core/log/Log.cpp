@@ -19,9 +19,9 @@ Log::~Log() {
     spdlog::drop_all();
 }
 
-void Log::CheckVulkanResult(VkResult _res) const noexcept {
+void Log::CheckVulkanResult(VkResult _res, const char *function, u32 line) const noexcept {
     if (_res != VK_SUCCESS) {
-        m_logger->error("vulkan result checking failed");
+        m_logger->error("vulkan result checking failed {}, {} {}", _res, std::string(function), line);
     }
 }
 
