@@ -5,9 +5,13 @@
 #define SSAO_SAMPLE_COUNT 32
 #define SSAO_SAMPLE_RADIUS 1.0
 #define SSAO_BIAS 0.025
-const uint NUM_MARCH_DIRECTIONS = 8;
-const uint NUM_MARCH_STEPS = 4;
+
+#define NUM_MARCH_DIRECTIONS 8
+#define NUM_MARCH_STEPS 4
 #define HBAO_TEX_RES 4
+#define HBAO_SCALE 1.0
+#define AO_METHOD_SSAO 0
+#define AO_METHOD_HBAO 1
 // 
 
 RES(Tex2D(float4), depth_tex, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
@@ -23,24 +27,24 @@ CBUFFER(AOConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 5)
     DATA(float4x4, camera_inv_projection, None); // we only care about view space
     DATA(float4x4, camera_view, None);
     DATA(uint2, resolution, None);
-    DATA(float2, noise_scale, None);
+    DATA(float2, noiseScale, None);
     DATA(float, g_RadiusToScreen, None);
     DATA(float, g_NDotVBias, None);
     DATA(float, g_NegInvR2, None);
-    DATA(uint, ao_method, None);
+    DATA(uint, aoMethod, None);
     DATA(float4, kernels[SSAO_SAMPLE_COUNT], None); // tangent space kernels
 };
 
 float SSAO(float3 pos_vs, float3 normal_vs, float2 uv) {
 
-    float ssao_factor = 0.0;
-    float2 noise_uv = uv * Get(noise_scale).xy;
+    float nom = 0.0;
+    float2 noiseUv = uv * Get(noiseScale).xy;
     float3 rvec = float3(
-        SampleTex2D(Get(ssao_noise_tex), default_sampler, noise_uv).xy, 0.0);
+        SampleTex2D(Get(ssao_noise_tex), default_sampler, noiseUv).xy, 0.0);
     float3 tangent = normalize(rvec - normal_vs * dot(rvec, normal_vs));
     float3 bitangent = cross(tangent, normal_vs);
     float3x3 tbn = make_f3x3_cols(tangent, bitangent, normal_vs);
-
+    uint skip_samples = 0;
     for (uint i = 0; i < SSAO_SAMPLE_COUNT; i++) {
       float3 sample_pos =
           pos_vs + mul(tbn, Get(kernels)[i].xyz) * SSAO_SAMPLE_RADIUS;
@@ -51,8 +55,10 @@ float SSAO(float3 pos_vs, float3 normal_vs, float2 uv) {
       offset.y = 1.0 - offset.y;
       // skip pixel outside screen
       if (AnyGreaterThan(offset.xy, float2(1.0, 1.0)) ||
-          AnyLessThan(offset.xy, float2(0.0, 0.0)))
+          AnyLessThan(offset.xy, float2(0.0, 0.0))) {
+        skip_samples++;
         continue;
+      }
       float sample_z =
           SampleTex2D(Get(depth_tex), default_sampler, offset.xy).r;
       // we need to compare depth in linear space
@@ -68,13 +74,12 @@ float SSAO(float3 pos_vs, float3 normal_vs, float2 uv) {
       if (abs(linearZ - pos_vs.z) > SSAO_SAMPLE_RADIUS)
         continue;
       if (linearZ >= sample_pos.z + SSAO_BIAS) {
-        ssao_factor += 1.0 * range_falloff;
+        nom += 1.0 * range_falloff;
       }
     }
 
-    ssao_factor /= SSAO_SAMPLE_COUNT;
-    ssao_factor = 1.0f - ssao_factor;
-    return ssao_factor;
+    float denom = SSAO_SAMPLE_COUNT - skip_samples;
+    return 1.0f - nom / denom;
 }
 
 float2 RotateDirection(float2 Dir, float2 CosSin) {
@@ -91,47 +96,51 @@ float ComputeAO(float3 pos_vs, float3 normal_vs, float3 sample_pos_vs) {
     float3 v = sample_pos_vs - pos_vs;
     float vov = dot(v, v);
     float nov = dot(normal_vs, v) * sqrt(vov);
-    return saturate(nov - g_NDotVBias) * saturate(Falloff(vov));
+    return saturate(nov) * saturate(Falloff(vov));
 }
 
-#define HBAO_SCALE 1.0
 
-float HBAO(float2 uv, uint2 xy, float radius_pixel, float3 pos_vs,
-           float3 normal_vs) {
+float HBAO(float2 uv, uint2 xy, float3 pos_vs, float3 normal_vs) {
     // cos, sin, rand
-    float2 noise_xy = (float2(xy) + float2(0.5, 0.5f)) / HBAO_TEX_RES;
+    float2 noiseUv = uv * Get(noiseScale).xy;
     float3 jitter =
-        SampleLvlTex2D(hbao_rand_tex, default_sampler, noise_xy, 0).xyz;
-
-    float step = radius_pixel / (NUM_MARCH_STEPS + 1);
+        SampleTex2D(Get(hbao_rand_tex), default_sampler, noiseUv).xyz;
+    float radius_pixel =
+        Get(g_RadiusToScreen) /
+        abs(pos_vs.z); // step size will decrease when p becomes far
+    float stepSize = radius_pixel / (NUM_MARCH_STEPS + 1);
 
     float alpha = 2 * _PI / NUM_MARCH_DIRECTIONS;
-    float ao = 0.0f;
 
+    float ao = 0.0f;
+    uint skip_samples = 0;
     for (uint i = 0; i < NUM_MARCH_DIRECTIONS; i++) {
       float angle = i * alpha;
-      float2 dir = RotateDirection(jitter.xy,float2(cos(angle), sin(angle)));
-      float p = jitter.z * step + 1.0f;
+      float2 start_dir = normalize(jitter.xy);
+      float2 dir = RotateDirection(start_dir, float2(cos(angle), sin(angle)));
+      float p = jitter.z * stepSize + 1.0f;
 
       for (uint j = 0; j < NUM_MARCH_STEPS; j++) {
-        float2 snapped_uv = round(p * dir) / (Get(resolution.xy)) + uv;
-        float depth =
-            SampleTex2D(Get(depth_tex), default_sampler, snapped_uv).r;
+        float2 offsetUv = round(p * dir) / (Get(resolution.xy)) + uv;
+        // skip samples outside screen
+        if (AnyGreaterThan(offsetUv.xy, float2(1.0, 1.0)) ||
+            AnyLessThan(offsetUv.xy, float2(0.0, 0.0))) {
+          skip_samples++;
+          continue;
+        }
+        float depth = SampleTex2D(Get(depth_tex), default_sampler, offsetUv).r;
         float3 sample_vs =
-            ReconstructWorldPos(Get(camera_inv_projection), depth, snapped_uv);
-        p += step;
+            ReconstructWorldPos(Get(camera_inv_projection), depth, offsetUv);
+        p += stepSize;
         ao += ComputeAO(pos_vs, normal_vs, sample_vs);
       }
     }
 
-    ao *= HBAO_SCALE / (NUM_MARCH_DIRECTIONS * NUM_MARCH_STEPS);
-    return clamp(1.0 - ao * 2.0, 0, 1);
+    ao *= HBAO_SCALE / (NUM_MARCH_DIRECTIONS * NUM_MARCH_STEPS - skip_samples);
+    return saturate(1.0 - ao * 2.0);
 }
 
-#define AO_METHOD_SSAO 0
-#define AO_METHOD_HBAO 1
-#define AO_METHOD_HDAO 2
-#define AO_METHOD_GTAO 3
+
 
 NUM_THREADS(8, 8, 1)
 void CS_MAIN(SV_DispatchThreadID(uint3) threadID) 
@@ -154,14 +163,14 @@ void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
     float3 normal_vs = normalize(
         (Get(camera_view) * float4(normal_ws, 0.0)).xyz); // view space normal
 
-    float ao_factor = 1.0f;
-    if (ao_method == AO_METHOD_SSAO) {
-      ao_factor = SSAO(pos_vs, normal_vs, uv);
-    } else if (ao_method == AO_METHOD_HBAO) {
-      ao_factor = HBAO(uv, threadID.xy, Get(g_RadiusToScreen) / pos_vs.z,
+    float ao = 1.0f;
+    if (aoMethod == AO_METHOD_SSAO) {
+      ao = SSAO(pos_vs, normal_vs, uv);
+    } else if (aoMethod == AO_METHOD_HBAO) {
+      ao = HBAO(uv, threadID.xy,
                        pos_vs, normal_vs);
     }
-    float4 out_color = float4(ao_factor, 0.0, 0.0, 0.0);
+    float4 out_color = float4(ao, 0.0, 0.0, 0.0);
 
     Write2D(Get(ao_factor_tex), threadID.xy, out_color);
 

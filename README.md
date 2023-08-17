@@ -14,14 +14,13 @@ horizon is a real time render framework for my graduation project.
 
 ![](docs/figs/samples/pbs.png)
 
-- SSAO
-  - ssao
-  - gaussian blur
-
+- Ambient Occlusion
+ssao
 ![](docs/figs/samples/ssao.png)
+hbao
+![](docs/figs/samples/hbao0.png)
 
 - Precomputed Atmospheric Scattering
-  - Eric Bruneton version
 
 ![](docs/figs/samples/atmosphere.png)
 

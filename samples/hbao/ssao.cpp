@@ -111,10 +111,6 @@ void AOData::SetAoMethod(AO_METHOD method) {
             return "SSAO";
         case HBAO:
             return "HBAO";
-        case HDAO:
-            return "HDAO";
-        case GTAO:
-            return "GTAO";
         default:
             return "INVLAID";
         }

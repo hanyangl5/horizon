@@ -2,7 +2,7 @@
 
 #include "header.h"
 
-enum AO_METHOD : u32 { SSAO, HBAO, HDAO, GTAO, COUNT };
+enum AO_METHOD : u32 { SSAO, HBAO, COUNT };
 
 class AOData {
   public:
