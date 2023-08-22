@@ -7,17 +7,15 @@ AutoExposure::AutoExposure(Backend::RHI *rhi) noexcept : mRhi(rhi) {
     luminance_histogram_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     luminance_average_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
 
+    luminance_histogram_constants_buffer = rhi->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(luminance_histogram_constants)});
 
-    luminance_histogram_constants_buffer =
-        rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(luminance_histogram_constants)});
-
-    histogram_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER,
-                                                          ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 256 * sizeof(u32)});
+    histogram_buffer = rhi->CreateBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 256 * sizeof(u32)});
 
     adapted_muminance_buffer = rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         4});
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 4});
 
     luminance_histogram_pass->SetComputeShader(luminance_histogram_cs);
     luminance_average_pass->SetComputeShader(luminance_average_cs);
@@ -30,7 +28,7 @@ AutoExposure::~AutoExposure() noexcept {
 
     mRhi->DestroyShader(luminance_histogram_cs);
     mRhi->DestroyShader(luminance_average_cs);
-    
+
     mRhi->DestroyBuffer(histogram_buffer);
     mRhi->DestroyBuffer(luminance_histogram_constants_buffer);
     mRhi->DestroyBuffer(adapted_muminance_buffer);
