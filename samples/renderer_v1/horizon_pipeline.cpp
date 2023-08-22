@@ -108,7 +108,7 @@ void HorizonPipeline::run() {
                                    sizeof(PostProcessData::ExposureConstant));
             transfer->UpdateBuffer(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
                                    &post_process->auto_exposure_pass->luminance_histogram_constants,
-                                   sizeof(AutoExposure::LumincaneHistogramConstants));
+                                   sizeof(AutoExposure::LuminanceHistogramConstants));
             transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ssao_constansts, sizeof(SSAOData::SSAOConstant));
             transfer->UpdateBuffer(antialiasing->taa_prev_curr_offset_buffer, &antialiasing->taa_prev_curr_offset,
                                    sizeof(AntialiasingData::TAAPrevCurrOffset));
@@ -478,7 +478,7 @@ void HorizonPipeline::run() {
                     auto_exposure_pass->luminance_histogram_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
                 histogram_ds->SetResource(deferred->shading_color_image, "color_image");
                 histogram_ds->SetResource(auto_exposure_pass->luminance_histogram_constants_buffer,
-                                          "LumincaneHistogramConstants");
+                                          "LuminanceHistogramConstants");
                 histogram_ds->SetResource(auto_exposure_pass->histogram_buffer, "histogram");
                 histogram_ds->SetResource(auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
                 histogram_ds->Update();

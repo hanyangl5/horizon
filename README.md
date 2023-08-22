@@ -8,26 +8,23 @@ horizon is a real time render framework for my graduation project.
 
 - Physically Based Rendering
   - physical light unit
-  - physical camera and exposure
-  - pbr shading with energy compensation
-  - IBL diffuse irradiance with spherical harmonics, specular with split sum approximation
-
-![](docs/figs/samples/pbs.png)
+  - physically based shading
+  - Image Based Lighting
+    - ![](docs/figs/samples/pbs.png)
 
 - Ambient Occlusion
-ssao
+  - ssao
 ![](docs/figs/samples/ssao.png)
-hbao
+  - hbao
 ![](docs/figs/samples/hbao0.png)
 
 - Precomputed Atmospheric Scattering
-
-![](docs/figs/samples/atmosphere.png)
+  - ![](docs/figs/samples/atmosphere.png)
 
 - Temoral Antialiasing
-
-![](docs/figs/samples/taa.png)
-
+  - ![](docs/figs/samples/taa.png)
+- Tone Mapping
+  - Auto Exposure(Eye Adaption) based on average histogram luminance
 ## Build status
 
 | Platform |        MSVC        |       Clang        |

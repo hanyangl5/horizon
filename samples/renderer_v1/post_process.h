@@ -15,7 +15,7 @@ class AutoExposure {
     Shader *luminance_average_cs;
     Pipeline *luminance_average_pass;
 
-    struct LumincaneHistogramConstants {
+    struct LuminanceHistogramConstants {
         u32 width;
         u32 height;
         u32 pixelCount;
