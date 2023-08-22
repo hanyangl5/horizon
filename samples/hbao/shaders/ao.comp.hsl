@@ -159,8 +159,7 @@ void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
 
     float3 normal_ws = LoadTex2D0(Get(normal_tex), threadID.xy, 0).xyz;
 
-    float3 normal_vs = normalize(
-        mul(Get(camera_view), float4(normal_ws, 0.0))).xyz); // view space normal
+    float3 normal_vs = normalize(mul(Get(camera_view), float4(normal_ws, 0.0))).xyz; // view space normal
 
     float ao = 1.0f;
     if (aoMethod == AO_METHOD_SSAO) {

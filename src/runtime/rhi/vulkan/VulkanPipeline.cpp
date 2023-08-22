@@ -24,8 +24,8 @@ VulkanPipeline::~VulkanPipeline() noexcept {
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
 void VulkanPipeline::SetComputeShader(Shader *cs) {
-    assert(("shader is not compute shader", cs->GetType() == ShaderType::COMPUTE_SHADER));
-    assert(("pipeline is not compute shader", m_create_info.type == PipelineType::COMPUTE));
+    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
+    assert(m_create_info.type == PipelineType::COMPUTE);
 
     if (m_cs == nullptr) {
         m_cs = cs;
@@ -35,9 +35,9 @@ void VulkanPipeline::SetComputeShader(Shader *cs) {
 }
 
 void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
-    assert(("shader is not vertex shader", vs->GetType() == ShaderType::VERTEX_SHADER));
-    assert(("shader is not pixel shader", ps->GetType() == ShaderType::PIXEL_SHADER));
-    assert(("pipeline is not graphics pipeline", m_create_info.type == PipelineType::GRAPHICS));
+    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
+    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
+    assert(m_create_info.type == PipelineType::GRAPHICS);
 
     if (m_vs == nullptr && m_ps == nullptr) {
         m_vs = vs;
@@ -318,7 +318,7 @@ void VulkanPipeline::CreateGraphicsPipeline() {
 }
 
 void VulkanPipeline::CreateComputePipeline() {
-    assert(("shader not exist", m_cs != nullptr));
+    assert(m_cs != nullptr);
 
     auto cs = reinterpret_cast<VulkanShader *>(m_cs);
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};

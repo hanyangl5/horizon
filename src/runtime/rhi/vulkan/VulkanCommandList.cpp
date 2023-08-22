@@ -29,15 +29,10 @@ void VulkanCommandList::EndRecording() { vkEndCommandBuffer(m_command_buffer); }
 
 void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets) {
 
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
-
     std::vector<VkBuffer> vk_buffers(buffer_count);
     std::vector<VkDeviceSize> vk_offsets(buffer_count);
     for (u32 i = 0; i < buffer_count; i++) {
-        assert(("vertex buffer not valid",
-                buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER));
+        assert(buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER);
         vk_buffers[i] = reinterpret_cast<VulkanBuffer *>(buffers[i])->m_buffer;
         vk_offsets[i] = offsets[i];
     }
@@ -47,10 +42,7 @@ void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u3
 
 void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
 
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
-    assert(("index buffer not valid", buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER));
+    assert(buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER);
 
     auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
@@ -60,9 +52,6 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
 // graphics commands
 void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
 
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
     assert(begin_info.render_target_count < MAX_RENDER_TARGET_COUNT);
 
     VkRenderingInfo info{};
@@ -131,29 +120,15 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     vkCmdBeginRendering(m_command_buffer, &info);
 }
 
-void VulkanCommandList::EndRenderPass() {
-
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
-
-    vkCmdEndRendering(m_command_buffer);
-}
+void VulkanCommandList::EndRenderPass() { vkCmdEndRendering(m_command_buffer); }
 
 void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count, u32 first_instance) {
 
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
     vkCmdDraw(m_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
 }
 
 void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count,
                                              u32 first_instance) {
-
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
 
     vkCmdDrawIndexed(m_command_buffer, index_count, instance_count, first_index, first_vertex, first_instance);
 }
@@ -162,9 +137,6 @@ void VulkanCommandList::DrawIndirect() {}
 
 void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) {
 
-    assert(("invalid commands for current commandlist, expect graphics "
-            "commandlist",
-            m_type == CommandQueueType::GRAPHICS));
     vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count,
                              stride);
 }
@@ -172,18 +144,9 @@ void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset,
 // compute commands
 void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) {
 
-    assert(("invalid commands for current commandlist, expect compute "
-            "commandlist",
-            (m_type == CommandQueueType::COMPUTE || m_type == CommandQueueType::GRAPHICS)));
-
     vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 }
-void VulkanCommandList::DispatchIndirect() {
-
-    assert(("invalid commands for current commandlist, expect compute "
-            "commandlist",
-            m_type == CommandQueueType::COMPUTE));
-}
+void VulkanCommandList::DispatchIndirect() {}
 
 // transfer commands
 void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
@@ -471,19 +434,6 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
 }
 
 void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
-
-    if (pipeline->GetType() == PipelineType::GRAPHICS || pipeline->GetType() == PipelineType::RAY_TRACING) {
-        assert(("pipeline type does not correspond with current command list, "
-                "expect compute pipeline",
-                m_type == CommandQueueType::GRAPHICS));
-    } else if (pipeline->GetType() == PipelineType::COMPUTE) {
-        assert(("pipeline type does not correspond with current command list, "
-                "expect compute pipeline",
-                m_type == CommandQueueType::COMPUTE));
-    } else {
-        assert(("cannot bind pipeline using transfer command list", m_type != CommandQueueType::TRANSFER));
-    }
-
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
