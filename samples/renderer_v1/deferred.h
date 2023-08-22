@@ -35,7 +35,6 @@ class DeferredData {
     RenderTarget *gbuffer2;
     RenderTarget *gbuffer3;
     RenderTarget *gbuffer4;
-    //RenderTarget* vbuffer0;
 
     RenderTarget *depth;
 

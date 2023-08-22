@@ -19,7 +19,7 @@ sys.path.extend( [hsl_root, hsl_orbis_root, hsl_prospero_root, hsl_xbox_root])
 # if not 'HSL_COMPILER_FXC' in os.environ:
 #     os.environ['HSL_COMPILER_FXC'] = os.path.normpath('C:/Program Files (x86)/Windows Kits/10.0.17763.0/x64')
 if not 'HSL_COMPILER_DXC' in os.environ:
-    os.environ['HSL_COMPILER_DXC'] = os.path.normpath("../3rd_party/DirectXShaderCompiler/bin/x64")
+    os.environ['HSL_COMPILER_DXC'] = os.path.normpath("../../third_party/DirectXShaderCompiler/")
 
 
 from utils import *

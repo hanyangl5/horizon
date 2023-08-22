@@ -4,6 +4,8 @@
 #define UINT_MAX 4294967295
 #define FLT_MAX 3.402823466e+38F
 
+#extension GL_EXT_scalar_block_layout : require
+
 #if VK_EXT_DESCRIPTOR_INDEXING_ENABLED
 #extension GL_EXT_nonuniform_qualifier : enable
 #endif
@@ -167,7 +169,7 @@ bool allGreaterThan(const vec4 a, const vec4 b) { return all(greaterThan(a, b));
 #define AtomicLoad(SRC) SRC
 #define AtomicExchange(DEST, VALUE, ORIGINAL_VALUE) ORIGINAL_VALUE = atomicExchange((DEST), (VALUE))
 
-#define CBUFFER(NAME, FREQ, REG, BINDING) layout(std140, FREQ, BINDING) uniform NAME
+#define CBUFFER(NAME, FREQ, REG, BINDING) layout(std430, FREQ, BINDING) uniform NAME
 #define PUSH_CONSTANT(NAME, REG) layout(push_constant) uniform NAME##Block
 
 // #define mul(a, b) (a * b)

@@ -1,6 +1,6 @@
 float3 ReconstructWorldPos(float4x4 inverse_vp, float depth, float2 fragCoord) {
     float2 ndc = float2(fragCoord.x * 2.0 - 1.0, 1.0 - fragCoord.y * 2.0); // unify this in different graphic api
-    float4 pos = inverse_vp * float4(ndc, depth, 1.0);
+    float4 pos = mul(inverse_vp, float4(ndc, depth, 1.0));
     pos.xyz /= pos.w;
     return pos.xyz;
 }

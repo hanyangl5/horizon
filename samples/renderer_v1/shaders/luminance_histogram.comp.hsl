@@ -1,0 +1,42 @@
+// codes are modified from https://alextardif.com/HistogramLuminance.html
+
+#include "include/common/luminance.h"
+#include "include/postprocess/histogram.h"
+
+RES(RWTex2D(float4), color_image, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
+RES(RWBuffer(uint), histogram, UPDATE_FREQ_PER_FRAME, u2, binding = 2);
+RES(RWBuffer(float), adaptedLuminance, UPDATE_FREQ_PER_FRAME, u2, binding = 4);
+
+CBUFFER(LumincaneHistogramConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 3) 
+{
+  DATA(uint2, resolution, None);
+  DATA(uint, pixelCount, None);
+  DATA(float, maxLuminance, None);
+  DATA(float, timeCoeff, None);
+};
+
+GroupShared(uint, histogramShared[GROUP_SIZE]);
+
+NUM_THREADS(16, 16, 1)
+void CS_MAIN(SV_DispatchThreadID(uint3) threadID, SV_GroupIndex(uint) localIndex) 
+{
+  INIT_MAIN;
+
+  // clear shared memory
+  histogramShared[localIndex] = 0;
+  GroupMemoryBarrier();
+
+  if (threadID.x < resolution.x && threadID.y < resolution.y) {
+    float3 color = LoadRWTex2D(Get(color_image), threadID.xy).xyz;
+
+    uint binIndex = HDRToHistogramBin(color, maxLuminance);
+    // save local histogram in shared memory
+    uint t_s;
+    AtomicAdd(histogramShared[binIndex], 1, t_s);
+  }
+
+  GroupMemoryBarrier();
+  uint t_s;
+  AtomicAdd(histogram[localIndex], Get(histogramShared[localIndex]), t_s);
+  adaptedLuminance[0] = 0;
+}

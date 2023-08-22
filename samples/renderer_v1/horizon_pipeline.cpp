@@ -64,6 +64,14 @@ void HorizonPipeline::UpdatePipelineResources() {
     ssao->ssao_constansts.view = view;
     ssao->ssao_constansts.noise_scale_x = width / SSAOData::SSAO_NOISE_TEX_WIDTH;
     ssao->ssao_constansts.noise_scale_y = height / SSAOData::SSAO_NOISE_TEX_HEIGHT;
+
+    post_process->auto_exposure_pass->luminance_histogram_constants.width = width;
+    post_process->auto_exposure_pass->luminance_histogram_constants.height = height;
+    post_process->auto_exposure_pass->luminance_histogram_constants.pixelCount = width * height;
+
+    post_process->auto_exposure_pass->luminance_histogram_constants.maxLuminance = 20000.0f;
+
+    post_process->auto_exposure_pass->luminance_histogram_constants.timeCoeff = 0.5f;
 }
 
 void HorizonPipeline::run() {
@@ -98,9 +106,15 @@ void HorizonPipeline::run() {
             // post process data
             transfer->UpdateBuffer(post_process->exposure_constants_buffer, &post_process->exposure_constants,
                                    sizeof(PostProcessData::ExposureConstant));
+            transfer->UpdateBuffer(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
+                                   &post_process->auto_exposure_pass->luminance_histogram_constants,
+                                   sizeof(AutoExposure::LumincaneHistogramConstants));
             transfer->UpdateBuffer(ssao->ssao_constants_buffer, &ssao->ssao_constansts, sizeof(SSAOData::SSAOConstant));
             transfer->UpdateBuffer(antialiasing->taa_prev_curr_offset_buffer, &antialiasing->taa_prev_curr_offset,
                                    sizeof(AntialiasingData::TAAPrevCurrOffset));
+
+            transfer->ClearBuffer(post_process->auto_exposure_pass->histogram_buffer, 0.0f);
+            transfer->ClearBuffer(post_process->auto_exposure_pass->adapted_muminance_buffer, 0.0f);
             if (first_frame) {
 
                 transfer->UpdateBuffer(deferred->diffuse_irradiance_sh3_buffer,
@@ -382,7 +396,7 @@ void HorizonPipeline::run() {
                 compute->BindPipeline(ssao->ssao_pass);
                 compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
 
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
 
             {
@@ -407,7 +421,7 @@ void HorizonPipeline::run() {
                 compute->BindPipeline(ssao->ssao_blur_pass);
                 compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
 
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
             {
                 BarrierDesc barrier{};
@@ -419,14 +433,7 @@ void HorizonPipeline::run() {
                 barrier.texture_memory_barriers.push_back(tb1);
                 compute->InsertBarrier(barrier);
             }
-            //auto light_culling_ds = deferred->light_culling_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
-            ////light_culling_ds->SetResource();
-            //// light culling
-            //{
-            //    compute->BindPipeline(deferred->light_culling_pass);
-            //    compute->BindDescriptorSets(deferred->light_culling_pass, light_culling_ds);
-            //    compute->Dispatch(deferred->slices[0], deferred->slices[1], deferred->slices[2]);
-            //}
+
             auto shading_ds = deferred->shading_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             // shading pass
             {
@@ -450,7 +457,7 @@ void HorizonPipeline::run() {
 
                 compute->BindPipeline(deferred->shading_pass);
                 compute->BindDescriptorSets(deferred->shading_pass, shading_ds);
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
 
             {
@@ -465,17 +472,60 @@ void HorizonPipeline::run() {
                 compute->InsertBarrier(color_image_barrier);
             }
 
+            {
+                auto auto_exposure_pass = post_process->auto_exposure_pass.get();
+                auto histogram_ds =
+                    auto_exposure_pass->luminance_histogram_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
+                histogram_ds->SetResource(deferred->shading_color_image, "color_image");
+                histogram_ds->SetResource(auto_exposure_pass->luminance_histogram_constants_buffer,
+                                          "LumincaneHistogramConstants");
+                histogram_ds->SetResource(auto_exposure_pass->histogram_buffer, "histogram");
+                histogram_ds->SetResource(auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
+                histogram_ds->Update();
+                compute->BindPipeline(auto_exposure_pass->luminance_histogram_pass);
+                compute->BindDescriptorSets(auto_exposure_pass->luminance_histogram_pass, histogram_ds);
+                compute->Dispatch(AlignUp<u32>(width, 16), AlignUp<u32>(height, 16), 1);
+                {
+                    BarrierDesc histogram_barrier{};
+
+                    BufferBarrierDesc mb{};
+                    mb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                    mb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                    mb.buffer = auto_exposure_pass->histogram_buffer;
+                    histogram_barrier.buffer_memory_barriers.push_back(mb);
+
+                    compute->InsertBarrier(histogram_barrier);
+                }
+
+                compute->BindPipeline(auto_exposure_pass->luminance_average_pass);
+                compute->BindDescriptorSets(auto_exposure_pass->luminance_average_pass, histogram_ds);
+                compute->Dispatch(1, 1, 1);
+
+                {
+                    BarrierDesc histogram_barrier{};
+
+                    BufferBarrierDesc mb{};
+                    mb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                    mb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                    mb.buffer = auto_exposure_pass->adapted_muminance_buffer;
+                    histogram_barrier.buffer_memory_barriers.push_back(mb);
+
+                    compute->InsertBarrier(histogram_barrier);
+                }
+            }
+
             auto pp_ds = post_process->post_process_pass->GetDescriptorSet(ResourceUpdateFrequency::PER_FRAME);
             {
                 pp_ds->SetResource(deferred->shading_color_image, "color_image");
                 pp_ds->SetResource(post_process->pp_color_image, "out_color_image");
-                pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
+                //pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
+                pp_ds->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
 
                 pp_ds->Update();
 
                 compute->BindPipeline(post_process->post_process_pass);
                 compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
-                compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
 
             {
@@ -503,7 +553,7 @@ void HorizonPipeline::run() {
 
                     compute->BindPipeline(antialiasing->taa_pass);
                     compute->BindDescriptorSets(antialiasing->taa_pass, taa_ds);
-                    compute->Dispatch(width / 8 + 1, height / 8 + 1, 1);
+                    compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
                 }
                 {
                     BarrierDesc barrier{};

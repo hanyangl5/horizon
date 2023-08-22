@@ -1,21 +1,21 @@
 #include "include/postprocess/postprocess.h"
-#include "include/common/hash.hsl"
+#include "include/common/luminance.h"
+
 RES(RWTex2D(float4), color_image, UPDATE_FREQ_PER_FRAME, u0, binding = 0);
 RES(RWTex2D(float4), out_color_image, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
 
-CBUFFER(exposure_constants, UPDATE_FREQ_PER_FRAME, b0, binding = 2)
-{
-    DATA(float4, exposure_ev100__, None);
-};
+RES(RWBuffer(float), adaptedLuminance, UPDATE_FREQ_PER_FRAME, u2, binding = 4);
 
 NUM_THREADS(8, 8, 1)
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
 {
     INIT_MAIN;
-    
-    float4 color  = LoadRWTex2D(Get(color_image), threadID.xy);
 
-    color.xyz *= Get(exposure_ev100__).x;
+    float4 color = LoadRWTex2D(Get(color_image), threadID.xy);
+
+    float exposure_scale = 1.0f /  (9.6f * adaptedLuminance[0] + 0.0001f);
+    
+    color.xyz *= exposure_scale;
 
     color.xyz = TonemapACES(color.xyz);
 
@@ -25,4 +25,3 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 
     RETURN();
 }
-
