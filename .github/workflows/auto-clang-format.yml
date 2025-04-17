@@ -1,0 +1,25 @@
+name: auto-clang-format
+on: [pull_request, push]
+
+permissions: write-all
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: DoozyX/clang-format-lint-action@v0.13
+      with:
+        source: './Source/Runtime'
+        exclude: ''
+        extensions: 'h,hpp,c,cpp'
+        clangFormatVersion: 12
+        inplace: True
+    - uses: EndBug/add-and-commit@v9
+      with:
+        author_name: Clang-Format
+        author_email: Clang-Format
+        message: 'Clang-Format'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
