@@ -51,7 +51,7 @@
 #ifndef _VB_TRIANGLE_FILTERING_H
 #define _VB_TRIANGLE_FILTERING_H
 
-#include "vb_resources.h.fsl"
+#include "vb_resources.h.hlsl"
 
 #define ENABLE_CULL_BACKFACE			1
 #define ENABLE_CULL_FRUSTUM				1
@@ -59,7 +59,7 @@
 #define ENABLE_GUARD_BAND				0
 
 
-#define LoadVertex(I) float4(asfloat(LoadByte4(Get(vertexPositionBuffer), (I) * 12)).xyz, 1)
+#define LoadVertex(I) float4(asfloat(vertexPositionBuffer, (I) * 12)).xyz.Load4(1)
 
 STATIC const uint cullFlags = 0xFFFFFFFF;
 

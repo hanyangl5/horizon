@@ -23,6 +23,6 @@
 */
 
 // cluster lights
-RES(RWBuffer(uint), lightClustersCount, UPDATE_FREQ_PER_FRAME, u0, binding = 2);
-RES(RWBuffer(uint), lightClusters, UPDATE_FREQ_PER_FRAME, u1, binding=3);
-RES(Buffer(LightData), lights, UPDATE_FREQ_NONE, t3, binding=4);
+RWStructuredBuffer<uint> lightClustersCount : register(UPDATE_FREQ_PER_FRAME, u0);
+RWStructuredBuffer<uint> lightClusters : register(UPDATE_FREQ_PER_FRAME, u1);
+StructuredBuffer<LightData> lights : register(UPDATE_FREQ_NONE, t3);

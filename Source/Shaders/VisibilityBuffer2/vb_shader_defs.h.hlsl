@@ -25,7 +25,7 @@
 #ifndef _VB_SHADER_DEFS_H
 #define _VB_SHADER_DEFS_H
 
-#include "vb_structs.h.fsl"
+#include "vb_structs.h.hlsl"
 
 #ifndef SAMPLE_COUNT
 #define SAMPLE_COUNT 4

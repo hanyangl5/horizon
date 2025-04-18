@@ -24,38 +24,38 @@
 #ifndef _PARTICLE_SHARED_H
 #define _PARTICLE_SHARED_H
 
-#include "particle_defs.h.fsl"
+#include "particle_defs.h.hlsl"
 
-RES(RWBuffer(uint), BitfieldBuffer, UPDATE_FREQ_PER_FRAME, u53, binding = 10);
-RES(RWBuffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_PER_FRAME, u52, binding = 11);
+RWStructuredBuffer<uint> BitfieldBuffer : register(UPDATE_FREQ_PER_FRAME, u53);
+RWStructuredBuffer<ParticleData> ParticlesDataBuffer : register(UPDATE_FREQ_PER_FRAME, u52);
 
 // Amount of particles for each section: LightNShadow - Light - Standard
-RES(RWBuffer(uint4), ParticleCountsBuffer, UPDATE_FREQ_PER_FRAME, u55, binding = 12);
+RWStructuredBuffer<uint4> ParticleCountsBuffer : register(UPDATE_FREQ_PER_FRAME, u55);
 
 // Start indices of the various sections: Alive - Dead - Inactive. We only need the Dead start index and the Inactive start index
 // The first element contains the value of the previous frame, the second one contains the value of the current frame
-RES(RWBuffer(uint), ParticleSectionsIndices, UPDATE_FREQ_PER_FRAME, u56, binding = 13);
+RWStructuredBuffer<uint> ParticleSectionsIndices : register(UPDATE_FREQ_PER_FRAME, u56);
 
 // For each particle set, y tells whether it is visible, x if it was visible in the last frame
-RES(RWBuffer(uint), ParticleSetVisibility, UPDATE_FREQ_PER_FRAME, u57, binding = 14);
+RWStructuredBuffer<uint> ParticleSetVisibility : register(UPDATE_FREQ_PER_FRAME, u57);
 
 // Amount of particles to be rasterized by the hardware rasterizer
-RES(RWBuffer(uint), ParticlesToRasterizeCount, UPDATE_FREQ_PER_FRAME, u60, binding = 25);
+RWStructuredBuffer<uint> ParticlesToRasterizeCount : register(UPDATE_FREQ_PER_FRAME, u60);
 // Indices of the particles to be rasterized by the hardware rasterizer
-RES(RWBuffer(uint), ParticlesToRasterize, UPDATE_FREQ_PER_FRAME, u68, binding = 16);
+RWStructuredBuffer<uint> ParticlesToRasterize : register(UPDATE_FREQ_PER_FRAME, u68);
 
 // Array of textures for each particle set
-RES(Tex2D(float4), ParticleTextures[MAX_PARTICLE_SET_COUNT], UPDATE_FREQ_NONE, t59, binding = 24);
+Tex2D(float4) ParticleTextures[MAX_PARTICLE_SET_COUNT] : register(UPDATE_FREQ_NONE, t59);
 
-RES(RWTex2D(float4), ColorBuffer, UPDATE_FREQ_PER_FRAME, u59, binding = 19);
-RES(Tex2D(float), DepthBuffer, UPDATE_FREQ_PER_FRAME, t69, binding = 20);
-RES(SamplerState, NearestClampSampler, UPDATE_FREQ_NONE, s0, binding = 21);
-RES(SamplerState, LinearClampSampler, UPDATE_FREQ_NONE, s1, binding = 22);
+RWTex2D(float4) ColorBuffer : register(UPDATE_FREQ_PER_FRAME, u59);
+Tex2D(float) DepthBuffer : register(UPDATE_FREQ_PER_FRAME, t69);
+SamplerState NearestClampSampler : register(UPDATE_FREQ_NONE, s0);
+SamplerState LinearClampSampler : register(UPDATE_FREQ_NONE, s1);
 
 
 // Per pixel linked list for sorting transparent pixels
-RES(RWBuffer(PackedParticleTransparencyNode), TransparencyList, UPDATE_FREQ_PER_FRAME, u66, binding = 23);
-RES(RWBuffer(uint), TransparencyListHeads, UPDATE_FREQ_PER_FRAME, u67, binding = 24);
+RWStructuredBuffer<PackedParticleTransparencyNode> TransparencyList : register(UPDATE_FREQ_PER_FRAME, u66);
+RWStructuredBuffer<uint> TransparencyListHeads : register(UPDATE_FREQ_PER_FRAME, u67);
 
 
 #endif

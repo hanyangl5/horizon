@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- *
+ * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- *
+ * 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,53 +11,22 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- */
- 
-#if GLES
-#undef SAMPLE_COUNT
-#define SAMPLE_COUNT 1
-#endif
+*/
 
-#if SAMPLE_COUNT == 1
-RES(Tex2D(float4), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
-#else
-RES(Tex2DMS(float4, SAMPLE_COUNT), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
-#endif
-RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
+#ifndef _VB_CLEAR_BUFFERS_H
+#define _VB_CLEAR_BUFFERS_H
 
-cbuffer uniformBlockVS: register(UPDATE_FREQ_NONE, b0)
-{
-	float4x4 ProjectionMatrix : None
-};
 
-struct PS_INPUT
-{
-	float4 pos : SV_Position
-	float4 col : COLOR0
-	float2 uv : TEXCOORD0
-};
+#include "vb_resources.h.hlsl"
 
-float4 PS_MAIN( PS_INPUT In )
-{
-	INIT_MAIN;
-	float4 Out = f4(0);
-#if SAMPLE_COUNT == 1
-	Out = In.col * SampleTex2D(Get(uTex), Get(uSampler), In.uv);
-#else
-	GetDimensionsMS(Get(uTex), texSize);
-	uint2 coord = uint2(float2(texSize) * In.uv);
-	for(int s = 0; s < SAMPLE_COUNT; ++s)
-		Out += LoadTex2DMS(Get(uTex), Get(uSampler), coord, s);
-	Out = In.col * (Out / SAMPLE_COUNT);
-#endif
-	RETURN(Out);
-}
+
+#endif //!_VB_CLEAR_BUFFERS_H

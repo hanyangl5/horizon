@@ -40,7 +40,7 @@ cbuffer BlurWeights: register(UPDATE_FREQ_NONE, b1)
 	float4 mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4]: None;
 };
 
-RES(RWTex2D(float4), godrayTextures[2], UPDATE_FREQ_NONE, u0, binding = 2);
+RWTex2D(float4) godrayTextures[2] : register(UPDATE_FREQ_NONE, u0);
 
 #if 1
 
@@ -58,23 +58,23 @@ float3 HorizontalPass(int2 id)
 	float3 temp;
 
 	temp = LoadRWTex2D(Get(godrayTextures[PASS_TYPE_HORIZONTAL]), id + int2(col - 8, 0)).rgb;
-	Get(g_shared_r)[row + 8][2 * col + 0] = temp.r;
-	Get(g_shared_g)[row + 8][2 * col + 0] = temp.g;
-	Get(g_shared_b)[row + 8][2 * col + 0] = temp.b;
+	g_shared_r[row + 8][2 * col + 0] = temp.r;
+	g_shared_g[row + 8][2 * col + 0] = temp.g;
+	g_shared_b[row + 8][2 * col + 0] = temp.b;
 	temp = LoadRWTex2D(Get(godrayTextures[PASS_TYPE_HORIZONTAL]), id + int2(col - 7, 0)).rgb;
-	Get(g_shared_r)[row + 8][2 * col + 1] = temp.r;
-	Get(g_shared_g)[row + 8][2 * col + 1] = temp.g;
-	Get(g_shared_b)[row + 8][2 * col + 1] = temp.b;
+	g_shared_r[row + 8][2 * col + 1] = temp.r;
+	g_shared_g[row + 8][2 * col + 1] = temp.g;
+	g_shared_b[row + 8][2 * col + 1] = temp.b;
 
 	GroupMemoryBarrier();
 
 	float totalWeight = 0.0f;
-	for (int i = -int(Get(mFilterRadius)); i <= int(Get(mFilterRadius)); i++)
+	for (int i = -int(mFilterRadius); i <= int(mFilterRadius); i++)
 	{
 		float weight = Get(mBlurWeights[abs(i) / 4][abs(i) % 4]);
-		float color_r = Get(g_shared_r)[row + 8][col + 8 + i];
-		float color_g = Get(g_shared_g)[row + 8][col + 8 + i];
-		float color_b = Get(g_shared_b)[row + 8][col + 8 + i];
+		float color_r = g_shared_r[row + 8][col + 8 + i];
+		float color_g = g_shared_g[row + 8][col + 8 + i];
+		float color_b = g_shared_b[row + 8][col + 8 + i];
 		result += float3(color_r, color_g, color_b) * weight;
 		totalWeight += weight;
 	}
@@ -91,23 +91,23 @@ float3 VerticalPass(int2 id)
 	float3 temp;
 	
 	temp = LoadRWTex2D(Get(godrayTextures[PASS_TYPE_VERTICAL]), id + int2(0, row - 8)).rgb;
-	Get(g_shared_r)[2 * row + 0][col + 8] = temp.r;
-	Get(g_shared_g)[2 * row + 0][col + 8] = temp.g;
-	Get(g_shared_b)[2 * row + 0][col + 8] = temp.b;
+	g_shared_r[2 * row + 0][col + 8] = temp.r;
+	g_shared_g[2 * row + 0][col + 8] = temp.g;
+	g_shared_b[2 * row + 0][col + 8] = temp.b;
 	temp = LoadRWTex2D(Get(godrayTextures[PASS_TYPE_VERTICAL]), id + int2(0, row - 7)).rgb;
-	Get(g_shared_r)[2 * row + 1][col + 8] = temp.r;
-	Get(g_shared_g)[2 * row + 1][col + 8] = temp.g;
-	Get(g_shared_b)[2 * row + 1][col + 8] = temp.b;
+	g_shared_r[2 * row + 1][col + 8] = temp.r;
+	g_shared_g[2 * row + 1][col + 8] = temp.g;
+	g_shared_b[2 * row + 1][col + 8] = temp.b;
 
 	GroupMemoryBarrier();
 
 	float totalWeight = 0.0f;
-	for (int i = -int(Get(mFilterRadius)); i <= int(Get(mFilterRadius)); i++)
+	for (int i = -int(mFilterRadius); i <= int(mFilterRadius); i++)
 	{
 		float weight = Get(mBlurWeights[abs(i) / 4][abs(i) % 4]);
-		float color_r = Get(g_shared_r)[row + 8 + i][col + 8];
-		float color_g = Get(g_shared_g)[row + 8 + i][col + 8];
-		float color_b = Get(g_shared_b)[row + 8 + i][col + 8];
+		float color_r = g_shared_r[row + 8 + i][col + 8];
+		float color_g = g_shared_g[row + 8 + i][col + 8];
+		float color_b = g_shared_b[row + 8 + i][col + 8];
 		result += float3(color_r, color_g, color_b) * weight;
 		totalWeight += weight;
 	}
@@ -121,7 +121,7 @@ float3 HorizontalPass(int2 id)
 	float3 result = float3(0.0f, 0.0f, 0.0f);
 
 	float totalWeight = 0.0f;
-	for (int i = -int(Get(mFilterRadius)); i <= int(Get(mFilterRadius)); i++)
+	for (int i = -int(mFilterRadius); i <= int(mFilterRadius); i++)
 	{
 		float weight = Get(mBlurWeights[abs(i) / 4][abs(i) % 4]);
 		result += LoadRWTex2D(Get(godrayTextures[PASS_TYPE_HORIZONTAL]), id + int2(i, 0)).rgb * weight;
@@ -135,7 +135,7 @@ float3 VerticalPass(int2 id)
 	float3 result = float3(0.0f, 0.0f, 0.0f);
 
 	float totalWeight = 0.0f;
-	for (int i = -int(Get(mFilterRadius)); i <= int(Get(mFilterRadius)); i++)
+	for (int i = -int(mFilterRadius); i <= int(mFilterRadius); i++)
 	{
 		float weight = Get(mBlurWeights[abs(i) / 4][abs(i) % 4]);
 		result += LoadRWTex2D(Get(godrayTextures[PASS_TYPE_VERTICAL]), id + int2(0, i)).rgb * weight;
@@ -150,7 +150,7 @@ float3 VerticalPass(int2 id)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
 	INIT_MAIN;
-	if(Get(mBlurPassType) == PASS_TYPE_HORIZONTAL)
+	if(mBlurPassType == PASS_TYPE_HORIZONTAL)
 	{
 		float3 result = HorizontalPass(int2(threadID.xy));
 		Write2D(Get(godrayTextures[PASS_TYPE_VERTICAL]), threadID.xy, float4(result, 1.0f));
@@ -161,5 +161,5 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 		Write2D(Get(godrayTextures[PASS_TYPE_HORIZONTAL]), threadID.xy, float4(result, 1.0f));
 	}
 	
-	RETURN();
+	return;
 }

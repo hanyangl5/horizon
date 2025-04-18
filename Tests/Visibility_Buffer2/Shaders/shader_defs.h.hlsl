@@ -26,7 +26,7 @@
 #define _SHADER_DEFS_H
 
 #ifdef NO_FSL_DEFINITIONS
-    #define STATIC static
+    #define static static
     #define struct NAME struct NAME
     #define TYPE NAME: SEM TYPE NAME
     #define cbuffer NAME: register(REG, FREQ) struct NAME
@@ -47,7 +47,7 @@
 #define GEOMSET_OPAQUE 0
 #define GEOMSET_ALPHA_CUTOUT 1
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_structs.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_structs.h.hlsl"
 
 struct MeshConstants
 {
@@ -88,5 +88,5 @@ struct LightData
 	float4 color: None;
 };
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.hlsl"
 #endif

@@ -22,12 +22,12 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
-#include "triangle_binning.h.fsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.hlsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
+#include "triangle_binning.h.hlsl"
 
 
-RES(Buffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, t1, binding = 0);
+StructuredBuffer<uint64_t> visibilityBuffer : register(UPDATE_FREQ_NONE, t1);
 
 struct VSOutput
 {
@@ -50,14 +50,14 @@ PSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 {
 	INIT_MAIN;
 
-	uint index = VisibilityBufferOffset(Get(view), Get(width), In.position.x, In.position.y);
+	uint index = VisibilityBufferOffset(view, width, In.position.x, In.position.y);
 
-	uint64_t packedU64 = Get(visibilityBuffer)[index];
+	uint64_t packedU64 = visibilityBuffer[index];
 	float depth = 0.0f;
 	uint vbId = 0u;
 	unpackDepthVBId(packedU64, depth, vbId);
 
 	PSOutput Out;
 	Out.depth = depth;
-	RETURN(Out);
+	return Out;
 }

@@ -22,19 +22,19 @@
  * under the License.
  */
 
-#include "particle_shared.h.fsl"
-#include "particle_sets.h.fsl"
+#include "particle_shared.h.hlsl"
+#include "particle_sets.h.hlsl"
 
 bool IsParticleSetVisible(ParticleSet particleSet, float4x4 viewProj, uint index)
 {
-	uint2 colorBufferSize = Get(ScreenSize);
+	uint2 colorBufferSize = ScreenSize;
 	float aspectRatio = float(colorBufferSize.x) / float(colorBufferSize.y);
-	float4 setPosition = float4(index == 0 ? Get(SeekPosition) : particleSet.Position, 1.0);
+	float4 setPosition = float4(index == 0 ? SeekPosition : particleSet.Position, 1.0);
 	float setRadius = max(particleSet.Size.x, max(particleSet.Size.y, particleSet.Size.z));
 	float4 clipSpacePos = mul(viewProj, setPosition);
 	clipSpacePos.xyz /= clipSpacePos.w;
 
-	float fov = 2.0 * atan( 1.0/Get(ProjTransform)[1][1] );
+	float fov = 2.0 * atan( 1.0/ProjTransform[1][1] );
 	setRadius = (2.0 * setRadius * (1 / tan(fov * 0.5f))) / clipSpacePos.w;
 	setRadius *= aspectRatio;
 
@@ -74,22 +74,22 @@ void CS_MAIN()
 
 	// When setting up the particle system, all sets are considered active and visible to allocate them.
 	// Later on, the simulation shader will correctly sort them.
-	if (Get(ResetParticles) > 0)
+	if (ResetParticles > 0)
 	{
 		// Light + shadow
 		// Active particles
 		for (uint i=0; i<2; i++)
 		{
-			Get(ParticleSectionsIndices)[0 + i] = amountsPerMode[0];
-			Get(ParticleSectionsIndices)[2 + i] = amountsPerMode[0] + amountsPerMode[1];
-			Get(ParticleSectionsIndices)[4 + i] = amountsPerMode[0] + amountsPerMode[1] + amountsPerMode[2];
+			ParticleSectionsIndices[0 + i] = amountsPerMode[0];
+			ParticleSectionsIndices[2 + i] = amountsPerMode[0] + amountsPerMode[1];
+			ParticleSectionsIndices[4 + i] = amountsPerMode[0] + amountsPerMode[1] + amountsPerMode[2];
 		}
 
 		// All sets are inactive at the beginning
 		for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
 		{
-			Get(ParticleSetVisibility)[i*2] = 1;
-			Get(ParticleSetVisibility)[i*2+1] = 1;
+			ParticleSetVisibility[i*2] = 1;
+			ParticleSetVisibility[i*2+1] = 1;
 		}
 	}
 	else
@@ -115,16 +115,16 @@ void CS_MAIN()
 			else
 				lightModeIndex = 2;
 
-			uint isSetVisible = IsParticleSetVisible(GetParticleSet(i), Get(ViewProjTransform), i) ? 1 : 0;
+			uint isSetVisible = IsParticleSetVisible(GetParticleSet(i), ViewProjTransform, i) ? 1 : 0;
 			// Change one set at a time
 			if (stateChanged == 0)
 			{
-				Get(ParticleSetVisibility)[i*2+PREV_VALUE] = Get(ParticleSetVisibility)[i*2+CURR_VALUE]; 
-				Get(ParticleSetVisibility)[i*2+CURR_VALUE] = isSetVisible;
+				ParticleSetVisibility[i*2+PREV_VALUE] = ParticleSetVisibility[i*2+CURR_VALUE]; 
+				ParticleSetVisibility[i*2+CURR_VALUE] = isSetVisible;
 			}
 
-			activeParticlesPerSection[lightModeIndex] += maxParticles * Get(ParticleSetVisibility)[i*2+CURR_VALUE];
-			stateChanged += (isSetVisible != Get(ParticleSetVisibility)[i*2+PREV_VALUE]) ? 1 : 0;
+			activeParticlesPerSection[lightModeIndex] += maxParticles * ParticleSetVisibility[i*2+CURR_VALUE];
+			stateChanged += (isSetVisible != ParticleSetVisibility[i*2+PREV_VALUE]) ? 1 : 0;
 		}
 
 		uint3 inactiveStartIndices = uint3(activeParticlesPerSection[0], amountsPerMode[0] + activeParticlesPerSection[1], 
@@ -133,14 +133,14 @@ void CS_MAIN()
 		// Store the new starting points for each section, the current ones become the previous ones
 		for (uint i=0; i<PARTICLE_BUFFER_SECTION_COUNT; i++)
 		{
-			Get(ParticleSectionsIndices)[i*2] = Get(ParticleSectionsIndices)[i*2+1];
-			Get(ParticleSectionsIndices)[i*2+1] = inactiveStartIndices[i];
+			ParticleSectionsIndices[i*2] = ParticleSectionsIndices[i*2+1];
+			ParticleSectionsIndices[i*2+1] = inactiveStartIndices[i];
 		}
 	}
 
-	Get(ParticleCountsBuffer)[0] = uint4(amountsPerMode, 0);
+	ParticleCountsBuffer[0] = uint4(amountsPerMode, 0);
 	// Hardware rasterized particles index write
-	Get(ParticlesToRasterizeCount)[0] = 0;
+	ParticlesToRasterizeCount[0] = 0;
 	
-	RETURN();
+	return;
 }

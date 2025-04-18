@@ -25,8 +25,8 @@
 #ifndef PARTICLE_SETS_H
 #define PARTICLE_SETS_H
 
-#include "particle_defs.h.fsl"
-#include "../../../Graphics/ShaderUtilities.h.fsl"
+#include "particle_defs.h.hlsl"
+#include "../../../Graphics/ShaderUtilities.h.hlsl"
 
 ParticleSet GetParticleSet(uint idx)
 {

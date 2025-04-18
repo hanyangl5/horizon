@@ -22,10 +22,10 @@
  * under the License.
  */
 
-#include "../../../Graphics/ShaderUtilities.h.fsl"
-#include "particle_shared.h.fsl"
-#include "particle_sets.h.fsl"
-#include "particle_utils.h.fsl"
+#include "../../../Graphics/ShaderUtilities.h.hlsl"
+#include "particle_shared.h.hlsl"
+#include "particle_sets.h.hlsl"
+#include "particle_utils.h.hlsl"
 
 struct VSOutput
 {
@@ -40,8 +40,8 @@ void PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 
-	uint bufferIdx = Get(ScreenSize).x * uint(In.Position.y) + uint(In.Position.x);
-	if (Get(TransparencyListHeads)[bufferIdx] > MAX_TRANSPARENCY_LAYERS)
+	uint bufferIdx = ScreenSize.x * uint(In.Position.y) + uint(In.Position.x);
+	if (TransparencyListHeads[bufferIdx] > MAX_TRANSPARENCY_LAYERS)
 	{
 		clip(-1);
 	}
@@ -51,7 +51,7 @@ void PS_MAIN( VSOutput In )
 	uint texIndex = In.ParticleSetIndex;
 
 	BeginNonUniformResourceIndex(texIndex, MAX_PARTICLE_SET_COUNT);
-		texColor = SampleTex2D(Get(ParticleTextures)[texIndex], Get(LinearClampSampler), In.TexCoord);
+		texColor = SampleTex2D(ParticleTextures[texIndex], LinearClampSampler, In.TexCoord);
 	EndNonUniformResourceIndex();
 
 	if (texColor.w <= TRANSPARENCY_CONTRIBUTION_THRESHOLD)
@@ -60,7 +60,7 @@ void PS_MAIN( VSOutput In )
 	}
 	texColor = float4(texColor.xyz * GetParticleSet(In.ParticleSetIndex).Color, texColor.w);
 
-	SaveTransparencyEntry(Get(ScreenSize), uint2(In.Position.xy), texColor, In.Position.z);
+	SaveTransparencyEntry(ScreenSize, uint2(In.Position.xy), texColor, In.Position.z);
 	clip(-1);
-	RETURN();
+	return;
 }

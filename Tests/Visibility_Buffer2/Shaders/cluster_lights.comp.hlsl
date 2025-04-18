@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "shading.h.fsl"
-#include "light_cull_resources.h.fsl"
+#include "shading.h.hlsl"
+#include "light_cull_resources.h.hlsl"
 
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
@@ -34,18 +34,18 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	INIT_MAIN;
 	const float invClusterWidth = 1.0f / float(LIGHT_CLUSTER_WIDTH);
 	const float invClusterHeight = 1.0f / float(LIGHT_CLUSTER_HEIGHT);
-	const float2 windowSize = Get(cullingViewports)[VIEW_CAMERA].windowSize;
+	const float2 windowSize = cullingViewports[VIEW_CAMERA].windowSize;
 	
 	const float aspectRatio = windowSize.x / windowSize.y;
 	
-	LightData lightData = Get(lights)[groupId.x];
+	LightData lightData = lights[groupId.x];
 	
 	float4 lightPosWorldSpace = float4(lightData.position.xyz, 1);
-	float4 lightPosClipSpace = mul(Get(transform)[VIEW_CAMERA].vp, lightPosWorldSpace);
+	float4 lightPosClipSpace = mul(transform[VIEW_CAMERA].vp, lightPosWorldSpace);
 	float invLightPosW = 1.0 / lightPosClipSpace.w;
 	float3 lightPos = lightPosClipSpace.xyz * invLightPosW;
 	
-	float fov = 2.0*atan( 1.0/Get(transform)[VIEW_CAMERA].projection[1][1] );
+	float fov = 2.0*atan( 1.0/transform[VIEW_CAMERA].projection[1][1] );
 	float projRadius = 2.0f * LIGHT_SIZE * (1 / tan(fov * 0.5f)) * invLightPosW;
 	projRadius *= windowSize.x > windowSize.y ? aspectRatio : 1 / aspectRatio;
 
@@ -80,11 +80,11 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	{
 		// Increase light count on this cluster
 		uint lightArrayPos = 0;
-		AtomicAdd(Get(lightClustersCount)[LIGHT_CLUSTER_COUNT_POS(threadInGroupId.x, threadInGroupId.y)], 1, lightArrayPos);
+		AtomicAdd(lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadInGroupId.x, threadInGroupId.y)], 1, lightArrayPos);
 
 		// Add light id to cluster
-		AtomicExchange(Get(lightClusters)[LIGHT_CLUSTER_DATA_POS(lightArrayPos, threadInGroupId.x, threadInGroupId.y)], groupId.x, lightArrayPos);
+		AtomicExchange(lightClusters[LIGHT_CLUSTER_DATA_POS(lightArrayPos, threadInGroupId.x, threadInGroupId.y)], groupId.x, lightArrayPos);
 
 	}
-	RETURN();
+	return;
 }

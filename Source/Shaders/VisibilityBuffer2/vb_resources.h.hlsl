@@ -26,9 +26,9 @@
 #define _VB_RESOURCES_H
 
 #ifdef _VB_TRIANGLE_FILTERING_H
-RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_PER_FRAME, u1, binding = 8);
+RWStructuredBuffer<uint> binBuffer : register(UPDATE_FREQ_PER_FRAME, u1);
 
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 3);
+ByteAddressBuffer vertexPositionBuffer : register(UPDATE_FREQ_NONE, t0);
 
 cbuffer batchData_rootcbv: register(UPDATE_FREQ_USER, b2)
 {

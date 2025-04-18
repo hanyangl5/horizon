@@ -27,10 +27,10 @@
 // gradients instead of screen-space projected triangles method.
 //#define USE_RAY_DIFFERENTIALS
 
-#include "shading.h.fsl"
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "shading.h.hlsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
 
-#include "triangle_binning.h.fsl"
+#include "triangle_binning.h.hlsl"
 
 // This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
 
@@ -43,49 +43,49 @@ struct VSOutput
 // Static descriptors
 
 #if SAMPLE_COUNT > 1
-    RES(Tex2DMS(float, SAMPLE_COUNT), depthTex, UPDATE_FREQ_NONE, t100, binding = 15);
+    Tex2DMS(float, SAMPLE_COUNT) depthTex : register(UPDATE_FREQ_NONE, t100);
 #else
-    RES(Tex2D(float), depthTex, UPDATE_FREQ_NONE, t100, binding = 15);
+    Tex2D(float) depthTex : register(UPDATE_FREQ_NONE, t100);
 #endif
 
-RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t101, binding = 16);
+Tex2D(float) shadowMap : register(UPDATE_FREQ_NONE, t101);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  UPDATE_FREQ_NONE, t0, binding = 17);
-	RES(Tex2D(float4), normalMaps[INSTANCE_BUFFER_SIZE],   UPDATE_FREQ_NONE, t1, binding = 17 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t2, binding = 17 + MAX_TEXTURE_UNITS * 2);
+	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t0);
+	Tex2D(float4) normalMaps[INSTANCE_BUFFER_SIZE] : register(  UPDATE_FREQ_NONE, t1);
+	Tex2D(float4) specularMaps[INSTANCE_BUFFER_SIZE] : register(UPDATE_FREQ_NONE, t2);
 #else
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  space4, t0, binding = 17);
-	RES(Tex2D(float4), normalMaps[INSTANCE_BUFFER_SIZE],   space5, t0, binding = 17 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[INSTANCE_BUFFER_SIZE], space6, t0, binding = 17 + MAX_TEXTURE_UNITS * 2);
+	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t0);
+	Tex2D(float4) normalMaps[INSTANCE_BUFFER_SIZE] : register(  space5, t0);
+	Tex2D(float4) specularMaps[INSTANCE_BUFFER_SIZE] : register(space6, t0);
 #endif
 
-RES(ByteBuffer, vertexPos,           UPDATE_FREQ_NONE, t10, binding=0);
-RES(ByteBuffer, vertexTexCoord,      UPDATE_FREQ_NONE, t11, binding=1);
-RES(ByteBuffer, vertexNormal,        UPDATE_FREQ_NONE, t12, binding=2);
-RES(Buffer(uint), binBuffer, UPDATE_FREQ_PER_FRAME, t14, binding=4);
+ByteAddressBuffer vertexPos : register(          UPDATE_FREQ_NONE, t10);
+ByteAddressBuffer vertexTexCoord : register(     UPDATE_FREQ_NONE, t11);
+ByteAddressBuffer vertexNormal : register(       UPDATE_FREQ_NONE, t12);
+StructuredBuffer<uint> binBuffer : register(UPDATE_FREQ_PER_FRAME, t14);
 
-RES(Buffer(uint), indirectFilteredBatches, UPDATE_FREQ_PER_FRAME, t15, binding = 15);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t17, binding=6);
-RES(Buffer(LightData), lights,                  UPDATE_FREQ_NONE, t19, binding=11);
+StructuredBuffer<uint> indirectFilteredBatches : register(UPDATE_FREQ_PER_FRAME, t15);
+StructuredBuffer<MeshConstants> meshConstantsBuffer : register(UPDATE_FREQ_NONE, t17);
+StructuredBuffer<LightData> lights : register(                 UPDATE_FREQ_NONE, t19);
 
-RES(ByteBuffer, lightClustersCount, UPDATE_FREQ_PER_FRAME, t20, binding=12);
-RES(ByteBuffer, lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=13);
+ByteAddressBuffer lightClustersCount : register(UPDATE_FREQ_PER_FRAME, t20);
+ByteAddressBuffer lightClusters : register(     UPDATE_FREQ_PER_FRAME, t21);
 
-RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 7);
-RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s1, binding = 8);
+SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
+SamplerState depthSampler : register(UPDATE_FREQ_NONE, s1);
 
-RES(Buffer(uint64_t), visibilityBuffer, UPDATE_FREQ_PER_FRAME, t1, binding = 100);
+StructuredBuffer<uint64_t> visibilityBuffer : register(UPDATE_FREQ_PER_FRAME, t1);
 
 
-RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t2, binding = 4);
+ByteAddressBuffer indexDataBuffer : register(UPDATE_FREQ_NONE, t2);
 
 float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 {
 	INIT_MAIN;
 
-	uint index = VisibilityBufferOffset(VIEW_CAMERA, Get(depthTexSize)[0], In.position.x, In.position.y);
-	uint64_t packedDepthVBId = Get(visibilityBuffer)[index];
+	uint index = VisibilityBufferOffset(VIEW_CAMERA, depthTexSize[0], In.position.x, In.position.y);
+	uint64_t packedDepthVBId = visibilityBuffer[index];
 
 	uint triangleData = 0;
 	float depth = 0.0f;
@@ -107,34 +107,34 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	uint batchID = GetBatchIdFromTriData(triangleData);
 	uint alpha1_opaque0 = GetGeomSetFromTriData(triangleData);
 
-	uint index0 = LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 0) << 2);
-	uint index1 = LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 1) << 2);
-	uint index2 = LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 2) << 2);
+	uint index0 = indexDataBuffer.Load((triangleIndex * 3 + 0) << 2);
+	uint index1 = indexDataBuffer.Load((triangleIndex * 3 + 1) << 2);
+	uint index2 = indexDataBuffer.Load((triangleIndex * 3 + 2) << 2);
 
 	// Load vertex data of the 3 vertices
-	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), index0 * 12)).xyz;
-	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
-	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
+	float3 v0pos = asfloat(vertexPos.Load4(index0 * 12)).xyz;
+	float3 v1pos = asfloat(vertexPos.Load4(index1 * 12)).xyz;
+	float3 v2pos = asfloat(vertexPos.Load4(index2 * 12)).xyz;
 
 	// Transform positions to clip space
-	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
-	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
-	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
+	float4 pos0 = mul(transform[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
+	float4 pos1 = mul(transform[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
+	float4 pos2 = mul(transform[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
 
-	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP,pos0);
-	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP,pos1);
-	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP,pos2);
+	float4 wPos0 = mul(transform[VIEW_CAMERA].invVP,pos0);
+	float4 wPos1 = mul(transform[VIEW_CAMERA].invVP,pos1);
+	float4 wPos2 = mul(transform[VIEW_CAMERA].invVP,pos2);
 
-	float2 two_over_windowsize = Get(twoOverRes);
+	float2 two_over_windowsize = twoOverRes;
 
 	// Compute partial derivatives and baycentric coordinates.
 	// This is necessary to interpolate triangle attributes per pixel.
 	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,In.screenPos, two_over_windowsize);
 
 	f3x2 texCoords = make_f3x2_cols(
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index0 << 2)) ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index1 << 2)) ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index2 << 2)) 
+			unpack2Floats(vertexTexCoord.Load(index0 << 2)) ,
+			unpack2Floats(vertexTexCoord.Load(index1 << 2)) ,
+			unpack2Floats(vertexTexCoord.Load(index2 << 2)) 
 	);
 
 	// Interpolated 1/w (one_over_w) for all three vertices of the triangle
@@ -143,23 +143,23 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
 	// operations that involve computing Z
-	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection, 3, 2);
+	float z = w * getElem(transform[VIEW_CAMERA].projection, 2, 2) + getElem(transform[VIEW_CAMERA].projection, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
 	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(In.screenPos * w, z, w)).xyz;
+	float3 position = mul(transform[VIEW_CAMERA].invVP, float4(In.screenPos * w, z, w)).xyz;
 
 #if defined(USE_RAY_DIFFERENTIALS)
-	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
-	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
+	float3 positionDX = mul(transform[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
+	float3 positionDY = mul(transform[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
 
 	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
-												Get(camPos).xyz);
+												camPos.xyz);
 #endif
 	// Get the material id from the per batch indirection data buffer. 
-	uint materialID = Get(meshConstantsBuffer)[batchID].materialID;
-	// uint batchData = Get(indirectFilteredBatches)[BATCH_DISPATCH_ARGUMENTS_OFFSET + batchID];
+	uint materialID = meshConstantsBuffer[batchID].materialID;
+	// uint batchData = indirectFilteredBatches[BATCH_DISPATCH_ARGUMENTS_OFFSET + batchID];
 	// uint materialID = (batchData & MATERIAL_ID_MASK);
 
 	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
@@ -179,9 +179,9 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float4 diffuseColor;
 	float4 specularColor;
 	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		normalMapRG   = SampleGradTex2D(Get(normalMaps)[materialID],   Get(textureSampler), texCoord, texCoordDX, texCoordDY);
-		diffuseColor  = SampleGradTex2D(Get(diffuseMaps)[materialID],  Get(textureSampler), texCoord, texCoordDX, texCoordDY);
-		specularColor = SampleGradTex2D(Get(specularMaps)[materialID], Get(textureSampler), texCoord, texCoordDX, texCoordDY);
+		normalMapRG   = SampleGradTex2D(normalMaps[materialID],   textureSampler, texCoord, texCoordDX, texCoordDY);
+		diffuseColor  = SampleGradTex2D(diffuseMaps[materialID],  textureSampler, texCoord, texCoordDX, texCoordDY);
+		specularColor = SampleGradTex2D(specularMaps[materialID], textureSampler, texCoord, texCoordDX, texCoordDY);
 	EndNonUniformResourceIndex();
 
 	float3 reconstructedNormalMap;
@@ -190,9 +190,9 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	// NORMAL INTERPOLATION
 	float3x3 normals = make_f3x3_rows(
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index0 << 2))),
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index1 << 2))),
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index2 << 2)))
+		decodeDir(unpackUnorm2x16(vertexNormal.Load(index0 << 2))),
+		decodeDir(unpackUnorm2x16(vertexNormal.Load(index1 << 2))),
+		decodeDir(unpackUnorm2x16(vertexNormal.Load(index2 << 2)))
 	);
 	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));
 	
@@ -208,26 +208,26 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
 
 	// Sample Diffuse color
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+	float4 posLS = mul(transform[VIEW_SHADOW].vp, float4(position, 1.0f));
 	
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;
 
 	float ao = calculateAoContrib(
-		Get(depthTexSize),
-		Get(aoIntensity),
-		Get(aoQuality),
-		Get(CameraPlane).y,
-		Get(CameraPlane).x,
-		Get(frustumPlaneSizeNormalized),
+		depthTexSize,
+		aoIntensity,
+		aoQuality,
+		CameraPlane.y,
+		CameraPlane.x,
+		frustumPlaneSizeNormalized,
 		In.position.xy,
-		Get(depthTex),
-		Get(depthSampler));
+		depthTex,
+		depthSampler);
 
-	bool isTwoSided = (alpha1_opaque0 == 1) && bool(Get(meshConstantsBuffer)[materialID].twoSided);
+	bool isTwoSided = (alpha1_opaque0 == 1) && bool(meshConstantsBuffer[materialID].twoSided);
 	bool isBackFace = false;
 
-	float3 ViewVec = normalize(Get(camPos).xyz - position.xyz);
+	float3 ViewVec = normalize(camPos.xyz - position.xyz);
 	
 	//if it is backface
 	//this should be < 0 but our mesh's edge normals are smoothed, badly
@@ -238,11 +238,11 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		isBackFace = true;
 	}
 
-	float3 HalfVec = normalize(ViewVec - Get(lightDir).xyz);
+	float3 HalfVec = normalize(ViewVec - lightDir.xyz);
 	float3 ReflectVec = reflect(-ViewVec, normal);
 	float NoV = saturate(dot(normal, ViewVec));
 
-	float NoL = dot(normal, -Get(lightDir).xyz);	
+	float NoL = dot(normal, -lightDir.xyz);	
 
 	// Deal with two faced materials
 	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
@@ -255,7 +255,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
 
 	float shadowFactor = 1.0f;
-	float fLightingMode = saturate(float(Get(lightingMode)));
+	float fLightingMode = saturate(float(lightingMode));
 
 	shadedColor = calculateIllumination(
 		    normal,
@@ -264,35 +264,35 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 			ReflectVec,
 			NoL,
 			NoV,
-			Get(camPos).xyz,
-			Get(esmControl),
-			Get(lightDir).xyz,
+			camPos.xyz,
+			esmControl,
+			lightDir.xyz,
 			posLS,
 			position,
-			Get(shadowMap),
+			shadowMap,
 			DiffuseColor,
 			SpecularColor,
 			Roughness,
 			Metallic,
-			Get(depthSampler),
+			depthSampler,
 			isBackFace,
 			fLightingMode,
 			shadowFactor);
 	
-	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL;
-	if (Get(visualizeAo) > 0)
+	shadedColor = shadedColor * lightColor.rgb * lightColor.a * NoL;
+	if (visualizeAo > 0)
 		shadedColor = f3(ao);
 	
 	// point lights
 	// Find the light cluster for the current pixel
 	uint2 clusterCoords = uint2(floor((In.screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));
 
-	uint numLightsInCluster = LoadByte(Get(lightClustersCount), LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y) << 2);
+	uint numLightsInCluster = lightClustersCount, LIGHT_CLUSTER_COUNT_POS(clusterCoords.x.Load(clusterCoords.y) << 2);
 
 	// Accumulate light contributions
 	for (uint j = 0; j < numLightsInCluster; ++j)
 	{
-		uint lightId = LoadByte(Get(lightClusters), LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y) << 2);
+		uint lightId = lightClusters, LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x.Load(clusterCoords.y) << 2);
 
 		shadedColor += pointLightShade(
 		normal,
@@ -301,10 +301,10 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		ReflectVec,
 		NoL,
 		NoV,
-		Get(lights)[lightId].position.xyz,
-		Get(lights)[lightId].color.xyz,
-		Get(camPos).xyz,
-		Get(lightDir).xyz,
+		lights[lightId].position.xyz,
+		lights[lightId].color.xyz,
+		camPos.xyz,
+		lightDir.xyz,
 		posLS,
 		position,
 		DiffuseColor,
@@ -321,12 +321,12 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float3 FinalColor = shadedColor + ambient;
 
 	// debug bin occupancy overlay
-	if(Get(visualizeBinOccupancy) > 0)
+	if(visualizeBinOccupancy > 0)
 	{
 		float2 binCoord = float2(In.position.x / BIN_SIZE, In.position.y / BIN_SIZE);
 		uint tx = uint(binCoord[0]);
 		uint ty = uint(binCoord[1]);
-		uint triangleCount = Get(binBuffer)[BinBufferViewOffset(VIEW_CAMERA) + TIDX(tx, ty)];
+		uint triangleCount = binBuffer[BinBufferViewOffset(VIEW_CAMERA) + TIDX(tx, ty)];
 		float3 empty = float3(0, 1, 0), full = float3(1, 0, 0);
 		float binOccupancy = triangleCount / float(TILE_CAPACITY);
 		float3 occupancuVis = float3(binOccupancy, 1.0f - binOccupancy, 0);

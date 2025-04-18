@@ -25,7 +25,7 @@
 #ifndef PARTICLE_PACKING_H
 #define PARTICLE_PACKING_H
 
-#include "../../../Graphics/ShaderUtilities.h.fsl"
+#include "../../../Graphics/ShaderUtilities.h.hlsl"
 
 uint FirstBits(uint v, uint nBits)
 {

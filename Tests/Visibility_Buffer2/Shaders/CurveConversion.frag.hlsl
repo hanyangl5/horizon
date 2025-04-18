@@ -28,9 +28,9 @@ struct PsIn
     float2 texCoord: TEXCOORD;
 };
 
-RES(Tex2D(float4), SceneTex,  UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 1);
-RES(Tex2D(float4), GodRayTex, UPDATE_FREQ_NONE, s1, binding = 2);
+Tex2D(float4) SceneTex : register( UPDATE_FREQ_NONE, t0);
+SamplerState  uSampler0 : register(UPDATE_FREQ_NONE, s0);
+Tex2D(float4) GodRayTex : register(UPDATE_FREQ_NONE, s1);
 
 struct FSOutput
 {
@@ -42,9 +42,9 @@ FSOutput PS_MAIN( PsIn In )
     INIT_MAIN;
     FSOutput Out;
 
-	float4 sceneColor = SampleTex2D(Get(SceneTex), Get(uSampler0), In.texCoord);
-	sceneColor.rgb += SampleTex2D(Get(GodRayTex), Get(uSampler0), In.texCoord).rgb;
+	float4 sceneColor = SampleTex2D(SceneTex, uSampler0, In.texCoord);
+	sceneColor.rgb += SampleTex2D(GodRayTex, uSampler0, In.texCoord).rgb;
     Out.FragmentOutput = float4(sceneColor.rgb, 1.0);
 
-    RETURN(Out);
+    return Out;
 }

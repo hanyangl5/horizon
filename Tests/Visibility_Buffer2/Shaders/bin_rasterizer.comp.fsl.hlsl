@@ -23,26 +23,26 @@
 */
 
 
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
-#include "shader_defs.h.fsl"
-#include "triangle_binning.h.fsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.hlsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
+#include "shader_defs.h.hlsl"
+#include "triangle_binning.h.hlsl"
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 #define BINDLESS_SET UPDATE_FREQ_NONE
 #else
 #define BINDLESS_SET space4
 #endif
-RES(ByteBuffer,            vertexPositionBuffer,              UPDATE_FREQ_NONE,      t0, binding = 11);
-RES(ByteBuffer,            indexDataBuffer,                   UPDATE_FREQ_NONE,      t1, binding = 4);
-RES(Buffer(MeshConstants), meshConstantsBuffer,               UPDATE_FREQ_NONE,      t2, binding = 5);
-RES(ByteBuffer,            vertexTexCoordBuffer,              UPDATE_FREQ_NONE,      t5, binding = 18);
-RES(SamplerState,          textureSampler,                    UPDATE_FREQ_NONE,      s0, binding = 20);
-RES(Tex2D(float4),         diffuseMaps[INSTANCE_BUFFER_SIZE], BINDLESS_SET,          t6, binding = 21);
+ByteAddressBuffer            vertexPositionBuffer : register(             UPDATE_FREQ_NONE,      t0);
+ByteAddressBuffer            indexDataBuffer : register(                  UPDATE_FREQ_NONE,      t1);
+StructuredBuffer<MeshConstants> meshConstantsBuffer : register(              UPDATE_FREQ_NONE,      t2);
+ByteAddressBuffer            vertexTexCoordBuffer : register(             UPDATE_FREQ_NONE,      t5);
+SamplerState          textureSampler : register(                   UPDATE_FREQ_NONE,      s0);
+Tex2D(float4)         diffuseMaps[INSTANCE_BUFFER_SIZE] : register(BINDLESS_SET,          t6);
 
-RES(Buffer(uint),          binBuffer,                         UPDATE_FREQ_PER_FRAME, t1, binding = 12);
-RES(Buffer(uint),          indirectFilteredBatches,           UPDATE_FREQ_PER_FRAME, t2, binding = 13);
-RES(RWBuffer(uint64_t),    visibilityBuffer,                  UPDATE_FREQ_PER_FRAME, u1, binding = 10);
+StructuredBuffer<uint>          binBuffer : register(                        UPDATE_FREQ_PER_FRAME, t1);
+StructuredBuffer<uint>          indirectFilteredBatches : register(          UPDATE_FREQ_PER_FRAME, t2);
+RWStructuredBuffer<uint64_t>    visibilityBuffer : register(                 UPDATE_FREQ_PER_FRAME, u1);
 
 cbuffer RootConstantViewInfo : register(b0)
 {
@@ -55,7 +55,7 @@ cbuffer RootConstantViewInfo : register(b0)
 GroupShared(uint64_t, sharedSubBin[SUB_BIN_SIZE][SUB_BIN_SIZE]);
 #endif
 
-#define LoadVertex(I) float4(asfloat(LoadByte4(Get(vertexPositionBuffer), (I) * 12)).xyz, 1.0f)
+#define LoadVertex(I) float4(asfloat(vertexPositionBuffer, (I) * 12)).xyz.Load4(1.0f)
 
 
 
@@ -86,7 +86,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 
     uint   binGroupOffset = (groupId.z >> 2) * BIN_RASTER_GROUP_SIZE; // each tile shared by 4 groups
     uint   binOffset      = binGroupOffset + (threadId.x * BIN_RASTER_THREADS_Y + threadId.y + threadId.z * BIN_RASTER_GROUP_STRIDE);
-    float2 viewportSize   = float2(Get(targetWidth), Get(targetHeight));
+    float2 viewportSize   = float2(targetWidth, targetHeight);
 
     // distributed shared clear
 #if defined(SHARED_SUB_BIN_RASTER)
@@ -102,26 +102,26 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 
 
     // load triangle data
-    uint triangleData = GetTriangleDataAt(Get(view), Get(binBuffer), binIndex.x, binIndex.y, binOffset);
+    uint triangleData = GetTriangleDataAt(view, binBuffer, binIndex.x, binIndex.y, binOffset);
 
     if (INVALID_TRIANGLE_DATA != triangleData)
     {
         uint triangleIndex = GetTriIndexFromTriData(triangleData);
         uint geomSet       = GetGeomSetFromTriData(triangleData);
         uint batchID       = GetBatchIdFromTriData(triangleData);
-        uint materialID = Get(meshConstantsBuffer)[batchID].materialID;
+        uint materialID = meshConstantsBuffer[batchID].materialID;
 
         float2 uvs[3];
 
 
         uint indices[3] = {
-            LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 0) << 2),
-            LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 1) << 2),
-            LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 2) << 2),
+            indexDataBuffer.Load((triangleIndex * 3 + 0) << 2),
+            indexDataBuffer.Load((triangleIndex * 3 + 1) << 2),
+            indexDataBuffer.Load((triangleIndex * 3 + 2) << 2),
         };
 
         float4 vertices[3] = { LoadVertex(indices[0]), LoadVertex(indices[1]), LoadVertex(indices[2]) };
-        float4x4 worldViewProjection = Get(transform)[Get(view)].mvp;
+        float4x4 worldViewProjection = transform[view].mvp;
 
 
         int verticesInFrontOfNearPlane = 0;
@@ -195,9 +195,9 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
         float4 uv1020;
         if (geomSet == 1)
         {
-            uvs[0] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[0] << 2));
-            uvs[1] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[1] << 2));
-            uvs[2] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[2] << 2));
+            uvs[0] = unpack2Floats(vertexTexCoordBuffer.Load(indices[0] << 2));
+            uvs[1] = unpack2Floats(vertexTexCoordBuffer.Load(indices[1] << 2));
+            uvs[2] = unpack2Floats(vertexTexCoordBuffer.Load(indices[2] << 2));
             uv1020 = float4(uvs[1] - uvs[0], uvs[2] - uvs[0]);
         }
 
@@ -239,7 +239,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
                 {
                     float depth = max(0.0f, edge10.z * texCoord.x + edge20.z * texCoord.y + vertices[baseIndex].z);
                     uint64_t packedDepthVBId = packDepthVBId(depth, triangleData);
-                    uint index = VisibilityBufferOffset(Get(view), viewportSize.x, vbCoords.x, vbCoords.y);
+                    uint index = VisibilityBufferOffset(view, viewportSize.x, vbCoords.x, vbCoords.y);
                     bool visible = true;
                     if (visible && geomSet == 1) // needs alpha testing
                     {
@@ -249,7 +249,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 
                         float2 uv = uv1020.xy * texCoord.x + uv1020.zw * texCoord.y + uvs[0];
                         BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-                        diffuseColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(textureSampler), uv, lod);
+                        diffuseColor = SampleLvlTex2D(diffuseMaps[materialID], textureSampler, uv, lod);
                         EndNonUniformResourceIndex();
                         if (diffuseColor.a <= 0.5f)
                             visible = false;
@@ -259,7 +259,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 #if defined(SHARED_SUB_BIN_RASTER)
                         AtomicMaxU64(sharedSubBin[y][x], packedDepthVBId);
 #else
-                        AtomicMaxU64(Get(visibilityBuffer)[index], packedDepthVBId);
+                        AtomicMaxU64(visibilityBuffer[index], packedDepthVBId);
 #endif
                     }
                 }
@@ -279,10 +279,10 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
     {
         uint2 pt = threadOrigin + uint2(pi / 4, pi % 4);
         uint2 c = binCoord + pt;
-        uint index = VisibilityBufferOffset(Get(view), viewportSize.x, c.x, c.y);
-        AtomicMaxU64(Get(visibilityBuffer)[index], sharedSubBin[pt.y][pt.x]);
+        uint index = VisibilityBufferOffset(view, viewportSize.x, c.x, c.y);
+        AtomicMaxU64(visibilityBuffer[index], sharedSubBin[pt.y][pt.x]);
     }
 #endif
 
-    RETURN();
+    return;
 }

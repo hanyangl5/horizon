@@ -22,10 +22,10 @@
  * under the License.
  */
 
-#include "../../../Graphics/ShaderUtilities.h.fsl"
-#include "particle_shared.h.fsl"
-#include "particle_sets.h.fsl"
-#include "particle_utils.h.fsl"
+#include "../../../Graphics/ShaderUtilities.h.hlsl"
+#include "particle_shared.h.hlsl"
+#include "particle_sets.h.hlsl"
+#include "particle_utils.h.hlsl"
 
 struct VSOutput
 {
@@ -49,15 +49,15 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 	uint instanceId = vertexId / 6;
 	uint instanceVertexId = vertexId % 6;
 
-	uint particleIdx = Get(ParticlesToRasterize)[instanceId];
+	uint particleIdx = ParticlesToRasterize[instanceId];
 
-	uint Bitfield = Get(BitfieldBuffer)[particleIdx];
+	uint Bitfield = BitfieldBuffer[particleIdx];
 	if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) == 0)
 	{
 		RETURN(result);
 	}
 
-	ParticleData particleData = Get(ParticlesDataBuffer)[particleIdx];
+	ParticleData particleData = ParticlesDataBuffer[particleIdx];
 
 	float4 VelocityAge;
 	float3 position;
@@ -104,15 +104,15 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 	float4 offset = float4(vertexPosCache[instanceVertexId], 1.0f);
 	uint billboardMode = Bitfield & PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK;
 
-	float3 right = getCol(Get(ViewTransform), 0).xyz;
-	float3 up = getCol(Get(ViewTransform), 1).xyz;
-	float3 forward = getCol(Get(ViewTransform), 2).xyz;
+	float3 right = getCol(ViewTransform, 0).xyz;
+	float3 up = getCol(ViewTransform, 1).xyz;
+	float3 forward = getCol(ViewTransform, 2).xyz;
 
 	switch (billboardMode)
 	{
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_SCREEN_ALIGNED:
 		{
-			result.Position = mul(Get(ViewTransform), float4(position, 1.0f));
+			result.Position = mul(ViewTransform, float4(position, 1.0f));
 			result.Position.xyz += vertexPosCache[instanceVertexId].xyz;
 		} break;
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_VELOCITY_ORIENTED:
@@ -123,7 +123,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 			forward = cross(up, right);
 			float4x4 billboard = make_f4x4_cols(float4(right, 0), float4(up, 0), float4(forward, 0), float4(position, 1.0f));
 			result.Position = mul(billboard, offset);
-			result.Position = mul(Get(ViewTransform), result.Position);
+			result.Position = mul(ViewTransform, result.Position);
 		} break;
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_HORIZONTAL:
 		{
@@ -132,13 +132,13 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 			right = float3(1.0f, 0.0f, 0.0f);
 			float4x4 billboard = make_f4x4_cols(float4(right, 0), float4(up, 0), float4(forward, 0), float4(position, 1.0f));
 			result.Position = mul(billboard, offset);
-			result.Position = mul(Get(ViewTransform), result.Position);
+			result.Position = mul(ViewTransform, result.Position);
 		} break;
 		default:
 			break;
 	}
 
-	result.Position = mul(Get(ProjTransform), result.Position);
+	result.Position = mul(ProjTransform, result.Position);
 	result.TexCoord = vertexTexCache[instanceVertexId];
 	result.InstanceId = instanceId;
 	result.ParticleSetIndex = Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;

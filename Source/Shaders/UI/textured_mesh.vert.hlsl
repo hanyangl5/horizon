@@ -22,24 +22,31 @@
 * under the License.
 */
 
-RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
+Tex2D(float4) uTex : register(UPDATE_FREQ_NONE, t1);
+SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
 cbuffer uRootConstants : register(b1)
 {
 	float4 color : None
 	float2 scaleBias : None
 };
 
-struct PsIn
+struct VsIn
+{
+	float2 position : Position
+	float2 texcoord : TEXCOORD0
+};
+
+struct VsOut
 {
 	float4 position : SV_Position
 	float2 texcoord : TEXCOORD0
 };
 
-float4 PS_MAIN( PsIn In )
+VsOut VS_MAIN( VsIn In )
 {
 	INIT_MAIN;
-	float4 Out;
-	Out = SampleTex2D(Get(uTex), Get(uSampler), In.texcoord) * Get(color);
-	RETURN(Out);
+	VsOut Out;
+	Out.position = float4(In.position.xy * scaleBias.xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+	Out.texcoord = In.texcoord;
+	return Out
 }

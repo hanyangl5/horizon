@@ -22,13 +22,13 @@
  * under the License.
 */
 
-#include "shader_defs.h.fsl"
-#include "light_cull_resources.h.fsl"
+#include "shader_defs.h.hlsl"
+#include "light_cull_resources.h.hlsl"
 
 [numthreads(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)]
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
 	INIT_MAIN;
-	AtomicStore(Get(lightClustersCount)[LIGHT_CLUSTER_COUNT_POS(threadID.x, threadID.y)], 0u);
-	RETURN();
+	AtomicStore(lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadID.x, threadID.y)], 0u);
+	return;
 }

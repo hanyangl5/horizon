@@ -36,5 +36,5 @@ float4 PS_MAIN(VSOutput In)
     INIT_MAIN;
     float4 Out;
     Out = In.Color;
-    RETURN(Out);
+    RETURN Out;
 }

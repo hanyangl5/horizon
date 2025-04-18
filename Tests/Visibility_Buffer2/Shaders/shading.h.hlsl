@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "shader_defs.h.fsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.hlsl"
+#include "shader_defs.h.hlsl"
 
 #define SHADOW_PCF 0
 #define SHADOW_ESM 1
@@ -35,10 +35,10 @@
 #define NUM_SHADOW_SAMPLES 32
 #endif
 
-STATIC const float NUM_SHADOW_SAMPLES_INV = 0.03125;
+static const float NUM_SHADOW_SAMPLES_INV = 0.03125;
 
 #if NUM_SHADOW_SAMPLES == 16
-STATIC const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
+static const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 {
 	-0.1746646, -0.7913184,
 
@@ -74,7 +74,7 @@ STATIC const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 
 };
 #else
-STATIC const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
+static const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 {
 	-0.1746646, -0.7913184,
 	-0.129792, -0.4477116,
@@ -357,7 +357,7 @@ float calcAo(
 	return saturate( (dot(v, normal) - 0.1f) / (1.0f + distSq) );
 }
 
-STATIC const float2 gAORingPattern[20] = 
+static const float2 gAORingPattern[20] = 
 {
     // Ring 1
     { 1, -1 },

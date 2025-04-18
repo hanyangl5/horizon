@@ -72,5 +72,5 @@ float4 PS_MAIN(VSOutput In)
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out = float4(diffuse + ambient, 1.0);
-    RETURN(Out);
+    RETURN Out;
 }

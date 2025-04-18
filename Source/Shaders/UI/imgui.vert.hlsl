@@ -22,31 +22,34 @@
 * under the License.
 */
 
-RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
-cbuffer uRootConstants : register(b1)
+Tex2D(float4) uTex : register(UPDATE_FREQ_PER_BATCH, t1);
+SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
+
+cbuffer uniformBlockVS: register(UPDATE_FREQ_NONE, b0)
 {
-	float4 color : None
-	float2 scaleBias : None
+	float4x4 ProjectionMatrix : None
 };
 
-struct VsIn
+struct VS_INPUT
 {
-	float2 position : Position
-	float2 texcoord : TEXCOORD0
+	float2 pos : Position
+	float2 uv : TEXCOORD0
+	float4 col : COLOR0
 };
 
-struct VsOut
+struct PS_INPUT
 {
-	float4 position : SV_Position
-	float2 texcoord : TEXCOORD0
+	float4 pos : SV_Position
+	float4 col : COLOR0
+	float2 uv : TEXCOORD0
 };
 
-VsOut VS_MAIN( VsIn In )
+PS_INPUT VS_MAIN( VS_INPUT In )
 {
 	INIT_MAIN;
-	VsOut Out;
-	Out.position = float4(In.position.xy * Get(scaleBias).xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
-	Out.texcoord = In.texcoord;
-	RETURN(Out);
+	PS_INPUT Out;
+	Out.pos = mul(ProjectionMatrix, float4(In.pos.xy, 0.f, 1.f));
+	Out.col = In.col;
+	Out.uv = In.uv;
+	return Out
 }

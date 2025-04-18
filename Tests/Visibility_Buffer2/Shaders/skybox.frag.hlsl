@@ -22,8 +22,8 @@
  * under the License.
 */
 
-RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s0, binding = 1);
+TexCube(float4) skyboxTex : register(UPDATE_FREQ_NONE, t0);
+SamplerState skyboxSampler : register(UPDATE_FREQ_NONE, s0);
 
 struct VSinput {
 	float4 Position: POSITION;
@@ -38,6 +38,6 @@ float4 PS_MAIN( VSOutput Input )
 {
 	INIT_MAIN;
 	float4 Out;
-    Out = SampleTexCube(Get(skyboxTex), Get(skyboxSampler), Input.pos);
-    RETURN(Out);
+    Out = SampleTexCube(skyboxTex, skyboxSampler, Input.pos);
+    return Out;
 }

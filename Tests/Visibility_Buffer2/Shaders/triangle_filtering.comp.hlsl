@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "shader_defs.h.fsl"
+#include "shader_defs.h.hlsl"
 
 float2 unpack2Floats(uint p)
 {
@@ -35,26 +35,26 @@ float2 unpack2Floats(uint p)
 #endif
 }
 
-RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t1, binding = 4);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t2, binding = 5);
-RES(Buffer(uint), materialProps, UPDATE_FREQ_NONE, t3, binding = 6);
+ByteAddressBuffer indexDataBuffer : register(UPDATE_FREQ_NONE, t1);
+StructuredBuffer<MeshConstants> meshConstantsBuffer : register(UPDATE_FREQ_NONE, t2);
+StructuredBuffer<uint> materialProps : register(UPDATE_FREQ_NONE, t3);
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/triangle_filtering.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/triangle_filtering.h.hlsl"
 
-RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_PER_FRAME, u0, binding = 10);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
+RWStructuredBuffer<uint64_t> visibilityBuffer : register(UPDATE_FREQ_PER_FRAME, u0);
+ByteAddressBuffer vertexTexCoordBuffer : register(UPDATE_FREQ_NONE, t5);
 
-#include "triangle_binning.h.fsl"
+#include "triangle_binning.h.hlsl"
 #if defined(SHARED_FILTERING)
 GroupShared(uint, tileTriangleCount[NUM_CULLING_VIEWPORTS][TILE_COUNTX][TILE_COUNTY]);
 #endif
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
-RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 20);
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
+SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t6, binding = 21);
+Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register(UPDATE_FREQ_NONE, t6);
 #else
-RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], space4, t6, binding = 21);
+Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register(space4, t6);
 #endif
 
 [numthreads(FILTER_BATCH_SIZE, 1, 1)]
@@ -87,13 +87,13 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 		cull[i] = true;
 	}
 
-	uint batchMeshIndex = Get(filterBatchDataBuffer)[groupId.x].meshIndex;
-	uint batchInputIndexOffset = (Get(meshConstantsBuffer)[batchMeshIndex].indexOffset + Get(filterBatchDataBuffer)[groupId.x].indexOffset);
-	uint vertexOffset = Get(meshConstantsBuffer)[batchMeshIndex].vertexOffset;
+	uint batchMeshIndex = filterBatchDataBuffer[groupId.x].meshIndex;
+	uint batchInputIndexOffset = (meshConstantsBuffer[batchMeshIndex].indexOffset + filterBatchDataBuffer[groupId.x].indexOffset);
+	uint vertexOffset = meshConstantsBuffer[batchMeshIndex].vertexOffset;
 	vertexOffset = 0;
-	bool twoSided = (Get(meshConstantsBuffer)[batchMeshIndex].twoSided == 1);
-	uint matID = Get(meshConstantsBuffer)[batchMeshIndex].materialID;
-	uint geomSet = Get(materialProps)[matID];
+	bool twoSided = (meshConstantsBuffer[batchMeshIndex].twoSided == 1);
+	uint matID = meshConstantsBuffer[batchMeshIndex].materialID;
+	uint geomSet = materialProps[matID];
 
 	// this is the triangle index, the fetched index still needs to be shifted though...
 	uint triangleIndex = inGroupId.x + batchInputIndexOffset / 3;
@@ -105,11 +105,11 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 	//uint  aabbWaveTileCnt[2];
 
 	uint indices[3] = { 0, 0, 0 };
-	if (inGroupId.x < Get(filterBatchDataBuffer)[groupId.x].faceCount)
+	if (inGroupId.x < filterBatchDataBuffer[groupId.x].faceCount)
 	{
-		indices[0] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
-		indices[1] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
-		indices[2] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
+		indices[0] = vertexOffset + indexDataBuffer.Load((inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
+		indices[1] = vertexOffset + indexDataBuffer.Load((inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
+		indices[2] = vertexOffset + indexDataBuffer.Load((inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
 
 		float4 vert[3] =
 		{
@@ -121,7 +121,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
         UNROLL_N(NUM_CULLING_VIEWPORTS)
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			float4x4 worldViewProjection = Get(transform)[i].mvp;
+			float4x4 worldViewProjection = transform[i].mvp;
 			float4 vertices[3] =
 			{
 				mul(worldViewProjection, vert[0]),
@@ -129,7 +129,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 				mul(worldViewProjection, vert[2])
 			};
 
-			CullingViewPort viewport = Get(cullingViewports)[i];
+			CullingViewPort viewport = cullingViewports[i];
 			float2 windowSize = viewport.windowSize;
 			float2 filterWindowSize = viewport.windowSize;
 			if (i == 0)
@@ -180,7 +180,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 				{
 					cull[i] = true;
 
-					if (Get(smallScaleRaster) == 0)
+					if (smallScaleRaster == 0)
 						continue;
 
 #if defined(SMALL_SCALE_FILTER_RASTER)
@@ -192,9 +192,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 					float2 uvs[3];
 					if (geomSet == 1)
 					{
-						uvs[0] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[0] << 2));
-						uvs[1] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[1] << 2));
-						uvs[2] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[2] << 2));
+						uvs[0] = unpack2Floats(vertexTexCoordBuffer.Load(indices[0] << 2));
+						uvs[1] = unpack2Floats(vertexTexCoordBuffer.Load(indices[1] << 2));
+						uvs[2] = unpack2Floats(vertexTexCoordBuffer.Load(indices[2] << 2));
 					}
 					float2 uv10 = uvs[1] - uvs[0];
 					float2 uv20 = uvs[2] - uvs[0];
@@ -218,7 +218,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 									float  lod = log2(d) * 4;// *0.5f;
 
 									BeginNonUniformResourceIndex(matID, MAX_TEXTURE_UNITS);
-									diffuseColor = SampleLvlTex2D(Get(diffuseMaps)[matID], Get(textureSampler), texCoord, lod);
+									diffuseColor = SampleLvlTex2D(diffuseMaps[matID], textureSampler, texCoord, lod);
 									EndNonUniformResourceIndex();
 									if (diffuseColor.a <= 0.5f)
 										visible = false;
@@ -228,7 +228,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 									uint index = VisibilityBufferOffset(i, windowSize.x, x, y);
 									float depth = edge10.z * texcoord.x + edge20.z * texcoord.y + verticesSS[0].z;
 									uint64_t packedDepthVBId = packDepthVBId(depth, triangleData);
-									AtomicMaxU64(Get(visibilityBuffer)[index], packedDepthVBId);
+									AtomicMaxU64(visibilityBuffer[index], packedDepthVBId);
 								}
 
 							}
@@ -265,10 +265,10 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 						AtomicAdd(tileTriangleCount[i][tx][ty], 1, threadOutputOffsets[i][tx][ty]);
 #else                   
                         uint offset = 0;
-                        AtomicAdd(Get(binBuffer)[BinBufferViewOffset(i) + TIDX(tx, ty)], 1, offset);
+                        AtomicAdd(binBuffer[BinBufferViewOffset(i) + TIDX(tx, ty)], 1, offset);
 						if (offset < TILE_CAPACITY)
 						{
-                            Get(binBuffer)[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
+                            binBuffer[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
 						}
 #endif                  
 					}
@@ -289,7 +289,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 			{
 				uint tx = t / TILE_COUNTY, ty = t % TILE_COUNTY;
 				uint triangleCount = AtomicLoad(tileTriangleCount[i][tx][ty]);
-				AtomicAdd(Get(binBuffer)[BinBufferViewOffset(i) + TIDX(tx, ty)], triangleCount, tileTriangleCount[i][tx][ty]);
+				AtomicAdd(binBuffer[BinBufferViewOffset(i) + TIDX(tx, ty)], triangleCount, tileTriangleCount[i][tx][ty]);
 			}
 		}
 	}
@@ -309,7 +309,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 				uint offset = tileTriangleCount[i][tx][ty] + threadOutputOffsets[i][tx][ty];
 				uint triangleData = packTriangletriangleIndex geomSet: batchMeshIndex;
 				if (offset < TILE_CAPACITY)
-				Get(binBuffer)[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
+				binBuffer[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
 			}
 		}
 	}

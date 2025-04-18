@@ -33,8 +33,8 @@ struct FSOutput
 	float4 FragmentOutput: SV_Target;
 };
 
-RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
+Tex2D(float4) uTex0 : register(UPDATE_FREQ_NONE, t0);
+SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s1);
 
 cbuffer RootConstantSCurveInfo : register(b0)
 {
@@ -80,17 +80,17 @@ float3 Rec709ToRec2020(float3 color)
 float3 ApplyDolbySCurve(float3 Color, const float Scale, const float Slope)
 {
 	float3 pow_in = pow(abs(clamp(Color.rgb, f3(0.000061f), f3(65504.f)) / Scale), f3(Slope));
-	return (Get(C1) + Get(C2) * pow_in) / (1 + Get(C3) * pow_in);
+	return (C1 + C2 * pow_in) / (1 + C3 * pow_in);
 }
 
 FSOutput PS_MAIN( PsIn In )
 {
     INIT_MAIN;
     FSOutput Out;
-    float4 sceneColor = SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord);
+    float4 sceneColor = SampleTex2D(uTex0, uSampler0, In.texCoord);
 	float3 resultColor = float3(0.0, 0.0, 0.0);
 
-	if(Get(outputMode) == 0)
+	if(outputMode == 0)
 	{
 		//SDR
 		//resultColor = pow(sceneColor.rgb, 0.45454545);
@@ -100,12 +100,12 @@ FSOutput PS_MAIN( PsIn In )
 	{
 		//HDR10
 
-		if(Get(UseSCurve) > 0.5f)
-			resultColor = L2PQ_float3(ApplyDolbySCurve(Rec709ToRec2020(sceneColor.rgb), Get(ScurveScale), Get(ScurveSlope)));	
+		if(UseSCurve > 0.5f)
+			resultColor = L2PQ_float3(ApplyDolbySCurve(Rec709ToRec2020(sceneColor.rgb), ScurveScale, ScurveSlope));	
 		else
-			resultColor = L2PQ_float3( min(Rec709ToRec2020(sceneColor.rgb) * Get(linearScale), 10000.0f));		
+			resultColor = L2PQ_float3( min(Rec709ToRec2020(sceneColor.rgb) * linearScale, 10000.0f));		
 	}
 
     Out.FragmentOutput = float4(resultColor, 1.0);
-    RETURN(Out);
+    return Out;
 }

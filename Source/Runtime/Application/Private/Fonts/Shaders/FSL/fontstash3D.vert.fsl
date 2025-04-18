@@ -49,5 +49,5 @@ PsIn VS_MAIN( VsIn In )
 	PsIn Out;
 	Out.position = mul(modelViewProj, float4(In.position * Get(scaleBias).xy, 1.0f, 1.0f));
 	Out.texCoord = In.texCoord;
-	RETURN(Out);
+	RETURN Out;
 }

@@ -43,15 +43,15 @@ struct FSOutput
 	float4 result: SV_Target;
 };
 
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 2);
+SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s0);
 
 #if SAMPLE_COUNT > 1
-	RES(Depth2DMS(float, SAMPLE_COUNT), depthTexture, UPDATE_FREQ_NONE, t0, binding = 3);
+	Depth2DMS(float, SAMPLE_COUNT) depthTexture : register(UPDATE_FREQ_NONE, t0);
 #else
-	RES(Depth2D(float), depthTexture, UPDATE_FREQ_NONE, t0, binding = 3);
+	Depth2D(float) depthTexture : register(UPDATE_FREQ_NONE, t0);
 #endif
 
-RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t1, binding = 4);
+Tex2D(float) shadowMap : register(UPDATE_FREQ_NONE, t1);
 
 cbuffer GodRayRootConstant : register(b2)
 {
@@ -60,7 +60,7 @@ cbuffer GodRayRootConstant : register(b2)
 
 float GetShadowFactor(float3 position)
 {
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+	float4 posLS = mul(transform[VIEW_SHADOW].vp, float4(position, 1.0f));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -73,9 +73,9 @@ float GetShadowFactor(float3 position)
 
 	if( all(GreaterThan(posLS.xy, 0)) && all(LessThan(posLS.xy, 1)))
 	{
-		float CShadow = SampleLvlTex2D(Get(shadowMap), Get(uSampler0), posLS.xy, 0).r;
+		float CShadow = SampleLvlTex2D(shadowMap, uSampler0, posLS.xy, 0).r;
 
-		float esm = exp((CShadow - posLS.z) * Get(esmControl));
+		float esm = exp((CShadow - posLS.z) * esmControl);
 		
 		shadowFactor = saturate(2.0 - esm);
 	}
@@ -85,13 +85,13 @@ float GetShadowFactor(float3 position)
 
 float PhaseHenyeyGreenstein(float VoL)
 {
-    float g = Get(mScatterFactor);
+    float g = mScatterFactor;
     float nom = 1 - g * g;
     float denom = 4 * PI * pow(1 + g * g - 2 * g * VoL, 1.5);
     return nom / denom;
 }
 
-STATIC const float ditherOffsets[16] = 
+static const float ditherOffsets[16] = 
 {
 	0.0f,   0.75f,  0.1875f, 0.9375f,
 	0.5f,   0.25f,  0.6875f, 0.4375f,
@@ -107,25 +107,25 @@ FSOutput PS_MAIN( PsIn In )
 	float depth = 0.0f;
 #if SAMPLE_COUNT > 1
 	for(int i = 0; i < SAMPLE_COUNT; ++i)
-		depth += LoadTex2DMS(Get(depthTexture), Get(uSampler0), uint2(In.position.xy * 2), i).r;
+		depth += LoadTex2DMS(depthTexture, uSampler0, uint2(In.position.xy * 2), i).r;
 #else
-	depth = SampleLvlTex2D(Get(depthTexture), Get(uSampler0), In.texCoord, 0).r;
+	depth = SampleLvlTex2D(depthTexture, uSampler0, In.texCoord, 0).r;
 #endif
 	depth /= SAMPLE_COUNT;
 
 	float3 color = float3(0.0f, 0.0f, 0.0f);
 
-	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+	float4 WorldPosW = mul(transform[VIEW_CAMERA].invVP, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
 
-	float3 rayStart = Get(camPos).xyz;
+	float3 rayStart = camPos.xyz;
 	float3 rayEnd = WorldPosW.xyz / WorldPosW.w;
 
-	float3 L = -Get(lightDir).xyz;
+	float3 L = -lightDir.xyz;
 
 	float3 marchDir = normalize(rayEnd - rayStart);
 	float3 marchStep = (rayEnd - rayStart) / 10;
 
-	int2 ditherIdx = int2(fmod((In.texCoord) / Get(twoOverRes), 4.0f));
+	int2 ditherIdx = int2(fmod((In.texCoord) / twoOverRes, 4.0f));
 	float offset = ditherOffsets[ditherIdx.x * 4 + ditherIdx.y];
 
 	float3 samplePos = rayStart + offset * marchStep;
@@ -134,7 +134,7 @@ FSOutput PS_MAIN( PsIn In )
 	{
 		float shadowFactor = GetShadowFactor(samplePos);
 
-		color += Get(lightColor).rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
+		color += lightColor.rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
 
 		samplePos += marchStep;
 	}
@@ -142,5 +142,5 @@ FSOutput PS_MAIN( PsIn In )
 	color /= 10;
 	Out.result = float4(color, 1.0f);
 	
-    RETURN(Out);
+    return Out;
 }

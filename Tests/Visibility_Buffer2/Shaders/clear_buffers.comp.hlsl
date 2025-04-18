@@ -22,11 +22,11 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
-#include "triangle_binning.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.hlsl"
+#include "triangle_binning.h.hlsl"
 
 
-RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_NONE, u4, binding = 8);
+RWStructuredBuffer<uint> binBuffer : register(UPDATE_FREQ_NONE, u4);
 
 [numthreads(1, 1, 1)]
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
@@ -41,10 +41,10 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
            {
                for (uint ty = 0; ty < TILE_COUNTY; ++ty)
                {
-                   Get(binBuffer)[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
+                   binBuffer[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
                }
            }
        }
     }
-	RETURN();
+	return;
 }

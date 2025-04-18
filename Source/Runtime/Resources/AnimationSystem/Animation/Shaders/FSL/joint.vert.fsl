@@ -90,5 +90,5 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
     float3 lightDir = normalize(Get(lightPosition).xyz - pos.xyz);
     Out.LightDirection = float4(lightDir,0.0f);
 
-    RETURN(Out);
+    RETURN Out;
 }

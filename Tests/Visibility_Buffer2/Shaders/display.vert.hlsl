@@ -42,5 +42,5 @@ PsIn VS_MAIN( SV_VertexID(uint) VertexID )
 	Out.position = position;
 	Out.texCoord = position.xy * float2(0.5, -0.5) + 0.5;
 
-    RETURN(Out);
+    return Out;
 }

@@ -22,11 +22,11 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
 
-RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 20);
+SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  UPDATE_FREQ_NONE, t6, binding = 21);
+	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t6);
 #else
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  space4, t6, binding = 21);
+	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t6);
 #endif

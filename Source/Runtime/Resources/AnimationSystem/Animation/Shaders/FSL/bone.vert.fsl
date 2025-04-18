@@ -148,5 +148,5 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
     float3 ambient = baseColor * ambientCoeff;
     Out.Color = float4(diffuse + ambient, 1.0);
 
-    RETURN(Out);
+    RETURN Out;
 }

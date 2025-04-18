@@ -22,10 +22,10 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
-#include "triangle_binning.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
+#include "triangle_binning.h.hlsl"
 
-RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
+RWStructuredBuffer<uint64_t> visibilityBuffer : register(UPDATE_FREQ_NONE, u0);
 
 cbuffer RootConstantRenderTargetInfo : register(b0)
 {
@@ -39,12 +39,12 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
     INIT_MAIN;
     
-    if (threadID.x >= Get(width))
+    if (threadID.x >= width)
     {
-        RETURN();
+        return;
     }
 
-    Get(visibilityBuffer)[threadID.x] = INVALID_VISIBILITY_DATA;
+    visibilityBuffer[threadID.x] = INVALID_VISIBILITY_DATA;
 
-    RETURN();
+    return;
 }

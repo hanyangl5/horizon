@@ -25,17 +25,17 @@
 #ifndef vb_resources_h
 #define vb_resources_h
 
-RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 2);
+SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  UPDATE_FREQ_NONE, t6, binding = 21);
+	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t6);
 #else
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  space4, t6, binding = 21);
+	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t6);
 #endif
 
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 11);
-RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t1, binding = 12);
-RES(Buffer(uint), indirectFilteredBatches, UPDATE_FREQ_PER_FRAME, t2, binding = 13);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
+ByteAddressBuffer vertexPositionBuffer : register(UPDATE_FREQ_NONE, t0);
+ByteAddressBuffer filteredIndexBuffer : register(UPDATE_FREQ_PER_FRAME, t1);
+StructuredBuffer<uint> indirectFilteredBatches : register(UPDATE_FREQ_PER_FRAME, t2);
+ByteAddressBuffer vertexTexCoordBuffer : register(UPDATE_FREQ_NONE, t5);
 
 cbuffer RootConstantViewInfo : register(b0)
 {

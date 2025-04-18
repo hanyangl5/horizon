@@ -34,8 +34,8 @@ cbuffer uniformBlock_rootcbv: register(UPDATE_FREQ_NONE, b1)
 #endif
 };
 
-RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t2, binding = 2);
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s3, binding = 3);
+Tex2D(float4) uTex0 : register(UPDATE_FREQ_NONE, t2);
+SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s3);
 
 cbuffer uRootConstants : register(b0)
 {

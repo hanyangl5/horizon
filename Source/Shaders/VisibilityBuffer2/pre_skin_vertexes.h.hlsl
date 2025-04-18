@@ -25,11 +25,11 @@
 #ifndef _VB_PRE_SKIN_VERTEXES_H
 #define _VB_PRE_SKIN_VERTEXES_H
 
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "shader_defs.h.hlsl"
+#include "vb_resources.h.hlsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.hlsl"
 
-RES(Buffer(float4x4), jointMatrixes, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+StructuredBuffer<float4x4> jointMatrixes : register(UPDATE_FREQ_PER_FRAME, t0);
 
 cbuffer outputBufferOffsets: register(UPDATE_FREQ_PER_FRAME, b0)
 {
@@ -42,14 +42,14 @@ cbuffer outputBufferOffsets: register(UPDATE_FREQ_PER_FRAME, b0)
 #define ATTRIBUTE_BUFFER_UPDATE_FREQ UPDATE_FREQ_NONE
 #endif
 
-RES(RWByteBuffer, vertexPositionBuffer, ATTRIBUTE_BUFFER_UPDATE_FREQ, u1, binding = 1);
+RWByteAddressBuffer vertexPositionBuffer : register(ATTRIBUTE_BUFFER_UPDATE_FREQ, u1);
 
 #ifdef PRE_SKIN_NORMALS
-RES(RWByteBuffer, vertexNormalBuffer, ATTRIBUTE_BUFFER_UPDATE_FREQ, u2, binding = 2);
+RWByteAddressBuffer vertexNormalBuffer : register(ATTRIBUTE_BUFFER_UPDATE_FREQ, u2);
 #endif // PRE_SKIN_NORMALS
 
 #ifdef PRE_SKIN_TANGENTS
-RES(RWByteBuffer, vertexTangentBuffer, ATTRIBUTE_BUFFER_UPDATE_FREQ, u3, binding = 3);
+RWByteAddressBuffer vertexTangentBuffer : register(ATTRIBUTE_BUFFER_UPDATE_FREQ, u3);
 #endif // PRE_SKIN_TANGENTS
 
 struct PreSkinIn
@@ -67,56 +67,56 @@ struct PreSkinIn
 
 void PreSkinVertex(const uint groupIdX_batchIndex, const uint threadIdX_vertexIndex, PreSkinIn In, uint4 jointIndices, float4 jointWeights)
 {
-    float4x4 boneTransform = Get(jointMatrixes)[jointIndices[0]] * jointWeights[0];
-    boneTransform += Get(jointMatrixes)[jointIndices[1]] * jointWeights[1];
-    boneTransform += Get(jointMatrixes)[jointIndices[2]] * jointWeights[2];
-    boneTransform += Get(jointMatrixes)[jointIndices[3]] * jointWeights[3];
+    float4x4 boneTransform = jointMatrixes[jointIndices[0]] * jointWeights[0];
+    boneTransform += jointMatrixes[jointIndices[1]] * jointWeights[1];
+    boneTransform += jointMatrixes[jointIndices[2]] * jointWeights[2];
+    boneTransform += jointMatrixes[jointIndices[3]] * jointWeights[3];
 
-	uint vertexOutputOffset = threadIdX_vertexIndex + Get(skinBatchDataBuffer)[groupIdX_batchIndex].outputVertexOffset;
+	uint vertexOutputOffset = threadIdX_vertexIndex + skinBatchDataBuffer[groupIdX_batchIndex].outputVertexOffset;
 
 	// Apply global offset, this way PreSkinBatchData::outputVertexOffset can be relative to 0 and this global offset
     // gives us the position in the final buffer where to write the data
-    vertexOutputOffset += Get(bufferOffsets).vertexOffset;
+    vertexOutputOffset += bufferOffsets.vertexOffset;
 
     uint3 uintPos = asuint(mul(boneTransform, float4(In.position, 1.0f)).xyz);
-    StoreByte(Get(vertexPositionBuffer), (vertexOutputOffset * 3 + 0) << 2, uintPos[0]);
-    StoreByte(Get(vertexPositionBuffer), (vertexOutputOffset * 3 + 1) << 2, uintPos[1]);
-    StoreByte(Get(vertexPositionBuffer), (vertexOutputOffset * 3 + 2) << 2, uintPos[2]);
+    StoreByte(vertexPositionBuffer, (vertexOutputOffset * 3 + 0) << 2, uintPos[0]);
+    StoreByte(vertexPositionBuffer, (vertexOutputOffset * 3 + 1) << 2, uintPos[1]);
+    StoreByte(vertexPositionBuffer, (vertexOutputOffset * 3 + 2) << 2, uintPos[2]);
 
 #ifdef PRE_SKIN_NORMALS
     float3 normal = decodeDir(unpackUnorm2x16(In.normal));
     normal = mul(adjoint_float4x4(boneTransform), normal);
     uint packedNormal = packUnorm2x16(encodeDir(normal));
-    StoreByte(Get(vertexNormalBuffer), vertexOutputOffset << 2, packedNormal);
+    StoreByte(vertexNormalBuffer, vertexOutputOffset << 2, packedNormal);
 #endif
 
 #ifdef PRE_SKIN_TANGENTS
     float3 tangent = decodeDir(unpackUnorm2x16(In.tangent));
     tangent = mul(boneTransform, float4(tangent, 0.0f)).xyz;
     uint packedTangent = packUnorm2x16(encodeDir(tangent));
-    StoreByte(Get(vertexTangentBuffer), vertexOutputOffset << 2, packedTangent);
+    StoreByte(vertexTangentBuffer, vertexOutputOffset << 2, packedTangent);
 #endif
 }
 
 float3 LoadVertexPositionFloat3(uint vtxIndex)
 {
-    return asfloat(LoadByte4(Get(vertexPositionBuffer), (vtxIndex * 3) << 2)).xyz;
+    return asfloat(vertexPositionBuffer.Load4((vtxIndex * 3) << 2)).xyz;
 }
 
-#define LoadJointIndexes4x16(buffer, jointVtxIndex) unpackUint4x16FromUint2x32(uint2(LoadByte4(Get(buffer), (jointVtxIndex * 2) << 2).xy))
-#define LoadJointWeightsFloat4(buffer, jointVtxIndex) asfloat(LoadByte4(Get(buffer), jointVtxIndex * 16));
+#define LoadJointIndexes4x16(buffer, jointVtxIndex) unpackUint4x16FromUint2x32(uint2(buffer.Load4((jointVtxIndex * 2) << 2).xy))
+#define LoadJointWeightsFloat4(buffer, jointVtxIndex) asfloat(buffer.Load4(jointVtxIndex * 16));
 
 #ifdef PRE_SKIN_NORMALS
 uint LoadVertexNormalUint(uint vtxIndex)
 {
-    return LoadByte(Get(vertexNormalBuffer), vtxIndex << 2);
+    return vertexNormalBuffer.Load(vtxIndex << 2);
 }
 #endif
 
 #ifdef PRE_SKIN_TANGENTS
 uint LoadVertexTangentUint(uint vtxIndex)
 {
-    return LoadByte(Get(vertexTangentBuffer), vtxIndex << 2);
+    return vertexTangentBuffer.Load(vtxIndex << 2);
 }
 #endif
 
