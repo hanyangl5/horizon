@@ -25,13 +25,13 @@
 RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s0, binding = 1);
 
-STRUCT(VSinput) {
-	DATA(float4, Position, POSITION);
+struct VSinput {
+	float4 Position: POSITION;
 };
 
-STRUCT(VSOutput) {
-	DATA(float4, Position, SV_Position);
-	DATA(float3, pos, POSITION);
+struct VSOutput {
+	float4 Position: SV_Position;
+	float3 pos: POSITION;
 };
 
 float4 PS_MAIN( VSOutput Input )

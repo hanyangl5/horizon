@@ -27,34 +27,34 @@
 
 #define MAX_INSTANCES 804
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+cbuffer uniformBlock: register(UPDATE_FREQ_PER_DRAW, b0)
 {
 #if FT_MULTIVIEW
-    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+    float4x4 mvp[VR_MULTIVIEW_COUNT] : None
 #else
-    DATA(float4x4, mvp, None);
+    float4x4 mvp : None
 #endif
-    DATA(float4x4, viewMatrix, None);
-    DATA(float4, color[MAX_INSTANCES], None);
+    float4x4 viewMatrix : None
+    float4 color[MAX_INSTANCES] : None
     // Point Light Information
-    DATA(float4, lightPosition, None);
-    DATA(float4, lightColor, None);
-    DATA(float4, jointColor, None);
-    DATA(uint4, skeletonInfo, None);
-    DATA(float4x4, toWorld[MAX_INSTANCES], None);
+    float4 lightPosition : None
+    float4 lightColor : None
+    float4 jointColor : None
+    uint4 skeletonInfo : None
+    float4x4 toWorld[MAX_INSTANCES] : None
 };
 
-STRUCT(VSInput)
+struct VSInput
 {
-    DATA(float4, Position, POSITION);
-    DATA(float4, Normal, NORMAL);
+    float4 Position : POSITION
+    float4 Normal : NORMAL
 };
 
-STRUCT(VSOutput)
+struct VSOutput
 {
-    DATA(float4, Position, SV_Position);
-    DATA(float4, QuadCoord, TEXCOORD0);
-    DATA(float4, LightDirection, TEXCOORD1);
+    float4 Position : SV_Position
+    float4 QuadCoord : TEXCOORD0
+    float4 LightDirection : TEXCOORD1
 };
 
 VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)

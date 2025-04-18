@@ -31,9 +31,9 @@
 
 RES(Buffer(float4x4), jointMatrixes, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
 
-CBUFFER(outputBufferOffsets, UPDATE_FREQ_PER_FRAME, b0, binding = 4)
+cbuffer outputBufferOffsets: register(UPDATE_FREQ_PER_FRAME, b0)
 {
-    DATA(PreSkinBufferOffsets, bufferOffsets, None);
+    PreSkinBufferOffsets bufferOffsets : None
 };
 
 #ifdef PRE_SKIN_ASYNC_COMPUTE

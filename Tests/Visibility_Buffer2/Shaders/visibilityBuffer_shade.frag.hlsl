@@ -34,10 +34,10 @@
 
 // This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
 
-STRUCT(VSOutput)
+struct VSOutput
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, screenPos, TEXCOORD0);
+	float4 position: SV_Position;
+	float2 screenPos: TEXCOORD0;
 };
 
 // Static descriptors

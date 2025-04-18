@@ -24,16 +24,16 @@
 
 #include "resources.h"
 
-STRUCT(VsIn)
+struct VsIn
 {
-	DATA(float2, position, Position);
-	DATA(float2, texCoord, TEXCOORD0);
+	float2 position: Position;
+	float2 texCoord: TEXCOORD0;
 };
 
-STRUCT(PsIn)
+struct PsIn
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
+	float4 position: SV_Position;
+	float2 texCoord: TEXCOORD0;
 };
 
 PsIn VS_MAIN( VsIn In )

@@ -22,28 +22,25 @@
  * under the License.
 */
 
-CBUFFER(UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+struct PsIn
 {
-	DATA(float4x4, projView, None);
-	DATA(float3, camPos, None);
+    float4 position: SV_Position;
+    float2 texCoord: TEXCOORD;
 };
 
-STRUCT(VSInput) {
-	DATA(float4, Position, POSITION);
-};
-
-STRUCT(VSOutput) {
-	DATA(float4, Position, SV_Position);
-	DATA(float3, pos, POSITION);
-};
-
-VSOutput VS_MAIN( VSInput Input )
+PsIn VS_MAIN( SV_VertexID(uint) VertexID )
 {
     INIT_MAIN;
-    VSOutput result;
-    result.Position = mul(Get(projView), Input.Position);
-	result.Position = result.Position.xyww; //this makes depth buffer 1.0
+    PsIn Out;
 
-	result.pos = Input.Position.xyz;
-    RETURN(result);
+	// Produce a fullscreen triangle
+	float4 position;
+	position.x = (VertexID == 2) ? 3.0 : -1.0;
+	position.y = (VertexID == 0) ? -3.0 : 1.0;
+	position.zw = f2(1.0);
+
+	Out.position = position;
+	Out.texCoord = position.xy * float2(0.5, -0.5) + 0.5;
+
+    RETURN(Out);
 }

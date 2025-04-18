@@ -50,7 +50,7 @@ bool IsParticleSetVisible(ParticleSet particleSet, float4x4 viewProj, uint index
 	return true;
 }
 
-NUM_THREADS(1, 1, 1)
+[numthreads(1, 1, 1)]
 void CS_MAIN()
 {
 	INIT_MAIN;

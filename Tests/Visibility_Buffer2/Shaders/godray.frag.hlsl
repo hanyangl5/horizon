@@ -28,19 +28,19 @@
     #define SAMPLE_COUNT 1
 #endif
 
-#include "shader_defs.h.fsl"
+#include "shader_defs.h.hlsl"
 
-STATIC const float PI = 3.1415926535897932384626422832795028841971f;
+static const float PI = 3.1415926535897932384626422832795028841971f;
 
-STRUCT(PsIn)
+struct PsIn
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD);
+    float4 position : SV_Positio;
+    float2 texCoord : TEXCOORD;
 };
 
-STRUCT(FSOutput)
+struct FSOutput
 {
-	DATA(float4, result, SV_Target);
+	float4 result: SV_Target;
 };
 
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 2);
@@ -53,9 +53,9 @@ RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 2);
 
 RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t1, binding = 4);
 
-PUSH_CONSTANT(GodRayRootConstant, b2)
+cbuffer GodRayRootConstant : register(b2)
 {
-	DATA(float, mScatterFactor, None);
+	float mScatterFactor: None;
 };
 
 float GetShadowFactor(float3 position)

@@ -27,12 +27,12 @@
 #include "particle_sets.h.fsl"
 #include "particle_utils.h.fsl"
 
-STRUCT(VSOutput)
+struct VSOutput
 {
-	DATA(float4, Position, SV_Position);
-	DATA(float2, TexCoord, TEXCOORD0);
-	DATA(FLAT(uint), InstanceId, TEXCOORD1);
-	DATA(FLAT(uint), ParticleSetIndex, TEXCOORD2);
+	float4 Position : SV_Position
+	float2 TexCoord : TEXCOORD0
+	FLAT(uint) InstanceId : TEXCOORD1
+	FLAT(uint) ParticleSetIndex : TEXCOORD2
 };
 
 VSOutput VS_MAIN( SV_VertexID(uint) vertexId )

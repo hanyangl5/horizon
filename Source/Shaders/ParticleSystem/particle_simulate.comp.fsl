@@ -37,7 +37,7 @@ GroupShared(uint, HelpIndicesReadIdx);
 GroupShared(uint, HelpBufferSection);
 
 // Current batch size is 32x1, each thread simulates and renders 1 particle
-NUM_THREADS(PARTICLES_BATCH_X, PARTICLES_BATCH_Y, 1)
+[numthreads(PARTICLES_BATCH_X, PARTICLES_BATCH_Y, 1)]
 void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3) inDispatchThreadId)
 {
 	INIT_MAIN;

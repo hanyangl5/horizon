@@ -57,7 +57,7 @@ RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t6, bind
 RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], space4, t6, binding = 21);
 #endif
 
-NUM_THREADS(FILTER_BATCH_SIZE, 1, 1)
+[numthreads(FILTER_BATCH_SIZE, 1, 1)]
 void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 {
     INIT_MAIN;
@@ -98,7 +98,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 	// this is the triangle index, the fetched index still needs to be shifted though...
 	uint triangleIndex = inGroupId.x + batchInputIndexOffset / 3;
 
-	uint triangleData = packTriangleData(triangleIndex, geomSet, batchMeshIndex);
+	uint triangleData = packTriangletriangleIndex geomSet: batchMeshIndex;
 
 	//if (triangleIndex > 4096*4) RETURN;
 
@@ -307,7 +307,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 			if (tx < TILE_COUNTX && ty < TILE_COUNTY) 
 			{
 				uint offset = tileTriangleCount[i][tx][ty] + threadOutputOffsets[i][tx][ty];
-				uint triangleData = packTriangleData(triangleIndex, geomSet, batchMeshIndex);
+				uint triangleData = packTriangletriangleIndex geomSet: batchMeshIndex;
 				if (offset < TILE_CAPACITY)
 				Get(binBuffer)[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
 			}

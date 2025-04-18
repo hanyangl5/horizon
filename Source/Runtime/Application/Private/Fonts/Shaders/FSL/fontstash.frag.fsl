@@ -24,10 +24,10 @@
 
 #include "resources.h"
 
-STRUCT(PsIn)
+struct PsIn
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
+	float4 position: SV_Position;
+	float2 texCoord: TEXCOORD0;
 };
 
 float4 PS_MAIN( PsIn In )

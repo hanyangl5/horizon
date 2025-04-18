@@ -22,29 +22,28 @@
  * under the License.
 */
 
-STRUCT(PsIn)
+cbuffer UniformCameraSky: register(UPDATE_FREQ_PER_FRAME, b0)
 {
-    DATA(float4, position, SV_Position);
-    DATA(float2, texCoord, TEXCOORD);
+	float4x4 projView: None;
+	float3 camPos: None;
 };
 
-RES(Tex2D(float4), SceneTex,  UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 1);
-RES(Tex2D(float4), GodRayTex, UPDATE_FREQ_NONE, s1, binding = 2);
-
-STRUCT(FSOutput)
-{
-	DATA(float4, FragmentOutput, SV_Target);
+struct VSInput {
+	float4 Position: POSITION;
 };
 
-FSOutput PS_MAIN( PsIn In )
+struct VSOutput {
+	float4 Position: SV_Position;
+	float3 pos: POSITION;
+};
+
+VSOutput VS_MAIN( VSInput Input )
 {
     INIT_MAIN;
-    FSOutput Out;
+    VSOutput result;
+    result.Position = mul(Get(projView), Input.Position);
+	result.Position = result.Position.xyww; //this makes depth buffer 1.0
 
-	float4 sceneColor = SampleTex2D(Get(SceneTex), Get(uSampler0), In.texCoord);
-	sceneColor.rgb += SampleTex2D(Get(GodRayTex), Get(uSampler0), In.texCoord).rgb;
-    Out.FragmentOutput = float4(sceneColor.rgb, 1.0);
-
-    RETURN(Out);
+	result.pos = Input.Position.xyz;
+    RETURN(result);
 }

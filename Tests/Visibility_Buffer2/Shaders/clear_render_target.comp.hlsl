@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,29 +22,29 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
 #include "triangle_binning.h.fsl"
 
+RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
 
-RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_NONE, u4, binding = 8);
+cbuffer RootConstantRenderTargetInfo : register(b0)
+{
+    uint view: None;
+    int width: None;
+    int height: None;
+};
 
-NUM_THREADS(1, 1, 1)
+[numthreads(256, 1, 1)]
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
-	INIT_MAIN;
-
-    if (threadID.x == 0)
+    INIT_MAIN;
+    
+    if (threadID.x >= Get(width))
     {
-       for (uint view = 0; view < NUM_CULLING_VIEWPORTS; ++view)
-       {
-           for (uint tx = 0; tx < TILE_COUNTX; ++tx)
-           {
-               for (uint ty = 0; ty < TILE_COUNTY; ++ty)
-               {
-                   Get(binBuffer)[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
-               }
-           }
-       }
+        RETURN();
     }
-	RETURN();
+
+    Get(visibilityBuffer)[threadID.x] = INVALID_VISIBILITY_DATA;
+
+    RETURN();
 }

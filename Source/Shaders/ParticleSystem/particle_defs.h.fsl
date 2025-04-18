@@ -73,9 +73,9 @@
 
 #if defined(NO_FSL_DEFINITIONS) && !defined(CBUFFER)
     #define STATIC static
-    #define STRUCT(NAME) struct NAME
+    #define struct NAME struct NAME
     #define DATA(TYPE, NAME, SEM) TYPE NAME
-    #define CBUFFER(NAME, FREQ, REG, BINDING) struct NAME
+    #define cbuffer NAME: register(FREQ, REG) struct NAME
 	#define float4x4 mat4
 	#define RES(Type, Name, Frequency, u, b)
 #endif
@@ -108,81 +108,81 @@
 
 #define PARTICLE_BITFIELD_LIGHT_CULLED					0x8000000U
 
-STRUCT(ParticleData)
+struct ParticleData
 {
-	DATA(uint2, VelocityAndAge, None);
-	DATA(uint2, Position, None);
+	uint2 VelocityAndAge : None
+	uint2 Position : None
 };
 
-STRUCT(ParticleSet)
+struct ParticleSet
 {
 	// X,Y,Z: volume of the particle set, W: scale of its particles
-	DATA(float4, Size, None);
+	float4 Size : None
 
 	// Position of the particle set
-	DATA(float3, Position, None);
+	float3 Position : None
 	// Amount of particles to be spawned per second
-	DATA(float, ParticlesPerSecond, None);
+	float ParticlesPerSecond : None
 
 	// Color of all particles in the set
-	DATA(float3, Color, None);
-	DATA(float, LightRadius, None);
+	float3 Color : None
+	float LightRadius : None
 
 	// Type of particle, it establishes its behaviour (flocking, rain...)
-	DATA(uint, ParticleType, None);
+	uint ParticleType : None
 	// Light settings for the particle set, describes whether particles should cast shadows or emit lights
-	DATA(uint, LightBitfield, None);
+	uint LightBitfield : None
 	// Maximum amount of particles to allocate
-	DATA(uint, MaxParticles, None);
+	uint MaxParticles : None
 	// Lifetime of the particle
-	DATA(float, InitialAge, None);
+	float InitialAge : None
 
 	// Forces for the flocking algorithm
-	DATA(uint, BoidsAvoidSeekStrength, None);
-	DATA(uint, BoidsSeparationFleeStrength, None);
-	DATA(uint, BoidsCohesionAlignmentStrength, None);
-	DATA(uint, SteeringStrengthMaxSpeed, None);
+	uint BoidsAvoidSeekStrength : None
+	uint BoidsSeparationFleeStrength : None
+	uint BoidsCohesionAlignmentStrength : None
+	uint SteeringStrengthMaxSpeed : None
 };
 
-STRUCT(PackedParticleTransparencyNode)
+struct PackedParticleTransparencyNode
 {
-	DATA(uint, Color, None);
-	DATA(float, Depth, None);
+	uint Color : None
+	float Depth : None
 };
 
-STRUCT(ParticleTransparencyNode)
+struct ParticleTransparencyNode
 {
 	// Color of the particle
-	DATA(float4, Color, None);
+	float4 Color : None
 	// Depth of the particle
-	DATA(float, Depth, None);
+	float Depth : None
 };
 
-CBUFFER(ParticleConstantBufferData, UPDATE_FREQ_PER_FRAME, b10, binding = 2)
+cbuffer ParticleConstantBufferData: register(UPDATE_FREQ_PER_FRAME, b10)
 {
 	// Seed used to generate random values
-	DATA(uint, Seed, None);
+	uint Seed : None
 	// Total amount of particle sets in the particle system
-	DATA(uint, ParticleSetCount, None);
+	uint ParticleSetCount : None
 	
 	// Amount of dispatches in the Y direction
-	DATA(uint, SimulationDispatchSize, None);
+	uint SimulationDispatchSize : None
 	// Reset particles (this is set to true when the app is loaded)
-	DATA(uint, ResetParticles, None);
+	uint ResetParticles : None
 	// Time elapsed since the beginning of the app
-	DATA(float, Time, None);
+	float Time : None
 	// Delta time
-	DATA(float, TimeDelta, None);
+	float TimeDelta : None
 	
 	// Screen size
-	DATA(uint2, ScreenSize, None);
+	uint2 ScreenSize : None
 	// Point to follow when flocking
-	DATA(float3, SeekPosition, None);
+	float3 SeekPosition : None
 	
-	DATA(float4x4, ViewTransform, None);
-	DATA(float4x4, ProjTransform, None);
-	DATA(float4x4, ViewProjTransform, None);
-	DATA(float4, CameraPosition, None);
+	float4x4 ViewTransform : None
+	float4x4 ProjTransform : None
+	float4x4 ViewProjTransform : None
+	float4 CameraPosition : None
 };
 
 #endif

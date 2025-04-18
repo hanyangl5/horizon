@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- *
+ * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- *
+ * 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,29 +22,42 @@
  * under the License.
 */
 
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
 #include "triangle_binning.h.fsl"
 
-RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
 
-PUSH_CONSTANT(RootConstantRenderTargetInfo, b0)
+RES(Buffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, t1, binding = 0);
+
+struct VSOutput
 {
-    DATA(uint, view, None);
-    DATA(int, width, None);
-    DATA(int, height, None);
+	float4 position: SV_Position;
+	float2 screenPos: TEXCOORD0;
 };
 
-NUM_THREADS(256, 1, 1)
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
+struct PSOutput
 {
-    INIT_MAIN;
-    
-    if (threadID.x >= Get(width))
-    {
-        RETURN();
-    }
+	float depth: SV_Depth;
+};
 
-    Get(visibilityBuffer)[threadID.x] = INVALID_VISIBILITY_DATA;
+cbuffer RootConstant : register(b0)
+{
+	int view: None;
+	int width: None;
+};
 
-    RETURN();
+PSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
+{
+	INIT_MAIN;
+
+	uint index = VisibilityBufferOffset(Get(view), Get(width), In.position.x, In.position.y);
+
+	uint64_t packedU64 = Get(visibilityBuffer)[index];
+	float depth = 0.0f;
+	uint vbId = 0u;
+	unpackDepthVBId(packedU64, depth, vbId);
+
+	PSOutput Out;
+	Out.depth = depth;
+	RETURN(Out);
 }

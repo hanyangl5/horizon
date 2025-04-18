@@ -27,9 +27,9 @@
 
 #ifdef NO_FSL_DEFINITIONS
 #define STATIC                            static
-#define STRUCT(NAME)                      struct NAME
-#define DATA(TYPE, NAME, SEM)             TYPE NAME
-#define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
+#define struct NAME                      struct NAME
+#define TYPE NAME: SEM             TYPE NAME
+#define cbuffer NAME: register(REG, FREQ) struct NAME
 #define float4x4                          mat4
 #endif
 
@@ -51,43 +51,43 @@
 
 #define NO_FSL_DEFINITIONS
 #include <Graphics/IVisibilityBuffer2.h>
-STRUCT(MeshConstants)
+struct MeshConstants
 {
-    DATA(uint, indexOffset, None);
-    DATA(uint, vertexOffset, None);
-    DATA(uint, materialID, None);
-    DATA(uint, twoSided, None); // 0 or 1
+    uint indexOffset: None;
+    uint vertexOffset: None;
+    uint materialID: None;
+    uint twoSided: None; // 0 or 1
 };
 
-CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+cbuffer PerFrameConstants: register(UPDATE_FREQ_PER_FRAME, b0)
 {
-    DATA(float4, camPos, None);
+    float4 camPos: None;
     //========================================
-    DATA(float4, lightDir, None);
+    float4 lightDir: None;
     //========================================
-    DATA(float4, lightColor, None);
+    float4 lightColor: None;
     //========================================
-    DATA(float2, CameraPlane, None); // x : near, y : far
-    DATA(uint, lightingMode, None);
-    DATA(uint, outputMode, None);
+    float2 CameraPlane: None; // x : near, y : far
+    uint lightingMode: None;
+    uint outputMode: None;
     //========================================
-    DATA(float2, twoOverRes, None);
-    DATA(float, esmControl, None);
-    DATA(uint, aoQuality, None);
+    float2 twoOverRes: None;
+    float esmControl: None;
+    uint aoQuality: None;
     //========================================
-    DATA(float2, frustumPlaneSizeNormalized, None);
-    DATA(float2, depthTexSize, None);
+    float2 frustumPlaneSizeNormalized: None;
+    float2 depthTexSize: None;
     //========================================
-    DATA(float, aoIntensity, None);
-    DATA(uint, visualizeAo, None);
-    DATA(uint, smallScaleRaster, None);
-    DATA(uint, visualizeBinOccupancy, None);
+    float aoIntensity: None;
+    uint visualizeAo: None;
+    uint smallScaleRaster: None;
+    uint visualizeBinOccupancy: None;
 };
 
-STRUCT(LightData)
+struct LightData
 {
-    DATA(float4, position, None);
-    DATA(float4, color, None);
+    float4 position: None;
+    float4 color: None;
 };
 
 #endif

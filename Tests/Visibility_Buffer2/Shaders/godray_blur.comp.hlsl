@@ -29,15 +29,15 @@
 #define PASS_TYPE_VERTICAL 1
 #define MAX_BLUR_KERNEL_SIZE 8
 
-PUSH_CONSTANT(BlurRootConstant, b0)
+cbuffer BlurRootConstant : register(b0)
 {
-	DATA(uint, mBlurPassType, None);
-	DATA(uint, mFilterRadius, None);
+	uint mBlurPassType: None;
+	uint mFilterRadius: None;
 };
 
-CBUFFER(BlurWeights, UPDATE_FREQ_NONE, b1, binding = 1)
+cbuffer BlurWeights: register(UPDATE_FREQ_NONE, b1)
 {
-	DATA(float4, mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4], None);
+	float4 mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4]: None;
 };
 
 RES(RWTex2D(float4), godrayTextures[2], UPDATE_FREQ_NONE, u0, binding = 2);
@@ -146,7 +146,7 @@ float3 VerticalPass(int2 id)
 
 #endif
 
-NUM_THREADS(THREADX, THREADY, 1)
+[numthreads(THREADX, THREADY, 1)]
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
 	INIT_MAIN;

@@ -22,42 +22,29 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
 #include "triangle_binning.h.fsl"
 
 
-RES(Buffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, t1, binding = 0);
+RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_NONE, u4, binding = 8);
 
-STRUCT(VSOutput)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, screenPos, TEXCOORD0);
-};
-
-STRUCT(PSOutput)
-{
-	DATA(float, depth, SV_Depth);
-};
-
-PUSH_CONSTANT(RootConstant, b0)
-{
-	DATA(int, view, None);
-	DATA(int, width, None);
-};
-
-PSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
+[numthreads(1, 1, 1)]
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
 	INIT_MAIN;
 
-	uint index = VisibilityBufferOffset(Get(view), Get(width), In.position.x, In.position.y);
-
-	uint64_t packedU64 = Get(visibilityBuffer)[index];
-	float depth = 0.0f;
-	uint vbId = 0u;
-	unpackDepthVBId(packedU64, depth, vbId);
-
-	PSOutput Out;
-	Out.depth = depth;
-	RETURN(Out);
+    if (threadID.x == 0)
+    {
+       for (uint view = 0; view < NUM_CULLING_VIEWPORTS; ++view)
+       {
+           for (uint tx = 0; tx < TILE_COUNTX; ++tx)
+           {
+               for (uint ty = 0; ty < TILE_COUNTY; ++ty)
+               {
+                   Get(binBuffer)[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
+               }
+           }
+       }
+    }
+	RETURN();
 }

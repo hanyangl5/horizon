@@ -105,7 +105,7 @@ tile00 / tile01 / etc...
 #define GetTriIndexFromTriData(triangleData) ( triangleData >> 10 )
 #define GetGeomSetFromTriData(triangleData) ( (triangleData >> 9) & 1 )
 #define GetBatchIdFromTriData(triangleData) ( (triangleData) & 0xFF )
-uint packTriangleData(uint triangleIndex, uint geomSet, uint batchMeshIndex)
+uint packTriangleuint triangleIndex uint geomSet: uint batchMeshIndex
 {
     return (triangleIndex << 10) | (geomSet << 9) | ((batchMeshIndex) & 0xFF);
 }

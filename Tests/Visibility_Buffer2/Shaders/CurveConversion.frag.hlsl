@@ -22,25 +22,29 @@
  * under the License.
 */
 
-// This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
-STRUCT(VSOutput)
+struct PsIn
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, screenPos, TEXCOORD0);
+    float4 position: SV_Position;
+    float2 texCoord: TEXCOORD;
 };
 
-// Vertex shader
-VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
+RES(Tex2D(float4), SceneTex,  UPDATE_FREQ_NONE, t0, binding = 0);
+RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 1);
+RES(Tex2D(float4), GodRayTex, UPDATE_FREQ_NONE, s1, binding = 2);
+
+struct FSOutput
 {
-	// Produce a fullscreen triangle using the current vertexId
-	// to automatically calculate the vertex porision. This
-	// method avoids using vertex/index buffers to generate a
-	// fullscreen quad.
-	INIT_MAIN;
-	VSOutput result;
-	result.position.x = (vertexId == 2 ? 3.0 : -1.0);
-	result.position.y = (vertexId == 0 ? -3.0 : 1.0);
-	result.position.zw = float2(0, 1);
-	result.screenPos = result.position.xy;
-	RETURN(result);
+	float4 FragmentOutput: SV_Target;
+};
+
+FSOutput PS_MAIN( PsIn In )
+{
+    INIT_MAIN;
+    FSOutput Out;
+
+	float4 sceneColor = SampleTex2D(Get(SceneTex), Get(uSampler0), In.texCoord);
+	sceneColor.rgb += SampleTex2D(Get(GodRayTex), Get(uSampler0), In.texCoord).rgb;
+    Out.FragmentOutput = float4(sceneColor.rgb, 1.0);
+
+    RETURN(Out);
 }

@@ -22,14 +22,25 @@
  * under the License.
 */
 
-#include "shader_defs.h.fsl"
-#include "light_cull_resources.h.fsl"
-
-
-NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
+// This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
+struct VSOutput
 {
+	float4 position: SV_Position;
+	float2 screenPos: TEXCOORD0;
+};
+
+// Vertex shader
+VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
+{
+	// Produce a fullscreen triangle using the current vertexId
+	// to automatically calculate the vertex porision. This
+	// method avoids using vertex/index buffers to generate a
+	// fullscreen quad.
 	INIT_MAIN;
-	AtomicStore(Get(lightClustersCount)[LIGHT_CLUSTER_COUNT_POS(threadID.x, threadID.y)], 0u);
-	RETURN();
+	VSOutput result;
+	result.position.x = (vertexId == 2 ? 3.0 : -1.0);
+	result.position.y = (vertexId == 0 ? -3.0 : 1.0);
+	result.position.zw = float2(0, 1);
+	result.screenPos = result.position.xy;
+	RETURN(result);
 }

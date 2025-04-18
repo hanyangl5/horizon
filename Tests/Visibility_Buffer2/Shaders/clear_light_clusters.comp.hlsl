@@ -22,25 +22,13 @@
  * under the License.
 */
 
-STRUCT(PsIn)
+#include "shader_defs.h.fsl"
+#include "light_cull_resources.h.fsl"
+
+[numthreads(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)]
+void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
-    DATA(float4, position, SV_Position);
-    DATA(float2, texCoord, TEXCOORD);
-};
-
-PsIn VS_MAIN( SV_VertexID(uint) VertexID )
-{
-    INIT_MAIN;
-    PsIn Out;
-
-	// Produce a fullscreen triangle
-	float4 position;
-	position.x = (VertexID == 2) ? 3.0 : -1.0;
-	position.y = (VertexID == 0) ? -3.0 : 1.0;
-	position.zw = f2(1.0);
-
-	Out.position = position;
-	Out.texCoord = position.xy * float2(0.5, -0.5) + 0.5;
-
-    RETURN(Out);
+	INIT_MAIN;
+	AtomicStore(Get(lightClustersCount)[LIGHT_CLUSTER_COUNT_POS(threadID.x, threadID.y)], 0u);
+	RETURN();
 }

@@ -44,11 +44,11 @@ RES(Buffer(uint),          binBuffer,                         UPDATE_FREQ_PER_FR
 RES(Buffer(uint),          indirectFilteredBatches,           UPDATE_FREQ_PER_FRAME, t2, binding = 13);
 RES(RWBuffer(uint64_t),    visibilityBuffer,                  UPDATE_FREQ_PER_FRAME, u1, binding = 10);
 
-PUSH_CONSTANT(RootConstantViewInfo, b0)
+cbuffer RootConstantViewInfo : register(b0)
 {
-    DATA(uint, view, None);
-    DATA(int, targetWidth, None);
-    DATA(int, targetHeight, None);
+    uint view: None;
+    int targetWidth: None;
+    int targetHeight: None;
 };
 
 #if defined(SHARED_SUB_BIN_RASTER)
@@ -73,7 +73,7 @@ GroupShared(uint64_t, sharedSubBin[SUB_BIN_SIZE][SUB_BIN_SIZE]);
 
 
 // each thread responsible for 1 triangle +  (4x4 pixels)
-NUM_THREADS(BIN_RASTER_THREADS_X, BIN_RASTER_THREADS_Y, BIN_RASTER_THREADS_Z)
+[numthreads(BIN_RASTER_THREADS_X, BIN_RASTER_THREADS_Y, BIN_RASTER_THREADS_Z)]
 void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 {
     INIT_MAIN;

@@ -25,22 +25,22 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
-CBUFFER(uniformBlock_rootcbv, UPDATE_FREQ_NONE, b1, binding = 1)
+cbuffer uniformBlock_rootcbv: register(UPDATE_FREQ_NONE, b1)
 {
 #if FT_MULTIVIEW
-    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+    float4x4 mvp[VR_MULTIVIEW_COUNT]: None;
 #else
-    DATA(float4x4, mvp, None);
+    float4x4 mvp: None;
 #endif
 };
 
 RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t2, binding = 2);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s3, binding = 3);
 
-PUSH_CONSTANT(uRootConstants, b0)
+cbuffer uRootConstants : register(b0)
 {
-    DATA(float4, color, None);
-    DATA(float2, scaleBias, None);
+    float4 color: None;
+    float2 scaleBias: None;
 };
 
 #endif

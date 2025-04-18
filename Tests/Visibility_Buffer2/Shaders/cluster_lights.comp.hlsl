@@ -28,7 +28,7 @@
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
 
-NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)
+[numthreads(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)]
 void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId )
 {
 	INIT_MAIN;

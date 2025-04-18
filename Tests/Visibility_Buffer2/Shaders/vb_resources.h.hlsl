@@ -37,35 +37,35 @@ RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t1, binding = 12);
 RES(Buffer(uint), indirectFilteredBatches, UPDATE_FREQ_PER_FRAME, t2, binding = 13);
 RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
 
-PUSH_CONSTANT(RootConstantViewInfo, b0)
+cbuffer RootConstantViewInfo : register(b0)
 {
-	DATA(uint, view, None);
-    DATA(int, targetWidth, None);
-    DATA(int, targetHeight, None);
+	uint view: None;
+    int targetWidth: None;
+    int targetHeight: None;
 };
 
 #if defined(INDIRECT_ROOT_CONSTANT)
-	PUSH_CONSTANT(indirectRootConstant, b1)
+	cbuffer indirectRootConstant : register(b1)
 	{
-		DATA(uint, indirectDrawId, None);
+		uint indirectDrawId: None;
 	};
 	#define getDrawID() indirectDrawId
 #else
     #define getDrawID() In.drawId
 #endif
 
-STRUCT(VsInVBAlphaTested)
+struct VsInVBAlphaTested
 {
-    DATA(float3, position, POSITION);
-    DATA(uint, texCoord, TEXCOORD);
+    float3 position: POSITION;
+    uint texCoord: TEXCOORD;
 };
 
-STRUCT(PsInVBAlphaTested)
+struct PsInVBAlphaTested
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-	DATA(FLAT(uint), vbData, TEXCOORD1);
-	DATA(FLAT(uint), batchData, TEXCOORD2);
+	float4 position: SV_Position;
+	float2 texCoord: TEXCOORD0;
+	FLAT(uint) vbData: TEXCOORD1;
+	FLAT(uint) batchData: TEXCOORD2;
 };
 
 #endif /* vb_resources_h */

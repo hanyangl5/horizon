@@ -22,32 +22,32 @@
  * under the License.
 */
 
-STRUCT(PsIn)
+struct PsIn
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD);
+	float4 position: SV_Position;
+	float2 texCoord: TEXCOORD;
 };
 
-STRUCT(FSOutput)
+struct FSOutput
 {
-	DATA(float4, FragmentOutput, SV_Target);
+	float4 FragmentOutput: SV_Target;
 };
 
 RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
 
-PUSH_CONSTANT(RootConstantSCurveInfo, b0)
+cbuffer RootConstantSCurveInfo : register(b0)
 {
-	DATA(float, C1, None);
-	DATA(float, C2, None);
-	DATA(float, C3, None);
-	DATA(float, UseSCurve, None);
+	float C1: None;
+	float C2: None;
+	float C3: None;
+	float UseSCurve: None;
     
-	DATA(float, ScurveSlope, None);
-	DATA(float, ScurveScale, None);
-	DATA(float, linearScale, None);
-	DATA(float, pad0, None);
-	DATA(uint, outputMode, None);
+	float ScurveSlope: None;
+	float ScurveScale: None;
+	float linearScale: None;
+	float pad0: None;
+	uint outputMode: None;
 };
 
 #define PQ_N  f3(0.1593017578125)

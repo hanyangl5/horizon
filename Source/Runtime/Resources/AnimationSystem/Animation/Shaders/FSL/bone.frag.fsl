@@ -25,10 +25,10 @@
 // Shader for simple shading with a point light
 // for skeletons in Unit Test Animation
 
-STRUCT(VSOutput)
+struct VSOutput
 {
-    DATA(float4, Position, SV_Position);
-    DATA(float4, Color, COLOR);
+    float4 Position : SV_Position
+    float4 Color : COLOR
 };
 
 float4 PS_MAIN(VSOutput In)
