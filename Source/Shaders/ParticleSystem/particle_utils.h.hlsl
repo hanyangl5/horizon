@@ -37,7 +37,7 @@ void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, flo
 	if (TransparencyListHeads[bufferIndex] >= MAX_TRANSPARENCY_LAYERS)
 		return;
 	
-	AtomicAdd(TransparencyListHeads[bufferIndex], 1, listIndex);
+	InterlockedAdd(TransparencyListHeads[bufferIndex], 1, listIndex);
 
 	if (listIndex >= MAX_TRANSPARENCY_LAYERS)
 		return;
@@ -113,7 +113,7 @@ bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, 
 	do
 	{
 		// Get index to swap particle to
-		AtomicAdd(ParticleSectionsIndices[currBufferSection * 2 + PREV_VALUE], sign, currIdx);
+		InterlockedAdd(ParticleSectionsIndices[currBufferSection * 2 + PREV_VALUE], sign, currIdx);
 		if (sign*int(currIdx) < sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]))
 		{
 			toSwapBitfield = BitfieldBuffer[currIdx];

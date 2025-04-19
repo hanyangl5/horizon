@@ -29,11 +29,9 @@
 RWStructuredBuffer<uint> binBuffer : register(UPDATE_FREQ_NONE, u4);
 
 [numthreads(1, 1, 1)]
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
+void CS_MAIN( uint3 ThreadID : SV_DispatchThreadID )
 {
-	INIT_MAIN;
-
-    if (threadID.x == 0)
+    if (ThreadID.x == 0)
     {
        for (uint view = 0; view < NUM_CULLING_VIEWPORTS; ++view)
        {

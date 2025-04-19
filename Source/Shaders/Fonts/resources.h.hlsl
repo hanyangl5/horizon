@@ -34,7 +34,7 @@ cbuffer uniformBlock_rootcbv: register(UPDATE_FREQ_NONE, b1)
 #endif
 };
 
-Tex2D(float4) uTex0 : register(UPDATE_FREQ_NONE, t2);
+Texture2D<float4> uTex0 : register(UPDATE_FREQ_NONE, t2);
 SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s3);
 
 cbuffer uRootConstants : register(b0)

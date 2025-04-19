@@ -30,17 +30,16 @@ struct VSOutput
 };
 
 // Vertex shader
-VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
+VSOutput VS_MAIN( uint vertexId : SV_VertexID )
 {
 	// Produce a fullscreen triangle using the current vertexId
 	// to automatically calculate the vertex porision. This
 	// method avoids using vertex/index buffers to generate a
 	// fullscreen quad.
-	INIT_MAIN;
 	VSOutput result;
 	result.position.x = (vertexId == 2 ? 3.0 : -1.0);
 	result.position.y = (vertexId == 0 ? -3.0 : 1.0);
 	result.position.zw = float2(0, 1);
 	result.screenPos = result.position.xy;
-	RETURN(result);
+	return result;
 }

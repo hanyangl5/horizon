@@ -22,26 +22,26 @@
 * under the License.
 */
 
-Tex2D(float4) uTex : register(UPDATE_FREQ_PER_BATCH, t1);
+Texture2D<float4> uTex : register(UPDATE_FREQ_PER_BATCH, t1);
 SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
 
 cbuffer uniformBlockVS: register(UPDATE_FREQ_NONE, b0)
 {
-	float4x4 ProjectionMatrix : None
+	float4x4 ProjectionMatrix : None;
 };
 
 struct VS_INPUT
 {
 	float2 pos : Position
-	float2 uv : TEXCOORD0
+	float2 uv : TEXCOORD0;
 	float4 col : COLOR0
 };
 
 struct PS_INPUT
 {
-	float4 pos : SV_Position
+	float4 pos : SV_Position;
 	float4 col : COLOR0
-	float2 uv : TEXCOORD0
+	float2 uv : TEXCOORD0;
 };
 
 PS_INPUT VS_MAIN( VS_INPUT In )

@@ -51,7 +51,7 @@ SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s0);
 	Depth2D(float) depthTexture : register(UPDATE_FREQ_NONE, t0);
 #endif
 
-Tex2D(float) shadowMap : register(UPDATE_FREQ_NONE, t1);
+Texture2D<float> shadowMap : register(UPDATE_FREQ_NONE, t1);
 
 cbuffer GodRayRootConstant : register(b2)
 {

@@ -29,10 +29,10 @@
 
 struct VSOutput
 {
-	float4 Position : SV_Position
-	float2 TexCoord : TEXCOORD0
-	FLAT(uint) InstanceId : TEXCOORD1
-	FLAT(uint) ParticleSetIndex : TEXCOORD2
+	float4 Position : SV_Position;
+	float2 TexCoord : TEXCOORD0;
+	FLAT(uint) InstanceId : TEXCOORD2;
+	FLAT(uint) ParticleSetIndex : TEXCOORD2;
 };
 
 EARLY_FRAGMENT_TESTS

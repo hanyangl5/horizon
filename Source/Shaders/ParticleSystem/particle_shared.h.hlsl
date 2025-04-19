@@ -45,10 +45,10 @@ RWStructuredBuffer<uint> ParticlesToRasterizeCount : register(UPDATE_FREQ_PER_FR
 RWStructuredBuffer<uint> ParticlesToRasterize : register(UPDATE_FREQ_PER_FRAME, u68);
 
 // Array of textures for each particle set
-Tex2D(float4) ParticleTextures[MAX_PARTICLE_SET_COUNT] : register(UPDATE_FREQ_NONE, t59);
+Texture2D<float4> ParticleTextures[MAX_PARTICLE_SET_COUNT] : register(UPDATE_FREQ_NONE, t59);
 
-RWTex2D(float4) ColorBuffer : register(UPDATE_FREQ_PER_FRAME, u59);
-Tex2D(float) DepthBuffer : register(UPDATE_FREQ_PER_FRAME, t69);
+RWTexture2D(float4) ColorBuffer : register(UPDATE_FREQ_PER_FRAME, u59);
+Texture2D<float> DepthBuffer : register(UPDATE_FREQ_PER_FRAME, t69);
 SamplerState NearestClampSampler : register(UPDATE_FREQ_NONE, s0);
 SamplerState LinearClampSampler : register(UPDATE_FREQ_NONE, s1);
 

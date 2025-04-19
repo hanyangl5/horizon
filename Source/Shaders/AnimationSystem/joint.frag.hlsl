@@ -29,25 +29,25 @@
 cbuffer uniformBlock: register(UPDATE_FREQ_PER_DRAW, b0)
 {
 #if FT_MULTIVIEW
-    float4x4 mvp[VR_MULTIVIEW_COUNT] : None
+    float4x4 mvp[VR_MULTIVIEW_COUNT] : None;
 #else
-    float4x4 mvp : None
+    float4x4 mvp : None;
 #endif
-    float4x4 viewMatrix : None
-    float4 color[MAX_INSTANCES] : None
+    float4x4 viewMatrix : None;
+    float4 color[MAX_INSTANCES] : None;
     // Point Light Information
-    float4 lightPosition : None
-    float4 lightColor : None
-    float4 jointColor : None
-    uint4 skeletonInfo : None
-    float4x4 toWorld[MAX_INSTANCES] : None
+    float4 lightPosition : None;
+    float4 lightColor : None;
+    float4 jointColor : None;
+    uint4 skeletonInfo : None;
+    float4x4 toWorld[MAX_INSTANCES] : None;
 };
 
 struct VSOutput
 {
-    float4 Position : SV_Position
-    float4 QuadCoord : TEXCOORD0
-    float4 LightDirection : TEXCOORD1
+    float4 Position : SV_Position;
+    float4 QuadCoord : TEXCOORD0;
+    float4 LightDirection : TEXCOORD2;
 };
 
 float4 PS_MAIN(VSOutput In)
@@ -63,14 +63,14 @@ float4 PS_MAIN(VSOutput In)
     }
     float4 localNormal = float4(In.QuadCoord.xy,0.0f,0.0f);
     localNormal.xyz = lerp( float3( 0.0f, 0.0f, -1.0f ), float3(In.QuadCoord.xy,0.0f), radius );
-    float4 normal = normalize(mul(Get(viewMatrix), normalize(localNormal))); 
+    float4 normal = normalize(mul(viewMatrix, normalize(localNormal))); 
     float3 lightDir = In.LightDirection.xyz;
     float lightIntensity = 1.0f;
     float ambientCoeff = 0.4;
-    float3 baseColor = Get(jointColor).xyz;
-    float3 blendedColor = (Get(lightColor).xyz  * baseColor) * lightIntensity;
+    float3 baseColor = jointColor.xyz;
+    float3 blendedColor = (lightColor.xyz  * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out = float4(diffuse + ambient, 1.0);
-    RETURN Out;
+    return Out;
 }

@@ -26,9 +26,8 @@
 #include "light_cull_resources.h.hlsl"
 
 [numthreads(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)]
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
+void CS_MAIN( uint3 ThreadID : SV_DispatchThreadID )
 {
-	INIT_MAIN;
-	AtomicStore(lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadID.x, threadID.y)], 0u);
+	lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadID.x, threadID.y)] = 0u;
 	return;
 }

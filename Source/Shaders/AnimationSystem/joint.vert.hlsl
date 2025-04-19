@@ -30,18 +30,18 @@
 cbuffer uniformBlock: register(UPDATE_FREQ_PER_DRAW, b0)
 {
 #if FT_MULTIVIEW
-    float4x4 mvp[VR_MULTIVIEW_COUNT] : None
+    float4x4 mvp[VR_MULTIVIEW_COUNT] : None;
 #else
-    float4x4 mvp : None
+    float4x4 mvp : None;
 #endif
-    float4x4 viewMatrix : None
-    float4 color[MAX_INSTANCES] : None
+    float4x4 viewMatrix : None;
+    float4 color[MAX_INSTANCES] : None;
     // Point Light Information
-    float4 lightPosition : None
-    float4 lightColor : None
-    float4 jointColor : None
-    uint4 skeletonInfo : None
-    float4x4 toWorld[MAX_INSTANCES] : None
+    float4 lightPosition : None;
+    float4 lightColor : None;
+    float4 jointColor : None;
+    uint4 skeletonInfo : None;
+    float4x4 toWorld[MAX_INSTANCES] : None;
 };
 
 struct VSInput
@@ -52,29 +52,29 @@ struct VSInput
 
 struct VSOutput
 {
-    float4 Position : SV_Position
-    float4 QuadCoord : TEXCOORD0
-    float4 LightDirection : TEXCOORD1
+    float4 Position : SV_Position;
+    float4 QuadCoord : TEXCOORD0;
+    float4 LightDirection : TEXCOORD2;
 };
 
 VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 {
     INIT_MAIN;
     VSOutput Out;
-    float4x4 matWorld = Get(toWorld)[InstanceID];
+    float4x4 matWorld = toWorld[InstanceID];
 
     // extract joint scale and world position
     float   jointScale = length(getRow(matWorld,0).xyz);
     float4  jointPosition = getCol(matWorld,3);
 
 #if FT_MULTIVIEW
-    float4x4 tempMat = Get(mvp)[VR_VIEW_ID];
+    float4x4 tempMat = mvp[VR_VIEW_ID];
 #else
-    float4x4 tempMat = Get(mvp);
+    float4x4 tempMat = mvp;
 #endif
 
     // extract side and up vectors to calculate billboard
-    float4x4 tempViewMatrix = Get(viewMatrix);
+    float4x4 tempViewMatrix = viewMatrix;
     float3 vSide = getRow(tempViewMatrix,0).xyz;
     float3 vUp   = getRow(tempViewMatrix,1).xyz;
     
@@ -86,9 +86,9 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 
     // make sure we get quad coords from -1.0 to 1.0 for ps to cutout the circle
     Out.QuadCoord = float4(normalize(In.Position.xy) * 1.414f, 0.0f, 0.0f );
-    float4 pos = mul(Get(toWorld)[InstanceID], float4(In.Position.xyz, 1.0f));
-    float3 lightDir = normalize(Get(lightPosition).xyz - pos.xyz);
+    float4 pos = mul(toWorld[InstanceID], float4(In.Position.xyz, 1.0f));
+    float3 lightDir = normalize(lightPosition.xyz - pos.xyz);
     Out.LightDirection = float4(lightDir,0.0f);
 
-    RETURN Out;
+    return Out;
 }

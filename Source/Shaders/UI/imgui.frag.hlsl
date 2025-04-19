@@ -28,7 +28,7 @@
 #endif
 
 #if SAMPLE_COUNT == 1
-Tex2D(float4) uTex : register(UPDATE_FREQ_PER_BATCH, t1);
+Texture2D<float4> uTex : register(UPDATE_FREQ_PER_BATCH, t1);
 #else
 Tex2DMS(float4, SAMPLE_COUNT) uTex : register(UPDATE_FREQ_PER_BATCH, t1);
 #endif
@@ -36,14 +36,14 @@ SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
 
 cbuffer uniformBlockVS: register(UPDATE_FREQ_NONE, b0)
 {
-	float4x4 ProjectionMatrix : None
+	float4x4 ProjectionMatrix : None;
 };
 
 struct PS_INPUT
 {
-	float4 pos : SV_Position
+	float4 pos : SV_Position;
 	float4 col : COLOR0
-	float2 uv : TEXCOORD0
+	float2 uv : TEXCOORD0;
 };
 
 float4 PS_MAIN( PS_INPUT In )

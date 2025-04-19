@@ -110,79 +110,79 @@
 
 struct ParticleData
 {
-	uint2 VelocityAndAge : None
-	uint2 Position : None
+	uint2 VelocityAndAge : None;
+	uint2 Position : None;
 };
 
 struct ParticleSet
 {
 	// X,Y,Z: volume of the particle set, W: scale of its particles
-	float4 Size : None
+	float4 Size : None;
 
 	// Position of the particle set
-	float3 Position : None
+	float3 Position : None;
 	// Amount of particles to be spawned per second
-	float ParticlesPerSecond : None
+	float ParticlesPerSecond : None;
 
 	// Color of all particles in the set
-	float3 Color : None
-	float LightRadius : None
+	float3 Color : None;
+	float LightRadius : None;
 
 	// Type of particle, it establishes its behaviour (flocking, rain...)
-	uint ParticleType : None
+	uint ParticleType : None;
 	// Light settings for the particle set, describes whether particles should cast shadows or emit lights
-	uint LightBitfield : None
+	uint LightBitfield : None;
 	// Maximum amount of particles to allocate
-	uint MaxParticles : None
+	uint MaxParticles : None;
 	// Lifetime of the particle
-	float InitialAge : None
+	float InitialAge : None;
 
 	// Forces for the flocking algorithm
-	uint BoidsAvoidSeekStrength : None
-	uint BoidsSeparationFleeStrength : None
-	uint BoidsCohesionAlignmentStrength : None
-	uint SteeringStrengthMaxSpeed : None
+	uint BoidsAvoidSeekStrength : None;
+	uint BoidsSeparationFleeStrength : None;
+	uint BoidsCohesionAlignmentStrength : None;
+	uint SteeringStrengthMaxSpeed : None;
 };
 
 struct PackedParticleTransparencyNode
 {
-	uint Color : None
-	float Depth : None
+	uint Color : None;
+	float Depth : None;
 };
 
 struct ParticleTransparencyNode
 {
 	// Color of the particle
-	float4 Color : None
+	float4 Color : None;
 	// Depth of the particle
-	float Depth : None
+	float Depth : None;
 };
 
 cbuffer ParticleConstantBufferData: register(UPDATE_FREQ_PER_FRAME, b10)
 {
 	// Seed used to generate random values
-	uint Seed : None
+	uint Seed : None;
 	// Total amount of particle sets in the particle system
-	uint ParticleSetCount : None
+	uint ParticleSetCount : None;
 	
 	// Amount of dispatches in the Y direction
-	uint SimulationDispatchSize : None
+	uint SimulationDispatchSize : None;
 	// Reset particles (this is set to true when the app is loaded)
-	uint ResetParticles : None
+	uint ResetParticles : None;
 	// Time elapsed since the beginning of the app
-	float Time : None
+	float Time : None;
 	// Delta time
-	float TimeDelta : None
+	float TimeDelta : None;
 	
 	// Screen size
-	uint2 ScreenSize : None
+	uint2 ScreenSize : None;
 	// Point to follow when flocking
-	float3 SeekPosition : None
+	float3 SeekPosition : None;
 	
-	float4x4 ViewTransform : None
-	float4x4 ProjTransform : None
-	float4x4 ViewProjTransform : None
-	float4 CameraPosition : None
+	float4x4 ViewTransform : None;
+	float4x4 ProjTransform : None;
+	float4x4 ViewProjTransform : None;
+	float4 CameraPosition : None;
 };
 
 #endif

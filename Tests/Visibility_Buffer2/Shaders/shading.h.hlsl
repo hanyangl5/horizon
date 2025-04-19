@@ -120,7 +120,7 @@ float3 calculateIllumination(
 	float NoV,
 	float3 pCamPos, float pEsmControl,
 	float3 normalizedDirToLight, float4 posLS, float3 position,
-	Tex2D(float) pShadowMap,
+	Texture2D<float> pShadowMap,
 	float3 albedo,
 	float3 specularColor,
 	float Roughness,
@@ -238,7 +238,7 @@ float sampleDepth(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Texture2D<float> pDepthTex,
 #endif
 	SamplerState samplerState)
 {
@@ -284,7 +284,7 @@ float3 reconstructNormalCS(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Texture2D<float> pDepthTex,
 #endif
 	SamplerState samplerState)
 {
@@ -321,7 +321,7 @@ float4 gatherDepthSamples(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Texture2D<float> pDepthTex,
 #endif
 	SamplerState samplerState)
 {
@@ -399,7 +399,7 @@ float calculateAoContrib(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Texture2D<float> pDepthTex,
 #endif
 	SamplerState samplerState)
 {

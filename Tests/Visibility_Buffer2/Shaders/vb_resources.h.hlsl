@@ -27,9 +27,9 @@
 
 SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t6);
+	Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t6);
 #else
-	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t6);
+	Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t6);
 #endif
 
 ByteAddressBuffer vertexPositionBuffer : register(UPDATE_FREQ_NONE, t0);
@@ -64,7 +64,7 @@ struct PsInVBAlphaTested
 {
 	float4 position: SV_Position;
 	float2 texCoord: TEXCOORD0;
-	FLAT(uint) vbData: TEXCOORD1;
+	FLAT(uint) vbData: TEXCOORD2;;
 	FLAT(uint) batchData: TEXCOORD2;
 };
 

@@ -14,7 +14,7 @@ os.makedirs(clang_build_dir, exist_ok=True)
 
 # Generate Visual Studio project
 print("Generating Visual Studio project...")
-vs_gen_cmd = ["cmake", "-G", "Visual Studio 17 2022", "-B", msvc_build_dir]
+vs_gen_cmd = ["cmake", "-G", "Visual Studio 17 2022", "-DCMAKE_INCLUDE_SHADERS=false", "-B", msvc_build_dir]
 with open(msvc_log_file, "w") as vs_log:
     subprocess.run(vs_gen_cmd, stdout=vs_log, stderr=subprocess.STDOUT, check=True)
 
@@ -26,7 +26,7 @@ with open(msvc_log_file, "a") as vs_log:
 
 # Generate Clang Ninja project
 print("Generating Clang Ninja project...")
-ninja_gen_cmd = ["cmake", "-G", "Ninja", "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++", "-DCMAKE_TYPE=Debug", "-B", clang_build_dir]
+ninja_gen_cmd = ["cmake", "-G", "Ninja", "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++", "-DCMAKE_INCLUDE_SHADERS=false", "-DCMAKE_TYPE=Debug", "-B", clang_build_dir]
 with open(clang_log_file, "w") as ninja_log:
     subprocess.run(ninja_gen_cmd, stdout=ninja_log, stderr=subprocess.STDOUT, check=True)
 

@@ -22,7 +22,13 @@
  * under the License.
  */
 
-#include "resources.h"
+#include "resources.h.hlsl"
+
+struct VsIn
+{
+	float2 position: Position;
+	float2 texCoord: TEXCOORD0;
+};
 
 struct PsIn
 {
@@ -30,10 +36,16 @@ struct PsIn
 	float2 texCoord: TEXCOORD0;
 };
 
-float4 PS_MAIN( PsIn In )
+PsIn VS_MAIN( VsIn In )
 {
-	INIT_MAIN;
-	float4 Out;
-	Out = float4(1.0, 1.0, 1.0, SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord).r) * Get(color);
-	RETURN Out;
+#if FT_MULTIVIEW
+	float4x4 modelViewProj = mvp[VR_VIEW_ID];
+#else
+	float4x4 modelViewProj = mvp;
+#endif
+
+	PsIn Out;
+	Out.position = mul(modelViewProj, float4(In.position * scaleBias.xy, 1.0f, 1.0f));
+	Out.texCoord = In.texCoord;
+	return Out;
 }

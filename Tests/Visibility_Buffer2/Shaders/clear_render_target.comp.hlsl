@@ -35,7 +35,7 @@ cbuffer RootConstantRenderTargetInfo : register(b0)
 };
 
 [numthreads(256, 1, 1)]
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
+void CS_MAIN( uint3 ThreadID : SV_DispatchThreadID )
 {
     INIT_MAIN;
     

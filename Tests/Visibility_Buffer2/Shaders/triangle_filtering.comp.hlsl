@@ -52,9 +52,9 @@ GroupShared(uint, tileTriangleCount[NUM_CULLING_VIEWPORTS][TILE_COUNTX][TILE_COU
 #include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.hlsl"
 SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register(UPDATE_FREQ_NONE, t6);
+Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register(UPDATE_FREQ_NONE, t6);
 #else
-Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register(space4, t6);
+Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register(space4, t6);
 #endif
 
 [numthreads(FILTER_BATCH_SIZE, 1, 1)]
@@ -69,7 +69,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 		{
 			for (uint t = 0; t < TILE_COUNTX * TILE_COUNTY; ++t)
 			{
-				AtomicStore(tileTriangleCount[i][t / TILE_COUNTY][t % TILE_COUNTY], 0u);
+				tileTriangleCount[i][t / TILE_COUNTY][t % TILE_COUNTY] = 0u;
 			}
 		}
 	}
@@ -228,7 +228,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 									uint index = VisibilityBufferOffset(i, windowSize.x, x, y);
 									float depth = edge10.z * texcoord.x + edge20.z * texcoord.y + verticesSS[0].z;
 									uint64_t packedDepthVBId = packDepthVBId(depth, triangleData);
-									AtomicMaxU64(visibilityBuffer[index], packedDepthVBId);
+									InterlockedMax(visibilityBuffer[index], packedDepthVBId);
 								}
 
 							}
@@ -262,10 +262,10 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 					uint tx = aabbWaveMin[0] + (pi / aabbWaveSize[1]), ty = aabbWaveMin[1] + (pi % aabbWaveSize[1]);
 					{
 #if defined(SHARED_FILTERING)
-						AtomicAdd(tileTriangleCount[i][tx][ty], 1, threadOutputOffsets[i][tx][ty]);
+						InterlockedAdd(tileTriangleCount[i][tx][ty], 1, threadOutputOffsets[i][tx][ty]);
 #else                   
                         uint offset = 0;
-                        AtomicAdd(binBuffer[BinBufferViewOffset(i) + TIDX(tx, ty)], 1, offset);
+                        InterlockedAdd(binBuffer[BinBufferViewOffset(i) + TIDX(tx, ty)], 1, offset);
 						if (offset < TILE_CAPACITY)
 						{
                             binBuffer[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
@@ -288,8 +288,8 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 			for (uint t = 0; t < TILE_COUNTX * TILE_COUNTY; ++t)
 			{
 				uint tx = t / TILE_COUNTY, ty = t % TILE_COUNTY;
-				uint triangleCount = AtomicLoad(tileTriangleCount[i][tx][ty]);
-				AtomicAdd(binBuffer[BinBufferViewOffset(i) + TIDX(tx, ty)], triangleCount, tileTriangleCount[i][tx][ty]);
+				uint triangleCount = tileTriangleCount[i][tx][ty];
+				InterlockedAdd(binBuffer[BinBufferViewOffset(i) + TIDX(tx, ty)], triangleCount, tileTriangleCount[i][tx][ty]);
 			}
 		}
 	}

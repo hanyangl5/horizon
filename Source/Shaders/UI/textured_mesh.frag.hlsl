@@ -22,18 +22,18 @@
 * under the License.
 */
 
-Tex2D(float4) uTex : register(UPDATE_FREQ_NONE, t1);
+Texture2D<float4> uTex : register(UPDATE_FREQ_NONE, t1);
 SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
 cbuffer uRootConstants : register(b1)
 {
-	float4 color : None
-	float2 scaleBias : None
+	float4 color : None;
+	float2 scaleBias : None;
 };
 
 struct PsIn
 {
-	float4 position : SV_Position
-	float2 texcoord : TEXCOORD0
+	float4 position : SV_Position;
+	float2 texcoord : TEXCOORD0;
 };
 
 float4 PS_MAIN( PsIn In )

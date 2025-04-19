@@ -28,7 +28,7 @@ struct PsIn
     float2 texCoord: TEXCOORD;
 };
 
-PsIn VS_MAIN( SV_VertexID(uint) VertexID )
+PsIn VS_MAIN( uint vertexId : SV_VertexID )
 {
     INIT_MAIN;
     PsIn Out;

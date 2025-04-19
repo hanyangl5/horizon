@@ -4,7 +4,7 @@ add_library(WinPixEventRuntime STATIC IMPORTED)
 # set_property(TARGET WinPixEventRuntime PROPERTY IMPORTED_LOCATION
 #     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/winpixeventruntime/bin/x64/WinPixEventRuntime.dll
 # )
-set_property(TARGET WinPixEventRuntime PROPERTY IMPORTED_IMPLIB
+set_property(TARGET WinPixEventRuntime PROPERTY IMPORTED_LOCATION
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/winpixeventruntime/bin/x64/WinPixEventRuntime.lib
 )
 
@@ -12,7 +12,7 @@ add_library(AGS STATIC IMPORTED)
 # set_property(TARGET AGS PROPERTY IMPORTED_LOCATION
 #     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags/ags_lib/lib/amd_ags_x64.dll
 # )
-set_property(TARGET AGS PROPERTY IMPORTED_IMPLIB
+set_property(TARGET AGS PROPERTY IMPORTED_LOCATION
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags/ags_lib/lib/amd_ags_x64.lib
 )
 target_include_directories(AGS INTERFACE ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags)

@@ -96,12 +96,12 @@ tile00 / tile01 / etc...
 // #define SHARED_FILTERING
 #endif
 
-#define VisibilityBufferOffset(VIEW, WIDTH, X, Y) ((1 << 20) * uint(VIEW) + uint(WIDTH) * uint(Y) + uint(X))
+#define VisibilityBufferOffset(VIEW, WIDTH, X, Y) ((1 << 20) * uint32_t(VIEW) + uint32_t(WIDTH) * uint32_t(Y) + uint32_t(X))
 
 #define GetTriIndexFromTriData(triangleData)      (triangleData >> 10)
 #define GetGeomSetFromTriData(triangleData)       ((triangleData >> 9) & 1)
 #define GetBatchIdFromTriData(triangleData)       ((triangleData) & 0xFF)
-uint packTriangleuint triangleIndex uint geomSet: uint batchMeshIndex
+uint32_t packTriangleData(uint32_t triangleIndex, uint32_t geomSet, uint32_t batchMeshIndex)
 {
     return (triangleIndex << 10) | (geomSet << 9) | ((batchMeshIndex) & 0xFF);
 }

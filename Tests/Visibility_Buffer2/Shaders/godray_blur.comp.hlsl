@@ -40,7 +40,7 @@ cbuffer BlurWeights: register(UPDATE_FREQ_NONE, b1)
 	float4 mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4]: None;
 };
 
-RWTex2D(float4) godrayTextures[2] : register(UPDATE_FREQ_NONE, u0);
+RWTexture2D(float4) godrayTextures[2] : register(UPDATE_FREQ_NONE, u0);
 
 #if 1
 
@@ -147,7 +147,7 @@ float3 VerticalPass(int2 id)
 #endif
 
 [numthreads(THREADX, THREADY, 1)]
-void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
+void CS_MAIN( uint3 ThreadID : SV_DispatchThreadID) 
 {
 	INIT_MAIN;
 	if(mBlurPassType == PASS_TYPE_HORIZONTAL)

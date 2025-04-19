@@ -45,19 +45,19 @@ struct VSOutput
 #if SAMPLE_COUNT > 1
     Tex2DMS(float, SAMPLE_COUNT) depthTex : register(UPDATE_FREQ_NONE, t100);
 #else
-    Tex2D(float) depthTex : register(UPDATE_FREQ_NONE, t100);
+    Texture2D<float> depthTex : register(UPDATE_FREQ_NONE, t100);
 #endif
 
-Tex2D(float) shadowMap : register(UPDATE_FREQ_NONE, t101);
+Texture2D<float> shadowMap : register(UPDATE_FREQ_NONE, t101);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t0);
-	Tex2D(float4) normalMaps[INSTANCE_BUFFER_SIZE] : register(  UPDATE_FREQ_NONE, t1);
-	Tex2D(float4) specularMaps[INSTANCE_BUFFER_SIZE] : register(UPDATE_FREQ_NONE, t2);
+	Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t0);
+	Texture2D<float4> normalMaps[INSTANCE_BUFFER_SIZE] : register(  UPDATE_FREQ_NONE, t1);
+	Texture2D<float4> specularMaps[INSTANCE_BUFFER_SIZE] : register(UPDATE_FREQ_NONE, t2);
 #else
-	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t0);
-	Tex2D(float4) normalMaps[INSTANCE_BUFFER_SIZE] : register(  space5, t0);
-	Tex2D(float4) specularMaps[INSTANCE_BUFFER_SIZE] : register(space6, t0);
+	Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t0);
+	Texture2D<float4> normalMaps[INSTANCE_BUFFER_SIZE] : register(  space5, t0);
+	Texture2D<float4> specularMaps[INSTANCE_BUFFER_SIZE] : register(space6, t0);
 #endif
 
 ByteAddressBuffer vertexPos : register(          UPDATE_FREQ_NONE, t10);

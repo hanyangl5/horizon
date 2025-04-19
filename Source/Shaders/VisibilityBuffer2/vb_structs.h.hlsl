@@ -40,25 +40,25 @@ struct PreSkinBatchData
 	/**********************************/
 	// Per Batch
 	/**********************************/
-	uint vertexCount : None         // Number of vertexes to be skinned by this batch (usually equals SKIN_BATCH_SIZE)
+	uint vertexCount : None;         // Number of vertexes to be skinned by this batch (usually equals SKIN_BATCH_SIZE)
 
 	// Output vertexes are written in the range [outputVertexOffset, outputVertexOffset + vertexCount)
-	uint outputVertexOffset : None
+	uint outputVertexOffset : None;
 
 	// Offsets to the start of the mesh in the huge Vertex Buffers
 	// Position offset is different to Joint offset because the Joints/Weights buffers are smaller
-	uint vertexPositionOffset : None
-	uint vertexJointsOffset : None
+	uint vertexPositionOffset : None;
+	uint vertexJointsOffset : None;
 
 	/**********************************/
 	// Per Instance
 	/**********************************/
-	uint jointMatrixOffset : None 	// Offset into the matrix buffer that contains all matrixes for all animated objects
+	uint jointMatrixOffset : None; 	// Offset into the matrix buffer that contains all matrixes for all animated objects
 											
 	// Padding
-	uint pad0 : None
-	uint pad1 : None
-	uint pad2 : None
+	uint pad0 : None;
+	uint pad1 : None;
+	uint pad2 : None;
 };
 
 // Buffer allocation needs to satisfy alignment requirements for the buffers, therefore the buffer doesn't necessarily start on the first
@@ -66,44 +66,44 @@ struct PreSkinBatchData
 // these offsets gives us the real start where we have to write the pre-skinned vertexes.
 struct PreSkinBufferOffsets
 {
-	uint vertexOffset : None
+	uint vertexOffset : None;
 };
 
 // Input to triangle filtering shader
 struct FilterBatchData
 {
-	uint meshIndex : None	  // Index into meshConstants
-	uint indexOffset : None	  // Index relative to the meshConstants[meshIndex].indexOffset
-	uint faceCount : None      // Number of faces in this small batch
-	uint outputIndexOffset : None // Offset into the output index buffer
-	uint drawBatchStart : None	// First slot for the current draw call
-	uint accumDrawIndex : None
-	uint instanceDataIndex : None   // Instance specific data, usually an index into instanceData buffer but could also contain more encoded data in different bits
-	uint geometrySet : None // We only use 2 bits from this variable, the rest is free
+	uint meshIndex : None;	  // Index into meshConstants
+	uint indexOffset : None;	  // Index relative to the meshConstants[meshIndex].indexOffset
+	uint faceCount : None;      // Number of faces in this small batch
+	uint outputIndexOffset : None; // Offset into the output index buffer
+	uint drawBatchStart : None;	// First slot for the current draw call
+	uint accumDrawIndex : None;
+	uint instanceDataIndex : None;   // Instance specific data, usually an index into instanceData buffer but could also contain more encoded data in different bits
+	uint geometrySet : None; // We only use 2 bits from this variable, the rest is free
 
 	// Note: we could combine faceCount and geometrySet to add more data in this struct
 	//   - geometrySet: 2 bits (we have 3 geometry sets: OPAQUE, ALPHA_CUTOUT, ALPHA_BLEND)
 	//   - faceCount: 9 bits (this depends on FILTER_BATCH_SIZE, but it's usually 256, so 9 bits are enough)
 	//   - 21 bits free
-	//uint geometrySet_faceCount : None 
+	//uint geometrySet_faceCount : None; 
 };
 
 struct CullingViewPort
 {
 	float2 windowSize :  None
-	uint sampleCount : None
-	uint pad : None
+	uint sampleCount : None;
+	uint pad : None;
 };
 
 struct Transform
 {
-	float4x4 mvp : None
-	float4x4 invVP : None
-	float4x4 vp : None
-	float4x4 view : None
-	float4x4 projection : None
-	float2 cameraPlane : None //x : near, y : far
-    float2 _pad0 : None
+	float4x4 mvp : None;
+	float4x4 invVP : None;
+	float4x4 vp : None;
+	float4x4 view : None;
+	float4x4 projection : None;
+	float2 cameraPlane : None; //x : near, y : far
+    float2 _pad0 : None;
 };
 
 #endif //!_VB_STRUCTS_H

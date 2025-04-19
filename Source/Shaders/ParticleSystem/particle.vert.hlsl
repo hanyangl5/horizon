@@ -29,13 +29,13 @@
 
 struct VSOutput
 {
-	float4 Position : SV_Position
-	float2 TexCoord : TEXCOORD0
-	FLAT(uint) InstanceId : TEXCOORD1
-	FLAT(uint) ParticleSetIndex : TEXCOORD2
+	float4 Position : SV_Position;
+	float2 TexCoord : TEXCOORD0;
+	FLAT(uint) InstanceId : TEXCOORD2;
+	FLAT(uint) ParticleSetIndex : TEXCOORD2;
 };
 
-VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
+VSOutput VS_MAIN( uint vertexId : SV_VertexID )
 {
 	INIT_MAIN;
 

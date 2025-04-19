@@ -33,7 +33,7 @@ struct FSOutput
 	float4 FragmentOutput: SV_Target;
 };
 
-Tex2D(float4) uTex0 : register(UPDATE_FREQ_NONE, t0);
+Texture2D<float4> uTex0 : register(UPDATE_FREQ_NONE, t0);
 SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s1);
 
 cbuffer RootConstantSCurveInfo : register(b0)
@@ -85,7 +85,6 @@ float3 ApplyDolbySCurve(float3 Color, const float Scale, const float Slope)
 
 FSOutput PS_MAIN( PsIn In )
 {
-    INIT_MAIN;
     FSOutput Out;
     float4 sceneColor = SampleTex2D(uTex0, uSampler0, In.texCoord);
 	float3 resultColor = float3(0.0, 0.0, 0.0);

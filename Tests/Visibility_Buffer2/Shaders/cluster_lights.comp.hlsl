@@ -80,10 +80,10 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	{
 		// Increase light count on this cluster
 		uint lightArrayPos = 0;
-		AtomicAdd(lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadInGroupId.x, threadInGroupId.y)], 1, lightArrayPos);
+		InterlockedAdd(lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadInGroupId.x, threadInGroupId.y)], 1, lightArrayPos);
 
 		// Add light id to cluster
-		AtomicExchange(lightClusters[LIGHT_CLUSTER_DATA_POS(lightArrayPos, threadInGroupId.x, threadInGroupId.y)], groupId.x, lightArrayPos);
+		InterlockedExchange(lightClusters[LIGHT_CLUSTER_DATA_POS(lightArrayPos, threadInGroupId.x, threadInGroupId.y)], groupId.x, lightArrayPos);
 
 	}
 	return;

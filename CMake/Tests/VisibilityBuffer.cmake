@@ -17,7 +17,7 @@ source_group(TREE ${VB_PROJECT_DIR} FILES ${VB_SHADER_FILES})
 source_group(TREE ${VB_PROJECT_DIR} FILES ${VB_INCLUDE_FILES} ${VB_SOURCE_FILES})
 
 # Add executable
-add_executable(${PROJECT_NAME} ${VB_SOURCE_FILES} ${VB_INCLUDE_FILES} ${VB_SHADER_FILES})
+add_executable(${PROJECT_NAME} ${VB_SOURCE_FILES} ${VB_INCLUDE_FILES})
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
@@ -27,4 +27,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${ENGINE_RUNTIME})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Tests")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Tests/VisbilityBuffer")
+
+if(${CMAKE_INCLUDE_SHADERS})
+    # Organize shaders into a source group for Visual Studio
+
+    # Add a dummy target to make shaders appear in Visual Studio
+    add_custom_target(VBShaders ALL
+        COMMENT "Compiling Shaders [${TARGET_NAME}]"
+    )
+    set_property(TARGET VBShaders APPEND PROPERTY SOURCES ${VB_SHADER_FILES})
+
+    set_target_properties(VBShaders PROPERTIES FOLDER "Tests/VisbilityBuffer")
+
+endif()

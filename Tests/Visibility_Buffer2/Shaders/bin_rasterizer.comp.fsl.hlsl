@@ -38,7 +38,7 @@ ByteAddressBuffer            indexDataBuffer : register(                  UPDATE
 StructuredBuffer<MeshConstants> meshConstantsBuffer : register(              UPDATE_FREQ_NONE,      t2);
 ByteAddressBuffer            vertexTexCoordBuffer : register(             UPDATE_FREQ_NONE,      t5);
 SamplerState          textureSampler : register(                   UPDATE_FREQ_NONE,      s0);
-Tex2D(float4)         diffuseMaps[INSTANCE_BUFFER_SIZE] : register(BINDLESS_SET,          t6);
+Texture2D<float4>         diffuseMaps[INSTANCE_BUFFER_SIZE] : register(BINDLESS_SET,          t6);
 
 StructuredBuffer<uint>          binBuffer : register(                        UPDATE_FREQ_PER_FRAME, t1);
 StructuredBuffer<uint>          indirectFilteredBatches : register(          UPDATE_FREQ_PER_FRAME, t2);
@@ -74,9 +74,8 @@ GroupShared(uint64_t, sharedSubBin[SUB_BIN_SIZE][SUB_BIN_SIZE]);
 
 // each thread responsible for 1 triangle +  (4x4 pixels)
 [numthreads(BIN_RASTER_THREADS_X, BIN_RASTER_THREADS_Y, BIN_RASTER_THREADS_Z)]
-void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
+void CS_MAIN(uint3 threadId : SV_GroupThread, uint3 groupId : SV_GroupID)
 {
-    INIT_MAIN;
 
     // load and raster triangle
     uint2 binIndex          = groupId.xy;
@@ -257,9 +256,9 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
                     if (visible)
                     {
 #if defined(SHARED_SUB_BIN_RASTER)
-                        AtomicMaxU64(sharedSubBin[y][x], packedDepthVBId);
+                        InterlockedMax(sharedSubBin[y][x], packedDepthVBId);
 #else
-                        AtomicMaxU64(visibilityBuffer[index], packedDepthVBId);
+                        InterlockedMax(visibilityBuffer[index], packedDepthVBId);
 #endif
                     }
                 }
@@ -280,7 +279,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
         uint2 pt = threadOrigin + uint2(pi / 4, pi % 4);
         uint2 c = binCoord + pt;
         uint index = VisibilityBufferOffset(view, viewportSize.x, c.x, c.y);
-        AtomicMaxU64(visibilityBuffer[index], sharedSubBin[pt.y][pt.x]);
+        InterlockedMax(visibilityBuffer[index], sharedSubBin[pt.y][pt.x]);
     }
 #endif
 

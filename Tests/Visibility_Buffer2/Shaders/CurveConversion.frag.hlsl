@@ -28,9 +28,9 @@ struct PsIn
     float2 texCoord: TEXCOORD;
 };
 
-Tex2D(float4) SceneTex : register( UPDATE_FREQ_NONE, t0);
+Texture2D<float4> SceneTex : register( UPDATE_FREQ_NONE, t0);
 SamplerState  uSampler0 : register(UPDATE_FREQ_NONE, s0);
-Tex2D(float4) GodRayTex : register(UPDATE_FREQ_NONE, s1);
+Texture2D<float4> GodRayTex : register(UPDATE_FREQ_NONE, s1);
 
 struct FSOutput
 {

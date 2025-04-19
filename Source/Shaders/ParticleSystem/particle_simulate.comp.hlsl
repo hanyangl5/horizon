@@ -55,7 +55,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 		HelpIndicesReadIdx = 0;
 
 		for (uint i=0; i<PARTICLE_SWAP_HELP_THRESHOLD; i++)
-			AtomicStore(HelpIndices[i], PARTICLE_COUNT);
+			HelpIndices[i] = PARTICLE_COUNT;
 	}
 
 	AllMemoryBarrier();
@@ -224,7 +224,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	if (!swapped)
 	{
 		uint tmp;
-		AtomicAdd(SwappedCount, 1, tmp);
+		InterlockedAdd(SwappedCount, 1, tmp);
 		HelpBufferSection = currBufferSection;
 	}
 
@@ -240,7 +240,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 		{
 			// Acquire a read index
 			uint readIdx;
-			AtomicAdd(HelpIndicesReadIdx, 1, readIdx);
+			InterlockedAdd(HelpIndicesReadIdx, 1, readIdx);
 
 			while (!swapped)
 			{
@@ -249,7 +249,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 				if (!swapped && SwappedCount <= PARTICLE_SWAP_HELP_THRESHOLD)
 				{
 					uint candidateIdx;
-					AtomicExchange(HelpIndices[readIdx], PARTICLE_COUNT, candidateIdx);
+					InterlockedExchange(HelpIndices[readIdx], PARTICLE_COUNT, candidateIdx);
 					// Helper threads found a valid index
 					if (candidateIdx != PARTICLE_COUNT)
 					{
@@ -260,7 +260,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 			}
 
 			uint tmp;
-			AtomicAdd(HelpSuccess, 1, tmp);
+			InterlockedAdd(HelpSuccess, 1, tmp);
 		}
 	}
 	else if (SwappedCount <= PARTICLE_SWAP_HELP_THRESHOLD && SwappedCount > 0)
@@ -276,19 +276,19 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 				uint currIdx = 0;
 				int sign = isActive ? 1 : -1;
 
-				AtomicAdd(ParticleSectionsIndices[HelpBufferSection * 2 + PREV_VALUE], isActive ? 1 : -1, currIdx);
+				InterlockedAdd(ParticleSectionsIndices[HelpBufferSection * 2 + PREV_VALUE], isActive ? 1 : -1, currIdx);
 
 				if (sign*int(currIdx) >= sign*int(ParticleSectionsIndices[HelpBufferSection * 2 + CURR_VALUE]))
 				{
 					finished = true;
-					AtomicAdd(HelpSuccess, PARTICLE_SWAP_HELP_THRESHOLD, tmp);
+					InterlockedAdd(HelpSuccess, PARTICLE_SWAP_HELP_THRESHOLD, tmp);
 				}
 				else if (bool(ParticleSetVisibility[(BitfieldBuffer[currIdx] & PARTICLE_BITFIELD_SET_INDEX_MASK)*2+CURR_VALUE]) != isActive)
 				{
 					uint insertIdx;
 
-					AtomicAdd(HelpIndicesWriteIdx, 1, insertIdx);
-					AtomicExchange(HelpIndices[insertIdx], currIdx, tmp);
+					InterlockedAdd(HelpIndicesWriteIdx, 1, insertIdx);
+					InterlockedExchange(HelpIndices[insertIdx], currIdx, tmp);
 
 					finished = true;
 				}
@@ -585,7 +585,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	if ((bbMax.x - bbMin.x) * (bbMax.y - bbMin.y) > PARTICLE_HW_RASTERIZATION_THRESHOLD)
 	{
 		uint hwRasterizerIdx;
-		AtomicAdd(ParticlesToRasterizeCount[0], 1, hwRasterizerIdx);
+		InterlockedAdd(ParticlesToRasterizeCount[0], 1, hwRasterizerIdx);
 		ParticlesToRasterize[hwRasterizerIdx] = particleIdx;
 		return;
 	}

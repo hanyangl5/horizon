@@ -25,14 +25,6 @@
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
 
-#ifdef NO_FSL_DEFINITIONS
-#define STATIC                            static
-#define struct NAME                      struct NAME
-#define TYPE NAME: SEM             TYPE NAME
-#define cbuffer NAME: register(REG, FREQ) struct NAME
-#define float4x4                          mat4
-#endif
-
 #define LIGHT_COUNT                        128
 #define LIGHT_SIZE                         150.0f
 
@@ -49,45 +41,45 @@
 
 //#include <Graphics/IVisibilityBuffer.h>
 
-#define NO_FSL_DEFINITIONS
+//#define NO_FSL_DEFINITIONS
 #include <Graphics/IVisibilityBuffer2.h>
 struct MeshConstants
 {
-    uint indexOffset: None;
-    uint vertexOffset: None;
-    uint materialID: None;
-    uint twoSided: None; // 0 or 1
+    uint32_t indexOffset;
+    uint32_t vertexOffset;
+    uint32_t materialID;
+    uint32_t twoSided; // 0 or 1
 };
 
-cbuffer PerFrameConstants: register(UPDATE_FREQ_PER_FRAME, b0)
+struct PerFrameConstants
 {
-    float4 camPos: None;
+    float4 camPos;
     //========================================
-    float4 lightDir: None;
+    float4 lightDir;
     //========================================
-    float4 lightColor: None;
+    float4 lightColor;
     //========================================
-    float2 CameraPlane: None; // x : near, y : far
-    uint lightingMode: None;
-    uint outputMode: None;
+    float2 CameraPlane; // x : near, y : far
+    uint32_t lightingMode;
+    uint32_t outputMode;
     //========================================
-    float2 twoOverRes: None;
-    float esmControl: None;
-    uint aoQuality: None;
+    float2 twoOverRes;
+    float esmControl;
+    uint32_t aoQuality;
     //========================================
-    float2 frustumPlaneSizeNormalized: None;
-    float2 depthTexSize: None;
+    float2 frustumPlaneSizeNormalized;
+    float2 depthTexSize;
     //========================================
-    float aoIntensity: None;
-    uint visualizeAo: None;
-    uint smallScaleRaster: None;
-    uint visualizeBinOccupancy: None;
+    float aoIntensity;
+    uint32_t visualizeAo;
+    uint32_t smallScaleRaster;
+    uint32_t visualizeBinOccupancy;
 };
 
 struct LightData
 {
-    float4 position: None;
-    float4 color: None;
+    float4 position;
+    float4 color;
 };
 
 #endif

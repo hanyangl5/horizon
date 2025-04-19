@@ -215,8 +215,8 @@ typedef struct IndirectDrawIndexArguments
 
 cbuffer PerFrameVBConstants: register(UPDATE_FREQ_PER_FRAME, b1)
 {
-	Transform transform[NUM_CULLING_VIEWPORTS] : None
-	CullingViewPort cullingViewports[NUM_CULLING_VIEWPORTS] : None
-	uint numViewports : None
+	Transform transform[NUM_CULLING_VIEWPORTS] : None;
+	CullingViewPort cullingViewports[NUM_CULLING_VIEWPORTS] : None;
+	uint numViewports : None;
 };
 #endif

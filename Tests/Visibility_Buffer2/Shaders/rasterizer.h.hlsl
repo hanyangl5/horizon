@@ -26,7 +26,7 @@
 
 SamplerState textureSampler : register(UPDATE_FREQ_NONE, s0);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t6);
+	Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register( UPDATE_FREQ_NONE, t6);
 #else
-	Tex2D(float4) diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t6);
+	Texture2D<float4> diffuseMaps[INSTANCE_BUFFER_SIZE] : register( space4, t6);
 #endif

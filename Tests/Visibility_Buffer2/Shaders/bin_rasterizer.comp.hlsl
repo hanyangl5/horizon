@@ -38,7 +38,7 @@ ByteAddressBuffer            indexDataBuffer : register(                  UPDATE
 StructuredBuffer<MeshConstants> meshConstantsBuffer : register(              UPDATE_FREQ_NONE,      t2);
 ByteAddressBuffer            vertexTexCoordBuffer : register(             UPDATE_FREQ_NONE,      t5);
 SamplerState          textureSampler : register(                   UPDATE_FREQ_NONE,      s0);
-Tex2D(float4)         diffuseMaps[INSTANCE_BUFFER_SIZE] : register(BINDLESS_SET,          t6);
+Texture2D<float4>         diffuseMaps[INSTANCE_BUFFER_SIZE] : register(BINDLESS_SET,          t6);
 
 StructuredBuffer<uint>          binBuffer : register(                        UPDATE_FREQ_PER_FRAME, t1);
 StructuredBuffer<uint>          indirectFilteredBatches : register(          UPDATE_FREQ_PER_FRAME, t2);
@@ -254,9 +254,9 @@ void CS_MAIN(uint3 threadId : SV_GROUPTHREADID, uint3 groupId : SV_GROUPID)
                     if (visible)
                     {
 #if defined(SHARED_SUB_BIN_RASTER)
-                        AtomicMaxU64(sharedSubBin[y][x], packedDepthVBId);
+                        InterlockedMax(sharedSubBin[y][x], packedDepthVBId);
 #else
-                        AtomicMaxU64(visibilityBuffer[index], packedDepthVBId);
+                        InterlockedMax(visibilityBuffer[index], packedDepthVBId);
 #endif
                     }
                 }
@@ -277,7 +277,7 @@ void CS_MAIN(uint3 threadId : SV_GROUPTHREADID, uint3 groupId : SV_GROUPID)
         uint2 pt = threadOrigin + uint2(pi / 4, pi % 4);
         uint2 c = binCoord + pt;
         uint index = VisibilityBufferOffset(view, viewportSize.x, c.x, c.y);
-        AtomicMaxU64(visibilityBuffer[index], sharedSubBin[pt.y][pt.x]);
+        InterlockedMax(visibilityBuffer[index], sharedSubBin[pt.y][pt.x]);
     }
 #endif
 

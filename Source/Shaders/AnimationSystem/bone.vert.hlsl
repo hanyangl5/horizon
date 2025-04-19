@@ -30,31 +30,31 @@
 cbuffer uniformBlock: register(UPDATE_FREQ_PER_DRAW, b0)
 {
 #if FT_MULTIVIEW
-    float4x4 mvp[VR_MULTIVIEW_COUNT] : None
+    float4x4 mvp[VR_MULTIVIEW_COUNT] : None;
 #else
-    float4x4 mvp : None
+    float4x4 mvp : None;
 #endif
-    float4x4 viewMatrix : None
-    float4 color[MAX_INSTANCES] : None
+    float4x4 viewMatrix : None;
+    float4 color[MAX_INSTANCES] : None;
     // Point Light Information
-    float4 lightPosition : None
-    float4 lightColor : None
-    float4 jointColor : None
-    uint4 skeletonInfo : None
-    float4x4 toWorld[MAX_INSTANCES] : None
+    float4 lightPosition : None;
+    float4 lightColor : None;
+    float4 jointColor : None;
+    uint4 skeletonInfo : None;
+    float4x4 toWorld[MAX_INSTANCES] : None;
 };
 
 struct VSInput
 {
-    float4 Position : POSITION
-    float4 Normal : NORMAL
-    uint4 BoneIndices : JOINTS
+    float4 Position : POSITION;
+    float4 Normal : NORMAL;
+    uint4 BoneIndices : JOINTS;
 };
 
 struct VSOutput
 {
-    float4 Position : SV_Position
-    float4 Color : COLOR
+    float4 Position : SV_Position;
+    float4 Color : COLOR;
 };
 
 float4x4 computeBoneTransform( uint InstanceID, uint childIndex, uint parentIndex )
@@ -70,11 +70,11 @@ float4x4 computeBoneTransform( uint InstanceID, uint childIndex, uint parentInde
         return result;
     }
 
-    uint numJoints = Get(skeletonInfo).x;
+    uint numJoints = skeletonInfo.x;
     childIndex = ( InstanceID * numJoints ) + childIndex;
     parentIndex = ( InstanceID * numJoints ) + parentIndex;
-    float4x4 parentMat = Get(toWorld)[parentIndex];
-	float4x4 childMat = Get(toWorld)[childIndex];
+    float4x4 parentMat = toWorld[parentIndex];
+	float4x4 childMat = toWorld[childIndex];
     float3  boneDir;
     boneDir.x = getElem(childMat,3,0) - getElem(parentMat,3,0);
     boneDir.y = getElem(childMat,3,1) - getElem(parentMat,3,1);
@@ -122,14 +122,14 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 {
     INIT_MAIN;
     VSOutput Out;
-    uint numJoints = Get(skeletonInfo).x;
+    uint numJoints = skeletonInfo.x;
     uint boneIndex = ( InstanceID * numJoints ) + In.BoneIndices.x;
     float4x4 matWorld = computeBoneTransform(InstanceID,In.BoneIndices.x,In.BoneIndices.y);
 
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], matWorld);
+    float4x4 tempMat = mul(mvp[VR_VIEW_ID], matWorld);
 #else
-    float4x4 tempMat = mul(Get(mvp), matWorld);
+    float4x4 tempMat = mul(mvp, matWorld);
 #endif
     Out.Position = mul(tempMat, In.Position);
 
@@ -140,13 +140,13 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
     float quadraticCoeff = 1.2;
     float ambientCoeff = 0.4;
 
-    float3 lightDir = normalize(Get(lightPosition).xyz - pos.xyz);
+    float3 lightDir = normalize(lightPosition.xyz - pos.xyz);
 
-    float3 baseColor = Get(color)[boneIndex].xyz;
-    float3 blendedColor = (Get(lightColor).xyz * baseColor) * lightIntensity;
+    float3 baseColor = color[boneIndex].xyz;
+    float3 blendedColor = (lightColor.xyz * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out.Color = float4(diffuse + ambient, 1.0);
 
-    RETURN Out;
+    return Out;
 }

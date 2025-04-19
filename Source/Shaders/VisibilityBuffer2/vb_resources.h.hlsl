@@ -32,14 +32,14 @@ ByteAddressBuffer vertexPositionBuffer : register(UPDATE_FREQ_NONE, t0);
 
 cbuffer batchData_rootcbv: register(UPDATE_FREQ_USER, b2)
 {
-    FilterBatchData filterBatchDataBuffer[FILTER_BATCH_COUNT] : None
+    FilterBatchData filterBatchDataBuffer[FILTER_BATCH_COUNT] : None;
 };
 #endif
 
 #ifdef _VB_PRE_SKIN_VERTEXES_H
 cbuffer batchData_rootcbv: register(UPDATE_FREQ_USER, b2)
 {
-    PreSkinBatchData skinBatchDataBuffer[SKIN_BATCH_COUNT] : None
+    PreSkinBatchData skinBatchDataBuffer[SKIN_BATCH_COUNT] : None;
 };
 #endif
 

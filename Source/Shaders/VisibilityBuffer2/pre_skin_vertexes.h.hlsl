@@ -33,7 +33,7 @@ StructuredBuffer<float4x4> jointMatrixes : register(UPDATE_FREQ_PER_FRAME, t0);
 
 cbuffer outputBufferOffsets: register(UPDATE_FREQ_PER_FRAME, b0)
 {
-    PreSkinBufferOffsets bufferOffsets : None
+    PreSkinBufferOffsets bufferOffsets : None;
 };
 
 #ifdef PRE_SKIN_ASYNC_COMPUTE

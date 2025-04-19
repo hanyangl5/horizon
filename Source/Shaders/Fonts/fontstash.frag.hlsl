@@ -21,14 +21,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- 
-#include "resources.h"
 
-struct VsIn
-{
-	float2 position: Position;
-	float2 texCoord: TEXCOORD0;
-};
+#include "resources.h.hlsl"
 
 struct PsIn
 {
@@ -36,12 +30,9 @@ struct PsIn
 	float2 texCoord: TEXCOORD0;
 };
 
-PsIn VS_MAIN( VsIn In )
+float4 PS_MAIN( PsIn In )
 {
-	INIT_MAIN;
-	PsIn Out;
-	Out.position = float4 (In.position, 0.0f, 1.0f);
-	Out.position.xy = Out.position.xy * Get(scaleBias).xy + float2(-1.0f, 1.0f);
-	Out.texCoord = In.texCoord;
-	RETURN Out;
+	float4 Out;
+	Out = float4(1.0, 1.0, 1.0, SampleTex2D(uTex0, uSampler0, In.texCoord).r) * color;
+	return Out;
 }
