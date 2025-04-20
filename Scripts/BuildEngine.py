@@ -5,8 +5,8 @@ import subprocess
 build_dir = "build"
 msvc_build_dir = os.path.join(build_dir, "msvc")
 clang_build_dir = os.path.join(build_dir, "clang")
-msvc_log_file = os.path.join(msvc_build_dir, "vs_build.log")
-clang_log_file = os.path.join(clang_build_dir, "ninja_build.log")
+msvc_log_file = os.path.join(build_dir, "vs_build.log")
+clang_log_file = os.path.join(build_dir, "ninja_build.log")
 
 # Ensure build directories exist
 os.makedirs(msvc_build_dir, exist_ok=True)
