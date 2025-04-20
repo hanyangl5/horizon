@@ -25,14 +25,6 @@
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
 
-#ifdef NO_FSL_DEFINITIONS
-#define STATIC                            static
-#define STRUCT(NAME)                      struct NAME
-#define DATA(TYPE, NAME, SEM)             TYPE NAME
-#define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
-#define float4x4                          mat4
-#endif
-
 #define LIGHT_COUNT                        128
 #define LIGHT_SIZE                         150.0f
 
@@ -49,45 +41,45 @@
 
 //#include <Graphics/IVisibilityBuffer.h>
 
-#define NO_FSL_DEFINITIONS
+//#define NO_FSL_DEFINITIONS
 #include <Graphics/IVisibilityBuffer2.h>
-STRUCT(MeshConstants)
+struct MeshConstants
 {
-    DATA(uint, indexOffset, None);
-    DATA(uint, vertexOffset, None);
-    DATA(uint, materialID, None);
-    DATA(uint, twoSided, None); // 0 or 1
+    uint32_t indexOffset;
+    uint32_t vertexOffset;
+    uint32_t materialID;
+    uint32_t twoSided; // 0 or 1
 };
 
-CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+struct PerFrameConstants
 {
-    DATA(float4, camPos, None);
+    float4 camPos;
     //========================================
-    DATA(float4, lightDir, None);
+    float4 lightDir;
     //========================================
-    DATA(float4, lightColor, None);
+    float4 lightColor;
     //========================================
-    DATA(float2, CameraPlane, None); // x : near, y : far
-    DATA(uint, lightingMode, None);
-    DATA(uint, outputMode, None);
+    float2 CameraPlane; // x : near, y : far
+    uint32_t lightingMode;
+    uint32_t outputMode;
     //========================================
-    DATA(float2, twoOverRes, None);
-    DATA(float, esmControl, None);
-    DATA(uint, aoQuality, None);
+    float2 twoOverRes;
+    float esmControl;
+    uint32_t aoQuality;
     //========================================
-    DATA(float2, frustumPlaneSizeNormalized, None);
-    DATA(float2, depthTexSize, None);
+    float2 frustumPlaneSizeNormalized;
+    float2 depthTexSize;
     //========================================
-    DATA(float, aoIntensity, None);
-    DATA(uint, visualizeAo, None);
-    DATA(uint, smallScaleRaster, None);
-    DATA(uint, visualizeBinOccupancy, None);
+    float aoIntensity;
+    uint32_t visualizeAo;
+    uint32_t smallScaleRaster;
+    uint32_t visualizeBinOccupancy;
 };
 
-STRUCT(LightData)
+struct LightData
 {
-    DATA(float4, position, None);
-    DATA(float4, color, None);
+    float4 position;
+    float4 color;
 };
 
 #endif
