@@ -24,6 +24,6 @@ project_build_path = os.path.join(project_path, "build")
 
 os.makedirs(project_build_path, exist_ok=True)
 
-command = f'cmake "{project_path}" -DENGINE_PATH="{engine_path}" -B "{project_build_path}"'
+command = f'cmake -S "{project_path}" -DENGINE_PATH="{engine_path}" -B "{project_build_path}"'
 print("Executing command:", command)
 os.system(command)

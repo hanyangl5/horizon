@@ -301,7 +301,7 @@ set(THIRD_PARTY_DEPS
 )
 
 foreach(LIB ${THIRD_PARTY_DEPS})
-    set_target_properties(${LIB} PROPERTIES FOLDER "ThirdParty")
+    set_target_properties(${LIB} PROPERTIES FOLDER "Horizon/ThirdParty")
     
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         target_compile_options(${LIB} PRIVATE /MP)
