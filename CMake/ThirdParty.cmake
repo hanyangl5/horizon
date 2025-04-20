@@ -1,18 +1,20 @@
 set(ENGINE_THIRD_PARTY_SOURCE_DIR ${ENGINE_SOURCE_DIR}/ThirdParty)
 
-add_library(WinPixEventRuntime STATIC IMPORTED)
-# set_property(TARGET WinPixEventRuntime PROPERTY IMPORTED_LOCATION
-#     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/winpixeventruntime/bin/x64/WinPixEventRuntime.dll
-# )
+add_library(WinPixEventRuntime SHARED IMPORTED)
 set_property(TARGET WinPixEventRuntime PROPERTY IMPORTED_LOCATION
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/winpixeventruntime/bin/x64/WinPixEventRuntime.dll
+)
+
+set_property(TARGET WinPixEventRuntime PROPERTY IMPORTED_IMPLIB
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/winpixeventruntime/bin/x64/WinPixEventRuntime.lib
 )
 
-add_library(AGS STATIC IMPORTED)
-# set_property(TARGET AGS PROPERTY IMPORTED_LOCATION
-#     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags/ags_lib/lib/amd_ags_x64.dll
-# )
+add_library(AGS SHARED IMPORTED)
 set_property(TARGET AGS PROPERTY IMPORTED_LOCATION
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags/ags_lib/lib/amd_ags_x64.dll
+)
+
+set_property(TARGET AGS PROPERTY IMPORTED_IMPLIB
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags/ags_lib/lib/amd_ags_x64.lib
 )
 target_include_directories(AGS INTERFACE ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ags)
@@ -276,7 +278,7 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
 set(THIRD_PARTY_DEPS
 
     # Basisu
-    #Imgui
+    # Imgui
 
     # Lua
     # MiniZip
