@@ -25,17 +25,17 @@
 #include <ThirdParty/stb/stb_ds.h>
 
 //#include "../../../Common_3/Application/Interfaces/IProfiler.h"
-#include <RHI/IGraphics.h>
-#include <Resources/IResourceLoader.h>
-#include <Core/ILog.h>
-#include <Core/ITime.h>
-#include <Graphics/IParticleSystem.h>
+#include "RHI/IGraphics.h"
+#include "Resources/IResourceLoader.h"
+#include "Core/ILog.h"
+#include "Core/ITime.h"
+#include "Graphics/IParticleSystem.h"
 
 #define NO_FSL_DEFINITIONS
 #include "ParticleStruct.h"
 #undef NO_FSL_DEFINITIONS
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)

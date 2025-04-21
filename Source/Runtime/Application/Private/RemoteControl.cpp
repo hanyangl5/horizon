@@ -22,10 +22,10 @@
  * under the License.
  */
 
-#include <Resources/IResourceLoader.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Application/IUI.h>
+#include "Resources/IResourceLoader.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Application/IUI.h"
 
 //#include "../Tools/Network/Network.h"
 

@@ -32,7 +32,7 @@
 #ifndef DEBUG_H_12987983217
 #define DEBUG_H_12987983217
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #if defined (__cplusplus)
 extern "C" {

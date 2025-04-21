@@ -30,7 +30,7 @@
 #ifndef VECTORMATH_NEON_QUATERNION_HPP
 #define VECTORMATH_NEON_QUATERNION_HPP
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 namespace Vectormath
 {

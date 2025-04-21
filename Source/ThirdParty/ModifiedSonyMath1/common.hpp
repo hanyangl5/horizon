@@ -10,9 +10,9 @@
 #include <float.h>
 
 #define IMEMORY_FROM_HEADER
-#include <Core/IRandom.h>
+#include "Core/IRandom.h"
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 namespace Vectormath
 {
@@ -208,7 +208,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 } // namespace Vectormath
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <math.h>
 #include <stdint.h>

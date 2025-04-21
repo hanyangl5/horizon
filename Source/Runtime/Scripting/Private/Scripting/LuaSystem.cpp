@@ -23,14 +23,14 @@
  */
 
 // INTERFACES
-#include <Application/IUI.h>
+#include "Application/IUI.h"
 #include "../../Game/Interfaces/IScripting.h"
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #ifdef ENABLE_FORGE_SCRIPTING
 
 // RENDERER
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 // PREPROCESSOR DEFINES
 #define MAX_LUA_STR_LEN       256

@@ -22,15 +22,15 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #if defined(_WINDOWS) || defined(XBOX)
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Platform/IOperatingSystem.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Platform/IOperatingSystem.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #if defined(ENABLE_THREAD_PERFORMANCE_STATS)
 

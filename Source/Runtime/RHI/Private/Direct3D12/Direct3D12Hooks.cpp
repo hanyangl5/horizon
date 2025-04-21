@@ -27,13 +27,13 @@
 
 //#include "../ThirdParty/OpenSource/D3D12MemoryAllocator/Direct3D12MemoryAllocator.h"
 //#include <ThirdParty/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #include "Direct3D12Hooks.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(p_var) \

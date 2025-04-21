@@ -22,8 +22,8 @@
  * under the License.
  */
 
-#include <Core/ILog.h>
-#include <Core/IToolFileSystem.h>
+#include "Core/ILog.h"
+#include "Core/IToolFileSystem.h"
 
 #if defined(_WINDOWS)
 #define strncasecmp(x, y, z) _strnicmp(x, y, z)

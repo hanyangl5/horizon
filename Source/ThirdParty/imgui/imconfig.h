@@ -14,9 +14,9 @@
 
 #pragma once
 
-#include <Core/ILog.h>
-#include <Core/IFileSystem.h>
-#include <Core/IMath.h>
+#include "Core/ILog.h"
+#include "Core/IFileSystem.h"
+#include "Core/IMath.h"
 #include <ThirdParty/bstrlib/bstrlib.h>
 
 //---- Define assertion handler. Defaults to calling assert().

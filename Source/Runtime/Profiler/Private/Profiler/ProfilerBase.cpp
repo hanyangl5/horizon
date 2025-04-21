@@ -26,24 +26,24 @@
 
 #include <inttypes.h>
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 #include "GpuProfiler.h"
 
 // RENDERER
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 // INTERFACES
-//#include <Application/IFont.h>
-//#include <Application/IProfiler.h>
-//#include <Application/IUI.h>
+//#include "Application/IFont.h"
+//#include "Application/IProfiler.h"
+//#include "Application/IUI.h"
 //#include "../../Game/Interfaces/IScripting.h"
-#include <Platform/IOperatingSystem.h>
-#include <Core/IFileSystem.h>
+#include "Platform/IOperatingSystem.h"
+#include "Core/IFileSystem.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #ifdef ENABLE_PROFILER
 /////////////////////////////////////////////////////////////////////////////

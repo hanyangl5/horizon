@@ -29,8 +29,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
 
 #include "Atomics.h"
 

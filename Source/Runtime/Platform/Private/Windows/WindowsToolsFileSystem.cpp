@@ -22,20 +22,20 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <malloc.h> // alloca
 #include <wchar.h>  // _wrename
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Core/IToolFileSystem.h>
-#include <Platform/IOperatingSystem.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Core/IToolFileSystem.h"
+#include "Platform/IOperatingSystem.h"
 
 #include "commdlg.h"
 #include "shlobj.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 // static
 template<typename T>

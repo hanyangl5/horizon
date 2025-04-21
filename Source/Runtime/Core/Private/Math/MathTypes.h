@@ -27,7 +27,7 @@
 #ifndef THEFORGE_INCLUDE_MATHTYPES_H
 #define THEFORGE_INCLUDE_MATHTYPES_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 // ModifiedSonyMath ReadMe:
 // - All you need to do is include the public header file vectormath.hpp. It will expose the relevant parts of

@@ -25,7 +25,7 @@
 #ifndef ISCRIPTING_H
 #define ISCRIPTING_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 // LUA
 #include "../Private/Scripting/LuaManager.h"

@@ -25,7 +25,7 @@
 #ifndef IUI_H
 #define IUI_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 // SCRIPTED TESTING :
 // For now, if a script file with the name "Test.lua", exist in the script directory, will run once an execution.
@@ -39,7 +39,7 @@
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 struct UserInterfaceDrawData;
 

@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Core/IFileSystem.h>
+#include "Core/IFileSystem.h"
 
 #include "stdbool.h"
 

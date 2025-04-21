@@ -32,7 +32,7 @@
 #ifndef IMEMORY_H
 #define IMEMORY_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 #ifdef __cplusplus
 #include <new>
 #include <utility> // std::forward only

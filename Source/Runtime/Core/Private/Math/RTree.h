@@ -75,7 +75,7 @@ extern "C"
 #ifdef RTREE_IMPLEMENTATION
 #undef RTREE_IMPLEMENTATION
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))

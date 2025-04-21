@@ -22,9 +22,9 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Platform/IOperatingSystem.h>
+#include "Platform/IOperatingSystem.h"
 #include "../Private/Threading/Atomics.h"
 #include "../Private/Threading/ThreadSystem.h"
 

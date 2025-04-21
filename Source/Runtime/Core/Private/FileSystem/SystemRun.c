@@ -28,9 +28,9 @@
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
 
-#include <Platform/IOperatingSystem.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
+#include "Platform/IOperatingSystem.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 
 int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
 {

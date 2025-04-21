@@ -22,17 +22,17 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
 
-#include <Application/IApp.h>
-#include <Platform/IOperatingSystem.h>
-#include <Core/ILog.h>
+#include "Application/IApp.h"
+#include "Platform/IOperatingSystem.h"
+#include "Core/ILog.h"
 
-#include <Core/IMath.h>
-#include <Core/IAlgorithm.h>
+#include "Core/IMath.h"
+#include "Core/IAlgorithm.h"
 
 #pragma comment(lib, "WinMM.lib")
 #include <windowsx.h>

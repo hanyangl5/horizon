@@ -22,12 +22,12 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
-#include <RHI/IGraphics.h>
+#include "Core/IConfig.h"
+#include "RHI/IGraphics.h"
 
-#include <Resources/IResourceLoader.h>
-#include <Core/ILog.h>
-#include <RHI/RingBuffer.h>
+#include "Resources/IResourceLoader.h"
+#include "Core/ILog.h"
+#include "RHI/RingBuffer.h"
 
 void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURingBuffer* pRingBuffer)
 {

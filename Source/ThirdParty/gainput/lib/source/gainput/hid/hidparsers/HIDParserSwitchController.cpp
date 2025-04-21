@@ -3,7 +3,7 @@
 #include "../GainputHIDTypes.h"
 #include "../GainputHIDWhitelist.h"
 #include "../../../hidapi/hidapi.h"
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #include "../../../../include/gainput/gainput.h"
 #include "../../../../include/gainput/GainputInputDeltaState.h"

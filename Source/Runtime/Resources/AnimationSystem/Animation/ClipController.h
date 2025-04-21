@@ -25,7 +25,7 @@
 #pragma once
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/animation.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 // Utility class that helps with controlling animation playback time. Time is
 // computed every update according to the dt given by the caller, playback speed

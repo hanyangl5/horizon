@@ -18,7 +18,7 @@
 #ifndef BSTRLIB_INCLUDE
 #define BSTRLIB_INCLUDE
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #ifdef __cplusplus
 extern "C" {

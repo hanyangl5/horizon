@@ -22,18 +22,18 @@
  * under the License.
  */
 
-#include <Profiler/IProfiler.h>
+#include "Profiler/IProfiler.h"
 //#include "Interfaces/IScreenshot.h"
 
 #if defined(ENABLE_SCREENSHOT)
 #include <ThirdParty/tinyimageformat/tinyimageformat_decode.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
-#include <Resources/IResourceLoader.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
-#include <Application/IUI.h>
+#include "Resources/IResourceLoader.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Application/IUI.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #if defined(ORBIS)
 #include "../../PS4/Common_3/OS/Orbis/OrbisScreenshot.h"

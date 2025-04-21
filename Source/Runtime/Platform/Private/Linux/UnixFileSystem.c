@@ -29,8 +29,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 
 bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 void fsGetParentPath(const char* path, char* output);

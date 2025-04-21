@@ -11,7 +11,7 @@
  * This file is the core module for implementing the bstring functions.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <ThirdParty/stb/stb_ds.h>
 
@@ -50,8 +50,8 @@ bool gIsBstrlibTest = false;
 
 #include "bstrlib.h"
 
-#include <Core/ILog.h>
-#include <Core/IMemory.h>
+#include "Core/ILog.h"
+#include "Core/IMemory.h"
 
 /* Optionally include a mechanism for debugging memory */
 

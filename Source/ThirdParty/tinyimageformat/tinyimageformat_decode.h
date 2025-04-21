@@ -4,7 +4,7 @@
 #define TINYIMAGEFORMAT_DECODE_H_ 1
 
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #include "tinyimageformat_base.h"
 

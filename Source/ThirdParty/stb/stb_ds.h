@@ -2204,7 +2204,7 @@ CREDITS
 #ifndef INCLUDE_STB_DS_H
 #define INCLUDE_STB_DS_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #define STB_DS_API FORGE_API
 
@@ -2304,7 +2304,7 @@ struct bstring;
 
 #ifndef STB_DS_IMPLEMENTATION
 #define IMEMORY_FROM_HEADER
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 #endif
 
 #ifdef _MSC_VER
@@ -2753,9 +2753,9 @@ static T* stbds_shmode_func_wrapper(T*, size_t elemsize, size_t elemalign, int m
 #ifdef STB_DS_IMPLEMENTATION
 #include <string.h>
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
-#include <Core/IThread.h>
+#include "Core/IThread.h"
 #include <ThirdParty/bstrlib/bstrlib.h>
 
 #ifdef STBDS_STATISTICS
