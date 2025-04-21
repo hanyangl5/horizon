@@ -22,16 +22,16 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-//#include <Application/IApp.h>
-#include <Platform/IInput.h>
-#include <Core/ILog.h>
-//#include <Application/IScreenshot.h>
-//#include <Application/IUI.h>
+//#include "Application/IApp.h"
+#include "Platform/IInput.h"
+#include "Core/ILog.h"
+//#include "Application/IScreenshot.h"
+//#include "Application/IUI.h"
 //#include <Scripting/IScripting.h>
-#include <Platform/IOperatingSystem.h>
-#include <Core/ITime.h>
+#include "Platform/IOperatingSystem.h"
+#include "Core/ITime.h"
 #include <ThirdParty/bstrlib/bstrlib.h>
 
 static WindowDesc* pWindowRef = NULL;

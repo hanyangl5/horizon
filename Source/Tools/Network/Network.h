@@ -25,7 +25,7 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #ifndef __cplusplus
 #include <stdbool.h>

@@ -26,7 +26,7 @@
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 #pragma warning(push)
 #pragma warning(disable : 4091)
 #include <DbgHelp.h>

@@ -24,11 +24,11 @@
 
 #pragma once
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
-#include <RHI/IGraphics.h>
-#include <Core/IMath.h>
-#include <Core/IThread.h>
+#include "RHI/IGraphics.h"
+#include "Core/IMath.h"
+#include "Core/IThread.h"
 
 static FORGE_CONSTEXPR const ResourceState gVertexBufferState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;
 static FORGE_CONSTEXPR const ResourceState gIndexBufferState = RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;

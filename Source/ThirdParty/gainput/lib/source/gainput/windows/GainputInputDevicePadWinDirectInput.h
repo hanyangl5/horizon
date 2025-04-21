@@ -9,8 +9,8 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "Hid.lib")
 
-#include <Core/ILog.h>
-#include <Core/ITime.h>
+#include "Core/ILog.h"
+#include "Core/ITime.h"
 
 #include "../pad/GainputControllerDb.h"
 #include "../hid/GainputHIDWhitelist.h"

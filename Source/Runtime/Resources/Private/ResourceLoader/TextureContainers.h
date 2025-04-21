@@ -31,10 +31,10 @@
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <ThirdParty/tinyktx/tinyktx.h>
 
-#include <RHI/IGraphics.h>
-#include <Platform/IOperatingSystem.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
+#include "RHI/IGraphics.h"
+#include "Platform/IOperatingSystem.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 
 /************************************************************************/
 // Surface Utils

@@ -84,7 +84,7 @@
 #include <stdarg.h>
 
 #include "../../../../../OS/Interfaces/IOperatingSystem.h"
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #if !defined(WIN32) && !defined(XBOX)
 #include <unistd.h>

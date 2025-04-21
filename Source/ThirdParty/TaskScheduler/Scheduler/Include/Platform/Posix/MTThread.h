@@ -47,7 +47,7 @@
     #define MAP_STACK (0)
 #endif
 
-#include <Platform/Common/MTThread.h>
+#include "Platform/Common/MTThread.h"
 #include <MTAppInterop.h>
 
 namespace MT

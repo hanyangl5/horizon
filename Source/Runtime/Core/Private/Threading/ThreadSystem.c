@@ -26,9 +26,9 @@
 
 #include <ThirdParty/stb/stb_ds.h>
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Core/ITime.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Core/ITime.h"
 
 #include "Atomics.h"
 

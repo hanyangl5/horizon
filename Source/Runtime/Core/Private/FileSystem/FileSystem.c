@@ -22,15 +22,15 @@
  * under the License.
  */
 
-#include <Core/IFileSystem.h>
+#include "Core/IFileSystem.h"
 
 #include <errno.h>
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Core/ITime.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Core/ITime.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 // This macro enables custom ZSTD allocator features
 #define ZSTD_STATIC_LINKING_ONLY

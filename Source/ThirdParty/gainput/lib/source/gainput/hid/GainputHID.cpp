@@ -5,8 +5,8 @@
 #include "GainputHIDWhitelist.h"
 #include "../../hidapi/hidapi.h"
 #include "../../../include/gainput/gainput.h"
-#include <Core/ITime.h>
-#include <Core/ILog.h>
+#include "Core/ITime.h"
+#include "Core/ILog.h"
 
 #include "hidparsers/HIDParserPS4Controller.h"
 #include "hidparsers/HIDParserPS5Controller.h"

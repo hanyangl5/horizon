@@ -16,7 +16,7 @@
 
 #include <cstdint>
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 TIF_CONSTEXPR inline uint64_t TinyImageFormat_Code(TinyImageFormat const fmt) 
 {

@@ -24,11 +24,11 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #define VISIBILITY_BUFFER_MAX_GEOMETRY_SETS 3
 // Number of bits required to represent all geometry set values

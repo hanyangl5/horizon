@@ -22,18 +22,18 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #ifdef _WINDOWS
 
 #include <io.h> // _isatty
 
 // interfaces
-#include <Platform/IOperatingSystem.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
+#include "Platform/IOperatingSystem.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #define BUFFER_SIZE 4096
 

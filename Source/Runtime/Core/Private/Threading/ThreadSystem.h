@@ -23,7 +23,7 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #ifdef __cplusplus
 extern "C"

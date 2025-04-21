@@ -30,7 +30,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <windows.h>
 
@@ -76,7 +76,7 @@ extern "C" {
 
 #include "../hidapi.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #undef MIN
 #define MIN(x,y) ((x) < (y)? (x): (y))

@@ -24,10 +24,10 @@
 
 #include <ThirdParty/stb/stb_ds.h>
 
-#include <Core/ILog.h>
-#include <RHI/IGraphics.h>
+#include "Core/ILog.h"
+#include "RHI/IGraphics.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 // This file contains shader reflection code that is the same for all platforms.
 // We know it's the same for all platforms since it only interacts with the

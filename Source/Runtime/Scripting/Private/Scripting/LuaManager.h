@@ -24,11 +24,11 @@
 
 #pragma once
 
-#include <Core/IFileSystem.h>
+#include "Core/IFileSystem.h"
 
 #include "LuaManagerCommon.h"
 #define IMEMORY_FROM_HEADER
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 class LuaManagerImpl;
 

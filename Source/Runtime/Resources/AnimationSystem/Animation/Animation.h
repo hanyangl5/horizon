@@ -26,7 +26,7 @@
 
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/blending_job.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #include "Clip.h"
 #include "ClipController.h"

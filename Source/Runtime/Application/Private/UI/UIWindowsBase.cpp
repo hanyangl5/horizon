@@ -21,14 +21,14 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #ifdef _WINDOWS
 
 #include <ctime>
 #include <ntverp.h>
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #if !defined(XBOX)
 #include <shlwapi.h>
@@ -39,17 +39,17 @@
 #include <ThirdParty/rmem/inc/rmem.h>
 #include <ThirdParty/stb/stb_ds.h>
 
-#include <Application/IApp.h>
-// #include <Application/IFont.h>
-#include <Profiler/IProfiler.h>
-#include <Application/IUI.h>
+#include "Application/IApp.h"
+// #include "Application/IFont.h"
+#include "Profiler/IProfiler.h"
+#include "Application/IUI.h"
 // #include <Scripting/IScripting.h>
-#include <RHI/IGraphics.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Core/ITime.h>
-#include <Platform/IOperatingSystem.h>
+#include "RHI/IGraphics.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Core/ITime.h"
+#include "Platform/IOperatingSystem.h"
 
 #if defined(ENABLE_FORGE_REMOTE_UI)
 #include "../../Tools/Network/Network.h"
@@ -57,12 +57,12 @@
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 #include "../../Tools/ReloadServer/ReloadClient.h"
 #endif
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
 #include "WindowsStackTraceDump.h"
 #endif
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
 // App Data

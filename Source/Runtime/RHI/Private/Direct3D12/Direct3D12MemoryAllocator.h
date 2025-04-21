@@ -1534,7 +1534,7 @@ DEFINE_ENUM_FLAG_OPERATORS(D3D12MA::VIRTUAL_ALLOCATION_FLAGS);
 #endif
 #endif
 
-#include <Core/IThread.h>
+#include "Core/IThread.h"
 #include <algorithm>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1550,7 +1550,7 @@ DEFINE_ENUM_FLAG_OPERATORS(D3D12MA::VIRTUAL_ALLOCATION_FLAGS);
 #endif
 
 #ifndef D3D12MA_ASSERT
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 #define D3D12MA_ASSERT(cond) ASSERT(cond)
 #endif
 

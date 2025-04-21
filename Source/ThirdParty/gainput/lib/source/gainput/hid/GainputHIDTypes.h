@@ -2,7 +2,7 @@
 #ifndef GAINPUTHIDTYPES_H_
 #define GAINPUTHIDTYPES_H_
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 // While the standard says this is the max packet size, there is no enforcement
 //   so some products may have larger packets

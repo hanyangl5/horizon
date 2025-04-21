@@ -21,9 +21,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#include <Core/ILog.h>
-#include <RHI/IGraphics.h>
-#include <RHI/IRay.h>
+#include "Core/ILog.h"
+#include "RHI/IGraphics.h"
+#include "RHI/IRay.h"
 
 #include "GraphicsConfig.h"
 

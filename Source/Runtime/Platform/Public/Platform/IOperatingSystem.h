@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include "../Private/CPUConfig.h"
 
@@ -91,7 +91,7 @@ typedef uint64_t uint64;
 #endif
 
 #define IMEMORY_FROM_HEADER
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #if !defined(_WINDOWS) && !defined(XBOX)
 #include <unistd.h>

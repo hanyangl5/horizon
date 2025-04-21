@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 typedef struct Texture                    Texture;
 typedef struct Cmd                        Cmd;

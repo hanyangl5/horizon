@@ -10,7 +10,7 @@
 #ifndef VECTORMATH_HPP
 #define VECTORMATH_HPP
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 #include "vectormath_settings.hpp"
 
 // Sony's library includes:

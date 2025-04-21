@@ -77,9 +77,9 @@ void drawFrame(float deltaTime);
 #ifndef _IAPP_H_
 #define _IAPP_H_
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Platform/IOperatingSystem.h>
+#include "Platform/IOperatingSystem.h"
 
 class FORGE_API IApp
 {

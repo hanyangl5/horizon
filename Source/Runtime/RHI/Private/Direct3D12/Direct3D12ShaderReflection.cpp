@@ -25,8 +25,8 @@
 #include "../GraphicsConfig.h"
 
 #ifdef DIRECT3D12
-#include <Core/ILog.h>
-#include <RHI/IGraphics.h>
+#include "Core/ILog.h"
+#include "RHI/IGraphics.h"
 
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
@@ -37,7 +37,7 @@
 #include <ThirdParty/DirectXShaderCompiler/inc/dxcapi.h>
 #endif
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 static DescriptorType sD3D12_TO_DESCRIPTOR[] = {
     DESCRIPTOR_TYPE_UNIFORM_BUFFER,         // D3D_SIT_CBUFFER

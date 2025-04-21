@@ -25,11 +25,11 @@
 #ifndef IFONT_H
 #define IFONT_H
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Application/ICameraController.h>
+#include "Application/ICameraController.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 typedef struct Renderer      Renderer;
 typedef struct Cmd           Cmd;

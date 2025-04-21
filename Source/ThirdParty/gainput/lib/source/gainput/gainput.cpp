@@ -358,7 +358,7 @@ Strings are represented like this:
 
 */
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 namespace gainput
 {

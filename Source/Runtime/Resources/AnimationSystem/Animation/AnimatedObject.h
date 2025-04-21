@@ -27,7 +27,7 @@
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/blending_job.h"
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/local_to_model_job.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #include "Animation.h"
 #include "Rig.h"

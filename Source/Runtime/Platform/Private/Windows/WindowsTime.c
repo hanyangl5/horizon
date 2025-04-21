@@ -22,7 +22,7 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <stdint.h>
 #include <time.h>
@@ -31,9 +31,9 @@
 #include <timeapi.h>
 // clang-format on
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Core/ITime.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Core/ITime.h"
 
 /************************************************************************/
 // Time Related Functions

@@ -30,9 +30,9 @@
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/span.h"
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 // Stores skeleton properties and posable by animations
 class FORGE_API Rig

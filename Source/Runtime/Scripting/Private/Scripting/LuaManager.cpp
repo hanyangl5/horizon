@@ -24,11 +24,11 @@
 
 #include "LuaManager.h"
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #include "LuaManagerImpl.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 void LuaManager::Init()
 {

@@ -30,7 +30,7 @@
 #ifndef VECTORMATH_SSE_VECTOR_HPP
 #define VECTORMATH_SSE_VECTOR_HPP
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 namespace Vectormath
 {

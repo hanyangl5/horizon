@@ -23,9 +23,9 @@
  */
 
 #pragma once
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Platform/IOperatingSystem.h>
+#include "Platform/IOperatingSystem.h"
 
 // IOS Simulator paths can get a bit longer then 256 bytes
 #ifdef TARGET_IOS_SIMULATOR

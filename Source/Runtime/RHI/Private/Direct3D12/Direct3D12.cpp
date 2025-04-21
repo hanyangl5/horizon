@@ -43,7 +43,7 @@
 #include <ThirdParty/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
 #include "Direct3D12MemoryAllocator.h"
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 #if defined(XBOX)
 #include <pix3.h>
@@ -57,17 +57,17 @@
 #include <ThirdParty/nvapi/NvApiHelper.h>
 //#include <ThirdParty/renderdoc/renderdoc_app.h>
 
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 
-#include <Core/IAlgorithm.h>
-#include <Core/IMath.h>
+#include "Core/IAlgorithm.h"
+#include "Core/IMath.h"
 
 #include "Direct3D12CapBuilder.h"
 #include "Direct3D12Hooks.h"
 
 #if defined(AUTOMATED_TESTING)
-#include <Application/IScreenshot.h>
+#include "Application/IScreenshot.h"
 #endif
 
 #if !defined(_WINDOWS) && !defined(XBOX)
@@ -86,7 +86,7 @@
 #error "D3D12 requires C++! Sorry!"
 #endif
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL    ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)

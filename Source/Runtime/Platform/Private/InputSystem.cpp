@@ -25,7 +25,7 @@
 
 #include <ThirdParty/stb/stb_ds.h>
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 #ifdef ENABLE_FORGE_INPUT
 #include <ThirdParty/gainput/lib/include/gainput/gainput.h>
@@ -62,15 +62,15 @@
 
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 
-#include <RHI/IGraphics.h>
-#include <Platform/IOperatingSystem.h>
-#include <Resources/IResourceLoader.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
-#include <Platform/IInput.h>
-#include <Application/IUI.h>
+#include "RHI/IGraphics.h"
+#include "Platform/IOperatingSystem.h"
+#include "Resources/IResourceLoader.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Platform/IInput.h"
+#include "Application/IUI.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #ifdef GAINPUT_PLATFORM_GGP
 namespace gainput

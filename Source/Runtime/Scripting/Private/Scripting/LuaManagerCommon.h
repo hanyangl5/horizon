@@ -24,11 +24,11 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <ThirdParty/bstrlib/bstrlib.h>
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #define MAX_FUNCTION_NAME_LENGTH 128
 

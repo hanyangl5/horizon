@@ -24,9 +24,9 @@
 
 #include "GpuProfiler.h"
 
-#include <Profiler/IProfiler.h>
+#include "Profiler/IProfiler.h"
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 #ifndef ENABLE_GPU_PROFILER
 ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName) { return PROFILE_INVALID_TOKEN; }
@@ -46,14 +46,14 @@ GpuProfiler* getGpuProfiler(ProfileToken nProfileToken) { return NULL; }
 void         removeGpuProfiler(ProfileToken nProfileToken) {}
 #else
 
-#include <RHI/IGraphics.h>
-#include <Resources/IResourceLoader.h>
-#include <Core/ILog.h>
-#include <Core/ITime.h>
+#include "RHI/IGraphics.h"
+#include "Resources/IResourceLoader.h"
+#include "Core/ILog.h"
+#include "Core/ITime.h"
 
 #include "ProfilerBase.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)

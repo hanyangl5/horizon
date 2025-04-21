@@ -22,12 +22,12 @@
  * under the License.
  */
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 // Don't compile stbtt unless we need it for UI or fonts
 #if defined ENABLE_FORGE_UI || defined ENABLE_FORGE_FONTS
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 // Previous implementation defined all stb math functions as imgui math functions
 // However, imgui math functions expand to standard c math functions, so no need to define unless we want custom math
 // Also we must check for implementation defines in case the user already has an implementation in the _same_ compilation unit (e.g. unity
@@ -39,7 +39,7 @@
 #include <ThirdParty/stb/stb_rect_pack.h>
 #endif
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #ifndef STB_TRUETYPE_IMPLEMENTATION
 #define STB_TRUETYPE_IMPLEMENTATION

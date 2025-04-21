@@ -23,10 +23,10 @@
  */
 
 #pragma once
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Platform/IOperatingSystem.h>
-#include <Core/IThread.h>
+#include "Platform/IOperatingSystem.h"
+#include "Core/IThread.h"
 
 struct WindowsStackTraceLineInfo
 {

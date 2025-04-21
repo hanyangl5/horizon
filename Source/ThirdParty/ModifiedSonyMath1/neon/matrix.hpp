@@ -30,7 +30,7 @@
 #ifndef VECTORMATH_NEON_MATRIX_HPP
 #define VECTORMATH_NEON_MATRIX_HPP
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 namespace Vectormath
 {

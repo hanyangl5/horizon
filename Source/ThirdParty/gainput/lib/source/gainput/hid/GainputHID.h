@@ -2,7 +2,7 @@
 #ifndef GAINPUTHID_H_
 #define GAINPUTHID_H_
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 //#define HID_VERBOSE_LOGGING
 

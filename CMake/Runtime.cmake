@@ -147,18 +147,18 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${ENGINE_RUNTIME} PRIVATE -fno-rtti -fno-exceptions
 
-        # -Wall -Wextra -Wshadow -pedantic
+        -Wall -Wextra -Wshadow -pedantic
         #-Werror 
         # -fms-extensions
-        # -Wno-language-extension-token
-        # -Wno-switch
-        # -Wno-missing-field-initializers
-        # -Wno-unused-value
-        # -Wno-microsoft-enum-value
-        # -Wno-nested-anon-types
-        # -Wno-gnu-anonymous-struct
-        # -Wno-gnu-zero-variadic-macro-arguments
-        # -Wno-keyword-macro
+        -Wno-language-extension-token
+        -Wno-switch
+        -Wno-missing-field-initializers
+        -Wno-unused-parameter
+        -Wno-microsoft-enum-value
+        -Wno-nested-anon-types
+        -Wno-gnu-anonymous-struct
+        -Wno-gnu-zero-variadic-macro-arguments
+        -Wno-keyword-macro
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # SET(CMAKE_CXX_FLAGS "/GR- /EHsc- /MP /permissive /w14640 /W4 /WX /external:anglebrackets /external:W0")

@@ -30,7 +30,7 @@
 #ifndef VECTORMATH_SCALAR_QUATERNION_HPP
 #define VECTORMATH_SCALAR_QUATERNION_HPP
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 namespace Vectormath
 {

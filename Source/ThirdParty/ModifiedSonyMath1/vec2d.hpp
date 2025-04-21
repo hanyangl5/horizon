@@ -10,7 +10,7 @@
 #ifndef VECTORMATH_VEC2D_HPP
 #define VECTORMATH_VEC2D_HPP
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #include <cmath>
 #include <cstdio>

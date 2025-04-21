@@ -26,7 +26,7 @@
 #define __MT_FIBER_OPTIMIZED__
 
 #include <MTConfig.h>
-#include <Platform/Common/MTAtomic.h>
+#include "Platform/Common/MTAtomic.h"
 #include <string>
 
 

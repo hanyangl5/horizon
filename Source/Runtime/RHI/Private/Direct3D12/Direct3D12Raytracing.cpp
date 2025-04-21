@@ -38,19 +38,19 @@
 // OS
 #include <ThirdParty/stb/stb_ds.h>
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 // Renderer
 #include <ThirdParty/tinyimageformat/tinyimageformat_apis.h>
 
-#include <RHI/IGraphics.h>
-#include <RHI/IRay.h>
+#include "RHI/IGraphics.h"
+#include "RHI/IRay.h"
 
 #include "Direct3D12Hooks.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 // check if WindowsSDK is used which supports raytracing
 #ifdef D3D12_RAYTRACING_AVAILABLE

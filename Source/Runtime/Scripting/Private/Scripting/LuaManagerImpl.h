@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 extern "C"
 {
@@ -35,9 +35,9 @@ extern "C"
 
 #include <ThirdParty/bstrlib/bstrlib.h>
 
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
 
 #include "LuaManagerCommon.h"
 #include "LunaV.hpp"

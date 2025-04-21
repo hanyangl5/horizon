@@ -20,7 +20,7 @@
 #define FONS_H
 
 #define IMEMORY_FROM_HEADER
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

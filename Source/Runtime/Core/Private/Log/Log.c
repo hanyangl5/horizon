@@ -24,17 +24,17 @@
 
 #include "Log.h"
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include <stdarg.h>
 
 #ifdef ENABLE_LOGGING
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Core/ITime.h>
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Core/ITime.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #define LOG_CALLBACK_MAX_ID FS_MAX_PATH
 #define LOG_MAX_BUFFER      1024

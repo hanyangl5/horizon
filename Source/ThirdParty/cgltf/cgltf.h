@@ -94,7 +94,7 @@
 #define CGLTF_H_INCLUDED__
 
 #include <stddef.h>
-#include <Core/IFileSystem.h>
+#include "Core/IFileSystem.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -24,10 +24,10 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <RHI/IGraphics.h>
-#include <Core/ILog.h>
+#include "RHI/IGraphics.h"
+#include "Core/ILog.h"
 
 /************************************************************************/
 /* RING BUFFER MANAGEMENT											  */

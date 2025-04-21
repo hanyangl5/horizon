@@ -21,7 +21,7 @@
 #	define ALIGN_STRUCT(x)    __declspec(align(x))
 #endif
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #include <stdint.h>
 #include "arm_neon.h"

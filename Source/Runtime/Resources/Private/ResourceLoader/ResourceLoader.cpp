@@ -3492,7 +3492,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#include <Resources/IResourceLoader.h>
+#include "Resources/IResourceLoader.h"
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_apis.h>
@@ -3500,7 +3500,7 @@
 #include <ThirdParty/tinyimageformat/tinyimageformat_bits.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 #define TINYKTX_IMPLEMENTATION
 #include <ThirdParty/tinyktx/tinyktx.h>
@@ -3508,9 +3508,9 @@
 #define TINYDDS_IMPLEMENTATION
 #include <ThirdParty/tinydds/tinydds.h>
 
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
 
 //#include "../../Utilities/Math/ShaderUtilities.h" // Packing functions
 
@@ -3520,7 +3520,7 @@
 
 #include "TextureContainers.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #ifdef NX64
 #include "../../Utilities/ThirdParty/OpenSource/murmurhash3/MurmurHash3_32.h"

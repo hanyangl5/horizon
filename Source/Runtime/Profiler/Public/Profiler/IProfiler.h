@@ -24,13 +24,13 @@
 
 #pragma once
 
-#include <Platform/IOperatingSystem.h>
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Application/IApp.h>
+#include "Platform/IOperatingSystem.h"
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Application/IApp.h"
 
-#include <RHI/IGraphics.h>
-#include <Core/IMath.h>
+#include "RHI/IGraphics.h"
+#include "Core/IMath.h"
 
 typedef uint64_t ProfileToken;
 #define PROFILE_INVALID_TOKEN (uint64_t) - 1

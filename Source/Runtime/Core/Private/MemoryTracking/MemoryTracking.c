@@ -1,5 +1,5 @@
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 #include "wchar.h"
 
@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 //#include "../ThirdParty/OpenSource/ModifiedSonyMath/vectormath_settings.hpp"
-//#include <Core/IMath.h>
+//#include "Core/IMath.h"
 #define MEM_MAX(a, b)             ((a) > (b) ? (a) : (b))
 
 #define ALIGN_TO(size, alignment) (((size) + (alignment)-1) & ~((alignment)-1))
@@ -48,7 +48,7 @@
 // Just include the cpp here so we don't have to add it to the all projects
 #include <ThirdParty/MemoryManager/mmgr.h>
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop

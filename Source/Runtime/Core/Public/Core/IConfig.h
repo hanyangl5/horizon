@@ -119,7 +119,7 @@ typedef SSIZE_T ssize_t;
 #define NDEBUG
 #endif
 
-#define UNREF_PARAM(x)         (x)
+#define UNREF_PARAM(x)         /*(x)*/
 #define ALIGNAS(x)             __declspec(align(x))
 #define DEFINE_ALIGNED(def, a) __declspec(align(a)) def
 #define FORGE_CALLCONV         __cdecl

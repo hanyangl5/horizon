@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 struct hid_device_info;
 

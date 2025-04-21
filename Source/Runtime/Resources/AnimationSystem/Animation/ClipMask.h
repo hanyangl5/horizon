@@ -26,7 +26,7 @@
 
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #include "Rig.h"
 

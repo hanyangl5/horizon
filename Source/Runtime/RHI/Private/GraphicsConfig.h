@@ -42,7 +42,7 @@
 #undef TF_EXTERNAL_CONFIG_STRINGIFY2
 #else
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 // ------------------------------- renderer configuration ------------------------------- //
 

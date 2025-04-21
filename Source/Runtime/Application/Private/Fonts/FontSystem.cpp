@@ -22,11 +22,11 @@
  * under the License.
  */
 
-#include <Application/IFont.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
+#include "Application/IFont.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 
-#include <RHI/IGraphics.h>
+#include "RHI/IGraphics.h"
 
 // include Fontstash (should be after MemoryTracking so that it also detects memory free/remove in fontstash)
 #define FONTSTASH_IMPLEMENTATION
@@ -35,12 +35,12 @@
 #include <ThirdParty/bstrlib/bstrlib.h>
 #include <ThirdParty/Fontstash/src/fontstash.h>
 
-#include <RHI/IGraphics.h>
-#include <Resources/IResourceLoader.h>
+#include "RHI/IGraphics.h"
+#include "Resources/IResourceLoader.h"
 
-#include <RHI/RingBuffer.h>
+#include "RHI/RingBuffer.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #ifdef ENABLE_FORGE_FONTS
 

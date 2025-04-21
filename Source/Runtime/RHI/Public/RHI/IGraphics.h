@@ -30,9 +30,9 @@
 #endif
 #include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 
-#include <Core/ILog.h>
-#include <Core/IThread.h>
-#include <Platform/IOperatingSystem.h>
+#include "Core/ILog.h"
+#include "Core/IThread.h"
+#include "Platform/IOperatingSystem.h"
 
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG

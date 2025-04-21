@@ -24,11 +24,11 @@
 
 #include "Algorithms.h"
 
-#include <Core/ILog.h>
+#include "Core/ILog.h"
 
 #include "AlgorithmsImpl.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 // SIMPLE SORT
 // Used for array sizes 0..5

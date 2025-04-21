@@ -24,11 +24,11 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
-#include <Platform/IOperatingSystem.h>
+#include "Platform/IOperatingSystem.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
 #if defined(QUEST_VR)
 #include "../../OS/Quest/VrApi.h"

@@ -25,16 +25,16 @@
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <ThirdParty/imgui/imgui_internal.h>
 #include <ThirdParty/imgui/imgui.h>
-#include <Application/IFont.h>
-#include <Platform/IInput.h>
-#include <Application/IUI.h>
-#include <Resources/IResourceLoader.h>
-#include <Core/IFileSystem.h>
-#include <Core/ILog.h>
+#include "Application/IFont.h"
+#include "Platform/IInput.h"
+#include "Application/IUI.h"
+#include "Resources/IResourceLoader.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 
-#include <Core/IMath.h>
+#include "Core/IMath.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 #if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
 #define TOUCH_INPUT 1

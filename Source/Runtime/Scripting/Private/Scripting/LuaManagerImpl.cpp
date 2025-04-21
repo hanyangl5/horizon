@@ -27,10 +27,10 @@
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
 
-#include <Application/ICameraController.h>
-#include <Core/IFileSystem.h>
+#include "Application/ICameraController.h"
+#include "Core/IFileSystem.h"
 
-#include <Core/IMemory.h>
+#include "Core/IMemory.h"
 
 const char LuaManagerImpl::className[] = "LuaManager";
 bool       LuaManagerImpl::m_registered = false;

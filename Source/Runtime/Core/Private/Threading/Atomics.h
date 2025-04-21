@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <Core/IConfig.h>
+#include "Core/IConfig.h"
 
 typedef volatile ALIGNAS(4) uint32_t tfrg_atomic32_t;
 typedef volatile ALIGNAS(8) uint64_t tfrg_atomic64_t;
