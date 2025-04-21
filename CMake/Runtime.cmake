@@ -150,14 +150,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
         -Wall -Wextra -Wshadow -pedantic
         #-Werror 
         # -fms-extensions
-        # -Wno-language-extension-token
-        # -Wno-switch
-        # -Wno-missing-field-initializers
+        -Wno-language-extension-token
+        -Wno-switch
+        -Wno-missing-field-initializers
         -Wno-unused-parameter
         -Wno-microsoft-enum-value
-        # -Wno-nested-anon-types
-        # -Wno-gnu-anonymous-struct
-        # -Wno-gnu-zero-variadic-macro-arguments
+        -Wno-nested-anon-types
+        -Wno-gnu-anonymous-struct
+        -Wno-gnu-zero-variadic-macro-arguments
         -Wno-keyword-macro
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
