@@ -306,6 +306,9 @@ foreach(LIB ${THIRD_PARTY_DEPS})
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         target_compile_options(${LIB} PRIVATE /MP)
     endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${LIB} PRIVATE -Wno-everything)
+    endif()
     target_include_directories(${LIB} PRIVATE
         ${ENGINE_SOURCE_DIR}/Runtime/Core/Public
         ${ENGINE_SOURCE_DIR}/Runtime/Platform/Public
