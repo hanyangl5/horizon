@@ -55,7 +55,6 @@
 #pragma clang diagnostic pop
 #endif
 
-
 typedef Vector2 vec2;
 typedef Vector3 vec3;
 typedef Vector4 vec4;
