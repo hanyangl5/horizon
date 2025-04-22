@@ -148,17 +148,17 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     target_compile_options(${ENGINE_RUNTIME} PRIVATE -fno-rtti -fno-exceptions
 
         -Wall -Wextra -Wshadow -pedantic
-        #-Werror 
-        # -fms-extensions
-        -Wno-language-extension-token
-        -Wno-switch
+
+        -Werror
+        -Wno-language-extension-token # directx
         -Wno-missing-field-initializers
         -Wno-unused-parameter
-        -Wno-microsoft-enum-value
-        -Wno-nested-anon-types
-        -Wno-gnu-anonymous-struct
-        -Wno-gnu-zero-variadic-macro-arguments
-        -Wno-keyword-macro
+        -Wno-microsoft-enum-value # directx enums
+        -Wno-nested-anon-types # anonymous union
+        -Wno-gnu-anonymous-struct # anonymous union
+        -Wno-gnu-zero-variadic-macro-arguments # ILog.h
+        -Wno-keyword-macro # IMemory.h
+        -Wno-deprecated-declarations # strcpy
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # SET(CMAKE_CXX_FLAGS "/GR- /EHsc- /MP /permissive /w14640 /W4 /WX /external:anglebrackets /external:W0")

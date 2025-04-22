@@ -123,11 +123,11 @@ void wakeAllConditionVariable(ConditionVariable* cv) { WakeAllConditionVariable(
 
 static ThreadID mainThreadID = 0;
 
-void setMainThread() { mainThreadID = getCurrentThreadID(); }
+void setMainThread(void) { mainThreadID = getCurrentThreadID(); }
 
-ThreadID getCurrentThreadID() { return GetCurrentThreadId(); /* Windows built-in function*/ }
+ThreadID getCurrentThreadID(void) { return GetCurrentThreadId(); /* Windows built-in function*/ }
 
-char* thread_name()
+char* thread_name(void)
 {
     __declspec(thread) static char name[MAX_THREAD_NAME_LENGTH + 1];
     return name;
@@ -144,7 +144,7 @@ void getCurrentThreadName(char* buffer, int size)
 
 void setCurrentThreadName(const char* name) { strcpy_s(thread_name(), MAX_THREAD_NAME_LENGTH + 1, name); }
 
-bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
+bool isMainThread(void) { return getCurrentThreadID() == mainThreadID; }
 
 typedef int(__cdecl* SETTHREADDESCFUNC)(HANDLE, PCWSTR);
 

@@ -38,9 +38,9 @@
 /************************************************************************/
 // Time Related Functions
 /************************************************************************/
-uint32_t getSystemTime() { return (uint32_t)timeGetTime(); }
+uint32_t getSystemTime(void) { return (uint32_t)timeGetTime(); }
 
-uint32_t getTimeSinceStart() { return (uint32_t)time(NULL); }
+uint32_t getTimeSinceStart(void) { return (uint32_t)time(NULL); }
 
 static CallOnceGuard timeInitGuard = INIT_CALL_ONCE_GUARD;
 static int64_t       highResTimerFrequency = 0;
@@ -89,13 +89,13 @@ static void initTime(void)
     alwaysSimpleMulDiv = (timerToUSecMul == 1) || (timerToUSecDiv == 1);
 }
 
-static void ensureTimeInit()
+static void ensureTimeInit(void)
 {
     // Make sure time constants are initialized before anyone tries to use them
     callOnce(&timeInitGuard, initTime);
 }
 
-int64_t getTimerFrequency()
+int64_t getTimerFrequency(void)
 {
     ensureTimeInit();
 

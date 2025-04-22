@@ -38,6 +38,12 @@ Index of this file:
 */
 
 #pragma once
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+
 #ifndef IMGUI_DISABLE
 
 //-----------------------------------------------------------------------------
@@ -3801,3 +3807,7 @@ extern const char*  ImGuiTestEngine_FindItemDebugLabel(ImGuiContext* ctx, ImGuiI
 #endif
 
 #endif // #ifndef IMGUI_DISABLE
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif

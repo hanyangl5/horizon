@@ -2204,6 +2204,11 @@ CREDITS
 #ifndef INCLUDE_STB_DS_H
 #define INCLUDE_STB_DS_H
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+
 #include "Core/IConfig.h"
 
 #define STB_DS_API FORGE_API
@@ -4350,6 +4355,11 @@ void stbds_unit_tests(void)
 
 #endif
 }
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #endif
 
 /*

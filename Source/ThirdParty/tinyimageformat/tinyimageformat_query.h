@@ -3760,7 +3760,7 @@ TIF_CONSTEXPR inline TinyImageFormat TinyImageFormat_ToUNORM(TinyImageFormat fmt
 	}
 }
 
-TIF_CONSTEXPR inline char const * const TinyImageFormat_Name(TinyImageFormat const fmt) 
+TIF_CONSTEXPR inline char const * TinyImageFormat_Name(TinyImageFormat const fmt) 
 {
 	switch(fmt) 
 	{

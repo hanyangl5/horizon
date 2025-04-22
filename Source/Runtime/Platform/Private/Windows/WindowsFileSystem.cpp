@@ -192,7 +192,7 @@ public:
 
         if (!WideCharToMultiByte(CP_UTF8, 0, (LPCWCH)lpMsgBuf, -1, utf8, sizeof utf8, NULL, NULL))
         {
-            snprintf(utf8, sizeof utf8, "0x%x", error);
+            snprintf(utf8, sizeof utf8, "0x%x", static_cast<unsigned int>(error));
         }
     }
 

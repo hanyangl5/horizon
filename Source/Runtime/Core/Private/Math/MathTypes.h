@@ -40,6 +40,12 @@
 #pragma clang diagnostic ignored "-Wstrict-aliasing"
 #endif
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#elif defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
@@ -49,11 +55,6 @@
 #pragma clang diagnostic pop
 #endif
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#elif defined(__clang__)
-#pragma clang diagnostic pop
-#endif
 
 typedef Vector2 vec2;
 typedef Vector3 vec3;
