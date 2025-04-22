@@ -162,7 +162,7 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
         HINSTANCE hinstLib = GetModuleHandle(TEXT("KernelBase.dll"));
         if (hinstLib != NULL)
         {
-            SETTHREADDESCFUNC ProcAdd = (SETTHREADDESCFUNC)GetProcAddress(hinstLib, "SetThreadDescription");
+            SETTHREADDESCFUNC ProcAdd = (SETTHREADDESCFUNC)(void*)GetProcAddress(hinstLib, "SetThreadDescription");
             if (ProcAdd != NULL)
             {
                 WCHAR windowsThreadName[sizeof(item.mThreadName)] = { 0 };
