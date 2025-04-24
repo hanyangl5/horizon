@@ -12,7 +12,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS TRUE)
 
 include(CMakeUtils)
 include(ThirdParty)
-include(HUB)
+include(Hub)
 include(Config)
 
 if(${CMAKE_INCLUDE_SHADERS})
