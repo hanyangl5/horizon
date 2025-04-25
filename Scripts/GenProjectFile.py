@@ -7,7 +7,8 @@ import sys
 engine_path = os.path.abspath(os.path.join(__file__, os.pardir, os.pardir))
 project_path = None
 
-print("ENGINE PATH:", engine_path)
+
+
 # Parse input parameter -Project="Path" to project_path
 
 for arg in sys.argv:
@@ -17,6 +18,9 @@ for arg in sys.argv:
 
 if not project_path:
     raise ValueError("Missing required parameter: -Project=\"Path\"")
+
+engine_path = engine_path.replace("\\", "/")
+project_path = project_path.replace("\\", "/")
 
 print("PROJECT PATH:", project_path)
 # Run cmake with Dengine_path set to engine_path

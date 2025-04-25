@@ -44,7 +44,8 @@ extern "C"
     typedef enum ResourceMount
     {
         /// Installed game directory / bundle resource directory
-        RM_CONTENT = 0,
+        RM_PROJECT = 0,
+        RM_CONTENT,
         /// For storing debug data such as log files. To be used only during development
         RM_DEBUG,
         /// Documents directory

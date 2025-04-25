@@ -64,7 +64,7 @@ extern "C"
 #ifndef XBOX
 static bool        gInitialized = false;
 static const char* gResourceMounts[RM_COUNT];
-
+static char gProjectResourcePath[FS_MAX_PATH] = {};
 static char gApplicationPath[FS_MAX_PATH] = {};
 static char gDocumentsPath[FS_MAX_PATH] = {};
 
@@ -86,7 +86,9 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     char applicationFilePath[FS_MAX_PATH] = {};
     WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
     fsGetParentPath(applicationFilePath, gApplicationPath);
-    gResourceMounts[RM_CONTENT] = gApplicationPath;
+    gResourceMounts[RM_PROJECT] = PROJECT_ROOT;
+    fsMergeDirAndFileName(PROJECT_ROOT, "Assets", '/', sizeof gProjectResourcePath, gProjectResourcePath);
+    gResourceMounts[RM_CONTENT] = gProjectResourcePath;
     gResourceMounts[RM_DEBUG] = gApplicationPath;
 
     // Get user directory
