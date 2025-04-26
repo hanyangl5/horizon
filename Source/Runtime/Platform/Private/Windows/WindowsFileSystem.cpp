@@ -87,7 +87,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
     fsGetParentPath(applicationFilePath, gApplicationPath);
     gResourceMounts[RM_PROJECT] = PROJECT_ROOT;
-    fsMergeDirAndFileName(PROJECT_ROOT, "Assets", '/', sizeof gProjectResourcePath, gProjectResourcePath);
+    fsMergeDirAndFileName(PROJECT_ROOT, "Assets", '\\', sizeof gProjectResourcePath, gProjectResourcePath);
     gResourceMounts[RM_CONTENT] = gProjectResourcePath;
     gResourceMounts[RM_DEBUG] = gApplicationPath;
 

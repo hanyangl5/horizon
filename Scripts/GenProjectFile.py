@@ -19,8 +19,12 @@ for arg in sys.argv:
 if not project_path:
     raise ValueError("Missing required parameter: -Project=\"Path\"")
 
-engine_path = engine_path.replace("\\", "/")
-project_path = project_path.replace("\\", "/")
+if sys.platform.startswith('win'):  # Check if the OS is Windows
+    engine_path = engine_path.replace("\\", "\\\\")
+    project_path = project_path.replace("\\", "\\\\")
+else:
+    engine_path = engine_path.replace("\\", "/")
+    project_path = project_path.replace("\\", "/")
 
 print("PROJECT PATH:", project_path)
 # Run cmake with Dengine_path set to engine_path
