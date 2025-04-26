@@ -64,9 +64,9 @@ extern "C"
 #ifndef XBOX
 static bool        gInitialized = false;
 static const char* gResourceMounts[RM_COUNT];
-static char gProjectResourcePath[FS_MAX_PATH] = {};
-static char gApplicationPath[FS_MAX_PATH] = {};
-static char gDocumentsPath[FS_MAX_PATH] = {};
+static char        gProjectResourcePath[FS_MAX_PATH] = {};
+static char        gApplicationPath[FS_MAX_PATH] = {};
+static char        gDocumentsPath[FS_MAX_PATH] = {};
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
