@@ -270,7 +270,7 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
 
     add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectX-Headers)
     add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/mimalloc)
-
+    add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/AgilitySDK)
     set(THIRD_PARTY_INCLUDES
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/mimalloc/include
     )
