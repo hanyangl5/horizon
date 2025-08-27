@@ -38,3 +38,27 @@ command = f'cmake -S "{project_path}" \
     -B "{project_build_path}"'
 print("Executing command:", command)
 os.system(command)
+
+# Try to get clang path from args
+# clang_path = None
+# for arg in sys.argv:
+#     if arg.startswith("-Clang="):
+#         clang_path = arg.split("=", 1)[1].strip('"')
+#         break
+
+# # If not specified, try to find clang in PATH
+# if not clang_path:
+#     clang_path = shutil.which("clang")
+#     if not clang_path:
+#         raise ValueError("Clang executable not found. Please specify with -Clang=\"Path\".")
+
+# print("CLANG PATH:", clang_path)
+
+# # Generate compile_commands.json using cmake
+# command_compile_commands = f'cmake --build "{project_build_path}" --target compile_commands'
+# print("Generating compile_commands.json with command:", command_compile_commands)
+# os.system(command_compile_commands)
+
+# command_cmake = f'cmake -G "Ninja" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "{project_path}"'
+# print("Generating compile_commands.json with command:", command_cmake)
+# os.system(command_cmake)

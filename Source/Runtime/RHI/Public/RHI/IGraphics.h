@@ -3441,6 +3441,7 @@ DECLARE_RENDERER_FUNCTION(void, addSampler, Renderer* pRenderer, const SamplerDe
 DECLARE_RENDERER_FUNCTION(void, removeSampler, Renderer* pRenderer, Sampler* pSampler)
 
 // shader functions
+DECLARE_RENDERER_FUNCTION(void, addShaderSource, Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 DECLARE_RENDERER_FUNCTION(void, addShaderBinary, Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 DECLARE_RENDERER_FUNCTION(void, removeShader, Renderer* pRenderer, Shader* pShaderProgram)
 

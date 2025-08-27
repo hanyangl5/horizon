@@ -56,6 +56,7 @@ removeSamplerFn      removeSampler;
 
 // shader functions
 addShaderBinaryFn addShaderBinary;
+addShaderSourceFn addShaderSource;
 removeShaderFn    removeShader;
 
 addRootSignatureFn           addRootSignature;

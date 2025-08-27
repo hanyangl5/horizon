@@ -1862,7 +1862,8 @@ static inline FORGE_CONSTEXPR uint32_t ToQueryWidth(QueryType type)
 #if !defined(XBOX)
 void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDesc* gpuDesc, bool* pFoundSoftwareAdapter)
 {
-    D3D_FEATURE_LEVEL feature_levels[4] = {
+    D3D_FEATURE_LEVEL feature_levels[5] = {
+       D3D_FEATURE_LEVEL_12_2,
         D3D_FEATURE_LEVEL_12_1,
         D3D_FEATURE_LEVEL_12_0,
         D3D_FEATURE_LEVEL_11_1,
@@ -1892,7 +1893,8 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
             for (uint32_t level = 0; level < sizeof(feature_levels) / sizeof(feature_levels[0]); ++level)
             {
                 // Make sure the adapter can support a D3D12 device
-                if (SUCCEEDED(d3d12dll_CreateDevice(adapter, feature_levels[level], __uuidof(ID3D12Device), NULL)))
+                HRESULT res = (d3d12dll_CreateDevice(adapter, feature_levels[level], __uuidof(ID3D12Device), NULL));
+                if (SUCCEEDED(res))
                 {
                     GpuDesc  gpuDescTmp = {};
                     GpuDesc* pGpuDesc = gpuDesc ? &gpuDesc[gpuCount] : &gpuDescTmp;
@@ -4184,6 +4186,122 @@ void d3d12_removeSampler(Renderer* pRenderer, Sampler* pSampler)
 // Shader Functions
 /************************************************************************/
 void d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+{
+    ASSERT(pRenderer);
+    ASSERT(pDesc && pDesc->mStages);
+    ASSERT(ppShaderProgram);
+
+    size_t totalSize = sizeof(Shader);
+    totalSize += sizeof(PipelineReflection);
+
+    uint32_t reflectionCount = 0;
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+    {
+        ShaderStage                  stage_mask = (ShaderStage)(1 << i);
+        const BinaryShaderStageDesc* pStage = NULL;
+        if (stage_mask == (pDesc->mStages & stage_mask))
+        {
+            switch (stage_mask)
+            {
+            case SHADER_STAGE_VERT:
+                pStage = &pDesc->mVert;
+                break;
+            case SHADER_STAGE_HULL:
+                pStage = &pDesc->mHull;
+                break;
+            case SHADER_STAGE_DOMN:
+                pStage = &pDesc->mDomain;
+                break;
+            case SHADER_STAGE_GEOM:
+                pStage = &pDesc->mGeom;
+                break;
+            case SHADER_STAGE_FRAG:
+                pStage = &pDesc->mFrag;
+                break;
+            case SHADER_STAGE_COMP:
+                pStage = &pDesc->mComp;
+                break;
+            default:
+                LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
+                break;
+            }
+
+            totalSize += sizeof(ID3DBlob*);
+            totalSize += sizeof(LPCWSTR);
+            totalSize += (strlen(pStage->pEntryPoint) + 1) * sizeof(WCHAR); //-V522
+            ++reflectionCount;
+        }
+    }
+
+    Shader* pShaderProgram = (Shader*)tf_calloc(1, totalSize);
+    ASSERT(pShaderProgram);
+
+    pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1); //-V1027
+    pShaderProgram->mDx.pShaderBlobs = (IDxcBlobEncoding**)(pShaderProgram->pReflection + 1);
+    pShaderProgram->mDx.pEntryNames = (LPCWSTR*)(pShaderProgram->mDx.pShaderBlobs + reflectionCount);
+    pShaderProgram->mStages = pDesc->mStages;
+
+    uint8_t* mem = (uint8_t*)(pShaderProgram->mDx.pEntryNames + reflectionCount);
+
+    reflectionCount = 0;
+
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+    {
+        ShaderStage                  stage_mask = (ShaderStage)(1 << i);
+        const BinaryShaderStageDesc* pStage = NULL;
+        if (stage_mask == (pShaderProgram->mStages & stage_mask))
+        {
+            switch (stage_mask)
+            {
+            case SHADER_STAGE_VERT:
+                pStage = &pDesc->mVert;
+                break;
+            case SHADER_STAGE_HULL:
+                pStage = &pDesc->mHull;
+                break;
+            case SHADER_STAGE_DOMN:
+                pStage = &pDesc->mDomain;
+                break;
+            case SHADER_STAGE_GEOM:
+                pStage = &pDesc->mGeom;
+                break;
+            case SHADER_STAGE_FRAG:
+                pStage = &pDesc->mFrag;
+                break;
+            case SHADER_STAGE_COMP:
+                pStage = &pDesc->mComp;
+                break;
+
+            default:
+                LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
+                break;
+            }
+
+            IDxcUtils* pUtils;
+            CHECK_HRESULT(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
+            pUtils->CreateBlob(pStage->pByteCode, pStage->mByteCodeSize, DXC_CP_ACP,
+                               &pShaderProgram->mDx.pShaderBlobs[reflectionCount]); //-V522
+            pUtils->Release();
+
+            d3d12_createShaderReflection((uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
+                                         (uint32_t)pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferSize(), stage_mask,
+                                         &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
+
+            WCHAR* entryPointName = (WCHAR*)mem;
+            mbstowcs((WCHAR*)entryPointName, pStage->pEntryPoint, strlen(pStage->pEntryPoint));
+            pShaderProgram->mDx.pEntryNames[reflectionCount] = entryPointName;
+            mem += (strlen(pStage->pEntryPoint) + 1) * sizeof(WCHAR);
+
+            reflectionCount++;
+        }
+    }
+
+    createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
+
+    *ppShaderProgram = pShaderProgram;
+}
+
+void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSourceDesc* pDesc, Shader** ppShaderProgram)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc && pDesc->mStages);
@@ -7328,6 +7446,7 @@ void initD3D12Renderer(const char* appName, const RendererDesc* pSettings, Rende
 
     // shader functions
     addShaderBinary = d3d12_addShaderBinary;
+    addShaderSource = d3d12_addShaderSource;
     removeShader = d3d12_removeShader;
 
     addRootSignature = d3d12_addRootSignature;

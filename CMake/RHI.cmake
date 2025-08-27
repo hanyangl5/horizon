@@ -15,7 +15,7 @@ if(${DX12} MATCHES ON)
     set(RHI_LIBRARIES ${RHI_LIBRARIES}
         D3D12MemoryAllocator
         DirectXShaderCompiler
-        agilitysdk_d3dx12
+        #agilitysdk_d3dx12
     )
 
     set(RHI_LIBRARIES ${RHI_LIBRARIES}

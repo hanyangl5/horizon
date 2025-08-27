@@ -130,7 +130,7 @@ target_compile_definitions(${ENGINE_RUNTIME} PUBLIC ${RHI_DEFINES})
 
 # unity build
 #TODO(hyl5): fix tf_malloc/tf_new
-#s et_target_properties(${ENGINE_RUNTIME} PROPERTIES UNITY_BUILD ON)
+#set_target_properties(${ENGINE_RUNTIME} PROPERTIES UNITY_BUILD ON)
 
 target_compile_features(${ENGINE_RUNTIME} PRIVATE cxx_std_20)
 
@@ -148,7 +148,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     target_compile_options(${ENGINE_RUNTIME} PRIVATE -fno-rtti -fno-exceptions
 
         -Wall -Wextra -Wshadow -pedantic
-        #-Werror 
+
+        # -Werror
         # -fms-extensions
         -Wno-language-extension-token
         -Wno-switch
