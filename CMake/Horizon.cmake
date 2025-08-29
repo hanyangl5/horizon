@@ -12,7 +12,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS TRUE)
 
 include(CMakeUtils)
 include(ThirdParty)
-include(Config)
+
+if(NOT PROJECT_IS_TOP_LEVEL)
+    include(Config)
+endif()
 
 if(${CMAKE_INCLUDE_SHADERS})
     include(Shaders)
