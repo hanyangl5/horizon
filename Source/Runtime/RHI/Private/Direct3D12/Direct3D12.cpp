@@ -4301,7 +4301,7 @@ void d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, S
     *ppShaderProgram = pShaderProgram;
 }
 
-void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSourceDesc* pDesc, Shader** ppShaderProgram)
+void d3d12_addShaderSource(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc && pDesc->mStages);

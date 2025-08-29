@@ -440,6 +440,7 @@ typedef struct ShaderStageLoadDesc
 { //-V802 : Very user-facing struct, and order is highly important to convenience
     const char* pFileName;
     const char* pEntryPointName;
+    ShaderStage stage;
 } ShaderStageLoadDesc;
 
 typedef struct ShaderLoadDesc

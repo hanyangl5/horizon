@@ -7694,10 +7694,6 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
     BinaryShaderDesc binaryDesc = {};
 
     ShaderByteCodeBuffer shaderByteCodeBuffer = {};
-#if !defined(PROSPERO)
-    char bytecodeStack[ShaderByteCodeBuffer::kStackSize] = {};
-    shaderByteCodeBuffer.pStackMemory = bytecodeStack;
-#endif
 
 #if defined(METAL)
     bool bIsICBCompatible = true;
@@ -7747,6 +7743,107 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 #if defined(METAL)
         bIsICBCompatible &= metadata.mICBCompatible;
 #endif
+
+#if defined(METAL)
+        if (pDesc->mStages[i].pEntryPointName)
+            pStage->pEntryPoint = pDesc->mStages[i].pEntryPointName;
+
+        if (SHADER_STAGE_COMP == stage)
+        {
+            pStage->mNumThreadsPerGroup[0] = metadata.mNumThreadsPerGroup[0];
+            pStage->mNumThreadsPerGroup[1] = metadata.mNumThreadsPerGroup[1];
+            pStage->mNumThreadsPerGroup[2] = metadata.mNumThreadsPerGroup[2];
+        }
+        else if (SHADER_STAGE_FRAG == stage)
+        {
+            pStage->mOutputRenderTargetTypesMask = metadata.mOutputRenderTargetTypesMask;
+        }
+
+#elif !defined(ORBIS) && !defined(PROSPERO)
+        if (pDesc->mStages[i].pEntryPointName)
+            pStage->pEntryPoint = pDesc->mStages[i].pEntryPointName;
+        else
+            pStage->pEntryPoint = "main";
+#endif
+    }
+
+#if defined(PROSPERO)
+    binaryDesc.mOwnByteCode = true;
+#endif
+
+    binaryDesc.mConstantCount = pDesc->mConstantCount;
+    binaryDesc.pConstants = pDesc->pConstants;
+
+    addShaderBinary(pRenderer, &binaryDesc, ppShader);
+    freeShaderByteCode(&shaderByteCodeBuffer, &binaryDesc);
+
+    Shader* pShader = *ppShader;
+
+#if defined(METAL)
+    pShader->mICB = bIsICBCompatible;
+#else
+    if (SHADER_STAGE_COMP == binaryDesc.mStages)
+    {
+        pShader->mNumThreadsPerGroup[0] = pShader->pReflection->mStageReflections[0].mNumThreadsPerGroup[0];
+        pShader->mNumThreadsPerGroup[1] = pShader->pReflection->mStageReflections[0].mNumThreadsPerGroup[1];
+        pShader->mNumThreadsPerGroup[2] = pShader->pReflection->mStageReflections[0].mNumThreadsPerGroup[2];
+    }
+#endif
+
+#if defined(METAL)
+    if (ppShader)
+    {
+        (*ppShader)->mICB = bIsICBCompatible;
+    }
+#endif
+}
+
+void addShaderSource(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader)
+{
+    BinaryShaderDesc binaryDesc = {};
+
+    ShaderByteCodeBuffer shaderByteCodeBuffer = {};
+
+#if defined(METAL)
+    bool bIsICBCompatible = true;
+#endif
+
+    ShaderStage stages = SHADER_STAGE_NONE;
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+    {
+        if (pDesc->mStages[i].pFileName && pDesc->mStages[i].pFileName[0] != 0)
+        {
+            //ShaderStage            stage;
+            //BinaryShaderStageDesc* pStage = NULL;
+            //char                   ext[FS_MAX_PATH] = { 0 };
+            //fsGetPathExtension(pDesc->mStages[i].pFileName, ext);
+            //if (find_shader_stage(ext, &binaryDesc, &pStage, &stage))
+            stages |= pDesc->mStages[i].stage;
+        }
+    }
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+    {
+        const char* fileName = pDesc->mStages[i].pFileName;
+        if (!fileName || !*fileName)
+            continue;
+
+        BinaryShaderStageDesc* pStage = NULL;
+        ShaderStage            stage = pDesc->mStages[i].stage;
+
+        if (stage == ShaderStage::SHADER_STAGE_NONE)
+            continue;
+        
+
+        FSLMetadata metadata = {};
+        if (!load_shader_stage_byte_code(pRenderer, fileName, stage, pStage, &shaderByteCodeBuffer, &metadata))
+        {
+            freeShaderByteCode(&shaderByteCodeBuffer, &binaryDesc);
+            return;
+        }
+
+        binaryDesc.mStages |= stage;
+        pStage->pName = fileName;
+
 
 #if defined(METAL)
         if (pDesc->mStages[i].pEntryPointName)
