@@ -7688,7 +7688,7 @@ static bool find_shader_stage(const char* extension, BinaryShaderDesc* pBinaryDe
 
     return true;
 }
- 
+
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader)
 {
     BinaryShaderDesc binaryDesc = {};

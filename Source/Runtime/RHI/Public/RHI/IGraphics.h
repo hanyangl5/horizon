@@ -2283,12 +2283,12 @@ typedef struct ShaderSrcDesc
     ShaderStage           mStages;
     /// Specify whether shader will own byte code memory
     uint32_t              mOwnByteCode : 1;
-    ShaderSrcStageDesc mVert;
-    ShaderSrcStageDesc mFrag;
-    ShaderSrcStageDesc mGeom;
-    ShaderSrcStageDesc mHull;
-    ShaderSrcStageDesc mDomain;
-    ShaderSrcStageDesc mComp;
+    ShaderSrcStageDesc    mVert;
+    ShaderSrcStageDesc    mFrag;
+    ShaderSrcStageDesc    mGeom;
+    ShaderSrcStageDesc    mHull;
+    ShaderSrcStageDesc    mDomain;
+    ShaderSrcStageDesc    mComp;
     const ShaderConstant* pConstants;
     uint32_t              mConstantCount;
 #if defined(QUEST_VR)

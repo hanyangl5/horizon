@@ -4310,7 +4310,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
     uint32_t reflectionCount = 0;
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
-        ShaderStage                  stage_mask = (ShaderStage)(1 << i);
+        ShaderStage               stage_mask = (ShaderStage)(1 << i);
         const ShaderSrcStageDesc* pStage = NULL;
         if (stage_mask == (pDesc->mStages & stage_mask))
         {
