@@ -2258,7 +2258,6 @@ typedef struct BinaryShaderDesc
 #endif
 } BinaryShaderDesc;
 
-
 typedef struct Shader
 {
     ShaderStage mStages : 31;

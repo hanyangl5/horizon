@@ -7813,11 +7813,11 @@ void addShaderSource(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** 
     {
         if (pDesc->mStages[i].pFileName && pDesc->mStages[i].pFileName[0] != 0)
         {
-            //ShaderStage            stage;
-            //BinaryShaderStageDesc* pStage = NULL;
-            //char                   ext[FS_MAX_PATH] = { 0 };
-            //fsGetPathExtension(pDesc->mStages[i].pFileName, ext);
-            //if (find_shader_stage(ext, &binaryDesc, &pStage, &stage))
+            // ShaderStage            stage;
+            // BinaryShaderStageDesc* pStage = NULL;
+            // char                   ext[FS_MAX_PATH] = { 0 };
+            // fsGetPathExtension(pDesc->mStages[i].pFileName, ext);
+            // if (find_shader_stage(ext, &binaryDesc, &pStage, &stage))
             stages |= pDesc->mStages[i].stage;
         }
     }
@@ -7832,7 +7832,6 @@ void addShaderSource(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** 
 
         if (stage == ShaderStage::SHADER_STAGE_NONE)
             continue;
-        
 
         FSLMetadata metadata = {};
         if (!load_shader_stage_byte_code(pRenderer, fileName, stage, pStage, &shaderByteCodeBuffer, &metadata))
@@ -7843,7 +7842,6 @@ void addShaderSource(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** 
 
         binaryDesc.mStages |= stage;
         pStage->pName = fileName;
-
 
 #if defined(METAL)
         if (pDesc->mStages[i].pEntryPointName)
