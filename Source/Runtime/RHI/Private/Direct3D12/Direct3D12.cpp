@@ -55,6 +55,7 @@
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <ThirdParty/ags/AgsHelper.h>
 #include <ThirdParty/nvapi/NvApiHelper.h>
+#include <ThirdParty/dxcapi.h>
 //#include <ThirdParty/renderdoc/renderdoc_app.h>
 
 #include "Core/IFileSystem.h"
@@ -4297,7 +4298,7 @@ void d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, S
     *ppShaderProgram = pShaderProgram;
 }
 
-void d3d12_addShaderSource(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shader** ppShaderProgram)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc && pDesc->mStages);
@@ -4310,7 +4311,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const BinaryShaderDesc* pDesc, S
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         ShaderStage                  stage_mask = (ShaderStage)(1 << i);
-        const BinaryShaderStageDesc* pStage = NULL;
+        const ShaderSrcStageDesc* pStage = NULL;
         if (stage_mask == (pDesc->mStages & stage_mask))
         {
             switch (stage_mask)

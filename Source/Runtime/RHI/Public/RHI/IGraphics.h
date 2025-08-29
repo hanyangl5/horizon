@@ -2258,6 +2258,44 @@ typedef struct BinaryShaderDesc
 #endif
 } BinaryShaderDesc;
 
+typedef struct ShaderSrcStageDesc
+{
+    const char* pName;
+#if defined(PROSPERO)
+    ProsperoBinaryShaderStageDesc mStruct;
+#else
+    /// Byte code array
+    void*       pByteCode;
+    uint32_t    mByteCodeSize;
+    const char* pEntryPoint;
+#if defined(METAL)
+    uint32_t    mNumThreadsPerGroup[3];
+    uint32_t    mOutputRenderTargetTypesMask;
+#endif
+#if defined(GLES)
+    GLuint      mShader;
+#endif
+#endif
+} ShaderSrcStageDesc;
+
+typedef struct ShaderSrcDesc
+{
+    ShaderStage           mStages;
+    /// Specify whether shader will own byte code memory
+    uint32_t              mOwnByteCode : 1;
+    ShaderSrcStageDesc mVert;
+    ShaderSrcStageDesc mFrag;
+    ShaderSrcStageDesc mGeom;
+    ShaderSrcStageDesc mHull;
+    ShaderSrcStageDesc mDomain;
+    ShaderSrcStageDesc mComp;
+    const ShaderConstant* pConstants;
+    uint32_t              mConstantCount;
+#if defined(QUEST_VR)
+    bool mIsMultiviewVR : 1;
+#endif
+} ShaderSrcDesc;
+
 typedef struct Shader
 {
     ShaderStage mStages : 31;
@@ -3441,7 +3479,7 @@ DECLARE_RENDERER_FUNCTION(void, addSampler, Renderer* pRenderer, const SamplerDe
 DECLARE_RENDERER_FUNCTION(void, removeSampler, Renderer* pRenderer, Sampler* pSampler)
 
 // shader functions
-DECLARE_RENDERER_FUNCTION(void, addShaderSource, Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+DECLARE_RENDERER_FUNCTION(void, addShaderSource, Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shader** ppShaderProgram)
 DECLARE_RENDERER_FUNCTION(void, addShaderBinary, Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 DECLARE_RENDERER_FUNCTION(void, removeShader, Renderer* pRenderer, Shader* pShaderProgram)
 
