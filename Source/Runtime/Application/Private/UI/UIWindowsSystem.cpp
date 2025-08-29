@@ -83,25 +83,25 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     return true;
 }
 
- void wndSetWindowed(void* pUserData)
+void wndSetWindowed(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     setWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
- void wndSetFullscreen(void* pUserData)
+void wndSetFullscreen(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     setFullscreen(pWindowRef);
 }
 
- void wndSetBorderless(void* pUserData)
+void wndSetBorderless(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     setBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
- void wndMaximizeWindow(void* pUserData)
+void wndMaximizeWindow(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     WindowDesc* pWindow = pWindowRef;
@@ -109,27 +109,27 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     maximizeWindow(pWindow);
 }
 
- void wndMinimizeWindow(void* pUserData)
+void wndMinimizeWindow(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     pWindowRef->mMinimizeRequested = true;
 }
 
- void wndHideWindow()
+void wndHideWindow()
 {
     WindowDesc* pWindow = pWindowRef;
 
     hideWindow(pWindow);
 }
 
- void wndShowWindow()
+void wndShowWindow()
 {
     WindowDesc* pWindow = pWindowRef;
 
     showWindow(pWindow);
 }
 
- void wndUpdateResolution(void* pUserData)
+void wndUpdateResolution(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     uint32_t monitorCount = getMonitorCount();
@@ -147,21 +147,21 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     }
 }
 
- void wndMoveWindow(void* pUserData)
+void wndMoveWindow(void* pUserData)
 {
     WindowDesc* pWindow = pWindowRef;
 
     wndSetWindowed(pUserData);
     int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
         clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
-    RectDesc rectDesc{ pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndX + pWindowRef->mWndW, pWindowRef->mWndY + pWindowRef->mWndH
-    }; setWindowRect(pWindow, &rectDesc); LOGF(LogLevel::eINFO, "MoveWindow() Position check: %s",
+    RectDesc rectDesc{ pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndX + pWindowRef->mWndW, pWindowRef->mWndY + pWindowRef->mWndH };
+    setWindowRect(pWindow, &rectDesc);
+    LOGF(LogLevel::eINFO, "MoveWindow() Position check: %s",
          wndValidateWindowPos(pWindowRef->mWndX + clientWidthStart, pWindowRef->mWndY + clientHeightStart) ? "SUCCESS" : "FAIL");
-    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->mWndW, pWindowRef->mWndH) ? "SUCCESS" :
-    "FAIL");
+    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->mWndW, pWindowRef->mWndH) ? "SUCCESS" : "FAIL");
 }
 
- void wndSetRecommendedWindowSize(void* pUserData)
+void wndSetRecommendedWindowSize(void* pUserData)
 {
     WindowDesc* pWindow = pWindowRef;
 
@@ -178,19 +178,19 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     pWindowRef->mWndH = rect.bottom - rect.top;
 }
 
- void wndHideCursor()
+void wndHideCursor()
 {
     pWindowRef->mCursorHidden = true;
     hideCursor();
 }
 
- void wndShowCursor()
+void wndShowCursor()
 {
     pWindowRef->mCursorHidden = false;
     showCursor();
 }
 
- void wndUpdateCaptureCursor(void* pUserData)
+void wndUpdateCaptureCursor(void* pUserData)
 {
     UNREF_PARAM(pUserData);
 #ifdef ENABLE_FORGE_INPUT
@@ -199,7 +199,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 }
 
 #if defined(AUTOMATED_TESTING)
- void wndTakeScreenshot(void* pUserData)
+void wndTakeScreenshot(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     char screenShotName[256];
@@ -209,7 +209,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 }
 #endif
 
- void platformInitWindowSystem(WindowDesc* pData)
+void platformInitWindowSystem(WindowDesc* pData)
 {
     ASSERT(pWindowRef == NULL);
 
@@ -240,7 +240,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 #endif
 }
 
- void platformExitWindowSystem()
+void platformExitWindowSystem()
 {
 #if WINDOW_DETAILS
     bdestroy(&pWindowRef->pWindowedRectLabel);
@@ -262,7 +262,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     pWindowRef = NULL;
 }
 
- void platformUpdateWindowSystem()
+void platformUpdateWindowSystem()
 {
     pWindowRef->mCursorInsideWindow = isCursorInsideTrackingArea();
 
@@ -280,8 +280,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     bformat(&pWindowRef->pFullscreenRectLabel, "FullscreenRect L: %d, T: %d, R: %d, B: %d", pWindowRef->fullscreenRect.left,
             pWindowRef->fullscreenRect.top, pWindowRef->fullscreenRect.right, pWindowRef->fullscreenRect.bottom);
     bdestroy(&pWindowRef->pClientRectLabel);
-    bformat(&pWindowRef->pClientRectLabel, "ClientRect L: %d, T: %d, R: %d, B: %d", pWindowRef->clientRect.left,
-    pWindowRef->clientRect.top,
+    bformat(&pWindowRef->pClientRectLabel, "ClientRect L: %d, T: %d, R: %d, B: %d", pWindowRef->clientRect.left, pWindowRef->clientRect.top,
             pWindowRef->clientRect.right, pWindowRef->clientRect.bottom);
     bdestroy(&pWindowRef->pWndLabel);
     bformat(&pWindowRef->pWndLabel, "Wnd X: %d, Y: %d, W: %d, H: %d", pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndW,

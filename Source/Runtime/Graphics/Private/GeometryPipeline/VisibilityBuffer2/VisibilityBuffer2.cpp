@@ -36,7 +36,7 @@
 ///************************************************************************/
 //// Settings
 ///************************************************************************/
-//typedef struct VisibilityBufferSettings
+// typedef struct VisibilityBufferSettings
 //{
 //    // This defines the amount of viewports that are going to be culled in parallel.
 //    uint32_t mNumViews;
@@ -57,12 +57,12 @@
 //    uint32_t mNumPreSkinBatchChunks;
 //} VisibilityBufferSettings;
 //
-//VisibilityBufferSettings gVBSettings;
+// VisibilityBufferSettings gVBSettings;
 //
 ///************************************************************************/
 //// Pre skin vertexes data
 ///************************************************************************/
-//typedef struct PreSkinBatchChunk
+// typedef struct PreSkinBatchChunk
 //{
 //    uint32_t mCurrentBatchCount;
 //} PreSkinBatchChunk;
@@ -70,15 +70,15 @@
 ///************************************************************************/
 //// Triangle filtering data
 ///************************************************************************/
-//typedef struct FilterBatchChunk
+// typedef struct FilterBatchChunk
 //{
 //    uint32_t mCurrentBatchCount;
 //} FilterBatchChunk;
 //
-//GPURingBuffer gFilterBatchDataBuffer = {};
-//GPURingBuffer gPreSkinBatchDataBuffer = {};
+// GPURingBuffer gFilterBatchDataBuffer = {};
+// GPURingBuffer gPreSkinBatchDataBuffer = {};
 //
-//static void DispatchPreSkinVertexes(Cmd* pCmd, PreSkinBatchChunk* pBatchChunk, DescriptorSet* pDescriptorSetPreSkinVertexes,
+// static void DispatchPreSkinVertexes(Cmd* pCmd, PreSkinBatchChunk* pBatchChunk, DescriptorSet* pDescriptorSetPreSkinVertexes,
 //                                    GPURingBufferOffset* ringBufferOffset, uint32_t batchDataOffsetBytes)
 //{
 //    ASSERT(pBatchChunk->mCurrentBatchCount > 0);
@@ -97,7 +97,8 @@
 //    pBatchChunk->mCurrentBatchCount = 0;
 //}
 //
-//PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, PreSkinVertexesPassDesc* pDesc)
+// PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, PreSkinVertexesPassDesc*
+// pDesc)
 //{
 //    UNREF_PARAM(pVisibilityBuffer);
 //
@@ -183,7 +184,7 @@
 //    return stats;
 //}
 //
-//static void DispatchFilterTriangles(Cmd* pCmd, FilterBatchChunk* pBatchChunk, DescriptorSet* pDescriptorSetTriangleFiltering,
+// static void DispatchFilterTriangles(Cmd* pCmd, FilterBatchChunk* pBatchChunk, DescriptorSet* pDescriptorSetTriangleFiltering,
 //                                    GPURingBufferOffset* ringBufferOffset, uint32_t batchDataOffsetBytes)
 //{
 //    ASSERT(pBatchChunk->mCurrentBatchCount > 0);
@@ -209,7 +210,7 @@
 //// - pFilteredTriangles: list of triangle IDs that passed the culling tests
 //// - pIndirectDrawArguments: the vertexCount member of this structure is calculated in order to
 //// indicate the renderer the amount of vertices per batch to render.
-//FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, TriangleFilteringPassDesc* pDesc)
+// FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, TriangleFilteringPassDesc* pDesc)
 //{
 //    ASSERT(pVisibilityBuffer);
 //    ASSERT(pDesc->mFrameIndex < gVBSettings.mNumFrames);
@@ -412,7 +413,7 @@
 ////  return result;
 ////}
 //
-//void addVBFilterContainer(FilterContainerDescriptor* pDesc, FilterContainer* pContainer)
+// void addVBFilterContainer(FilterContainerDescriptor* pDesc, FilterContainer* pContainer)
 //{
 //    ASSERT(pDesc);
 //    ASSERT(pContainer);
@@ -427,7 +428,7 @@
 //    pContainer->mInstanceIndex = pDesc->mInstanceIndex;
 //}
 //
-//static BufferLoadDesc MainVertexBufferLoadDesc(PreSkinACVertexBuffersDesc* pDesc, uint32_t structStride)
+// static BufferLoadDesc MainVertexBufferLoadDesc(PreSkinACVertexBuffersDesc* pDesc, uint32_t structStride)
 //{
 //    BufferLoadDesc vertexBufferDesc = {};
 //    vertexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW);
@@ -439,7 +440,7 @@
 //    return vertexBufferDesc;
 //}
 //
-//static void addPreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACVertexBuffersDesc* pDesc, ResourceHeap* pHeap, uint64_t heapOffset,
+// static void addPreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACVertexBuffersDesc* pDesc, ResourceHeap* pHeap, uint64_t heapOffset,
 //                                      uint64_t vbSize, PreSkinACAliasedBuffer* pOut, uint32_t attrStride, const char* pPreSkinBufferName)
 //{
 //    UNREF_PARAM(pRenderer);
@@ -483,7 +484,7 @@
 //    }
 //}
 //
-//static void removePreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACAliasedBuffer* pBuffers)
+// static void removePreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACAliasedBuffer* pBuffers)
 //{
 //    UNREF_PARAM(pRenderer);
 //
@@ -491,7 +492,7 @@
 //        removeResource(pBuffers->pPreSkinBuffers[i]);
 //}
 //
-//void initVBAsyncComputePreSkinVertexBuffers(Renderer* pRenderer, PreSkinACVertexBuffersDesc* pDesc, PreSkinACVertexBuffers** pOut)
+// void initVBAsyncComputePreSkinVertexBuffers(Renderer* pRenderer, PreSkinACVertexBuffersDesc* pDesc, PreSkinACVertexBuffers** pOut)
 //{
 //    ASSERT(pDesc);
 //    ASSERT(pOut);
@@ -521,7 +522,8 @@
 //        ASSERT(sizeAligns[0].mSize <= UINT32_MAX);
 //        ASSERT(sizeAligns[1].mSize <= UINT32_MAX);
 //
-//        const uint64_t totalRequiredSize = sizeAligns[0].mSize + sizeAligns[0].mAlignment + sizeAligns[1].mAlignment + sizeAligns[1].mSize;
+//        const uint64_t totalRequiredSize = sizeAligns[0].mSize + sizeAligns[0].mAlignment + sizeAligns[1].mAlignment +
+//        sizeAligns[1].mSize;
 //
 //        ResourceHeapDesc desc = {};
 //        desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -548,8 +550,8 @@
 //    {
 //        const uint64_t vertexOffset = (uint64_t)pDesc->mMaxStaticVertexCount + (uint64_t)pDesc->mMaxPreSkinnedVertexCountPerFrame * i;
 //        ASSERT(vertexOffset <= UINT32_MAX &&
-//               "If we support vertex buffers of more than UINT32_MAX bytes we need to either pass this variable to the shader as uint64 or "
-//               "place the Pre-Skin buffers at the beggining so that the offset is within limits.");
+//               "If we support vertex buffers of more than UINT32_MAX bytes we need to either pass this variable to the shader as uint64 or
+//               " "place the Pre-Skin buffers at the beggining so that the offset is within limits.");
 //
 //        offsets[i].vertexOffset = (uint32_t)vertexOffset;
 //
@@ -568,7 +570,7 @@
 //    *pOut = pBuffers;
 //}
 //
-//void exitVBAsyncComputePreSkinVertexBuffers(Renderer* pRenderer, PreSkinACVertexBuffers* pBuffers)
+// void exitVBAsyncComputePreSkinVertexBuffers(Renderer* pRenderer, PreSkinACVertexBuffers* pBuffers)
 //{
 //    ASSERT(pRenderer);
 //    ASSERT(pBuffers);
@@ -587,7 +589,7 @@
 ////************************************************************************/
 ////
 ////************************************************************************/
-//bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc, VisibilityBuffer** ppVisibilityBuffer)
+// bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc, VisibilityBuffer** ppVisibilityBuffer)
 //{
 //    ASSERT(ppVisibilityBuffer);
 //    ASSERT(pDesc);
@@ -641,7 +643,8 @@
 //        addResource(&filterIbDesc, NULL);
 //    }
 //
-//    // Take into account alignment because otherwise the ring buffer will wrap around if it cannot align the memory at the correct address,
+//    // Take into account alignment because otherwise the ring buffer will wrap around if it cannot align the memory at the correct
+//    address,
 //    // using just pDesc->mNumFrames-1 instead of pDesc->mNumFrames as requested.
 //    const uint32_t filterBatchRingBufferSizeTotal =
 //        pDesc->mNumFrames *
@@ -660,7 +663,7 @@
 //    return true;
 //}
 //
-//void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer)
+// void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer)
 //{
 //    ASSERT(pVisibilityBuffer);
 //
