@@ -313,7 +313,7 @@ void Renderer::CreatePresentPipeline() noexcept {
     presentPipelineCreateInfo.ps = presentPs;
     presentPipelineCreateInfo.descriptor_layouts = presentDescriptorSetLayout;
     std::vector<AttachmentCreateInfo> presentAttachmentsCreateInfo{
-        {TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, TextureType::TEXTURE_TYPE_2D,
+        {TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, COLOR_ATTACHMENT | PRESENT_SRC, TextureType::TEXTURE_TYPE_2D,
          m_render_context.width, m_render_context.height}};
     m_pipeline_manager->createPresentPipeline(presentPipelineCreateInfo, presentAttachmentsCreateInfo, m_render_context,
                                               m_swap_chain);
