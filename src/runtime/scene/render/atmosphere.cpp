@@ -7,16 +7,12 @@
 namespace Horizon {
 namespace {
 
-std::shared_ptr<Pipeline> CreateAtmosphereComputePipeline(
-    const std::shared_ptr<PipelineManager> &pipeline_manager,
-    const std::shared_ptr<Device> &device,
-    const std::shared_ptr<DescriptorSetLayouts> &descriptor_layouts,
-    const char *name,
-    const char *shader_relative_path,
-    u32 group_count_x,
-    u32 group_count_y,
-    u32 group_count_z,
-    const std::shared_ptr<PushConstants> &push_constants = nullptr) {
+std::shared_ptr<Pipeline>
+CreateAtmosphereComputePipeline(const std::shared_ptr<PipelineManager> &pipeline_manager,
+                                const std::shared_ptr<Device> &device,
+                                const std::shared_ptr<DescriptorSetLayouts> &descriptor_layouts, const char *name,
+                                const char *shader_relative_path, u32 group_count_x, u32 group_count_y,
+                                u32 group_count_z, const std::shared_ptr<PushConstants> &push_constants = nullptr) {
 
     ComputePipelineCreateInfo info;
     info.name = name;
