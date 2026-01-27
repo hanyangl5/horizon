@@ -1,4 +1,4 @@
-#include "Scene.h"
+#include "scene.h"
 
 #include <runtime/core/log/Log.h>
 #include <runtime/function/rhi/vulkan/UniformBuffer.h>

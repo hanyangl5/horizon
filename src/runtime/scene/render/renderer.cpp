@@ -1,4 +1,4 @@
-#include "Renderer.h"
+#include "renderer.h"
 
 #include <config.hpp>
 #include <filesystem>

@@ -12,12 +12,12 @@
 #include <runtime/function/rhi/vulkan/Surface.h>
 #include <runtime/function/rhi/vulkan/SwapChain.h>
 #include <runtime/function/rhi/vulkan/UniformBuffer.h>
-#include <runtime/function/window/Window.h>
-#include <runtime/scene/render/Atmosphere.h>
-#include <runtime/scene/render/Geometry.h>
-#include <runtime/scene/render/LightPass.h>
-#include <runtime/scene/render/PostProcess.h>
-#include <runtime/scene/scene/Scene.h>
+#include <runtime/function/window/window.h>
+#include <runtime/scene/render/atmosphere.h>
+#include <runtime/scene/render/geometry.h>
+#include <runtime/scene/render/lightpass.h>
+#include <runtime/scene/render/postprocess.h>
+#include <runtime/scene/scene/scene.h>
 
 namespace Horizon {
 class Renderer {

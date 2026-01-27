@@ -1,4 +1,4 @@
-#include "InputManager.h"
+#include "inputmanager.h"
 
 namespace Horizon {
 

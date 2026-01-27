@@ -1,11 +1,11 @@
 #pragma once
 
 #include <memory>
-#include <runtime/function/rhi/vulkan/CommandBuffer.h>
-#include <runtime/function/rhi/vulkan/Descriptors.h>
-#include <runtime/function/rhi/vulkan/Pipeline.h>
-#include <runtime/function/rhi/vulkan/Texture.h>
-#include <runtime/function/rhi/vulkan/UniformBuffer.h>
+#include <runtime/function/rhi/vulkan/commandbuffer.h>
+#include <runtime/function/rhi/vulkan/descriptors.h>
+#include <runtime/function/rhi/vulkan/pipeline.h>
+#include <runtime/function/rhi/vulkan/texture.h>
+#include <runtime/function/rhi/vulkan/uniformbuffer.h>
 
 namespace Horizon {
 class Atmosphere {

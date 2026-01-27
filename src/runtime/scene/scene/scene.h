@@ -3,13 +3,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include <runtime/function/rhi/RenderContext.h>
-#include <runtime/function/rhi/vulkan/CommandBuffer.h>
-#include <runtime/function/rhi/vulkan/Descriptors.h>
-#include <runtime/function/rhi/vulkan/Device.h>
-#include <runtime/scene/camera/Camera.h>
-#include <runtime/scene/light/Light.h>
-#include <runtime/scene/model/Model.h>
+#include <runtime/function/rhi/rendercontext.h>
+#include <runtime/function/rhi/vulkan/commandbuffer.h>
+#include <runtime/function/rhi/vulkan/descriptors.h>
+#include <runtime/function/rhi/vulkan/device.h>
+#include <runtime/scene/camera/camera.h>
+#include <runtime/scene/light/light.h>
+#include <runtime/scene/model/model.h>
 
 namespace Horizon {
 

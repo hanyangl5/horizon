@@ -1,108 +1,78 @@
-#include "Atmosphere.h"
+#include "atmosphere.h"
 
-#include <runtime/core/path/Path.h>
-#include <runtime/function/rhi/RenderContext.h>
-#include <runtime/function/rhi/vulkan/VulkanEnums.h>
+#include <runtime/core/path/path.h>
+#include <runtime/function/rhi/rendercontext.h>
+#include <runtime/function/rhi/vulkan/vulkanenums.h>
 
 namespace Horizon {
+namespace {
+
+std::shared_ptr<Pipeline> CreateAtmosphereComputePipeline(
+    const std::shared_ptr<PipelineManager> &pipeline_manager,
+    const std::shared_ptr<Device> &device,
+    const std::shared_ptr<DescriptorSetLayouts> &descriptor_layouts,
+    const char *name,
+    const char *shader_relative_path,
+    u32 group_count_x,
+    u32 group_count_y,
+    u32 group_count_z,
+    const std::shared_ptr<PushConstants> &push_constants = nullptr) {
+
+    ComputePipelineCreateInfo info;
+    info.name = name;
+    info.cs = std::make_shared<Shader>(device->Get(), Path::GetShaderPath(shader_relative_path));
+    info.descriptor_layouts = descriptor_layouts;
+    info.group_count_x = group_count_x;
+    info.group_count_y = group_count_y;
+    info.group_count_z = group_count_z;
+    info.push_constants = push_constants;
+
+    return pipeline_manager->CreateComputePipeline(info);
+}
+
+} // namespace
+
 Atmosphere::Atmosphere(std::shared_ptr<PipelineManager> _pipeline_manager, std::shared_ptr<Device> _device,
                        std::shared_ptr<CommandBuffer> command_buffer, RenderContext &_render_context) noexcept {
 
     CreateResources(_device, command_buffer);
 
-    // transmittance lut
+    // transmittance LUT
+    m_transmittance_lut_pass = CreateAtmosphereComputePipeline(
+        _pipeline_manager, _device, transmittance_lut_descriptor_set_layouts, "transmittance_lut",
+        "atmosphere/transmittance_lut.comp.spv", 256 / 8, 64 / 8, 1);
 
-    ComputePipelineCreateInfo transmittance_lut_create_info;
-    transmittance_lut_create_info.name = "transmittance_lut";
-    transmittance_lut_create_info.cs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/transmittance_lut.comp.spv"));
-    transmittance_lut_create_info.descriptor_layouts = transmittance_lut_descriptor_set_layouts;
-    transmittance_lut_create_info.group_count_x = 256 / 8;
-    transmittance_lut_create_info.group_count_y = 64 / 8;
-    transmittance_lut_create_info.group_count_z = 1;
+    // direct irradiance LUT
+    m_direct_irradiance_lut_pass = CreateAtmosphereComputePipeline(
+        _pipeline_manager, _device, direct_irradiance_lut_descriptor_set_layouts, "direct_irradiance_lut",
+        "atmosphere/direct_irradiance_lut.comp.spv", 64 / 8, 16 / 8, 1);
 
-    m_transmittance_lut_pass = _pipeline_manager->CreateComputePipeline(transmittance_lut_create_info);
+    // single scattering LUT
+    m_single_scattering_lut_pass = CreateAtmosphereComputePipeline(
+        _pipeline_manager, _device, single_scattering_lut_descriptor_set_layouts, "single_scattering_lut",
+        "atmosphere/single_scattering_lut.comp.spv", 256 / 4, 128 / 4, 32 / 4);
 
-    // direct irradiance lut
+    // scattering density LUT
+    m_scattering_density_lut = CreateAtmosphereComputePipeline(
+        _pipeline_manager, _device, scattering_density_lut_descriptor_set_layouts, "scattering_density_lut",
+        "atmosphere/scattering_density.comp.spv", 256 / 4, 128 / 4, 32 / 4, scattering_order_push_constants);
 
-    ComputePipelineCreateInfo direct_irradiance_lut_create_info;
-    direct_irradiance_lut_create_info.name = "direct_irradiance_lut";
-    direct_irradiance_lut_create_info.cs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/direct_irradiance_lut.comp.spv"));
-    direct_irradiance_lut_create_info.descriptor_layouts = direct_irradiance_lut_descriptor_set_layouts;
-    direct_irradiance_lut_create_info.group_count_x = 64 / 8;
-    direct_irradiance_lut_create_info.group_count_y = 16 / 8;
-    direct_irradiance_lut_create_info.group_count_z = 1;
+    // indirect irradiance LUT
+    m_indirect_irradiance_lut = CreateAtmosphereComputePipeline(
+        _pipeline_manager, _device, indirect_irradiance_lut_descriptor_set_layouts, "indirect_irradiance_lut",
+        "atmosphere/indirect_irradiance_lut.comp.spv", 64 / 8, 16 / 8, 1, scattering_order_push_constants);
 
-    m_direct_irradiance_lut_pass = _pipeline_manager->CreateComputePipeline(direct_irradiance_lut_create_info);
+    // multiple scattering LUT
+    m_multi_scattering_lut = CreateAtmosphereComputePipeline(
+        _pipeline_manager, _device, multi_scattering_lut_descriptor_set_layouts, "multi_scattering_lut",
+        "atmosphere/multi_scattering_lut.comp.spv", 256 / 4, 128 / 4, 32 / 4);
 
-    // single scattering lut
-
-    ComputePipelineCreateInfo single_scattering_lut_create_info;
-    single_scattering_lut_create_info.name = "single_scattering_lut";
-    single_scattering_lut_create_info.cs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/single_scattering_lut.comp.spv"));
-    single_scattering_lut_create_info.descriptor_layouts = single_scattering_lut_descriptor_set_layouts;
-    single_scattering_lut_create_info.group_count_x = 256 / 4;
-    single_scattering_lut_create_info.group_count_y = 128 / 4;
-    single_scattering_lut_create_info.group_count_z = 32 / 4;
-
-    m_single_scattering_lut_pass = _pipeline_manager->CreateComputePipeline(single_scattering_lut_create_info);
-
-    // scattering density
-
-    ComputePipelineCreateInfo scattering_density_lut_create_info;
-    scattering_density_lut_create_info.name = "scattering_density_lut";
-    scattering_density_lut_create_info.cs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/scattering_density.comp.spv"));
-    scattering_density_lut_create_info.descriptor_layouts = scattering_density_lut_descriptor_set_layouts;
-    scattering_density_lut_create_info.group_count_x = 256 / 4;
-    scattering_density_lut_create_info.group_count_y = 128 / 4;
-    scattering_density_lut_create_info.group_count_z = 32 / 4;
-    scattering_density_lut_create_info.push_constants = scattering_order_push_constants;
-
-    m_scattering_density_lut = _pipeline_manager->CreateComputePipeline(scattering_density_lut_create_info);
-
-    // indirect irradiance
-
-    ComputePipelineCreateInfo indirect_irradiance_lut_create_info;
-    indirect_irradiance_lut_create_info.name = "indirect_irradiance_lut";
-    indirect_irradiance_lut_create_info.cs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/indirect_irradiance_lut.comp.spv"));
-    indirect_irradiance_lut_create_info.descriptor_layouts = indirect_irradiance_lut_descriptor_set_layouts;
-    indirect_irradiance_lut_create_info.group_count_x = 64 / 8;
-    indirect_irradiance_lut_create_info.group_count_y = 16 / 8;
-    indirect_irradiance_lut_create_info.group_count_z = 1;
-    indirect_irradiance_lut_create_info.push_constants = scattering_order_push_constants;
-    m_indirect_irradiance_lut = _pipeline_manager->CreateComputePipeline(indirect_irradiance_lut_create_info);
-
-    // multiple scattering lut
-
-    ComputePipelineCreateInfo multi_scattering_lut_create_info;
-    multi_scattering_lut_create_info.name = "multi_scattering_lut";
-    multi_scattering_lut_create_info.cs =
-        std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/multi_scattering_lut.comp.spv"));
-    multi_scattering_lut_create_info.descriptor_layouts = multi_scattering_lut_descriptor_set_layouts;
-    multi_scattering_lut_create_info.group_count_x = 256 / 4;
-    multi_scattering_lut_create_info.group_count_y = 128 / 4;
-    multi_scattering_lut_create_info.group_count_z = 32 / 4;
-
-    m_multi_scattering_lut = _pipeline_manager->CreateComputePipeline(multi_scattering_lut_create_info);
-
-    // camera volume
-
-    //ComputePipelineCreateInfo camera_volume_create_info;
-    //camera_volume_create_info.name = "camera_volume";
-    //camera_volume_create_info.cs = std::make_shared<Shader>(_device->Get(), Path::GetShaderPath("atmosphere/camera_volume.comp.spv"));
-    //camera_volume_create_info.descriptor_layouts = camera_volume_descriptor_set_layouts;
-    //camera_volume_create_info.group_count_x = 256 / 4;
-    //camera_volume_create_info.group_count_y = 128 / 4;
-    //camera_volume_create_info.group_count_z = 32 / 4;
-
-    //m_camera_volume_pass = _pipeline_manager->CreateComputePipeline(camera_volume_create_info);
+    // camera volume (reserved, currently not used)
+    // m_camera_volume_pass = CreateAtmosphereComputePipeline(
+    //     _pipeline_manager, _device, camera_volume_descriptor_set_layouts, "camera_volume",
+    //     "atmosphere/camera_volume.comp.spv", 256 / 4, 128 / 4, 32 / 4);
 
     // sky pass
-
     GraphicsPipelineCreateInfo sky_pipeline_create_info;
     sky_pipeline_create_info.name = "scatter";
     sky_pipeline_create_info.vs =
