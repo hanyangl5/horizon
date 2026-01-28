@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "mesh.h"
 
 #include <algorithm>
 #include <thread>
@@ -7,11 +7,11 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include <runtime/core/log/Log.h>
-#include <runtime/core/memory/Memory.h>
-#include <runtime/rhi/RHI.h>
+#include <runtime/core/log/log.h>
+#include <runtime/core/memory/memory.h>
+#include <runtime/rhi/rhi.h>
 
-#include <runtime/resource/resource_loader/texture/TextureLoader.h>
+#include <runtime/resource/resource_loader/texture/textureloader.h>
 namespace Horizon {
 
 using namespace Assimp;

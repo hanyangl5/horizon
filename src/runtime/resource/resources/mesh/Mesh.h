@@ -5,18 +5,18 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/Pipeline.h>
-#include <runtime/rhi/RHI.h>
-#include <runtime/rhi/Semaphore.h>
-#include <runtime/rhi/Texture.h>
+#include <runtime/rhi/buffer.h>
+#include <runtime/rhi/pipeline.h>
+#include <runtime/rhi/rhi.h>
+#include <runtime/rhi/semaphore.h>
+#include <runtime/rhi/texture.h>
 
-#include <runtime/scene/material/MaterialDescription.h>
+#include <runtime/scene/material/materialdescription.h>
 
-#include "../vertex/VertexDescription.h"
+#include "../vertex/vertexdescription.h"
 
 namespace Horizon {
 

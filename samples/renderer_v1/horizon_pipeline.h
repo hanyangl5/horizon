@@ -6,8 +6,8 @@
 #include "post_process.h"
 #include "scene.h"
 #include "ssao.h"
-#include <runtime/render/Config.h>
-#include <runtime/render/Render.h>
+#include <runtime/render/config.h>
+#include <runtime/render/render.h>
 // HorizonPipeline
 
 class HorizonPipeline {

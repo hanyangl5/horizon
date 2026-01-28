@@ -1,4 +1,4 @@
-#include "RHIVulkan.h"
+#include "rhivulkan.h"
 
 #include <filesystem>
 #include <thread>
@@ -7,15 +7,15 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
-#include <runtime/core/memory/Memory.h>
-#include <runtime/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/rhi/vulkan/VulkanCommandContext.h>
-#include <runtime/rhi/vulkan/VulkanPipeline.h>
-#include <runtime/rhi/vulkan/VulkanRenderTarget.h>
-#include <runtime/rhi/vulkan/VulkanSampler.h>
-#include <runtime/rhi/vulkan/VulkanSemaphore.h>
-#include <runtime/rhi/vulkan/VulkanShader.h>
-#include <runtime/rhi/vulkan/VulkanTexture.h>
+#include <runtime/core/memory/memory.h>
+#include <runtime/rhi/vulkan/vulkanbuffer.h>
+#include <runtime/rhi/vulkan/vulkancommandcontext.h>
+#include <runtime/rhi/vulkan/vulkanpipeline.h>
+#include <runtime/rhi/vulkan/vulkanrendertarget.h>
+#include <runtime/rhi/vulkan/vulkansampler.h>
+#include <runtime/rhi/vulkan/vulkansemaphore.h>
+#include <runtime/rhi/vulkan/vulkanshader.h>
+#include <runtime/rhi/vulkan/vulkantexture.h>
 
 namespace Horizon::Backend {
 

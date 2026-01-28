@@ -27,15 +27,15 @@ class Log : public PublicSingleton<Log> {
         m_logger->debug(std::forward<args>(_args)...);
     }
 
-    template <typename... args> inline void Info(args &&..._args) const noexcept {
+    template <typename... args>  void Info(args &&..._args) const noexcept {
         m_logger->info(std::forward<args>(_args)...);
     }
 
-    template <typename... args> inline void Warn(args &&..._args) const noexcept {
+    template <typename... args>  void Warn(args &&..._args) const noexcept {
         m_logger->warn(std::forward<args>(_args)...);
     }
 
-    template <typename... args> inline void Error(args &&..._args) const noexcept {
+    template <typename... args>  void Error(args &&..._args) const noexcept {
         m_logger->error(std::forward<args>(_args)...);
     }
 
@@ -47,7 +47,7 @@ class Log : public PublicSingleton<Log> {
 
 #define LOG_DEBUG(...) Log::GetInstance().Debug("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define LOG_INFO(...) Log::GetInstance().Info("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_INFO(...) ; Log::GetInstance().Info("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
 #define LOG_WARN(...) Log::GetInstance().Warn("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 

@@ -1,4 +1,4 @@
-#include "VulkanSemaphore.h"
+#include "vulkansemaphore.h"
 
 namespace Horizon::Backend {
 

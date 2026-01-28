@@ -1,6 +1,6 @@
 #pragma once
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/Enums.h>
+#include <runtime/rhi/enums.h>
 #include <vulkan/vulkan.h>
 
 namespace std {

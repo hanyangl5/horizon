@@ -1,5 +1,5 @@
-#include "VulkanBuffer.h"
-#include <runtime/core/memory/Memory.h>
+#include "vulkanbuffer.h"
+#include <runtime/core/memory/memory.h>
 namespace Horizon::Backend {
 
 VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCreateInfo &buffer_create_info,

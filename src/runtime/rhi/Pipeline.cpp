@@ -1,4 +1,4 @@
-#include "Pipeline.h"
+#include "pipeline.h"
 
 #include <nlohmann/json.hpp>
 

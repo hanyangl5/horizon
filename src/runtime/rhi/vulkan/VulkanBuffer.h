@@ -4,8 +4,8 @@
 #include <vulkan/vulkan.h>
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/buffer.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 
 namespace Horizon::Backend {
 

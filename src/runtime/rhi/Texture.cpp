@@ -1,4 +1,4 @@
-#include <runtime/rhi/Texture.h>
+#include <runtime/rhi/texture.h>
 
 namespace Horizon::Backend {
 

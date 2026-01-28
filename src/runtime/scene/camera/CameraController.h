@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <runtime/core/math/Math.h>
-#include <runtime/core/window/Window.h>
-#include <runtime/scene/camera/Camera.h>
+#include <runtime/core/math/math.h>
+#include <runtime/core/window/window.h>
+#include <runtime/scene/camera/camera.h>
 
 namespace Horizon {
 

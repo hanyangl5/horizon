@@ -1,4 +1,4 @@
-#include "Light.h"
+#include "light.h"
 
 namespace Horizon {
 

@@ -6,7 +6,7 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "SceneManager.h"
+#include "scenemanager.h"
 #include <algorithm>
 
 namespace Horizon {

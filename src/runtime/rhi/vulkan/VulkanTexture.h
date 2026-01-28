@@ -1,8 +1,8 @@
 #pragma once
 
-#include <runtime/rhi/Texture.h>
-#include <runtime/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/texture.h>
+#include <runtime/rhi/vulkan/vulkanbuffer.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 #include <vk_mem_alloc.h>
 
 namespace Horizon::Backend {

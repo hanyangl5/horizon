@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/Enums.h>
+#include <runtime/rhi/enums.h>
 
 namespace Horizon {
 

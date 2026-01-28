@@ -2,14 +2,14 @@
 
 #include <vulkan/vulkan.h>
 
-#include <runtime/core/memory/Memory.h>
-#include <runtime/core/window/Window.h>
+#include <runtime/core/memory/memory.h>
+#include <runtime/core/window/window.h>
 
-#include <runtime/render/Config.h>
-#include <runtime/resource/resource_manager/ResourceManager.h>
-#include <runtime/rhi/RHI.h>
-#include <runtime/scene/camera/Camera.h>
-#include <runtime/scene/scene_manager/SceneManager.h>
+#include <runtime/render/config.h>
+#include <runtime/resource/resource_manager/resourcemanager.h>
+#include <runtime/rhi/rhi.h>
+#include <runtime/scene/camera/camera.h>
+#include <runtime/scene/scene_manager/scenemanager.h>
 namespace Horizon {
 
 class Renderer {

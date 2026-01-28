@@ -2,10 +2,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include <runtime/rhi/CommandList.h>
-#include <runtime/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/rhi/vulkan/VulkanTexture.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/commandlist.h>
+#include <runtime/rhi/vulkan/vulkanbuffer.h>
+#include <runtime/rhi/vulkan/vulkantexture.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 
 namespace Horizon::Backend {
 

@@ -6,7 +6,7 @@
 #include "scene.h"
 #include "ssao.h"
 
-#include <runtime/render/Render.h>
+#include <runtime/render/render.h>
 
 class HorizonPipeline {
   public:

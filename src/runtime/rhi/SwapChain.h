@@ -1,11 +1,11 @@
 #pragma once
 
-#include <runtime/core/window/Window.h>
+#include <runtime/core/window/window.h>
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/RenderTarget.h>
-#include <runtime/rhi/Semaphore.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/rendertarget.h>
+#include <runtime/rhi/semaphore.h>
 
 namespace Horizon::Backend {
 

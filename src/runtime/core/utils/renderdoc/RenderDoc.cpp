@@ -6,9 +6,9 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "RenderDoc.h"
+#include "renderdoc.h"
 
-#include <runtime/core/log/Log.h>
+#include <runtime/core/log/log.h>
 
 #ifdef RENDERDOC_ENABLED
 

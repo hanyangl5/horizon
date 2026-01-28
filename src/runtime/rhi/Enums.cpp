@@ -1,4 +1,4 @@
-#include "Enums.h"
+#include "enums.h"
 
 namespace Horizon {
 

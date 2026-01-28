@@ -1,6 +1,6 @@
-#include "VulkanPipeline.h"
+#include "vulkanpipeline.h"
 
-#include <runtime/rhi/vulkan/VulkanShader.h>
+#include <runtime/rhi/vulkan/vulkanshader.h>
 
 namespace Horizon::Backend {
 
@@ -70,7 +70,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
         // This number is the max allocatable count
         count_info.pDescriptorCounts = &max_binding;
         alloc_info.pNext = &count_info;
-        VkDescriptorSet vk_ds;
+        VkDescriptorSet vk_ds{};
         CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
         DescriptorSet *set =
             new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);
@@ -91,7 +91,7 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet(ResourceUpdateFrequency frequenc
     alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
     alloc_info.descriptorSetCount = 1;
     alloc_info.pSetLayouts = &layout;
-    VkDescriptorSet vk_ds;
+    VkDescriptorSet vk_ds{};
     CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
     DescriptorSet *set =
         new VulkanDescriptorSet(m_context, frequency, rsd.descriptors[static_cast<u32>(frequency)], vk_ds);

@@ -4,9 +4,9 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "VulkanRenderTarget.h"
-#include "VulkanSemaphore.h"
-#include "VulkanSwapChain.h"
+#include "vulkanrendertarget.h"
+#include "vulkansemaphore.h"
+#include "vulkanswapchain.h"
 
 Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &context,
                                                    const SwapChainCreateInfo &swap_chain_create_info,

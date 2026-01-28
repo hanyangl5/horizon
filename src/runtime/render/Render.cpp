@@ -1,10 +1,10 @@
-#include "Render.h"
+#include "render.h"
 
-#include <runtime/core/math/Math.h>
-#include <runtime/core/memory/Memory.h>
-#include <runtime/rhi/RHI.h>
-#include <runtime/rhi/ResourceBarrier.h>
-#include <runtime/rhi/vulkan/RHIVulkan.h>
+#include <runtime/core/math/math.h>
+#include <runtime/core/memory/memory.h>
+#include <runtime/rhi/rhi.h>
+#include <runtime/rhi/resourcebarrier.h>
+#include <runtime/rhi/vulkan/rhivulkan.h>
 
 namespace Horizon {
 

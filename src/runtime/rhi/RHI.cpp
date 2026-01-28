@@ -1,4 +1,4 @@
-#include "RHI.h"
+#include "rhi.h"
 
 namespace Horizon::Backend {
 

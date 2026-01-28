@@ -2,13 +2,13 @@
 
 #include <variant>
 
-#include <runtime/core/math/Math.h>
-#include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/Pipeline.h>
-#include <runtime/rhi/RenderTarget.h>
-#include <runtime/rhi/ResourceBarrier.h>
-#include <runtime/rhi/Texture.h>
+#include <runtime/core/math/math.h>
+#include <runtime/rhi/buffer.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/pipeline.h>
+#include <runtime/rhi/rendertarget.h>
+#include <runtime/rhi/resourcebarrier.h>
+#include <runtime/rhi/texture.h>
 
 namespace Horizon::Backend {
 

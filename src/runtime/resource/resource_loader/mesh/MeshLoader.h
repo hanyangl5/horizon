@@ -4,8 +4,8 @@
 #include <filesystem>
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/resource/resources/mesh/Mesh.h>
-#include <runtime/rhi/Enums.h>
+#include <runtime/resource/resources/mesh/mesh.h>
+#include <runtime/rhi/enums.h>
 
 namespace Horizon {
 

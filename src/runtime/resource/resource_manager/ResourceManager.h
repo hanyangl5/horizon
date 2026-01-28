@@ -11,13 +11,13 @@
 #include <unordered_set>
 #include <vector>
 
-#include <runtime/core/memory/Memory.h>
+#include <runtime/core/memory/memory.h>
 
-#include <runtime/resource/resource_loader/mesh/MeshLoader.h>
-#include <runtime/resource/resource_loader/texture/TextureLoader.h>
-#include <runtime/resource/resources/mesh/Mesh.h>
-#include <runtime/resource/resources/vertex/VertexDescription.h>
-#include <runtime/rhi/RHI.h>
+#include <runtime/resource/resource_loader/mesh/meshloader.h>
+#include <runtime/resource/resource_loader/texture/textureloader.h>
+#include <runtime/resource/resources/mesh/mesh.h>
+#include <runtime/resource/resources/vertex/vertexdescription.h>
+#include <runtime/rhi/rhi.h>
 
 namespace Horizon {
 

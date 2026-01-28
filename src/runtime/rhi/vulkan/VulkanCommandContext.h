@@ -2,9 +2,9 @@
 
 #include <vulkan/vulkan.h>
 
-#include <runtime/rhi/CommandContext.h>
-#include <runtime/rhi/vulkan/VulkanCommandList.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/commandcontext.h>
+#include <runtime/rhi/vulkan/vulkancommandlist.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 
 namespace Horizon::Backend {
 

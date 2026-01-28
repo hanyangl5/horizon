@@ -2,11 +2,11 @@
 
 #include <filesystem>
 
-#include <runtime/resource/resource_loader/texture/TextureLoader.h>
-#include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/DescriptorSet.h>
-#include <runtime/rhi/RHI.h>
-#include <runtime/rhi/Texture.h>
+#include <runtime/resource/resource_loader/texture/textureloader.h>
+#include <runtime/rhi/buffer.h>
+#include <runtime/rhi/descriptorset.h>
+#include <runtime/rhi/rhi.h>
+#include <runtime/rhi/texture.h>
 
 namespace Horizon {
 

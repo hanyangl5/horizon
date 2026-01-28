@@ -2,10 +2,10 @@
 
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/Sampler.h>
-#include <runtime/rhi/Texture.h>
+#include <runtime/rhi/buffer.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/sampler.h>
+#include <runtime/rhi/texture.h>
 
 namespace Horizon::Backend {
 

@@ -1,3 +1,3 @@
-#include "MaterialDescription.h"
+#include "materialdescription.h"
 
 namespace Horizon {} // namespace Horizon

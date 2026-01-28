@@ -1,6 +1,6 @@
-#include "VulkanRenderTarget.h"
-#include "VulkanTexture.h"
-#include <runtime/core/memory/Memory.h>
+#include "vulkanrendertarget.h"
+#include "vulkantexture.h"
+#include <runtime/core/memory/memory.h>
 Horizon::Backend::VulkanRenderTarget::VulkanRenderTarget(
     const VulkanRendererContext &context, const RenderTargetCreateInfo &render_target_create_info) noexcept
     : m_context(context) {

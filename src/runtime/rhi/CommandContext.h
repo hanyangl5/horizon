@@ -1,7 +1,7 @@
 #pragma once
 
-#include <runtime/rhi/CommandList.h>
-#include <runtime/rhi/Enums.h>
+#include <runtime/rhi/commandlist.h>
+#include <runtime/rhi/enums.h>
 
 namespace Horizon::Backend {
 

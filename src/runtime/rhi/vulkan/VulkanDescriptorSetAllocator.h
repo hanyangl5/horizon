@@ -4,11 +4,11 @@
 
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/vulkan/VulkanBuffer.h>
-#include <runtime/rhi/vulkan/VulkanSampler.h>
-#include <runtime/rhi/vulkan/VulkanShader.h>
-#include <runtime/rhi/vulkan/VulkanTexture.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/vulkan/vulkanbuffer.h>
+#include <runtime/rhi/vulkan/vulkansampler.h>
+#include <runtime/rhi/vulkan/vulkanshader.h>
+#include <runtime/rhi/vulkan/vulkantexture.h>
 
 namespace Horizon::Backend {
 

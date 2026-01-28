@@ -2,13 +2,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "TextureLoader.h"
+#include "textureloader.h"
 
 #include <DXGIFormat.h>
 
 #include "ddspp.h"
 
-#include <runtime/core/log/Log.h>
+#include <runtime/core/log/log.h>
 
 namespace Horizon {
 

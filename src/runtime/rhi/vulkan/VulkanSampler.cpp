@@ -1,4 +1,4 @@
-#include "VulkanSampler.h"
+#include "vulkansampler.h"
 
 Horizon::Backend::VulkanSampler::VulkanSampler(const VulkanRendererContext &context, const SamplerDesc &desc) noexcept
     : m_context(context) {

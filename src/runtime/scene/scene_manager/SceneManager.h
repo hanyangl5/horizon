@@ -11,14 +11,14 @@
 #include <filesystem>
 #include <tuple>
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
 
-#include <runtime/resource/resource_manager/ResourceManager.h>
-#include <runtime/resource/resources/mesh/Mesh.h>
-#include <runtime/scene/camera/Camera.h>
-#include <runtime/scene/camera/CameraController.h>
-#include <runtime/scene/light/Light.h>
+#include <runtime/resource/resource_manager/resourcemanager.h>
+#include <runtime/resource/resources/mesh/mesh.h>
+#include <runtime/scene/camera/camera.h>
+#include <runtime/scene/camera/cameracontroller.h>
+#include <runtime/scene/light/light.h>
 
 namespace Horizon {
 

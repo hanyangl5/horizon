@@ -1,8 +1,8 @@
 #pragma once
 
 #include <runtime/core/utils/definations.h>
-#include <runtime/rhi/SwapChain.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/swapchain.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 namespace Horizon::Backend {
 
 class VulkanSwapChain : public SwapChain {

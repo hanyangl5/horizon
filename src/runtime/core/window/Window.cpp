@@ -6,9 +6,9 @@
  * \date   November 2022
  *********************************************************************/
 
-#include "Window.h"
+#include "window.h"
 
-#include <runtime/core/log/Log.h>
+#include <runtime/core/log/log.h>
 
 namespace Horizon {
 double g_glfw_lastFrameTime = 0.0;

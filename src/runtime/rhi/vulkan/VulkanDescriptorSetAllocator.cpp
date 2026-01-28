@@ -1,13 +1,13 @@
-#include "VulkanDescriptorSetAllocator.h"
+#include "vulkandescriptorsetallocator.h"
 
 #include <algorithm>
 
 #define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
 #include <spirv_reflect.h>
 
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/ResourceCache.h>
-#include <runtime/rhi/vulkan/VulkanPipeline.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/resourcecache.h>
+#include <runtime/rhi/vulkan/vulkanpipeline.h>
 
 namespace Horizon::Backend {
 

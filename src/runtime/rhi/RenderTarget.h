@@ -1,7 +1,7 @@
 #pragma once
 
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/Texture.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/texture.h>
 
 namespace Horizon::Backend {
 

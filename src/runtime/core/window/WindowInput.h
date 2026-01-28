@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "Window.h"
+#include "window.h"
 
-#include <runtime/core/math/Math.h>
+#include <runtime/core/math/math.h>
 
 namespace Horizon::Input {
 

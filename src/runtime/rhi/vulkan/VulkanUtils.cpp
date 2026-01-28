@@ -1,5 +1,5 @@
 
-#include "VulkanUtils.h"
+#include "vulkanutils.h"
 
 namespace Horizon {
 

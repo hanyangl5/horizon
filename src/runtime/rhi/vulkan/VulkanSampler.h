@@ -1,8 +1,8 @@
 #pragma once
 
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/Sampler.h>
-#include <runtime/rhi/vulkan/VulkanCommandContext.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/sampler.h>
+#include <runtime/rhi/vulkan/vulkancommandcontext.h>
 
 namespace Horizon::Backend {
 

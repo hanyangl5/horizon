@@ -4,19 +4,19 @@
 #include <filesystem>
 #include <random>
 
-#include <runtime/core/log/Log.h>
-#include <runtime/core/math/Math.h>
+#include <runtime/core/log/log.h>
+#include <runtime/core/math/math.h>
 #include <runtime/core/utils/definations.h>
-#include <runtime/core/utils/renderdoc/RenderDoc.h>
-#include <runtime/core/window/Window.h>
+#include <runtime/core/utils/renderdoc/renderdoc.h>
+#include <runtime/core/window/window.h>
 
-#include <runtime/resource/resource_loader/mesh/MeshLoader.h>
-#include <runtime/resource/resources/mesh/Mesh.h>
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/RHI.h>
-#include <runtime/scene/light/Light.h>
+#include <runtime/resource/resource_loader/mesh/meshloader.h>
+#include <runtime/resource/resources/mesh/mesh.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/rhi.h>
+#include <runtime/scene/light/light.h>
 
-#include <runtime/render/Render.h>
+#include <runtime/render/render.h>
 
 // TODO(hyl5) : move to source file
 using namespace Horizon;

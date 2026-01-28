@@ -1,5 +1,5 @@
-#include "VulkanCommandContext.h"
-#include <runtime/core/memory/Memory.h>
+#include "vulkancommandcontext.h"
+#include <runtime/core/memory/memory.h>
 namespace Horizon::Backend {
 
 VulkanCommandContext::VulkanCommandContext(const VulkanRendererContext &context) noexcept : m_context(context) {

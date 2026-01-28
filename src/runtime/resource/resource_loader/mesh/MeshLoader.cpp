@@ -1,4 +1,4 @@
-#include "MeshLoader.h"
+#include "meshloader.h"
 
 namespace Horizon {
 

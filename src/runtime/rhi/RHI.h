@@ -4,17 +4,17 @@
 
 #include <utility>
 
-#include <runtime/core/window/Window.h>
+#include <runtime/core/window/window.h>
 
-#include <runtime/rhi/Buffer.h>
-#include <runtime/rhi/CommandContext.h>
-#include <runtime/rhi/CommandList.h>
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/RenderTarget.h>
-#include <runtime/rhi/Sampler.h>
-#include <runtime/rhi/Semaphore.h>
-#include <runtime/rhi/SwapChain.h>
-#include <runtime/rhi/Texture.h>
+#include <runtime/rhi/buffer.h>
+#include <runtime/rhi/commandcontext.h>
+#include <runtime/rhi/commandlist.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/rendertarget.h>
+#include <runtime/rhi/sampler.h>
+#include <runtime/rhi/semaphore.h>
+#include <runtime/rhi/swapchain.h>
+#include <runtime/rhi/texture.h>
 
 namespace Horizon::Backend {
 

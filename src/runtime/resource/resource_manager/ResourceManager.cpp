@@ -1,6 +1,6 @@
-#include "ResourceManager.h"
+#include "resourcemanager.h"
 
-#include <runtime/core/memory/Memory.h>
+#include <runtime/core/memory/memory.h>
 
 namespace Horizon {
 ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : mRhi(rhi) {}

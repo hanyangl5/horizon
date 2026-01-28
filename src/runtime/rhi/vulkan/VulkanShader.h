@@ -1,8 +1,8 @@
 #pragma once
 
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/Shader.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/shader.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 
 #include <d3d12shader.h>
 #include <dxc/dxcapi.h>

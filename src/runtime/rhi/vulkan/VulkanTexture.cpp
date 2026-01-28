@@ -1,5 +1,5 @@
-#include "VulkanTexture.h"
-#include <runtime/core/memory/Memory.h>
+#include "vulkantexture.h"
+#include <runtime/core/memory/memory.h>
 namespace Horizon::Backend {
 
 VulkanTexture::VulkanTexture(const VulkanRendererContext &context,

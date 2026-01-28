@@ -1,8 +1,8 @@
 #pragma once
 
-#include <runtime/rhi/DescriptorSet.h>
-#include <runtime/rhi/Enums.h>
-#include <runtime/rhi/Shader.h>
+#include <runtime/rhi/descriptorset.h>
+#include <runtime/rhi/enums.h>
+#include <runtime/rhi/shader.h>
 
 namespace Horizon::Backend {
 

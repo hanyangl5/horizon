@@ -1,10 +1,10 @@
 #pragma once
 
-#include <runtime/rhi/Pipeline.h>
-#include <runtime/rhi/Shader.h>
-#include <runtime/rhi/vulkan/VulkanDescriptorSet.h>
-#include <runtime/rhi/vulkan/VulkanDescriptorSetAllocator.h>
-#include <runtime/rhi/vulkan/VulkanUtils.h>
+#include <runtime/rhi/pipeline.h>
+#include <runtime/rhi/shader.h>
+#include <runtime/rhi/vulkan/vulkandescriptorset.h>
+#include <runtime/rhi/vulkan/vulkandescriptorsetallocator.h>
+#include <runtime/rhi/vulkan/vulkanutils.h>
 
 namespace Horizon::Backend {
 
