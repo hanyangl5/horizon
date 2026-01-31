@@ -1,10 +1,10 @@
 /*****************************************************************/ /**
- * \file   Config.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   Config.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 #pragma once
 
 #include <filesystem>
@@ -12,11 +12,18 @@
 #include <core/definations.h>
 #include <rhi/enums.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-enum class ApplicationType { GRAPHICS, OFFSCREEN_GRAPHICS, GENERAL_COMPUTE };
+enum class ApplicationType
+{
+    GRAPHICS,
+    OFFSCREEN_GRAPHICS,
+    GENERAL_COMPUTE
+};
 
-struct Config {
+struct Config
+{
     u32 width, height;
     RenderBackend render_backend;
     ApplicationType app_type;

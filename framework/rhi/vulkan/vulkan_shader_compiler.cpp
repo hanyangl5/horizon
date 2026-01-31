@@ -10,26 +10,29 @@
 #include <string>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <process.h>
+#include <windows.h>
 #else
 #include <cstdio>
 #include <unistd.h>
 #endif
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-bool ShaderCompiler::NeedsRecompilation(const std::filesystem::path &hlsl_path,
-                                          const std::filesystem::path &spv_path) {
+bool ShaderCompiler::NeedsRecompilation(const std::filesystem::path &hlsl_path, const std::filesystem::path &spv_path)
+{
     namespace fs = std::filesystem;
 
     // If SPV doesn't exist, need to compile
-    if (!fs::exists(spv_path)) {
+    if (!fs::exists(spv_path))
+    {
         return true;
     }
 
     // If HLSL doesn't exist, can't compile
-    if (!fs::exists(hlsl_path)) {
+    if (!fs::exists(hlsl_path))
+    {
         LOG_ERROR("HLSL source file not found: {}", hlsl_path.string());
         return false;
     }
@@ -42,15 +45,17 @@ bool ShaderCompiler::NeedsRecompilation(const std::filesystem::path &hlsl_path,
     return hlsl_time > spv_time;
 }
 
-std::string ShaderCompiler::GetShaderProfile(ShaderType type) {
-    switch (type) {
+std::string ShaderCompiler::GetShaderProfile(ShaderType type)
+{
+    switch (type)
+    {
     case ShaderType::VERTEX_SHADER:
         return "vs_6_0";
     case ShaderType::PIXEL_SHADER:
         return "ps_6_0";
     case ShaderType::COMPUTE_SHADER:
         return "cs_6_0";
-    //case ShaderType::GEOMETRY_SHADER:
+    // case ShaderType::GEOMETRY_SHADER:
     //    return "gs_6_0";
     default:
         LOG_ERROR("Unsupported shader type for HLSL compilation");
@@ -58,48 +63,58 @@ std::string ShaderCompiler::GetShaderProfile(ShaderType type) {
     }
 }
 
-std::string ShaderCompiler::FindDXCExecutable() {
+std::string ShaderCompiler::FindDXCExecutable()
+{
     namespace fs = std::filesystem;
 
     // Check environment variables
     char *dxc_path_env = nullptr;
     size_t size = 0;
-    if (_dupenv_s(&dxc_path_env, &size, "DXC_PATH") == 0 && dxc_path_env != nullptr) {
+    if (_dupenv_s(&dxc_path_env, &size, "DXC_PATH") == 0 && dxc_path_env != nullptr)
+    {
         fs::path dxc_path = fs::path(dxc_path_env);
         free(dxc_path_env);
-        if (fs::is_directory(dxc_path)) {
+        if (fs::is_directory(dxc_path))
+        {
 #ifdef _WIN32
             dxc_path /= "dxc.exe";
 #else
             dxc_path /= "dxc";
 #endif
         }
-        if (fs::exists(dxc_path)) {
+        if (fs::exists(dxc_path))
+        {
             return dxc_path.string();
         }
     }
-    if (dxc_path_env) free(dxc_path_env);
+    if (dxc_path_env)
+        free(dxc_path_env);
 
     char *hsl_compiler_dxc = nullptr;
-    if (_dupenv_s(&hsl_compiler_dxc, &size, "HSL_COMPILER_DXC") == 0 && hsl_compiler_dxc != nullptr) {
+    if (_dupenv_s(&hsl_compiler_dxc, &size, "HSL_COMPILER_DXC") == 0 && hsl_compiler_dxc != nullptr)
+    {
         fs::path dxc_path = fs::path(hsl_compiler_dxc);
         free(hsl_compiler_dxc);
-        if (fs::is_directory(dxc_path)) {
+        if (fs::is_directory(dxc_path))
+        {
 #ifdef _WIN32
             dxc_path /= "dxc.exe";
 #else
             dxc_path /= "dxc";
 #endif
         }
-        if (fs::exists(dxc_path)) {
+        if (fs::exists(dxc_path))
+        {
             return dxc_path.string();
         }
     }
-    if (hsl_compiler_dxc) free(hsl_compiler_dxc);
+    if (hsl_compiler_dxc)
+        free(hsl_compiler_dxc);
 
     // Check Vulkan SDK
     char *vulkan_sdk = nullptr;
-    if (_dupenv_s(&vulkan_sdk, &size, "VULKAN_SDK") == 0 && vulkan_sdk != nullptr) {
+    if (_dupenv_s(&vulkan_sdk, &size, "VULKAN_SDK") == 0 && vulkan_sdk != nullptr)
+    {
         fs::path dxc_path = fs::path(vulkan_sdk) / "Bin";
         free(vulkan_sdk);
 #ifdef _WIN32
@@ -107,23 +122,28 @@ std::string ShaderCompiler::FindDXCExecutable() {
 #else
         dxc_path /= "dxc";
 #endif
-        if (fs::exists(dxc_path)) {
+        if (fs::exists(dxc_path))
+        {
             return dxc_path.string();
         }
     }
-    if (vulkan_sdk) free(vulkan_sdk);
+    if (vulkan_sdk)
+        free(vulkan_sdk);
 
-    // Try to find in PATH using which/where
+        // Try to find in PATH using which/where
 #ifdef _WIN32
     // On Windows, try where command
     FILE *pipe = _popen("where dxc.exe", "r");
-    if (pipe) {
+    if (pipe)
+    {
         char buffer[512];
-        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+        {
             std::string result = buffer;
             result.erase(result.find_last_not_of(" \n\r\t") + 1);
             _pclose(pipe);
-            if (fs::exists(result)) {
+            if (fs::exists(result))
+            {
                 return result;
             }
         }
@@ -132,13 +152,16 @@ std::string ShaderCompiler::FindDXCExecutable() {
 #else
     // On Unix-like systems, try which
     FILE *pipe = popen("which dxc", "r");
-    if (pipe) {
+    if (pipe)
+    {
         char buffer[512];
-        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+        {
             std::string result = buffer;
             result.erase(result.find_last_not_of(" \n\r\t") + 1);
             pclose(pipe);
-            if (fs::exists(result)) {
+            if (fs::exists(result))
+            {
                 return result;
             }
         }
@@ -150,13 +173,15 @@ std::string ShaderCompiler::FindDXCExecutable() {
     return "";
 }
 
-std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const std::filesystem::path &shader_dir) {
+std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const std::filesystem::path &shader_dir)
+{
     namespace fs = std::filesystem;
     std::vector<std::string> includes;
 
     // Add shader_dir/include if it exists
     fs::path include_dir = shader_dir / "include";
-    if (fs::exists(include_dir) && fs::is_directory(include_dir)) {
+    if (fs::exists(include_dir) && fs::is_directory(include_dir))
+    {
         includes.push_back(include_dir.string());
     }
 
@@ -167,21 +192,22 @@ std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const std::filesy
 }
 
 bool ShaderCompiler::CompileHLSLToSPIRV(const std::filesystem::path &hlsl_path,
-                                         const std::filesystem::path &output_spv_path,
-                                         ShaderType shader_type,
-                                         const std::filesystem::path &shader_dir,
-                                         const std::filesystem::path &saved_shader_dir) {
+                                        const std::filesystem::path &output_spv_path, ShaderType shader_type,
+                                        const std::filesystem::path &shader_dir,
+                                        const std::filesystem::path &saved_shader_dir)
+{
     namespace fs = std::filesystem;
 
     // Check if source exists
-    if (!fs::exists(hlsl_path)) {
+    if (!fs::exists(hlsl_path))
+    {
         LOG_ERROR("HLSL source file not found: {}", hlsl_path.string());
         return false;
     }
 
     // Find DXC executable
-    //std::string dxc_exe = FindDXCExecutable();
-    //if (dxc_exe.empty()) {
+    // std::string dxc_exe = FindDXCExecutable();
+    // if (dxc_exe.empty()) {
     //    return false;
     //}
 
@@ -204,7 +230,8 @@ bool ShaderCompiler::CompileHLSLToSPIRV(const std::filesystem::path &hlsl_path,
     cmd << " -fspv-reflect";
 
     // Add include directories
-    for (const auto &inc_dir : include_dirs) {
+    for (const auto &inc_dir : include_dirs)
+    {
         cmd << " -I \"" << inc_dir << "\"";
     }
 
@@ -215,13 +242,15 @@ bool ShaderCompiler::CompileHLSLToSPIRV(const std::filesystem::path &hlsl_path,
     // Execute DXC using system() for simplicity
     // Note: For production, consider using DXC API directly for better error handling
     int result = system(cmd.str().c_str());
-    if (result != 0) {
+    if (result != 0)
+    {
         LOG_ERROR("DXC compilation failed with exit code: {}", result);
         return false;
     }
 
     // Verify output file was created
-    if (!fs::exists(output_spv_path)) {
+    if (!fs::exists(output_spv_path))
+    {
         LOG_ERROR("DXC compilation succeeded but output file not found: {}", output_spv_path.string());
         return false;
     }

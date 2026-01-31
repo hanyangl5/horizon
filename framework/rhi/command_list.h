@@ -10,25 +10,29 @@
 #include <rhi/resource_barrier.h>
 #include <rhi/texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 // TODO: move these definations to Enums.h
 
-struct RenderTargetInfo {
+struct RenderTargetInfo
+{
     RenderTarget *data{};
     std::variant<ClearColorValue, ClearValueDepthStencil> clear_color{};
     RenderTargetLoadOp load_op;
     RenderTargetStoreOp store_op;
 };
 
-struct RenderPassBeginInfo {
+struct RenderPassBeginInfo
+{
     u32 render_target_count{};
     std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
     RenderTargetInfo depth_stencil{};
     Rect render_area{};
 };
 
-class CommandList {
+class CommandList
+{
   public:
     CommandList(CommandQueueType type) noexcept;
     virtual ~CommandList() noexcept;

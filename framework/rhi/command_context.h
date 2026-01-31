@@ -3,9 +3,11 @@
 #include <rhi/command_list.h>
 #include <rhi/enums.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class CommandContext {
+class CommandContext
+{
   public:
     CommandContext() noexcept;
     virtual ~CommandContext() noexcept;

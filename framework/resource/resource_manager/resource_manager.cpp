@@ -2,20 +2,29 @@
 
 #include <core/memory.h>
 
-namespace Horizon {
-ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : mRhi(rhi) {}
+namespace Horizon
+{
+ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : mRhi(rhi)
+{
+}
 
-ResourceManager::~ResourceManager() noexcept { ClearAllResources(); }
+ResourceManager::~ResourceManager() noexcept
+{
+    ClearAllResources();
+}
 
-Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info) {
+Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info)
+{
     auto buffer = mRhi->CreateBuffer(buffer_create_info);
     allocated_buffers.emplace(buffer);
     return buffer;
 }
 
-Buffer *ResourceManager::GetEmptyVertexBuffer() {
+Buffer *ResourceManager::GetEmptyVertexBuffer()
+{
 
-    if (empty_vertex_buffer == nullptr) {
+    if (empty_vertex_buffer == nullptr)
+    {
 
         BufferCreateInfo vertex_buffer_create_info{};
         vertex_buffer_create_info.size = 1;
@@ -26,28 +35,36 @@ Buffer *ResourceManager::GetEmptyVertexBuffer() {
     return empty_vertex_buffer;
 }
 
-Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, const std::filesystem::path &path) {
+Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, const std::filesystem::path &path)
+{
     auto mesh = MeshLoader::Load(desc, path);
     meshes.emplace(mesh);
     return mesh;
 }
 
-void ResourceManager::OffloadMesh(Mesh *mesh) {
-    if (meshes.find(mesh) != meshes.end()) {
+void ResourceManager::OffloadMesh(Mesh *mesh)
+{
+    if (meshes.find(mesh) != meshes.end())
+    {
         meshes.erase(mesh);
         Memory::Free(mesh);
         mesh = nullptr;
     }
 }
 
-void ResourceManager::ClearAllResources() {
-    for (auto &remain_buffer : allocated_buffers) {
-        if (remain_buffer != nullptr) {
+void ResourceManager::ClearAllResources()
+{
+    for (auto &remain_buffer : allocated_buffers)
+    {
+        if (remain_buffer != nullptr)
+        {
             mRhi->DestroyBuffer(remain_buffer);
         }
     }
-    for (auto &remain_texture : allocated_textures) {
-        if (remain_texture != nullptr) {
+    for (auto &remain_texture : allocated_textures)
+    {
+        if (remain_texture != nullptr)
+        {
             mRhi->DestroyTexture(remain_texture);
         }
     }
@@ -55,21 +72,26 @@ void ResourceManager::ClearAllResources() {
     allocated_buffers.clear();
 }
 
-void ResourceManager::DestroyGpuBuffer(Buffer *buffer) {
-    if (allocated_buffers.find(buffer) != allocated_buffers.end()) {
+void ResourceManager::DestroyGpuBuffer(Buffer *buffer)
+{
+    if (allocated_buffers.find(buffer) != allocated_buffers.end())
+    {
         allocated_buffers.erase(buffer);
         mRhi->DestroyBuffer(buffer);
     }
 }
 
-Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info) {
+Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info)
+{
     auto texture = mRhi->CreateTexture(texture_create_info);
     allocated_textures.emplace(texture);
     return texture;
 }
 
-void ResourceManager::DestroyGpuTexture(Texture *texture) {
-    if (allocated_textures.find(texture) != allocated_textures.end()) {
+void ResourceManager::DestroyGpuTexture(Texture *texture)
+{
+    if (allocated_textures.find(texture) != allocated_textures.end())
+    {
         allocated_textures.erase(texture);
         mRhi->DestroyTexture(texture);
     }

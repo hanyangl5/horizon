@@ -2,7 +2,8 @@
 
 #include <random>
 
-SceneData::SceneData(SceneManager *scene_manager) noexcept {
+SceneData::SceneData(SceneManager *scene_manager) noexcept
+{
     m_scene_manager = scene_manager;
 
     scene_manager->CreateBuiltInResources();
@@ -32,7 +33,8 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept {
     std::uniform_real_distribution<f32> random_position(-10.0, 10.0);
     std::uniform_real_distribution<f32> random_color(0.5, 1.0);
 
-    for (unsigned int i = 0; i < 64; i++) {
+    for (unsigned int i = 0; i < 64; i++)
+    {
         // calculate slightly random offsets
         float xPos = random_position(engine);
         float yPos = random_position(engine);

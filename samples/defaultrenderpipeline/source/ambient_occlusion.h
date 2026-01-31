@@ -2,7 +2,8 @@
 
 #include "header.h"
 
-class AmbientOcclusionPass {
+class AmbientOcclusionPass
+{
   public:
     explicit AmbientOcclusionPass(Backend::RHI *rhi) noexcept;
     ~AmbientOcclusionPass() noexcept;
@@ -20,7 +21,8 @@ class AmbientOcclusionPass {
     //
     static constexpr u32 SSAO_KERNEL_SIZE = 32;
 
-    struct SSAOConstant {
+    struct SSAOConstant
+    {
         Math::float4x4 proj;
         Math::float4x4 inv_proj;
         Math::float4x4 view;

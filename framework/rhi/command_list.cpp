@@ -1,9 +1,14 @@
 #include "command_list.h"
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-CommandList::CommandList(CommandQueueType type) noexcept : m_type(type) {}
+CommandList::CommandList(CommandQueueType type) noexcept : m_type(type)
+{
+}
 
-CommandList::~CommandList() noexcept {}
+CommandList::~CommandList() noexcept
+{
+}
 
 } // namespace Horizon::Backend

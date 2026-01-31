@@ -2,7 +2,8 @@
 
 #include "header.h"
 
-class AntialiasingPass {
+class AntialiasingPass
+{
   public:
     explicit AntialiasingPass(Backend::RHI *rhi) noexcept;
     ~AntialiasingPass() noexcept;
@@ -21,7 +22,8 @@ class AntialiasingPass {
     std::array<Math::float2, TAA_SAMPLE_COUNT> taa_samples;
     u32 taa_sample_index = 0;
 
-    struct TAAPrevCurrOffset {
+    struct TAAPrevCurrOffset
+    {
         Math::float2 prev_offset;
         Math::float2 curr_offset;
     } taa_prev_curr_offset;

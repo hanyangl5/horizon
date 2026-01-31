@@ -4,11 +4,18 @@
 #include <rhi/enums.h>
 #include <rhi/texture.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-enum QueueOp { IGNORED, RELEASE, ACQUIRE };
+enum QueueOp
+{
+    IGNORED,
+    RELEASE,
+    ACQUIRE
+};
 
-struct BufferBarrierDesc {
+struct BufferBarrierDesc
+{
     Backend::Buffer *buffer{};
     // u32 offset;
     // u64 size;
@@ -19,7 +26,8 @@ struct BufferBarrierDesc {
     QueueOp queue_op{QueueOp::IGNORED};
 };
 
-struct TextureBarrierDesc {
+struct TextureBarrierDesc
+{
     Backend::Texture *texture;
     // MemoryAccessFlags src_access_mask, dst_access_mask;
     // TextureUsage src_usage, dst_usage; // transition image layout
@@ -33,7 +41,8 @@ struct TextureBarrierDesc {
     QueueOp queue_op{QueueOp::IGNORED};
 };
 
-struct BarrierDesc {
+struct BarrierDesc
+{
     // u32 src_stage, dst_stage;
     std::vector<BufferBarrierDesc> buffer_memory_barriers{};
     std::vector<TextureBarrierDesc> texture_memory_barriers{};

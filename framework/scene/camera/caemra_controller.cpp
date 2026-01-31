@@ -1,22 +1,28 @@
 /*****************************************************************/ /**
- * \file   CameraController.cpp
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   CameraController.cpp
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #include "camera_controller.h"
 
 #include <core/glfwinput.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-CameraController::CameraController(Camera *camera) noexcept : m_camera(camera) {}
+CameraController::CameraController(Camera *camera) noexcept : m_camera(camera)
+{
+}
 
-CameraController::~CameraController() noexcept {}
+CameraController::~CameraController() noexcept
+{
+}
 
-void CameraController::ProcessInput(Window *window) {
+void CameraController::ProcessInput(Window *window)
+{
     assert(m_camera != nullptr);
     assert(m_camera->GetCameraSpeed() != 0);
 

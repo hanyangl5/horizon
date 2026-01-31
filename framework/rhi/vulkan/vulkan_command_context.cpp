@@ -1,28 +1,36 @@
 #include "vulkan_command_context.h"
 #include <core/memory.h>
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-VulkanCommandContext::VulkanCommandContext(const VulkanRendererContext &context) noexcept : m_context(context) {
+VulkanCommandContext::VulkanCommandContext(const VulkanRendererContext &context) noexcept : m_context(context)
+{
     m_command_lists_count.fill(0);
 }
 
-VulkanCommandContext::~VulkanCommandContext() noexcept {
+VulkanCommandContext::~VulkanCommandContext() noexcept
+{
     // destroy command pools and release all command buffers allocated from
     // pools
-    for (auto &pool : m_command_pools) {
+    for (auto &pool : m_command_pools)
+    {
         vkDestroyCommandPool(m_context.device, pool, nullptr);
     }
-    for (auto &cls : m_command_lists) {
-        for (auto &cl : cls) {
+    for (auto &cls : m_command_lists)
+    {
+        for (auto &cl : cls)
+        {
             Memory::Free(cl);
             cl = nullptr; // release VulkanCommandLists
         }
     }
 }
 
-CommandList *VulkanCommandContext::GetCommandList(CommandQueueType type) {
+CommandList *VulkanCommandContext::GetCommandList(CommandQueueType type)
+{
     // lazy create command pool
-    if (m_command_pools[type] == VK_NULL_HANDLE) {
+    if (m_command_pools[type] == VK_NULL_HANDLE)
+    {
         VkCommandPoolCreateInfo command_pool_create_info{};
         command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         command_pool_create_info.queueFamilyIndex = m_context.command_queue_familiy_indices[type];
@@ -34,7 +42,8 @@ CommandList *VulkanCommandContext::GetCommandList(CommandQueueType type) {
 
     u32 count{m_command_lists_count[type]};
 
-    if (count >= m_command_lists[type].size()) {
+    if (count >= m_command_lists[type].size())
+    {
         VkCommandBuffer command_buffer;
         VkCommandBufferAllocateInfo command_buffer_allocate_info{};
         command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -49,11 +58,14 @@ CommandList *VulkanCommandContext::GetCommandList(CommandQueueType type) {
     return m_command_lists[type][count];
 }
 
-void VulkanCommandContext::Reset() {
+void VulkanCommandContext::Reset()
+{
     // reset command buffers to initial state
 
-    for (auto &command_pool : m_command_pools) {
-        if (command_pool) {
+    for (auto &command_pool : m_command_pools)
+    {
+        if (command_pool)
+        {
             vkResetCommandPool(m_context.device, command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
         }
     }

@@ -1,10 +1,10 @@
 /*****************************************************************/ /**
- * \file   Window.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   Window.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
@@ -17,9 +17,11 @@
 
 #include <core/definations.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-class Window {
+class Window
+{
   public:
     Window(const char *_name, u32 _width, u32 _height) noexcept;
     ~Window() noexcept;

@@ -18,20 +18,28 @@
 #include <rhi/vulkan/vulkan_shader_compiler.h>
 #include <rhi/vulkan/vulkan_texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-std::unique_ptr<RHI> CreateVulkanRenderBackend(bool offscreen) noexcept {
+std::unique_ptr<RHI> CreateVulkanRenderBackend(bool offscreen) noexcept
+{
     return std::make_unique<RHIVulkan>(offscreen);
 }
 
-RHIVulkan::RHIVulkan(bool offscreen) noexcept { m_offscreen = offscreen; }
+RHIVulkan::RHIVulkan(bool offscreen) noexcept
+{
+    m_offscreen = offscreen;
+}
 
-RHIVulkan::~RHIVulkan() noexcept {
-    for (auto &type : fences) {
+RHIVulkan::~RHIVulkan() noexcept
+{
+    for (auto &type : fences)
+    {
         if (type.empty())
             continue;
         vkWaitForFences(m_vulkan.device, (u32)type.size(), type.data(), VK_TRUE, UINT64_MAX);
-        for (auto fence : type) {
+        for (auto fence : type)
+        {
             vkDestroyFence(m_vulkan.device, fence, nullptr);
         }
     }
@@ -42,18 +50,22 @@ RHIVulkan::~RHIVulkan() noexcept {
     Memory::Free(m_descriptor_set_allocator);
     m_descriptor_set_allocator = nullptr; // release
 
-    if (semaphore_ctx.swap_chain_release_semaphore != nullptr) {
+    if (semaphore_ctx.swap_chain_release_semaphore != nullptr)
+    {
         vkDestroySemaphore(m_vulkan.device,
                            reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_release_semaphore)->m_semaphore,
                            nullptr);
     }
-    if (semaphore_ctx.swap_chain_acquire_semaphore != nullptr) {
+    if (semaphore_ctx.swap_chain_acquire_semaphore != nullptr)
+    {
         vkDestroySemaphore(m_vulkan.device,
                            reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore)->m_semaphore,
                            nullptr);
     }
-    for (auto &s : semaphore_ctx.recycled_semaphores) {
-        if (s != nullptr) {
+    for (auto &s : semaphore_ctx.recycled_semaphores)
+    {
+        if (s != nullptr)
+        {
             vkDestroySemaphore(m_vulkan.device, reinterpret_cast<VulkanSemaphore *>(s)->m_semaphore, nullptr);
         }
     }
@@ -64,43 +76,52 @@ RHIVulkan::~RHIVulkan() noexcept {
     vkDestroyInstance(m_vulkan.instance, nullptr);
 }
 
-void RHIVulkan::InitializeRenderer() {
+void RHIVulkan::InitializeRenderer()
+{
     LOG_DEBUG("using vulkan renderer");
     InitializeVulkanRenderer("vulkan renderer");
 }
 
-Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info) {
+Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info)
+{
     return Memory::Alloc<VulkanBuffer>(m_vulkan, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
-Texture *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info) {
+Texture *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info)
+{
     return Memory::Alloc<VulkanTexture>(m_vulkan, texture_create_info);
 }
 
-RenderTarget *RHIVulkan::CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info) {
+RenderTarget *RHIVulkan::CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info)
+{
     return Memory::Alloc<VulkanRenderTarget>(m_vulkan, render_target_create_info);
 }
 
-SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info) {
+SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info)
+{
     return Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &file_name) {
+Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &file_name)
+{
     namespace fs = std::filesystem;
-    
+
     // Determine shader directory and saved shader directory
     // Try to use macros first (if available from samples), otherwise infer from file_name
     fs::path shader_dir;
     fs::path saved_shader_dir;
-    
+
 #ifdef SHADER_DIR
     shader_dir = SHADER_DIR;
 #else
     // Infer from file_name: assume file_name is relative to shader source directory
     // If absolute, use parent; if relative, we'll need to resolve it
-    if (file_name.is_absolute()) {
+    if (file_name.is_absolute())
+    {
         shader_dir = file_name.parent_path();
-    } else {
+    }
+    else
+    {
         // For relative paths, try to find the shader directory
         // Look for common patterns: .../shaders/... or .../source/shaders/...
         shader_dir = file_name.parent_path();
@@ -113,9 +134,12 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &fi
     // Infer saved shader directory: look for "saved/shaders" relative to shader_dir
     // Or try "bin/VULKAN" for backward compatibility
     fs::path parent = shader_dir.parent_path();
-    if (fs::exists(parent / "saved" / "shaders")) {
+    if (fs::exists(parent / "saved" / "shaders"))
+    {
         saved_shader_dir = parent / "saved" / "shaders";
-    } else {
+    }
+    else
+    {
         // Default: create saved/shaders in shader_dir's parent
         saved_shader_dir = parent / "saved" / "shaders";
     }
@@ -127,19 +151,24 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &fi
     const fs::path spirv_path = saved_shader_dir / (stem.generic_string() + ".spv");
 
     // Check if recompilation is needed
-    if (ShaderCompiler::NeedsRecompilation(hlsl_path, spirv_path)) {
+    if (ShaderCompiler::NeedsRecompilation(hlsl_path, spirv_path))
+    {
         LOG_DEBUG("Compiling shader: {} -> {}", hlsl_path.string(), spirv_path.string());
-        if (!ShaderCompiler::CompileHLSLToSPIRV(hlsl_path, spirv_path, type, shader_dir, saved_shader_dir)) {
+        if (!ShaderCompiler::CompileHLSLToSPIRV(hlsl_path, spirv_path, type, shader_dir, saved_shader_dir))
+        {
             LOG_ERROR("Failed to compile shader: {}", hlsl_path.string());
             return nullptr;
         }
-    } else {
+    }
+    else
+    {
         LOG_DEBUG("Using cached shader: {}", spirv_path.string());
     }
 
     // Load compiled SPIR-V
     auto spirv_code = ReadFile(spirv_path.generic_string().c_str());
-    if (spirv_code.empty()) {
+    if (spirv_code.empty())
+    {
         LOG_ERROR("Failed to load compiled shader: {}", spirv_path.string());
         return nullptr;
     }
@@ -147,15 +176,20 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &fi
     return new VulkanShader(m_vulkan, type, spirv_code);
 }
 
-void RHIVulkan::DestroyShader(Shader *shader_program) {
-    if (shader_program) {
+void RHIVulkan::DestroyShader(Shader *shader_program)
+{
+    if (shader_program)
+    {
         delete shader_program;
-    } else {
+    }
+    else
+    {
         LOG_WARN("shader program is uninitialized or deleted");
     }
 }
 
-void RHIVulkan::CreateGpuQueryPool() {
+void RHIVulkan::CreateGpuQueryPool()
+{
     VkQueryPoolCreateInfo queryPoolCreateInfo = {};
     queryPoolCreateInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
     queryPoolCreateInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
@@ -163,7 +197,8 @@ void RHIVulkan::CreateGpuQueryPool() {
     CHECK_VK_RESULT(vkCreateQueryPool(m_vulkan.device, &queryPoolCreateInfo, nullptr, &m_vulkan.gpu_query_pool));
 }
 
-void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) {
+void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
+{
 
     std::vector<const char *> instance_layers;
     std::vector<const char *> instance_extensions;
@@ -197,7 +232,8 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name) {
 }
 
 void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
-                               std::vector<const char *> &instance_extensions) {
+                               std::vector<const char *> &instance_extensions)
+{
     u32 layer_count{0}, extension_count{0};
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
     vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
@@ -228,76 +264,89 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
     CHECK_VK_RESULT(vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
 }
 
-void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu) {
+void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
+{
     u32 device_count{0};
 
     std::vector<VkPhysicalDevice> physical_devices;
 
     vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
     physical_devices.resize(device_count);
-    if (device_count == 0) {
+    if (device_count == 0)
+    {
         LOG_ERROR("no available device");
     }
     vkEnumeratePhysicalDevices(instance, &device_count, physical_devices.data());
 
     // pick gpu
 
-    for (const auto &physical_device : physical_devices) {
+    for (const auto &physical_device : physical_devices)
+    {
         u32 queue_family_count = (u32)m_vulkan.command_queues.size();
 
         std::vector<VkQueueFamilyProperties> queue_family_properties;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  nullptr); // Get queue family properties
-        if (queue_family_count < 3) {
-           LOG_ERROR("less than 3 queue");
-           continue;
+        if (queue_family_count < 3)
+        {
+            LOG_ERROR("less than 3 queue");
+            continue;
         }
         queue_family_properties.resize(queue_family_count);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  queue_family_properties.data()); // Get queue family properties
 
-        for (u32 i = 0; i < queue_family_count; i++) {
+        for (u32 i = 0; i < queue_family_count; i++)
+        {
             // TOOD: print gpu info, runtime swith gpu
 
             // graphics queue
             if (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
                 queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-                queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+                queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
                 m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] = i;
             }
 
             // dedicate compute queue
             if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-               queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-               queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-               m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE] = i;
-               if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
-                   m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE]) {
-                   gpu_support_async_compute = true;
-               }
+                queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
+                queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
+                m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE] = i;
+                if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
+                    m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE])
+                {
+                    gpu_support_async_compute = true;
+                }
             }
             // dedicate transfer queue
             if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-               queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-               !(queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
-               m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER] = i;
-               if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
-                   m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE]) {
-                   gpu_support_async_transfer = true;
-               }
+                queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
+                !(queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
+            {
+                m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER] = i;
+                if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
+                    m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE])
+                {
+                    gpu_support_async_transfer = true;
+                }
             }
             *gpu = physical_device;
         }
-        if (gpu != VK_NULL_HANDLE) {
+        if (gpu != VK_NULL_HANDLE)
+        {
             break;
         }
     }
-    if (gpu == VK_NULL_HANDLE) {
+    if (gpu == VK_NULL_HANDLE)
+    {
         LOG_ERROR("no suitable gpu found");
     }
 }
 
-void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
+void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
+{
     PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
 
     VkPhysicalDeviceShaderDrawParametersFeatures shader_draw_parameters_features{};
@@ -322,7 +371,8 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
 
     f32 queue_priority = 1.0f;
 
-    for (u32 i = 0; i < device_queue_create_info.size(); i++) {
+    for (u32 i = 0; i < device_queue_create_info.size(); i++)
+    {
         device_queue_create_info[i] = {};
         device_queue_create_info[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         device_queue_create_info[i].pNext = NULL;
@@ -355,26 +405,29 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions) {
 
     vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS], 0,
                      &m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
-    //vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index,
-    //0, &m_vulkan.m_present_queue);
-    if (gpu_support_async_transfer) {
-       vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER], 0,
-                        &m_vulkan.command_queues[CommandQueueType::TRANSFER]);
+    // vkGetDeviceQueue(m_vulkan.device, m_vulkan.graphics_queue_family_index,
+    // 0, &m_vulkan.m_present_queue);
+    if (gpu_support_async_transfer)
+    {
+        vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER], 0,
+                         &m_vulkan.command_queues[CommandQueueType::TRANSFER]);
     }
-    if (gpu_support_async_compute) {
-       vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE], 0,
-                        &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
+    if (gpu_support_async_compute)
+    {
+        vkGetDeviceQueue(m_vulkan.device, m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE], 0,
+                         &m_vulkan.command_queues[CommandQueueType::COMPUTE]);
     }
-    //TODO(hyl5): gpu don't support async compute/transfer
+    // TODO(hyl5): gpu don't support async compute/transfer
 
     LOG_DEBUG("using async compute & transfer, graphics queue: {}, compute "
-             "queue: {}, transfer queue: {}",
-             m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
-             m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
-             m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
+              "queue: {}, transfer queue: {}",
+              m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS],
+              m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE],
+              m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER]);
 }
 
-void RHIVulkan::InitializeVMA() {
+void RHIVulkan::InitializeVMA()
+{
     VmaVulkanFunctions vulkan_functions{};
     vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
     vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
@@ -388,14 +441,20 @@ void RHIVulkan::InitializeVMA() {
     CHECK_VK_RESULT(vmaCreateAllocator(&vma_create_info, &m_vulkan.vma_allocator));
 }
 
-void RHIVulkan::CreateSyncObjects() {}
+void RHIVulkan::CreateSyncObjects()
+{
+}
 
-VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept {
+VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept
+{
     VkFence fence{};
     // return an exisiting fence
-    if (fence_index[type] < fences[type].size()) {
+    if (fence_index[type] < fences[type].size())
+    {
         fence = fences[type][fence_index[type]];
-    } else {
+    }
+    else
+    {
         VkFenceCreateInfo fence_create_info{};
         fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         CHECK_VK_RESULT(vkCreateFence(m_vulkan.device, &fence_create_info, nullptr, &fence));
@@ -405,7 +464,8 @@ VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept {
     return fence;
 }
 
-void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
+void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
+{
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -423,7 +483,8 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     // vkEndCommandBuffer(m_vulkan.command_buffers[CommandQueueType::GRAPHICS]);
     auto &command_lists = queue_submit_info.command_lists;
     std::vector<VkCommandBuffer> command_buffers(command_lists.size());
-    for (u32 i = 0; i < command_lists.size(); i++) {
+    for (u32 i = 0; i < command_lists.size(); i++)
+    {
         command_buffers[i] = reinterpret_cast<VulkanCommandList *>(command_lists[i])->m_command_buffer;
         // valid command list type when submitting
     }
@@ -433,13 +494,15 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     u32 wait_semaphore_count = (u32)queue_submit_info.wait_semaphores.size();
     std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
     std::vector<VkPipelineStageFlags> wait_stages(wait_semaphore_count);
-    for (u32 i = 0; i < wait_semaphore_count; i++) {
+    for (u32 i = 0; i < wait_semaphore_count; i++)
+    {
         wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.wait_semaphores[i])->m_semaphore;
         wait_stages[i] = queue_submit_info.wait_semaphores[i]->GetWaitStage();
     }
 
     // signal render complete semaphore
-    if (queue_submit_info.wait_image_acquired == true) {
+    if (queue_submit_info.wait_image_acquired == true)
+    {
         wait_semaphores.push_back(reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore)
 
                                       ->m_semaphore);
@@ -449,15 +512,18 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     u32 signal_semaphore_count = (u32)queue_submit_info.signal_semaphores.size();
     std::vector<VkSemaphore> signal_semaphores(signal_semaphore_count);
 
-    for (u32 i = 0; i < signal_semaphore_count; i++) {
+    for (u32 i = 0; i < signal_semaphore_count; i++)
+    {
         signal_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_submit_info.signal_semaphores[i])->m_semaphore;
         queue_submit_info.signal_semaphores[i]->AddWaitStage(queue_submit_info.queue_type);
     }
 
     // signal render complete semaphore
-    if (queue_submit_info.signal_render_complete == true) {
+    if (queue_submit_info.signal_render_complete == true)
+    {
 
-        if (!semaphore_ctx.swap_chain_release_semaphore) {
+        if (!semaphore_ctx.swap_chain_release_semaphore)
+        {
             semaphore_ctx.swap_chain_release_semaphore = (CreateSemaphore1());
         }
 
@@ -479,7 +545,8 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info) {
     vkQueueSubmit(m_vulkan.command_queues[queue_submit_info.queue_type], 1, &submit_info, fence);
 }
 
-void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
+void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
+{
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -508,15 +575,18 @@ void RHIVulkan::Present(const QueuePresentInfo &queue_present_info) {
     vk_swap_chain->current_frame_index = vk_swap_chain->current_frame_index % vk_swap_chain->m_back_buffer_count;
 }
 
-void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
+void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
+{
 
     auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(swap_chain);
 
     Semaphore *sm;
-    if (semaphore_ctx.recycled_semaphores.empty()) {
+    if (semaphore_ctx.recycled_semaphores.empty())
+    {
         sm = (CreateSemaphore1());
-
-    } else {
+    }
+    else
+    {
         sm = semaphore_ctx.recycled_semaphores.back();
         semaphore_ctx.recycled_semaphores.pop_back();
     }
@@ -525,15 +595,18 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
                                          reinterpret_cast<VulkanSemaphore *>(sm)->m_semaphore, nullptr,
                                          &vk_swap_chain->image_index);
 
-    if (res != VK_SUCCESS) {
+    if (res != VK_SUCCESS)
+    {
         semaphore_ctx.recycled_semaphores.push_back(sm);
         LOG_ERROR("failed to acqurei next image");
-        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
+        {
             // resize(context.swapchain_dimensions.width, context.swapchain_dimensions.height);
             // res = acquire_next_image(context, &index);
         }
 
-        if (res != VK_SUCCESS) {
+        if (res != VK_SUCCESS)
+        {
             // vkQueueWaitIdle(context.queue);
             // return;
         }
@@ -550,7 +623,8 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
     // Recycle the old semaphore back into the semaphore manager.
     auto old_semaphore = reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore);
 
-    if (old_semaphore != nullptr && old_semaphore->m_semaphore != VK_NULL_HANDLE) {
+    if (old_semaphore != nullptr && old_semaphore->m_semaphore != VK_NULL_HANDLE)
+    {
         semaphore_ctx.recycled_semaphores.push_back(old_semaphore);
     }
 
@@ -558,16 +632,19 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain) {
     vkResetQueryPool(m_vulkan.device, m_vulkan.gpu_query_pool, 0, 64);
 }
 
-CommandList *RHIVulkan::GetCommandList(CommandQueueType type) {
+CommandList *RHIVulkan::GetCommandList(CommandQueueType type)
+{
 
-    if (!thread_command_context) {
+    if (!thread_command_context)
+    {
         thread_command_context = Memory::Alloc<VulkanCommandContext>(m_vulkan);
     }
 
     return thread_command_context->GetCommandList(type);
 }
 
-void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) {
+void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type)
+{
     assert(fence_index[queue_type] != UINT_MAX); // no need to wait twice
     if (fence_index[queue_type] == 0)
         return;
@@ -576,62 +653,80 @@ void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type) {
     fence_index[queue_type] = UINT_MAX;
 }
 
-void RHIVulkan::ResetFence(CommandQueueType queue_type) {
+void RHIVulkan::ResetFence(CommandQueueType queue_type)
+{
     if (fence_index[queue_type] == 0)
         return;
     vkResetFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data());
     fence_index[queue_type] = 0;
 }
 
-void RHIVulkan::ResetRHIResources() {
-    if (thread_command_context) {
+void RHIVulkan::ResetRHIResources()
+{
+    if (thread_command_context)
+    {
         thread_command_context->Reset();
     }
     m_descriptor_set_allocator->ResetDescriptorPool();
 }
 
-Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info) {
+Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
+{
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator);
 }
 
-Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &create_info) {
+Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &create_info)
+{
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator);
 }
 
-void RHIVulkan::DestroyPipeline(Pipeline *pipeline) { delete pipeline; }
+void RHIVulkan::DestroyPipeline(Pipeline *pipeline)
+{
+    delete pipeline;
+}
 
-Semaphore *RHIVulkan::CreateSemaphore1() { return Memory::Alloc<VulkanSemaphore>(m_vulkan); }
+Semaphore *RHIVulkan::CreateSemaphore1()
+{
+    return Memory::Alloc<VulkanSemaphore>(m_vulkan);
+}
 
-Sampler *RHIVulkan::CreateSampler(const SamplerDesc &sampler_desc) {
+Sampler *RHIVulkan::CreateSampler(const SamplerDesc &sampler_desc)
+{
     return Memory::Alloc<VulkanSampler>(m_vulkan, sampler_desc);
 }
 
-void RHIVulkan::DestroyBuffer(Buffer *buffer) {
+void RHIVulkan::DestroyBuffer(Buffer *buffer)
+{
     Memory::Free(buffer);
     buffer = nullptr;
 }
 
-void RHIVulkan::DestroyTexture(Texture *texture) {
+void RHIVulkan::DestroyTexture(Texture *texture)
+{
     Memory::Free(texture);
     texture = nullptr;
 }
 
-void RHIVulkan::DestroyRenderTarget(RenderTarget *render_target) {
+void RHIVulkan::DestroyRenderTarget(RenderTarget *render_target)
+{
     Memory::Free(render_target);
     render_target = nullptr;
 }
 
-void RHIVulkan::DestroySwapChain(SwapChain *swap_chain) {
+void RHIVulkan::DestroySwapChain(SwapChain *swap_chain)
+{
     Memory::Free(swap_chain);
     swap_chain = nullptr;
 }
 
-void RHIVulkan::DestroySemaphore(Semaphore *semaphore) {
+void RHIVulkan::DestroySemaphore(Semaphore *semaphore)
+{
     Memory::Free(semaphore);
     semaphore = nullptr;
 }
 
-void RHIVulkan::DestroySampler(Sampler *sampler) {
+void RHIVulkan::DestroySampler(Sampler *sampler)
+{
     Memory::Free(sampler);
     sampler = nullptr;
 }

@@ -1,11 +1,14 @@
 #include "enums.h"
 
-namespace Horizon {
+namespace Horizon
+{
 
-u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions) {
+u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions)
+{
     assert(portions <= 4);
     u32 stride = 0;
-    switch (format) {
+    switch (format)
+    {
     case Horizon::VertexAttribFormat::U8:
     case Horizon::VertexAttribFormat::S8:
     case Horizon::VertexAttribFormat::UN8:
@@ -29,8 +32,10 @@ u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 porti
     return stride;
 }
 
-u32 GetBytesFromTextureFormat(TextureFormat format) {
-    switch (format) {
+u32 GetBytesFromTextureFormat(TextureFormat format)
+{
+    switch (format)
+    {
     case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UINT:
     case Horizon::TextureFormat::TEXTURE_FORMAT_R8_SINT:
     case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UNORM:

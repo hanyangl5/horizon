@@ -1,36 +1,48 @@
 /*****************************************************************/ /**
- * \file   SceneManager.cpp
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   SceneManager.cpp
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #include "scene_manager.h"
 #include <algorithm>
 
-namespace Horizon {
+namespace Horizon
+{
 
-SceneManager::SceneManager(ResourceManager *resource_manager) noexcept : resource_manager(resource_manager) {}
+SceneManager::SceneManager(ResourceManager *resource_manager) noexcept : resource_manager(resource_manager)
+{
+}
 
-SceneManager::~SceneManager() noexcept {}
-void SceneManager::AddMesh(Mesh *mesh) { scene_meshes.push_back(mesh); }
+SceneManager::~SceneManager() noexcept
+{
+}
+void SceneManager::AddMesh(Mesh *mesh)
+{
+    scene_meshes.push_back(mesh);
+}
 
-void SceneManager::RemoveMesh(Mesh *mesh) {
+void SceneManager::RemoveMesh(Mesh *mesh)
+{
     auto iter = std::find(scene_meshes.begin(), scene_meshes.end(), mesh);
-    if (iter != scene_meshes.end()) {
+    if (iter != scene_meshes.end())
+    {
         scene_meshes.erase(iter);
     }
 }
 
-void SceneManager::CreateMeshResources() {
+void SceneManager::CreateMeshResources()
+{
 
     u32 texture_offset = 0;
     u32 material_offset = 0;
     u32 vertex_buffer_offset = 0;
     u32 index_buffer_offset = 0;
     u32 draw_offset = 0;
-    for (auto &mesh : scene_meshes) {
+    for (auto &mesh : scene_meshes)
+    {
         draw_count = (u32)mesh->m_mesh_primitives.size();
         mesh_data.push_back(
             MeshData{texture_offset, vertex_buffer_offset, index_buffer_offset, draw_offset, draw_count});
@@ -50,7 +62,8 @@ void SceneManager::CreateMeshResources() {
         index_buffer_offset++;
 
         // indirect draw command
-        for (auto &primitive : mesh->m_mesh_primitives) {
+        for (auto &primitive : mesh->m_mesh_primitives)
+        {
             DrawIndexedInstancedCommand command{};
             command.index_count = primitive.index_count;
             command.first_index = primitive.index_offset;
@@ -62,12 +75,15 @@ void SceneManager::CreateMeshResources() {
             instance_params.back().material_index = primitive.material_id + material_offset;
         }
 
-        for (auto &material : mesh->materials) {
+        for (auto &material : mesh->materials)
+        {
 
             MaterialDesc desc{};
 
-            for (auto &[type, tex] : material.material_textures) {
-                switch (type) {
+            for (auto &[type, tex] : material.material_textures)
+            {
+                switch (type)
+                {
                 case MaterialTextureType::BASE_COLOR:
                     desc.base_color_texture_index = texture_offset;
                     break;
@@ -122,13 +138,16 @@ void SceneManager::CreateMeshResources() {
 
     // material_offset = 0;
     u32 primitive_offset = 0;
-    for (auto &mesh : scene_meshes) {
+    for (auto &mesh : scene_meshes)
+    {
 
-        for (auto &node : mesh->GetNodes()) {
+        for (auto &node : mesh->GetNodes())
+        {
 
             auto mat = (node.GetModelMatrix() * mesh->transform);
 
-            for (auto &m : node.mesh_primitives) {
+            for (auto &m : node.mesh_primitives)
+            {
                 instance_params[primitive_offset + m].model_matrix = mat;
             }
         }
@@ -146,9 +165,11 @@ void SceneManager::CreateMeshResources() {
     empty_vertex_buffer = resource_manager->GetEmptyVertexBuffer();
 }
 
-void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
+void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
+{
 
-    for (u32 i = 0; i < scene_meshes.size(); i++) {
+    for (u32 i = 0; i < scene_meshes.size(); i++)
+    {
         auto &mesh = scene_meshes[i];
         // upload vertex and index buffer
         commandlist->UpdateBuffer(vertex_buffers[i], mesh->m_vertices.data(), vertex_buffers[i]->m_size);
@@ -169,7 +190,8 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     TextureBarrierDesc tex_barrier{};
     tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
     tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+    for (u32 tex = 0; tex < material_textures.size(); tex++)
+    {
         commandlist->UpdateTexture(material_textures[tex], textuer_upload_desc[tex]);
         tex_barrier.texture = material_textures[tex];
         resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
@@ -178,7 +200,8 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     // commandlist->InsertBarrier(resource_upload_barrier);
 
     BarrierDesc mip_barrier1{};
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+    for (u32 tex = 0; tex < material_textures.size(); tex++)
+    {
         TextureBarrierDesc mip_map_barrier{};
         mip_map_barrier.texture = material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
@@ -189,12 +212,14 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     }
     commandlist->InsertBarrier(mip_barrier1);
 
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+    for (u32 tex = 0; tex < material_textures.size(); tex++)
+    {
         commandlist->GenerateMipMap(material_textures[tex]);
     }
 
     BarrierDesc mip_barrier2{};
-    for (u32 tex = 0; tex < material_textures.size(); tex++) {
+    for (u32 tex = 0; tex < material_textures.size(); tex++)
+    {
         TextureBarrierDesc mip_map_barrier{};
         mip_map_barrier.texture = material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
@@ -206,7 +231,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
     commandlist->InsertBarrier(mip_barrier2);
 }
 
-//void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
+// void SceneManager::CreateDecalResources(Backend::RHI *rhi) {
 //
 //    u32 texture_offset = 0;
 //    u32 material_offset = 0;
@@ -311,7 +336,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
 //                         sizeof(DecalInstanceParameters) * decal_instance_params.size()});
 //}
 //
-//void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
+// void SceneManager::UploadDecalResources(Backend::CommandList *commandlist) {
 //
 //    commandlist->UpdateBuffer(decal_material_description_buffer, decal_material_descs.data(),
 //                              decal_material_descs.size() * sizeof(MaterialDesc));
@@ -371,7 +396,8 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist) {
 // }
 //
 Light *SceneManager::AddDirectionalLight(const Math::float3 &color, f32 intensity,
-                                         const Math::float3 &direction) noexcept {
+                                         const Math::float3 &direction) noexcept
+{
     Light *light = Memory::Alloc<DirectionalLight>(color, intensity, direction);
     lights.emplace_back(light);
     light_count++;
@@ -379,7 +405,8 @@ Light *SceneManager::AddDirectionalLight(const Math::float3 &color, f32 intensit
 }
 
 Light *SceneManager::AddPointLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
-                                   f32 radius) noexcept {
+                                   f32 radius) noexcept
+{
     Light *light = Memory::Alloc<PointLight>(color, intensity, position, radius);
     lights.emplace_back(light);
     light_count++;
@@ -387,8 +414,8 @@ Light *SceneManager::AddPointLight(const Math::float3 &color, f32 intensity, con
 }
 
 Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, const Math::float3 &position,
-                                  const Math::float3 &direction, float radius, f32 inner_cone,
-                                  f32 outer_cone) noexcept {
+                                  const Math::float3 &direction, float radius, f32 inner_cone, f32 outer_cone) noexcept
+{
     Light *light = Memory::Alloc<SpotLight>(color, intensity, position, direction, radius, inner_cone, outer_cone);
     lights.emplace_back(light);
     light_count++;
@@ -397,21 +424,29 @@ Light *SceneManager::AddSpotLight(const Math::float3 &color, f32 intensity, cons
 
 std::tuple<Camera *, CameraController *> SceneManager::AddCamera(const CameraSetting &setting,
                                                                  const Math::float3 &position, const Math::float3 &at,
-                                                                 const Math::float3 &up) {
-    if (main_camera != nullptr) {
+                                                                 const Math::float3 &up)
+{
+    if (main_camera != nullptr)
+    {
         LOG_WARN("multi veiw is not supported yet");
     }
     main_camera = std::make_unique<Camera>(setting, position, at, up);
-    if (setting.moveable) {
+    if (setting.moveable)
+    {
         camera_controller = std::make_unique<CameraController>(main_camera.get());
     }
     return {main_camera.get(), camera_controller.get()};
 }
 
-Buffer *SceneManager::GetCameraBuffer() const noexcept { return camera_buffer; }
+Buffer *SceneManager::GetCameraBuffer() const noexcept
+{
+    return camera_buffer;
+}
 
-void SceneManager::CreateLightResources() {
-    for (auto &l : lights) {
+void SceneManager::CreateLightResources()
+{
+    for (auto &l : lights)
+    {
         lights_param_buffer.push_back(l->GetParamBuffer());
     }
     light_count = (u32)lights.size();
@@ -425,27 +460,37 @@ void SceneManager::CreateLightResources() {
                                                                       sizeof(LightParams) * light_count});
 }
 
-void SceneManager::UploadLightResources(Backend::CommandList *commandlist) {
+void SceneManager::UploadLightResources(Backend::CommandList *commandlist)
+{
     commandlist->UpdateBuffer(light_buffer, lights_param_buffer.data(),
                               lights_param_buffer.size() * sizeof(LightParams));
     commandlist->UpdateBuffer(light_count_buffer, &light_count, sizeof(light_count) * 4);
 }
 
-Buffer *SceneManager::GetLightCountBuffer() const noexcept { return light_count_buffer; }
+Buffer *SceneManager::GetLightCountBuffer() const noexcept
+{
+    return light_count_buffer;
+}
 
-Buffer *SceneManager::GetLightParamBuffer() const noexcept { return light_buffer; }
+Buffer *SceneManager::GetLightParamBuffer() const noexcept
+{
+    return light_buffer;
+}
 
-void SceneManager::CreateCameraResources() {
+void SceneManager::CreateCameraResources()
+{
     camera_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                                                        ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                                                                        sizeof(CameraUb)});
 }
 
-void SceneManager::UploadCameraResources(Backend::CommandList *commandlist) {
+void SceneManager::UploadCameraResources(Backend::CommandList *commandlist)
+{
     commandlist->UpdateBuffer(camera_buffer, &camera_ub, sizeof(CameraUb));
 }
 
-void SceneManager::CreateBuiltInResources() {
+void SceneManager::CreateBuiltInResources()
+{
     BufferCreateInfo vertex_buffer_create_info{};
     vertex_buffer_create_info.size = cube_vertices.size() * sizeof(Vertex);
     vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -458,16 +503,25 @@ void SceneManager::CreateBuiltInResources() {
     cube_index_buffer = resource_manager->CreateGpuBuffer(index_buffer_create_info);
 }
 
-void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist) {
-    if (cube_vertex_buffer) {
+void SceneManager::UploadBuiltInResources(Backend::CommandList *commandlist)
+{
+    if (cube_vertex_buffer)
+    {
         commandlist->UpdateBuffer(cube_vertex_buffer, cube_vertices.data(), sizeof(Vertex) * cube_vertices.size());
     }
-    if (cube_index_buffer) {
+    if (cube_index_buffer)
+    {
         commandlist->UpdateBuffer(cube_index_buffer, cube_indices.data(), sizeof(Index) * cube_indices.size());
     }
 }
 
-Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept { return cube_vertex_buffer; }
+Buffer *SceneManager::GetUnitCubeVertexBuffer() const noexcept
+{
+    return cube_vertex_buffer;
+}
 
-Buffer *SceneManager::GetUnitCubeIndexBuffer() const noexcept { return cube_index_buffer; }
+Buffer *SceneManager::GetUnitCubeIndexBuffer() const noexcept
+{
+    return cube_index_buffer;
+}
 } // namespace Horizon

@@ -2,18 +2,21 @@
 
 #include <core/math.h>
 #include <core/memory.h>
-#include <rhi/rhi.h>
 #include <rhi/resource_barrier.h>
+#include <rhi/rhi.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
 class Window;
 
-Renderer::Renderer(const Config &config) noexcept {
+Renderer::Renderer(const Config &config) noexcept
+{
 
     bool bOffScreen =
         config.app_type == ApplicationType::OFFSCREEN_GRAPHICS || config.app_type == ApplicationType::GENERAL_COMPUTE;
-    if (!bOffScreen && config.window == nullptr) {
+    if (!bOffScreen && config.window == nullptr)
+    {
         LOG_ERROR("invalid window {}", (void *)config.window);
         return;
     }
@@ -29,7 +32,8 @@ Renderer::Renderer(const Config &config) noexcept {
     m_scene_manager = std::make_unique<SceneManager>(m_resource_manager.get());
 }
 
-Renderer::~Renderer() noexcept {
+Renderer::~Renderer() noexcept
+{
     m_scene_manager = nullptr;
     m_resource_manager = nullptr;
     mRhi = nullptr;

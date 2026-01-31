@@ -7,9 +7,11 @@
 #include <resource/resources/mesh/mesh.h>
 #include <rhi/enums.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-class MeshLoader {
+class MeshLoader
+{
   public:
     static Mesh *Load(const MeshDesc &desc, const std::filesystem::path &path);
     // jpg, png

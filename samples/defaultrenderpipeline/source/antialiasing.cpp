@@ -1,6 +1,7 @@
 #include "antialiasing.h"
 
-AntialiasingPass::AntialiasingPass(Backend::RHI *rhi) noexcept : mRhi(rhi) {
+AntialiasingPass::AntialiasingPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
+{
     // PP PASS
 
     taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "taa.comp.hlsl");
@@ -27,14 +28,16 @@ AntialiasingPass::AntialiasingPass(Backend::RHI *rhi) noexcept : mRhi(rhi) {
                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(TAAPrevCurrOffset)});
 }
 
-AntialiasingPass::~AntialiasingPass() noexcept {
+AntialiasingPass::~AntialiasingPass() noexcept
+{
     mRhi->DestroyBuffer(taa_prev_curr_offset_buffer);
     mRhi->DestroyTexture(previous_color_texture);
     mRhi->DestroyTexture(output_color_texture);
     mRhi->DestroyShader(taa_cs);
     mRhi->DestroyPipeline(taa_pass);
 }
-const Math::float2 &AntialiasingPass::GetJitterOffset() noexcept {
+const Math::float2 &AntialiasingPass::GetJitterOffset() noexcept
+{
     taa_sample_index %= TAA_SAMPLE_COUNT;
     return taa_samples[taa_sample_index++];
 }

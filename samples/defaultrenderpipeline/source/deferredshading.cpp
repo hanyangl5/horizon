@@ -1,6 +1,7 @@
 #include "deferredshading.h"
 
-DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi) {
+DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
+{
 
     // geometry pass
     {
@@ -174,7 +175,8 @@ DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi) {
     geometry_pass->SetGraphicsShader(geometry_vs, geometry_ps);
     shading_pass->SetComputeShader(shading_cs);
 }
-DeferredShadingPass::~DeferredShadingPass() noexcept {
+DeferredShadingPass::~DeferredShadingPass() noexcept
+{
     mRhi->DestroyShader(geometry_vs);
     mRhi->DestroyShader(geometry_ps);
 

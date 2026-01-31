@@ -11,7 +11,8 @@
 Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &context,
                                                    const SwapChainCreateInfo &swap_chain_create_info,
                                                    Window *window) noexcept
-    : SwapChain(swap_chain_create_info, window), m_context(context) {
+    : SwapChain(swap_chain_create_info, window), m_context(context)
+{
     // create window surface
     CHECK_VK_RESULT(glfwCreateWindowSurface(m_context.instance, window->GetWindow(), nullptr, &surface));
     u32 surface_format_count = 0;
@@ -63,7 +64,8 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     image_view_create_info.subresourceRange.baseArrayLayer = 0;
     image_view_create_info.subresourceRange.layerCount = 1;
 
-    for (u32 i = 0; i < swap_chain_image_views.size(); i++) {
+    for (u32 i = 0; i < swap_chain_image_views.size(); i++)
+    {
         image_view_create_info.image = swap_chain_images[i];
         CHECK_VK_RESULT(
             vkCreateImageView(m_context.device, &image_view_create_info, nullptr, &swap_chain_image_views[i]));
@@ -76,9 +78,11 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     }
 }
 
-Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept {
+Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept
+{
 
-    for (u32 i = 0; i < swap_chain_images.size(); i++) {
+    for (u32 i = 0; i < swap_chain_images.size(); i++)
+    {
         vkDestroyImageView(m_context.device, swap_chain_image_views[i], nullptr);
     }
     vkDestroySwapchainKHR(m_context.device, swap_chain, nullptr);

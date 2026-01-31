@@ -9,9 +9,11 @@
 #include <rhi/vulkan/vulkan_sampler.h>
 #include <rhi/vulkan/vulkan_texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanDescriptorSet : public DescriptorSet {
+class VulkanDescriptorSet : public DescriptorSet
+{
   public:
     VulkanDescriptorSet(const VulkanRendererContext &context, u32 set_number,
                         const std::unordered_map<std::string, DescriptorDesc> &write_descs,

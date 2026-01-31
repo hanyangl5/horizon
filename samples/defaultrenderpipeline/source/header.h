@@ -4,11 +4,11 @@
 #include <filesystem>
 #include <random>
 
+#include <core/definations.h>
+#include <core/glfwwindow.h>
 #include <core/log.h>
 #include <core/math.h>
-#include <core/definations.h>
 #include <core/renderdoc/render_doc.h>
-#include <core/glfwwindow.h>
 
 #include <resource/resource_loader/mesh/mesh_loader.h>
 #include <resource/resources/mesh/mesh.h>

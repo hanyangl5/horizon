@@ -7,9 +7,11 @@
 #include <rhi/sampler.h>
 #include <rhi/texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class DescriptorSet {
+class DescriptorSet
+{
   public:
     DescriptorSet(u32 set_number) noexcept : m_set_number(set_number){};
     virtual ~DescriptorSet() noexcept {};
@@ -28,7 +30,10 @@ class DescriptorSet {
     virtual void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) = 0;
     virtual void Update() = 0;
 
-    u32 GetSetNumber() const noexcept { return m_set_number; }
+    u32 GetSetNumber() const noexcept
+    {
+        return m_set_number;
+    }
 
   public:
     u32 m_set_number{};

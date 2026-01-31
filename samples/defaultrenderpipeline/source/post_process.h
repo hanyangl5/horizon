@@ -2,7 +2,8 @@
 
 #include "header.h"
 
-class AutoExposure {
+class AutoExposure
+{
   public:
     explicit AutoExposure(Backend::RHI *rhi) noexcept;
     ~AutoExposure() noexcept;
@@ -15,14 +16,15 @@ class AutoExposure {
     Shader *luminance_average_cs;
     Pipeline *luminance_average_pass;
 
-    struct LuminanceHistogramConstants {
+    struct LuminanceHistogramConstants
+    {
         u32 width;
         u32 height;
         u32 pixelCount;
-        //float minLogLuminance;
-        //float logLuminanceRange;
-        //float timeDelta;
-        //float tau;
+        // float minLogLuminance;
+        // float logLuminanceRange;
+        // float timeDelta;
+        // float tau;
         float maxLuminance;
         float timeCoeff;
     } luminance_histogram_constants;
@@ -32,7 +34,8 @@ class AutoExposure {
     Buffer *adapted_muminance_buffer;
 };
 
-class PostProcessingPass {
+class PostProcessingPass
+{
   public:
     explicit PostProcessingPass(Backend::RHI *rhi) noexcept;
     ~PostProcessingPass() noexcept;
@@ -43,7 +46,8 @@ class PostProcessingPass {
     Shader *post_process_cs;
     Pipeline *post_process_pass;
 
-    struct ExposureConstant {
+    struct ExposureConstant
+    {
         Math::float4 exposure_ev100__;
     } exposure_constants;
 

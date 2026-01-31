@@ -2,14 +2,17 @@
 #include <core/log.h>
 #include <scene/scene_renderer/renderer.h>
 
-namespace TEST {
+namespace TEST
+{
 
 using namespace Horizon;
 using namespace Horizon::Backend;
 
-class RHITest {
+class RHITest
+{
   public:
-    RHITest() {
+    RHITest()
+    {
         Config config{};
         config.width = width;
         config.height = height;
@@ -27,7 +30,8 @@ class RHITest {
     std::unique_ptr<Renderer> renderer;
 };
 
-void CommandListTest(RHITest *rhi_test) {
+void CommandListTest(RHITest *rhi_test)
+{
     auto *rhi = rhi_test->renderer->GetRhi();
 
     CommandList *cmdlist = nullptr;
@@ -67,7 +71,8 @@ void CommandListTest(RHITest *rhi_test) {
 
 } // namespace TEST
 
-int main() {
+int main()
+{
     TEST::RHITest rhi_test;
     TEST::CommandListTest(&rhi_test);
 }

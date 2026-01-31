@@ -8,9 +8,11 @@
 #include <core/definations.h>
 #include <rhi/enums.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-struct VulkanRendererContext {
+struct VulkanRendererContext
+{
     VkInstance instance{};
     VkPhysicalDevice active_gpu{};
     VkDevice device{};
@@ -56,8 +58,10 @@ VkPolygonMode ToVkPolygonMode(FillMode fill_mode) noexcept;
 
 VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept;
 
-inline VkImageViewType ToVkImageViewType(TextureType type) noexcept {
-    switch (type) {
+inline VkImageViewType ToVkImageViewType(TextureType type) noexcept
+{
+    switch (type)
+    {
     case Horizon::TextureType::TEXTURE_TYPE_1D:
         return VkImageViewType::VK_IMAGE_VIEW_TYPE_1D;
         break;
@@ -82,9 +86,10 @@ VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op);
 
 VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op);
 
-
-inline VkFilter util_to_vk_filter(FilterType filter) {
-    switch (filter) {
+inline VkFilter util_to_vk_filter(FilterType filter)
+{
+    switch (filter)
+    {
     case FilterType::FILTER_NEAREST:
         return VK_FILTER_NEAREST;
     case FilterType::FILTER_LINEAR:
@@ -94,8 +99,10 @@ inline VkFilter util_to_vk_filter(FilterType filter) {
     }
 }
 
-inline VkSamplerMipmapMode util_to_vk_mip_map_mode(MipMapMode mipMapMode) {
-    switch (mipMapMode) {
+inline VkSamplerMipmapMode util_to_vk_mip_map_mode(MipMapMode mipMapMode)
+{
+    switch (mipMapMode)
+    {
     case MipMapMode::MIPMAP_MODE_NEAREST:
         return VK_SAMPLER_MIPMAP_MODE_NEAREST;
     case MipMapMode::MIPMAP_MODE_LINEAR:
@@ -105,8 +112,10 @@ inline VkSamplerMipmapMode util_to_vk_mip_map_mode(MipMapMode mipMapMode) {
         return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
     }
 }
-inline VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode) {
-    switch (addressMode) {
+inline VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode)
+{
+    switch (addressMode)
+    {
     case AddressMode::ADDRESS_MODE_MIRROR:
         return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     case AddressMode::ADDRESS_MODE_REPEAT:
@@ -121,8 +130,10 @@ inline VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode) {
     }
 }
 
-inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type) {
-    switch (type) {
+inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type)
+{
+    switch (type)
+    {
     case DESCRIPTOR_TYPE_UNDEFINED:
         assert(false && "Invalid DescriptorInfo Type");
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -154,15 +165,15 @@ inline VkDescriptorType util_to_vk_descriptor_type(DescriptorType type) {
 
 DescriptorType vk_to_descriptor_type(VkDescriptorType vk) noexcept;
 
-inline void CheckVulkanResult(VkResult _res, const char *func_name, int line)  noexcept {
-    if (_res != VK_SUCCESS) {
+inline void CheckVulkanResult(VkResult _res, const char *func_name, int line) noexcept
+{
+    if (_res != VK_SUCCESS)
+    {
         LOG_ERROR("[function: {}], [line: {}], vulkan error", func_name, line);
     }
     assert(_res == VK_SUCCESS);
-  }
+}
 
 #define CHECK_VK_RESULT(res) CheckVulkanResult(res, __FUNCTION__, __LINE__);
-
-
 
 } // namespace Horizon

@@ -1,10 +1,13 @@
 
 #include "vulkan_utils.h"
 
-namespace Horizon {
+namespace Horizon
+{
 
-VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) noexcept {
-    switch (type) {
+VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) noexcept
+{
+    switch (type)
+    {
     case Horizon::PipelineType::GRAPHICS:
         return VK_PIPELINE_BIND_POINT_GRAPHICS;
     case Horizon::PipelineType::COMPUTE:
@@ -17,8 +20,10 @@ VkPipelineBindPoint ToVkPipelineBindPoint(PipelineType type) noexcept {
     }
 }
 
-VkShaderStageFlagBits ToVkShaderStageBit(ShaderType type) noexcept {
-    switch (type) {
+VkShaderStageFlagBits ToVkShaderStageBit(ShaderType type) noexcept
+{
+    switch (type)
+    {
     case Horizon::ShaderType::VERTEX_SHADER:
         return VK_SHADER_STAGE_VERTEX_BIT;
     case Horizon::ShaderType::PIXEL_SHADER:
@@ -31,50 +36,64 @@ VkShaderStageFlagBits ToVkShaderStageBit(ShaderType type) noexcept {
     }
 }
 
-VkAccessFlags util_to_vk_access_flags(ResourceState state) noexcept {
+VkAccessFlags util_to_vk_access_flags(ResourceState state) noexcept
+{
     VkAccessFlags ret = 0;
 
-    if (state & RESOURCE_STATE_HOST_READ) {
+    if (state & RESOURCE_STATE_HOST_READ)
+    {
         ret |= VK_ACCESS_HOST_READ_BIT;
     }
-    if (state & RESOURCE_STATE_HOST_WRITE) {
+    if (state & RESOURCE_STATE_HOST_WRITE)
+    {
         ret |= VK_ACCESS_HOST_WRITE_BIT;
     }
-    if (state & RESOURCE_STATE_COPY_SOURCE) {
+    if (state & RESOURCE_STATE_COPY_SOURCE)
+    {
         ret |= VK_ACCESS_TRANSFER_READ_BIT;
     }
-    if (state & RESOURCE_STATE_COPY_DEST) {
+    if (state & RESOURCE_STATE_COPY_DEST)
+    {
         ret |= VK_ACCESS_TRANSFER_WRITE_BIT;
     }
-    if (state & RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) {
+    if (state & RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+    {
         ret |= VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
     }
-    if (state & RESOURCE_STATE_INDEX_BUFFER) {
+    if (state & RESOURCE_STATE_INDEX_BUFFER)
+    {
         ret |= VK_ACCESS_INDEX_READ_BIT;
     }
-    if (state & RESOURCE_STATE_UNORDERED_ACCESS) {
+    if (state & RESOURCE_STATE_UNORDERED_ACCESS)
+    {
         ret |= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
     }
-    if (state & RESOURCE_STATE_INDIRECT_ARGUMENT) {
+    if (state & RESOURCE_STATE_INDIRECT_ARGUMENT)
+    {
         ret |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
     }
-    if (state & RESOURCE_STATE_RENDER_TARGET) {
+    if (state & RESOURCE_STATE_RENDER_TARGET)
+    {
         ret |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     }
-    if (state & RESOURCE_STATE_DEPTH_WRITE) {
+    if (state & RESOURCE_STATE_DEPTH_WRITE)
+    {
         ret |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     }
-    if (state & RESOURCE_STATE_SHADER_RESOURCE) {
+    if (state & RESOURCE_STATE_SHADER_RESOURCE)
+    {
         ret |= VK_ACCESS_SHADER_READ_BIT;
     }
-    if (state & RESOURCE_STATE_PRESENT) {
+    if (state & RESOURCE_STATE_PRESENT)
+    {
         ret |= VK_ACCESS_MEMORY_READ_BIT;
     }
 
     return ret;
 }
 
-VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept {
+VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept
+{
     if (usage & RESOURCE_STATE_COPY_SOURCE)
         return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
@@ -107,7 +126,8 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage) noexcept {
     return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkImageUsageFlags util_to_vk_image_usage(DescriptorTypes types) noexcept {
+VkImageUsageFlags util_to_vk_image_usage(DescriptorTypes types) noexcept
+{
     VkImageUsageFlags result = 0;
     if (DESCRIPTOR_TYPE_TEXTURE == (types & DESCRIPTOR_TYPE_TEXTURE))
         result |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -121,17 +141,18 @@ VkImageUsageFlags util_to_vk_image_usage(DescriptorTypes types) noexcept {
     return result;
 }
 
-VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags,
-                                                         CommandQueueType queueType) noexcept {
+VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags, CommandQueueType queueType) noexcept
+{
     VkPipelineStageFlags flags = 0;
 
-    switch (queueType) {
+    switch (queueType)
+    {
     case GRAPHICS: {
         if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0)
             flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-        if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) !=
-            0) {
+        if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+        {
             flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
             flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             // if (pRenderer->pActiveGpuSettings->mGeometryShaderSupported) {
@@ -202,22 +223,28 @@ VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFla
     return flags;
 }
 
-VkShaderStageFlags ToVkShaderStageFlags(u32 stage) noexcept {
+VkShaderStageFlags ToVkShaderStageFlags(u32 stage) noexcept
+{
     VkShaderStageFlags flags = 0;
-    if (stage & SHADER_STAGE_VERTEX_SHADER) {
+    if (stage & SHADER_STAGE_VERTEX_SHADER)
+    {
         flags |= VK_SHADER_STAGE_VERTEX_BIT;
     }
-    if (stage & SHADER_STAGE_PIXEL_SHADER) {
+    if (stage & SHADER_STAGE_PIXEL_SHADER)
+    {
         flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
     }
-    if (stage & SHADER_STAGE_COMPUTE_SHADER) {
+    if (stage & SHADER_STAGE_COMPUTE_SHADER)
+    {
         flags |= VK_SHADER_STAGE_COMPUTE_BIT;
     }
     return flags;
 }
 
-DescriptorType vk_to_descriptor_type(VkDescriptorType vk) noexcept {
-    switch (vk) {
+DescriptorType vk_to_descriptor_type(VkDescriptorType vk) noexcept
+{
+    switch (vk)
+    {
     case VK_DESCRIPTOR_TYPE_SAMPLER:
         return DESCRIPTOR_TYPE_SAMPLER;
     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
@@ -241,8 +268,10 @@ DescriptorType vk_to_descriptor_type(VkDescriptorType vk) noexcept {
     }
 }
 
-VkImageType ToVkImageType(TextureType type) noexcept {
-    switch (type) {
+VkImageType ToVkImageType(TextureType type) noexcept
+{
+    switch (type)
+    {
     case Horizon::TextureType::TEXTURE_TYPE_1D:
         return VK_IMAGE_TYPE_1D;
     case Horizon::TextureType::TEXTURE_TYPE_2D:
@@ -256,8 +285,10 @@ VkImageType ToVkImageType(TextureType type) noexcept {
     }
 }
 
-VkFormat ToVkImageFormat(TextureFormat format) noexcept {
-    switch (format) {
+VkFormat ToVkImageFormat(TextureFormat format) noexcept
+{
+    switch (format)
+    {
 
     case Horizon::TextureFormat::TEXTURE_FORMAT_R8_UINT:
         return VK_FORMAT_R8_UINT;
@@ -359,18 +390,20 @@ VkFormat ToVkImageFormat(TextureFormat format) noexcept {
         return VK_FORMAT_R32G32B32_SFLOAT;
     case Horizon::TextureFormat::TEXTURE_FORMAT_RGBA32_SFLOAT:
         return VK_FORMAT_R32G32B32A32_SFLOAT;
-    //case Horizon::TextureFormat::TEXTURE_FORMAT_R11G11B10_SFLOAT:
+    // case Horizon::TextureFormat::TEXTURE_FORMAT_R11G11B10_SFLOAT:
     case Horizon::TextureFormat::TEXTURE_FORMAT_D32_SFLOAT:
         return VK_FORMAT_D32_SFLOAT;
     default:
-        //LOG_ERROR("invalid format"); // TODO TEXTURE_FORMAT_DUMMY_COLOR
+        // LOG_ERROR("invalid format"); // TODO TEXTURE_FORMAT_DUMMY_COLOR
         return VK_FORMAT_MAX_ENUM;
     }
 }
 
-VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) noexcept {
+VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) noexcept
+{
     VkImageAspectFlags result = 0;
-    switch (format) {
+    switch (format)
+    {
         // Depth
     case VK_FORMAT_D16_UNORM:
     case VK_FORMAT_X8_D24_UNORM_PACK32:
@@ -397,37 +430,47 @@ VkImageAspectFlags ToVkAspectMaskFlags(VkFormat format, bool includeStencilBit) 
     return result;
 }
 
-VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorTypes usage, bool typed) noexcept {
+VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorTypes usage, bool typed) noexcept
+{
     VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    if (usage & DESCRIPTOR_TYPE_CONSTANT_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_CONSTANT_BUFFER)
+    {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
-    if (usage & DESCRIPTOR_TYPE_RW_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_RW_BUFFER)
+    {
         result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         if (typed)
             result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     }
-    if (usage & DESCRIPTOR_TYPE_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_BUFFER)
+    {
         result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         if (typed)
             result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     }
-    if (usage & DESCRIPTOR_TYPE_INDEX_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_INDEX_BUFFER)
+    {
         result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
-    if (usage & DESCRIPTOR_TYPE_VERTEX_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_VERTEX_BUFFER)
+    {
         result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     }
-    if (usage & DESCRIPTOR_TYPE_INDIRECT_BUFFER) {
+    if (usage & DESCRIPTOR_TYPE_INDIRECT_BUFFER)
+    {
         result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     }
     return result;
 }
 
-VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
+VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept
+{
 
-    if (portions == 1) {
-        switch (format) {
+    if (portions == 1)
+    {
+        switch (format)
+        {
         case Horizon::VertexAttribFormat::U8:
             return VK_FORMAT_R8_UINT;
         case Horizon::VertexAttribFormat::U16:
@@ -455,8 +498,11 @@ VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
         default:
             return VK_FORMAT_MAX_ENUM;
         }
-    } else if (portions == 2) {
-        switch (format) {
+    }
+    else if (portions == 2)
+    {
+        switch (format)
+        {
         case Horizon::VertexAttribFormat::U8:
             return VK_FORMAT_R8G8_UINT;
         case Horizon::VertexAttribFormat::U16:
@@ -484,8 +530,11 @@ VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
         default:
             return VK_FORMAT_MAX_ENUM;
         }
-    } else if (portions == 3) {
-        switch (format) {
+    }
+    else if (portions == 3)
+    {
+        switch (format)
+        {
         case Horizon::VertexAttribFormat::U8:
             return VK_FORMAT_R8G8B8_UINT;
         case Horizon::VertexAttribFormat::U16:
@@ -513,8 +562,11 @@ VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
         default:
             return VK_FORMAT_MAX_ENUM;
         }
-    } else if (portions == 4) {
-        switch (format) {
+    }
+    else if (portions == 4)
+    {
+        switch (format)
+        {
         case Horizon::VertexAttribFormat::U8:
             return VK_FORMAT_R8G8B8A8_UINT;
         case Horizon::VertexAttribFormat::U16:
@@ -542,13 +594,17 @@ VkFormat ToVkImageFormat(VertexAttribFormat format, u32 portions) noexcept {
         default:
             return VK_FORMAT_MAX_ENUM;
         }
-    } else {
+    }
+    else
+    {
         return VK_FORMAT_MAX_ENUM;
     }
 }
 
-VkPrimitiveTopology ToVkPrimitiveTopology(PrimitiveTopology t) noexcept {
-    switch (t) {
+VkPrimitiveTopology ToVkPrimitiveTopology(PrimitiveTopology t) noexcept
+{
+    switch (t)
+    {
     case Horizon::PrimitiveTopology::POINT_LIST:
         return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
         break;
@@ -564,8 +620,10 @@ VkPrimitiveTopology ToVkPrimitiveTopology(PrimitiveTopology t) noexcept {
     }
 }
 
-VkFrontFace ToVkFrontFace(FrontFace front_face) noexcept {
-    switch (front_face) {
+VkFrontFace ToVkFrontFace(FrontFace front_face) noexcept
+{
+    switch (front_face)
+    {
     case Horizon::FrontFace::CCW:
         return VK_FRONT_FACE_COUNTER_CLOCKWISE;
         break;
@@ -578,8 +636,10 @@ VkFrontFace ToVkFrontFace(FrontFace front_face) noexcept {
     }
 }
 
-VkCullModeFlagBits ToVkCullMode(CullMode cull_mode) noexcept {
-    switch (cull_mode) {
+VkCullModeFlagBits ToVkCullMode(CullMode cull_mode) noexcept
+{
+    switch (cull_mode)
+    {
     case Horizon::CullMode::NONE:
         return VkCullModeFlagBits::VK_CULL_MODE_NONE;
         break;
@@ -598,9 +658,11 @@ VkCullModeFlagBits ToVkCullMode(CullMode cull_mode) noexcept {
     }
 }
 
-VkPolygonMode ToVkPolygonMode(FillMode fill_mode) noexcept {
+VkPolygonMode ToVkPolygonMode(FillMode fill_mode) noexcept
+{
 
-    switch (fill_mode) {
+    switch (fill_mode)
+    {
     case Horizon::FillMode::POINT:
         return VK_POLYGON_MODE_POINT;
         break;
@@ -616,8 +678,10 @@ VkPolygonMode ToVkPolygonMode(FillMode fill_mode) noexcept {
     }
 }
 
-VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept {
-    switch (depth_func) {
+VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept
+{
+    switch (depth_func)
+    {
     case Horizon::DepthFunc::NEVER:
         return VkCompareOp::VK_COMPARE_OP_NEVER;
         break;
@@ -644,8 +708,10 @@ VkCompareOp ToVkCompareOp(DepthFunc depth_func) noexcept {
         break;
     }
 }
-VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op) {
-    switch (load_op) {
+VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op)
+{
+    switch (load_op)
+    {
     case Horizon::RenderTargetLoadOp::DONT_CARE:
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     case Horizon::RenderTargetLoadOp::LOAD:
@@ -658,8 +724,10 @@ VkAttachmentLoadOp ToVkLoadOp(RenderTargetLoadOp load_op) {
     }
 }
 
-VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op) {
-    switch (store_op) {
+VkAttachmentStoreOp ToVkStoreOp(RenderTargetStoreOp store_op)
+{
+    switch (store_op)
+    {
     case Horizon::RenderTargetStoreOp::DONT_CARE:
         return VK_ATTACHMENT_STORE_OP_DONT_CARE;
     case Horizon::RenderTargetStoreOp::STORE:

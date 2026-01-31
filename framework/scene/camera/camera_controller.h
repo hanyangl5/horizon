@@ -1,20 +1,22 @@
 /*****************************************************************/ /**
- * \file   CameraController.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   CameraController.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
-#include <core/math.h>
 #include <core/glfwwindow.h>
+#include <core/math.h>
 #include <scene/camera/camera.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-class CameraController {
+class CameraController
+{
   public:
     CameraController(Camera *camera) noexcept;
 

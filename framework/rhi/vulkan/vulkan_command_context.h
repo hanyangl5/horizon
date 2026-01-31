@@ -6,9 +6,11 @@
 #include <rhi/vulkan/vulkan_command_list.h>
 #include <rhi/vulkan/vulkan_utils.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanCommandContext : public CommandContext {
+class VulkanCommandContext : public CommandContext
+{
   public:
     VulkanCommandContext(const VulkanRendererContext &context) noexcept;
 

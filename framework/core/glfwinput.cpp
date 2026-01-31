@@ -1,52 +1,63 @@
 /*****************************************************************/ /**
- * \file   WindowInput.cpp
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   WindowInput.cpp
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #include "glfwinput.h"
 
-namespace Horizon::Input {
+namespace Horizon::Input
+{
 
 f32 last_x;
 f32 last_y;
 bool first_mouse = true;
 
-Direction ProcessKeyboardInput(Window *window) {
-    if (GetKeyPress(window, Key::ESCAPE)) {
+Direction ProcessKeyboardInput(Window *window)
+{
+    if (GetKeyPress(window, Key::ESCAPE))
+    {
         window->Close();
     }
-    if (GetKeyPress(window, Key::KEY_W)) {
+    if (GetKeyPress(window, Key::KEY_W))
+    {
         return Direction::FORWARD;
     }
-    if (GetKeyPress(window, Key::KEY_S)) {
+    if (GetKeyPress(window, Key::KEY_S))
+    {
         return Direction::BACKWARD;
     }
-    if (GetKeyPress(window, Key::KEY_A)) {
+    if (GetKeyPress(window, Key::KEY_A))
+    {
         return Direction::LEFT;
     }
-    if (GetKeyPress(window, Key::KEY_D)) {
+    if (GetKeyPress(window, Key::KEY_D))
+    {
         return Direction::RIGHT;
     }
-    if (GetKeyPress(window, Key::SPACE)) {
+    if (GetKeyPress(window, Key::SPACE))
+    {
         return Direction::UP;
     }
-    if (GetKeyPress(window, Key::KEY_LCTRL)) {
+    if (GetKeyPress(window, Key::KEY_LCTRL))
+    {
         return Direction::DOWN;
     }
     return {};
 }
 
-Math::float2 ProcessMouseInput(Window *window) {
+Math::float2 ProcessMouseInput(Window *window)
+{
     f64 xposIn, yposIn;
     glfwGetCursorPos(window->GetWindow(), &xposIn, &yposIn);
 
     f32 xpos = static_cast<f32>(xposIn);
     f32 ypos = static_cast<f32>(yposIn);
 
-    if (first_mouse) {
+    if (first_mouse)
+    {
 
         last_x = window->GetWidth() / 2.0f;
         last_y = window->GetHeight() / 2.0f;
@@ -62,16 +73,21 @@ Math::float2 ProcessMouseInput(Window *window) {
     last_x = xpos;
     last_y = ypos;
 
-    if (GetMouseButtonPress(window, MouseButton::RIGHT_BUTTON)) {
+    if (GetMouseButtonPress(window, MouseButton::RIGHT_BUTTON))
+    {
         return Math::float2{xoffset, yoffset};
-    } else if (GetMouseButtonRelease(window, MouseButton::RIGHT_BUTTON)) {
+    }
+    else if (GetMouseButtonRelease(window, MouseButton::RIGHT_BUTTON))
+    {
         first_mouse = true;
     }
     return {};
 }
 
-bool GetKeyPress(Window *window, Key inputKey) {
-    switch (inputKey) {
+bool GetKeyPress(Window *window, Key inputKey)
+{
+    switch (inputKey)
+    {
     case Key::ESCAPE:
         return glfwGetKey(window->GetWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS;
         break;
@@ -114,8 +130,10 @@ bool GetKeyPress(Window *window, Key inputKey) {
     }
 }
 
-int GetMouseButtonPress(Window *window, MouseButton button) {
-    switch (button) {
+int GetMouseButtonPress(Window *window, MouseButton button)
+{
+    switch (button)
+    {
     case MouseButton::LEFT_BUTTON:
         return glfwGetMouseButton(window->GetWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         break;
@@ -128,8 +146,10 @@ int GetMouseButtonPress(Window *window, MouseButton button) {
     }
 }
 
-int GetMouseButtonRelease(Window *window, MouseButton button) {
-    switch (button) {
+int GetMouseButtonRelease(Window *window, MouseButton button)
+{
+    switch (button)
+    {
     case MouseButton::LEFT_BUTTON:
         return glfwGetMouseButton(window->GetWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
         break;

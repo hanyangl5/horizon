@@ -4,9 +4,11 @@
 
 #include <rhi/enums.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class Buffer {
+class Buffer
+{
   public:
     Buffer(const BufferCreateInfo &buffer_create_info) noexcept;
     virtual ~Buffer() noexcept = default;

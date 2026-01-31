@@ -1,10 +1,10 @@
 /*****************************************************************/ /**
- * \file   RenderDoc.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   RenderDoc.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
@@ -17,7 +17,8 @@
 #include "renderdoc_app.h"
 #include <libloaderapi.h>
 
-namespace Horizon::RDC {
+namespace Horizon::RDC
+{
 
 static RENDERDOC_API_1_5_0 *rdoc_api = nullptr;
 

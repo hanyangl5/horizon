@@ -10,10 +10,13 @@
 
 #include <core/log.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format) {
-    switch (format) {
+TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
+{
+    switch (format)
+    {
     case ddspp::UNKNOWN:
         break;
     case ddspp::R32G32B32A32_TYPELESS:
@@ -347,31 +350,43 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format) {
     return {};
 }
 
-TextureDataDesc TextureLoader::Load(const std::filesystem::path &path) {
+TextureDataDesc TextureLoader::Load(const std::filesystem::path &path)
+{
     TextureDataDesc texture_info{};
     auto extension = path.extension();
-    if (extension == ".png") {
+    if (extension == ".png")
+    {
         LoadPNG(path, texture_info);
-    } else if (extension == ".jpg" || extension == ".jpeg") {
+    }
+    else if (extension == ".jpg" || extension == ".jpeg")
+    {
         LoadJPG(path, texture_info);
-    } else if (extension == ".dds") {
+    }
+    else if (extension == ".dds")
+    {
         LoadDDS(path, texture_info);
-
-    } else if (extension == ".tga") {
+    }
+    else if (extension == ".tga")
+    {
         LoadTGA(path, texture_info);
-
-    } else if (extension == ".ktx") {
-    } else {
+    }
+    else if (extension == ".ktx")
+    {
+    }
+    else
+    {
         LOG_ERROR("{} format is not supportted", extension.string().c_str());
     }
     return texture_info;
 }
 
-void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureDataDesc &texture_info)
+{
     int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
-    if (!data) {
+    if (!data)
+    {
         LOG_ERROR("failed to load {}", path.string().c_str());
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
@@ -382,11 +397,13 @@ void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureD
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &texture_info)
+{
     int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
-    if (!data) {
+    if (!data)
+    {
         LOG_ERROR("failed to load {}", path.string().c_str());
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
@@ -397,10 +414,12 @@ void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &texture_info)
+{
 
     auto raw_data = ReadFile(path.string().c_str());
-    if (raw_data.empty()) {
+    if (raw_data.empty())
+    {
         return;
     }
 
@@ -413,7 +432,8 @@ void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &
 
     texture_info.type = static_cast<TextureType>(desc.type);
     texture_info.layer_count = desc.arraySize;
-    if (texture_info.type == TextureType::TEXTURE_TYPE_CUBE) {
+    if (texture_info.type == TextureType::TEXTURE_TYPE_CUBE)
+    {
         texture_info.layer_count = 6;
     }
     texture_info.format = GetTextureFormatFromDXGIForamt(desc.format);
@@ -422,18 +442,22 @@ void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &
 
     texture_info.data_offset_map.resize(6, std::vector<u32>(desc.numMips));
 
-    for (u32 layer = 0; layer < texture_info.layer_count; layer++) {
-        for (u32 mip = 0; mip < desc.numMips; mip++) {
+    for (u32 layer = 0; layer < texture_info.layer_count; layer++)
+    {
+        for (u32 mip = 0; mip < desc.numMips; mip++)
+        {
             texture_info.data_offset_map[layer][mip] = ddspp::get_offset(desc, mip, layer);
         }
     }
 }
 
-void TextureLoader::LoadTGA(const std::filesystem::path &path, TextureDataDesc &texture_info) {
+void TextureLoader::LoadTGA(const std::filesystem::path &path, TextureDataDesc &texture_info)
+{
     int channels;
     u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
-    if (!data) {
+    if (!data)
+    {
         LOG_ERROR("failed to load {}", path.string().c_str());
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;

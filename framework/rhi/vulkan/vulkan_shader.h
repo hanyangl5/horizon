@@ -8,9 +8,11 @@
 
 #include <vector>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanShader : public Shader {
+class VulkanShader : public Shader
+{
   public:
     VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char> &spirv_code) noexcept;
     ~VulkanShader() noexcept override;
@@ -19,7 +21,10 @@ class VulkanShader : public Shader {
     VulkanShader(VulkanShader &&rhs) noexcept = delete;
     VulkanShader &operator=(VulkanShader &&rhs) noexcept = delete;
 
-    const RootSignatureDesc *GetReflectionData() const noexcept override { return &m_reflection; }
+    const RootSignatureDesc *GetReflectionData() const noexcept override
+    {
+        return &m_reflection;
+    }
 
     const VulkanRendererContext &m_context{};
     VkShaderModule m_shader_module{};

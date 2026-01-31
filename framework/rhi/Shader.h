@@ -2,9 +2,11 @@
 
 #include <rhi/enums.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class Shader {
+class Shader
+{
   public:
     explicit Shader(ShaderType type) noexcept;
     virtual ~Shader() noexcept = default;
@@ -16,7 +18,10 @@ class Shader {
 
     ShaderType GetType() const noexcept;
 
-    virtual const RootSignatureDesc *GetReflectionData() const noexcept { return nullptr; }
+    virtual const RootSignatureDesc *GetReflectionData() const noexcept
+    {
+        return nullptr;
+    }
 
   protected:
     const ShaderType m_type{};

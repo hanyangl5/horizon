@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/memory.h>
 #include <core/glfwwindow.h>
+#include <core/memory.h>
 
 #include <resource/resource_manager/resource_manager.h>
 #include <rhi/rhi.h>
@@ -9,9 +9,11 @@
 #include <scene/scene_manager/scene_manager.h>
 #include <scene/scene_renderer/config.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-class Renderer {
+class Renderer
+{
   public:
     Renderer(const Config &config) noexcept;
 
@@ -25,16 +27,21 @@ class Renderer {
 
     Renderer &operator=(Renderer &&rhs) noexcept = delete;
 
-    SceneManager *GetSceneManager() noexcept { return m_scene_manager.get(); };
+    SceneManager *GetSceneManager() noexcept
+    {
+        return m_scene_manager.get();
+    };
 
-    void BeginNewFrame() const {
+    void BeginNewFrame() const
+    {
         mRhi->ResetRHIResources();
         mRhi->ResetFence(CommandQueueType::GRAPHICS);
         mRhi->ResetFence(CommandQueueType::COMPUTE);
         mRhi->ResetFence(CommandQueueType::TRANSFER);
         LOG_DEBUG("begin frame");
     };
-    void EndFrame() const {
+    void EndFrame() const
+    {
         mRhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
         mRhi->WaitGpuExecution(CommandQueueType::COMPUTE);
         mRhi->WaitGpuExecution(CommandQueueType::TRANSFER);
@@ -42,7 +49,10 @@ class Renderer {
     };
 
   public:
-    Backend::RHI *GetRhi() noexcept { return mRhi.get(); }
+    Backend::RHI *GetRhi() noexcept
+    {
+        return mRhi.get();
+    }
 
   private:
     Window *m_window{};

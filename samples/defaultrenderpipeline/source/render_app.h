@@ -1,17 +1,19 @@
 
 #pragma once
 
+#include "ambient_occlusion.h"
 #include "antialiasing.h"
 #include "deferredshading.h"
 #include "post_process.h"
 #include "scene.h"
-#include "ambient_occlusion.h"
 #include <scene/scene_renderer/renderer.h>
 // Render
 
-class Render {
+class Render
+{
   public:
-    Render() {
+    Render()
+    {
         Horizon::Config config{};
         config.width = width;
         config.height = height;
@@ -22,7 +24,8 @@ class Render {
         config.window = window.get();
         renderer = std::make_unique<Horizon::Renderer>(config);
     }
-    ~Render() {
+    ~Render()
+    {
         rhi->DestroySampler(sampler);
         rhi->DestroySwapChain(swap_chain);
 
@@ -32,7 +35,8 @@ class Render {
         antialiasing = nullptr;
         scene = nullptr;
     }
-    void Init() {
+    void Init()
+    {
         InitAPI();
         InitResources();
     }
@@ -60,13 +64,13 @@ class Render {
     std::unique_ptr<DeferredShadingPass> deferred{};
     // hzb
     std::unique_ptr<AmbientOcclusionPass> ssao{};
-    //std::unique_ptr<ReflectionPass> reflection{};
-    //std::unique_ptr<Atmosphere> reflection{};
-    //std::unique_ptr<VolumetricFog> reflection{};
-    //std::unique_ptr<VolumetricCloud> reflection{}; // screenspace/rtx
+    // std::unique_ptr<ReflectionPass> reflection{};
+    // std::unique_ptr<Atmosphere> reflection{};
+    // std::unique_ptr<VolumetricFog> reflection{};
+    // std::unique_ptr<VolumetricCloud> reflection{}; // screenspace/rtx
     // combination
     std::unique_ptr<AntialiasingPass> antialiasing{};
     std::unique_ptr<PostProcessingPass> post_process{};
-    
+
     std::unique_ptr<SceneData> scene{};
 };

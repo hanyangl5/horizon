@@ -1,10 +1,10 @@
 /*****************************************************************/ /**
- * \file   resource_manager.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   resource_manager.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
@@ -19,12 +19,14 @@
 #include <resource/resources/vertex/vertexdescription.h>
 #include <rhi/rhi.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
 extern std::array<Vertex, 36> cube_vertices;
 extern std::array<Index, 36> cube_indices;
 
-class ResourceManager {
+class ResourceManager
+{
   public:
     ResourceManager(Backend::RHI *rhi) noexcept;
     ~ResourceManager() noexcept;

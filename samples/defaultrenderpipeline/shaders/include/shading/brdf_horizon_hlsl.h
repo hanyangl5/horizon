@@ -5,7 +5,8 @@
 #include "../common/fastmath.hlsl"
 #include "material_params_defination.hlsl"
 
-struct BXDF {
+struct BXDF
+{
     float NoV, NoL, VoL, NoM, VoM;
     float XoV, XoL, XoM, YoV, YoL, YoM;
 };
@@ -20,8 +21,14 @@ void InitBXDF(inout BXDF bxdf, float3 N, float3 V, float3 L)
     bxdf.VoM = saturate(dot(V, M));
 }
 
-float3 Diffuse_Lambert(float3 albedo) { return albedo * _1DIVPI; }
-float3 Fresnel_Schlick(float3 F0, float LoM) { return F0 + (1.0 - F0) * Pow5(1.0 - LoM); }
+float3 Diffuse_Lambert(float3 albedo)
+{
+    return albedo * _1DIVPI;
+}
+float3 Fresnel_Schlick(float3 F0, float LoM)
+{
+    return F0 + (1.0 - F0) * Pow5(1.0 - LoM);
+}
 
 float NDF_GGX(float roughness2, float NoM)
 {

@@ -7,9 +7,11 @@
 #include <rhi/buffer.h>
 #include <rhi/vulkan/vulkan_utils.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanBuffer : public Buffer {
+class VulkanBuffer : public Buffer
+{
   public:
     VulkanBuffer(const VulkanRendererContext &context, const BufferCreateInfo &buffer_create_info,
                  MemoryFlag memory_flag) noexcept;

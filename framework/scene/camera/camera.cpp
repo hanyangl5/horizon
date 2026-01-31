@@ -1,27 +1,31 @@
 /*****************************************************************/ /**
- * \file   Camera.cpp
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   Camera.cpp
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #include "camera.h"
 
-namespace Horizon {
+namespace Horizon
+{
 
 using namespace Input;
 
 Camera::Camera(const CameraSetting &setting, const Math::float3 &eye, const Math::float3 &at,
                const Math::float3 &up) noexcept
-    : m_settings(setting), m_eye(eye), m_at(at), m_up(up) {
+    : m_settings(setting), m_eye(eye), m_at(at), m_up(up)
+{
     m_forward = Math::Normalize(m_at - m_eye);
     m_right = Math::Cross(m_forward, m_up);
     UpdateViewMatrix();
 }
 
-void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
-    if (m_settings.project_mode != ProjectionMode::PERSPECTIVE) {
+void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept
+{
+    if (m_settings.project_mode != ProjectionMode::PERSPECTIVE)
+    {
         return;
     }
     m_fov = fov;
@@ -30,8 +34,10 @@ void Camera::SetPerspectiveProjectionMatrix(f32 fov, f32 aspect_ratio, f32 near_
     m_projection = Math::Perspective(fov, aspect_ratio, near_plane, far_plane);
 }
 
-void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept {
-    if (m_settings.project_mode != ProjectionMode::PERSPECTIVE) {
+void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 near_plane, f32 far_plane) noexcept
+{
+    if (m_settings.project_mode != ProjectionMode::PERSPECTIVE)
+    {
         return;
     }
     m_near_plane = near_plane;
@@ -42,8 +48,10 @@ void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 nea
     m_projection = DirectX::SimpleMath::Matrix::CreatePerspective(w, h, near_plane, far_plane);
 }
 
-void Camera::SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plane) noexcept {
-    if (m_settings.project_mode != ProjectionMode::ORTHOGRAPHIC) {
+void Camera::SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plane) noexcept
+{
+    if (m_settings.project_mode != ProjectionMode::ORTHOGRAPHIC)
+    {
 
         return;
     }
@@ -51,26 +59,42 @@ void Camera::SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plan
     m_far_plane = far_plane;
     m_projection = DirectX::SimpleMath::Matrix::CreateOrthographic(w, h, near_plane, far_plane);
 }
-Math::float4x4 Camera::GetProjectionMatrix() const noexcept {
+Math::float4x4 Camera::GetProjectionMatrix() const noexcept
+{
     auto p = m_projection;
     return p;
 }
 
-Math::float4x4 Camera::GetInvProjectionMatrix() const noexcept {
+Math::float4x4 Camera::GetInvProjectionMatrix() const noexcept
+{
     auto inv_p = m_projection.Invert();
     return inv_p;
 }
 
-f32 Camera::GetFov() const noexcept { return m_fov; }
+f32 Camera::GetFov() const noexcept
+{
+    return m_fov;
+}
 
-Math::float2 Camera::GetNearFarPlane() const noexcept { return Math::float2(m_near_plane, m_far_plane); }
+Math::float2 Camera::GetNearFarPlane() const noexcept
+{
+    return Math::float2(m_near_plane, m_far_plane);
+}
 
-void Camera::SetCameraSpeed(f32 speed) noexcept { m_camera_speed = speed; }
+void Camera::SetCameraSpeed(f32 speed) noexcept
+{
+    m_camera_speed = speed;
+}
 
-f32 Camera::GetCameraSpeed() const noexcept { return m_camera_speed; }
+f32 Camera::GetCameraSpeed() const noexcept
+{
+    return m_camera_speed;
+}
 
-void Camera::Move(Direction direction) noexcept {
-    switch (direction) {
+void Camera::Move(Direction direction) noexcept
+{
+    switch (direction)
+    {
     case Horizon::Direction::FORWARD:
         m_eye += GetCameraSpeed() * m_forward;
         break;
@@ -94,7 +118,8 @@ void Camera::Move(Direction direction) noexcept {
     }
 }
 
-void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
+void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept
+{
     m_yaw += xoffset * m_sensitivity.x;
     m_pitch -= yoffset * m_sensitivity.y; // TODO(hylu): unify axis in different API
 
@@ -105,7 +130,8 @@ void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept {
         m_pitch = -89.0f;
 }
 
-void Camera::UpdateViewMatrix() noexcept {
+void Camera::UpdateViewMatrix() noexcept
+{
     // calculate the new Front vector
     Math::float3 front;
     front.x = cos(Math::Radians(m_yaw)) * cos(Math::Radians(m_pitch));
@@ -122,22 +148,34 @@ void Camera::UpdateViewMatrix() noexcept {
     m_view = Math::LookAt(m_eye, m_eye + m_forward, m_up);
 }
 
-Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept {
+Math::float4x4 Camera::GetViewProjectionMatrix() const noexcept
+{
     auto vp = m_view * m_projection;
     return vp;
 }
 
-Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept {
+Math::float4x4 Camera::GetInvViewProjectionMatrix() const noexcept
+{
     auto vp = m_view * m_projection;
     vp = vp.Invert();
     return vp;
 }
 
-Math::float3 Camera::GetForwardDir() const noexcept { return m_forward; }
-f32 Camera::GetEv100() const noexcept { return m_ev100; }
-f32 Camera::GetExposure() const noexcept { return m_exposure; }
+Math::float3 Camera::GetForwardDir() const noexcept
+{
+    return m_forward;
+}
+f32 Camera::GetEv100() const noexcept
+{
+    return m_ev100;
+}
+f32 Camera::GetExposure() const noexcept
+{
+    return m_exposure;
+}
 
-void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
+void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso)
+{
     m_aperture = aperture;
     m_shutter_speed = shutter_speed;
     m_iso = iso;
@@ -160,18 +198,26 @@ void Camera::SetExposure(f32 aperture, f32 shutter_speed, f32 iso) {
     m_exposure = 1.0f / (pow(2.0f, m_ev100) * 1.2f);
 }
 
-const Math::float2 Camera::GetSensitivity() const noexcept { return m_sensitivity; }
+const Math::float2 Camera::GetSensitivity() const noexcept
+{
+    return m_sensitivity;
+}
 
-Math::float4x4 Camera::GetViewMatrix() const noexcept {
+Math::float4x4 Camera::GetViewMatrix() const noexcept
+{
     auto v = m_view;
     return v;
 }
 
-Math::float4x4 Camera::GetInvViewMatrix() const noexcept {
+Math::float4x4 Camera::GetInvViewMatrix() const noexcept
+{
     auto v = m_view.Invert();
     return v;
 }
 
-Math::float3 Camera::GetPosition() const noexcept { return m_eye; }
+Math::float3 Camera::GetPosition() const noexcept
+{
+    return m_eye;
+}
 
 } // namespace Horizon

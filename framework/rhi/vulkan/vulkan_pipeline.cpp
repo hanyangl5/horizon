@@ -2,11 +2,13 @@
 
 #include <rhi/vulkan/vulkan_shader.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
-    : m_context(context), m_descriptor_set_allocator(descriptor_set_manager) {
+    : m_context(context), m_descriptor_set_allocator(descriptor_set_manager)
+{
     m_create_info.type = PipelineType::GRAPHICS;
     m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(std::move(&create_info));
 }
@@ -14,32 +16,38 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const Graph
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
                                [[maybe_unused]] const ComputePipelineCreateInfo &create_info,
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
-    : m_context(context), m_descriptor_set_allocator(descriptor_set_manager) {
+    : m_context(context), m_descriptor_set_allocator(descriptor_set_manager)
+{
     m_create_info.type = PipelineType::COMPUTE;
     m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(std::move(&create_info));
 }
 
-VulkanPipeline::~VulkanPipeline() noexcept {
+VulkanPipeline::~VulkanPipeline() noexcept
+{
     vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
-void VulkanPipeline::SetComputeShader(Shader *cs) {
+void VulkanPipeline::SetComputeShader(Shader *cs)
+{
     assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
     assert(m_create_info.type == PipelineType::COMPUTE);
 
-    if (m_cs == nullptr) {
+    if (m_cs == nullptr)
+    {
         m_cs = cs;
         CreatePipelineLayout();
         CreateComputePipeline();
     }
 }
 
-void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
+void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps)
+{
     assert(vs->GetType() == ShaderType::VERTEX_SHADER);
     assert(ps->GetType() == ShaderType::PIXEL_SHADER);
     assert(m_create_info.type == PipelineType::GRAPHICS);
 
-    if (m_vs == nullptr && m_ps == nullptr) {
+    if (m_vs == nullptr && m_ps == nullptr)
+    {
         m_vs = vs;
         m_ps = ps;
         CreatePipelineLayout();
@@ -47,17 +55,19 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps) {
     }
 }
 
-DescriptorSet *VulkanPipeline::GetDescriptorSet() {
+DescriptorSet *VulkanPipeline::GetDescriptorSet()
+{
 
-    if (!m_descriptor_set_allocator.m_temp_descriptor_pool) {
+    if (!m_descriptor_set_allocator.m_temp_descriptor_pool)
+    {
         m_descriptor_set_allocator.CreateDescriptorPool();
     }
 
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-    VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
-        this->m_pipeline_layout_desc.descriptor_set_hash_key);
+    VkDescriptorSetLayout layout =
+        m_descriptor_set_allocator.GetVkDescriptorSetLayout(this->m_pipeline_layout_desc.descriptor_set_hash_key);
 
     alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
     alloc_info.descriptorSetCount = 1;
@@ -69,9 +79,11 @@ DescriptorSet *VulkanPipeline::GetDescriptorSet() {
     m_descriptor_set_allocator.allocated_sets.push_back(set);
     return set;
 }
-DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet() {
+DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet()
+{
 
-    if (!m_descriptor_set_allocator.m_bindless_descriptor_pool) {
+    if (!m_descriptor_set_allocator.m_bindless_descriptor_pool)
+    {
         m_descriptor_set_allocator.CreateBindlessDescriptorPool();
     }
 
@@ -79,8 +91,8 @@ DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet() {
     alloc_info.descriptorPool = m_descriptor_set_allocator.m_bindless_descriptor_pool;
 
     alloc_info.descriptorSetCount = 1;
-    VkDescriptorSetLayout layout =
-        m_descriptor_set_allocator.GetVkDescriptorSetLayout(this->m_pipeline_layout_desc.bindless_descriptor_set_hash_key);
+    VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+        this->m_pipeline_layout_desc.bindless_descriptor_set_hash_key);
     alloc_info.pSetLayouts = &layout;
 
     VkDescriptorSetVariableDescriptorCountAllocateInfo count_info{
@@ -97,7 +109,8 @@ DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet() {
     m_descriptor_set_allocator.allocated_sets.push_back(set);
     return set;
 }
-void VulkanPipeline::CreateGraphicsPipeline() {
+void VulkanPipeline::CreateGraphicsPipeline()
+{
     auto ci = m_create_info.gpci;
     {
 
@@ -148,18 +161,23 @@ void VulkanPipeline::CreateGraphicsPipeline() {
             uint32_t binding_value = UINT32_MAX;
 
             // Initial values
-            for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i) {
+            for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i)
+            {
                 auto *attrib = &(ci->vertex_input_state.attributes[i]);
 
-                if (binding_value != attrib->binding) {
+                if (binding_value != attrib->binding)
+                {
                     binding_value = attrib->binding;
                     ++input_binding_count;
                 }
 
                 input_bindings[input_binding_count - 1].binding = binding_value;
-                if (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE) {
+                if (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                {
                     input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-                } else {
+                }
+                else
+                {
                     input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
                 }
                 input_bindings[input_binding_count - 1].stride +=
@@ -197,7 +215,9 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         }
 
         // tessllation state
-        { graphics_pipeline_create_info.pTessellationState = nullptr; }
+        {
+            graphics_pipeline_create_info.pTessellationState = nullptr;
+        }
 
         // viewport state
 
@@ -257,7 +277,8 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         {
             color_blend_attachment_state.resize(
                 ci->render_target_formats.color_attachment_count); // TODO(hylu): reserve and construct
-            for (auto &state : color_blend_attachment_state) {
+            for (auto &state : color_blend_attachment_state)
+            {
                 state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                                        VK_COLOR_COMPONENT_A_BIT;
                 state.blendEnable = VK_FALSE;
@@ -289,13 +310,16 @@ void VulkanPipeline::CreateGraphicsPipeline() {
         }
 
         // dyanmic state
-        { graphics_pipeline_create_info.pDynamicState = nullptr; }
+        {
+            graphics_pipeline_create_info.pDynamicState = nullptr;
+        }
 
         rendering_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
         rendering_create_info.colorAttachmentCount = ci->render_target_formats.color_attachment_count;
 
         std::vector<VkFormat> formats(ci->render_target_formats.color_attachment_count);
-        for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; i++) {
+        for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; i++)
+        {
             formats[i] = ToVkImageFormat(ci->render_target_formats.color_attachment_formats[i]);
         }
 
@@ -316,7 +340,8 @@ void VulkanPipeline::CreateGraphicsPipeline() {
     }
 }
 
-void VulkanPipeline::CreateComputePipeline() {
+void VulkanPipeline::CreateComputePipeline()
+{
     assert(m_cs != nullptr);
 
     auto cs = reinterpret_cast<VulkanShader *>(m_cs);
@@ -340,7 +365,8 @@ void VulkanPipeline::CreateComputePipeline() {
         vkCreateComputePipelines(m_context.device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline));
 }
 
-void VulkanPipeline::CreatePipelineLayout() {
+void VulkanPipeline::CreatePipelineLayout()
+{
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
@@ -354,7 +380,8 @@ void VulkanPipeline::CreatePipelineLayout() {
     std::vector<VkDescriptorSetLayout> layouts;
     std::vector<VkPushConstantRange> push_constant_ranges;
 
-    if (need_descriptorset) {
+    if (need_descriptorset)
+    {
 
         m_descriptor_set_allocator.CreateDescriptorSetLayout(this);
 
@@ -363,14 +390,16 @@ void VulkanPipeline::CreatePipelineLayout() {
             layouts.emplace_back(
                 m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.descriptor_set_hash_key));
         }
-        if (m_pipeline_layout_desc.bindless_descriptor_set_hash_key != 0) {
+        if (m_pipeline_layout_desc.bindless_descriptor_set_hash_key != 0)
+        {
             layouts.emplace_back(m_descriptor_set_allocator.GetVkDescriptorSetLayout(
                 m_pipeline_layout_desc.bindless_descriptor_set_hash_key));
         }
 
         push_constant_ranges.reserve(rsd.push_constants.size());
 
-        for (auto &[name, pc] : rsd.push_constants) {
+        for (auto &[name, pc] : rsd.push_constants)
+        {
             push_constant_ranges.emplace_back(VkPushConstantRange{
                 ToVkShaderStageFlags(pc.shader_stages),
                 pc.offset,
@@ -382,7 +411,9 @@ void VulkanPipeline::CreatePipelineLayout() {
         pipeline_layout_create_info.pSetLayouts = layouts.data();
         pipeline_layout_create_info.pushConstantRangeCount = static_cast<u32>(push_constant_ranges.size());
         pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges.data();
-    } else {
+    }
+    else
+    {
         pipeline_layout_create_info.setLayoutCount = 0;
         pipeline_layout_create_info.pSetLayouts = nullptr;
         pipeline_layout_create_info.pushConstantRangeCount = 0;

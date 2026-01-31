@@ -1,8 +1,10 @@
 #include "post_process.h"
 
-AutoExposure::AutoExposure(Backend::RHI *rhi) noexcept : mRhi(rhi) {
+AutoExposure::AutoExposure(Backend::RHI *rhi) noexcept : mRhi(rhi)
+{
     // PP PASS
-    luminance_histogram_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl");
+    luminance_histogram_cs =
+        rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl");
     luminance_average_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_average.comp.hlsl");
     luminance_histogram_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     luminance_average_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
@@ -21,7 +23,8 @@ AutoExposure::AutoExposure(Backend::RHI *rhi) noexcept : mRhi(rhi) {
     luminance_average_pass->SetComputeShader(luminance_average_cs);
 }
 
-AutoExposure::~AutoExposure() noexcept {
+AutoExposure::~AutoExposure() noexcept
+{
 
     mRhi->DestroyPipeline(luminance_histogram_pass);
     mRhi->DestroyPipeline(luminance_average_pass);
@@ -33,7 +36,8 @@ AutoExposure::~AutoExposure() noexcept {
     mRhi->DestroyBuffer(luminance_histogram_constants_buffer);
     mRhi->DestroyBuffer(adapted_muminance_buffer);
 }
-PostProcessingPass::PostProcessingPass(Backend::RHI *rhi) noexcept : mRhi(rhi) {
+PostProcessingPass::PostProcessingPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
+{
     // PP PASS
     post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hlsl");
     post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
@@ -48,7 +52,8 @@ PostProcessingPass::PostProcessingPass(Backend::RHI *rhi) noexcept : mRhi(rhi) {
     auto_exposure_pass = std::make_unique<AutoExposure>(rhi);
 }
 
-PostProcessingPass::~PostProcessingPass() noexcept {
+PostProcessingPass::~PostProcessingPass() noexcept
+{
 
     mRhi->DestroyPipeline(post_process_pass);
     mRhi->DestroyShader(post_process_cs);

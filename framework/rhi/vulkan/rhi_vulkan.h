@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/log.h>
 #include <core/definations.h>
+#include <core/log.h>
 
 #include <rhi/enums.h>
 #include <rhi/rhi.h>
@@ -13,9 +13,11 @@
 #include <rhi/vulkan/vulkan_swap_chain.h>
 #include <rhi/vulkan/vulkan_texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class RHIVulkan : public RHI {
+class RHIVulkan : public RHI
+{
   public:
     RHIVulkan(bool offscreen) noexcept;
     virtual ~RHIVulkan() noexcept;
@@ -87,7 +89,8 @@ class RHIVulkan : public RHI {
     VkFence GetFence(CommandQueueType type) noexcept;
     void CreateGpuQueryPool();
 
-    double QueryResult() override {
+    double QueryResult() override
+    {
 
         std::vector<uint64_t> time_stamps(2);
         vkGetQueryPoolResults(m_vulkan.device, m_vulkan.gpu_query_pool, 0, 2, time_stamps.size() * sizeof(uint64_t),

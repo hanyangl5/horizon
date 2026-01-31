@@ -6,15 +6,18 @@
 #include <spirv_reflect.h>
 
 #include <rhi/enums.h>
-#include <rhi/vulkan/vulkan_resource_cache.h>
 #include <rhi/vulkan/vulkan_pipeline.h>
+#include <rhi/vulkan/vulkan_resource_cache.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept
-    : m_context(context) {
+    : m_context(context)
+{
     // create empty layout
-    if (m_empty_descriptor_set == VK_NULL_HANDLE || m_empty_descriptor_set_layout_hash_key == 0) {
+    if (m_empty_descriptor_set == VK_NULL_HANDLE || m_empty_descriptor_set_layout_hash_key == 0)
+    {
 
         VkDescriptorSetLayoutCreateInfo set_layout_create_info{};
         set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -32,31 +35,37 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
     }
 }
 
-void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pipeline) {
+void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pipeline)
+{
     auto &rsd = pipeline->GetRootSignatureDesc();
 
     // Process each descriptor set from shader
-    for (const auto &[set_number, descriptors] : rsd.descriptors) {
+    for (const auto &[set_number, descriptors] : rsd.descriptors)
+    {
         // Check if this is a bindless set (typically set 4, but can be any set with bindless resources)
         // For now, we'll detect bindless by checking if any descriptor has a large array size
         // A better approach would be to use shader metadata or conventions
         bool is_bindless = false;
-        for (const auto &[name, descriptor] : descriptors) {
+        for (const auto &[name, descriptor] : descriptors)
+        {
             // If we have bindless resources, they're typically in a specific set
             // For now, we'll use a heuristic: if set >= 4, treat as bindless
             // This can be made configurable or determined from shader metadata
-            if (set_number == BINDLESS_DESCRIPTOR_SET_NUMBER) {
+            if (set_number == BINDLESS_DESCRIPTOR_SET_NUMBER)
+            {
                 is_bindless = true;
                 break;
             }
         }
 
-        if (is_bindless) {
+        if (is_bindless)
+        {
             // Create bindless layout
             std::vector<VkDescriptorSetLayoutBinding> bindings;
             bindings.reserve(descriptors.size());
-            
-            for (const auto &[name, descriptor] : descriptors) {
+
+            for (const auto &[name, descriptor] : descriptors)
+            {
                 VkDescriptorSetLayoutBinding binding{};
                 binding.binding = descriptor.vk_binding;
                 binding.descriptorCount = k_max_bindless_resources;
@@ -85,7 +94,8 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
             u64 key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(layout_create_info);
             auto res = m_descriptor_set_layout_map.find(key);
 
-            if (res == m_descriptor_set_layout_map.end()) {
+            if (res == m_descriptor_set_layout_map.end())
+            {
                 VkDescriptorSetLayout layout;
                 CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &layout_create_info, nullptr, &layout));
                 m_descriptor_set_layout_map.emplace(key, layout);
@@ -97,8 +107,9 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
             // Create regular layout
             std::vector<VkDescriptorSetLayoutBinding> bindings;
             bindings.reserve(descriptors.size());
-            
-            for (const auto &[name, descriptor] : descriptors) {
+
+            for (const auto &[name, descriptor] : descriptors)
+            {
                 VkDescriptorSetLayoutBinding binding{};
                 binding.binding = descriptor.vk_binding;
                 binding.descriptorCount = 1;
@@ -107,9 +118,12 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
                 bindings.push_back(binding);
             }
 
-            if (bindings.empty()) {
+            if (bindings.empty())
+            {
                 pipeline->m_pipeline_layout_desc.descriptor_set_hash_key = m_empty_descriptor_set_layout_hash_key;
-            } else {
+            }
+            else
+            {
                 VkDescriptorSetLayoutCreateInfo layout_create_info{};
                 layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
                 layout_create_info.bindingCount = static_cast<u32>(bindings.size());
@@ -118,9 +132,11 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
                 u64 key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(layout_create_info);
                 auto res = m_descriptor_set_layout_map.find(key);
 
-                if (res == m_descriptor_set_layout_map.end()) {
+                if (res == m_descriptor_set_layout_map.end())
+                {
                     VkDescriptorSetLayout layout;
-                    CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &layout_create_info, nullptr, &layout));
+                    CHECK_VK_RESULT(
+                        vkCreateDescriptorSetLayout(m_context.device, &layout_create_info, nullptr, &layout));
                     m_descriptor_set_layout_map.emplace(key, layout);
                 }
                 pipeline->m_pipeline_layout_desc.descriptor_set_hash_key = key;
@@ -129,24 +145,29 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
     }
 }
 
-VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept {
-    for (auto &layout : m_descriptor_set_layout_map) {
+VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept
+{
+    for (auto &layout : m_descriptor_set_layout_map)
+    {
         vkDestroyDescriptorSetLayout(m_context.device, layout.second, nullptr);
     }
 
     vkDestroyDescriptorPool(m_context.device, m_temp_descriptor_pool, nullptr);
-    if (m_bindless_descriptor_pool != VK_NULL_HANDLE) {
+    if (m_bindless_descriptor_pool != VK_NULL_HANDLE)
+    {
         vkDestroyDescriptorPool(m_context.device, m_bindless_descriptor_pool, nullptr);
     }
 }
 
-void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
+void VulkanDescriptorSetAllocator::CreateDescriptorPool()
+{
     std::array<VkDescriptorType, 5> types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                           VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                                           VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
 
     std::vector<VkDescriptorPoolSize> pool_sizes;
-    for (auto type : types) {
+    for (auto type : types)
+    {
         pool_sizes.push_back(VkDescriptorPoolSize{type, 2048});
     }
 
@@ -162,13 +183,15 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool() {
     CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_temp_descriptor_pool));
 }
 
-void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
+void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool()
+{
     std::array<VkDescriptorType, 5> types{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                           VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                                           VK_DESCRIPTOR_TYPE_STORAGE_IMAGE};
 
     std::vector<VkDescriptorPoolSize> pool_sizes;
-    for (auto type : types) {
+    for (auto type : types)
+    {
         pool_sizes.push_back(VkDescriptorPoolSize{type, k_max_bindless_resources});
     }
 
@@ -184,19 +207,23 @@ void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool() {
     CHECK_VK_RESULT(vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &m_bindless_descriptor_pool));
 }
 
-void VulkanDescriptorSetAllocator::ResetDescriptorPool() {
-    for (auto &set : allocated_sets) {
+void VulkanDescriptorSetAllocator::ResetDescriptorPool()
+{
+    for (auto &set : allocated_sets)
+    {
         delete set;
     }
     allocated_sets.clear();
     if (m_temp_descriptor_pool)
         vkResetDescriptorPool(m_context.device, m_temp_descriptor_pool, 0);
-    if (m_bindless_descriptor_pool) {
+    if (m_bindless_descriptor_pool)
+    {
         vkResetDescriptorPool(m_context.device, m_bindless_descriptor_pool, 0);
     }
 }
 
-VkDescriptorSetLayout VulkanDescriptorSetAllocator::GetVkDescriptorSetLayout(u64 key) const {
+VkDescriptorSetLayout VulkanDescriptorSetAllocator::GetVkDescriptorSetLayout(u64 key) const
+{
     return m_descriptor_set_layout_map.at(key);
 }
 

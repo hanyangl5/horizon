@@ -2,7 +2,8 @@
 
 #include "header.h"
 
-class DeferredShadingPass {
+class DeferredShadingPass
+{
   public:
     explicit DeferredShadingPass(RHI *rhi) noexcept;
     ~DeferredShadingPass() noexcept;
@@ -21,7 +22,8 @@ class DeferredShadingPass {
 
     // buffer/texture/rt resources
 
-    struct DeferredShadingConstants {
+    struct DeferredShadingConstants
+    {
         Math::float4x4 inverse_vp;
         Math::float4 camera_pos;
         u32 width;
@@ -41,7 +43,8 @@ class DeferredShadingPass {
     Texture *shading_color_image;
 
     // ibl
-    struct DiffuseIrradianceSH3 {
+    struct DiffuseIrradianceSH3
+    {
         std::array<Math::float4, 9> sh;
     } diffuse_irradiance_sh3_constants;
     Buffer *diffuse_irradiance_sh3_buffer;

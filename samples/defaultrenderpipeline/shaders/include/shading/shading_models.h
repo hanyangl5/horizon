@@ -5,7 +5,8 @@
 // UnLit
 
 // opaque
-float3 Brdf_Opaque_Default(MaterialProperties mat, BXDF bxdf) {
+float3 Brdf_Opaque_Default(MaterialProperties mat, BXDF bxdf)
+{
     float D = NDF_GGX(mat.roughness2, bxdf.NoM);
     float G = Vis_SmithGGXCombined(mat.roughness2, bxdf.NoV, bxdf.NoL);
     float3 F = Fresnel_Schlick(mat.f0, bxdf.NoM);
@@ -31,7 +32,8 @@ float3 Brdf_Opaque_Default(MaterialProperties mat, BXDF bxdf) {
 
 // cloth
 
-float3 Brdf_Standard_Burley12(MaterialProperties mat, BXDF bxdf) {
+float3 Brdf_Standard_Burley12(MaterialProperties mat, BXDF bxdf)
+{
 
     // gbuffer save tangent
 
@@ -57,7 +59,8 @@ float3 Brdf_Standard_Burley12(MaterialProperties mat, BXDF bxdf) {
     return diffuse + specular;
 }
 
-float3 Brdf_Subsurface_Burley12(MaterialProperties mat, BXDF bxdf) {
+float3 Brdf_Subsurface_Burley12(MaterialProperties mat, BXDF bxdf)
+{
 
     // float aspect = SqrtFast2(1 - mat.anisotropic * 0.9);
     // float ax = max(0.001, Pow2(mat.roughness) / aspect);
@@ -84,7 +87,8 @@ float3 Brdf_Subsurface_Burley12(MaterialProperties mat, BXDF bxdf) {
     return diffuse + specular;
 }
 
-float3 Brdf_Cloth_Burley12(MaterialProperties mat, BXDF bxdf) {
+float3 Brdf_Cloth_Burley12(MaterialProperties mat, BXDF bxdf)
+{
 
     float3 standard = Brdf_Standard_Burley12(mat, bxdf);
 
@@ -95,7 +99,8 @@ float3 Brdf_Cloth_Burley12(MaterialProperties mat, BXDF bxdf) {
     return standard + sheen_color;
 }
 
-float3 Brdf_ClearCoat_Burley12(MaterialProperties mat, BXDF bxdf) {
+float3 Brdf_ClearCoat_Burley12(MaterialProperties mat, BXDF bxdf)
+{
 
     float3 standard = Brdf_Standard_Burley12(mat, bxdf);
 

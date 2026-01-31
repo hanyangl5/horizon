@@ -7,18 +7,22 @@
 #include <rhi/render_target.h>
 #include <rhi/semaphore.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-struct SwapChainSemaphoreContext {
+struct SwapChainSemaphoreContext
+{
     std::vector<Semaphore *> recycled_semaphores;
     Semaphore *swap_chain_acquire_semaphore{};
     Semaphore *swap_chain_release_semaphore{};
 };
 
-class SwapChain {
+class SwapChain
+{
   public:
     SwapChain(const SwapChainCreateInfo &swap_chain_create_info, Window *window) noexcept
-        : m_back_buffer_count(swap_chain_create_info.back_buffer_count) {
+        : m_back_buffer_count(swap_chain_create_info.back_buffer_count)
+    {
         width = window->GetWidth();
         height = window->GetHeight();
     };
@@ -29,7 +33,10 @@ class SwapChain {
     SwapChain(SwapChain &&rhs) noexcept = delete;
     SwapChain &operator=(SwapChain &&rhs) noexcept = delete;
 
-    RenderTarget *GetRenderTarget() noexcept { return render_targets[current_frame_index]; }
+    RenderTarget *GetRenderTarget() noexcept
+    {
+        return render_targets[current_frame_index];
+    }
 
   public:
     std::vector<RenderTarget *> render_targets{};

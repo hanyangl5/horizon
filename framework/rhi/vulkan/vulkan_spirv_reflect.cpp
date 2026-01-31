@@ -10,11 +10,14 @@
 #include <cstring>
 #include <vector>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-namespace {
+namespace
+{
 
-u32 spv_stage_to_internal(SpvReflectShaderStageFlagBits stage) noexcept {
+u32 spv_stage_to_internal(SpvReflectShaderStageFlagBits stage) noexcept
+{
     u32 s = 0;
     if (stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
         s |= static_cast<u32>(ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER);
@@ -27,11 +30,12 @@ u32 spv_stage_to_internal(SpvReflectShaderStageFlagBits stage) noexcept {
 
 } // namespace
 
-void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stage,
-                                 RootSignatureDesc &out) noexcept {
+void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stage, RootSignatureDesc &out) noexcept
+{
     SpvReflectShaderModule module = {};
     SpvReflectResult res = spvReflectCreateShaderModule(size, spirv, &module);
-    if (res != SPV_REFLECT_RESULT_SUCCESS) {
+    if (res != SPV_REFLECT_RESULT_SUCCESS)
+    {
         LOG_ERROR("spvReflectCreateShaderModule failed");
         return;
     }
@@ -48,10 +52,12 @@ void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stag
 
     uint32_t binding_count = 0;
     spvReflectEnumerateDescriptorBindings(&module, &binding_count, nullptr);
-    if (binding_count > 0) {
+    if (binding_count > 0)
+    {
         std::vector<SpvReflectDescriptorBinding *> bindings(binding_count);
         spvReflectEnumerateDescriptorBindings(&module, &binding_count, bindings.data());
-        for (uint32_t i = 0; i < binding_count; ++i) {
+        for (uint32_t i = 0; i < binding_count; ++i)
+        {
             const SpvReflectDescriptorBinding *b = bindings[i];
             u32 set = b->set; // Use shader's set number directly
             DescriptorDesc desc{};
@@ -64,10 +70,12 @@ void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stag
 
     uint32_t block_count = 0;
     spvReflectEnumeratePushConstantBlocks(&module, &block_count, nullptr);
-    if (block_count > 0) {
+    if (block_count > 0)
+    {
         std::vector<SpvReflectBlockVariable *> blocks(block_count);
         spvReflectEnumeratePushConstantBlocks(&module, &block_count, blocks.data());
-        for (uint32_t i = 0; i < block_count; ++i) {
+        for (uint32_t i = 0; i < block_count; ++i)
+        {
             const SpvReflectBlockVariable *pc = blocks[i];
             PushConstantDesc pcd{};
             pcd.size = pc->size;

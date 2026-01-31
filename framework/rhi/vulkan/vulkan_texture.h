@@ -5,8 +5,10 @@
 #include <rhi/vulkan/vulkan_utils.h>
 #include <vk_mem_alloc.h>
 
-namespace Horizon::Backend {
-class VulkanTexture : public Texture {
+namespace Horizon::Backend
+{
+class VulkanTexture : public Texture
+{
   public:
     VulkanTexture(const VulkanRendererContext &context, const TextureCreateInfo &buffer_create_info) noexcept;
     virtual ~VulkanTexture() noexcept;

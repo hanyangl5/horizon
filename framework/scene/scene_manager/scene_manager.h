@@ -1,18 +1,18 @@
 /*****************************************************************/ /**
- * \file   SceneManager.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   SceneManager.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
 #include <filesystem>
 #include <tuple>
 
-#include <core/math.h>
 #include <core/definations.h>
+#include <core/math.h>
 
 #include <resource/resource_manager/resource_manager.h>
 #include <resource/resources/mesh/mesh.h>
@@ -20,9 +20,11 @@
 #include <scene/camera/camera_controller.h>
 #include <scene/light/light.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-struct MeshData {
+struct MeshData
+{
     u32 texture_offset;
     u32 vertex_buffer_offset;
     u32 index_buffer_offset;
@@ -30,13 +32,14 @@ struct MeshData {
     u32 draw_count;
 };
 
-struct InstanceParameters {
+struct InstanceParameters
+{
     Math::float4x4 model_matrix;
     u32 material_index;
     u32 pad[3];
 };
 
-//struct DecalInstanceParameters {
+// struct DecalInstanceParameters {
 //    Math::float4x4 model;
 //    Math::float4x4 decal_to_world;
 //    Math::float4x4 world_to_decal;
@@ -44,7 +47,8 @@ struct InstanceParameters {
 //    u32 pad[3];
 //};
 
-struct MaterialDesc {
+struct MaterialDesc
+{
     u32 base_color_texture_index;
     u32 normal_texture_index;
     u32 metallic_roughness_texture_index;
@@ -61,7 +65,8 @@ struct MaterialDesc {
     Math::float2 pad3;
 };
 
-class SceneManager {
+class SceneManager
+{
   public:
     SceneManager(ResourceManager *resource_manager) noexcept;
     ~SceneManager() noexcept;
@@ -70,7 +75,7 @@ class SceneManager {
     void AddMesh(Mesh *mesh);
     void RemoveMesh(Mesh *mesh);
 
-    //void RemoveDecal(Decal *decal);
+    // void RemoveDecal(Decal *decal);
     void CreateMeshResources();
     void UploadMeshResources(Backend::CommandList *commandlist);
 
@@ -134,7 +139,8 @@ class SceneManager {
     // camera
 
     std::unique_ptr<Camera> main_camera{};
-    struct CameraUb {
+    struct CameraUb
+    {
         Math::float4x4 vp;
         Math::float4x4 prev_vp;
         Math::float3 camera_pos;

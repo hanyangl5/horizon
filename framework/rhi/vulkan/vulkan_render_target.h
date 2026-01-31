@@ -4,9 +4,11 @@
 #include <rhi/vulkan/vulkan_command_context.h>
 #include <rhi/vulkan/vulkan_render_target.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanRenderTarget : public RenderTarget {
+class VulkanRenderTarget : public RenderTarget
+{
   public:
     VulkanRenderTarget(const VulkanRendererContext &context,
                        const RenderTargetCreateInfo &render_target_create_info) noexcept;

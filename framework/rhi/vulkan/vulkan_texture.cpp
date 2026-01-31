@@ -1,10 +1,12 @@
 #include "vulkan_texture.h"
 #include <core/memory.h>
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
                              const TextureCreateInfo &texture_create_info) noexcept
-    : Texture(texture_create_info), m_context(context) {
+    : Texture(texture_create_info), m_context(context)
+{
     if (texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_UNDEFINED ||
         texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR)
         return;
@@ -25,7 +27,8 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_create_info.arrayLayers = texture_create_info.array_layer;
-    if (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_CUBE) {
+    if (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_CUBE)
+    {
         image_create_info.arrayLayers = 6;
         image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
@@ -38,7 +41,8 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
 
     if (texture_create_info.initial_state == ResourceState::RESOURCE_STATE_RENDER_TARGET ||
         texture_create_info.initial_state == ResourceState::RESOURCE_STATE_SHADER_RESOURCE ||
-        texture_create_info.initial_state == ResourceState::RESOURCE_STATE_UNORDERED_ACCESS) {
+        texture_create_info.initial_state == ResourceState::RESOURCE_STATE_UNORDERED_ACCESS)
+    {
         VkImageViewCreateInfo image_view_create_info{};
         image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         image_view_create_info.image = m_image;
@@ -55,21 +59,28 @@ VulkanTexture::VulkanTexture(const VulkanRendererContext &context,
     }
 }
 
-VulkanTexture::~VulkanTexture() noexcept {
-    if (m_stage_buffer != nullptr) {
+VulkanTexture::~VulkanTexture() noexcept
+{
+    if (m_stage_buffer != nullptr)
+    {
         Memory::Free<VulkanBuffer>(m_stage_buffer);
     }
     vmaDestroyImage(m_context.vma_allocator, m_image, m_memory);
-    if (m_image_view != VK_NULL_HANDLE) {
+    if (m_image_view != VK_NULL_HANDLE)
+    {
         vkDestroyImageView(m_context.device, m_image_view, nullptr);
     }
 }
 
-VkDescriptorImageInfo *VulkanTexture::GetDescriptorImageInfo(DescriptorType descriptor_type) noexcept {
+VkDescriptorImageInfo *VulkanTexture::GetDescriptorImageInfo(DescriptorType descriptor_type) noexcept
+{
     descriptor_image_info.imageView = m_image_view;
-    if (DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE == (descriptor_type & DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE)) {
+    if (DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE == (descriptor_type & DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE))
+    {
         descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    } else if (DescriptorType::DESCRIPTOR_TYPE_TEXTURE == (descriptor_type & DescriptorType::DESCRIPTOR_TYPE_TEXTURE)) {
+    }
+    else if (DescriptorType::DESCRIPTOR_TYPE_TEXTURE == (descriptor_type & DescriptorType::DESCRIPTOR_TYPE_TEXTURE))
+    {
         descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
     return &descriptor_image_info;

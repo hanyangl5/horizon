@@ -5,8 +5,8 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
-#include <core/math.h>
 #include <core/definations.h>
+#include <core/math.h>
 
 #include <rhi/buffer.h>
 #include <rhi/pipeline.h>
@@ -18,30 +18,38 @@
 
 #include "../vertex/vertexdescription.h"
 
-namespace Horizon {
+namespace Horizon
+{
 
 static thread_local Assimp::Importer assimp_importer;
 // mesh description for horizon runtime
 
-struct MeshPrimitive {
+struct MeshPrimitive
+{
     u32 index_offset{};
     u32 index_count{};
     u32 material_id{};
 };
 
-struct Node {
+struct Node
+{
     u32 parent{};
     Math::float4x4 model_matrix{};
     std::vector<u32> childs{};
     std::vector<u32> mesh_primitives{};
-    const Math::float4x4 &GetModelMatrix() const { return model_matrix; }
+    const Math::float4x4 &GetModelMatrix() const
+    {
+        return model_matrix;
+    }
 };
 
-struct MeshDesc {
+struct MeshDesc
+{
     u32 vertex_attribute_flag{};
 };
 
-class Mesh {
+class Mesh
+{
   public:
     Mesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept;
     ~Mesh() noexcept;
@@ -50,9 +58,15 @@ class Mesh {
 
     const std::vector<Node> &GetNodes() const noexcept;
 
-    Material &GetMaterial(u32 index) noexcept { return materials[index]; }
+    Material &GetMaterial(u32 index) noexcept
+    {
+        return materials[index];
+    }
 
-    std::vector<Material> &GetMaterials() noexcept { return materials; }
+    std::vector<Material> &GetMaterials() noexcept
+    {
+        return materials;
+    }
 
   private:
     void ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &model_matrx);

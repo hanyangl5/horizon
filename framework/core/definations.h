@@ -1,10 +1,10 @@
 /*****************************************************************/ /**
- * \file   definations.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   definations.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 #ifndef NOMINMAX
@@ -12,7 +12,8 @@
 #endif
 #include <cstdint>
 
-namespace Horizon {
+namespace Horizon
+{
 
 using u8 = uint8_t;
 using u16 = uint16_t;

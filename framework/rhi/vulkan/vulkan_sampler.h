@@ -4,9 +4,11 @@
 #include <rhi/sampler.h>
 #include <rhi/vulkan/vulkan_command_context.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanSampler : public Sampler {
+class VulkanSampler : public Sampler
+{
   public:
     VulkanSampler(const VulkanRendererContext &context, const SamplerDesc &desc) noexcept;
     virtual ~VulkanSampler() noexcept;

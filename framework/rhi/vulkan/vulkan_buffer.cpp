@@ -1,10 +1,12 @@
 #include "vulkan_buffer.h"
 #include <core/memory.h>
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCreateInfo &buffer_create_info,
                            MemoryFlag memory_flag) noexcept
-    : Buffer(buffer_create_info), m_context(context) {
+    : Buffer(buffer_create_info), m_context(context)
+{
     VkBufferCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = buffer_create_info.size;
@@ -15,10 +17,13 @@ VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCre
     VmaAllocationCreateInfo allocation_create_info{};
     allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO;
 
-    if (memory_flag == MemoryFlag::CPU_VISABLE_MEMORY) {
+    if (memory_flag == MemoryFlag::CPU_VISABLE_MEMORY)
+    {
         allocation_create_info.flags =
             VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    } else if (memory_flag == MemoryFlag::DEDICATE_GPU_MEMORY) {
+    }
+    else if (memory_flag == MemoryFlag::DEDICATE_GPU_MEMORY)
+    {
         allocation_create_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     }
 
@@ -26,14 +31,17 @@ VulkanBuffer::VulkanBuffer(const VulkanRendererContext &context, const BufferCre
                                     &m_memory, &m_allocation_info));
 }
 
-VulkanBuffer::~VulkanBuffer() noexcept {
-    if (m_stage_buffer != nullptr) {
+VulkanBuffer::~VulkanBuffer() noexcept
+{
+    if (m_stage_buffer != nullptr)
+    {
         Memory::Free(m_stage_buffer);
     }
     vmaDestroyBuffer(m_context.vma_allocator, m_buffer, m_memory);
 }
 
-VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 size) noexcept {
+VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 size) noexcept
+{
     buffer_info = {m_buffer, offset, size};
     return &buffer_info;
 }

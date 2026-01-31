@@ -3,9 +3,11 @@
 #include <core/definations.h>
 #include <rhi/swap_chain.h>
 #include <rhi/vulkan/vulkan_utils.h>
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanSwapChain : public SwapChain {
+class VulkanSwapChain : public SwapChain
+{
   public:
     VulkanSwapChain(const VulkanRendererContext &context, const SwapChainCreateInfo &SwapChain_create_info,
                     Window *window) noexcept;

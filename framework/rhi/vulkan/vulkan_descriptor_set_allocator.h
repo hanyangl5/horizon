@@ -10,12 +10,14 @@
 #include <rhi/vulkan/vulkan_shader.h>
 #include <rhi/vulkan/vulkan_texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 class Pipeline;
 class VulkanPipeline;
 
-class VulkanDescriptorSetAllocator {
+class VulkanDescriptorSetAllocator
+{
   public:
     VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept;
     ~VulkanDescriptorSetAllocator() noexcept;

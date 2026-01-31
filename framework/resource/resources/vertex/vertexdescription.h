@@ -1,11 +1,13 @@
 #pragma once
 
-#include <core/math.h>
 #include <core/definations.h>
+#include <core/math.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-enum VertexAttributeType {
+enum VertexAttributeType
+{
     POSTION = 1,
     NORMAL = 2,
     UV0 = 4,
@@ -13,7 +15,8 @@ enum VertexAttributeType {
     TANGENT = 16,
 };
 
-struct Vertex {
+struct Vertex
+{
   public:
     Math::float3 pos;
     Math::float3 normal;

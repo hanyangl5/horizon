@@ -3,19 +3,27 @@
 #include <rhi/enums.h>
 #include <rhi/texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class RenderTarget {
+class RenderTarget
+{
   public:
     RenderTarget() noexcept {};
-    virtual ~RenderTarget() noexcept { delete m_texture; };
+    virtual ~RenderTarget() noexcept
+    {
+        delete m_texture;
+    };
 
     RenderTarget(const RenderTarget &rhs) noexcept = delete;
     RenderTarget &operator=(const RenderTarget &rhs) noexcept = delete;
     RenderTarget(RenderTarget &&rhs) noexcept = delete;
     RenderTarget &operator=(RenderTarget &&rhs) noexcept = delete;
 
-    Texture *GetTexture() noexcept { return m_texture; }
+    Texture *GetTexture() noexcept
+    {
+        return m_texture;
+    }
 
   public:
     Texture *m_texture{};

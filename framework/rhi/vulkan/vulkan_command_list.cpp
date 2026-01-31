@@ -9,15 +9,21 @@
 #include <rhi/vulkan/vulkan_render_target.h>
 #include <rhi/vulkan/vulkan_utils.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 VulkanCommandList::VulkanCommandList(const VulkanRendererContext &context, CommandQueueType type,
                                      VkCommandBuffer command_buffer) noexcept
-    : CommandList(type), m_context(context), m_command_buffer(command_buffer) {}
+    : CommandList(type), m_context(context), m_command_buffer(command_buffer)
+{
+}
 
-VulkanCommandList::~VulkanCommandList() noexcept {}
+VulkanCommandList::~VulkanCommandList() noexcept
+{
+}
 
-void VulkanCommandList::BeginRecording() {
+void VulkanCommandList::BeginRecording()
+{
     VkCommandBufferBeginInfo command_buffer_begin_info{};
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -25,13 +31,18 @@ void VulkanCommandList::BeginRecording() {
     vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info);
 }
 
-void VulkanCommandList::EndRecording() { vkEndCommandBuffer(m_command_buffer); }
+void VulkanCommandList::EndRecording()
+{
+    vkEndCommandBuffer(m_command_buffer);
+}
 
-void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets) {
+void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets)
+{
 
     std::vector<VkBuffer> vk_buffers(buffer_count);
     std::vector<VkDeviceSize> vk_offsets(buffer_count);
-    for (u32 i = 0; i < buffer_count; i++) {
+    for (u32 i = 0; i < buffer_count; i++)
+    {
         assert(buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER);
         vk_buffers[i] = reinterpret_cast<VulkanBuffer *>(buffers[i])->m_buffer;
         vk_offsets[i] = offsets[i];
@@ -40,7 +51,8 @@ void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u3
     vkCmdBindVertexBuffers(m_command_buffer, 0, buffer_count, vk_buffers.data(), vk_offsets.data());
 }
 
-void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
+void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset)
+{
 
     assert(buffer->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_INDEX_BUFFER);
 
@@ -50,7 +62,8 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset) {
 }
 
 // graphics commands
-void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
+void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
+{
 
     assert(begin_info.render_target_count < MAX_RENDER_TARGET_COUNT);
 
@@ -69,7 +82,8 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     std::vector<VkRenderingAttachmentInfo> color_attachment_info;
     color_attachment_info.reserve(begin_info.render_target_count);
 
-    for (u32 i = 0; i < begin_info.render_target_count; i++) {
+    for (u32 i = 0; i < begin_info.render_target_count; i++)
+    {
         VkRenderingAttachmentInfo ci{};
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.render_targets[i].data->GetTexture());
         ci.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -90,7 +104,8 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     // depth attachment info
     VkRenderingAttachmentInfo depth_attachment_info{};
 
-    if (begin_info.depth_stencil.data) {
+    if (begin_info.depth_stencil.data)
+    {
         auto t = reinterpret_cast<VulkanTexture *>(begin_info.depth_stencil.data->GetTexture());
 
         depth_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -120,36 +135,48 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info) {
     vkCmdBeginRendering(m_command_buffer, &info);
 }
 
-void VulkanCommandList::EndRenderPass() { vkCmdEndRendering(m_command_buffer); }
+void VulkanCommandList::EndRenderPass()
+{
+    vkCmdEndRendering(m_command_buffer);
+}
 
-void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count, u32 first_instance) {
+void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count, u32 first_instance)
+{
 
     vkCmdDraw(m_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
 }
 
 void VulkanCommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count,
-                                             u32 first_instance) {
+                                             u32 first_instance)
+{
 
     vkCmdDrawIndexed(m_command_buffer, index_count, instance_count, first_index, first_vertex, first_instance);
 }
 
-void VulkanCommandList::DrawIndirect() {}
+void VulkanCommandList::DrawIndirect()
+{
+}
 
-void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) {
+void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride)
+{
 
     vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count,
                              stride);
 }
 
 // compute commands
-void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) {
+void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z)
+{
 
     vkCmdDispatch(m_command_buffer, group_count_x, group_count_y, group_count_z);
 }
-void VulkanCommandList::DispatchIndirect() {}
+void VulkanCommandList::DispatchIndirect()
+{
+}
 
 // transfer commands
-void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
+void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size)
+{
 
     assert(buffer->m_size >= size);
 
@@ -160,7 +187,8 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
     {
 
         auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
-        if (!vk_buffer->m_stage_buffer) {
+        if (!vk_buffer->m_stage_buffer)
+        {
 
             vk_buffer->m_stage_buffer =
                 Memory::Alloc<VulkanBuffer>(m_context,
@@ -199,7 +227,8 @@ void VulkanCommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size) {
     }
 }
 
-void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
+void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer)
+{
 
     // assert(("invalid commands for current commandlist, expect transfer "
     //         "commandlist",
@@ -210,7 +239,8 @@ void VulkanCommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer) {
     CopyBuffer(vk_src_buffer, vk_dst_buffer);
 }
 
-void VulkanCommandList::CopyTexture(Texture *src_texture, Texture *dst_texture) {
+void VulkanCommandList::CopyTexture(Texture *src_texture, Texture *dst_texture)
+{
 
     // assert(("invalid commands for current commandlist, expect transfer "
     //         "commandlist",
@@ -220,14 +250,16 @@ void VulkanCommandList::CopyTexture(Texture *src_texture, Texture *dst_texture) 
     CopyTexture(vk_src_texture, vk_dst_texture);
 }
 
-void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer) {
+void VulkanCommandList::CopyBuffer(VulkanBuffer *src_buffer, VulkanBuffer *dst_buffer)
+{
     assert(dst_buffer->m_size == src_buffer->m_size);
     VkBufferCopy region{};
     region.size = dst_buffer->m_size;
     vkCmdCopyBuffer(m_command_buffer, src_buffer->m_buffer, dst_buffer->m_buffer, 1, &region);
 }
 
-void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *dst_texture) {
+void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *dst_texture)
+{
     VkImageCopy cregion{};
     cregion.srcSubresource.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(src_texture->m_format), false);
     cregion.srcSubresource.mipLevel = 0;
@@ -250,13 +282,15 @@ void VulkanCommandList::CopyTexture(VulkanTexture *src_texture, VulkanTexture *d
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion);
 }
 
-void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data) {
+void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &texture_data)
+{
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
     VkDeviceSize texture_size =
         texture_data.size != 0 ? texture_data.size : texture_data.texture_data_desc->raw_data.size();
 
-    if (!vk_texture->m_stage_buffer) {
+    if (!vk_texture->m_stage_buffer)
+    {
 
         vk_texture->m_stage_buffer =
             Memory::Alloc<VulkanBuffer>(m_context,
@@ -295,10 +329,12 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
 
     std::vector<VkBufferImageCopy> regions;
 
-    for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++) {
+    for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++)
+    {
 
         for (u32 mip = texture_data.first_mip_level; mip < texture_data.first_mip_level + texture_data.mip_level_count;
-             mip++) {
+             mip++)
+        {
             VkBufferImageCopy region{};
             region.bufferOffset = !texture_data.texture_data_desc->data_offset_map.empty()
                                       ? texture_data.texture_data_desc->data_offset_map[layer][mip]
@@ -318,7 +354,8 @@ void VulkanCommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc 
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<u32>(regions.size()), regions.data());
 }
 
-void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
+void VulkanCommandList::InsertBarrier(const BarrierDesc &desc)
+{
 
     VkAccessFlags src_access_flags = 0;
     VkAccessFlags dst_access_flags = 0;
@@ -326,19 +363,23 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
     std::vector<VkBufferMemoryBarrier> buffer_memory_barriers(desc.buffer_memory_barriers.size());
     std::vector<VkImageMemoryBarrier> texture_memory_barriers(desc.texture_memory_barriers.size());
 
-    for (u32 i = 0; i < desc.buffer_memory_barriers.size(); i++) {
+    for (u32 i = 0; i < desc.buffer_memory_barriers.size(); i++)
+    {
         const auto &barrier_desc = desc.buffer_memory_barriers[i];
         auto &barrier = buffer_memory_barriers[i];
         const auto &vk_buffer = reinterpret_cast<VulkanBuffer *>(barrier_desc.buffer);
 
         if (RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.src_state &&
-            RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.dst_state) {
+            RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.dst_state)
+        {
             barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER; //-V522
             barrier.pNext = NULL;
 
             barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-        } else {
+        }
+        else
+        {
             barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
             barrier.pNext = NULL;
 
@@ -346,18 +387,24 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             barrier.dstAccessMask = util_to_vk_access_flags(barrier_desc.dst_state);
         }
 
-        if (1) {
+        if (1)
+        {
             barrier.buffer = vk_buffer->m_buffer;
             barrier.size = VK_WHOLE_SIZE;
             barrier.offset = 0;
 
-            if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
+            if (barrier_desc.queue_op == QueueOp::ACQUIRE)
+            {
                 barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
                 barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-            } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
+            }
+            else if (barrier_desc.queue_op == QueueOp::RELEASE)
+            {
                 barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
                 barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-            } else {
+            }
+            else
+            {
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             }
@@ -367,7 +414,8 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
         }
     }
 
-    for (u32 i = 0; i < desc.texture_memory_barriers.size(); i++) {
+    for (u32 i = 0; i < desc.texture_memory_barriers.size(); i++)
+    {
         const auto &barrier_desc = desc.texture_memory_barriers[i];
         auto &barrier = texture_memory_barriers[i];
         const auto &vk_texture = reinterpret_cast<VulkanTexture *>(barrier_desc.texture);
@@ -375,13 +423,16 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.pNext = nullptr;
         if (RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.src_state &&
-            RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.dst_state) {
+            RESOURCE_STATE_UNORDERED_ACCESS == barrier_desc.dst_state)
+        {
 
             barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
             barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
             barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        } else {
+        }
+        else
+        {
 
             barrier.srcAccessMask = util_to_vk_access_flags(barrier_desc.src_state);
             barrier.dstAccessMask = util_to_vk_access_flags(barrier_desc.dst_state);
@@ -389,13 +440,17 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             barrier.newLayout = util_to_vk_image_layout(barrier_desc.dst_state);
         }
 
-        if (1) {
+        if (1)
+        {
 
             barrier.image = vk_texture->m_image;
 
-            if (vk_texture->m_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR) {
+            if (vk_texture->m_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR)
+            {
                 barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            } else {
+            }
+            else
+            {
                 barrier.subresourceRange.aspectMask = ToVkAspectMaskFlags(ToVkImageFormat(vk_texture->m_format), false);
             }
             barrier.subresourceRange.baseMipLevel = barrier_desc.first_mip_level;
@@ -403,14 +458,19 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
             barrier.subresourceRange.baseArrayLayer = barrier_desc.first_layer;
             barrier.subresourceRange.layerCount = barrier_desc.layer_count;
 
-            if (barrier_desc.queue_op == QueueOp::ACQUIRE) {
+            if (barrier_desc.queue_op == QueueOp::ACQUIRE)
+            {
                 ;
                 barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
                 barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
-            } else if (barrier_desc.queue_op == QueueOp::RELEASE) {
+            }
+            else if (barrier_desc.queue_op == QueueOp::RELEASE)
+            {
                 barrier.srcQueueFamilyIndex = m_context.command_queue_familiy_indices[m_type];
                 barrier.dstQueueFamilyIndex = m_context.command_queue_familiy_indices[barrier_desc.queue];
-            } else {
+            }
+            else
+            {
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             }
@@ -426,18 +486,21 @@ void VulkanCommandList::InsertBarrier(const BarrierDesc &desc) {
     VkPipelineStageFlags src_stage_flags{util_determine_pipeline_stage_flags(src_access_flags, m_type)};
     VkPipelineStageFlags dst_stage_flags{util_determine_pipeline_stage_flags(dst_access_flags, m_type)};
 
-    if (!buffer_memory_barriers.empty() || !texture_memory_barriers.empty()) {
+    if (!buffer_memory_barriers.empty() || !texture_memory_barriers.empty())
+    {
         vkCmdPipelineBarrier(m_command_buffer, src_stage_flags, dst_stage_flags, 0, 0, nullptr,
                              (u32)buffer_memory_barriers.size(), buffer_memory_barriers.data(),
                              (u32)texture_memory_barriers.size(), texture_memory_barriers.data());
     }
 }
 
-void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
+void VulkanCommandList::BindPipeline(Pipeline *pipeline)
+{
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
-    if (pipeline->GetType() == PipelineType::GRAPHICS) {
+    if (pipeline->GetType() == PipelineType::GRAPHICS)
+    {
         // TOOD: set viewport and scissor manually?
         vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
         vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
@@ -445,25 +508,31 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline) {
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 
-void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data) {
+void VulkanCommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data)
+{
 
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     auto res = vk_pipeline->GetRootSignatureDesc().push_constants.find(name);
-    if (res == vk_pipeline->GetRootSignatureDesc().push_constants.end()) {
+    if (res == vk_pipeline->GetRootSignatureDesc().push_constants.end())
+    {
         LOG_ERROR("pipeline doesn't have push constant {}", name);
         return;
-    } else {
+    }
+    else
+    {
         vkCmdPushConstants(m_command_buffer, vk_pipeline->m_pipeline_layout,
                            ToVkShaderStageFlags(res->second.shader_stages), res->second.offset, res->second.size, data);
     }
 }
 
-void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value) {
+void VulkanCommandList::ClearBuffer(Buffer *buffer, f32 clear_value)
+{
     u32 *data = (u32 *)&clear_value;
     vkCmdFillBuffer(m_command_buffer, ((VulkanBuffer *)buffer)->m_buffer, 0, VK_WHOLE_SIZE, *data);
 }
 
-void VulkanCommandList::ClearTextrue(Texture *texture, const ClearColorValue &clear_value) {
+void VulkanCommandList::ClearTextrue(Texture *texture, const ClearColorValue &clear_value)
+{
     VkClearColorValue clear_color;
     memcpy(&clear_color, &clear_value, sizeof(clear_value));
 
@@ -475,18 +544,20 @@ void VulkanCommandList::ClearTextrue(Texture *texture, const ClearColorValue &cl
     // vkCmdClearColorImage();
 }
 
-void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) {
+void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set)
+{
     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
     auto vk_set = reinterpret_cast<VulkanDescriptorSet *>(set);
 
-    vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout,
-                            set->GetSetNumber(), 1, &vk_set->m_set, 0,
+    vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, set->GetSetNumber(), 1,
+                            &vk_set->m_set, 0,
                             0); // TODO(hylu): batch update
 }
 
-void VulkanCommandList::GenerateMipMap(Texture *texture) {
+void VulkanCommandList::GenerateMipMap(Texture *texture)
+{
 
     if (texture->mip_map_level == 1)
         return;
@@ -495,7 +566,8 @@ void VulkanCommandList::GenerateMipMap(Texture *texture) {
 
     i32 mip_w = texture->m_width, mip_h = texture->m_height;
 
-    for (u32 i = 1; i < texture->mip_map_level; i++) {
+    for (u32 i = 1; i < texture->mip_map_level; i++)
+    {
         {
             BarrierDesc desc{};
             TextureBarrierDesc mip_map_barrier{};
@@ -543,10 +615,12 @@ void VulkanCommandList::GenerateMipMap(Texture *texture) {
             mip_h /= 2;
     }
 }
-void VulkanCommandList::BeginQuery() {
+void VulkanCommandList::BeginQuery()
+{
     vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, m_context.gpu_query_pool, 0);
 }
-void VulkanCommandList::EndQuery() {
+void VulkanCommandList::EndQuery()
+{
     vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, m_context.gpu_query_pool, 1);
 }
 

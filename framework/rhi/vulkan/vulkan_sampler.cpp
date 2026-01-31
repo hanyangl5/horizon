@@ -1,7 +1,8 @@
 #include "vulkan_sampler.h"
 
 Horizon::Backend::VulkanSampler::VulkanSampler(const VulkanRendererContext &context, const SamplerDesc &desc) noexcept
-    : m_context(context) {
+    : m_context(context)
+{
 
     float minSamplerLod = 0;
     float maxSamplerLod = desc.mip_map_mode == MipMapMode::MIPMAP_MODE_LINEAR ? VK_LOD_CLAMP_NONE : 0;
@@ -26,9 +27,13 @@ Horizon::Backend::VulkanSampler::VulkanSampler(const VulkanRendererContext &cont
     vkCreateSampler(m_context.device, &sampler_create_info, nullptr, &m_sampler);
 }
 
-Horizon::Backend::VulkanSampler::~VulkanSampler() noexcept { vkDestroySampler(m_context.device, m_sampler, nullptr); }
+Horizon::Backend::VulkanSampler::~VulkanSampler() noexcept
+{
+    vkDestroySampler(m_context.device, m_sampler, nullptr);
+}
 
-VkDescriptorImageInfo *Horizon::Backend::VulkanSampler::GetDescriptorImageInfo() noexcept {
+VkDescriptorImageInfo *Horizon::Backend::VulkanSampler::GetDescriptorImageInfo() noexcept
+{
     descriptor_image_info.sampler = m_sampler;
     return &descriptor_image_info;
 }

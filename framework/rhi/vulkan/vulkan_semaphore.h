@@ -4,9 +4,11 @@
 #include <rhi/semaphore.h>
 #include <rhi/vulkan/vulkan_command_context.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanSemaphore : public Semaphore {
+class VulkanSemaphore : public Semaphore
+{
   public:
     VulkanSemaphore(const VulkanRendererContext &context) noexcept;
     virtual ~VulkanSemaphore() noexcept;

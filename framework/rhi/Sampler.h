@@ -2,8 +2,10 @@
 
 #include <rhi/enums.h>
 
-namespace Horizon::Backend {
-class Sampler {
+namespace Horizon::Backend
+{
+class Sampler
+{
   public:
     Sampler() noexcept {};
     virtual ~Sampler() noexcept = default;

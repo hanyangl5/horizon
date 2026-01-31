@@ -1,22 +1,23 @@
 #pragma once
 
-#include <fstream>
 #include <array>
+#include <fstream>
 #include <map>
 #include <unordered_map>
 #include <vulkan/vulkan.h>
 
+#include <core/definations.h>
 #include <core/log.h>
 #include <core/math.h>
-#include <core/definations.h>
-namespace Horizon {
+namespace Horizon
+{
 
 // definations
 
 // descriptor set
 static constexpr u32 MAX_DESCRIPTOR_SET_INDEX = 4;
 
-//static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
+// static constexpr u32 MAX_BINDING_PER_DESCRIPTOR_SET = 32;
 
 // render info
 static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
@@ -25,15 +26,30 @@ static constexpr u32 MAX_RENDER_TARGET_COUNT = 8;
 static constexpr u32 MAX_ATTRIBUTE_COUNT = 32;
 static constexpr u32 MAX_BINDING_COUNT = 32;
 
-enum class RenderBackend { RENDER_BACKEND_VULKAN };
+enum class RenderBackend
+{
+    RENDER_BACKEND_VULKAN
+};
 // always assum queue family index: graphics = 0, compute = 1, transfer = 2
-enum CommandQueueType { GRAPHICS = 0, COMPUTE, TRANSFER };
+enum CommandQueueType
+{
+    GRAPHICS = 0,
+    COMPUTE,
+    TRANSFER
+};
 
-enum class PipelineType { UNDIFINED, GRAPHICS = 0, COMPUTE, RAY_TRACING };
+enum class PipelineType
+{
+    UNDIFINED,
+    GRAPHICS = 0,
+    COMPUTE,
+    RAY_TRACING
+};
 
 using DescriptorTypes = u32;
 
-enum DescriptorType {
+enum DescriptorType
+{
     DESCRIPTOR_TYPE_UNDEFINED = 0,
     DESCRIPTOR_TYPE_SAMPLER = 0x01,
     // SRV Read only texture
@@ -80,7 +96,8 @@ enum DescriptorType {
     DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT = (DESCRIPTOR_TYPE_COLOR_ATTACHMENT << 1),
 };
 
-enum class ShaderType {
+enum class ShaderType
+{
     VERTEX_SHADER,
     PIXEL_SHADER,
     COMPUTE_SHADER,
@@ -88,17 +105,25 @@ enum class ShaderType {
     //  ray tracing related shader
 };
 
-enum ShaderStageFlags {
+enum ShaderStageFlags
+{
     SHADER_STAGE_INVALID = 0,
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
-    //SHADER_STAGE_TESS_SHADER = 8,
+    // SHADER_STAGE_TESS_SHADER = 8,
 };
 
-enum class TextureType { TEXTURE_TYPE_1D = 0, TEXTURE_TYPE_2D, TEXTURE_TYPE_3D, TEXTURE_TYPE_CUBE };
+enum class TextureType
+{
+    TEXTURE_TYPE_1D = 0,
+    TEXTURE_TYPE_2D,
+    TEXTURE_TYPE_3D,
+    TEXTURE_TYPE_CUBE
+};
 
-enum class TextureFormat {
+enum class TextureFormat
+{
 
     TEXTURE_FORMAT_UNDEFINED = 0,
     TEXTURE_FORMAT_DUMMY_COLOR,
@@ -174,10 +199,10 @@ enum class TextureFormat {
     TEXTURE_FORMAT_R11G11B10_UFLOAT,
 
     TEXTURE_FORMAT_D32_SFLOAT,
-
 };
 
-enum ResourceState {
+enum ResourceState
+{
     RESOURCE_STATE_UNDEFINED = 0,
     RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER = 0x1,
     RESOURCE_STATE_INDEX_BUFFER = 0x2,
@@ -201,9 +226,14 @@ enum ResourceState {
     RESOURCE_STATE_HOST_WRITE = 0x20000
 };
 
-enum class MemoryFlag { DEDICATE_GPU_MEMORY, CPU_VISABLE_MEMORY };
+enum class MemoryFlag
+{
+    DEDICATE_GPU_MEMORY,
+    CPU_VISABLE_MEMORY
+};
 
-struct BufferCreateInfo {
+struct BufferCreateInfo
+{
     // u32 buffer_usage_flags;
     DescriptorTypes descriptor_types;
     ResourceState initial_state;
@@ -211,7 +241,8 @@ struct BufferCreateInfo {
     // void* data;
 };
 
-struct TextureCreateInfo {
+struct TextureCreateInfo
+{
     DescriptorTypes descriptor_types{};
     ResourceState initial_state;
     TextureType texture_type;
@@ -224,13 +255,15 @@ struct TextureCreateInfo {
 
 using SwapChainFormat = TextureFormat;
 
-struct SwapChainCreateInfo {
+struct SwapChainCreateInfo
+{
     u32 back_buffer_count;
 };
 
 // dx12
 
-struct ViewportCreateInfo {
+struct ViewportCreateInfo
+{
     u32 x;
     u32 y;
     u32 width;
@@ -239,14 +272,30 @@ struct ViewportCreateInfo {
     f32 max_depth;
 };
 
-enum class VertexInputRate {
+enum class VertexInputRate
+{
     VERTEX_ATTRIB_RATE_VERTEX = 0,
     VERTEX_ATTRIB_RATE_INSTANCE = 1,
 };
 
-enum class VertexAttribFormat { U8, U16, U32, S8, S16, S32, F16, F32, UN8, UN16, SN8, SN16 };
+enum class VertexAttribFormat
+{
+    U8,
+    U16,
+    U32,
+    S8,
+    S16,
+    S32,
+    F16,
+    F32,
+    UN8,
+    UN16,
+    SN8,
+    SN16
+};
 
-struct VertexAttributeDescription {
+struct VertexAttributeDescription
+{
     VertexAttribFormat attrib_format;
     u32 portion;
     VertexInputRate input_rate;
@@ -256,40 +305,74 @@ struct VertexAttributeDescription {
     u32 offset;
 };
 
-struct VertexInputState {
+struct VertexInputState
+{
     u32 attribute_count;
     VertexAttributeDescription attributes[MAX_ATTRIBUTE_COUNT];
 };
 
-enum class PrimitiveTopology { POINT_LIST, LINE_LIST, TRIANGLE_LIST };
+enum class PrimitiveTopology
+{
+    POINT_LIST,
+    LINE_LIST,
+    TRIANGLE_LIST
+};
 
-struct InputAssemblyState {
+struct InputAssemblyState
+{
     PrimitiveTopology topology;
 };
 
-struct ViewPortState {
+struct ViewPortState
+{
     u32 width;
     u32 height;
 };
 
-enum class FrontFace { CCW, CW };
+enum class FrontFace
+{
+    CCW,
+    CW
+};
 
-enum class FillMode { POINT, LINE, TRIANGLE };
+enum class FillMode
+{
+    POINT,
+    LINE,
+    TRIANGLE
+};
 
-enum class CullMode { NONE, FRONT, BACK, ALL };
+enum class CullMode
+{
+    NONE,
+    FRONT,
+    BACK,
+    ALL
+};
 
-struct RasterizationState {
+struct RasterizationState
+{
     FrontFace front_face;
     CullMode cull_mode;
     FillMode fill_mode;
     bool discard;
 };
 
-enum class CompareFunc { NEVER, LESS, L_EQUAL, EQUAL, GREATER, G_EQUAL, ALWAYS };
+enum class CompareFunc
+{
+    NEVER,
+    LESS,
+    L_EQUAL,
+    EQUAL,
+    GREATER,
+    G_EQUAL,
+    ALWAYS
+};
 
 using DepthFunc = CompareFunc;
 
-struct DepthStencilState {
+struct DepthStencilState
+{
     bool depth_test;
     bool depth_write;
     bool stencil_enabled;
@@ -299,18 +382,21 @@ struct DepthStencilState {
     // stencil settings
 };
 
-struct MultiSampleState {
+struct MultiSampleState
+{
     u32 sample_count;
 };
 
-struct RenderTargetFormats {
+struct RenderTargetFormats
+{
     u32 color_attachment_count = 0;
     std::vector<TextureFormat> color_attachment_formats;
     bool has_depth = true, has_stencil = false;
     TextureFormat depth_stencil_format;
 };
 
-struct GraphicsPipelineCreateInfo {
+struct GraphicsPipelineCreateInfo
+{
     VertexInputState vertex_input_state;
     InputAssemblyState input_assembly_state;
     ViewPortState view_port_state;
@@ -320,31 +406,41 @@ struct GraphicsPipelineCreateInfo {
     RenderTargetFormats render_target_formats;
 };
 
-struct ComputePipelineCreateInfo {
+struct ComputePipelineCreateInfo
+{
     u32 flag = 0x01;
 };
 
-struct PipelineCreateInfo {
+struct PipelineCreateInfo
+{
     PipelineType type;
     GraphicsPipelineCreateInfo *gpci;
     ComputePipelineCreateInfo *cpci;
 };
 
-struct Rect {
+struct Rect
+{
     u32 x, y, w, h;
 };
 
 using RenderTargetFormat = TextureFormat;
 
-enum class RenderTargetType { COLOR, DEPTH_STENCIL, UNDEFINED };
+enum class RenderTargetType
+{
+    COLOR,
+    DEPTH_STENCIL,
+    UNDEFINED
+};
 
-struct RenderTargetCreateInfo {
+struct RenderTargetCreateInfo
+{
     RenderTargetFormat rt_format;
     RenderTargetType rt_type;
     u32 width, height;
 };
 
-struct DrawParam {
+struct DrawParam
+{
     u32 indexCount;
     u32 instanceCount;
     u32 firstIndex;
@@ -352,37 +448,43 @@ struct DrawParam {
     u32 firstInstance;
 };
 
-//enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, BINDLESS, USER_DEFINED1 };
+// enum class ResourceUpdateFrequency { NONE, PER_FRAME, PER_BATCH, PER_DRAW, BINDLESS, USER_DEFINED1 };
 constexpr u32 BINDLESS_DESCRIPTOR_SET_NUMBER = 1;
 constexpr u32 DEFAULT_DESCRIPTOR_SET_NUMBER = 0;
-struct DescriptorDesc {
+struct DescriptorDesc
+{
     DescriptorType type{};
     u32 vk_binding{};
-    //std::string dx_reg{}; // todo : type -> reg type
+    // std::string dx_reg{}; // todo : type -> reg type
 };
 
-struct PushConstantDesc {
+struct PushConstantDesc
+{
     u32 size;
     u32 offset;
     u32 shader_stages;
 };
 
-struct RootSignatureDesc {
+struct RootSignatureDesc
+{
     std::map<u32, std::unordered_map<std::string, DescriptorDesc>> descriptors{};
     std::unordered_map<std::string, PushConstantDesc> push_constants;
 };
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions);
 
-struct VkPipelineLayoutDesc {
+struct VkPipelineLayoutDesc
+{
   public:
     u64 descriptor_set_hash_key;
     u64 bindless_descriptor_set_hash_key;
-    //std::array<u64, MAX_DESCRIPTOR_SET_INDEX> descriptor_set_hash_key{};
+    // std::array<u64, MAX_DESCRIPTOR_SET_INDEX> descriptor_set_hash_key{};
 };
 
-inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type) {
-    switch (type) {
+inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type)
+{
+    switch (type)
+    {
     case Horizon::ShaderType::VERTEX_SHADER:
         return ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER;
     case Horizon::ShaderType::PIXEL_SHADER:
@@ -401,12 +503,14 @@ typedef union ClearColorValue {
     u32 uint32[4];
 } ClearColorValue;
 
-struct ClearValueDepthStencil {
+struct ClearValueDepthStencil
+{
     f32 depth;
     u32 stencil;
 };
 
-struct TextureDataDesc {
+struct TextureDataDesc
+{
     u32 width;
     u32 height;
     u32 depth;
@@ -419,16 +523,18 @@ struct TextureDataDesc {
     std::vector<std::vector<u32>> data_offset_map;
 };
 
-struct BufferUpdateDesc {
+struct BufferUpdateDesc
+{
     void *data;
     u64 size;
     u64 offset;
 };
 
-struct TextureUpdateDesc {
+struct TextureUpdateDesc
+{
     u64 size = 0;
-    //u32 row_length;
-    //u32 height;
+    // u32 row_length;
+    // u32 height;
     u32 first_mip_level = 0;
     u32 mip_level_count = 1;
     u32 first_layer = 0;
@@ -436,21 +542,28 @@ struct TextureUpdateDesc {
     TextureDataDesc *texture_data_desc{};
 };
 
-enum class MipMapMode { MIPMAP_MODE_NEAREST = 0, MIPMAP_MODE_LINEAR };
+enum class MipMapMode
+{
+    MIPMAP_MODE_NEAREST = 0,
+    MIPMAP_MODE_LINEAR
+};
 
-enum class FilterType {
+enum class FilterType
+{
     FILTER_NEAREST = 0,
     FILTER_LINEAR,
 };
 
-enum class AddressMode {
+enum class AddressMode
+{
     ADDRESS_MODE_MIRROR,
     ADDRESS_MODE_REPEAT,
     ADDRESS_MODE_CLAMP_TO_EDGE,
     ADDRESS_MODE_CLAMP_TO_BORDER
 };
 
-struct SamplerDesc {
+struct SamplerDesc
+{
     FilterType min_filter;
     FilterType mag_filter;
     MipMapMode mip_map_mode;
@@ -465,9 +578,11 @@ struct SamplerDesc {
     CompareFunc mCompareFunc;
 };
 
-inline std::vector<char> ReadFile(const char *path) {
+inline std::vector<char> ReadFile(const char *path)
+{
     std::ifstream file(path, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         LOG_ERROR("failed to open shader file: {}", path);
         return {};
     }
@@ -484,7 +599,8 @@ u32 GetBytesFromTextureFormat(TextureFormat format);
 
 static constexpr u32 MAX_MIP_LEVEL = 12;
 
-struct DrawIndexedInstancedCommand {
+struct DrawIndexedInstancedCommand
+{
     u32 index_count;
     u32 instance_count = 1;
     u32 first_index;
@@ -492,13 +608,20 @@ struct DrawIndexedInstancedCommand {
     u32 first_instance;
 };
 
-enum class RenderTargetLoadOp {
+enum class RenderTargetLoadOp
+{
     INVALID,
     DONT_CARE,
     LOAD,
     CLEAR,
 };
 
-enum class RenderTargetStoreOp { INALID, DONT_CARE, STORE, NONE };
+enum class RenderTargetStoreOp
+{
+    INALID,
+    DONT_CARE,
+    STORE,
+    NONE
+};
 
 } // namespace Horizon

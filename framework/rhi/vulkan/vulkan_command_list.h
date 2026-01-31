@@ -7,9 +7,11 @@
 #include <rhi/vulkan/vulkan_texture.h>
 #include <rhi/vulkan/vulkan_utils.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanCommandList : public CommandList {
+class VulkanCommandList : public CommandList
+{
   public:
     VulkanCommandList(const VulkanRendererContext &context, CommandQueueType type,
                       VkCommandBuffer command_buffer) noexcept;

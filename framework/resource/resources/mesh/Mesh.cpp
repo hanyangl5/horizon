@@ -12,17 +12,24 @@
 #include <rhi/rhi.h>
 
 #include <resource/resource_loader/texture/texture_loader.h>
-namespace Horizon {
+namespace Horizon
+{
 
 using namespace Assimp;
 
 Mesh::Mesh(const MeshDesc &desc, const std::filesystem::path &path) noexcept
-    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path) {}
+    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path)
+{
+}
 
-Mesh::~Mesh() noexcept {}
+Mesh::~Mesh() noexcept
+{
+}
 
-void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx) {
-    if (!node) {
+void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math::float4x4 &parent_model_matrx)
+{
+    if (!node)
+    {
         return;
     }
     auto &n = m_nodes[index];
@@ -33,13 +40,15 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
 
     n.mesh_primitives.resize(node->mNumMeshes);
 
-    for (u32 i = 0; i < node->mNumMeshes; i++) {
+    for (u32 i = 0; i < node->mNumMeshes; i++)
+    {
         n.mesh_primitives[i] = node->mMeshes[i];
     }
 
     n.childs.resize(node->mNumChildren);
 
-    for (u32 i = 0; i < node->mNumChildren; i++) {
+    for (u32 i = 0; i < node->mNumChildren; i++)
+    {
         u32 child_node_index = index + i + 1;
         n.childs[i] = child_node_index;
         m_nodes[child_node_index].parent = index;
@@ -47,39 +56,49 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
     }
 }
 
-void Mesh::ProcessMaterials(const aiScene *scene) {
+void Mesh::ProcessMaterials(const aiScene *scene)
+{
 
     std::vector<aiMaterial *> ms;
     materials.resize(scene->mNumMaterials);
     [[maybe_unused]] aiReturn ret;
-    for (u32 i = 0; i < scene->mNumMaterials; i++) {
+    for (u32 i = 0; i < scene->mNumMaterials; i++)
+    {
         bool unlit;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
-        if (unlit == true) {
+        if (unlit == true)
+        {
             materials[i].shading_model = ShadingModel::SHADING_MODEL_UNLIT;
         }
         // shading model
         bool two_side;
         scene->mMaterials[i]->Get(AI_MATKEY_TWOSIDED, two_side);
-        if (two_side == true) {
+        if (two_side == true)
+        {
             materials[i].shading_model = ShadingModel::SHADING_MODEL_TWO_SIDE;
         }
         // blend state
 
         aiString alphaMode;
         scene->mMaterials[i]->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
-        if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
+        if (strcmp(alphaMode.C_Str(), "BLEND") == 0)
+        {
             materials[i].blend_state = BlendState::BLEND_STATE_TRANSPARENT;
-        } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
+        }
+        else if (strcmp(alphaMode.C_Str(), "MASK") == 0)
+        {
             materials[i].blend_state = BlendState::BLEND_STATE_MASKED;
-        } else if (strcmp(alphaMode.C_Str(), "OPAQUE") == 0) {
+        }
+        else if (strcmp(alphaMode.C_Str(), "OPAQUE") == 0)
+        {
             materials[i].blend_state = BlendState::BLEND_STATE_OPAQUE;
         }
 
         aiString temp_path;
 
         // base color textures
-        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_BASE_COLOR); t++) {
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_BASE_COLOR); t++)
+        {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType::aiTextureType_BASE_COLOR, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
@@ -88,7 +107,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_params.param_bitmask |= HAS_BASE_COLOR;
         }
         // normal
-        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_NORMALS); t++) {
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_NORMALS); t++)
+        {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType::aiTextureType_NORMALS, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
@@ -98,7 +118,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
         }
         // metallic roughness
         for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS);
-             t++) {
+             t++)
+        {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
@@ -107,7 +128,8 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
             materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
         }
 
-        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++) {
+        for (uint32_t t = 0; t < scene->mMaterials[i]->GetTextureCount(aiTextureType::aiTextureType_EMISSIVE); t++)
+        {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
             std::filesystem::path abs_path = m_path.parent_path();
@@ -125,35 +147,46 @@ void Mesh::ProcessMaterials(const aiScene *scene) {
 
     u32 block_image_size = (u32)mats.size() / max_available_thread + 1;
 
-    for (u32 i = 0; i < max_available_thread; ++i) {
+    for (u32 i = 0; i < max_available_thread; ++i)
+    {
         threads.emplace_back([&mats, block_image_size, i]() {
-            for (u32 j = i * block_image_size; j < (i + 1) * block_image_size && j < mats.size(); ++j) {
-                for (auto &[type, tex] : mats[j].material_textures) {
+            for (u32 j = i * block_image_size; j < (i + 1) * block_image_size && j < mats.size(); ++j)
+            {
+                for (auto &[type, tex] : mats[j].material_textures)
+                {
                     tex.texture_data_desc = TextureLoader::Load(tex.url.string().c_str());
                 }
             }
         });
     }
-    for (auto &thread : threads) {
+    for (auto &thread : threads)
+    {
         thread.join();
     }
 }
 
-u32 SubNodeCount(const aiNode *node) noexcept {
+u32 SubNodeCount(const aiNode *node) noexcept
+{
     int n = node->mNumChildren;
 
-    for (u32 i = 0; i < node->mNumChildren; i++) {
+    for (u32 i = 0; i < node->mNumChildren; i++)
+    {
         n += SubNodeCount(node->mChildren[i]);
     }
     return n;
 }
 
-u32 CalculateNodeCount(const aiScene *scene) noexcept { return SubNodeCount(scene->mRootNode); }
+u32 CalculateNodeCount(const aiScene *scene) noexcept
+{
+    return SubNodeCount(scene->mRootNode);
+}
 
-void Mesh::Load() {
+void Mesh::Load()
+{
 
     // check mesh if loaded
-    if (!m_vertices.empty()) {
+    if (!m_vertices.empty())
+    {
         LOG_ERROR("mesh already loaded");
         return;
     }
@@ -165,7 +198,8 @@ void Mesh::Load() {
                                        aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
 
     // If the import failed, report it
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
         LOG_ERROR("failed to load mesh: {}", assimp_importer.GetErrorString());
         return;
     }
@@ -175,28 +209,34 @@ void Mesh::Load() {
     m_mesh_primitives.resize(scene->mNumMeshes);
 
     // combine all mesh to a big vertex buffer
-    for (u32 m = 0; m < scene->mNumMeshes; m++) {
+    for (u32 m = 0; m < scene->mNumMeshes; m++)
+    {
 
         const auto &mesh = scene->mMeshes[m];
-        for (u32 v = 0; v < mesh->mNumVertices; v++) {
+        for (u32 v = 0; v < mesh->mNumVertices; v++)
+        {
 
             Vertex vertex{};
 
             memcpy(&vertex.pos, &mesh->mVertices[v], sizeof(Math::float3));
 
-            if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals()) {
+            if (vertex_attribute_flag & VertexAttributeType::NORMAL && mesh->HasNormals())
+            {
                 memcpy(&vertex.normal, &mesh->mNormals[v], sizeof(Math::float3));
             }
             // if (vertex_attribute_flag & VertexAttributeType::TBN && mesh->HasTangentsAndBitangents()) {
             //     memcpy(&vertex.tbn, &mesh->mTangents[v], sizeof(Math::float3));
             // }
-            if (vertex_attribute_flag & VertexAttributeType::UV0 && mesh->HasTextureCoords(0)) {
+            if (vertex_attribute_flag & VertexAttributeType::UV0 && mesh->HasTextureCoords(0))
+            {
                 memcpy(&vertex.uv0, &mesh->mTextureCoords[0][v], sizeof(Math::float2));
             }
-            if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(1)) {
+            if (vertex_attribute_flag & VertexAttributeType::UV1 && mesh->HasTextureCoords(1))
+            {
                 memcpy(&vertex.uv1, &mesh->mTextureCoords[1][v], sizeof(Math::float2));
             }
-            if (vertex_attribute_flag & VertexAttributeType::TANGENT && mesh->HasTangentsAndBitangents()) {
+            if (vertex_attribute_flag & VertexAttributeType::TANGENT && mesh->HasTangentsAndBitangents())
+            {
                 memcpy(&vertex.tangent, &mesh->mTangents[v], sizeof(Math::float3));
             }
             m_vertices.emplace_back(vertex);
@@ -204,9 +244,10 @@ void Mesh::Load() {
         m_mesh_primitives[m].index_offset = static_cast<u32>(m_indices.size());
         m_mesh_primitives[m].index_count = mesh->mNumFaces * 3;
         m_mesh_primitives[m].material_id = mesh->mMaterialIndex;
-        //memcpy(&m_mesh_primitives[m].aabb, &mesh->mAABB, sizeof(AABB));
+        // memcpy(&m_mesh_primitives[m].aabb, &mesh->mAABB, sizeof(AABB));
 
-        for (u32 f = 0; f < mesh->mNumFaces; f++) {
+        for (u32 f = 0; f < mesh->mNumFaces; f++)
+        {
             // use global indices
             m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[0]);
             m_indices.emplace_back(index_offset + mesh->mFaces[f].mIndices[1]);
@@ -230,6 +271,9 @@ void Mesh::Load() {
     assimp_importer.FreeScene();
 }
 
-const std::vector<Node> &Mesh::GetNodes() const noexcept { return m_nodes; }
+const std::vector<Node> &Mesh::GetNodes() const noexcept
+{
+    return m_nodes;
+}
 
 } // namespace Horizon

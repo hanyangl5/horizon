@@ -3,9 +3,11 @@
 #include <core/definations.h>
 #include <rhi/enums.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class Texture {
+class Texture
+{
   public:
     Texture(const TextureCreateInfo &texture_create_info) noexcept;
     virtual ~Texture() noexcept = default;

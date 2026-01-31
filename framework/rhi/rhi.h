@@ -16,11 +16,13 @@
 #include <rhi/swap_chain.h>
 #include <rhi/texture.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
 extern thread_local CommandContext *thread_command_context;
 
-struct QueueSubmitInfo {
+struct QueueSubmitInfo
+{
     CommandQueueType queue_type;
     std::vector<CommandList *> command_lists;
     std::vector<Semaphore *> wait_semaphores;
@@ -29,12 +31,14 @@ struct QueueSubmitInfo {
     bool signal_render_complete = false;
 };
 
-struct QueuePresentInfo {
+struct QueuePresentInfo
+{
     // std::vector<Semaphore *> wait_semaphores; // we only need to wait render complete semaphore
     SwapChain *swap_chain;
 };
 
-class RHI {
+class RHI
+{
   public:
     RHI() noexcept;
 
@@ -99,7 +103,10 @@ class RHI {
 
     virtual void Present(const QueuePresentInfo &queue_present_info) = 0;
 
-    void SetWindow(Window *window) noexcept { m_window = window; }
+    void SetWindow(Window *window) noexcept
+    {
+        m_window = window;
+    }
 
     virtual double QueryResult() = 0;
 
@@ -115,7 +122,8 @@ std::unique_ptr<RHI> CreateRenderBackend(RenderBackend render_backend, bool offs
 
 } // namespace Horizon::Backend
 
-namespace Horizon {
+namespace Horizon
+{
 using Buffer = Backend::Buffer;
 using Texture = Backend::Texture;
 using RenderTarget = Backend::RenderTarget;

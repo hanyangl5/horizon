@@ -1,6 +1,7 @@
 #include "ambient_occlusion.h"
 
-AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rhi) {
+AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
+{
 
     ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao.comp.hlsl");
     ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hlsl");
@@ -34,7 +35,8 @@ AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rh
     std::uniform_real_distribution<float> rnd_dist(0.0, 1.0); // random floats between [0.0, 1.0]
     std::default_random_engine generator;
 
-    for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i) {
+    for (unsigned int i = 0; i < SSAO_KERNEL_SIZE; ++i)
+    {
         Math::float3 sample(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator));
         sample.Normalize();
         sample *= rnd_dist(generator);
@@ -43,7 +45,8 @@ AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rh
         ssao_constansts.kernels[i] = Math::float4(sample);
     }
     // ssao noise tex
-    for (u32 i = 0; i < ssao_noise_tex_val.size(); i++) {
+    for (u32 i = 0; i < ssao_noise_tex_val.size(); i++)
+    {
         ssao_noise_tex_val[i] = Math::float2(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f);
     }
     char *begin = reinterpret_cast<char *>(&ssao_noise_tex_val[0]);
@@ -54,7 +57,8 @@ AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rh
     ssao_blur_pass->SetComputeShader(ssao_blur_cs);
 }
 
-AmbientOcclusionPass::~AmbientOcclusionPass() noexcept {
+AmbientOcclusionPass::~AmbientOcclusionPass() noexcept
+{
 
     mRhi->DestroyShader(ssao_cs);
     mRhi->DestroyPipeline(ssao_pass);

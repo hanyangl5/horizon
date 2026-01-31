@@ -4,9 +4,11 @@
 #include <rhi/enums.h>
 #include <rhi/shader.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class Pipeline {
+class Pipeline
+{
   public:
     Pipeline() noexcept;
     virtual ~Pipeline() noexcept;

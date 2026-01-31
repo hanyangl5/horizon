@@ -5,9 +5,11 @@
 #include <core/definations.h>
 #include <rhi/enums.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-class TextureLoader {
+class TextureLoader
+{
   public:
     static TextureDataDesc Load(const std::filesystem::path &path);
     // jpg, png

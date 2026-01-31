@@ -6,9 +6,11 @@
 #include <rhi/vulkan/vulkan_descriptor_set_allocator.h>
 #include <rhi/vulkan/vulkan_utils.h>
 
-namespace Horizon::Backend {
+namespace Horizon::Backend
+{
 
-class VulkanPipeline : public Pipeline {
+class VulkanPipeline : public Pipeline
+{
   public:
     VulkanPipeline(const VulkanRendererContext &context, const GraphicsPipelineCreateInfo &create_info,
                    VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept;
@@ -27,9 +29,11 @@ class VulkanPipeline : public Pipeline {
 
     DescriptorSet *GetDescriptorSet() override;
     DescriptorSet *GetBindlessDescriptorSet() override;
-    
 
-    const RootSignatureDesc &GetRootSignatureDesc() const noexcept { return rsd; }
+    const RootSignatureDesc &GetRootSignatureDesc() const noexcept
+    {
+        return rsd;
+    }
 
   private:
     void CreateGraphicsPipeline();

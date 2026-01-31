@@ -2,8 +2,10 @@
 
 #include <rhi/enums.h>
 
-namespace Horizon::Backend {
-class Semaphore {
+namespace Horizon::Backend
+{
+class Semaphore
+{
   public:
     Semaphore() noexcept {};
     virtual ~Semaphore() noexcept = default;

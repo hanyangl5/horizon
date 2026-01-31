@@ -2,7 +2,8 @@
 
 #include "header.h"
 
-class SceneData {
+class SceneData
+{
   public:
     SceneData(SceneManager *scene_manager) noexcept;
     ~SceneData() noexcept = default;

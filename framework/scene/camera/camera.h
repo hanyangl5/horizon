@@ -1,29 +1,39 @@
 /*****************************************************************/ /**
- * \file   Camera.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   Camera.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
-#include <core/math.h>
 #include <core/glfwinput.h>
+#include <core/math.h>
 
-namespace Horizon {
+namespace Horizon
+{
 
-enum class ProjectionMode { PERSPECTIVE, ORTHOGRAPHIC };
+enum class ProjectionMode
+{
+    PERSPECTIVE,
+    ORTHOGRAPHIC
+};
 
-enum class CameraType { FLY };
+enum class CameraType
+{
+    FLY
+};
 
-struct CameraSetting {
+struct CameraSetting
+{
     ProjectionMode project_mode{};
     CameraType camera_type{};
     bool moveable = true;
 };
 
-class Camera {
+class Camera
+{
   public:
     Camera(const CameraSetting &setting, const Math::float3 &position, const Math::float3 &at,
            const Math::float3 &up) noexcept;
@@ -50,7 +60,7 @@ class Camera {
 
     Math::float4x4 GetInvProjectionMatrix() const noexcept;
 
-    //void setLookAt(Math::float3 position, Math::float3 at, Math::float3 up = Math::float3(0.0f, 1.0f, 0.0f));
+    // void setLookAt(Math::float3 position, Math::float3 at, Math::float3 up = Math::float3(0.0f, 1.0f, 0.0f));
 
     Math::float4x4 GetViewMatrix() const noexcept;
 
@@ -95,7 +105,7 @@ class Camera {
     f32 m_near_plane, m_far_plane;
     f32 m_camera_speed{};
 
-    //exposure settings
+    // exposure settings
     f32 m_aperture;
     f32 m_shutter_speed;
     f32 m_iso;

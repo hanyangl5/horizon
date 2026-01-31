@@ -1,10 +1,10 @@
 /*****************************************************************/ /**
- * \file   WindowInput.h
- * \brief  
- * 
- * \author hylu
- * \date   November 2022
- *********************************************************************/
+                                                                     * \file   WindowInput.h
+                                                                     * \brief
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   November 2022
+                                                                     *********************************************************************/
 
 #pragma once
 
@@ -12,9 +12,11 @@
 
 #include <core/math.h>
 
-namespace Horizon::Input {
+namespace Horizon::Input
+{
 
-enum class Key {
+enum class Key
+{
     ESCAPE,
     SPACE,
     KEY_W,
@@ -29,11 +31,28 @@ enum class Key {
     KEY_4,
 };
 
-enum class MouseButton { LEFT_BUTTON, RIGHT_BUTTON };
+enum class MouseButton
+{
+    LEFT_BUTTON,
+    RIGHT_BUTTON
+};
 
-enum class INPUT_STATE { PRESS, RELEASE };
+enum class INPUT_STATE
+{
+    PRESS,
+    RELEASE
+};
 
-enum class Direction { INVALID, FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
+enum class Direction
+{
+    INVALID,
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN
+};
 
 extern f32 last_x;
 extern f32 last_y;
