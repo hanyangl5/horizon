@@ -55,59 +55,44 @@ void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps)
     }
 }
 
-DescriptorSet *VulkanPipeline::GetDescriptorSet()
+void VulkanPipeline::SetResource(Buffer *resource, const std::string &resource_name)
 {
+    auto ds = m_descriptor_set_allocator.GetDescriptorSet(this);
 
-    if (!m_descriptor_set_allocator.m_temp_descriptor_pool)
-    {
-        m_descriptor_set_allocator.CreateDescriptorPool();
-    }
-
-    VkDescriptorSetAllocateInfo alloc_info{};
-    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-
-    VkDescriptorSetLayout layout =
-        m_descriptor_set_allocator.GetVkDescriptorSetLayout(this->m_pipeline_layout_desc.descriptor_set_hash_key);
-
-    alloc_info.descriptorPool = m_descriptor_set_allocator.m_temp_descriptor_pool;
-    alloc_info.descriptorSetCount = 1;
-    alloc_info.pSetLayouts = &layout;
-    VkDescriptorSet vk_ds{};
-    CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
-    DescriptorSet *set = new VulkanDescriptorSet(m_context, DEFAULT_DESCRIPTOR_SET_NUMBER,
-                                                 rsd.descriptors[DEFAULT_DESCRIPTOR_SET_NUMBER], vk_ds);
-    m_descriptor_set_allocator.allocated_sets.push_back(set);
-    return set;
+    ds->SetResource(resource, resource_name);
 }
-DescriptorSet *VulkanPipeline::GetBindlessDescriptorSet()
+void VulkanPipeline::SetResource(Texture *resource, const std::string &resource_name)
 {
+    auto ds = m_descriptor_set_allocator.GetDescriptorSet(this);
 
-    if (!m_descriptor_set_allocator.m_bindless_descriptor_pool)
-    {
-        m_descriptor_set_allocator.CreateBindlessDescriptorPool();
-    }
+    ds->SetResource(resource, resource_name);
+}
+void VulkanPipeline::SetResource(Sampler *resource, const std::string &resource_name)
+{
+    auto ds = m_descriptor_set_allocator.GetDescriptorSet(this);
 
-    VkDescriptorSetAllocateInfo alloc_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    alloc_info.descriptorPool = m_descriptor_set_allocator.m_bindless_descriptor_pool;
+    ds->SetResource(resource, resource_name);
+}
+void VulkanPipeline::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name)
+{
+    auto ds = m_descriptor_set_allocator.GetBindlessDescriptorSet(this);
 
-    alloc_info.descriptorSetCount = 1;
-    VkDescriptorSetLayout layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
-        this->m_pipeline_layout_desc.bindless_descriptor_set_hash_key);
-    alloc_info.pSetLayouts = &layout;
+    ds->SetBindlessResource(resource, resource_name);
+}
+void VulkanPipeline::SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name)
+{
+    auto ds = m_descriptor_set_allocator.GetBindlessDescriptorSet(this);
 
-    VkDescriptorSetVariableDescriptorCountAllocateInfo count_info{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT};
-    u32 max_binding = m_descriptor_set_allocator.k_max_bindless_resources;
-    count_info.descriptorSetCount = 1;
-    // This number is the max allocatable count
-    count_info.pDescriptorCounts = &max_binding;
-    alloc_info.pNext = &count_info;
-    VkDescriptorSet vk_ds{};
-    CHECK_VK_RESULT(vkAllocateDescriptorSets(m_context.device, &alloc_info, &vk_ds));
-    DescriptorSet *set = new VulkanDescriptorSet(m_context, BINDLESS_DESCRIPTOR_SET_NUMBER,
-                                                 rsd.descriptors[BINDLESS_DESCRIPTOR_SET_NUMBER], vk_ds);
-    m_descriptor_set_allocator.allocated_sets.push_back(set);
-    return set;
+    ds->SetBindlessResource(resource, resource_name);
+}
+
+VulkanDescriptorSet *VulkanPipeline::GetDescriptorSet()
+{
+    return m_descriptor_set_allocator.GetDescriptorSet(this);
+}
+VulkanDescriptorSet *VulkanPipeline::GetBindlessDescriptorSet()
+{
+    return m_descriptor_set_allocator.GetBindlessDescriptorSet(this);
 }
 void VulkanPipeline::CreateGraphicsPipeline()
 {

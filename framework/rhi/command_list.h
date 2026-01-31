@@ -73,7 +73,7 @@ class CommandList
 
     virtual void ClearTextrue(Texture *texture, const ClearColorValue &clear_value) = 0;
 
-    virtual void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) = 0;
+    //virtual void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) = 0;
 
     virtual void GenerateMipMap(Texture *texture) = 0;
 

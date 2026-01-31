@@ -4,8 +4,8 @@ AutoExposure::AutoExposure(Backend::RHI *rhi) noexcept : mRhi(rhi)
 {
     // PP PASS
     luminance_histogram_cs =
-        rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl");
-    luminance_average_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_average.comp.hlsl");
+        rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");
+    luminance_average_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_average.comp.hlsl", "main");
     luminance_histogram_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     luminance_average_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
 
@@ -39,7 +39,7 @@ AutoExposure::~AutoExposure() noexcept
 PostProcessingPass::PostProcessingPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
 {
     // PP PASS
-    post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hlsl");
+    post_process_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hlsl", "main");
     post_process_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     pp_color_image = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,

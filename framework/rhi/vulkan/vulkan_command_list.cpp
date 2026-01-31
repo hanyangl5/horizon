@@ -505,6 +505,18 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline)
         vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
         vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
     }
+    if (auto set = vk_pipeline->GetDescriptorSet())
+    {
+        set->Update();
+        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0, 1, &set->m_set, 0,
+                                nullptr);
+    }
+    if (auto set = vk_pipeline->GetBindlessDescriptorSet())
+    {
+        set->Update();
+        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 1, 1,
+                                &set->m_set, 0, nullptr);
+    }
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }
 
@@ -544,17 +556,17 @@ void VulkanCommandList::ClearTextrue(Texture *texture, const ClearColorValue &cl
     // vkCmdClearColorImage();
 }
 
-void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set)
-{
-    auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
-    VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
+// void VulkanCommandList::BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set)
+// {
+//     auto vk_pipeline = reinterpret_cast<VulkanPipeline *>(pipeline);
+//     VkPipelineBindPoint bind_point = ToVkPipelineBindPoint(pipeline->GetType());
 
-    auto vk_set = reinterpret_cast<VulkanDescriptorSet *>(set);
+//     auto vk_set = reinterpret_cast<VulkanDescriptorSet *>(set);
 
-    vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, set->GetSetNumber(), 1,
-                            &vk_set->m_set, 0,
-                            0); // TODO(hylu): batch update
-}
+//     vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, set->GetSetNumber(), 1,
+//                             &vk_set->m_set, 0,
+//                             0); // TODO(hylu): batch update
+// }
 
 void VulkanCommandList::GenerateMipMap(Texture *texture)
 {

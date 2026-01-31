@@ -9,7 +9,7 @@
 #include <rhi/vulkan/vulkan_sampler.h>
 #include <rhi/vulkan/vulkan_shader.h>
 #include <rhi/vulkan/vulkan_texture.h>
-
+#include <rhi/vulkan/vulkan_descriptor_set.h>
 namespace Horizon::Backend
 {
 
@@ -40,6 +40,8 @@ class VulkanDescriptorSetAllocator
 
     void CreateDescriptorSetLayout(VulkanPipeline *pipeline);
 
+    VulkanDescriptorSet *GetDescriptorSet(VulkanPipeline *pipeline);
+    VulkanDescriptorSet *GetBindlessDescriptorSet(VulkanPipeline *pipeline);
   public:
     const VulkanRendererContext &m_context{};
 
@@ -47,8 +49,9 @@ class VulkanDescriptorSetAllocator
     VkDescriptorSet m_empty_descriptor_set{};
 
     std::unordered_map<u64, VkDescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
-
-    std::vector<DescriptorSet *> allocated_sets{};
+    std::unordered_map<void *, VulkanDescriptorSet *> allocated_descriptorsets;
+    std::unordered_map<void*, VulkanDescriptorSet *> allocated_bindless_descriptorsets;
+    //std::vector<DescriptorSet *> allocated_sets{};
     VkDescriptorPool m_temp_descriptor_pool{};
 
     // bindless

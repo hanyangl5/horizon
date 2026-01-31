@@ -155,7 +155,7 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
     if (ShaderCompiler::NeedsRecompilation(hlsl_path, spirv_path))
     {
         LOG_DEBUG("Compiling shader: {} -> {}", hlsl_path.string(), spirv_path.string());
-        if (!ShaderCompiler::CompileHLSLToSPIRV(hlsl_path, spirv_path, type, shader_dir, saved_shader_dir))
+        if (!ShaderCompiler::CompileHLSLToSPIRV(hlsl_path, spirv_path, type, shader_dir, saved_shader_dir, entry_point))
         {
             LOG_ERROR("Failed to compile shader: {}", hlsl_path.string());
             return nullptr;

@@ -22,6 +22,8 @@ namespace Horizon::Backend
 
 bool ShaderCompiler::NeedsRecompilation(const Path &hlsl_path, const Path &spv_path)
 {
+    // TODO(hyl5): alos need to check include file modification time
+    return true;
     // If SPV doesn't exist, need to compile
     if (!spv_path.exists())
     {
@@ -170,7 +172,7 @@ std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const Path &shade
 }
 
 bool ShaderCompiler::CompileHLSLToSPIRV(const Path &hlsl_path, const Path &output_spv_path, ShaderType shader_type,
-                                        const Path &shader_dir, const Path &saved_shader_dir)
+                                        const Path &shader_dir, const Path &saved_shader_dir, const char *entry_point)
 {
     // Check if source exists
     if (!hlsl_path.exists())

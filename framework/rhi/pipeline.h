@@ -22,13 +22,18 @@ class Pipeline
 
     virtual void SetComputeShader(Shader *vs) = 0;
     virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
+    virtual void SetResource(Buffer *resource, const std::string &resource_name) = 0;
+    virtual void SetResource(Texture *resource, const std::string &resource_name) = 0;
+    virtual void SetResource(Sampler *resource, const std::string &resource_name) = 0;
 
-    virtual DescriptorSet *GetDescriptorSet() = 0;
-    virtual DescriptorSet *GetBindlessDescriptorSet() = 0;
+    virtual void SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) = 0;
+    virtual void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) = 0;
 
   protected:
     void ParseRootSignature();
     void ParseRootSignatureFromShader(Shader *shader);
+    //virtual DescriptorSet *GetDescriptorSet() = 0;
+    //virtual DescriptorSet *GetBindlessDescriptorSet() = 0;
 
   protected:
     // array contain all kinds of shaders

@@ -4,7 +4,7 @@ AntialiasingPass::AntialiasingPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
 {
     // PP PASS
 
-    taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "taa.comp.hlsl");
+    taa_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "taa.comp.hlsl", "main");
     taa_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     previous_color_texture = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,

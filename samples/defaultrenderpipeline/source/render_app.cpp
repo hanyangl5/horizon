@@ -227,20 +227,15 @@ void Render::run()
                 rhi->SubmitCommandLists(submit_info);
             }
         }
-        auto geometry_pass_per_frame_ds = deferred->geometry_pass->GetDescriptorSet(); // Set 0: per-frame resources
 
         // perframe descriptor set
-        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
-        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->instance_parameter_buffer,
+        deferred->geometry_pass->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
+        deferred->geometry_pass->SetResource(scene->m_scene_manager->instance_parameter_buffer,
                                                 "instance_parameter");
-        geometry_pass_per_frame_ds->SetResource(scene->m_scene_manager->material_description_buffer,
+                                                deferred->geometry_pass->SetResource(scene->m_scene_manager->material_description_buffer,
                                                 "material_descriptions");
-        geometry_pass_per_frame_ds->SetResource(sampler, "default_sampler");
-        geometry_pass_per_frame_ds->SetResource(antialiasing->taa_prev_curr_offset_buffer, "TAAOffsets_cb");
-        geometry_pass_per_frame_ds->Update();
-
-        auto geometry_pass_bindless_ds =
-            deferred->geometry_pass->GetBindlessDescriptorSet(); // Set 4: bindless resources
+        deferred->geometry_pass->SetResource(sampler, "default_sampler");
+        deferred->geometry_pass->SetResource(antialiasing->taa_prev_curr_offset_buffer, "TAAOffsets_cb");
 
         std::vector<Texture *> material_textures;
 
@@ -255,9 +250,7 @@ void Render::run()
             veretx_buffers.push_back(vb);
         }
 
-        geometry_pass_bindless_ds->SetBindlessResource(material_textures, "material_textures");
-        // geometry_pass_bindless_ds->SetBindlessResource(veretx_buffers, "vertex_buffers");
-        geometry_pass_bindless_ds->Update();
+        deferred->geometry_pass ->SetBindlessResource(material_textures, "material_textures");
         // geometry pass
 
         auto gp_semaphore = rhi->CreateSemaphore1();
@@ -316,8 +309,8 @@ void Render::run()
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
             begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
             begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
-            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
-            cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
+            //cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
+            //cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
 
             cl->BeginRenderPass(begin_info);
 
@@ -403,19 +396,17 @@ void Render::run()
             auto compute = rhi->GetCommandList(CommandQueueType::COMPUTE);
             compute->BeginRecording();
 
-            auto ao_ds = ssao->ssao_pass->GetDescriptorSet(); // Set 0: per-frame resources
             // ao pass
             {
-                ao_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
-                ao_ds->SetResource(deferred->gbuffer0->GetTexture(), "normal_tex");
-                ao_ds->SetResource(sampler, "default_sampler");
-                ao_ds->SetResource(ssao->ssao_factor_image, "ao_factor_tex");
-                ao_ds->SetResource(ssao->ssao_constants_buffer, "SSAOConstant_cb");
-                ao_ds->SetResource(ssao->ssao_noise_tex, "ssao_noise_tex");
-                ao_ds->Update();
+                ssao->ssao_pass->SetResource(deferred->depth->GetTexture(), "depth_tex");
+                ssao->ssao_pass->SetResource(deferred->gbuffer0->GetTexture(), "normal_tex");
+                ssao->ssao_pass->SetResource(sampler, "default_sampler");
+                ssao->ssao_pass->SetResource(ssao->ssao_factor_image, "ao_factor_tex");
+                ssao->ssao_pass->SetResource(ssao->ssao_constants_buffer, "SSAOConstant_cb");
+                ssao->ssao_pass->SetResource(ssao->ssao_noise_tex, "ssao_noise_tex");
 
                 compute->BindPipeline(ssao->ssao_pass);
-                compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
+                //compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
 
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
@@ -431,16 +422,12 @@ void Render::run()
                 compute->InsertBarrier(barrier);
             }
 
-            auto ao_blur_ds = ssao->ssao_blur_pass->GetDescriptorSet(); // Set 0: per-frame resources
-
             {
-                ao_blur_ds->SetResource(ssao->ssao_factor_image, "ssao_blur_in");
-                ao_blur_ds->SetResource(ssao->ssao_blur_image, "ssao_blur_out");
-
-                ao_blur_ds->Update();
+                ssao->ssao_blur_pass->SetResource(ssao->ssao_factor_image, "ssao_blur_in");
+                ssao->ssao_blur_pass->SetResource(ssao->ssao_blur_image, "ssao_blur_out");
 
                 compute->BindPipeline(ssao->ssao_blur_pass);
-                compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
+                //compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
 
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
@@ -455,29 +442,26 @@ void Render::run()
                 compute->InsertBarrier(barrier);
             }
 
-            auto shading_ds = deferred->shading_pass->GetDescriptorSet(); // Set 0: per-frame resources
             // shading pass
             {
 
-                shading_ds->SetResource(deferred->gbuffer0->GetTexture(), "gbuffer0_tex");
-                shading_ds->SetResource(deferred->gbuffer1->GetTexture(), "gbuffer1_tex");
-                shading_ds->SetResource(deferred->gbuffer2->GetTexture(), "gbuffer2_tex");
-                shading_ds->SetResource(deferred->gbuffer3->GetTexture(), "gbuffer3_tex");
-                shading_ds->SetResource(deferred->depth->GetTexture(), "depth_tex");
+                deferred->shading_pass->SetResource(deferred->gbuffer0->GetTexture(), "gbuffer0_tex");
+                deferred->shading_pass->SetResource(deferred->gbuffer1->GetTexture(), "gbuffer1_tex");
+                deferred->shading_pass->SetResource(deferred->gbuffer2->GetTexture(), "gbuffer2_tex");
+                deferred->shading_pass->SetResource(deferred->gbuffer3->GetTexture(), "gbuffer3_tex");
+                deferred->shading_pass->SetResource(deferred->depth->GetTexture(), "depth_tex");
                 // shading_ds->SetResource(sampler, "default_sampler");
-                shading_ds->SetResource(deferred->deferred_shading_constants_buffer, "DeferredShadingConstants_cb");
-                shading_ds->SetResource(scene->m_scene_manager->GetLightCountBuffer(), "LightCountUb_cb");
-                shading_ds->SetResource(scene->m_scene_manager->GetLightParamBuffer(), "LightDataUb_cb");
-                shading_ds->SetResource(deferred->shading_color_image, "out_color");
-                shading_ds->SetResource(ssao->ssao_blur_image, "ao_tex");
-                shading_ds->SetResource(deferred->diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3_cb");
-                shading_ds->SetResource(deferred->prefiltered_irradiance_env_map, "specular_map");
-                shading_ds->SetResource(deferred->brdf_lut, "specular_brdf_lut");
-                shading_ds->SetResource(deferred->ibl_sampler, "ibl_sampler");
-                shading_ds->Update();
+                deferred->shading_pass->SetResource(deferred->deferred_shading_constants_buffer, "DeferredShadingConstants_cb");
+                deferred->shading_pass->SetResource(scene->m_scene_manager->GetLightCountBuffer(), "LightCountUb_cb");
+                deferred->shading_pass->SetResource(scene->m_scene_manager->GetLightParamBuffer(), "LightDataUb_cb");
+                deferred->shading_pass->SetResource(deferred->shading_color_image, "out_color");
+                deferred->shading_pass->SetResource(ssao->ssao_blur_image, "ao_tex");
+                deferred->shading_pass->SetResource(deferred->diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3_cb");
+                deferred->shading_pass->SetResource(deferred->prefiltered_irradiance_env_map, "specular_map");
+                deferred->shading_pass->SetResource(deferred->brdf_lut, "specular_brdf_lut");
+                deferred->shading_pass->SetResource(deferred->ibl_sampler, "ibl_sampler");
 
                 compute->BindPipeline(deferred->shading_pass);
-                compute->BindDescriptorSets(deferred->shading_pass, shading_ds);
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
 
@@ -494,17 +478,12 @@ void Render::run()
             }
 
             {
-                auto auto_exposure_pass = post_process->auto_exposure_pass.get();
-                auto histogram_ds =
-                    auto_exposure_pass->luminance_histogram_pass->GetDescriptorSet(); // Set 0: per-frame resources
-                histogram_ds->SetResource(deferred->shading_color_image, "color_image");
-                histogram_ds->SetResource(auto_exposure_pass->luminance_histogram_constants_buffer,
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(deferred->shading_color_image, "color_image");
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
                                           "LuminanceHistogramConstants_cb");
-                histogram_ds->SetResource(auto_exposure_pass->histogram_buffer, "histogram");
-                histogram_ds->SetResource(auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
-                histogram_ds->Update();
-                compute->BindPipeline(auto_exposure_pass->luminance_histogram_pass);
-                compute->BindDescriptorSets(auto_exposure_pass->luminance_histogram_pass, histogram_ds);
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->histogram_buffer, "histogram");
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
+                compute->BindPipeline(post_process->auto_exposure_pass->luminance_histogram_pass);
                 compute->Dispatch(AlignUp<u32>(width, 16), AlignUp<u32>(height, 16), 1);
                 {
                     BarrierDesc histogram_barrier{};
@@ -512,20 +491,16 @@ void Render::run()
                     BufferBarrierDesc mb{};
                     mb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                     mb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                    mb.buffer = auto_exposure_pass->histogram_buffer;
+                    mb.buffer = post_process->auto_exposure_pass->histogram_buffer;
                     histogram_barrier.buffer_memory_barriers.push_back(mb);
 
                     compute->InsertBarrier(histogram_barrier);
                 }
-                auto luminance_average_ds =
-                    auto_exposure_pass->luminance_average_pass->GetDescriptorSet(); // Set 0: per-frame resources
-                luminance_average_ds->SetResource(auto_exposure_pass->luminance_histogram_constants_buffer,
+                post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
                                                   "LuminanceHistogramConstants_cb");
-                luminance_average_ds->SetResource(auto_exposure_pass->histogram_buffer, "histogram");
-                luminance_average_ds->SetResource(auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
-                luminance_average_ds->Update();
-                compute->BindPipeline(auto_exposure_pass->luminance_average_pass);
-                compute->BindDescriptorSets(auto_exposure_pass->luminance_average_pass, luminance_average_ds);
+                post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->histogram_buffer, "histogram");
+                post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
+                compute->BindPipeline(post_process->auto_exposure_pass->luminance_average_pass);
                 compute->Dispatch(1, 1, 1);
 
                 {
@@ -534,24 +509,21 @@ void Render::run()
                     BufferBarrierDesc mb{};
                     mb.src_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
                     mb.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                    mb.buffer = auto_exposure_pass->adapted_muminance_buffer;
+                    mb.buffer = post_process->auto_exposure_pass->adapted_muminance_buffer;
                     histogram_barrier.buffer_memory_barriers.push_back(mb);
 
                     compute->InsertBarrier(histogram_barrier);
                 }
             }
 
-            auto pp_ds = post_process->post_process_pass->GetDescriptorSet(); // Set 0: per-frame resources
             {
-                pp_ds->SetResource(deferred->shading_color_image, "color_image");
-                pp_ds->SetResource(post_process->pp_color_image, "out_color_image");
+                post_process->post_process_pass->SetResource(deferred->shading_color_image, "color_image");
+                post_process->post_process_pass->SetResource(post_process->pp_color_image, "out_color_image");
                 // pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
-                pp_ds->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
-
-                pp_ds->Update();
+                post_process->post_process_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
 
                 compute->BindPipeline(post_process->post_process_pass);
-                compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
+                //compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
             }
 
@@ -569,17 +541,13 @@ void Render::run()
                     compute->InsertBarrier(pp_image_barrier);
                 }
 
-                auto taa_ds = antialiasing->taa_pass->GetDescriptorSet(); // Set 0: per-frame resources
                 {
-                    taa_ds->SetResource(antialiasing->previous_color_texture, "prev_color_tex");
-                    taa_ds->SetResource(post_process->pp_color_image, "curr_color_tex");
-                    taa_ds->SetResource(deferred->gbuffer4->GetTexture(), "mv_tex");
-                    taa_ds->SetResource(antialiasing->output_color_texture, "out_color_tex");
-
-                    taa_ds->Update();
+                    antialiasing->taa_pass->SetResource(antialiasing->previous_color_texture, "prev_color_tex");
+                    antialiasing->taa_pass->SetResource(post_process->pp_color_image, "curr_color_tex");
+                    antialiasing->taa_pass->SetResource(deferred->gbuffer4->GetTexture(), "mv_tex");
+                    antialiasing->taa_pass->SetResource(antialiasing->output_color_texture, "out_color_tex");
 
                     compute->BindPipeline(antialiasing->taa_pass);
-                    compute->BindDescriptorSets(antialiasing->taa_pass, taa_ds);
                     compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
                 }
                 {

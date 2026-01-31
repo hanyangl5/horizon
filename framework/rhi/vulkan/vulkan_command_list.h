@@ -64,7 +64,7 @@ class VulkanCommandList : public CommandList
 
     void ClearTextrue(Texture *texture, const ClearColorValue &clear_value) override;
 
-    void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
+    //void BindDescriptorSets(Pipeline *pipeline, DescriptorSet *set) override;
 
     void GenerateMipMap(Texture *texture) override;
     void BeginQuery() override;

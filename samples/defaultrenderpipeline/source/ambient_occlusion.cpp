@@ -3,8 +3,8 @@
 AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
 {
 
-    ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao.comp.hlsl");
-    ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hlsl");
+    ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao.comp.hlsl", "main");
+    ssao_blur_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hlsl", "main");
 
     // AO PASS
     {
