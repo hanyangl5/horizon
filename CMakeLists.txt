@@ -12,6 +12,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(third_party)
-add_subdirectory(src)
+add_subdirectory(framework)
 add_subdirectory(unit_tests)
 add_subdirectory(samples)

@@ -43,6 +43,9 @@ add_subdirectory(glfw3)
 add_subdirectory(spdlog)
 add_subdirectory(VulkanMemoryAllocator)
 
+target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_reflect.c)
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_reflect.c PROPERTIES LANGUAGE C)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE  glfw simplemath spdlog GPUOpen::VulkanMemoryAllocator assimp)
 
 set_property(TARGET ${PROJECT_NAME} glfw simplemath spdlog VulkanMemoryAllocator

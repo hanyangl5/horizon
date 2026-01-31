@@ -1,11 +1,11 @@
 .vscode
 build
+build*
 out
 tools/HSLCompiler/generators/__pycache__
 tools/HSLCompiler/__pycache__
 
 .cache
 
-samples/*/shaders/bin
-samples/*/shaders/generated
+samples/*/shaders/
 samples/*/config.hpp

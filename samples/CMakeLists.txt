@@ -1,24 +1,28 @@
 include(${CMAKE_SOURCE_DIR}/cmake/compiler_args.cmake)
+#find_package(Python3 REQUIRED)
 
 macro(addproject projectdir)
     project(${projectdir})
-    file(GLOB APP_HEADERS ${projectdir}/*.h)
-    file(GLOB APP_SOURCES ${projectdir}/*.cpp)
+    file(GLOB APP_HEADERS ${projectdir}/source/*.h)
+    file(GLOB APP_SOURCES ${projectdir}/source/*.cpp)
 
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${APP_HEADERS} ${APP_SOURCES})
 
     add_executable(${PROJECT_NAME} ${APP_HEADERS} ${APP_SOURCES})
 
-    target_link_libraries(${PROJECT_NAME} PUBLIC runtime)
-    target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(${PROJECT_NAME} PUBLIC framework)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/framework)
+    set(ASSET_DIR "${CMAKE_SOURCE_DIR}/assets")
+    set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/shaders")
+    set(SAVED_SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/saved/shaders")
 
-    set(ASSET_DIR ${CMAKE_SOURCE_DIR}/assets)
-    set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/shaders)
-
-    configure_file(${projectdir}/config.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/config.hpp)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        ASSET_DIR="${ASSET_DIR}"
+        SHADER_DIR="${SHADER_DIR}"
+        SAVED_SHADER_DIR="${SAVED_SHADER_DIR}"
+    )
     set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "samples")
     configure_compile_options(${projectdir})
 endmacro()
 
-addproject(renderer_v1)
-addproject(hbao)
+addproject(defaultrenderpipeline)

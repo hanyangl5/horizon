@@ -53,11 +53,10 @@ cmake -D build .
 
 build the project
 
-run compile_shaders.py under project source file to compile project shaders
+compile shaders before running samples:
 
-```
-python compile_shaders.py
-```
+- **Legacy (HSL):** run `compile_shaders.py` in each sample dir (e.g. `samples/renderer_v1/`, `samples/hbao/`). The HSL compiler is **deprecated**; see `tools/HSLCompiler/DEPRECATED.md`.
+- **Preferred (HLSL):** use DXC only. Run `tools/compile_hlsl/compile_hlsl.py` for HLSL samples (see `tools/compile_hlsl/README.md`). Output is SPIR-V; descriptor set layout comes from runtime reflection (spirv-reflect). Requires DXC on `PATH` or `DXC_PATH`.
 
 then run any samples
 

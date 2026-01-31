@@ -1,0 +1,83 @@
+#include "include/shading/material_params_defination.hlsl"
+#include "include/shading/light_defination.h"
+#include "include/shading/lighting_hlsl.h"
+#include "include/shading/ibl_hlsl.h"
+#include "include/translation/translation.h"
+#include "include/common/common_math.h"
+
+// Set 0: Per-frame resources
+
+[[vk::binding(0, 0)]] Texture2D<float4> gbuffer0_tex;
+[[vk::binding(1, 0)]] Texture2D<float4> gbuffer1_tex;
+[[vk::binding(2, 0)]] Texture2D<float4> gbuffer2_tex; // Force keep even if unused
+[[vk::binding(3, 0)]] Texture2D<float4> gbuffer3_tex;
+[[vk::binding(4, 0)]] Texture2D<float4> depth_tex;
+//[[vk::binding(5, 0)]] SamplerState default_sampler;
+
+struct DeferredShadingConstants {
+    float4x4 inverse_vp;
+    float4 camera_pos_exposure;
+    uint2 resolution;
+    float2 ibl_intensity;
+};
+[[vk::binding(6, 0)]] ConstantBuffer<DeferredShadingConstants> DeferredShadingConstants_cb;
+
+struct LightCountUb { uint light_count; };
+[[vk::binding(7, 0)]] ConstantBuffer<LightCountUb> LightCountUb_cb;
+
+struct LightDataUb { LightParams light_data[MAX_DYNAMIC_LIGHT_COUNT]; };
+[[vk::binding(8, 0)]] ConstantBuffer<LightDataUb> LightDataUb_cb;
+
+[[vk::image_format("rgba16f"),vk::binding(9, 0)]] RWTexture2D<float4> out_color;
+[[vk::image_format("rgba8"),vk::binding(10, 0)]] RWTexture2D<float4> ao_tex;
+
+[[vk::binding(11, 0)]] ConstantBuffer<DiffuseIrradianceSH3> DiffuseIrradianceSH3_cb;
+
+[[vk::binding(12, 0)]] TextureCube<float4> specular_map;
+[[vk::binding(13, 0)]] Texture2D<float4> specular_brdf_lut;
+[[vk::binding(14, 0)]] SamplerState ibl_sampler;
+
+[numthreads(8, 8, 1)]
+void main(uint3 threadID : SV_DispatchThreadID)
+{
+    uint2 _resolution = DeferredShadingConstants_cb.resolution - 1;
+    if (threadID.x > _resolution.x || threadID.y > _resolution.y)
+        return;
+
+    int3 loadCoord = int3(threadID.xy, 0);
+    float4 gbuffer0 = gbuffer0_tex.Load(loadCoord);
+    float4 gbuffer1 = gbuffer1_tex.Load(loadCoord);
+    float4 gbuffer2 = gbuffer2_tex.Load(loadCoord);
+    float4 gbuffer3 = gbuffer3_tex.Load(loadCoord);
+
+    MaterialProperties mat;
+    mat.albedo = gbuffer1.xyz;
+    mat.metallic = gbuffer3.x;
+    float roughness = max(0.045f, gbuffer3.y);
+    float alpha = gbuffer3.z;
+    mat.roughness = roughness;
+    mat.roughness2 = Pow2(roughness);
+    mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
+    mat.emissive = gbuffer2.xyz;
+    float2 uv = float2(threadID.xy) / float2(_resolution);
+    float3 world_pos = ReconstructWorldPos(DeferredShadingConstants_cb.inverse_vp, depth_tex.Load(loadCoord).r, uv);
+    float3 n = normalize(gbuffer0.xyz);
+    float3 v = -normalize(world_pos - DeferredShadingConstants_cb.camera_pos_exposure.xyz);
+    float NoV = saturate(dot(n, v));
+    float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
+    radiance.xyz += mat.emissive;
+    for (uint i = 0; i < LightCountUb_cb.light_count; i++)
+    {
+        radiance += Radiance(mat, LightDataUb_cb.light_data[i], n, v, world_pos);
+    }
+
+    float3 reflect_dir = normalize(2.0 * dot(n, v) * n - v);
+    float3 specular = specular_map.SampleLevel(ibl_sampler, reflect_dir, roughness * 8.0).xyz;
+    float2 ibl_uv = float2(roughness, NoV);
+    float2 env = specular_brdf_lut.SampleLevel(ibl_sampler, ibl_uv,0).xy;
+    float3 ambient = IBL(DiffuseIrradianceSH3_cb, specular, env, n, NoV, mat) *
+        ao_tex.Load(threadID.xy).r * DeferredShadingConstants_cb.ibl_intensity.x;
+    radiance.xyz += ambient;
+
+    out_color[threadID.xy] = radiance;
+}

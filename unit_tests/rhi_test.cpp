@@ -1,6 +1,6 @@
 
-#include <runtime/core/log/Log.h>
-#include <runtime/render/Render.h>
+#include <core/log.h>
+#include <scene/scene_renderer/renderer.h>
 
 namespace TEST {
 
