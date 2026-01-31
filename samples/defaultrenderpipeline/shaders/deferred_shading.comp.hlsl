@@ -7,12 +7,12 @@
 
 // Set 0: Per-frame resources
 
-[[vk::binding(0, 0)]] Texture2D<float4> gbuffer0_tex;
-[[vk::binding(1, 0)]] Texture2D<float4> gbuffer1_tex;
-[[vk::binding(2, 0)]] Texture2D<float4> gbuffer2_tex; // Force keep even if unused
-[[vk::binding(3, 0)]] Texture2D<float4> gbuffer3_tex;
-[[vk::binding(4, 0)]] Texture2D<float4> depth_tex;
-//[[vk::binding(5, 0)]] SamplerState default_sampler;
+Texture2D<float4> gbuffer0_tex;
+Texture2D<float4> gbuffer1_tex;
+Texture2D<float4> gbuffer2_tex; // Force keep even if unused
+Texture2D<float4> gbuffer3_tex;
+Texture2D<float4> depth_tex;
+//SamplerState default_sampler;
 
 struct DeferredShadingConstants {
     float4x4 inverse_vp;
@@ -20,22 +20,22 @@ struct DeferredShadingConstants {
     uint2 resolution;
     float2 ibl_intensity;
 };
-[[vk::binding(6, 0)]] ConstantBuffer<DeferredShadingConstants> DeferredShadingConstants_cb;
+ConstantBuffer<DeferredShadingConstants> DeferredShadingConstants_cb;
 
 struct LightCountUb { uint light_count; };
-[[vk::binding(7, 0)]] ConstantBuffer<LightCountUb> LightCountUb_cb;
+ConstantBuffer<LightCountUb> LightCountUb_cb;
 
 struct LightDataUb { LightParams light_data[MAX_DYNAMIC_LIGHT_COUNT]; };
-[[vk::binding(8, 0)]] ConstantBuffer<LightDataUb> LightDataUb_cb;
+ConstantBuffer<LightDataUb> LightDataUb_cb;
 
-[[vk::image_format("rgba16f"),vk::binding(9, 0)]] RWTexture2D<float4> out_color;
-[[vk::image_format("rgba8"),vk::binding(10, 0)]] RWTexture2D<float4> ao_tex;
+[[vk::image_format("rgba16f")]] RWTexture2D<float4> out_color;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> ao_tex;
 
-[[vk::binding(11, 0)]] ConstantBuffer<DiffuseIrradianceSH3> DiffuseIrradianceSH3_cb;
+ConstantBuffer<DiffuseIrradianceSH3> DiffuseIrradianceSH3_cb;
 
-[[vk::binding(12, 0)]] TextureCube<float4> specular_map;
-[[vk::binding(13, 0)]] Texture2D<float4> specular_brdf_lut;
-[[vk::binding(14, 0)]] SamplerState ibl_sampler;
+TextureCube<float4> specular_map;
+Texture2D<float4> specular_brdf_lut;
+SamplerState ibl_sampler;
 
 [numthreads(8, 8, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)

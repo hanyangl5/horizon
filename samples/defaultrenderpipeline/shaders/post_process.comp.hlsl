@@ -2,9 +2,9 @@
 #include "include/common/luminance.h"
 
 // Set 0: Per-frame resources
-[[vk::image_format("rgba16f"),vk::binding(0, 0)]] RWTexture2D<float4> color_image;
-[[vk::image_format("rgba8"),vk::binding(1, 0)]] RWTexture2D<float4> out_color_image;
-[[vk::binding(2, 0)]] RWStructuredBuffer<float> adaptedLuminance;
+[[vk::image_format("rgba16f")]] RWTexture2D<float4> color_image;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> out_color_image;
+RWStructuredBuffer<float> adaptedLuminance;
 
 [numthreads(8, 8, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)

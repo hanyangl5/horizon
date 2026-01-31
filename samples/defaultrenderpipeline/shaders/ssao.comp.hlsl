@@ -8,11 +8,11 @@
 #include "include/common/hlsl_common.h"
 
 // Set 0: Per-frame resources
-[[vk::binding(0, 0)]] Texture2D<float4> depth_tex;
-[[vk::binding(1, 0)]] Texture2D<float4> normal_tex;
-[[vk::binding(2, 0)]] Texture2D<float2> ssao_noise_tex;
-[[vk::binding(3, 0)]] SamplerState default_sampler;
-[[vk::image_format("rgba8"),vk::binding(4, 0)]] RWTexture2D<float4> ao_factor_tex;
+Texture2D<float4> depth_tex;
+Texture2D<float4> normal_tex;
+Texture2D<float2> ssao_noise_tex;
+SamplerState default_sampler;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> ao_factor_tex;
 
 struct SSAOConstant {
     float4x4 camera_projection;
@@ -22,7 +22,7 @@ struct SSAOConstant {
     float2 noise_scale;
     float4 kernels[SSAO_SAMPLE_COUNT];
 };
-[[vk::binding(5, 0)]] ConstantBuffer<SSAOConstant> SSAOConstant_cb;
+ConstantBuffer<SSAOConstant> SSAOConstant_cb;
 
 [numthreads(8, 8, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)

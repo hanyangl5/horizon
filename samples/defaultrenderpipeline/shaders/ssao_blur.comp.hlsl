@@ -1,6 +1,6 @@
 // Set 0: Per-frame resources
-[[vk::image_format("rgba8"),vk::binding(0, 0)]] RWTexture2D<float4> ssao_blur_in;
-[[vk::image_format("rgba8"),vk::binding(1, 0)]] RWTexture2D<float4> ssao_blur_out;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> ssao_blur_in;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> ssao_blur_out;
 
 [numthreads(8, 8, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)

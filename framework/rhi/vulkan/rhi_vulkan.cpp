@@ -146,9 +146,27 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
     }
 #endif
 
+    auto shader_type_to_extstr = [](ShaderType type) -> std::string {
+        switch (type)
+        {
+        case Horizon::ShaderType::VERTEX_SHADER:
+            return "vs";
+            break;
+        case Horizon::ShaderType::PIXEL_SHADER:
+            return "ps";
+            break;
+        case Horizon::ShaderType::COMPUTE_SHADER:
+            return "cs";
+            break;
+        default:
+            return "error";
+            break;
+        }
+    };
+
     // Construct paths
     const Path hlsl_path = file_path.is_absolute() ? file_path : (shader_dir / file_path.string());
-    const std::string stem = hlsl_path.stem();
+    const std::string stem = hlsl_path.stem() + "." + shader_type_to_extstr(type);
     const Path spirv_path = saved_shader_dir / (stem + ".spv");
 
     // Check if recompilation is needed
@@ -174,7 +192,7 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
         return nullptr;
     }
 
-    return new VulkanShader(m_vulkan, type, spirv_code);
+    return new VulkanShader(m_vulkan, type, spirv_code, entry_point);
 }
 
 void RHIVulkan::DestroyShader(Shader *shader_program)

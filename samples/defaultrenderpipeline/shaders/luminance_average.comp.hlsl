@@ -3,8 +3,8 @@
 
 // Set 0: Per-frame resources
 //[[vk::binding(0, 0)]] RWTexture2D<float4> color_image;
-[[vk::binding(0, 0)]] RWStructuredBuffer<uint> histogram;
-[[vk::binding(1, 0)]] RWStructuredBuffer<float> adaptedLuminance;
+RWStructuredBuffer<uint> histogram;
+RWStructuredBuffer<float> adaptedLuminance;
 
 struct LuminanceHistogramConstants {
     uint2 resolution;
@@ -12,7 +12,7 @@ struct LuminanceHistogramConstants {
     float maxLuminance;
     float timeCoeff;
 };
-[[vk::binding(2, 0)]] ConstantBuffer<LuminanceHistogramConstants> LuminanceHistogramConstants_cb;
+ConstantBuffer<LuminanceHistogramConstants> LuminanceHistogramConstants_cb;
 
 groupshared float histogramShared[GROUP_SIZE];
 

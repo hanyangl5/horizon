@@ -2,10 +2,10 @@
 #include "include/common/hlsl_common.h"
 
 // Set 0: Per-frame resources
-[[vk::image_format("rgba8"),vk::binding(0, 0)]] RWTexture2D<float4> prev_color_tex;
-[[vk::image_format("rgba8"),vk::binding(1, 0)]] RWTexture2D<float4> curr_color_tex;
-[[vk::image_format("rg32f"),vk::binding(2, 0)]] RWTexture2D<float2> mv_tex;
-[[vk::image_format("rgba8"),vk::binding(3, 0)]] RWTexture2D<float4> out_color_tex;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> prev_color_tex;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> curr_color_tex;
+[[vk::image_format("rg32f")]] RWTexture2D<float2> mv_tex;
+[[vk::image_format("rgba8")]] RWTexture2D<float4> out_color_tex;
 
 static const float2 kResolution = float2(1600, 900);
 

@@ -127,13 +127,13 @@ void VulkanPipeline::CreateGraphicsPipeline()
 
                 shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
                     VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(vs->GetType()),
-                    vs->m_shader_module, "main", nullptr});
+                    vs->m_shader_module, vs->GetEntryPoint(), nullptr});
 
                 auto ps = reinterpret_cast<VulkanShader *>(m_ps);
 
                 shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
                     VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(ps->GetType()),
-                    ps->m_shader_module, "main", nullptr});
+                    ps->m_shader_module, ps->GetEntryPoint(), nullptr});
             }
 
             graphics_pipeline_create_info.stageCount = (u32)shader_stage_create_infos.size();
@@ -334,7 +334,7 @@ void VulkanPipeline::CreateComputePipeline()
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
     shader_stage_create_info.module = cs->m_shader_module;
-    shader_stage_create_info.pName = "main";
+    shader_stage_create_info.pName = cs->GetEntryPoint();
 
     VkComputePipelineCreateInfo compute_pipeline_create_info{};
 

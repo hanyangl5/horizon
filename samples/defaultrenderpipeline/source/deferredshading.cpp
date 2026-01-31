@@ -91,9 +91,9 @@ DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
     }
 
     {
-        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.vert.hlsl", "main");
+        geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
 
-        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.frag.hlsl", "main");
+        geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
 
         shading_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "deferred_shading.comp.hlsl", "main");
     }

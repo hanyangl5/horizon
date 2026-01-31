@@ -2,10 +2,8 @@
 build
 build*
 out
-tools/HSLCompiler/generators/__pycache__
-tools/HSLCompiler/__pycache__
 
 .cache
 
-samples/*/shaders/
+samples/*/saved/shaders
 samples/*/config.hpp

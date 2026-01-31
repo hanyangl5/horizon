@@ -2,9 +2,9 @@
 #include "include/postprocess/histogram.h"
 
 // Set 0: Per-frame resources
-[[vk::image_format("rgba16f"),vk::binding(0, 0)]] RWTexture2D<float4> color_image;
-[[vk::binding(1, 0)]] RWStructuredBuffer<uint> histogram;
-[[vk::binding(2, 0)]] RWStructuredBuffer<float> adaptedLuminance;
+[[vk::image_format("rgba16f")]] RWTexture2D<float4> color_image;
+RWStructuredBuffer<uint> histogram;
+RWStructuredBuffer<float> adaptedLuminance;
 
 struct LuminanceHistogramConstants {
     uint2 resolution;
@@ -12,7 +12,7 @@ struct LuminanceHistogramConstants {
     float maxLuminance;
     float timeCoeff;
 };
-[[vk::binding(3, 0)]] ConstantBuffer<LuminanceHistogramConstants> LuminanceHistogramConstants_cb;
+ConstantBuffer<LuminanceHistogramConstants> LuminanceHistogramConstants_cb;
 
 groupshared uint histogramShared[GROUP_SIZE];
 
