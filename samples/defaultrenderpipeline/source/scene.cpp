@@ -22,7 +22,8 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
 
     auto sponza =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
-                                                           VertexAttributeType::UV0 | VertexAttributeType::TANGENT, EMeshAssetFormat::MESH_FORMAT_GLTF},
+                                                               VertexAttributeType::UV0 | VertexAttributeType::TANGENT,
+                                                           EMeshAssetFormat::MESH_FORMAT_GLTF},
                                                   (asset_path / "models/Sponza/glTF/Sponza.gltf").c_str());
     scene_manager->AddMesh(sponza);
 

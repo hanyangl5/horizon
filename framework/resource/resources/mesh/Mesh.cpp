@@ -17,8 +17,10 @@ namespace Horizon
 
 using namespace Assimp;
 
-Mesh::Mesh(const MeshDesc &desc, const char* path) noexcept
-    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path) {}
+Mesh::Mesh(const MeshDesc &desc, const char *path) noexcept
+    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path)
+{
+}
 
 Mesh::~Mesh() noexcept
 {
@@ -147,8 +149,10 @@ void Mesh::ProcessMaterials(const aiScene *scene)
     for (u32 i = 0; i < max_available_thread; ++i)
     {
         threads.emplace_back([&mats, block_image_size, i]() {
-            for (u32 j = i * block_image_size; j < (i + 1) * block_image_size && j < mats.size(); ++j) {
-                for (auto &[type, tex] : mats[j].material_textures) {
+            for (u32 j = i * block_image_size; j < (i + 1) * block_image_size && j < mats.size(); ++j)
+            {
+                for (auto &[type, tex] : mats[j].material_textures)
+                {
                     tex.texture_data_desc = TextureLoader::Load(tex.url.c_str());
                 }
             }
@@ -188,8 +192,9 @@ void Mesh::Load()
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
-    const aiScene *scene = assimp_importer.ReadFile(
-        Path(m_path).string().c_str(), (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+    const aiScene *scene =
+        assimp_importer.ReadFile(Path(m_path).string().c_str(),
+                                 (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
                                        aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
 
     // If the import failed, report it

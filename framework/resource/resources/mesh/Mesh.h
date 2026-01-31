@@ -52,7 +52,7 @@ struct MeshDesc
 class Mesh
 {
   public:
-    Mesh(const MeshDesc &desc, const char* path) noexcept;
+    Mesh(const MeshDesc &desc, const char *path) noexcept;
     ~Mesh() noexcept;
 
     void Load();
@@ -76,7 +76,7 @@ class Mesh
 
   public:
     u32 vertex_attribute_flag{};
-    const char* m_path{};
+    const char *m_path{};
 
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};

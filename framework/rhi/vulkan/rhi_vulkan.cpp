@@ -102,22 +102,26 @@ SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info)
     return Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const char *entry_point) {
+Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const char *entry_point)
+{
     Path file_path(file_name);
-    
+
     // Determine shader directory and saved shader directory
     // Try to use macros first (if available from samples), otherwise infer from file_name
     Path shader_dir;
     Path saved_shader_dir;
-    
+
 #ifdef SHADER_DIR
     shader_dir = Path(SHADER_DIR);
 #else
     // Infer from file_name: assume file_name is relative to shader source directory
     // If absolute, use parent; if relative, we'll need to resolve it
-    if (file_path.is_absolute()) {
+    if (file_path.is_absolute())
+    {
         shader_dir = file_path.parent_path();
-    } else {
+    }
+    else
+    {
         // For relative paths, try to find the shader directory
         // Look for common patterns: .../shaders/... or .../source/shaders/...
         shader_dir = file_path.parent_path();
@@ -131,9 +135,12 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
     // Or try "bin/VULKAN" for backward compatibility
     Path parent = shader_dir.parent_path();
     Path saved_path = parent / "saved" / "shaders";
-    if (saved_path.exists()) {
+    if (saved_path.exists())
+    {
         saved_shader_dir = saved_path;
-    } else {
+    }
+    else
+    {
         // Default: create saved/shaders in shader_dir's parent
         saved_shader_dir = saved_path;
     }

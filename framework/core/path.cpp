@@ -1,41 +1,45 @@
 /*****************************************************************/ /**
- * \file   path.cpp
- * \brief  Simple path utility class implementation
- * 
- * \author hylu
- * \date   December 2024
- *********************************************************************/
+                                                                     * \file   path.cpp
+                                                                     * \brief  Simple path utility class implementation
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   December 2024
+                                                                     *********************************************************************/
 
 #include "path.h"
 
-#include <cstring>
 #include <algorithm>
 #include <cerrno>
+#include <cstring>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <direct.h>
 #include <io.h>
+#include <windows.h>
 #define stat _stat
 #define S_IFDIR _S_IFDIR
 #define S_IFREG _S_IFREG
 #else
 #include <sys/stat.h>
-#include <unistd.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
-namespace Horizon {
+namespace Horizon
+{
 
-Path::Path(const char *path) : m_path(path ? path : "") {
+Path::Path(const char *path) : m_path(path ? path : "")
+{
     normalize();
 }
 
-Path::Path(const std::string &path) : m_path(path) {
+Path::Path(const std::string &path) : m_path(path)
+{
     normalize();
 }
 
-void Path::normalize() {
+void Path::normalize()
+{
     if (m_path.empty())
         return;
 
@@ -48,16 +52,21 @@ void Path::normalize() {
     // Remove trailing separators (except for root paths)
 #ifdef _WIN32
     // On Windows, preserve drive letter trailing separator (C:\)
-    if (m_path.length() > 3 && m_path[1] == ':' && m_path[2] == sep) {
+    if (m_path.length() > 3 && m_path[1] == ':' && m_path[2] == sep)
+    {
         // Keep C:\ as is
-    } else {
-        while (m_path.length() > 1 && m_path.back() == sep) {
+    }
+    else
+    {
+        while (m_path.length() > 1 && m_path.back() == sep)
+        {
             m_path.pop_back();
         }
     }
 #else
     // On Unix, preserve root /
-    while (m_path.length() > 1 && m_path.back() == sep) {
+    while (m_path.length() > 1 && m_path.back() == sep)
+    {
         m_path.pop_back();
     }
 #endif
@@ -66,13 +75,18 @@ void Path::normalize() {
     std::string normalized;
     normalized.reserve(m_path.length());
     bool last_was_sep = false;
-    for (char c : m_path) {
-        if (c == sep) {
-            if (!last_was_sep) {
+    for (char c : m_path)
+    {
+        if (c == sep)
+        {
+            if (!last_was_sep)
+            {
                 normalized += c;
                 last_was_sep = true;
             }
-        } else {
+        }
+        else
+        {
             normalized += c;
             last_was_sep = false;
         }
@@ -80,7 +94,8 @@ void Path::normalize() {
     m_path = normalized;
 }
 
-char Path::get_separator() {
+char Path::get_separator()
+{
 #ifdef _WIN32
     return '\\';
 #else
@@ -88,7 +103,8 @@ char Path::get_separator() {
 #endif
 }
 
-Path Path::operator/(const char *other) const {
+Path Path::operator/(const char *other) const
+{
     if (!other || *other == '\0')
         return *this;
 
@@ -97,7 +113,8 @@ Path Path::operator/(const char *other) const {
     return result;
 }
 
-Path Path::operator/(const std::string &other) const {
+Path Path::operator/(const std::string &other) const
+{
     if (other.empty())
         return *this;
 
@@ -106,7 +123,8 @@ Path Path::operator/(const std::string &other) const {
     return result;
 }
 
-Path Path::operator/(const Path &other) const {
+Path Path::operator/(const Path &other) const
+{
     if (other.empty())
         return *this;
 
@@ -115,11 +133,13 @@ Path Path::operator/(const Path &other) const {
     return result;
 }
 
-Path &Path::operator/=(const char *other) {
+Path &Path::operator/=(const char *other)
+{
     if (!other || *other == '\0')
         return *this;
 
-    if (!m_path.empty() && m_path.back() != get_separator()) {
+    if (!m_path.empty() && m_path.back() != get_separator())
+    {
         m_path += get_separator();
     }
     m_path += other;
@@ -127,11 +147,13 @@ Path &Path::operator/=(const char *other) {
     return *this;
 }
 
-Path &Path::operator/=(const std::string &other) {
+Path &Path::operator/=(const std::string &other)
+{
     if (other.empty())
         return *this;
 
-    if (!m_path.empty() && m_path.back() != get_separator()) {
+    if (!m_path.empty() && m_path.back() != get_separator())
+    {
         m_path += get_separator();
     }
     m_path += other;
@@ -139,11 +161,13 @@ Path &Path::operator/=(const std::string &other) {
     return *this;
 }
 
-Path &Path::operator/=(const Path &other) {
+Path &Path::operator/=(const Path &other)
+{
     if (other.empty())
         return *this;
 
-    if (!m_path.empty() && m_path.back() != get_separator()) {
+    if (!m_path.empty() && m_path.back() != get_separator())
+    {
         m_path += get_separator();
     }
     m_path += other.m_path;
@@ -151,11 +175,13 @@ Path &Path::operator/=(const Path &other) {
     return *this;
 }
 
-std::string Path::string() const {
+std::string Path::string() const
+{
     return m_path;
 }
 
-bool Path::exists() const {
+bool Path::exists() const
+{
     if (m_path.empty())
         return false;
 
@@ -166,7 +192,8 @@ bool Path::exists() const {
 #endif
 }
 
-bool Path::is_directory() const {
+bool Path::is_directory() const
+{
     if (m_path.empty())
         return false;
 
@@ -183,7 +210,8 @@ bool Path::is_directory() const {
 #endif
 }
 
-bool Path::is_file() const {
+bool Path::is_file() const
+{
     if (m_path.empty())
         return false;
 
@@ -200,7 +228,8 @@ bool Path::is_file() const {
 #endif
 }
 
-std::time_t Path::last_write_time() const {
+std::time_t Path::last_write_time() const
+{
     if (m_path.empty())
         return 0;
 
@@ -217,7 +246,8 @@ std::time_t Path::last_write_time() const {
 #endif
 }
 
-bool Path::create_directories() const {
+bool Path::create_directories() const
+{
     if (m_path.empty())
         return false;
 
@@ -226,7 +256,8 @@ bool Path::create_directories() const {
 
     // Create parent directories first
     Path parent = parent_path();
-    if (!parent.empty() && !parent.exists()) {
+    if (!parent.empty() && !parent.exists())
+    {
         if (!parent.create_directories())
             return false;
     }
@@ -238,7 +269,8 @@ bool Path::create_directories() const {
 #endif
 }
 
-Path Path::parent_path() const {
+Path Path::parent_path() const
+{
     if (m_path.empty())
         return Path();
 
@@ -247,37 +279,44 @@ Path Path::parent_path() const {
 
 #ifdef _WIN32
     // Handle Windows drive letters (C:\)
-    if (pos == 2 && m_path.length() > 2 && m_path[1] == ':') {
+    if (pos == 2 && m_path.length() > 2 && m_path[1] == ':')
+    {
         return Path(m_path.substr(0, 3));
     }
 #endif
 
-    if (pos == std::string::npos) {
+    if (pos == std::string::npos)
+    {
         return Path(".");
     }
 
-    if (pos == 0) {
+    if (pos == 0)
+    {
         return Path(std::string(1, sep));
     }
 
     return Path(m_path.substr(0, pos));
 }
 
-std::string Path::filename() const {
+std::string Path::filename() const
+{
     if (m_path.empty())
         return "";
 
     char sep = get_separator();
     size_t pos = m_path.find_last_of(sep);
 
-    if (pos == std::string::npos) {
+    if (pos == std::string::npos)
+    {
         return m_path;
     }
 
-    if (pos == m_path.length() - 1) {
+    if (pos == m_path.length() - 1)
+    {
         // Trailing separator, find previous one
         size_t prev_pos = m_path.find_last_of(sep, pos - 1);
-        if (prev_pos == std::string::npos) {
+        if (prev_pos == std::string::npos)
+        {
             return m_path.substr(0, pos);
         }
         return m_path.substr(prev_pos + 1, pos - prev_pos - 1);
@@ -286,7 +325,8 @@ std::string Path::filename() const {
     return m_path.substr(pos + 1);
 }
 
-std::string Path::extension() const {
+std::string Path::extension() const
+{
     std::string name = filename();
     if (name.empty())
         return "";
@@ -298,7 +338,8 @@ std::string Path::extension() const {
     return name.substr(pos);
 }
 
-std::string Path::stem() const {
+std::string Path::stem() const
+{
     std::string name = filename();
     if (name.empty())
         return "";
@@ -310,16 +351,19 @@ std::string Path::stem() const {
     return name.substr(0, pos);
 }
 
-std::string Path::generic_string() const {
+std::string Path::generic_string() const
+{
     std::string result = m_path;
     char sep = get_separator();
-    if (sep == '\\') {
+    if (sep == '\\')
+    {
         std::replace(result.begin(), result.end(), '\\', '/');
     }
     return result;
 }
 
-bool Path::is_absolute() const {
+bool Path::is_absolute() const
+{
     if (m_path.empty())
         return false;
 
@@ -337,23 +381,28 @@ bool Path::is_absolute() const {
 }
 
 // Helper functions
-bool exists(const Path &path) {
+bool exists(const Path &path)
+{
     return path.exists();
 }
 
-bool is_directory(const Path &path) {
+bool is_directory(const Path &path)
+{
     return path.is_directory();
 }
 
-bool is_file(const Path &path) {
+bool is_file(const Path &path)
+{
     return path.is_file();
 }
 
-std::time_t last_write_time(const Path &path) {
+std::time_t last_write_time(const Path &path)
+{
     return path.last_write_time();
 }
 
-bool create_directories(const Path &path) {
+bool create_directories(const Path &path)
+{
     return path.create_directories();
 }
 

@@ -20,15 +20,17 @@
 namespace Horizon::Backend
 {
 
-bool ShaderCompiler::NeedsRecompilation(const Path &hlsl_path,
-                                          const Path &spv_path) {
+bool ShaderCompiler::NeedsRecompilation(const Path &hlsl_path, const Path &spv_path)
+{
     // If SPV doesn't exist, need to compile
-    if (!spv_path.exists()) {
+    if (!spv_path.exists())
+    {
         return true;
     }
 
     // If HLSL doesn't exist, can't compile
-    if (!hlsl_path.exists()) {
+    if (!hlsl_path.exists())
+    {
         LOG_ERROR("HLSL source file not found: {}", hlsl_path.string());
         return false;
     }
@@ -59,7 +61,7 @@ std::string ShaderCompiler::GetShaderProfile(ShaderType type)
     }
 }
 
-//std::string ShaderCompiler::FindDXCExecutable() {
+// std::string ShaderCompiler::FindDXCExecutable() {
 //
 //    // Check environment variables
 //    char *dxc_path_env = nullptr;
@@ -150,12 +152,14 @@ std::string ShaderCompiler::GetShaderProfile(ShaderType type)
 //    return "";
 //}
 
-std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const Path &shader_dir) {
+std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const Path &shader_dir)
+{
     std::vector<std::string> includes;
 
     // Add shader_dir/include if it exists
     Path include_dir = shader_dir / "include";
-    if (include_dir.exists() && include_dir.is_directory()) {
+    if (include_dir.exists() && include_dir.is_directory())
+    {
         includes.push_back(include_dir.string());
     }
 
@@ -165,13 +169,12 @@ std::vector<std::string> ShaderCompiler::GetIncludeDirectories(const Path &shade
     return includes;
 }
 
-bool ShaderCompiler::CompileHLSLToSPIRV(const Path &hlsl_path,
-                                         const Path &output_spv_path,
-                                         ShaderType shader_type,
-                                         const Path &shader_dir,
-                                         const Path &saved_shader_dir) {
+bool ShaderCompiler::CompileHLSLToSPIRV(const Path &hlsl_path, const Path &output_spv_path, ShaderType shader_type,
+                                        const Path &shader_dir, const Path &saved_shader_dir)
+{
     // Check if source exists
-    if (!hlsl_path.exists()) {
+    if (!hlsl_path.exists())
+    {
         LOG_ERROR("HLSL source file not found: {}", hlsl_path.string());
         return false;
     }
@@ -220,7 +223,8 @@ bool ShaderCompiler::CompileHLSLToSPIRV(const Path &hlsl_path,
     }
 
     // Verify output file was created
-    if (!output_spv_path.exists()) {
+    if (!output_spv_path.exists())
+    {
         LOG_ERROR("DXC compilation succeeded but output file not found: {}", output_spv_path.string());
         return false;
     }

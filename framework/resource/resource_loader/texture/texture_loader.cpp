@@ -10,7 +10,8 @@
 
 #include <core/log.h>
 #include <core/path.h>
-namespace Horizon {
+namespace Horizon
+{
 
 TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
 {
@@ -349,11 +350,13 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
     return {};
 }
 
-TextureDataDesc TextureLoader::Load(const char *path) {
+TextureDataDesc TextureLoader::Load(const char *path)
+{
     TextureDataDesc texture_info{};
     Path path_obj(path);
     std::string extension = path_obj.extension();
-    if (extension == ".png") {
+    if (extension == ".png")
+    {
         LoadPNG(path, texture_info);
     }
     else if (extension == ".jpg" || extension == ".jpeg")
@@ -367,19 +370,23 @@ TextureDataDesc TextureLoader::Load(const char *path) {
     else if (extension == ".tga")
     {
         LoadTGA(path, texture_info);
-
-    } else if (extension == ".ktx") {
-    } else {
+    }
+    else if (extension == ".ktx")
+    {
+    }
+    else
+    {
         LOG_ERROR("{} format is not supportted", extension.c_str());
     }
     return texture_info;
 }
 
-void Horizon::TextureLoader::LoadJPG(const char *path, TextureDataDesc &texture_info) {
+void Horizon::TextureLoader::LoadJPG(const char *path, TextureDataDesc &texture_info)
+{
     int channels;
-    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels,
-                         STBI_rgb_alpha);
-    if (!data) {
+    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels, STBI_rgb_alpha);
+    if (!data)
+    {
         LOG_ERROR("failed to load {}", path);
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
@@ -390,11 +397,12 @@ void Horizon::TextureLoader::LoadJPG(const char *path, TextureDataDesc &texture_
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info) {
+void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info)
+{
     int channels;
-    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels,
-                         STBI_rgb_alpha);
-    if (!data) {
+    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels, STBI_rgb_alpha);
+    if (!data)
+    {
         LOG_ERROR("failed to load {}", path);
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
@@ -405,10 +413,12 @@ void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info) {
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info) {
+void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info)
+{
 
     auto raw_data = ReadFile(path);
-    if (raw_data.empty()) {
+    if (raw_data.empty())
+    {
         return;
     }
 
@@ -440,11 +450,12 @@ void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info) {
     }
 }
 
-void TextureLoader::LoadTGA(const char *path, TextureDataDesc &texture_info) {
+void TextureLoader::LoadTGA(const char *path, TextureDataDesc &texture_info)
+{
     int channels;
-    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels,
-                         STBI_rgb_alpha);
-    if (!data) {
+    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels, STBI_rgb_alpha);
+    if (!data)
+    {
         LOG_ERROR("failed to load {}", path);
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;

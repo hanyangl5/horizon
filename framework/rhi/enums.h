@@ -629,13 +629,13 @@ enum class EMeshAssetFormat
     MESH_FORMAT_NONE,
     MESH_FORMAT_GLTF,
     MESH_FORMAT_GLB,
-    //MESH_TYPE_COLLADA,
-    //MESH_TYPE_FBX,
-    //MESH_TYPE_OBJ,
-    //MESH_TYPE_STL,
-    //MESH_TYPE_PLY,
-    //MESH_TYPE_DAE,
-    //MESH_TYPE_DAE,
+    // MESH_TYPE_COLLADA,
+    // MESH_TYPE_FBX,
+    // MESH_TYPE_OBJ,
+    // MESH_TYPE_STL,
+    // MESH_TYPE_PLY,
+    // MESH_TYPE_DAE,
+    // MESH_TYPE_DAE,
 };
 
 } // namespace Horizon

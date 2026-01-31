@@ -51,7 +51,9 @@ class MaterialTextureDescription
     MaterialTextureDescription() noexcept = default;
     MaterialTextureDescription(const Path &url) noexcept : url(url){};
 
-    ~MaterialTextureDescription() noexcept {}
+    ~MaterialTextureDescription() noexcept
+    {
+    }
     Path url{};
     TextureDataDesc texture_data_desc{};
 };

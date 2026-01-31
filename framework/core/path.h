@@ -1,19 +1,22 @@
 /*****************************************************************/ /**
- * \file   path.h
- * \brief  Simple path utility class to replace std::filesystem
- * 
- * \author hylu
- * \date   December 2024
- *********************************************************************/
+                                                                     * \file   path.h
+                                                                     * \brief  Simple path utility class to replace
+                                                                     *std::filesystem
+                                                                     *
+                                                                     * \author hylu
+                                                                     * \date   December 2024
+                                                                     *********************************************************************/
 
 #pragma once
 
-#include <string>
 #include <ctime>
+#include <string>
 
-namespace Horizon {
+namespace Horizon
+{
 
-class Path {
+class Path
+{
   public:
     Path() = default;
     Path(const char *path);
@@ -33,8 +36,14 @@ class Path {
 
     // String conversion
     std::string string() const;
-    const std::string &str() const { return m_path; }
-    const char *c_str() const { return m_path.c_str(); }
+    const std::string &str() const
+    {
+        return m_path;
+    }
+    const char *c_str() const
+    {
+        return m_path.c_str();
+    }
 
     // File system operations
     bool exists() const;
@@ -47,15 +56,27 @@ class Path {
     Path parent_path() const;
     std::string filename() const;
     std::string extension() const;
-    std::string stem() const; // filename without extension
+    std::string stem() const;           // filename without extension
     std::string generic_string() const; // string with forward slashes
     bool is_absolute() const;
-    bool empty() const { return m_path.empty(); }
+    bool empty() const
+    {
+        return m_path.empty();
+    }
 
     // Comparison
-    bool operator==(const Path &other) const { return m_path == other.m_path; }
-    bool operator!=(const Path &other) const { return m_path != other.m_path; }
-    bool operator<(const Path &other) const { return m_path < other.m_path; }
+    bool operator==(const Path &other) const
+    {
+        return m_path == other.m_path;
+    }
+    bool operator!=(const Path &other) const
+    {
+        return m_path != other.m_path;
+    }
+    bool operator<(const Path &other) const
+    {
+        return m_path < other.m_path;
+    }
 
   private:
     std::string m_path;
