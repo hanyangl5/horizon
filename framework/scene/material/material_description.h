@@ -1,6 +1,6 @@
 #pragma once
 
-#include <filesystem>
+#include <core/path.h>
 
 #include <resource/resource_loader/texture/texture_loader.h>
 #include <rhi/buffer.h>
@@ -49,12 +49,10 @@ class MaterialTextureDescription
 {
   public:
     MaterialTextureDescription() noexcept = default;
-    MaterialTextureDescription(const std::filesystem::path url) noexcept : url(url){};
+    MaterialTextureDescription(const Path &url) noexcept : url(url){};
 
-    ~MaterialTextureDescription() noexcept
-    {
-    }
-    std::filesystem::path url{};
+    ~MaterialTextureDescription() noexcept {}
+    Path url{};
     TextureDataDesc texture_data_desc{};
 };
 

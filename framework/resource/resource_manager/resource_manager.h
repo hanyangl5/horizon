@@ -46,7 +46,7 @@ class ResourceManager
     Buffer *GetEmptyVertexBuffer();
 
     // uuid
-    Mesh *LoadMesh(const MeshDesc &desc, const std::filesystem::path &path);
+    Mesh *LoadMesh(const MeshDesc &desc, const char *path);
 
     void OffloadMesh(Mesh *mesh);
 

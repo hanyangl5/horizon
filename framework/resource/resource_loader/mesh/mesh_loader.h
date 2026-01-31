@@ -1,7 +1,7 @@
 // load scene from gltf/fbx file
 #pragma once
 
-#include <filesystem>
+#include <core/path.h>
 
 #include <core/definations.h>
 #include <resource/resources/mesh/mesh.h>
@@ -13,7 +13,7 @@ namespace Horizon
 class MeshLoader
 {
   public:
-    static Mesh *Load(const MeshDesc &desc, const std::filesystem::path &path);
+    static Mesh *Load(const MeshDesc &desc, const char *path);
     // jpg, png
   private:
     static void LoadGlTF2(Mesh &mesh);

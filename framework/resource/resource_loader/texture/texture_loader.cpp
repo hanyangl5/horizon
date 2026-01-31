@@ -9,9 +9,8 @@
 #include "ddspp.h"
 
 #include <core/log.h>
-
-namespace Horizon
-{
+#include <core/path.h>
+namespace Horizon {
 
 TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
 {
@@ -350,12 +349,11 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
     return {};
 }
 
-TextureDataDesc TextureLoader::Load(const std::filesystem::path &path)
-{
+TextureDataDesc TextureLoader::Load(const char *path) {
     TextureDataDesc texture_info{};
-    auto extension = path.extension();
-    if (extension == ".png")
-    {
+    Path path_obj(path);
+    std::string extension = path_obj.extension();
+    if (extension == ".png") {
         LoadPNG(path, texture_info);
     }
     else if (extension == ".jpg" || extension == ".jpeg")
@@ -369,25 +367,20 @@ TextureDataDesc TextureLoader::Load(const std::filesystem::path &path)
     else if (extension == ".tga")
     {
         LoadTGA(path, texture_info);
-    }
-    else if (extension == ".ktx")
-    {
-    }
-    else
-    {
-        LOG_ERROR("{} format is not supportted", extension.string().c_str());
+
+    } else if (extension == ".ktx") {
+    } else {
+        LOG_ERROR("{} format is not supportted", extension.c_str());
     }
     return texture_info;
 }
 
-void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureDataDesc &texture_info)
-{
+void Horizon::TextureLoader::LoadJPG(const char *path, TextureDataDesc &texture_info) {
     int channels;
-    u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
+    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
-    if (!data)
-    {
-        LOG_ERROR("failed to load {}", path.string().c_str());
+    if (!data) {
+        LOG_ERROR("failed to load {}", path);
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
@@ -397,14 +390,12 @@ void Horizon::TextureLoader::LoadJPG(const std::filesystem::path &path, TextureD
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &texture_info)
-{
+void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info) {
     int channels;
-    u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
+    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
-    if (!data)
-    {
-        LOG_ERROR("failed to load {}", path.string().c_str());
+    if (!data) {
+        LOG_ERROR("failed to load {}", path);
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;
@@ -414,12 +405,10 @@ void TextureLoader::LoadPNG(const std::filesystem::path &path, TextureDataDesc &
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
-void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &texture_info)
-{
+void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info) {
 
-    auto raw_data = ReadFile(path.string().c_str());
-    if (raw_data.empty())
-    {
+    auto raw_data = ReadFile(path);
+    if (raw_data.empty()) {
         return;
     }
 
@@ -451,14 +440,12 @@ void TextureLoader::LoadDDS(const std::filesystem::path &path, TextureDataDesc &
     }
 }
 
-void TextureLoader::LoadTGA(const std::filesystem::path &path, TextureDataDesc &texture_info)
-{
+void TextureLoader::LoadTGA(const char *path, TextureDataDesc &texture_info) {
     int channels;
-    u8 *data = stbi_load(path.string().c_str(), (int *)&texture_info.width, (int *)&texture_info.height, &channels,
+    u8 *data = stbi_load(path, (int *)&texture_info.width, (int *)&texture_info.height, &channels,
                          STBI_rgb_alpha);
-    if (!data)
-    {
-        LOG_ERROR("failed to load {}", path.string().c_str());
+    if (!data) {
+        LOG_ERROR("failed to load {}", path);
     }
     texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     texture_info.type = TextureType::TEXTURE_TYPE_2D;

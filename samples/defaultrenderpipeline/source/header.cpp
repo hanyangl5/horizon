@@ -1,4 +1,4 @@
-#include <filesystem>
+#include <core/path.h>
 
-std::filesystem::path asset_path = ASSET_DIR;
-std::filesystem::path shader_dir = SHADER_DIR;
+Horizon::Path asset_path = ASSET_DIR;
+Horizon::Path shader_dir = SHADER_DIR;

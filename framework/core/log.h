@@ -108,9 +108,7 @@ class Log : public PublicSingleton<Log>
 
 #define LOG_DEBUG(...) Log::GetInstance().Debug("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
-#define LOG_INFO(...)                                                                                                  \
-    ;                                                                                                                  \
-    Log::GetInstance().Info("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+#define LOG_INFO(...) Log::GetInstance().Info("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
 #define LOG_WARN(...) Log::GetInstance().Warn("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 

@@ -1,6 +1,6 @@
 #include "rhi_vulkan.h"
 
-#include <filesystem>
+#include <core/path.h>
 #include <thread>
 
 #define VMA_IMPLEMENTATION
@@ -102,53 +102,47 @@ SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info)
     return Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
 }
 
-Shader *RHIVulkan::CreateShader(ShaderType type, const std::filesystem::path &file_name)
-{
-    namespace fs = std::filesystem;
-
+Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const char *entry_point) {
+    Path file_path(file_name);
+    
     // Determine shader directory and saved shader directory
     // Try to use macros first (if available from samples), otherwise infer from file_name
-    fs::path shader_dir;
-    fs::path saved_shader_dir;
-
+    Path shader_dir;
+    Path saved_shader_dir;
+    
 #ifdef SHADER_DIR
-    shader_dir = SHADER_DIR;
+    shader_dir = Path(SHADER_DIR);
 #else
     // Infer from file_name: assume file_name is relative to shader source directory
     // If absolute, use parent; if relative, we'll need to resolve it
-    if (file_name.is_absolute())
-    {
-        shader_dir = file_name.parent_path();
-    }
-    else
-    {
+    if (file_path.is_absolute()) {
+        shader_dir = file_path.parent_path();
+    } else {
         // For relative paths, try to find the shader directory
         // Look for common patterns: .../shaders/... or .../source/shaders/...
-        shader_dir = file_name.parent_path();
+        shader_dir = file_path.parent_path();
     }
 #endif
 
 #ifdef SAVED_SHADER_DIR
-    saved_shader_dir = SAVED_SHADER_DIR;
+    saved_shader_dir = Path(SAVED_SHADER_DIR);
 #else
     // Infer saved shader directory: look for "saved/shaders" relative to shader_dir
     // Or try "bin/VULKAN" for backward compatibility
-    fs::path parent = shader_dir.parent_path();
-    if (fs::exists(parent / "saved" / "shaders"))
-    {
-        saved_shader_dir = parent / "saved" / "shaders";
-    }
-    else
-    {
+    Path parent = shader_dir.parent_path();
+    Path saved_path = parent / "saved" / "shaders";
+    if (saved_path.exists()) {
+        saved_shader_dir = saved_path;
+    } else {
         // Default: create saved/shaders in shader_dir's parent
-        saved_shader_dir = parent / "saved" / "shaders";
+        saved_shader_dir = saved_path;
     }
 #endif
 
     // Construct paths
-    const fs::path hlsl_path = file_name.is_absolute() ? file_name : (shader_dir / file_name);
-    const fs::path stem = hlsl_path.stem();
-    const fs::path spirv_path = saved_shader_dir / (stem.generic_string() + ".spv");
+    const Path hlsl_path = file_path.is_absolute() ? file_path : (shader_dir / file_path.string());
+    const std::string stem = hlsl_path.stem();
+    const Path spirv_path = saved_shader_dir / (stem + ".spv");
 
     // Check if recompilation is needed
     if (ShaderCompiler::NeedsRecompilation(hlsl_path, spirv_path))

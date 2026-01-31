@@ -129,7 +129,7 @@ DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
             Math::float4{0.000401695695473f, -0.013503036461771f, -0.041937090456486f, 0.0f}};
 
         prefilered_irradiance_env_map_data =
-            TextureLoader::Load(asset_path / "envrionment/football/footballSpecularHDR.dds");
+            TextureLoader::Load((asset_path / "envrionment/football/footballSpecularHDR.dds").c_str());
 
         {
             TextureCreateInfo texture_create_info{};
@@ -143,7 +143,7 @@ DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
             texture_create_info.texture_format = prefilered_irradiance_env_map_data.format;
             prefiltered_irradiance_env_map = rhi->CreateTexture(texture_create_info);
         }
-        brdf_lut_data_desc = TextureLoader::Load(asset_path / "envrionment/football/footballBrdf.dds");
+        brdf_lut_data_desc = TextureLoader::Load((asset_path / "envrionment/football/footballBrdf.dds").c_str());
         {
             TextureCreateInfo texture_create_info{};
             texture_create_info.width = brdf_lut_data_desc.width;

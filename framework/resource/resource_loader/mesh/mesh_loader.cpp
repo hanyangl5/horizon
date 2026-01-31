@@ -1,20 +1,20 @@
 #include "mesh_loader.h"
 
-namespace Horizon
-{
+#include <core/path.h>
 
-Mesh *MeshLoader::Load(const MeshDesc &desc, const std::filesystem::path &path)
-{
-    Mesh *mesh = new Mesh(desc, path);
+namespace Horizon {
 
-    auto extension = path.extension();
-    if (extension == ".gltf")
-    {
+Mesh *MeshLoader::Load(const MeshDesc &desc, const char *path) {
+    const char* path_obj(path);
+    Mesh *mesh = new Mesh(desc, path_obj);
+
+    if (desc.mesh_format == EMeshAssetFormat::MESH_FORMAT_GLTF) {
         LoadGlTF2(*mesh);
-    }
+
+    } 
     else
     {
-        LOG_ERROR("{} format is not supportted", extension.string().c_str());
+        LOG_ERROR("{} format is not supportted", (u32)desc.mesh_format);
     }
     return mesh;
 }

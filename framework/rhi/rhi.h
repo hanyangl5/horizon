@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <core/glfwwindow.h>
+#include <core/path.h>
 
 #include <rhi/buffer.h>
 #include <rhi/command_context.h>
@@ -70,7 +71,7 @@ class RHI
 
     virtual void DestroySwapChain(SwapChain *swap_chain) = 0;
 
-    virtual Shader *CreateShader(ShaderType type, const std::filesystem::path &file_name) = 0;
+    virtual Shader *CreateShader(ShaderType type, const Path &file_name, const char *entry_point = "main") = 0;
 
     virtual void DestroyShader(Shader *shader_program) = 0;
 

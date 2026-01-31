@@ -1,11 +1,10 @@
 #pragma once
 
 #include <chrono>
-#include <filesystem>
 #include <random>
 
-#include <core/definations.h>
-#include <core/glfwwindow.h>
+#include <core/path.h>
+
 #include <core/log.h>
 #include <core/math.h>
 #include <core/renderdoc/render_doc.h>
@@ -24,5 +23,5 @@ using namespace Horizon::Backend;
 
 static constexpr u32 width = 1600, height = 900;
 
-extern std::filesystem::path shader_dir;
-extern std::filesystem::path asset_path;
+extern Horizon::Path shader_dir;
+extern Horizon::Path asset_path;

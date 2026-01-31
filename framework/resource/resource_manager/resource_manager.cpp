@@ -35,8 +35,7 @@ Buffer *ResourceManager::GetEmptyVertexBuffer()
     return empty_vertex_buffer;
 }
 
-Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, const std::filesystem::path &path)
-{
+Mesh *ResourceManager::LoadMesh(const MeshDesc &desc, const char *path) {
     auto mesh = MeshLoader::Load(desc, path);
     meshes.emplace(mesh);
     return mesh;

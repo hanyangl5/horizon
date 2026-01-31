@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/definations.h>
-#include <core/log.h>
+#include <core/path.h>
 
 #include <rhi/enums.h>
 #include <rhi/rhi.h>
@@ -37,7 +37,7 @@ class RHIVulkan : public RHI
 
     SwapChain *CreateSwapChain(const SwapChainCreateInfo &create_info) override;
 
-    Shader *CreateShader(ShaderType type, const std::filesystem::path &file_name) override;
+    Shader *CreateShader(ShaderType type, const Path &file_name, const char *entry_point) override;
 
     void DestroyShader(Shader *shader_program) override;
 
