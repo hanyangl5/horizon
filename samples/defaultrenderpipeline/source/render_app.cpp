@@ -309,6 +309,7 @@ void Render::run()
             begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
             begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
             begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
+            begin_info.debug_name = "Geometry Pass";
             //cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
             //cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
 
@@ -398,6 +399,7 @@ void Render::run()
 
             // ao pass
             {
+                compute->BeginComputePass("SSAO Pass");
                 ssao->ssao_pass->SetResource(deferred->depth->GetTexture(), "depth_tex");
                 ssao->ssao_pass->SetResource(deferred->gbuffer0->GetTexture(), "normal_tex");
                 ssao->ssao_pass->SetResource(sampler, "default_sampler");
@@ -409,6 +411,7 @@ void Render::run()
                 //compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
 
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+                compute->EndComputePass();
             }
 
             {
@@ -423,6 +426,7 @@ void Render::run()
             }
 
             {
+                compute->BeginComputePass("SSAO Blur Pass");
                 ssao->ssao_blur_pass->SetResource(ssao->ssao_factor_image, "ssao_blur_in");
                 ssao->ssao_blur_pass->SetResource(ssao->ssao_blur_image, "ssao_blur_out");
 
@@ -430,6 +434,7 @@ void Render::run()
                 //compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
 
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+                compute->EndComputePass();
             }
             {
                 BarrierDesc barrier{};
@@ -444,7 +449,7 @@ void Render::run()
 
             // shading pass
             {
-
+                compute->BeginComputePass("Deferred Shading Pass");
                 deferred->shading_pass->SetResource(deferred->gbuffer0->GetTexture(), "gbuffer0_tex");
                 deferred->shading_pass->SetResource(deferred->gbuffer1->GetTexture(), "gbuffer1_tex");
                 deferred->shading_pass->SetResource(deferred->gbuffer2->GetTexture(), "gbuffer2_tex");
@@ -463,6 +468,7 @@ void Render::run()
 
                 compute->BindPipeline(deferred->shading_pass);
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+                compute->EndComputePass();
             }
 
             {
@@ -478,6 +484,7 @@ void Render::run()
             }
 
             {
+                compute->BeginComputePass("Luminance Histogram Pass");
                 post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(deferred->shading_color_image, "color_image");
                 post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
                                           "LuminanceHistogramConstants_cb");
@@ -485,6 +492,7 @@ void Render::run()
                 post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
                 compute->BindPipeline(post_process->auto_exposure_pass->luminance_histogram_pass);
                 compute->Dispatch(AlignUp<u32>(width, 16), AlignUp<u32>(height, 16), 1);
+                compute->EndComputePass();
                 {
                     BarrierDesc histogram_barrier{};
 
@@ -496,12 +504,14 @@ void Render::run()
 
                     compute->InsertBarrier(histogram_barrier);
                 }
+                compute->BeginComputePass("Luminance Average Pass");
                 post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
                                                   "LuminanceHistogramConstants_cb");
                 post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->histogram_buffer, "histogram");
                 post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
                 compute->BindPipeline(post_process->auto_exposure_pass->luminance_average_pass);
                 compute->Dispatch(1, 1, 1);
+                compute->EndComputePass();
 
                 {
                     BarrierDesc histogram_barrier{};
@@ -517,6 +527,7 @@ void Render::run()
             }
 
             {
+                compute->BeginComputePass("Post Process Pass");
                 post_process->post_process_pass->SetResource(deferred->shading_color_image, "color_image");
                 post_process->post_process_pass->SetResource(post_process->pp_color_image, "out_color_image");
                 // pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
@@ -525,6 +536,7 @@ void Render::run()
                 compute->BindPipeline(post_process->post_process_pass);
                 //compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+                compute->EndComputePass();
             }
 
             {
@@ -542,6 +554,7 @@ void Render::run()
                 }
 
                 {
+                    compute->BeginComputePass("TAA Pass");
                     antialiasing->taa_pass->SetResource(antialiasing->previous_color_texture, "prev_color_tex");
                     antialiasing->taa_pass->SetResource(post_process->pp_color_image, "curr_color_tex");
                     antialiasing->taa_pass->SetResource(deferred->gbuffer4->GetTexture(), "mv_tex");
@@ -549,6 +562,7 @@ void Render::run()
 
                     compute->BindPipeline(antialiasing->taa_pass);
                     compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+                    compute->EndComputePass();
                 }
                 {
                     BarrierDesc barrier{};

@@ -29,6 +29,7 @@ struct RenderPassBeginInfo
     std::array<RenderTargetInfo, MAX_RENDER_TARGET_COUNT> render_targets{};
     RenderTargetInfo depth_stencil{};
     Rect render_area{};
+    const char *debug_name = nullptr; // Optional debug label for the pass
 };
 
 class CommandList
@@ -49,6 +50,8 @@ class CommandList
 
     virtual void BeginRenderPass(const RenderPassBeginInfo &begin_info) = 0;
     virtual void EndRenderPass() = 0;
+    virtual void BeginComputePass(const char *debug_name = nullptr) = 0;
+    virtual void EndComputePass() = 0;
     virtual void DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count = 1, u32 first_instance = 0) = 0;
     virtual void DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count = 1,
                                       u32 first_instance = 0) = 0;

@@ -31,6 +31,9 @@ class VulkanCommandList : public CommandList
     // graphics commands
     void BeginRenderPass(const RenderPassBeginInfo &begin_info) override;
     void EndRenderPass() override;
+    // compute commands
+    void BeginComputePass(const char *debug_name = nullptr) override;
+    void EndComputePass() override;
 
     void DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count = 1, u32 first_instance = 0) override;
 
@@ -72,6 +75,7 @@ class VulkanCommandList : public CommandList
 
   private:
     const VulkanRendererContext &m_context{};
+    bool m_debug_label_active = false; // Track if a debug label is currently active
 
   public:
     VkCommandBuffer m_command_buffer{};

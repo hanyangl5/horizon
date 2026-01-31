@@ -64,6 +64,25 @@ void VulkanCommandList::BindIndexBuffer(Buffer *buffer, u32 offset)
 // graphics commands
 void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
 {
+    // Begin debug label if debug utils is available and name is provided
+    if (begin_info.debug_name)
+    {
+        PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT =
+            (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdBeginDebugUtilsLabelEXT");
+        if (vkCmdBeginDebugUtilsLabelEXT)
+        {
+            VkDebugUtilsLabelEXT label_info{};
+            label_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            label_info.pLabelName = begin_info.debug_name;
+            // Optional: set color for the label in debuggers (RGBA, 0.0-1.0)
+            label_info.color[0] = 0.0f;
+            label_info.color[1] = 0.0f;
+            label_info.color[2] = 0.0f;
+            label_info.color[3] = 0.0f;
+            vkCmdBeginDebugUtilsLabelEXT(m_command_buffer, &label_info);
+            m_debug_label_active = true;
+        }
+    }
 
     assert(begin_info.render_target_count < MAX_RENDER_TARGET_COUNT);
 
@@ -138,6 +157,18 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
 void VulkanCommandList::EndRenderPass()
 {
     vkCmdEndRendering(m_command_buffer);
+
+    // End debug label if one was started
+    if (m_debug_label_active)
+    {
+        PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT =
+            (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdEndDebugUtilsLabelEXT");
+        if (vkCmdEndDebugUtilsLabelEXT)
+        {
+            vkCmdEndDebugUtilsLabelEXT(m_command_buffer);
+            m_debug_label_active = false;
+        }
+    }
 }
 
 void VulkanCommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 instance_count, u32 first_instance)
@@ -165,6 +196,44 @@ void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset,
 }
 
 // compute commands
+void VulkanCommandList::BeginComputePass(const char *debug_name)
+{
+    // Begin debug label if debug utils is available and name is provided
+    if (debug_name)
+    {
+        PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT =
+            (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdBeginDebugUtilsLabelEXT");
+        if (vkCmdBeginDebugUtilsLabelEXT)
+        {
+            VkDebugUtilsLabelEXT label_info{};
+            label_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            label_info.pLabelName = debug_name;
+            // Optional: set color for the label in debuggers (RGBA, 0.0-1.0)
+            label_info.color[0] = 0.0f;
+            label_info.color[1] = 0.0f;
+            label_info.color[2] = 0.0f;
+            label_info.color[3] = 0.0f;
+            vkCmdBeginDebugUtilsLabelEXT(m_command_buffer, &label_info);
+            m_debug_label_active = true;
+        }
+    }
+}
+
+void VulkanCommandList::EndComputePass()
+{
+    // End debug label if one was started
+    if (m_debug_label_active)
+    {
+        PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT =
+            (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdEndDebugUtilsLabelEXT");
+        if (vkCmdEndDebugUtilsLabelEXT)
+        {
+            vkCmdEndDebugUtilsLabelEXT(m_command_buffer);
+            m_debug_label_active = false;
+        }
+    }
+}
+
 void VulkanCommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z)
 {
 
