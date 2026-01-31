@@ -230,10 +230,9 @@ void Render::run()
 
         // perframe descriptor set
         deferred->geometry_pass->SetResource(scene->m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
-        deferred->geometry_pass->SetResource(scene->m_scene_manager->instance_parameter_buffer,
-                                                "instance_parameter");
-                                                deferred->geometry_pass->SetResource(scene->m_scene_manager->material_description_buffer,
-                                                "material_descriptions");
+        deferred->geometry_pass->SetResource(scene->m_scene_manager->instance_parameter_buffer, "instance_parameter");
+        deferred->geometry_pass->SetResource(scene->m_scene_manager->material_description_buffer,
+                                             "material_descriptions");
         deferred->geometry_pass->SetResource(sampler, "default_sampler");
         deferred->geometry_pass->SetResource(antialiasing->taa_prev_curr_offset_buffer, "TAAOffsets_cb");
 
@@ -250,7 +249,7 @@ void Render::run()
             veretx_buffers.push_back(vb);
         }
 
-        deferred->geometry_pass ->SetBindlessResource(material_textures, "material_textures");
+        deferred->geometry_pass->SetBindlessResource(material_textures, "material_textures");
         // geometry pass
 
         auto gp_semaphore = rhi->CreateSemaphore1();
@@ -310,8 +309,8 @@ void Render::run()
             begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
             begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
             begin_info.debug_name = "Geometry Pass";
-            //cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
-            //cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
+            // cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_per_frame_ds);
+            // cl->BindDescriptorSets(deferred->geometry_pass, geometry_pass_bindless_ds);
 
             cl->BeginRenderPass(begin_info);
 
@@ -408,7 +407,7 @@ void Render::run()
                 ssao->ssao_pass->SetResource(ssao->ssao_noise_tex, "ssao_noise_tex");
 
                 compute->BindPipeline(ssao->ssao_pass);
-                //compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
+                // compute->BindDescriptorSets(ssao->ssao_pass, ao_ds);
 
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
                 compute->EndComputePass();
@@ -431,7 +430,7 @@ void Render::run()
                 ssao->ssao_blur_pass->SetResource(ssao->ssao_blur_image, "ssao_blur_out");
 
                 compute->BindPipeline(ssao->ssao_blur_pass);
-                //compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
+                // compute->BindDescriptorSets(ssao->ssao_blur_pass, ao_blur_ds);
 
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
                 compute->EndComputePass();
@@ -456,7 +455,8 @@ void Render::run()
                 deferred->shading_pass->SetResource(deferred->gbuffer3->GetTexture(), "gbuffer3_tex");
                 deferred->shading_pass->SetResource(deferred->depth->GetTexture(), "depth_tex");
                 // shading_ds->SetResource(sampler, "default_sampler");
-                deferred->shading_pass->SetResource(deferred->deferred_shading_constants_buffer, "DeferredShadingConstants_cb");
+                deferred->shading_pass->SetResource(deferred->deferred_shading_constants_buffer,
+                                                    "DeferredShadingConstants_cb");
                 deferred->shading_pass->SetResource(scene->m_scene_manager->GetLightCountBuffer(), "LightCountUb_cb");
                 deferred->shading_pass->SetResource(scene->m_scene_manager->GetLightParamBuffer(), "LightDataUb_cb");
                 deferred->shading_pass->SetResource(deferred->shading_color_image, "out_color");
@@ -485,11 +485,15 @@ void Render::run()
 
             {
                 compute->BeginComputePass("Luminance Histogram Pass");
-                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(deferred->shading_color_image, "color_image");
-                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
-                                          "LuminanceHistogramConstants_cb");
-                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->histogram_buffer, "histogram");
-                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(deferred->shading_color_image,
+                                                                                        "color_image");
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(
+                    post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
+                    "LuminanceHistogramConstants_cb");
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(
+                    post_process->auto_exposure_pass->histogram_buffer, "histogram");
+                post_process->auto_exposure_pass->luminance_histogram_pass->SetResource(
+                    post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
                 compute->BindPipeline(post_process->auto_exposure_pass->luminance_histogram_pass);
                 compute->Dispatch(AlignUp<u32>(width, 16), AlignUp<u32>(height, 16), 1);
                 compute->EndComputePass();
@@ -505,10 +509,13 @@ void Render::run()
                     compute->InsertBarrier(histogram_barrier);
                 }
                 compute->BeginComputePass("Luminance Average Pass");
-                post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
-                                                  "LuminanceHistogramConstants_cb");
-                post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->histogram_buffer, "histogram");
-                post_process->auto_exposure_pass->luminance_average_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
+                post_process->auto_exposure_pass->luminance_average_pass->SetResource(
+                    post_process->auto_exposure_pass->luminance_histogram_constants_buffer,
+                    "LuminanceHistogramConstants_cb");
+                post_process->auto_exposure_pass->luminance_average_pass->SetResource(
+                    post_process->auto_exposure_pass->histogram_buffer, "histogram");
+                post_process->auto_exposure_pass->luminance_average_pass->SetResource(
+                    post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
                 compute->BindPipeline(post_process->auto_exposure_pass->luminance_average_pass);
                 compute->Dispatch(1, 1, 1);
                 compute->EndComputePass();
@@ -531,10 +538,11 @@ void Render::run()
                 post_process->post_process_pass->SetResource(deferred->shading_color_image, "color_image");
                 post_process->post_process_pass->SetResource(post_process->pp_color_image, "out_color_image");
                 // pp_ds->SetResource(post_process->exposure_constants_buffer, "exposure_constants");
-                post_process->post_process_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer, "adaptedLuminance");
+                post_process->post_process_pass->SetResource(post_process->auto_exposure_pass->adapted_muminance_buffer,
+                                                             "adaptedLuminance");
 
                 compute->BindPipeline(post_process->post_process_pass);
-                //compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
+                // compute->BindDescriptorSets(post_process->post_process_pass, pp_ds);
                 compute->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
                 compute->EndComputePass();
             }

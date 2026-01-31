@@ -34,12 +34,11 @@ class VulkanPipeline : public Pipeline
     void SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name) override;
     void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) override;
 
-
     const RootSignatureDesc &GetRootSignatureDesc() const noexcept
     {
         return rsd;
     }
-    
+
     VulkanDescriptorSet *GetDescriptorSet();
     VulkanDescriptorSet *GetBindlessDescriptorSet();
 
@@ -56,9 +55,9 @@ class VulkanPipeline : public Pipeline
     VkPipelineLayoutDesc m_pipeline_layout_desc{};
     VkViewport view_port{};
     VkRect2D scissor{};
-    
-    //VulkanDescriptorSet *m_descriptor_set{};
-    //VulkanDescriptorSet *m_bindless_descriptor_set{};
+
+    // VulkanDescriptorSet *m_descriptor_set{};
+    // VulkanDescriptorSet *m_bindless_descriptor_set{};
 };
 
 } // namespace Horizon::Backend

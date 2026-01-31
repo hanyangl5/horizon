@@ -23,7 +23,7 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
         set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
         set_layout_create_info.flags = 0;
-        //set_layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        // set_layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
         set_layout_create_info.pNext = nullptr;
         set_layout_create_info.bindingCount = 0;
         set_layout_create_info.pBindings = nullptr;
@@ -159,8 +159,7 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetDescriptorSet(VulkanPipeli
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-    VkDescriptorSetLayout layout =
-        GetVkDescriptorSetLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key);
+    VkDescriptorSetLayout layout = GetVkDescriptorSetLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key);
 
     alloc_info.descriptorPool = m_temp_descriptor_pool;
     alloc_info.descriptorSetCount = 1;
@@ -191,7 +190,7 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetBindlessDescriptorSet(Vulk
     VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountInfo = {};
     variableDescriptorCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
     variableDescriptorCountInfo.descriptorSetCount = 1; // Number of descriptor sets being allocated
-    u32 maxDescriptors = k_max_bindless_resources;                      // Maximum descriptors for the variable-sized binding
+    u32 maxDescriptors = k_max_bindless_resources;      // Maximum descriptors for the variable-sized binding
     variableDescriptorCountInfo.pDescriptorCounts = &maxDescriptors;
 
     VkDescriptorSetAllocateInfo alloc_info{};
@@ -242,7 +241,7 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool()
     pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_create_info.pNext = nullptr;
     pool_create_info.flags = 0;
-    //pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    // pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
     pool_create_info.maxSets = 2048;
     pool_create_info.poolSizeCount = static_cast<u32>(pool_sizes.size());

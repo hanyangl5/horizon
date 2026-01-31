@@ -32,8 +32,8 @@ class Pipeline
   protected:
     void ParseRootSignature();
     void ParseRootSignatureFromShader(Shader *shader);
-    //virtual DescriptorSet *GetDescriptorSet() = 0;
-    //virtual DescriptorSet *GetBindlessDescriptorSet() = 0;
+    // virtual DescriptorSet *GetDescriptorSet() = 0;
+    // virtual DescriptorSet *GetBindlessDescriptorSet() = 0;
 
   protected:
     // array contain all kinds of shaders

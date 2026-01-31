@@ -4,8 +4,8 @@
 namespace Horizon::Backend
 {
 
-VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type,
-                           std::vector<char> &spirv_code, const char* entry_point) noexcept
+VulkanShader::VulkanShader(const VulkanRendererContext &context, ShaderType type, std::vector<char> &spirv_code,
+                           const char *entry_point) noexcept
     : Shader(type, entry_point), m_context(context)
 {
     VkShaderModuleCreateInfo shader_module_create_info{};

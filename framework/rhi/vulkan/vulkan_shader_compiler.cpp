@@ -204,7 +204,7 @@ bool ShaderCompiler::CompileHLSLToSPIRV(const Path &hlsl_path, const Path &outpu
     cmd << " -Fo \"" << output_spv_path.string() << "\"";
     // Preserve reflection metadata (OpName, OpDecorate, etc.) for spirv-reflect
     cmd << " -fspv-reflect";
-    //cmd << " -fspv-extension=SPV_KHR_shader_draw_parameters";
+    // cmd << " -fspv-extension=SPV_KHR_shader_draw_parameters";
     // Add include directories
     for (const auto &inc_dir : include_dirs)
     {

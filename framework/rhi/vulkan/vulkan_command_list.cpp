@@ -583,8 +583,8 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline)
     if (auto set = vk_pipeline->GetBindlessDescriptorSet())
     {
         set->Update();
-        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 1, 1,
-                                &set->m_set, 0, nullptr);
+        vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 1, 1, &set->m_set, 0,
+                                nullptr);
     }
     vkCmdBindPipeline(m_command_buffer, bind_point, vk_pipeline->m_pipeline);
 }

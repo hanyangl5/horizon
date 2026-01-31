@@ -5,7 +5,8 @@ AutoExposure::AutoExposure(Backend::RHI *rhi) noexcept : mRhi(rhi)
     // PP PASS
     luminance_histogram_cs =
         rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");
-    luminance_average_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_average.comp.hlsl", "main");
+    luminance_average_cs =
+        rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_average.comp.hlsl", "main");
     luminance_histogram_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
     luminance_average_pass = rhi->CreateComputePipeline(ComputePipelineCreateInfo{});
 
