@@ -35,7 +35,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float depth = depth_tex.SampleLevel(default_sampler, uv, 00.0f).r;
     float3 view_pos = ReconstructWorldPos(SSAOConstant_cb.camera_inv_projection, depth, uv);
 
-    float3 normal = normal_tex.SampleLevel(default_sampler, uv, 0.0f).xyz;
+    // Unpack normal from [0,1] to [-1,1]
+    float3 normal = normal_tex.SampleLevel(default_sampler, uv, 0.0f).xyz * 2.0 - 1.0;
     float3 view_normal = mul(SSAOConstant_cb.camera_view, float4(normal, 0.0)).xyz;
     view_normal = normalize(view_normal);
 

@@ -93,11 +93,11 @@ struct TAAOffsets { float4 taa_prev_curr_offset; };
 ConstantBuffer<TAAOffsets> TAAOffsets_cb;
 
 struct PSOutput {
-    float4 gbuffer0 : SV_Target0;
-    float4 gbuffer1 : SV_Target1;
-    float4 gbuffer2 : SV_Target2;
-    float4 gbuffer3 : SV_Target3;
-    float2 gbuffer4 : SV_Target4;
+    float4 gbuffer0 : SV_Target0;  // Normal (UNORM [0,1])
+    float4 gbuffer1 : SV_Target1; // Albedo
+    float3 gbuffer2 : SV_Target2; // Emissive (R11G11B10 HDR)
+    float4 gbuffer3 : SV_Target3; // Metallic/Roughness/Alpha
+    float2 gbuffer4 : SV_Target4; // Motion vector
 };
 
 PSOutput ps_main(VSOutput vsout, uint tri_id : SV_PrimitiveID)
@@ -144,8 +144,10 @@ PSOutput ps_main(VSOutput vsout, uint tri_id : SV_PrimitiveID)
         gbuffer_normal = normalize(vsout.normal);
     }
 
-    psout.gbuffer0 = float4(gbuffer_normal, asfloat(0u));
+    // Pack normal from [-1,1] to [0,1] for UNORM format
+    psout.gbuffer0 = float4(gbuffer_normal * 0.5 + 0.5, 0.0);
     psout.gbuffer1 = float4(albedo, 0.0);
+    // Emissive in R11G11B10 format (HDR) - GPU will auto-pack float3 to R11G11B10
     psout.gbuffer2 = float4(emissive, 0.0);
     psout.gbuffer3 = float4(mr.y, mr.x, alpha, 0.0);
 

@@ -14,11 +14,11 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
     scene_camera = camera;
     scene_camera_controller = controller;
 
-    scene_camera->SetCameraSpeed(0.1f);
+    scene_camera->SetCameraSpeed(0.05f);
 
     scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
 
-    scene_camera->SetPerspectiveProjectionMatrix(Math::Radians(90.0f), (float)width / (float)height, 0.1f, 100.0f);
+    scene_camera->SetPerspectiveProjectionMatrix(Math::Radians(75.0f), (float)width / (float)height, 0.1f, 10000.0f);
 
     auto sponza =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
@@ -50,10 +50,13 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
         Math::float3 col(rColor, gColor, bColor);
 
         // lumincance
-        scene_manager->AddPointLight(col, 1000000.0f * Math::_1DIVPI * 0.25f, pos, 10.0f);
+        //scene_manager->AddPointLight(col, 100000.0f * Math::_1DIVPI * 0.25f, pos, 10.0f);
     }
 
-    scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0f, Math::float3(0.0, 0.0, -1.0));
+    auto dir = Math::float3(-1.0, -1.0, -1.0);
+    
+    dir.Normalize();
+    scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0f, dir);
 
     scene_manager->CreateLightResources();
     scene_manager->CreateCameraResources();

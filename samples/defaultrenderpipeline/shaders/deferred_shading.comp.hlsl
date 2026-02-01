@@ -7,10 +7,10 @@
 
 // Set 0: Per-frame resources
 
-Texture2D<float4> gbuffer0_tex;
-Texture2D<float4> gbuffer1_tex;
-Texture2D<float4> gbuffer2_tex; // Force keep even if unused
-Texture2D<float4> gbuffer3_tex;
+Texture2D<float4> gbuffer0_tex; // Normal (UNORM)
+Texture2D<float4> gbuffer1_tex; // Albedo
+Texture2D<float3> gbuffer2_tex; // Emissive (R11G11B10 HDR)
+Texture2D<float4> gbuffer3_tex; // Metallic/Roughness/Alpha
 Texture2D<float4> depth_tex;
 //SamplerState default_sampler;
 
@@ -45,9 +45,16 @@ void main(uint3 threadID : SV_DispatchThreadID)
         return;
 
     int3 loadCoord = int3(threadID.xy, 0);
+    float depth = depth_tex.Load(loadCoord).r;
+    if (depth == 1.0f)
+    {
+        out_color[threadID.xy] = float4(0.0, 0.0, 0.0, 1.0);
+        return;
+    }
+        
     float4 gbuffer0 = gbuffer0_tex.Load(loadCoord);
     float4 gbuffer1 = gbuffer1_tex.Load(loadCoord);
-    float4 gbuffer2 = gbuffer2_tex.Load(loadCoord);
+    float3 gbuffer2 = gbuffer2_tex.Load(loadCoord);
     float4 gbuffer3 = gbuffer3_tex.Load(loadCoord);
 
     MaterialProperties mat;
@@ -58,10 +65,12 @@ void main(uint3 threadID : SV_DispatchThreadID)
     mat.roughness = roughness;
     mat.roughness2 = Pow2(roughness);
     mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
-    mat.emissive = gbuffer2.xyz;
+    // Unpack emissive from R11G11B10 (GPU auto-unpacks)
+    mat.emissive = gbuffer2;
     float2 uv = float2(threadID.xy) / float2(_resolution);
-    float3 world_pos = ReconstructWorldPos(DeferredShadingConstants_cb.inverse_vp, depth_tex.Load(loadCoord).r, uv);
-    float3 n = normalize(gbuffer0.xyz);
+    float3 world_pos = ReconstructWorldPos(DeferredShadingConstants_cb.inverse_vp, depth, uv);
+    // Unpack normal from [0,1] to [-1,1]
+    float3 n = normalize(gbuffer0.xyz * 2.0 - 1.0);
     float3 v = -normalize(world_pos - DeferredShadingConstants_cb.camera_pos_exposure.xyz);
     float NoV = saturate(dot(n, v));
     float4 radiance = float4(0.0, 0.0, 0.0, 0.0);
