@@ -138,8 +138,8 @@ PSOutput ps_main(VSOutput vsout, uint tri_id : SV_PrimitiveID)
         float3 normal = normalize(vsout.normal);
         float3 tangent = normalize(vsout.tangent);
         float3 bitangent = normalize(cross(tangent, normal));
-        float3x3 tbn = make_f3x3_cols(tangent, bitangent, normal);
-        gbuffer_normal = normalize(mul(tbn, normal_map));
+        float3x3 tbn = float3x3(tangent, bitangent, normal);
+        gbuffer_normal = normalize(mul(normal_map, tbn));
     } else {
         gbuffer_normal = normalize(vsout.normal);
     }
