@@ -148,7 +148,7 @@ PSOutput ps_main(VSOutput vsout, uint tri_id : SV_PrimitiveID)
     psout.gbuffer0 = float4(gbuffer_normal * 0.5 + 0.5, 0.0);
     psout.gbuffer1 = float4(albedo, 0.0);
     // Emissive in R11G11B10 format (HDR) - GPU will auto-pack float3 to R11G11B10
-    psout.gbuffer2 = float4(emissive, 0.0);
+    psout.gbuffer2 = emissive;
     psout.gbuffer3 = float4(mr.y, mr.x, alpha, 0.0);
 
     float4 prev_pos = vsout.prev_pos;

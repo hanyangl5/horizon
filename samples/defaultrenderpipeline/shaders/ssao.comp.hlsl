@@ -12,7 +12,7 @@ Texture2D<float4> depth_tex;
 Texture2D<float4> normal_tex;
 Texture2D<float2> ssao_noise_tex;
 SamplerState default_sampler;
-[[vk::image_format("rgba8")]] RWTexture2D<float4> ao_factor_tex;
+[[vk::image_format("r8")]] RWTexture2D<float4> ao_factor_tex;
 
 struct SSAOConstant {
     float4x4 camera_projection;

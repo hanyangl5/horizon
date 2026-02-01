@@ -28,8 +28,8 @@ ConstantBuffer<LightCountUb> LightCountUb_cb;
 struct LightDataUb { LightParams light_data[MAX_DYNAMIC_LIGHT_COUNT]; };
 ConstantBuffer<LightDataUb> LightDataUb_cb;
 
-[[vk::image_format("rgba16f")]] RWTexture2D<float4> out_color;
-[[vk::image_format("rgba8")]] RWTexture2D<float4> ao_tex;
+[[vk::image_format("r11g11b10f")]] RWTexture2D<float4> out_color;
+[[vk::image_format("r8")]] RWTexture2D<float4> ao_tex;
 
 ConstantBuffer<DiffuseIrradianceSH3> DiffuseIrradianceSH3_cb;
 

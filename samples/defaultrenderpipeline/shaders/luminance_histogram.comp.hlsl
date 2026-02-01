@@ -2,7 +2,7 @@
 #include "include/postprocess/histogram.h"
 
 // Set 0: Per-frame resources
-[[vk::image_format("rgba16f")]] RWTexture2D<float4> color_image;
+[[vk::image_format("r11g11b10f")]] RWTexture2D<float4> color_image;
 RWStructuredBuffer<uint> histogram;
 RWStructuredBuffer<float> adaptedLuminance;
 
