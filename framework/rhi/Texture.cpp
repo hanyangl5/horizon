@@ -8,8 +8,7 @@ Texture::Texture(const TextureCreateInfo &texture_create_info) noexcept
       m_descriptor_types(texture_create_info.descriptor_types), m_state(texture_create_info.initial_state),
       m_type(texture_create_info.texture_type), m_format(texture_create_info.texture_format),
       m_width(texture_create_info.width), m_height(texture_create_info.height), m_depth(texture_create_info.depth),
-      m_array_layer(texture_create_info.array_layer),
-      m_byte_per_pixel(GetBytesFromTextureFormat(m_format))
+      m_array_layer(texture_create_info.array_layer), m_byte_per_pixel(GetBytesFromTextureFormat(m_format))
 {
 
     mip_map_level =

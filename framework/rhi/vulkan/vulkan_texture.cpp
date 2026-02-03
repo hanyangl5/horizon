@@ -95,7 +95,7 @@ VkDescriptorImageInfo *VulkanTexture::GetDescriptorImageInfo(DescriptorType desc
 //     m_debug_name = name;
 //     PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT =
 //         (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(m_context.instance, "vkSetDebugUtilsObjectNameEXT");
-    
+
 //     if (vkSetDebugUtilsObjectNameEXT)
 //     {
 //         VkDebugUtilsObjectNameInfoEXT name_info{};

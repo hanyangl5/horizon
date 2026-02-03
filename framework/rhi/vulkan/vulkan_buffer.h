@@ -22,8 +22,8 @@ class VulkanBuffer : public Buffer
     VulkanBuffer &operator=(VulkanBuffer &&rhs) noexcept = delete;
 
     VkDescriptorBufferInfo *GetDescriptorBufferInfo(u32 offset, u32 size) noexcept;
-    
-    //void SetDebugName(const char *name) override;
+
+    // void SetDebugName(const char *name) override;
 
   public:
     const VulkanRendererContext &m_context{};

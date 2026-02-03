@@ -306,7 +306,7 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
         std::vector<VkQueueFamilyProperties> queue_family_properties;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  nullptr); // Get queue family properties
-        //if (queue_family_count < 3)
+        // if (queue_family_count < 3)
         //{
         //    LOG_ERROR("less than 3 queue");
         //    continue;
@@ -386,7 +386,6 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
     descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
 
-    
     u32 queue_count = 1;
     if (gpu_support_async_compute)
     {

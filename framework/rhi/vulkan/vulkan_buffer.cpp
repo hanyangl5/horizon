@@ -56,7 +56,7 @@ VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 si
 
 //     PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT =
 //         (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(m_context.instance, "vkSetDebugUtilsObjectNameEXT");
-    
+
 //     if (vkSetDebugUtilsObjectNameEXT)
 //     {
 //         VkDebugUtilsObjectNameInfoEXT name_info{};

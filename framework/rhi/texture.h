@@ -16,10 +16,10 @@ class Texture
     Texture(Texture &&rhs) noexcept = delete;
     Texture &operator=(Texture &&rhs) noexcept = delete;
     // virtual void *GetBufferPointer() noexcept = 0;
-    
+
     // Set debug name for this texture (for debugging tools like RenderDoc, Nsight, etc.)
-    //virtual void SetDebugName(const char *name) {}
-    
+    // virtual void SetDebugName(const char *name) {}
+
   public:
     std::string m_debug_name;
     DescriptorTypes m_descriptor_types;

@@ -1,9 +1,9 @@
 #include "frame_graph.h"
 
-#include <core/log.h>
-#include <core/definations.h>
-#include <rhi/resource_barrier.h>
 #include <algorithm>
+#include <core/definations.h>
+#include <core/log.h>
+#include <rhi/resource_barrier.h>
 #include <unordered_set>
 
 namespace Horizon::Backend
@@ -40,7 +40,8 @@ BufferHandle FrameGraphBuilder::ImportBuffer(const std::string &name, Buffer *bu
     return m_graph->ImportBuffer(name, buffer);
 }
 
-RenderTargetHandle FrameGraphBuilder::CreateRenderTarget(const std::string &name, const RenderTargetCreateInfo &create_info)
+RenderTargetHandle FrameGraphBuilder::CreateRenderTarget(const std::string &name,
+                                                         const RenderTargetCreateInfo &create_info)
 {
     auto handle = m_graph->FindOrCreateRenderTarget(name);
     if (handle.IsValid())
@@ -57,8 +58,9 @@ RenderTargetHandle FrameGraphBuilder::ImportRenderTarget(const std::string &name
 
 void FrameGraphBuilder::ReadTexture(TextureHandle handle, ResourceState state)
 {
-    if (!handle.IsValid()) return;
-    
+    if (!handle.IsValid())
+        return;
+
     m_pass->read_textures.push_back(handle);
     ResourceUsage usage;
     usage.state = state;
@@ -68,8 +70,9 @@ void FrameGraphBuilder::ReadTexture(TextureHandle handle, ResourceState state)
 
 void FrameGraphBuilder::WriteTexture(TextureHandle handle, ResourceState state)
 {
-    if (!handle.IsValid()) return;
-    
+    if (!handle.IsValid())
+        return;
+
     m_pass->write_textures.push_back(handle);
     ResourceUsage usage;
     usage.state = state;
@@ -79,8 +82,9 @@ void FrameGraphBuilder::WriteTexture(TextureHandle handle, ResourceState state)
 
 void FrameGraphBuilder::ReadBuffer(BufferHandle handle, ResourceState state)
 {
-    if (!handle.IsValid()) return;
-    
+    if (!handle.IsValid())
+        return;
+
     m_pass->read_buffers.push_back(handle);
     ResourceUsage usage;
     usage.state = state;
@@ -90,8 +94,9 @@ void FrameGraphBuilder::ReadBuffer(BufferHandle handle, ResourceState state)
 
 void FrameGraphBuilder::WriteBuffer(BufferHandle handle, ResourceState state)
 {
-    if (!handle.IsValid()) return;
-    
+    if (!handle.IsValid())
+        return;
+
     m_pass->write_buffers.push_back(handle);
     ResourceUsage usage;
     usage.state = state;
@@ -101,8 +106,9 @@ void FrameGraphBuilder::WriteBuffer(BufferHandle handle, ResourceState state)
 
 void FrameGraphBuilder::UseRenderTarget(RenderTargetHandle handle)
 {
-    if (!handle.IsValid()) return;
-    
+    if (!handle.IsValid())
+        return;
+
     m_pass->render_targets.push_back(handle);
 }
 
@@ -131,15 +137,14 @@ FrameGraph::~FrameGraph()
     Reset();
 }
 
-FrameGraphBuilder FrameGraph::AddPass(const std::string &name, 
-                                      PassSetupCallback setup_callback,
+FrameGraphBuilder FrameGraph::AddPass(const std::string &name, PassSetupCallback setup_callback,
                                       PassExecuteCallback execute_callback)
 {
     PassNode pass;
     pass.name = name;
     pass.setup_callback = setup_callback;
     pass.execute_callback = execute_callback;
-    
+
     m_passes.push_back(std::move(pass));
     return FrameGraphBuilder(this, &m_passes.back());
 }
@@ -153,7 +158,7 @@ void FrameGraph::Compile()
     {
         m_execution_order.push_back(i);
     }
-    
+
     // Create transient resources
     for (auto &tex : m_textures)
     {
@@ -162,7 +167,7 @@ void FrameGraph::Compile()
             tex.actual_texture = m_rhi->CreateTexture(tex.create_info);
         }
     }
-    
+
     for (auto &buf : m_buffers)
     {
         if (buf.is_transient && !buf.is_imported && buf.actual_buffer == nullptr)
@@ -170,7 +175,7 @@ void FrameGraph::Compile()
             buf.actual_buffer = m_rhi->CreateBuffer(buf.create_info);
         }
     }
-    
+
     for (auto &rt : m_render_targets)
     {
         if (rt.is_transient && !rt.is_imported && rt.actual_render_target == nullptr)
@@ -178,7 +183,7 @@ void FrameGraph::Compile()
             rt.actual_render_target = m_rhi->CreateRenderTarget(rt.create_info);
         }
     }
-    
+
     // Setup phase: Execute all pass setup callbacks to collect resource usage information
     for (u32 pass_idx : m_execution_order)
     {
@@ -196,14 +201,14 @@ void FrameGraph::Execute()
 {
     CommandList *current_command_list = nullptr;
     CommandQueueType current_queue = CommandQueueType::GRAPHICS;
-    
+
     // Track command lists by queue type for submission
     std::vector<CommandList *> command_lists;
-    
+
     for (u32 pass_idx : m_execution_order)
     {
         auto &pass = m_passes[pass_idx];
-        
+
         // Get command list for this queue
         if (current_command_list == nullptr)
         {
@@ -215,26 +220,26 @@ void FrameGraph::Execute()
             current_command_list = m_rhi->GetCommandList(current_queue);
             current_command_list->BeginRecording();
         }
-        
+
         // Insert barriers before pass
         InsertBarriers(current_command_list, pass_idx);
-        
+
         // Execute pass
         FrameGraphBuilder builder(this, &pass);
         if (pass.execute_callback)
         {
-            //LOG_DEBUG("pass execute: {}", pass.name);
+            // LOG_DEBUG("pass execute: {}", pass.name);
             pass.execute_callback(current_command_list, builder);
         }
     }
-    
+
     // End the last command list
     if (current_command_list != nullptr)
     {
         current_command_list->EndRecording();
         command_lists.push_back(current_command_list);
     }
-    
+
     // Submit all command lists
     if (!command_lists.empty())
     {
@@ -257,7 +262,7 @@ void FrameGraph::Reset()
             tex.actual_texture = nullptr;
         }
     }
-    
+
     for (auto &buf : m_buffers)
     {
         if (buf.is_transient && !buf.is_imported && buf.actual_buffer != nullptr)
@@ -266,7 +271,7 @@ void FrameGraph::Reset()
             buf.actual_buffer = nullptr;
         }
     }
-    
+
     for (auto &rt : m_render_targets)
     {
         if (rt.is_transient && !rt.is_imported && rt.actual_render_target != nullptr)
@@ -275,7 +280,7 @@ void FrameGraph::Reset()
             rt.actual_render_target = nullptr;
         }
     }
-    
+
     // Clear passes and resources
     m_passes.clear();
     m_textures.clear();
@@ -315,17 +320,17 @@ TextureHandle FrameGraph::ImportTexture(const std::string &name, Texture *textur
     {
         return it->second;
     }
-    
+
     TextureResource resource;
     resource.name = name;
     resource.actual_texture = texture;
     resource.is_imported = true;
     resource.is_transient = false;
-    
+
     u32 index = static_cast<u32>(m_textures.size());
     m_textures.push_back(resource);
     m_texture_name_map[name] = TextureHandle{index};
-    
+
     return TextureHandle{index};
 }
 
@@ -336,17 +341,17 @@ BufferHandle FrameGraph::ImportBuffer(const std::string &name, Buffer *buffer)
     {
         return it->second;
     }
-    
+
     BufferResource resource;
     resource.name = name;
     resource.actual_buffer = buffer;
     resource.is_imported = true;
     resource.is_transient = false;
-    
+
     u32 index = static_cast<u32>(m_buffers.size());
     m_buffers.push_back(resource);
     m_buffer_name_map[name] = BufferHandle{index};
-    
+
     return BufferHandle{index};
 }
 
@@ -357,17 +362,17 @@ RenderTargetHandle FrameGraph::ImportRenderTarget(const std::string &name, Rende
     {
         return it->second;
     }
-    
+
     RenderTargetResource resource;
     resource.name = name;
     resource.actual_render_target = render_target;
     resource.is_imported = true;
     resource.is_transient = false;
-    
+
     u32 index = static_cast<u32>(m_render_targets.size());
     m_render_targets.push_back(resource);
     m_render_target_name_map[name] = RenderTargetHandle{index};
-    
+
     return RenderTargetHandle{index};
 }
 
@@ -378,15 +383,15 @@ TextureHandle FrameGraph::FindOrCreateTexture(const std::string &name)
     {
         return it->second;
     }
-    
+
     TextureResource resource;
     resource.name = name;
     resource.is_transient = true;
-    
+
     u32 index = static_cast<u32>(m_textures.size());
     m_textures.push_back(resource);
     m_texture_name_map[name] = TextureHandle{index};
-    
+
     return TextureHandle{index};
 }
 
@@ -397,15 +402,15 @@ BufferHandle FrameGraph::FindOrCreateBuffer(const std::string &name)
     {
         return it->second;
     }
-    
+
     BufferResource resource;
     resource.name = name;
     resource.is_transient = true;
-    
+
     u32 index = static_cast<u32>(m_buffers.size());
     m_buffers.push_back(resource);
     m_buffer_name_map[name] = BufferHandle{index};
-    
+
     return BufferHandle{index};
 }
 
@@ -416,15 +421,15 @@ RenderTargetHandle FrameGraph::FindOrCreateRenderTarget(const std::string &name)
     {
         return it->second;
     }
-    
+
     RenderTargetResource resource;
     resource.name = name;
     resource.is_transient = true;
-    
+
     u32 index = static_cast<u32>(m_render_targets.size());
     m_render_targets.push_back(resource);
     m_render_target_name_map[name] = RenderTargetHandle{index};
-    
+
     return RenderTargetHandle{index};
 }
 
@@ -432,28 +437,28 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
 {
     auto &pass = m_passes[pass_index];
     BarrierDesc barrier;
-    
+
     // Track which textures/buffers we've already processed to avoid duplicates
     std::unordered_set<u32> processed_textures;
     std::unordered_set<u32> processed_buffers;
-    
+
     // Process texture barriers - prioritize writes over reads for same resource
     // (writes change state, so if a resource is both read and written, use write state)
     for (auto handle : pass.write_textures)
     {
         if (processed_textures.find(handle.index) != processed_textures.end())
             continue;
-            
+
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.texture_usages[handle.index].state;
-        
+
         if (last_state != current_state)
         {
             TextureBarrierDesc tb;
             tb.texture = m_textures[handle.index].actual_texture;
             tb.src_state = last_state;
             tb.dst_state = current_state;
-            tb.layer_count = m_textures[handle.index].actual_texture->m_array_layer; 
+            tb.layer_count = m_textures[handle.index].actual_texture->m_array_layer;
             tb.mip_level_count = m_textures[handle.index].actual_texture->mip_map_level;
             // TODO(hyl): support specify view mip/layer in framegraph
 
@@ -461,16 +466,16 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         }
         processed_textures.insert(handle.index);
     }
-    
+
     // Process read textures that weren't written to
     for (auto handle : pass.read_textures)
     {
         if (processed_textures.find(handle.index) != processed_textures.end())
             continue;
-            
+
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.texture_usages[handle.index].state;
-        
+
         if (last_state != current_state && last_state != ResourceState::RESOURCE_STATE_UNDEFINED)
         {
             TextureBarrierDesc tb;
@@ -484,16 +489,16 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         }
         processed_textures.insert(handle.index);
     }
-    
+
     // Process buffer barriers - prioritize writes over reads for same resource
     for (auto handle : pass.write_buffers)
     {
         if (processed_buffers.find(handle.index) != processed_buffers.end())
             continue;
-            
+
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.buffer_usages[handle.index].state;
-        
+
         if (last_state != current_state)
         {
             BufferBarrierDesc bb;
@@ -504,13 +509,13 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         }
         processed_buffers.insert(handle.index);
     }
-    
+
     // Process read buffers that weren't written to
     for (auto handle : pass.read_buffers)
     {
         if (processed_buffers.find(handle.index) != processed_buffers.end())
             continue;
-            
+
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.buffer_usages[handle.index].state;
         // FIXME(luhanyang): barrier should be added if read after write
@@ -524,14 +529,15 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         }
         processed_buffers.insert(handle.index);
     }
-    
+
     // Insert barrier if needed
     if (!barrier.texture_memory_barriers.empty() || !barrier.buffer_memory_barriers.empty())
     {
         command_list->InsertBarrier(barrier);
         // for (auto& barrier : barrier.texture_memory_barriers)
         // {
-        //     LOG_DEBUG("barrier info: srcstate {} dststate{} tex {} depth {} arraylayer{}" , (u32)barrier.src_state, (u32)barrier.dst_state, barrier.texture->m_debug_name, barrier.texture->m_depth, barrier.layer_count);
+        //     LOG_DEBUG("barrier info: srcstate {} dststate{} tex {} depth {} arraylayer{}" , (u32)barrier.src_state,
+        //     (u32)barrier.dst_state, barrier.texture->m_debug_name, barrier.texture->m_depth, barrier.layer_count);
         // }
     }
 }
@@ -547,7 +553,7 @@ ResourceState FrameGraph::GetLastState(TextureHandle handle, u32 pass_index)
     {
         u32 actual_pass_idx = m_execution_order[i];
         auto &pass = m_passes[actual_pass_idx];
-        
+
         // First check if this pass wrote to the texture (write operations change state)
         for (auto write_handle : pass.write_textures)
         {
@@ -559,13 +565,13 @@ ResourceState FrameGraph::GetLastState(TextureHandle handle, u32 pass_index)
             }
         }
     }
-    
+
     // If no write found, check for reads
     for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
     {
         u32 actual_pass_idx = m_execution_order[i];
         auto &pass = m_passes[actual_pass_idx];
-        
+
         // Check if this pass read from the texture
         for (auto read_handle : pass.read_textures)
         {
@@ -578,7 +584,7 @@ ResourceState FrameGraph::GetLastState(TextureHandle handle, u32 pass_index)
             }
         }
     }
-    
+
     return usage != ResourceState::RESOURCE_STATE_UNDEFINED ? usage : ResourceState::RESOURCE_STATE_UNDEFINED;
 }
 
@@ -591,7 +597,7 @@ ResourceState FrameGraph::GetLastState(BufferHandle handle, u32 pass_index)
     {
         u32 actual_pass_idx = m_execution_order[i];
         auto &pass = m_passes[actual_pass_idx];
-        
+
         // First check if this pass wrote to the buffer (write operations change state)
         for (auto write_handle : pass.write_buffers)
         {
@@ -601,13 +607,13 @@ ResourceState FrameGraph::GetLastState(BufferHandle handle, u32 pass_index)
             }
         }
     }
-    
+
     // If no write found, check for reads
     for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
     {
         u32 actual_pass_idx = m_execution_order[i];
         auto &pass = m_passes[actual_pass_idx];
-        
+
         // Check if this pass read from the buffer
         for (auto read_handle : pass.read_buffers)
         {
@@ -617,7 +623,7 @@ ResourceState FrameGraph::GetLastState(BufferHandle handle, u32 pass_index)
             }
         }
     }
-    
+
     return ResourceState::RESOURCE_STATE_UNDEFINED;
 }
 

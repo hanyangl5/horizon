@@ -12,16 +12,18 @@ AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rh
         ssao_blur_pass = rhi->CreateComputePipeline({});
     }
 
-    ssao_factor_image = rhi->CreateTexture(TextureCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false, 1, "ssao_factor_image"});
+    ssao_factor_image = rhi->CreateTexture(
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+                          TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false,
+                          1, "ssao_factor_image"});
 
     ssao_noise_tex = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                           TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT, SSAO_NOISE_TEX_WIDTH,
                           SSAO_NOISE_TEX_HEIGHT, 1, false, 1, "ssao_noise_tex"});
 
-    ssao_blur_image = rhi->CreateTexture(TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
+    ssao_blur_image = rhi->CreateTexture(
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                           ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
                           TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false, 1, "ssao_blur_image"});
 

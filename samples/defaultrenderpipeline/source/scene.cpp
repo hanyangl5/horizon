@@ -50,11 +50,11 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
         Math::float3 col(rColor, gColor, bColor);
 
         // lumincance
-        //scene_manager->AddPointLight(col, 100000.0f * Math::_1DIVPI * 0.25f, pos, 10.0f);
+        // scene_manager->AddPointLight(col, 100000.0f * Math::_1DIVPI * 0.25f, pos, 10.0f);
     }
 
     auto dir = Math::float3(-1.0, -1.0, -1.0);
-    
+
     dir.Normalize();
     scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0f, dir);
 
