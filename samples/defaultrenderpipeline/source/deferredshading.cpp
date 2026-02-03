@@ -141,6 +141,7 @@ DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
             texture_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE_CUBE;
             texture_create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
             texture_create_info.texture_format = prefilered_irradiance_env_map_data.format;
+            texture_create_info.debug_name = "specular_map";
             prefiltered_irradiance_env_map = rhi->CreateTexture(texture_create_info);
         }
         brdf_lut_data_desc = TextureLoader::Load((asset_path / "envrionment/football/footballBrdf.dds").c_str());
@@ -154,6 +155,7 @@ DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
             texture_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE_CUBE;
             texture_create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
             texture_create_info.texture_format = brdf_lut_data_desc.format;
+            texture_create_info.debug_name = "brdf_lut";
             brdf_lut = rhi->CreateTexture(texture_create_info);
         }
     }

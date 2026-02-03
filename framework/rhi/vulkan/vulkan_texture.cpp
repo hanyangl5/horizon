@@ -86,4 +86,25 @@ VkDescriptorImageInfo *VulkanTexture::GetDescriptorImageInfo(DescriptorType desc
     return &descriptor_image_info;
 }
 
+// void VulkanTexture::SetDebugName(const char *name)
+// {
+//     if (!name || m_image == VK_NULL_HANDLE)
+//     {
+//         return;
+//     }
+//     m_debug_name = name;
+//     PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT =
+//         (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(m_context.instance, "vkSetDebugUtilsObjectNameEXT");
+    
+//     if (vkSetDebugUtilsObjectNameEXT)
+//     {
+//         VkDebugUtilsObjectNameInfoEXT name_info{};
+//         name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+//         name_info.objectType = VK_OBJECT_TYPE_IMAGE;
+//         name_info.objectHandle = (uint64_t)m_image;
+//         name_info.pObjectName = name;
+//         vkSetDebugUtilsObjectNameEXT(m_context.device, &name_info);
+//     }
+// }
+
 } // namespace Horizon::Backend

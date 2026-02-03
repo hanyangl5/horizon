@@ -44,3 +44,21 @@ class AmbientOcclusionPass
 
     Buffer *ssao_constants_buffer;
 };
+
+// class AmbientOcclusionRDGPass : public RDGPass
+// {
+//   public:
+//     AmbientOcclusionRDGPass(const RDG& rdg) : RDGPass("AmbientOcclusion", rdg) {}
+//     ~AmbientOcclusionRDGPass() noexcept {}
+//     void Setup() override;
+//     void Execute(CommandList *command_list) override;
+// };
+
+// class AmbientOcclusionBlurRDGPass : public RDGPass
+// {
+//   public:
+//     AmbientOcclusionBlurRDGPass(const RDG& rdg) : RDGPass("AmbientOcclusionBlur", rdg) {}
+//     ~AmbientOcclusionBlurRDGPass() noexcept {}
+//     void Setup() override;
+//     void Execute(CommandList *command_list) override;
+// };

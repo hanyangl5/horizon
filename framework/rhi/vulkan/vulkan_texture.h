@@ -17,6 +17,8 @@ class VulkanTexture : public Texture
     VulkanTexture(VulkanTexture &&rhs) noexcept = delete;
     VulkanTexture &operator=(VulkanTexture &&rhs) noexcept = delete;
     VkDescriptorImageInfo *GetDescriptorImageInfo(DescriptorType descriptor_type) noexcept;
+    
+    //void SetDebugName(const char *name) override;
 
   public:
     const VulkanRendererContext &m_context;

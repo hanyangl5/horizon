@@ -238,6 +238,7 @@ struct BufferCreateInfo
     DescriptorTypes descriptor_types;
     ResourceState initial_state;
     u64 size;
+    const char *debug_name;
     // void* data;
 };
 
@@ -251,6 +252,7 @@ struct TextureCreateInfo
     u32 width, height, depth = 1;
     bool enanble_mipmap = false;
     u32 array_layer = 1;
+    const char *debug_name;
 };
 
 using SwapChainFormat = TextureFormat;

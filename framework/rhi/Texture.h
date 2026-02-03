@@ -16,13 +16,18 @@ class Texture
     Texture(Texture &&rhs) noexcept = delete;
     Texture &operator=(Texture &&rhs) noexcept = delete;
     // virtual void *GetBufferPointer() noexcept = 0;
+    
+    // Set debug name for this texture (for debugging tools like RenderDoc, Nsight, etc.)
+    //virtual void SetDebugName(const char *name) {}
+    
   public:
+    std::string m_debug_name;
     DescriptorTypes m_descriptor_types;
     ResourceState m_state{};
     const TextureType m_type{};
     const TextureFormat m_format{};
 
-    const u32 m_width{}, m_height{}, m_depth{};
+    const u32 m_width{}, m_height{}, m_depth{}, m_array_layer;
     u32 mip_map_level{};
     const u32 m_byte_per_pixel{};
 

@@ -7,6 +7,7 @@
 #include "post_process.h"
 #include "scene.h"
 #include <scene/scene_renderer/renderer.h>
+#include <render_graph/frame_graph.h>
 // Render
 
 class Render
@@ -55,6 +56,7 @@ class Render
     std::unique_ptr<Horizon::Window> window;
     Horizon::Backend::RHI *rhi{};
     SwapChain *swap_chain{};
+    std::unique_ptr<Horizon::Backend::FrameGraph> frame_graph{};
 
     // pass resources
 

@@ -46,4 +46,26 @@ VkDescriptorBufferInfo *VulkanBuffer::GetDescriptorBufferInfo(u32 offset, u32 si
     return &buffer_info;
 }
 
+// void VulkanBuffer::SetDebugName(const char *name)
+// {
+//     if (!name || m_buffer == VK_NULL_HANDLE)
+//     {
+//         return;
+//     }
+//     m_debug_name = name;
+
+//     PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT =
+//         (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(m_context.instance, "vkSetDebugUtilsObjectNameEXT");
+    
+//     if (vkSetDebugUtilsObjectNameEXT)
+//     {
+//         VkDebugUtilsObjectNameInfoEXT name_info{};
+//         name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+//         name_info.objectType = VK_OBJECT_TYPE_BUFFER;
+//         name_info.objectHandle = (uint64_t)m_buffer;
+//         name_info.pObjectName = name;
+//         vkSetDebugUtilsObjectNameEXT(m_context.device, &name_info);
+//     }
+// }
+
 } // namespace Horizon::Backend

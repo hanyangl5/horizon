@@ -306,11 +306,11 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
         std::vector<VkQueueFamilyProperties> queue_family_properties;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  nullptr); // Get queue family properties
-        if (queue_family_count < 3)
-        {
-            LOG_ERROR("less than 3 queue");
-            continue;
-        }
+        //if (queue_family_count < 3)
+        //{
+        //    LOG_ERROR("less than 3 queue");
+        //    continue;
+        //}
         queue_family_properties.resize(queue_family_count);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
                                                  queue_family_properties.data()); // Get queue family properties
@@ -328,29 +328,29 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
             }
 
             // dedicate compute queue
-            if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-                queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-                queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
-            {
-                m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE] = i;
-                if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
-                    m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE])
-                {
-                    gpu_support_async_compute = true;
-                }
-            }
-            // dedicate transfer queue
-            if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-                queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-                !(queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
-            {
-                m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER] = i;
-                if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
-                    m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE])
-                {
-                    gpu_support_async_transfer = true;
-                }
-            }
+            // if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+            //     queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
+            //     queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+            // {
+            //     m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE] = i;
+            //     if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
+            //         m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE])
+            //     {
+            //         gpu_support_async_compute = true;
+            //     }
+            // }
+            // // dedicate transfer queue
+            // if (!(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+            //     queue_family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
+            //     !(queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
+            // {
+            //     m_vulkan.command_queue_familiy_indices[CommandQueueType::TRANSFER] = i;
+            //     if (m_vulkan.command_queue_familiy_indices[CommandQueueType::GRAPHICS] !=
+            //         m_vulkan.command_queue_familiy_indices[CommandQueueType::COMPUTE])
+            //     {
+            //         gpu_support_async_transfer = true;
+            //     }
+            // }
             *gpu = physical_device;
         }
         if (gpu != VK_NULL_HANDLE)
@@ -386,8 +386,17 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
     descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
 
-    std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(m_vulkan.command_queues.size());
-
+    
+    u32 queue_count = 1;
+    if (gpu_support_async_compute)
+    {
+        queue_count++;
+    }
+    if (gpu_support_async_transfer)
+    {
+        queue_count++;
+    }
+    std::vector<VkDeviceQueueCreateInfo> device_queue_create_info(queue_count);
     f32 queue_priority = 1.0f;
 
     for (u32 i = 0; i < device_queue_create_info.size(); i++)
