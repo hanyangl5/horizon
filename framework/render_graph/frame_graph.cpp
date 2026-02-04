@@ -246,6 +246,7 @@ void FrameGraph::Execute()
         QueueSubmitInfo submit_info{};
         submit_info.queue_type = CommandQueueType::GRAPHICS;
         submit_info.command_lists = command_lists;
+        submit_info.wait_image_acquired = true;
         submit_info.signal_render_complete = true;
         m_rhi->SubmitCommandLists(submit_info);
     }
@@ -451,8 +452,9 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
 
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.texture_usages[handle.index].state;
+        bool need_barrier = (last_state != current_state) || WasTextureWrittenByPreviousPass(handle, pass_index);
 
-        if (last_state != current_state)
+        if (need_barrier)
         {
             TextureBarrierDesc tb;
             tb.texture = m_textures[handle.index].actual_texture;
@@ -498,8 +500,9 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
 
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.buffer_usages[handle.index].state;
+        bool need_barrier = (last_state != current_state) || WasBufferWrittenByPreviousPass(handle, pass_index);
 
-        if (last_state != current_state)
+        if (need_barrier)
         {
             BufferBarrierDesc bb;
             bb.buffer = m_buffers[handle.index].actual_buffer;
@@ -518,8 +521,10 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
 
         ResourceState last_state = GetLastState(handle, pass_index);
         ResourceState current_state = pass.buffer_usages[handle.index].state;
-        // FIXME(luhanyang): barrier should be added if read after write
-        if (last_state != current_state && last_state != ResourceState::RESOURCE_STATE_UNDEFINED)
+        bool need_barrier = WasBufferWrittenByPreviousPass(handle, pass_index) ||
+                            (last_state != current_state && last_state != ResourceState::RESOURCE_STATE_UNDEFINED);
+
+        if (need_barrier)
         {
             BufferBarrierDesc bb;
             bb.buffer = m_buffers[handle.index].actual_buffer;
@@ -548,7 +553,7 @@ ResourceState FrameGraph::GetLastState(TextureHandle handle, u32 pass_index)
     // pass_index is an index into m_execution_order, not m_passes
     // Priority: write operations change resource state, so check writes first
     ResourceState usage = ResourceState::RESOURCE_STATE_UNDEFINED;
-    u32 passindex;
+    i32 passindex = -1;
     for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
     {
         u32 actual_pass_idx = m_execution_order[i];
@@ -577,7 +582,7 @@ ResourceState FrameGraph::GetLastState(TextureHandle handle, u32 pass_index)
         {
             if (read_handle.index == handle.index)
             {
-                if (actual_pass_idx > passindex)
+                if (i > passindex)
                 {
                     return pass.texture_usages[handle.index].state;
                 }
@@ -625,6 +630,36 @@ ResourceState FrameGraph::GetLastState(BufferHandle handle, u32 pass_index)
     }
 
     return ResourceState::RESOURCE_STATE_UNDEFINED;
+}
+
+bool FrameGraph::WasTextureWrittenByPreviousPass(TextureHandle handle, u32 pass_index)
+{
+    for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
+    {
+        u32 actual_pass_idx = m_execution_order[i];
+        auto &p = m_passes[actual_pass_idx];
+        for (auto write_handle : p.write_textures)
+        {
+            if (write_handle.index == handle.index)
+                return true;
+        }
+    }
+    return false;
+}
+
+bool FrameGraph::WasBufferWrittenByPreviousPass(BufferHandle handle, u32 pass_index)
+{
+    for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
+    {
+        u32 actual_pass_idx = m_execution_order[i];
+        auto &p = m_passes[actual_pass_idx];
+        for (auto write_handle : p.write_buffers)
+        {
+            if (write_handle.index == handle.index)
+                return true;
+        }
+    }
+    return false;
 }
 
 } // namespace Horizon::Backend

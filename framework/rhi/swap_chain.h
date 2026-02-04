@@ -12,9 +12,12 @@ namespace Horizon::Backend
 
 struct SwapChainSemaphoreContext
 {
-    std::vector<Semaphore *> recycled_semaphores;
-    Semaphore *swap_chain_acquire_semaphore{};
-    Semaphore *swap_chain_release_semaphore{};
+    u32 current_frame_index{0};
+    std::vector<Semaphore*> render_complete_semaphore;
+    std::vector<Semaphore*> present_complete_semaphore;
+    //std::vector<Semaphore *> recycled_semaphores;
+    //Semaphore *swap_chain_acquire_semaphore{};
+    //Semaphore *swap_chain_release_semaphore{};
 };
 
 class SwapChain

@@ -226,6 +226,8 @@ class FrameGraph
     void InsertBarriers(CommandList *command_list, u32 pass_index);
     ResourceState GetLastState(TextureHandle handle, u32 pass_index);
     ResourceState GetLastState(BufferHandle handle, u32 pass_index);
+    bool WasTextureWrittenByPreviousPass(TextureHandle handle, u32 pass_index);
+    bool WasBufferWrittenByPreviousPass(BufferHandle handle, u32 pass_index);
 };
 
 } // namespace Horizon::Backend

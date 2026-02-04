@@ -43,6 +43,9 @@ RHIVulkan::~RHIVulkan() noexcept
             vkDestroyFence(m_vulkan.device, fence, nullptr);
         }
     }
+    vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
+    //vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::COMPUTE]);
+    //vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::TRANSFER]);
 
     Memory::Free(thread_command_context);
     thread_command_context = nullptr;
@@ -50,26 +53,23 @@ RHIVulkan::~RHIVulkan() noexcept
     Memory::Free(m_descriptor_set_allocator);
     m_descriptor_set_allocator = nullptr; // release
 
-    if (semaphore_ctx.swap_chain_release_semaphore != nullptr)
-    {
-        vkDestroySemaphore(m_vulkan.device,
-                           reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_release_semaphore)->m_semaphore,
-                           nullptr);
-    }
-    if (semaphore_ctx.swap_chain_acquire_semaphore != nullptr)
-    {
-        vkDestroySemaphore(m_vulkan.device,
-                           reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore)->m_semaphore,
-                           nullptr);
-    }
-    for (auto &s : semaphore_ctx.recycled_semaphores)
+    for (auto &s : semaphore_ctx.render_complete_semaphore)
     {
         if (s != nullptr)
         {
             vkDestroySemaphore(m_vulkan.device, reinterpret_cast<VulkanSemaphore *>(s)->m_semaphore, nullptr);
+            s = nullptr;
         }
     }
-
+    for (auto &s : semaphore_ctx.present_complete_semaphore)
+    {
+        if (s != nullptr)
+        {
+            vkDestroySemaphore(m_vulkan.device, reinterpret_cast<VulkanSemaphore *>(s)->m_semaphore, nullptr);
+            s = nullptr;
+        }
+    }
+    
     vkDestroyQueryPool(m_vulkan.device, m_vulkan.gpu_query_pool, nullptr);
     vmaDestroyAllocator(m_vulkan.vma_allocator);
     vkDestroyDevice(m_vulkan.device, nullptr);
@@ -99,7 +99,15 @@ RenderTarget *RHIVulkan::CreateRenderTarget(const RenderTargetCreateInfo &render
 
 SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info)
 {
-    return Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
+    SwapChain* sc = Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
+    semaphore_ctx.present_complete_semaphore.resize(create_info.back_buffer_count);
+    semaphore_ctx.render_complete_semaphore.resize(create_info.back_buffer_count);
+    for (u32 i = 0; i < create_info.back_buffer_count; i++)
+    {
+        semaphore_ctx.present_complete_semaphore[i] = CreateSemaphore1();
+        semaphore_ctx.render_complete_semaphore[i] = CreateSemaphore1();
+    }
+    return sc;
 }
 
 Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const char *entry_point)
@@ -530,7 +538,8 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
     // signal render complete semaphore
     if (queue_submit_info.wait_image_acquired == true)
     {
-        wait_semaphores.push_back(reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore)
+        wait_semaphores.push_back(reinterpret_cast<VulkanSemaphore *>(
+                                      semaphore_ctx.present_complete_semaphore[semaphore_ctx.current_frame_index])
 
                                       ->m_semaphore);
         wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
@@ -549,13 +558,9 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
     if (queue_submit_info.signal_render_complete == true)
     {
 
-        if (!semaphore_ctx.swap_chain_release_semaphore)
-        {
-            semaphore_ctx.swap_chain_release_semaphore = (CreateSemaphore1());
-        }
-
-        signal_semaphores.push_back(
-            reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_release_semaphore)->m_semaphore);
+        signal_semaphores.push_back(reinterpret_cast<VulkanSemaphore *>(
+                                        semaphore_ctx.render_complete_semaphore[semaphore_ctx.current_frame_index])
+                                        ->m_semaphore);
         wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT); // correct stage?
     }
 
@@ -574,49 +579,41 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
 {
-
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
     // u32 wait_semaphore_count = queue_present_info.wait_semaphores.size();
     // std::vector<VkSemaphore> wait_semaphores(wait_semaphore_count);
-
+    
     // for (u32 i = 0; i < wait_semaphore_count; i++) {
     //     wait_semaphores[i] = reinterpret_cast<VulkanSemaphore *>(queue_present_info.wait_semaphores[i])->m_semaphore;
     // }
+
+    auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(queue_present_info.swap_chain);
     std::vector<VkSemaphore> wait_semaphores;
     wait_semaphores.push_back(
-        reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_release_semaphore)->m_semaphore);
+        reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.render_complete_semaphore[semaphore_ctx.current_frame_index])
+            ->m_semaphore);
 
     present_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
     present_info.pWaitSemaphores = wait_semaphores.data();
-
-    auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(queue_present_info.swap_chain);
 
     VkSwapchainKHR swapChains[] = {vk_swap_chain->swap_chain};
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapChains;
     present_info.pImageIndices = &vk_swap_chain->image_index;
     CHECK_VK_RESULT(vkQueuePresentKHR(m_vulkan.command_queues[CommandQueueType::GRAPHICS], &present_info));
-    vk_swap_chain->current_frame_index++;
-    vk_swap_chain->current_frame_index = vk_swap_chain->current_frame_index % vk_swap_chain->m_back_buffer_count;
+        vk_swap_chain->current_frame_index++;
+        vk_swap_chain->current_frame_index = vk_swap_chain->current_frame_index % vk_swap_chain->m_back_buffer_count;
+        semaphore_ctx.current_frame_index = vk_swap_chain->current_frame_index;
 }
 
 void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
 {
-
     auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(swap_chain);
 
-    Semaphore *sm;
-    if (semaphore_ctx.recycled_semaphores.empty())
-    {
-        sm = (CreateSemaphore1());
-    }
-    else
-    {
-        sm = semaphore_ctx.recycled_semaphores.back();
-        semaphore_ctx.recycled_semaphores.pop_back();
-    }
+    Semaphore *sm = semaphore_ctx.present_complete_semaphore[semaphore_ctx.current_frame_index];
+
 
     VkResult res = vkAcquireNextImageKHR(m_vulkan.device, vk_swap_chain->swap_chain, UINT64_MAX,
                                          reinterpret_cast<VulkanSemaphore *>(sm)->m_semaphore, nullptr,
@@ -624,8 +621,7 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
 
     if (res != VK_SUCCESS)
     {
-        semaphore_ctx.recycled_semaphores.push_back(sm);
-        LOG_ERROR("failed to acqurei next image");
+        LOG_ERROR("failed to acquire next image");
         if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
         {
             // resize(context.swapchain_dimensions.width, context.swapchain_dimensions.height);
@@ -642,20 +638,11 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
     // RESET RHIVulkan RESOURCES
     {
         ResetFence(CommandQueueType::GRAPHICS);
-        ResetFence(CommandQueueType::COMPUTE);
-        ResetFence(CommandQueueType::TRANSFER);
+        //ResetFence(CommandQueueType::COMPUTE);
+        //ResetFence(CommandQueueType::TRANSFER);
         ResetRHIResources();
     }
 
-    // Recycle the old semaphore back into the semaphore manager.
-    auto old_semaphore = reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.swap_chain_acquire_semaphore);
-
-    if (old_semaphore != nullptr && old_semaphore->m_semaphore != VK_NULL_HANDLE)
-    {
-        semaphore_ctx.recycled_semaphores.push_back(old_semaphore);
-    }
-
-    semaphore_ctx.swap_chain_acquire_semaphore = sm;
     vkResetQueryPool(m_vulkan.device, m_vulkan.gpu_query_pool, 0, 64);
 }
 

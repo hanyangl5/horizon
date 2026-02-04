@@ -41,7 +41,7 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     vk_swap_chain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // rotatioin/flip
     vk_swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     vk_swap_chain_create_info.clipped = VK_TRUE;
     vk_swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     vk_swap_chain_create_info.queueFamilyIndexCount = 0;

@@ -91,6 +91,7 @@ void Render::run()
     while (!window->ShouldClose())
     {
         scene->scene_camera_controller->ProcessInput(window.get());
+        
 
         rhi->AcquireNextFrame(swap_chain);
         UpdatePipelineResources();
@@ -522,6 +523,21 @@ void Render::run()
                 // Copy to swapchain and previous frame
                 cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(swapchain_handle));
                 cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(previous_color_handle));
+                
+                // Transition swapchain image from COPY_DEST to PRESENT for vkQueuePresentKHR
+                Horizon::BarrierDesc barrier{};
+                Horizon::TextureBarrierDesc swapchain_barrier{};
+                swapchain_barrier.texture = builder.GetTexture(swapchain_handle);
+                swapchain_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                swapchain_barrier.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
+                swapchain_barrier.first_mip_level = 0;
+                swapchain_barrier.mip_level_count = 1;
+                swapchain_barrier.first_layer = 0;
+                swapchain_barrier.layer_count = 1;
+                swapchain_barrier.queue = CommandQueueType::GRAPHICS;
+                swapchain_barrier.queue_op = Horizon::QueueOp::IGNORED;
+                barrier.texture_memory_barriers.push_back(swapchain_barrier);
+                cl->InsertBarrier(barrier);
             });
 
         // Compile and execute FrameGraph
