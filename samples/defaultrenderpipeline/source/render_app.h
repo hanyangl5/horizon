@@ -5,6 +5,7 @@
 #include "antialiasing.h"
 #include "deferredshading.h"
 #include "post_process.h"
+#include "resource_upload_pass.h"
 #include "scene.h"
 #include <render_graph/frame_graph.h>
 #include <scene/scene_renderer/renderer.h>

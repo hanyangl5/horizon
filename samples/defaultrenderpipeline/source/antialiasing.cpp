@@ -41,3 +41,39 @@ const Math::float2 &AntialiasingPass::GetJitterOffset() noexcept
     taa_sample_index %= TAA_SAMPLE_COUNT;
     return taa_samples[taa_sample_index++];
 }
+
+void AntialiasingPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph,
+                                       Horizon::Backend::TextureHandle &output_color_handle,
+                                       Horizon::Backend::TextureHandle &previous_color_handle)
+{
+    output_color_handle = frame_graph->ImportTexture("output_color", output_color_texture);
+    previous_color_handle = frame_graph->ImportTexture("previous_color", previous_color_texture);
+}
+
+void AntialiasingPass::SetupTAAPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                     Horizon::Backend::TextureHandle previous_color_handle,
+                                     Horizon::Backend::TextureHandle pp_color_handle,
+                                     Horizon::Backend::TextureHandle gbuffer4_handle,
+                                     Horizon::Backend::TextureHandle output_color_handle)
+{
+    builder.ReadTexture(previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(pp_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(gbuffer4_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.WriteTexture(output_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+}
+
+void AntialiasingPass::ExecuteTAAPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                       Horizon::Backend::TextureHandle previous_color_handle,
+                                       Horizon::Backend::TextureHandle pp_color_handle,
+                                       Horizon::Backend::TextureHandle gbuffer4_handle,
+                                       Horizon::Backend::TextureHandle output_color_handle)
+{
+    cl->BeginComputePass("TAA Pass");
+    taa_pass->SetResource(builder.GetTexture(previous_color_handle), "prev_color_tex");
+    taa_pass->SetResource(builder.GetTexture(pp_color_handle), "curr_color_tex");
+    taa_pass->SetResource(builder.GetTexture(gbuffer4_handle), "mv_tex");
+    taa_pass->SetResource(builder.GetTexture(output_color_handle), "out_color_tex");
+    cl->BindPipeline(taa_pass);
+    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->EndComputePass();
+}

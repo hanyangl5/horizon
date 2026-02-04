@@ -1,4 +1,6 @@
 #include "deferredshading.h"
+#include "scene.h"
+#include <scene/scene_manager/scene_manager.h>
 
 DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
 {
@@ -202,4 +204,197 @@ DeferredShadingPass::~DeferredShadingPass() noexcept
     mRhi->DestroyTexture(brdf_lut);
     mRhi->DestroyTexture(prefiltered_irradiance_env_map);
     mRhi->DestroySampler(ibl_sampler);
+}
+
+void DeferredShadingPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph,
+                                           Horizon::Backend::TextureHandle &gbuffer0_handle,
+                                           Horizon::Backend::TextureHandle &gbuffer1_handle,
+                                           Horizon::Backend::TextureHandle &gbuffer2_handle,
+                                           Horizon::Backend::TextureHandle &gbuffer3_handle,
+                                           Horizon::Backend::TextureHandle &gbuffer4_handle,
+                                           Horizon::Backend::TextureHandle &depth_handle,
+                                           Horizon::Backend::TextureHandle &shading_color_handle,
+                                           Horizon::Backend::RenderTargetHandle &gbuffer0_rt_handle,
+                                           Horizon::Backend::RenderTargetHandle &gbuffer1_rt_handle,
+                                           Horizon::Backend::RenderTargetHandle &gbuffer2_rt_handle,
+                                           Horizon::Backend::RenderTargetHandle &gbuffer3_rt_handle,
+                                           Horizon::Backend::RenderTargetHandle &gbuffer4_rt_handle,
+                                           Horizon::Backend::RenderTargetHandle &depth_rt_handle,
+                                           Horizon::Backend::TextureHandle &brdf_lut_handle,
+                                           Horizon::Backend::TextureHandle &prefiltered_env_handle)
+{
+    gbuffer0_rt_handle = frame_graph->ImportRenderTarget("gbuffer0_rt", gbuffer0);
+    gbuffer1_rt_handle = frame_graph->ImportRenderTarget("gbuffer1_rt", gbuffer1);
+    gbuffer2_rt_handle = frame_graph->ImportRenderTarget("gbuffer2_rt", gbuffer2);
+    gbuffer3_rt_handle = frame_graph->ImportRenderTarget("gbuffer3_rt", gbuffer3);
+    gbuffer4_rt_handle = frame_graph->ImportRenderTarget("gbuffer4_rt", gbuffer4);
+    depth_rt_handle = frame_graph->ImportRenderTarget("depth_rt", depth);
+
+    gbuffer0_handle = frame_graph->ImportTexture("gbuffer0", gbuffer0->GetTexture());
+    gbuffer1_handle = frame_graph->ImportTexture("gbuffer1", gbuffer1->GetTexture());
+    gbuffer2_handle = frame_graph->ImportTexture("gbuffer2", gbuffer2->GetTexture());
+    gbuffer3_handle = frame_graph->ImportTexture("gbuffer3", gbuffer3->GetTexture());
+    gbuffer4_handle = frame_graph->ImportTexture("gbuffer4", gbuffer4->GetTexture());
+    depth_handle = frame_graph->ImportTexture("depth", depth->GetTexture());
+
+    shading_color_handle = frame_graph->ImportTexture("shading_color", shading_color_image);
+    brdf_lut_handle = frame_graph->ImportTexture("brdf_lut", brdf_lut);
+    prefiltered_env_handle = frame_graph->ImportTexture("prefiltered_env", prefiltered_irradiance_env_map);
+}
+
+void DeferredShadingPass::SetupGeometryPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                            Horizon::Backend::RenderTargetHandle gbuffer0_rt_handle,
+                                            Horizon::Backend::RenderTargetHandle gbuffer1_rt_handle,
+                                            Horizon::Backend::RenderTargetHandle gbuffer2_rt_handle,
+                                            Horizon::Backend::RenderTargetHandle gbuffer3_rt_handle,
+                                            Horizon::Backend::RenderTargetHandle gbuffer4_rt_handle,
+                                            Horizon::Backend::RenderTargetHandle depth_rt_handle,
+                                            Horizon::Backend::TextureHandle gbuffer0_handle,
+                                            Horizon::Backend::TextureHandle gbuffer1_handle,
+                                            Horizon::Backend::TextureHandle gbuffer2_handle,
+                                            Horizon::Backend::TextureHandle gbuffer3_handle,
+                                            Horizon::Backend::TextureHandle gbuffer4_handle,
+                                            Horizon::Backend::TextureHandle depth_handle)
+{
+    builder.UseRenderTarget(gbuffer0_rt_handle);
+    builder.UseRenderTarget(gbuffer1_rt_handle);
+    builder.UseRenderTarget(gbuffer2_rt_handle);
+    builder.UseRenderTarget(gbuffer3_rt_handle);
+    builder.UseRenderTarget(gbuffer4_rt_handle);
+    builder.UseRenderTarget(depth_rt_handle);
+
+    builder.WriteTexture(gbuffer0_handle, ResourceState::RESOURCE_STATE_RENDER_TARGET);
+    builder.WriteTexture(gbuffer1_handle, ResourceState::RESOURCE_STATE_RENDER_TARGET);
+    builder.WriteTexture(gbuffer2_handle, ResourceState::RESOURCE_STATE_RENDER_TARGET);
+    builder.WriteTexture(gbuffer3_handle, ResourceState::RESOURCE_STATE_RENDER_TARGET);
+    builder.WriteTexture(gbuffer4_handle, ResourceState::RESOURCE_STATE_RENDER_TARGET);
+    builder.WriteTexture(depth_handle, ResourceState::RESOURCE_STATE_DEPTH_WRITE);
+}
+
+void DeferredShadingPass::ExecuteGeometryPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                              Horizon::Backend::RenderTargetHandle gbuffer0_rt_handle,
+                                              Horizon::Backend::RenderTargetHandle gbuffer1_rt_handle,
+                                              Horizon::Backend::RenderTargetHandle gbuffer2_rt_handle,
+                                              Horizon::Backend::RenderTargetHandle gbuffer3_rt_handle,
+                                              Horizon::Backend::RenderTargetHandle gbuffer4_rt_handle,
+                                              Horizon::Backend::RenderTargetHandle depth_rt_handle,
+    Horizon::SceneManager *scene_manager, Sampler *sampler,
+                                              Buffer *taa_prev_curr_offset_buffer)
+{
+    RenderPassBeginInfo begin_info{};
+    begin_info.render_target_count = 5;
+    begin_info.render_area = Rect{0, 0, width, height};
+    begin_info.render_targets[0].data = builder.GetRenderTarget(gbuffer0_rt_handle);
+    begin_info.render_targets[0].clear_color = {};
+    begin_info.render_targets[0].load_op = RenderTargetLoadOp::CLEAR;
+    begin_info.render_targets[0].store_op = RenderTargetStoreOp::STORE;
+    begin_info.render_targets[1].data = builder.GetRenderTarget(gbuffer1_rt_handle);
+    begin_info.render_targets[1].clear_color = {};
+    begin_info.render_targets[1].load_op = RenderTargetLoadOp::CLEAR;
+    begin_info.render_targets[1].store_op = RenderTargetStoreOp::STORE;
+    begin_info.render_targets[2].data = builder.GetRenderTarget(gbuffer2_rt_handle);
+    begin_info.render_targets[2].clear_color = {};
+    begin_info.render_targets[2].load_op = RenderTargetLoadOp::CLEAR;
+    begin_info.render_targets[2].store_op = RenderTargetStoreOp::STORE;
+    begin_info.render_targets[3].data = builder.GetRenderTarget(gbuffer3_rt_handle);
+    begin_info.render_targets[3].clear_color = {};
+    begin_info.render_targets[3].load_op = RenderTargetLoadOp::CLEAR;
+    begin_info.render_targets[3].store_op = RenderTargetStoreOp::STORE;
+    begin_info.render_targets[4].data = builder.GetRenderTarget(gbuffer4_rt_handle);
+    begin_info.render_targets[4].clear_color = {};
+    begin_info.render_targets[4].load_op = RenderTargetLoadOp::CLEAR;
+    begin_info.render_targets[4].store_op = RenderTargetStoreOp::STORE;
+    begin_info.depth_stencil.data = builder.GetRenderTarget(depth_rt_handle);
+    begin_info.depth_stencil.clear_color = ClearValueDepthStencil{1.0, 0};
+    begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
+    begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
+    begin_info.debug_name = "Geometry Pass";
+
+    cl->BeginRenderPass(begin_info);
+    cl->BindPipeline(geometry_pass);
+
+    // Setup resources
+    geometry_pass->SetResource(scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
+    geometry_pass->SetResource(scene_manager->instance_parameter_buffer, "instance_parameter");
+    geometry_pass->SetResource(scene_manager->material_description_buffer, "material_descriptions");
+    geometry_pass->SetResource(sampler, "default_sampler");
+    geometry_pass->SetResource(taa_prev_curr_offset_buffer, "TAAOffsets_cb");
+
+    std::vector<Texture *> material_textures;
+    for (auto &tex : scene_manager->material_textures)
+    {
+        material_textures.push_back(tex);
+    }
+    geometry_pass->SetBindlessResource(material_textures, "material_textures");
+
+    for (u32 mesh_data = 0; mesh_data < scene_manager->mesh_data.size(); mesh_data++)
+    {
+        auto &mesh = scene_manager->mesh_data[mesh_data];
+        auto ib = scene_manager->index_buffers[mesh.index_buffer_offset];
+        auto vb = scene_manager->vertex_buffers[mesh.vertex_buffer_offset];
+        u32 offset = 0;
+        cl->BindVertexBuffers(1, &vb, &offset);
+        cl->BindIndexBuffer(ib, 0);
+        cl->BindPushConstant(geometry_pass, "mesh_draw_offset", &mesh.draw_offset);
+
+        cl->DrawIndirectIndexedInstanced(scene_manager->indirect_draw_command_buffer1,
+                                         sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
+                                         sizeof(DrawIndexedInstancedCommand));
+    }
+
+    cl->EndRenderPass();
+}
+
+void DeferredShadingPass::SetupDeferredShadingPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                                    Horizon::Backend::TextureHandle gbuffer0_handle,
+                                                    Horizon::Backend::TextureHandle gbuffer1_handle,
+                                                    Horizon::Backend::TextureHandle gbuffer2_handle,
+                                                    Horizon::Backend::TextureHandle gbuffer3_handle,
+                                                    Horizon::Backend::TextureHandle depth_handle,
+                                                    Horizon::Backend::TextureHandle shading_color_handle,
+                                                    Horizon::Backend::TextureHandle ssao_blur_handle,
+                                                    Horizon::Backend::TextureHandle brdf_lut_handle,
+                                                    Horizon::Backend::TextureHandle prefiltered_env_handle)
+{
+    builder.ReadTexture(gbuffer0_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(gbuffer1_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(gbuffer2_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(gbuffer3_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(depth_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(ssao_blur_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(brdf_lut_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(prefiltered_env_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.WriteTexture(shading_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+}
+
+void DeferredShadingPass::ExecuteDeferredShadingPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                                     Horizon::Backend::TextureHandle gbuffer0_handle,
+                                                     Horizon::Backend::TextureHandle gbuffer1_handle,
+                                                     Horizon::Backend::TextureHandle gbuffer2_handle,
+                                                     Horizon::Backend::TextureHandle gbuffer3_handle,
+                                                     Horizon::Backend::TextureHandle depth_handle,
+                                                     Horizon::Backend::TextureHandle shading_color_handle,
+                                                     Horizon::Backend::TextureHandle ssao_blur_handle,
+                                                     Horizon::Backend::TextureHandle brdf_lut_handle,
+                                                     Horizon::Backend::TextureHandle prefiltered_env_handle,
+    Horizon::SceneManager *scene_manager)
+{
+    cl->BeginComputePass("Deferred Shading Pass");
+    shading_pass->SetResource(builder.GetTexture(gbuffer0_handle), "gbuffer0_tex");
+    shading_pass->SetResource(builder.GetTexture(gbuffer1_handle), "gbuffer1_tex");
+    shading_pass->SetResource(builder.GetTexture(gbuffer2_handle), "gbuffer2_tex");
+    shading_pass->SetResource(builder.GetTexture(gbuffer3_handle), "gbuffer3_tex");
+    shading_pass->SetResource(builder.GetTexture(depth_handle), "depth_tex");
+    shading_pass->SetResource(deferred_shading_constants_buffer, "DeferredShadingConstants_cb");
+    shading_pass->SetResource(scene_manager->GetLightCountBuffer(), "LightCountUb_cb");
+    shading_pass->SetResource(scene_manager->GetLightParamBuffer(), "LightDataUb_cb");
+    shading_pass->SetResource(builder.GetTexture(shading_color_handle), "out_color");
+    shading_pass->SetResource(builder.GetTexture(ssao_blur_handle), "ao_tex");
+    shading_pass->SetResource(diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3_cb");
+    shading_pass->SetResource(builder.GetTexture(prefiltered_env_handle), "specular_map");
+    shading_pass->SetResource(builder.GetTexture(brdf_lut_handle), "specular_brdf_lut");
+    shading_pass->SetResource(ibl_sampler, "ibl_sampler");
+    cl->BindPipeline(shading_pass);
+    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->EndComputePass();
 }

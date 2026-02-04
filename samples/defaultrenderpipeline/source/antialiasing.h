@@ -1,6 +1,7 @@
 #pragma once
 
 #include "header.h"
+#include <render_graph/frame_graph.h>
 
 class AntialiasingPass
 {
@@ -29,4 +30,18 @@ class AntialiasingPass
     } taa_prev_curr_offset;
 
     Buffer *taa_prev_curr_offset_buffer;
+
+    // RDG methods
+    void ImportResources(Horizon::Backend::FrameGraph *frame_graph, Horizon::Backend::TextureHandle &output_color_handle,
+                         Horizon::Backend::TextureHandle &previous_color_handle);
+
+    void SetupTAAPass(Horizon::Backend::FrameGraphBuilder &builder, Horizon::Backend::TextureHandle previous_color_handle,
+                      Horizon::Backend::TextureHandle pp_color_handle, Horizon::Backend::TextureHandle gbuffer4_handle,
+                      Horizon::Backend::TextureHandle output_color_handle);
+
+    void ExecuteTAAPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                        Horizon::Backend::TextureHandle previous_color_handle,
+                        Horizon::Backend::TextureHandle pp_color_handle,
+                        Horizon::Backend::TextureHandle gbuffer4_handle,
+                        Horizon::Backend::TextureHandle output_color_handle);
 };

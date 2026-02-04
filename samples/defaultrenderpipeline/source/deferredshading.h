@@ -1,6 +1,9 @@
 #pragma once
 
 #include "header.h"
+#include "scene.h"
+#include <render_graph/frame_graph.h>
+
 
 class DeferredShadingPass
 {
@@ -54,4 +57,66 @@ class DeferredShadingPass
     Texture *brdf_lut;
 
     Sampler *ibl_sampler{};
+
+    // RDG methods
+    void ImportResources(Horizon::Backend::FrameGraph *frame_graph, Horizon::Backend::TextureHandle &gbuffer0_handle,
+                         Horizon::Backend::TextureHandle &gbuffer1_handle,
+                         Horizon::Backend::TextureHandle &gbuffer2_handle,
+                         Horizon::Backend::TextureHandle &gbuffer3_handle,
+                         Horizon::Backend::TextureHandle &gbuffer4_handle,
+                         Horizon::Backend::TextureHandle &depth_handle,
+                         Horizon::Backend::TextureHandle &shading_color_handle,
+                         Horizon::Backend::RenderTargetHandle &gbuffer0_rt_handle,
+                         Horizon::Backend::RenderTargetHandle &gbuffer1_rt_handle,
+                         Horizon::Backend::RenderTargetHandle &gbuffer2_rt_handle,
+                         Horizon::Backend::RenderTargetHandle &gbuffer3_rt_handle,
+                         Horizon::Backend::RenderTargetHandle &gbuffer4_rt_handle,
+                         Horizon::Backend::RenderTargetHandle &depth_rt_handle,
+                         Horizon::Backend::TextureHandle &brdf_lut_handle,
+                         Horizon::Backend::TextureHandle &prefiltered_env_handle);
+
+    void SetupGeometryPass(Horizon::Backend::FrameGraphBuilder &builder,
+                           Horizon::Backend::RenderTargetHandle gbuffer0_rt_handle,
+                           Horizon::Backend::RenderTargetHandle gbuffer1_rt_handle,
+                           Horizon::Backend::RenderTargetHandle gbuffer2_rt_handle,
+                           Horizon::Backend::RenderTargetHandle gbuffer3_rt_handle,
+                           Horizon::Backend::RenderTargetHandle gbuffer4_rt_handle,
+                           Horizon::Backend::RenderTargetHandle depth_rt_handle,
+                           Horizon::Backend::TextureHandle gbuffer0_handle,
+                           Horizon::Backend::TextureHandle gbuffer1_handle,
+                           Horizon::Backend::TextureHandle gbuffer2_handle,
+                           Horizon::Backend::TextureHandle gbuffer3_handle,
+                           Horizon::Backend::TextureHandle gbuffer4_handle,
+                           Horizon::Backend::TextureHandle depth_handle);
+
+    void ExecuteGeometryPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                             Horizon::Backend::RenderTargetHandle gbuffer0_rt_handle,
+                             Horizon::Backend::RenderTargetHandle gbuffer1_rt_handle,
+                             Horizon::Backend::RenderTargetHandle gbuffer2_rt_handle,
+                             Horizon::Backend::RenderTargetHandle gbuffer3_rt_handle,
+                             Horizon::Backend::RenderTargetHandle gbuffer4_rt_handle,
+                             Horizon::Backend::RenderTargetHandle depth_rt_handle, Horizon::SceneManager *scene_manager,
+                             Sampler *sampler, Buffer *taa_prev_curr_offset_buffer);
+
+    void SetupDeferredShadingPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                   Horizon::Backend::TextureHandle gbuffer0_handle,
+                                   Horizon::Backend::TextureHandle gbuffer1_handle,
+                                   Horizon::Backend::TextureHandle gbuffer2_handle,
+                                   Horizon::Backend::TextureHandle gbuffer3_handle,
+                                   Horizon::Backend::TextureHandle depth_handle,
+                                   Horizon::Backend::TextureHandle shading_color_handle,
+                                   Horizon::Backend::TextureHandle ssao_blur_handle,
+                                   Horizon::Backend::TextureHandle brdf_lut_handle,
+                                   Horizon::Backend::TextureHandle prefiltered_env_handle);
+
+    void ExecuteDeferredShadingPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                    Horizon::Backend::TextureHandle gbuffer0_handle,
+                                    Horizon::Backend::TextureHandle gbuffer1_handle,
+                                    Horizon::Backend::TextureHandle gbuffer2_handle,
+                                    Horizon::Backend::TextureHandle gbuffer3_handle,
+                                    Horizon::Backend::TextureHandle depth_handle,
+                                    Horizon::Backend::TextureHandle shading_color_handle,
+                                    Horizon::Backend::TextureHandle ssao_blur_handle,
+                                    Horizon::Backend::TextureHandle brdf_lut_handle,
+                                    Horizon::Backend::TextureHandle prefiltered_env_handle, Horizon::SceneManager *scene_manager);
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "header.h"
+#include <render_graph/frame_graph.h>
 
 class AmbientOcclusionPass
 {
@@ -43,6 +44,29 @@ class AmbientOcclusionPass
     Texture *ssao_blur_image;
 
     Buffer *ssao_constants_buffer;
+
+    // RDG methods
+    void ImportResources(Horizon::Backend::FrameGraph *frame_graph, Horizon::Backend::TextureHandle &ssao_factor_handle,
+                         Horizon::Backend::TextureHandle &ssao_blur_handle,
+                         Horizon::Backend::TextureHandle &ssao_noise_handle);
+
+    void SetupSSAOPass(Horizon::Backend::FrameGraphBuilder &builder, Horizon::Backend::TextureHandle depth_handle,
+                       Horizon::Backend::TextureHandle gbuffer0_handle,
+                       Horizon::Backend::TextureHandle ssao_factor_handle,
+                       Horizon::Backend::TextureHandle ssao_noise_handle);
+
+    void ExecuteSSAOPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                         Horizon::Backend::TextureHandle depth_handle, Horizon::Backend::TextureHandle gbuffer0_handle,
+                         Horizon::Backend::TextureHandle ssao_factor_handle,
+                         Horizon::Backend::TextureHandle ssao_noise_handle, Sampler *sampler);
+
+    void SetupSSAOBlurPass(Horizon::Backend::FrameGraphBuilder &builder,
+                           Horizon::Backend::TextureHandle ssao_factor_handle,
+                           Horizon::Backend::TextureHandle ssao_blur_handle);
+
+    void ExecuteSSAOBlurPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                             Horizon::Backend::TextureHandle ssao_factor_handle,
+                             Horizon::Backend::TextureHandle ssao_blur_handle);
 };
 
 // class AmbientOcclusionRDGPass : public RDGPass

@@ -72,3 +72,63 @@ AmbientOcclusionPass::~AmbientOcclusionPass() noexcept
     mRhi->DestroyTexture(ssao_blur_image);
     mRhi->DestroyBuffer(ssao_constants_buffer);
 }
+
+void AmbientOcclusionPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph,
+                                           Horizon::Backend::TextureHandle &ssao_factor_handle,
+                                           Horizon::Backend::TextureHandle &ssao_blur_handle,
+                                           Horizon::Backend::TextureHandle &ssao_noise_handle)
+{
+    ssao_factor_handle = frame_graph->ImportTexture("ssao_factor", ssao_factor_image);
+    ssao_blur_handle = frame_graph->ImportTexture("ssao_blur", ssao_blur_image);
+    ssao_noise_handle = frame_graph->ImportTexture("ssao_noise", ssao_noise_tex);
+}
+
+void AmbientOcclusionPass::SetupSSAOPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                         Horizon::Backend::TextureHandle depth_handle,
+                                         Horizon::Backend::TextureHandle gbuffer0_handle,
+                                         Horizon::Backend::TextureHandle ssao_factor_handle,
+                                         Horizon::Backend::TextureHandle ssao_noise_handle)
+{
+    builder.ReadTexture(depth_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(gbuffer0_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(ssao_noise_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.WriteTexture(ssao_factor_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+}
+
+void AmbientOcclusionPass::ExecuteSSAOPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                            Horizon::Backend::TextureHandle depth_handle,
+                                            Horizon::Backend::TextureHandle gbuffer0_handle,
+                                            Horizon::Backend::TextureHandle ssao_factor_handle,
+                                            Horizon::Backend::TextureHandle ssao_noise_handle, Sampler *sampler)
+{
+    cl->BeginComputePass("SSAO Pass");
+    ssao_pass->SetResource(builder.GetTexture(depth_handle), "depth_tex");
+    ssao_pass->SetResource(builder.GetTexture(gbuffer0_handle), "normal_tex");
+    ssao_pass->SetResource(sampler, "default_sampler");
+    ssao_pass->SetResource(builder.GetTexture(ssao_factor_handle), "ao_factor_tex");
+    ssao_pass->SetResource(ssao_constants_buffer, "SSAOConstant_cb");
+    ssao_pass->SetResource(builder.GetTexture(ssao_noise_handle), "ssao_noise_tex");
+    cl->BindPipeline(ssao_pass);
+    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->EndComputePass();
+}
+
+void AmbientOcclusionPass::SetupSSAOBlurPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                              Horizon::Backend::TextureHandle ssao_factor_handle,
+                                              Horizon::Backend::TextureHandle ssao_blur_handle)
+{
+    builder.ReadTexture(ssao_factor_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.WriteTexture(ssao_blur_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+}
+
+void AmbientOcclusionPass::ExecuteSSAOBlurPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                                Horizon::Backend::TextureHandle ssao_factor_handle,
+                                                Horizon::Backend::TextureHandle ssao_blur_handle)
+{
+    cl->BeginComputePass("SSAO Blur Pass");
+    ssao_blur_pass->SetResource(builder.GetTexture(ssao_factor_handle), "ssao_blur_in");
+    ssao_blur_pass->SetResource(builder.GetTexture(ssao_blur_handle), "ssao_blur_out");
+    cl->BindPipeline(ssao_blur_pass);
+    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->EndComputePass();
+}

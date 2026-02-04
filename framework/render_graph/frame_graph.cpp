@@ -16,6 +16,8 @@ TextureHandle FrameGraphBuilder::CreateTexture(const std::string &name, const Te
     if (handle.IsValid())
     {
         m_graph->m_textures[handle.index].create_info = create_info;
+        m_graph->m_textures[handle.index].is_managed = true;  // Mark as managed by FrameGraph
+        m_graph->m_textures[handle.index].is_transient = false; // Managed resources persist
     }
     return handle;
 }
@@ -31,6 +33,8 @@ BufferHandle FrameGraphBuilder::CreateBuffer(const std::string &name, const Buff
     if (handle.IsValid())
     {
         m_graph->m_buffers[handle.index].create_info = create_info;
+        m_graph->m_buffers[handle.index].is_managed = true;  // Mark as managed by FrameGraph
+        m_graph->m_buffers[handle.index].is_transient = false; // Managed resources persist
     }
     return handle;
 }
@@ -47,6 +51,8 @@ RenderTargetHandle FrameGraphBuilder::CreateRenderTarget(const std::string &name
     if (handle.IsValid())
     {
         m_graph->m_render_targets[handle.index].create_info = create_info;
+        m_graph->m_render_targets[handle.index].is_managed = true;  // Mark as managed by FrameGraph
+        m_graph->m_render_targets[handle.index].is_transient = false; // Managed resources persist
     }
     return handle;
 }
@@ -149,6 +155,28 @@ FrameGraphBuilder FrameGraph::AddPass(const std::string &name, PassSetupCallback
     return FrameGraphBuilder(this, &m_passes.back());
 }
 
+FrameGraphBuilder FrameGraph::AddPass(RDGPass *pass)
+{
+    if (pass == nullptr)
+    {
+        LOG_ERROR("Cannot add null RDGPass");
+        return FrameGraphBuilder(this, nullptr);
+    }
+
+    // Call ImportResources before adding pass
+    pass->ImportResources(this);
+
+    PassNode pass_node;
+    pass_node.name = pass->GetName();
+    pass_node.rdg_pass = pass;
+    // Create callbacks that delegate to RDGPass methods
+    pass_node.setup_callback = [pass](FrameGraphBuilder &builder) { pass->Setup(builder); };
+    pass_node.execute_callback = [pass](CommandList *cl, FrameGraphBuilder &builder) { pass->Execute(cl, builder); };
+
+    m_passes.push_back(std::move(pass_node));
+    return FrameGraphBuilder(this, &m_passes.back());
+}
+
 void FrameGraph::Compile()
 {
     // Simple execution order: just use the order passes were added
@@ -159,28 +187,37 @@ void FrameGraph::Compile()
         m_execution_order.push_back(i);
     }
 
-    // Create transient resources
+    // Create transient and managed resources
     for (auto &tex : m_textures)
     {
-        if (tex.is_transient && !tex.is_imported && tex.actual_texture == nullptr)
+        if (tex.actual_texture == nullptr)
         {
-            tex.actual_texture = m_rhi->CreateTexture(tex.create_info);
+            if ((tex.is_transient || tex.is_managed) && !tex.is_imported)
+            {
+                tex.actual_texture = m_rhi->CreateTexture(tex.create_info);
+            }
         }
     }
 
     for (auto &buf : m_buffers)
     {
-        if (buf.is_transient && !buf.is_imported && buf.actual_buffer == nullptr)
+        if (buf.actual_buffer == nullptr)
         {
-            buf.actual_buffer = m_rhi->CreateBuffer(buf.create_info);
+            if ((buf.is_transient || buf.is_managed) && !buf.is_imported)
+            {
+                buf.actual_buffer = m_rhi->CreateBuffer(buf.create_info);
+            }
         }
     }
 
     for (auto &rt : m_render_targets)
     {
-        if (rt.is_transient && !rt.is_imported && rt.actual_render_target == nullptr)
+        if (rt.actual_render_target == nullptr)
         {
-            rt.actual_render_target = m_rhi->CreateRenderTarget(rt.create_info);
+            if ((rt.is_transient || rt.is_managed) && !rt.is_imported)
+            {
+                rt.actual_render_target = m_rhi->CreateRenderTarget(rt.create_info);
+            }
         }
     }
 
@@ -190,7 +227,11 @@ void FrameGraph::Compile()
         auto &pass = m_passes[pass_idx];
         FrameGraphBuilder builder(this, &pass);
         // Call setup callback to declare resource usage
-        if (pass.setup_callback)
+        if (pass.rdg_pass)
+        {
+            pass.rdg_pass->Setup(builder);
+        }
+        else if (pass.setup_callback)
         {
             pass.setup_callback(builder);
         }
@@ -226,7 +267,11 @@ void FrameGraph::Execute()
 
         // Execute pass
         FrameGraphBuilder builder(this, &pass);
-        if (pass.execute_callback)
+        if (pass.rdg_pass)
+        {
+            pass.rdg_pass->Execute(current_command_list, builder);
+        }
+        else if (pass.execute_callback)
         {
             // LOG_DEBUG("pass execute: {}", pass.name);
             pass.execute_callback(current_command_list, builder);
@@ -254,7 +299,7 @@ void FrameGraph::Execute()
 
 void FrameGraph::Reset()
 {
-    // Destroy transient resources
+    // Destroy transient resources (managed resources are kept alive)
     for (auto &tex : m_textures)
     {
         if (tex.is_transient && !tex.is_imported && tex.actual_texture != nullptr)
@@ -262,6 +307,7 @@ void FrameGraph::Reset()
             m_rhi->DestroyTexture(tex.actual_texture);
             tex.actual_texture = nullptr;
         }
+        // Note: managed resources are not destroyed here, they persist across frames
     }
 
     for (auto &buf : m_buffers)
@@ -271,6 +317,7 @@ void FrameGraph::Reset()
             m_rhi->DestroyBuffer(buf.actual_buffer);
             buf.actual_buffer = nullptr;
         }
+        // Note: managed resources are not destroyed here, they persist across frames
     }
 
     for (auto &rt : m_render_targets)
@@ -280,16 +327,43 @@ void FrameGraph::Reset()
             m_rhi->DestroyRenderTarget(rt.actual_render_target);
             rt.actual_render_target = nullptr;
         }
+        // Note: managed resources are not destroyed here, they persist across frames
     }
 
-    // Clear passes and resources
+    // Clear passes and transient resources (keep managed resources)
     m_passes.clear();
-    m_textures.clear();
-    m_buffers.clear();
-    m_render_targets.clear();
+    // Only clear transient resources, keep managed and imported ones
+    auto it_tex = std::remove_if(m_textures.begin(), m_textures.end(),
+                                 [](const TextureResource &r) { return r.is_transient && !r.is_imported; });
+    m_textures.erase(it_tex, m_textures.end());
+
+    auto it_buf = std::remove_if(m_buffers.begin(), m_buffers.end(),
+                                 [](const BufferResource &r) { return r.is_transient && !r.is_imported; });
+    m_buffers.erase(it_buf, m_buffers.end());
+
+    auto it_rt = std::remove_if(m_render_targets.begin(), m_render_targets.end(),
+                                [](const RenderTargetResource &r) { return r.is_transient && !r.is_imported; });
+    m_render_targets.erase(it_rt, m_render_targets.end());
+
+    // Rebuild name maps (only for remaining resources)
     m_texture_name_map.clear();
+    for (u32 i = 0; i < m_textures.size(); ++i)
+    {
+        m_texture_name_map[m_textures[i].name] = TextureHandle{i};
+    }
+
     m_buffer_name_map.clear();
+    for (u32 i = 0; i < m_buffers.size(); ++i)
+    {
+        m_buffer_name_map[m_buffers[i].name] = BufferHandle{i};
+    }
+
     m_render_target_name_map.clear();
+    for (u32 i = 0; i < m_render_targets.size(); ++i)
+    {
+        m_render_target_name_map[m_render_targets[i].name] = RenderTargetHandle{i};
+    }
+
     m_execution_order.clear();
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "header.h"
+#include <render_graph/frame_graph.h>
 
 class AutoExposure
 {
@@ -32,6 +33,29 @@ class AutoExposure
     Buffer *luminance_histogram_constants_buffer;
     Buffer *histogram_buffer;
     Buffer *adapted_muminance_buffer;
+
+    // RDG methods
+    void ImportResources(Horizon::Backend::FrameGraph *frame_graph,
+                         Horizon::Backend::BufferHandle &histogram_buffer_handle,
+                         Horizon::Backend::BufferHandle &adapted_luminance_handle);
+
+    void SetupLuminanceHistogramPass(Horizon::Backend::FrameGraphBuilder &builder,
+                                      Horizon::Backend::TextureHandle shading_color_handle,
+                                      Horizon::Backend::BufferHandle histogram_buffer_handle,
+                                      Horizon::Backend::BufferHandle adapted_luminance_handle);
+
+    void ExecuteLuminanceHistogramPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                        Horizon::Backend::TextureHandle shading_color_handle,
+                                        Horizon::Backend::BufferHandle histogram_buffer_handle,
+                                        Horizon::Backend::BufferHandle adapted_luminance_handle);
+
+    void SetupLuminanceAveragePass(Horizon::Backend::FrameGraphBuilder &builder,
+                                    Horizon::Backend::BufferHandle histogram_buffer_handle,
+                                    Horizon::Backend::BufferHandle adapted_luminance_handle);
+
+    void ExecuteLuminanceAveragePass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                     Horizon::Backend::BufferHandle histogram_buffer_handle,
+                                     Horizon::Backend::BufferHandle adapted_luminance_handle);
 };
 
 class PostProcessingPass
@@ -53,4 +77,17 @@ class PostProcessingPass
 
     Texture *pp_color_image;
     Buffer *exposure_constants_buffer;
+
+    // RDG methods
+    void ImportResources(Horizon::Backend::FrameGraph *frame_graph, Horizon::Backend::TextureHandle &pp_color_handle);
+
+    void SetupPostProcessPass(Horizon::Backend::FrameGraphBuilder &builder,
+                              Horizon::Backend::TextureHandle shading_color_handle,
+                              Horizon::Backend::TextureHandle pp_color_handle,
+                              Horizon::Backend::BufferHandle adapted_luminance_handle);
+
+    void ExecutePostProcessPass(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder,
+                                Horizon::Backend::TextureHandle shading_color_handle,
+                                Horizon::Backend::TextureHandle pp_color_handle,
+                                Horizon::Backend::BufferHandle adapted_luminance_handle);
 };

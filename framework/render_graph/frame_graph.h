@@ -25,6 +25,35 @@ namespace Horizon::Backend
 class FrameGraph;
 class FrameGraphBuilder;
 
+// RDGPass base class - all passes should inherit from this
+class RDGPass
+{
+  public:
+    RDGPass(const std::string &name) : m_name(name)
+    {
+    }
+    virtual ~RDGPass() = default;
+
+    const std::string &GetName() const
+    {
+        return m_name;
+    }
+
+    // Import resources into FrameGraph (called before Setup)
+    virtual void ImportResources(FrameGraph *frame_graph)
+    {
+    }
+
+    // Setup phase - declare resource usage (called during Compile)
+    virtual void Setup(FrameGraphBuilder &builder) = 0;
+
+    // Execute phase - execute actual rendering commands (called during Execute)
+    virtual void Execute(CommandList *command_list, FrameGraphBuilder &builder) = 0;
+
+  protected:
+    std::string m_name;
+};
+
 // Resource handle types
 struct TextureHandle
 {
@@ -89,6 +118,7 @@ struct PassNode
     std::string name;
     PassSetupCallback setup_callback;
     PassExecuteCallback execute_callback;
+    RDGPass *rdg_pass = nullptr; // Optional: pointer to RDGPass instance
 
     // Resource dependencies
     std::vector<TextureHandle> read_textures;
@@ -110,6 +140,7 @@ struct TextureResource
     Texture *actual_texture = nullptr; // Actual RHI resource (for imported resources)
     bool is_imported = false;
     bool is_transient = true; // Transient resources are created/destroyed each frame
+    bool is_managed = false;  // Managed by FrameGraph (created/destroyed by FrameGraph)
 };
 
 struct BufferResource
@@ -119,6 +150,7 @@ struct BufferResource
     Buffer *actual_buffer = nullptr;
     bool is_imported = false;
     bool is_transient = true;
+    bool is_managed = false; // Managed by FrameGraph (created/destroyed by FrameGraph)
 };
 
 struct RenderTargetResource
@@ -128,6 +160,7 @@ struct RenderTargetResource
     RenderTarget *actual_render_target = nullptr;
     bool is_imported = false;
     bool is_transient = true;
+    bool is_managed = false; // Managed by FrameGraph (created/destroyed by FrameGraph)
 };
 
 // FrameGraphBuilder - used during pass setup
@@ -177,6 +210,9 @@ class FrameGraph
     // execute_callback: executes actual rendering commands
     FrameGraphBuilder AddPass(const std::string &name, PassSetupCallback setup_callback,
                               PassExecuteCallback execute_callback);
+
+    // Add pass using RDGPass base class
+    FrameGraphBuilder AddPass(RDGPass *pass);
 
     // Compile phase - analyze dependencies and create barriers
     void Compile();
