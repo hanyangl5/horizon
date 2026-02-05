@@ -1,18 +1,17 @@
 #pragma once
-
-#include "header.h"
+#include "../header.h"
 #include <render_graph/frame_graph.h>
 
 class AutoExposure
 {
   public:
-    explicit AutoExposure(Backend::RHI *rhi) noexcept;
+    explicit AutoExposure(Horizon::Backend::RHI *rhi) noexcept;
     ~AutoExposure() noexcept;
 
-    Backend::RHI *mRhi;
+     Horizon::Backend::RHI *mRhi;
 
-    Shader *luminance_histogram_cs;
-    Pipeline *luminance_histogram_pass;
+    Horizon::Shader *luminance_histogram_cs;
+    Horizon::Pipeline *luminance_histogram_pass;
 
     Shader *luminance_average_cs;
     Pipeline *luminance_average_pass;

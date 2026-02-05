@@ -1,12 +1,12 @@
 #pragma once
 
-#include "header.h"
+#include "../header.h"
 #include <render_graph/frame_graph.h>
 
 class AntialiasingPass
 {
   public:
-    explicit AntialiasingPass(Backend::RHI *rhi) noexcept;
+    explicit AntialiasingPass(RHI *rhi) noexcept;
     ~AntialiasingPass() noexcept;
 
     const Math::float2 &GetJitterOffset() noexcept;

@@ -19,7 +19,7 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
     scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
 
     scene_camera->SetPerspectiveProjectionMatrix(Math::Radians(75.0f), (float)width / (float)height, 0.1f, 10000.0f);
-
+    extern Horizon::Path asset_path;
     auto sponza =
         scene_manager->resource_manager->LoadMesh(MeshDesc{VertexAttributeType::POSTION | VertexAttributeType::NORMAL |
                                                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT,

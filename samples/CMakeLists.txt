@@ -3,10 +3,12 @@ include(${CMAKE_SOURCE_DIR}/cmake/compiler_args.cmake)
 
 macro(addproject projectdir)
     project(${projectdir})
-    file(GLOB APP_HEADERS ${projectdir}/source/*.h)
-    file(GLOB APP_SOURCES ${projectdir}/source/*.cpp)
+    file(GLOB_RECURSE APP_HEADERS ${projectdir}/source/*.h)
+    file(GLOB_RECURSE APP_SOURCES ${projectdir}/source/*.cpp)
 
-    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${APP_HEADERS} ${APP_SOURCES})
+    # Use PREFIX to flatten the folder structure in VS
+    # This makes the path start from projectdir instead of samples/projectdir
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}" PREFIX "" FILES ${APP_HEADERS} ${APP_SOURCES})
 
     add_executable(${PROJECT_NAME} ${APP_HEADERS} ${APP_SOURCES})
 
@@ -25,4 +27,4 @@ macro(addproject projectdir)
     configure_compile_options(${projectdir})
 endmacro()
 
-addproject(defaultrenderpipeline)
+addproject(deferred)

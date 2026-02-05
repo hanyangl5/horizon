@@ -1,6 +1,6 @@
 #include "ambient_occlusion.h"
 
-AmbientOcclusionPass::AmbientOcclusionPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
+AmbientOcclusionPass::AmbientOcclusionPass(Horizon::Backend::RHI *rhi) noexcept : mRhi(rhi)
 {
 
     ssao_cs = rhi->CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao.comp.hlsl", "main");

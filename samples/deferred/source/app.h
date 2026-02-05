@@ -1,15 +1,19 @@
 
 #pragma once
 
-#include "ambient_occlusion.h"
-#include "antialiasing.h"
-#include "deferredshading.h"
-#include "post_process.h"
-#include "resource_upload_pass.h"
+#include "renderpasses/ambient_occlusion.h"
+#include "renderpasses/anti_aliasing.h"
+#include "renderpasses/deferred_shading_rdg_pass.h"
+#include "renderpasses/deferred_shading.h" 
+#include "renderpasses/post_process.h"
+#include "renderpasses/resource_upload_pass.h"
 #include "scene.h"
 #include <render_graph/frame_graph.h>
 #include <scene/scene_renderer/renderer.h>
 // Render
+
+extern Horizon::Path shader_dir;
+extern Horizon::Path asset_path;
 
 class Render
 {

@@ -1,8 +1,8 @@
 #include "resource_upload_pass.h"
-#include "deferredshading.h"
+#include "deferred_shading.h"
 #include "ambient_occlusion.h"
 #include "post_process.h"
-#include "antialiasing.h"
+#include "anti_aliasing.h"
 #include <scene/scene_manager/scene_manager.h>
 
 void ResourceUploadPass::Setup(Horizon::Backend::FrameGraphBuilder &builder,

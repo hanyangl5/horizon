@@ -21,7 +21,7 @@
 using namespace Horizon;
 using namespace Horizon::Backend;
 
-static constexpr u32 width = 1600, height = 900;
-
+extern u32 width, height;
 extern Horizon::Path shader_dir;
 extern Horizon::Path asset_path;
+

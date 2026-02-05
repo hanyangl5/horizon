@@ -1,7 +1,7 @@
 #pragma once
 
-#include "header.h"
-#include "scene.h"
+#include "../header.h"
+#include "../scene.h"
 #include <render_graph/frame_graph.h>
 
 

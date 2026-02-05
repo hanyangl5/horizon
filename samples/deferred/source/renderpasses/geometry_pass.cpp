@@ -3,12 +3,12 @@
 
 GeometryPass::GeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampler *sampler,
                           Buffer *taa_prev_curr_offset_buffer)
-    : RDGPass("Geometry Pass"), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler),
+    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler),
       m_taa_prev_curr_offset_buffer(taa_prev_curr_offset_buffer)
 {
-    // Create shaders and pipeline (these are owned by the pass, not FrameGraph)
-    m_geometry_vs = rhi->CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
-    m_geometry_ps = rhi->CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
+    // Create shaders and pipeline using base class helper functions
+    m_geometry_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
+    m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
 
     GraphicsPipelineCreateInfo graphics_pass_ci{};
     graphics_pass_ci.vertex_input_state.attribute_count = 5;
@@ -79,7 +79,7 @@ GeometryPass::GeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampl
     graphics_pass_ci.render_target_formats.has_depth = true;
     graphics_pass_ci.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
 
-    m_geometry_pipeline = rhi->CreateGraphicsPipeline(graphics_pass_ci);
+    m_geometry_pipeline = CreateGraphicsPipeline(graphics_pass_ci);
     m_geometry_pipeline->SetGraphicsShader(m_geometry_vs, m_geometry_ps);
 }
 

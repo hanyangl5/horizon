@@ -1,6 +1,5 @@
 #pragma once
-
-#include "header.h"
+#include "../header.h"
 #include <render_graph/frame_graph.h>
 
 class DeferredShadingPass;
@@ -22,7 +21,7 @@ class ResourceUploadPass
                Horizon::Backend::BufferHandle histogram_buffer_handle,
                Horizon::Backend::BufferHandle adapted_luminance_handle, bool first_frame);
 
-    void Execute(CommandList *cl, Horizon::SceneManager *scene_manager, DeferredShadingPass *deferred,
+    void Execute(Horizon::CommandList *cl, Horizon::SceneManager *scene_manager, DeferredShadingPass *deferred,
                  AmbientOcclusionPass *ssao, PostProcessingPass *post_process, AntialiasingPass *antialiasing,
                  bool first_frame);
 };

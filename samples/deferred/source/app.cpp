@@ -1,5 +1,11 @@
-#include "render_app.h"
-#include "resource_upload_pass.h"
+#include "app.h"
+#include "renderpasses/resource_upload_pass.h"
+
+#include <core/path.h>
+
+Horizon::Path asset_path = ASSET_DIR;
+Horizon::Path shader_dir = SHADER_DIR;
+u32 width = 1600, height = 900;
 
 void Render::InitAPI()
 {
@@ -72,8 +78,8 @@ void Render::UpdatePipelineResources()
     ssao->ssao_constansts.proj = proj;
     ssao->ssao_constansts.inv_proj = proj.Invert();
     ssao->ssao_constansts.view = view;
-    ssao->ssao_constansts.noise_scale_x = width / AmbientOcclusionPass::SSAO_NOISE_TEX_WIDTH;
-    ssao->ssao_constansts.noise_scale_y = height / AmbientOcclusionPass::SSAO_NOISE_TEX_HEIGHT;
+    ssao->ssao_constansts.noise_scale_x = (f32)width / AmbientOcclusionPass::SSAO_NOISE_TEX_WIDTH;
+    ssao->ssao_constansts.noise_scale_y = (f32)height / AmbientOcclusionPass::SSAO_NOISE_TEX_HEIGHT;
 
     post_process->auto_exposure_pass->luminance_histogram_constants.width = width;
     post_process->auto_exposure_pass->luminance_histogram_constants.height = height;
@@ -123,7 +129,8 @@ void Render::run()
         Horizon::Backend::TextureHandle output_color_handle, previous_color_handle;
         antialiasing->ImportResources(frame_graph.get(), output_color_handle, previous_color_handle);
 
-        auto swapchain_handle = frame_graph->ImportTexture("swapchain", swap_chain->GetRenderTarget()->GetTexture());
+        auto swapchain_handle =
+            frame_graph->ImportTexture("swapchain" + std::to_string(swap_chain->current_frame_index), swap_chain->GetRenderTarget()->GetTexture());
 
         // Resource Upload Pass
         frame_graph->AddPass(

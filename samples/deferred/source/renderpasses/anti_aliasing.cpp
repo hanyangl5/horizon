@@ -1,4 +1,4 @@
-#include "antialiasing.h"
+#include "anti_aliasing.h"
 
 AntialiasingPass::AntialiasingPass(Backend::RHI *rhi) noexcept : mRhi(rhi)
 {

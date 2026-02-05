@@ -1,6 +1,5 @@
 #pragma once
-
-#include "header.h"
+#include "../header.h"
 #include <render_graph/frame_graph.h>
 
 class SSAORDGPass : public Horizon::Backend::RDGPass

@@ -1,5 +1,4 @@
-#include "deferredshading.h"
-#include "scene.h"
+#include "deferred_shading.h"
 #include <scene/scene_manager/scene_manager.h>
 
 DeferredShadingPass::DeferredShadingPass(RHI *rhi) noexcept : mRhi(rhi)
@@ -311,7 +310,6 @@ void DeferredShadingPass::ExecuteGeometryPass(CommandList *cl, Horizon::Backend:
     begin_info.debug_name = "Geometry Pass";
 
     cl->BeginRenderPass(begin_info);
-    cl->BindPipeline(geometry_pass);
 
     // Setup resources
     geometry_pass->SetResource(scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
@@ -326,6 +324,7 @@ void DeferredShadingPass::ExecuteGeometryPass(CommandList *cl, Horizon::Backend:
         material_textures.push_back(tex);
     }
     geometry_pass->SetBindlessResource(material_textures, "material_textures");
+    cl->BindPipeline(geometry_pass);
 
     for (u32 mesh_data = 0; mesh_data < scene_manager->mesh_data.size(); mesh_data++)
     {

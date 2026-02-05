@@ -12,6 +12,9 @@
 #include <rhi/swap_chain.h>
 #include <rhi/texture.h>
 
+#include <core/log.h>
+#include <core/definations.h>
+#include <core/path.h>
 #include <functional>
 #include <memory>
 #include <string>
@@ -29,7 +32,7 @@ class FrameGraphBuilder;
 class RDGPass
 {
   public:
-    RDGPass(const std::string &name) : m_name(name)
+    RDGPass(const std::string &name, RHI *rhi = nullptr) : m_name(name), m_rhi(rhi)
     {
     }
     virtual ~RDGPass() = default;
@@ -51,7 +54,60 @@ class RDGPass
     virtual void Execute(CommandList *command_list, FrameGraphBuilder &builder) = 0;
 
   protected:
+    // Helper functions for creating shaders and pipelines
+    Shader *CreateShader(ShaderType type, const Path &file_name, const char *entry_point = "main")
+    {
+        if (m_rhi == nullptr)
+        {
+            LOG_ERROR("RDGPass::CreateShader: RHI is null. Pass must be constructed with RHI pointer.");
+            return nullptr;
+        }
+        return m_rhi->CreateShader(type, file_name, entry_point);
+    }
+
+    Pipeline *CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
+    {
+        if (m_rhi == nullptr)
+        {
+            LOG_ERROR("RDGPass::CreateGraphicsPipeline: RHI is null. Pass must be constructed with RHI pointer.");
+            return nullptr;
+        }
+        return m_rhi->CreateGraphicsPipeline(create_info);
+    }
+
+    Pipeline *CreateComputePipeline(const ComputePipelineCreateInfo &create_info = {})
+    {
+        if (m_rhi == nullptr)
+        {
+            LOG_ERROR("RDGPass::CreateComputePipeline: RHI is null. Pass must be constructed with RHI pointer.");
+            return nullptr;
+        }
+        return m_rhi->CreateComputePipeline(create_info);
+    }
+
+    void DestroyShader(Shader *shader)
+    {
+        if (m_rhi != nullptr && shader != nullptr)
+        {
+            m_rhi->DestroyShader(shader);
+        }
+    }
+
+    void DestroyPipeline(Pipeline *pipeline)
+    {
+        if (m_rhi != nullptr && pipeline != nullptr)
+        {
+            m_rhi->DestroyPipeline(pipeline);
+        }
+    }
+
+    RHI *GetRHI() const
+    {
+        return m_rhi;
+    }
+
     std::string m_name;
+    RHI *m_rhi;
 };
 
 // Resource handle types

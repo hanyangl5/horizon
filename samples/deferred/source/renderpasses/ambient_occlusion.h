@@ -1,15 +1,14 @@
 #pragma once
-
-#include "header.h"
+#include "../header.h"
 #include <render_graph/frame_graph.h>
 
 class AmbientOcclusionPass
 {
   public:
-    explicit AmbientOcclusionPass(Backend::RHI *rhi) noexcept;
+    explicit AmbientOcclusionPass(Horizon::Backend::RHI *rhi) noexcept;
     ~AmbientOcclusionPass() noexcept;
 
-    RHI *mRhi;
+    Horizon::Backend::RHI *mRhi;
 
     // pass resources
     Shader *ssao_cs;
