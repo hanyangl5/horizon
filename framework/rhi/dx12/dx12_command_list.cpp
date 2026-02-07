@@ -1,8 +1,8 @@
 #include "dx12_command_list.h"
 #include "dx12_buffer.h"
-#include "dx12_texture.h"
-#include "dx12_render_target.h"
 #include "dx12_pipeline.h"
+#include "dx12_render_target.h"
+#include "dx12_texture.h"
 #include <core/log.h>
 #include <core/memory.h>
 
@@ -144,7 +144,7 @@ void DX12CommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
     if (!rtv_handles.empty())
     {
         m_command_list->OMSetRenderTargets(static_cast<UINT>(rtv_handles.size()), rtv_handles.data(), FALSE,
-                                            dsv_handle.ptr != 0 ? &dsv_handle : nullptr);
+                                           dsv_handle.ptr != 0 ? &dsv_handle : nullptr);
     }
 
     // Clear render targets
@@ -163,7 +163,7 @@ void DX12CommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
     {
         auto clear_value = std::get<ClearValueDepthStencil>(begin_info.depth_stencil.clear_color);
         m_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                                               clear_value.depth, static_cast<UINT8>(clear_value.stencil), 0, nullptr);
+                                              clear_value.depth, static_cast<UINT8>(clear_value.stencil), 0, nullptr);
     }
 
     // Set viewport and scissor
@@ -238,7 +238,7 @@ void DX12CommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 inst
 }
 
 void DX12CommandList::DrawIndexedInstanced(u32 index_count, u32 first_index, u32 first_vertex, u32 instance_count,
-                                            u32 first_instance)
+                                           u32 first_instance)
 {
     if (!m_is_recording)
     {

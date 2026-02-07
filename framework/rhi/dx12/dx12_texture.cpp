@@ -1,6 +1,6 @@
 #include "dx12_texture.h"
-#include <core/memory.h>
 #include <core/log.h>
+#include <core/memory.h>
 
 namespace Horizon::Backend
 {
@@ -17,11 +17,10 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
     heap_props.VisibleNodeMask = 1;
 
     D3D12_RESOURCE_DESC resource_desc = {};
-    resource_desc.Dimension = (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_3D)
-                                  ? D3D12_RESOURCE_DIMENSION_TEXTURE3D
-                                  : (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_1D)
-                                        ? D3D12_RESOURCE_DIMENSION_TEXTURE1D
-                                        : D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    resource_desc.Dimension =
+        (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_3D)   ? D3D12_RESOURCE_DIMENSION_TEXTURE3D
+        : (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_1D) ? D3D12_RESOURCE_DIMENSION_TEXTURE1D
+                                                                             : D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     resource_desc.Alignment = 0;
     resource_desc.Width = texture_create_info.width;
     resource_desc.Height = texture_create_info.height;
@@ -45,7 +44,9 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
 
     if (texture_create_info.debug_name)
     {
-        m_resource->SetName(std::wstring(texture_create_info.debug_name, texture_create_info.debug_name + strlen(texture_create_info.debug_name)).c_str());
+        m_resource->SetName(std::wstring(texture_create_info.debug_name,
+                                         texture_create_info.debug_name + strlen(texture_create_info.debug_name))
+                                .c_str());
     }
 
     // TODO: Create SRV and UAV descriptors if needed

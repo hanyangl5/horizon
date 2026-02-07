@@ -1,7 +1,7 @@
 #pragma once
 
-#include <d3d12.h>
 #include "dx12_utils.h"
+#include <d3d12.h>
 
 #include <core/definations.h>
 #include <rhi/render_target.h>

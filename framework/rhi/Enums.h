@@ -403,7 +403,7 @@ struct RenderTargetFormats
 
 struct GraphicsPipelineCreateInfo
 {
-    //ShaderProgram;
+    // ShaderProgram;
     VertexInputState vertex_input_state;
     InputAssemblyState input_assembly_state;
     ViewPortState view_port_state;

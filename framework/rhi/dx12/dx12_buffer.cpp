@@ -1,12 +1,13 @@
 #include "dx12_buffer.h"
-#include <core/memory.h>
 #include <core/log.h>
+#include <core/memory.h>
 
 namespace Horizon::Backend
 {
 
 DX12Buffer::DX12Buffer(const DX12RendererContext &context, const BufferCreateInfo &buffer_create_info) noexcept
-    : Buffer(buffer_create_info), m_context(context), m_current_state(ToDX12ResourceState(buffer_create_info.initial_state))
+    : Buffer(buffer_create_info), m_context(context),
+      m_current_state(ToDX12ResourceState(buffer_create_info.initial_state))
 {
     D3D12_HEAP_PROPERTIES heap_props = {};
     heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -44,7 +45,9 @@ DX12Buffer::DX12Buffer(const DX12RendererContext &context, const BufferCreateInf
 
     if (buffer_create_info.debug_name)
     {
-        m_resource->SetName(std::wstring(buffer_create_info.debug_name, buffer_create_info.debug_name + strlen(buffer_create_info.debug_name)).c_str());
+        m_resource->SetName(std::wstring(buffer_create_info.debug_name,
+                                         buffer_create_info.debug_name + strlen(buffer_create_info.debug_name))
+                                .c_str());
     }
 }
 

@@ -56,7 +56,8 @@ D3D12_FILL_MODE ToDX12FillMode(FillMode fill_mode) noexcept;
 
 D3D12_COMPARISON_FUNC ToDX12ComparisonFunc(CompareFunc func) noexcept;
 
-D3D12_FILTER ToDX12Filter(FilterType min_filter, FilterType mag_filter, MipMapMode mip_map_mode, bool comparison) noexcept;
+D3D12_FILTER ToDX12Filter(FilterType min_filter, FilterType mag_filter, MipMapMode mip_map_mode,
+                          bool comparison) noexcept;
 
 D3D12_TEXTURE_ADDRESS_MODE ToDX12AddressMode(AddressMode address_mode) noexcept;
 

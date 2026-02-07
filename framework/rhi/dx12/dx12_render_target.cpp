@@ -1,7 +1,7 @@
 #include "dx12_render_target.h"
-#include <core/memory.h>
-#include <core/log.h>
 #include "dx12_texture.h"
+#include <core/log.h>
+#include <core/memory.h>
 
 namespace Horizon::Backend
 {

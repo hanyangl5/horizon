@@ -1,31 +1,30 @@
 #include "rhi_dx12.h"
 
-#include <core/path.h>
-#include <core/memory.h>
-#include <core/log.h>
 #include <core/glfwwindow.h>
+#include <core/log.h>
+#include <core/memory.h>
+#include <core/path.h>
 
 #include "dx12_buffer.h"
-#include "dx12_texture.h"
-#include "dx12_render_target.h"
-#include "dx12_swap_chain.h"
 #include "dx12_command_context.h"
+#include "dx12_config.h"
 #include "dx12_descriptor_heap_allocator.h"
+#include "dx12_pipeline.h"
+#include "dx12_render_target.h"
 #include "dx12_shader.h"
 #include "dx12_shader_compiler.h"
-#include "dx12_pipeline.h"
+#include "dx12_swap_chain.h"
+#include "dx12_texture.h"
 #include "dx12_utils.h"
-#include "dx12_config.h"
 
 #ifdef _WIN32
-#include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
+#include <windows.h>
 #include <wrl/client.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
-
 
 using Microsoft::WRL::ComPtr;
 #endif
@@ -111,13 +110,12 @@ void RHIDX12::PickAdapter()
 {
     ComPtr<IDXGIAdapter1> adapter;
     ComPtr<IDXGIFactory6> factory6;
-    
+
     if (SUCCEEDED(m_dx12.factory.As(&factory6)))
     {
         // Prefer high-performance adapter
-        for (UINT adapter_index = 0;
-             SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapter_index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                                            IID_PPV_ARGS(&adapter)));
+        for (UINT adapter_index = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(
+                 adapter_index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)));
              ++adapter_index)
         {
             DXGI_ADAPTER_DESC1 desc;
@@ -133,7 +131,7 @@ void RHIDX12::PickAdapter()
             if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), DX12_FEATURE_LEVEL, _uuidof(ID3D12Device), nullptr)))
             {
                 m_dx12.adapter = adapter;
-                LOG_INFO("Selected DX12 adapter: {}", (void*)desc.Description);
+                LOG_INFO("Selected DX12 adapter: {}", (void *)desc.Description);
                 return;
             }
         }
@@ -153,7 +151,7 @@ void RHIDX12::PickAdapter()
         if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), DX12_FEATURE_LEVEL, _uuidof(ID3D12Device), nullptr)))
         {
             m_dx12.adapter = adapter;
-            LOG_INFO("Selected DX12 adapter: {}", (void*)desc.Description);
+            LOG_INFO("Selected DX12 adapter: {}", (void *)desc.Description);
             return;
         }
     }
@@ -176,7 +174,8 @@ void RHIDX12::CreateDevice()
     m_dx12.srv_uav_descriptor_size =
         m_dx12.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_dx12.cbv_descriptor_size = m_dx12.srv_uav_descriptor_size; // Same heap type
-    m_dx12.sampler_descriptor_size = m_dx12.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    m_dx12.sampler_descriptor_size =
+        m_dx12.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 #ifdef _DEBUG
     // Enable debug messages
@@ -308,7 +307,7 @@ Shader *RHIDX12::CreateShader(ShaderType type, const Path &file_name, const char
     std::vector<u8> bytecode = DX12ShaderCompiler::CompileHLSL(file_name, type, entry_point, shader_dir);
     if (bytecode.empty())
     {
-        LOG_ERROR("Failed to compile DX12 shader: {}", (void*)file_name.c_str());
+        LOG_ERROR("Failed to compile DX12 shader: {}", (void *)file_name.c_str());
         return nullptr;
     }
 

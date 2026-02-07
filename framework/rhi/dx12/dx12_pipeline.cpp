@@ -1,6 +1,6 @@
 #include "dx12_pipeline.h"
-#include "dx12_shader.h"
 #include "dx12_buffer.h"
+#include "dx12_shader.h"
 #include "dx12_texture.h"
 #include "dx12_utils.h"
 #include <core/log.h>
@@ -143,7 +143,7 @@ void DX12Pipeline::CreateRootSignature()
     }
 
     hr = m_context.device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(),
-                                                IID_PPV_ARGS(&m_root_signature));
+                                               IID_PPV_ARGS(&m_root_signature));
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to create root signature: {}", hr);
@@ -168,12 +168,12 @@ void DX12Pipeline::CreateGraphicsPipeline()
     // Store semantic names as strings to ensure they remain valid
     std::vector<std::string> semantic_name_storage;
     semantic_name_storage.reserve(ci->vertex_input_state.attribute_count);
-    
+
     for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i)
     {
         const auto &attr = ci->vertex_input_state.attributes[i];
         D3D12_INPUT_ELEMENT_DESC element{};
-        
+
         // Get semantic name (may need to store it if generated)
         const char *semantic_name = Horizon::GetDX12SemanticName(attr);
         if (attr.semantic_name.empty() || attr.semantic_name[0] == '\0')
@@ -182,7 +182,7 @@ void DX12Pipeline::CreateGraphicsPipeline()
             semantic_name_storage.push_back(semantic_name);
             semantic_name = semantic_name_storage.back().c_str();
         }
-        
+
         element.SemanticName = semantic_name;
         element.SemanticIndex = Horizon::GetDX12SemanticIndex(attr);
         element.Format = Horizon::ToDX12VertexFormat(attr.attrib_format, attr.portion);
@@ -214,7 +214,8 @@ void DX12Pipeline::CreateGraphicsPipeline()
         pso_desc.BlendState.IndependentBlendEnable = FALSE;
         for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; ++i)
         {
-            //const auto &blend = ci->render_target_formats.color_attachment_blend_state[i]; // TODO(luhanyang): add blend state
+            // const auto &blend = ci->render_target_formats.color_attachment_blend_state[i]; // TODO(luhanyang): add
+            // blend state
             pso_desc.BlendState.RenderTarget[i].BlendEnable = false;
             pso_desc.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;   // TODO: Map blend factors
             pso_desc.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO; // TODO: Map blend factors
@@ -227,9 +228,8 @@ void DX12Pipeline::CreateGraphicsPipeline()
     }
     // Depth stencil state
     pso_desc.DepthStencilState.DepthEnable = ci->depth_stencil_state.depth_test;
-    pso_desc.DepthStencilState.DepthWriteMask = ci->depth_stencil_state.depth_write
-                                                     ? D3D12_DEPTH_WRITE_MASK_ALL
-                                                     : D3D12_DEPTH_WRITE_MASK_ZERO;
+    pso_desc.DepthStencilState.DepthWriteMask =
+        ci->depth_stencil_state.depth_write ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
     pso_desc.DepthStencilState.DepthFunc = Horizon::ToDX12ComparisonFunc(ci->depth_stencil_state.depth_func);
     pso_desc.DepthStencilState.StencilEnable = ci->depth_stencil_state.stencil_enabled;
     // TODO: Set stencil state

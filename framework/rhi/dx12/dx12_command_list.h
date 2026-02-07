@@ -1,9 +1,9 @@
 #pragma once
 
+#include "dx12_command_allocator.h"
+#include "dx12_utils.h"
 #include <d3d12.h>
 #include <wrl/client.h>
-#include "dx12_utils.h"
-#include "dx12_command_allocator.h"
 
 #include <core/definations.h>
 #include <rhi/command_list.h>
@@ -17,7 +17,7 @@ class DX12CommandList : public CommandList
 {
   public:
     DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
-                   ComPtr<ID3D12GraphicsCommandList> command_list, ComPtr<ID3D12CommandAllocator> allocator) noexcept;
+                    ComPtr<ID3D12GraphicsCommandList> command_list, ComPtr<ID3D12CommandAllocator> allocator) noexcept;
 
     virtual ~DX12CommandList() noexcept;
     DX12CommandList(const DX12CommandList &rhs) noexcept = delete;

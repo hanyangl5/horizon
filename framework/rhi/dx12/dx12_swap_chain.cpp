@@ -1,7 +1,7 @@
 #include "dx12_swap_chain.h"
-#include <core/memory.h>
-#include <core/log.h>
 #include <core/glfwwindow.h>
+#include <core/log.h>
+#include <core/memory.h>
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include "GLFW/glfw3native.h"
@@ -18,7 +18,7 @@ namespace Horizon::Backend
 {
 
 DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChainCreateInfo &swap_chain_create_info,
-                              Window *window) noexcept
+                             Window *window) noexcept
     : SwapChain(swap_chain_create_info, window), m_context(context)
 {
     // Get window handle
@@ -42,7 +42,7 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
 
     ComPtr<IDXGISwapChain1> swap_chain1;
     HRESULT hr = m_context.factory->CreateSwapChainForHwnd(m_context.command_queues[GRAPHICS].Get(), hwnd,
-                                                            &swap_chain_desc, nullptr, nullptr, &swap_chain1);
+                                                           &swap_chain_desc, nullptr, nullptr, &swap_chain1);
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to create DX12 swap chain: {}", hr);

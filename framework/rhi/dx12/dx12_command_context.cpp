@@ -1,13 +1,12 @@
 #include "dx12_command_context.h"
 #include "dx12_command_list.h"
-#include <core/memory.h>
 #include <core/log.h>
+#include <core/memory.h>
 
 namespace Horizon::Backend
 {
 
-DX12CommandContext::DX12CommandContext(const DX12RendererContext &context) noexcept
-    : m_context(context)
+DX12CommandContext::DX12CommandContext(const DX12RendererContext &context) noexcept : m_context(context)
 {
     m_command_lists_count.fill(0);
 
@@ -48,8 +47,8 @@ CommandList *DX12CommandContext::GetCommandList(CommandQueueType type)
 
         ComPtr<ID3D12GraphicsCommandList> command_list;
         D3D12_COMMAND_LIST_TYPE list_type = Horizon::ToDX12CommandListType(type);
-        HRESULT hr = m_context.device->CreateCommandList(0, list_type, allocator.Get(), nullptr,
-                                                          IID_PPV_ARGS(&command_list));
+        HRESULT hr =
+            m_context.device->CreateCommandList(0, list_type, allocator.Get(), nullptr, IID_PPV_ARGS(&command_list));
         if (FAILED(hr))
         {
             LOG_ERROR("Failed to create command list: {}", hr);
@@ -59,8 +58,7 @@ CommandList *DX12CommandContext::GetCommandList(CommandQueueType type)
         // Command lists are created in recording state, close it immediately
         command_list->Close();
 
-        m_command_lists[index].emplace_back(
-            Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator));
+        m_command_lists[index].emplace_back(Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator));
     }
 
     m_command_lists_count[index]++;

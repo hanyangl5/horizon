@@ -5,8 +5,8 @@
 #include <sstream>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <d3dcompiler.h>
+#include <windows.h>
 
 #pragma comment(lib, "d3dcompiler.lib")
 #endif
@@ -31,7 +31,7 @@ std::string DX12ShaderCompiler::GetShaderProfile(ShaderType type)
 }
 
 std::vector<u8> DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                                 const Path &shader_dir)
+                                                const Path &shader_dir)
 {
 #ifdef _WIN32
     std::string profile = GetShaderProfile(shader_type);
@@ -68,8 +68,9 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderTyp
     flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-    HRESULT hr = D3DCompile(source.c_str(), source.length(), hlsl_path.c_str(), defines.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                            entry_point, profile.c_str(), flags, 0, &shader_blob, &error_blob);
+    HRESULT hr = D3DCompile(source.c_str(), source.length(), hlsl_path.c_str(), defines.data(),
+                            D3D_COMPILE_STANDARD_FILE_INCLUDE, entry_point, profile.c_str(), flags, 0, &shader_blob,
+                            &error_blob);
 
     if (FAILED(hr))
     {

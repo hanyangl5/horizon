@@ -1,7 +1,7 @@
 #include "dx12_utils.h"
-#include <core/log.h>
-#include <core/definations.h>
 #include "DirectXHelpers.h"
+#include <core/definations.h>
+#include <core/log.h>
 namespace Horizon
 {
 
@@ -30,7 +30,7 @@ D3D12_RESOURCE_STATES ToDX12ResourceState(ResourceState state) noexcept
 D3D12_RESOURCE_FLAGS ToDX12ResourceFlags(DescriptorTypes types) noexcept
 {
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    
+
     if (types & DESCRIPTOR_TYPE_RW_TEXTURE)
     {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -43,7 +43,7 @@ D3D12_RESOURCE_FLAGS ToDX12ResourceFlags(DescriptorTypes types) noexcept
     {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     }
-    
+
     return flags;
 }
 
@@ -222,7 +222,8 @@ D3D12_COMPARISON_FUNC ToDX12ComparisonFunc(CompareFunc func) noexcept
     }
 }
 
-D3D12_FILTER ToDX12Filter(FilterType min_filter, FilterType mag_filter, MipMapMode mip_map_mode, bool comparison) noexcept
+D3D12_FILTER ToDX12Filter(FilterType min_filter, FilterType mag_filter, MipMapMode mip_map_mode,
+                          bool comparison) noexcept
 {
     bool min_linear = (min_filter == FilterType::FILTER_LINEAR);
     bool mag_linear = (mag_filter == FilterType::FILTER_LINEAR);
@@ -300,7 +301,7 @@ D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(DescriptorType type) noexc
         return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
     if (type & DESCRIPTOR_TYPE_BUFFER || type & DESCRIPTOR_TYPE_RW_BUFFER)
         return D3D12_DESCRIPTOR_RANGE_TYPE_UAV; // Can be SRV or UAV depending on usage
-    
+
     return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 }
 
@@ -348,7 +349,7 @@ const char *GetDX12SemanticName(const VertexAttributeDescription &attr) noexcept
     {
         return attr.semantic_name.c_str();
     }
-    
+
     // Otherwise, generate default semantic name based on location
     // Common convention: location 0 = POSITION, 1 = NORMAL, 2+ = TEXCOORD
     switch (attr.location)
@@ -378,14 +379,14 @@ u32 GetDX12SemanticIndex(const VertexAttributeDescription &attr) noexcept
     {
         return attr.semantic_index;
     }
-    
+
     // Otherwise, generate default semantic index based on location
     // For TEXCOORD semantics (location >= 2), use location - 2 as index
     if (attr.location >= 2)
     {
         return attr.location - 2;
     }
-    
+
     // For POSITION, NORMAL, etc., use index 0
     return 0;
 }

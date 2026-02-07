@@ -4,7 +4,8 @@
 namespace Horizon::Backend
 {
 
-DX12CommandAllocatorPool::DX12CommandAllocatorPool(const DX12RendererContext &context, CommandQueueType queue_type) noexcept
+DX12CommandAllocatorPool::DX12CommandAllocatorPool(const DX12RendererContext &context,
+                                                   CommandQueueType queue_type) noexcept
     : m_context(context), m_queue_type(queue_type)
 {
     // Pre-allocate a few allocators
@@ -42,7 +43,7 @@ ComPtr<ID3D12CommandAllocator> DX12CommandAllocatorPool::GetAllocator()
 
     // Create a new allocator if none available
     ComPtr<ID3D12CommandAllocator> allocator;
-        D3D12_COMMAND_LIST_TYPE list_type = Horizon::ToDX12CommandListType(m_queue_type);
+    D3D12_COMMAND_LIST_TYPE list_type = Horizon::ToDX12CommandListType(m_queue_type);
     HRESULT hr = m_context.device->CreateCommandAllocator(list_type, IID_PPV_ARGS(&allocator));
     if (SUCCEEDED(hr))
     {

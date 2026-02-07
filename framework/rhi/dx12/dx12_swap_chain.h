@@ -1,9 +1,9 @@
 #pragma once
 
+#include "dx12_utils.h"
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
-#include "dx12_utils.h"
 
 #include <core/definations.h>
 #include <rhi/swap_chain.h>

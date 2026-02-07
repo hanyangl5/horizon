@@ -1,8 +1,8 @@
 #pragma once
 
+#include "dx12_utils.h"
 #include <d3d12.h>
 #include <wrl/client.h>
-#include "dx12_utils.h"
 
 #include <core/definations.h>
 #include <unordered_map>
@@ -34,10 +34,22 @@ class DX12DescriptorHeapAllocator
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateSampler();
 
     // Get descriptor heap
-    ID3D12DescriptorHeap *GetSRVUAVCBVHeap() const { return m_srv_uav_cbv_heap.Get(); }
-    ID3D12DescriptorHeap *GetRTVHeap() const { return m_rtv_heap.Get(); }
-    ID3D12DescriptorHeap *GetDSVHeap() const { return m_dsv_heap.Get(); }
-    ID3D12DescriptorHeap *GetSamplerHeap() const { return m_sampler_heap.Get(); }
+    ID3D12DescriptorHeap *GetSRVUAVCBVHeap() const
+    {
+        return m_srv_uav_cbv_heap.Get();
+    }
+    ID3D12DescriptorHeap *GetRTVHeap() const
+    {
+        return m_rtv_heap.Get();
+    }
+    ID3D12DescriptorHeap *GetDSVHeap() const
+    {
+        return m_dsv_heap.Get();
+    }
+    ID3D12DescriptorHeap *GetSamplerHeap() const
+    {
+        return m_sampler_heap.Get();
+    }
 
   private:
     void CreateDescriptorHeaps();
