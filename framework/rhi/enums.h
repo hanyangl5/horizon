@@ -28,7 +28,8 @@ static constexpr u32 MAX_BINDING_COUNT = 32;
 
 enum class RenderBackend
 {
-    RENDER_BACKEND_VULKAN
+    RENDER_BACKEND_VULKAN,
+    RENDER_BACKEND_DX12
 };
 // always assum queue family index: graphics = 0, compute = 1, transfer = 2
 enum CommandQueueType
@@ -305,6 +306,9 @@ struct VertexAttributeDescription
     u32 binding;
     u32 stride;
     u32 offset;
+    // DX12 semantic information (optional, can be empty for Vulkan)
+    std::string semantic_name = nullptr;
+    u32 semantic_index = 0;
 };
 
 struct VertexInputState
@@ -399,6 +403,7 @@ struct RenderTargetFormats
 
 struct GraphicsPipelineCreateInfo
 {
+    //ShaderProgram;
     VertexInputState vertex_input_state;
     InputAssemblyState input_assembly_state;
     ViewPortState view_port_state;

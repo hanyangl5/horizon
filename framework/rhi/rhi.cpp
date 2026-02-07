@@ -25,6 +25,14 @@ std::unique_ptr<RHI> CreateRenderBackend(RenderBackend render_backend, bool offs
         LOG_ERROR("Vulkan is not supported in this build");
         return nullptr;
 #endif
+    case Horizon::RenderBackend::RENDER_BACKEND_DX12:
+#if defined(USE_DX12)
+        extern std::unique_ptr<RHI> CreateDX12RenderBackend(bool offscreen) noexcept;
+        return CreateDX12RenderBackend(offscreen);
+#else
+        LOG_ERROR("DirectX 12 is not supported in this build");
+        return nullptr;
+#endif
     default:
         LOG_ERROR("invalid render backend");
         return nullptr;
