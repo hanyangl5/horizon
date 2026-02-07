@@ -2,7 +2,6 @@
 #include "../header.h"
 #include <render_graph/frame_graph.h>
 
-
 class PostProcessRDGPass : public Horizon::Backend::RDGPass
 {
   public:
@@ -19,11 +18,21 @@ class PostProcessRDGPass : public Horizon::Backend::RDGPass
     void Setup(Horizon::Backend::FrameGraphBuilder &builder) override;
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
-    void SetInputHandles(Horizon::Backend::TextureHandle shading_color, Horizon::Backend::BufferHandle adapted_luminance);
-    Buffer *GetConstantsBuffer() const { return m_exposure_constants_buffer; }
+    void SetInputHandles(Horizon::Backend::TextureHandle shading_color,
+                         Horizon::Backend::BufferHandle adapted_luminance);
+    Buffer *GetConstantsBuffer() const
+    {
+        return m_exposure_constants_buffer;
+    }
     void UpdateConstants(const void *data, u32 size);
-    ExposureConstant &GetExposureConstants() { return m_exposure_constants; }
-    Horizon::Backend::TextureHandle GetPPColorHandle() const { return m_pp_color_handle; }
+    ExposureConstant &GetExposureConstants()
+    {
+        return m_exposure_constants;
+    }
+    Horizon::Backend::TextureHandle GetPPColorHandle() const
+    {
+        return m_pp_color_handle;
+    }
 
   private:
     RHI *m_rhi;

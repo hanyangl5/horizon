@@ -13,12 +13,27 @@ class SSAORDGPass : public Horizon::Backend::RDGPass
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
     void SetInputHandles(Horizon::Backend::TextureHandle depth, Horizon::Backend::TextureHandle gbuffer0);
-    Buffer *GetConstantsBuffer() const { return m_ssao_constants_buffer; }
+    Buffer *GetConstantsBuffer() const
+    {
+        return m_ssao_constants_buffer;
+    }
     void UpdateConstants(const void *data, u32 size);
-    Texture *GetSSAONoiseTex() const { return m_ssao_noise_tex; }
-    TextureDataDesc &GetSSAONoiseTexDataDesc() { return m_ssao_noise_tex_data_desc; }
-    Horizon::Backend::TextureHandle GetSSAOFactorHandle() const { return m_ssao_factor_handle; }
-    Horizon::Backend::TextureHandle GetSSAONoiseHandle() const { return m_ssao_noise_handle; }
+    Texture *GetSSAONoiseTex() const
+    {
+        return m_ssao_noise_tex;
+    }
+    TextureDataDesc &GetSSAONoiseTexDataDesc()
+    {
+        return m_ssao_noise_tex_data_desc;
+    }
+    Horizon::Backend::TextureHandle GetSSAOFactorHandle() const
+    {
+        return m_ssao_factor_handle;
+    }
+    Horizon::Backend::TextureHandle GetSSAONoiseHandle() const
+    {
+        return m_ssao_noise_handle;
+    }
 
     struct SSAOConstant
     {
@@ -31,7 +46,10 @@ class SSAORDGPass : public Horizon::Backend::RDGPass
         f32 noise_scale_y;
         std::array<Math::float4, 32> kernels;
     };
-    SSAOConstant &GetSSAOConstants() { return m_ssao_constants; }
+    SSAOConstant &GetSSAOConstants()
+    {
+        return m_ssao_constants;
+    }
     static constexpr u32 SSAO_NOISE_TEX_WIDTH = 4;
     static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
 

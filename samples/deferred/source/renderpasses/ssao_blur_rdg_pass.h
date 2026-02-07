@@ -13,7 +13,10 @@ class SSAOBlurRDGPass : public Horizon::Backend::RDGPass
     void Execute(Horizon::CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
     void SetInputHandle(Horizon::Backend::TextureHandle ssao_factor);
-    Horizon::Backend::TextureHandle GetOutputHandle() const { return m_ssao_blur_handle; }
+    Horizon::Backend::TextureHandle GetOutputHandle() const
+    {
+        return m_ssao_blur_handle;
+    }
 
   private:
     Horizon::Backend::RHI *m_rhi;

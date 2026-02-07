@@ -16,7 +16,7 @@ TextureHandle FrameGraphBuilder::CreateTexture(const std::string &name, const Te
     if (handle.IsValid())
     {
         m_graph->m_textures[handle.index].create_info = create_info;
-        m_graph->m_textures[handle.index].is_managed = true;  // Mark as managed by FrameGraph
+        m_graph->m_textures[handle.index].is_managed = true;    // Mark as managed by FrameGraph
         m_graph->m_textures[handle.index].is_transient = false; // Managed resources persist
     }
     return handle;
@@ -33,7 +33,7 @@ BufferHandle FrameGraphBuilder::CreateBuffer(const std::string &name, const Buff
     if (handle.IsValid())
     {
         m_graph->m_buffers[handle.index].create_info = create_info;
-        m_graph->m_buffers[handle.index].is_managed = true;  // Mark as managed by FrameGraph
+        m_graph->m_buffers[handle.index].is_managed = true;    // Mark as managed by FrameGraph
         m_graph->m_buffers[handle.index].is_transient = false; // Managed resources persist
     }
     return handle;
@@ -51,7 +51,7 @@ RenderTargetHandle FrameGraphBuilder::CreateRenderTarget(const std::string &name
     if (handle.IsValid())
     {
         m_graph->m_render_targets[handle.index].create_info = create_info;
-        m_graph->m_render_targets[handle.index].is_managed = true;  // Mark as managed by FrameGraph
+        m_graph->m_render_targets[handle.index].is_managed = true;    // Mark as managed by FrameGraph
         m_graph->m_render_targets[handle.index].is_transient = false; // Managed resources persist
     }
     return handle;

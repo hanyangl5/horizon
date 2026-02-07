@@ -43,8 +43,7 @@ void TAARDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
 }
 
 void TAARDGPass::SetInputHandles(Horizon::Backend::TextureHandle previous_color,
-                                  Horizon::Backend::TextureHandle pp_color,
-                                  Horizon::Backend::TextureHandle gbuffer4)
+                                 Horizon::Backend::TextureHandle pp_color, Horizon::Backend::TextureHandle gbuffer4)
 {
     m_previous_color_handle = previous_color;
     m_pp_color_handle = pp_color;

@@ -1,8 +1,8 @@
 #pragma once
 #include "../header.h"
 #include "../scene.h"
-#include <render_graph/frame_graph.h>
 #include "taa_rdg_pass.h"
+#include <render_graph/frame_graph.h>
 
 class DeferredShadingRDGPass;
 class SSAORDGPass;
@@ -21,18 +21,25 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
     void SetResourceHandles(Horizon::Backend::TextureHandle shading_color, Horizon::Backend::TextureHandle pp_color,
-                             Horizon::Backend::TextureHandle ssao_factor, Horizon::Backend::TextureHandle ssao_blur,
-                             Horizon::Backend::TextureHandle output_color, Horizon::Backend::TextureHandle previous_color,
-                             Horizon::Backend::TextureHandle ssao_noise, Horizon::Backend::TextureHandle brdf_lut,
-                             Horizon::Backend::TextureHandle prefiltered_env, Horizon::Backend::BufferHandle histogram_buffer,
-                             Horizon::Backend::BufferHandle adapted_luminance);
+                            Horizon::Backend::TextureHandle ssao_factor, Horizon::Backend::TextureHandle ssao_blur,
+                            Horizon::Backend::TextureHandle output_color,
+                            Horizon::Backend::TextureHandle previous_color, Horizon::Backend::TextureHandle ssao_noise,
+                            Horizon::Backend::TextureHandle brdf_lut, Horizon::Backend::TextureHandle prefiltered_env,
+                            Horizon::Backend::BufferHandle histogram_buffer,
+                            Horizon::Backend::BufferHandle adapted_luminance);
     void SetPassPointers(DeferredShadingRDGPass *deferred, SSAORDGPass *ssao, PostProcessRDGPass *post_process,
                          LuminanceHistogramRDGPass *luminance_histogram, TAARDGPass *taa);
-    void SetFirstFrame(bool first_frame) { m_first_frame = first_frame; }
-    void SetTAAPrevCurrOffset(const TAARDGPass::TAAPrevCurrOffset &offset) { m_taa_prev_curr_offset = offset; }
+    void SetFirstFrame(bool first_frame)
+    {
+        m_first_frame = first_frame;
+    }
+    void SetTAAPrevCurrOffset(const TAARDGPass::TAAPrevCurrOffset &offset)
+    {
+        m_taa_prev_curr_offset = offset;
+    }
 
   private:
-  [[maybe_unused]] RHI *m_rhi;
+    [[maybe_unused]] RHI *m_rhi;
     Horizon::SceneManager *m_scene_manager;
 
     DeferredShadingRDGPass *m_deferred{nullptr};

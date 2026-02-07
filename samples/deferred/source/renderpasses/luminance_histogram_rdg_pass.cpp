@@ -1,15 +1,15 @@
 #include "luminance_histogram_rdg_pass.h"
 
-LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi)
-    : RDGPass("Luminance Histogram Pass", rhi), m_rhi(rhi)
+LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi) : RDGPass("Luminance Histogram Pass", rhi), m_rhi(rhi)
 {
-    m_luminance_histogram_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");
+    m_luminance_histogram_cs =
+        CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");
     m_luminance_histogram_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
     m_luminance_histogram_pipeline->SetComputeShader(m_luminance_histogram_cs);
 
     m_luminance_histogram_constants_buffer = rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(LuminanceHistogramConstants)});
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(LuminanceHistogramConstants)});
 
     m_histogram_buffer = rhi->CreateBuffer(BufferCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 256 * sizeof(u32)});
@@ -54,7 +54,8 @@ void LuminanceHistogramRDGPass::Execute(CommandList *cl, Horizon::Backend::Frame
 {
     cl->BeginComputePass("Luminance Histogram Pass");
     m_luminance_histogram_pipeline->SetResource(builder.GetTexture(m_shading_color_handle), "color_image");
-    m_luminance_histogram_pipeline->SetResource(m_luminance_histogram_constants_buffer, "LuminanceHistogramConstants_cb");
+    m_luminance_histogram_pipeline->SetResource(m_luminance_histogram_constants_buffer,
+                                                "LuminanceHistogramConstants_cb");
     m_luminance_histogram_pipeline->SetResource(builder.GetBuffer(m_histogram_buffer_handle), "histogram");
     // adaptedLuminance is not used in this pass - it's only written by LuminanceAverageRDGPass
     cl->BindPipeline(m_luminance_histogram_pipeline);

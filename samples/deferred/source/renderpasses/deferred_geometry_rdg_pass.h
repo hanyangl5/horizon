@@ -14,12 +14,30 @@ class DeferredShadingGeometryPass : public Horizon::Backend::RDGPass
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
     // Accessors for resource handles
-    Horizon::Backend::TextureHandle GetGBuffer0Handle() const { return m_gbuffer0_handle; }
-    Horizon::Backend::TextureHandle GetGBuffer1Handle() const { return m_gbuffer1_handle; }
-    Horizon::Backend::TextureHandle GetGBuffer2Handle() const { return m_gbuffer2_handle; }
-    Horizon::Backend::TextureHandle GetGBuffer3Handle() const { return m_gbuffer3_handle; }
-    Horizon::Backend::TextureHandle GetGBuffer4Handle() const { return m_gbuffer4_handle; }
-    Horizon::Backend::TextureHandle GetDepthHandle() const { return m_depth_handle; }
+    Horizon::Backend::TextureHandle GetGBuffer0Handle() const
+    {
+        return m_gbuffer0_handle;
+    }
+    Horizon::Backend::TextureHandle GetGBuffer1Handle() const
+    {
+        return m_gbuffer1_handle;
+    }
+    Horizon::Backend::TextureHandle GetGBuffer2Handle() const
+    {
+        return m_gbuffer2_handle;
+    }
+    Horizon::Backend::TextureHandle GetGBuffer3Handle() const
+    {
+        return m_gbuffer3_handle;
+    }
+    Horizon::Backend::TextureHandle GetGBuffer4Handle() const
+    {
+        return m_gbuffer4_handle;
+    }
+    Horizon::Backend::TextureHandle GetDepthHandle() const
+    {
+        return m_depth_handle;
+    }
 
   private:
     RHI *m_rhi;

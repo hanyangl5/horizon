@@ -1,8 +1,9 @@
 #include "deferred_geometry_rdg_pass.h"
-#include <scene/scene_manager/scene_manager.h>
 #include "taa_rdg_pass.h"
+#include <scene/scene_manager/scene_manager.h>
 
-DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampler *sampler)
+DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager,
+                                                         Sampler *sampler)
     : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler)
 {
     // Create shaders and pipeline using base class helper functions
@@ -133,7 +134,6 @@ void DeferredShadingGeometryPass::ImportResources(Horizon::Backend::FrameGraph *
     m_depth_handle = frame_graph->ImportTexture("depth", m_depth_rt->GetTexture());
 }
 
-
 void DeferredShadingGeometryPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
     builder.UseRenderTarget(m_gbuffer0_rt_handle);
@@ -181,7 +181,6 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
     begin_info.depth_stencil.load_op = RenderTargetLoadOp::CLEAR;
     begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
     begin_info.debug_name = "Geometry Pass";
-
 
     // Setup resources
     m_geometry_pipeline->SetResource(m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");

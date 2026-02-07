@@ -14,7 +14,8 @@ class LuminanceAverageRDGPass : public Horizon::Backend::RDGPass
     void Setup(Horizon::Backend::FrameGraphBuilder &builder) override;
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
-    void SetInputHandles(Horizon::Backend::BufferHandle histogram_buffer, Horizon::Backend::BufferHandle adapted_luminance);
+    void SetInputHandles(Horizon::Backend::BufferHandle histogram_buffer,
+                         Horizon::Backend::BufferHandle adapted_luminance);
     void SetLuminanceHistogramPass(LuminanceHistogramRDGPass *luminance_histogram_pass);
 
   private:

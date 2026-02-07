@@ -1,15 +1,15 @@
 
 #pragma once
 
-#include "renderpasses/deferred_shading_rdg_pass.h"
 #include "renderpasses/deferred_geometry_rdg_pass.h"
-#include "renderpasses/ssao_rdg_pass.h"
-#include "renderpasses/ssao_blur_rdg_pass.h"
-#include "renderpasses/post_process_rdg_pass.h"
-#include "renderpasses/luminance_histogram_rdg_pass.h"
+#include "renderpasses/deferred_shading_rdg_pass.h"
 #include "renderpasses/luminance_average_rdg_pass.h"
-#include "renderpasses/taa_rdg_pass.h"
+#include "renderpasses/luminance_histogram_rdg_pass.h"
+#include "renderpasses/post_process_rdg_pass.h"
 #include "renderpasses/resource_upload_pass.h"
+#include "renderpasses/ssao_blur_rdg_pass.h"
+#include "renderpasses/ssao_rdg_pass.h"
+#include "renderpasses/taa_rdg_pass.h"
 #include "scene.h"
 #include <render_graph/frame_graph.h>
 #include <scene/scene_renderer/renderer.h>
@@ -74,7 +74,7 @@ class Render
     // pass resources
 
     Sampler *sampler;
-    
+
     // RDG Passes
     std::unique_ptr<DeferredShadingGeometryPass> geometry_pass{};
     std::unique_ptr<DeferredShadingRDGPass> deferred_shading_pass{};

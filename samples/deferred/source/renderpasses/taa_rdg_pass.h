@@ -10,6 +10,7 @@ class TAARDGPass : public Horizon::Backend::RDGPass
         Math::float2 prev_offset;
         Math::float2 curr_offset;
     };
+
   public:
     TAARDGPass(RHI *rhi);
     ~TAARDGPass();
@@ -21,10 +22,19 @@ class TAARDGPass : public Horizon::Backend::RDGPass
     void SetInputHandles(Horizon::Backend::TextureHandle previous_color, Horizon::Backend::TextureHandle pp_color,
                          Horizon::Backend::TextureHandle gbuffer4);
     const Math::float2 &GetJitterOffset() noexcept;
-    Buffer *GetTAAPrevCurrOffsetBuffer() const { return m_taa_prev_curr_offset_buffer; }
+    Buffer *GetTAAPrevCurrOffsetBuffer() const
+    {
+        return m_taa_prev_curr_offset_buffer;
+    }
     void UpdateTAAPrevCurrOffset(const void *data, u32 size);
-    Horizon::Backend::TextureHandle GetOutputColorHandle() const { return m_output_color_handle; }
-    Horizon::Backend::TextureHandle GetPreviousColorHandle() const { return m_previous_color_handle; }
+    Horizon::Backend::TextureHandle GetOutputColorHandle() const
+    {
+        return m_output_color_handle;
+    }
+    Horizon::Backend::TextureHandle GetPreviousColorHandle() const
+    {
+        return m_previous_color_handle;
+    }
 
   private:
     RHI *m_rhi;

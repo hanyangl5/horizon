@@ -36,23 +36,52 @@ class DeferredShadingRDGPass : public Horizon::Backend::RDGPass
     void SetSSAOBlurHandle(Horizon::Backend::TextureHandle ssao_blur);
 
     // Accessors for ResourceUploadPass
-    Buffer *GetDeferredShadingConstantsBuffer() const { return m_deferred_shading_constants_buffer; }
-    Buffer *GetDiffuseIrradianceSH3Buffer() const { return m_diffuse_irradiance_sh3_buffer; }
+    Buffer *GetDeferredShadingConstantsBuffer() const
+    {
+        return m_deferred_shading_constants_buffer;
+    }
+    Buffer *GetDiffuseIrradianceSH3Buffer() const
+    {
+        return m_diffuse_irradiance_sh3_buffer;
+    }
     DeferredShadingConstants &GetDeferredShadingConstants()
     {
         return m_deferred_shading_constants;
     }
-    DiffuseIrradianceSH3 &GetDiffuseIrradianceSH3Constants() { return m_diffuse_irradiance_sh3_constants; }
-    Texture *GetPrefilteredIrradianceEnvMap() const { return m_prefiltered_irradiance_env_map; }
-    Texture *GetBRDFLUT() const { return m_brdf_lut; }
-    TextureDataDesc &GetPrefilteredIrradianceEnvMapData() { return m_prefilered_irradiance_env_map_data; }
-    TextureDataDesc &GetBRDFLUTDataDesc() { return m_brdf_lut_data_desc; }
-    Horizon::Backend::TextureHandle GetShadingColorHandle() const { return m_shading_color_handle; }
-    Horizon::Backend::TextureHandle GetBRDFLUTHandle() const { return m_brdf_lut_handle; }
-    Horizon::Backend::TextureHandle GetPrefilteredEnvHandle() const { return m_prefiltered_env_handle; }
+    DiffuseIrradianceSH3 &GetDiffuseIrradianceSH3Constants()
+    {
+        return m_diffuse_irradiance_sh3_constants;
+    }
+    Texture *GetPrefilteredIrradianceEnvMap() const
+    {
+        return m_prefiltered_irradiance_env_map;
+    }
+    Texture *GetBRDFLUT() const
+    {
+        return m_brdf_lut;
+    }
+    TextureDataDesc &GetPrefilteredIrradianceEnvMapData()
+    {
+        return m_prefilered_irradiance_env_map_data;
+    }
+    TextureDataDesc &GetBRDFLUTDataDesc()
+    {
+        return m_brdf_lut_data_desc;
+    }
+    Horizon::Backend::TextureHandle GetShadingColorHandle() const
+    {
+        return m_shading_color_handle;
+    }
+    Horizon::Backend::TextureHandle GetBRDFLUTHandle() const
+    {
+        return m_brdf_lut_handle;
+    }
+    Horizon::Backend::TextureHandle GetPrefilteredEnvHandle() const
+    {
+        return m_prefiltered_env_handle;
+    }
 
   public:
-
   private:
     RHI *m_rhi;
     Horizon::SceneManager *m_scene_manager;
@@ -72,7 +101,7 @@ class DeferredShadingRDGPass : public Horizon::Backend::RDGPass
     Sampler *m_ibl_sampler;
     TextureDataDesc m_prefilered_irradiance_env_map_data;
     TextureDataDesc m_brdf_lut_data_desc;
-    
+
     // Shading color texture (owned by pass)
     Texture *m_shading_color_texture;
 

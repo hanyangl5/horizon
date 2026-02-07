@@ -12,7 +12,8 @@ class LuminanceHistogramRDGPass : public Horizon::Backend::RDGPass
         u32 pixelCount;
         float maxLuminance;
         float timeCoeff;
-    }; 
+    };
+
   public:
     LuminanceHistogramRDGPass(RHI *rhi);
     ~LuminanceHistogramRDGPass();
@@ -22,13 +23,31 @@ class LuminanceHistogramRDGPass : public Horizon::Backend::RDGPass
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
     void SetInputHandle(Horizon::Backend::TextureHandle shading_color);
-    Buffer *GetConstantsBuffer() const { return m_luminance_histogram_constants_buffer; }
+    Buffer *GetConstantsBuffer() const
+    {
+        return m_luminance_histogram_constants_buffer;
+    }
     void UpdateConstants(const void *data, u32 size);
-    Buffer *GetHistogramBuffer() const { return m_histogram_buffer; }
-    Buffer *GetAdaptedLuminanceBuffer() const { return m_adapted_luminance_buffer; }
-    LuminanceHistogramConstants &GetLuminanceHistogramConstants() { return m_luminance_histogram_constants; }
-    Horizon::Backend::BufferHandle GetHistogramBufferHandle() const { return m_histogram_buffer_handle; }
-    Horizon::Backend::BufferHandle GetAdaptedLuminanceHandle() const { return m_adapted_luminance_handle; }
+    Buffer *GetHistogramBuffer() const
+    {
+        return m_histogram_buffer;
+    }
+    Buffer *GetAdaptedLuminanceBuffer() const
+    {
+        return m_adapted_luminance_buffer;
+    }
+    LuminanceHistogramConstants &GetLuminanceHistogramConstants()
+    {
+        return m_luminance_histogram_constants;
+    }
+    Horizon::Backend::BufferHandle GetHistogramBufferHandle() const
+    {
+        return m_histogram_buffer_handle;
+    }
+    Horizon::Backend::BufferHandle GetAdaptedLuminanceHandle() const
+    {
+        return m_adapted_luminance_handle;
+    }
 
   private:
     RHI *m_rhi;

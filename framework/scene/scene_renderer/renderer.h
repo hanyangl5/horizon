@@ -36,15 +36,15 @@ class Renderer
     {
         mRhi->ResetRHIResources();
         mRhi->ResetFence(CommandQueueType::GRAPHICS);
-        //mRhi->ResetFence(CommandQueueType::COMPUTE);
-        //mRhi->ResetFence(CommandQueueType::TRANSFER);
+        // mRhi->ResetFence(CommandQueueType::COMPUTE);
+        // mRhi->ResetFence(CommandQueueType::TRANSFER);
         LOG_DEBUG("begin frame");
     };
     void EndFrame() const
     {
         mRhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
-        //mRhi->WaitGpuExecution(CommandQueueType::COMPUTE);
-        //mRhi->WaitGpuExecution(CommandQueueType::TRANSFER);
+        // mRhi->WaitGpuExecution(CommandQueueType::COMPUTE);
+        // mRhi->WaitGpuExecution(CommandQueueType::TRANSFER);
         LOG_DEBUG("end frame");
     };
 

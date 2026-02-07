@@ -12,8 +12,8 @@
 #include <rhi/swap_chain.h>
 #include <rhi/texture.h>
 
-#include <core/log.h>
 #include <core/definations.h>
+#include <core/log.h>
 #include <core/path.h>
 #include <functional>
 #include <memory>

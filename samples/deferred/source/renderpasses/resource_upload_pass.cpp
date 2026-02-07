@@ -1,8 +1,8 @@
 #include "resource_upload_pass.h"
 #include "deferred_shading_rdg_pass.h"
-#include "ssao_rdg_pass.h"
-#include "post_process_rdg_pass.h"
 #include "luminance_histogram_rdg_pass.h"
+#include "post_process_rdg_pass.h"
+#include "ssao_rdg_pass.h"
 #include "taa_rdg_pass.h"
 #include <scene/scene_manager/scene_manager.h>
 
@@ -20,17 +20,13 @@ void ResourceUploadRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_
     // No resources to import - we just write to resources imported by other passes
 }
 
-void ResourceUploadRDGPass::SetResourceHandles(Horizon::Backend::TextureHandle shading_color,
-                                                Horizon::Backend::TextureHandle pp_color,
-                                                Horizon::Backend::TextureHandle ssao_factor,
-                                                Horizon::Backend::TextureHandle ssao_blur,
-                                                Horizon::Backend::TextureHandle output_color,
-                                                Horizon::Backend::TextureHandle previous_color,
-                                                Horizon::Backend::TextureHandle ssao_noise,
-                                                Horizon::Backend::TextureHandle brdf_lut,
-                                                Horizon::Backend::TextureHandle prefiltered_env,
-                                                Horizon::Backend::BufferHandle histogram_buffer,
-                                                Horizon::Backend::BufferHandle adapted_luminance)
+void ResourceUploadRDGPass::SetResourceHandles(
+    Horizon::Backend::TextureHandle shading_color, Horizon::Backend::TextureHandle pp_color,
+    Horizon::Backend::TextureHandle ssao_factor, Horizon::Backend::TextureHandle ssao_blur,
+    Horizon::Backend::TextureHandle output_color, Horizon::Backend::TextureHandle previous_color,
+    Horizon::Backend::TextureHandle ssao_noise, Horizon::Backend::TextureHandle brdf_lut,
+    Horizon::Backend::TextureHandle prefiltered_env, Horizon::Backend::BufferHandle histogram_buffer,
+    Horizon::Backend::BufferHandle adapted_luminance)
 {
     m_shading_color_handle = shading_color;
     m_pp_color_handle = pp_color;
@@ -46,8 +42,8 @@ void ResourceUploadRDGPass::SetResourceHandles(Horizon::Backend::TextureHandle s
 }
 
 void ResourceUploadRDGPass::SetPassPointers(DeferredShadingRDGPass *deferred, SSAORDGPass *ssao,
-                                             PostProcessRDGPass *post_process,
-                                             LuminanceHistogramRDGPass *luminance_histogram, TAARDGPass *taa)
+                                            PostProcessRDGPass *post_process,
+                                            LuminanceHistogramRDGPass *luminance_histogram, TAARDGPass *taa)
 {
     m_deferred = deferred;
     m_ssao = ssao;
@@ -95,8 +91,7 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
     // Deferred data
     if (m_deferred)
     {
-        cl->UpdateBuffer(m_deferred->GetDeferredShadingConstantsBuffer(),
-                         &m_deferred->GetDeferredShadingConstants(),
+        cl->UpdateBuffer(m_deferred->GetDeferredShadingConstantsBuffer(), &m_deferred->GetDeferredShadingConstants(),
                          sizeof(DeferredShadingRDGPass::DeferredShadingConstants));
     }
 
@@ -118,8 +113,7 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
     // SSAO data
     if (m_ssao)
     {
-        cl->UpdateBuffer(m_ssao->GetConstantsBuffer(), &m_ssao->GetSSAOConstants(),
-                         sizeof(SSAORDGPass::SSAOConstant));
+        cl->UpdateBuffer(m_ssao->GetConstantsBuffer(), &m_ssao->GetSSAOConstants(), sizeof(SSAORDGPass::SSAOConstant));
     }
 
     // TAA data

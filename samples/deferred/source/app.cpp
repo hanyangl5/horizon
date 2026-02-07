@@ -76,7 +76,8 @@ void Render::UpdatePipelineResources()
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
 
     // Post process constants
-    post_process_pass->GetExposureConstants().exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
+    post_process_pass->GetExposureConstants().exposure_ev100__ =
+        Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
     // Deferred shading constants
     deferred_shading_pass->GetDeferredShadingConstants().camera_pos = Math::float4(cam->GetPosition());
@@ -141,7 +142,8 @@ void Render::run()
         auto previous_color_handle = taa_pass->GetPreviousColorHandle();
 
         // Set input handles for passes
-        deferred_shading_pass->SetGBufferHandles(gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle, depth_handle);
+        deferred_shading_pass->SetGBufferHandles(gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
+                                                 depth_handle);
         deferred_shading_pass->SetSSAOBlurHandle(ssao_blur_handle);
         ssao_pass->SetInputHandles(depth_handle, gbuffer0_handle);
         ssao_blur_pass->SetInputHandle(ssao_factor_handle);
@@ -153,11 +155,11 @@ void Render::run()
 
         // Set resource handles for resource upload pass
         resource_upload_pass->SetResourceHandles(shading_color_handle, pp_color_handle, ssao_factor_handle,
-                                                  ssao_blur_handle, output_color_handle, previous_color_handle,
-                                                  ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
-                                                  histogram_buffer_handle, adapted_luminance_handle);
+                                                 ssao_blur_handle, output_color_handle, previous_color_handle,
+                                                 ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
+                                                 histogram_buffer_handle, adapted_luminance_handle);
         resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
-                                               luminance_histogram_pass.get(), taa_pass.get());
+                                              luminance_histogram_pass.get(), taa_pass.get());
         resource_upload_pass->SetFirstFrame(first_frame);
 
         // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
@@ -172,8 +174,8 @@ void Render::run()
         taa_prev_offset = taa_offset;
         resource_upload_pass->SetTAAPrevCurrOffset(taa_offset);
 
-        auto swapchain_handle =
-            frame_graph->ImportTexture("swapchain" + std::to_string(swap_chain->current_frame_index), swap_chain->GetRenderTarget()->GetTexture());
+        auto swapchain_handle = frame_graph->ImportTexture(
+            "swapchain" + std::to_string(swap_chain->current_frame_index), swap_chain->GetRenderTarget()->GetTexture());
 
         // Add passes to FrameGraph using RDGPass
         frame_graph->AddPass(resource_upload_pass.get());
@@ -203,7 +205,7 @@ void Render::run()
                 // Copy to swapchain and previous frame
                 cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(swapchain_handle));
                 cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(previous_color_handle));
-                
+
                 // Transition swapchain image from COPY_DEST to PRESENT for vkQueuePresentKHR
                 Horizon::BarrierDesc barrier{};
                 Horizon::TextureBarrierDesc swapchain_barrier{};

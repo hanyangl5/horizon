@@ -11,12 +11,12 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
 
     // Create constant buffers
     m_deferred_shading_constants_buffer = rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(DeferredShadingConstants)});
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(DeferredShadingConstants)});
 
     m_diffuse_irradiance_sh3_buffer = rhi->CreateBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(DiffuseIrradianceSH3)});
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(DiffuseIrradianceSH3)});
 
     // Initialize constants
     m_deferred_shading_constants.width = width;
@@ -76,12 +76,12 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
     sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
     m_ibl_sampler = rhi->CreateSampler(sampler_desc);
-    
+
     // Create shading color texture
-    m_shading_color_texture = rhi->CreateTexture(TextureCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE, 
-        ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, width, height, 1, false});
+    m_shading_color_texture = rhi->CreateTexture(
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
+                          ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
+                          TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, width, height, 1, false});
 }
 
 DeferredShadingRDGPass::~DeferredShadingRDGPass()
@@ -100,7 +100,7 @@ void DeferredShadingRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame
     // Import IBL textures that we own
     m_brdf_lut_handle = frame_graph->ImportTexture("brdf_lut", m_brdf_lut);
     m_prefiltered_env_handle = frame_graph->ImportTexture("prefiltered_env", m_prefiltered_irradiance_env_map);
-    
+
     // Import shading color texture
     m_shading_color_handle = frame_graph->ImportTexture("shading_color", m_shading_color_texture);
 }
