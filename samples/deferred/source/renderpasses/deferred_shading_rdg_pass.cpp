@@ -36,33 +36,33 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
         Math::float4{0.000401695695473f, -0.013503036461771f, -0.041937090456486f, 0.0f}};
 
     // Load IBL textures
-    auto prefilered_irradiance_env_map_data =
+    m_prefilered_irradiance_env_map_data =
         TextureLoader::Load((asset_path / "envrionment/football/footballSpecularHDR.dds").c_str());
     {
         TextureCreateInfo texture_create_info{};
-        texture_create_info.width = prefilered_irradiance_env_map_data.width;
-        texture_create_info.height = prefilered_irradiance_env_map_data.height;
-        texture_create_info.array_layer = prefilered_irradiance_env_map_data.layer_count;
+        texture_create_info.width = m_prefilered_irradiance_env_map_data.width;
+        texture_create_info.height = m_prefilered_irradiance_env_map_data.height;
+        texture_create_info.array_layer = m_prefilered_irradiance_env_map_data.layer_count;
         texture_create_info.enanble_mipmap = true;
         texture_create_info.texture_type = TextureType::TEXTURE_TYPE_CUBE;
         texture_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE_CUBE;
         texture_create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-        texture_create_info.texture_format = prefilered_irradiance_env_map_data.format;
+        texture_create_info.texture_format = m_prefilered_irradiance_env_map_data.format;
         texture_create_info.debug_name = "specular_map";
         m_prefiltered_irradiance_env_map = rhi->CreateTexture(texture_create_info);
     }
 
-    auto brdf_lut_data_desc = TextureLoader::Load((asset_path / "envrionment/football/footballBrdf.dds").c_str());
+    m_brdf_lut_data_desc = TextureLoader::Load((asset_path / "envrionment/football/footballBrdf.dds").c_str());
     {
         TextureCreateInfo texture_create_info{};
-        texture_create_info.width = brdf_lut_data_desc.width;
-        texture_create_info.height = brdf_lut_data_desc.height;
-        texture_create_info.array_layer = brdf_lut_data_desc.layer_count;
+        texture_create_info.width = m_brdf_lut_data_desc.width;
+        texture_create_info.height = m_brdf_lut_data_desc.height;
+        texture_create_info.array_layer = m_brdf_lut_data_desc.layer_count;
         texture_create_info.enanble_mipmap = false;
         texture_create_info.texture_type = TextureType::TEXTURE_TYPE_2D;
         texture_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE_CUBE;
         texture_create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
-        texture_create_info.texture_format = brdf_lut_data_desc.format;
+        texture_create_info.texture_format = m_brdf_lut_data_desc.format;
         texture_create_info.debug_name = "brdf_lut";
         m_brdf_lut = rhi->CreateTexture(texture_create_info);
     }
@@ -76,20 +76,33 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
     sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
     m_ibl_sampler = rhi->CreateSampler(sampler_desc);
+    
+    // Create shading color texture
+    m_shading_color_texture = rhi->CreateTexture(TextureCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE, 
+        ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, width, height, 1, false});
 }
 
+DeferredShadingRDGPass::~DeferredShadingRDGPass()
+{
+    DestroyShader(m_shading_cs);
+    DestroyPipeline(m_shading_pipeline);
+    m_rhi->DestroyBuffer(m_deferred_shading_constants_buffer);
+    m_rhi->DestroyBuffer(m_diffuse_irradiance_sh3_buffer);
+    m_rhi->DestroyTexture(m_prefiltered_irradiance_env_map);
+    m_rhi->DestroyTexture(m_brdf_lut);
+    m_rhi->DestroyTexture(m_shading_color_texture);
+    m_rhi->DestroySampler(m_ibl_sampler);
+}
 void DeferredShadingRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
 {
     // Import IBL textures that we own
     m_brdf_lut_handle = frame_graph->ImportTexture("brdf_lut", m_brdf_lut);
     m_prefiltered_env_handle = frame_graph->ImportTexture("prefiltered_env", m_prefiltered_irradiance_env_map);
-
-    // Create shading color texture (this will be imported, lifecycle managed externally for now)
-    // TODO: Should be created through FrameGraphBuilder in Setup for proper lifecycle management
-    Texture *shading_color_texture = m_rhi->CreateTexture(TextureCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, width, height, 1, false});
-    m_shading_color_handle = frame_graph->ImportTexture("shading_color", shading_color_texture);
+    
+    // Import shading color texture
+    m_shading_color_handle = frame_graph->ImportTexture("shading_color", m_shading_color_texture);
 }
 
 void DeferredShadingRDGPass::SetGBufferHandles(Horizon::Backend::TextureHandle gbuffer0,

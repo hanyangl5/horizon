@@ -1,10 +1,9 @@
-#include "geometry_pass.h"
+#include "deferred_geometry_rdg_pass.h"
 #include <scene/scene_manager/scene_manager.h>
+#include "taa_rdg_pass.h"
 
-GeometryPass::GeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampler *sampler,
-                          Buffer *taa_prev_curr_offset_buffer)
-    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler),
-      m_taa_prev_curr_offset_buffer(taa_prev_curr_offset_buffer)
+DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampler *sampler)
+    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler)
 {
     // Create shaders and pipeline using base class helper functions
     m_geometry_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
@@ -81,43 +80,61 @@ GeometryPass::GeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampl
 
     m_geometry_pipeline = CreateGraphicsPipeline(graphics_pass_ci);
     m_geometry_pipeline->SetGraphicsShader(m_geometry_vs, m_geometry_ps);
+
+    // Create render targets
+    m_gbuffer0_rt = rhi->CreateRenderTarget(
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
+    m_gbuffer1_rt = rhi->CreateRenderTarget(
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
+    m_gbuffer2_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT,
+                                                                   RenderTargetType::COLOR, width, height});
+    m_gbuffer3_rt = rhi->CreateRenderTarget(
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
+    m_gbuffer4_rt = rhi->CreateRenderTarget(
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT, RenderTargetType::COLOR, width, height});
+    m_depth_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
+                                                                RenderTargetType::DEPTH_STENCIL, width, height});
+
+    // Create TAA buffer
+    m_taa_prev_curr_offset_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
+                                                                       ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                                                                       sizeof(TAARDGPass::TAAPrevCurrOffset)});
 }
 
-void GeometryPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
+DeferredShadingGeometryPass::~DeferredShadingGeometryPass()
 {
-    // Create render targets (these will be managed externally, not by FrameGraph)
-    // They are imported so FrameGraph can track their state, but lifecycle is managed elsewhere
-    RenderTarget *gbuffer0_rt = m_rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
-    RenderTarget *gbuffer1_rt = m_rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
-    RenderTarget *gbuffer2_rt = m_rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, RenderTargetType::COLOR, width, height});
-    RenderTarget *gbuffer3_rt = m_rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
-    RenderTarget *gbuffer4_rt = m_rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT, RenderTargetType::COLOR, width, height});
-    RenderTarget *depth_rt = m_rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT, RenderTargetType::DEPTH_STENCIL, width, height});
-
-    // Import into FrameGraph for state tracking
-    m_gbuffer0_rt_handle = frame_graph->ImportRenderTarget("gbuffer0_rt", gbuffer0_rt);
-    m_gbuffer1_rt_handle = frame_graph->ImportRenderTarget("gbuffer1_rt", gbuffer1_rt);
-    m_gbuffer2_rt_handle = frame_graph->ImportRenderTarget("gbuffer2_rt", gbuffer2_rt);
-    m_gbuffer3_rt_handle = frame_graph->ImportRenderTarget("gbuffer3_rt", gbuffer3_rt);
-    m_gbuffer4_rt_handle = frame_graph->ImportRenderTarget("gbuffer4_rt", gbuffer4_rt);
-    m_depth_rt_handle = frame_graph->ImportRenderTarget("depth_rt", depth_rt);
+    DestroyShader(m_geometry_vs);
+    DestroyShader(m_geometry_ps);
+    DestroyPipeline(m_geometry_pipeline);
+    m_rhi->DestroyRenderTarget(m_gbuffer0_rt);
+    m_rhi->DestroyRenderTarget(m_gbuffer1_rt);
+    m_rhi->DestroyRenderTarget(m_gbuffer2_rt);
+    m_rhi->DestroyRenderTarget(m_gbuffer3_rt);
+    m_rhi->DestroyRenderTarget(m_gbuffer4_rt);
+    m_rhi->DestroyRenderTarget(m_depth_rt);
+    m_rhi->DestroyBuffer(m_taa_prev_curr_offset_buffer);
+}
+void DeferredShadingGeometryPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
+{
+    // Import render targets into FrameGraph for state tracking
+    m_gbuffer0_rt_handle = frame_graph->ImportRenderTarget("gbuffer0_rt", m_gbuffer0_rt);
+    m_gbuffer1_rt_handle = frame_graph->ImportRenderTarget("gbuffer1_rt", m_gbuffer1_rt);
+    m_gbuffer2_rt_handle = frame_graph->ImportRenderTarget("gbuffer2_rt", m_gbuffer2_rt);
+    m_gbuffer3_rt_handle = frame_graph->ImportRenderTarget("gbuffer3_rt", m_gbuffer3_rt);
+    m_gbuffer4_rt_handle = frame_graph->ImportRenderTarget("gbuffer4_rt", m_gbuffer4_rt);
+    m_depth_rt_handle = frame_graph->ImportRenderTarget("depth_rt", m_depth_rt);
 
     // Import textures for state tracking
-    m_gbuffer0_handle = frame_graph->ImportTexture("gbuffer0", gbuffer0_rt->GetTexture());
-    m_gbuffer1_handle = frame_graph->ImportTexture("gbuffer1", gbuffer1_rt->GetTexture());
-    m_gbuffer2_handle = frame_graph->ImportTexture("gbuffer2", gbuffer2_rt->GetTexture());
-    m_gbuffer3_handle = frame_graph->ImportTexture("gbuffer3", gbuffer3_rt->GetTexture());
-    m_gbuffer4_handle = frame_graph->ImportTexture("gbuffer4", gbuffer4_rt->GetTexture());
-    m_depth_handle = frame_graph->ImportTexture("depth", depth_rt->GetTexture());
+    m_gbuffer0_handle = frame_graph->ImportTexture("gbuffer0", m_gbuffer0_rt->GetTexture());
+    m_gbuffer1_handle = frame_graph->ImportTexture("gbuffer1", m_gbuffer1_rt->GetTexture());
+    m_gbuffer2_handle = frame_graph->ImportTexture("gbuffer2", m_gbuffer2_rt->GetTexture());
+    m_gbuffer3_handle = frame_graph->ImportTexture("gbuffer3", m_gbuffer3_rt->GetTexture());
+    m_gbuffer4_handle = frame_graph->ImportTexture("gbuffer4", m_gbuffer4_rt->GetTexture());
+    m_depth_handle = frame_graph->ImportTexture("depth", m_depth_rt->GetTexture());
 }
 
-void GeometryPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
+
+void DeferredShadingGeometryPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
     builder.UseRenderTarget(m_gbuffer0_rt_handle);
     builder.UseRenderTarget(m_gbuffer1_rt_handle);
@@ -134,7 +151,7 @@ void GeometryPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
     builder.WriteTexture(m_depth_handle, ResourceState::RESOURCE_STATE_DEPTH_WRITE);
 }
 
-void GeometryPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
+void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
 {
     RenderPassBeginInfo begin_info{};
     begin_info.render_target_count = 5;
@@ -165,8 +182,6 @@ void GeometryPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder 
     begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
     begin_info.debug_name = "Geometry Pass";
 
-    cl->BeginRenderPass(begin_info);
-    cl->BindPipeline(m_geometry_pipeline);
 
     // Setup resources
     m_geometry_pipeline->SetResource(m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
@@ -181,7 +196,9 @@ void GeometryPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder 
         material_textures.push_back(tex);
     }
     m_geometry_pipeline->SetBindlessResource(material_textures, "material_textures");
+    cl->BeginRenderPass(begin_info);
 
+    cl->BindPipeline(m_geometry_pipeline);
     for (u32 mesh_data = 0; mesh_data < m_scene_manager->mesh_data.size(); mesh_data++)
     {
         auto &mesh = m_scene_manager->mesh_data[mesh_data];

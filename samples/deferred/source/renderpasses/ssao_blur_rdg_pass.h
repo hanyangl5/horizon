@@ -6,7 +6,7 @@ class SSAOBlurRDGPass : public Horizon::Backend::RDGPass
 {
   public:
     SSAOBlurRDGPass(Horizon::Backend::RHI *rhi);
-    ~SSAOBlurRDGPass() override = default;
+    ~SSAOBlurRDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
     void Setup(Horizon::Backend::FrameGraphBuilder &builder) override;

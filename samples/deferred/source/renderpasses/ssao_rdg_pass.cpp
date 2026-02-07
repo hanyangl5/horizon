@@ -24,7 +24,44 @@ SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler)
 
     m_ssao_constants_buffer =
         m_rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 256}); // Size will be set properly
+                                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(SSAOConstant)});
+
+    // Initialize SSAO constants
+    m_ssao_constants.width = width;
+    m_ssao_constants.height = height;
+
+    // Generate SSAO kernel
+    std::uniform_real_distribution<float> rnd_dist(0.0, 1.0);
+    std::default_random_engine generator;
+    for (unsigned int i = 0; i < 32; ++i)
+    {
+        Math::float3 sample(rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator) * 2.0f - 1.0f, rnd_dist(generator));
+        sample.Normalize();
+        sample *= rnd_dist(generator);
+        float scale = float(i) / float(32);
+        sample *= Horizon::Lerp(0.1f, 1.0f, scale * scale);
+        m_ssao_constants.kernels[i] = Math::float4(sample);
+    }
+
+    // Generate SSAO noise texture data
+    std::array<Math::float2, SSAO_NOISE_TEX_WIDTH * SSAO_NOISE_TEX_HEIGHT> ssao_noise_tex_val;
+    std::uniform_real_distribution<float> rnd_dist1(0.0, 1.0);
+    for (u32 i = 0; i < ssao_noise_tex_val.size(); i++)
+    {
+        ssao_noise_tex_val[i] = Math::float2(rnd_dist1(generator) * 2.0f - 1.0f, rnd_dist1(generator) * 2.0f - 1.0f);
+    }
+    char *begin = reinterpret_cast<char *>(&ssao_noise_tex_val[0]);
+    char *end = reinterpret_cast<char *>(&ssao_noise_tex_val[ssao_noise_tex_val.size() - 1]);
+    m_ssao_noise_tex_data_desc.raw_data = {begin, end};
+}
+
+SSAORDGPass::~SSAORDGPass()
+{
+    DestroyShader(m_ssao_cs);
+    DestroyPipeline(m_ssao_pipeline);
+    m_rhi->DestroyTexture(m_ssao_factor_image);
+    m_rhi->DestroyTexture(m_ssao_noise_tex);
+    m_rhi->DestroyBuffer(m_ssao_constants_buffer);
 }
 
 void SSAORDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)

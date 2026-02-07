@@ -48,10 +48,14 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_refl
 
 target_link_libraries(${PROJECT_NAME} PRIVATE  glfw simplemath spdlog GPUOpen::VulkanMemoryAllocator assimp)
 
-set_property(TARGET ${PROJECT_NAME} glfw simplemath spdlog VulkanMemoryAllocator UpdateAssimpLibsDebugSymbolsAndDLLs
+set_property(TARGET ${PROJECT_NAME} glfw simplemath spdlog VulkanMemoryAllocator
     assimp uninstall zlibstatic
     update_mappings
     PROPERTY FOLDER "third_party")
+    
+IF(MSVC12 OR MSVC14 OR MSVC15 )
+    set_property(TARGET UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTY FOLDER "third_party")
+endif()
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     assimp/include

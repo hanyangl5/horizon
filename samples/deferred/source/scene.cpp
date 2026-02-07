@@ -16,7 +16,7 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
 
     scene_camera->SetCameraSpeed(0.05f);
 
-    scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
+    //scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
 
     scene_camera->SetPerspectiveProjectionMatrix(Math::Radians(75.0f), (float)width / (float)height, 0.1f, 10000.0f);
     extern Horizon::Path asset_path;
@@ -34,24 +34,24 @@ SceneData::SceneData(SceneManager *scene_manager) noexcept
     std::uniform_real_distribution<f32> random_position(-10.0, 10.0);
     std::uniform_real_distribution<f32> random_color(0.5, 1.0);
 
-    for (unsigned int i = 0; i < 64; i++)
-    {
-        // calculate slightly random offsets
-        float xPos = random_position(engine);
-        float yPos = random_position(engine);
-        float zPos = random_position(engine) + 2.0f;
+    //for (unsigned int i = 0; i < 64; i++)
+    //{
+    //    // calculate slightly random offsets
+    //    float xPos = random_position(engine);
+    //    float yPos = random_position(engine);
+    //    float zPos = random_position(engine) + 2.0f;
 
-        // also calculate random color
-        float rColor = random_color(engine);
-        float gColor = random_color(engine);
-        float bColor = random_color(engine);
+    //    // also calculate random color
+    //    float rColor = random_color(engine);
+    //    float gColor = random_color(engine);
+    //    float bColor = random_color(engine);
 
-        Math::float3 pos(xPos, yPos, zPos);
-        Math::float3 col(rColor, gColor, bColor);
+    //    Math::float3 pos(xPos, yPos, zPos);
+    //    Math::float3 col(rColor, gColor, bColor);
 
-        // lumincance
-        // scene_manager->AddPointLight(col, 100000.0f * Math::_1DIVPI * 0.25f, pos, 10.0f);
-    }
+    //    // lumincance
+    //    // scene_manager->AddPointLight(col, 100000.0f * Math::_1DIVPI * 0.25f, pos, 10.0f);
+    //}
 
     auto dir = Math::float3(-1.0, -1.0, -1.0);
 

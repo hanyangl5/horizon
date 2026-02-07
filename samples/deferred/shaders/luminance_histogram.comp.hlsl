@@ -4,7 +4,7 @@
 // Set 0: Per-frame resources
 [[vk::image_format("r11g11b10f")]] RWTexture2D<float4> color_image;
 RWStructuredBuffer<uint> histogram;
-RWStructuredBuffer<float> adaptedLuminance;
+// adaptedLuminance is only used in LuminanceAverageRDGPass, not here
 
 struct LuminanceHistogramConstants {
     uint2 resolution;
@@ -30,6 +30,5 @@ void main(uint3 threadID : SV_DispatchThreadID, uint localIndex : SV_GroupIndex)
 
     GroupMemoryBarrierWithGroupSync();
     InterlockedAdd(histogram[localIndex], histogramShared[localIndex]);
-    if (localIndex == 0)
-        adaptedLuminance[0] = 0.0;
+    // adaptedLuminance is only written by LuminanceAverageRDGPass, not here
 }

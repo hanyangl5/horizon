@@ -36,28 +36,34 @@ void Render::InitPipelineResources()
         sampler = rhi->CreateSampler(sampler_desc);
     }
 
-    deferred = std::make_unique<DeferredShadingPass>(rhi);
-    ssao = std::make_unique<AmbientOcclusionPass>(rhi);
-    post_process = std::make_unique<PostProcessingPass>(rhi);
-    antialiasing = std::make_unique<AntialiasingPass>(rhi);
     scene = std::make_unique<SceneData>(renderer->GetSceneManager());
+
+    // Create RDG Passes
+    geometry_pass = std::make_unique<DeferredShadingGeometryPass>(rhi, scene->m_scene_manager, sampler);
+    deferred_shading_pass = std::make_unique<DeferredShadingRDGPass>(rhi, scene->m_scene_manager);
+    ssao_pass = std::make_unique<SSAORDGPass>(rhi, sampler);
+    ssao_blur_pass = std::make_unique<SSAOBlurRDGPass>(rhi);
+    post_process_pass = std::make_unique<PostProcessRDGPass>(rhi);
+    luminance_histogram_pass = std::make_unique<LuminanceHistogramRDGPass>(rhi);
+    luminance_average_pass = std::make_unique<LuminanceAverageRDGPass>(rhi);
+    taa_pass = std::make_unique<TAARDGPass>(rhi);
+    resource_upload_pass = std::make_unique<ResourceUploadRDGPass>(rhi, scene->m_scene_manager);
 }
 
 void Render::UpdatePipelineResources()
 {
-
     auto cam = scene->scene_camera;
 
-    // taa jitter
-
-    auto &jitter_offset = antialiasing->GetJitterOffset();
+    // TAA jitter
+    auto &jitter_offset = taa_pass->GetJitterOffset();
     auto view = cam->GetViewMatrix();
     auto proj = cam->GetProjectionMatrix();
     f32 offset_x = (jitter_offset.x - 0.5f) / width;
     f32 offset_y = (jitter_offset.y - 0.5f) / height;
 
-    antialiasing->taa_prev_curr_offset.prev_offset = antialiasing->taa_prev_curr_offset.curr_offset;
-    antialiasing->taa_prev_curr_offset.curr_offset = Math::float2{offset_x, offset_y};
+    TAARDGPass::TAAPrevCurrOffset taa_offset{};
+    taa_offset.prev_offset = taa_offset.curr_offset; // This will be updated properly in resource upload
+    taa_offset.curr_offset = Math::float2{offset_x, offset_y};
     proj._13 += offset_x;
     proj._23 += offset_y;
 
@@ -66,35 +72,34 @@ void Render::UpdatePipelineResources()
 
     scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
     scene->m_scene_manager->camera_ub.vp = vp;
-
     scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
 
-    post_process->exposure_constants.exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
+    // Post process constants
+    post_process_pass->GetExposureConstants().exposure_ev100__ = Math::float4(cam->GetExposure(), cam->GetEv100(), 0.0, 0.0);
 
-    deferred->deferred_shading_constants.camera_pos = Math::float4(cam->GetPosition());
-    deferred->deferred_shading_constants.inverse_vp = inverse_vp;
+    // Deferred shading constants
+    deferred_shading_pass->GetDeferredShadingConstants().camera_pos = Math::float4(cam->GetPosition());
+    deferred_shading_pass->GetDeferredShadingConstants().inverse_vp = inverse_vp;
 
-    ssao->ssao_constansts.proj = proj;
-    ssao->ssao_constansts.inv_proj = proj.Invert();
-    ssao->ssao_constansts.view = view;
-    ssao->ssao_constansts.noise_scale_x = (f32)width / AmbientOcclusionPass::SSAO_NOISE_TEX_WIDTH;
-    ssao->ssao_constansts.noise_scale_y = (f32)height / AmbientOcclusionPass::SSAO_NOISE_TEX_HEIGHT;
+    // SSAO constants
+    ssao_pass->GetSSAOConstants().proj = proj;
+    ssao_pass->GetSSAOConstants().inv_proj = proj.Invert();
+    ssao_pass->GetSSAOConstants().view = view;
+    ssao_pass->GetSSAOConstants().noise_scale_x = (f32)width / SSAORDGPass::SSAO_NOISE_TEX_WIDTH;
+    ssao_pass->GetSSAOConstants().noise_scale_y = (f32)height / SSAORDGPass::SSAO_NOISE_TEX_HEIGHT;
 
-    post_process->auto_exposure_pass->luminance_histogram_constants.width = width;
-    post_process->auto_exposure_pass->luminance_histogram_constants.height = height;
-    post_process->auto_exposure_pass->luminance_histogram_constants.pixelCount = width * height;
-
-    post_process->auto_exposure_pass->luminance_histogram_constants.maxLuminance = 20000.0f;
-
-    post_process->auto_exposure_pass->luminance_histogram_constants.timeCoeff = 0.5f;
+    // Luminance histogram constants
+    luminance_histogram_pass->GetLuminanceHistogramConstants().width = width;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().height = height;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().pixelCount = width * height;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().maxLuminance = 20000.0f;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().timeCoeff = 0.5f;
 }
 
 void Render::run()
 {
-
     bool first_frame = true;
-    ResourceUploadPass resource_upload_pass;
 
     while (!window->ShouldClose())
     {
@@ -106,166 +111,80 @@ void Render::run()
         frame_graph->Reset();
 
         // Import resources into FrameGraph using pass methods
-        Horizon::Backend::TextureHandle gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
-            gbuffer4_handle, depth_handle, shading_color_handle, brdf_lut_handle, prefiltered_env_handle;
-        Horizon::Backend::RenderTargetHandle gbuffer0_rt_handle, gbuffer1_rt_handle, gbuffer2_rt_handle,
-            gbuffer3_rt_handle, gbuffer4_rt_handle, depth_rt_handle;
+        geometry_pass->ImportResources(frame_graph.get());
+        deferred_shading_pass->ImportResources(frame_graph.get());
+        ssao_pass->ImportResources(frame_graph.get());
+        ssao_blur_pass->ImportResources(frame_graph.get());
+        post_process_pass->ImportResources(frame_graph.get());
+        luminance_histogram_pass->ImportResources(frame_graph.get());
+        luminance_average_pass->ImportResources(frame_graph.get());
+        taa_pass->ImportResources(frame_graph.get());
+        resource_upload_pass->ImportResources(frame_graph.get());
 
-        deferred->ImportResources(frame_graph.get(), gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
-                                  gbuffer4_handle, depth_handle, shading_color_handle, gbuffer0_rt_handle,
-                                  gbuffer1_rt_handle, gbuffer2_rt_handle, gbuffer3_rt_handle, gbuffer4_rt_handle,
-                                  depth_rt_handle, brdf_lut_handle, prefiltered_env_handle);
+        // Get resource handles from passes
+        auto gbuffer0_handle = geometry_pass->GetGBuffer0Handle();
+        auto gbuffer1_handle = geometry_pass->GetGBuffer1Handle();
+        auto gbuffer2_handle = geometry_pass->GetGBuffer2Handle();
+        auto gbuffer3_handle = geometry_pass->GetGBuffer3Handle();
+        auto gbuffer4_handle = geometry_pass->GetGBuffer4Handle();
+        auto depth_handle = geometry_pass->GetDepthHandle();
+        auto shading_color_handle = deferred_shading_pass->GetShadingColorHandle();
+        auto ssao_factor_handle = ssao_pass->GetSSAOFactorHandle();
+        auto ssao_blur_handle = ssao_blur_pass->GetOutputHandle();
+        auto ssao_noise_handle = ssao_pass->GetSSAONoiseHandle();
+        auto brdf_lut_handle = deferred_shading_pass->GetBRDFLUTHandle();
+        auto prefiltered_env_handle = deferred_shading_pass->GetPrefilteredEnvHandle();
+        auto pp_color_handle = post_process_pass->GetPPColorHandle();
+        auto histogram_buffer_handle = luminance_histogram_pass->GetHistogramBufferHandle();
+        auto adapted_luminance_handle = luminance_histogram_pass->GetAdaptedLuminanceHandle();
+        auto output_color_handle = taa_pass->GetOutputColorHandle();
+        auto previous_color_handle = taa_pass->GetPreviousColorHandle();
 
-        Horizon::Backend::TextureHandle ssao_factor_handle, ssao_blur_handle, ssao_noise_handle;
-        ssao->ImportResources(frame_graph.get(), ssao_factor_handle, ssao_blur_handle, ssao_noise_handle);
+        // Set input handles for passes
+        deferred_shading_pass->SetGBufferHandles(gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle, depth_handle);
+        deferred_shading_pass->SetSSAOBlurHandle(ssao_blur_handle);
+        ssao_pass->SetInputHandles(depth_handle, gbuffer0_handle);
+        ssao_blur_pass->SetInputHandle(ssao_factor_handle);
+        post_process_pass->SetInputHandles(shading_color_handle, adapted_luminance_handle);
+        luminance_histogram_pass->SetInputHandle(shading_color_handle);
+        luminance_average_pass->SetInputHandles(histogram_buffer_handle, adapted_luminance_handle);
+        luminance_average_pass->SetLuminanceHistogramPass(luminance_histogram_pass.get());
+        taa_pass->SetInputHandles(previous_color_handle, pp_color_handle, gbuffer4_handle);
 
-        Horizon::Backend::TextureHandle pp_color_handle;
-        post_process->ImportResources(frame_graph.get(), pp_color_handle);
+        // Set resource handles for resource upload pass
+        resource_upload_pass->SetResourceHandles(shading_color_handle, pp_color_handle, ssao_factor_handle,
+                                                  ssao_blur_handle, output_color_handle, previous_color_handle,
+                                                  ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
+                                                  histogram_buffer_handle, adapted_luminance_handle);
+        resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
+                                               luminance_histogram_pass.get(), taa_pass.get());
+        resource_upload_pass->SetFirstFrame(first_frame);
 
-        Horizon::Backend::BufferHandle histogram_buffer_handle, adapted_luminance_handle;
-        post_process->auto_exposure_pass->ImportResources(frame_graph.get(), histogram_buffer_handle,
-                                                           adapted_luminance_handle);
-
-        Horizon::Backend::TextureHandle output_color_handle, previous_color_handle;
-        antialiasing->ImportResources(frame_graph.get(), output_color_handle, previous_color_handle);
+        // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
+        static TAARDGPass::TAAPrevCurrOffset taa_prev_offset{};
+        TAARDGPass::TAAPrevCurrOffset taa_offset{};
+        taa_offset.prev_offset = taa_prev_offset.curr_offset;
+        auto cam = scene->scene_camera;
+        auto &jitter_offset = taa_pass->GetJitterOffset();
+        f32 offset_x = (jitter_offset.x - 0.5f) / width;
+        f32 offset_y = (jitter_offset.y - 0.5f) / height;
+        taa_offset.curr_offset = Math::float2{offset_x, offset_y};
+        taa_prev_offset = taa_offset;
+        resource_upload_pass->SetTAAPrevCurrOffset(taa_offset);
 
         auto swapchain_handle =
             frame_graph->ImportTexture("swapchain" + std::to_string(swap_chain->current_frame_index), swap_chain->GetRenderTarget()->GetTexture());
 
-        // Resource Upload Pass
-        frame_graph->AddPass(
-            "Resource Upload",
-            [&resource_upload_pass, shading_color_handle, pp_color_handle, ssao_factor_handle, ssao_blur_handle,
-             output_color_handle, previous_color_handle, ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
-             histogram_buffer_handle, adapted_luminance_handle, first_frame](
-                Horizon::Backend::FrameGraphBuilder &builder) {
-                resource_upload_pass.Setup(builder, shading_color_handle, pp_color_handle, ssao_factor_handle,
-                                           ssao_blur_handle, output_color_handle, previous_color_handle,
-                                           ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
-                                           histogram_buffer_handle, adapted_luminance_handle, first_frame);
-            },
-            [&resource_upload_pass, this, first_frame](CommandList *cl,
-                                                       Horizon::Backend::FrameGraphBuilder &builder) {
-                resource_upload_pass.Execute(cl, scene->m_scene_manager, deferred.get(), ssao.get(),
-                                             post_process.get(), antialiasing.get(), first_frame);
-            });
-
-        // Geometry Pass
-        frame_graph->AddPass(
-            "Geometry Pass",
-            [this, gbuffer0_rt_handle, gbuffer1_rt_handle, gbuffer2_rt_handle, gbuffer3_rt_handle,
-             gbuffer4_rt_handle, depth_rt_handle, gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
-             gbuffer4_handle, depth_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                deferred->SetupGeometryPass(builder, gbuffer0_rt_handle, gbuffer1_rt_handle, gbuffer2_rt_handle,
-                                            gbuffer3_rt_handle, gbuffer4_rt_handle, depth_rt_handle, gbuffer0_handle,
-                                            gbuffer1_handle, gbuffer2_handle, gbuffer3_handle, gbuffer4_handle,
-                                            depth_handle);
-            },
-            [this, gbuffer0_rt_handle, gbuffer1_rt_handle, gbuffer2_rt_handle, gbuffer3_rt_handle,
-             gbuffer4_rt_handle, depth_rt_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                deferred->ExecuteGeometryPass(cl, builder, gbuffer0_rt_handle, gbuffer1_rt_handle, gbuffer2_rt_handle,
-                                               gbuffer3_rt_handle, gbuffer4_rt_handle, depth_rt_handle,
-                                               scene->m_scene_manager, sampler, antialiasing->taa_prev_curr_offset_buffer);
-            });
-
-        // SSAO Pass
-        frame_graph->AddPass(
-            "SSAO Pass",
-            [this, depth_handle, gbuffer0_handle, ssao_factor_handle,
-             ssao_noise_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                ssao->SetupSSAOPass(builder, depth_handle, gbuffer0_handle, ssao_factor_handle, ssao_noise_handle);
-            },
-            [this, depth_handle, gbuffer0_handle, ssao_factor_handle,
-             ssao_noise_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                ssao->ExecuteSSAOPass(cl, builder, depth_handle, gbuffer0_handle, ssao_factor_handle, ssao_noise_handle,
-                                     sampler);
-            });
-
-        // SSAO Blur Pass
-        frame_graph->AddPass(
-            "SSAO Blur Pass",
-            [this, ssao_factor_handle, ssao_blur_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                ssao->SetupSSAOBlurPass(builder, ssao_factor_handle, ssao_blur_handle);
-            },
-            [this, ssao_factor_handle, ssao_blur_handle](CommandList *cl,
-                                                        Horizon::Backend::FrameGraphBuilder &builder) {
-                ssao->ExecuteSSAOBlurPass(cl, builder, ssao_factor_handle, ssao_blur_handle);
-            });
-
-        // Deferred Shading Pass
-        frame_graph->AddPass(
-            "Deferred Shading Pass",
-            [this, gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle, depth_handle,
-             shading_color_handle, ssao_blur_handle, brdf_lut_handle,
-             prefiltered_env_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                deferred->SetupDeferredShadingPass(builder, gbuffer0_handle, gbuffer1_handle, gbuffer2_handle,
-                                                    gbuffer3_handle, depth_handle, shading_color_handle,
-                                                    ssao_blur_handle, brdf_lut_handle, prefiltered_env_handle);
-            },
-            [this, gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle, depth_handle,
-             shading_color_handle, ssao_blur_handle, brdf_lut_handle,
-             prefiltered_env_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                deferred->ExecuteDeferredShadingPass(cl, builder, gbuffer0_handle, gbuffer1_handle, gbuffer2_handle,
-                                                       gbuffer3_handle, depth_handle, shading_color_handle,
-                                                       ssao_blur_handle, brdf_lut_handle, prefiltered_env_handle,
-                                                       scene->m_scene_manager);
-            });
-
-        // Luminance Histogram Pass
-        frame_graph->AddPass(
-            "Luminance Histogram Pass",
-            [this, shading_color_handle, histogram_buffer_handle,
-             adapted_luminance_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                post_process->auto_exposure_pass->SetupLuminanceHistogramPass(
-                    builder, shading_color_handle, histogram_buffer_handle, adapted_luminance_handle);
-            },
-            [this, shading_color_handle, histogram_buffer_handle,
-             adapted_luminance_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                post_process->auto_exposure_pass->ExecuteLuminanceHistogramPass(
-                    cl, builder, shading_color_handle, histogram_buffer_handle, adapted_luminance_handle);
-            });
-
-        // Luminance Average Pass
-        frame_graph->AddPass(
-            "Luminance Average Pass",
-            [this, histogram_buffer_handle,
-             adapted_luminance_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                post_process->auto_exposure_pass->SetupLuminanceAveragePass(builder, histogram_buffer_handle,
-                                                                            adapted_luminance_handle);
-            },
-            [this, histogram_buffer_handle,
-             adapted_luminance_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                post_process->auto_exposure_pass->ExecuteLuminanceAveragePass(cl, builder, histogram_buffer_handle,
-                                                                              adapted_luminance_handle);
-            });
-
-        // Post Process Pass
-        frame_graph->AddPass(
-            "Post Process Pass",
-            [this, shading_color_handle, pp_color_handle,
-             adapted_luminance_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                post_process->SetupPostProcessPass(builder, shading_color_handle, pp_color_handle,
-                                                   adapted_luminance_handle);
-            },
-            [this, shading_color_handle, pp_color_handle,
-             adapted_luminance_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                post_process->ExecutePostProcessPass(cl, builder, shading_color_handle, pp_color_handle,
-                                                     adapted_luminance_handle);
-            });
-
-        // TAA Pass
-        frame_graph->AddPass(
-            "TAA Pass",
-            [this, previous_color_handle, pp_color_handle, gbuffer4_handle,
-             output_color_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                antialiasing->SetupTAAPass(builder, previous_color_handle, pp_color_handle, gbuffer4_handle,
-                                           output_color_handle);
-            },
-            [this, previous_color_handle, pp_color_handle, gbuffer4_handle,
-             output_color_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                antialiasing->ExecuteTAAPass(cl, builder, previous_color_handle, pp_color_handle, gbuffer4_handle,
-                                             output_color_handle);
-            });
+        // Add passes to FrameGraph using RDGPass
+        frame_graph->AddPass(resource_upload_pass.get());
+        frame_graph->AddPass(geometry_pass.get());
+        frame_graph->AddPass(ssao_pass.get());
+        frame_graph->AddPass(ssao_blur_pass.get());
+        frame_graph->AddPass(deferred_shading_pass.get());
+        frame_graph->AddPass(luminance_histogram_pass.get());
+        frame_graph->AddPass(luminance_average_pass.get());
+        frame_graph->AddPass(post_process_pass.get());
+        frame_graph->AddPass(taa_pass.get());
 
         // Copy to Swapchain Pass
         frame_graph->AddPass(
@@ -302,7 +221,7 @@ void Render::run()
             });
 
         // Compile and execute FrameGraph
-        // FrameGraph::Execute() automatically:
+        // FrameGraph::Execute() automatically:f
         // 1. Inserts barriers between passes
         // 2. Executes all passes
         // 3. Submits command lists grouped by queue type

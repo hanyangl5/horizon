@@ -12,6 +12,13 @@ SSAOBlurRDGPass::SSAOBlurRDGPass(RHI *rhi) : RDGPass("SSAO Blur Pass", rhi), m_r
                           TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false, 1, "ssao_blur_image"});
 }
 
+SSAOBlurRDGPass::~SSAOBlurRDGPass()
+{
+    DestroyShader(m_ssao_blur_cs);
+    DestroyPipeline(m_ssao_blur_pipeline);
+    m_rhi->DestroyTexture(m_ssao_blur_image);
+}
+
 void SSAOBlurRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
 {
     m_ssao_blur_handle = frame_graph->ImportTexture("ssao_blur", m_ssao_blur_image);

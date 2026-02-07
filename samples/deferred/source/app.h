@@ -1,11 +1,14 @@
 
 #pragma once
 
-#include "renderpasses/ambient_occlusion.h"
-#include "renderpasses/anti_aliasing.h"
 #include "renderpasses/deferred_shading_rdg_pass.h"
-#include "renderpasses/deferred_shading.h" 
-#include "renderpasses/post_process.h"
+#include "renderpasses/deferred_geometry_rdg_pass.h"
+#include "renderpasses/ssao_rdg_pass.h"
+#include "renderpasses/ssao_blur_rdg_pass.h"
+#include "renderpasses/post_process_rdg_pass.h"
+#include "renderpasses/luminance_histogram_rdg_pass.h"
+#include "renderpasses/luminance_average_rdg_pass.h"
+#include "renderpasses/taa_rdg_pass.h"
 #include "renderpasses/resource_upload_pass.h"
 #include "scene.h"
 #include <render_graph/frame_graph.h>
@@ -35,10 +38,15 @@ class Render
         rhi->DestroySampler(sampler);
         rhi->DestroySwapChain(swap_chain);
 
-        deferred = nullptr;
-        ssao = nullptr;
-        post_process = nullptr;
-        antialiasing = nullptr;
+        geometry_pass = nullptr;
+        deferred_shading_pass = nullptr;
+        ssao_pass = nullptr;
+        ssao_blur_pass = nullptr;
+        post_process_pass = nullptr;
+        luminance_histogram_pass = nullptr;
+        luminance_average_pass = nullptr;
+        taa_pass = nullptr;
+        resource_upload_pass = nullptr;
         scene = nullptr;
     }
     void Init()
@@ -66,18 +74,17 @@ class Render
     // pass resources
 
     Sampler *sampler;
-    // add shadow map pass
-    // mesh shader cull
-    std::unique_ptr<DeferredShadingPass> deferred{};
-    // hzb
-    std::unique_ptr<AmbientOcclusionPass> ssao{};
-    // std::unique_ptr<ReflectionPass> reflection{};
-    // std::unique_ptr<Atmosphere> reflection{};
-    // std::unique_ptr<VolumetricFog> reflection{};
-    // std::unique_ptr<VolumetricCloud> reflection{}; // screenspace/rtx
-    // combination
-    std::unique_ptr<AntialiasingPass> antialiasing{};
-    std::unique_ptr<PostProcessingPass> post_process{};
+    
+    // RDG Passes
+    std::unique_ptr<DeferredShadingGeometryPass> geometry_pass{};
+    std::unique_ptr<DeferredShadingRDGPass> deferred_shading_pass{};
+    std::unique_ptr<SSAORDGPass> ssao_pass{};
+    std::unique_ptr<SSAOBlurRDGPass> ssao_blur_pass{};
+    std::unique_ptr<PostProcessRDGPass> post_process_pass{};
+    std::unique_ptr<LuminanceHistogramRDGPass> luminance_histogram_pass{};
+    std::unique_ptr<LuminanceAverageRDGPass> luminance_average_pass{};
+    std::unique_ptr<TAARDGPass> taa_pass{};
+    std::unique_ptr<ResourceUploadRDGPass> resource_upload_pass{};
 
     std::unique_ptr<SceneData> scene{};
 };
