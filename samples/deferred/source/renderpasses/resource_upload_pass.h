@@ -32,7 +32,7 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     void SetTAAPrevCurrOffset(const TAARDGPass::TAAPrevCurrOffset &offset) { m_taa_prev_curr_offset = offset; }
 
   private:
-    RHI *m_rhi;
+  [[maybe_unused]] RHI *m_rhi;
     Horizon::SceneManager *m_scene_manager;
 
     DeferredShadingRDGPass *m_deferred{nullptr};

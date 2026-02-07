@@ -198,7 +198,7 @@ void Render::run()
                 builder.WriteTexture(previous_color_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
             },
             // Execute: Copy textures
-            [this, output_color_handle, swapchain_handle,
+            [output_color_handle, swapchain_handle,
              previous_color_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
                 // Copy to swapchain and previous frame
                 cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(swapchain_handle));

@@ -18,7 +18,7 @@ class LuminanceAverageRDGPass : public Horizon::Backend::RDGPass
     void SetLuminanceHistogramPass(LuminanceHistogramRDGPass *luminance_histogram_pass);
 
   private:
-    RHI *m_rhi;
+    [[maybe_unused]] RHI *m_rhi;
 
     Shader *m_luminance_average_cs;
     Pipeline *m_luminance_average_pipeline;
