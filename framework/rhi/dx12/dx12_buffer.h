@@ -32,9 +32,13 @@ class DX12Buffer : public Buffer
         return m_resource.Get();
     }
 
+    // Get or create upload buffer for data uploads
+    ID3D12Resource *GetUploadBuffer() noexcept;
+
   public:
     const DX12RendererContext &m_context;
     ComPtr<ID3D12Resource> m_resource;
+    ComPtr<ID3D12Resource> m_upload_buffer; // Upload buffer for UpdateBuffer operations
     D3D12_RESOURCE_STATES m_current_state;
 };
 

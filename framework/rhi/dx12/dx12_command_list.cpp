@@ -5,6 +5,7 @@
 #include "dx12_texture.h"
 #include <core/log.h>
 #include <core/memory.h>
+#include <DirectXHelpers.h>
 
 namespace Horizon::Backend
 {
@@ -23,26 +24,26 @@ DX12CommandList::~DX12CommandList() noexcept
 
 void DX12CommandList::BeginRecording()
 {
-    if (m_is_recording)
-    {
-        LOG_WARN("Command list is already recording");
-        return;
-    }
-    // TODO(luhanyang): need to reset pool?
-    // Reset allocator and command list
-    HRESULT hr = m_allocator->Reset();
-    if (FAILED(hr))
-    {
-        LOG_ERROR("Failed to reset command allocator: {}", hr);
-        return;
-    }
+    // if (m_is_recording)
+    // {
+    //     LOG_WARN("Command list is already recording");
+    //     return;
+    // }
+    // // TODO(luhanyang): need to reset pool?
+    // // Reset allocator and command list
+    // HRESULT hr = m_allocator->Reset();
+    // if (FAILED(hr))
+    // {
+    //     LOG_ERROR("Failed to reset command allocator: {}", hr);
+    //     return;
+    // }
 
-    hr = m_command_list->Reset(m_allocator.Get(), nullptr);
-    if (FAILED(hr))
-    {
-        LOG_ERROR("Failed to reset command list: {}", hr);
-        return;
-    }
+    // hr = m_command_list->Reset(m_allocator.Get(), nullptr);
+    // if (FAILED(hr))
+    // {
+    //     LOG_ERROR("Failed to reset command list: {}", hr);
+    //     return;
+    // }
 
     m_is_recording = true;
 }
@@ -55,15 +56,15 @@ void DX12CommandList::EndRecording()
         return;
     }
 
-    if (m_in_render_pass)
-    {
-        EndRenderPass();
-    }
+    // if (m_in_render_pass)
+    // {
+    //     EndRenderPass();
+    // }
 
-    if (m_in_compute_pass)
-    {
-        EndComputePass();
-    }
+    // if (m_in_compute_pass)
+    // {
+    //     EndComputePass();
+    // }
 
     HRESULT hr = m_command_list->Close();
     if (FAILED(hr))
@@ -303,41 +304,18 @@ void DX12CommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size)
         size = buffer->m_size;
     }
 
-    // Create a temporary upload buffer
-    D3D12_HEAP_PROPERTIES upload_heap_props = {};
-    upload_heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
-    upload_heap_props.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    upload_heap_props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    upload_heap_props.CreationNodeMask = 1;
-    upload_heap_props.VisibleNodeMask = 1;
-
-    D3D12_RESOURCE_DESC upload_buffer_desc = {};
-    upload_buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    upload_buffer_desc.Alignment = 0;
-    upload_buffer_desc.Width = size;
-    upload_buffer_desc.Height = 1;
-    upload_buffer_desc.DepthOrArraySize = 1;
-    upload_buffer_desc.MipLevels = 1;
-    upload_buffer_desc.Format = DXGI_FORMAT_UNKNOWN;
-    upload_buffer_desc.SampleDesc.Count = 1;
-    upload_buffer_desc.SampleDesc.Quality = 0;
-    upload_buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    upload_buffer_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-    ComPtr<ID3D12Resource> upload_buffer;
-    HRESULT hr = m_context.device->CreateCommittedResource(&upload_heap_props, D3D12_HEAP_FLAG_NONE,
-                                                           &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ,
-                                                           nullptr, IID_PPV_ARGS(&upload_buffer));
-    if (FAILED(hr))
+    // Get or create upload buffer from the buffer object
+    ID3D12Resource *upload_buffer = dx12_buffer->GetUploadBuffer();
+    if (upload_buffer == nullptr)
     {
-        LOG_ERROR("Failed to create upload buffer: {}", hr);
+        LOG_ERROR("Failed to get upload buffer");
         return;
     }
 
     // Map and copy data to upload buffer
     void *mapped_data = nullptr;
     D3D12_RANGE read_range = {0, 0}; // We don't read from this resource
-    hr = upload_buffer->Map(0, &read_range, &mapped_data);
+    HRESULT hr = upload_buffer->Map(0, &read_range, &mapped_data);
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to map upload buffer: {}", hr);
@@ -348,22 +326,17 @@ void DX12CommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size)
     upload_buffer->Unmap(0, nullptr);
 
     // Transition destination buffer to copy destination state if needed
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = dx12_buffer->GetResource();
-    barrier.Transition.StateBefore = dx12_buffer->m_current_state;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    m_command_list->ResourceBarrier(1, &barrier);
+    CD3DX12_RESOURCE_BARRIER barrier_before = CD3DX12_RESOURCE_BARRIER::Transition(
+        dx12_buffer->GetResource(), dx12_buffer->m_current_state, D3D12_RESOURCE_STATE_COPY_DEST);
+    m_command_list->ResourceBarrier(1, &barrier_before);
 
     // Copy from upload buffer to destination buffer
-    m_command_list->CopyBufferRegion(dx12_buffer->GetResource(), 0, upload_buffer.Get(), 0, size);
+    m_command_list->CopyBufferRegion(dx12_buffer->GetResource(), 0, upload_buffer, 0, size);
 
     // Transition back to original state
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.StateAfter = dx12_buffer->m_current_state;
-    m_command_list->ResourceBarrier(1, &barrier);
+    CD3DX12_RESOURCE_BARRIER barrier_after = CD3DX12_RESOURCE_BARRIER::Transition(
+        dx12_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, dx12_buffer->m_current_state);
+    m_command_list->ResourceBarrier(1, &barrier_after);
 
     // Note: In a production implementation, you would want to manage upload buffers
     // in a pool to avoid creating/destroying them frequently
@@ -415,27 +388,19 @@ void DX12CommandList::InsertBarrier(const BarrierDesc &desc)
 
     for (const auto &texture_barrier : desc.texture_memory_barriers)
     {
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         auto dx12_texture = reinterpret_cast<DX12Texture *>(texture_barrier.texture);
-        barrier.Transition.pResource = dx12_texture->GetResource();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = Horizon::ToDX12ResourceState(texture_barrier.src_state);
-        barrier.Transition.StateAfter = Horizon::ToDX12ResourceState(texture_barrier.dst_state);
+        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            dx12_texture->GetResource(), Horizon::ToDX12ResourceState(texture_barrier.src_state),
+            Horizon::ToDX12ResourceState(texture_barrier.dst_state));
         barriers.push_back(barrier);
     }
 
     for (const auto &buffer_barrier : desc.buffer_memory_barriers)
     {
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffer_barrier.buffer);
-        barrier.Transition.pResource = dx12_buffer->GetResource();
-        barrier.Transition.Subresource = 0;
-        barrier.Transition.StateBefore = Horizon::ToDX12ResourceState(buffer_barrier.src_state);
-        barrier.Transition.StateAfter = Horizon::ToDX12ResourceState(buffer_barrier.dst_state);
+        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            dx12_buffer->GetResource(), Horizon::ToDX12ResourceState(buffer_barrier.src_state),
+            Horizon::ToDX12ResourceState(buffer_barrier.dst_state));
         barriers.push_back(barrier);
     }
 
@@ -454,15 +419,43 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
     }
 
     auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(pipeline);
+    
+    // Set descriptor heaps (required for shader-visible descriptors)
+    ID3D12DescriptorHeap *heaps[] = {
+        dx12_pipeline->m_descriptor_heap_allocator.GetSRVUAVCBVHeap(),
+        dx12_pipeline->m_descriptor_heap_allocator.GetSamplerHeap()
+    };
+    m_command_list->SetDescriptorHeaps(2, heaps);
+    
     if (pipeline->GetType() == PipelineType::GRAPHICS)
     {
         m_command_list->SetPipelineState(dx12_pipeline->GetPipelineState());
         m_command_list->SetGraphicsRootSignature(dx12_pipeline->GetRootSignature());
+        
+        // Bind all bindless descriptor tables
+        for (const auto &[resource_name, gpu_handle] : dx12_pipeline->m_bindless_descriptor_tables)
+        {
+            auto root_param_it = dx12_pipeline->m_bindless_root_parameter_indices.find(resource_name);
+            if (root_param_it != dx12_pipeline->m_bindless_root_parameter_indices.end())
+            {
+                m_command_list->SetGraphicsRootDescriptorTable(root_param_it->second, gpu_handle);
+            }
+        }
     }
     else if (pipeline->GetType() == PipelineType::COMPUTE)
     {
         m_command_list->SetPipelineState(dx12_pipeline->GetPipelineState());
         m_command_list->SetComputeRootSignature(dx12_pipeline->GetRootSignature());
+        
+        // Bind all bindless descriptor tables
+        for (const auto &[resource_name, gpu_handle] : dx12_pipeline->m_bindless_descriptor_tables)
+        {
+            auto root_param_it = dx12_pipeline->m_bindless_root_parameter_indices.find(resource_name);
+            if (root_param_it != dx12_pipeline->m_bindless_root_parameter_indices.end())
+            {
+                m_command_list->SetComputeRootDescriptorTable(root_param_it->second, gpu_handle);
+            }
+        }
     }
 }
 

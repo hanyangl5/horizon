@@ -11,7 +11,7 @@
 
 #include <ctime>
 #include <string>
-
+#include <vector>
 namespace Horizon
 {
 
@@ -91,4 +91,5 @@ bool is_file(const Path &path);
 std::time_t last_write_time(const Path &path);
 bool create_directories(const Path &path);
 
+std::vector<char> ReadFile(const char *path);
 } // namespace Horizon

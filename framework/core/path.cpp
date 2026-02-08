@@ -11,6 +11,9 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <fstream>
+
+#include <core/log.h>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -406,4 +409,21 @@ bool create_directories(const Path &path)
     return path.create_directories();
 }
 
+
+std::vector<char> ReadFile(const char *path)
+{
+    std::ifstream file(path, std::ios::ate | std::ios::binary);
+    if (!file.is_open())
+    {
+        LOG_ERROR("failed to open shader file: {}", path);
+        return {};
+    }
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+
+    return buffer;
+}
 } // namespace Horizon

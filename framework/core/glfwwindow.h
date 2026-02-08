@@ -33,7 +33,7 @@ class Window
     int ShouldClose() const noexcept;
     void Close() noexcept;
     void UpdateWindowTitle(const char *title);
-
+    void ProcessEvents();
   private:
     GLFWwindow *m_window{};
     u32 m_width{};

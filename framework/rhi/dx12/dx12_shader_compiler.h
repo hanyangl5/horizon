@@ -21,9 +21,23 @@ class DX12ShaderCompiler
     static bool NeedsRecompilation(const Path &hlsl_path, const Path &cached_path);
 
   private:
-    static std::string GetShaderProfile(ShaderType type);
+    //static std::string GetShaderProfile(ShaderType type);
+    static std::wstring GetShaderProfileDXC(ShaderType type);
+    
+    // Compile using DXC API (supports Shader Model 6.0+)
+    static std::vector<u8> CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
+                                              const Path &shader_dir);
+    
+    // Compile using D3DCompile/FXC (supports up to Shader Model 5.1)
+    static std::vector<u8> CompileHLSLWithFXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
+                                              const Path &shader_dir);
+    
     static std::string FindDXCExecutable();
     static std::vector<std::string> GetIncludeDirectories(const Path &shader_dir);
+    
+    // Initialize DXC compiler (lazy initialization)
+    static bool InitializeDXC();
+    static void CleanupDXC();
 };
 
 } // namespace Horizon::Backend

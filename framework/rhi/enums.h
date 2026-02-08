@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <fstream>
 #include <map>
 #include <unordered_map>
 //#include <vulkan/vulkan.h>
@@ -655,23 +654,6 @@ struct SamplerDesc
     float mMaxAnisotropy;
     CompareFunc mCompareFunc;
 };
-
-inline std::vector<char> ReadFile(const char *path)
-{
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
-    if (!file.is_open())
-    {
-        LOG_ERROR("failed to open shader file: {}", path);
-        return {};
-    }
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-
-    return buffer;
-}
 
 u32 GetBytesFromTextureFormat(TextureFormat format);
 

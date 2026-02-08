@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <DirectXHelpers.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
@@ -72,4 +74,5 @@ DXGI_FORMAT ToDX12VertexFormat(VertexAttribFormat format, u32 portions) noexcept
 const char *GetDX12SemanticName(const VertexAttributeDescription &attr) noexcept;
 u32 GetDX12SemanticIndex(const VertexAttributeDescription &attr) noexcept;
 
+std::wstring StringToWString(const std::string &str);
 } // namespace Horizon

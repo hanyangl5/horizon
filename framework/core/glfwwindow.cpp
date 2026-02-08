@@ -62,6 +62,12 @@ void Window::UpdateWindowTitle(const char *title)
     glfwSetWindowTitle(m_window, title);
 }
 
+void Window::ProcessEvents()
+{
+    // Process window events (mouse, keyboard, etc.)
+    glfwPollEvents();
+}
+
 int Window::ShouldClose() const noexcept
 {
     return glfwWindowShouldClose(m_window);

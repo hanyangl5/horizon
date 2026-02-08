@@ -28,3 +28,4 @@ macro(addproject projectdir)
 endmacro()
 
 addproject(deferred)
+addproject(hellotriangle)

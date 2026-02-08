@@ -22,9 +22,11 @@
 
 #ifdef _WIN32
 #include <d3d12.h>
+#include <d3d12sdklayers.h> // D3D12 SDK Layers for debugging
 #include <dxgi1_6.h>
 #include <windows.h>
 #include <wrl/client.h>
+#include <DirectXHelpers.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -90,13 +92,29 @@ void RHIDX12::CreateFactory()
     UINT dxgi_factory_flags = 0;
 
 #ifdef _DEBUG
-    // Enable debug layer
+    // Enable D3D12 debug layer
     {
         ComPtr<ID3D12Debug> debug_controller;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller))))
         {
             debug_controller->EnableDebugLayer();
+            LOG_DEBUG("D3D12 Debug Layer enabled");
+
+            // Enable GPU-based validation for more thorough debugging
+            ComPtr<ID3D12Debug1> debug_controller1;
+            if (SUCCEEDED(debug_controller.As(&debug_controller1)))
+            {
+                debug_controller1->EnableDebugLayer();
+                // GPU-based validation is very slow, enable only if needed
+                debug_controller1->SetEnableGPUBasedValidation(TRUE);
+                LOG_DEBUG("D3D12 Debug Layer 1 enabled");
+            }
+
             dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
+        }
+        else
+        {
+            LOG_WARN("Failed to enable D3D12 Debug Layer. Install Graphics Tools from Windows Store for full debugging support.");
         }
     }
 #endif
@@ -181,13 +199,43 @@ void RHIDX12::CreateDevice()
         m_dx12.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 #ifdef _DEBUG
-    // Enable debug messages
+    // Configure debug message queue
     ComPtr<ID3D12InfoQueue> info_queue;
     if (SUCCEEDED(m_dx12.device.As(&info_queue)))
     {
+        // Set break on severity levels
         info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
         info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-        info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+        // Optionally break on warnings (can be very verbose)
+        // info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+
+        // Filter out known warnings/errors that are not critical
+        D3D12_MESSAGE_ID hide[] = {
+            // Add message IDs to hide here if needed
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+        };
+
+        D3D12_INFO_QUEUE_FILTER filter = {};
+        filter.DenyList.NumIDs = static_cast<UINT>(std::size(hide));
+        filter.DenyList.pIDList = hide;
+        if (filter.DenyList.NumIDs > 0)
+        {
+            info_queue->AddStorageFilterEntries(&filter);
+        }
+
+        // Log all messages
+        LOG_DEBUG("D3D12 Info Queue configured for debugging");
+        
+        // Optional: Log message count
+        UINT64 message_count = info_queue->GetNumStoredMessages();
+        if (message_count > 0)
+        {
+            LOG_WARN("D3D12 Info Queue has {} stored messages", message_count);
+        }
+    }
+    else
+    {
+        LOG_WARN("Failed to get D3D12 Info Queue interface");
     }
 #endif
 }

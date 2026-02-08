@@ -1,5 +1,6 @@
 #include "dx12_descriptor_heap_allocator.h"
 #include <core/log.h>
+#include <DirectXHelpers.h>
 
 namespace Horizon::Backend
 {
@@ -144,6 +145,33 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeapAllocator::AllocateSampler()
     handle.ptr += m_sampler_index * m_context.sampler_descriptor_size;
     m_sampler_index++;
     return handle;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeapAllocator::AllocateSRVs(u32 count)
+{
+    if (m_srv_uav_cbv_index + count > MAX_SRV_UAV_CBV_COUNT)
+    {
+        LOG_ERROR("SRV/UAV/CBV descriptor heap exhausted (need {}, have {})", count, 
+                  MAX_SRV_UAV_CBV_COUNT - m_srv_uav_cbv_index);
+        return {};
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = m_srv_uav_cbv_heap->GetCPUDescriptorHandleForHeapStart();
+    handle.ptr += m_srv_uav_cbv_index * m_context.srv_uav_descriptor_size;
+    m_srv_uav_cbv_index += count;
+    return handle;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeapAllocator::AllocateUAVs(u32 count)
+{
+    // UAV uses the same heap as SRV
+    return AllocateSRVs(count);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeapAllocator::AllocateCBVs(u32 count)
+{
+    // CBV uses the same heap as SRV
+    return AllocateSRVs(count);
 }
 
 } // namespace Horizon::Backend

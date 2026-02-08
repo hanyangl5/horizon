@@ -23,7 +23,21 @@ D3D12_COMMAND_LIST_TYPE ToDX12CommandListType(CommandQueueType type) noexcept
 
 D3D12_RESOURCE_STATES ToDX12ResourceState(ResourceState state) noexcept
 {
+
     // DirectX 12 resource states map directly to our ResourceState enum
+    // However, PRESENT state (0x1000) is not a valid D3D12_RESOURCE_STATES value
+    // D3D12 uses D3D12_RESOURCE_STATE_COMMON (0) for initial state of committed resources
+    if (state == RESOURCE_STATE_PRESENT)
+    {
+        // PRESENT is a special state for swap chain back buffers, not for regular resources
+        // Use COMMON as the initial state for CreateCommittedResource
+        return D3D12_RESOURCE_STATE_COMMON;
+    }
+    if (state == RESOURCE_STATE_UNDEFINED)
+    {
+        // UNDEFINED is a Vulkan concept, in D3D12 use COMMON
+        return D3D12_RESOURCE_STATE_COMMON;
+    }
     return static_cast<D3D12_RESOURCE_STATES>(state);
 }
 
@@ -389,6 +403,26 @@ u32 GetDX12SemanticIndex(const VertexAttributeDescription &attr) noexcept
 
     // For POSITION, NORMAL, etc., use index 0
     return 0;
+}
+
+
+// Helper function to convert std::string to std::wstring
+std::wstring StringToWString(const std::string &str)
+{
+    if (str.empty())
+    {
+        return std::wstring();
+    }
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), nullptr, 0);
+    if (size_needed == 0)
+    {
+        return std::wstring();
+    }
+
+    std::wstring result(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), &result[0], size_needed);
+    return result;
 }
 
 } // namespace Horizon
