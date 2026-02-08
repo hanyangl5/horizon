@@ -14,10 +14,33 @@ jobs:
         extensions: 'h,cpp,hpp'
         clangFormatVersion: 12
         inplace: True
+    - name: Get commit author info
+      id: commit_author
+      run: |
+        if [ "${{ github.event_name }}" == "push" ]; then
+          echo "name=${{ github.event.head_commit.author.name }}" >> $GITHUB_OUTPUT
+          echo "email=${{ github.event.head_commit.author.email }}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event_name }}" == "pull_request" ]; then
+          PR_USER="${{ github.event.pull_request.user.login }}"
+          PR_NAME="${{ github.event.pull_request.user.name }}"
+          if [ -z "$PR_NAME" ]; then
+            PR_NAME="$PR_USER"
+          fi
+          echo "name=$PR_NAME" >> $GITHUB_OUTPUT
+          PR_EMAIL="${{ github.event.pull_request.user.email }}"
+          if [ -z "$PR_EMAIL" ]; then
+            PR_EMAIL="${PR_USER}@users.noreply.github.com"
+          fi
+          echo "email=$PR_EMAIL" >> $GITHUB_OUTPUT
+        else
+          ACTOR="${{ github.actor }}"
+          echo "name=$ACTOR" >> $GITHUB_OUTPUT
+          echo "email=${ACTOR}@users.noreply.github.com" >> $GITHUB_OUTPUT
+        fi
     - uses: EndBug/add-and-commit@v4
       with:
-        author_name: Clang Robot
-        author_email: hy.lu@outlook.com
+        author_name: ${{ steps.commit_author.outputs.name }}
+        author_email: ${{ steps.commit_author.outputs.email }}
         message: ':art: Committing clang-format changes'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
