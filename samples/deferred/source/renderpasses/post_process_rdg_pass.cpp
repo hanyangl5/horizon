@@ -3,8 +3,9 @@
 PostProcessRDGPass::PostProcessRDGPass(RHI *rhi) : RDGPass("Post Process Pass", rhi), m_rhi(rhi)
 {
     m_post_process_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hlsl", "main");
-    m_post_process_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_post_process_pipeline->SetComputeShader(m_post_process_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_post_process_cs);
+    m_post_process_pipeline = CreateComputePipeline(create_info);
 
     m_pp_color_image = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,

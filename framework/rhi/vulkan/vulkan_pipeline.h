@@ -23,9 +23,9 @@ class VulkanPipeline : public Pipeline
     VulkanPipeline(VulkanPipeline &&rhs) noexcept = delete;
     VulkanPipeline &operator=(VulkanPipeline &&rhs) noexcept = delete;
 
-    void SetComputeShader(Shader *vs) override;
+    //void SetComputeShader(Shader *vs) override;
 
-    void SetGraphicsShader(Shader *vs, Shader *ps) override;
+    //void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
     void SetResource(Buffer *resource, const std::string &resource_name) override;
     void SetResource(Texture *resource, const std::string &resource_name) override;
@@ -43,9 +43,9 @@ class VulkanPipeline : public Pipeline
     VulkanDescriptorSet *GetBindlessDescriptorSet();
 
   private:
-    void CreateGraphicsPipeline();
-    void CreateComputePipeline();
-    void CreatePipelineLayout();
+    void CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
+    void CreateComputePipeline(const ComputePipelineCreateInfo &create_info);
+    void CreatePipelineLayout(const ShaderPrograms &shaders);
 
   public:
     const VulkanRendererContext &m_context{};

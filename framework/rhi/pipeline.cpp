@@ -15,19 +15,19 @@ Pipeline::~Pipeline() noexcept
 
 PipelineType Pipeline::GetType() const noexcept
 {
-    return m_create_info.type;
+    return m_type;
 }
 
-void Pipeline::ParseRootSignature()
+void Pipeline::ParseRootSignature(const ShaderPrograms& shaders)
 {
-    if (m_create_info.type == PipelineType::GRAPHICS)
+    if (m_type == PipelineType::GRAPHICS)
     {
-        ParseRootSignatureFromShader(m_vs);
-        ParseRootSignatureFromShader(m_ps);
+        ParseRootSignatureFromShader((Shader*)shaders.VertexShader());
+        ParseRootSignatureFromShader((Shader *)shaders.PixelShader());
     }
-    else if (m_create_info.type == PipelineType::COMPUTE)
+    else if (m_type == PipelineType::COMPUTE)
     {
-        ParseRootSignatureFromShader(m_cs);
+        ParseRootSignatureFromShader((Shader *)shaders.ComputeShader());
     }
 }
 

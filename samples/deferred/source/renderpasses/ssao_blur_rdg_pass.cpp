@@ -3,8 +3,9 @@
 SSAOBlurRDGPass::SSAOBlurRDGPass(RHI *rhi) : RDGPass("SSAO Blur Pass", rhi), m_rhi(rhi)
 {
     m_ssao_blur_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hlsl", "main");
-    m_ssao_blur_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_ssao_blur_pipeline->SetComputeShader(m_ssao_blur_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_ssao_blur_cs);
+    m_ssao_blur_pipeline = CreateComputePipeline(create_info);
 
     m_ssao_blur_image = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,

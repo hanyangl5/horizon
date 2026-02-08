@@ -3,8 +3,9 @@
 TAARDGPass::TAARDGPass(RHI *rhi) : RDGPass("TAA Pass", rhi), m_rhi(rhi)
 {
     m_taa_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "taa.comp.hlsl", "main");
-    m_taa_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_taa_pipeline->SetComputeShader(m_taa_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_taa_cs);
+    m_taa_pipeline = CreateComputePipeline(create_info);
 
     m_previous_color_texture = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,

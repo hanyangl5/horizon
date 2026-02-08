@@ -4,7 +4,7 @@
 #include <fstream>
 #include <map>
 #include <unordered_map>
-#include <vulkan/vulkan.h>
+//#include <vulkan/vulkan.h>
 
 #include <core/definations.h>
 #include <core/log.h>
@@ -101,9 +101,16 @@ enum class ShaderType
 {
     VERTEX_SHADER,
     PIXEL_SHADER,
+    GEOMETRY_SHADER,
+    DOMAIN_SHADER,
+    HULL_SHADER,
     COMPUTE_SHADER,
-    // GEOMETRY_SHADER,
-    //  ray tracing related shader
+    MESH_SHADER,
+    RAY_GENERATION_SHADER,
+    RAY_CLOSEST_HIT_SHADER,
+    RAY_MISS_SHADER,
+    RAY_ANY_HIT_SHADER,
+    MAX_SHADER_TYPE
 };
 
 enum ShaderStageFlags
@@ -112,7 +119,14 @@ enum ShaderStageFlags
     SHADER_STAGE_VERTEX_SHADER = 1,
     SHADER_STAGE_PIXEL_SHADER = 2,
     SHADER_STAGE_COMPUTE_SHADER = 4,
-    // SHADER_STAGE_TESS_SHADER = 8,
+    SHADER_STAGE_GEOMETRY_SHADER = 8,
+    SHADER_STAGE_DOMAIN_SHADER = 16,
+    SHADER_STAGE_HULL_SHADER = 32,
+    SHADER_STAGE_MESH_SHADER = 64,
+    SHADER_STAGE_RAY_GENERATION_SHADER = 128,
+    SHADER_STAGE_RAY_CLOSEST_HIT_SHADER = 256,
+    SHADER_STAGE_RAY_MISS_SHADER = 512,
+    SHADER_STAGE_RAY_ANY_HIT_SHADER = 1024,
 };
 
 enum class TextureType
@@ -307,7 +321,7 @@ struct VertexAttributeDescription
     u32 stride;
     u32 offset;
     // DX12 semantic information (optional, can be empty for Vulkan)
-    std::string semantic_name = nullptr;
+    const char* semantic_name = nullptr;
     u32 semantic_index = 0;
 };
 
@@ -401,9 +415,64 @@ struct RenderTargetFormats
     TextureFormat depth_stencil_format;
 };
 
+struct ShaderPrograms
+{
+  public:
+    void *VertexShader() const
+    {
+        return m_shaders[(u32)ShaderType::VERTEX_SHADER];
+    }
+    void *PixelShader() const
+    {
+        return m_shaders[(u32)ShaderType::PIXEL_SHADER];
+    }
+    void *ComputeShader() const
+    {
+        return m_shaders[(u32)ShaderType::COMPUTE_SHADER];
+    }
+    void *GeometryShader() const
+    {
+        return m_shaders[(u32)ShaderType::GEOMETRY_SHADER];
+    }
+    void *DomainShader() const
+    {
+        return m_shaders[(u32)ShaderType::DOMAIN_SHADER];
+    }
+    void *HullShader() const
+    {
+        return m_shaders[(u32)ShaderType::HULL_SHADER];
+    }
+    void *MeshShader() const
+    {
+        return m_shaders[(u32)ShaderType::MESH_SHADER];
+    }
+    void *RayGenerationShader() const
+    {
+        return m_shaders[(u32)ShaderType::RAY_GENERATION_SHADER];
+    }
+    void *RayClosestHitShader() const
+    {
+        return m_shaders[(u32)ShaderType::RAY_CLOSEST_HIT_SHADER];
+    }
+    void *RayMissShader() const
+    {
+        return m_shaders[(u32)ShaderType::RAY_MISS_SHADER];
+    }
+    void *RayAnyHitShader() const
+    {
+        return m_shaders[(u32)ShaderType::RAY_ANY_HIT_SHADER];
+    }
+    void SetShader(ShaderType type, void *shader)
+    {
+        m_shaders[(u32)type] = shader;
+    };
+  private:
+    void * m_shaders[(u32)ShaderType::MAX_SHADER_TYPE];
+};
+
 struct GraphicsPipelineCreateInfo
 {
-    // ShaderProgram;
+    ShaderPrograms shader_program;
     VertexInputState vertex_input_state;
     InputAssemblyState input_assembly_state;
     ViewPortState view_port_state;
@@ -415,15 +484,16 @@ struct GraphicsPipelineCreateInfo
 
 struct ComputePipelineCreateInfo
 {
+    ShaderPrograms shader_program;
     u32 flag = 0x01;
 };
 
-struct PipelineCreateInfo
-{
-    PipelineType type;
-    GraphicsPipelineCreateInfo *gpci;
-    ComputePipelineCreateInfo *cpci;
-};
+//struct PipelineCreateInfo
+//{
+//    PipelineType type;
+//    GraphicsPipelineCreateInfo *gpci;
+//    ComputePipelineCreateInfo *cpci;
+//};
 
 struct Rect
 {

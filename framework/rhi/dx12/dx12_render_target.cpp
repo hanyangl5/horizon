@@ -25,8 +25,15 @@ DX12RenderTarget::DX12RenderTarget(const DX12RendererContext &context,
 
     m_texture = Memory::Alloc<DX12Texture>(context, texture_create_info);
 
-    // TODO: Create RTV or DSV descriptor
-    // This requires a descriptor heap which will be implemented later
+    // Note: RTV/DSV descriptors should be created externally using descriptor heap allocator
+}
+
+DX12RenderTarget::DX12RenderTarget(const DX12RendererContext &context, ComPtr<ID3D12Resource> back_buffer_resource,
+                                   D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle) noexcept
+    : RenderTarget(), m_context(context), m_back_buffer_resource(back_buffer_resource), m_rtv_handle(rtv_handle)
+{
+    // This constructor is for swap chain back buffers
+    // The texture is not created as the back buffer resource is managed by the swap chain
 }
 
 DX12RenderTarget::~DX12RenderTarget() noexcept

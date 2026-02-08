@@ -345,9 +345,9 @@ DXGI_FORMAT ToDX12VertexFormat(VertexAttribFormat format, u32 portions) noexcept
 const char *GetDX12SemanticName(const VertexAttributeDescription &attr) noexcept
 {
     // If semantic_name is explicitly provided, use it
-    if (!attr.semantic_name.empty() && attr.semantic_name[0] != '\0')
+    if (attr.semantic_name != nullptr && attr.semantic_name[0] != '\0')
     {
-        return attr.semantic_name.c_str();
+        return attr.semantic_name;
     }
 
     // Otherwise, generate default semantic name based on location
@@ -375,7 +375,7 @@ const char *GetDX12SemanticName(const VertexAttributeDescription &attr) noexcept
 u32 GetDX12SemanticIndex(const VertexAttributeDescription &attr) noexcept
 {
     // If semantic_name is explicitly provided, use the provided semantic_index
-    if (!attr.semantic_name.empty() && attr.semantic_name[0] != '\0')
+    if (attr.semantic_name != nullptr && attr.semantic_name[0] != '\0')
     {
         return attr.semantic_index;
     }

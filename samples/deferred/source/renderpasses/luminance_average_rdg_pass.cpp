@@ -5,8 +5,9 @@ LuminanceAverageRDGPass::LuminanceAverageRDGPass(RHI *rhi) : RDGPass("Luminance 
 {
     m_luminance_average_cs =
         CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_average.comp.hlsl", "main");
-    m_luminance_average_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_luminance_average_pipeline->SetComputeShader(m_luminance_average_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_luminance_average_cs);
+    m_luminance_average_pipeline = CreateComputePipeline(create_info);
 }
 
 LuminanceAverageRDGPass::~LuminanceAverageRDGPass()

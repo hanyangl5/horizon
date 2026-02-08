@@ -4,8 +4,9 @@ LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi) : RDGPass("Lumina
 {
     m_luminance_histogram_cs =
         CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");
-    m_luminance_histogram_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_luminance_histogram_pipeline->SetComputeShader(m_luminance_histogram_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_luminance_histogram_cs);
+    m_luminance_histogram_pipeline = CreateComputePipeline(create_info);
 
     m_luminance_histogram_constants_buffer = rhi->CreateBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,

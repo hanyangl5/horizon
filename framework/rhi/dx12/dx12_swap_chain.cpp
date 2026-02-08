@@ -71,19 +71,9 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
     }
 
     // Create render targets for each back buffer
+    // Note: We need to create render targets that wrap the back buffer resources
+    // For now, we'll create placeholders that will be properly initialized in AcquireNextFrame
     render_targets.resize(swap_chain_create_info.back_buffer_count);
-    for (u32 i = 0; i < swap_chain_create_info.back_buffer_count; ++i)
-    {
-        // TODO: Create render target from back buffer
-        // This requires creating a texture wrapper and render target
-        // For now, we'll create a placeholder
-        RenderTargetCreateInfo rt_create_info{};
-        rt_create_info.width = width;
-        rt_create_info.height = height;
-        rt_create_info.rt_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
-        rt_create_info.rt_type = RenderTargetType::COLOR;
-        render_targets[i] = Memory::Alloc<DX12RenderTarget>(context, rt_create_info);
-    }
 #else
     LOG_ERROR("DX12 is only supported on Windows");
 #endif

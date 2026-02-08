@@ -20,8 +20,8 @@ class Pipeline
 
     PipelineType GetType() const noexcept;
 
-    virtual void SetComputeShader(Shader *vs) = 0;
-    virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
+    //virtual void SetComputeShader(Shader *vs) = 0;
+    //virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
     virtual void SetResource(Buffer *resource, const std::string &resource_name) = 0;
     virtual void SetResource(Texture *resource, const std::string &resource_name) = 0;
     virtual void SetResource(Sampler *resource, const std::string &resource_name) = 0;
@@ -30,15 +30,16 @@ class Pipeline
     virtual void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) = 0;
 
   protected:
-    void ParseRootSignature();
+    void ParseRootSignature(const ShaderPrograms& shaders);
     void ParseRootSignatureFromShader(Shader *shader);
     // virtual DescriptorSet *GetDescriptorSet() = 0;
     // virtual DescriptorSet *GetBindlessDescriptorSet() = 0;
 
   protected:
     // array contain all kinds of shaders
-    Shader *m_vs{}, *m_ps{}, *m_cs{};
-    PipelineCreateInfo m_create_info{};
+    //Shader *m_vs{}, *m_ps{}, *m_cs{};
+    //PipelineCreateInfo m_create_info{};
+    PipelineType m_type;
     RootSignatureDesc rsd{};
 };
 } // namespace Horizon::Backend

@@ -14,16 +14,26 @@ DX12Pipeline::DX12Pipeline(const DX12RendererContext &context, const GraphicsPip
                            DX12DescriptorHeapAllocator &descriptor_heap_allocator) noexcept
     : m_context(context), m_descriptor_heap_allocator(descriptor_heap_allocator)
 {
-    m_create_info.type = PipelineType::GRAPHICS;
-    m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(&create_info);
+    //m_create_info.type = PipelineType::GRAPHICS;
+    //m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(&create_info);
+    m_type = PipelineType::GRAPHICS;
+
+    ParseRootSignature(create_info.shader_program);
+    CreateRootSignature(create_info.shader_program);
+    CreateGraphicsPipeline(create_info);
 }
 
 DX12Pipeline::DX12Pipeline(const DX12RendererContext &context, const ComputePipelineCreateInfo &create_info,
                            DX12DescriptorHeapAllocator &descriptor_heap_allocator) noexcept
     : m_context(context), m_descriptor_heap_allocator(descriptor_heap_allocator)
 {
-    m_create_info.type = PipelineType::COMPUTE;
-    m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(&create_info);
+    //m_create_info.type = PipelineType::COMPUTE;
+    //m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(&create_info);
+    m_type = PipelineType::COMPUTE;
+    ParseRootSignature(create_info.shader_program);
+    CreateRootSignature(create_info.shader_program);
+    CreateComputePipeline(create_info);
+
 }
 
 DX12Pipeline::~DX12Pipeline() noexcept
@@ -31,35 +41,35 @@ DX12Pipeline::~DX12Pipeline() noexcept
     // ComPtr will automatically release
 }
 
-void DX12Pipeline::SetComputeShader(Shader *cs)
-{
-    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
-    assert(m_create_info.type == PipelineType::COMPUTE);
-
-    if (m_cs == nullptr)
-    {
-        m_cs = cs;
-        ParseRootSignature();
-        CreateRootSignature();
-        CreateComputePipeline();
-    }
-}
-
-void DX12Pipeline::SetGraphicsShader(Shader *vs, Shader *ps)
-{
-    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
-    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
-    assert(m_create_info.type == PipelineType::GRAPHICS);
-
-    if (m_vs == nullptr && m_ps == nullptr)
-    {
-        m_vs = vs;
-        m_ps = ps;
-        ParseRootSignature();
-        CreateRootSignature();
-        CreateGraphicsPipeline();
-    }
-}
+//void DX12Pipeline::SetComputeShader(Shader *cs)
+//{
+//    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
+//    assert(m_create_info.type == PipelineType::COMPUTE);
+//
+//    if (m_cs == nullptr)
+//    {
+//        m_cs = cs;
+//        ParseRootSignature();
+//        CreateRootSignature();
+//        CreateComputePipeline();
+//    }
+//}
+//
+//void DX12Pipeline::SetGraphicsShader(Shader *vs, Shader *ps)
+//{
+//    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
+//    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
+//    assert(m_create_info.type == PipelineType::GRAPHICS);
+//
+//    if (m_vs == nullptr && m_ps == nullptr)
+//    {
+//        m_vs = vs;
+//        m_ps = ps;
+//        ParseRootSignature();
+//        CreateRootSignature();
+//        CreateGraphicsPipeline();
+//    }
+//}
 
 void DX12Pipeline::SetResource(Buffer *resource, const std::string &resource_name)
 {
@@ -91,7 +101,7 @@ void DX12Pipeline::SetBindlessResource(std::vector<Texture *> &resource, const s
     LOG_WARN("SetBindlessResource for Texture not yet fully implemented");
 }
 
-void DX12Pipeline::CreateRootSignature()
+void DX12Pipeline::CreateRootSignature(const ShaderPrograms& shaders)
 {
     // Build root signature from reflection data
     std::vector<D3D12_ROOT_PARAMETER> root_parameters;
@@ -150,16 +160,16 @@ void DX12Pipeline::CreateRootSignature()
     }
 }
 
-void DX12Pipeline::CreateGraphicsPipeline()
+void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
 {
-    auto ci = m_create_info.gpci;
+    auto ci = &create_info;
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{};
     pso_desc.pRootSignature = m_root_signature.Get();
 
     // Shaders
-    auto vs = reinterpret_cast<DX12Shader *>(m_vs);
-    auto ps = reinterpret_cast<DX12Shader *>(m_ps);
+    auto vs = reinterpret_cast<DX12Shader *>(create_info.shader_program.VertexShader());
+    auto ps = reinterpret_cast<DX12Shader *>(create_info.shader_program.PixelShader());
     pso_desc.VS = vs->GetD3D12Bytecode();
     pso_desc.PS = ps->GetD3D12Bytecode();
 
@@ -176,7 +186,7 @@ void DX12Pipeline::CreateGraphicsPipeline()
 
         // Get semantic name (may need to store it if generated)
         const char *semantic_name = Horizon::GetDX12SemanticName(attr);
-        if (attr.semantic_name.empty() || attr.semantic_name[0] == '\0')
+        if (attr.semantic_name == nullptr || attr.semantic_name[0] == '\0')
         {
             // Store generated semantic name to ensure it remains valid
             semantic_name_storage.push_back(semantic_name);
@@ -256,12 +266,12 @@ void DX12Pipeline::CreateGraphicsPipeline()
     }
 }
 
-void DX12Pipeline::CreateComputePipeline()
+void DX12Pipeline::CreateComputePipeline(const ComputePipelineCreateInfo &create_info)
 {
     D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc{};
     pso_desc.pRootSignature = m_root_signature.Get();
 
-    auto cs = reinterpret_cast<DX12Shader *>(m_cs);
+    auto cs = reinterpret_cast<DX12Shader *>(create_info.shader_program.ComputeShader());
     pso_desc.CS = cs->GetD3D12Bytecode();
 
     HRESULT hr = m_context.device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&m_pipeline_state));

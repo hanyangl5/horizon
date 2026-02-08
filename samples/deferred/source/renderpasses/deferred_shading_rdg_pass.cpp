@@ -6,8 +6,9 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
 {
     // Create shader and pipeline using base class helper functions
     m_shading_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "deferred_shading.comp.hlsl", "main");
-    m_shading_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_shading_pipeline->SetComputeShader(m_shading_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_shading_cs);
+    m_shading_pipeline = CreateComputePipeline(create_info);
 
     // Create constant buffers
     m_deferred_shading_constants_buffer = rhi->CreateBuffer(

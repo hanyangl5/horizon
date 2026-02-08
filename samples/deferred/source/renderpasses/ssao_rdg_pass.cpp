@@ -8,8 +8,9 @@ static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
 SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler) : RDGPass("SSAO Pass", rhi), m_rhi(rhi), m_sampler(sampler)
 {
     m_ssao_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao.comp.hlsl", "main");
-    m_ssao_pipeline = CreateComputePipeline(ComputePipelineCreateInfo{});
-    m_ssao_pipeline->SetComputeShader(m_ssao_cs);
+    ComputePipelineCreateInfo create_info{};
+    create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_ssao_cs);
+    m_ssao_pipeline = CreateComputePipeline(create_info);
 
     m_ssao_factor_image = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,

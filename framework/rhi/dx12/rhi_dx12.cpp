@@ -7,10 +7,13 @@
 
 #include "dx12_buffer.h"
 #include "dx12_command_context.h"
+#include "dx12_command_list.h"
 #include "dx12_config.h"
 #include "dx12_descriptor_heap_allocator.h"
 #include "dx12_pipeline.h"
 #include "dx12_render_target.h"
+#include "dx12_sampler.h"
+#include "dx12_semaphore.h"
 #include "dx12_shader.h"
 #include "dx12_shader_compiler.h"
 #include "dx12_swap_chain.h"
@@ -388,16 +391,17 @@ void RHIDX12::DestroyPipeline(Pipeline *pipeline)
 
 Semaphore *RHIDX12::CreateSemaphore1()
 {
-    // TODO: Implement DX12 semaphore/fence creation
-    LOG_ERROR("DX12 semaphore creation not yet implemented");
-    return nullptr;
+    return Memory::Alloc<DX12Semaphore>(m_dx12);
 }
 
 Sampler *RHIDX12::CreateSampler(const SamplerDesc &sampler_desc)
 {
-    // TODO: Implement DX12 sampler creation
-    LOG_ERROR("DX12 sampler creation not yet implemented");
-    return nullptr;
+    if (!m_descriptor_heap_allocator)
+    {
+        LOG_ERROR("Descriptor heap allocator not initialized");
+        return nullptr;
+    }
+    return Memory::Alloc<DX12Sampler>(m_dx12, *m_descriptor_heap_allocator, sampler_desc);
 }
 
 void RHIDX12::DestroyBuffer(Buffer *buffer)
@@ -434,7 +438,6 @@ void RHIDX12::DestroySwapChain(SwapChain *swap_chain)
 
 void RHIDX12::DestroySemaphore(Semaphore *semaphore)
 {
-    // TODO: Implement DX12 semaphore destruction
     if (semaphore != nullptr)
     {
         Memory::Free(semaphore);
@@ -443,7 +446,6 @@ void RHIDX12::DestroySemaphore(Semaphore *semaphore)
 
 void RHIDX12::DestroySampler(Sampler *sampler)
 {
-    // TODO: Implement DX12 sampler destruction
     if (sampler != nullptr)
     {
         Memory::Free(sampler);
@@ -452,20 +454,129 @@ void RHIDX12::DestroySampler(Sampler *sampler)
 
 void RHIDX12::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
 {
-    // TODO: Implement DX12 command list submission
-    LOG_ERROR("DX12 command list submission not yet implemented");
+    u32 queue_index = static_cast<u32>(queue_submit_info.queue_type);
+    if (queue_index >= 3)
+    {
+        LOG_ERROR("Invalid queue type: {}", queue_index);
+        return;
+    }
+
+    // Convert command lists to D3D12 command lists
+    std::vector<ID3D12CommandList *> d3d12_command_lists;
+    d3d12_command_lists.reserve(queue_submit_info.command_lists.size());
+
+    for (auto *cmd_list : queue_submit_info.command_lists)
+    {
+        auto *dx12_cmd_list = reinterpret_cast<DX12CommandList *>(cmd_list);
+        d3d12_command_lists.push_back(dx12_cmd_list->GetD3D12CommandList());
+    }
+
+    // Wait for semaphores (fences) if any
+    for (auto *semaphore : queue_submit_info.wait_semaphores)
+    {
+        auto *dx12_semaphore = reinterpret_cast<DX12Semaphore *>(semaphore);
+        UINT64 wait_value = dx12_semaphore->GetFenceValue();
+        if (wait_value > 0)
+        {
+            // Wait for the fence to reach the specified value
+            if (m_dx12.fences[queue_index]->GetCompletedValue() < wait_value)
+            {
+                HRESULT hr = m_dx12.fences[queue_index]->SetEventOnCompletion(wait_value, m_dx12.fence_event);
+                if (SUCCEEDED(hr))
+                {
+                    WaitForSingleObject(m_dx12.fence_event, INFINITE);
+                }
+            }
+        }
+    }
+
+    // Handle image acquired semaphore if needed
+    if (queue_submit_info.wait_image_acquired)
+    {
+        // Wait for present complete semaphore (if exists)
+        // This is typically handled by the swap chain
+    }
+
+    // Execute command lists
+    if (!d3d12_command_lists.empty())
+    {
+        m_dx12.command_queues[queue_index]->ExecuteCommandLists(
+            static_cast<UINT>(d3d12_command_lists.size()), d3d12_command_lists.data());
+    }
+
+    // Signal semaphores if any
+    for (auto *semaphore : queue_submit_info.signal_semaphores)
+    {
+        auto *dx12_semaphore = reinterpret_cast<DX12Semaphore *>(semaphore);
+        UINT64 signal_value = ++m_dx12.fence_values[queue_index];
+        dx12_semaphore->SetFenceValue(signal_value);
+        m_dx12.command_queues[queue_index]->Signal(dx12_semaphore->GetFence(), signal_value);
+    }
+
+    // Signal render complete semaphore if needed
+    if (queue_submit_info.signal_render_complete)
+    {
+        // This is typically handled by the swap chain
+    }
+
+    // Update fence value for the queue
+    UINT64 fence_value = ++m_dx12.fence_values[queue_index];
+    m_dx12.command_queues[queue_index]->Signal(m_dx12.fences[queue_index].Get(), fence_value);
 }
 
 void RHIDX12::Present(const QueuePresentInfo &queue_present_info)
 {
-    // TODO: Implement DX12 present
-    LOG_ERROR("DX12 present not yet implemented");
+    auto *dx12_swap_chain = reinterpret_cast<DX12SwapChain *>(queue_present_info.swap_chain);
+    if (!dx12_swap_chain)
+    {
+        LOG_ERROR("Invalid swap chain for present");
+        return;
+    }
+
+    // Present the swap chain
+    HRESULT hr = dx12_swap_chain->m_swap_chain->Present(1, 0); // VSync enabled
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to present swap chain: {}", hr);
+        return;
+    }
+
+    // Update frame index
+    dx12_swap_chain->current_frame_index =
+        (dx12_swap_chain->current_frame_index + 1) % dx12_swap_chain->m_back_buffer_count;
 }
 
 void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
 {
-    // TODO: Implement DX12 frame acquisition
-    LOG_ERROR("DX12 frame acquisition not yet implemented");
+    auto *dx12_swap_chain = reinterpret_cast<DX12SwapChain *>(swap_chain);
+    if (!dx12_swap_chain)
+    {
+        LOG_ERROR("Invalid swap chain for frame acquisition");
+        return;
+    }
+
+    // Get current back buffer index
+    dx12_swap_chain->image_index = dx12_swap_chain->m_swap_chain->GetCurrentBackBufferIndex();
+    dx12_swap_chain->current_frame_index = dx12_swap_chain->image_index;
+
+    // Ensure render target exists for this back buffer
+    if (dx12_swap_chain->render_targets[dx12_swap_chain->image_index] == nullptr)
+    {
+        if (!m_descriptor_heap_allocator)
+        {
+            LOG_ERROR("Descriptor heap allocator not initialized");
+            return;
+        }
+
+        // Create RTV for the back buffer
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
+        m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index].Get(),
+                                               nullptr, rtv_handle);
+
+        // Create render target wrapper for the back buffer
+        dx12_swap_chain->render_targets[dx12_swap_chain->image_index] = Memory::Alloc<DX12RenderTarget>(
+            m_dx12, dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index], rtv_handle);
+    }
 }
 
 void RHIDX12::DestroySwapChain()

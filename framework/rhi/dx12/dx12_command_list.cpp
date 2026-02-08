@@ -290,10 +290,83 @@ void DX12CommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size)
         return;
     }
 
-    // DX12 doesn't support direct buffer updates in command lists
-    // We need to use an upload buffer and copy
-    // TODO: Implement upload buffer management
-    LOG_ERROR("UpdateBuffer not yet fully implemented for DX12 - needs upload buffer");
+    if (buffer == nullptr || data == nullptr || size == 0)
+    {
+        LOG_ERROR("Invalid parameters for UpdateBuffer");
+        return;
+    }
+
+    auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffer);
+    if (size > buffer->m_size)
+    {
+        LOG_ERROR("Update size {} exceeds buffer size {}", size, buffer->m_size);
+        size = buffer->m_size;
+    }
+
+    // Create a temporary upload buffer
+    D3D12_HEAP_PROPERTIES upload_heap_props = {};
+    upload_heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
+    upload_heap_props.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    upload_heap_props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    upload_heap_props.CreationNodeMask = 1;
+    upload_heap_props.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC upload_buffer_desc = {};
+    upload_buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    upload_buffer_desc.Alignment = 0;
+    upload_buffer_desc.Width = size;
+    upload_buffer_desc.Height = 1;
+    upload_buffer_desc.DepthOrArraySize = 1;
+    upload_buffer_desc.MipLevels = 1;
+    upload_buffer_desc.Format = DXGI_FORMAT_UNKNOWN;
+    upload_buffer_desc.SampleDesc.Count = 1;
+    upload_buffer_desc.SampleDesc.Quality = 0;
+    upload_buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    upload_buffer_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    ComPtr<ID3D12Resource> upload_buffer;
+    HRESULT hr = m_context.device->CreateCommittedResource(
+        &upload_heap_props, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&upload_buffer));
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to create upload buffer: {}", hr);
+        return;
+    }
+
+    // Map and copy data to upload buffer
+    void *mapped_data = nullptr;
+    D3D12_RANGE read_range = {0, 0}; // We don't read from this resource
+    hr = upload_buffer->Map(0, &read_range, &mapped_data);
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to map upload buffer: {}", hr);
+        return;
+    }
+
+    memcpy(mapped_data, data, size);
+    upload_buffer->Unmap(0, nullptr);
+
+    // Transition destination buffer to copy destination state if needed
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource = dx12_buffer->GetResource();
+    barrier.Transition.StateBefore = dx12_buffer->m_current_state;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    m_command_list->ResourceBarrier(1, &barrier);
+
+    // Copy from upload buffer to destination buffer
+    m_command_list->CopyBufferRegion(dx12_buffer->GetResource(), 0, upload_buffer.Get(), 0, size);
+
+    // Transition back to original state
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = dx12_buffer->m_current_state;
+    m_command_list->ResourceBarrier(1, &barrier);
+
+    // Note: In a production implementation, you would want to manage upload buffers
+    // in a pool to avoid creating/destroying them frequently
 }
 
 void DX12CommandList::CopyBuffer(Buffer *src_buffer, Buffer *dst_buffer)

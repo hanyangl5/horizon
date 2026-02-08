@@ -9,8 +9,10 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const Graph
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
     : m_context(context), m_descriptor_set_allocator(descriptor_set_manager)
 {
-    m_create_info.type = PipelineType::GRAPHICS;
-    m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(std::move(&create_info));
+    m_type = PipelineType::GRAPHICS;
+    CreatePipelineLayout(create_info.shader_program);
+    CreateGraphicsPipeline(create_info);
+
 }
 
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
@@ -18,8 +20,10 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
                                VulkanDescriptorSetAllocator &descriptor_set_manager) noexcept
     : m_context(context), m_descriptor_set_allocator(descriptor_set_manager)
 {
-    m_create_info.type = PipelineType::COMPUTE;
-    m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(std::move(&create_info));
+    m_type = PipelineType::COMPUTE;
+    CreatePipelineLayout(create_info.shader_program);
+    CreateComputePipeline(create_info);
+    //m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(std::move(&create_info));
 }
 
 VulkanPipeline::~VulkanPipeline() noexcept
@@ -27,33 +31,33 @@ VulkanPipeline::~VulkanPipeline() noexcept
     vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
-void VulkanPipeline::SetComputeShader(Shader *cs)
-{
-    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
-    assert(m_create_info.type == PipelineType::COMPUTE);
-
-    if (m_cs == nullptr)
-    {
-        m_cs = cs;
-        CreatePipelineLayout();
-        CreateComputePipeline();
-    }
-}
-
-void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps)
-{
-    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
-    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
-    assert(m_create_info.type == PipelineType::GRAPHICS);
-
-    if (m_vs == nullptr && m_ps == nullptr)
-    {
-        m_vs = vs;
-        m_ps = ps;
-        CreatePipelineLayout();
-        CreateGraphicsPipeline();
-    }
-}
+//void VulkanPipeline::SetComputeShader(Shader *cs)
+//{
+//    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
+//    assert(m_create_info.type == PipelineType::COMPUTE);
+//
+//    if (m_cs == nullptr)
+//    {
+//        m_cs = cs;
+//        CreatePipelineLayout();
+//        CreateComputePipeline();
+//    }
+//}
+//
+//void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps)
+//{
+//    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
+//    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
+//    assert(m_create_info.type == PipelineType::GRAPHICS);
+//
+//    if (m_vs == nullptr && m_ps == nullptr)
+//    {
+//        m_vs = vs;
+//        m_ps = ps;
+//        CreatePipelineLayout();
+//        CreateGraphicsPipeline();
+//    }
+//}
 
 void VulkanPipeline::SetResource(Buffer *resource, const std::string &resource_name)
 {
@@ -94,9 +98,9 @@ VulkanDescriptorSet *VulkanPipeline::GetBindlessDescriptorSet()
 {
     return m_descriptor_set_allocator.GetBindlessDescriptorSet(this);
 }
-void VulkanPipeline::CreateGraphicsPipeline()
+void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
 {
-    auto ci = m_create_info.gpci;
+    // auto ci = m_create_info.gpci;
     {
 
         VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
@@ -123,13 +127,13 @@ void VulkanPipeline::CreateGraphicsPipeline()
 
             shader_stage_create_infos.reserve(2);
             {
-                auto vs = reinterpret_cast<VulkanShader *>(m_vs);
+                auto vs = reinterpret_cast<VulkanShader *>(create_info.shader_program.VertexShader());
 
                 shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
                     VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(vs->GetType()),
                     vs->m_shader_module, vs->GetEntryPoint(), nullptr});
 
-                auto ps = reinterpret_cast<VulkanShader *>(m_ps);
+                auto ps = reinterpret_cast<VulkanShader *>(create_info.shader_program.PixelShader());
 
                 shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
                     VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(ps->GetType()),
@@ -146,9 +150,9 @@ void VulkanPipeline::CreateGraphicsPipeline()
             uint32_t binding_value = UINT32_MAX;
 
             // Initial values
-            for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i)
+            for (u32 i = 0; i < create_info.vertex_input_state.attribute_count; ++i)
             {
-                auto *attrib = &(ci->vertex_input_state.attributes[i]);
+                auto *attrib = &(create_info.vertex_input_state.attributes[i]);
 
                 if (binding_value != attrib->binding)
                 {
@@ -193,7 +197,7 @@ void VulkanPipeline::CreateGraphicsPipeline()
             input_assembly_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             input_assembly_state_create_info.flags = 0;
             input_assembly_state_create_info.pNext = nullptr;
-            input_assembly_state_create_info.topology = ToVkPrimitiveTopology(ci->input_assembly_state.topology);
+            input_assembly_state_create_info.topology = ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
             input_assembly_state_create_info.primitiveRestartEnable = VK_FALSE;
 
             graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
@@ -211,16 +215,16 @@ void VulkanPipeline::CreateGraphicsPipeline()
             view_port_state_create_info.flags = 0;
             view_port_state_create_info.pNext = nullptr;
 
-            view_port.width = static_cast<f32>(ci->view_port_state.width);
-            view_port.height = -static_cast<f32>(ci->view_port_state.height);
+            view_port.width = static_cast<f32>(create_info.view_port_state.width);
+            view_port.height = -static_cast<f32>(create_info.view_port_state.height);
             view_port.x = 0.0f;
             view_port.y = -view_port.height;
             view_port.minDepth = 0.0f;
             view_port.maxDepth = 1.0f;
 
             VkExtent2D extent;
-            extent.width = ci->view_port_state.width;
-            extent.height = ci->view_port_state.height;
+            extent.width = create_info.view_port_state.width;
+            extent.height = create_info.view_port_state.height;
 
             scissor.offset = {0, 0};
             scissor.extent = extent;
@@ -239,10 +243,10 @@ void VulkanPipeline::CreateGraphicsPipeline()
             rasterization_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
             rasterization_state_create_info.depthClampEnable = VK_FALSE;
             rasterization_state_create_info.rasterizerDiscardEnable = VK_FALSE;
-            rasterization_state_create_info.polygonMode = ToVkPolygonMode(ci->rasterization_state.fill_mode);
+            rasterization_state_create_info.polygonMode = ToVkPolygonMode(create_info.rasterization_state.fill_mode);
             rasterization_state_create_info.lineWidth = 1.0f;
-            rasterization_state_create_info.cullMode = ToVkCullMode(ci->rasterization_state.cull_mode);
-            rasterization_state_create_info.frontFace = ToVkFrontFace(ci->rasterization_state.front_face);
+            rasterization_state_create_info.cullMode = ToVkCullMode(create_info.rasterization_state.cull_mode);
+            rasterization_state_create_info.frontFace = ToVkFrontFace(create_info.rasterization_state.front_face);
             rasterization_state_create_info.depthBiasEnable = VK_FALSE;
 
             graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
@@ -261,7 +265,7 @@ void VulkanPipeline::CreateGraphicsPipeline()
         // color blend state
         {
             color_blend_attachment_state.resize(
-                ci->render_target_formats.color_attachment_count); // TODO(hylu): reserve and construct
+                create_info.render_target_formats.color_attachment_count); // TODO(hylu): reserve and construct
             for (auto &state : color_blend_attachment_state)
             {
                 state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
@@ -285,9 +289,9 @@ void VulkanPipeline::CreateGraphicsPipeline()
         {
 
             depth_stencil_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-            depth_stencil_state_create_info.depthTestEnable = ci->depth_stencil_state.depth_test;
-            depth_stencil_state_create_info.depthWriteEnable = ci->depth_stencil_state.depth_write;
-            depth_stencil_state_create_info.depthCompareOp = ToVkCompareOp(ci->depth_stencil_state.depth_func);
+            depth_stencil_state_create_info.depthTestEnable = create_info.depth_stencil_state.depth_test;
+            depth_stencil_state_create_info.depthWriteEnable = create_info.depth_stencil_state.depth_write;
+            depth_stencil_state_create_info.depthCompareOp = ToVkCompareOp(create_info.depth_stencil_state.depth_func);
             depth_stencil_state_create_info.depthBoundsTestEnable = VK_FALSE;
             depth_stencil_state_create_info.stencilTestEnable = VK_FALSE;
 
@@ -300,21 +304,21 @@ void VulkanPipeline::CreateGraphicsPipeline()
         }
 
         rendering_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-        rendering_create_info.colorAttachmentCount = ci->render_target_formats.color_attachment_count;
+        rendering_create_info.colorAttachmentCount = create_info.render_target_formats.color_attachment_count;
 
-        std::vector<VkFormat> formats(ci->render_target_formats.color_attachment_count);
-        for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; i++)
+        std::vector<VkFormat> formats(create_info.render_target_formats.color_attachment_count);
+        for (u32 i = 0; i < create_info.render_target_formats.color_attachment_count; i++)
         {
-            formats[i] = ToVkImageFormat(ci->render_target_formats.color_attachment_formats[i]);
+            formats[i] = ToVkImageFormat(create_info.render_target_formats.color_attachment_formats[i]);
         }
 
         rendering_create_info.pColorAttachmentFormats = formats.data();
-        if (ci->render_target_formats.has_depth)
+        if (create_info.render_target_formats.has_depth)
             rendering_create_info.depthAttachmentFormat =
-                ToVkImageFormat(ci->render_target_formats.depth_stencil_format);
-        if (ci->render_target_formats.has_stencil)
+                ToVkImageFormat(create_info.render_target_formats.depth_stencil_format);
+        if (create_info.render_target_formats.has_stencil)
             rendering_create_info.stencilAttachmentFormat =
-                ToVkImageFormat(ci->render_target_formats.depth_stencil_format);
+                ToVkImageFormat(create_info.render_target_formats.depth_stencil_format);
 
         graphics_pipeline_create_info.pNext = &rendering_create_info;
 
@@ -325,11 +329,11 @@ void VulkanPipeline::CreateGraphicsPipeline()
     }
 }
 
-void VulkanPipeline::CreateComputePipeline()
+void VulkanPipeline::CreateComputePipeline(const ComputePipelineCreateInfo& create_info)
 {
-    assert(m_cs != nullptr);
+    //assert(m_cs != nullptr);
 
-    auto cs = reinterpret_cast<VulkanShader *>(m_cs);
+    auto cs = reinterpret_cast<VulkanShader *>(create_info.shader_program.ComputeShader());
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -350,14 +354,14 @@ void VulkanPipeline::CreateComputePipeline()
         vkCreateComputePipelines(m_context.device, nullptr, 1, &compute_pipeline_create_info, nullptr, &m_pipeline));
 }
 
-void VulkanPipeline::CreatePipelineLayout()
+void VulkanPipeline::CreatePipelineLayout(const ShaderPrograms &shaders)
 {
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
 
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-    ParseRootSignature();
+    ParseRootSignature(shaders);
 
     // if no descriptor declared in shader
     bool need_descriptorset = !rsd.descriptors.empty();

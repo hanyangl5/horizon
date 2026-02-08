@@ -47,25 +47,25 @@ template <> struct hash<Horizon::ComputePipelineCreateInfo>
     }
 };
 
-template <> struct hash<Horizon::PipelineCreateInfo>
-{
-    inline Horizon::u64 operator()(const Horizon::PipelineCreateInfo &create_info) const
-    {
-        std::size_t seed = 0;
-        switch (create_info.type)
-        {
-        case Horizon::PipelineType::GRAPHICS:
-            hash_combine(seed, *create_info.gpci);
-            break;
-        case Horizon::PipelineType::COMPUTE:
-            hash_combine(seed, *create_info.cpci);
-            break;
-        default:
-            break;
-        };
-        hash_combine(seed, create_info.type);
-        return seed;
-    }
-};
+//template <> struct hash<Horizon::PipelineCreateInfo>
+//{
+//    inline Horizon::u64 operator()(const Horizon::PipelineCreateInfo &create_info) const
+//    {
+//        std::size_t seed = 0;
+//        switch (create_info.type)
+//        {
+//        case Horizon::PipelineType::GRAPHICS:
+//            hash_combine(seed, *create_info.gpci);
+//            break;
+//        case Horizon::PipelineType::COMPUTE:
+//            hash_combine(seed, *create_info.cpci);
+//            break;
+//        default:
+//            break;
+//        };
+//        hash_combine(seed, create_info.type);
+//        return seed;
+//    }
+//};
 
 } // namespace std

@@ -2,9 +2,12 @@
 
 #include "dx12_utils.h"
 #include <d3d12.h>
+#include <wrl/client.h>
 
 #include <core/definations.h>
 #include <rhi/render_target.h>
+
+using Microsoft::WRL::ComPtr;
 
 namespace Horizon::Backend
 {
@@ -14,6 +17,8 @@ class DX12RenderTarget : public RenderTarget
   public:
     DX12RenderTarget(const DX12RendererContext &context,
                      const RenderTargetCreateInfo &render_target_create_info) noexcept;
+    DX12RenderTarget(const DX12RendererContext &context, ComPtr<ID3D12Resource> back_buffer_resource,
+                     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle) noexcept;
     virtual ~DX12RenderTarget() noexcept;
     DX12RenderTarget(const DX12RenderTarget &rhs) noexcept = delete;
     DX12RenderTarget &operator=(const DX12RenderTarget &rhs) noexcept = delete;
@@ -32,6 +37,7 @@ class DX12RenderTarget : public RenderTarget
 
   public:
     const DX12RendererContext &m_context;
+    ComPtr<ID3D12Resource> m_back_buffer_resource; // For swap chain back buffers
     D3D12_CPU_DESCRIPTOR_HANDLE m_rtv_handle{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsv_handle{};
 };
