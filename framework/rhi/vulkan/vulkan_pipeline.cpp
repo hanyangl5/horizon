@@ -12,7 +12,6 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context, const Graph
     m_type = PipelineType::GRAPHICS;
     CreatePipelineLayout(create_info.shader_program);
     CreateGraphicsPipeline(create_info);
-
 }
 
 VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
@@ -23,7 +22,7 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
     m_type = PipelineType::COMPUTE;
     CreatePipelineLayout(create_info.shader_program);
     CreateComputePipeline(create_info);
-    //m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(std::move(&create_info));
+    // m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(std::move(&create_info));
 }
 
 VulkanPipeline::~VulkanPipeline() noexcept
@@ -31,7 +30,7 @@ VulkanPipeline::~VulkanPipeline() noexcept
     vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
-//void VulkanPipeline::SetComputeShader(Shader *cs)
+// void VulkanPipeline::SetComputeShader(Shader *cs)
 //{
 //    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
 //    assert(m_create_info.type == PipelineType::COMPUTE);
@@ -44,7 +43,7 @@ VulkanPipeline::~VulkanPipeline() noexcept
 //    }
 //}
 //
-//void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps)
+// void VulkanPipeline::SetGraphicsShader(Shader *vs, Shader *ps)
 //{
 //    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
 //    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
@@ -197,7 +196,8 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
             input_assembly_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             input_assembly_state_create_info.flags = 0;
             input_assembly_state_create_info.pNext = nullptr;
-            input_assembly_state_create_info.topology = ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
+            input_assembly_state_create_info.topology =
+                ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
             input_assembly_state_create_info.primitiveRestartEnable = VK_FALSE;
 
             graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
@@ -329,9 +329,9 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
     }
 }
 
-void VulkanPipeline::CreateComputePipeline(const ComputePipelineCreateInfo& create_info)
+void VulkanPipeline::CreateComputePipeline(const ComputePipelineCreateInfo &create_info)
 {
-    //assert(m_cs != nullptr);
+    // assert(m_cs != nullptr);
 
     auto cs = reinterpret_cast<VulkanShader *>(create_info.shader_program.ComputeShader());
     VkPipelineShaderStageCreateInfo shader_stage_create_info{};

@@ -321,7 +321,7 @@ struct VertexAttributeDescription
     u32 stride;
     u32 offset;
     // DX12 semantic information (optional, can be empty for Vulkan)
-    const char* semantic_name = nullptr;
+    const char *semantic_name = nullptr;
     u32 semantic_index = 0;
 };
 
@@ -466,8 +466,9 @@ struct ShaderPrograms
     {
         m_shaders[(u32)type] = shader;
     };
+
   private:
-    void * m_shaders[(u32)ShaderType::MAX_SHADER_TYPE];
+    void *m_shaders[(u32)ShaderType::MAX_SHADER_TYPE];
 };
 
 struct GraphicsPipelineCreateInfo
@@ -488,7 +489,7 @@ struct ComputePipelineCreateInfo
     u32 flag = 0x01;
 };
 
-//struct PipelineCreateInfo
+// struct PipelineCreateInfo
 //{
 //    PipelineType type;
 //    GraphicsPipelineCreateInfo *gpci;

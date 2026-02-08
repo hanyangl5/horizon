@@ -500,8 +500,8 @@ void RHIDX12::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
     // Execute command lists
     if (!d3d12_command_lists.empty())
     {
-        m_dx12.command_queues[queue_index]->ExecuteCommandLists(
-            static_cast<UINT>(d3d12_command_lists.size()), d3d12_command_lists.data());
+        m_dx12.command_queues[queue_index]->ExecuteCommandLists(static_cast<UINT>(d3d12_command_lists.size()),
+                                                                d3d12_command_lists.data());
     }
 
     // Signal semaphores if any
@@ -571,7 +571,7 @@ void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
         // Create RTV for the back buffer
         D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
         m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index].Get(),
-                                               nullptr, rtv_handle);
+                                              nullptr, rtv_handle);
 
         // Create render target wrapper for the back buffer
         dx12_swap_chain->render_targets[dx12_swap_chain->image_index] = Memory::Alloc<DX12RenderTarget>(

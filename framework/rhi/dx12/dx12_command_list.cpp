@@ -325,9 +325,9 @@ void DX12CommandList::UpdateBuffer(Buffer *buffer, void *data, u64 size)
     upload_buffer_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     ComPtr<ID3D12Resource> upload_buffer;
-    HRESULT hr = m_context.device->CreateCommittedResource(
-        &upload_heap_props, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-        IID_PPV_ARGS(&upload_buffer));
+    HRESULT hr = m_context.device->CreateCommittedResource(&upload_heap_props, D3D12_HEAP_FLAG_NONE,
+                                                           &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                           nullptr, IID_PPV_ARGS(&upload_buffer));
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to create upload buffer: {}", hr);

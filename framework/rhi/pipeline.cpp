@@ -18,11 +18,11 @@ PipelineType Pipeline::GetType() const noexcept
     return m_type;
 }
 
-void Pipeline::ParseRootSignature(const ShaderPrograms& shaders)
+void Pipeline::ParseRootSignature(const ShaderPrograms &shaders)
 {
     if (m_type == PipelineType::GRAPHICS)
     {
-        ParseRootSignatureFromShader((Shader*)shaders.VertexShader());
+        ParseRootSignatureFromShader((Shader *)shaders.VertexShader());
         ParseRootSignatureFromShader((Shader *)shaders.PixelShader());
     }
     else if (m_type == PipelineType::COMPUTE)

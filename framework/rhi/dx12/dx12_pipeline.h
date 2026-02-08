@@ -27,8 +27,8 @@ class DX12Pipeline : public Pipeline
     DX12Pipeline(DX12Pipeline &&rhs) noexcept = delete;
     DX12Pipeline &operator=(DX12Pipeline &&rhs) noexcept = delete;
 
-    //void SetComputeShader(Shader *cs) override;
-    //void SetGraphicsShader(Shader *vs, Shader *ps) override;
+    // void SetComputeShader(Shader *cs) override;
+    // void SetGraphicsShader(Shader *vs, Shader *ps) override;
 
     void SetResource(Buffer *resource, const std::string &resource_name) override;
     void SetResource(Texture *resource, const std::string &resource_name) override;

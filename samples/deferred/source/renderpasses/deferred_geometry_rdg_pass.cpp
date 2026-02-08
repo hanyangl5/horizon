@@ -78,7 +78,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
         TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT};
     graphics_pass_ci.render_target_formats.has_depth = true;
     graphics_pass_ci.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
-    
+
     graphics_pass_ci.shader_program.SetShader(ShaderType::VERTEX_SHADER, m_geometry_vs);
     graphics_pass_ci.shader_program.SetShader(ShaderType::PIXEL_SHADER, m_geometry_ps);
     m_geometry_pipeline = CreateGraphicsPipeline(graphics_pass_ci);

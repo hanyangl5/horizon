@@ -47,7 +47,7 @@ template <> struct hash<Horizon::ComputePipelineCreateInfo>
     }
 };
 
-//template <> struct hash<Horizon::PipelineCreateInfo>
+// template <> struct hash<Horizon::PipelineCreateInfo>
 //{
 //    inline Horizon::u64 operator()(const Horizon::PipelineCreateInfo &create_info) const
 //    {

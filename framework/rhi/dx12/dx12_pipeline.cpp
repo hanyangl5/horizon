@@ -14,8 +14,8 @@ DX12Pipeline::DX12Pipeline(const DX12RendererContext &context, const GraphicsPip
                            DX12DescriptorHeapAllocator &descriptor_heap_allocator) noexcept
     : m_context(context), m_descriptor_heap_allocator(descriptor_heap_allocator)
 {
-    //m_create_info.type = PipelineType::GRAPHICS;
-    //m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(&create_info);
+    // m_create_info.type = PipelineType::GRAPHICS;
+    // m_create_info.gpci = const_cast<GraphicsPipelineCreateInfo *>(&create_info);
     m_type = PipelineType::GRAPHICS;
 
     ParseRootSignature(create_info.shader_program);
@@ -27,13 +27,12 @@ DX12Pipeline::DX12Pipeline(const DX12RendererContext &context, const ComputePipe
                            DX12DescriptorHeapAllocator &descriptor_heap_allocator) noexcept
     : m_context(context), m_descriptor_heap_allocator(descriptor_heap_allocator)
 {
-    //m_create_info.type = PipelineType::COMPUTE;
-    //m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(&create_info);
+    // m_create_info.type = PipelineType::COMPUTE;
+    // m_create_info.cpci = const_cast<ComputePipelineCreateInfo *>(&create_info);
     m_type = PipelineType::COMPUTE;
     ParseRootSignature(create_info.shader_program);
     CreateRootSignature(create_info.shader_program);
     CreateComputePipeline(create_info);
-
 }
 
 DX12Pipeline::~DX12Pipeline() noexcept
@@ -41,7 +40,7 @@ DX12Pipeline::~DX12Pipeline() noexcept
     // ComPtr will automatically release
 }
 
-//void DX12Pipeline::SetComputeShader(Shader *cs)
+// void DX12Pipeline::SetComputeShader(Shader *cs)
 //{
 //    assert(cs->GetType() == ShaderType::COMPUTE_SHADER);
 //    assert(m_create_info.type == PipelineType::COMPUTE);
@@ -55,7 +54,7 @@ DX12Pipeline::~DX12Pipeline() noexcept
 //    }
 //}
 //
-//void DX12Pipeline::SetGraphicsShader(Shader *vs, Shader *ps)
+// void DX12Pipeline::SetGraphicsShader(Shader *vs, Shader *ps)
 //{
 //    assert(vs->GetType() == ShaderType::VERTEX_SHADER);
 //    assert(ps->GetType() == ShaderType::PIXEL_SHADER);
@@ -101,7 +100,7 @@ void DX12Pipeline::SetBindlessResource(std::vector<Texture *> &resource, const s
     LOG_WARN("SetBindlessResource for Texture not yet fully implemented");
 }
 
-void DX12Pipeline::CreateRootSignature(const ShaderPrograms& shaders)
+void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
 {
     // Build root signature from reflection data
     std::vector<D3D12_ROOT_PARAMETER> root_parameters;
