@@ -1,6 +1,6 @@
 #include "dx12_descriptor_heap_allocator.h"
-#include <core/log.h>
 #include <DirectXHelpers.h>
+#include <core/log.h>
 
 namespace Horizon::Backend
 {
@@ -151,7 +151,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeapAllocator::AllocateSRVs(u32 count)
 {
     if (m_srv_uav_cbv_index + count > MAX_SRV_UAV_CBV_COUNT)
     {
-        LOG_ERROR("SRV/UAV/CBV descriptor heap exhausted (need {}, have {})", count, 
+        LOG_ERROR("SRV/UAV/CBV descriptor heap exhausted (need {}, have {})", count,
                   MAX_SRV_UAV_CBV_COUNT - m_srv_uav_cbv_index);
         return {};
     }

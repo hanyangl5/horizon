@@ -21,12 +21,12 @@
 #include "dx12_utils.h"
 
 #ifdef _WIN32
+#include <DirectXHelpers.h>
 #include <d3d12.h>
 #include <d3d12sdklayers.h> // D3D12 SDK Layers for debugging
 #include <dxgi1_6.h>
 #include <windows.h>
 #include <wrl/client.h>
-#include <DirectXHelpers.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -114,7 +114,8 @@ void RHIDX12::CreateFactory()
         }
         else
         {
-            LOG_WARN("Failed to enable D3D12 Debug Layer. Install Graphics Tools from Windows Store for full debugging support.");
+            LOG_WARN("Failed to enable D3D12 Debug Layer. Install Graphics Tools from Windows Store for full debugging "
+                     "support.");
         }
     }
 #endif
@@ -225,7 +226,7 @@ void RHIDX12::CreateDevice()
 
         // Log all messages
         LOG_DEBUG("D3D12 Info Queue configured for debugging");
-        
+
         // Optional: Log message count
         UINT64 message_count = info_queue->GetNumStoredMessages();
         if (message_count > 0)

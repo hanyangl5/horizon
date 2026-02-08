@@ -32,7 +32,7 @@ class DX12DescriptorHeapAllocator
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateUAV();
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateCBV();
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateSampler();
-    
+
     // Allocate multiple descriptors for bindless resources
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateSRVs(u32 count);
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateUAVs(u32 count);

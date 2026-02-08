@@ -1,7 +1,7 @@
 #include "dx12_buffer.h"
+#include <DirectXHelpers.h>
 #include <core/log.h>
 #include <core/memory.h>
-#include <DirectXHelpers.h>
 
 namespace Horizon::Backend
 {
@@ -20,7 +20,8 @@ DX12Buffer::DX12Buffer(const DX12RendererContext &context, const BufferCreateInf
         resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
 
-    HRESULT hr = m_context.device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+    HRESULT hr =
+        m_context.device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
                                                   D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_resource));
     if (FAILED(hr))
     {
@@ -49,9 +50,9 @@ ID3D12Resource *DX12Buffer::GetUploadBuffer() noexcept
         CD3DX12_HEAP_PROPERTIES upload_heap_props(D3D12_HEAP_TYPE_UPLOAD);
         CD3DX12_RESOURCE_DESC upload_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(m_size);
 
-        HRESULT hr = m_context.device->CreateCommittedResource(
-            &upload_heap_props, D3D12_HEAP_FLAG_NONE, &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr, IID_PPV_ARGS(&m_upload_buffer));
+        HRESULT hr = m_context.device->CreateCommittedResource(&upload_heap_props, D3D12_HEAP_FLAG_NONE,
+                                                               &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                               nullptr, IID_PPV_ARGS(&m_upload_buffer));
         if (FAILED(hr))
         {
             LOG_ERROR("Failed to create upload buffer: {}", hr);

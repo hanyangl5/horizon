@@ -29,7 +29,6 @@ static HMODULE g_dxc_library = nullptr;
 
 #endif
 
-
 std::wstring DX12ShaderCompiler::GetShaderProfileDXC(ShaderType type)
 {
     // For DXC - Shader Model 6.0+
@@ -83,7 +82,7 @@ bool DX12ShaderCompiler::InitializeDXC()
     }
 
     // Get DxcCreateInstance function
-    typedef HRESULT(__stdcall *DxcCreateInstanceProc)(REFCLSID, REFIID, LPVOID *);
+    typedef HRESULT(__stdcall * DxcCreateInstanceProc)(REFCLSID, REFIID, LPVOID *);
     DxcCreateInstanceProc DxcCreateInstance = (DxcCreateInstanceProc)GetProcAddress(g_dxc_library, "DxcCreateInstance");
     if (DxcCreateInstance == nullptr)
     {
@@ -163,7 +162,7 @@ void DX12ShaderCompiler::CleanupDXC()
 }
 
 std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type,
-                                                        const char *entry_point, const Path &shader_dir)
+                                                       const char *entry_point, const Path &shader_dir)
 {
 #ifdef _WIN32
     if (!InitializeDXC())
@@ -202,42 +201,42 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
     }
 
     // Prepare arguments (store strings to keep them alive)
-    //std::vector<std::wstring> argument_strings;
+    // std::vector<std::wstring> argument_strings;
     std::vector<LPCWSTR> arguments;
-    
-    //argument_strings.push_back(L"-T");
+
+    // argument_strings.push_back(L"-T");
     arguments.push_back(L"-T ");
-    
-    //std::wstring profile_wide = profile;
-    //argument_strings.push_back(profile_wide);
+
+    // std::wstring profile_wide = profile;
+    // argument_strings.push_back(profile_wide);
     arguments.push_back(profile.c_str());
 
-    //argument_strings.push_back(L"-E");
+    // argument_strings.push_back(L"-E");
     arguments.push_back(L"-E");
-    
-    //std::wstring entry_point_wide = StringToWString(std::string(entry_point));
-    //argument_strings.push_back(entry_point_wide);
+
+    // std::wstring entry_point_wide = StringToWString(std::string(entry_point));
+    // argument_strings.push_back(entry_point_wide);
     std::wstring e = StringToWString(entry_point);
     arguments.push_back(e.c_str());
 
     // Add include directory
-    //argument_strings.push_back(L"-I");
+    // argument_strings.push_back(L"-I");
     arguments.push_back(L"-I");
-    
-    //std::wstring shader_dir_wide = StringToWString(shader_dir.string());
-    //argument_strings.push_back(shader_dir_wide);
+
+    // std::wstring shader_dir_wide = StringToWString(shader_dir.string());
+    // argument_strings.push_back(shader_dir_wide);
     std::wstring dir = StringToWString(shader_dir.c_str());
     arguments.push_back(dir.c_str());
 
-//#ifdef _DEBUG
-//    argument_strings.push_back(L"-Zi"); // Enable debug information
-//    arguments.push_back(argument_strings.back().c_str());
-//    argument_strings.push_back(L"-Od"); // Disable optimizations
-//    arguments.push_back(argument_strings.back().c_str());
-//#else
-//    argument_strings.push_back(L"-O3"); // Optimization level 3
-//    arguments.push_back(argument_strings.back().c_str());
-//#endif
+    //#ifdef _DEBUG
+    //    argument_strings.push_back(L"-Zi"); // Enable debug information
+    //    arguments.push_back(argument_strings.back().c_str());
+    //    argument_strings.push_back(L"-Od"); // Disable optimizations
+    //    arguments.push_back(argument_strings.back().c_str());
+    //#else
+    //    argument_strings.push_back(L"-O3"); // Optimization level 3
+    //    arguments.push_back(argument_strings.back().c_str());
+    //#endif
 
     // Compile
     DxcBuffer source_buffer = {};
@@ -246,9 +245,9 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
     source_buffer.Encoding = DXC_CP_UTF8;
 
     // Add source file name for better error messages (must be after all other arguments)
-    //std::wstring hlsl_path_wide = StringToWString(hlsl_path.string());
-    //argument_strings.push_back(hlsl_path_wide);
-    //arguments.push_back(argument_strings.back().c_str());
+    // std::wstring hlsl_path_wide = StringToWString(hlsl_path.string());
+    // argument_strings.push_back(hlsl_path_wide);
+    // arguments.push_back(argument_strings.back().c_str());
 
     IDxcResult *compile_result = nullptr;
     hr = g_dxc_compiler->Compile(&source_buffer, arguments.data(), static_cast<UINT32>(arguments.size()),

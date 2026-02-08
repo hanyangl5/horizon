@@ -1,7 +1,7 @@
 #include "dx12_texture.h"
+#include <DirectXHelpers.h>
 #include <core/log.h>
 #include <core/memory.h>
-#include <DirectXHelpers.h>
 
 namespace Horizon::Backend
 {
@@ -12,11 +12,10 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
 {
     CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
 
-    D3D12_RESOURCE_DIMENSION dimension = (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_3D)
-                                            ? D3D12_RESOURCE_DIMENSION_TEXTURE3D
-                                            : (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_1D)
-                                                  ? D3D12_RESOURCE_DIMENSION_TEXTURE1D
-                                                  : D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    D3D12_RESOURCE_DIMENSION dimension =
+        (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_3D)   ? D3D12_RESOURCE_DIMENSION_TEXTURE3D
+        : (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_1D) ? D3D12_RESOURCE_DIMENSION_TEXTURE1D
+                                                                             : D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
     UINT16 depth_or_array_size = (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_3D)
                                      ? static_cast<UINT16>(texture_create_info.depth)
@@ -27,7 +26,7 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
         1, // MipLevels - must be >= 1 for CreateCommittedResource
         ToDX12Format(texture_create_info.texture_format), 1, 0, D3D12_TEXTURE_LAYOUT_UNKNOWN,
         ToDX12ResourceFlags(texture_create_info.descriptor_types));
-    
+
     // Validate format
     if (resource_desc.Format == DXGI_FORMAT_UNKNOWN)
     {

@@ -56,7 +56,7 @@ CommandList *DX12CommandContext::GetCommandList(CommandQueueType type)
         }
 
         // Command lists are created in recording state, close it immediately
-        //command_list->Close();
+        // command_list->Close();
 
         m_command_lists[index].emplace_back(Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator));
     }

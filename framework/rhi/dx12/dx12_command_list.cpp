@@ -3,9 +3,9 @@
 #include "dx12_pipeline.h"
 #include "dx12_render_target.h"
 #include "dx12_texture.h"
+#include <DirectXHelpers.h>
 #include <core/log.h>
 #include <core/memory.h>
-#include <DirectXHelpers.h>
 
 namespace Horizon::Backend
 {
@@ -419,19 +419,17 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
     }
 
     auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(pipeline);
-    
+
     // Set descriptor heaps (required for shader-visible descriptors)
-    ID3D12DescriptorHeap *heaps[] = {
-        dx12_pipeline->m_descriptor_heap_allocator.GetSRVUAVCBVHeap(),
-        dx12_pipeline->m_descriptor_heap_allocator.GetSamplerHeap()
-    };
+    ID3D12DescriptorHeap *heaps[] = {dx12_pipeline->m_descriptor_heap_allocator.GetSRVUAVCBVHeap(),
+                                     dx12_pipeline->m_descriptor_heap_allocator.GetSamplerHeap()};
     m_command_list->SetDescriptorHeaps(2, heaps);
-    
+
     if (pipeline->GetType() == PipelineType::GRAPHICS)
     {
         m_command_list->SetPipelineState(dx12_pipeline->GetPipelineState());
         m_command_list->SetGraphicsRootSignature(dx12_pipeline->GetRootSignature());
-        
+
         // Bind all bindless descriptor tables
         for (const auto &[resource_name, gpu_handle] : dx12_pipeline->m_bindless_descriptor_tables)
         {
@@ -446,7 +444,7 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
     {
         m_command_list->SetPipelineState(dx12_pipeline->GetPipelineState());
         m_command_list->SetComputeRootSignature(dx12_pipeline->GetRootSignature());
-        
+
         // Bind all bindless descriptor tables
         for (const auto &[resource_name, gpu_handle] : dx12_pipeline->m_bindless_descriptor_tables)
         {

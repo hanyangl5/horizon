@@ -409,7 +409,6 @@ bool create_directories(const Path &path)
     return path.create_directories();
 }
 
-
 std::vector<char> ReadFile(const char *path)
 {
     std::ifstream file(path, std::ios::ate | std::ios::binary);

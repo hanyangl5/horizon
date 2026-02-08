@@ -405,7 +405,6 @@ u32 GetDX12SemanticIndex(const VertexAttributeDescription &attr) noexcept
     return 0;
 }
 
-
 // Helper function to convert std::string to std::wstring
 std::wstring StringToWString(const std::string &str)
 {

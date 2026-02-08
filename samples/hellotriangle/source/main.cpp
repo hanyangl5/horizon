@@ -52,9 +52,9 @@ int main()
 
     // Create vertex buffer
     TestVertex vertices[] = {
-        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Top vertex - Red
-        {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},  // Bottom right - Green
-        {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}  // Bottom left - Blue
+        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top vertex - Red
+        {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Bottom right - Green
+        {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}} // Bottom left - Blue
     };
 
     BufferCreateInfo vertex_buffer_info{};
@@ -69,7 +69,7 @@ int main()
     upload_cmd_list->BeginRecording();
     upload_cmd_list->UpdateBuffer(vertex_buffer, vertices, sizeof(vertices));
     upload_cmd_list->EndRecording();
-    
+
     QueueSubmitInfo upload_submit_info{};
     upload_submit_info.queue_type = CommandQueueType::GRAPHICS;
     upload_submit_info.command_lists.push_back(upload_cmd_list);
@@ -102,7 +102,6 @@ int main()
         .semantic_index = 0,
     };
 
-
     GraphicsPipelineCreateInfo pipeline_info{};
     pipeline_info.shader_program.SetShader(ShaderType::VERTEX_SHADER, vs_shader);
     pipeline_info.shader_program.SetShader(ShaderType::PIXEL_SHADER, ps_shader);
@@ -123,8 +122,6 @@ int main()
     pipeline_info.render_target_formats.color_attachment_formats[0] = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
     pipeline_info.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
     pipeline_info.rasterization_state.discard = false;
-
-
 
     Pipeline *pipeline = rhi->CreateGraphicsPipeline(pipeline_info);
 
@@ -152,7 +149,7 @@ int main()
         BarrierDesc barrier{};
         TextureBarrierDesc rt_barrier{};
         rt_barrier.texture = render_target_texture;
-        // Use UNDEFINED as src_state - this works for both first-time use (UNDEFINED) 
+        // Use UNDEFINED as src_state - this works for both first-time use (UNDEFINED)
         // and subsequent uses (will be PRESENT_SRC_KHR after first frame)
         // UNDEFINED->COLOR_ATTACHMENT_OPTIMAL is always valid in Vulkan
         rt_barrier.src_state = ResourceState::RESOURCE_STATE_UNDEFINED;
@@ -228,7 +225,6 @@ int main()
         QueuePresentInfo present_info{};
         present_info.swap_chain = swap_chain;
         rhi->Present(present_info);
-
 
         // Wait for GPU
         rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);

@@ -93,7 +93,7 @@ void DX12Pipeline::SetBindlessResource(std::vector<Buffer *> &resource, const st
     // Find the descriptor in root signature
     const DescriptorDesc *desc = nullptr;
     u32 set_number = BINDLESS_DESCRIPTOR_SET_NUMBER;
-    
+
     auto set_it = rsd.descriptors.find(set_number);
     if (set_it != rsd.descriptors.end())
     {
@@ -169,9 +169,8 @@ void DX12Pipeline::SetBindlessResource(std::vector<Buffer *> &resource, const st
             srv_desc.Buffer.FirstElement = 0;
             srv_desc.Buffer.NumElements = static_cast<UINT>(dx12_buffer->m_size / 4); // Assuming 32-bit elements
             srv_desc.Buffer.StructureByteStride = 0;
-            srv_desc.Buffer.Flags = (desc->type == DESCRIPTOR_TYPE_BUFFER_RAW) 
-                                    ? D3D12_BUFFER_SRV_FLAG_RAW 
-                                    : D3D12_BUFFER_SRV_FLAG_NONE;
+            srv_desc.Buffer.Flags =
+                (desc->type == DESCRIPTOR_TYPE_BUFFER_RAW) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
             m_context.device->CreateShaderResourceView(dx12_buffer->GetResource(), &srv_desc, current_cpu_handle);
         }
         else if (desc->type == DESCRIPTOR_TYPE_RW_BUFFER || desc->type == DESCRIPTOR_TYPE_RW_BUFFER_RAW)
@@ -182,16 +181,16 @@ void DX12Pipeline::SetBindlessResource(std::vector<Buffer *> &resource, const st
             uav_desc.Buffer.FirstElement = 0;
             uav_desc.Buffer.NumElements = static_cast<UINT>(dx12_buffer->m_size / 4);
             uav_desc.Buffer.StructureByteStride = 0;
-            uav_desc.Buffer.Flags = (desc->type == DESCRIPTOR_TYPE_RW_BUFFER_RAW)
-                                    ? D3D12_BUFFER_UAV_FLAG_RAW
-                                    : D3D12_BUFFER_UAV_FLAG_NONE;
-            m_context.device->CreateUnorderedAccessView(dx12_buffer->GetResource(), nullptr, &uav_desc, current_cpu_handle);
+            uav_desc.Buffer.Flags =
+                (desc->type == DESCRIPTOR_TYPE_RW_BUFFER_RAW) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+            m_context.device->CreateUnorderedAccessView(dx12_buffer->GetResource(), nullptr, &uav_desc,
+                                                        current_cpu_handle);
         }
     }
 
     // Store the GPU handle for binding in command list
     m_bindless_descriptor_tables[resource_name] = gpu_handle_start;
-    
+
     // Find root parameter index for this resource
     u32 root_param_index = 0;
     for (const auto &[set_num, descriptors] : rsd.descriptors)
@@ -409,8 +408,8 @@ void DX12Pipeline::SetBindlessResource(std::vector<Texture *> &resource, const s
         }
     }
 
-        // Store the GPU handle for binding in command list
-        m_bindless_descriptor_tables[resource_name] = gpu_handle_start;
+    // Store the GPU handle for binding in command list
+    m_bindless_descriptor_tables[resource_name] = gpu_handle_start;
     // Find root parameter index for this resource
     // Root parameters are created in the same order as descriptors in rsd
     u32 root_param_index = 0;
@@ -429,7 +428,6 @@ void DX12Pipeline::SetBindlessResource(std::vector<Texture *> &resource, const s
 
     LOG_WARN("Could not find root parameter index for bindless resource '{}'", resource_name);
 }
-
 
 D3D12_GPU_DESCRIPTOR_HANDLE DX12Pipeline::GetBindlessDescriptorTableHandle(const std::string &resource_name) const
 {
@@ -455,7 +453,7 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
         {
             D3D12_DESCRIPTOR_RANGE range{};
             range.RangeType = Horizon::ToDX12DescriptorRangeType(desc.type);
-            
+
             // For bindless resources (set 1), use a large descriptor count
             // The actual count will be set when SetBindlessResource is called
             if (set_number == BINDLESS_DESCRIPTOR_SET_NUMBER)
@@ -468,7 +466,7 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
             {
                 range.NumDescriptors = 1;
             }
-            
+
             range.BaseShaderRegister = desc.vk_binding; // Use binding as register
             range.RegisterSpace = set_number;
             range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -610,7 +608,7 @@ void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &crea
     // Sample desc
     pso_desc.SampleDesc.Count = 1;
     pso_desc.SampleDesc.Quality = 0;
-    
+
     HRESULT hr = m_context.device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&m_pipeline_state));
     if (FAILED(hr))
     {
