@@ -5,6 +5,7 @@
 #include <sstream>
 #include <filesystem>
 
+
 #include "dx12_utils.h"
 
 #ifdef _WIN32
@@ -204,7 +205,7 @@ void *DX12ShaderCompiler::GetDXCUtils()
 #endif
 }
 
-std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type,
+IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type,
                                                        const char *entry_point, const Path &shader_dir)
 {
 #ifdef _WIN32
@@ -214,8 +215,6 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
         return {}; // Fallback to FXC
     }
     
-    LOG_DEBUG("Compiling shader with DXC (Shader Model 6.0): {}", hlsl_path.c_str());
-
     // Read HLSL source
     std::ifstream file(hlsl_path.c_str(), std::ios::binary);
     if (!file.is_open())
@@ -249,7 +248,7 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
     std::vector<LPCWSTR> arguments;
 
     // argument_strings.push_back(L"-T");
-    arguments.push_back(L"-T ");
+    arguments.push_back(L"-T");
 
     arguments.push_back(profile.c_str());
 
@@ -336,31 +335,26 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
 //    pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
 
     // Copy bytecode to vector
-    std::vector<u8> bytecode(static_cast<size_t>(shader_blob->GetBufferSize()));
-    memcpy(bytecode.data(), shader_blob->GetBufferPointer(), shader_blob->GetBufferSize());
 
-    shader_blob->Release();
+    // Print shader_blob information
+
     compile_result->Release();
+
+
+    //std::vector<unsigned char> dbgbytecode(static_cast<size_t>(shader_blob->GetBufferSize()));
+    //memcpy(dbgbytecode.data(), shader_blob->GetBufferPointer(), shader_blob->GetBufferSize());
+    //std::string s(dbgbytecode.begin(), dbgbytecode.end());
     
-    LOG_DEBUG("Shader compiled successfully with DXC (Shader Model 6.0)");
-    return bytecode;
+    return shader_blob;
 #else
     return {};
 #endif
 }
 
-std::vector<u8> DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
+IDxcBlob *DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
                                                 const Path &shader_dir)
 {
-    // Try DXC first (supports Shader Model 6.0+)
-    auto result = CompileHLSLWithDXC(hlsl_path, shader_type, entry_point, shader_dir);
-    if (!result.empty())
-    {
-        return result;
-    }
-    LOG_ERROR("Failed to compile DX12 shader with DXC: {}", hlsl_path.c_str());
-    LOG_WARN("Falling back to FXC (Shader Model 5.1) is not implemented. Shader compilation failed.");
-    return {};
+    return CompileHLSLWithDXC(hlsl_path, shader_type, entry_point, shader_dir);
 }
 
 bool DX12ShaderCompiler::NeedsRecompilation(const Path &hlsl_path, const Path &cached_path)

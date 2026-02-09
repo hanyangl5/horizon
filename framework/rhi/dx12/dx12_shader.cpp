@@ -18,15 +18,16 @@
 namespace Horizon::Backend
 {
 
-DX12Shader::DX12Shader(const DX12RendererContext &context, ShaderType type, std::vector<u8> &bytecode,
+DX12Shader::DX12Shader(const DX12RendererContext &context, ShaderType type, void* bytecode,
                        const char *entry_point) noexcept
-    : Shader(type, entry_point), m_context(context), m_bytecode(std::move(bytecode))
+    : Shader(type, entry_point), m_context(context), m_bytecode((ID3DBlob*)bytecode)
 {
     ReflectShader();
 }
 
 DX12Shader::~DX12Shader() noexcept
 {
+    m_bytecode->Release();
     // Bytecode is stored in vector, no explicit cleanup needed
 }
 
@@ -35,15 +36,15 @@ void DX12Shader::ReflectShader()
 #ifdef _WIN32
     // Check if this is DXIL (Shader Model 6.0+) or DXBC (Shader Model 5.1)
     bool is_dxil = false;
-    if (m_bytecode.size() >= 4)
-    {
-        // DXIL container format: first 4 bytes are "DXIL" in ASCII
-        const char *magic = reinterpret_cast<const char *>(m_bytecode.data());
-        if (magic[0] == 'D' && magic[1] == 'X' && magic[2] == 'I' && magic[3] == 'L')
-        {
-            is_dxil = true;
-        }
-    }
+    //if (m_bytecode.size() >= 4)
+    //{
+    //    // DXIL container format: first 4 bytes are "DXIL" in ASCII
+    //    const char *magic = reinterpret_cast<const char *>(m_bytecode.data());
+    //    if (magic[0] == 'D' && magic[1] == 'X' && magic[2] == 'I' && magic[3] == 'L')
+    //    {
+    //        is_dxil = true;
+    //    }
+    //}
 
     {
         // Use DXC container reflection for DXIL shaders
@@ -77,7 +78,7 @@ void DX12Shader::ReflectShaderDXIL()
 
     // Create blob from bytecode
     IDxcBlobEncoding *container_blob = nullptr;
-    HRESULT hr = dxc_utils->CreateBlob(m_bytecode.data(), static_cast<UINT32>(m_bytecode.size()), CP_UTF8,
+    HRESULT hr = dxc_utils->CreateBlob(m_bytecode->GetBufferPointer(), static_cast<UINT32>(m_bytecode->GetBufferSize()), CP_UTF8,
                                        &container_blob);
     if (FAILED(hr) || container_blob == nullptr)
     {

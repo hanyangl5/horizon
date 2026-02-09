@@ -78,7 +78,7 @@ int main()
 
     // Define vertex input layout
     VertexInputState vertex_input_state{};
-    vertex_input_state.attribute_count = 2;
+    vertex_input_state.attribute_count = 1;
     vertex_input_state.attributes[0] = VertexAttributeDescription{
         VertexAttribFormat::F32,
         3, // float3
@@ -98,7 +98,7 @@ int main()
         0,
         sizeof(TestVertex),
         12,
-        "COLOR",
+        "COLOR0",
         0,
     };
 

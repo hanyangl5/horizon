@@ -16,7 +16,7 @@ namespace Horizon::Backend
 class DX12Shader : public Shader
 {
   public:
-    DX12Shader(const DX12RendererContext &context, ShaderType type, std::vector<u8> &bytecode,
+    DX12Shader(const DX12RendererContext &context, ShaderType type, void* bytecode,
                const char *entry_point) noexcept;
     ~DX12Shader() noexcept override;
     DX12Shader(const DX12Shader &rhs) noexcept = delete;
@@ -29,17 +29,14 @@ class DX12Shader : public Shader
         return &m_reflection;
     }
 
-    const std::vector<u8> &GetBytecode() const noexcept
-    {
-        return m_bytecode;
-    }
+    //const std::vector<u8> &GetBytecode() const noexcept
+    //{
+    //    return m_bytecode;
+    //}
 
     D3D12_SHADER_BYTECODE GetD3D12Bytecode() const noexcept
     {
-        D3D12_SHADER_BYTECODE bytecode{};
-        bytecode.pShaderBytecode = m_bytecode.data();
-        bytecode.BytecodeLength = m_bytecode.size();
-        return bytecode;
+        return CD3DX12_SHADER_BYTECODE(m_bytecode);
     }
 
   private:
@@ -48,7 +45,7 @@ class DX12Shader : public Shader
 
   public:
     const DX12RendererContext &m_context;
-    std::vector<u8> m_bytecode;
+    ID3DBlob *m_bytecode;
     RootSignatureDesc m_reflection{};
 };
 

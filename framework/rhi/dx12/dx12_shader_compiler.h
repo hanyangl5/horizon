@@ -6,6 +6,9 @@
 
 #include <rhi/enums.h>
 
+
+#include "dxcapi.h"
+
 namespace Horizon::Backend
 {
 
@@ -14,7 +17,7 @@ class DX12ShaderCompiler
   public:
     // Compile HLSL to DXBC/DXIL using DXC or FXC
     // Returns compiled shader bytecode
-    static std::vector<u8> CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
+    static IDxcBlob* CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
                                        const Path &shader_dir);
 
     // Check if shader needs recompilation
@@ -25,11 +28,7 @@ class DX12ShaderCompiler
     static std::wstring GetShaderProfileDXC(ShaderType type);
 
     // Compile using DXC API (supports Shader Model 6.0+)
-    static std::vector<u8> CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                              const Path &shader_dir);
-
-    // Compile using D3DCompile/FXC (supports up to Shader Model 5.1)
-    static std::vector<u8> CompileHLSLWithFXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
+    static IDxcBlob *CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
                                               const Path &shader_dir);
 
     static std::string FindDXCExecutable();
