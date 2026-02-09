@@ -76,8 +76,9 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
     render_targets.resize(swap_chain_create_info.back_buffer_count);
     for (u32 i = 0; i < render_targets.size(); i++)
     {
-        render_targets[i] = Memory::Alloc<DX12RenderTarget>(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
-                                                                     RenderTargetType::UNDEFINED, width, height});
+        render_targets[i] = Memory::Alloc<DX12RenderTarget>(
+            m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
+                                              RenderTargetType::UNDEFINED, width, height});
         ((DX12Texture *)render_targets[i]->GetTexture())->m_resource = m_back_buffers[i];
     }
 #else

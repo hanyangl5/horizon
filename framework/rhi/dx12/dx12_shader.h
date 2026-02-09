@@ -16,8 +16,7 @@ namespace Horizon::Backend
 class DX12Shader : public Shader
 {
   public:
-    DX12Shader(const DX12RendererContext &context, ShaderType type, void* bytecode,
-               const char *entry_point) noexcept;
+    DX12Shader(const DX12RendererContext &context, ShaderType type, void *bytecode, const char *entry_point) noexcept;
     ~DX12Shader() noexcept override;
     DX12Shader(const DX12Shader &rhs) noexcept = delete;
     DX12Shader &operator=(const DX12Shader &rhs) noexcept = delete;
@@ -29,7 +28,7 @@ class DX12Shader : public Shader
         return &m_reflection;
     }
 
-    //const std::vector<u8> &GetBytecode() const noexcept
+    // const std::vector<u8> &GetBytecode() const noexcept
     //{
     //    return m_bytecode;
     //}

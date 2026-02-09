@@ -1,10 +1,9 @@
 #include "dx12_shader_compiler.h"
 #include <core/log.h>
 #include <core/path.h>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
-
 
 #include "dx12_utils.h"
 
@@ -205,8 +204,8 @@ void *DX12ShaderCompiler::GetDXCUtils()
 #endif
 }
 
-IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type,
-                                                       const char *entry_point, const Path &shader_dir)
+IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
+                                                 const Path &shader_dir)
 {
 #ifdef _WIN32
     if (!InitializeDXC())
@@ -214,7 +213,7 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
         LOG_WARN("DXC initialization failed. Cannot compile with Shader Model 6.0.");
         return {}; // Fallback to FXC
     }
-    
+
     // Read HLSL source
     std::ifstream file(hlsl_path.c_str(), std::ios::binary);
     if (!file.is_open())
@@ -264,14 +263,14 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
     std::wstring dir = StringToWString(shader_dir.c_str());
     arguments.push_back(dir.c_str());
 
-    #ifdef _DEBUG
+#ifdef _DEBUG
     //    argument_strings.push_back(L"-Zi"); // Enable debug information
     arguments.push_back(L"-Zi");
     arguments.push_back(L"-Od"); // Disable optimizations
-    #else
-    //    argument_strings.push_back(L"-O3"); // Optimization level 3
-    //    arguments.push_back(argument_strings.back().c_str());
-    #endif
+#else
+//    argument_strings.push_back(L"-O3"); // Optimization level 3
+//    arguments.push_back(argument_strings.back().c_str());
+#endif
 
     // Compile
     DxcBuffer source_buffer = {};
@@ -325,14 +324,14 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
         compile_result->Release();
         return {};
     }
-//ComPtr<IDxcBlob> pReflectionData;
-//    pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(pReflectionData.GetAddressOf()), nullptr);
-//    DxcBuffer reflectionBuffer;
-//    reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
-//    reflectionBuffer.Size = pReflectionData->GetBufferSize();
-//    reflectionBuffer.Encoding = 0;
-//    ComPtr<ID3D12ShaderReflection> pShaderReflection;
-//    pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
+    // ComPtr<IDxcBlob> pReflectionData;
+    //    pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(pReflectionData.GetAddressOf()), nullptr);
+    //    DxcBuffer reflectionBuffer;
+    //    reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
+    //    reflectionBuffer.Size = pReflectionData->GetBufferSize();
+    //    reflectionBuffer.Encoding = 0;
+    //    ComPtr<ID3D12ShaderReflection> pShaderReflection;
+    //    pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
 
     // Copy bytecode to vector
 
@@ -340,11 +339,10 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
 
     compile_result->Release();
 
+    // std::vector<unsigned char> dbgbytecode(static_cast<size_t>(shader_blob->GetBufferSize()));
+    // memcpy(dbgbytecode.data(), shader_blob->GetBufferPointer(), shader_blob->GetBufferSize());
+    // std::string s(dbgbytecode.begin(), dbgbytecode.end());
 
-    //std::vector<unsigned char> dbgbytecode(static_cast<size_t>(shader_blob->GetBufferSize()));
-    //memcpy(dbgbytecode.data(), shader_blob->GetBufferPointer(), shader_blob->GetBufferSize());
-    //std::string s(dbgbytecode.begin(), dbgbytecode.end());
-    
     return shader_blob;
 #else
     return {};
@@ -352,7 +350,7 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
 }
 
 IDxcBlob *DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                                const Path &shader_dir)
+                                          const Path &shader_dir)
 {
     return CompileHLSLWithDXC(hlsl_path, shader_type, entry_point, shader_dir);
 }

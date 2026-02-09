@@ -356,7 +356,7 @@ Shader *RHIDX12::CreateShader(ShaderType type, const Path &file_name, const char
 
     // Compile HLSL shader
     // TODO: precompile to ir
-    IDxcBlob* bytecode = DX12ShaderCompiler::CompileHLSL(file_name, type, entry_point, shader_dir);
+    IDxcBlob *bytecode = DX12ShaderCompiler::CompileHLSL(file_name, type, entry_point, shader_dir);
     if (!bytecode)
     {
         LOG_ERROR("Failed to compile DX12 shader: {}", (void *)file_name.c_str());

@@ -18,9 +18,9 @@
 namespace Horizon::Backend
 {
 
-DX12Shader::DX12Shader(const DX12RendererContext &context, ShaderType type, void* bytecode,
+DX12Shader::DX12Shader(const DX12RendererContext &context, ShaderType type, void *bytecode,
                        const char *entry_point) noexcept
-    : Shader(type, entry_point), m_context(context), m_bytecode((ID3DBlob*)bytecode)
+    : Shader(type, entry_point), m_context(context), m_bytecode((ID3DBlob *)bytecode)
 {
     ReflectShader();
 }
@@ -36,7 +36,7 @@ void DX12Shader::ReflectShader()
 #ifdef _WIN32
     // Check if this is DXIL (Shader Model 6.0+) or DXBC (Shader Model 5.1)
     bool is_dxil = false;
-    //if (m_bytecode.size() >= 4)
+    // if (m_bytecode.size() >= 4)
     //{
     //    // DXIL container format: first 4 bytes are "DXIL" in ASCII
     //    const char *magic = reinterpret_cast<const char *>(m_bytecode.data());
@@ -78,8 +78,8 @@ void DX12Shader::ReflectShaderDXIL()
 
     // Create blob from bytecode
     IDxcBlobEncoding *container_blob = nullptr;
-    HRESULT hr = dxc_utils->CreateBlob(m_bytecode->GetBufferPointer(), static_cast<UINT32>(m_bytecode->GetBufferSize()), CP_UTF8,
-                                       &container_blob);
+    HRESULT hr = dxc_utils->CreateBlob(m_bytecode->GetBufferPointer(), static_cast<UINT32>(m_bytecode->GetBufferSize()),
+                                       CP_UTF8, &container_blob);
     if (FAILED(hr) || container_blob == nullptr)
     {
         LOG_WARN("Failed to create blob for DXIL reflection: {}", hr);
@@ -159,6 +159,5 @@ void DX12Shader::ReflectShaderDXIL()
     reflector->Release();
 #endif
 }
-
 
 } // namespace Horizon::Backend
