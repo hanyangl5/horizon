@@ -10,6 +10,10 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
     : Texture(texture_create_info), m_context(context),
       m_current_state(ToDX12ResourceState(texture_create_info.initial_state))
 {
+    // rt tex
+    if (texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_UNDEFINED ||
+        texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR)
+        return;
     CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D12_RESOURCE_DIMENSION dimension =

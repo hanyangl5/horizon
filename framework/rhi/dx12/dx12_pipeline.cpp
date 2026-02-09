@@ -527,8 +527,6 @@ void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &crea
     // Input layout
     std::vector<D3D12_INPUT_ELEMENT_DESC> input_elements;
     // Store semantic names as strings to ensure they remain valid
-    std::vector<std::string> semantic_name_storage;
-    semantic_name_storage.reserve(ci->vertex_input_state.attribute_count);
 
     for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i)
     {
@@ -537,17 +535,11 @@ void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &crea
 
         // Get semantic name (may need to store it if generated)
         const char *semantic_name = Horizon::GetDX12SemanticName(attr);
-        if (attr.semantic_name == nullptr || attr.semantic_name[0] == '\0')
-        {
-            // Store generated semantic name to ensure it remains valid
-            semantic_name_storage.push_back(semantic_name);
-            semantic_name = semantic_name_storage.back().c_str();
-        }
         element.SemanticName = semantic_name;
         element.SemanticIndex = Horizon::GetDX12SemanticIndex(attr);
         element.Format = Horizon::ToDX12VertexFormat(attr.attrib_format, attr.portion);
         element.InputSlot = attr.binding;
-        element.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+        element.AlignedByteOffset = attr.offset;
         element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
         element.InstanceDataStepRate = 0;
         input_elements.push_back(element);

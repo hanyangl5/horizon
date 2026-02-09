@@ -80,26 +80,26 @@ int main()
     VertexInputState vertex_input_state{};
     vertex_input_state.attribute_count = 2;
     vertex_input_state.attributes[0] = VertexAttributeDescription{
-        .attrib_format = VertexAttribFormat::F32,
-        .portion = 3, // float3
-        .input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
-        .location = 0,
-        .binding = 0,
-        .stride = sizeof(TestVertex),
-        .offset = 0,
-        .semantic_name = "POSITION",
-        .semantic_index = 0,
+        VertexAttribFormat::F32,
+        3, // float3
+        VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
+        0,
+        0,
+        sizeof(TestVertex),
+        0,
+        "POSITION",
+        0,
     };
     vertex_input_state.attributes[1] = VertexAttributeDescription{
-        .attrib_format = VertexAttribFormat::F32,
-        .portion = 3, // float3
-        .input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
-        .location = 1,
-        .binding = 0,
-        .stride = sizeof(TestVertex),
-        .offset = 12, // sizeof(float3)
-        .semantic_name = "COLOR",
-        .semantic_index = 0,
+        VertexAttribFormat::F32,
+        3, // float3
+        VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
+        0,
+        0,
+        sizeof(TestVertex),
+        12,
+        "COLOR",
+        0,
     };
 
     GraphicsPipelineCreateInfo pipeline_info{};

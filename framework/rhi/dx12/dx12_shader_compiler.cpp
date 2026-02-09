@@ -3,6 +3,7 @@
 #include <core/path.h>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 #include "dx12_utils.h"
 
@@ -25,6 +26,7 @@ namespace Horizon::Backend
 static IDxcCompiler3 *g_dxc_compiler = nullptr;
 static IDxcUtils *g_dxc_utils = nullptr;
 static IDxcIncludeHandler *g_dxc_include_handler = nullptr;
+static IDxcContainerReflection *g_dxc_reflection = nullptr;
 static HMODULE g_dxc_library = nullptr;
 
 #endif
@@ -128,6 +130,14 @@ bool DX12ShaderCompiler::InitializeDXC()
         return false;
     }
 
+    // Create DXC container reflection for DXIL shader reflection
+    hr = DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&g_dxc_reflection));
+    if (FAILED(hr))
+    {
+        LOG_WARN("Failed to create DXC container reflection. DXIL shader reflection will be unavailable.");
+        // Continue anyway, reflection is optional
+    }
+
     LOG_DEBUG("DXC compiler initialized successfully. Using Shader Model 6.0.");
     return true;
 #else
@@ -138,6 +148,11 @@ bool DX12ShaderCompiler::InitializeDXC()
 void DX12ShaderCompiler::CleanupDXC()
 {
 #ifdef _WIN32
+    if (g_dxc_reflection)
+    {
+        g_dxc_reflection->Release();
+        g_dxc_reflection = nullptr;
+    }
     if (g_dxc_include_handler)
     {
         g_dxc_include_handler->Release();
@@ -161,14 +176,45 @@ void DX12ShaderCompiler::CleanupDXC()
 #endif
 }
 
+void *DX12ShaderCompiler::GetDXCReflection()
+{
+#ifdef _WIN32
+    // Ensure DXC is initialized
+    if (!InitializeDXC())
+    {
+        return nullptr;
+    }
+    return g_dxc_reflection;
+#else
+    return nullptr;
+#endif
+}
+
+void *DX12ShaderCompiler::GetDXCUtils()
+{
+#ifdef _WIN32
+    // Ensure DXC is initialized
+    if (!InitializeDXC())
+    {
+        return nullptr;
+    }
+    return g_dxc_utils;
+#else
+    return nullptr;
+#endif
+}
+
 std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type,
                                                        const char *entry_point, const Path &shader_dir)
 {
 #ifdef _WIN32
     if (!InitializeDXC())
     {
+        LOG_WARN("DXC initialization failed. Cannot compile with Shader Model 6.0.");
         return {}; // Fallback to FXC
     }
+    
+    LOG_DEBUG("Compiling shader with DXC (Shader Model 6.0): {}", hlsl_path.c_str());
 
     // Read HLSL source
     std::ifstream file(hlsl_path.c_str(), std::ios::binary);
@@ -200,54 +246,39 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
         return {};
     }
 
-    // Prepare arguments (store strings to keep them alive)
-    // std::vector<std::wstring> argument_strings;
     std::vector<LPCWSTR> arguments;
 
     // argument_strings.push_back(L"-T");
     arguments.push_back(L"-T ");
 
-    // std::wstring profile_wide = profile;
-    // argument_strings.push_back(profile_wide);
     arguments.push_back(profile.c_str());
 
     // argument_strings.push_back(L"-E");
     arguments.push_back(L"-E");
 
-    // std::wstring entry_point_wide = StringToWString(std::string(entry_point));
-    // argument_strings.push_back(entry_point_wide);
     std::wstring e = StringToWString(entry_point);
     arguments.push_back(e.c_str());
 
     // Add include directory
-    // argument_strings.push_back(L"-I");
     arguments.push_back(L"-I");
 
-    // std::wstring shader_dir_wide = StringToWString(shader_dir.string());
-    // argument_strings.push_back(shader_dir_wide);
     std::wstring dir = StringToWString(shader_dir.c_str());
     arguments.push_back(dir.c_str());
 
-    //#ifdef _DEBUG
+    #ifdef _DEBUG
     //    argument_strings.push_back(L"-Zi"); // Enable debug information
-    //    arguments.push_back(argument_strings.back().c_str());
-    //    argument_strings.push_back(L"-Od"); // Disable optimizations
-    //    arguments.push_back(argument_strings.back().c_str());
-    //#else
+    arguments.push_back(L"-Zi");
+    arguments.push_back(L"-Od"); // Disable optimizations
+    #else
     //    argument_strings.push_back(L"-O3"); // Optimization level 3
     //    arguments.push_back(argument_strings.back().c_str());
-    //#endif
+    #endif
 
     // Compile
     DxcBuffer source_buffer = {};
     source_buffer.Ptr = source_blob->GetBufferPointer();
     source_buffer.Size = source_blob->GetBufferSize();
     source_buffer.Encoding = DXC_CP_UTF8;
-
-    // Add source file name for better error messages (must be after all other arguments)
-    // std::wstring hlsl_path_wide = StringToWString(hlsl_path.string());
-    // argument_strings.push_back(hlsl_path_wide);
-    // arguments.push_back(argument_strings.back().c_str());
 
     IDxcResult *compile_result = nullptr;
     hr = g_dxc_compiler->Compile(&source_buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
@@ -295,6 +326,14 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
         compile_result->Release();
         return {};
     }
+//ComPtr<IDxcBlob> pReflectionData;
+//    pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(pReflectionData.GetAddressOf()), nullptr);
+//    DxcBuffer reflectionBuffer;
+//    reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
+//    reflectionBuffer.Size = pReflectionData->GetBufferSize();
+//    reflectionBuffer.Encoding = 0;
+//    ComPtr<ID3D12ShaderReflection> pShaderReflection;
+//    pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
 
     // Copy bytecode to vector
     std::vector<u8> bytecode(static_cast<size_t>(shader_blob->GetBufferSize()));
@@ -302,7 +341,7 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, Sh
 
     shader_blob->Release();
     compile_result->Release();
-
+    
     LOG_DEBUG("Shader compiled successfully with DXC (Shader Model 6.0)");
     return bytecode;
 #else
@@ -319,7 +358,8 @@ std::vector<u8> DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderTyp
     {
         return result;
     }
-    LOG_ERROR("Failed to compile DX12 shader: {}", (void *)hlsl_path.c_str());
+    LOG_ERROR("Failed to compile DX12 shader with DXC: {}", hlsl_path.c_str());
+    LOG_WARN("Falling back to FXC (Shader Model 5.1) is not implemented. Shader compilation failed.");
     return {};
 }
 

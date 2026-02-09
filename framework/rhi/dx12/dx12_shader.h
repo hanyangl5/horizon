@@ -44,6 +44,7 @@ class DX12Shader : public Shader
 
   private:
     void ReflectShader();
+    void ReflectShaderDXIL(); // For DXIL (Shader Model 6.0+)
 
   public:
     const DX12RendererContext &m_context;

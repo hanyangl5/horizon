@@ -38,6 +38,13 @@ class DX12ShaderCompiler
     // Initialize DXC compiler (lazy initialization)
     static bool InitializeDXC();
     static void CleanupDXC();
+
+  public:
+    // Get DXC reflection interface for DXIL shader reflection
+    static void *GetDXCReflection();
+    
+    // Get DXC utils for creating blobs
+    static void *GetDXCUtils();
 };
 
 } // namespace Horizon::Backend
