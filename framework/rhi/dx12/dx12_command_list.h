@@ -68,7 +68,7 @@ class DX12CommandList : public CommandList
     }
 
   private:
-    const DX12RendererContext &m_context;
+    [[maybe_unused]] const DX12RendererContext &m_context;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_allocator;
     bool m_is_recording{false};

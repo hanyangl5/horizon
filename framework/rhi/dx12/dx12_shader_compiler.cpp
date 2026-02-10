@@ -14,7 +14,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 // DXC API - use third_party version
-#include "third_party/dxc_2025_07_14/inc/dxcapi.h"
+#include <dxc/dxcapi.h>
 // Library will be linked via CMake, not pragma comment
 #endif
 

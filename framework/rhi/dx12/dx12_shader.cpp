@@ -10,7 +10,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 // DXC API for DXIL reflection
-#include <dxcapi.h>
+#include <dxc/dxcapi.h>
 #pragma comment(lib, "dxcompiler.lib")
 #pragma comment(lib, "dxguid.lib")
 #endif

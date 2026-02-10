@@ -25,7 +25,7 @@ class DX12CommandAllocatorPool
     CommandQueueType m_queue_type;
     std::vector<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>> m_allocators;
     std::vector<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>> m_available_allocators;
-    u32 m_current_index{0};
+    [[maybe_unused]] u32 m_current_index{0};
 };
 
 } // namespace Horizon::Backend

@@ -6,7 +6,7 @@
 
 #include <rhi/enums.h>
 
-#include "third_party/dxc_2025_07_14/inc/dxcapi.h"
+#include <dxc/dxcapi.h>
 
 namespace Horizon::Backend
 {
