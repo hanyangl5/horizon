@@ -8,8 +8,6 @@ namespace Horizon::Backend
 
 DX12CommandContext::DX12CommandContext(const DX12RendererContext &context) noexcept : m_context(context)
 {
-    m_command_lists_count.fill(0);
-
     // Create allocator pools for each queue type
     for (u32 i = 0; i < 3; ++i)
     {
@@ -29,40 +27,41 @@ DX12CommandContext::~DX12CommandContext() noexcept
         }
     }
 }
-
+// TODO(luhanyang): need to refactor this
 CommandList *DX12CommandContext::GetCommandList(CommandQueueType type)
 {
     u32 index = static_cast<u32>(type);
-    u32 count = m_command_lists_count[index];
 
-    if (count >= m_command_lists[index].size())
+    // Always reuse the first command list if it exists
+    // In DX12, command lists can be reset and reused after execution
+    if (!m_command_lists[index].empty())
     {
-        // Create a new command list
-        ComPtr<ID3D12CommandAllocator> allocator = m_allocator_pools[index]->GetAllocator();
-        if (allocator == nullptr)
-        {
-            LOG_ERROR("Failed to get command allocator");
-            return nullptr;
-        }
-
-        ComPtr<ID3D12GraphicsCommandList> command_list;
-        D3D12_COMMAND_LIST_TYPE list_type = Horizon::ToDX12CommandListType(type);
-        HRESULT hr =
-            m_context.device->CreateCommandList(0, list_type, allocator.Get(), nullptr, IID_PPV_ARGS(&command_list));
-        if (FAILED(hr))
-        {
-            LOG_ERROR("Failed to create command list: {}", hr);
-            return nullptr;
-        }
-
-        // Command lists are created in recording state, close it immediately
-        // command_list->Close();
-
-        m_command_lists[index].emplace_back(Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator));
+        return m_command_lists[index][0];
     }
 
-    m_command_lists_count[index]++;
-    return m_command_lists[index][count];
+    // Create a new command list only if we don't have one
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator = m_allocator_pools[index]->GetAllocator();
+    if (allocator == nullptr)
+    {
+        LOG_ERROR("Failed to get command allocator");
+        return nullptr;
+    }
+
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list;
+    D3D12_COMMAND_LIST_TYPE list_type = Horizon::ToDX12CommandListType(type);
+    HRESULT hr =
+        m_context.device->CreateCommandList(0, list_type, allocator.Get(), nullptr, IID_PPV_ARGS(&command_list));
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to create command list: {}", hr);
+        return nullptr;
+    }
+
+    // Command lists are created in recording state, close it immediately so it can be reset later
+    command_list->Close();
+
+    m_command_lists[index].emplace_back(Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator));
+    return m_command_lists[index][0];
 }
 
 void DX12CommandContext::Reset()
@@ -76,8 +75,8 @@ void DX12CommandContext::Reset()
         }
     }
 
-    // Reset command list counts
-    m_command_lists_count.fill(0);
+    // Command lists will be reset in BeginRecording when reused
+    // No need to reset counts since we always reuse the first command list
 }
 
 } // namespace Horizon::Backend

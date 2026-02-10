@@ -7,7 +7,7 @@
 #include <core/definations.h>
 #include <rhi/buffer.h>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {
@@ -37,8 +37,8 @@ class DX12Buffer : public Buffer
 
   public:
     const DX12RendererContext &m_context;
-    ComPtr<ID3D12Resource> m_resource;
-    ComPtr<ID3D12Resource> m_upload_buffer; // Upload buffer for UpdateBuffer operations
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_buffer; // Upload buffer for UpdateBuffer operations
     D3D12_RESOURCE_STATES m_current_state;
 };
 

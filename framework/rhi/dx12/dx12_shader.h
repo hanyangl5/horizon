@@ -8,7 +8,7 @@
 #include <rhi/shader.h>
 #include <vector>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {

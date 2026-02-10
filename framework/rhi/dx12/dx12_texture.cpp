@@ -58,7 +58,7 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
 
 DX12Texture::~DX12Texture() noexcept
 {
-    // ComPtr will automatically release the resource
+    // Microsoft::WRL::ComPtr will automatically release the resource
 }
 
 } // namespace Horizon::Backend

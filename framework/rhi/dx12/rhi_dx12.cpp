@@ -31,7 +31,7 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-using Microsoft::WRL::ComPtr;
+
 #endif
 
 namespace Horizon::Backend
@@ -55,13 +55,22 @@ RHIDX12::~RHIDX12() noexcept
         WaitForGPU(static_cast<CommandQueueType>(i));
     }
 
+    // Cleanup DXC compiler
+    DX12ShaderCompiler::CleanupDXC();
+
     // Cleanup command context
-    Memory::Free(thread_command_context);
-    thread_command_context = nullptr;
+    if (thread_command_context)
+    {
+        Memory::Free(thread_command_context);
+        thread_command_context = nullptr;
+    }
 
     // Cleanup descriptor heap allocator
-    Memory::Free(m_descriptor_heap_allocator);
-    m_descriptor_heap_allocator = nullptr;
+    if (m_descriptor_heap_allocator)
+    {
+        Memory::Free(m_descriptor_heap_allocator);
+        m_descriptor_heap_allocator = nullptr;
+    }
 
     // Close fence event
     if (m_dx12.fence_event != nullptr)
@@ -69,6 +78,8 @@ RHIDX12::~RHIDX12() noexcept
         CloseHandle(m_dx12.fence_event);
         m_dx12.fence_event = nullptr;
     }
+
+    // ComPtr will automatically release all DX12 resources (device, queues, fences, etc.)
 }
 
 void RHIDX12::InitializeRenderer()
@@ -94,14 +105,14 @@ void RHIDX12::CreateFactory()
 #ifdef _DEBUG
     // Enable D3D12 debug layer
     {
-        ComPtr<ID3D12Debug> debug_controller;
+        Microsoft::WRL::ComPtr<ID3D12Debug> debug_controller;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller))))
         {
             debug_controller->EnableDebugLayer();
             LOG_DEBUG("D3D12 Debug Layer enabled");
 
             // Enable GPU-based validation for more thorough debugging
-            ComPtr<ID3D12Debug1> debug_controller1;
+            Microsoft::WRL::ComPtr<ID3D12Debug1> debug_controller1;
             if (SUCCEEDED(debug_controller.As(&debug_controller1)))
             {
                 debug_controller1->EnableDebugLayer();
@@ -130,8 +141,8 @@ void RHIDX12::CreateFactory()
 
 void RHIDX12::PickAdapter()
 {
-    ComPtr<IDXGIAdapter1> adapter;
-    ComPtr<IDXGIFactory6> factory6;
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+    Microsoft::WRL::ComPtr<IDXGIFactory6> factory6;
 
     if (SUCCEEDED(m_dx12.factory.As(&factory6)))
     {
@@ -201,7 +212,7 @@ void RHIDX12::CreateDevice()
 
 #ifdef _DEBUG
     // Configure debug message queue
-    ComPtr<ID3D12InfoQueue> info_queue;
+    Microsoft::WRL::ComPtr<ID3D12InfoQueue> info_queue;
     if (SUCCEEDED(m_dx12.device.As(&info_queue)))
     {
         // Set break on severity levels
@@ -337,12 +348,103 @@ Texture *RHIDX12::CreateTexture(const TextureCreateInfo &texture_create_info)
 
 RenderTarget *RHIDX12::CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info)
 {
-    return Memory::Alloc<DX12RenderTarget>(m_dx12, render_target_create_info);
+    if (!m_descriptor_heap_allocator)
+    {
+        LOG_ERROR("Descriptor heap allocator not initialized");
+        return nullptr;
+    }
+
+    // Create render target object
+    auto *render_target = Memory::Alloc<DX12RenderTarget>(m_dx12, render_target_create_info);
+    if (!render_target)
+    {
+        LOG_ERROR("Failed to allocate render target");
+        return nullptr;
+    }
+
+    // Get the texture resource
+    auto *dx12_texture = reinterpret_cast<DX12Texture *>(render_target->GetTexture());
+    if (!dx12_texture || !dx12_texture->GetResource())
+    {
+        LOG_ERROR("Invalid texture for render target");
+        return render_target; // Return even if texture is invalid
+    }
+
+    // Allocate and create RTV or DSV based on render target type
+    if (render_target_create_info.rt_type == RenderTargetType::COLOR)
+    {
+        // Allocate RTV handle
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
+        
+        // Create RTV (render targets are always 2D textures)
+        D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+        rtv_desc.Format = ToDX12Format(render_target_create_info.rt_format);
+        rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+        rtv_desc.Texture2D.MipSlice = 0;
+        
+        m_dx12.device->CreateRenderTargetView(dx12_texture->GetResource(), &rtv_desc, rtv_handle);
+        
+        // Store the handle
+        render_target->m_rtv_handle = rtv_handle;
+    }
+    else if (render_target_create_info.rt_type == RenderTargetType::DEPTH_STENCIL)
+    {
+        // Allocate DSV handle
+        D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_descriptor_heap_allocator->AllocateDSV();
+        
+        // Create DSV (render targets are always 2D textures)
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
+        dsv_desc.Format = ToDX12Format(render_target_create_info.rt_format);
+        dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        dsv_desc.Flags = D3D12_DSV_FLAG_NONE;
+        dsv_desc.Texture2D.MipSlice = 0;
+        
+        m_dx12.device->CreateDepthStencilView(dx12_texture->GetResource(), &dsv_desc, dsv_handle);
+        
+        // Store the handle
+        render_target->m_dsv_handle = dsv_handle;
+    }
+
+    return render_target;
 }
 
 SwapChain *RHIDX12::CreateSwapChain(const SwapChainCreateInfo &create_info)
 {
-    return Memory::Alloc<DX12SwapChain>(m_dx12, create_info, m_window);
+    if (!m_descriptor_heap_allocator)
+    {
+        LOG_ERROR("Descriptor heap allocator not initialized");
+        return nullptr;
+    }
+
+    // Create swap chain
+    auto *swap_chain = Memory::Alloc<DX12SwapChain>(m_dx12, create_info, m_window);
+    if (!swap_chain)
+    {
+        LOG_ERROR("Failed to create swap chain");
+        return nullptr;
+    }
+
+    // Create RTV handles for all back buffers
+    auto *dx12_swap_chain = reinterpret_cast<DX12SwapChain *>(swap_chain);
+    for (u32 i = 0; i < dx12_swap_chain->m_back_buffers.size(); ++i)
+    {
+        auto *render_target = dx12_swap_chain->render_targets[i];
+        if (render_target)
+        {
+            auto *dx12_rt = reinterpret_cast<DX12RenderTarget *>(render_target);
+            
+            // Allocate RTV handle
+            D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
+            
+            // Create RTV for the back buffer
+            m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[i].Get(), nullptr, rtv_handle);
+            
+            // Store the handle
+            dx12_rt->m_rtv_handle = rtv_handle;
+        }
+    }
+
+    return swap_chain;
 }
 
 Shader *RHIDX12::CreateShader(ShaderType type, const Path &file_name, const char *entry_point)
@@ -604,19 +706,21 @@ void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
         return;
     }
 
+    if (!m_descriptor_heap_allocator)
+    {
+        LOG_ERROR("Descriptor heap allocator not initialized");
+        return;
+    }
+
     // Get current back buffer index
     dx12_swap_chain->image_index = dx12_swap_chain->m_swap_chain->GetCurrentBackBufferIndex();
     dx12_swap_chain->current_frame_index = dx12_swap_chain->image_index;
 
-    // Ensure render target exists for this back buffer
-    if (dx12_swap_chain->render_targets[dx12_swap_chain->image_index] == nullptr)
+    // Get or create render target for this back buffer
+    auto *render_target = dx12_swap_chain->render_targets[dx12_swap_chain->image_index];
+    
+    if (render_target == nullptr)
     {
-        if (!m_descriptor_heap_allocator)
-        {
-            LOG_ERROR("Descriptor heap allocator not initialized");
-            return;
-        }
-
         // Create RTV for the back buffer
         D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
         m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index].Get(),
@@ -625,6 +729,21 @@ void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
         // Create render target wrapper for the back buffer
         dx12_swap_chain->render_targets[dx12_swap_chain->image_index] = Memory::Alloc<DX12RenderTarget>(
             m_dx12, dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index], rtv_handle);
+    }
+    else
+    {
+        // Check if RTV handle is valid, if not, create it
+        auto *dx12_rt = reinterpret_cast<DX12RenderTarget *>(render_target);
+        if (dx12_rt->GetRTVHandle().ptr == 0)
+        {
+            // Allocate and create RTV handle
+            D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
+            m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index].Get(),
+                                                  nullptr, rtv_handle);
+            
+            // Store the handle
+            dx12_rt->m_rtv_handle = rtv_handle;
+        }
     }
 }
 

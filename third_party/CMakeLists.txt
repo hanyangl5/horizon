@@ -68,4 +68,25 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     nlohmann_json/include
     ${CMAKE_BINARY_DIR}/third_party/assimp/include
     include
+    dxc_2025_07_14/inc
 )
+
+# Add DXC library path and link
+if(WIN32)
+    # Determine architecture
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+            set(DXC_ARCH "arm64")
+        else()
+            set(DXC_ARCH "x64")
+        endif()
+    else()
+        set(DXC_ARCH "x86")
+    endif()
+    
+    # Add DXC library directory
+    target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dxc_2025_07_14/lib/${DXC_ARCH})
+    
+    # Link DXC library
+    target_link_libraries(${PROJECT_NAME} PUBLIC dxcompiler)
+endif()

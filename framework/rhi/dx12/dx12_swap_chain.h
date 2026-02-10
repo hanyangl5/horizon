@@ -8,7 +8,7 @@
 #include <core/definations.h>
 #include <rhi/swap_chain.h>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {
@@ -26,9 +26,9 @@ class DX12SwapChain : public SwapChain
 
   public:
     const DX12RendererContext &m_context;
-    ComPtr<IDXGISwapChain3> m_swap_chain;
+    Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swap_chain;
     DXGI_FORMAT m_format;
-    std::vector<ComPtr<ID3D12Resource>> m_back_buffers;
+    std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_back_buffers;
 };
 
 } // namespace Horizon::Backend

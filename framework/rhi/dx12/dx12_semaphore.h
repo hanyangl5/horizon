@@ -8,7 +8,7 @@
 #include <rhi/enums.h>
 #include <rhi/semaphore.h>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {
@@ -44,7 +44,7 @@ class DX12Semaphore : public Semaphore
 
   private:
     const DX12RendererContext &m_context;
-    ComPtr<ID3D12Fence> m_fence;
+    Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     UINT64 m_fence_value{0};
 };
 

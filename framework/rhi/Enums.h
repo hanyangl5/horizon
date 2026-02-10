@@ -316,7 +316,7 @@ struct VertexAttributeDescription
     u32 portion;
     VertexInputRate input_rate;
     u32 location;
-    u32 binding;
+    u32 binding; // use to seperate use seperated buffer (e.g. position, normal) of vertex stream
     u32 stride;
     u32 offset;
     // DX12 semantic information (optional, can be empty for Vulkan)

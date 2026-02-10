@@ -6,7 +6,7 @@
 
 #include <rhi/enums.h>
 
-#include "dxcapi.h"
+#include "third_party/dxc_2025_07_14/inc/dxcapi.h"
 
 namespace Horizon::Backend
 {
@@ -35,9 +35,9 @@ class DX12ShaderCompiler
 
     // Initialize DXC compiler (lazy initialization)
     static bool InitializeDXC();
-    static void CleanupDXC();
 
   public:
+    static void CleanupDXC();
     // Get DXC reflection interface for DXIL shader reflection
     static void *GetDXCReflection();
 

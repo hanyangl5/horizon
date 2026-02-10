@@ -15,7 +15,7 @@ DX12Semaphore::DX12Semaphore(const DX12RendererContext &context) noexcept : m_co
 
 DX12Semaphore::~DX12Semaphore() noexcept
 {
-    // ComPtr will automatically release
+    // Microsoft::WRL::ComPtr will automatically release
 }
 
 void DX12Semaphore::AddWaitStage([[maybe_unused]] CommandQueueType queue_type) noexcept

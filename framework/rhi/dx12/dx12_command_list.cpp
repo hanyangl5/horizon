@@ -11,40 +11,42 @@ namespace Horizon::Backend
 {
 
 DX12CommandList::DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
-                                 ComPtr<ID3D12GraphicsCommandList> command_list,
-                                 ComPtr<ID3D12CommandAllocator> allocator) noexcept
+                                 Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list,
+                                 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator) noexcept
     : CommandList(type), m_context(context), m_command_list(command_list), m_allocator(allocator)
 {
 }
 
 DX12CommandList::~DX12CommandList() noexcept
 {
-    // ComPtr will automatically release
+    // Microsoft::WRL::ComPtr will automatically release
 }
 
 void DX12CommandList::BeginRecording()
 {
-    // if (m_is_recording)
-    // {
-    //     LOG_WARN("Command list is already recording");
-    //     return;
-    // }
-    // // TODO(luhanyang): need to reset pool?
-    // // Reset allocator and command list
-    // HRESULT hr = m_allocator->Reset();
-    // if (FAILED(hr))
-    // {
-    //     LOG_ERROR("Failed to reset command allocator: {}", hr);
-    //     return;
-    // }
+    if (m_is_recording)
+    {
+        LOG_WARN("Command list is already recording");
+        return;
+    }
 
-    // hr = m_command_list->Reset(m_allocator.Get(), nullptr);
-    // if (FAILED(hr))
-    // {
-    //     LOG_ERROR("Failed to reset command list: {}", hr);
-    //     return;
-    // }
+    // Reset allocator and command list for reuse
+    HRESULT hr = m_allocator->Reset();
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to reset command allocator: {}", hr);
+        return;
+    }
 
+    hr = m_command_list->Reset(m_allocator.Get(), nullptr);
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to reset command list: {}", hr);
+        return;
+    }
+
+    // Reset internal state
+    m_current_pipeline = nullptr;
     m_is_recording = true;
 }
 
@@ -83,13 +85,35 @@ void DX12CommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 
         return;
     }
 
+    if (m_current_pipeline == nullptr)
+    {
+        LOG_ERROR("No pipeline bound. BindPipeline must be called before BindVertexBuffers");
+        return;
+    }
+
+    if (m_current_pipeline->GetType() != PipelineType::GRAPHICS)
+    {
+        LOG_ERROR("BindVertexBuffers can only be called with a graphics pipeline");
+        return;
+    }
+
+    auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(m_current_pipeline);
+
     std::vector<D3D12_VERTEX_BUFFER_VIEW> views(buffer_count);
     for (u32 i = 0; i < buffer_count; ++i)
     {
         auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffers[i]);
         views[i].BufferLocation = dx12_buffer->GetGPUVirtualAddress() + offsets[i];
         views[i].SizeInBytes = static_cast<UINT>(buffers[i]->m_size - offsets[i]);
-        views[i].StrideInBytes = 0; // Will be set by input layout
+        
+        // Get stride from pipeline for this input slot
+        u32 stride = dx12_pipeline->GetVertexStride(i);
+        if (stride == 0)
+        {
+            LOG_ERROR("Failed to get vertex stride for input slot {}", i);
+            return;
+        }
+        views[i].StrideInBytes = stride;
     }
 
     m_command_list->IASetVertexBuffers(0, buffer_count, views.data());
@@ -234,7 +258,6 @@ void DX12CommandList::DrawInstanced(u32 vertex_count, u32 first_vertex, u32 inst
         LOG_ERROR("Command list is not recording");
         return;
     }
-
     m_command_list->DrawInstanced(vertex_count, instance_count, first_vertex, first_instance);
 }
 
@@ -418,6 +441,9 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
         return;
     }
 
+    // Store current pipeline for vertex stride lookup
+    m_current_pipeline = pipeline;
+
     auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(pipeline);
 
     // Set descriptor heaps (required for shader-visible descriptors)
@@ -427,6 +453,7 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
 
     if (pipeline->GetType() == PipelineType::GRAPHICS)
     {
+        m_command_list->IASetPrimitiveTopology(ToDX12PrimitiveTopology(pipeline->GetTopology()));
         m_command_list->SetPipelineState(dx12_pipeline->GetPipelineState());
         m_command_list->SetGraphicsRootSignature(dx12_pipeline->GetRootSignature());
 

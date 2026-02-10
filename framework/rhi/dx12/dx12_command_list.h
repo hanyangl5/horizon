@@ -7,8 +7,8 @@
 
 #include <core/definations.h>
 #include <rhi/command_list.h>
+#include <rhi/pipeline.h>
 
-using Microsoft::WRL::ComPtr;
 
 namespace Horizon::Backend
 {
@@ -17,7 +17,7 @@ class DX12CommandList : public CommandList
 {
   public:
     DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
-                    ComPtr<ID3D12GraphicsCommandList> command_list, ComPtr<ID3D12CommandAllocator> allocator) noexcept;
+                    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator) noexcept;
 
     virtual ~DX12CommandList() noexcept;
     DX12CommandList(const DX12CommandList &rhs) noexcept = delete;
@@ -69,11 +69,12 @@ class DX12CommandList : public CommandList
 
   private:
     const DX12RendererContext &m_context;
-    ComPtr<ID3D12GraphicsCommandList> m_command_list;
-    ComPtr<ID3D12CommandAllocator> m_allocator;
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_allocator;
     bool m_is_recording{false};
     bool m_in_render_pass{false};
     bool m_in_compute_pass{false};
+    Pipeline *m_current_pipeline{nullptr}; // Track current pipeline for vertex stride
 };
 
 } // namespace Horizon::Backend

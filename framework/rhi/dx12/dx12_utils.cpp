@@ -424,4 +424,22 @@ std::wstring StringToWString(const std::string &str)
     return result;
 }
 
+std::string WStringToString(const std::wstring &wstr)
+{
+    if (wstr.empty())
+    {
+        return std::string();
+    }
+
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), static_cast<int>(wstr.length()), nullptr, 0, nullptr, nullptr);
+    if (size_needed == 0)
+    {
+        return std::string();
+    }
+
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), static_cast<int>(wstr.length()), &result[0], size_needed, nullptr, nullptr);
+    return result;
+}
+
 } // namespace Horizon

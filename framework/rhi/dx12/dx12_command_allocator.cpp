@@ -12,7 +12,7 @@ DX12CommandAllocatorPool::DX12CommandAllocatorPool(const DX12RendererContext &co
     m_allocators.reserve(4);
     for (u32 i = 0; i < 4; ++i)
     {
-        ComPtr<ID3D12CommandAllocator> allocator;
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
         D3D12_COMMAND_LIST_TYPE list_type = ToDX12CommandListType(queue_type);
         HRESULT hr = m_context.device->CreateCommandAllocator(list_type, IID_PPV_ARGS(&allocator));
         if (SUCCEEDED(hr))
@@ -29,10 +29,10 @@ DX12CommandAllocatorPool::DX12CommandAllocatorPool(const DX12RendererContext &co
 
 DX12CommandAllocatorPool::~DX12CommandAllocatorPool() noexcept
 {
-    // ComPtr will automatically release
+    // Microsoft::WRL::ComPtr will automatically release
 }
 
-ComPtr<ID3D12CommandAllocator> DX12CommandAllocatorPool::GetAllocator()
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> DX12CommandAllocatorPool::GetAllocator()
 {
     if (!m_available_allocators.empty())
     {
@@ -42,7 +42,7 @@ ComPtr<ID3D12CommandAllocator> DX12CommandAllocatorPool::GetAllocator()
     }
 
     // Create a new allocator if none available
-    ComPtr<ID3D12CommandAllocator> allocator;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
     D3D12_COMMAND_LIST_TYPE list_type = Horizon::ToDX12CommandListType(m_queue_type);
     HRESULT hr = m_context.device->CreateCommandAllocator(list_type, IID_PPV_ARGS(&allocator));
     if (SUCCEEDED(hr))
@@ -57,7 +57,7 @@ ComPtr<ID3D12CommandAllocator> DX12CommandAllocatorPool::GetAllocator()
     }
 }
 
-void DX12CommandAllocatorPool::ResetAllocator(ComPtr<ID3D12CommandAllocator> allocator)
+void DX12CommandAllocatorPool::ResetAllocator(Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator)
 {
     if (allocator != nullptr)
     {

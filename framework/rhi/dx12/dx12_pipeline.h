@@ -9,7 +9,7 @@
 #include <rhi/pipeline.h>
 #include <unordered_map>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {
@@ -48,6 +48,9 @@ class DX12Pipeline : public Pipeline
         return m_root_signature.Get();
     }
 
+    // Get vertex stride for a given input slot (used by command list)
+    u32 GetVertexStride(u32 input_slot) const noexcept;
+
   private:
     void CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
     void CreateComputePipeline(const ComputePipelineCreateInfo &create_info);
@@ -59,12 +62,15 @@ class DX12Pipeline : public Pipeline
   public:
     const DX12RendererContext &m_context;
     DX12DescriptorHeapAllocator &m_descriptor_heap_allocator;
-    ComPtr<ID3D12PipelineState> m_pipeline_state;
-    ComPtr<ID3D12RootSignature> m_root_signature;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature;
 
     // Store bindless descriptor table handles (public for command list access)
     std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> m_bindless_descriptor_tables;
     std::unordered_map<std::string, u32> m_bindless_root_parameter_indices;
-};
 
+  private:
+    // Store vertex input state for graphics pipelines
+    VertexInputState m_vertex_input_state{};
+};
 } // namespace Horizon::Backend

@@ -19,7 +19,7 @@ class Pipeline
     Pipeline &operator=(Pipeline &&rhs) noexcept = delete;
 
     PipelineType GetType() const noexcept;
-
+    PrimitiveTopology GetTopology() const noexcept;
     // virtual void SetComputeShader(Shader *vs) = 0;
     // virtual void SetGraphicsShader(Shader *vs, Shader *ps) = 0;
     virtual void SetResource(Buffer *resource, const std::string &resource_name) = 0;
@@ -40,6 +40,7 @@ class Pipeline
     // Shader *m_vs{}, *m_ps{}, *m_cs{};
     // PipelineCreateInfo m_create_info{};
     PipelineType m_type;
+    PrimitiveTopology m_topology;
     RootSignatureDesc rsd{};
 };
 } // namespace Horizon::Backend

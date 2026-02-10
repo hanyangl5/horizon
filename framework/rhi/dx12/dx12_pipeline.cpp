@@ -4,8 +4,6 @@
 #include "dx12_texture.h"
 #include "dx12_utils.h"
 #include <core/log.h>
-#include <string>
-#include <vector>
 
 namespace Horizon::Backend
 {
@@ -37,7 +35,7 @@ DX12Pipeline::DX12Pipeline(const DX12RendererContext &context, const ComputePipe
 
 DX12Pipeline::~DX12Pipeline() noexcept
 {
-    // ComPtr will automatically release
+    // Microsoft::WRL::ComPtr will automatically release
 }
 
 // void DX12Pipeline::SetComputeShader(Shader *cs)
@@ -491,8 +489,8 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
     root_sig_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
     // Serialize root signature
-    ComPtr<ID3DBlob> signature;
-    ComPtr<ID3DBlob> error;
+    Microsoft::WRL::ComPtr<ID3DBlob> signature;
+    Microsoft::WRL::ComPtr<ID3DBlob> error;
     HRESULT hr = D3D12SerializeRootSignature(&root_sig_desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
     if (FAILED(hr))
     {
@@ -514,6 +512,9 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
 void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
 {
     auto ci = &create_info;
+
+    // Store vertex input state for later use (e.g., getting stride in BindVertexBuffers)
+    m_vertex_input_state = ci->vertex_input_state;
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{};
     pso_desc.pRootSignature = m_root_signature.Get();
@@ -578,6 +579,7 @@ void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &crea
             pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
         }
     }
+    pso_desc.SampleMask = UINT_MAX;
     // Depth stencil state
     pso_desc.DepthStencilState.DepthEnable = ci->depth_stencil_state.depth_test;
     pso_desc.DepthStencilState.DepthWriteMask =
@@ -595,7 +597,8 @@ void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &crea
     pso_desc.DSVFormat = Horizon::ToDX12Format(ci->render_target_formats.depth_stencil_format);
 
     // Primitive topology
-    pso_desc.PrimitiveTopologyType = Horizon::ToDX12PrimitiveTopologyType(ci->input_assembly_state.topology);
+    m_topology = ci->input_assembly_state.topology;
+    pso_desc.PrimitiveTopologyType = Horizon::ToDX12PrimitiveTopologyType(m_topology);
 
     // Sample desc
     pso_desc.SampleDesc.Count = 1;
@@ -623,4 +626,23 @@ void DX12Pipeline::CreateComputePipeline(const ComputePipelineCreateInfo &create
     }
 }
 
+ u32 DX12Pipeline::GetVertexStride(u32 input_slot) const noexcept
+{
+     // Find the maximum stride for the given input slot
+     u32 max_stride = 0;
+     for (u32 i = 0; i < m_vertex_input_state.attribute_count; ++i)
+     {
+         const auto &attr = m_vertex_input_state.attributes[i];
+         if (attr.binding == input_slot)
+         {
+             // Stride is the total size of one vertex in this binding
+             // We use the stride field from the attribute description
+             if (attr.stride > max_stride)
+             {
+                 max_stride = attr.stride;
+             }
+         }
+     }
+     return max_stride;
+ }
 } // namespace Horizon::Backend

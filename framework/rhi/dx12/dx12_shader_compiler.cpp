@@ -13,9 +13,9 @@
 
 #pragma comment(lib, "d3dcompiler.lib")
 
-// DXC API
-#include <dxcapi.h>
-#pragma comment(lib, "dxcompiler.lib")
+// DXC API - use third_party version
+#include "third_party/dxc_2025_07_14/inc/dxcapi.h"
+// Library will be linked via CMake, not pragma comment
 #endif
 
 namespace Horizon::Backend
@@ -56,27 +56,53 @@ bool DX12ShaderCompiler::InitializeDXC()
         return true; // Already initialized
     }
 
-    // Try to load dxcompiler.dll
-    g_dxc_library = LoadLibraryW(L"dxcompiler.dll");
+    // Try to load dxcompiler.dll from third_party first (using CMake-defined path)
+    std::wstring dxc_dll_path;
+    
+#ifdef DXC_BIN_DIR
+    // Use CMake-defined DXC bin directory
+    std::string dxc_bin_dir = DXC_BIN_DIR;
+    // Ensure path ends with separator before appending filename
+    char sep = (dxc_bin_dir.find('\\') != std::string::npos) ? '\\' : '/';
+    if (!dxc_bin_dir.empty() && dxc_bin_dir.back() != '\\' && dxc_bin_dir.back() != '/')
+    {
+        dxc_bin_dir += sep;
+    }
+    std::string dll_path = dxc_bin_dir + "dxcompiler.dll";
+    dxc_dll_path = StringToWString(dll_path);
+    
+    // Try loading from CMake-defined path
+    if (!dxc_dll_path.empty())
+    {
+        g_dxc_library = LoadLibraryW(dxc_dll_path.c_str());
+        if (g_dxc_library != nullptr)
+        {
+            LOG_DEBUG("Loaded dxcompiler.dll from CMake path: {}", dll_path);
+        }
+    }
+#endif
+    
+    // Fallback 1: Try relative to executable (for runtime, after DLL copy)
     if (g_dxc_library == nullptr)
     {
-        // Try common installation paths
-        const wchar_t *dxc_paths[] = {
-            L"C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\dxcompiler.dll",
-            L"C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64\\dxcompiler.dll",
-            L"C:\\Windows\\System32\\dxcompiler.dll",
-        };
-
-        for (const auto &path : dxc_paths)
+        wchar_t exe_path[MAX_PATH];
+        if (GetModuleFileNameW(nullptr, exe_path, MAX_PATH) > 0)
         {
-            g_dxc_library = LoadLibraryW(path);
-            if (g_dxc_library != nullptr)
+            std::wstring exe_dir = exe_path;
+            size_t last_slash = exe_dir.find_last_of(L"\\/");
+            if (last_slash != std::wstring::npos)
             {
-                break;
+                exe_dir = exe_dir.substr(0, last_slash);
+                std::wstring test_path = exe_dir + L"\\dxcompiler.dll";
+                g_dxc_library = LoadLibraryW(test_path.c_str());
+                if (g_dxc_library != nullptr)
+                {
+                    LOG_DEBUG("Loaded dxcompiler.dll from executable directory: {}", WStringToString(test_path));
+                }
             }
         }
     }
-
+    
     if (g_dxc_library == nullptr)
     {
         LOG_WARN("Failed to load dxcompiler.dll. Falling back to FXC (Shader Model 5.1).");
@@ -324,13 +350,13 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
         compile_result->Release();
         return {};
     }
-    // ComPtr<IDxcBlob> pReflectionData;
+    // Microsoft::WRL::ComPtr<IDxcBlob> pReflectionData;
     //    pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(pReflectionData.GetAddressOf()), nullptr);
     //    DxcBuffer reflectionBuffer;
     //    reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
     //    reflectionBuffer.Size = pReflectionData->GetBufferSize();
     //    reflectionBuffer.Encoding = 0;
-    //    ComPtr<ID3D12ShaderReflection> pShaderReflection;
+    //    Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pShaderReflection;
     //    pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
 
     // Copy bytecode to vector

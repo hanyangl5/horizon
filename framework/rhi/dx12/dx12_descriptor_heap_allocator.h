@@ -7,7 +7,7 @@
 #include <core/definations.h>
 #include <unordered_map>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {
@@ -62,10 +62,10 @@ class DX12DescriptorHeapAllocator
     const DX12RendererContext &m_context;
 
     // Descriptor heaps
-    ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
-    ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
-    ComPtr<ID3D12DescriptorHeap> m_srv_uav_cbv_heap;
-    ComPtr<ID3D12DescriptorHeap> m_sampler_heap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_uav_cbv_heap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_sampler_heap;
 
     // Allocation counters
     static constexpr u32 MAX_RTV_COUNT = 1024;

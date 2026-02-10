@@ -39,7 +39,7 @@ DX12Buffer::DX12Buffer(const DX12RendererContext &context, const BufferCreateInf
 
 DX12Buffer::~DX12Buffer() noexcept
 {
-    // ComPtr will automatically release the resources (m_resource and m_upload_buffer)
+    // Microsoft::WRL::ComPtr will automatically release the resources (m_resource and m_upload_buffer)
 }
 
 ID3D12Resource *DX12Buffer::GetUploadBuffer() noexcept

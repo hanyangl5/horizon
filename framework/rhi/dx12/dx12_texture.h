@@ -7,7 +7,7 @@
 #include <core/definations.h>
 #include <rhi/texture.h>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {
@@ -39,7 +39,7 @@ class DX12Texture : public Texture
 
   public:
     const DX12RendererContext &m_context;
-    ComPtr<ID3D12Resource> m_resource;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
     D3D12_RESOURCE_STATES m_current_state;
     D3D12_CPU_DESCRIPTOR_HANDLE m_srv_handle{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_uav_handle{};

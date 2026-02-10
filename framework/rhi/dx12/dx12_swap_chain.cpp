@@ -40,7 +40,7 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
     swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
     swap_chain_desc.Flags = 0;
 
-    ComPtr<IDXGISwapChain1> swap_chain1;
+    Microsoft::WRL::ComPtr<IDXGISwapChain1> swap_chain1;
     HRESULT hr = m_context.factory->CreateSwapChainForHwnd(m_context.command_queues[GRAPHICS].Get(), hwnd,
                                                            &swap_chain_desc, nullptr, nullptr, &swap_chain1);
     if (FAILED(hr))
@@ -88,7 +88,7 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
 
 DX12SwapChain::~DX12SwapChain() noexcept
 {
-    // ComPtr will automatically release the swap chain and back buffers
+    // Microsoft::WRL::ComPtr will automatically release the swap chain and back buffers
 }
 
 } // namespace Horizon::Backend

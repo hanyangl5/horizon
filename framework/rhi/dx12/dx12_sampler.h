@@ -9,7 +9,7 @@
 #include <rhi/enums.h>
 #include <rhi/sampler.h>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon::Backend
 {

@@ -1,5 +1,6 @@
 #include <core/log.h>
 #include <core/path.h>
+#include <core/math.h>
 #include <rhi/buffer.h>
 #include <rhi/command_list.h>
 #include <rhi/enums.h>
@@ -11,8 +12,8 @@
 #include <scene/scene_renderer/config.h>
 #include <scene/scene_renderer/renderer.h>
 
-#include <GLFW/glfw3.h>
 #include <memory>
+#include <array>
 
 Horizon::Path shader_dir = SHADER_DIR;
 using namespace Horizon;
@@ -22,8 +23,8 @@ bool enable_vsync = true; // Set to false to disable vsync
 
 struct TestVertex
 {
-    float position[3];
-    float color[3];
+    Math::float3 position;
+    Math::float3 color;
 };
 
 int main()
@@ -52,7 +53,7 @@ int main()
 
     // Create vertex buffer
     TestVertex vertices[] = {
-        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top vertex - Red
+        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // Top vertex - Red
         {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Bottom right - Green
         {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}} // Bottom left - Blue
     };
@@ -78,7 +79,7 @@ int main()
 
     // Define vertex input layout
     VertexInputState vertex_input_state{};
-    vertex_input_state.attribute_count = 1;
+    vertex_input_state.attribute_count = 2;
     vertex_input_state.attributes[0] = VertexAttributeDescription{
         VertexAttribFormat::F32,
         3, // float3
@@ -94,11 +95,11 @@ int main()
         VertexAttribFormat::F32,
         3, // float3
         VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
-        0,
+        1,
         0,
         sizeof(TestVertex),
         12,
-        "COLOR0",
+        "COLOR",
         0,
     };
 

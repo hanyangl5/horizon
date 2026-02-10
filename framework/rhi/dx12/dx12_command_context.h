@@ -30,7 +30,6 @@ class DX12CommandContext : public CommandContext
     const DX12RendererContext &m_context;
     std::array<std::unique_ptr<DX12CommandAllocatorPool>, 3> m_allocator_pools;
     std::array<std::vector<DX12CommandList *>, 3> m_command_lists;
-    std::array<u32, 3> m_command_lists_count;
 };
 
 } // namespace Horizon::Backend

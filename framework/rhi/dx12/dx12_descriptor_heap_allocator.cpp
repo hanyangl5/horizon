@@ -13,7 +13,7 @@ DX12DescriptorHeapAllocator::DX12DescriptorHeapAllocator(const DX12RendererConte
 
 DX12DescriptorHeapAllocator::~DX12DescriptorHeapAllocator() noexcept
 {
-    // ComPtr will automatically release
+    // Microsoft::WRL::ComPtr will automatically release
 }
 
 void DX12DescriptorHeapAllocator::CreateDescriptorHeaps()

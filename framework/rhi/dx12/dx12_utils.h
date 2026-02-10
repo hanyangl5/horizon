@@ -9,18 +9,18 @@
 #include <core/definations.h>
 #include <rhi/enums.h>
 
-using Microsoft::WRL::ComPtr;
+
 
 namespace Horizon
 {
 
 struct DX12RendererContext
 {
-    ComPtr<IDXGIFactory4> factory;
-    ComPtr<IDXGIAdapter1> adapter;
-    ComPtr<ID3D12Device> device;
-    ComPtr<ID3D12CommandQueue> command_queues[3]; // Graphics, Compute, Transfer
-    ComPtr<ID3D12Fence> fences[3];
+    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+    Microsoft::WRL::ComPtr<ID3D12Device> device;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> command_queues[3]; // Graphics, Compute, Transfer
+    Microsoft::WRL::ComPtr<ID3D12Fence> fences[3];
     UINT64 fence_values[3];
     HANDLE fence_event;
     UINT rtv_descriptor_size;
@@ -75,4 +75,5 @@ const char *GetDX12SemanticName(const VertexAttributeDescription &attr) noexcept
 u32 GetDX12SemanticIndex(const VertexAttributeDescription &attr) noexcept;
 
 std::wstring StringToWString(const std::string &str);
+std::string WStringToString(const std::wstring &wstr);
 } // namespace Horizon
