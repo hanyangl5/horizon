@@ -7,8 +7,6 @@
 #include <core/definations.h>
 #include <rhi/buffer.h>
 
-
-
 namespace Horizon::Backend
 {
 

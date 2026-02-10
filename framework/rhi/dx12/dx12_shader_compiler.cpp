@@ -58,7 +58,7 @@ bool DX12ShaderCompiler::InitializeDXC()
 
     // Try to load dxcompiler.dll from third_party first (using CMake-defined path)
     std::wstring dxc_dll_path;
-    
+
 #ifdef DXC_BIN_DIR
     // Use CMake-defined DXC bin directory
     std::string dxc_bin_dir = DXC_BIN_DIR;
@@ -70,7 +70,7 @@ bool DX12ShaderCompiler::InitializeDXC()
     }
     std::string dll_path = dxc_bin_dir + "dxcompiler.dll";
     dxc_dll_path = StringToWString(dll_path);
-    
+
     // Try loading from CMake-defined path
     if (!dxc_dll_path.empty())
     {
@@ -81,7 +81,7 @@ bool DX12ShaderCompiler::InitializeDXC()
         }
     }
 #endif
-    
+
     // Fallback 1: Try relative to executable (for runtime, after DLL copy)
     if (g_dxc_library == nullptr)
     {
@@ -102,7 +102,7 @@ bool DX12ShaderCompiler::InitializeDXC()
             }
         }
     }
-    
+
     if (g_dxc_library == nullptr)
     {
         LOG_WARN("Failed to load dxcompiler.dll. Falling back to FXC (Shader Model 5.1).");

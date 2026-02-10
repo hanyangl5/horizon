@@ -28,7 +28,8 @@ DX12RenderTarget::DX12RenderTarget(const DX12RendererContext &context,
     // Note: RTV/DSV descriptors should be created externally using descriptor heap allocator
 }
 
-DX12RenderTarget::DX12RenderTarget(const DX12RendererContext &context, Microsoft::WRL::ComPtr<ID3D12Resource> back_buffer_resource,
+DX12RenderTarget::DX12RenderTarget(const DX12RendererContext &context,
+                                   Microsoft::WRL::ComPtr<ID3D12Resource> back_buffer_resource,
                                    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle) noexcept
     : RenderTarget(), m_context(context), m_back_buffer_resource(back_buffer_resource), m_rtv_handle(rtv_handle)
 {

@@ -7,8 +7,6 @@
 #include <core/definations.h>
 #include <unordered_map>
 
-
-
 namespace Horizon::Backend
 {
 

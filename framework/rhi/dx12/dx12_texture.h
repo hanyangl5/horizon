@@ -7,8 +7,6 @@
 #include <core/definations.h>
 #include <rhi/texture.h>
 
-
-
 namespace Horizon::Backend
 {
 

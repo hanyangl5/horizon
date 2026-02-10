@@ -31,7 +31,6 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-
 #endif
 
 namespace Horizon::Backend
@@ -375,15 +374,15 @@ RenderTarget *RHIDX12::CreateRenderTarget(const RenderTargetCreateInfo &render_t
     {
         // Allocate RTV handle
         D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
-        
+
         // Create RTV (render targets are always 2D textures)
         D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
         rtv_desc.Format = ToDX12Format(render_target_create_info.rt_format);
         rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
         rtv_desc.Texture2D.MipSlice = 0;
-        
+
         m_dx12.device->CreateRenderTargetView(dx12_texture->GetResource(), &rtv_desc, rtv_handle);
-        
+
         // Store the handle
         render_target->m_rtv_handle = rtv_handle;
     }
@@ -391,16 +390,16 @@ RenderTarget *RHIDX12::CreateRenderTarget(const RenderTargetCreateInfo &render_t
     {
         // Allocate DSV handle
         D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = m_descriptor_heap_allocator->AllocateDSV();
-        
+
         // Create DSV (render targets are always 2D textures)
         D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
         dsv_desc.Format = ToDX12Format(render_target_create_info.rt_format);
         dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         dsv_desc.Flags = D3D12_DSV_FLAG_NONE;
         dsv_desc.Texture2D.MipSlice = 0;
-        
+
         m_dx12.device->CreateDepthStencilView(dx12_texture->GetResource(), &dsv_desc, dsv_handle);
-        
+
         // Store the handle
         render_target->m_dsv_handle = dsv_handle;
     }
@@ -432,13 +431,13 @@ SwapChain *RHIDX12::CreateSwapChain(const SwapChainCreateInfo &create_info)
         if (render_target)
         {
             auto *dx12_rt = reinterpret_cast<DX12RenderTarget *>(render_target);
-            
+
             // Allocate RTV handle
             D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
-            
+
             // Create RTV for the back buffer
             m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[i].Get(), nullptr, rtv_handle);
-            
+
             // Store the handle
             dx12_rt->m_rtv_handle = rtv_handle;
         }
@@ -718,7 +717,7 @@ void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
 
     // Get or create render target for this back buffer
     auto *render_target = dx12_swap_chain->render_targets[dx12_swap_chain->image_index];
-    
+
     if (render_target == nullptr)
     {
         // Create RTV for the back buffer
@@ -740,7 +739,7 @@ void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
             D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = m_descriptor_heap_allocator->AllocateRTV();
             m_dx12.device->CreateRenderTargetView(dx12_swap_chain->m_back_buffers[dx12_swap_chain->image_index].Get(),
                                                   nullptr, rtv_handle);
-            
+
             // Store the handle
             dx12_rt->m_rtv_handle = rtv_handle;
         }

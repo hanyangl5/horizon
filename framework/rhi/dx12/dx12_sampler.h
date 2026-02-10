@@ -9,8 +9,6 @@
 #include <rhi/enums.h>
 #include <rhi/sampler.h>
 
-
-
 namespace Horizon::Backend
 {
 

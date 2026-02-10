@@ -9,8 +9,6 @@
 #include <rhi/pipeline.h>
 #include <unordered_map>
 
-
-
 namespace Horizon::Backend
 {
 

@@ -1,6 +1,6 @@
 #include <core/log.h>
-#include <core/path.h>
 #include <core/math.h>
+#include <core/path.h>
 #include <rhi/buffer.h>
 #include <rhi/command_list.h>
 #include <rhi/enums.h>
@@ -12,8 +12,8 @@
 #include <scene/scene_renderer/config.h>
 #include <scene/scene_renderer/renderer.h>
 
-#include <memory>
 #include <array>
+#include <memory>
 
 Horizon::Path shader_dir = SHADER_DIR;
 using namespace Horizon;
@@ -53,7 +53,7 @@ int main()
 
     // Create vertex buffer
     TestVertex vertices[] = {
-        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // Top vertex - Red
+        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top vertex - Red
         {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Bottom right - Green
         {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}} // Bottom left - Blue
     };

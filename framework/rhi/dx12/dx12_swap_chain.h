@@ -8,8 +8,6 @@
 #include <core/definations.h>
 #include <rhi/swap_chain.h>
 
-
-
 namespace Horizon::Backend
 {
 

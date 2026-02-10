@@ -9,7 +9,6 @@
 #include <rhi/command_list.h>
 #include <rhi/pipeline.h>
 
-
 namespace Horizon::Backend
 {
 
@@ -17,7 +16,8 @@ class DX12CommandList : public CommandList
 {
   public:
     DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
-                    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator) noexcept;
+                    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list,
+                    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator) noexcept;
 
     virtual ~DX12CommandList() noexcept;
     DX12CommandList(const DX12CommandList &rhs) noexcept = delete;

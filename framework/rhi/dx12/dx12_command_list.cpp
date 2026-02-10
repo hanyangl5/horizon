@@ -105,7 +105,7 @@ void DX12CommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 
         auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffers[i]);
         views[i].BufferLocation = dx12_buffer->GetGPUVirtualAddress() + offsets[i];
         views[i].SizeInBytes = static_cast<UINT>(buffers[i]->m_size - offsets[i]);
-        
+
         // Get stride from pipeline for this input slot
         u32 stride = dx12_pipeline->GetVertexStride(i);
         if (stride == 0)

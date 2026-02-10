@@ -8,8 +8,6 @@
 #include <rhi/shader.h>
 #include <vector>
 
-
-
 namespace Horizon::Backend
 {
 

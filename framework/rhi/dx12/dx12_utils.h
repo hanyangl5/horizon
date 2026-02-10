@@ -9,8 +9,6 @@
 #include <core/definations.h>
 #include <rhi/enums.h>
 
-
-
 namespace Horizon
 {
 

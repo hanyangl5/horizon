@@ -626,23 +626,23 @@ void DX12Pipeline::CreateComputePipeline(const ComputePipelineCreateInfo &create
     }
 }
 
- u32 DX12Pipeline::GetVertexStride(u32 input_slot) const noexcept
+u32 DX12Pipeline::GetVertexStride(u32 input_slot) const noexcept
 {
-     // Find the maximum stride for the given input slot
-     u32 max_stride = 0;
-     for (u32 i = 0; i < m_vertex_input_state.attribute_count; ++i)
-     {
-         const auto &attr = m_vertex_input_state.attributes[i];
-         if (attr.binding == input_slot)
-         {
-             // Stride is the total size of one vertex in this binding
-             // We use the stride field from the attribute description
-             if (attr.stride > max_stride)
-             {
-                 max_stride = attr.stride;
-             }
-         }
-     }
-     return max_stride;
- }
+    // Find the maximum stride for the given input slot
+    u32 max_stride = 0;
+    for (u32 i = 0; i < m_vertex_input_state.attribute_count; ++i)
+    {
+        const auto &attr = m_vertex_input_state.attributes[i];
+        if (attr.binding == input_slot)
+        {
+            // Stride is the total size of one vertex in this binding
+            // We use the stride field from the attribute description
+            if (attr.stride > max_stride)
+            {
+                max_stride = attr.stride;
+            }
+        }
+    }
+    return max_stride;
+}
 } // namespace Horizon::Backend

@@ -18,7 +18,7 @@ PipelineType Pipeline::GetType() const noexcept
     return m_type;
 }
 
-PrimitiveTopology Pipeline::GetTopology()const noexcept
+PrimitiveTopology Pipeline::GetTopology() const noexcept
 {
     return m_topology;
 }

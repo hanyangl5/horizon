@@ -8,8 +8,6 @@
 #include <rhi/enums.h>
 #include <rhi/semaphore.h>
 
-
-
 namespace Horizon::Backend
 {
 
