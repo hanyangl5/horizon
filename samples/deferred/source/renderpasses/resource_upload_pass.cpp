@@ -69,7 +69,7 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
     }
     else
     {
-        builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+        //builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
     }
 
     builder.WriteBuffer(m_histogram_buffer_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);

@@ -219,6 +219,11 @@ void Render::run()
                 swapchain_barrier.queue = CommandQueueType::GRAPHICS;
                 swapchain_barrier.queue_op = Horizon::QueueOp::IGNORED;
                 barrier.texture_memory_barriers.push_back(swapchain_barrier);
+                // borrow swapchain barrier desc
+                swapchain_barrier.texture = builder.GetTexture(previous_color_handle);
+                swapchain_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+                swapchain_barrier.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+                barrier.texture_memory_barriers.push_back(swapchain_barrier);
                 cl->InsertBarrier(barrier);
             });
 
