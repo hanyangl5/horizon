@@ -5,7 +5,7 @@ static constexpr u32 SSAO_KERNEL_SIZE = 32;
 static constexpr u32 SSAO_NOISE_TEX_WIDTH = 4;
 static constexpr u32 SSAO_NOISE_TEX_HEIGHT = 4;
 
-SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler) : RDGPass("SSAO Pass", rhi), m_rhi(rhi), m_sampler(sampler)
+SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler, u32 width, u32 height) : RDGPass("SSAO Pass", rhi), m_rhi(rhi), m_sampler(sampler), m_width(width), m_height(height)
 {
     m_ssao_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao.comp.hlsl", "main");
     ComputePipelineCreateInfo create_info{};
@@ -14,7 +14,7 @@ SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler) : RDGPass("SSAO Pass", rhi)
 
     m_ssao_factor_image = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-                          TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false,
+                          TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM, m_width, m_height, 1, false,
                           1, "ssao_factor_image"});
 
     m_ssao_noise_tex = rhi->CreateTexture(
@@ -27,8 +27,8 @@ SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler) : RDGPass("SSAO Pass", rhi)
                                              ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(SSAOConstant)});
 
     // Initialize SSAO constants
-    m_ssao_constants.width = width;
-    m_ssao_constants.height = height;
+    m_ssao_constants.width = m_width;
+    m_ssao_constants.height = m_height;
 
     // Generate SSAO kernel
     std::uniform_real_distribution<float> rnd_dist(0.0, 1.0);
@@ -99,6 +99,6 @@ void SSAORDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &
     m_ssao_pipeline->SetResource(m_ssao_constants_buffer, "SSAOConstant_cb");
     m_ssao_pipeline->SetResource(builder.GetTexture(m_ssao_noise_handle), "ssao_noise_tex");
     cl->BindPipeline(m_ssao_pipeline);
-    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();
 }

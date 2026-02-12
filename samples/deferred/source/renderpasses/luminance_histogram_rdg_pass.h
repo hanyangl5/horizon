@@ -15,7 +15,7 @@ class LuminanceHistogramRDGPass : public Horizon::Backend::RDGPass
     };
 
   public:
-    LuminanceHistogramRDGPass(RHI *rhi);
+    LuminanceHistogramRDGPass(RHI *rhi, u32 width, u32 height);
     ~LuminanceHistogramRDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
@@ -51,6 +51,8 @@ class LuminanceHistogramRDGPass : public Horizon::Backend::RDGPass
 
   private:
     RHI *m_rhi;
+    u32 m_width;
+    u32 m_height;
 
     Shader *m_luminance_histogram_cs;
     Pipeline *m_luminance_histogram_pipeline;

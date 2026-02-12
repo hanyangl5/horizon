@@ -7,7 +7,8 @@
                                                                      *********************************************************************/
 
 #pragma once
-
+#include <cstdlib>
+#include <utility>
 namespace Horizon::Memory
 {
 

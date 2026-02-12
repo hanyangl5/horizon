@@ -15,6 +15,18 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.c")
 list(FILTER SOURCE_FILES EXCLUDE REGEX ".*rhi/dx12/.*")
 list(FILTER SOURCE_FILES EXCLUDE REGEX ".*rhi/vulkan/.*")
 
+# Exclude GLFW-related files on Android (GLFW is not supported on Android)
+if(ANDROID)
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*core/glfw.*")
+    list(FILTER HEADER_FILES EXCLUDE REGEX ".*core/glfw.*")
+endif()
+
+# Include Android sources on Android
+if(ANDROID)
+    file(GLOB_RECURSE ANDROID_SOURCES "core/android/*.cpp")
+    list(APPEND SOURCE_FILES ${ANDROID_SOURCES})
+endif()
+
 # 根据变量决定是否添加相应的源文件
 if(USE_VULKAN)
     file(GLOB_RECURSE VULKAN_SOURCES "rhi/vulkan/*.cpp" "rhi/vulkan/*.c")
@@ -31,9 +43,60 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_F
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR} / framework)
 
+# Add Android NDK include directories (after target is created)
+if(ANDROID AND DEFINED ANDROID_NDK)
+    # Standard Android NDK includes
+    if(EXISTS "${ANDROID_NDK}/sources/android/native_app_glue")
+        target_include_directories(${PROJECT_NAME} PUBLIC 
+            "${ANDROID_NDK}/sources/android/native_app_glue"
+        )
+    endif()
+    
+    # Platform-specific includes
+    if(DEFINED ANDROID_PLATFORM AND DEFINED ANDROID_ABI)
+        string(REPLACE "android-" "" ANDROID_API_LEVEL "${ANDROID_PLATFORM}")
+        # Map ABI to architecture name
+        if(ANDROID_ABI STREQUAL "arm64-v8a")
+            set(ANDROID_ARCH_NAME "arm64")
+        elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+            set(ANDROID_ARCH_NAME "arm")
+        elseif(ANDROID_ABI STREQUAL "x86_64")
+            set(ANDROID_ARCH_NAME "x86_64")
+        elseif(ANDROID_ABI STREQUAL "x86")
+            set(ANDROID_ARCH_NAME "x86")
+        else()
+            set(ANDROID_ARCH_NAME "arm64")  # Default
+        endif()
+        if(EXISTS "${ANDROID_NDK}/platforms/android-${ANDROID_API_LEVEL}/arch-${ANDROID_ARCH_NAME}/usr/include")
+            target_include_directories(${PROJECT_NAME} PUBLIC 
+                "${ANDROID_NDK}/platforms/android-${ANDROID_API_LEVEL}/arch-${ANDROID_ARCH_NAME}/usr/include"
+            )
+        endif()
+    endif()
+endif()
+
 # 根据变量设置编译定义
 if(USE_VULKAN)
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_VULKAN)
+    
+    # Android-specific configuration
+    if(ANDROID)
+        # Link Android NDK libraries
+        target_link_libraries(${PROJECT_NAME} PUBLIC 
+            android      # Android native API
+            log          # Android logging
+        )
+        
+        # Add NDK include directories for Vulkan
+        if(DEFINED ANDROID_NDK)
+            # Vulkan headers are included in NDK
+            if(EXISTS "${ANDROID_NDK}/sources/third_party/vulkan/src/include")
+                target_include_directories(${PROJECT_NAME} PUBLIC 
+                    "${ANDROID_NDK}/sources/third_party/vulkan/src/include"
+                )
+            endif()
+        endif()
+    endif()
 endif()
 
 if(USE_DX12)

@@ -1,0 +1,72 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "Android",
+      "displayName": "Android",
+      "description": "Build android",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "D:/UEAndroidDEV/5.61/sdk/ndk/27.2.12479018/build/cmake/android.toolchain.cmake",
+        "CMAKE_MAKE_PROGRAM": "D:/UEAndroidDEV/5.61/sdk/ndk/27.2.12479018/prebuilt/windows-x86_64/bin/make.exe",
+        "ANDROID_PLATFORM": "31",
+        "ANDROID_ABI": "arm64-v8a",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
+        "ANDROID": "ON",
+        "USE_VULKAN": "ON",
+        "USE_DX12": "ON"
+      }
+    },
+    {
+      "name": "msvcwin64",
+      "displayName": "msvcwin64",
+      "description": "Build for Windows x64 (Debug)",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USE_VULKAN": "ON",
+        "USE_DX12": "ON"
+      }
+    },
+    {
+      "name": "clangwin64",
+      "displayName": "clangwin64",
+      "description": "Build for Windows x64 (Debug)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USE_VULKAN": "ON",
+        "USE_DX12": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "Android",
+      "configurePreset": "Android"
+    },
+    {
+      "name": "msvcwin64",
+      "configurePreset": "msvcwin64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clangwin64",
+      "configurePreset": "clangwin64",
+      "configuration": "Debug"
+    }
+  ]
+}

@@ -35,7 +35,7 @@ void Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 index, const Math
     auto &n = m_nodes[index];
     // update node model matrix
     auto &t = node->mTransformation;
-    Math::float4x4 m(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
+    Math::float4x4 m{t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4};
     n.model_matrix = m * parent_model_matrx;
 
     n.mesh_primitives.resize(node->mNumMeshes);

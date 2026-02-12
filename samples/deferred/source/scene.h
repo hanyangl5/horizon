@@ -5,7 +5,7 @@
 class SceneData
 {
   public:
-    SceneData(SceneManager *scene_manager) noexcept;
+    SceneData(SceneManager *scene_manager, u32 width, u32 height) noexcept;
     ~SceneData() noexcept = default;
     Horizon::SceneManager *m_scene_manager{};
 

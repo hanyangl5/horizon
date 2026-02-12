@@ -1,8 +1,8 @@
 #include "deferred_shading_rdg_pass.h"
 #include <scene/scene_manager/scene_manager.h>
 
-DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *scene_manager)
-    : RDGPass("Deferred Shading Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager)
+DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *scene_manager, u32 width, u32 height)
+    : RDGPass("Deferred Shading Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_width(width), m_height(height)
 {
     // Create shader and pipeline using base class helper functions
     m_shading_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "deferred_shading.comp.hlsl", "main");
@@ -20,8 +20,8 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
                          sizeof(DiffuseIrradianceSH3)});
 
     // Initialize constants
-    m_deferred_shading_constants.width = width;
-    m_deferred_shading_constants.height = height;
+    m_deferred_shading_constants.width = m_width;
+    m_deferred_shading_constants.height = m_height;
     m_deferred_shading_constants.ibl_intensity = 10000.0;
 
     // Initialize IBL SH3 constants
@@ -82,7 +82,7 @@ DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *
     m_shading_color_texture = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                           ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
-                          TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, width, height, 1, false});
+                          TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, m_width, m_height, 1, false});
 }
 
 DeferredShadingRDGPass::~DeferredShadingRDGPass()
@@ -159,6 +159,6 @@ void DeferredShadingRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGra
     m_shading_pipeline->SetResource(builder.GetTexture(m_brdf_lut_handle), "specular_brdf_lut");
     m_shading_pipeline->SetResource(m_ibl_sampler, "ibl_sampler");
     cl->BindPipeline(m_shading_pipeline);
-    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();
 }

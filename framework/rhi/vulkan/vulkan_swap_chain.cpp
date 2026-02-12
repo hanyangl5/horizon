@@ -2,6 +2,11 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
+#ifdef __ANDROID__
+#define VK_USE_PLATFORM_ANDROID_KHR
+#include <android/native_window.h>
+#endif
+
 #include <vulkan/vulkan.hpp>
 
 #include "vulkan_render_target.h"
@@ -14,7 +19,19 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     : SwapChain(swap_chain_create_info, window), m_context(context)
 {
     // create window surface
+#ifdef __ANDROID__
+    // Create Android surface
+    VkAndroidSurfaceCreateInfoKHR surface_create_info{};
+    surface_create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    surface_create_info.pNext = nullptr;
+    surface_create_info.flags = 0;
+    surface_create_info.window = window->GetNativeWindow();
+    
+    CHECK_VK_RESULT(vkCreateAndroidSurfaceKHR(m_context.instance, &surface_create_info, nullptr, &surface));
+#else
+    // Use GLFW to create surface
     CHECK_VK_RESULT(glfwCreateWindowSurface(m_context.instance, window->GetWindow(), nullptr, &surface));
+#endif
     u32 surface_format_count = 0;
     // Get surface formats count
     CHECK_VK_RESULT(

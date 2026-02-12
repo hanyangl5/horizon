@@ -5,7 +5,7 @@
 class SSAORDGPass : public Horizon::Backend::RDGPass
 {
   public:
-    SSAORDGPass(RHI *rhi, Sampler *sampler);
+    SSAORDGPass(RHI *rhi, Sampler *sampler, u32 width, u32 height);
     ~SSAORDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
@@ -56,6 +56,8 @@ class SSAORDGPass : public Horizon::Backend::RDGPass
   private:
     RHI *m_rhi;
     Sampler *m_sampler;
+    u32 m_width;
+    u32 m_height;
 
     Shader *m_ssao_cs;
     Pipeline *m_ssao_pipeline;

@@ -2,7 +2,7 @@
 
 #include <random>
 
-SceneData::SceneData(SceneManager *scene_manager) noexcept
+SceneData::SceneData(SceneManager *scene_manager, u32 width, u32 height) noexcept
 {
     m_scene_manager = scene_manager;
 

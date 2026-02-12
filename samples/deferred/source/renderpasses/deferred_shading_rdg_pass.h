@@ -22,7 +22,7 @@ class DeferredShadingRDGPass : public Horizon::Backend::RDGPass
     };
 
   public:
-    DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *scene_manager);
+    DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *scene_manager, u32 width, u32 height);
     ~DeferredShadingRDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
@@ -85,6 +85,8 @@ class DeferredShadingRDGPass : public Horizon::Backend::RDGPass
   private:
     RHI *m_rhi;
     Horizon::SceneManager *m_scene_manager;
+    u32 m_width;
+    u32 m_height;
 
     // Pipeline resources (owned by pass)
     Shader *m_shading_cs;

@@ -5,7 +5,7 @@
 class SSAOBlurRDGPass : public Horizon::Backend::RDGPass
 {
   public:
-    SSAOBlurRDGPass(Horizon::Backend::RHI *rhi);
+    SSAOBlurRDGPass(Horizon::Backend::RHI *rhi, u32 width, u32 height);
     ~SSAOBlurRDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
@@ -20,6 +20,8 @@ class SSAOBlurRDGPass : public Horizon::Backend::RDGPass
 
   private:
     Horizon::Backend::RHI *m_rhi;
+    u32 m_width;
+    u32 m_height;
 
     Shader *m_ssao_blur_cs;
     Pipeline *m_ssao_blur_pipeline;

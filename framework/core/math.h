@@ -10,8 +10,14 @@
 
 #include <core/definations.h>
 
-#include <DirectXCollision.h>
-#include <SimpleMath.h>
+#ifdef __ANDROID__
+    // Use Android-compatible SimpleMath wrapper
+    #include <core/android_simplemath.h>
+#else
+    // Use DirectX SimpleMath on Windows/other platforms
+    #include <DirectXCollision.h>
+    #include <SimpleMath.h>
+#endif
 
 namespace Horizon
 {

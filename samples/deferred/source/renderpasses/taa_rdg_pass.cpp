@@ -1,6 +1,6 @@
 #include "taa_rdg_pass.h"
 
-TAARDGPass::TAARDGPass(RHI *rhi) : RDGPass("TAA Pass", rhi), m_rhi(rhi)
+TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("TAA Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_taa_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "taa.comp.hlsl", "main");
     ComputePipelineCreateInfo create_info{};
@@ -9,11 +9,11 @@ TAARDGPass::TAARDGPass(RHI *rhi) : RDGPass("TAA Pass", rhi), m_rhi(rhi)
 
     m_previous_color_texture = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
+        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
 
     m_output_color_texture = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
+        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
 
     m_taa_prev_curr_offset_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
@@ -78,6 +78,6 @@ void TAARDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &b
     m_taa_pipeline->SetResource(builder.GetTexture(m_gbuffer4_handle), "mv_tex");
     m_taa_pipeline->SetResource(builder.GetTexture(m_output_color_handle), "out_color_tex");
     cl->BindPipeline(m_taa_pipeline);
-    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();
 }

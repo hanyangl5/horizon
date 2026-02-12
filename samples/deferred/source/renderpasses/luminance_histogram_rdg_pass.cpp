@@ -1,6 +1,6 @@
 #include "luminance_histogram_rdg_pass.h"
 
-LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi) : RDGPass("Luminance Histogram Pass", rhi), m_rhi(rhi)
+LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("Luminance Histogram Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_luminance_histogram_cs =
         CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");
@@ -60,6 +60,6 @@ void LuminanceHistogramRDGPass::Execute(CommandList *cl, Horizon::Backend::Frame
     m_luminance_histogram_pipeline->SetResource(builder.GetBuffer(m_histogram_buffer_handle), "histogram");
     // adaptedLuminance is not used in this pass - it's only written by LuminanceAverageRDGPass
     cl->BindPipeline(m_luminance_histogram_pipeline);
-    cl->Dispatch(AlignUp<u32>(width, 16), AlignUp<u32>(height, 16), 1);
+    cl->Dispatch(AlignUp<u32>(m_width, 16), AlignUp<u32>(m_height, 16), 1);
     cl->EndComputePass();
 }

@@ -23,6 +23,13 @@ horizon is a real time render framework.
 | -------- | :----------------: | :----------------: |
 | Windows  | :heavy_check_mark: | :heavy_check_mark: |
 
+## Build From Source
+
+```
+cmake --present msvcwin64/clangwin64/Android
+cmake --build --present msvcwin64/clangwin64/Android
+```
+
 ---
 
 the app default load the sponza scene taken from [glTF-Sample-Models](https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/Sponza)

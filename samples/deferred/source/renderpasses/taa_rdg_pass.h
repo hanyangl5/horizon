@@ -12,7 +12,7 @@ class TAARDGPass : public Horizon::Backend::RDGPass
     };
 
   public:
-    TAARDGPass(RHI *rhi);
+    TAARDGPass(RHI *rhi, u32 width, u32 height);
     ~TAARDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
@@ -38,6 +38,8 @@ class TAARDGPass : public Horizon::Backend::RDGPass
 
   private:
     RHI *m_rhi;
+    u32 m_width;
+    u32 m_height;
 
     Shader *m_taa_cs;
     Pipeline *m_taa_pipeline;

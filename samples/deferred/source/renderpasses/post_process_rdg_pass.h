@@ -11,7 +11,7 @@ class PostProcessRDGPass : public Horizon::Backend::RDGPass
     };
 
   public:
-    PostProcessRDGPass(RHI *rhi);
+    PostProcessRDGPass(RHI *rhi, u32 width, u32 height);
     ~PostProcessRDGPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;
@@ -36,6 +36,8 @@ class PostProcessRDGPass : public Horizon::Backend::RDGPass
 
   private:
     RHI *m_rhi;
+    u32 m_width;
+    u32 m_height;
 
     Shader *m_post_process_cs;
     Pipeline *m_post_process_pipeline;

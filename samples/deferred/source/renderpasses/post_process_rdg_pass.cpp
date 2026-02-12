@@ -1,6 +1,6 @@
 #include "post_process_rdg_pass.h"
 
-PostProcessRDGPass::PostProcessRDGPass(RHI *rhi) : RDGPass("Post Process Pass", rhi), m_rhi(rhi)
+PostProcessRDGPass::PostProcessRDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("Post Process Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_post_process_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hlsl", "main");
     ComputePipelineCreateInfo create_info{};
@@ -9,7 +9,7 @@ PostProcessRDGPass::PostProcessRDGPass(RHI *rhi) : RDGPass("Post Process Pass", 
 
     m_pp_color_image = rhi->CreateTexture(TextureCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, width, height, 1, false});
+        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
 
     m_exposure_constants_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
@@ -55,6 +55,6 @@ void PostProcessRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBu
     m_post_process_pipeline->SetResource(builder.GetTexture(m_pp_color_handle), "out_color_image");
     m_post_process_pipeline->SetResource(builder.GetBuffer(m_adapted_luminance_handle), "adaptedLuminance");
     cl->BindPipeline(m_post_process_pipeline);
-    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();
 }

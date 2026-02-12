@@ -5,20 +5,34 @@
 
 Horizon::Path asset_path = ASSET_DIR;
 Horizon::Path shader_dir = SHADER_DIR;
-u32 width = 1600, height = 900;
 
-void Render::InitAPI()
+void DeferredRenderApp::Initialize()
 {
-    rhi = renderer->GetRhi();
+    rhi = GetRhi();
+    if (!rhi)
+    {
+        LOG_ERROR("RHI is null");
+        return;
+    }
+
+    m_width = GetWidth();
+    m_height = GetHeight();
+
+    InitAPI();
+    InitResources();
+}
+
+void DeferredRenderApp::InitAPI()
+{
     frame_graph = std::make_unique<Horizon::Backend::FrameGraph>(rhi);
 }
 
-void Render::InitResources()
+void DeferredRenderApp::InitResources()
 {
     InitPipelineResources();
 }
 
-void Render::InitPipelineResources()
+void DeferredRenderApp::InitPipelineResources()
 {
 
     swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
@@ -36,21 +50,21 @@ void Render::InitPipelineResources()
         sampler = rhi->CreateSampler(sampler_desc);
     }
 
-    scene = std::make_unique<SceneData>(renderer->GetSceneManager());
+    scene = std::make_unique<SceneData>(GetRenderer()->GetSceneManager(), GetWidth(), GetHeight());
 
     // Create RDG Passes
-    geometry_pass = std::make_unique<DeferredShadingGeometryPass>(rhi, scene->m_scene_manager, sampler);
-    deferred_shading_pass = std::make_unique<DeferredShadingRDGPass>(rhi, scene->m_scene_manager);
-    ssao_pass = std::make_unique<SSAORDGPass>(rhi, sampler);
-    ssao_blur_pass = std::make_unique<SSAOBlurRDGPass>(rhi);
-    post_process_pass = std::make_unique<PostProcessRDGPass>(rhi);
-    luminance_histogram_pass = std::make_unique<LuminanceHistogramRDGPass>(rhi);
+    geometry_pass = std::make_unique<DeferredShadingGeometryPass>(rhi, scene->m_scene_manager, sampler, m_width, m_height);
+    deferred_shading_pass = std::make_unique<DeferredShadingRDGPass>(rhi, scene->m_scene_manager, m_width, m_height);
+    ssao_pass = std::make_unique<SSAORDGPass>(rhi, sampler, m_width, m_height);
+    ssao_blur_pass = std::make_unique<SSAOBlurRDGPass>(rhi, m_width, m_height);
+    post_process_pass = std::make_unique<PostProcessRDGPass>(rhi, m_width, m_height);
+    luminance_histogram_pass = std::make_unique<LuminanceHistogramRDGPass>(rhi, m_width, m_height);
     luminance_average_pass = std::make_unique<LuminanceAverageRDGPass>(rhi);
-    taa_pass = std::make_unique<TAARDGPass>(rhi);
+    taa_pass = std::make_unique<TAARDGPass>(rhi, m_width, m_height);
     resource_upload_pass = std::make_unique<ResourceUploadRDGPass>(rhi, scene->m_scene_manager);
 }
 
-void Render::UpdatePipelineResources()
+void DeferredRenderApp::UpdatePipelineResources()
 {
     auto cam = scene->scene_camera;
 
@@ -58,8 +72,8 @@ void Render::UpdatePipelineResources()
     auto &jitter_offset = taa_pass->GetJitterOffset();
     auto view = cam->GetViewMatrix();
     auto proj = cam->GetProjectionMatrix();
-    f32 offset_x = (jitter_offset.x - 0.5f) / width;
-    f32 offset_y = (jitter_offset.y - 0.5f) / height;
+    f32 offset_x = (jitter_offset.x - 0.5f) / m_width;
+    f32 offset_y = (jitter_offset.y - 0.5f) / m_height;
 
     TAARDGPass::TAAPrevCurrOffset taa_offset{};
     taa_offset.prev_offset = taa_offset.curr_offset; // This will be updated properly in resource upload
@@ -87,24 +101,20 @@ void Render::UpdatePipelineResources()
     ssao_pass->GetSSAOConstants().proj = proj;
     ssao_pass->GetSSAOConstants().inv_proj = proj.Invert();
     ssao_pass->GetSSAOConstants().view = view;
-    ssao_pass->GetSSAOConstants().noise_scale_x = (f32)width / SSAORDGPass::SSAO_NOISE_TEX_WIDTH;
-    ssao_pass->GetSSAOConstants().noise_scale_y = (f32)height / SSAORDGPass::SSAO_NOISE_TEX_HEIGHT;
+    ssao_pass->GetSSAOConstants().noise_scale_x = (f32)m_width / SSAORDGPass::SSAO_NOISE_TEX_WIDTH;
+    ssao_pass->GetSSAOConstants().noise_scale_y = (f32)m_height / SSAORDGPass::SSAO_NOISE_TEX_HEIGHT;
 
     // Luminance histogram constants
-    luminance_histogram_pass->GetLuminanceHistogramConstants().width = width;
-    luminance_histogram_pass->GetLuminanceHistogramConstants().height = height;
-    luminance_histogram_pass->GetLuminanceHistogramConstants().pixelCount = width * height;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().width = m_width;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().height = m_height;
+    luminance_histogram_pass->GetLuminanceHistogramConstants().pixelCount = m_width * m_height;
     luminance_histogram_pass->GetLuminanceHistogramConstants().maxLuminance = 20000.0f;
     luminance_histogram_pass->GetLuminanceHistogramConstants().timeCoeff = 0.5f;
 }
 
-void Render::run()
+void DeferredRenderApp::RenderLoop()
 {
-    bool first_frame = true;
-
-    while (!window->ShouldClose())
-    {
-        scene->scene_camera_controller->ProcessInput(window.get());
+    scene->scene_camera_controller->ProcessInput(GetWindow());
 
         rhi->AcquireNextFrame(swap_chain);
         UpdatePipelineResources();
@@ -160,7 +170,7 @@ void Render::run()
                                                  histogram_buffer_handle, adapted_luminance_handle);
         resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
                                               luminance_histogram_pass.get(), taa_pass.get());
-        resource_upload_pass->SetFirstFrame(first_frame);
+        resource_upload_pass->SetFirstFrame(m_first_frame);
 
         // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
         static TAARDGPass::TAAPrevCurrOffset taa_prev_offset{};
@@ -168,8 +178,8 @@ void Render::run()
         taa_offset.prev_offset = taa_prev_offset.curr_offset;
         auto cam = scene->scene_camera;
         auto &jitter_offset = taa_pass->GetJitterOffset();
-        f32 offset_x = (jitter_offset.x - 0.5f) / width;
-        f32 offset_y = (jitter_offset.y - 0.5f) / height;
+        f32 offset_x = (jitter_offset.x - 0.5f) / m_width;
+        f32 offset_y = (jitter_offset.y - 0.5f) / m_height;
         taa_offset.curr_offset = Math::float2{offset_x, offset_y};
         taa_prev_offset = taa_offset;
         resource_upload_pass->SetTAAPrevCurrOffset(taa_offset);
@@ -242,20 +252,41 @@ void Render::run()
             rhi->Present(opaque_pass_ci);
         }
 
-        rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
-        if (first_frame)
+    rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
+    if (m_first_frame)
+    {
+        m_first_frame = false;
+    }
+    // Horizon::RDC::EndFrameCapture();
+}
+
+void DeferredRenderApp::Cleanup()
+{
+    if (rhi)
+    {
+        if (sampler)
         {
-            first_frame = false;
+            rhi->DestroySampler(sampler);
+            sampler = nullptr;
         }
-        // Horizon::RDC::EndFrameCapture();
+        if (swap_chain)
+        {
+            rhi->DestroySwapChain(swap_chain);
+            swap_chain = nullptr;
+        }
     }
 
-    LOG_INFO("draw done");
+    geometry_pass = nullptr;
+    deferred_shading_pass = nullptr;
+    ssao_pass = nullptr;
+    ssao_blur_pass = nullptr;
+    post_process_pass = nullptr;
+    luminance_histogram_pass = nullptr;
+    luminance_average_pass = nullptr;
+    taa_pass = nullptr;
+    resource_upload_pass = nullptr;
+    scene = nullptr;
+    frame_graph = nullptr;
 }
 
-int main()
-{
-    Render horizon_pipeline;
-    horizon_pipeline.Init();
-    horizon_pipeline.run();
-}
+DEFINE_HORIZON_APP_WITH_CLASS(Deferred, DeferredRenderApp)

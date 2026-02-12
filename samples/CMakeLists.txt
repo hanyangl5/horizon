@@ -10,7 +10,7 @@ macro(addproject projectdir)
     # This makes the path start from projectdir instead of samples/projectdir
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}" PREFIX "" FILES ${APP_HEADERS} ${APP_SOURCES})
 
-    add_executable(${PROJECT_NAME} ${APP_HEADERS} ${APP_SOURCES})
+        add_executable(${PROJECT_NAME} ${APP_HEADERS} ${APP_SOURCES})
 
     target_link_libraries(${PROJECT_NAME} PUBLIC framework)
     target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/framework)
@@ -25,6 +25,7 @@ macro(addproject projectdir)
     )
     set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "samples")
     configure_compile_options(${projectdir})
+
 endmacro()
 
 addproject(deferred)

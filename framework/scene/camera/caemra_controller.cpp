@@ -26,8 +26,6 @@ void CameraController::ProcessInput(Window *window)
     assert(m_camera != nullptr);
     assert(m_camera->GetCameraSpeed() != 0);
 
-    glfwPollEvents();
-
     auto direction = Input::ProcessKeyboardInput(window);
     m_camera->Move(direction);
     auto rotation = Input::ProcessMouseInput(window);

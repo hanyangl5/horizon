@@ -1,6 +1,6 @@
 #include "ssao_blur_rdg_pass.h"
 
-SSAOBlurRDGPass::SSAOBlurRDGPass(RHI *rhi) : RDGPass("SSAO Blur Pass", rhi), m_rhi(rhi)
+SSAOBlurRDGPass::SSAOBlurRDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("SSAO Blur Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_ssao_blur_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "ssao_blur.comp.hlsl", "main");
     ComputePipelineCreateInfo create_info{};
@@ -10,7 +10,7 @@ SSAOBlurRDGPass::SSAOBlurRDGPass(RHI *rhi) : RDGPass("SSAO Blur Pass", rhi), m_r
     m_ssao_blur_image = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                           ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
-                          TextureFormat::TEXTURE_FORMAT_R8_UNORM, width, height, 1, false, 1, "ssao_blur_image"});
+                          TextureFormat::TEXTURE_FORMAT_R8_UNORM, m_width, m_height, 1, false, 1, "ssao_blur_image"});
 }
 
 SSAOBlurRDGPass::~SSAOBlurRDGPass()
@@ -42,6 +42,6 @@ void SSAOBlurRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuild
     m_ssao_blur_pipeline->SetResource(builder.GetTexture(m_ssao_factor_handle), "ssao_blur_in");
     m_ssao_blur_pipeline->SetResource(builder.GetTexture(m_ssao_blur_handle), "ssao_blur_out");
     cl->BindPipeline(m_ssao_blur_pipeline);
-    cl->Dispatch(AlignUp<u32>(width, 8), AlignUp<u32>(height, 8), 1);
+    cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();
 }

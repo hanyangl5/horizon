@@ -3,8 +3,8 @@
 #include <scene/scene_manager/scene_manager.h>
 
 DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager,
-                                                         Sampler *sampler)
-    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler)
+                                                         Sampler *sampler, u32 width, u32 height)
+    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler), m_width(width), m_height(height)
 {
     // Create shaders and pipeline using base class helper functions
     m_geometry_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
@@ -53,8 +53,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     tangent.offset = offsetof(Vertex, tangent);
 
-    graphics_pass_ci.view_port_state.width = width;
-    graphics_pass_ci.view_port_state.height = height;
+    graphics_pass_ci.view_port_state.width = m_width;
+    graphics_pass_ci.view_port_state.height = m_height;
 
     graphics_pass_ci.depth_stencil_state.depth_func = DepthFunc::LESS;
     graphics_pass_ci.depth_stencil_state.depthNear = 0.0f;
@@ -85,17 +85,17 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
 
     // Create render targets
     m_gbuffer0_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, m_width, m_height});
     m_gbuffer1_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, m_width, m_height});
     m_gbuffer2_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT,
-                                                                   RenderTargetType::COLOR, width, height});
+                                                                   RenderTargetType::COLOR, m_width, m_height});
     m_gbuffer3_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, width, height});
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, m_width, m_height});
     m_gbuffer4_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT, RenderTargetType::COLOR, width, height});
+        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT, RenderTargetType::COLOR, m_width, m_height});
     m_depth_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
-                                                                RenderTargetType::DEPTH_STENCIL, width, height});
+                                                                RenderTargetType::DEPTH_STENCIL, m_width, m_height});
 
     // Create TAA buffer
     m_taa_prev_curr_offset_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
@@ -156,7 +156,7 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
 {
     RenderPassBeginInfo begin_info{};
     begin_info.render_target_count = 5;
-    begin_info.render_area = Rect{0, 0, width, height};
+    begin_info.render_area = Rect{0, 0, m_width, m_height};
     begin_info.render_targets[0].data = builder.GetRenderTarget(m_gbuffer0_rt_handle);
     begin_info.render_targets[0].clear_color = {};
     begin_info.render_targets[0].load_op = RenderTargetLoadOp::CLEAR;
