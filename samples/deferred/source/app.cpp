@@ -53,7 +53,8 @@ void DeferredRenderApp::InitPipelineResources()
     scene = std::make_unique<SceneData>(GetRenderer()->GetSceneManager(), GetWidth(), GetHeight());
 
     // Create RDG Passes
-    geometry_pass = std::make_unique<DeferredShadingGeometryPass>(rhi, scene->m_scene_manager, sampler, m_width, m_height);
+    geometry_pass =
+        std::make_unique<DeferredShadingGeometryPass>(rhi, scene->m_scene_manager, sampler, m_width, m_height);
     deferred_shading_pass = std::make_unique<DeferredShadingRDGPass>(rhi, scene->m_scene_manager, m_width, m_height);
     ssao_pass = std::make_unique<SSAORDGPass>(rhi, sampler, m_width, m_height);
     ssao_blur_pass = std::make_unique<SSAOBlurRDGPass>(rhi, m_width, m_height);
@@ -116,141 +117,140 @@ void DeferredRenderApp::RenderLoop()
 {
     scene->scene_camera_controller->ProcessInput(GetWindow());
 
-        rhi->AcquireNextFrame(swap_chain);
-        UpdatePipelineResources();
-        // Reset FrameGraph for new frame
-        frame_graph->Reset();
+    rhi->AcquireNextFrame(swap_chain);
+    UpdatePipelineResources();
+    // Reset FrameGraph for new frame
+    frame_graph->Reset();
 
-        // Import resources into FrameGraph using pass methods
-        geometry_pass->ImportResources(frame_graph.get());
-        deferred_shading_pass->ImportResources(frame_graph.get());
-        ssao_pass->ImportResources(frame_graph.get());
-        ssao_blur_pass->ImportResources(frame_graph.get());
-        post_process_pass->ImportResources(frame_graph.get());
-        luminance_histogram_pass->ImportResources(frame_graph.get());
-        luminance_average_pass->ImportResources(frame_graph.get());
-        taa_pass->ImportResources(frame_graph.get());
-        resource_upload_pass->ImportResources(frame_graph.get());
+    // Import resources into FrameGraph using pass methods
+    geometry_pass->ImportResources(frame_graph.get());
+    deferred_shading_pass->ImportResources(frame_graph.get());
+    ssao_pass->ImportResources(frame_graph.get());
+    ssao_blur_pass->ImportResources(frame_graph.get());
+    post_process_pass->ImportResources(frame_graph.get());
+    luminance_histogram_pass->ImportResources(frame_graph.get());
+    luminance_average_pass->ImportResources(frame_graph.get());
+    taa_pass->ImportResources(frame_graph.get());
+    resource_upload_pass->ImportResources(frame_graph.get());
 
-        // Get resource handles from passes
-        auto gbuffer0_handle = geometry_pass->GetGBuffer0Handle();
-        auto gbuffer1_handle = geometry_pass->GetGBuffer1Handle();
-        auto gbuffer2_handle = geometry_pass->GetGBuffer2Handle();
-        auto gbuffer3_handle = geometry_pass->GetGBuffer3Handle();
-        auto gbuffer4_handle = geometry_pass->GetGBuffer4Handle();
-        auto depth_handle = geometry_pass->GetDepthHandle();
-        auto shading_color_handle = deferred_shading_pass->GetShadingColorHandle();
-        auto ssao_factor_handle = ssao_pass->GetSSAOFactorHandle();
-        auto ssao_blur_handle = ssao_blur_pass->GetOutputHandle();
-        auto ssao_noise_handle = ssao_pass->GetSSAONoiseHandle();
-        auto brdf_lut_handle = deferred_shading_pass->GetBRDFLUTHandle();
-        auto prefiltered_env_handle = deferred_shading_pass->GetPrefilteredEnvHandle();
-        auto pp_color_handle = post_process_pass->GetPPColorHandle();
-        auto histogram_buffer_handle = luminance_histogram_pass->GetHistogramBufferHandle();
-        auto adapted_luminance_handle = luminance_histogram_pass->GetAdaptedLuminanceHandle();
-        auto output_color_handle = taa_pass->GetOutputColorHandle();
-        auto previous_color_handle = taa_pass->GetPreviousColorHandle();
+    // Get resource handles from passes
+    auto gbuffer0_handle = geometry_pass->GetGBuffer0Handle();
+    auto gbuffer1_handle = geometry_pass->GetGBuffer1Handle();
+    auto gbuffer2_handle = geometry_pass->GetGBuffer2Handle();
+    auto gbuffer3_handle = geometry_pass->GetGBuffer3Handle();
+    auto gbuffer4_handle = geometry_pass->GetGBuffer4Handle();
+    auto depth_handle = geometry_pass->GetDepthHandle();
+    auto shading_color_handle = deferred_shading_pass->GetShadingColorHandle();
+    auto ssao_factor_handle = ssao_pass->GetSSAOFactorHandle();
+    auto ssao_blur_handle = ssao_blur_pass->GetOutputHandle();
+    auto ssao_noise_handle = ssao_pass->GetSSAONoiseHandle();
+    auto brdf_lut_handle = deferred_shading_pass->GetBRDFLUTHandle();
+    auto prefiltered_env_handle = deferred_shading_pass->GetPrefilteredEnvHandle();
+    auto pp_color_handle = post_process_pass->GetPPColorHandle();
+    auto histogram_buffer_handle = luminance_histogram_pass->GetHistogramBufferHandle();
+    auto adapted_luminance_handle = luminance_histogram_pass->GetAdaptedLuminanceHandle();
+    auto output_color_handle = taa_pass->GetOutputColorHandle();
+    auto previous_color_handle = taa_pass->GetPreviousColorHandle();
 
-        // Set input handles for passes
-        deferred_shading_pass->SetGBufferHandles(gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
-                                                 depth_handle);
-        deferred_shading_pass->SetSSAOBlurHandle(ssao_blur_handle);
-        ssao_pass->SetInputHandles(depth_handle, gbuffer0_handle);
-        ssao_blur_pass->SetInputHandle(ssao_factor_handle);
-        post_process_pass->SetInputHandles(shading_color_handle, adapted_luminance_handle);
-        luminance_histogram_pass->SetInputHandle(shading_color_handle);
-        luminance_average_pass->SetInputHandles(histogram_buffer_handle, adapted_luminance_handle);
-        luminance_average_pass->SetLuminanceHistogramPass(luminance_histogram_pass.get());
-        taa_pass->SetInputHandles(previous_color_handle, pp_color_handle, gbuffer4_handle);
+    // Set input handles for passes
+    deferred_shading_pass->SetGBufferHandles(gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
+                                             depth_handle);
+    deferred_shading_pass->SetSSAOBlurHandle(ssao_blur_handle);
+    ssao_pass->SetInputHandles(depth_handle, gbuffer0_handle);
+    ssao_blur_pass->SetInputHandle(ssao_factor_handle);
+    post_process_pass->SetInputHandles(shading_color_handle, adapted_luminance_handle);
+    luminance_histogram_pass->SetInputHandle(shading_color_handle);
+    luminance_average_pass->SetInputHandles(histogram_buffer_handle, adapted_luminance_handle);
+    luminance_average_pass->SetLuminanceHistogramPass(luminance_histogram_pass.get());
+    taa_pass->SetInputHandles(previous_color_handle, pp_color_handle, gbuffer4_handle);
 
-        // Set resource handles for resource upload pass
-        resource_upload_pass->SetResourceHandles(shading_color_handle, pp_color_handle, ssao_factor_handle,
-                                                 ssao_blur_handle, output_color_handle, previous_color_handle,
-                                                 ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
-                                                 histogram_buffer_handle, adapted_luminance_handle);
-        resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
-                                              luminance_histogram_pass.get(), taa_pass.get());
-        resource_upload_pass->SetFirstFrame(m_first_frame);
+    // Set resource handles for resource upload pass
+    resource_upload_pass->SetResourceHandles(shading_color_handle, pp_color_handle, ssao_factor_handle,
+                                             ssao_blur_handle, output_color_handle, previous_color_handle,
+                                             ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
+                                             histogram_buffer_handle, adapted_luminance_handle);
+    resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
+                                          luminance_histogram_pass.get(), taa_pass.get());
+    resource_upload_pass->SetFirstFrame(m_first_frame);
 
-        // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
-        static TAARDGPass::TAAPrevCurrOffset taa_prev_offset{};
-        TAARDGPass::TAAPrevCurrOffset taa_offset{};
-        taa_offset.prev_offset = taa_prev_offset.curr_offset;
-        auto cam = scene->scene_camera;
-        auto &jitter_offset = taa_pass->GetJitterOffset();
-        f32 offset_x = (jitter_offset.x - 0.5f) / m_width;
-        f32 offset_y = (jitter_offset.y - 0.5f) / m_height;
-        taa_offset.curr_offset = Math::float2{offset_x, offset_y};
-        taa_prev_offset = taa_offset;
-        resource_upload_pass->SetTAAPrevCurrOffset(taa_offset);
+    // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
+    static TAARDGPass::TAAPrevCurrOffset taa_prev_offset{};
+    TAARDGPass::TAAPrevCurrOffset taa_offset{};
+    taa_offset.prev_offset = taa_prev_offset.curr_offset;
+    auto cam = scene->scene_camera;
+    auto &jitter_offset = taa_pass->GetJitterOffset();
+    f32 offset_x = (jitter_offset.x - 0.5f) / m_width;
+    f32 offset_y = (jitter_offset.y - 0.5f) / m_height;
+    taa_offset.curr_offset = Math::float2{offset_x, offset_y};
+    taa_prev_offset = taa_offset;
+    resource_upload_pass->SetTAAPrevCurrOffset(taa_offset);
 
-        auto swapchain_handle = frame_graph->ImportTexture(
-            "swapchain" + std::to_string(swap_chain->current_frame_index), swap_chain->GetRenderTarget()->GetTexture());
+    auto swapchain_handle = frame_graph->ImportTexture("swapchain" + std::to_string(swap_chain->current_frame_index),
+                                                       swap_chain->GetRenderTarget()->GetTexture());
 
-        // Add passes to FrameGraph using RDGPass
-        frame_graph->AddPass(resource_upload_pass.get());
-        frame_graph->AddPass(geometry_pass.get());
-        frame_graph->AddPass(ssao_pass.get());
-        frame_graph->AddPass(ssao_blur_pass.get());
-        frame_graph->AddPass(deferred_shading_pass.get());
-        frame_graph->AddPass(luminance_histogram_pass.get());
-        frame_graph->AddPass(luminance_average_pass.get());
-        frame_graph->AddPass(post_process_pass.get());
-        frame_graph->AddPass(taa_pass.get());
+    // Add passes to FrameGraph using RDGPass
+    frame_graph->AddPass(resource_upload_pass.get());
+    frame_graph->AddPass(geometry_pass.get());
+    frame_graph->AddPass(ssao_pass.get());
+    frame_graph->AddPass(ssao_blur_pass.get());
+    frame_graph->AddPass(deferred_shading_pass.get());
+    frame_graph->AddPass(luminance_histogram_pass.get());
+    frame_graph->AddPass(luminance_average_pass.get());
+    frame_graph->AddPass(post_process_pass.get());
+    frame_graph->AddPass(taa_pass.get());
 
-        // Copy to Swapchain Pass
-        frame_graph->AddPass(
-            "Copy to Swapchain",
-            // Setup: Declare resource states
-            [output_color_handle, swapchain_handle,
-             previous_color_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-                // Source needs to be COPY_SOURCE for CopyTexture
-                builder.ReadTexture(output_color_handle, ResourceState::RESOURCE_STATE_COPY_SOURCE);
-                builder.WriteTexture(swapchain_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
-                builder.WriteTexture(previous_color_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
-            },
-            // Execute: Copy textures
-            [output_color_handle, swapchain_handle,
-             previous_color_handle](CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder) {
-                // Copy to swapchain and previous frame
-                cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(swapchain_handle));
-                cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(previous_color_handle));
+    // Copy to Swapchain Pass
+    frame_graph->AddPass(
+        "Copy to Swapchain",
+        // Setup: Declare resource states
+        [output_color_handle, swapchain_handle, previous_color_handle](Horizon::Backend::FrameGraphBuilder &builder) {
+            // Source needs to be COPY_SOURCE for CopyTexture
+            builder.ReadTexture(output_color_handle, ResourceState::RESOURCE_STATE_COPY_SOURCE);
+            builder.WriteTexture(swapchain_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
+            builder.WriteTexture(previous_color_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
+        },
+        // Execute: Copy textures
+        [output_color_handle, swapchain_handle, previous_color_handle](CommandList *cl,
+                                                                       Horizon::Backend::FrameGraphBuilder &builder) {
+            // Copy to swapchain and previous frame
+            cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(swapchain_handle));
+            cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(previous_color_handle));
 
-                // Transition swapchain image from COPY_DEST to PRESENT for vkQueuePresentKHR
-                Horizon::BarrierDesc barrier{};
-                Horizon::TextureBarrierDesc swapchain_barrier{};
-                swapchain_barrier.texture = builder.GetTexture(swapchain_handle);
-                swapchain_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                swapchain_barrier.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
-                swapchain_barrier.first_mip_level = 0;
-                swapchain_barrier.mip_level_count = 1;
-                swapchain_barrier.first_layer = 0;
-                swapchain_barrier.layer_count = 1;
-                swapchain_barrier.queue = CommandQueueType::GRAPHICS;
-                swapchain_barrier.queue_op = Horizon::QueueOp::IGNORED;
-                barrier.texture_memory_barriers.push_back(swapchain_barrier);
-                // borrow swapchain barrier desc
-                swapchain_barrier.texture = builder.GetTexture(previous_color_handle);
-                swapchain_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-                swapchain_barrier.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
-                barrier.texture_memory_barriers.push_back(swapchain_barrier);
-                cl->InsertBarrier(barrier);
-            });
+            // Transition swapchain image from COPY_DEST to PRESENT for vkQueuePresentKHR
+            Horizon::BarrierDesc barrier{};
+            Horizon::TextureBarrierDesc swapchain_barrier{};
+            swapchain_barrier.texture = builder.GetTexture(swapchain_handle);
+            swapchain_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+            swapchain_barrier.dst_state = ResourceState::RESOURCE_STATE_PRESENT;
+            swapchain_barrier.first_mip_level = 0;
+            swapchain_barrier.mip_level_count = 1;
+            swapchain_barrier.first_layer = 0;
+            swapchain_barrier.layer_count = 1;
+            swapchain_barrier.queue = CommandQueueType::GRAPHICS;
+            swapchain_barrier.queue_op = Horizon::QueueOp::IGNORED;
+            barrier.texture_memory_barriers.push_back(swapchain_barrier);
+            // borrow swapchain barrier desc
+            swapchain_barrier.texture = builder.GetTexture(previous_color_handle);
+            swapchain_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+            swapchain_barrier.dst_state = ResourceState::RESOURCE_STATE_UNORDERED_ACCESS;
+            barrier.texture_memory_barriers.push_back(swapchain_barrier);
+            cl->InsertBarrier(barrier);
+        });
 
-        // Compile and execute FrameGraph
-        // FrameGraph::Execute() automatically:f
-        // 1. Inserts barriers between passes
-        // 2. Executes all passes
-        // 3. Submits command lists grouped by queue type
-        frame_graph->Compile();
-        frame_graph->Execute();
+    // Compile and execute FrameGraph
+    // FrameGraph::Execute() automatically:f
+    // 1. Inserts barriers between passes
+    // 2. Executes all passes
+    // 3. Submits command lists grouped by queue type
+    frame_graph->Compile();
+    frame_graph->Execute();
 
-        // Present
-        {
-            QueuePresentInfo opaque_pass_ci{};
-            opaque_pass_ci.swap_chain = swap_chain;
-            rhi->Present(opaque_pass_ci);
-        }
+    // Present
+    {
+        QueuePresentInfo opaque_pass_ci{};
+        opaque_pass_ci.swap_chain = swap_chain;
+        rhi->Present(opaque_pass_ci);
+    }
 
     rhi->WaitGpuExecution(CommandQueueType::GRAPHICS);
     if (m_first_frame)

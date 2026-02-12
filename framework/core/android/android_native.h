@@ -2,9 +2,9 @@
 
 #ifdef __ANDROID__
 
-#include <jni.h>
 #include <android/native_window.h>
 #include <core/definations.h>
+#include <jni.h>
 
 namespace Horizon
 {

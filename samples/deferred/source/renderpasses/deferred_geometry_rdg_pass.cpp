@@ -4,7 +4,8 @@
 
 DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager,
                                                          Sampler *sampler, u32 width, u32 height)
-    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler), m_width(width), m_height(height)
+    : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler), m_width(width),
+      m_height(height)
 {
     // Create shaders and pipeline using base class helper functions
     m_geometry_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
@@ -84,16 +85,16 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     m_geometry_pipeline = CreateGraphicsPipeline(graphics_pass_ci);
 
     // Create render targets
-    m_gbuffer0_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, m_width, m_height});
-    m_gbuffer1_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, m_width, m_height});
+    m_gbuffer0_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+                                                                   RenderTargetType::COLOR, m_width, m_height});
+    m_gbuffer1_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+                                                                   RenderTargetType::COLOR, m_width, m_height});
     m_gbuffer2_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT,
                                                                    RenderTargetType::COLOR, m_width, m_height});
-    m_gbuffer3_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, m_width, m_height});
-    m_gbuffer4_rt = rhi->CreateRenderTarget(
-        RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT, RenderTargetType::COLOR, m_width, m_height});
+    m_gbuffer3_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+                                                                   RenderTargetType::COLOR, m_width, m_height});
+    m_gbuffer4_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT,
+                                                                   RenderTargetType::COLOR, m_width, m_height});
     m_depth_rt = rhi->CreateRenderTarget(RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
                                                                 RenderTargetType::DEPTH_STENCIL, m_width, m_height});
 

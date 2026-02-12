@@ -1,6 +1,7 @@
 /*****************************************************************/ /**
                                                                      * \file   app_framework.cpp
-                                                                     * \brief  Application framework base class implementation
+                                                                     * \brief  Application framework base class
+                                                                     *implementation
                                                                      *
                                                                      * \author hylu
                                                                      * \date   November 2022
@@ -163,9 +164,7 @@ void AppFramework::RegisterForAndroid()
 {
     // Create a lambda that captures 'this' and calls Run()
     // This lambda will be stored in the framework and called from JNI
-    RegisterAppEntryPoint([this]() {
-        this->Run();
-    });
+    RegisterAppEntryPoint([this]() { this->Run(); });
 }
 #endif
 

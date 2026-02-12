@@ -32,7 +32,7 @@ class Window
 
     u32 GetWidth() const noexcept;
     u32 GetHeight() const noexcept;
-    
+
 #ifdef __ANDROID__
     ANativeWindow *GetNativeWindow() const noexcept;
     void SetNativeWindow(ANativeWindow *window) noexcept;

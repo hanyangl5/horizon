@@ -236,7 +236,7 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     instance_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #endif
     instance_extensions.emplace_back("VK_KHR_surface");
-    
+
     // Platform-specific surface extensions
 #ifdef _WIN32
     instance_extensions.emplace_back("VK_KHR_win32_surface");
@@ -247,7 +247,7 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     instance_extensions.emplace_back("VK_KHR_xlib_surface");
     // instance_extensions.emplace_back("VK_KHR_wayland_surface");
 #endif
-    
+
     device_extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);

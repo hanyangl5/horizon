@@ -1,11 +1,11 @@
 #ifdef __ANDROID__
 
 #include "android_native.h"
-#include <jni.h>
 #include <android/native_window_jni.h>
 #include <core/log.h>
-#include <thread>
+#include <jni.h>
 #include <mutex>
+#include <thread>
 
 namespace Horizon
 {
@@ -19,14 +19,12 @@ extern "C"
     JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnDestroy(JNIEnv *env, jobject thiz);
     JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnPause(JNIEnv *env, jobject thiz);
     JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnResume(JNIEnv *env, jobject thiz);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceCreated(JNIEnv *env,
-                                                                                                jobject thiz,
-                                                                                                jobject surface);
+    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jobject thiz,
+                                                                                              jobject surface);
     JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceDestroyed(JNIEnv *env,
                                                                                                 jobject thiz);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceChanged(JNIEnv *env,
-                                                                                              jobject thiz, jint width,
-                                                                                              jint height);
+    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceChanged(JNIEnv *env, jobject thiz,
+                                                                                              jint width, jint height);
 }
 
 static bool g_app_initialized = false;
@@ -45,7 +43,7 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnDestr
 {
     LOG_INFO("JNI: nativeOnDestroy called");
     OnAppDestroy();
-    
+
     {
         std::lock_guard<std::mutex> lock(g_app_mutex);
         if (g_render_thread && g_render_thread->joinable())
@@ -56,7 +54,7 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnDestr
         }
         g_app_initialized = false;
     }
-    
+
     CleanupAndroidApp();
 }
 
@@ -72,16 +70,15 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnResum
     OnAppResume();
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceCreated(JNIEnv *env,
-                                                                                            jobject thiz,
-                                                                                            jobject surface)
+JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jobject thiz,
+                                                                                          jobject surface)
 {
     LOG_INFO("JNI: nativeOnSurfaceCreated called");
     ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
     if (window)
     {
         OnNativeWindowCreated(window);
-        
+
         // Start render thread if not already started
         {
             std::lock_guard<std::mutex> lock(g_app_mutex);
@@ -101,16 +98,14 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfa
     }
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceDestroyed(JNIEnv *env,
-                                                                                              jobject thiz)
+JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceDestroyed(JNIEnv *env, jobject thiz)
 {
     LOG_INFO("JNI: nativeOnSurfaceDestroyed called");
     OnNativeWindowDestroyed();
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceChanged(JNIEnv *env,
-                                                                                            jobject thiz, jint width,
-                                                                                            jint height)
+JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceChanged(JNIEnv *env, jobject thiz,
+                                                                                          jint width, jint height)
 {
     LOG_INFO("JNI: nativeOnSurfaceChanged called: {}x{}", width, height);
     OnNativeWindowResized(static_cast<u32>(width), static_cast<u32>(height));

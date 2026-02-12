@@ -6,7 +6,8 @@
 class DeferredShadingGeometryPass : public Horizon::Backend::RDGPass
 {
   public:
-    DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampler *sampler, u32 width, u32 height);
+    DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager, Sampler *sampler, u32 width,
+                                u32 height);
     ~DeferredShadingGeometryPass();
 
     void ImportResources(Horizon::Backend::FrameGraph *frame_graph) override;

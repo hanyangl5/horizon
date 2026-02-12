@@ -26,7 +26,7 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     surface_create_info.pNext = nullptr;
     surface_create_info.flags = 0;
     surface_create_info.window = window->GetNativeWindow();
-    
+
     CHECK_VK_RESULT(vkCreateAndroidSurfaceKHR(m_context.instance, &surface_create_info, nullptr, &surface));
 #else
     // Use GLFW to create surface

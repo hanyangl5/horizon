@@ -105,7 +105,7 @@ void RunAppEntryPoint()
         std::lock_guard<std::mutex> lock(g_android_mutex);
         entry_point = g_app_entry_point;
     }
-    
+
     if (entry_point)
     {
         entry_point();

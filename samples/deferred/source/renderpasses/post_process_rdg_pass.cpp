@@ -1,6 +1,7 @@
 #include "post_process_rdg_pass.h"
 
-PostProcessRDGPass::PostProcessRDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("Post Process Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
+PostProcessRDGPass::PostProcessRDGPass(RHI *rhi, u32 width, u32 height)
+    : RDGPass("Post Process Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_post_process_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "post_process.comp.hlsl", "main");
     ComputePipelineCreateInfo create_info{};

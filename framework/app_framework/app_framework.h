@@ -14,9 +14,9 @@
 #include <scene/scene_renderer/renderer.h>
 
 #ifdef __ANDROID__
+#include <chrono>
 #include <core/android/android_native.h>
 #include <thread>
-#include <chrono>
 #endif
 
 namespace Horizon
@@ -27,7 +27,7 @@ class AppFramework
   public:
     AppFramework(const char *app_name, u32 default_width = 800, u32 default_height = 600);
     virtual ~AppFramework();
-    
+
 #ifdef __ANDROID__
     // Register this app instance as the entry point for Android
     void RegisterForAndroid();
@@ -43,15 +43,36 @@ class AppFramework
     virtual void Cleanup() = 0;
 
     // Accessors for derived classes
-    Window *GetWindow() noexcept { return m_window.get(); }
-    Renderer *GetRenderer() noexcept { return m_renderer.get(); }
-    Backend::RHI *GetRhi() noexcept { return m_renderer ? m_renderer->GetRhi() : nullptr; }
-    u32 GetWidth() const noexcept { return m_width; }
-    u32 GetHeight() const noexcept { return m_height; }
+    Window *GetWindow() noexcept
+    {
+        return m_window.get();
+    }
+    Renderer *GetRenderer() noexcept
+    {
+        return m_renderer.get();
+    }
+    Backend::RHI *GetRhi() noexcept
+    {
+        return m_renderer ? m_renderer->GetRhi() : nullptr;
+    }
+    u32 GetWidth() const noexcept
+    {
+        return m_width;
+    }
+    u32 GetHeight() const noexcept
+    {
+        return m_height;
+    }
 
     // Configuration
-    void SetRenderBackend(RenderBackend backend) { m_render_backend = backend; }
-    void SetApplicationType(ApplicationType type) { m_app_type = type; }
+    void SetRenderBackend(RenderBackend backend)
+    {
+        m_render_backend = backend;
+    }
+    void SetApplicationType(ApplicationType type)
+    {
+        m_app_type = type;
+    }
 
   private:
     void InitializeWindow();
@@ -83,10 +104,10 @@ class AppFramework
     }
 #else
 #define DEFINE_HORIZON_APP_WITH_CLASS(AppName, AppClass)                                                               \
-    int main()                                                                                               \
-    {                                                                                                              \
-        AppClass app;                                                                                              \
-        app.Run();                                                                                                 \
-        return 0;                                                                                                  \
+    int main()                                                                                                         \
+    {                                                                                                                  \
+        AppClass app;                                                                                                  \
+        app.Run();                                                                                                     \
+        return 0;                                                                                                      \
     }
 #endif

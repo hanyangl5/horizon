@@ -1,6 +1,7 @@
 #include "luminance_histogram_rdg_pass.h"
 
-LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("Luminance Histogram Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
+LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi, u32 width, u32 height)
+    : RDGPass("Luminance Histogram Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_luminance_histogram_cs =
         CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "luminance_histogram.comp.hlsl", "main");

@@ -1,6 +1,7 @@
 #include "taa_rdg_pass.h"
 
-TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height) : RDGPass("TAA Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
+TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height)
+    : RDGPass("TAA Pass", rhi), m_rhi(rhi), m_width(width), m_height(height)
 {
     m_taa_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "taa.comp.hlsl", "main");
     ComputePipelineCreateInfo create_info{};

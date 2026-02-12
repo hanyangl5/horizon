@@ -20,7 +20,9 @@ extern Horizon::Path asset_path;
 class DeferredRenderApp : public Horizon::AppFramework
 {
   public:
-    DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900) {}
+    DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
+    {
+    }
 
   protected:
     void Initialize() override;

@@ -27,10 +27,11 @@ struct TestVertex
 class HelloTriangleApp : public AppFramework
 {
   public:
-    HelloTriangleApp() : AppFramework("Hello Triangle", 800, 600) {
+    HelloTriangleApp() : AppFramework("Hello Triangle", 800, 600)
+    {
         SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_VULKAN);
     }
-    
+
   protected:
     void Initialize() override
     {

@@ -2,7 +2,8 @@
 #include <scene/scene_manager/scene_manager.h>
 
 DeferredShadingRDGPass::DeferredShadingRDGPass(RHI *rhi, Horizon::SceneManager *scene_manager, u32 width, u32 height)
-    : RDGPass("Deferred Shading Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_width(width), m_height(height)
+    : RDGPass("Deferred Shading Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_width(width),
+      m_height(height)
 {
     // Create shader and pipeline using base class helper functions
     m_shading_cs = CreateShader(ShaderType::COMPUTE_SHADER, shader_dir / "deferred_shading.comp.hlsl", "main");
