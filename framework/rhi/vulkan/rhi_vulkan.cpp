@@ -252,8 +252,8 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     device_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-    //device_extensions.emplace_back(VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME);
-    //device_extensions.emplace_back(VK_GOOGLE_USER_TYPE_EXTENSION_NAME);
+    // device_extensions.emplace_back(VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME);
+    // device_extensions.emplace_back(VK_GOOGLE_USER_TYPE_EXTENSION_NAME);
 
     CreateInstance(app_name, instance_layers, instance_extensions);
     CreateDevice(device_extensions);
