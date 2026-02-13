@@ -4,7 +4,7 @@
 #include <rhi/shader.h>
 #include <rhi/vulkan/vulkan_utils.h>
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <vector>
 

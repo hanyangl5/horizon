@@ -3,16 +3,16 @@
 #include <stb_image.h>
 
 #include "texture_loader.h"
-
+#ifdef _WIN32
 #include <DXGIFormat.h>
 
 #include "ddspp.h"
-
+#endif
 #include <core/log.h>
 #include <core/path.h>
 namespace Horizon
 {
-
+#ifdef _WIN32
 TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
 {
     switch (format)
@@ -349,7 +349,7 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
     }
     return {};
 }
-
+#endif
 TextureDataDesc TextureLoader::Load(const char *path)
 {
     TextureDataDesc texture_info{};
@@ -413,6 +413,7 @@ void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info)
     texture_info.layer_count = 1;
     stbi_image_free(data);
 }
+#ifdef _WIN32
 void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info)
 {
 
@@ -449,7 +450,7 @@ void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info)
         }
     }
 }
-
+#endif
 void TextureLoader::LoadTGA(const char *path, TextureDataDesc &texture_info)
 {
     int channels;

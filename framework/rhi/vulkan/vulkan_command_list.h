@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <rhi/command_list.h>
 #include <rhi/vulkan/vulkan_buffer.h>

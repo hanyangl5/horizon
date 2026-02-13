@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <thread>
 
-#include <assimp/pbrmaterial.h>
+#include <assimp/material.h>
+#include <assimp/GltfMaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
@@ -64,9 +65,9 @@ void Mesh::ProcessMaterials(const aiScene *scene)
     [[maybe_unused]] aiReturn ret;
     for (u32 i = 0; i < scene->mNumMaterials; i++)
     {
-        bool unlit;
-        scene->mMaterials[i]->Get(AI_MATKEY_GLTF_UNLIT, unlit);
-        if (unlit == true)
+        int shading_model = 0;
+        scene->mMaterials[i]->Get(AI_MATKEY_SHADING_MODEL, shading_model);
+        if (shading_model == aiShadingMode_Unlit)
         {
             materials[i].shading_model = ShadingModel::SHADING_MODEL_UNLIT;
         }

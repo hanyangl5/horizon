@@ -1,11 +1,11 @@
 #include "rhi_vulkan.h"
 
+#include <volk.h>
 #include <core/path.h>
 #include <thread>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
-#include <vulkan/vulkan.hpp>
 
 #include <core/memory.h>
 #include <rhi/vulkan/vulkan_buffer.h>
@@ -255,8 +255,15 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     // device_extensions.emplace_back(VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME);
     // device_extensions.emplace_back(VK_GOOGLE_USER_TYPE_EXTENSION_NAME);
 
+    if (volkInitialize() != VK_SUCCESS)
+    {
+        LOG_ERROR("volkInitialize failed");
+        return;
+    }
     CreateInstance(app_name, instance_layers, instance_extensions);
+    volkLoadInstance(m_vulkan.instance);
     CreateDevice(device_extensions);
+    volkLoadDevice(m_vulkan.device);
     InitializeVMA();
     // create sync objects
     CreateSyncObjects();
@@ -477,6 +484,10 @@ void RHIVulkan::InitializeVMA()
     VmaVulkanFunctions vulkan_functions{};
     vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
     vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+#if VMA_VULKAN_VERSION >= 1003000
+    vulkan_functions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;
+    vulkan_functions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;
+#endif
 
     VmaAllocatorCreateInfo vma_create_info{};
     vma_create_info.device = m_vulkan.device;

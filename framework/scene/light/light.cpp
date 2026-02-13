@@ -1,5 +1,7 @@
 #include "light.h"
 
+#include <cassert>
+
 namespace Horizon
 {
 

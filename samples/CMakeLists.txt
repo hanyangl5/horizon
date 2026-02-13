@@ -28,5 +28,8 @@ macro(addproject projectdir)
 
 endmacro()
 
-addproject(deferred)
-addproject(hellotriangle)
+# Desktop samples use main(); on Android the app entry is android_main/JNI, so skip building these executables
+if(NOT ANDROID)
+    addproject(deferred)
+    addproject(hellotriangle)
+endif()

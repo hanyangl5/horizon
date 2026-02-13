@@ -8,6 +8,8 @@
 
 #include "camera_controller.h"
 
+#include <cassert>
+
 #include <core/glfwinput.h>
 
 namespace Horizon

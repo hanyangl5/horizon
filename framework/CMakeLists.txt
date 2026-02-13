@@ -17,8 +17,8 @@ list(FILTER SOURCE_FILES EXCLUDE REGEX ".*rhi/vulkan/.*")
 
 # Exclude GLFW-related files on Android (GLFW is not supported on Android)
 if(ANDROID)
-    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*core/glfw.*")
-    list(FILTER HEADER_FILES EXCLUDE REGEX ".*core/glfw.*")
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*core/glfwinput.*")
+    list(FILTER HEADER_FILES EXCLUDE REGEX ".*core/glfwinput.*")
 endif()
 
 # Include Android sources on Android
@@ -78,6 +78,10 @@ endif()
 # 根据变量设置编译定义
 if(USE_VULKAN)
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_VULKAN)
+    # VK_NO_PROTOTYPES: Vulkan headers must not declare function prototypes so Volk can provide them (avoids redefinition on Windows)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
+    # Volk: load Vulkan at runtime (avoids undefined symbols on Android for vkCmdBeginRendering etc.)
+    target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk)
     
     # Android-specific configuration
     if(ANDROID)

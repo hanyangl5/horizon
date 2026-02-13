@@ -2,9 +2,15 @@
 
 #ifdef __ANDROID__
 
+// Include C stdlib/math first so ::ldiv, ::hypot, ::sqrt etc. are in global namespace (NDK libc++ fix)
+#include <stdlib.h>
+#include <math.h>
+#include <functional>
+
 #include <android/native_window.h>
-#include <core/definations.h>
 #include <jni.h>
+
+#include <core/definations.h>
 
 namespace Horizon
 {
@@ -49,7 +55,7 @@ void OnAppDestroy();
 
 // Application entry point callback type
 // Using std::function to allow capturing lambdas
-#include <functional>
+
 using AppEntryPoint = std::function<void()>;
 
 // Register application entry point (called from app layer)

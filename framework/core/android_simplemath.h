@@ -241,6 +241,7 @@ struct Vector3
     {
         return Vector3(x * S, y * S, z * S);
     }
+
     Vector3 operator/(float S) const noexcept
     {
         float inv = 1.0f / S;
@@ -308,6 +309,11 @@ struct Vector3
     static const Vector3 Backward;
 };
 
+inline Vector3 operator*(float S, const Vector3 &V) noexcept
+{
+    return Vector3(V.x * S, V.y * S, V.z * S);
+}
+
 //------------------------------------------------------------------------------
 // 4D Vector
 struct Vector4
@@ -322,6 +328,10 @@ struct Vector4
     }
     constexpr Vector4(float ix, float iy, float iz, float iw) noexcept : x(ix), y(iy), z(iz), w(iw)
     {
+    }
+
+    constexpr Vector4(const Vector3 &v, float w = 0.0f) noexcept : x(v.x), y(v.y), z(v.z), w(w) {
+
     }
     explicit Vector4(const float *pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3])
     {
@@ -448,7 +458,15 @@ struct Vector4
 // Matrix (4x4)
 struct Matrix
 {
-    float m[4][4];
+    union {
+        float m[4][4];
+        struct {
+            float _11, _12, _13, _14;
+            float _21, _22, _23, _24;
+            float _31, _32, _33, _34;
+            float _41, _42, _43, _44;
+        };
+    };
 
     Matrix() noexcept
     {
@@ -456,7 +474,28 @@ struct Matrix
     }
     Matrix(const Matrix &) = default;
     Matrix &operator=(const Matrix &) = default;
-
+    Matrix(float m00, float m01, float m02, float m03,
+        float m10, float m11, float m12, float m13,
+        float m20, float m21, float m22, float m23,
+        float m30, float m31, float m32, float m33) noexcept
+    {
+        m[0][0] = m00;
+        m[0][1] = m01;
+        m[0][2] = m02;
+        m[0][3] = m03;
+        m[1][0] = m10;
+        m[1][1] = m11;
+        m[1][2] = m12;
+        m[1][3] = m13;
+        m[2][0] = m20;
+        m[2][1] = m21;
+        m[2][2] = m22;
+        m[2][3] = m23;
+        m[3][0] = m30;
+        m[3][1] = m31;
+        m[3][2] = m32;
+        m[3][3] = m33;
+    }
     float &operator()(size_t row, size_t col) noexcept
     {
         return m[row][col];
@@ -553,6 +592,45 @@ struct Matrix
         result.m[3][1] = -1.0f;
         result.m[3][2] = -(farPlane + nearPlane) / range;
         result.m[3][3] = 1.0f;
+        return result;
+    }
+
+    Matrix Transpose() const noexcept
+    {
+        Matrix result;
+        for (size_t i = 0; i < 4; ++i)
+            for (size_t j = 0; j < 4; ++j)
+                result.m[i][j] = m[j][i];
+        return result;
+    }
+
+    Matrix Invert() const noexcept
+    {
+        // Cofactor-based 4x4 inversion: M^(-1) = adj(M) / det(M)
+        auto det3 = [this](size_t r0, size_t r1, size_t r2, size_t c0, size_t c1, size_t c2) -> float {
+            return m[r0][c0] * (m[r1][c1] * m[r2][c2] - m[r1][c2] * m[r2][c1])
+                 - m[r0][c1] * (m[r1][c0] * m[r2][c2] - m[r1][c2] * m[r2][c0])
+                 + m[r0][c2] * (m[r1][c0] * m[r2][c1] - m[r1][c1] * m[r2][c0]);
+        };
+        auto cofactor = [&det3](size_t i, size_t j) -> float {
+            size_t r[3], c[3];
+            for (size_t ri = 0, k = 0; k < 4; ++k)
+                if (k != i) r[ri++] = k;
+            for (size_t cj = 0, k = 0; k < 4; ++k)
+                if (k != j) c[cj++] = k;
+            float sign = ((i + j) % 2 == 0) ? 1.0f : -1.0f;
+            return sign * det3(r[0], r[1], r[2], c[0], c[1], c[2]);
+        };
+        float det = m[0][0] * cofactor(0, 0) + m[0][1] * cofactor(0, 1)
+                  + m[0][2] * cofactor(0, 2) + m[0][3] * cofactor(0, 3);
+        const float eps = 1e-10f;
+        if (std::fabs(det) < eps)
+            return Identity; // singular
+        float invDet = 1.0f / det;
+        Matrix result;
+        for (size_t i = 0; i < 4; ++i)
+            for (size_t j = 0; j < 4; ++j)
+                result.m[i][j] = cofactor(j, i) * invDet; // adjugate = transpose of cofactor
         return result;
     }
 

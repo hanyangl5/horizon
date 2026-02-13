@@ -1,6 +1,7 @@
 #ifdef __ANDROID__
 
 #include "android_native.h"
+#include <cstdlib>
 #include <android/native_window_jni.h>
 #include <core/log.h>
 #include <jni.h>

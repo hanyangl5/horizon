@@ -7,7 +7,7 @@
 #include <android/native_window.h>
 #endif
 
-#include <vulkan/vulkan.hpp>
+#include <volk.h>
 
 #include "vulkan_render_target.h"
 #include "vulkan_semaphore.h"
