@@ -1,9 +1,9 @@
 #ifdef __ANDROID__
 
 #include "android_native.h"
-#include <cstdlib>
 #include <android/native_window_jni.h>
 #include <core/log.h>
+#include <cstdlib>
 #include <jni.h>
 #include <mutex>
 #include <thread>

@@ -330,8 +330,8 @@ struct Vector4
     {
     }
 
-    constexpr Vector4(const Vector3 &v, float w = 0.0f) noexcept : x(v.x), y(v.y), z(v.z), w(w) {
-
+    constexpr Vector4(const Vector3 &v, float w = 0.0f) noexcept : x(v.x), y(v.y), z(v.z), w(w)
+    {
     }
     explicit Vector4(const float *pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3])
     {
@@ -460,7 +460,8 @@ struct Matrix
 {
     union {
         float m[4][4];
-        struct {
+        struct
+        {
             float _11, _12, _13, _14;
             float _21, _22, _23, _24;
             float _31, _32, _33, _34;
@@ -474,10 +475,8 @@ struct Matrix
     }
     Matrix(const Matrix &) = default;
     Matrix &operator=(const Matrix &) = default;
-    Matrix(float m00, float m01, float m02, float m03,
-        float m10, float m11, float m12, float m13,
-        float m20, float m21, float m22, float m23,
-        float m30, float m31, float m32, float m33) noexcept
+    Matrix(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21,
+           float m22, float m23, float m30, float m31, float m32, float m33) noexcept
     {
         m[0][0] = m00;
         m[0][1] = m01;
@@ -608,21 +607,23 @@ struct Matrix
     {
         // Cofactor-based 4x4 inversion: M^(-1) = adj(M) / det(M)
         auto det3 = [this](size_t r0, size_t r1, size_t r2, size_t c0, size_t c1, size_t c2) -> float {
-            return m[r0][c0] * (m[r1][c1] * m[r2][c2] - m[r1][c2] * m[r2][c1])
-                 - m[r0][c1] * (m[r1][c0] * m[r2][c2] - m[r1][c2] * m[r2][c0])
-                 + m[r0][c2] * (m[r1][c0] * m[r2][c1] - m[r1][c1] * m[r2][c0]);
+            return m[r0][c0] * (m[r1][c1] * m[r2][c2] - m[r1][c2] * m[r2][c1]) -
+                   m[r0][c1] * (m[r1][c0] * m[r2][c2] - m[r1][c2] * m[r2][c0]) +
+                   m[r0][c2] * (m[r1][c0] * m[r2][c1] - m[r1][c1] * m[r2][c0]);
         };
         auto cofactor = [&det3](size_t i, size_t j) -> float {
             size_t r[3], c[3];
             for (size_t ri = 0, k = 0; k < 4; ++k)
-                if (k != i) r[ri++] = k;
+                if (k != i)
+                    r[ri++] = k;
             for (size_t cj = 0, k = 0; k < 4; ++k)
-                if (k != j) c[cj++] = k;
+                if (k != j)
+                    c[cj++] = k;
             float sign = ((i + j) % 2 == 0) ? 1.0f : -1.0f;
             return sign * det3(r[0], r[1], r[2], c[0], c[1], c[2]);
         };
-        float det = m[0][0] * cofactor(0, 0) + m[0][1] * cofactor(0, 1)
-                  + m[0][2] * cofactor(0, 2) + m[0][3] * cofactor(0, 3);
+        float det =
+            m[0][0] * cofactor(0, 0) + m[0][1] * cofactor(0, 1) + m[0][2] * cofactor(0, 2) + m[0][3] * cofactor(0, 3);
         const float eps = 1e-10f;
         if (std::fabs(det) < eps)
             return Identity; // singular

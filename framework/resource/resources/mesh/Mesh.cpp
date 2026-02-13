@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <thread>
 
-#include <assimp/material.h>
 #include <assimp/GltfMaterial.h>
+#include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 

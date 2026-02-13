@@ -37,7 +37,7 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_w
     }
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
-    //LOG_DEBUG("vsync : {}", m_vsync_enabled); // TODO(hylu): vsync not working now
+    // LOG_DEBUG("vsync : {}", m_vsync_enabled); // TODO(hylu): vsync not working now
 #endif
 }
 

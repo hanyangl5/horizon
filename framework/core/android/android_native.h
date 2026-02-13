@@ -3,9 +3,9 @@
 #ifdef __ANDROID__
 
 // Include C stdlib/math first so ::ldiv, ::hypot, ::sqrt etc. are in global namespace (NDK libc++ fix)
-#include <stdlib.h>
-#include <math.h>
 #include <functional>
+#include <math.h>
+#include <stdlib.h>
 
 #include <android/native_window.h>
 #include <jni.h>
