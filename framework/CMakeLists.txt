@@ -41,7 +41,7 @@ endif()
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR} / framework)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/framework)
 
 # Add Android NDK include directories (after target is created)
 if(ANDROID AND DEFINED ANDROID_NDK)

@@ -19,16 +19,54 @@ horizon is a real time render framework.
 
 ## Build status
 
-| Platform |        MSVC        |       Clang        |
-| -------- | :----------------: | :----------------: |
-| Windows  | :heavy_check_mark: | :heavy_check_mark: |
+| Platform |        MSVC        |       Clang        |      Vulkan        |
+| -------- | :----------------: | :----------------: | :----------------: |
+| Windows  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Android  |                    |                    | :heavy_check_mark: |
 
 ## Build From Source
 
+### Windows
+
+```bash
+# MSVC
+cmake --preset msvcwin64
+cmake --build --preset msvcwin64
+
+# Clang
+cmake --preset clangwin64
+cmake --build --preset clangwin64
 ```
-cmake --present msvcwin64/clangwin64/Android
-cmake --build --present msvcwin64/clangwin64/Android
+
+### Android
+
+Build the native framework library only (no APK):
+
+```bash
+cmake --preset android_framework
+cmake --build --preset android_framework
 ```
+
+Build per-sample APKs (hellotriangle, deferred, etc.):
+
+```bash
+cmake --preset android_app
+cmake --build --preset android_app
+```
+
+This generates one APK per sample in `build/android_app/android/<sample>/build/outputs/apk/debug/`.
+
+You can also build a single sample's APK:
+
+```bash
+cmake --build --preset android_app --target apk_hellotriangle
+```
+
+**Prerequisites:**
+
+- Android NDK 27+ (path configured in `CMakePresets.json`)
+- Android SDK with build-tools 36.0.0 and platform android-36
+- JDK 17+
 
 ---
 

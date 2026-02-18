@@ -1,0 +1,10 @@
+package @SAMPLE_PACKAGE@;
+
+import com.horizon.engine.HorizonActivity;
+
+public class MainActivity extends HorizonActivity {
+    @Override
+    protected String getNativeLibraryName() {
+        return "@SAMPLE_LIB_NAME@";
+    }
+}

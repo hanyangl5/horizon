@@ -365,7 +365,11 @@ TextureDataDesc TextureLoader::Load(const char *path)
     }
     else if (extension == ".dds")
     {
+#ifdef _WIN32
         LoadDDS(path, texture_info);
+#else
+        LOG_ERROR("DDS loading is not supported on this platform");
+#endif
     }
     else if (extension == ".tga")
     {

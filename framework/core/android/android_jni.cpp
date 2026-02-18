@@ -11,36 +11,17 @@
 namespace Horizon
 {
 
-// JNI function declarations
-extern "C"
-{
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnCreate(JNIEnv *env, jobject thiz,
-                                                                                      jobject activity,
-                                                                                      jobject asset_manager);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnDestroy(JNIEnv *env, jobject thiz);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnPause(JNIEnv *env, jobject thiz);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnResume(JNIEnv *env, jobject thiz);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jobject thiz,
-                                                                                              jobject surface);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceDestroyed(JNIEnv *env,
-                                                                                                jobject thiz);
-    JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceChanged(JNIEnv *env, jobject thiz,
-                                                                                              jint width, jint height);
-}
-
 static bool g_app_initialized = false;
 static std::thread *g_render_thread = nullptr;
 static std::mutex g_app_mutex;
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnCreate(JNIEnv *env, jobject thiz,
-                                                                                  jobject activity,
-                                                                                  jobject asset_manager)
+static void nativeOnCreate(JNIEnv *env, jobject thiz, jobject activity, jobject asset_manager)
 {
     LOG_INFO("JNI: nativeOnCreate called");
     InitializeAndroidApp(env, activity, asset_manager);
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnDestroy(JNIEnv *env, jobject thiz)
+static void nativeOnDestroy(JNIEnv *env, jobject thiz)
 {
     LOG_INFO("JNI: nativeOnDestroy called");
     OnAppDestroy();
@@ -59,20 +40,19 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnDestr
     CleanupAndroidApp();
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnPause(JNIEnv *env, jobject thiz)
+static void nativeOnPause(JNIEnv *env, jobject thiz)
 {
     LOG_INFO("JNI: nativeOnPause called");
     OnAppPause();
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnResume(JNIEnv *env, jobject thiz)
+static void nativeOnResume(JNIEnv *env, jobject thiz)
 {
     LOG_INFO("JNI: nativeOnResume called");
     OnAppResume();
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jobject thiz,
-                                                                                          jobject surface)
+static void nativeOnSurfaceCreated(JNIEnv *env, jobject thiz, jobject surface)
 {
     LOG_INFO("JNI: nativeOnSurfaceCreated called");
     ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
@@ -80,7 +60,6 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfa
     {
         OnNativeWindowCreated(window);
 
-        // Start render thread if not already started
         {
             std::lock_guard<std::mutex> lock(g_app_mutex);
             if (!g_app_initialized)
@@ -99,19 +78,52 @@ JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfa
     }
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceDestroyed(JNIEnv *env, jobject thiz)
+static void nativeOnSurfaceDestroyed(JNIEnv *env, jobject thiz)
 {
     LOG_INFO("JNI: nativeOnSurfaceDestroyed called");
     OnNativeWindowDestroyed();
 }
 
-JNIEXPORT void JNICALL Java_com_horizon_hellotriangle_MainActivity_nativeOnSurfaceChanged(JNIEnv *env, jobject thiz,
-                                                                                          jint width, jint height)
+static void nativeOnSurfaceChanged(JNIEnv *env, jobject thiz, jint width, jint height)
 {
     LOG_INFO("JNI: nativeOnSurfaceChanged called: {}x{}", width, height);
     OnNativeWindowResized(static_cast<u32>(width), static_cast<u32>(height));
 }
 
 } // namespace Horizon
+
+extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/)
+{
+    JNIEnv *env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK)
+    {
+        return JNI_ERR;
+    }
+
+    jclass cls = env->FindClass("com/horizon/engine/HorizonActivity");
+    if (!cls)
+    {
+        return JNI_ERR;
+    }
+
+    // clang-format off
+    const JNINativeMethod methods[] = {
+        {"nativeOnCreate",           "(Landroid/app/Activity;Landroid/content/res/AssetManager;)V", reinterpret_cast<void *>(Horizon::nativeOnCreate)},
+        {"nativeOnDestroy",          "()V",                                                        reinterpret_cast<void *>(Horizon::nativeOnDestroy)},
+        {"nativeOnPause",            "()V",                                                        reinterpret_cast<void *>(Horizon::nativeOnPause)},
+        {"nativeOnResume",           "()V",                                                        reinterpret_cast<void *>(Horizon::nativeOnResume)},
+        {"nativeOnSurfaceCreated",   "(Landroid/view/Surface;)V",                                  reinterpret_cast<void *>(Horizon::nativeOnSurfaceCreated)},
+        {"nativeOnSurfaceDestroyed", "()V",                                                        reinterpret_cast<void *>(Horizon::nativeOnSurfaceDestroyed)},
+        {"nativeOnSurfaceChanged",   "(II)V",                                                      reinterpret_cast<void *>(Horizon::nativeOnSurfaceChanged)},
+    };
+    // clang-format on
+
+    if (env->RegisterNatives(cls, methods, sizeof(methods) / sizeof(methods[0])) < 0)
+    {
+        return JNI_ERR;
+    }
+
+    return JNI_VERSION_1_6;
+}
 
 #endif // __ANDROID__
