@@ -72,8 +72,8 @@ void BufferTest(RHITest *rhi_test)
 {
     auto *rhi = rhi_test->renderer->GetRhi();
 
-    Buffer *cbuffer = rhi->CreateBuffer(
-        {DESCRIPTOR_TYPE_CONSTANT_BUFFER, RESOURCE_STATE_SHADER_RESOURCE, 256, "test_cbuffer"});
+    Buffer *cbuffer =
+        rhi->CreateBuffer({DESCRIPTOR_TYPE_CONSTANT_BUFFER, RESOURCE_STATE_SHADER_RESOURCE, 256, "test_cbuffer"});
 
     Buffer *vbuffer = rhi->CreateBuffer(
         {DESCRIPTOR_TYPE_VERTEX_BUFFER, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, 1024, "test_vbuffer"});
@@ -206,8 +206,8 @@ void RenderTargetTest(RHITest *rhi_test)
     RenderTarget *color_rt =
         rhi->CreateRenderTarget({TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, RenderTargetType::COLOR, 256, 256});
 
-    RenderTarget *depth_rt = rhi->CreateRenderTarget(
-        {TextureFormat::TEXTURE_FORMAT_D32_SFLOAT, RenderTargetType::DEPTH_STENCIL, 256, 256});
+    RenderTarget *depth_rt =
+        rhi->CreateRenderTarget({TextureFormat::TEXTURE_FORMAT_D32_SFLOAT, RenderTargetType::DEPTH_STENCIL, 256, 256});
 
     Texture *color_tex = color_rt->GetTexture();
     (void)color_tex;
@@ -305,10 +305,24 @@ void PipelineCreateInfoTest()
     GraphicsPipelineCreateInfo gpci{};
 
     gpci.vertex_input_state.attribute_count = 2;
-    gpci.vertex_input_state.attributes[0] = {VertexAttribFormat::F32, 3, VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
-                                              0, 0, sizeof(f32) * 3, 0, "POSITION", 0};
-    gpci.vertex_input_state.attributes[1] = {VertexAttribFormat::F32, 2, VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
-                                              1, 0, sizeof(f32) * 2, sizeof(f32) * 3, "TEXCOORD", 0};
+    gpci.vertex_input_state.attributes[0] = {VertexAttribFormat::F32,
+                                             3,
+                                             VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
+                                             0,
+                                             0,
+                                             sizeof(f32) * 3,
+                                             0,
+                                             "POSITION",
+                                             0};
+    gpci.vertex_input_state.attributes[1] = {VertexAttribFormat::F32,
+                                             2,
+                                             VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX,
+                                             1,
+                                             0,
+                                             sizeof(f32) * 2,
+                                             sizeof(f32) * 3,
+                                             "TEXCOORD",
+                                             0};
 
     gpci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
 
@@ -372,9 +386,8 @@ void CommandListTest(RHITest *rhi_test)
 {
     auto *rhi = rhi_test->renderer->GetRhi();
 
-    Buffer *buffer =
-        rhi->CreateBuffer({DESCRIPTOR_TYPE_CONSTANT_BUFFER, RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3),
-                           "test_cmd_buffer"});
+    Buffer *buffer = rhi->CreateBuffer(
+        {DESCRIPTOR_TYPE_CONSTANT_BUFFER, RESOURCE_STATE_SHADER_RESOURCE, sizeof(Math::float3), "test_cmd_buffer"});
 
     Math::float3 data{static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                       static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
