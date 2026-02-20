@@ -6,6 +6,7 @@
 #include <volk.h>
 
 #include <core/definations.h>
+#include <core/log.h>
 #include <rhi/enums.h>
 
 namespace Horizon

@@ -1,13 +1,10 @@
 #include "vulkan_shader_compiler.h"
 
 #include <core/log.h>
-#include <core/path.h>
-#include <rhi/enums.h>
 
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
-#include <string>
 
 #ifdef _WIN32
 #include <process.h>

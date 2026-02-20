@@ -1,5 +1,7 @@
 #include "vulkan_descriptor_set.h"
 
+#include <core/log.h>
+
 namespace Horizon::Backend
 {
 

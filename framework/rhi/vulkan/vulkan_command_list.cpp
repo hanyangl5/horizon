@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include <core/memory.h>
-#include <rhi/enums.h>
 #include <rhi/resource_barrier.h>
 #include <rhi/vulkan/vulkan_pipeline.h>
 #include <rhi/vulkan/vulkan_render_target.h>

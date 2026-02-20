@@ -7,7 +7,10 @@
                                                                      *********************************************************************/
 
 #include "scene_manager.h"
+
 #include <algorithm>
+
+#include <core/log.h>
 
 namespace Horizon
 {

@@ -1,7 +1,6 @@
 #include "frame_graph.h"
 
 #include <algorithm>
-#include <core/definations.h>
 #include <core/log.h>
 #include <rhi/resource_barrier.h>
 #include <unordered_set>

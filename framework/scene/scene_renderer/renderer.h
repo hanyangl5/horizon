@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/glfwwindow.h>
+#include <core/log.h>
 #include <core/memory.h>
 
 #include <resource/resource_manager/resource_manager.h>

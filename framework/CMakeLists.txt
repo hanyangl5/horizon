@@ -157,3 +157,28 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC third_party)
 
 configure_compile_options(${PROJECT_NAME})
+
+# --- Precompiled Header (PCH) ---
+target_precompile_headers(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/pch.h
+)
+
+# --- Unity Build ---
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD ON
+    UNITY_BUILD_BATCH_SIZE 8
+)
+
+# Files with #define ...IMPLEMENTATION must compile alone
+# to avoid duplicate symbol / macro leaking issues in unity batches.
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/resource/resource_loader/texture/texture_loader.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+)
+if(USE_VULKAN)
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/vulkan/rhi_vulkan.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/vulkan/vulkan_swap_chain.cpp
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+    )
+endif()

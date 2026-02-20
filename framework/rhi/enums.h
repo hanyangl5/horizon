@@ -2,12 +2,11 @@
 
 #include <array>
 #include <map>
+#include <string>
 #include <unordered_map>
-//#include <vulkan/vulkan.h>
+#include <vector>
 
 #include <core/definations.h>
-#include <core/log.h>
-#include <core/math.h>
 namespace Horizon
 {
 
@@ -558,21 +557,7 @@ struct VkPipelineLayoutDesc
     // std::array<u64, MAX_DESCRIPTOR_SET_INDEX> descriptor_set_hash_key{};
 };
 
-inline ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type)
-{
-    switch (type)
-    {
-    case Horizon::ShaderType::VERTEX_SHADER:
-        return ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER;
-    case Horizon::ShaderType::PIXEL_SHADER:
-        return ShaderStageFlags::SHADER_STAGE_PIXEL_SHADER;
-    case Horizon::ShaderType::COMPUTE_SHADER:
-        return ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER;
-    default:
-        LOG_ERROR("invalid shader type");
-        return ShaderStageFlags::SHADER_STAGE_INVALID;
-    }
-}
+ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type);
 
 typedef union ClearColorValue {
     f32 float32[4];

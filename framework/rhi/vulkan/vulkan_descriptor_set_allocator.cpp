@@ -5,7 +5,6 @@
 #define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
 #include <spirv_reflect.h>
 
-#include <rhi/enums.h>
 #include <rhi/vulkan/vulkan_pipeline.h>
 #include <rhi/vulkan/vulkan_resource_cache.h>
 

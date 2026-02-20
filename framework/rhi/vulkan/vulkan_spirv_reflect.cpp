@@ -2,7 +2,6 @@
 #include "vulkan_utils.h"
 
 #include <core/log.h>
-#include <rhi/enums.h>
 
 #define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
 #include <spirv_reflect.h>

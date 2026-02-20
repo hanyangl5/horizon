@@ -1,7 +1,27 @@
 #include "enums.h"
 
+#include <cassert>
+
+#include <core/log.h>
+
 namespace Horizon
 {
+
+ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type)
+{
+    switch (type)
+    {
+    case Horizon::ShaderType::VERTEX_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER;
+    case Horizon::ShaderType::PIXEL_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_PIXEL_SHADER;
+    case Horizon::ShaderType::COMPUTE_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER;
+    default:
+        LOG_ERROR("invalid shader type");
+        return ShaderStageFlags::SHADER_STAGE_INVALID;
+    }
+}
 
 u32 GetStrideFromVertexAttributeDescription(VertexAttribFormat format, u32 portions)
 {

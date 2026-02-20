@@ -1,5 +1,7 @@
 #include "rhi.h"
 
+#include <core/log.h>
+
 namespace Horizon::Backend
 {
 

@@ -1,5 +1,6 @@
 #include "mesh_loader.h"
 
+#include <core/log.h>
 #include <core/path.h>
 
 namespace Horizon
