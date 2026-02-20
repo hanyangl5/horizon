@@ -61,4 +61,29 @@ DX12Texture::~DX12Texture() noexcept
     // Microsoft::WRL::ComPtr will automatically release the resource
 }
 
+ID3D12Resource *DX12Texture::GetOrCreateUploadBuffer(u64 required_size) noexcept
+{
+    if (m_upload_buffer != nullptr && m_upload_buffer_size >= required_size)
+    {
+        return m_upload_buffer.Get();
+    }
+
+    m_upload_buffer.Reset();
+
+    CD3DX12_HEAP_PROPERTIES upload_heap_props(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC upload_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(required_size);
+
+    HRESULT hr = m_context.device->CreateCommittedResource(&upload_heap_props, D3D12_HEAP_FLAG_NONE,
+                                                           &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                           nullptr, IID_PPV_ARGS(&m_upload_buffer));
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to create texture upload buffer: {}", hr);
+        return nullptr;
+    }
+
+    m_upload_buffer_size = required_size;
+    return m_upload_buffer.Get();
+}
+
 } // namespace Horizon::Backend

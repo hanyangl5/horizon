@@ -36,6 +36,10 @@ class DX12DescriptorHeapAllocator
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateUAVs(u32 count);
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateCBVs(u32 count);
 
+    // Allocate from non-shader-visible staging heap (required by ClearUnorderedAccessView*)
+    D3D12_CPU_DESCRIPTOR_HANDLE AllocateStagingSRV();
+    D3D12_CPU_DESCRIPTOR_HANDLE AllocateStagingUAV();
+
     // Get descriptor heap
     ID3D12DescriptorHeap *GetSRVUAVCBVHeap() const
     {
@@ -64,17 +68,20 @@ class DX12DescriptorHeapAllocator
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_uav_cbv_heap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_sampler_heap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_staging_srv_uav_cbv_heap; // non-shader-visible, for clear ops
 
     // Allocation counters
     static constexpr u32 MAX_RTV_COUNT = 1024;
     static constexpr u32 MAX_DSV_COUNT = 256;
     static constexpr u32 MAX_SRV_UAV_CBV_COUNT = 8192;
     static constexpr u32 MAX_SAMPLER_COUNT = 256;
+    static constexpr u32 MAX_STAGING_SRV_UAV_CBV_COUNT = 512;
 
     u32 m_rtv_index{0};
     u32 m_dsv_index{0};
     u32 m_srv_uav_cbv_index{0};
     u32 m_sampler_index{0};
+    u32 m_staging_srv_uav_cbv_index{0};
 };
 
 } // namespace Horizon::Backend

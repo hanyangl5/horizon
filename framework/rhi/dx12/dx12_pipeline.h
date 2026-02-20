@@ -46,8 +46,12 @@ class DX12Pipeline : public Pipeline
         return m_root_signature.Get();
     }
 
-    // Get vertex stride for a given input slot (used by command list)
     u32 GetVertexStride(u32 input_slot) const noexcept;
+
+    const RootSignatureDesc &GetRootSignatureDesc() const noexcept
+    {
+        return rsd;
+    }
 
   private:
     void CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
@@ -63,9 +67,16 @@ class DX12Pipeline : public Pipeline
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature;
 
-    // Store bindless descriptor table handles (public for command list access)
+    // Descriptor table GPU handles and root parameter indices for regular resources (set 0)
+    std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> m_descriptor_tables;
+    std::unordered_map<std::string, u32> m_root_parameter_indices;
+
+    // Descriptor table GPU handles and root parameter indices for bindless resources (set 1)
     std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> m_bindless_descriptor_tables;
     std::unordered_map<std::string, u32> m_bindless_root_parameter_indices;
+
+    // Push constant (root constant) root parameter indices
+    std::unordered_map<std::string, u32> m_push_constant_root_parameter_indices;
 
   private:
     // Store vertex input state for graphics pipelines

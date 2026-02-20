@@ -1,5 +1,6 @@
 #include "dx12_pipeline.h"
 #include "dx12_buffer.h"
+#include "dx12_sampler.h"
 #include "dx12_shader.h"
 #include "dx12_texture.h"
 #include "dx12_utils.h"
@@ -68,22 +69,308 @@ DX12Pipeline::~DX12Pipeline() noexcept
 //    }
 //}
 
+static const DescriptorDesc *FindDescriptor(const RootSignatureDesc &rsd, u32 set_number,
+                                             const std::string &resource_name)
+{
+    auto set_it = rsd.descriptors.find(set_number);
+    if (set_it != rsd.descriptors.end())
+    {
+        auto desc_it = set_it->second.find(resource_name);
+        if (desc_it != set_it->second.end())
+        {
+            return &desc_it->second;
+        }
+    }
+    return nullptr;
+}
+
+static u32 FindRootParameterIndex(const RootSignatureDesc &rsd, u32 target_set, const std::string &target_name)
+{
+    u32 index = 0;
+    for (const auto &[set_num, descriptors] : rsd.descriptors)
+    {
+        for (const auto &[name, desc_info] : descriptors)
+        {
+            if (set_num == target_set && name == target_name)
+            {
+                return index;
+            }
+            index++;
+        }
+    }
+    return UINT32_MAX;
+}
+
+static D3D12_GPU_DESCRIPTOR_HANDLE CpuToGpuHandle(ID3D12DescriptorHeap *heap, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
+{
+    auto heap_start_cpu = heap->GetCPUDescriptorHandleForHeapStart();
+    auto heap_start_gpu = heap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
+    gpu_handle.ptr = heap_start_gpu.ptr + (cpu_handle.ptr - heap_start_cpu.ptr);
+    return gpu_handle;
+}
+
 void DX12Pipeline::SetResource(Buffer *resource, const std::string &resource_name)
 {
-    // TODO: Implement resource binding using descriptor tables
-    LOG_WARN("SetResource for Buffer not yet fully implemented");
+    const DescriptorDesc *desc = FindDescriptor(rsd, DEFAULT_DESCRIPTOR_SET_NUMBER, resource_name);
+    if (desc == nullptr)
+    {
+        LOG_ERROR("Buffer resource '{}' not found in root signature set 0", resource_name);
+        return;
+    }
+
+    auto dx12_buffer = reinterpret_cast<DX12Buffer *>(resource);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
+
+    if (desc->type == DESCRIPTOR_TYPE_CONSTANT_BUFFER)
+    {
+        if ((dx12_buffer->m_size % 256) != 0)
+        {
+            LOG_ERROR("CBV resource '{}' size {} is not 256-byte aligned", resource_name, dx12_buffer->m_size);
+            return;
+        }
+        cpu_handle = m_descriptor_heap_allocator.AllocateCBV();
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc{};
+        cbv_desc.BufferLocation = dx12_buffer->GetGPUVirtualAddress();
+        cbv_desc.SizeInBytes = static_cast<UINT>(dx12_buffer->m_size);
+        m_context.device->CreateConstantBufferView(&cbv_desc, cpu_handle);
+    }
+    else if (desc->type == DESCRIPTOR_TYPE_BUFFER || desc->type == DESCRIPTOR_TYPE_BUFFER_RAW)
+    {
+        cpu_handle = m_descriptor_heap_allocator.AllocateSRV();
+        D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+        srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+        srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srv_desc.Buffer.FirstElement = 0;
+        srv_desc.Buffer.NumElements = static_cast<UINT>(dx12_buffer->m_size / 4);
+        srv_desc.Buffer.StructureByteStride = 0;
+        srv_desc.Buffer.Flags =
+            (desc->type == DESCRIPTOR_TYPE_BUFFER_RAW) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+        m_context.device->CreateShaderResourceView(dx12_buffer->GetResource(), &srv_desc, cpu_handle);
+    }
+    else if (desc->type == DESCRIPTOR_TYPE_RW_BUFFER || desc->type == DESCRIPTOR_TYPE_RW_BUFFER_RAW)
+    {
+        cpu_handle = m_descriptor_heap_allocator.AllocateUAV();
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
+        uav_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+        uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        uav_desc.Buffer.FirstElement = 0;
+        uav_desc.Buffer.NumElements = static_cast<UINT>(dx12_buffer->m_size / 4);
+        uav_desc.Buffer.StructureByteStride = 0;
+        uav_desc.Buffer.Flags =
+            (desc->type == DESCRIPTOR_TYPE_RW_BUFFER_RAW) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+        m_context.device->CreateUnorderedAccessView(dx12_buffer->GetResource(), nullptr, &uav_desc, cpu_handle);
+    }
+    else
+    {
+        LOG_ERROR("Unsupported descriptor type for buffer resource '{}': {}", resource_name,
+                  static_cast<u32>(desc->type));
+        return;
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = CpuToGpuHandle(m_descriptor_heap_allocator.GetSRVUAVCBVHeap(), cpu_handle);
+    m_descriptor_tables[resource_name] = gpu_handle;
+
+    u32 root_index = FindRootParameterIndex(rsd, DEFAULT_DESCRIPTOR_SET_NUMBER, resource_name);
+    if (root_index != UINT32_MAX)
+    {
+        m_root_parameter_indices[resource_name] = root_index;
+    }
+    else
+    {
+        LOG_ERROR("Could not find root parameter index for buffer resource '{}'", resource_name);
+    }
 }
 
 void DX12Pipeline::SetResource(Texture *resource, const std::string &resource_name)
 {
-    // TODO: Implement resource binding using descriptor tables
-    LOG_WARN("SetResource for Texture not yet fully implemented");
+    const DescriptorDesc *desc = FindDescriptor(rsd, DEFAULT_DESCRIPTOR_SET_NUMBER, resource_name);
+    if (desc == nullptr)
+    {
+        LOG_ERROR("Texture resource '{}' not found in root signature set 0", resource_name);
+        return;
+    }
+
+    auto dx12_texture = reinterpret_cast<DX12Texture *>(resource);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
+
+    if (desc->type == DESCRIPTOR_TYPE_TEXTURE || desc->type == DESCRIPTOR_TYPE_TEXTURE_CUBE)
+    {
+        cpu_handle = m_descriptor_heap_allocator.AllocateSRV();
+        if (dx12_texture->GetSRVHandle().ptr != 0)
+        {
+            m_context.device->CopyDescriptorsSimple(1, cpu_handle, dx12_texture->GetSRVHandle(),
+                                                    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        }
+        else
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+            srv_desc.Format = Horizon::ToDX12Format(dx12_texture->m_format);
+            srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            bool is_array = (dx12_texture->m_array_layer > 1);
+            srv_desc.ViewDimension = Horizon::ToDX12SRVDimension(dx12_texture->m_type, is_array);
+
+            if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_2D)
+            {
+                if (is_array)
+                {
+                    srv_desc.Texture2DArray.MostDetailedMip = 0;
+                    srv_desc.Texture2DArray.MipLevels = dx12_texture->mip_map_level;
+                    srv_desc.Texture2DArray.FirstArraySlice = 0;
+                    srv_desc.Texture2DArray.ArraySize = dx12_texture->m_array_layer;
+                }
+                else
+                {
+                    srv_desc.Texture2D.MostDetailedMip = 0;
+                    srv_desc.Texture2D.MipLevels = dx12_texture->mip_map_level;
+                }
+            }
+            else if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_3D)
+            {
+                srv_desc.Texture3D.MostDetailedMip = 0;
+                srv_desc.Texture3D.MipLevels = dx12_texture->mip_map_level;
+            }
+            else if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_1D)
+            {
+                if (is_array)
+                {
+                    srv_desc.Texture1DArray.MostDetailedMip = 0;
+                    srv_desc.Texture1DArray.MipLevels = dx12_texture->mip_map_level;
+                    srv_desc.Texture1DArray.FirstArraySlice = 0;
+                    srv_desc.Texture1DArray.ArraySize = dx12_texture->m_array_layer;
+                }
+                else
+                {
+                    srv_desc.Texture1D.MostDetailedMip = 0;
+                    srv_desc.Texture1D.MipLevels = dx12_texture->mip_map_level;
+                }
+            }
+            else if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_CUBE)
+            {
+                bool is_cube_array = (dx12_texture->m_array_layer > 6);
+                if (is_cube_array)
+                {
+                    srv_desc.TextureCubeArray.MostDetailedMip = 0;
+                    srv_desc.TextureCubeArray.MipLevels = dx12_texture->mip_map_level;
+                    srv_desc.TextureCubeArray.First2DArrayFace = 0;
+                    srv_desc.TextureCubeArray.NumCubes = dx12_texture->m_array_layer / 6;
+                }
+                else
+                {
+                    srv_desc.TextureCube.MostDetailedMip = 0;
+                    srv_desc.TextureCube.MipLevels = dx12_texture->mip_map_level;
+                }
+            }
+            m_context.device->CreateShaderResourceView(dx12_texture->GetResource(), &srv_desc, cpu_handle);
+        }
+    }
+    else if (desc->type == DESCRIPTOR_TYPE_RW_TEXTURE)
+    {
+        cpu_handle = m_descriptor_heap_allocator.AllocateUAV();
+        if (dx12_texture->GetUAVHandle().ptr != 0)
+        {
+            m_context.device->CopyDescriptorsSimple(1, cpu_handle, dx12_texture->GetUAVHandle(),
+                                                    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        }
+        else
+        {
+            D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
+            uav_desc.Format = Horizon::ToDX12Format(dx12_texture->m_format);
+            bool is_array = (dx12_texture->m_array_layer > 1);
+            uav_desc.ViewDimension = Horizon::ToDX12UAVDimension(dx12_texture->m_type, is_array);
+
+            if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_2D)
+            {
+                if (is_array)
+                {
+                    uav_desc.Texture2DArray.MipSlice = 0;
+                    uav_desc.Texture2DArray.FirstArraySlice = 0;
+                    uav_desc.Texture2DArray.ArraySize = dx12_texture->m_array_layer;
+                }
+                else
+                {
+                    uav_desc.Texture2D.MipSlice = 0;
+                }
+            }
+            else if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_3D)
+            {
+                uav_desc.Texture3D.MipSlice = 0;
+                uav_desc.Texture3D.FirstWSlice = 0;
+                uav_desc.Texture3D.WSize = dx12_texture->m_depth;
+            }
+            else if (dx12_texture->m_type == TextureType::TEXTURE_TYPE_1D)
+            {
+                if (is_array)
+                {
+                    uav_desc.Texture1DArray.MipSlice = 0;
+                    uav_desc.Texture1DArray.FirstArraySlice = 0;
+                    uav_desc.Texture1DArray.ArraySize = dx12_texture->m_array_layer;
+                }
+                else
+                {
+                    uav_desc.Texture1D.MipSlice = 0;
+                }
+            }
+            m_context.device->CreateUnorderedAccessView(dx12_texture->GetResource(), nullptr, &uav_desc, cpu_handle);
+        }
+    }
+    else
+    {
+        LOG_ERROR("Unsupported descriptor type for texture resource '{}': {}", resource_name,
+                  static_cast<u32>(desc->type));
+        return;
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = CpuToGpuHandle(m_descriptor_heap_allocator.GetSRVUAVCBVHeap(), cpu_handle);
+    m_descriptor_tables[resource_name] = gpu_handle;
+
+    u32 root_index = FindRootParameterIndex(rsd, DEFAULT_DESCRIPTOR_SET_NUMBER, resource_name);
+    if (root_index != UINT32_MAX)
+    {
+        m_root_parameter_indices[resource_name] = root_index;
+    }
+    else
+    {
+        LOG_ERROR("Could not find root parameter index for texture resource '{}'", resource_name);
+    }
 }
 
 void DX12Pipeline::SetResource(Sampler *resource, const std::string &resource_name)
 {
-    // TODO: Implement resource binding using descriptor tables
-    LOG_WARN("SetResource for Sampler not yet fully implemented");
+    const DescriptorDesc *desc = FindDescriptor(rsd, DEFAULT_DESCRIPTOR_SET_NUMBER, resource_name);
+    if (desc == nullptr)
+    {
+        LOG_ERROR("Sampler resource '{}' not found in root signature set 0", resource_name);
+        return;
+    }
+    if (desc->type != DESCRIPTOR_TYPE_SAMPLER)
+    {
+        LOG_ERROR("Resource '{}' is not declared as sampler in root signature", resource_name);
+        return;
+    }
+
+    auto dx12_sampler = reinterpret_cast<DX12Sampler *>(resource);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = m_descriptor_heap_allocator.AllocateSampler();
+    m_context.device->CopyDescriptorsSimple(1, cpu_handle, dx12_sampler->GetCPUHandle(),
+                                            D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+    auto sampler_heap_start_cpu = m_descriptor_heap_allocator.GetSamplerHeap()->GetCPUDescriptorHandleForHeapStart();
+    auto sampler_heap_start_gpu = m_descriptor_heap_allocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
+    gpu_handle.ptr = sampler_heap_start_gpu.ptr + (cpu_handle.ptr - sampler_heap_start_cpu.ptr);
+
+    m_descriptor_tables[resource_name] = gpu_handle;
+
+    u32 root_index = FindRootParameterIndex(rsd, DEFAULT_DESCRIPTOR_SET_NUMBER, resource_name);
+    if (root_index != UINT32_MAX)
+    {
+        m_root_parameter_indices[resource_name] = root_index;
+    }
+    else
+    {
+        LOG_ERROR("Could not find root parameter index for sampler resource '{}'", resource_name);
+    }
 }
 
 void DX12Pipeline::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name)
@@ -444,7 +731,15 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
     std::vector<D3D12_DESCRIPTOR_RANGE> descriptor_ranges;
     std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
 
-    // Process root signature descriptor
+    // Reserve enough space so pointers to elements stay valid
+    u32 total_descriptors = 0;
+    for (const auto &[set_number, descriptors] : rsd.descriptors)
+    {
+        total_descriptors += static_cast<u32>(descriptors.size());
+    }
+    descriptor_ranges.reserve(total_descriptors);
+
+    // Process root signature descriptors
     for (const auto &[set_number, descriptors] : rsd.descriptors)
     {
         for (const auto &[name, desc] : descriptors)
@@ -452,12 +747,8 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
             D3D12_DESCRIPTOR_RANGE range{};
             range.RangeType = Horizon::ToDX12DescriptorRangeType(desc.type);
 
-            // For bindless resources (set 1), use a large descriptor count
-            // The actual count will be set when SetBindlessResource is called
             if (set_number == BINDLESS_DESCRIPTOR_SET_NUMBER)
             {
-                // Use a large number for bindless resources (can be up to 1M descriptors)
-                // The actual count will be determined at runtime
                 range.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
             }
             else
@@ -465,7 +756,7 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
                 range.NumDescriptors = 1;
             }
 
-            range.BaseShaderRegister = desc.vk_binding; // Use binding as register
+            range.BaseShaderRegister = desc.vk_binding;
             range.RegisterSpace = set_number;
             range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
@@ -481,6 +772,21 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
         }
     }
 
+    // Add push constants as root constants
+    u32 next_push_constant_register = 0;
+    for (const auto &[name, pc_desc] : rsd.push_constants)
+    {
+        D3D12_ROOT_PARAMETER param{};
+        param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        param.Constants.ShaderRegister = next_push_constant_register++;
+        param.Constants.RegisterSpace = 2; // Use space 2 to avoid collision with descriptor sets (0, 1)
+        param.Constants.Num32BitValues = (pc_desc.size + 3) / 4;
+        param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+        m_push_constant_root_parameter_indices[name] = static_cast<u32>(root_parameters.size());
+        root_parameters.push_back(param);
+    }
+
     D3D12_ROOT_SIGNATURE_DESC root_sig_desc{};
     root_sig_desc.NumParameters = static_cast<UINT>(root_parameters.size());
     root_sig_desc.pParameters = root_parameters.data();
@@ -488,7 +794,6 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
     root_sig_desc.pStaticSamplers = static_samplers.data();
     root_sig_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-    // Serialize root signature
     Microsoft::WRL::ComPtr<ID3DBlob> signature;
     Microsoft::WRL::ComPtr<ID3DBlob> error;
     HRESULT hr = D3D12SerializeRootSignature(&root_sig_desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);

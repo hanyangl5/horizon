@@ -68,13 +68,17 @@ class DX12CommandList : public CommandList
     }
 
   private:
-    [[maybe_unused]] const DX12RendererContext &m_context;
+    void CreateQueryHeap();
+
+    const DX12RendererContext &m_context;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_allocator;
+    Microsoft::WRL::ComPtr<ID3D12QueryHeap> m_timestamp_query_heap;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_query_readback_buffer;
     bool m_is_recording{false};
     bool m_in_render_pass{false};
     bool m_in_compute_pass{false};
-    Pipeline *m_current_pipeline{nullptr}; // Track current pipeline for vertex stride
+    Pipeline *m_current_pipeline{nullptr};
 };
 
 } // namespace Horizon::Backend

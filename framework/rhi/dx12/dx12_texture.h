@@ -35,9 +35,13 @@ class DX12Texture : public Texture
         return m_uav_handle;
     }
 
+    ID3D12Resource *GetOrCreateUploadBuffer(u64 required_size) noexcept;
+
   public:
     const DX12RendererContext &m_context;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_buffer;
+    u64 m_upload_buffer_size{0};
     D3D12_RESOURCE_STATES m_current_state;
     D3D12_CPU_DESCRIPTOR_HANDLE m_srv_handle{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_uav_handle{};
