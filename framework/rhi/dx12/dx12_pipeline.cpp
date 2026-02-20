@@ -70,7 +70,7 @@ DX12Pipeline::~DX12Pipeline() noexcept
 //}
 
 static const DescriptorDesc *FindDescriptor(const RootSignatureDesc &rsd, u32 set_number,
-                                             const std::string &resource_name)
+                                            const std::string &resource_name)
 {
     auto set_it = rsd.descriptors.find(set_number);
     if (set_it != rsd.descriptors.end())

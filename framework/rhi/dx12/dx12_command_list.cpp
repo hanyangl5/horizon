@@ -457,15 +457,15 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     u32 footprint_idx = 0;
     for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++)
     {
-        for (u32 mip = texture_data.first_mip_level;
-             mip < texture_data.first_mip_level + texture_data.mip_level_count; mip++)
+        for (u32 mip = texture_data.first_mip_level; mip < texture_data.first_mip_level + texture_data.mip_level_count;
+             mip++)
         {
             u32 subresource_index = mip + layer * texture->mip_map_level;
 
             UINT64 subresource_size = 0;
-            m_context.device->GetCopyableFootprints(&res_desc, subresource_index, 1, 0,
-                                                    &footprints[footprint_idx], &num_rows[footprint_idx],
-                                                    &row_sizes[footprint_idx], &subresource_size);
+            m_context.device->GetCopyableFootprints(&res_desc, subresource_index, 1, 0, &footprints[footprint_idx],
+                                                    &num_rows[footprint_idx], &row_sizes[footprint_idx],
+                                                    &subresource_size);
             total_upload_size += subresource_size;
             footprint_idx++;
         }
@@ -494,8 +494,8 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     footprint_idx = 0;
     for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++)
     {
-        for (u32 mip = texture_data.first_mip_level;
-             mip < texture_data.first_mip_level + texture_data.mip_level_count; mip++)
+        for (u32 mip = texture_data.first_mip_level; mip < texture_data.first_mip_level + texture_data.mip_level_count;
+             mip++)
         {
             u32 subresource_index = mip + layer * texture->mip_map_level;
 
@@ -560,8 +560,8 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     footprint_idx = 0;
     for (u32 layer = texture_data.first_layer; layer < texture_data.first_layer + texture_data.layer_count; layer++)
     {
-        for (u32 mip = texture_data.first_mip_level;
-             mip < texture_data.first_mip_level + texture_data.mip_level_count; mip++)
+        for (u32 mip = texture_data.first_mip_level; mip < texture_data.first_mip_level + texture_data.mip_level_count;
+             mip++)
         {
             u32 subresource_index = mip + layer * texture->mip_map_level;
 
@@ -604,7 +604,8 @@ void DX12CommandList::InsertBarrier(const BarrierDesc &desc)
         const u32 first_layer = texture_barrier.first_layer;
         const u32 layer_count = texture_barrier.layer_count;
         const u32 total_mips = dx12_texture->mip_map_level;
-        const u32 total_layers = dx12_texture->m_type == TextureType::TEXTURE_TYPE_3D ? 1u : dx12_texture->m_array_layer;
+        const u32 total_layers =
+            dx12_texture->m_type == TextureType::TEXTURE_TYPE_3D ? 1u : dx12_texture->m_array_layer;
 
         if (mip_count == 0 || layer_count == 0)
         {
@@ -812,7 +813,7 @@ void DX12CommandList::ClearBuffer(Buffer *buffer, f32 clear_value)
     UINT values[4] = {clear_uint, clear_uint, clear_uint, clear_uint};
 
     m_command_list->ClearUnorderedAccessViewUint(gpu_handle, staging_cpu_handle, dx12_buffer->GetResource(), values, 0,
-                                                nullptr);
+                                                 nullptr);
 }
 
 void DX12CommandList::ClearTextrue(Texture *texture, const ClearColorValue &clear_value)
@@ -877,7 +878,7 @@ void DX12CommandList::ClearTextrue(Texture *texture, const ClearColorValue &clea
         FLOAT clear_color[4] = {clear_value.float32[0], clear_value.float32[1], clear_value.float32[2],
                                 clear_value.float32[3]};
         m_command_list->ClearUnorderedAccessViewFloat(gpu_handle, staging_cpu_handle, dx12_texture->GetResource(),
-                                                     clear_color, 0, nullptr);
+                                                      clear_color, 0, nullptr);
     }
     else if (texture->m_descriptor_types & DESCRIPTOR_TYPE_COLOR_ATTACHMENT)
     {
@@ -1061,7 +1062,7 @@ void DX12CommandList::EndQuery()
     if (m_query_readback_buffer != nullptr)
     {
         m_command_list->ResolveQueryData(m_timestamp_query_heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 2,
-                                        m_query_readback_buffer.Get(), 0);
+                                         m_query_readback_buffer.Get(), 0);
     }
 }
 
