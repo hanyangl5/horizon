@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "d3dx12.h"
 #include <DirectXHelpers.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
