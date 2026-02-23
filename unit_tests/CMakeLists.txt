@@ -9,3 +9,4 @@ target_link_libraries(${PROJECT_NAME} PUBLIC framework)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
+configure_compile_options(${PROJECT_NAME})
