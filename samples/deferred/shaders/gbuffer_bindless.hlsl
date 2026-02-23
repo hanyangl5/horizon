@@ -9,21 +9,33 @@ struct CameraParamsUb {
     float4x4 prev_vp;
     float4 camera_position;
 };
+#ifdef SPIRV
 ConstantBuffer<CameraParamsUb> CameraParamsUb_cb;
+#else
+ConstantBuffer<CameraParamsUb> CameraParamsUb_cb : register(b0);
+#endif
 
 struct DrawConstants
 {
     uint mesh_id_offset;
 };
 
+#ifdef SPIRV
 [[vk::push_constant]] ConstantBuffer<DrawConstants> mesh_draw_offset;
+#else
+ConstantBuffer<DrawConstants> mesh_draw_offset : register(b1);
+#endif
 // App sets mesh_id = DrawIndex + mesh_id_offset when using multi-draw; otherwise mesh_id_offset alone.
 
 struct InstanceParameter {
     float4x4 model_matrix;
     uint material_id;
 };
+#ifdef SPIRV
 StructuredBuffer<InstanceParameter> instance_parameter;
+#else
+StructuredBuffer<InstanceParameter> instance_parameter : register(t0);
+#endif
 
 struct VSInput {
     float3 position : POSITION;
@@ -46,11 +58,20 @@ struct VSOutput {
 };
 
 
-VSOutput vs_main(VSInput vsin, uint InstanceID : SV_InstanceID, uint vertex_id : SV_VertexID, [[vk::builtin("DrawIndex")]] uint drawIndex : A)
+VSOutput vs_main(VSInput vsin, uint InstanceID : SV_InstanceID, uint vertex_id : SV_VertexID
+#ifdef SPIRV
+    ,[[vk::builtin("DrawIndex")]] uint drawIndex : A
+#else
+#endif
+)
 {
     VSOutput vsout;
     //[[vk::builtin("DrawIndex")]] uint draw_index;
-    uint mesh_id = mesh_draw_offset.mesh_id_offset+ drawIndex;
+    #ifdef SPIRV
+    uint mesh_id = mesh_draw_offset.mesh_id_offset + drawIndex;
+    #else
+    uint mesh_id = mesh_draw_offset.mesh_id_offset;
+    #endif
     float4x4 model = instance_parameter[mesh_id].model_matrix;
 
     vsout.position = mul(CameraParamsUb_cb.vp, mul(model, float4(vsin.position, 1.0)));
@@ -83,14 +104,31 @@ struct MaterialDescription {
 };
 
 // Bindless resources in set 1
+#ifdef SPIRV
 [[vk::binding(0, 1)]] Texture2D<float4> material_textures[];
+#else
+Texture2D<float4> material_textures[] : register(t1, space1);
+#endif
 
+#ifdef SPIRV
 // Per-frame resources in set 0
 StructuredBuffer<MaterialDescription> material_descriptions;
+#else
+StructuredBuffer<MaterialDescription> material_descriptions : register(t2);
+#endif
+
+#ifdef SPIRV
 SamplerState default_sampler;
+#else
+SamplerState default_sampler : register(s0);
+#endif
 
 struct TAAOffsets { float4 taa_prev_curr_offset; };
+#ifdef SPIRV
 ConstantBuffer<TAAOffsets> TAAOffsets_cb;
+#else
+ConstantBuffer<TAAOffsets> TAAOffsets_cb : register(b2);
+#endif
 
 struct PSOutput {
     float4 gbuffer0 : SV_Target0;  // Normal (UNORM [0,1])

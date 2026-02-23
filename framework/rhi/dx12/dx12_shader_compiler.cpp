@@ -37,11 +37,11 @@ std::wstring DX12ShaderCompiler::GetShaderProfileDXC(ShaderType type)
     switch (type)
     {
     case ShaderType::VERTEX_SHADER:
-        return L"vs_6_0";
+        return L"vs_6_6";
     case ShaderType::PIXEL_SHADER:
-        return L"ps_6_0";
+        return L"ps_6_6";
     case ShaderType::COMPUTE_SHADER:
-        return L"cs_6_0";
+        return L"cs_6_6";
     default:
         LOG_ERROR("Unsupported shader type for DX12");
         return L"";
@@ -288,6 +288,11 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
 
     std::wstring dir = StringToWString(shader_dir.c_str());
     arguments.push_back(dir.c_str());
+
+    // Define DX12 macro to distinguish from SPIRV compilation
+    // This allows shaders to conditionally compile Vulkan-specific attributes
+    arguments.push_back(L"-D");
+    arguments.push_back(L"DX12=1");
 
 #ifdef _DEBUG
     //    argument_strings.push_back(L"-Zi"); // Enable debug information

@@ -21,7 +21,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     pos.location = 0;
     pos.offset = 0;
     pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-
+    pos.semantic_name = "POSITION";
+    pos.semantic_index = 0;
     auto &normal = graphics_pass_ci.vertex_input_state.attributes[1];
     normal.attrib_format = VertexAttribFormat::F32;
     normal.portion = 3;
@@ -29,7 +30,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     normal.location = 1;
     normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     normal.offset = offsetof(Vertex, normal);
-
+    normal.semantic_name = "NORMAL";
+    normal.semantic_index = 0;
     auto &uv0 = graphics_pass_ci.vertex_input_state.attributes[2];
     uv0.attrib_format = VertexAttribFormat::F32;
     uv0.portion = 2;
@@ -37,7 +39,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     uv0.location = 2;
     uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     uv0.offset = offsetof(Vertex, uv0);
-
+    uv0.semantic_name = "TEXCOORD";
+    uv0.semantic_index = 0;
     auto &uv1 = graphics_pass_ci.vertex_input_state.attributes[3];
     uv1.attrib_format = VertexAttribFormat::F32;
     uv1.portion = 2;
@@ -45,6 +48,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     uv1.location = 3;
     uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     uv1.offset = offsetof(Vertex, uv1);
+    uv1.semantic_name = "TEXCOORD";
+    uv1.semantic_index = 1;
 
     auto &tangent = graphics_pass_ci.vertex_input_state.attributes[4];
     tangent.attrib_format = VertexAttribFormat::F32;
@@ -53,7 +58,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     tangent.location = 4;
     tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     tangent.offset = offsetof(Vertex, tangent);
-
+    tangent.semantic_name = "TANGENT";
+    tangent.semantic_index = 0;
     graphics_pass_ci.view_port_state.width = m_width;
     graphics_pass_ci.view_port_state.height = m_height;
 

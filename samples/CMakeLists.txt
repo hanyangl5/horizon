@@ -109,12 +109,22 @@ if(BUILD_ANDROID_APK)
 
     # Per-sample APK targets
     foreach(sample ${ALL_SAMPLE_NAMES})
-        add_custom_target(apk_${sample}
-            COMMAND chmod +x ${ANDROID_APK_DIR}/gradlew
-            COMMAND ${ANDROID_APK_DIR}/gradlew -p ${ANDROID_APK_DIR} :${sample}:assembleDebug
-            DEPENDS ${sample}
-            COMMENT "Packaging APK for ${sample}"
-        )
+        if(WIN32)
+            # Windows: use gradlew.bat, no chmod needed
+            add_custom_target(apk_${sample}
+                COMMAND ${ANDROID_APK_DIR}/gradlew.bat -p ${ANDROID_APK_DIR} :${sample}:assembleDebug
+                DEPENDS ${sample}
+                COMMENT "Packaging APK for ${sample}"
+            )
+        else()
+            # Unix/Linux/macOS: use gradlew, need chmod
+            add_custom_target(apk_${sample}
+                COMMAND chmod +x ${ANDROID_APK_DIR}/gradlew
+                COMMAND ${ANDROID_APK_DIR}/gradlew -p ${ANDROID_APK_DIR} :${sample}:assembleDebug
+                DEPENDS ${sample}
+                COMMENT "Packaging APK for ${sample}"
+            )
+        endif()
     endforeach()
 
     # Umbrella target that builds all APKs

@@ -47,16 +47,16 @@ std::string ShaderCompiler::GetShaderProfile(ShaderType type)
     switch (type)
     {
     case ShaderType::VERTEX_SHADER:
-        return "vs_6_0";
+        return "vs_6_6";
     case ShaderType::PIXEL_SHADER:
-        return "ps_6_0";
+        return "ps_6_6";
     case ShaderType::COMPUTE_SHADER:
-        return "cs_6_0";
+        return "cs_6_6";
     // case ShaderType::GEOMETRY_SHADER:
     //    return "gs_6_0";
     default:
         LOG_ERROR("Unsupported shader type for HLSL compilation");
-        return "vs_6_0";
+        return "vs_6_6";
     }
 }
 
@@ -199,6 +199,8 @@ bool ShaderCompiler::CompileHLSLToSPIRV(const Path &hlsl_path, const Path &outpu
     cmd << " -T " << profile;
     cmd << " -E " << entry_point;
     cmd << " -Fo \"" << output_spv_path.string() << "\"";
+    // Define SPIRV macro to enable Vulkan-specific attributes
+    cmd << " -D SPIRV=1";
     // Preserve reflection metadata (OpName, OpDecorate, etc.) for spirv-reflect
     // cmd << " -fspv-reflect";
     // cmd << " -fspv-extension=SPV_KHR_shader_draw_parameters";

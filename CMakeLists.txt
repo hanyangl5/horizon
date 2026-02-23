@@ -26,7 +26,7 @@ FetchContent_MakeAvailable(volk)
 if(ANDROID)
     target_compile_definitions(volk PRIVATE RTLD_DEEPBIND=0)
 endif()
-
+set_property(TARGET volk PROPERTY FOLDER "third_party")
 add_subdirectory(third_party)
 add_subdirectory(framework)
 add_subdirectory(unit_tests)

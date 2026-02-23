@@ -22,6 +22,7 @@ class DeferredRenderApp : public Horizon::AppFramework
   public:
     DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
     {
+        SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_DX12);
     }
 
   protected:
