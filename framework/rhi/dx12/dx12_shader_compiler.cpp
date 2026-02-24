@@ -26,7 +26,6 @@ namespace Horizon::Backend
 static IDxcCompiler3 *g_dxc_compiler = nullptr;
 static IDxcUtils *g_dxc_utils = nullptr;
 static IDxcIncludeHandler *g_dxc_include_handler = nullptr;
-static IDxcContainerReflection *g_dxc_reflection = nullptr;
 static HMODULE g_dxc_library = nullptr;
 
 #endif
@@ -156,14 +155,6 @@ bool DX12ShaderCompiler::InitializeDXC()
         return false;
     }
 
-    // Create DXC container reflection for DXIL shader reflection
-    hr = DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&g_dxc_reflection));
-    if (FAILED(hr))
-    {
-        LOG_WARN("Failed to create DXC container reflection. DXIL shader reflection will be unavailable.");
-        // Continue anyway, reflection is optional
-    }
-
     LOG_DEBUG("DXC compiler initialized successfully. Using Shader Model 6.0.");
     return true;
 #else
@@ -174,11 +165,6 @@ bool DX12ShaderCompiler::InitializeDXC()
 void DX12ShaderCompiler::CleanupDXC()
 {
 #ifdef _WIN32
-    if (g_dxc_reflection)
-    {
-        g_dxc_reflection->Release();
-        g_dxc_reflection = nullptr;
-    }
     if (g_dxc_include_handler)
     {
         g_dxc_include_handler->Release();
@@ -202,20 +188,6 @@ void DX12ShaderCompiler::CleanupDXC()
 #endif
 }
 
-void *DX12ShaderCompiler::GetDXCReflection()
-{
-#ifdef _WIN32
-    // Ensure DXC is initialized
-    if (!InitializeDXC())
-    {
-        return nullptr;
-    }
-    return g_dxc_reflection;
-#else
-    return nullptr;
-#endif
-}
-
 void *DX12ShaderCompiler::GetDXCUtils()
 {
 #ifdef _WIN32
@@ -231,7 +203,7 @@ void *DX12ShaderCompiler::GetDXCUtils()
 }
 
 IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                                 const Path &shader_dir)
+                                                 const Path &shader_dir, IDxcBlob **out_reflection)
 {
 #ifdef _WIN32
     if (!InitializeDXC())
@@ -355,24 +327,24 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
         compile_result->Release();
         return {};
     }
-    // Microsoft::WRL::ComPtr<IDxcBlob> pReflectionData;
-    //    pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(pReflectionData.GetAddressOf()), nullptr);
-    //    DxcBuffer reflectionBuffer;
-    //    reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
-    //    reflectionBuffer.Size = pReflectionData->GetBufferSize();
-    //    reflectionBuffer.Encoding = 0;
-    //    Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pShaderReflection;
-    //    pUtils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
 
-    // Copy bytecode to vector
-
-    // Print shader_blob information
+    // Extract reflection data from compile result
+    if (out_reflection)
+    {
+        IDxcBlob *reflection_blob = nullptr;
+        hr = compile_result->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&reflection_blob), nullptr);
+        if (SUCCEEDED(hr) && reflection_blob)
+        {
+            *out_reflection = reflection_blob;
+        }
+        else
+        {
+            LOG_WARN("Failed to extract reflection data from DXC compile result");
+            *out_reflection = nullptr;
+        }
+    }
 
     compile_result->Release();
-
-    // std::vector<unsigned char> dbgbytecode(static_cast<size_t>(shader_blob->GetBufferSize()));
-    // memcpy(dbgbytecode.data(), shader_blob->GetBufferPointer(), shader_blob->GetBufferSize());
-    // std::string s(dbgbytecode.begin(), dbgbytecode.end());
 
     return shader_blob;
 #else
@@ -381,9 +353,9 @@ IDxcBlob *DX12ShaderCompiler::CompileHLSLWithDXC(const Path &hlsl_path, ShaderTy
 }
 
 IDxcBlob *DX12ShaderCompiler::CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                          const Path &shader_dir)
+                                          const Path &shader_dir, IDxcBlob **out_reflection)
 {
-    return CompileHLSLWithDXC(hlsl_path, shader_type, entry_point, shader_dir);
+    return CompileHLSLWithDXC(hlsl_path, shader_type, entry_point, shader_dir, out_reflection);
 }
 
 bool DX12ShaderCompiler::NeedsRecompilation(const Path &hlsl_path, const Path &cached_path)

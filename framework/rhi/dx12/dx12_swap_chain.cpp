@@ -79,7 +79,17 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
         render_targets[i] = Memory::Alloc<DX12RenderTarget>(
             m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
                                               RenderTargetType::UNDEFINED, width, height});
-        ((DX12Texture *)render_targets[i]->GetTexture())->m_resource = m_back_buffers[i];
+        auto *tex = reinterpret_cast<DX12Texture *>(render_targets[i]->GetTexture());
+        tex->m_resource = m_back_buffers[i];
+        // Set proper metadata for the back buffer texture
+        tex->m_width = width;
+        tex->m_height = height;
+        tex->m_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
+        tex->m_type = TextureType::TEXTURE_TYPE_2D;
+        tex->m_array_layer = 1;
+        tex->mip_map_level = 1;
+        tex->m_current_state = D3D12_RESOURCE_STATE_PRESENT;
+        tex->m_state = ResourceState::RESOURCE_STATE_PRESENT;
     }
 #else
     LOG_ERROR("DX12 is only supported on Windows");

@@ -86,8 +86,10 @@ void DX12DescriptorHeapAllocator::CreateDescriptorHeaps()
 
 void DX12DescriptorHeapAllocator::ResetDescriptorHeaps()
 {
-    m_rtv_index = 0;
-    m_dsv_index = 0;
+    // Only reset per-frame shader-visible heaps and staging heap.
+    // RTV/DSV indices are NOT reset because persistent render targets
+    // (GBuffers, depth, swap chain) allocate RTV/DSV at init time
+    // and those handles must remain stable across frames.
     m_srv_uav_cbv_index = 0;
     m_sampler_index = 0;
     m_staging_srv_uav_cbv_index = 0;

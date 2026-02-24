@@ -200,7 +200,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
         resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
     }
 
-    // commandlist->InsertBarrier(resource_upload_barrier);
+    //commandlist->InsertBarrier(resource_upload_barrier);
 
     BarrierDesc mip_barrier1{};
     for (u32 tex = 0; tex < material_textures.size(); tex++)

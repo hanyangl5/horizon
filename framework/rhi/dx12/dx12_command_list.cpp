@@ -1,5 +1,6 @@
 #include "dx12_command_list.h"
 #include "dx12_buffer.h"
+#include "dx12_descriptor_heap_allocator.h"
 #include "dx12_pipeline.h"
 #include "dx12_render_target.h"
 #include "dx12_texture.h"
@@ -12,8 +13,10 @@ namespace Horizon::Backend
 
 DX12CommandList::DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
                                  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list,
-                                 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator) noexcept
-    : CommandList(type), m_context(context), m_command_list(command_list), m_allocator(allocator)
+                                 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator,
+                                 DX12DescriptorHeapAllocator *descriptor_heap_allocator) noexcept
+    : CommandList(type), m_context(context), m_command_list(command_list), m_allocator(allocator),
+      m_descriptor_heap_allocator(descriptor_heap_allocator)
 {
     CreateQueryHeap();
 }
@@ -314,7 +317,13 @@ void DX12CommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u
     }
 
     auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffer);
-    m_command_list->ExecuteIndirect(nullptr, draw_count, dx12_buffer->GetResource(), offset, nullptr, 0);
+    if (m_context.draw_indexed_indirect_command_signature == nullptr)
+    {
+        LOG_ERROR("Draw indexed indirect command signature is null");
+        return;
+    }
+    m_command_list->ExecuteIndirect(m_context.draw_indexed_indirect_command_signature.Get(), draw_count,
+                                    dx12_buffer->GetResource(), offset, nullptr, 0);
 }
 
 void DX12CommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z)
@@ -581,9 +590,9 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     }
 
     // Transition back
-    CD3DX12_RESOURCE_BARRIER barrier_after = CD3DX12_RESOURCE_BARRIER::Transition(
-        dx12_texture->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, dx12_texture->m_current_state);
-    m_command_list->ResourceBarrier(1, &barrier_after);
+    //CD3DX12_RESOURCE_BARRIER barrier_after = CD3DX12_RESOURCE_BARRIER::Transition(
+    //    dx12_texture->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, dx12_texture->m_current_state);
+    //m_command_list->ResourceBarrier(1, &barrier_after);
 }
 
 void DX12CommandList::InsertBarrier(const BarrierDesc &desc)
@@ -777,17 +786,34 @@ void DX12CommandList::ClearBuffer(Buffer *buffer, f32 clear_value)
         LOG_ERROR("ClearBuffer requires buffer with DESCRIPTOR_TYPE_RW_BUFFER");
         return;
     }
-    if (m_current_pipeline == nullptr)
+
+    // Get descriptor heap allocator from pipeline or command list
+    DX12DescriptorHeapAllocator *allocator = nullptr;
+    if (m_current_pipeline != nullptr)
     {
-        LOG_ERROR("ClearBuffer requires a bound pipeline");
+        allocator = &reinterpret_cast<DX12Pipeline *>(m_current_pipeline)->m_descriptor_heap_allocator;
+    }
+    else if (m_descriptor_heap_allocator != nullptr)
+    {
+        allocator = m_descriptor_heap_allocator;
+    }
+    else
+    {
+        LOG_ERROR("ClearBuffer requires either a bound pipeline or a descriptor heap allocator");
         return;
     }
 
     auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffer);
-    auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(m_current_pipeline);
+
+    // Set descriptor heaps if no pipeline is bound (pipeline's BindPipeline already sets them)
+    if (m_current_pipeline == nullptr)
+    {
+        ID3D12DescriptorHeap *heaps[] = {allocator->GetSRVUAVCBVHeap(), allocator->GetSamplerHeap()};
+        m_command_list->SetDescriptorHeaps(2, heaps);
+    }
 
     // Create UAV in shader-visible heap
-    D3D12_CPU_DESCRIPTOR_HANDLE gpu_cpu_handle = dx12_pipeline->m_descriptor_heap_allocator.AllocateUAV();
+    D3D12_CPU_DESCRIPTOR_HANDLE gpu_cpu_handle = allocator->AllocateUAV();
     D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
     uav_desc.Format = DXGI_FORMAT_R32_TYPELESS;
     uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -797,14 +823,14 @@ void DX12CommandList::ClearBuffer(Buffer *buffer, f32 clear_value)
     m_context.device->CreateUnorderedAccessView(dx12_buffer->GetResource(), nullptr, &uav_desc, gpu_cpu_handle);
 
     // Calculate GPU handle from shader-visible heap
-    auto heap = dx12_pipeline->m_descriptor_heap_allocator.GetSRVUAVCBVHeap();
+    auto heap = allocator->GetSRVUAVCBVHeap();
     auto heap_start_cpu = heap->GetCPUDescriptorHandleForHeapStart();
     auto heap_start_gpu = heap->GetGPUDescriptorHandleForHeapStart();
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
     gpu_handle.ptr = heap_start_gpu.ptr + (gpu_cpu_handle.ptr - heap_start_cpu.ptr);
 
     // Create UAV in non-shader-visible (staging) heap
-    D3D12_CPU_DESCRIPTOR_HANDLE staging_cpu_handle = dx12_pipeline->m_descriptor_heap_allocator.AllocateStagingUAV();
+    D3D12_CPU_DESCRIPTOR_HANDLE staging_cpu_handle = allocator->AllocateStagingUAV();
     m_context.device->CreateUnorderedAccessView(dx12_buffer->GetResource(), nullptr, &uav_desc, staging_cpu_handle);
 
     // Reinterpret float as uint (matching Vulkan's vkCmdFillBuffer behavior)
@@ -832,18 +858,33 @@ void DX12CommandList::ClearTextrue(Texture *texture, const ClearColorValue &clea
 
     auto dx12_texture = reinterpret_cast<DX12Texture *>(texture);
 
+    // Get descriptor heap allocator from pipeline or command list
+    DX12DescriptorHeapAllocator *allocator = nullptr;
+    if (m_current_pipeline != nullptr)
+    {
+        allocator = &reinterpret_cast<DX12Pipeline *>(m_current_pipeline)->m_descriptor_heap_allocator;
+    }
+    else if (m_descriptor_heap_allocator != nullptr)
+    {
+        allocator = m_descriptor_heap_allocator;
+    }
+    else
+    {
+        LOG_ERROR("ClearTextrue requires either a bound pipeline or a descriptor heap allocator");
+        return;
+    }
+
+    // Set descriptor heaps if no pipeline is bound
     if (m_current_pipeline == nullptr)
     {
-        LOG_ERROR("ClearTextrue requires a bound pipeline");
-        return;
+        ID3D12DescriptorHeap *heaps[] = {allocator->GetSRVUAVCBVHeap(), allocator->GetSamplerHeap()};
+        m_command_list->SetDescriptorHeaps(2, heaps);
     }
 
     if (texture->m_descriptor_types & DESCRIPTOR_TYPE_RW_TEXTURE)
     {
-        auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(m_current_pipeline);
-
         // Create UAV in shader-visible heap
-        D3D12_CPU_DESCRIPTOR_HANDLE gpu_cpu_handle = dx12_pipeline->m_descriptor_heap_allocator.AllocateUAV();
+        D3D12_CPU_DESCRIPTOR_HANDLE gpu_cpu_handle = allocator->AllocateUAV();
         D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
         uav_desc.Format = Horizon::ToDX12Format(texture->m_format);
         bool is_array = (texture->m_array_layer > 1);
@@ -863,15 +904,14 @@ void DX12CommandList::ClearTextrue(Texture *texture, const ClearColorValue &clea
         }
         m_context.device->CreateUnorderedAccessView(dx12_texture->GetResource(), nullptr, &uav_desc, gpu_cpu_handle);
 
-        auto heap = dx12_pipeline->m_descriptor_heap_allocator.GetSRVUAVCBVHeap();
+        auto heap = allocator->GetSRVUAVCBVHeap();
         auto heap_start_cpu = heap->GetCPUDescriptorHandleForHeapStart();
         auto heap_start_gpu = heap->GetGPUDescriptorHandleForHeapStart();
         D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
         gpu_handle.ptr = heap_start_gpu.ptr + (gpu_cpu_handle.ptr - heap_start_cpu.ptr);
 
         // Create UAV in staging (non-shader-visible) heap
-        D3D12_CPU_DESCRIPTOR_HANDLE staging_cpu_handle =
-            dx12_pipeline->m_descriptor_heap_allocator.AllocateStagingUAV();
+        D3D12_CPU_DESCRIPTOR_HANDLE staging_cpu_handle = allocator->AllocateStagingUAV();
         m_context.device->CreateUnorderedAccessView(dx12_texture->GetResource(), nullptr, &uav_desc,
                                                     staging_cpu_handle);
 
@@ -882,9 +922,7 @@ void DX12CommandList::ClearTextrue(Texture *texture, const ClearColorValue &clea
     }
     else if (texture->m_descriptor_types & DESCRIPTOR_TYPE_COLOR_ATTACHMENT)
     {
-        auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(m_current_pipeline);
-
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = dx12_pipeline->m_descriptor_heap_allocator.AllocateRTV();
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = allocator->AllocateRTV();
         D3D12_RENDER_TARGET_VIEW_DESC rtv_desc{};
         rtv_desc.Format = Horizon::ToDX12Format(texture->m_format);
         bool is_array = (texture->m_array_layer > 1);

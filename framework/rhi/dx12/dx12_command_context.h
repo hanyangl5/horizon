@@ -12,10 +12,13 @@ namespace Horizon::Backend
 
 class DX12CommandList;
 
+class DX12DescriptorHeapAllocator;
+
 class DX12CommandContext : public CommandContext
 {
   public:
-    DX12CommandContext(const DX12RendererContext &context) noexcept;
+    DX12CommandContext(const DX12RendererContext &context,
+                      DX12DescriptorHeapAllocator *descriptor_heap_allocator = nullptr) noexcept;
     virtual ~DX12CommandContext() noexcept override;
 
     DX12CommandContext(const DX12CommandContext &command_list) noexcept = delete;
@@ -28,6 +31,7 @@ class DX12CommandContext : public CommandContext
 
   private:
     const DX12RendererContext &m_context;
+    DX12DescriptorHeapAllocator *m_descriptor_heap_allocator{nullptr};
     std::array<std::unique_ptr<DX12CommandAllocatorPool>, 3> m_allocator_pools;
     std::array<std::vector<DX12CommandList *>, 3> m_command_lists;
 };

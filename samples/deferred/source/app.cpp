@@ -118,6 +118,7 @@ void DeferredRenderApp::RenderLoop()
     scene->scene_camera_controller->ProcessInput(GetWindow());
 
     rhi->AcquireNextFrame(swap_chain);
+    rhi->ResetRHIResources();
     UpdatePipelineResources();
     // Reset FrameGraph for new frame
     frame_graph->Reset();

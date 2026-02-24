@@ -6,7 +6,9 @@
 namespace Horizon::Backend
 {
 
-DX12CommandContext::DX12CommandContext(const DX12RendererContext &context) noexcept : m_context(context)
+DX12CommandContext::DX12CommandContext(const DX12RendererContext &context,
+                                       DX12DescriptorHeapAllocator *descriptor_heap_allocator) noexcept
+    : m_context(context), m_descriptor_heap_allocator(descriptor_heap_allocator)
 {
     // Create allocator pools for each queue type
     for (u32 i = 0; i < 3; ++i)
@@ -60,7 +62,8 @@ CommandList *DX12CommandContext::GetCommandList(CommandQueueType type)
     // Command lists are created in recording state, close it immediately so it can be reset later
     command_list->Close();
 
-    m_command_lists[index].emplace_back(Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator));
+    m_command_lists[index].emplace_back(
+        Memory::Alloc<DX12CommandList>(m_context, type, command_list, allocator, m_descriptor_heap_allocator));
     return m_command_lists[index][0];
 }
 

@@ -20,6 +20,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     pos.binding = 0;
     pos.location = 0;
     pos.offset = 0;
+    pos.stride = sizeof(Vertex);
     pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     pos.semantic_name = "POSITION";
     pos.semantic_index = 0;
@@ -28,6 +29,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     normal.portion = 3;
     normal.binding = 0;
     normal.location = 1;
+    normal.stride = sizeof(Vertex);
     normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     normal.offset = offsetof(Vertex, normal);
     normal.semantic_name = "NORMAL";
@@ -37,6 +39,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     uv0.portion = 2;
     uv0.binding = 0;
     uv0.location = 2;
+    uv0.stride = sizeof(Vertex);
     uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     uv0.offset = offsetof(Vertex, uv0);
     uv0.semantic_name = "TEXCOORD";
@@ -46,6 +49,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     uv1.portion = 2;
     uv1.binding = 0;
     uv1.location = 3;
+    uv1.stride = sizeof(Vertex);
     uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     uv1.offset = offsetof(Vertex, uv1);
     uv1.semantic_name = "TEXCOORD";
@@ -56,6 +60,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     tangent.portion = 3;
     tangent.binding = 0;
     tangent.location = 4;
+    tangent.stride = sizeof(Vertex);
     tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
     tangent.offset = offsetof(Vertex, tangent);
     tangent.semantic_name = "TANGENT";

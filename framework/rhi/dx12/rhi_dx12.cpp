@@ -95,6 +95,25 @@ void RHIDX12::InitializeDX12Renderer(const std::string &app_name)
     CreateCommandQueues();
     CreateFences();
     CreateDescriptorHeaps();
+
+    // Create command signature for indirect indexed instanced drawing
+    {
+        D3D12_INDIRECT_ARGUMENT_DESC arg_desc{};
+        arg_desc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+
+        D3D12_COMMAND_SIGNATURE_DESC cmd_sig_desc{};
+        cmd_sig_desc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS); // 20 bytes
+        cmd_sig_desc.NumArgumentDescs = 1;
+        cmd_sig_desc.pArgumentDescs = &arg_desc;
+        cmd_sig_desc.NodeMask = 0;
+
+        HRESULT hr = m_dx12.device->CreateCommandSignature(
+            &cmd_sig_desc, nullptr, IID_PPV_ARGS(&m_dx12.draw_indexed_indirect_command_signature));
+        if (FAILED(hr))
+        {
+            LOG_ERROR("Failed to create draw indexed indirect command signature: {}", hr);
+        }
+    }
 }
 
 void RHIDX12::CreateFactory()
@@ -457,14 +476,19 @@ Shader *RHIDX12::CreateShader(ShaderType type, const Path &file_name, const char
 
     // Compile HLSL shader
     // TODO: precompile to ir
-    IDxcBlob *bytecode = DX12ShaderCompiler::CompileHLSL(file_name, type, entry_point, shader_dir);
+    IDxcBlob *reflection = nullptr;
+    IDxcBlob *bytecode = DX12ShaderCompiler::CompileHLSL(file_name, type, entry_point, shader_dir, &reflection);
     if (!bytecode)
     {
         LOG_ERROR("Failed to compile DX12 shader: {}", (void *)file_name.c_str());
+        if (reflection)
+        {
+            reflection->Release();
+        }
         return nullptr;
     }
 
-    return Memory::Alloc<DX12Shader>(m_dx12, type, bytecode, entry_point);
+    return Memory::Alloc<DX12Shader>(m_dx12, type, bytecode, entry_point, reflection);
 }
 
 void RHIDX12::DestroyShader(Shader *shader_program)
@@ -480,7 +504,7 @@ CommandList *RHIDX12::GetCommandList(CommandQueueType type)
 {
     if (!thread_command_context)
     {
-        thread_command_context = Memory::Alloc<DX12CommandContext>(m_dx12);
+        thread_command_context = Memory::Alloc<DX12CommandContext>(m_dx12, m_descriptor_heap_allocator);
         m_command_context = thread_command_context;
     }
     return thread_command_context->GetCommandList(type);

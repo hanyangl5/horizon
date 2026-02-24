@@ -15,9 +15,9 @@ class DX12ShaderCompiler
 {
   public:
     // Compile HLSL to DXBC/DXIL using DXC or FXC
-    // Returns compiled shader bytecode
+    // Returns compiled shader bytecode, optionally outputs reflection blob
     static IDxcBlob *CompileHLSL(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                 const Path &shader_dir);
+                                 const Path &shader_dir, IDxcBlob **out_reflection = nullptr);
 
     // Check if shader needs recompilation
     static bool NeedsRecompilation(const Path &hlsl_path, const Path &cached_path);
@@ -28,7 +28,7 @@ class DX12ShaderCompiler
 
     // Compile using DXC API (supports Shader Model 6.0+)
     static IDxcBlob *CompileHLSLWithDXC(const Path &hlsl_path, ShaderType shader_type, const char *entry_point,
-                                        const Path &shader_dir);
+                                        const Path &shader_dir, IDxcBlob **out_reflection = nullptr);
 
     static std::string FindDXCExecutable();
     static std::vector<std::string> GetIncludeDirectories(const Path &shader_dir);
@@ -38,8 +38,6 @@ class DX12ShaderCompiler
 
   public:
     static void CleanupDXC();
-    // Get DXC reflection interface for DXIL shader reflection
-    static void *GetDXCReflection();
 
     // Get DXC utils for creating blobs
     static void *GetDXCUtils();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/memory.h>
 #include <rhi/enums.h>
 #include <rhi/texture.h>
 
@@ -12,7 +13,7 @@ class RenderTarget
     RenderTarget() noexcept {};
     virtual ~RenderTarget() noexcept
     {
-        delete m_texture;
+        Memory::Free(m_texture);
     };
 
     RenderTarget(const RenderTarget &rhs) noexcept = delete;

@@ -12,12 +12,15 @@
 namespace Horizon::Backend
 {
 
+class DX12DescriptorHeapAllocator;
+
 class DX12CommandList : public CommandList
 {
   public:
     DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
                     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list,
-                    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator) noexcept;
+                    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator,
+                    DX12DescriptorHeapAllocator *descriptor_heap_allocator = nullptr) noexcept;
 
     virtual ~DX12CommandList() noexcept;
     DX12CommandList(const DX12CommandList &rhs) noexcept = delete;
@@ -75,6 +78,7 @@ class DX12CommandList : public CommandList
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_allocator;
     Microsoft::WRL::ComPtr<ID3D12QueryHeap> m_timestamp_query_heap;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_query_readback_buffer;
+    DX12DescriptorHeapAllocator *m_descriptor_heap_allocator{nullptr};
     bool m_is_recording{false};
     bool m_in_render_pass{false};
     bool m_in_compute_pass{false};

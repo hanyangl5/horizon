@@ -162,9 +162,6 @@ FrameGraphBuilder FrameGraph::AddPass(RDGPass *pass)
         return FrameGraphBuilder(this, nullptr);
     }
 
-    // Call ImportResources before adding pass
-    pass->ImportResources(this);
-
     PassNode pass_node;
     pass_node.name = pass->GetName();
     pass_node.rdg_pass = pass;
@@ -252,11 +249,6 @@ void FrameGraph::Execute()
         // Get command list for this queue
         if (current_command_list == nullptr)
         {
-            if (current_command_list != nullptr)
-            {
-                current_command_list->EndRecording();
-                command_lists.push_back(current_command_list);
-            }
             current_command_list = m_rhi->GetCommandList(current_queue);
             current_command_list->BeginRecording();
         }

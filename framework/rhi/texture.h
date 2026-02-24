@@ -24,12 +24,12 @@ class Texture
     std::string m_debug_name;
     DescriptorTypes m_descriptor_types;
     ResourceState m_state{};
-    const TextureType m_type{};
-    const TextureFormat m_format{};
+    TextureType m_type{};
+    TextureFormat m_format{};
 
-    const u32 m_width{}, m_height{}, m_depth{}, m_array_layer;
+    u32 m_width{}, m_height{}, m_depth{}, m_array_layer;
     u32 mip_map_level{};
-    const u32 m_byte_per_pixel{};
+    u32 m_byte_per_pixel{};
 
   protected:
 };

@@ -27,6 +27,9 @@ struct DX12RendererContext
     UINT srv_uav_descriptor_size;
     UINT cbv_descriptor_size;
     UINT sampler_descriptor_size;
+
+    // Command signatures for indirect drawing
+    Microsoft::WRL::ComPtr<ID3D12CommandSignature> draw_indexed_indirect_command_signature;
 };
 
 D3D12_COMMAND_LIST_TYPE ToDX12CommandListType(CommandQueueType type) noexcept;

@@ -141,6 +141,8 @@ DXGI_FORMAT ToDX12Format(TextureFormat format) noexcept
         return DXGI_FORMAT_R11G11B10_FLOAT;
     case TextureFormat::TEXTURE_FORMAT_D32_SFLOAT:
         return DXGI_FORMAT_D32_FLOAT;
+    case TextureFormat::TEXTURE_FORMAT_RGBA16_SFLOAT:
+        return DXGI_FORMAT_R16G16B16A16_FLOAT;
     default:
         LOG_ERROR("Unsupported texture format for DX12");
         return DXGI_FORMAT_UNKNOWN;
@@ -313,8 +315,10 @@ D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(DescriptorType type) noexc
         return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
     if (type & DESCRIPTOR_TYPE_RW_TEXTURE)
         return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-    if (type & DESCRIPTOR_TYPE_BUFFER || type & DESCRIPTOR_TYPE_RW_BUFFER)
-        return D3D12_DESCRIPTOR_RANGE_TYPE_UAV; // Can be SRV or UAV depending on usage
+    if (type & DESCRIPTOR_TYPE_RW_BUFFER)
+        return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    if (type & DESCRIPTOR_TYPE_BUFFER)
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
     return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 }
