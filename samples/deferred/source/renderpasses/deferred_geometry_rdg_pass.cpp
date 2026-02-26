@@ -97,17 +97,18 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
 
     // Create resizable render targets.
     CreateResizableRenderTarget(m_gbuffer0_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                       RenderTargetType::COLOR, m_width, m_height});
+                                                                      RenderTargetType::COLOR, m_width, m_height});
     CreateResizableRenderTarget(m_gbuffer1_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                       RenderTargetType::COLOR, m_width, m_height});
-    CreateResizableRenderTarget(m_gbuffer2_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT,
-                                                                       RenderTargetType::COLOR, m_width, m_height});
+                                                                      RenderTargetType::COLOR, m_width, m_height});
+    CreateResizableRenderTarget(m_gbuffer2_rt,
+                                RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT,
+                                                       RenderTargetType::COLOR, m_width, m_height});
     CreateResizableRenderTarget(m_gbuffer3_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                                                       RenderTargetType::COLOR, m_width, m_height});
+                                                                      RenderTargetType::COLOR, m_width, m_height});
     CreateResizableRenderTarget(m_gbuffer4_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RG32_SFLOAT,
-                                                                       RenderTargetType::COLOR, m_width, m_height});
+                                                                      RenderTargetType::COLOR, m_width, m_height});
     CreateResizableRenderTarget(m_depth_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_D32_SFLOAT,
-                                                                    RenderTargetType::DEPTH_STENCIL, m_width, m_height});
+                                                                   RenderTargetType::DEPTH_STENCIL, m_width, m_height});
 
     SetResizeCallback([this](u32 width, u32 height) {
         m_width = width;

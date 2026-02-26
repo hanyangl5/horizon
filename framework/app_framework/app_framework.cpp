@@ -8,8 +8,8 @@
                                                                      *********************************************************************/
 
 #include "app_framework.h"
-#include <core/log.h>
 #include <chrono>
+#include <core/log.h>
 #include <thread>
 #ifdef __ANDROID__
 #include <core/android/android_native.h>

@@ -20,7 +20,8 @@ namespace Horizon::Backend
 
 DX12Shader::DX12Shader(const DX12RendererContext &context, ShaderType type, void *bytecode, const char *entry_point,
                        IDxcBlob *reflection_blob) noexcept
-    : Shader(type, entry_point), m_context(context), m_bytecode((ID3DBlob *)bytecode), m_reflection_blob(reflection_blob)
+    : Shader(type, entry_point), m_context(context), m_bytecode((ID3DBlob *)bytecode),
+      m_reflection_blob(reflection_blob)
 {
     ReflectShader();
 }

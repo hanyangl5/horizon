@@ -21,6 +21,7 @@ class DeferredRenderApp : public Horizon::AppFramework
 {
   public:
     DeferredRenderApp();
+
   protected:
     void Initialize() override;
     void RenderLoop() override;

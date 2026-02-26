@@ -18,7 +18,7 @@ class DX12CommandContext : public CommandContext
 {
   public:
     DX12CommandContext(const DX12RendererContext &context,
-                      DX12DescriptorHeapAllocator *descriptor_heap_allocator = nullptr) noexcept;
+                       DX12DescriptorHeapAllocator *descriptor_heap_allocator = nullptr) noexcept;
     virtual ~DX12CommandContext() noexcept override;
 
     DX12CommandContext(const DX12CommandContext &command_list) noexcept = delete;

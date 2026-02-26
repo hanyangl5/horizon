@@ -81,7 +81,7 @@ bool Horizon::Backend::VulkanSwapChain::Resize(u32 new_width, u32 new_height) no
 }
 
 void Horizon::Backend::VulkanSwapChain::CreateSwapChainImagesAndViews(u32 new_width, u32 new_height,
-                                                                       VkSwapchainKHR old_swap_chain) noexcept
+                                                                      VkSwapchainKHR old_swap_chain) noexcept
 {
     width = new_width;
     height = new_height;

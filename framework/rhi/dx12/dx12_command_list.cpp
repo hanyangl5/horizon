@@ -590,9 +590,9 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     }
 
     // Transition back
-    //CD3DX12_RESOURCE_BARRIER barrier_after = CD3DX12_RESOURCE_BARRIER::Transition(
+    // CD3DX12_RESOURCE_BARRIER barrier_after = CD3DX12_RESOURCE_BARRIER::Transition(
     //    dx12_texture->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, dx12_texture->m_current_state);
-    //m_command_list->ResourceBarrier(1, &barrier_after);
+    // m_command_list->ResourceBarrier(1, &barrier_after);
 }
 
 void DX12CommandList::InsertBarrier(const BarrierDesc &desc)

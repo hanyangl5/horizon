@@ -95,7 +95,8 @@ class RDGPass
 
             auto *old_render_target = *entry.render_target_slot;
             if (old_render_target && old_render_target->GetTexture() &&
-                old_render_target->GetTexture()->m_width == width && old_render_target->GetTexture()->m_height == height)
+                old_render_target->GetTexture()->m_width == width &&
+                old_render_target->GetTexture()->m_height == height)
             {
                 continue;
             }
