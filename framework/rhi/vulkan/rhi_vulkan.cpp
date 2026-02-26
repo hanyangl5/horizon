@@ -523,6 +523,10 @@ VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept
 
 void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
 {
+    if (queue_submit_info.wait_image_acquired && !semaphore_ctx.frame_image_acquired)
+    {
+        return;
+    }
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -579,9 +583,14 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
     // signal render complete semaphore
     if (queue_submit_info.signal_render_complete == true)
     {
+        u32 signal_index = semaphore_ctx.acquired_image_index;
+        if (signal_index >= semaphore_ctx.render_complete_semaphore.size())
+        {
+            signal_index = semaphore_ctx.current_frame_index;
+        }
 
         signal_semaphores.push_back(reinterpret_cast<VulkanSemaphore *>(
-                                        semaphore_ctx.render_complete_semaphore[semaphore_ctx.current_frame_index])
+                                        semaphore_ctx.render_complete_semaphore[signal_index])
                                         ->m_semaphore);
         wait_stages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT); // correct stage?
     }
@@ -601,6 +610,11 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
 {
+    if (!semaphore_ctx.frame_image_acquired)
+    {
+        return;
+    }
+
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -613,9 +627,13 @@ void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
 
     auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(queue_present_info.swap_chain);
     std::vector<VkSemaphore> wait_semaphores;
+    u32 wait_index = semaphore_ctx.acquired_image_index;
+    if (wait_index >= semaphore_ctx.render_complete_semaphore.size())
+    {
+        wait_index = semaphore_ctx.current_frame_index;
+    }
     wait_semaphores.push_back(
-        reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.render_complete_semaphore[semaphore_ctx.current_frame_index])
-            ->m_semaphore);
+        reinterpret_cast<VulkanSemaphore *>(semaphore_ctx.render_complete_semaphore[wait_index])->m_semaphore);
 
     present_info.waitSemaphoreCount = static_cast<u32>(wait_semaphores.size());
     present_info.pWaitSemaphores = wait_semaphores.data();
@@ -624,15 +642,43 @@ void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapChains;
     present_info.pImageIndices = &vk_swap_chain->image_index;
-    CHECK_VK_RESULT(vkQueuePresentKHR(m_vulkan.command_queues[CommandQueueType::GRAPHICS], &present_info));
+    VkResult present_result = vkQueuePresentKHR(m_vulkan.command_queues[CommandQueueType::GRAPHICS], &present_info);
+
+    if (present_result == VK_ERROR_OUT_OF_DATE_KHR || present_result == VK_SUBOPTIMAL_KHR)
+    {
+        if (m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0)
+        {
+            vk_swap_chain->Resize(m_window->GetWidth(), m_window->GetHeight());
+        }
+        semaphore_ctx.frame_image_acquired = false;
+        return;
+    }
+
+    CHECK_VK_RESULT(present_result);
+
     vk_swap_chain->current_frame_index++;
     vk_swap_chain->current_frame_index = vk_swap_chain->current_frame_index % vk_swap_chain->m_back_buffer_count;
     semaphore_ctx.current_frame_index = vk_swap_chain->current_frame_index;
+    semaphore_ctx.frame_image_acquired = false;
 }
 
 void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
 {
     auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(swap_chain);
+    semaphore_ctx.frame_image_acquired = false;
+
+    if (m_window && (m_window->GetWidth() == 0 || m_window->GetHeight() == 0))
+    {
+        ResetFence(CommandQueueType::GRAPHICS);
+        ResetRHIResources();
+        return;
+    }
+
+    if (m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0 &&
+        (vk_swap_chain->width != m_window->GetWidth() || vk_swap_chain->height != m_window->GetHeight()))
+    {
+        vk_swap_chain->Resize(m_window->GetWidth(), m_window->GetHeight());
+    }
 
     Semaphore *sm = semaphore_ctx.present_complete_semaphore[semaphore_ctx.current_frame_index];
 
@@ -640,21 +686,34 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
                                          reinterpret_cast<VulkanSemaphore *>(sm)->m_semaphore, nullptr,
                                          &vk_swap_chain->image_index);
 
-    if (res != VK_SUCCESS)
+    if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
     {
-        LOG_ERROR("failed to acquire next image");
-        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
+        if (m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0)
         {
-            // resize(context.swapchain_dimensions.width, context.swapchain_dimensions.height);
-            // res = acquire_next_image(context, &index);
-        }
-
-        if (res != VK_SUCCESS)
-        {
-            // vkQueueWaitIdle(context.queue);
-            // return;
+            vk_swap_chain->Resize(m_window->GetWidth(), m_window->GetHeight());
+            res = vkAcquireNextImageKHR(m_vulkan.device, vk_swap_chain->swap_chain, UINT64_MAX,
+                                        reinterpret_cast<VulkanSemaphore *>(sm)->m_semaphore, nullptr,
+                                        &vk_swap_chain->image_index);
         }
     }
+
+    if (res != VK_SUCCESS)
+    {
+        if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
+        {
+            LOG_DEBUG("Skip frame: swapchain is out of date/suboptimal while acquiring image");
+        }
+        else
+        {
+            LOG_ERROR("failed to acquire next image, VkResult={}", static_cast<int>(res));
+        }
+        ResetFence(CommandQueueType::GRAPHICS);
+        ResetRHIResources();
+        return;
+    }
+
+    semaphore_ctx.acquired_image_index = vk_swap_chain->image_index;
+    semaphore_ctx.frame_image_acquired = true;
 
     // RESET RHIVulkan RESOURCES
     {

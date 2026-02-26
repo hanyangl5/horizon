@@ -95,6 +95,14 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
     info.renderArea =
         VkRect2D{VkOffset2D{static_cast<int>(begin_info.render_area.x), static_cast<int>(begin_info.render_area.y)},
                  VkExtent2D{begin_info.render_area.w, begin_info.render_area.h}};
+    m_active_scissor = info.renderArea;
+    m_active_viewport.x = static_cast<f32>(begin_info.render_area.x);
+    m_active_viewport.y = static_cast<f32>(begin_info.render_area.y + begin_info.render_area.h);
+    m_active_viewport.width = static_cast<f32>(begin_info.render_area.w);
+    m_active_viewport.height = -static_cast<f32>(begin_info.render_area.h);
+    m_active_viewport.minDepth = 0.0f;
+    m_active_viewport.maxDepth = 1.0f;
+    m_has_active_render_area = true;
 
     // color attachment info
     std::vector<VkRenderingAttachmentInfo> color_attachment_info;
@@ -156,6 +164,7 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
 void VulkanCommandList::EndRenderPass()
 {
     vkCmdEndRendering(m_command_buffer);
+    m_has_active_render_area = false;
 
     // End debug label if one was started
     if (m_debug_label_active)
@@ -569,9 +578,16 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline)
 
     if (pipeline->GetType() == PipelineType::GRAPHICS)
     {
-        // TOOD: set viewport and scissor manually?
-        vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
-        vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
+        if (m_has_active_render_area)
+        {
+            vkCmdSetViewport(m_command_buffer, 0, 1, &m_active_viewport);
+            vkCmdSetScissor(m_command_buffer, 0, 1, &m_active_scissor);
+        }
+        else
+        {
+            vkCmdSetViewport(m_command_buffer, 0, 1, &vk_pipeline->view_port);
+            vkCmdSetScissor(m_command_buffer, 0, 1, &vk_pipeline->scissor);
+        }
     }
     if (auto set = vk_pipeline->GetDescriptorSet())
     {

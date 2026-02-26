@@ -76,6 +76,9 @@ class VulkanCommandList : public CommandList
   private:
     const VulkanRendererContext &m_context{};
     bool m_debug_label_active = false; // Track if a debug label is currently active
+    bool m_has_active_render_area = false;
+    VkViewport m_active_viewport{};
+    VkRect2D m_active_scissor{};
 
   public:
     VkCommandBuffer m_command_buffer{};

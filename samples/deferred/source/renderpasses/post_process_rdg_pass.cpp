@@ -8,13 +8,19 @@ PostProcessRDGPass::PostProcessRDGPass(RHI *rhi, u32 width, u32 height)
     create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_post_process_cs);
     m_post_process_pipeline = CreateComputePipeline(create_info);
 
-    m_pp_color_image = rhi->CreateTexture(TextureCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
+    CreateResizableTexture(m_pp_color_image,
+                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
+                                             ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+                                             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+                                             m_width, m_height, 1, false});
 
     m_exposure_constants_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
                                            ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(ExposureConstant)});
+    SetResizeCallback([this](u32 width, u32 height) {
+        m_width = width;
+        m_height = height;
+    });
 }
 
 PostProcessRDGPass::~PostProcessRDGPass()

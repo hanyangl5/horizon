@@ -8,10 +8,15 @@ SSAOBlurRDGPass::SSAOBlurRDGPass(RHI *rhi, u32 width, u32 height)
     create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_ssao_blur_cs);
     m_ssao_blur_pipeline = CreateComputePipeline(create_info);
 
-    m_ssao_blur_image = rhi->CreateTexture(
+    CreateResizableTexture(
+        m_ssao_blur_image,
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                           ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
                           TextureFormat::TEXTURE_FORMAT_R8_UNORM, m_width, m_height, 1, false, 1, "ssao_blur_image"});
+    SetResizeCallback([this](u32 width, u32 height) {
+        m_width = width;
+        m_height = height;
+    });
 }
 
 SSAOBlurRDGPass::~SSAOBlurRDGPass()

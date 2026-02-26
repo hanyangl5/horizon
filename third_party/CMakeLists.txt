@@ -12,6 +12,20 @@ find_package(Vulkan REQUIRED)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${Vulkan_LIBRARIES})
 
+# Volk from submodule (no FetchContent download during configure)
+if(USE_VULKAN)
+    set(VOLK_PULL_IN_VULKAN ON CACHE BOOL "Link Volk with Vulkan loader" FORCE)
+    add_subdirectory(volk)
+    if(TARGET volk AND NOT TARGET volk::volk)
+        add_library(volk::volk ALIAS volk)
+    endif()
+    if(ANDROID)
+        # Android dlfcn.h does not define RTLD_DEEPBIND (Linux-only)
+        target_compile_definitions(volk PRIVATE RTLD_DEEPBIND=0)
+    endif()
+    set_property(TARGET volk PROPERTY FOLDER "third_party")
+endif()
+
 OPTION(BUILD_SHARED_LIBS
     "Build package with shared libraries."
     OFF

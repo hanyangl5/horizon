@@ -67,9 +67,9 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
         builder.WriteTexture(m_brdf_lut_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
         builder.WriteTexture(m_prefiltered_env_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
     }
-    else
+    else if (m_initialize_history)
     {
-        // builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+        builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
     }
 
     builder.WriteBuffer(m_histogram_buffer_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
@@ -79,7 +79,7 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
 {
     // Upload textures, vertex/index buffer
-    if (m_first_frame)
+    if (m_upload_scene_resources)
     {
         m_scene_manager->UploadBuiltInResources(cl);
         m_scene_manager->UploadMeshResources(cl);

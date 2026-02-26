@@ -17,6 +17,7 @@ class DX12SwapChain : public SwapChain
     DX12SwapChain(const DX12RendererContext &context, const SwapChainCreateInfo &swap_chain_create_info,
                   Window *window) noexcept;
     virtual ~DX12SwapChain() noexcept;
+    bool Resize(u32 new_width, u32 new_height) noexcept;
     DX12SwapChain(const DX12SwapChain &rhs) noexcept = delete;
     DX12SwapChain &operator=(const DX12SwapChain &rhs) noexcept = delete;
     DX12SwapChain(DX12SwapChain &&rhs) noexcept = delete;

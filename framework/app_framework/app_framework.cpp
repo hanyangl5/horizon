@@ -9,6 +9,8 @@
 
 #include "app_framework.h"
 #include <core/log.h>
+#include <chrono>
+#include <thread>
 #ifdef __ANDROID__
 #include <core/android/android_native.h>
 #endif
@@ -67,6 +69,8 @@ void AppFramework::Run()
 
     m_initialized = true;
     Initialize();
+    u32 previous_width = m_width;
+    u32 previous_height = m_height;
 
     LOG_INFO("{} initialized. Starting render loop...", m_app_name);
 
@@ -80,12 +84,36 @@ void AppFramework::Run()
             break;
         }
 
+        if (m_width != previous_width || m_height != previous_height)
+        {
+            if (m_width > 0 && m_height > 0)
+            {
+                OnResize(m_width, m_height);
+            }
+            previous_width = m_width;
+            previous_height = m_height;
+        }
+
+        // Skip rendering while minimized (e.g. framebuffer size is 0x0 on desktop).
+        // This prevents invalid render area/viewport sizes from reaching backend command recording.
+        if (m_width == 0 || m_height == 0)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            continue;
+        }
+
         // Render frame
         RenderLoop();
     }
 
     LOG_INFO("{} finished. clean resources...", m_app_name);
     Cleanup();
+}
+
+void AppFramework::OnResize(u32 new_width, u32 new_height)
+{
+    (void)new_width;
+    (void)new_height;
 }
 
 void AppFramework::InitializeWindow()
@@ -138,6 +166,8 @@ void AppFramework::ProcessEvents()
     }
 #else
     m_window->ProcessEvents();
+    m_width = m_window->GetWidth();
+    m_height = m_window->GetHeight();
 #endif
 }
 

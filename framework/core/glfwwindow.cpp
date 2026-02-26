@@ -27,7 +27,7 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_w
         LOG_ERROR("failed to init glfw");
     };
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     m_window = glfwCreateWindow(_width, _height, _name, nullptr, nullptr);
 
     if (!m_window)
@@ -37,6 +37,11 @@ Window::Window(const char *_name, u32 _width, u32 _height) noexcept : m_width(_w
     }
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
+    int framebuffer_width = 0;
+    int framebuffer_height = 0;
+    glfwGetFramebufferSize(m_window, &framebuffer_width, &framebuffer_height);
+    m_width = static_cast<u32>(framebuffer_width > 0 ? framebuffer_width : 0);
+    m_height = static_cast<u32>(framebuffer_height > 0 ? framebuffer_height : 0);
     // LOG_DEBUG("vsync : {}", m_vsync_enabled); // TODO(hylu): vsync not working now
 #endif
 }
@@ -97,6 +102,11 @@ void Window::ProcessEvents()
     // Process window events (mouse, keyboard, etc.)
 #ifndef __ANDROID__
     glfwPollEvents();
+    int framebuffer_width = 0;
+    int framebuffer_height = 0;
+    glfwGetFramebufferSize(m_window, &framebuffer_width, &framebuffer_height);
+    m_width = static_cast<u32>(framebuffer_width > 0 ? framebuffer_width : 0);
+    m_height = static_cast<u32>(framebuffer_height > 0 ? framebuffer_height : 0);
 #endif
 }
 

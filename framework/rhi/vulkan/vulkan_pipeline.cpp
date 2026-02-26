@@ -120,6 +120,8 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{};
         VkPipelineViewportStateCreateInfo view_port_state_create_info{};
         VkPipelineRenderingCreateInfo rendering_create_info{};
+        VkPipelineDynamicStateCreateInfo dynamic_state_create_info{};
+        std::array<VkDynamicState, 2> dynamic_states{};
         std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_state;
         // shader stage
         {
@@ -300,7 +302,11 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
 
         // dyanmic state
         {
-            graphics_pipeline_create_info.pDynamicState = nullptr;
+            dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+            dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+            dynamic_state_create_info.dynamicStateCount = static_cast<u32>(dynamic_states.size());
+            dynamic_state_create_info.pDynamicStates = dynamic_states.data();
+            graphics_pipeline_create_info.pDynamicState = &dynamic_state_create_info;
         }
 
         rendering_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;

@@ -41,6 +41,8 @@ class AppFramework
     virtual void Initialize() = 0;
     virtual void RenderLoop() = 0;
     virtual void Cleanup() = 0;
+    // Called when framebuffer size changes. Default behavior recreates app resources.
+    virtual void OnResize(u32 new_width, u32 new_height);
 
     // Accessors for derived classes
     Window *GetWindow() noexcept

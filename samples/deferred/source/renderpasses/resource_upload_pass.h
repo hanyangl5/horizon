@@ -33,6 +33,14 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     {
         m_first_frame = first_frame;
     }
+    void SetUploadSceneResources(bool upload_scene_resources)
+    {
+        m_upload_scene_resources = upload_scene_resources;
+    }
+    void SetInitializeHistory(bool initialize_history)
+    {
+        m_initialize_history = initialize_history;
+    }
     void SetTAAPrevCurrOffset(const TAARDGPass::TAAPrevCurrOffset &offset)
     {
         m_taa_prev_curr_offset = offset;
@@ -49,6 +57,8 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     TAARDGPass *m_taa{nullptr};
 
     bool m_first_frame = false;
+    bool m_upload_scene_resources = false;
+    bool m_initialize_history = false;
     TAARDGPass::TAAPrevCurrOffset m_taa_prev_curr_offset{};
 
     Horizon::Backend::TextureHandle m_shading_color_handle;

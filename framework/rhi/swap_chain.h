@@ -13,6 +13,8 @@ namespace Horizon::Backend
 struct SwapChainSemaphoreContext
 {
     u32 current_frame_index{0};
+    u32 acquired_image_index{0};
+    bool frame_image_acquired{false};
     std::vector<Semaphore *> render_complete_semaphore;
     std::vector<Semaphore *> present_complete_semaphore;
     // std::vector<Semaphore *> recycled_semaphores;
@@ -38,7 +40,7 @@ class SwapChain
 
     RenderTarget *GetRenderTarget() noexcept
     {
-        return render_targets[current_frame_index];
+        return render_targets[image_index];
     }
 
   public:

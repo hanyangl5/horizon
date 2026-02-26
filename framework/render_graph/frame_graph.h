@@ -53,7 +53,99 @@ class RDGPass
     // Execute phase - execute actual rendering commands (called during Execute)
     virtual void Execute(CommandList *command_list, FrameGraphBuilder &builder) = 0;
 
+    // Recreate registered size-dependent resources with new extent.
+    void ResizePassResources(u32 width, u32 height)
+    {
+        if (m_rhi == nullptr || width == 0 || height == 0)
+        {
+            return;
+        }
+
+        for (auto &entry : m_resizable_textures)
+        {
+            if (!entry.texture_slot)
+            {
+                continue;
+            }
+
+            auto *old_texture = *entry.texture_slot;
+            if (old_texture && old_texture->m_width == width && old_texture->m_height == height)
+            {
+                continue;
+            }
+
+            if (old_texture)
+            {
+                m_rhi->DestroyTexture(old_texture);
+                *entry.texture_slot = nullptr;
+            }
+
+            auto create_info = entry.create_info;
+            create_info.width = width;
+            create_info.height = height;
+            *entry.texture_slot = m_rhi->CreateTexture(create_info);
+        }
+
+        for (auto &entry : m_resizable_render_targets)
+        {
+            if (!entry.render_target_slot)
+            {
+                continue;
+            }
+
+            auto *old_render_target = *entry.render_target_slot;
+            if (old_render_target && old_render_target->GetTexture() &&
+                old_render_target->GetTexture()->m_width == width && old_render_target->GetTexture()->m_height == height)
+            {
+                continue;
+            }
+
+            if (old_render_target)
+            {
+                m_rhi->DestroyRenderTarget(old_render_target);
+                *entry.render_target_slot = nullptr;
+            }
+
+            auto create_info = entry.create_info;
+            create_info.width = width;
+            create_info.height = height;
+            *entry.render_target_slot = m_rhi->CreateRenderTarget(create_info);
+        }
+
+        if (m_resize_callback)
+        {
+            m_resize_callback(width, height);
+        }
+    }
+
+    void SetResizeCallback(std::function<void(u32, u32)> callback)
+    {
+        m_resize_callback = std::move(callback);
+    }
+
   protected:
+    void CreateResizableTexture(Texture *&texture, const TextureCreateInfo &create_info)
+    {
+        if (m_rhi == nullptr)
+        {
+            LOG_ERROR("RDGPass::CreateResizableTexture: RHI is null.");
+            return;
+        }
+        texture = m_rhi->CreateTexture(create_info);
+        m_resizable_textures.push_back({&texture, create_info});
+    }
+
+    void CreateResizableRenderTarget(RenderTarget *&render_target, const RenderTargetCreateInfo &create_info)
+    {
+        if (m_rhi == nullptr)
+        {
+            LOG_ERROR("RDGPass::CreateResizableRenderTarget: RHI is null.");
+            return;
+        }
+        render_target = m_rhi->CreateRenderTarget(create_info);
+        m_resizable_render_targets.push_back({&render_target, create_info});
+    }
+
     // Helper functions for creating shaders and pipelines
     Shader *CreateShader(ShaderType type, const Path &file_name, const char *entry_point = "main")
     {
@@ -106,8 +198,25 @@ class RDGPass
         return m_rhi;
     }
 
+  private:
+    struct ResizableTextureEntry
+    {
+        Texture **texture_slot = nullptr;
+        TextureCreateInfo create_info{};
+    };
+
+    struct ResizableRenderTargetEntry
+    {
+        RenderTarget **render_target_slot = nullptr;
+        RenderTargetCreateInfo create_info{};
+    };
+
+  protected:
     std::string m_name;
     RHI *m_rhi;
+    std::vector<ResizableTextureEntry> m_resizable_textures;
+    std::vector<ResizableRenderTargetEntry> m_resizable_render_targets;
+    std::function<void(u32, u32)> m_resize_callback;
 };
 
 // Resource handle types

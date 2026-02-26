@@ -42,8 +42,49 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
                                                          surface_formats.data()));
 
     optimal_surface_format = surface_formats.back();
+    CreateSwapChainImagesAndViews(window->GetWidth(), window->GetHeight(), VK_NULL_HANDLE);
+}
 
-    // create swap chain
+Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept
+{
+
+    for (u32 i = 0; i < swap_chain_image_views.size(); i++)
+    {
+        vkDestroyImageView(m_context.device, swap_chain_image_views[i], nullptr);
+    }
+    vkDestroySwapchainKHR(m_context.device, swap_chain, nullptr);
+    vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
+}
+
+bool Horizon::Backend::VulkanSwapChain::Resize(u32 new_width, u32 new_height) noexcept
+{
+    if (new_width == 0 || new_height == 0)
+    {
+        return false;
+    }
+    if (new_width == width && new_height == height)
+    {
+        return true;
+    }
+
+    vkDeviceWaitIdle(m_context.device);
+
+    for (u32 i = 0; i < swap_chain_image_views.size(); i++)
+    {
+        vkDestroyImageView(m_context.device, swap_chain_image_views[i], nullptr);
+    }
+    swap_chain_image_views.clear();
+
+    VkSwapchainKHR old_swap_chain = swap_chain;
+    CreateSwapChainImagesAndViews(new_width, new_height, old_swap_chain);
+    return true;
+}
+
+void Horizon::Backend::VulkanSwapChain::CreateSwapChainImagesAndViews(u32 new_width, u32 new_height,
+                                                                       VkSwapchainKHR old_swap_chain) noexcept
+{
+    width = new_width;
+    height = new_height;
 
     VkSwapchainCreateInfoKHR vk_swap_chain_create_info{};
     vk_swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -51,7 +92,7 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     vk_swap_chain_create_info.minImageCount = m_back_buffer_count;
     vk_swap_chain_create_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;              // optimal_surface_format.format;
     vk_swap_chain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // optimal_surface_format.colorSpace;
-    vk_swap_chain_create_info.imageExtent = {window->GetWidth(), window->GetHeight()};
+    vk_swap_chain_create_info.imageExtent = {new_width, new_height};
     vk_swap_chain_create_info.imageArrayLayers = 1;
     vk_swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
@@ -62,8 +103,14 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
     vk_swap_chain_create_info.clipped = VK_TRUE;
     vk_swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     vk_swap_chain_create_info.queueFamilyIndexCount = 0;
+    vk_swap_chain_create_info.oldSwapchain = old_swap_chain;
 
     CHECK_VK_RESULT(vkCreateSwapchainKHR(m_context.device, &vk_swap_chain_create_info, nullptr, &swap_chain));
+
+    if (old_swap_chain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(m_context.device, old_swap_chain, nullptr);
+    }
 
     swap_chain_images.resize(m_back_buffer_count);
     vkGetSwapchainImagesKHR(m_context.device, swap_chain, &m_back_buffer_count,
@@ -86,22 +133,21 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
         image_view_create_info.image = swap_chain_images[i];
         CHECK_VK_RESULT(
             vkCreateImageView(m_context.device, &image_view_create_info, nullptr, &swap_chain_image_views[i]));
-        render_targets.push_back(
-            new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
-                                                                     RenderTargetType::UNDEFINED, width, height}));
+
+        if (render_targets.size() <= i)
+        {
+            render_targets.push_back(
+                new VulkanRenderTarget(m_context, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_DUMMY_COLOR,
+                                                                         RenderTargetType::UNDEFINED, width, height}));
+        }
         auto tx = reinterpret_cast<VulkanTexture *>(render_targets[i]->GetTexture());
         tx->m_image_view = swap_chain_image_views[i];
         tx->m_image = swap_chain_images[i];
     }
-}
 
-Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept
-{
-
-    for (u32 i = 0; i < swap_chain_images.size(); i++)
+    if (m_back_buffer_count > 0)
     {
-        vkDestroyImageView(m_context.device, swap_chain_image_views[i], nullptr);
+        current_frame_index = current_frame_index % m_back_buffer_count;
+        image_index = image_index % m_back_buffer_count;
     }
-    vkDestroySwapchainKHR(m_context.device, swap_chain, nullptr);
-    vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
 }

@@ -101,4 +101,101 @@ DX12SwapChain::~DX12SwapChain() noexcept
     // Microsoft::WRL::ComPtr will automatically release the swap chain and back buffers
 }
 
+bool DX12SwapChain::Resize(u32 new_width, u32 new_height) noexcept
+{
+#ifdef _WIN32
+    if (new_width == 0 || new_height == 0)
+    {
+        return false;
+    }
+    if (new_width == width && new_height == height)
+    {
+        return true;
+    }
+
+    for (auto &back_buffer : m_back_buffers)
+    {
+        back_buffer.Reset();
+    }
+
+    for (auto *render_target : render_targets)
+    {
+        auto *dx12_rt = reinterpret_cast<DX12RenderTarget *>(render_target);
+        if (!dx12_rt)
+        {
+            continue;
+        }
+
+        dx12_rt->m_back_buffer_resource.Reset();
+        auto *tex = reinterpret_cast<DX12Texture *>(dx12_rt->GetTexture());
+        if (tex)
+        {
+            tex->m_resource.Reset();
+            tex->m_upload_buffer.Reset();
+            tex->m_upload_buffer_size = 0;
+        }
+    }
+
+    HRESULT hr = m_swap_chain->ResizeBuffers(m_back_buffer_count, new_width, new_height, m_format, 0);
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to resize DX12 swap chain buffers: {}", hr);
+        return false;
+    }
+
+    width = new_width;
+    height = new_height;
+
+    m_back_buffers.resize(m_back_buffer_count);
+    for (u32 i = 0; i < m_back_buffer_count; ++i)
+    {
+        hr = m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_back_buffers[i]));
+        if (FAILED(hr))
+        {
+            LOG_ERROR("Failed to get resized back buffer {}: {}", i, hr);
+            return false;
+        }
+
+        auto *dx12_rt = reinterpret_cast<DX12RenderTarget *>(render_targets[i]);
+        if (!dx12_rt)
+        {
+            continue;
+        }
+
+        if (dx12_rt->m_rtv_handle.ptr != 0)
+        {
+            m_context.device->CreateRenderTargetView(m_back_buffers[i].Get(), nullptr, dx12_rt->m_rtv_handle);
+        }
+        else
+        {
+            LOG_WARN("DX12 swap chain render target {} has no RTV handle after resize", i);
+        }
+
+        dx12_rt->m_back_buffer_resource = m_back_buffers[i];
+
+        auto *tex = reinterpret_cast<DX12Texture *>(dx12_rt->GetTexture());
+        if (tex)
+        {
+            tex->m_resource = m_back_buffers[i];
+            tex->m_width = width;
+            tex->m_height = height;
+            tex->m_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
+            tex->m_type = TextureType::TEXTURE_TYPE_2D;
+            tex->m_array_layer = 1;
+            tex->mip_map_level = 1;
+            tex->m_current_state = D3D12_RESOURCE_STATE_PRESENT;
+            tex->m_state = ResourceState::RESOURCE_STATE_PRESENT;
+        }
+    }
+
+    image_index = m_swap_chain->GetCurrentBackBufferIndex();
+    current_frame_index = image_index;
+    return true;
+#else
+    (void)new_width;
+    (void)new_height;
+    return false;
+#endif
+}
+
 } // namespace Horizon::Backend

@@ -735,6 +735,16 @@ void RHIDX12::AcquireNextFrame(SwapChain *swap_chain)
         return;
     }
 
+    if (m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0 &&
+        (dx12_swap_chain->width != m_window->GetWidth() || dx12_swap_chain->height != m_window->GetHeight()))
+    {
+        WaitForGPU(CommandQueueType::GRAPHICS);
+        if (!dx12_swap_chain->Resize(m_window->GetWidth(), m_window->GetHeight()))
+        {
+            return;
+        }
+    }
+
     // Get current back buffer index
     dx12_swap_chain->image_index = dx12_swap_chain->m_swap_chain->GetCurrentBackBufferIndex();
     dx12_swap_chain->current_frame_index = dx12_swap_chain->image_index;

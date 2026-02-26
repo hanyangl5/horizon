@@ -8,13 +8,17 @@ TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height)
     create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_taa_cs);
     m_taa_pipeline = CreateComputePipeline(create_info);
 
-    m_previous_color_texture = rhi->CreateTexture(TextureCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
+    CreateResizableTexture(m_previous_color_texture,
+                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
+                                             ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+                                             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+                                             m_width, m_height, 1, false});
 
-    m_output_color_texture = rhi->CreateTexture(TextureCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-        TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
+    CreateResizableTexture(m_output_color_texture,
+                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
+                                             ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+                                             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+                                             m_width, m_height, 1, false});
 
     m_taa_prev_curr_offset_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
@@ -27,6 +31,10 @@ TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height)
         Math::float2(0.312500f, 0.370370f), Math::float2(0.812500f, 0.703704f), Math::float2(0.187500f, 0.148148f),
         Math::float2(0.687500f, 0.481481f), Math::float2(0.437500f, 0.814815f), Math::float2(0.937500f, 0.259259f),
         Math::float2(0.031250f, 0.592593f)};
+    SetResizeCallback([this](u32 width, u32 height) {
+        m_width = width;
+        m_height = height;
+    });
 }
 
 TAARDGPass::~TAARDGPass()

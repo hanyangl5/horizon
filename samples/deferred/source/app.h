@@ -20,20 +20,18 @@ extern Horizon::Path asset_path;
 class DeferredRenderApp : public Horizon::AppFramework
 {
   public:
-    DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
-    {
-        SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_DX12);
-    }
-
+    DeferredRenderApp();
   protected:
     void Initialize() override;
     void RenderLoop() override;
     void Cleanup() override;
+    void OnResize(u32 new_width, u32 new_height) override;
 
   private:
     void InitAPI();
     void InitResources();
     void InitPipelineResources(); // create pass related resource, shader, pipeline, buffer/tex/rt
+    void ResizePipelineResources(u32 new_width, u32 new_height);
     void UpdatePipelineResources();
 
     Horizon::Backend::RHI *rhi{};
@@ -56,6 +54,8 @@ class DeferredRenderApp : public Horizon::AppFramework
 
     std::unique_ptr<SceneData> scene{};
     bool m_first_frame{true};
+    bool m_reset_history{false};
+    bool m_upload_scene_resources{true};
     u32 m_width{};
     u32 m_height{};
 };

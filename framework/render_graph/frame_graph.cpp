@@ -384,6 +384,14 @@ TextureHandle FrameGraph::ImportTexture(const std::string &name, Texture *textur
     auto it = m_texture_name_map.find(name);
     if (it != m_texture_name_map.end())
     {
+        auto handle = it->second;
+        if (handle.index < m_textures.size())
+        {
+            auto &resource = m_textures[handle.index];
+            resource.actual_texture = texture;
+            resource.is_imported = true;
+            resource.is_transient = false;
+        }
         return it->second;
     }
 
@@ -405,6 +413,14 @@ BufferHandle FrameGraph::ImportBuffer(const std::string &name, Buffer *buffer)
     auto it = m_buffer_name_map.find(name);
     if (it != m_buffer_name_map.end())
     {
+        auto handle = it->second;
+        if (handle.index < m_buffers.size())
+        {
+            auto &resource = m_buffers[handle.index];
+            resource.actual_buffer = buffer;
+            resource.is_imported = true;
+            resource.is_transient = false;
+        }
         return it->second;
     }
 
@@ -426,6 +442,14 @@ RenderTargetHandle FrameGraph::ImportRenderTarget(const std::string &name, Rende
     auto it = m_render_target_name_map.find(name);
     if (it != m_render_target_name_map.end())
     {
+        auto handle = it->second;
+        if (handle.index < m_render_targets.size())
+        {
+            auto &resource = m_render_targets[handle.index];
+            resource.actual_render_target = render_target;
+            resource.is_imported = true;
+            resource.is_transient = false;
+        }
         return it->second;
     }
 

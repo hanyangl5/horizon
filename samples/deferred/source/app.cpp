@@ -6,6 +6,11 @@
 Horizon::Path asset_path = ASSET_DIR;
 Horizon::Path shader_dir = SHADER_DIR;
 
+DeferredRenderApp::DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
+{
+    SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_DX12);
+}
+
 void DeferredRenderApp::Initialize()
 {
     rhi = GetRhi();
@@ -15,6 +20,9 @@ void DeferredRenderApp::Initialize()
         return;
     }
 
+    m_first_frame = true;
+    m_reset_history = false;
+    m_upload_scene_resources = true;
     m_width = GetWidth();
     m_height = GetHeight();
 
@@ -30,6 +38,62 @@ void DeferredRenderApp::InitAPI()
 void DeferredRenderApp::InitResources()
 {
     InitPipelineResources();
+}
+
+void DeferredRenderApp::ResizePipelineResources(u32 new_width, u32 new_height)
+{
+    if (new_width == 0 || new_height == 0)
+    {
+        return;
+    }
+
+    m_width = new_width;
+    m_height = new_height;
+
+    if (scene && scene->scene_camera)
+    {
+        auto near_far = scene->scene_camera->GetNearFarPlane();
+        scene->scene_camera->SetPerspectiveProjectionMatrix(scene->scene_camera->GetFov(),
+                                                            static_cast<float>(m_width) / static_cast<float>(m_height),
+                                                            near_far.x, near_far.y);
+    }
+
+    if (geometry_pass)
+    {
+        geometry_pass->ResizePassResources(m_width, m_height);
+    }
+    if (deferred_shading_pass)
+    {
+        deferred_shading_pass->ResizePassResources(m_width, m_height);
+    }
+    if (ssao_pass)
+    {
+        ssao_pass->ResizePassResources(m_width, m_height);
+    }
+    if (ssao_blur_pass)
+    {
+        ssao_blur_pass->ResizePassResources(m_width, m_height);
+    }
+    if (post_process_pass)
+    {
+        post_process_pass->ResizePassResources(m_width, m_height);
+    }
+    if (luminance_histogram_pass)
+    {
+        luminance_histogram_pass->ResizePassResources(m_width, m_height);
+    }
+    if (taa_pass)
+    {
+        taa_pass->ResizePassResources(m_width, m_height);
+    }
+
+    // Resize invalidates temporal history targets, request one-time history init.
+    m_reset_history = true;
+}
+
+void DeferredRenderApp::OnResize(u32 new_width, u32 new_height)
+{
+    ResizePipelineResources(new_width, new_height);
 }
 
 void DeferredRenderApp::InitPipelineResources()
@@ -173,9 +237,15 @@ void DeferredRenderApp::RenderLoop()
     resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
                                           luminance_histogram_pass.get(), taa_pass.get());
     resource_upload_pass->SetFirstFrame(m_first_frame);
+    resource_upload_pass->SetUploadSceneResources(m_upload_scene_resources);
+    resource_upload_pass->SetInitializeHistory(m_reset_history);
 
     // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
     static TAARDGPass::TAAPrevCurrOffset taa_prev_offset{};
+    if (m_first_frame || m_reset_history)
+    {
+        taa_prev_offset = {};
+    }
     TAARDGPass::TAAPrevCurrOffset taa_offset{};
     taa_offset.prev_offset = taa_prev_offset.curr_offset;
     auto cam = scene->scene_camera;
@@ -257,6 +327,14 @@ void DeferredRenderApp::RenderLoop()
     if (m_first_frame)
     {
         m_first_frame = false;
+    }
+    if (m_upload_scene_resources)
+    {
+        m_upload_scene_resources = false;
+    }
+    if (m_reset_history)
+    {
+        m_reset_history = false;
     }
     // Horizon::RDC::EndFrameCapture();
 }
