@@ -5,14 +5,27 @@
 
 namespace Horizon::Backend
 {
+namespace
+{
+constexpr u64 k_d3d12_cbv_alignment = 256;
+
+u64 AlignTo(u64 value, u64 alignment)
+{
+    return (value + alignment - 1) & ~(alignment - 1);
+}
+} // namespace
 
 DX12Buffer::DX12Buffer(const DX12RendererContext &context, const BufferCreateInfo &buffer_create_info) noexcept
     : Buffer(buffer_create_info), m_context(context),
       m_current_state(ToDX12ResourceState(buffer_create_info.initial_state))
 {
-
+    u64 resource_size = buffer_create_info.size;
+    if (buffer_create_info.descriptor_types & DESCRIPTOR_TYPE_CONSTANT_BUFFER)
+    {
+        resource_size = AlignTo(resource_size, k_d3d12_cbv_alignment);
+    }
     D3D12_HEAP_PROPERTIES heap_props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    CD3DX12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(buffer_create_info.size);
+    CD3DX12_RESOURCE_DESC resource_desc = CD3DX12_RESOURCE_DESC::Buffer(resource_size);
 
     // Determine resource flags based on descriptor types
     if (buffer_create_info.descriptor_types & DESCRIPTOR_TYPE_RW_BUFFER)

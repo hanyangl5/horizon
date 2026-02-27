@@ -27,6 +27,7 @@ VulkanPipeline::VulkanPipeline(const VulkanRendererContext &context,
 
 VulkanPipeline::~VulkanPipeline() noexcept
 {
+    m_descriptor_set_allocator.ReleaseDescriptorSets(this);
     vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }

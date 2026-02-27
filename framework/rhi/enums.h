@@ -252,6 +252,8 @@ struct BufferCreateInfo
     ResourceState initial_state;
     u64 size;
     const char *debug_name;
+    // Used for structured/typed SRV/UAV buffer views. Raw buffers ignore this field.
+    u32 structured_byte_stride = sizeof(u32);
     // void* data;
 };
 
@@ -539,6 +541,10 @@ struct PushConstantDesc
     u32 size;
     u32 offset;
     u32 shader_stages;
+    // Optional register metadata for backends (e.g. DX12) that bind push constants by register/space.
+    // 0xFFFFFFFF means "not specified by reflection".
+    u32 binding = 0xFFFFFFFFu;
+    u32 set = 0xFFFFFFFFu;
 };
 
 struct RootSignatureDesc
@@ -651,6 +657,15 @@ struct DrawIndexedInstancedCommand
     u32 first_index;
     i32 vertex_offset;
     u32 first_instance;
+};
+
+// DX12 extended indirect command layout:
+// 1) root constant (mesh_id_offset), 2) draw indexed arguments.
+// Used with a command signature that sets one 32-bit root constant before drawing.
+struct DX12DrawIndexedInstancedCommand
+{
+    u32 mesh_id_offset;
+    DrawIndexedInstancedCommand draw;
 };
 
 enum class RenderTargetLoadOp

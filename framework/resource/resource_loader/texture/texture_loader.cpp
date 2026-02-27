@@ -398,7 +398,7 @@ void Horizon::TextureLoader::LoadJPG(const char *path, TextureDataDesc &texture_
     texture_info.layer_count = 1;
     texture_info.raw_data = {data, data + texture_info.width * texture_info.height * 4};
     texture_info.mipmap_count = 1;
-    texture_info.layer_count = 1;
+    texture_info.data_offset_map.clear();
     stbi_image_free(data);
 }
 void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info)
@@ -414,7 +414,7 @@ void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info)
     texture_info.layer_count = 1;
     texture_info.raw_data = {data, data + texture_info.width * texture_info.height * 4};
     texture_info.mipmap_count = 1;
-    texture_info.layer_count = 1;
+    texture_info.data_offset_map.clear();
     stbi_image_free(data);
 }
 #ifdef _WIN32
@@ -468,7 +468,7 @@ void TextureLoader::LoadTGA(const char *path, TextureDataDesc &texture_info)
     texture_info.layer_count = 1;
     texture_info.raw_data = {data, data + texture_info.width * texture_info.height * 4};
     texture_info.mipmap_count = 1;
-    texture_info.layer_count = 1;
+    texture_info.data_offset_map.clear();
     stbi_image_free(data);
 }
 } // namespace Horizon

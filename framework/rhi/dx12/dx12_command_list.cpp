@@ -7,9 +7,171 @@
 #include <DirectXHelpers.h>
 #include <core/log.h>
 #include <core/memory.h>
+#include <cstring>
+#ifdef _WIN32
+#include <d3dcompiler.h>
+#endif
 
 namespace Horizon::Backend
 {
+namespace
+{
+struct DX12MipGenProgram
+{
+    bool initialized = false;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> root_signature;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state;
+};
+
+DX12MipGenProgram g_dx12_mip_gen_program;
+
+static D3D12_GPU_DESCRIPTOR_HANDLE CpuToGpuHandleForMipGen(ID3D12DescriptorHeap *heap,
+                                                            D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
+{
+    auto heap_start_cpu = heap->GetCPUDescriptorHandleForHeapStart();
+    auto heap_start_gpu = heap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
+    gpu_handle.ptr = heap_start_gpu.ptr + (cpu_handle.ptr - heap_start_cpu.ptr);
+    return gpu_handle;
+}
+
+bool EnsureMipGenProgram(const DX12RendererContext &context)
+{
+    if (g_dx12_mip_gen_program.initialized)
+    {
+        return true;
+    }
+
+    static const char *k_mip_gen_cs_hlsl = R"(
+Texture2D<float4> gSrcTex : register(t0);
+RWTexture2D<float4> gDstTex : register(u0);
+
+cbuffer MipGenConstants : register(b0)
+{
+    uint srcWidth;
+    uint srcHeight;
+    uint dstWidth;
+    uint dstHeight;
+};
+
+[numthreads(8, 8, 1)]
+void main(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    if (dispatchThreadID.x >= dstWidth || dispatchThreadID.y >= dstHeight)
+    {
+        return;
+    }
+
+    uint2 srcBase = uint2(dispatchThreadID.xy) * 2;
+    uint2 p0 = uint2(min(srcBase.x, srcWidth - 1), min(srcBase.y, srcHeight - 1));
+    uint2 p1 = uint2(min(srcBase.x + 1, srcWidth - 1), min(srcBase.y, srcHeight - 1));
+    uint2 p2 = uint2(min(srcBase.x, srcWidth - 1), min(srcBase.y + 1, srcHeight - 1));
+    uint2 p3 = uint2(min(srcBase.x + 1, srcWidth - 1), min(srcBase.y + 1, srcHeight - 1));
+
+    float4 c0 = gSrcTex.Load(int3(p0, 0));
+    float4 c1 = gSrcTex.Load(int3(p1, 0));
+    float4 c2 = gSrcTex.Load(int3(p2, 0));
+    float4 c3 = gSrcTex.Load(int3(p3, 0));
+
+    gDstTex[dispatchThreadID.xy] = (c0 + c1 + c2 + c3) * 0.25;
+}
+)";
+
+    Microsoft::WRL::ComPtr<ID3DBlob> cs_blob;
+    Microsoft::WRL::ComPtr<ID3DBlob> errors;
+    HRESULT hr = D3DCompile(k_mip_gen_cs_hlsl, strlen(k_mip_gen_cs_hlsl), "dx12_generate_mips", nullptr, nullptr,
+                            "main", "cs_5_0", 0, 0, &cs_blob, &errors);
+    if (FAILED(hr))
+    {
+        if (errors != nullptr)
+        {
+            LOG_ERROR("Failed to compile DX12 mip generation shader: {}", static_cast<const char *>(errors->GetBufferPointer()));
+        }
+        else
+        {
+            LOG_ERROR("Failed to compile DX12 mip generation shader: {}", hr);
+        }
+        return false;
+    }
+
+    D3D12_DESCRIPTOR_RANGE ranges[2]{};
+    ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    ranges[0].NumDescriptors = 1;
+    ranges[0].BaseShaderRegister = 0;
+    ranges[0].RegisterSpace = 0;
+    ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+    ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    ranges[1].NumDescriptors = 1;
+    ranges[1].BaseShaderRegister = 0;
+    ranges[1].RegisterSpace = 0;
+    ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+    D3D12_ROOT_PARAMETER root_params[3]{};
+    root_params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    root_params[0].DescriptorTable.NumDescriptorRanges = 1;
+    root_params[0].DescriptorTable.pDescriptorRanges = &ranges[0];
+    root_params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+    root_params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    root_params[1].DescriptorTable.NumDescriptorRanges = 1;
+    root_params[1].DescriptorTable.pDescriptorRanges = &ranges[1];
+    root_params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+    root_params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    root_params[2].Constants.ShaderRegister = 0;
+    root_params[2].Constants.RegisterSpace = 0;
+    root_params[2].Constants.Num32BitValues = 4;
+    root_params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+    D3D12_ROOT_SIGNATURE_DESC rs_desc{};
+    rs_desc.NumParameters = 3;
+    rs_desc.pParameters = root_params;
+    rs_desc.NumStaticSamplers = 0;
+    rs_desc.pStaticSamplers = nullptr;
+    rs_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+    Microsoft::WRL::ComPtr<ID3DBlob> rs_blob;
+    Microsoft::WRL::ComPtr<ID3DBlob> rs_errors;
+    hr = D3D12SerializeRootSignature(&rs_desc, D3D_ROOT_SIGNATURE_VERSION_1, &rs_blob, &rs_errors);
+    if (FAILED(hr))
+    {
+        if (rs_errors != nullptr)
+        {
+            LOG_ERROR("Failed to serialize mip generation root signature: {}",
+                      static_cast<const char *>(rs_errors->GetBufferPointer()));
+        }
+        else
+        {
+            LOG_ERROR("Failed to serialize mip generation root signature: {}", hr);
+        }
+        return false;
+    }
+
+    hr = context.device->CreateRootSignature(0, rs_blob->GetBufferPointer(), rs_blob->GetBufferSize(),
+                                             IID_PPV_ARGS(&g_dx12_mip_gen_program.root_signature));
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to create mip generation root signature: {}", hr);
+        return false;
+    }
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc{};
+    pso_desc.pRootSignature = g_dx12_mip_gen_program.root_signature.Get();
+    pso_desc.CS = {cs_blob->GetBufferPointer(), cs_blob->GetBufferSize()};
+    pso_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+    hr = context.device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&g_dx12_mip_gen_program.pipeline_state));
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to create mip generation compute pipeline state: {}", hr);
+        return false;
+    }
+
+    g_dx12_mip_gen_program.initialized = true;
+    return true;
+}
+} // namespace
 
 DX12CommandList::DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
                                  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list,
@@ -317,13 +479,23 @@ void DX12CommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u
     }
 
     auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffer);
-    if (m_context.draw_indexed_indirect_command_signature == nullptr)
+
+    ID3D12CommandSignature *command_signature = m_context.draw_indexed_indirect_command_signature.Get();
+    if (m_current_pipeline != nullptr && m_current_pipeline->GetType() == PipelineType::GRAPHICS)
+    {
+        auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(m_current_pipeline);
+        if (auto *extended_signature = dx12_pipeline->GetDrawIndexedIndirectCommandSignature())
+        {
+            command_signature = extended_signature;
+        }
+    }
+
+    if (command_signature == nullptr)
     {
         LOG_ERROR("Draw indexed indirect command signature is null");
         return;
     }
-    m_command_list->ExecuteIndirect(m_context.draw_indexed_indirect_command_signature.Get(), draw_count,
-                                    dx12_buffer->GetResource(), offset, nullptr, 0);
+    m_command_list->ExecuteIndirect(command_signature, draw_count, dx12_buffer->GetResource(), offset, nullptr, 0);
 }
 
 void DX12CommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z)
@@ -447,6 +619,7 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     auto *tex_data = texture_data.texture_data_desc;
 
     u64 data_size = texture_data.size != 0 ? texture_data.size : tex_data->raw_data.size();
+    data_size = std::min<u64>(data_size, tex_data->raw_data.size());
     if (data_size == 0)
     {
         LOG_ERROR("UpdateTexture: texture data is empty");
@@ -522,18 +695,18 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
             }
 
             u8 *dst_base = reinterpret_cast<u8 *>(mapped_data) + footprints[footprint_idx].Offset;
-            const u8 *src_base = reinterpret_cast<const u8 *>(tex_data->raw_data.data()) + src_offset;
             const u32 depth_slices = footprints[footprint_idx].Footprint.Depth;
             const u64 tight_row_bytes = row_sizes[footprint_idx];
             const u64 tight_slice_bytes = tight_row_bytes * static_cast<u64>(num_rows[footprint_idx]);
             const u64 tight_subresource_bytes = tight_slice_bytes * depth_slices;
 
-            if (src_offset + tight_subresource_bytes > tex_data->raw_data.size())
+            if (src_offset + tight_subresource_bytes > data_size)
             {
                 upload_buffer->Unmap(0, nullptr);
                 LOG_ERROR("UpdateTexture source data out of bounds for mip {} layer {}", mip, layer);
                 return;
             }
+            const u8 *src_base = reinterpret_cast<const u8 *>(tex_data->raw_data.data()) + src_offset;
 
             for (u32 z = 0; z < depth_slices; ++z)
             {
@@ -561,9 +734,14 @@ void DX12CommandList::UpdateTexture(Texture *texture, const TextureUpdateDesc &t
     upload_buffer->Unmap(0, nullptr);
 
     // Transition texture to copy dest
-    CD3DX12_RESOURCE_BARRIER barrier_before = CD3DX12_RESOURCE_BARRIER::Transition(
-        dx12_texture->GetResource(), dx12_texture->m_current_state, D3D12_RESOURCE_STATE_COPY_DEST);
-    m_command_list->ResourceBarrier(1, &barrier_before);
+    const D3D12_RESOURCE_STATES tracked_state = dx12_texture->GetSubresourceState(0);
+    if (tracked_state != D3D12_RESOURCE_STATE_COPY_DEST)
+    {
+        CD3DX12_RESOURCE_BARRIER barrier_before = CD3DX12_RESOURCE_BARRIER::Transition(
+            dx12_texture->GetResource(), tracked_state, D3D12_RESOURCE_STATE_COPY_DEST);
+        m_command_list->ResourceBarrier(1, &barrier_before);
+        dx12_texture->SetAllSubresourceStates(D3D12_RESOURCE_STATE_COPY_DEST);
+    }
 
     // Issue copy commands for each subresource
     footprint_idx = 0;
@@ -608,6 +786,7 @@ void DX12CommandList::InsertBarrier(const BarrierDesc &desc)
     for (const auto &texture_barrier : desc.texture_memory_barriers)
     {
         auto dx12_texture = reinterpret_cast<DX12Texture *>(texture_barrier.texture);
+        const D3D12_RESOURCE_STATES dst_state = Horizon::ToDX12ResourceState(texture_barrier.dst_state);
         const u32 first_mip = texture_barrier.first_mip_level;
         const u32 mip_count = texture_barrier.mip_level_count;
         const u32 first_layer = texture_barrier.first_layer;
@@ -621,35 +800,51 @@ void DX12CommandList::InsertBarrier(const BarrierDesc &desc)
             continue;
         }
 
-        if (mip_count == total_mips && layer_count == total_layers && first_mip == 0 && first_layer == 0)
-        {
-            CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-                dx12_texture->GetResource(), Horizon::ToDX12ResourceState(texture_barrier.src_state),
-                Horizon::ToDX12ResourceState(texture_barrier.dst_state));
-            barriers.push_back(barrier);
-            continue;
-        }
-
         for (u32 layer = first_layer; layer < first_layer + layer_count; ++layer)
         {
             for (u32 mip = first_mip; mip < first_mip + mip_count; ++mip)
             {
                 const UINT subresource = D3D12CalcSubresource(mip, layer, 0, total_mips, total_layers);
+                const D3D12_RESOURCE_STATES src_state = dx12_texture->GetSubresourceState(subresource);
+                if (src_state == dst_state)
+                {
+                    continue;
+                }
                 CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-                    dx12_texture->GetResource(), Horizon::ToDX12ResourceState(texture_barrier.src_state),
-                    Horizon::ToDX12ResourceState(texture_barrier.dst_state), subresource);
+                    dx12_texture->GetResource(), src_state, dst_state, subresource);
                 barriers.push_back(barrier);
+                dx12_texture->SetSubresourceState(subresource, dst_state);
             }
+        }
+
+        bool all_subresources_same = dx12_texture->GetSubresourceCount() > 0;
+        for (u32 sub = 1; sub < dx12_texture->GetSubresourceCount(); ++sub)
+        {
+            if (dx12_texture->GetSubresourceState(sub) != dx12_texture->GetSubresourceState(0))
+            {
+                all_subresources_same = false;
+                break;
+            }
+        }
+        if (all_subresources_same && dx12_texture->GetSubresourceCount() > 0)
+        {
+            dx12_texture->m_current_state = dx12_texture->GetSubresourceState(0);
         }
     }
 
     for (const auto &buffer_barrier : desc.buffer_memory_barriers)
     {
         auto dx12_buffer = reinterpret_cast<DX12Buffer *>(buffer_barrier.buffer);
+        const D3D12_RESOURCE_STATES src_state = dx12_buffer->m_current_state;
+        const D3D12_RESOURCE_STATES dst_state = Horizon::ToDX12ResourceState(buffer_barrier.dst_state);
+        if (src_state == dst_state)
+        {
+            continue;
+        }
         CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            dx12_buffer->GetResource(), Horizon::ToDX12ResourceState(buffer_barrier.src_state),
-            Horizon::ToDX12ResourceState(buffer_barrier.dst_state));
+            dx12_buffer->GetResource(), src_state, dst_state);
         barriers.push_back(barrier);
+        dx12_buffer->m_current_state = dst_state;
     }
 
     if (!barriers.empty())
@@ -965,103 +1160,117 @@ void DX12CommandList::GenerateMipMap(Texture *texture)
         return;
     }
 
+    if (texture->m_type != TextureType::TEXTURE_TYPE_2D || texture->m_array_layer != 1)
+    {
+        LOG_WARN("DX12 runtime mip generation currently supports only 2D non-array textures");
+        return;
+    }
+
+    if ((texture->m_descriptor_types & DESCRIPTOR_TYPE_RW_TEXTURE) == 0)
+    {
+        LOG_WARN("DX12 runtime mip generation requires DESCRIPTOR_TYPE_RW_TEXTURE");
+        return;
+    }
+
+    if (!EnsureMipGenProgram(m_context))
+    {
+        LOG_ERROR("DX12 runtime mip generation program initialization failed");
+        return;
+    }
+
+    auto *allocator = m_descriptor_heap_allocator;
+    if (allocator == nullptr)
+    {
+        LOG_ERROR("Descriptor heap allocator not available for runtime mip generation");
+        return;
+    }
+
     auto dx12_texture = reinterpret_cast<DX12Texture *>(texture);
-
-    i32 mip_w = static_cast<i32>(texture->m_width);
-    i32 mip_h = static_cast<i32>(texture->m_height);
-
-    for (u32 i = 1; i < texture->mip_map_level; i++)
+    auto *heap = allocator->GetSRVUAVCBVHeap();
+    if (heap == nullptr)
     {
-        // Ensure source mip is in COPY_SOURCE
-        if (i == 1 && texture->m_state != ResourceState::RESOURCE_STATE_COPY_SOURCE)
-        {
-            BarrierDesc src_desc{};
-            TextureBarrierDesc src_barrier{};
-            src_barrier.texture = texture;
-            src_barrier.first_mip_level = 0;
-            src_barrier.mip_level_count = 1;
-            src_barrier.first_layer = 0;
-            src_barrier.layer_count = texture->m_type == TextureType::TEXTURE_TYPE_3D ? 1u : texture->m_array_layer;
-            src_barrier.src_state = texture->m_state;
-            src_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-            src_desc.texture_memory_barriers.emplace_back(src_barrier);
-            InsertBarrier(src_desc);
-        }
-
-        // Transition mip i to COPY_DEST
-        {
-            BarrierDesc desc{};
-            TextureBarrierDesc mip_barrier{};
-            mip_barrier.texture = texture;
-            mip_barrier.first_mip_level = i;
-            mip_barrier.mip_level_count = 1;
-            mip_barrier.first_layer = 0;
-            mip_barrier.layer_count = texture->m_type == TextureType::TEXTURE_TYPE_3D ? 1u : texture->m_array_layer;
-            mip_barrier.src_state = texture->m_state;
-            mip_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-            desc.texture_memory_barriers.emplace_back(mip_barrier);
-            InsertBarrier(desc);
-        }
-
-        // Copy from mip i-1 to mip i
-        // DX12 CopyTextureRegion doesn't do filtering, so this is a 1:1 copy of the
-        // upper-left region. For proper bilinear downsampling, a compute/render pass is needed.
-        i32 dst_w = mip_w > 1 ? mip_w / 2 : 1;
-        i32 dst_h = mip_h > 1 ? mip_h / 2 : 1;
-
-        D3D12_TEXTURE_COPY_LOCATION src_loc{};
-        src_loc.pResource = dx12_texture->GetResource();
-        src_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        src_loc.SubresourceIndex = i - 1;
-
-        D3D12_TEXTURE_COPY_LOCATION dst_loc{};
-        dst_loc.pResource = dx12_texture->GetResource();
-        dst_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        dst_loc.SubresourceIndex = i;
-
-        D3D12_BOX src_box{};
-        src_box.left = 0;
-        src_box.top = 0;
-        src_box.front = 0;
-        src_box.right = static_cast<UINT>(dst_w);
-        src_box.bottom = static_cast<UINT>(dst_h);
-        src_box.back = 1;
-
-        m_command_list->CopyTextureRegion(&dst_loc, 0, 0, 0, &src_loc, &src_box);
-
-        // Transition mip i to COPY_SOURCE so it can serve as source for next level
-        {
-            BarrierDesc desc{};
-            TextureBarrierDesc mip_barrier{};
-            mip_barrier.texture = texture;
-            mip_barrier.first_mip_level = i;
-            mip_barrier.mip_level_count = 1;
-            mip_barrier.first_layer = 0;
-            mip_barrier.layer_count = texture->m_type == TextureType::TEXTURE_TYPE_3D ? 1u : texture->m_array_layer;
-            mip_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-            mip_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-            desc.texture_memory_barriers.emplace_back(mip_barrier);
-            InsertBarrier(desc);
-        }
-
-        mip_w = dst_w;
-        mip_h = dst_h;
+        LOG_ERROR("SRV/UAV heap is null for runtime mip generation");
+        return;
     }
 
-    if (texture->m_state != ResourceState::RESOURCE_STATE_COPY_SOURCE)
+    ID3D12DescriptorHeap *heaps[] = {heap};
+    m_command_list->SetDescriptorHeaps(1, heaps);
+    m_command_list->SetComputeRootSignature(g_dx12_mip_gen_program.root_signature.Get());
+    m_command_list->SetPipelineState(g_dx12_mip_gen_program.pipeline_state.Get());
+
+    const u32 total_mips = texture->mip_map_level;
+    for (u32 mip = 1; mip < total_mips; ++mip)
     {
-        BarrierDesc restore_desc{};
-        TextureBarrierDesc restore_barrier{};
-        restore_barrier.texture = texture;
-        restore_barrier.first_mip_level = 0;
-        restore_barrier.mip_level_count = texture->mip_map_level;
-        restore_barrier.first_layer = 0;
-        restore_barrier.layer_count = texture->m_type == TextureType::TEXTURE_TYPE_3D ? 1u : texture->m_array_layer;
-        restore_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-        restore_barrier.dst_state = texture->m_state;
-        restore_desc.texture_memory_barriers.emplace_back(restore_barrier);
-        InsertBarrier(restore_desc);
+        const u32 src_mip = mip - 1;
+        const UINT src_subresource = D3D12CalcSubresource(src_mip, 0, 0, total_mips, 1);
+        const UINT dst_subresource = D3D12CalcSubresource(mip, 0, 0, total_mips, 1);
+
+        std::vector<D3D12_RESOURCE_BARRIER> barriers;
+        const D3D12_RESOURCE_STATES src_state = dx12_texture->GetSubresourceState(src_subresource);
+        if (src_state != D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+        {
+            barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
+                dx12_texture->GetResource(), src_state, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, src_subresource));
+            dx12_texture->SetSubresourceState(src_subresource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        }
+
+        const D3D12_RESOURCE_STATES dst_state = dx12_texture->GetSubresourceState(dst_subresource);
+        if (dst_state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        {
+            barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
+                dx12_texture->GetResource(), dst_state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, dst_subresource));
+            dx12_texture->SetSubresourceState(dst_subresource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        }
+
+        if (!barriers.empty())
+        {
+            m_command_list->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE src_srv_cpu = allocator->AllocateSRV();
+        D3D12_SHADER_RESOURCE_VIEW_DESC src_srv_desc{};
+        src_srv_desc.Format = Horizon::ToDX12Format(texture->m_format);
+        src_srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        src_srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        src_srv_desc.Texture2D.MostDetailedMip = src_mip;
+        src_srv_desc.Texture2D.MipLevels = 1;
+        src_srv_desc.Texture2D.PlaneSlice = 0;
+        src_srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
+        m_context.device->CreateShaderResourceView(dx12_texture->GetResource(), &src_srv_desc, src_srv_cpu);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE dst_uav_cpu = allocator->AllocateUAV();
+        D3D12_UNORDERED_ACCESS_VIEW_DESC dst_uav_desc{};
+        dst_uav_desc.Format = Horizon::ToDX12Format(texture->m_format);
+        dst_uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        dst_uav_desc.Texture2D.MipSlice = mip;
+        dst_uav_desc.Texture2D.PlaneSlice = 0;
+        m_context.device->CreateUnorderedAccessView(dx12_texture->GetResource(), nullptr, &dst_uav_desc, dst_uav_cpu);
+
+        const D3D12_GPU_DESCRIPTOR_HANDLE src_srv_gpu = CpuToGpuHandleForMipGen(heap, src_srv_cpu);
+        const D3D12_GPU_DESCRIPTOR_HANDLE dst_uav_gpu = CpuToGpuHandleForMipGen(heap, dst_uav_cpu);
+
+        const u32 src_width = std::max(1u, texture->m_width >> src_mip);
+        const u32 src_height = std::max(1u, texture->m_height >> src_mip);
+        const u32 dst_width = std::max(1u, texture->m_width >> mip);
+        const u32 dst_height = std::max(1u, texture->m_height >> mip);
+        const u32 constants[4] = {src_width, src_height, dst_width, dst_height};
+
+        m_command_list->SetComputeRootDescriptorTable(0, src_srv_gpu);
+        m_command_list->SetComputeRootDescriptorTable(1, dst_uav_gpu);
+        m_command_list->SetComputeRoot32BitConstants(2, 4, constants, 0);
+        m_command_list->Dispatch((dst_width + 7u) / 8u, (dst_height + 7u) / 8u, 1);
+
+        D3D12_RESOURCE_BARRIER uav_barrier = CD3DX12_RESOURCE_BARRIER::UAV(dx12_texture->GetResource());
+        m_command_list->ResourceBarrier(1, &uav_barrier);
+
+        D3D12_RESOURCE_BARRIER to_srv = CD3DX12_RESOURCE_BARRIER::Transition(
+            dx12_texture->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+            dst_subresource);
+        m_command_list->ResourceBarrier(1, &to_srv);
+        dx12_texture->SetSubresourceState(dst_subresource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     }
+
+    dx12_texture->m_current_state = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 }
 
 void DX12CommandList::BeginQuery()

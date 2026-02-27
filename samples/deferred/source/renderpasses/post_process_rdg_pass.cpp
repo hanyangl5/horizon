@@ -9,7 +9,7 @@ PostProcessRDGPass::PostProcessRDGPass(RHI *rhi, u32 width, u32 height)
     m_post_process_pipeline = CreateComputePipeline(create_info);
 
     CreateResizableTexture(m_pp_color_image,
-                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
+                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE|DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                                              ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
                                              TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                              m_width, m_height, 1, false});

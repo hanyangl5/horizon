@@ -90,6 +90,7 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
         tex->mip_map_level = 1;
         tex->m_current_state = D3D12_RESOURCE_STATE_PRESENT;
         tex->m_state = ResourceState::RESOURCE_STATE_PRESENT;
+        tex->SetAllSubresourceStates(D3D12_RESOURCE_STATE_PRESENT);
     }
 #else
     LOG_ERROR("DX12 is only supported on Windows");
@@ -185,6 +186,7 @@ bool DX12SwapChain::Resize(u32 new_width, u32 new_height) noexcept
             tex->mip_map_level = 1;
             tex->m_current_state = D3D12_RESOURCE_STATE_PRESENT;
             tex->m_state = ResourceState::RESOURCE_STATE_PRESENT;
+            tex->SetAllSubresourceStates(D3D12_RESOURCE_STATE_PRESENT);
         }
     }
 

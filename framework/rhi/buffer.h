@@ -21,5 +21,6 @@ class Buffer
     const DescriptorTypes m_descriptor_types{};
     ResourceState m_resource_state{};
     const u64 m_size{};
+    const u32 m_structured_byte_stride{};
 };
 } // namespace Horizon::Backend

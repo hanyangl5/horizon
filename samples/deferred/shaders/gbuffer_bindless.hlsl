@@ -30,6 +30,7 @@ ConstantBuffer<DrawConstants> mesh_draw_offset : register(b1);
 struct InstanceParameter {
     float4x4 model_matrix;
     uint material_id;
+    uint3 _padding;
 };
 #ifdef SPIRV
 StructuredBuffer<InstanceParameter> instance_parameter;
@@ -47,7 +48,7 @@ struct VSInput {
 
 struct VSOutput {
     float4 position : SV_Position;
-    float3 world_pos : POSITION;
+    //float3 world_pos : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
     float3 tangent : TANGENT;
@@ -75,7 +76,7 @@ VSOutput vs_main(VSInput vsin, uint InstanceID : SV_InstanceID, uint vertex_id :
     float4x4 model = instance_parameter[mesh_id].model_matrix;
 
     vsout.position = mul(CameraParamsUb_cb.vp, mul(model, float4(vsin.position, 1.0)));
-    vsout.world_pos = mul(model, float4(vsin.position, 1.0)).xyz;
+    //vsout.world_pos = mul(model, float4(vsin.position, 1.0)).xyz;
     vsout.normal = normalize(mul(model, float4(vsin.normal, 0.0)).xyz);
     vsout.uv = vsin.uv0;
     vsout.tangent = normalize(mul(model, float4(vsin.tangent, 0.0)).xyz);

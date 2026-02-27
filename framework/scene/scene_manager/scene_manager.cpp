@@ -67,12 +67,13 @@ void SceneManager::CreateMeshResources()
         // indirect draw command
         for (auto &primitive : mesh->m_mesh_primitives)
         {
-            DrawIndexedInstancedCommand command{};
-            command.index_count = primitive.index_count;
-            command.first_index = primitive.index_offset;
-            command.vertex_offset = 0;
-            command.instance_count = 1;
-            command.first_instance = 0;
+            DX12DrawIndexedInstancedCommand command{};
+            command.mesh_id_offset = static_cast<u32>(instance_params.size());
+            command.draw.index_count = primitive.index_count;
+            command.draw.first_index = primitive.index_offset;
+            command.draw.vertex_offset = 0;
+            command.draw.instance_count = 1;
+            command.draw.first_instance = 0;
             scene_indirect_draw_command1.push_back(command);
             instance_params.push_back(InstanceParameters{});
             instance_params.back().material_index = primitive.material_id + material_offset;
@@ -114,13 +115,18 @@ void SceneManager::CreateMeshResources()
                 create_info.depth = 1;
                 create_info.texture_format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM; // TOOD: optimize format
                 create_info.texture_type = TextureType::TEXTURE_TYPE_2D;                // TODO: cubemap?
-                create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_TEXTURE;
+                create_info.descriptor_types =
+                    DescriptorType::DESCRIPTOR_TYPE_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE;
                 create_info.initial_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
                 create_info.enanble_mipmap = true;
 
                 material_textures.push_back(resource_manager->CreateGpuTexture(create_info));
                 TextureUpdateDesc update_desc{};
                 update_desc.texture_data_desc = &tex.texture_data_desc;
+                update_desc.first_mip_level = 0;
+                update_desc.mip_level_count = tex.texture_data_desc.mipmap_count;
+                update_desc.first_layer = 0;
+                update_desc.layer_count = tex.texture_data_desc.layer_count;
                 textuer_upload_desc.push_back(update_desc);
                 texture_offset++;
             }
@@ -137,7 +143,7 @@ void SceneManager::CreateMeshResources()
     }
     material_description_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(MaterialDesc) * material_descs.size()});
+                         sizeof(MaterialDesc) * material_descs.size(), nullptr, sizeof(MaterialDesc)});
 
     // material_offset = 0;
     u32 primitive_offset = 0;
@@ -159,11 +165,11 @@ void SceneManager::CreateMeshResources()
     // test
     indirect_draw_command_buffer1 = resource_manager->CreateGpuBuffer(BufferCreateInfo{
         DescriptorType::DESCRIPTOR_TYPE_INDIRECT_BUFFER, ResourceState::RESOURCE_STATE_INDIRECT_ARGUMENT,
-        sizeof(DrawIndexedInstancedCommand) * draw_offset});
+        sizeof(DX12DrawIndexedInstancedCommand) * draw_offset});
 
     instance_parameter_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(InstanceParameters) * instance_params.size()});
+                         sizeof(InstanceParameters) * instance_params.size(), nullptr, sizeof(InstanceParameters)});
 
     empty_vertex_buffer = resource_manager->GetEmptyVertexBuffer();
 }
@@ -180,7 +186,7 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
     }
 
     commandlist->UpdateBuffer(indirect_draw_command_buffer1, scene_indirect_draw_command1.data(),
-                              scene_indirect_draw_command1.size() * sizeof(DrawIndexedInstancedCommand));
+                              scene_indirect_draw_command1.size() * sizeof(DX12DrawIndexedInstancedCommand));
 
     commandlist->UpdateBuffer(material_description_buffer, material_descs.data(),
                               material_descs.size() * sizeof(MaterialDesc));
@@ -189,35 +195,25 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
                               instance_params.size() * sizeof(InstanceParameters));
 
     // UPLOAD TEXTURES
-    BarrierDesc resource_upload_barrier{};
-    TextureBarrierDesc tex_barrier{};
-    tex_barrier.src_state = RESOURCE_STATE_COPY_DEST;
-    tex_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
+    std::vector<u32> runtime_gen_mip_tex_indices;
     for (u32 tex = 0; tex < material_textures.size(); tex++)
     {
         commandlist->UpdateTexture(material_textures[tex], textuer_upload_desc[tex]);
-        tex_barrier.texture = material_textures[tex];
-        resource_upload_barrier.texture_memory_barriers.push_back(tex_barrier);
+
+        const u32 uploaded_mips = textuer_upload_desc[tex].mip_level_count;
+        const u32 target_mips = material_textures[tex]->mip_map_level;
+        if (uploaded_mips < target_mips)
+        {
+            runtime_gen_mip_tex_indices.push_back(tex);
+        }
     }
 
-    // commandlist->InsertBarrier(resource_upload_barrier);
-
-    BarrierDesc mip_barrier1{};
-    for (u32 tex = 0; tex < material_textures.size(); tex++)
+    if (!runtime_gen_mip_tex_indices.empty())
     {
-        TextureBarrierDesc mip_map_barrier{};
-        mip_map_barrier.texture = material_textures[tex];
-        mip_map_barrier.first_mip_level = 0;
-        mip_map_barrier.mip_level_count = 1;
-        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
-        mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
-        mip_barrier1.texture_memory_barriers.emplace_back(mip_map_barrier);
-    }
-    commandlist->InsertBarrier(mip_barrier1);
-
-    for (u32 tex = 0; tex < material_textures.size(); tex++)
-    {
-        commandlist->GenerateMipMap(material_textures[tex]);
+        for (u32 tex_index : runtime_gen_mip_tex_indices)
+        {
+            commandlist->GenerateMipMap(material_textures[tex_index]);
+        }
     }
 
     BarrierDesc mip_barrier2{};
@@ -227,7 +223,9 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
         mip_map_barrier.texture = material_textures[tex];
         mip_map_barrier.first_mip_level = 0;
         mip_map_barrier.mip_level_count = material_textures[tex]->mip_map_level;
-        mip_map_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        const bool runtime_generated = textuer_upload_desc[tex].mip_level_count < material_textures[tex]->mip_map_level;
+        mip_map_barrier.src_state = runtime_generated ? ResourceState::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+                                                      : ResourceState::RESOURCE_STATE_COPY_DEST;
         mip_map_barrier.dst_state = ResourceState::RESOURCE_STATE_SHADER_RESOURCE;
         mip_barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);
     }

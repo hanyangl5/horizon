@@ -42,6 +42,7 @@ class VulkanDescriptorSetAllocator
 
     VulkanDescriptorSet *GetDescriptorSet(VulkanPipeline *pipeline);
     VulkanDescriptorSet *GetBindlessDescriptorSet(VulkanPipeline *pipeline);
+    void ReleaseDescriptorSets(VulkanPipeline *pipeline);
 
   public:
     const VulkanRendererContext &m_context{};

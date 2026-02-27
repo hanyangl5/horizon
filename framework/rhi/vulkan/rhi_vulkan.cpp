@@ -760,7 +760,6 @@ void RHIVulkan::ResetRHIResources()
     {
         thread_command_context->Reset();
     }
-    m_descriptor_set_allocator->ResetDescriptorPool();
 }
 
 Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)

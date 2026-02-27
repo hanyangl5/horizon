@@ -46,6 +46,11 @@ class DX12Pipeline : public Pipeline
         return m_root_signature.Get();
     }
 
+    ID3D12CommandSignature *GetDrawIndexedIndirectCommandSignature() const noexcept
+    {
+        return m_draw_indexed_indirect_command_signature.Get();
+    }
+
     u32 GetVertexStride(u32 input_slot) const noexcept;
 
     const RootSignatureDesc &GetRootSignatureDesc() const noexcept
@@ -57,6 +62,7 @@ class DX12Pipeline : public Pipeline
     void CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
     void CreateComputePipeline(const ComputePipelineCreateInfo &create_info);
     void CreateRootSignature(const ShaderPrograms &shaders);
+    void CreateDrawIndexedIndirectCommandSignature();
 
     // Get bindless descriptor table GPU handle for a resource name
     D3D12_GPU_DESCRIPTOR_HANDLE GetBindlessDescriptorTableHandle(const std::string &resource_name) const;
@@ -66,6 +72,7 @@ class DX12Pipeline : public Pipeline
     DX12DescriptorHeapAllocator &m_descriptor_heap_allocator;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature;
+    Microsoft::WRL::ComPtr<ID3D12CommandSignature> m_draw_indexed_indirect_command_signature;
 
     // Descriptor table GPU handles and root parameter indices for regular resources (set 0)
     std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> m_descriptor_tables;

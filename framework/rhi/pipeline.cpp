@@ -58,6 +58,14 @@ void Pipeline::ParseRootSignatureFromShader(Shader *shader)
         if (it != rsd.push_constants.end())
         {
             it->second.shader_stages |= pc.shader_stages;
+            if (it->second.binding == 0xFFFFFFFFu && pc.binding != 0xFFFFFFFFu)
+            {
+                it->second.binding = pc.binding;
+            }
+            if (it->second.set == 0xFFFFFFFFu && pc.set != 0xFFFFFFFFu)
+            {
+                it->second.set = pc.set;
+            }
         }
         else
         {

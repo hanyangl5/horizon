@@ -66,7 +66,7 @@ void VulkanCommandContext::Reset()
     {
         if (command_pool)
         {
-            vkResetCommandPool(m_context.device, command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+            vkResetCommandPool(m_context.device, command_pool, 0);
         }
     }
 

@@ -225,11 +225,9 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
         u32 offset = 0;
         cl->BindVertexBuffers(1, &vb, &offset);
         cl->BindIndexBuffer(ib, 0);
-        cl->BindPushConstant(m_geometry_pipeline, "mesh_draw_offset", &mesh.draw_offset);
-
         cl->DrawIndirectIndexedInstanced(m_scene_manager->indirect_draw_command_buffer1,
-                                         sizeof(DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
-                                         sizeof(DrawIndexedInstancedCommand));
+                                         sizeof(DX12DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
+                                         sizeof(DX12DrawIndexedInstancedCommand));
     }
 
     cl->EndRenderPass();

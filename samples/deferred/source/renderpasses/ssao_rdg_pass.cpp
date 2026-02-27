@@ -13,11 +13,11 @@ SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler, u32 width, u32 height)
     create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_ssao_cs);
     m_ssao_pipeline = CreateComputePipeline(create_info);
 
-    CreateResizableTexture(m_ssao_factor_image,
-                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
-                                             ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-                                             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM,
-                                             m_width, m_height, 1, false, 1, "ssao_factor_image"});
+    CreateResizableTexture(
+        m_ssao_factor_image,
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE|DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
+                          TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_R8_UNORM, m_width, m_height, 1,
+                          false, 1, "ssao_factor_image"});
 
     m_ssao_noise_tex = rhi->CreateTexture(
         TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_TEXTURE, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
@@ -53,7 +53,7 @@ SSAORDGPass::SSAORDGPass(RHI *rhi, Sampler *sampler, u32 width, u32 height)
         ssao_noise_tex_val[i] = Math::float2(rnd_dist1(generator) * 2.0f - 1.0f, rnd_dist1(generator) * 2.0f - 1.0f);
     }
     char *begin = reinterpret_cast<char *>(&ssao_noise_tex_val[0]);
-    char *end = reinterpret_cast<char *>(&ssao_noise_tex_val[ssao_noise_tex_val.size() - 1]);
+    char *end = begin + sizeof(ssao_noise_tex_val);
     m_ssao_noise_tex_data_desc.raw_data = {begin, end};
     SetResizeCallback([this](u32 width, u32 height) {
         m_width = width;

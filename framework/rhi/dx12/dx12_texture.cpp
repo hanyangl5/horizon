@@ -1,15 +1,43 @@
 #include "dx12_texture.h"
 #include <DirectXHelpers.h>
+#include <algorithm>
 #include <core/log.h>
 #include <core/memory.h>
 
 namespace Horizon::Backend
 {
+namespace
+{
+DXGI_FORMAT ResolveResourceFormat(const TextureCreateInfo &texture_create_info)
+{
+    if (texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_D32_SFLOAT &&
+        (texture_create_info.descriptor_types & DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT))
+    {
+        return DXGI_FORMAT_R32_TYPELESS;
+    }
+    return ToDX12Format(texture_create_info.texture_format);
+}
+
+DXGI_FORMAT ResolveDepthStencilViewFormat(TextureFormat format)
+{
+    if (format == TextureFormat::TEXTURE_FORMAT_D32_SFLOAT)
+    {
+        return DXGI_FORMAT_D32_FLOAT;
+    }
+    return ToDX12Format(format);
+}
+} // namespace
 
 DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreateInfo &texture_create_info) noexcept
     : Texture(texture_create_info), m_context(context),
       m_current_state(ToDX12ResourceState(texture_create_info.initial_state))
 {
+    const u32 total_layers = (texture_create_info.texture_type == TextureType::TEXTURE_TYPE_3D)
+                                 ? 1u
+                                 : std::max(1u, texture_create_info.array_layer);
+    const u32 subresource_count = std::max(1u, mip_map_level) * total_layers;
+    m_subresource_states.assign(subresource_count, m_current_state);
+
     // rt tex
     if (texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_UNDEFINED ||
         texture_create_info.texture_format == TextureFormat::TEXTURE_FORMAT_DUMMY_COLOR)
@@ -25,10 +53,12 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
                                      ? static_cast<UINT16>(texture_create_info.depth)
                                      : static_cast<UINT16>(texture_create_info.array_layer);
 
+    const DXGI_FORMAT resource_format = ResolveResourceFormat(texture_create_info);
+
     CD3DX12_RESOURCE_DESC resource_desc(
         dimension, 0, texture_create_info.width, texture_create_info.height, depth_or_array_size,
-        1, // MipLevels - must be >= 1 for CreateCommittedResource
-        ToDX12Format(texture_create_info.texture_format), 1, 0, D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        static_cast<UINT16>(std::max(1u, mip_map_level)),
+        resource_format, 1, 0, D3D12_TEXTURE_LAYOUT_UNKNOWN,
         ToDX12ResourceFlags(texture_create_info.descriptor_types));
 
     // Validate format
@@ -38,8 +68,19 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
         return;
     }
 
+    D3D12_CLEAR_VALUE clear_value{};
+    const D3D12_CLEAR_VALUE *clear_value_ptr = nullptr;
+    if (texture_create_info.descriptor_types & DESCRIPTOR_TYPE_DEPTH_STENCIL_ATTACHMENT)
+    {
+        clear_value.Format = ResolveDepthStencilViewFormat(texture_create_info.texture_format);
+        clear_value.DepthStencil.Depth = 1.0f;
+        clear_value.DepthStencil.Stencil = 0;
+        clear_value_ptr = &clear_value;
+    }
+
     HRESULT hr = m_context.device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
-                                                           m_current_state, nullptr, IID_PPV_ARGS(&m_resource));
+                                                           m_current_state, clear_value_ptr,
+                                                           IID_PPV_ARGS(&m_resource));
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to create DX12 texture: {}", hr);

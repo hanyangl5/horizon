@@ -1,7 +1,9 @@
 #pragma once
 
 #include "dx12_utils.h"
+#include <algorithm>
 #include <d3d12.h>
+#include <vector>
 #include <wrl/client.h>
 
 #include <core/definations.h>
@@ -37,12 +39,41 @@ class DX12Texture : public Texture
 
     ID3D12Resource *GetOrCreateUploadBuffer(u64 required_size) noexcept;
 
+    u32 GetSubresourceCount() const noexcept
+    {
+        return static_cast<u32>(m_subresource_states.size());
+    }
+
+    D3D12_RESOURCE_STATES GetSubresourceState(u32 subresource) const noexcept
+    {
+        if (subresource < m_subresource_states.size())
+        {
+            return m_subresource_states[subresource];
+        }
+        return m_current_state;
+    }
+
+    void SetSubresourceState(u32 subresource, D3D12_RESOURCE_STATES state) noexcept
+    {
+        if (subresource < m_subresource_states.size())
+        {
+            m_subresource_states[subresource] = state;
+        }
+    }
+
+    void SetAllSubresourceStates(D3D12_RESOURCE_STATES state) noexcept
+    {
+        std::fill(m_subresource_states.begin(), m_subresource_states.end(), state);
+        m_current_state = state;
+    }
+
   public:
     const DX12RendererContext &m_context;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_buffer;
     u64 m_upload_buffer_size{0};
     D3D12_RESOURCE_STATES m_current_state;
+    std::vector<D3D12_RESOURCE_STATES> m_subresource_states{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_srv_handle{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_uav_handle{};
 };

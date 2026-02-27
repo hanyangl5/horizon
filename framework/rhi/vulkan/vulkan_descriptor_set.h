@@ -34,13 +34,18 @@ class VulkanDescriptorSet : public DescriptorSet
     void SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name) override;
 
     void Update() override;
+    bool IsDirty() const override;
 
   public:
     const VulkanRendererContext &m_context{};
     const std::unordered_map<std::string, DescriptorDesc> &write_descs{}; // move to base class?
-    std::vector<VkWriteDescriptorSet> writes{};
+    std::unordered_map<std::string, VkWriteDescriptorSet> m_pending_writes{};
+    std::vector<VkWriteDescriptorSet> m_write_batch{};
+    std::unordered_map<std::string, VkDescriptorBufferInfo> m_buffer_descriptors{};
+    std::unordered_map<std::string, VkDescriptorImageInfo> m_image_descriptors{};
     std::unordered_map<std::string, std::vector<VkDescriptorImageInfo>> bindless_image_descriptors;
     std::unordered_map<std::string, std::vector<VkDescriptorBufferInfo>> bindless_buffer_descriptors;
+    bool m_dirty{false};
     VkDescriptorSet m_set{};
 };
 } // namespace Horizon::Backend

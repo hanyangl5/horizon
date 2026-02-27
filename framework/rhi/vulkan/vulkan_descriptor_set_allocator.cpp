@@ -10,6 +10,37 @@
 
 namespace Horizon::Backend
 {
+namespace
+{
+inline u64 HashCombine(u64 seed, u64 value)
+{
+    return seed ^ (value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2));
+}
+
+u64 BuildDescriptorSetLayoutKey(const std::vector<VkDescriptorSetLayoutBinding> &bindings,
+                                VkDescriptorSetLayoutCreateFlags layout_flags,
+                                const std::vector<VkDescriptorBindingFlags> *binding_flags = nullptr)
+{
+    u64 key = 1469598103934665603ULL;
+    key = HashCombine(key, static_cast<u64>(layout_flags));
+    key = HashCombine(key, static_cast<u64>(bindings.size()));
+
+    for (size_t i = 0; i < bindings.size(); ++i)
+    {
+        const auto &binding = bindings[i];
+        key = HashCombine(key, static_cast<u64>(binding.binding));
+        key = HashCombine(key, static_cast<u64>(binding.descriptorType));
+        key = HashCombine(key, static_cast<u64>(binding.descriptorCount));
+        key = HashCombine(key, static_cast<u64>(binding.stageFlags));
+        if (binding_flags && i < binding_flags->size())
+        {
+            key = HashCombine(key, static_cast<u64>((*binding_flags)[i]));
+        }
+    }
+
+    return key;
+}
+} // namespace
 
 VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererContext &context) noexcept
     : m_context(context)
@@ -30,7 +61,7 @@ VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(const VulkanRendererC
         VkDescriptorSetLayout layout;
         CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_context.device, &set_layout_create_info, nullptr, &layout));
 
-        m_empty_descriptor_set_layout_hash_key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(set_layout_create_info);
+        m_empty_descriptor_set_layout_hash_key = BuildDescriptorSetLayoutKey({}, set_layout_create_info.flags);
         m_descriptor_set_layout_map.emplace(m_empty_descriptor_set_layout_hash_key, layout);
     }
 }
@@ -69,6 +100,10 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
                 binding.descriptorType = util_to_vk_descriptor_type(descriptor.type);
                 bindings.push_back(binding);
             }
+            std::sort(bindings.begin(), bindings.end(),
+                      [](const VkDescriptorSetLayoutBinding &lhs, const VkDescriptorSetLayoutBinding &rhs) {
+                          return lhs.binding < rhs.binding;
+                      });
 
             // Binding flags for bindless
             VkDescriptorSetLayoutBindingFlagsCreateInfoEXT set_layout_binding_flags{};
@@ -87,7 +122,7 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
             layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
             layout_create_info.pNext = &set_layout_binding_flags;
 
-            u64 key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(layout_create_info);
+            u64 key = BuildDescriptorSetLayoutKey(bindings, layout_create_info.flags, &flags);
             auto res = m_descriptor_set_layout_map.find(key);
 
             if (res == m_descriptor_set_layout_map.end())
@@ -113,6 +148,10 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
                 binding.descriptorType = util_to_vk_descriptor_type(descriptor.type);
                 bindings.push_back(binding);
             }
+            std::sort(bindings.begin(), bindings.end(),
+                      [](const VkDescriptorSetLayoutBinding &lhs, const VkDescriptorSetLayoutBinding &rhs) {
+                          return lhs.binding < rhs.binding;
+                      });
 
             if (bindings.empty())
             {
@@ -125,7 +164,7 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
                 layout_create_info.bindingCount = static_cast<u32>(bindings.size());
                 layout_create_info.pBindings = bindings.data();
 
-                u64 key = std::hash<VkDescriptorSetLayoutCreateInfo>{}(layout_create_info);
+                u64 key = BuildDescriptorSetLayoutKey(bindings, layout_create_info.flags);
                 auto res = m_descriptor_set_layout_map.find(key);
 
                 if (res == m_descriptor_set_layout_map.end())
@@ -151,9 +190,10 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetDescriptorSet(VulkanPipeli
     {
         CreateDescriptorPool();
     }
-    if (allocated_descriptorsets[pipeline])
+    auto descriptor_set_iter = allocated_descriptorsets.find(pipeline);
+    if (descriptor_set_iter != allocated_descriptorsets.end() && descriptor_set_iter->second)
     {
-        return allocated_descriptorsets[pipeline];
+        return descriptor_set_iter->second;
     }
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -182,9 +222,10 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetBindlessDescriptorSet(Vulk
     {
         CreateBindlessDescriptorPool();
     }
-    if (allocated_bindless_descriptorsets[pipeline])
+    auto bindless_descriptor_set_iter = allocated_bindless_descriptorsets.find(pipeline);
+    if (bindless_descriptor_set_iter != allocated_bindless_descriptorsets.end() && bindless_descriptor_set_iter->second)
     {
-        return allocated_bindless_descriptorsets[pipeline];
+        return bindless_descriptor_set_iter->second;
     }
     VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountInfo = {};
     variableDescriptorCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
@@ -212,6 +253,18 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetBindlessDescriptorSet(Vulk
 
 VulkanDescriptorSetAllocator::~VulkanDescriptorSetAllocator() noexcept
 {
+    for (auto &set : allocated_descriptorsets)
+    {
+        delete set.second;
+    }
+    allocated_descriptorsets.clear();
+
+    for (auto &set : allocated_bindless_descriptorsets)
+    {
+        delete set.second;
+    }
+    allocated_bindless_descriptorsets.clear();
+
     for (auto &layout : m_descriptor_set_layout_map)
     {
         vkDestroyDescriptorSetLayout(m_context.device, layout.second, nullptr);
@@ -266,7 +319,7 @@ void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool()
     pool_create_info.pNext = nullptr;
     pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
 
-    pool_create_info.maxSets = (u32)pool_sizes.size() * k_max_bindless_resources;
+    pool_create_info.maxSets = 1024;
     pool_create_info.poolSizeCount = static_cast<u32>(pool_sizes.size());
     pool_create_info.pPoolSizes = pool_sizes.data();
 
@@ -292,6 +345,23 @@ void VulkanDescriptorSetAllocator::ResetDescriptorPool()
     if (m_bindless_descriptor_pool)
     {
         vkResetDescriptorPool(m_context.device, m_bindless_descriptor_pool, 0);
+    }
+}
+
+void VulkanDescriptorSetAllocator::ReleaseDescriptorSets(VulkanPipeline *pipeline)
+{
+    auto descriptor_set_iter = allocated_descriptorsets.find(pipeline);
+    if (descriptor_set_iter != allocated_descriptorsets.end())
+    {
+        delete descriptor_set_iter->second;
+        allocated_descriptorsets.erase(descriptor_set_iter);
+    }
+
+    auto bindless_descriptor_set_iter = allocated_bindless_descriptorsets.find(pipeline);
+    if (bindless_descriptor_set_iter != allocated_bindless_descriptorsets.end())
+    {
+        delete bindless_descriptor_set_iter->second;
+        allocated_bindless_descriptorsets.erase(bindless_descriptor_set_iter);
     }
 }
 

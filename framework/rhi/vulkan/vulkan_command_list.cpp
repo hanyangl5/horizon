@@ -1,6 +1,7 @@
 #include "vulkan_command_list.h"
 
 #include <algorithm>
+#include <array>
 
 #include <core/memory.h>
 #include <rhi/resource_barrier.h>
@@ -37,9 +38,9 @@ void VulkanCommandList::EndRecording()
 
 void VulkanCommandList::BindVertexBuffers(u32 buffer_count, Buffer **buffers, u32 *offsets)
 {
-
-    std::vector<VkBuffer> vk_buffers(buffer_count);
-    std::vector<VkDeviceSize> vk_offsets(buffer_count);
+    assert(buffer_count <= MAX_BINDING_COUNT);
+    std::array<VkBuffer, MAX_BINDING_COUNT> vk_buffers{};
+    std::array<VkDeviceSize, MAX_BINDING_COUNT> vk_offsets{};
     for (u32 i = 0; i < buffer_count; i++)
     {
         assert(buffers[i]->m_descriptor_types & DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER);
@@ -66,8 +67,9 @@ void VulkanCommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
     // Begin debug label if debug utils is available and name is provided
     if (begin_info.debug_name)
     {
-        PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT =
-            (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdBeginDebugUtilsLabelEXT");
+        static PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT =
+            reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
+                vkGetInstanceProcAddr(m_context.instance, "vkCmdBeginDebugUtilsLabelEXT"));
         if (vkCmdBeginDebugUtilsLabelEXT)
         {
             VkDebugUtilsLabelEXT label_info{};
@@ -169,8 +171,9 @@ void VulkanCommandList::EndRenderPass()
     // End debug label if one was started
     if (m_debug_label_active)
     {
-        PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT =
-            (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdEndDebugUtilsLabelEXT");
+        static PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT =
+            reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(
+                vkGetInstanceProcAddr(m_context.instance, "vkCmdEndDebugUtilsLabelEXT"));
         if (vkCmdEndDebugUtilsLabelEXT)
         {
             vkCmdEndDebugUtilsLabelEXT(m_command_buffer);
@@ -198,9 +201,18 @@ void VulkanCommandList::DrawIndirect()
 
 void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride)
 {
+    VkDeviceSize vk_offset = offset;
+    u32 vk_stride = stride;
 
-    vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, offset, draw_count,
-                             stride);
+    // Accept DX12-extended indirect layout in Vulkan path:
+    // [mesh_id_offset:u32][VkDrawIndexedIndirectCommand]
+    if (stride == sizeof(DX12DrawIndexedInstancedCommand))
+    {
+        vk_offset += sizeof(u32);
+    }
+
+    vkCmdDrawIndexedIndirect(m_command_buffer, reinterpret_cast<VulkanBuffer *>(buffer)->m_buffer, vk_offset,
+                             draw_count, vk_stride);
 }
 
 // compute commands
@@ -209,8 +221,9 @@ void VulkanCommandList::BeginComputePass(const char *debug_name)
     // Begin debug label if debug utils is available and name is provided
     if (debug_name)
     {
-        PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT =
-            (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdBeginDebugUtilsLabelEXT");
+        static PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT =
+            reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
+                vkGetInstanceProcAddr(m_context.instance, "vkCmdBeginDebugUtilsLabelEXT"));
         if (vkCmdBeginDebugUtilsLabelEXT)
         {
             VkDebugUtilsLabelEXT label_info{};
@@ -232,8 +245,9 @@ void VulkanCommandList::EndComputePass()
     // End debug label if one was started
     if (m_debug_label_active)
     {
-        PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT =
-            (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(m_context.instance, "vkCmdEndDebugUtilsLabelEXT");
+        static PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT =
+            reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(
+                vkGetInstanceProcAddr(m_context.instance, "vkCmdEndDebugUtilsLabelEXT"));
         if (vkCmdEndDebugUtilsLabelEXT)
         {
             vkCmdEndDebugUtilsLabelEXT(m_command_buffer);
@@ -591,13 +605,19 @@ void VulkanCommandList::BindPipeline(Pipeline *pipeline)
     }
     if (auto set = vk_pipeline->GetDescriptorSet())
     {
-        set->Update();
+        if (set->IsDirty())
+        {
+            set->Update();
+        }
         vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 0, 1, &set->m_set, 0,
                                 nullptr);
     }
     if (auto set = vk_pipeline->GetBindlessDescriptorSet())
     {
-        set->Update();
+        if (set->IsDirty())
+        {
+            set->Update();
+        }
         vkCmdBindDescriptorSets(m_command_buffer, bind_point, vk_pipeline->m_pipeline_layout, 1, 1, &set->m_set, 0,
                                 nullptr);
     }
@@ -660,6 +680,19 @@ void VulkanCommandList::GenerateMipMap(Texture *texture)
 
     auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
+    // Ensure mip 0 is ready as source for the first blit.
+    {
+        BarrierDesc desc{};
+        TextureBarrierDesc mip0_barrier{};
+        mip0_barrier.texture = texture;
+        mip0_barrier.first_mip_level = 0;
+        mip0_barrier.mip_level_count = 1;
+        mip0_barrier.src_state = ResourceState::RESOURCE_STATE_COPY_DEST;
+        mip0_barrier.dst_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        desc.texture_memory_barriers.emplace_back(mip0_barrier);
+        InsertBarrier(desc);
+    }
+
     i32 mip_w = texture->m_width, mip_h = texture->m_height;
 
     for (u32 i = 1; i < texture->mip_map_level; i++)
@@ -709,6 +742,22 @@ void VulkanCommandList::GenerateMipMap(Texture *texture)
             mip_w /= 2;
         if (mip_h > 1)
             mip_h /= 2;
+    }
+
+    // Keep all generated mips in shader-readable state so callers can treat runtime-generated
+    // textures consistently across backends.
+    {
+        BarrierDesc desc{};
+        TextureBarrierDesc to_shader_read{};
+        to_shader_read.texture = texture;
+        to_shader_read.first_mip_level = 0;
+        to_shader_read.mip_level_count = texture->mip_map_level;
+        to_shader_read.first_layer = 0;
+        to_shader_read.layer_count = texture->m_array_layer;
+        to_shader_read.src_state = ResourceState::RESOURCE_STATE_COPY_SOURCE;
+        to_shader_read.dst_state = ResourceState::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+        desc.texture_memory_barriers.emplace_back(to_shader_read);
+        InsertBarrier(desc);
     }
 }
 void VulkanCommandList::BeginQuery()

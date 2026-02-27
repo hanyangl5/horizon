@@ -9,13 +9,15 @@ TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height)
     m_taa_pipeline = CreateComputePipeline(create_info);
 
     CreateResizableTexture(m_previous_color_texture,
-                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
+                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE |
+                                                 DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                                              ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
                                              TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                              m_width, m_height, 1, false});
 
     CreateResizableTexture(m_output_color_texture,
-                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE,
+                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE |
+                                                 DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
                                              ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
                                              TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
                                              m_width, m_height, 1, false});
@@ -73,9 +75,9 @@ void TAARDGPass::UpdateTAAPrevCurrOffset(const void *data, u32 size)
 
 void TAARDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
-    builder.ReadTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-    builder.ReadTexture(m_pp_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-    builder.ReadTexture(m_gbuffer4_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(m_pp_color_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(m_gbuffer4_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteTexture(m_output_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 }
 

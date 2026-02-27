@@ -133,7 +133,7 @@ class SceneManager
 
     u32 draw_count{0};
     Buffer *indirect_draw_command_buffer1{};
-    std::vector<DrawIndexedInstancedCommand> scene_indirect_draw_command1{};
+    std::vector<DX12DrawIndexedInstancedCommand> scene_indirect_draw_command1{};
     Buffer *empty_vertex_buffer{};
 
     // camera
