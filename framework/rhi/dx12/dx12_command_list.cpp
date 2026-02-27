@@ -26,7 +26,7 @@ struct DX12MipGenProgram
 DX12MipGenProgram g_dx12_mip_gen_program;
 
 static D3D12_GPU_DESCRIPTOR_HANDLE CpuToGpuHandleForMipGen(ID3D12DescriptorHeap *heap,
-                                                            D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
+                                                           D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
 {
     auto heap_start_cpu = heap->GetCPUDescriptorHandleForHeapStart();
     auto heap_start_gpu = heap->GetGPUDescriptorHandleForHeapStart();
@@ -85,7 +85,8 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         if (errors != nullptr)
         {
-            LOG_ERROR("Failed to compile DX12 mip generation shader: {}", static_cast<const char *>(errors->GetBufferPointer()));
+            LOG_ERROR("Failed to compile DX12 mip generation shader: {}",
+                      static_cast<const char *>(errors->GetBufferPointer()));
         }
         else
         {
@@ -841,8 +842,8 @@ void DX12CommandList::InsertBarrier(const BarrierDesc &desc)
         {
             continue;
         }
-        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            dx12_buffer->GetResource(), src_state, dst_state);
+        CD3DX12_RESOURCE_BARRIER barrier =
+            CD3DX12_RESOURCE_BARRIER::Transition(dx12_buffer->GetResource(), src_state, dst_state);
         barriers.push_back(barrier);
         dx12_buffer->m_current_state = dst_state;
     }
@@ -1209,8 +1210,9 @@ void DX12CommandList::GenerateMipMap(Texture *texture)
         const D3D12_RESOURCE_STATES src_state = dx12_texture->GetSubresourceState(src_subresource);
         if (src_state != D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
         {
-            barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
-                dx12_texture->GetResource(), src_state, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, src_subresource));
+            barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(dx12_texture->GetResource(), src_state,
+                                                                    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+                                                                    src_subresource));
             dx12_texture->SetSubresourceState(src_subresource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         }
 
@@ -1263,9 +1265,9 @@ void DX12CommandList::GenerateMipMap(Texture *texture)
         D3D12_RESOURCE_BARRIER uav_barrier = CD3DX12_RESOURCE_BARRIER::UAV(dx12_texture->GetResource());
         m_command_list->ResourceBarrier(1, &uav_barrier);
 
-        D3D12_RESOURCE_BARRIER to_srv = CD3DX12_RESOURCE_BARRIER::Transition(
-            dx12_texture->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-            dst_subresource);
+        D3D12_RESOURCE_BARRIER to_srv =
+            CD3DX12_RESOURCE_BARRIER::Transition(dx12_texture->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                                                 D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, dst_subresource);
         m_command_list->ResourceBarrier(1, &to_srv);
         dx12_texture->SetSubresourceState(dst_subresource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     }

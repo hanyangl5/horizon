@@ -8,19 +8,17 @@ TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height)
     create_info.shader_program.SetShader(ShaderType::COMPUTE_SHADER, m_taa_cs);
     m_taa_pipeline = CreateComputePipeline(create_info);
 
-    CreateResizableTexture(m_previous_color_texture,
-                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE |
-                                                 DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
-                                             ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-                                             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                             m_width, m_height, 1, false});
+    CreateResizableTexture(
+        m_previous_color_texture,
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
+                          ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
+                          TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
 
-    CreateResizableTexture(m_output_color_texture,
-                           TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE |
-                                                 DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
-                                             ResourceState::RESOURCE_STATE_UNORDERED_ACCESS,
-                                             TextureType::TEXTURE_TYPE_2D, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-                                             m_width, m_height, 1, false});
+    CreateResizableTexture(
+        m_output_color_texture,
+        TextureCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_TEXTURE | DescriptorType::DESCRIPTOR_TYPE_TEXTURE,
+                          ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
+                          TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
 
     m_taa_prev_curr_offset_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,

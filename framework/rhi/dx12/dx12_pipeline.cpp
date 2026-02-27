@@ -131,8 +131,7 @@ static DXGI_FORMAT ResolveTextureSrvFormat(const DX12Texture *texture)
 
 static UINT ResolveStructuredBufferStride(const DX12Buffer *buffer) noexcept
 {
-    return (buffer->m_structured_byte_stride == 0u) ? sizeof(u32)
-                                                    : static_cast<UINT>(buffer->m_structured_byte_stride);
+    return (buffer->m_structured_byte_stride == 0u) ? sizeof(u32) : static_cast<UINT>(buffer->m_structured_byte_stride);
 }
 
 void DX12Pipeline::SetResource(Buffer *resource, const std::string &resource_name)

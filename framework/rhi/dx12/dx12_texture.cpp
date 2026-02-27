@@ -55,11 +55,10 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
 
     const DXGI_FORMAT resource_format = ResolveResourceFormat(texture_create_info);
 
-    CD3DX12_RESOURCE_DESC resource_desc(
-        dimension, 0, texture_create_info.width, texture_create_info.height, depth_or_array_size,
-        static_cast<UINT16>(std::max(1u, mip_map_level)),
-        resource_format, 1, 0, D3D12_TEXTURE_LAYOUT_UNKNOWN,
-        ToDX12ResourceFlags(texture_create_info.descriptor_types));
+    CD3DX12_RESOURCE_DESC resource_desc(dimension, 0, texture_create_info.width, texture_create_info.height,
+                                        depth_or_array_size, static_cast<UINT16>(std::max(1u, mip_map_level)),
+                                        resource_format, 1, 0, D3D12_TEXTURE_LAYOUT_UNKNOWN,
+                                        ToDX12ResourceFlags(texture_create_info.descriptor_types));
 
     // Validate format
     if (resource_desc.Format == DXGI_FORMAT_UNKNOWN)
@@ -79,8 +78,7 @@ DX12Texture::DX12Texture(const DX12RendererContext &context, const TextureCreate
     }
 
     HRESULT hr = m_context.device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
-                                                           m_current_state, clear_value_ptr,
-                                                           IID_PPV_ARGS(&m_resource));
+                                                           m_current_state, clear_value_ptr, IID_PPV_ARGS(&m_resource));
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to create DX12 texture: {}", hr);
