@@ -7,22 +7,25 @@ horizon is a real time render framework.
 # Features
 
 - DirectX12 & Vulkan Render Backend
-- Bindless Resource
+- Bindless Resource & Indirect Draw Geometry Pipeline
 - FrameGraph
+- Deferred Rendering
 - Physically Based Rendering
   - ![](docs/figs/samples/pbs.png)
+- Image-Based Lighting (IBL)
+- Skeletal Mesh Animation
 - Ambient Occlusion
-- Precomputed Atmospheric Scattering
+- [Precomputed Atmospheric Scattering](https://github.com/hanyangl5/horizon/tree/PrecomputeAtmosphericScattering)
   - ![](docs/figs/samples/atmosphere.png)
-- Temoral Antialiasing
+- Temporal Antialiasing
 - Auto Exposure
 
 ## Build status
 
-| Platform |        MSVC        |       Clang        |      Vulkan        |
-| -------- | :----------------: | :----------------: | :----------------: |
-| Windows  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| Android  |                    |                    | :heavy_check_mark: |
+| Platform |        MSVC        |      Vulkan        |
+| -------- | :----------------: | :----------------: |
+| Windows  | :heavy_check_mark: | :heavy_check_mark: |
+| Android  |                    | :heavy_check_mark: |
 
 ## Build From Source
 
