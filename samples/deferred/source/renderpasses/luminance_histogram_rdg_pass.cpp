@@ -13,14 +13,13 @@ LuminanceHistogramRDGPass::LuminanceHistogramRDGPass(RHI *rhi, u32 width, u32 he
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(LuminanceHistogramConstants)});
 
-    m_histogram_buffer = rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER |
-                                                                 DescriptorType::DESCRIPTOR_TYPE_BUFFER,
-                                                             ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                                                             256 * sizeof(u32)});
+    m_histogram_buffer = rhi->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER | DescriptorType::DESCRIPTOR_TYPE_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, 256 * sizeof(u32)});
 
-    m_adapted_luminance_buffer = rhi->CreateBuffer(BufferCreateInfo{
-        DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER | DescriptorType::DESCRIPTOR_TYPE_BUFFER,
-        ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(float)});
+    m_adapted_luminance_buffer = rhi->CreateBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_RW_BUFFER | DescriptorType::DESCRIPTOR_TYPE_BUFFER,
+                         ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(float)});
     SetResizeCallback([this](u32 width, u32 height) {
         m_width = width;
         m_height = height;
