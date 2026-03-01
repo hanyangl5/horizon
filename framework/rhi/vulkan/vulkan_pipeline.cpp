@@ -1,6 +1,7 @@
 #include "vulkan_pipeline.h"
 
 #include <rhi/vulkan/vulkan_shader.h>
+#include <algorithm>
 
 namespace Horizon::Backend
 {
@@ -149,30 +150,45 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
         // vertex input state
         {
 
-            uint32_t binding_value = UINT32_MAX;
-
-            // Initial values
             for (u32 i = 0; i < create_info.vertex_input_state.attribute_count; ++i)
             {
                 auto *attrib = &(create_info.vertex_input_state.attributes[i]);
-
-                if (binding_value != attrib->binding)
+                uint32_t binding_index = UINT32_MAX;
+                for (uint32_t j = 0; j < input_binding_count; ++j)
                 {
-                    binding_value = attrib->binding;
-                    ++input_binding_count;
+                    if (input_bindings[j].binding == attrib->binding)
+                    {
+                        binding_index = j;
+                        break;
+                    }
                 }
-
-                input_bindings[input_binding_count - 1].binding = binding_value;
-                if (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                if (binding_index == UINT32_MAX)
                 {
-                    input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+                    binding_index = input_binding_count++;
+                    input_bindings[binding_index].binding = attrib->binding;
+                    input_bindings[binding_index].stride = 0;
+                    input_bindings[binding_index].inputRate = (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                                                                  ? VK_VERTEX_INPUT_RATE_INSTANCE
+                                                                  : VK_VERTEX_INPUT_RATE_VERTEX;
                 }
                 else
                 {
-                    input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                    const VkVertexInputRate expected_rate =
+                        (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                            ? VK_VERTEX_INPUT_RATE_INSTANCE
+                            : VK_VERTEX_INPUT_RATE_VERTEX;
+                    if (input_bindings[binding_index].inputRate != expected_rate)
+                    {
+                        LOG_WARN("Vertex input binding {} has mixed input rates; using first declared rate",
+                                 attrib->binding);
+                    }
                 }
-                input_bindings[input_binding_count - 1].stride +=
-                    GetStrideFromVertexAttributeDescription(attrib->attrib_format, attrib->portion);
+
+                const uint32_t attrib_stride = (attrib->stride != 0)
+                                                   ? attrib->stride
+                                                   : GetStrideFromVertexAttributeDescription(attrib->attrib_format,
+                                                                                            attrib->portion);
+                input_bindings[binding_index].stride = std::max(input_bindings[binding_index].stride, attrib_stride);
 
                 input_attributes[input_attribute_count].location = attrib->location;
                 input_attributes[input_attribute_count].binding = attrib->binding;

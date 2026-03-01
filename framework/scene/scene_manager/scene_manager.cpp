@@ -9,6 +9,7 @@
 #include "scene_manager.h"
 
 #include <algorithm>
+#include <limits>
 
 #include <core/log.h>
 
@@ -38,12 +39,18 @@ void SceneManager::RemoveMesh(Mesh *mesh)
 
 void SceneManager::CreateMeshResources()
 {
-
+    constexpr u32 INVALID_JOINT_OFFSET = std::numeric_limits<u32>::max();
     u32 texture_offset = 0;
     u32 material_offset = 0;
     u32 vertex_buffer_offset = 0;
     u32 index_buffer_offset = 0;
     u32 draw_offset = 0;
+    u32 scene_joint_offset = 0;
+    m_has_animated_mesh = false;
+    m_scene_joint_matrices.clear();
+    m_prev_scene_joint_matrices.clear();
+    prev_instance_model_matrices.clear();
+
     for (auto &mesh : scene_meshes)
     {
         draw_count = (u32)mesh->m_mesh_primitives.size();
@@ -65,10 +72,20 @@ void SceneManager::CreateMeshResources()
         index_buffer_offset++;
 
         // indirect draw command
-        for (auto &primitive : mesh->m_mesh_primitives)
+        const u32 mesh_joint_base_offset = scene_joint_offset;
+        const auto &mesh_joint_matrices = mesh->GetJointMatrices();
+        if (!mesh_joint_matrices.empty())
         {
+            m_scene_joint_matrices.insert(m_scene_joint_matrices.end(), mesh_joint_matrices.begin(), mesh_joint_matrices.end());
+            scene_joint_offset += static_cast<u32>(mesh_joint_matrices.size());
+            m_has_animated_mesh = true;
+        }
+
+        for (u32 primitive_index = 0; primitive_index < mesh->m_mesh_primitives.size(); ++primitive_index)
+        {
+            const auto &primitive = mesh->m_mesh_primitives[primitive_index];
             DX12DrawIndexedInstancedCommand command{};
-            command.mesh_id_offset = static_cast<u32>(instance_params.size()) + mesh.draw_offset;
+            command.mesh_id_offset = static_cast<u32>(instance_params.size());
             command.draw.index_count = primitive.index_count;
             command.draw.first_index = primitive.index_offset;
             command.draw.vertex_offset = 0;
@@ -76,7 +93,23 @@ void SceneManager::CreateMeshResources()
             command.draw.first_instance = 0;
             scene_indirect_draw_command1.push_back(command);
             instance_params.push_back(InstanceParameters{});
-            instance_params.back().material_index = primitive.material_id + material_offset;
+            auto &instance = instance_params.back();
+            instance.material_index = primitive.material_id + material_offset;
+            instance.joint_offset = INVALID_JOINT_OFFSET;
+            instance.joint_count = 0;
+            instance.skinning_enabled = 0;
+
+            if (primitive.skin_index >= 0)
+            {
+                const u32 skin_index = static_cast<u32>(primitive.skin_index);
+                const u32 skin_joint_count = mesh->GetSkinJointCount(skin_index);
+                if (skin_joint_count > 0)
+                {
+                    instance.joint_offset = mesh_joint_base_offset + mesh->GetSkinJointOffset(skin_index);
+                    instance.joint_count = skin_joint_count;
+                    instance.skinning_enabled = 1;
+                }
+            }
         }
 
         for (auto &material : mesh->materials)
@@ -141,11 +174,19 @@ void SceneManager::CreateMeshResources()
             material_descs.push_back(desc);
         }
     }
+
+    if (m_scene_joint_matrices.empty())
+    {
+        m_scene_joint_matrices.emplace_back(Math::float4x4::Identity);
+    }
+    m_prev_scene_joint_matrices = m_scene_joint_matrices;
+
     material_description_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(MaterialDesc) * material_descs.size(), nullptr, sizeof(MaterialDesc)});
 
     // material_offset = 0;
+    prev_instance_model_matrices.resize(instance_params.size(), Math::float4x4::Identity);
     u32 primitive_offset = 0;
     for (auto &mesh : scene_meshes)
     {
@@ -158,6 +199,7 @@ void SceneManager::CreateMeshResources()
             for (auto &m : node.mesh_primitives)
             {
                 instance_params[primitive_offset + m].model_matrix = mat;
+                prev_instance_model_matrices[primitive_offset + m] = mat;
             }
         }
         primitive_offset += (u32)mesh->m_mesh_primitives.size();
@@ -170,6 +212,15 @@ void SceneManager::CreateMeshResources()
     instance_parameter_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(InstanceParameters) * instance_params.size(), nullptr, sizeof(InstanceParameters)});
+    prev_instance_model_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(Math::float4x4) * prev_instance_model_matrices.size(), nullptr, sizeof(Math::float4x4)});
+    skin_joint_matrix_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(Math::float4x4) * m_scene_joint_matrices.size(), nullptr, sizeof(Math::float4x4)});
+    prev_skin_joint_matrix_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(Math::float4x4) * m_prev_scene_joint_matrices.size(), nullptr, sizeof(Math::float4x4)});
 
     empty_vertex_buffer = resource_manager->GetEmptyVertexBuffer();
 }
@@ -193,6 +244,12 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
 
     commandlist->UpdateBuffer(instance_parameter_buffer, instance_params.data(),
                               instance_params.size() * sizeof(InstanceParameters));
+    commandlist->UpdateBuffer(prev_instance_model_buffer, prev_instance_model_matrices.data(),
+                              prev_instance_model_matrices.size() * sizeof(Math::float4x4));
+    commandlist->UpdateBuffer(skin_joint_matrix_buffer, m_scene_joint_matrices.data(),
+                              m_scene_joint_matrices.size() * sizeof(Math::float4x4));
+    commandlist->UpdateBuffer(prev_skin_joint_matrix_buffer, m_prev_scene_joint_matrices.data(),
+                              m_prev_scene_joint_matrices.size() * sizeof(Math::float4x4));
 
     // UPLOAD TEXTURES
     std::vector<u32> runtime_gen_mip_tex_indices;
@@ -230,6 +287,82 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
         mip_barrier2.texture_memory_barriers.emplace_back(mip_map_barrier);
     }
     commandlist->InsertBarrier(mip_barrier2);
+}
+
+void SceneManager::UpdateAnimationState()
+{
+    if (prev_instance_model_matrices.size() == instance_params.size())
+    {
+        for (u32 i = 0; i < instance_params.size(); ++i)
+        {
+            prev_instance_model_matrices[i] = instance_params[i].model_matrix;
+        }
+    }
+
+    if (!m_has_animated_mesh)
+    {
+        return;
+    }
+
+    m_prev_scene_joint_matrices = m_scene_joint_matrices;
+
+    const auto now = std::chrono::steady_clock::now();
+    if (!m_animation_time_initialized)
+    {
+        m_last_animation_update_time = now;
+        m_animation_time_initialized = true;
+        return;
+    }
+
+    const f32 delta_time_seconds =
+        std::chrono::duration_cast<std::chrono::duration<f32>>(now - m_last_animation_update_time).count();
+    m_last_animation_update_time = now;
+
+    if (delta_time_seconds <= 0.0f)
+    {
+        return;
+    }
+
+    m_scene_joint_matrices.clear();
+    u32 primitive_offset = 0;
+    for (auto &mesh : scene_meshes)
+    {
+        mesh->UpdateAnimation(delta_time_seconds);
+        const auto &mesh_joint_matrices = mesh->GetJointMatrices();
+        if (!mesh_joint_matrices.empty())
+        {
+            m_scene_joint_matrices.insert(m_scene_joint_matrices.end(), mesh_joint_matrices.begin(),
+                                          mesh_joint_matrices.end());
+        }
+
+        for (auto &node : mesh->GetNodes())
+        {
+            const auto mat = node.GetModelMatrix() * mesh->transform;
+            for (auto &primitive_index : node.mesh_primitives)
+            {
+                instance_params[primitive_offset + primitive_index].model_matrix = mat;
+            }
+        }
+        primitive_offset += static_cast<u32>(mesh->m_mesh_primitives.size());
+    }
+}
+
+void SceneManager::UploadAnimationResources(Backend::CommandList *commandlist)
+{
+    if (!m_has_animated_mesh || !prev_instance_model_buffer || !skin_joint_matrix_buffer || !prev_skin_joint_matrix_buffer ||
+        m_scene_joint_matrices.empty() || m_prev_scene_joint_matrices.empty())
+    {
+        return;
+    }
+
+    commandlist->UpdateBuffer(instance_parameter_buffer, instance_params.data(),
+                              instance_params.size() * sizeof(InstanceParameters));
+    commandlist->UpdateBuffer(prev_instance_model_buffer, prev_instance_model_matrices.data(),
+                              prev_instance_model_matrices.size() * sizeof(Math::float4x4));
+    commandlist->UpdateBuffer(skin_joint_matrix_buffer, m_scene_joint_matrices.data(),
+                              m_scene_joint_matrices.size() * sizeof(Math::float4x4));
+    commandlist->UpdateBuffer(prev_skin_joint_matrix_buffer, m_prev_scene_joint_matrices.data(),
+                              m_prev_scene_joint_matrices.size() * sizeof(Math::float4x4));
 }
 
 // void SceneManager::CreateDecalResources(Backend::RHI *rhi) {

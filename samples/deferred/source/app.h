@@ -59,4 +59,5 @@ class DeferredRenderApp : public Horizon::AppFramework
     bool m_upload_scene_resources{true};
     u32 m_width{};
     u32 m_height{};
+    TAARDGPass::TAAPrevCurrOffset m_taa_prev_curr_offset{};
 };

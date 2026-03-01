@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <filesystem>
 #include <tuple>
 
@@ -36,7 +37,9 @@ struct InstanceParameters
 {
     Math::float4x4 model_matrix;
     u32 material_index;
-    u32 pad[3];
+    u32 joint_offset;
+    u32 joint_count;
+    u32 skinning_enabled;
 };
 
 // struct DecalInstanceParameters {
@@ -78,6 +81,8 @@ class SceneManager
     // void RemoveDecal(Decal *decal);
     void CreateMeshResources();
     void UploadMeshResources(Backend::CommandList *commandlist);
+    void UpdateAnimationState();
+    void UploadAnimationResources(Backend::CommandList *commandlist);
 
     // light
     Light *AddDirectionalLight(const Math::float3 &color, f32 intensity,
@@ -126,9 +131,13 @@ class SceneManager
     std::vector<Buffer *> index_buffers{};
 
     std::vector<InstanceParameters> instance_params{};
+    std::vector<Math::float4x4> prev_instance_model_matrices{};
     std::vector<MaterialDesc> material_descs{};
     std::vector<MeshData> mesh_data;
     Buffer *instance_parameter_buffer{};
+    Buffer *prev_instance_model_buffer{};
+    Buffer *skin_joint_matrix_buffer{};
+    Buffer *prev_skin_joint_matrix_buffer{};
     Buffer *material_description_buffer{};
 
     u32 draw_count{0};
@@ -158,6 +167,13 @@ class SceneManager
     std::vector<Light *> lights{};
     std::vector<LightParams> lights_param_buffer{};
     Buffer *light_buffer{};
+
+  private:
+    std::chrono::steady_clock::time_point m_last_animation_update_time{};
+    bool m_animation_time_initialized{false};
+    bool m_has_animated_mesh{false};
+    std::vector<Math::float4x4> m_scene_joint_matrices{};
+    std::vector<Math::float4x4> m_prev_scene_joint_matrices{};
 };
 
 } // namespace Horizon

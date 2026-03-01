@@ -1,4 +1,5 @@
 #include "resource_upload_pass.h"
+#include "deferred_geometry_rdg_pass.h"
 #include "deferred_shading_rdg_pass.h"
 #include "luminance_histogram_rdg_pass.h"
 #include "post_process_rdg_pass.h"
@@ -41,10 +42,11 @@ void ResourceUploadRDGPass::SetResourceHandles(
     m_adapted_luminance_handle = adapted_luminance;
 }
 
-void ResourceUploadRDGPass::SetPassPointers(DeferredShadingRDGPass *deferred, SSAORDGPass *ssao,
-                                            PostProcessRDGPass *post_process,
+void ResourceUploadRDGPass::SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred,
+                                            SSAORDGPass *ssao, PostProcessRDGPass *post_process,
                                             LuminanceHistogramRDGPass *luminance_histogram, TAARDGPass *taa)
 {
+    m_geometry = geometry;
     m_deferred = deferred;
     m_ssao = ssao;
     m_post_process = post_process;
@@ -78,6 +80,7 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 
 void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
 {
+    (void)builder;
     // Upload textures, vertex/index buffer
     if (m_upload_scene_resources)
     {
@@ -85,6 +88,8 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
         m_scene_manager->UploadMeshResources(cl);
     }
     // Scene data
+    m_scene_manager->UpdateAnimationState();
+    m_scene_manager->UploadAnimationResources(cl);
     m_scene_manager->UploadLightResources(cl);
     m_scene_manager->UploadCameraResources(cl);
 
@@ -117,10 +122,19 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
     }
 
     // TAA data
+    if (m_geometry)
+    {
+        cl->UpdateBuffer(m_geometry->GetTAAPrevCurrOffsetBuffer(), &m_taa_prev_curr_offset,
+                         sizeof(TAARDGPass::TAAPrevCurrOffset));
+    }
     if (m_taa)
     {
-        cl->UpdateBuffer(m_taa->GetTAAPrevCurrOffsetBuffer(), &m_taa_prev_curr_offset,
-                         sizeof(TAARDGPass::TAAPrevCurrOffset));
+        TAARDGPass::TAAConstants taa_constants{};
+        taa_constants.history_valid = (m_first_frame || m_initialize_history) ? 0.0f : 1.0f;
+        taa_constants.static_curr_weight = 0.08f;
+        taa_constants.velocity_scale = 120.0f;
+        taa_constants.velocity_disocclusion_threshold = 0.03f;
+        cl->UpdateBuffer(m_taa->GetTAAConstantsBuffer(), &taa_constants, sizeof(taa_constants));
     }
 
     // Clear buffers

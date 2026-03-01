@@ -20,9 +20,18 @@ TAARDGPass::TAARDGPass(RHI *rhi, u32 width, u32 height)
                           ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, TextureType::TEXTURE_TYPE_2D,
                           TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, m_width, m_height, 1, false});
 
-    m_taa_prev_curr_offset_buffer =
+    m_taa_constants_buffer =
         rhi->CreateBuffer(BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_CONSTANT_BUFFER,
-                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(TAAPrevCurrOffset)});
+                                           ResourceState::RESOURCE_STATE_SHADER_RESOURCE, sizeof(TAAConstants)});
+
+    SamplerDesc sampler_desc{};
+    sampler_desc.min_filter = FilterType::FILTER_LINEAR;
+    sampler_desc.mag_filter = FilterType::FILTER_LINEAR;
+    sampler_desc.mip_map_mode = MipMapMode::MIPMAP_MODE_LINEAR;
+    sampler_desc.address_u = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_desc.address_v = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_desc.address_w = AddressMode::ADDRESS_MODE_CLAMP_TO_EDGE;
+    m_history_sampler = rhi->CreateSampler(sampler_desc);
 
     m_taa_samples = {
         Math::float2(0.500000f, 0.333333f), Math::float2(0.250000f, 0.666667f), Math::float2(0.750000f, 0.111111f),
@@ -41,9 +50,10 @@ TAARDGPass::~TAARDGPass()
 {
     DestroyShader(m_taa_cs);
     DestroyPipeline(m_taa_pipeline);
-    m_rhi->DestroyBuffer(m_taa_prev_curr_offset_buffer);
+    m_rhi->DestroyBuffer(m_taa_constants_buffer);
     m_rhi->DestroyTexture(m_previous_color_texture);
     m_rhi->DestroyTexture(m_output_color_texture);
+    m_rhi->DestroySampler(m_history_sampler);
 }
 
 void TAARDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
@@ -86,6 +96,8 @@ void TAARDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &b
     m_taa_pipeline->SetResource(builder.GetTexture(m_pp_color_handle), "curr_color_tex");
     m_taa_pipeline->SetResource(builder.GetTexture(m_gbuffer4_handle), "mv_tex");
     m_taa_pipeline->SetResource(builder.GetTexture(m_output_color_handle), "out_color_tex");
+    m_taa_pipeline->SetResource(m_taa_constants_buffer, "TAAConstants_cb");
+    m_taa_pipeline->SetResource(m_history_sampler, "history_sampler");
     cl->BindPipeline(m_taa_pipeline);
     cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();

@@ -39,6 +39,10 @@ class DeferredShadingGeometryPass : public Horizon::Backend::RDGPass
     {
         return m_depth_handle;
     }
+    Buffer *GetTAAPrevCurrOffsetBuffer() const
+    {
+        return m_taa_prev_curr_offset_buffer;
+    }
 
   private:
     RHI *m_rhi;
@@ -49,9 +53,11 @@ class DeferredShadingGeometryPass : public Horizon::Backend::RDGPass
     Buffer *m_taa_prev_curr_offset_buffer;
 
     // Pipeline resources (owned by pass, not FrameGraph)
-    Shader *m_geometry_vs;
+    Shader *m_geometry_static_vs;
+    Shader *m_geometry_skinned_vs;
     Shader *m_geometry_ps;
-    Pipeline *m_geometry_pipeline;
+    Pipeline *m_geometry_static_pipeline;
+    Pipeline *m_geometry_skinned_pipeline;
 
     // Render targets (owned by pass)
     RenderTarget *m_gbuffer0_rt;

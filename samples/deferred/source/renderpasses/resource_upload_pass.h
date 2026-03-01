@@ -5,6 +5,7 @@
 #include <render_graph/frame_graph.h>
 
 class DeferredShadingRDGPass;
+class DeferredShadingGeometryPass;
 class SSAORDGPass;
 class PostProcessRDGPass;
 class LuminanceHistogramRDGPass;
@@ -27,8 +28,9 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
                             Horizon::Backend::TextureHandle brdf_lut, Horizon::Backend::TextureHandle prefiltered_env,
                             Horizon::Backend::BufferHandle histogram_buffer,
                             Horizon::Backend::BufferHandle adapted_luminance);
-    void SetPassPointers(DeferredShadingRDGPass *deferred, SSAORDGPass *ssao, PostProcessRDGPass *post_process,
-                         LuminanceHistogramRDGPass *luminance_histogram, TAARDGPass *taa);
+    void SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred, SSAORDGPass *ssao,
+                         PostProcessRDGPass *post_process, LuminanceHistogramRDGPass *luminance_histogram,
+                         TAARDGPass *taa);
     void SetFirstFrame(bool first_frame)
     {
         m_first_frame = first_frame;
@@ -50,6 +52,7 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     [[maybe_unused]] RHI *m_rhi;
     Horizon::SceneManager *m_scene_manager;
 
+    DeferredShadingGeometryPass *m_geometry{nullptr};
     DeferredShadingRDGPass *m_deferred{nullptr};
     SSAORDGPass *m_ssao{nullptr};
     PostProcessRDGPass *m_post_process{nullptr};

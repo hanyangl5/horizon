@@ -22,6 +22,8 @@ struct Vertex
     Math::float3 normal;
     Math::float2 uv0, uv1;
     Math::float3 tangent;
+    Math::float4 joint_indices{};
+    Math::float4 joint_weights{};
 };
 
 using Index = u32;

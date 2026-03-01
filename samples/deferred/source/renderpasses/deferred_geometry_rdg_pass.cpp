@@ -8,92 +8,189 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
       m_height(height)
 {
     // Create shaders and pipeline using base class helper functions
-    m_geometry_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
+    m_geometry_static_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
+    m_geometry_skinned_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_skinned_vs.hlsl", "vs_main_skinned");
     m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
 
-    GraphicsPipelineCreateInfo graphics_pass_ci{};
-    graphics_pass_ci.vertex_input_state.attribute_count = 5;
+    auto setup_common_pipeline_state = [this](GraphicsPipelineCreateInfo &ci) {
+        ci.view_port_state.width = m_width;
+        ci.view_port_state.height = m_height;
 
-    auto &pos = graphics_pass_ci.vertex_input_state.attributes[0];
-    pos.attrib_format = VertexAttribFormat::F32;
-    pos.portion = 3;
-    pos.binding = 0;
-    pos.location = 0;
-    pos.offset = 0;
-    pos.stride = sizeof(Vertex);
-    pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-    pos.semantic_name = "POSITION";
-    pos.semantic_index = 0;
-    auto &normal = graphics_pass_ci.vertex_input_state.attributes[1];
-    normal.attrib_format = VertexAttribFormat::F32;
-    normal.portion = 3;
-    normal.binding = 0;
-    normal.location = 1;
-    normal.stride = sizeof(Vertex);
-    normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-    normal.offset = offsetof(Vertex, normal);
-    normal.semantic_name = "NORMAL";
-    normal.semantic_index = 0;
-    auto &uv0 = graphics_pass_ci.vertex_input_state.attributes[2];
-    uv0.attrib_format = VertexAttribFormat::F32;
-    uv0.portion = 2;
-    uv0.binding = 0;
-    uv0.location = 2;
-    uv0.stride = sizeof(Vertex);
-    uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-    uv0.offset = offsetof(Vertex, uv0);
-    uv0.semantic_name = "TEXCOORD";
-    uv0.semantic_index = 0;
-    auto &uv1 = graphics_pass_ci.vertex_input_state.attributes[3];
-    uv1.attrib_format = VertexAttribFormat::F32;
-    uv1.portion = 2;
-    uv1.binding = 0;
-    uv1.location = 3;
-    uv1.stride = sizeof(Vertex);
-    uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-    uv1.offset = offsetof(Vertex, uv1);
-    uv1.semantic_name = "TEXCOORD";
-    uv1.semantic_index = 1;
+        ci.depth_stencil_state.depth_func = DepthFunc::LESS;
+        ci.depth_stencil_state.depthNear = 0.0f;
+        ci.depth_stencil_state.depthFar = 1.0f;
+        ci.depth_stencil_state.depth_test = true;
+        ci.depth_stencil_state.depth_write = true;
+        ci.depth_stencil_state.stencil_enabled = false;
 
-    auto &tangent = graphics_pass_ci.vertex_input_state.attributes[4];
-    tangent.attrib_format = VertexAttribFormat::F32;
-    tangent.portion = 3;
-    tangent.binding = 0;
-    tangent.location = 4;
-    tangent.stride = sizeof(Vertex);
-    tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
-    tangent.offset = offsetof(Vertex, tangent);
-    tangent.semantic_name = "TANGENT";
-    tangent.semantic_index = 0;
-    graphics_pass_ci.view_port_state.width = m_width;
-    graphics_pass_ci.view_port_state.height = m_height;
+        ci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
+        ci.multi_sample_state.sample_count = 1;
 
-    graphics_pass_ci.depth_stencil_state.depth_func = DepthFunc::LESS;
-    graphics_pass_ci.depth_stencil_state.depthNear = 0.0f;
-    graphics_pass_ci.depth_stencil_state.depthFar = 1.0f;
-    graphics_pass_ci.depth_stencil_state.depth_test = true;
-    graphics_pass_ci.depth_stencil_state.depth_write = true;
-    graphics_pass_ci.depth_stencil_state.stencil_enabled = false;
+        ci.rasterization_state.cull_mode = CullMode::BACK;
+        ci.rasterization_state.discard = false;
+        ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
+        ci.rasterization_state.front_face = FrontFace::CCW;
 
-    graphics_pass_ci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
-    graphics_pass_ci.multi_sample_state.sample_count = 1;
+        ci.render_target_formats.color_attachment_count = 5;
+        ci.render_target_formats.color_attachment_formats = std::vector<TextureFormat>{
+            TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+            TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
+            TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT};
+        ci.render_target_formats.has_depth = true;
+        ci.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
 
-    graphics_pass_ci.rasterization_state.cull_mode = CullMode::BACK;
-    graphics_pass_ci.rasterization_state.discard = false;
-    graphics_pass_ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
-    graphics_pass_ci.rasterization_state.front_face = FrontFace::CCW;
+        ci.shader_program.SetShader(ShaderType::PIXEL_SHADER, m_geometry_ps);
+    };
 
-    graphics_pass_ci.render_target_formats.color_attachment_count = 5;
-    graphics_pass_ci.render_target_formats.color_attachment_formats = std::vector<TextureFormat>{
-        TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-        TextureFormat::TEXTURE_FORMAT_R11G11B10_UFLOAT, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM,
-        TextureFormat::TEXTURE_FORMAT_RG32_SFLOAT};
-    graphics_pass_ci.render_target_formats.has_depth = true;
-    graphics_pass_ci.render_target_formats.depth_stencil_format = TextureFormat::TEXTURE_FORMAT_D32_SFLOAT;
+    {
+        GraphicsPipelineCreateInfo static_ci{};
+        setup_common_pipeline_state(static_ci);
+        static_ci.vertex_input_state.attribute_count = 5;
 
-    graphics_pass_ci.shader_program.SetShader(ShaderType::VERTEX_SHADER, m_geometry_vs);
-    graphics_pass_ci.shader_program.SetShader(ShaderType::PIXEL_SHADER, m_geometry_ps);
-    m_geometry_pipeline = CreateGraphicsPipeline(graphics_pass_ci);
+        auto &pos = static_ci.vertex_input_state.attributes[0];
+        pos.attrib_format = VertexAttribFormat::F32;
+        pos.portion = 3;
+        pos.binding = 0;
+        pos.location = 0;
+        pos.offset = 0;
+        pos.stride = sizeof(Vertex);
+        pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        pos.semantic_name = "POSITION";
+        pos.semantic_index = 0;
+
+        auto &normal = static_ci.vertex_input_state.attributes[1];
+        normal.attrib_format = VertexAttribFormat::F32;
+        normal.portion = 3;
+        normal.binding = 0;
+        normal.location = 1;
+        normal.stride = sizeof(Vertex);
+        normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        normal.offset = offsetof(Vertex, normal);
+        normal.semantic_name = "NORMAL";
+        normal.semantic_index = 0;
+
+        auto &uv0 = static_ci.vertex_input_state.attributes[2];
+        uv0.attrib_format = VertexAttribFormat::F32;
+        uv0.portion = 2;
+        uv0.binding = 0;
+        uv0.location = 2;
+        uv0.stride = sizeof(Vertex);
+        uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        uv0.offset = offsetof(Vertex, uv0);
+        uv0.semantic_name = "TEXCOORD";
+        uv0.semantic_index = 0;
+
+        auto &uv1 = static_ci.vertex_input_state.attributes[3];
+        uv1.attrib_format = VertexAttribFormat::F32;
+        uv1.portion = 2;
+        uv1.binding = 0;
+        uv1.location = 3;
+        uv1.stride = sizeof(Vertex);
+        uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        uv1.offset = offsetof(Vertex, uv1);
+        uv1.semantic_name = "TEXCOORD";
+        uv1.semantic_index = 1;
+
+        auto &tangent = static_ci.vertex_input_state.attributes[4];
+        tangent.attrib_format = VertexAttribFormat::F32;
+        tangent.portion = 3;
+        tangent.binding = 0;
+        tangent.location = 4;
+        tangent.stride = sizeof(Vertex);
+        tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        tangent.offset = offsetof(Vertex, tangent);
+        tangent.semantic_name = "TANGENT";
+        tangent.semantic_index = 0;
+
+        static_ci.shader_program.SetShader(ShaderType::VERTEX_SHADER, m_geometry_static_vs);
+        m_geometry_static_pipeline = CreateGraphicsPipeline(static_ci);
+    }
+
+    {
+        GraphicsPipelineCreateInfo skinned_ci{};
+        setup_common_pipeline_state(skinned_ci);
+        skinned_ci.vertex_input_state.attribute_count = 7;
+
+        auto &pos = skinned_ci.vertex_input_state.attributes[0];
+        pos.attrib_format = VertexAttribFormat::F32;
+        pos.portion = 3;
+        pos.binding = 0;
+        pos.location = 0;
+        pos.offset = 0;
+        pos.stride = sizeof(Vertex);
+        pos.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        pos.semantic_name = "POSITION";
+        pos.semantic_index = 0;
+
+        auto &normal = skinned_ci.vertex_input_state.attributes[1];
+        normal.attrib_format = VertexAttribFormat::F32;
+        normal.portion = 3;
+        normal.binding = 0;
+        normal.location = 1;
+        normal.stride = sizeof(Vertex);
+        normal.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        normal.offset = offsetof(Vertex, normal);
+        normal.semantic_name = "NORMAL";
+        normal.semantic_index = 0;
+
+        auto &uv0 = skinned_ci.vertex_input_state.attributes[2];
+        uv0.attrib_format = VertexAttribFormat::F32;
+        uv0.portion = 2;
+        uv0.binding = 0;
+        uv0.location = 2;
+        uv0.stride = sizeof(Vertex);
+        uv0.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        uv0.offset = offsetof(Vertex, uv0);
+        uv0.semantic_name = "TEXCOORD";
+        uv0.semantic_index = 0;
+
+        auto &uv1 = skinned_ci.vertex_input_state.attributes[3];
+        uv1.attrib_format = VertexAttribFormat::F32;
+        uv1.portion = 2;
+        uv1.binding = 0;
+        uv1.location = 3;
+        uv1.stride = sizeof(Vertex);
+        uv1.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        uv1.offset = offsetof(Vertex, uv1);
+        uv1.semantic_name = "TEXCOORD";
+        uv1.semantic_index = 1;
+
+        auto &tangent = skinned_ci.vertex_input_state.attributes[4];
+        tangent.attrib_format = VertexAttribFormat::F32;
+        tangent.portion = 3;
+        tangent.binding = 0;
+        tangent.location = 4;
+        tangent.stride = sizeof(Vertex);
+        tangent.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        tangent.offset = offsetof(Vertex, tangent);
+        tangent.semantic_name = "TANGENT";
+        tangent.semantic_index = 0;
+
+        auto &joint_indices = skinned_ci.vertex_input_state.attributes[5];
+        joint_indices.attrib_format = VertexAttribFormat::F32;
+        joint_indices.portion = 4;
+        joint_indices.binding = 0;
+        joint_indices.location = 5;
+        joint_indices.stride = sizeof(Vertex);
+        joint_indices.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        joint_indices.offset = offsetof(Vertex, joint_indices);
+        joint_indices.semantic_name = "BLENDINDICES";
+        joint_indices.semantic_index = 0;
+
+        auto &joint_weights = skinned_ci.vertex_input_state.attributes[6];
+        joint_weights.attrib_format = VertexAttribFormat::F32;
+        joint_weights.portion = 4;
+        joint_weights.binding = 0;
+        joint_weights.location = 6;
+        joint_weights.stride = sizeof(Vertex);
+        joint_weights.input_rate = VertexInputRate::VERTEX_ATTRIB_RATE_VERTEX;
+        joint_weights.offset = offsetof(Vertex, joint_weights);
+        joint_weights.semantic_name = "BLENDWEIGHT";
+        joint_weights.semantic_index = 0;
+
+        skinned_ci.shader_program.SetShader(ShaderType::VERTEX_SHADER, m_geometry_skinned_vs);
+        m_geometry_skinned_pipeline = CreateGraphicsPipeline(skinned_ci);
+    }
 
     // Create resizable render targets.
     CreateResizableRenderTarget(m_gbuffer0_rt, RenderTargetCreateInfo{RenderTargetFormat::TEXTURE_FORMAT_RGBA8_UNORM,
@@ -123,9 +220,11 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
 
 DeferredShadingGeometryPass::~DeferredShadingGeometryPass()
 {
-    DestroyShader(m_geometry_vs);
+    DestroyShader(m_geometry_static_vs);
+    DestroyShader(m_geometry_skinned_vs);
     DestroyShader(m_geometry_ps);
-    DestroyPipeline(m_geometry_pipeline);
+    DestroyPipeline(m_geometry_static_pipeline);
+    DestroyPipeline(m_geometry_skinned_pipeline);
     m_rhi->DestroyRenderTarget(m_gbuffer0_rt);
     m_rhi->DestroyRenderTarget(m_gbuffer1_rt);
     m_rhi->DestroyRenderTarget(m_gbuffer2_rt);
@@ -202,35 +301,75 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
     begin_info.depth_stencil.store_op = RenderTargetStoreOp::STORE;
     begin_info.debug_name = "Geometry Pass";
 
-    // Setup resources
-    m_geometry_pipeline->SetResource(m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
-    m_geometry_pipeline->SetResource(m_scene_manager->instance_parameter_buffer, "instance_parameter");
-    m_geometry_pipeline->SetResource(m_scene_manager->material_description_buffer, "material_descriptions");
-    m_geometry_pipeline->SetResource(m_sampler, "default_sampler");
-    m_geometry_pipeline->SetResource(m_taa_prev_curr_offset_buffer, "TAAOffsets_cb");
-
     std::vector<Texture *> material_textures;
     for (auto &tex : m_scene_manager->material_textures)
     {
         material_textures.push_back(tex);
     }
-    m_geometry_pipeline->SetBindlessResource(material_textures, "material_textures");
+
+    auto setup_pipeline_resources = [&](Pipeline *pipeline, bool skinned) {
+        pipeline->SetResource(m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
+        pipeline->SetResource(m_scene_manager->instance_parameter_buffer, "instance_parameter");
+        pipeline->SetResource(m_scene_manager->prev_instance_model_buffer, "prev_instance_model_matrices");
+        if (skinned)
+        {
+            pipeline->SetResource(m_scene_manager->skin_joint_matrix_buffer, "skin_joint_matrices");
+            pipeline->SetResource(m_scene_manager->prev_skin_joint_matrix_buffer, "prev_skin_joint_matrices");
+        }
+        pipeline->SetResource(m_scene_manager->material_description_buffer, "material_descriptions");
+        pipeline->SetResource(m_sampler, "default_sampler");
+        pipeline->SetResource(m_taa_prev_curr_offset_buffer, "TAAOffsets_cb");
+        if (!material_textures.empty())
+        {
+            pipeline->SetBindlessResource(material_textures, "material_textures");
+        }
+    };
+
+    setup_pipeline_resources(m_geometry_static_pipeline, false);
+    setup_pipeline_resources(m_geometry_skinned_pipeline, true);
+
     cl->BeginRenderPass(begin_info);
 
-    cl->BindPipeline(m_geometry_pipeline);
     for (u32 mesh_data = 0; mesh_data < m_scene_manager->mesh_data.size(); mesh_data++)
     {
         auto &mesh = m_scene_manager->mesh_data[mesh_data];
         auto ib = m_scene_manager->index_buffers[mesh.index_buffer_offset];
         auto vb = m_scene_manager->vertex_buffers[mesh.vertex_buffer_offset];
-        u32 offset = 0;
-        cl->BindVertexBuffers(1, &vb, &offset);
-        cl->BindIndexBuffer(ib, 0);
-        // only works for vk
-        cl->BindPushConstant(m_geometry_pipeline, "mesh_draw_offset", &mesh.draw_offset);
-        cl->DrawIndirectIndexedInstanced(m_scene_manager->indirect_draw_command_buffer1,
-                                         sizeof(DX12DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
-                                         sizeof(DX12DrawIndexedInstancedCommand));
+
+        u32 command_index = mesh.draw_offset;
+        const u32 command_end = mesh.draw_offset + mesh.draw_count;
+        while (command_index < command_end)
+        {
+            const auto &first_command = m_scene_manager->scene_indirect_draw_command1[command_index];
+            const bool first_is_skinned =
+                m_scene_manager->instance_params[first_command.mesh_id_offset].skinning_enabled != 0;
+
+            u32 batch_end = command_index + 1;
+            while (batch_end < command_end)
+            {
+                const auto &cmd = m_scene_manager->scene_indirect_draw_command1[batch_end];
+                const bool is_skinned = m_scene_manager->instance_params[cmd.mesh_id_offset].skinning_enabled != 0;
+                if (is_skinned != first_is_skinned)
+                {
+                    break;
+                }
+                ++batch_end;
+            }
+
+            Pipeline *pipeline = first_is_skinned ? m_geometry_skinned_pipeline : m_geometry_static_pipeline;
+            cl->BindPipeline(pipeline);
+            u32 offset = 0;
+            cl->BindVertexBuffers(1, &vb, &offset);
+            cl->BindIndexBuffer(ib, 0);
+
+            u32 mesh_id_offset = first_command.mesh_id_offset;
+            cl->BindPushConstant(pipeline, "mesh_draw_offset", &mesh_id_offset);
+            cl->DrawIndirectIndexedInstanced(
+                m_scene_manager->indirect_draw_command_buffer1, sizeof(DX12DrawIndexedInstancedCommand) * command_index,
+                batch_end - command_index, sizeof(DX12DrawIndexedInstancedCommand));
+
+            command_index = batch_end;
+        }
     }
 
     cl->EndRenderPass();

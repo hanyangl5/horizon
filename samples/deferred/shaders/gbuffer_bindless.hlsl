@@ -10,7 +10,7 @@ struct CameraParamsUb {
     float4 camera_position;
 };
 #ifdef SPIRV
-ConstantBuffer<CameraParamsUb> CameraParamsUb_cb;
+[[vk::binding(0, 0)]] ConstantBuffer<CameraParamsUb> CameraParamsUb_cb;
 #else
 ConstantBuffer<CameraParamsUb> CameraParamsUb_cb : register(b0);
 #endif
@@ -30,12 +30,16 @@ ConstantBuffer<DrawConstants> mesh_draw_offset : register(b1);
 struct InstanceParameter {
     float4x4 model_matrix;
     uint material_id;
-    uint3 _padding;
+    uint joint_offset;
+    uint joint_count;
+    uint skinning_enabled;
 };
 #ifdef SPIRV
-StructuredBuffer<InstanceParameter> instance_parameter;
+[[vk::binding(1, 0)]] StructuredBuffer<InstanceParameter> instance_parameter;
+[[vk::binding(5, 0)]] StructuredBuffer<float4x4> prev_instance_model_matrices;
 #else
 StructuredBuffer<InstanceParameter> instance_parameter : register(t0);
+StructuredBuffer<float4x4> prev_instance_model_matrices : register(t4);
 #endif
 
 struct VSInput {
@@ -73,17 +77,23 @@ VSOutput vs_main(VSInput vsin, uint InstanceID : SV_InstanceID, uint vertex_id :
     #else
     uint mesh_id = mesh_draw_offset.mesh_id_offset;
     #endif
-    float4x4 model = instance_parameter[mesh_id].model_matrix;
+    InstanceParameter instance_param = instance_parameter[mesh_id];
+    float4x4 model = instance_param.model_matrix;
+    float4x4 prev_model = prev_instance_model_matrices[mesh_id];
+
+    float4 local_pos = float4(vsin.position, 1.0);
+    float3 local_normal = vsin.normal;
+    float3 local_tangent = vsin.tangent;
 
     vsout.position = mul(CameraParamsUb_cb.vp, mul(model, float4(vsin.position, 1.0)));
     //vsout.world_pos = mul(model, float4(vsin.position, 1.0)).xyz;
-    vsout.normal = normalize(mul(model, float4(vsin.normal, 0.0)).xyz);
+    vsout.normal = normalize(mul(model, float4(local_normal, 0.0)).xyz);
     vsout.uv = vsin.uv0;
-    vsout.tangent = normalize(mul(model, float4(vsin.tangent, 0.0)).xyz);
+    vsout.tangent = normalize(mul(model, float4(local_tangent, 0.0)).xyz);
     vsout.instance_id = InstanceID;
-    vsout.material_id = instance_parameter[mesh_id].material_id;
-    vsout.prev_pos = mul(CameraParamsUb_cb.prev_vp, mul(model, float4(vsin.position, 1.0)));
-    vsout.curr_pos = mul(CameraParamsUb_cb.vp, mul(model, float4(vsin.position, 1.0)));
+    vsout.material_id = instance_param.material_id;
+    vsout.prev_pos = mul(CameraParamsUb_cb.prev_vp, mul(prev_model, local_pos));
+    vsout.curr_pos = mul(CameraParamsUb_cb.vp, mul(model, local_pos));
     return vsout;
 }
 
@@ -113,20 +123,20 @@ Texture2D<float4> material_textures[] : register(t1, space1);
 
 #ifdef SPIRV
 // Per-frame resources in set 0
-StructuredBuffer<MaterialDescription> material_descriptions;
+[[vk::binding(2, 0)]] StructuredBuffer<MaterialDescription> material_descriptions;
 #else
 StructuredBuffer<MaterialDescription> material_descriptions : register(t2);
 #endif
 
 #ifdef SPIRV
-SamplerState default_sampler;
+[[vk::binding(3, 0)]] SamplerState default_sampler;
 #else
 SamplerState default_sampler : register(s0);
 #endif
 
 struct TAAOffsets { float4 taa_prev_curr_offset; };
 #ifdef SPIRV
-ConstantBuffer<TAAOffsets> TAAOffsets_cb;
+[[vk::binding(4, 0)]] ConstantBuffer<TAAOffsets> TAAOffsets_cb;
 #else
 ConstantBuffer<TAAOffsets> TAAOffsets_cb : register(b2);
 #endif

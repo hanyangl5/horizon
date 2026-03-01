@@ -8,7 +8,7 @@ Horizon::Path shader_dir = SHADER_DIR;
 
 DeferredRenderApp::DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
 {
-    SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_DX12);
+    SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_VULKAN);
 }
 
 void DeferredRenderApp::Initialize()
@@ -140,16 +140,32 @@ void DeferredRenderApp::UpdatePipelineResources()
     f32 offset_x = (jitter_offset.x - 0.5f) / m_width;
     f32 offset_y = (jitter_offset.y - 0.5f) / m_height;
 
-    TAARDGPass::TAAPrevCurrOffset taa_offset{};
-    taa_offset.prev_offset = taa_offset.curr_offset; // This will be updated properly in resource upload
-    taa_offset.curr_offset = Math::float2{offset_x, offset_y};
+    Math::float2 curr_offset{offset_x, offset_y};
+    if (m_first_frame || m_reset_history)
+    {
+        // Force zero relative jitter on history reset.
+        m_taa_prev_curr_offset.prev_offset = curr_offset;
+    }
+    else
+    {
+        m_taa_prev_curr_offset.prev_offset = m_taa_prev_curr_offset.curr_offset;
+    }
+    m_taa_prev_curr_offset.curr_offset = curr_offset;
+
     proj._13 += offset_x;
     proj._23 += offset_y;
 
     auto vp = view * proj;
     auto inverse_vp = vp.Invert();
 
-    scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
+    if (m_first_frame || m_reset_history)
+    {
+        scene->m_scene_manager->camera_ub.prev_vp = vp;
+    }
+    else
+    {
+        scene->m_scene_manager->camera_ub.prev_vp = scene->m_scene_manager->camera_ub.vp;
+    }
     scene->m_scene_manager->camera_ub.vp = vp;
     scene->m_scene_manager->camera_ub.camera_pos = cam->GetPosition();
     scene->m_scene_manager->camera_ub.ev100 = cam->GetEv100();
@@ -187,16 +203,17 @@ void DeferredRenderApp::RenderLoop()
     // Reset FrameGraph for new frame
     frame_graph->Reset();
 
-    // Import resources into FrameGraph using pass methods
-    geometry_pass->ImportResources(frame_graph.get());
-    deferred_shading_pass->ImportResources(frame_graph.get());
-    ssao_pass->ImportResources(frame_graph.get());
-    ssao_blur_pass->ImportResources(frame_graph.get());
-    post_process_pass->ImportResources(frame_graph.get());
-    luminance_histogram_pass->ImportResources(frame_graph.get());
-    luminance_average_pass->ImportResources(frame_graph.get());
-    taa_pass->ImportResources(frame_graph.get());
-    resource_upload_pass->ImportResources(frame_graph.get());
+    // Add passes to FrameGraph using RDGPass.
+    // FrameGraph will call RDGPass::ImportResources() when adding each pass.
+    frame_graph->AddPass(resource_upload_pass.get());
+    frame_graph->AddPass(geometry_pass.get());
+    frame_graph->AddPass(ssao_pass.get());
+    frame_graph->AddPass(ssao_blur_pass.get());
+    frame_graph->AddPass(deferred_shading_pass.get());
+    frame_graph->AddPass(luminance_histogram_pass.get());
+    frame_graph->AddPass(luminance_average_pass.get());
+    frame_graph->AddPass(post_process_pass.get());
+    frame_graph->AddPass(taa_pass.get());
 
     // Get resource handles from passes
     auto gbuffer0_handle = geometry_pass->GetGBuffer0Handle();
@@ -234,48 +251,23 @@ void DeferredRenderApp::RenderLoop()
                                              ssao_blur_handle, output_color_handle, previous_color_handle,
                                              ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
                                              histogram_buffer_handle, adapted_luminance_handle);
-    resource_upload_pass->SetPassPointers(deferred_shading_pass.get(), ssao_pass.get(), post_process_pass.get(),
-                                          luminance_histogram_pass.get(), taa_pass.get());
+    resource_upload_pass->SetPassPointers(geometry_pass.get(), deferred_shading_pass.get(), ssao_pass.get(),
+                                          post_process_pass.get(), luminance_histogram_pass.get(), taa_pass.get());
     resource_upload_pass->SetFirstFrame(m_first_frame);
     resource_upload_pass->SetUploadSceneResources(m_upload_scene_resources);
     resource_upload_pass->SetInitializeHistory(m_reset_history);
 
-    // Update TAA offset (this should be done in UpdatePipelineResources, but we set it here for resource upload)
-    static TAARDGPass::TAAPrevCurrOffset taa_prev_offset{};
-    if (m_first_frame || m_reset_history)
-    {
-        taa_prev_offset = {};
-    }
-    TAARDGPass::TAAPrevCurrOffset taa_offset{};
-    taa_offset.prev_offset = taa_prev_offset.curr_offset;
-    auto cam = scene->scene_camera;
-    auto &jitter_offset = taa_pass->GetJitterOffset();
-    f32 offset_x = (jitter_offset.x - 0.5f) / m_width;
-    f32 offset_y = (jitter_offset.y - 0.5f) / m_height;
-    taa_offset.curr_offset = Math::float2{offset_x, offset_y};
-    taa_prev_offset = taa_offset;
-    resource_upload_pass->SetTAAPrevCurrOffset(taa_offset);
+    resource_upload_pass->SetTAAPrevCurrOffset(m_taa_prev_curr_offset);
 
     auto swapchain_handle = frame_graph->ImportTexture("swapchain" + std::to_string(swap_chain->current_frame_index),
                                                        swap_chain->GetRenderTarget()->GetTexture());
-
-    // Add passes to FrameGraph using RDGPass
-    frame_graph->AddPass(resource_upload_pass.get());
-    frame_graph->AddPass(geometry_pass.get());
-    frame_graph->AddPass(ssao_pass.get());
-    frame_graph->AddPass(ssao_blur_pass.get());
-    frame_graph->AddPass(deferred_shading_pass.get());
-    frame_graph->AddPass(luminance_histogram_pass.get());
-    frame_graph->AddPass(luminance_average_pass.get());
-    frame_graph->AddPass(post_process_pass.get());
-    frame_graph->AddPass(taa_pass.get());
 
     // Copy to Swapchain Pass
     frame_graph->AddPass(
         "Copy to Swapchain",
         // Setup: Declare resource states
         [output_color_handle, swapchain_handle, previous_color_handle](Horizon::Backend::FrameGraphBuilder &builder) {
-            // Source needs to be COPY_SOURCE for CopyTexture
+            // Source needs to be COPY_SOURCE for CopyTexture.
             builder.ReadTexture(output_color_handle, ResourceState::RESOURCE_STATE_COPY_SOURCE);
             builder.WriteTexture(swapchain_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
             builder.WriteTexture(previous_color_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
@@ -283,7 +275,7 @@ void DeferredRenderApp::RenderLoop()
         // Execute: Copy textures
         [output_color_handle, swapchain_handle, previous_color_handle](CommandList *cl,
                                                                        Horizon::Backend::FrameGraphBuilder &builder) {
-            // Copy to swapchain and previous frame
+            // Copy to swapchain and previous frame.
             cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(swapchain_handle));
             cl->CopyTexture(builder.GetTexture(output_color_handle), builder.GetTexture(previous_color_handle));
 

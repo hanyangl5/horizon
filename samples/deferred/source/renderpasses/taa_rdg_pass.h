@@ -10,6 +10,13 @@ class TAARDGPass : public Horizon::Backend::RDGPass
         Math::float2 prev_offset;
         Math::float2 curr_offset;
     };
+    struct TAAConstants
+    {
+        f32 history_valid = 0.0f;
+        f32 static_curr_weight = 0.08f;
+        f32 velocity_scale = 120.0f;
+        f32 velocity_disocclusion_threshold = 0.03f;
+    };
 
   public:
     TAARDGPass(RHI *rhi, u32 width, u32 height);
@@ -22,9 +29,9 @@ class TAARDGPass : public Horizon::Backend::RDGPass
     void SetInputHandles(Horizon::Backend::TextureHandle previous_color, Horizon::Backend::TextureHandle pp_color,
                          Horizon::Backend::TextureHandle gbuffer4);
     const Math::float2 &GetJitterOffset() noexcept;
-    Buffer *GetTAAPrevCurrOffsetBuffer() const
+    Buffer *GetTAAConstantsBuffer() const
     {
-        return m_taa_prev_curr_offset_buffer;
+        return m_taa_constants_buffer;
     }
     void UpdateTAAPrevCurrOffset(const void *data, u32 size);
     Horizon::Backend::TextureHandle GetOutputColorHandle() const
@@ -46,13 +53,13 @@ class TAARDGPass : public Horizon::Backend::RDGPass
 
     Texture *m_previous_color_texture;
     Texture *m_output_color_texture;
+    Sampler *m_history_sampler;
 
     static constexpr u32 TAA_SAMPLE_COUNT = 16;
     std::array<Math::float2, TAA_SAMPLE_COUNT> m_taa_samples;
     u32 m_taa_sample_index = 0;
 
-    TAAPrevCurrOffset m_taa_prev_curr_offset;
-    Buffer *m_taa_prev_curr_offset_buffer;
+    Buffer *m_taa_constants_buffer;
 
     Horizon::Backend::TextureHandle m_previous_color_handle;
     Horizon::Backend::TextureHandle m_pp_color_handle;

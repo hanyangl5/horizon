@@ -105,6 +105,15 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, c
         return;
     }
 
+    if (resource.empty())
+    {
+        // Vulkan forbids descriptorCount == 0 in VkWriteDescriptorSet.
+        // Keep previous descriptors untouched when caller has no bindless resources.
+        m_pending_writes.erase(resource_name);
+        bindless_buffer_descriptors.erase(resource_name);
+        return;
+    }
+
     auto &buffer_descriptors = bindless_buffer_descriptors[resource_name];
     buffer_descriptors.clear();
     buffer_descriptors.reserve(resource.size());
@@ -137,6 +146,15 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
     if (res == write_descs.end())
     {
         LOG_ERROR("resource {} is not declared in this descriptorset", resource_name);
+        return;
+    }
+
+    if (resource.empty())
+    {
+        // Vulkan forbids descriptorCount == 0 in VkWriteDescriptorSet.
+        // Keep previous descriptors untouched when caller has no bindless resources.
+        m_pending_writes.erase(resource_name);
+        bindless_image_descriptors.erase(resource_name);
         return;
     }
 
