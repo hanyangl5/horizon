@@ -38,7 +38,7 @@ void SSAOBlurRDGPass::SetInputHandle(Horizon::Backend::TextureHandle ssao_factor
 
 void SSAOBlurRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
-    builder.ReadTexture(m_ssao_factor_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(m_ssao_factor_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteTexture(m_ssao_blur_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 }
 

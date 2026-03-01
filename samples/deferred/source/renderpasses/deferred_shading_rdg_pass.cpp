@@ -143,7 +143,7 @@ void DeferredShadingRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
     builder.ReadTexture(m_gbuffer2_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_gbuffer3_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_depth_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
-    builder.ReadTexture(m_ssao_blur_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(m_ssao_blur_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_brdf_lut_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_prefiltered_env_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteTexture(m_shading_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);

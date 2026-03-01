@@ -971,7 +971,8 @@ void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &crea
     // Rasterizer state
     pso_desc.RasterizerState.FillMode = Horizon::ToDX12FillMode(ci->rasterization_state.fill_mode);
     pso_desc.RasterizerState.CullMode = Horizon::ToDX12CullMode(ci->rasterization_state.cull_mode);
-    pso_desc.RasterizerState.FrontCounterClockwise = FALSE;
+    pso_desc.RasterizerState.FrontCounterClockwise =
+        (ci->rasterization_state.front_face == FrontFace::CCW) ? TRUE : FALSE;
     pso_desc.RasterizerState.DepthBias = 0;
     pso_desc.RasterizerState.DepthBiasClamp = 0.0f;
     pso_desc.RasterizerState.SlopeScaledDepthBias = 0.0f;

@@ -68,7 +68,7 @@ void SceneManager::CreateMeshResources()
         for (auto &primitive : mesh->m_mesh_primitives)
         {
             DX12DrawIndexedInstancedCommand command{};
-            command.mesh_id_offset = static_cast<u32>(instance_params.size());
+            command.mesh_id_offset = static_cast<u32>(instance_params.size()) + mesh.draw_offset;
             command.draw.index_count = primitive.index_count;
             command.draw.first_index = primitive.index_offset;
             command.draw.vertex_offset = 0;

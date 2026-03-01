@@ -31,6 +31,7 @@ Buffer *ResourceManager::GetEmptyVertexBuffer()
         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
         empty_vertex_buffer = mRhi->CreateBuffer(vertex_buffer_create_info);
+        allocated_buffers.emplace(empty_vertex_buffer);
     }
     return empty_vertex_buffer;
 }

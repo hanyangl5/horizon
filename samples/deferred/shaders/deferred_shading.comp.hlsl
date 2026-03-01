@@ -29,7 +29,7 @@ struct LightDataUb { LightParams light_data[MAX_DYNAMIC_LIGHT_COUNT]; };
 ConstantBuffer<LightDataUb> LightDataUb_cb;
 
 [[vk::image_format("r11g11b10f")]] RWTexture2D<float4> out_color;
-[[vk::image_format("r8")]] RWTexture2D<float4> ao_tex;
+Texture2D<float4> ao_tex;
 
 ConstantBuffer<DiffuseIrradianceSH3> DiffuseIrradianceSH3_cb;
 
@@ -85,7 +85,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float2 ibl_uv = float2(roughness, NoV);
     float2 env = specular_brdf_lut.SampleLevel(ibl_sampler, ibl_uv,0).xy;
     float3 ambient = IBL(DiffuseIrradianceSH3_cb, specular, env, n, NoV, mat) *
-        ao_tex.Load(threadID.xy).r * DeferredShadingConstants_cb.ibl_intensity.x;
+        ao_tex.Load(loadCoord).r * DeferredShadingConstants_cb.ibl_intensity.x;
     radiance.xyz += ambient;
 
     out_color[threadID.xy] = radiance;

@@ -23,8 +23,6 @@ jobs:
             os: ubuntu-latest
           - preset: msvcwin64
             os: windows-2022
-          - preset: clangwin64
-            os: windows-2022
 
     steps:
       - uses: actions/checkout@v4
@@ -72,19 +70,6 @@ jobs:
           $sdkPath = "C:\VulkanSDK\${ver}"
           echo "VULKAN_SDK=$sdkPath"          >> $env:GITHUB_ENV
           echo "${sdkPath}\Bin"               >> $env:GITHUB_PATH
-
-      - name: Setup MSVC Developer Environment
-        if: matrix.preset == 'clangwin64'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Set Clang compiler (clangwin64)
-        if: matrix.preset == 'clangwin64'
-        shell: pwsh
-        run: |
-          echo "CC=clang-cl"  >> $env:GITHUB_ENV
-          echo "CXX=clang-cl" >> $env:GITHUB_ENV
 
       # ============================================================
       # Configure & Build

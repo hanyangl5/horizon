@@ -172,6 +172,7 @@ void DeferredShadingGeometryPass::Setup(Horizon::Backend::FrameGraphBuilder &bui
 
 void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
 {
+
     RenderPassBeginInfo begin_info{};
     begin_info.render_target_count = 5;
     begin_info.render_area = Rect{0, 0, m_width, m_height};
@@ -225,6 +226,8 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
         u32 offset = 0;
         cl->BindVertexBuffers(1, &vb, &offset);
         cl->BindIndexBuffer(ib, 0);
+        // only works for vk
+        cl->BindPushConstant(m_geometry_pipeline, "mesh_draw_offset", &mesh.draw_offset);
         cl->DrawIndirectIndexedInstanced(m_scene_manager->indirect_draw_command_buffer1,
                                          sizeof(DX12DrawIndexedInstancedCommand) * mesh.draw_offset, mesh.draw_count,
                                          sizeof(DX12DrawIndexedInstancedCommand));

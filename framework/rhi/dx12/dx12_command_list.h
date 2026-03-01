@@ -12,6 +12,8 @@
 namespace Horizon::Backend
 {
 
+void ShutdownDX12CommandListGlobals() noexcept;
+
 class DX12DescriptorHeapAllocator;
 
 class DX12CommandList : public CommandList

@@ -99,6 +99,15 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
 
 DX12SwapChain::~DX12SwapChain() noexcept
 {
+    for (auto *render_target : render_targets)
+    {
+        if (render_target != nullptr)
+        {
+            Memory::Free(render_target);
+        }
+    }
+    render_targets.clear();
+
     // Microsoft::WRL::ComPtr will automatically release the swap chain and back buffers
 }
 

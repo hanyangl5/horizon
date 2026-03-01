@@ -54,6 +54,10 @@ RHIDX12::~RHIDX12() noexcept
         WaitForGPU(static_cast<CommandQueueType>(i));
     }
 
+    // Release process-lifetime DX12 helpers (e.g. runtime mip-gen PSO/root signature)
+    // before destroying the device to avoid false-positive live-object reports on exit.
+    ShutdownDX12CommandListGlobals();
+
     // Cleanup DXC compiler
     DX12ShaderCompiler::CleanupDXC();
 

@@ -174,6 +174,13 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 }
 } // namespace
 
+void ShutdownDX12CommandListGlobals() noexcept
+{
+    g_dx12_mip_gen_program.pipeline_state.Reset();
+    g_dx12_mip_gen_program.root_signature.Reset();
+    g_dx12_mip_gen_program.initialized = false;
+}
+
 DX12CommandList::DX12CommandList(const DX12RendererContext &context, CommandQueueType type,
                                  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list,
                                  Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator,
@@ -359,9 +366,10 @@ void DX12CommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
         dsv_handle = dx12_rt->GetDSVHandle();
     }
 
-    if (!rtv_handles.empty())
+    if (!rtv_handles.empty() || dsv_handle.ptr != 0)
     {
-        m_command_list->OMSetRenderTargets(static_cast<UINT>(rtv_handles.size()), rtv_handles.data(), FALSE,
+        m_command_list->OMSetRenderTargets(static_cast<UINT>(rtv_handles.size()),
+                                           rtv_handles.empty() ? nullptr : rtv_handles.data(), FALSE,
                                            dsv_handle.ptr != 0 ? &dsv_handle : nullptr);
     }
 
@@ -379,9 +387,16 @@ void DX12CommandList::BeginRenderPass(const RenderPassBeginInfo &begin_info)
 
     if (begin_info.depth_stencil.data != nullptr && begin_info.depth_stencil.load_op == RenderTargetLoadOp::CLEAR)
     {
+        auto dx12_depth_rt = reinterpret_cast<DX12RenderTarget *>(begin_info.depth_stencil.data);
+        D3D12_CLEAR_FLAGS clear_flags = D3D12_CLEAR_FLAG_DEPTH;
+        if (dx12_depth_rt->GetTexture() != nullptr &&
+            dx12_depth_rt->GetTexture()->m_format != TextureFormat::TEXTURE_FORMAT_D32_SFLOAT)
+        {
+            clear_flags = static_cast<D3D12_CLEAR_FLAGS>(clear_flags | D3D12_CLEAR_FLAG_STENCIL);
+        }
         auto clear_value = std::get<ClearValueDepthStencil>(begin_info.depth_stencil.clear_color);
-        m_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                                              clear_value.depth, static_cast<UINT8>(clear_value.stencil), 0, nullptr);
+        m_command_list->ClearDepthStencilView(dsv_handle, clear_flags, clear_value.depth,
+                                              static_cast<UINT8>(clear_value.stencil), 0, nullptr);
     }
 
     // Set viewport and scissor
@@ -927,40 +942,42 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
 
 void DX12CommandList::BindPushConstant(Pipeline *pipeline, const std::string &name, void *data)
 {
-    if (!m_is_recording)
-    {
-        LOG_ERROR("Command list is not recording");
-        return;
-    }
+    // already set by indirect root constant
+    return;
+    // if (!m_is_recording)
+    // {
+    //     LOG_ERROR("Command list is not recording");
+    //     return;
+    // }
 
-    auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(pipeline);
-    const auto &push_constants = dx12_pipeline->GetRootSignatureDesc().push_constants;
-    auto pc_it = push_constants.find(name);
-    if (pc_it == push_constants.end())
-    {
-        LOG_ERROR("Pipeline doesn't have push constant '{}'", name);
-        return;
-    }
+    // auto dx12_pipeline = reinterpret_cast<DX12Pipeline *>(pipeline);
+    // const auto &push_constants = dx12_pipeline->GetRootSignatureDesc().push_constants;
+    // auto pc_it = push_constants.find(name);
+    // if (pc_it == push_constants.end())
+    // {
+    //     LOG_ERROR("Pipeline doesn't have push constant '{}'", name);
+    //     return;
+    // }
 
-    auto root_idx_it = dx12_pipeline->m_push_constant_root_parameter_indices.find(name);
-    if (root_idx_it == dx12_pipeline->m_push_constant_root_parameter_indices.end())
-    {
-        LOG_ERROR("No root parameter index found for push constant '{}'", name);
-        return;
-    }
+    // auto root_idx_it = dx12_pipeline->m_push_constant_root_parameter_indices.find(name);
+    // if (root_idx_it == dx12_pipeline->m_push_constant_root_parameter_indices.end())
+    // {
+    //     LOG_ERROR("No root parameter index found for push constant '{}'", name);
+    //     return;
+    // }
 
-    u32 root_param_index = root_idx_it->second;
-    u32 num_32bit_values = (pc_it->second.size + 3) / 4;
-    u32 dest_offset_32bit = pc_it->second.offset / 4;
+    // u32 root_param_index = root_idx_it->second;
+    // u32 num_32bit_values = (pc_it->second.size + 3) / 4;
+    // u32 dest_offset_32bit = pc_it->second.offset / 4;
 
-    if (pipeline->GetType() == PipelineType::GRAPHICS)
-    {
-        m_command_list->SetGraphicsRoot32BitConstants(root_param_index, num_32bit_values, data, dest_offset_32bit);
-    }
-    else if (pipeline->GetType() == PipelineType::COMPUTE)
-    {
-        m_command_list->SetComputeRoot32BitConstants(root_param_index, num_32bit_values, data, dest_offset_32bit);
-    }
+    // if (pipeline->GetType() == PipelineType::GRAPHICS)
+    // {
+    //     m_command_list->SetGraphicsRoot32BitConstants(root_param_index, num_32bit_values, data, dest_offset_32bit);
+    // }
+    // else if (pipeline->GetType() == PipelineType::COMPUTE)
+    // {
+    //     m_command_list->SetComputeRoot32BitConstants(root_param_index, num_32bit_values, data, dest_offset_32bit);
+    // }
 }
 
 void DX12CommandList::ClearBuffer(Buffer *buffer, f32 clear_value)

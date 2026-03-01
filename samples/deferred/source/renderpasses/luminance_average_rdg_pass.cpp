@@ -35,7 +35,7 @@ void LuminanceAverageRDGPass::SetLuminanceHistogramPass(LuminanceHistogramRDGPas
 
 void LuminanceAverageRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
-    builder.ReadBuffer(m_histogram_buffer_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadBuffer(m_histogram_buffer_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteBuffer(m_adapted_luminance_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 }
 

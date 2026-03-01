@@ -3,7 +3,7 @@
 
 // Set 0: Per-frame resources
 //[[vk::binding(0, 0)]] RWTexture2D<float4> color_image;
-RWStructuredBuffer<uint> histogram;
+StructuredBuffer<uint> histogram;
 RWStructuredBuffer<float> adaptedLuminance;
 
 struct LuminanceHistogramConstants {

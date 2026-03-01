@@ -2,7 +2,7 @@
 #include "include/postprocess/histogram.h"
 
 // Set 0: Per-frame resources
-[[vk::image_format("r11g11b10f")]] RWTexture2D<float4> color_image;
+Texture2D<float4> color_image;
 RWStructuredBuffer<uint> histogram;
 // adaptedLuminance is only used in LuminanceAverageRDGPass, not here
 
@@ -23,7 +23,7 @@ void main(uint3 threadID : SV_DispatchThreadID, uint localIndex : SV_GroupIndex)
     GroupMemoryBarrierWithGroupSync();
 
     if (threadID.x < LuminanceHistogramConstants_cb.resolution.x && threadID.y < LuminanceHistogramConstants_cb.resolution.y) {
-        float3 color = color_image[threadID.xy].xyz;
+        float3 color = color_image.Load(int3(threadID.xy, 0)).xyz;
         uint binIndex = HDRToHistogramBin(color, LuminanceHistogramConstants_cb.maxLuminance);
         InterlockedAdd(histogramShared[binIndex], 1);
     }

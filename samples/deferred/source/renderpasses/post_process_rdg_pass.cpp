@@ -50,8 +50,8 @@ void PostProcessRDGPass::UpdateConstants(const void *data, u32 size)
 
 void PostProcessRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
-    builder.ReadTexture(m_shading_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-    builder.ReadBuffer(m_adapted_luminance_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.ReadTexture(m_shading_color_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadBuffer(m_adapted_luminance_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteTexture(m_pp_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 }
 
