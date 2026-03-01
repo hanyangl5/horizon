@@ -1,6 +1,5 @@
 #include "frame_graph.h"
 
-#include <algorithm>
 #include <core/log.h>
 #include <rhi/resource_barrier.h>
 #include <unordered_set>
@@ -140,6 +139,41 @@ FrameGraph::FrameGraph(RHI *rhi) : m_rhi(rhi)
 FrameGraph::~FrameGraph()
 {
     Reset();
+
+    // Destroy managed resources that persist across frames.
+    for (auto &tex : m_textures)
+    {
+        if (!tex.is_imported && tex.actual_texture != nullptr)
+        {
+            m_rhi->DestroyTexture(tex.actual_texture);
+            tex.actual_texture = nullptr;
+        }
+    }
+
+    for (auto &buf : m_buffers)
+    {
+        if (!buf.is_imported && buf.actual_buffer != nullptr)
+        {
+            m_rhi->DestroyBuffer(buf.actual_buffer);
+            buf.actual_buffer = nullptr;
+        }
+    }
+
+    for (auto &rt : m_render_targets)
+    {
+        if (!rt.is_imported && rt.actual_render_target != nullptr)
+        {
+            m_rhi->DestroyRenderTarget(rt.actual_render_target);
+            rt.actual_render_target = nullptr;
+        }
+    }
+
+    m_textures.clear();
+    m_buffers.clear();
+    m_render_targets.clear();
+    m_texture_name_map.clear();
+    m_buffer_name_map.clear();
+    m_render_target_name_map.clear();
 }
 
 FrameGraphBuilder FrameGraph::AddPass(const std::string &name, PassSetupCallback setup_callback,
@@ -162,6 +196,9 @@ FrameGraphBuilder FrameGraph::AddPass(RDGPass *pass)
         return FrameGraphBuilder(this, nullptr);
     }
 
+    // Let FrameGraph own import timing so app code does not call ImportResources manually.
+    pass->ImportResources(this);
+
     PassNode pass_node;
     pass_node.name = pass->GetName();
     pass_node.rdg_pass = pass;
@@ -183,12 +220,67 @@ void FrameGraph::Compile()
         m_execution_order.push_back(i);
     }
 
-    // Create transient and managed resources
+    // Setup phase: execute all pass setup callbacks.
+    for (u32 pass_idx : m_execution_order)
+    {
+        auto &pass = m_passes[pass_idx];
+        FrameGraphBuilder builder(this, &pass);
+
+        if (pass.rdg_pass)
+        {
+            pass.rdg_pass->Setup(builder);
+        }
+        else if (pass.setup_callback)
+        {
+            pass.setup_callback(builder);
+        }
+    }
+
+    // Create transient and managed resources after setup declarations.
+    // Only create transient resources that are referenced by current frame passes.
+    auto is_texture_used_by_passes = [this](u32 texture_index) {
+        for (const auto &pass : m_passes)
+        {
+            if (pass.texture_usages.find(texture_index) != pass.texture_usages.end())
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto is_buffer_used_by_passes = [this](u32 buffer_index) {
+        for (const auto &pass : m_passes)
+        {
+            if (pass.buffer_usages.find(buffer_index) != pass.buffer_usages.end())
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto is_render_target_used_by_passes = [this](u32 render_target_index) {
+        for (const auto &pass : m_passes)
+        {
+            for (auto rt_handle : pass.render_targets)
+            {
+                if (rt_handle.index == render_target_index)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
     for (auto &tex : m_textures)
     {
         if (tex.actual_texture == nullptr)
         {
-            if ((tex.is_transient || tex.is_managed) && !tex.is_imported)
+            const u32 texture_index = static_cast<u32>(&tex - m_textures.data());
+            const bool should_create_transient = tex.is_transient && is_texture_used_by_passes(texture_index);
+            if (((should_create_transient || tex.is_managed) && !tex.is_imported))
             {
                 tex.actual_texture = m_rhi->CreateTexture(tex.create_info);
             }
@@ -199,7 +291,9 @@ void FrameGraph::Compile()
     {
         if (buf.actual_buffer == nullptr)
         {
-            if ((buf.is_transient || buf.is_managed) && !buf.is_imported)
+            const u32 buffer_index = static_cast<u32>(&buf - m_buffers.data());
+            const bool should_create_transient = buf.is_transient && is_buffer_used_by_passes(buffer_index);
+            if (((should_create_transient || buf.is_managed) && !buf.is_imported))
             {
                 buf.actual_buffer = m_rhi->CreateBuffer(buf.create_info);
             }
@@ -210,26 +304,12 @@ void FrameGraph::Compile()
     {
         if (rt.actual_render_target == nullptr)
         {
-            if ((rt.is_transient || rt.is_managed) && !rt.is_imported)
+            const u32 render_target_index = static_cast<u32>(&rt - m_render_targets.data());
+            const bool should_create_transient = rt.is_transient && is_render_target_used_by_passes(render_target_index);
+            if (((should_create_transient || rt.is_managed) && !rt.is_imported))
             {
                 rt.actual_render_target = m_rhi->CreateRenderTarget(rt.create_info);
             }
-        }
-    }
-
-    // Setup phase: Execute all pass setup callbacks to collect resource usage information
-    for (u32 pass_idx : m_execution_order)
-    {
-        auto &pass = m_passes[pass_idx];
-        FrameGraphBuilder builder(this, &pass);
-        // Call setup callback to declare resource usage
-        if (pass.rdg_pass)
-        {
-            pass.rdg_pass->Setup(builder);
-        }
-        else if (pass.setup_callback)
-        {
-            pass.setup_callback(builder);
         }
     }
 }
@@ -242,8 +322,9 @@ void FrameGraph::Execute()
     // Track command lists by queue type for submission
     std::vector<CommandList *> command_lists;
 
-    for (u32 pass_idx : m_execution_order)
+    for (u32 exec_idx = 0; exec_idx < m_execution_order.size(); ++exec_idx)
     {
+        u32 pass_idx = m_execution_order[exec_idx];
         auto &pass = m_passes[pass_idx];
 
         // Get command list for this queue
@@ -254,7 +335,7 @@ void FrameGraph::Execute()
         }
 
         // Insert barriers before pass
-        InsertBarriers(current_command_list, pass_idx);
+        InsertBarriers(current_command_list, exec_idx);
 
         // Execute pass
         FrameGraphBuilder builder(this, &pass);
@@ -321,40 +402,9 @@ void FrameGraph::Reset()
         // Note: managed resources are not destroyed here, they persist across frames
     }
 
-    // Clear passes and transient resources (keep managed resources)
+    // Clear passes for next frame.
+    // Keep resource metadata vectors and maps stable to preserve handle index stability across Reset().
     m_passes.clear();
-    // Only clear transient resources, keep managed and imported ones
-    auto it_tex = std::remove_if(m_textures.begin(), m_textures.end(),
-                                 [](const TextureResource &r) { return r.is_transient && !r.is_imported; });
-    m_textures.erase(it_tex, m_textures.end());
-
-    auto it_buf = std::remove_if(m_buffers.begin(), m_buffers.end(),
-                                 [](const BufferResource &r) { return r.is_transient && !r.is_imported; });
-    m_buffers.erase(it_buf, m_buffers.end());
-
-    auto it_rt = std::remove_if(m_render_targets.begin(), m_render_targets.end(),
-                                [](const RenderTargetResource &r) { return r.is_transient && !r.is_imported; });
-    m_render_targets.erase(it_rt, m_render_targets.end());
-
-    // Rebuild name maps (only for remaining resources)
-    m_texture_name_map.clear();
-    for (u32 i = 0; i < m_textures.size(); ++i)
-    {
-        m_texture_name_map[m_textures[i].name] = TextureHandle{i};
-    }
-
-    m_buffer_name_map.clear();
-    for (u32 i = 0; i < m_buffers.size(); ++i)
-    {
-        m_buffer_name_map[m_buffers[i].name] = BufferHandle{i};
-    }
-
-    m_render_target_name_map.clear();
-    for (u32 i = 0; i < m_render_targets.size(); ++i)
-    {
-        m_render_target_name_map[m_render_targets[i].name] = RenderTargetHandle{i};
-    }
-
     m_execution_order.clear();
 }
 
@@ -523,8 +573,9 @@ RenderTargetHandle FrameGraph::FindOrCreateRenderTarget(const std::string &name)
     return RenderTargetHandle{index};
 }
 
-void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
+void FrameGraph::InsertBarriers(CommandList *command_list, u32 execution_index)
 {
+    u32 pass_index = m_execution_order[execution_index];
     auto &pass = m_passes[pass_index];
     BarrierDesc barrier;
 
@@ -539,9 +590,9 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         if (processed_textures.find(handle.index) != processed_textures.end())
             continue;
 
-        ResourceState last_state = GetLastState(handle, pass_index);
+        ResourceState last_state = GetLastState(handle, execution_index);
         ResourceState current_state = pass.texture_usages[handle.index].state;
-        bool need_barrier = (last_state != current_state) || WasTextureWrittenByPreviousPass(handle, pass_index);
+        bool need_barrier = (last_state != current_state) || WasTextureWrittenByPreviousPass(handle, execution_index);
 
         if (need_barrier)
         {
@@ -564,10 +615,13 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         if (processed_textures.find(handle.index) != processed_textures.end())
             continue;
 
-        ResourceState last_state = GetLastState(handle, pass_index);
+        ResourceState last_state = GetLastState(handle, execution_index);
         ResourceState current_state = pass.texture_usages[handle.index].state;
 
-        if (last_state != current_state && last_state != ResourceState::RESOURCE_STATE_UNDEFINED)
+        bool need_barrier = WasTextureWrittenByPreviousPass(handle, execution_index) ||
+                            (last_state != current_state && last_state != ResourceState::RESOURCE_STATE_UNDEFINED);
+
+        if (need_barrier)
         {
             TextureBarrierDesc tb;
             tb.texture = m_textures[handle.index].actual_texture;
@@ -587,9 +641,9 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         if (processed_buffers.find(handle.index) != processed_buffers.end())
             continue;
 
-        ResourceState last_state = GetLastState(handle, pass_index);
+        ResourceState last_state = GetLastState(handle, execution_index);
         ResourceState current_state = pass.buffer_usages[handle.index].state;
-        bool need_barrier = (last_state != current_state) || WasBufferWrittenByPreviousPass(handle, pass_index);
+        bool need_barrier = (last_state != current_state) || WasBufferWrittenByPreviousPass(handle, execution_index);
 
         if (need_barrier)
         {
@@ -608,9 +662,9 @@ void FrameGraph::InsertBarriers(CommandList *command_list, u32 pass_index)
         if (processed_buffers.find(handle.index) != processed_buffers.end())
             continue;
 
-        ResourceState last_state = GetLastState(handle, pass_index);
+        ResourceState last_state = GetLastState(handle, execution_index);
         ResourceState current_state = pass.buffer_usages[handle.index].state;
-        bool need_barrier = WasBufferWrittenByPreviousPass(handle, pass_index) ||
+        bool need_barrier = WasBufferWrittenByPreviousPass(handle, execution_index) ||
                             (last_state != current_state && last_state != ResourceState::RESOURCE_STATE_UNDEFINED);
 
         if (need_barrier)
@@ -640,59 +694,46 @@ ResourceState FrameGraph::GetLastState(TextureHandle handle, u32 pass_index)
 {
     // Find the last pass that used this texture in execution order
     // pass_index is an index into m_execution_order, not m_passes
-    // Priority: write operations change resource state, so check writes first
-    ResourceState usage = ResourceState::RESOURCE_STATE_UNDEFINED;
-    i32 passindex = -1;
+    // Priority: write operations change resource state, so check writes first in each pass
     for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
     {
         u32 actual_pass_idx = m_execution_order[i];
         auto &pass = m_passes[actual_pass_idx];
 
-        // First check if this pass wrote to the texture (write operations change state)
+        // First check if this pass wrote to the texture.
         for (auto write_handle : pass.write_textures)
         {
             if (write_handle.index == handle.index)
             {
-                usage = pass.texture_usages[handle.index].state;
-                passindex = i;
-                break;
+                return pass.texture_usages[handle.index].state;
             }
         }
-    }
 
-    // If no write found, check for reads
-    for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
-    {
-        u32 actual_pass_idx = m_execution_order[i];
-        auto &pass = m_passes[actual_pass_idx];
-
-        // Check if this pass read from the texture
+        // If not written by this pass, check if this pass read from the texture.
         for (auto read_handle : pass.read_textures)
         {
             if (read_handle.index == handle.index)
             {
-                if (i > passindex)
-                {
-                    return pass.texture_usages[handle.index].state;
-                }
+                return pass.texture_usages[handle.index].state;
             }
         }
     }
 
-    return usage != ResourceState::RESOURCE_STATE_UNDEFINED ? usage : ResourceState::RESOURCE_STATE_UNDEFINED;
+    return ResourceState::RESOURCE_STATE_UNDEFINED;
 }
 
 ResourceState FrameGraph::GetLastState(BufferHandle handle, u32 pass_index)
 {
     // Find the last pass that used this buffer in execution order
     // pass_index is an index into m_execution_order, not m_passes
-    // Priority: write operations change resource state, so check writes first
+    // Priority: if a pass both reads and writes the same resource, treat it as write usage.
+    // Otherwise, return the nearest previous usage state (read or write).
     for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
     {
         u32 actual_pass_idx = m_execution_order[i];
         auto &pass = m_passes[actual_pass_idx];
 
-        // First check if this pass wrote to the buffer (write operations change state)
+        // First check if this pass wrote to the buffer.
         for (auto write_handle : pass.write_buffers)
         {
             if (write_handle.index == handle.index)
@@ -700,15 +741,8 @@ ResourceState FrameGraph::GetLastState(BufferHandle handle, u32 pass_index)
                 return pass.buffer_usages[handle.index].state;
             }
         }
-    }
 
-    // If no write found, check for reads
-    for (i32 i = static_cast<i32>(pass_index) - 1; i >= 0; --i)
-    {
-        u32 actual_pass_idx = m_execution_order[i];
-        auto &pass = m_passes[actual_pass_idx];
-
-        // Check if this pass read from the buffer
+        // If not written by this pass, check if this pass read from the buffer.
         for (auto read_handle : pass.read_buffers)
         {
             if (read_handle.index == handle.index)

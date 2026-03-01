@@ -42,7 +42,7 @@ class RDGPass
         return m_name;
     }
 
-    // Import resources into FrameGraph (called before Setup)
+    // Import resources into FrameGraph (called by FrameGraph when adding the pass).
     virtual void ImportResources(FrameGraph *frame_graph)
     {
     }
@@ -425,7 +425,8 @@ class FrameGraph
     BufferHandle FindOrCreateBuffer(const std::string &name);
     RenderTargetHandle FindOrCreateRenderTarget(const std::string &name);
 
-    void InsertBarriers(CommandList *command_list, u32 pass_index);
+    // execution_index is an index into m_execution_order.
+    void InsertBarriers(CommandList *command_list, u32 execution_index);
     ResourceState GetLastState(TextureHandle handle, u32 pass_index);
     ResourceState GetLastState(BufferHandle handle, u32 pass_index);
     bool WasTextureWrittenByPreviousPass(TextureHandle handle, u32 pass_index);
