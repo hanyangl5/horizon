@@ -40,7 +40,8 @@ Math::float4 AiToFloat4(const aiQuaternion &q)
     return Math::float4(q.x, q.y, q.z, q.w);
 }
 
-aiMatrix4x4 BuildAiMatrixFromTRS(const Math::float3 &translation, const Math::float4 &rotation, const Math::float3 &scale)
+aiMatrix4x4 BuildAiMatrixFromTRS(const Math::float3 &translation, const Math::float4 &rotation,
+                                 const Math::float3 &scale)
 {
     aiMatrix4x4 translation_matrix;
     aiMatrix4x4::Translation(aiVector3D(translation.x, translation.y, translation.z), translation_matrix);
@@ -172,7 +173,8 @@ u32 Mesh::ProcessNode(const aiScene *scene, aiNode *node, u32 parent_index, cons
     {
         const u32 primitive_index = node->mMeshes[i];
         m_nodes[index].mesh_primitives.push_back(primitive_index);
-        if (primitive_index < m_mesh_primitives.size() && m_mesh_primitives[primitive_index].node_index == INVALID_NODE_INDEX)
+        if (primitive_index < m_mesh_primitives.size() &&
+            m_mesh_primitives[primitive_index].node_index == INVALID_NODE_INDEX)
         {
             m_mesh_primitives[primitive_index].node_index = index;
         }
@@ -320,7 +322,8 @@ void Mesh::ProcessAnimations(const aiScene *scene)
         MeshAnimationClip clip{};
         clip.name = src_animation->mName.C_Str();
         clip.duration = static_cast<f32>(src_animation->mDuration);
-        clip.ticks_per_second = src_animation->mTicksPerSecond > 0.0 ? static_cast<f32>(src_animation->mTicksPerSecond) : 25.0f;
+        clip.ticks_per_second =
+            src_animation->mTicksPerSecond > 0.0 ? static_cast<f32>(src_animation->mTicksPerSecond) : 25.0f;
         clip.current_time = 0.0f;
         clip.channels.reserve(src_animation->mNumChannels);
 
@@ -456,10 +459,10 @@ void Mesh::Load()
         return;
     }
 
-    const aiScene *scene = assimp_importer.ReadFile(
-        Path(m_path).string().c_str(),
-        (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
-              aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
+    const aiScene *scene =
+        assimp_importer.ReadFile(Path(m_path).string().c_str(),
+                                 (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                                       aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
@@ -503,7 +506,7 @@ void Mesh::Load()
             skin.joint_matrices.resize(mesh->mNumBones, Math::float4x4::Identity);
 
             auto assign_joint_weight = [&vertex_joint_indices, &vertex_joint_weights](u32 vertex_id, u32 joint_id,
-                                                                                       f32 weight) {
+                                                                                      f32 weight) {
                 auto &indices = vertex_joint_indices[vertex_id];
                 auto &weights = vertex_joint_weights[vertex_id];
                 f32 *weight_slots = &weights.x;

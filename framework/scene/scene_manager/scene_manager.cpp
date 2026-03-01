@@ -76,7 +76,8 @@ void SceneManager::CreateMeshResources()
         const auto &mesh_joint_matrices = mesh->GetJointMatrices();
         if (!mesh_joint_matrices.empty())
         {
-            m_scene_joint_matrices.insert(m_scene_joint_matrices.end(), mesh_joint_matrices.begin(), mesh_joint_matrices.end());
+            m_scene_joint_matrices.insert(m_scene_joint_matrices.end(), mesh_joint_matrices.begin(),
+                                          mesh_joint_matrices.end());
             scene_joint_offset += static_cast<u32>(mesh_joint_matrices.size());
             m_has_animated_mesh = true;
         }
@@ -212,9 +213,9 @@ void SceneManager::CreateMeshResources()
     instance_parameter_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(InstanceParameters) * instance_params.size(), nullptr, sizeof(InstanceParameters)});
-    prev_instance_model_buffer = resource_manager->CreateGpuBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(Math::float4x4) * prev_instance_model_matrices.size(), nullptr, sizeof(Math::float4x4)});
+    prev_instance_model_buffer = resource_manager->CreateGpuBuffer(BufferCreateInfo{
+        DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+        sizeof(Math::float4x4) * prev_instance_model_matrices.size(), nullptr, sizeof(Math::float4x4)});
     skin_joint_matrix_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float4x4) * m_scene_joint_matrices.size(), nullptr, sizeof(Math::float4x4)});
@@ -349,8 +350,8 @@ void SceneManager::UpdateAnimationState()
 
 void SceneManager::UploadAnimationResources(Backend::CommandList *commandlist)
 {
-    if (!m_has_animated_mesh || !prev_instance_model_buffer || !skin_joint_matrix_buffer || !prev_skin_joint_matrix_buffer ||
-        m_scene_joint_matrices.empty() || m_prev_scene_joint_matrices.empty())
+    if (!m_has_animated_mesh || !prev_instance_model_buffer || !skin_joint_matrix_buffer ||
+        !prev_skin_joint_matrix_buffer || m_scene_joint_matrices.empty() || m_prev_scene_joint_matrices.empty())
     {
         return;
     }

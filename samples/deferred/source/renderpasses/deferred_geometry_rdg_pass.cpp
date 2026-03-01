@@ -9,7 +9,8 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
 {
     // Create shaders and pipeline using base class helper functions
     m_geometry_static_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
-    m_geometry_skinned_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_skinned_vs.hlsl", "vs_main_skinned");
+    m_geometry_skinned_vs =
+        CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_skinned_vs.hlsl", "vs_main_skinned");
     m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
 
     auto setup_common_pipeline_state = [this](GraphicsPipelineCreateInfo &ci) {
@@ -364,9 +365,9 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
 
             u32 mesh_id_offset = first_command.mesh_id_offset;
             cl->BindPushConstant(pipeline, "mesh_draw_offset", &mesh_id_offset);
-            cl->DrawIndirectIndexedInstanced(
-                m_scene_manager->indirect_draw_command_buffer1, sizeof(DX12DrawIndexedInstancedCommand) * command_index,
-                batch_end - command_index, sizeof(DX12DrawIndexedInstancedCommand));
+            cl->DrawIndirectIndexedInstanced(m_scene_manager->indirect_draw_command_buffer1,
+                                             sizeof(DX12DrawIndexedInstancedCommand) * command_index,
+                                             batch_end - command_index, sizeof(DX12DrawIndexedInstancedCommand));
 
             command_index = batch_end;
         }

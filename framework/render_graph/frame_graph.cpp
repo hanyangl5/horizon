@@ -305,7 +305,8 @@ void FrameGraph::Compile()
         if (rt.actual_render_target == nullptr)
         {
             const u32 render_target_index = static_cast<u32>(&rt - m_render_targets.data());
-            const bool should_create_transient = rt.is_transient && is_render_target_used_by_passes(render_target_index);
+            const bool should_create_transient =
+                rt.is_transient && is_render_target_used_by_passes(render_target_index);
             if (((should_create_transient || rt.is_managed) && !rt.is_imported))
             {
                 rt.actual_render_target = m_rhi->CreateRenderTarget(rt.create_info);

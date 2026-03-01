@@ -1,7 +1,7 @@
 #include "vulkan_pipeline.h"
 
-#include <rhi/vulkan/vulkan_shader.h>
 #include <algorithm>
+#include <rhi/vulkan/vulkan_shader.h>
 
 namespace Horizon::Backend
 {
@@ -167,9 +167,10 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
                     binding_index = input_binding_count++;
                     input_bindings[binding_index].binding = attrib->binding;
                     input_bindings[binding_index].stride = 0;
-                    input_bindings[binding_index].inputRate = (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
-                                                                  ? VK_VERTEX_INPUT_RATE_INSTANCE
-                                                                  : VK_VERTEX_INPUT_RATE_VERTEX;
+                    input_bindings[binding_index].inputRate =
+                        (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                            ? VK_VERTEX_INPUT_RATE_INSTANCE
+                            : VK_VERTEX_INPUT_RATE_VERTEX;
                 }
                 else
                 {
@@ -184,10 +185,10 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
                     }
                 }
 
-                const uint32_t attrib_stride = (attrib->stride != 0)
-                                                   ? attrib->stride
-                                                   : GetStrideFromVertexAttributeDescription(attrib->attrib_format,
-                                                                                            attrib->portion);
+                const uint32_t attrib_stride =
+                    (attrib->stride != 0)
+                        ? attrib->stride
+                        : GetStrideFromVertexAttributeDescription(attrib->attrib_format, attrib->portion);
                 input_bindings[binding_index].stride = std::max(input_bindings[binding_index].stride, attrib_stride);
 
                 input_attributes[input_attribute_count].location = attrib->location;
