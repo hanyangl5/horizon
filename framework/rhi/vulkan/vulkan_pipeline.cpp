@@ -135,8 +135,8 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
                 if (auto ts = reinterpret_cast<VulkanShader *>(create_info.shader_program.TaskShader()))
                 {
                     shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
-                        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(ts->GetType()),
-                        ts->m_shader_module, ts->GetEntryPoint(), nullptr});
+                        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+                        ToVkShaderStageBit(ts->GetType()), ts->m_shader_module, ts->GetEntryPoint(), nullptr});
                 }
 
                 auto ms = reinterpret_cast<VulkanShader *>(create_info.shader_program.MeshShader());
@@ -218,7 +218,8 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
                         (attrib->stride != 0)
                             ? attrib->stride
                             : GetStrideFromVertexAttributeDescription(attrib->attrib_format, attrib->portion);
-                    input_bindings[binding_index].stride = std::max(input_bindings[binding_index].stride, attrib_stride);
+                    input_bindings[binding_index].stride =
+                        std::max(input_bindings[binding_index].stride, attrib_stride);
 
                     input_attributes[input_attribute_count].location = attrib->location;
                     input_attributes[input_attribute_count].binding = attrib->binding;
@@ -246,9 +247,9 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
             input_assembly_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             input_assembly_state_create_info.flags = 0;
             input_assembly_state_create_info.pNext = nullptr;
-            input_assembly_state_create_info.topology = uses_mesh_shading
-                                                            ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
-                                                            : ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
+            input_assembly_state_create_info.topology =
+                uses_mesh_shading ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+                                  : ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
             input_assembly_state_create_info.primitiveRestartEnable = VK_FALSE;
 
             graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;

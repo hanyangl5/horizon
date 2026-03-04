@@ -47,8 +47,8 @@ struct InstanceParameters
 // bits [7:0]=i0, [15:8]=i1, [23:16]=i2.
 struct MeshletDesc
 {
-    Math::float4 bounding_sphere;   // xyz: center, w: radius
-    Math::float4 cone_axis_cutoff;  // xyz: axis, w: min dot cutoff
+    Math::float4 bounding_sphere;  // xyz: center, w: radius
+    Math::float4 cone_axis_cutoff; // xyz: axis, w: min dot cutoff
     u32 vertex_offset;
     u32 vertex_count;
     u32 triangle_offset;

@@ -31,8 +31,8 @@ void GTAOBlurRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_graph)
     m_gtao_blur_handle = frame_graph->ImportTexture("gtao_blur", m_gtao_blur_image);
 }
 
-void GTAOBlurRDGPass::SetInputHandles(Horizon::Backend::TextureHandle gtao_factor, Horizon::Backend::TextureHandle depth,
-                                      Horizon::Backend::TextureHandle gbuffer0)
+void GTAOBlurRDGPass::SetInputHandles(Horizon::Backend::TextureHandle gtao_factor,
+                                      Horizon::Backend::TextureHandle depth, Horizon::Backend::TextureHandle gbuffer0)
 {
     m_gtao_factor_handle = gtao_factor;
     m_depth_handle = depth;

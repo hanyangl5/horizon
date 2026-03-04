@@ -109,11 +109,11 @@ class AppFramework
     }
 #else
 #define DEFINE_HORIZON_APP_WITH_CLASS(AppName, AppClass)                                                               \
-    int main(int argc, char **argv)                                                                                      \
-    {                                                                                                                    \
-        AppClass app;                                                                                                    \
-        app.ConfigureFromCommandLine(argc, argv);                                                                        \
-        app.Run();                                                                                                       \
-        return 0;                                                                                                        \
+    int main(int argc, char **argv)                                                                                    \
+    {                                                                                                                  \
+        AppClass app;                                                                                                  \
+        app.ConfigureFromCommandLine(argc, argv);                                                                      \
+        app.Run();                                                                                                     \
+        return 0;                                                                                                      \
     }
 #endif

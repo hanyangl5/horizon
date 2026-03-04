@@ -275,8 +275,7 @@ void RHIDX12::CreateDevice()
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7{};
     hr = m_dx12.device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7));
-    m_mesh_shader_supported =
-        SUCCEEDED(hr) && (options7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED);
+    m_mesh_shader_supported = SUCCEEDED(hr) && (options7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED);
     LOG_INFO("DX12 mesh shader support: {}", m_mesh_shader_supported ? "enabled" : "disabled");
 }
 

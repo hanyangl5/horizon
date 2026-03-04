@@ -143,8 +143,9 @@ void SceneManager::CreateMeshResources()
             primitive_material_indices.push_back(instance.material_index);
         }
 
-        AppendMeshletDataForMesh(mesh, current_vertex_buffer_index, primitive_instance_indices, primitive_material_indices,
-                                 meshlet_descs, meshlet_vertex_indices, meshlet_triangle_indices);
+        AppendMeshletDataForMesh(mesh, current_vertex_buffer_index, primitive_instance_indices,
+                                 primitive_material_indices, meshlet_descs, meshlet_vertex_indices,
+                                 meshlet_triangle_indices);
 
         for (auto &material : mesh->materials)
         {

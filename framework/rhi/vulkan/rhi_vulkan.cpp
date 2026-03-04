@@ -1,8 +1,8 @@
 #include "rhi_vulkan.h"
 
 #include <algorithm>
-#include <cstring>
 #include <core/path.h>
+#include <cstring>
 #include <thread>
 #include <volk.h>
 
@@ -552,7 +552,8 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
     }
     else
     {
-        LOG_WARN("scalarBlockLayout is not supported on this device; some DX-layout storage buffers may fail validation");
+        LOG_WARN(
+            "scalarBlockLayout is not supported on this device; some DX-layout storage buffers may fail validation");
     }
 
     m_mesh_shader_supported =

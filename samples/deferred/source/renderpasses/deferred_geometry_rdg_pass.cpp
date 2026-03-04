@@ -11,8 +11,10 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     m_use_mesh_shader_path = (m_rhi != nullptr) && m_rhi->SupportsMeshShader();
     if (m_use_mesh_shader_path)
     {
-        m_geometry_task_shader = CreateShader(ShaderType::TASK_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ts_main");
-        m_geometry_mesh_shader = CreateShader(ShaderType::MESH_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ms_main");
+        m_geometry_task_shader =
+            CreateShader(ShaderType::TASK_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ts_main");
+        m_geometry_mesh_shader =
+            CreateShader(ShaderType::MESH_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ms_main");
         m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ps_main");
     }
     else

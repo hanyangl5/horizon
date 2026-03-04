@@ -23,8 +23,7 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     void SetResourceHandles(Horizon::Backend::TextureHandle shading_color, Horizon::Backend::TextureHandle pp_color,
                             Horizon::Backend::TextureHandle gtao_factor, Horizon::Backend::TextureHandle gtao_blur,
                             Horizon::Backend::TextureHandle output_color,
-                            Horizon::Backend::TextureHandle previous_color,
-                            Horizon::Backend::TextureHandle brdf_lut,
+                            Horizon::Backend::TextureHandle previous_color, Horizon::Backend::TextureHandle brdf_lut,
                             Horizon::Backend::TextureHandle prefiltered_env);
     void SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred, GTAORDGPass *gtao,
                          PostProcessRDGPass *post_process, TAARDGPass *taa);

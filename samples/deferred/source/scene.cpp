@@ -25,8 +25,8 @@ SceneData::SceneData(SceneManager *scene_manager, u32 width, u32 height) noexcep
                                                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT,
                                                            EMeshAssetFormat::MESH_FORMAT_GLTF},
                                                   (asset_path / "models/Sponza/glTF/Sponza.gltf").c_str());
-                         
-   scene_manager->AddMesh(sponza);
+
+    scene_manager->AddMesh(sponza);
 
     scene_manager->CreateMeshResources();
 

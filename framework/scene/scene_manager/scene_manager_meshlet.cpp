@@ -151,7 +151,8 @@ bool SaveMeshletCache(const Mesh *mesh, const MeshMeshletCache &cache)
     }
     if (!cache.vertex_indices.empty())
     {
-        out.write(reinterpret_cast<const char *>(cache.vertex_indices.data()), cache.vertex_indices.size() * sizeof(u32));
+        out.write(reinterpret_cast<const char *>(cache.vertex_indices.data()),
+                  cache.vertex_indices.size() * sizeof(u32));
     }
     if (!cache.triangle_indices.empty())
     {
@@ -231,8 +232,8 @@ bool LoadMeshletCache(const Mesh *mesh, MeshMeshletCache &cache)
     {
         const auto &src = serialized_descs[i];
         auto &dst = cache.descs[i];
-        dst.bounding_sphere =
-            Math::float4(src.bounding_sphere[0], src.bounding_sphere[1], src.bounding_sphere[2], src.bounding_sphere[3]);
+        dst.bounding_sphere = Math::float4(src.bounding_sphere[0], src.bounding_sphere[1], src.bounding_sphere[2],
+                                           src.bounding_sphere[3]);
         dst.cone_axis_cutoff = Math::float4(src.cone_axis_cutoff[0], src.cone_axis_cutoff[1], src.cone_axis_cutoff[2],
                                             src.cone_axis_cutoff[3]);
         dst.vertex_offset = src.vertex_offset;
@@ -342,8 +343,8 @@ Math::float4 ComputeMeshletNormalCone(const Mesh *mesh, const std::vector<u32> &
     return Math::float4(axis.x, axis.y, axis.z, cutoff);
 }
 
-void FlushMeshlet(const Mesh *mesh, u32 instance_index, u32 material_index, u32 vertex_buffer_index, MeshletScratch &scratch,
-                  std::vector<MeshletDesc> &out_descs, std::vector<u32> &out_vertex_indices,
+void FlushMeshlet(const Mesh *mesh, u32 instance_index, u32 material_index, u32 vertex_buffer_index,
+                  MeshletScratch &scratch, std::vector<MeshletDesc> &out_descs, std::vector<u32> &out_vertex_indices,
                   std::vector<u32> &out_triangle_indices)
 {
     if (scratch.vertices.empty() || scratch.packed_triangles.empty())
@@ -363,7 +364,8 @@ void FlushMeshlet(const Mesh *mesh, u32 instance_index, u32 material_index, u32 
     desc.cone_axis_cutoff = ComputeMeshletNormalCone(mesh, scratch.vertices, scratch.packed_triangles);
 
     out_vertex_indices.insert(out_vertex_indices.end(), scratch.vertices.begin(), scratch.vertices.end());
-    out_triangle_indices.insert(out_triangle_indices.end(), scratch.packed_triangles.begin(), scratch.packed_triangles.end());
+    out_triangle_indices.insert(out_triangle_indices.end(), scratch.packed_triangles.begin(),
+                                scratch.packed_triangles.end());
     out_descs.push_back(desc);
 
     scratch.vertices.clear();
@@ -399,12 +401,11 @@ void BuildPrimitiveMeshlets(const Mesh *mesh, const MeshPrimitive &primitive, u3
             }
         }
 
-        if (!scratch.packed_triangles.empty() &&
-            (scratch.vertices.size() + new_vertex_count > k_meshlet_max_vertices ||
-             scratch.packed_triangles.size() + 1 > k_meshlet_max_triangles))
+        if (!scratch.packed_triangles.empty() && (scratch.vertices.size() + new_vertex_count > k_meshlet_max_vertices ||
+                                                  scratch.packed_triangles.size() + 1 > k_meshlet_max_triangles))
         {
-            FlushMeshlet(mesh, instance_index, material_index, vertex_buffer_index, scratch, out_descs, out_vertex_indices,
-                         out_triangle_indices);
+            FlushMeshlet(mesh, instance_index, material_index, vertex_buffer_index, scratch, out_descs,
+                         out_vertex_indices, out_triangle_indices);
         }
 
         u32 tri_local[3]{};
@@ -441,8 +442,8 @@ MeshMeshletCache BuildMeshletCacheRuntime(const Mesh *mesh)
     {
         auto &range = cache.primitive_ranges[primitive_index];
         range.first_meshlet = static_cast<u32>(cache.descs.size());
-        BuildPrimitiveMeshlets(mesh, mesh->m_mesh_primitives[primitive_index], 0, 0, 0, cache.descs, cache.vertex_indices,
-                               cache.triangle_indices);
+        BuildPrimitiveMeshlets(mesh, mesh->m_mesh_primitives[primitive_index], 0, 0, 0, cache.descs,
+                               cache.vertex_indices, cache.triangle_indices);
         range.meshlet_count = static_cast<u32>(cache.descs.size()) - range.first_meshlet;
     }
     return cache;
@@ -466,9 +467,11 @@ MeshMeshletCache LoadOrBuildMeshletCache(const Mesh *mesh)
 }
 } // namespace
 
-void AppendMeshletDataForMesh(const Mesh *mesh, u32 vertex_buffer_index, const std::vector<u32> &primitive_instance_indices,
-                              const std::vector<u32> &primitive_material_indices, std::vector<MeshletDesc> &meshlet_descs,
-                              std::vector<u32> &meshlet_vertex_indices, std::vector<u32> &meshlet_triangle_indices)
+void AppendMeshletDataForMesh(const Mesh *mesh, u32 vertex_buffer_index,
+                              const std::vector<u32> &primitive_instance_indices,
+                              const std::vector<u32> &primitive_material_indices,
+                              std::vector<MeshletDesc> &meshlet_descs, std::vector<u32> &meshlet_vertex_indices,
+                              std::vector<u32> &meshlet_triangle_indices)
 {
     MeshMeshletCache mesh_cache = LoadOrBuildMeshletCache(mesh);
     bool cache_layout_valid = (mesh_cache.primitive_ranges.size() == mesh->m_mesh_primitives.size());
@@ -499,7 +502,8 @@ void AppendMeshletDataForMesh(const Mesh *mesh, u32 vertex_buffer_index, const s
 
     const u32 vertex_index_base = static_cast<u32>(meshlet_vertex_indices.size());
     const u32 triangle_index_base = static_cast<u32>(meshlet_triangle_indices.size());
-    meshlet_vertex_indices.insert(meshlet_vertex_indices.end(), mesh_cache.vertex_indices.begin(), mesh_cache.vertex_indices.end());
+    meshlet_vertex_indices.insert(meshlet_vertex_indices.end(), mesh_cache.vertex_indices.begin(),
+                                  mesh_cache.vertex_indices.end());
     meshlet_triangle_indices.insert(meshlet_triangle_indices.end(), mesh_cache.triangle_indices.begin(),
                                     mesh_cache.triangle_indices.end());
 
@@ -520,4 +524,3 @@ void AppendMeshletDataForMesh(const Mesh *mesh, u32 vertex_buffer_index, const s
 }
 
 } // namespace Horizon
-

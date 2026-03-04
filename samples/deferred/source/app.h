@@ -3,10 +3,10 @@
 
 #include "renderpasses/deferred_geometry_rdg_pass.h"
 #include "renderpasses/deferred_shading_rdg_pass.h"
-#include "renderpasses/post_process_rdg_pass.h"
-#include "renderpasses/resource_upload_pass.h"
 #include "renderpasses/gtao_blur_rdg_pass.h"
 #include "renderpasses/gtao_rdg_pass.h"
+#include "renderpasses/post_process_rdg_pass.h"
+#include "renderpasses/resource_upload_pass.h"
 #include "renderpasses/taa_rdg_pass.h"
 #include "scene.h"
 #include <app_framework/app_framework.h>

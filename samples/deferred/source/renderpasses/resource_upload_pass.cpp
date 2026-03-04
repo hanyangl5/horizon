@@ -1,8 +1,8 @@
 #include "resource_upload_pass.h"
 #include "deferred_geometry_rdg_pass.h"
 #include "deferred_shading_rdg_pass.h"
-#include "post_process_rdg_pass.h"
 #include "gtao_rdg_pass.h"
+#include "post_process_rdg_pass.h"
 #include "taa_rdg_pass.h"
 #include <scene/scene_manager/scene_manager.h>
 
@@ -24,8 +24,7 @@ void ResourceUploadRDGPass::SetResourceHandles(
     Horizon::Backend::TextureHandle shading_color, Horizon::Backend::TextureHandle pp_color,
     Horizon::Backend::TextureHandle gtao_factor, Horizon::Backend::TextureHandle gtao_blur,
     Horizon::Backend::TextureHandle output_color, Horizon::Backend::TextureHandle previous_color,
-    Horizon::Backend::TextureHandle brdf_lut,
-    Horizon::Backend::TextureHandle prefiltered_env)
+    Horizon::Backend::TextureHandle brdf_lut, Horizon::Backend::TextureHandle prefiltered_env)
 {
     m_shading_color_handle = shading_color;
     m_pp_color_handle = pp_color;
@@ -38,8 +37,7 @@ void ResourceUploadRDGPass::SetResourceHandles(
 }
 
 void ResourceUploadRDGPass::SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred,
-                                            GTAORDGPass *gtao, PostProcessRDGPass *post_process,
-                                            TAARDGPass *taa)
+                                            GTAORDGPass *gtao, PostProcessRDGPass *post_process, TAARDGPass *taa)
 {
     m_geometry = geometry;
     m_deferred = deferred;
@@ -66,7 +64,6 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
     {
         builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
     }
-
 }
 
 void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
