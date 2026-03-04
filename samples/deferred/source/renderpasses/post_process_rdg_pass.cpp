@@ -36,11 +36,9 @@ void PostProcessRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_gra
     m_pp_color_handle = frame_graph->ImportTexture("pp_color", m_pp_color_image);
 }
 
-void PostProcessRDGPass::SetInputHandles(Horizon::Backend::TextureHandle shading_color,
-                                         Horizon::Backend::BufferHandle adapted_luminance)
+void PostProcessRDGPass::SetInputHandle(Horizon::Backend::TextureHandle shading_color)
 {
     m_shading_color_handle = shading_color;
-    m_adapted_luminance_handle = adapted_luminance;
 }
 
 void PostProcessRDGPass::UpdateConstants(const void *data, u32 size)
@@ -51,7 +49,6 @@ void PostProcessRDGPass::UpdateConstants(const void *data, u32 size)
 void PostProcessRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
     builder.ReadTexture(m_shading_color_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
-    builder.ReadBuffer(m_adapted_luminance_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteTexture(m_pp_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 }
 
@@ -60,7 +57,7 @@ void PostProcessRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBu
     cl->BeginComputePass("Post Process Pass");
     m_post_process_pipeline->SetResource(builder.GetTexture(m_shading_color_handle), "color_image");
     m_post_process_pipeline->SetResource(builder.GetTexture(m_pp_color_handle), "out_color_image");
-    m_post_process_pipeline->SetResource(builder.GetBuffer(m_adapted_luminance_handle), "adaptedLuminance");
+    m_post_process_pipeline->SetResource(m_exposure_constants_buffer, "ExposureConstants_cb");
     cl->BindPipeline(m_post_process_pipeline);
     cl->Dispatch(AlignUp<u32>(m_width, 8), AlignUp<u32>(m_height, 8), 1);
     cl->EndComputePass();

@@ -17,6 +17,10 @@ ShaderStageFlags GetShaderStageFlagsFromShaderType(ShaderType type)
         return ShaderStageFlags::SHADER_STAGE_PIXEL_SHADER;
     case Horizon::ShaderType::COMPUTE_SHADER:
         return ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER;
+    case Horizon::ShaderType::TASK_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_TASK_SHADER;
+    case Horizon::ShaderType::MESH_SHADER:
+        return ShaderStageFlags::SHADER_STAGE_MESH_SHADER;
     default:
         LOG_ERROR("invalid shader type");
         return ShaderStageFlags::SHADER_STAGE_INVALID;

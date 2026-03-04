@@ -109,18 +109,18 @@ if(BUILD_ANDROID_APK)
 
     # Per-sample APK targets
     foreach(sample ${ALL_SAMPLE_NAMES})
-        if(WIN32)
-            # Windows: use gradlew.bat, no chmod needed
+        if(CMAKE_HOST_WIN32)
+            # Host is Windows: use gradlew.bat, no chmod needed
             add_custom_target(apk_${sample}
-                COMMAND ${ANDROID_APK_DIR}/gradlew.bat -p ${ANDROID_APK_DIR} :${sample}:assembleDebug
+                COMMAND ${CMAKE_COMMAND} -E chdir ${ANDROID_APK_DIR} gradlew.bat :${sample}:assembleDebug
                 DEPENDS ${sample}
                 COMMENT "Packaging APK for ${sample}"
             )
         else()
-            # Unix/Linux/macOS: use gradlew, need chmod
+            # Host is Unix-like: use gradlew, need chmod
             add_custom_target(apk_${sample}
-                COMMAND chmod +x ${ANDROID_APK_DIR}/gradlew
-                COMMAND ${ANDROID_APK_DIR}/gradlew -p ${ANDROID_APK_DIR} :${sample}:assembleDebug
+                COMMAND ${CMAKE_COMMAND} -E chmod +x ${ANDROID_APK_DIR}/gradlew
+                COMMAND ${CMAKE_COMMAND} -E chdir ${ANDROID_APK_DIR} ./gradlew :${sample}:assembleDebug
                 DEPENDS ${sample}
                 COMMENT "Packaging APK for ${sample}"
             )

@@ -94,18 +94,58 @@ static const DescriptorDesc *FindDescriptor(const RootSignatureDesc &rsd, u32 se
     return nullptr;
 }
 
+struct DescriptorBindingKey
+{
+    u32 set{};
+    D3D12_DESCRIPTOR_RANGE_TYPE range_type{};
+    u32 base_register{};
+
+    bool operator==(const DescriptorBindingKey &rhs) const noexcept
+    {
+        return set == rhs.set && range_type == rhs.range_type && base_register == rhs.base_register;
+    }
+};
+
+struct DescriptorBindingKeyHash
+{
+    size_t operator()(const DescriptorBindingKey &k) const noexcept
+    {
+        size_t h = static_cast<size_t>(k.set);
+        h = (h * 1315423911u) ^ static_cast<size_t>(k.range_type);
+        h = (h * 1315423911u) ^ static_cast<size_t>(k.base_register);
+        return h;
+    }
+};
+
 static u32 FindRootParameterIndex(const RootSignatureDesc &rsd, u32 target_set, const std::string &target_name)
 {
-    u32 index = 0;
+    std::unordered_map<DescriptorBindingKey, u32, DescriptorBindingKeyHash> unique_binding_to_root_index;
+    u32 next_root_index = 0;
     for (const auto &[set_num, descriptors] : rsd.descriptors)
     {
         for (const auto &[name, desc_info] : descriptors)
         {
+            DescriptorBindingKey key{};
+            key.set = set_num;
+            key.range_type = Horizon::ToDX12DescriptorRangeType(desc_info.type);
+            key.base_register = desc_info.vk_binding;
+
+            u32 root_index = 0;
+            auto [it, inserted] = unique_binding_to_root_index.emplace(key, next_root_index);
+            if (inserted)
+            {
+                root_index = next_root_index;
+                ++next_root_index;
+            }
+            else
+            {
+                root_index = it->second;
+            }
+
             if (set_num == target_set && name == target_name)
             {
-                return index;
+                return root_index;
             }
-            index++;
         }
     }
     return UINT32_MAX;
@@ -417,19 +457,20 @@ void DX12Pipeline::SetBindlessResource(std::vector<Buffer *> &resource, const st
 {
     // Find the descriptor in root signature
     const DescriptorDesc *desc = nullptr;
-    u32 set_number = BINDLESS_DESCRIPTOR_SET_NUMBER;
+    u32 set_number = UINT32_MAX;
 
-    auto set_it = rsd.descriptors.find(set_number);
-    if (set_it != rsd.descriptors.end())
+    for (const auto &[candidate_set, descriptors] : rsd.descriptors)
     {
-        auto desc_it = set_it->second.find(resource_name);
-        if (desc_it != set_it->second.end())
+        auto desc_it = descriptors.find(resource_name);
+        if (desc_it != descriptors.end())
         {
             desc = &desc_it->second;
+            set_number = candidate_set;
+            break;
         }
     }
 
-    if (desc == nullptr)
+    if (desc == nullptr || set_number == UINT32_MAX)
     {
         LOG_ERROR("Bindless resource '{}' not found in root signature", resource_name);
         return;
@@ -536,19 +577,14 @@ void DX12Pipeline::SetBindlessResource(std::vector<Buffer *> &resource, const st
     // Store the GPU handle for binding in command list
     m_bindless_descriptor_tables[resource_name] = gpu_handle_start;
 
-    // Find root parameter index for this resource
-    u32 root_param_index = 0;
-    for (const auto &[set_num, descriptors] : rsd.descriptors)
+    u32 root_index = FindRootParameterIndex(rsd, set_number, resource_name);
+    if (root_index != UINT32_MAX)
     {
-        for (const auto &[name, desc_info] : descriptors)
-        {
-            if (set_num == set_number && name == resource_name)
-            {
-                m_bindless_root_parameter_indices[resource_name] = root_param_index;
-                return;
-            }
-            root_param_index++;
-        }
+        m_bindless_root_parameter_indices[resource_name] = root_index;
+    }
+    else
+    {
+        LOG_WARN("Could not find root parameter index for bindless resource '{}'", resource_name);
     }
 }
 
@@ -556,19 +592,20 @@ void DX12Pipeline::SetBindlessResource(std::vector<Texture *> &resource, const s
 {
     // Find the descriptor in root signature
     const DescriptorDesc *desc = nullptr;
-    u32 set_number = BINDLESS_DESCRIPTOR_SET_NUMBER;
+    u32 set_number = UINT32_MAX;
 
-    auto set_it = rsd.descriptors.find(set_number);
-    if (set_it != rsd.descriptors.end())
+    for (const auto &[candidate_set, descriptors] : rsd.descriptors)
     {
-        auto desc_it = set_it->second.find(resource_name);
-        if (desc_it != set_it->second.end())
+        auto desc_it = descriptors.find(resource_name);
+        if (desc_it != descriptors.end())
         {
             desc = &desc_it->second;
+            set_number = candidate_set;
+            break;
         }
     }
 
-    if (desc == nullptr)
+    if (desc == nullptr || set_number == UINT32_MAX)
     {
         LOG_ERROR("Bindless resource '{}' not found in root signature", resource_name);
         return;
@@ -763,23 +800,15 @@ void DX12Pipeline::SetBindlessResource(std::vector<Texture *> &resource, const s
 
     // Store the GPU handle for binding in command list
     m_bindless_descriptor_tables[resource_name] = gpu_handle_start;
-    // Find root parameter index for this resource
-    // Root parameters are created in the same order as descriptors in rsd
-    u32 root_param_index = 0;
-    for (const auto &[set_num, descriptors] : rsd.descriptors)
+    u32 root_index = FindRootParameterIndex(rsd, set_number, resource_name);
+    if (root_index != UINT32_MAX)
     {
-        for (const auto &[name, desc_info] : descriptors)
-        {
-            if (set_num == set_number && name == resource_name)
-            {
-                m_bindless_root_parameter_indices[resource_name] = root_param_index;
-                return;
-            }
-            root_param_index++;
-        }
+        m_bindless_root_parameter_indices[resource_name] = root_index;
     }
-
-    LOG_WARN("Could not find root parameter index for bindless resource '{}'", resource_name);
+    else
+    {
+        LOG_WARN("Could not find root parameter index for bindless resource '{}'", resource_name);
+    }
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DX12Pipeline::GetBindlessDescriptorTableHandle(const std::string &resource_name) const
@@ -807,21 +836,34 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
     }
     descriptor_ranges.reserve(total_descriptors);
 
+    std::unordered_map<DescriptorBindingKey, u32, DescriptorBindingKeyHash> unique_binding_to_root_index;
+
     // Process root signature descriptors
     for (const auto &[set_number, descriptors] : rsd.descriptors)
     {
         for (const auto &[name, desc] : descriptors)
         {
-            D3D12_DESCRIPTOR_RANGE range{};
-            range.RangeType = Horizon::ToDX12DescriptorRangeType(desc.type);
-
-            if (set_number == BINDLESS_DESCRIPTOR_SET_NUMBER)
+            DescriptorBindingKey key{};
+            key.set = set_number;
+            key.range_type = Horizon::ToDX12DescriptorRangeType(desc.type);
+            key.base_register = desc.vk_binding;
+            if (unique_binding_to_root_index.find(key) != unique_binding_to_root_index.end())
             {
-                range.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+                continue;
+            }
+
+            D3D12_DESCRIPTOR_RANGE range{};
+            range.RangeType = key.range_type;
+
+            // Non-default register spaces are treated as bindless arrays.
+            // Give them a large range so dynamic indexing stays in-bounds.
+            if (set_number == DEFAULT_DESCRIPTOR_SET_NUMBER)
+            {
+                range.NumDescriptors = 1;
             }
             else
             {
-                range.NumDescriptors = 1;
+                range.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
             }
 
             range.BaseShaderRegister = desc.vk_binding;
@@ -837,6 +879,7 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
             param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
             root_parameters.push_back(param);
+            unique_binding_to_root_index.emplace(key, static_cast<u32>(root_parameters.size() - 1));
         }
     }
 
@@ -874,7 +917,11 @@ void DX12Pipeline::CreateRootSignature(const ShaderPrograms &shaders)
     root_sig_desc.pParameters = root_parameters.data();
     root_sig_desc.NumStaticSamplers = static_cast<UINT>(static_samplers.size());
     root_sig_desc.pStaticSamplers = static_samplers.data();
-    root_sig_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    root_sig_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+    if (shaders.MeshShader() == nullptr)
+    {
+        root_sig_desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    }
 
     Microsoft::WRL::ComPtr<ID3DBlob> signature;
     Microsoft::WRL::ComPtr<ID3DBlob> error;
@@ -932,103 +979,154 @@ void DX12Pipeline::CreateDrawIndexedIndirectCommandSignature()
 void DX12Pipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
 {
     auto ci = &create_info;
+    m_uses_mesh_shading = (create_info.shader_program.MeshShader() != nullptr);
 
     // Store vertex input state for later use (e.g., getting stride in BindVertexBuffers)
     m_vertex_input_state = ci->vertex_input_state;
-
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{};
-    pso_desc.pRootSignature = m_root_signature.Get();
-
-    // Shaders
-    auto vs = reinterpret_cast<DX12Shader *>(create_info.shader_program.VertexShader());
     auto ps = reinterpret_cast<DX12Shader *>(create_info.shader_program.PixelShader());
-    pso_desc.VS = vs->GetD3D12Bytecode();
-    pso_desc.PS = ps->GetD3D12Bytecode();
 
-    // Input layout
-    std::vector<D3D12_INPUT_ELEMENT_DESC> input_elements;
-    // Store semantic names as strings to ensure they remain valid
-
-    for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i)
-    {
-        const auto &attr = ci->vertex_input_state.attributes[i];
-        D3D12_INPUT_ELEMENT_DESC element{};
-
-        // Get semantic name (may need to store it if generated)
-        const char *semantic_name = Horizon::GetDX12SemanticName(attr);
-        element.SemanticName = semantic_name;
-        element.SemanticIndex = Horizon::GetDX12SemanticIndex(attr);
-        element.Format = Horizon::ToDX12VertexFormat(attr.attrib_format, attr.portion);
-        element.InputSlot = attr.binding;
-        element.AlignedByteOffset = attr.offset;
-        element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-        element.InstanceDataStepRate = 0;
-        input_elements.push_back(element);
-    }
-    pso_desc.InputLayout.NumElements = static_cast<UINT>(input_elements.size());
-    pso_desc.InputLayout.pInputElementDescs = input_elements.data();
-
-    // Rasterizer state
-    pso_desc.RasterizerState.FillMode = Horizon::ToDX12FillMode(ci->rasterization_state.fill_mode);
-    pso_desc.RasterizerState.CullMode = Horizon::ToDX12CullMode(ci->rasterization_state.cull_mode);
-    pso_desc.RasterizerState.FrontCounterClockwise =
-        (ci->rasterization_state.front_face == FrontFace::CCW) ? TRUE : FALSE;
-    pso_desc.RasterizerState.DepthBias = 0;
-    pso_desc.RasterizerState.DepthBiasClamp = 0.0f;
-    pso_desc.RasterizerState.SlopeScaledDepthBias = 0.0f;
-    pso_desc.RasterizerState.DepthClipEnable = TRUE;
-    pso_desc.RasterizerState.MultisampleEnable = FALSE;
-    pso_desc.RasterizerState.AntialiasedLineEnable = FALSE;
-    pso_desc.RasterizerState.ForcedSampleCount = 0;
-    pso_desc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
-    {
-        // Blend state
-        pso_desc.BlendState.AlphaToCoverageEnable = FALSE;
-        pso_desc.BlendState.IndependentBlendEnable = FALSE;
-        for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; ++i)
-        {
-            // const auto &blend = ci->render_target_formats.color_attachment_blend_state[i]; // TODO(luhanyang): add
-            // blend state
-            pso_desc.BlendState.RenderTarget[i].BlendEnable = false;
-            pso_desc.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;   // TODO: Map blend factors
-            pso_desc.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO; // TODO: Map blend factors
-            pso_desc.BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
-            pso_desc.BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
-            pso_desc.BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
-            pso_desc.BlendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-            pso_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-        }
-    }
-    pso_desc.SampleMask = UINT_MAX;
-    // Depth stencil state
-    pso_desc.DepthStencilState.DepthEnable = ci->depth_stencil_state.depth_test;
-    pso_desc.DepthStencilState.DepthWriteMask =
-        ci->depth_stencil_state.depth_write ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-    pso_desc.DepthStencilState.DepthFunc = Horizon::ToDX12ComparisonFunc(ci->depth_stencil_state.depth_func);
-    pso_desc.DepthStencilState.StencilEnable = ci->depth_stencil_state.stencil_enabled;
-    // TODO: Set stencil state
-
-    // Render target formats
+    CD3DX12_BLEND_DESC blend_desc(D3D12_DEFAULT);
+    blend_desc.AlphaToCoverageEnable = FALSE;
+    blend_desc.IndependentBlendEnable = FALSE;
     for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; ++i)
     {
-        pso_desc.RTVFormats[i] = Horizon::ToDX12Format(ci->render_target_formats.color_attachment_formats[i]);
+        blend_desc.RenderTarget[i].BlendEnable = false;
+        blend_desc.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
+        blend_desc.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO;
+        blend_desc.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
+        blend_desc.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
+        blend_desc.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
+        blend_desc.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        blend_desc.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
     }
-    pso_desc.NumRenderTargets = ci->render_target_formats.color_attachment_count;
-    pso_desc.DSVFormat = Horizon::ToDX12Format(ci->render_target_formats.depth_stencil_format);
 
-    // Primitive topology
-    m_topology = ci->input_assembly_state.topology;
-    pso_desc.PrimitiveTopologyType = Horizon::ToDX12PrimitiveTopologyType(m_topology);
+    CD3DX12_DEPTH_STENCIL_DESC depth_stencil_desc(D3D12_DEFAULT);
+    depth_stencil_desc.DepthEnable = ci->depth_stencil_state.depth_test;
+    depth_stencil_desc.DepthWriteMask =
+        ci->depth_stencil_state.depth_write ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+    depth_stencil_desc.DepthFunc = Horizon::ToDX12ComparisonFunc(ci->depth_stencil_state.depth_func);
+    depth_stencil_desc.StencilEnable = ci->depth_stencil_state.stencil_enabled;
 
-    // Sample desc
-    pso_desc.SampleDesc.Count = 1;
-    pso_desc.SampleDesc.Quality = 0;
+    CD3DX12_RASTERIZER_DESC rasterizer_desc(D3D12_DEFAULT);
+    rasterizer_desc.FillMode = Horizon::ToDX12FillMode(ci->rasterization_state.fill_mode);
+    rasterizer_desc.CullMode = Horizon::ToDX12CullMode(ci->rasterization_state.cull_mode);
+    rasterizer_desc.FrontCounterClockwise = (ci->rasterization_state.front_face == FrontFace::CCW) ? TRUE : FALSE;
+    rasterizer_desc.DepthBias = 0;
+    rasterizer_desc.DepthBiasClamp = 0.0f;
+    rasterizer_desc.SlopeScaledDepthBias = 0.0f;
+    rasterizer_desc.DepthClipEnable = TRUE;
+    rasterizer_desc.MultisampleEnable = FALSE;
+    rasterizer_desc.AntialiasedLineEnable = FALSE;
+    rasterizer_desc.ForcedSampleCount = 0;
+    rasterizer_desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
-    HRESULT hr = m_context.device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&m_pipeline_state));
+    D3D12_RT_FORMAT_ARRAY rt_formats{};
+    for (u32 i = 0; i < ci->render_target_formats.color_attachment_count; ++i)
+    {
+        rt_formats.RTFormats[i] = Horizon::ToDX12Format(ci->render_target_formats.color_attachment_formats[i]);
+    }
+    rt_formats.NumRenderTargets = ci->render_target_formats.color_attachment_count;
+
+    const DXGI_FORMAT dsv_format = Horizon::ToDX12Format(ci->render_target_formats.depth_stencil_format);
+    const DXGI_SAMPLE_DESC sample_desc{1, 0};
+    const UINT sample_mask = UINT_MAX;
+
+    HRESULT hr = S_OK;
+    if (m_uses_mesh_shading)
+    {
+        auto as = reinterpret_cast<DX12Shader *>(create_info.shader_program.TaskShader());
+        auto ms = reinterpret_cast<DX12Shader *>(create_info.shader_program.MeshShader());
+        if (ms == nullptr)
+        {
+            LOG_ERROR("DX12 mesh pipeline creation failed: mesh shader is null.");
+            return;
+        }
+
+        m_topology = PrimitiveTopology::TRIANGLE_LIST;
+
+        D3DX12_MESH_SHADER_PIPELINE_STATE_DESC mesh_desc{};
+        mesh_desc.pRootSignature = m_root_signature.Get();
+        mesh_desc.PS = (ps != nullptr) ? ps->GetD3D12Bytecode() : D3D12_SHADER_BYTECODE{};
+        mesh_desc.AS = (as != nullptr) ? as->GetD3D12Bytecode() : D3D12_SHADER_BYTECODE{};
+        mesh_desc.MS = ms->GetD3D12Bytecode();
+        mesh_desc.BlendState = blend_desc;
+        mesh_desc.SampleMask = sample_mask;
+        mesh_desc.RasterizerState = rasterizer_desc;
+        mesh_desc.DepthStencilState = depth_stencil_desc;
+        mesh_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        mesh_desc.NumRenderTargets = rt_formats.NumRenderTargets;
+        for (u32 i = 0; i < rt_formats.NumRenderTargets; ++i)
+        {
+            mesh_desc.RTVFormats[i] = rt_formats.RTFormats[i];
+        }
+        mesh_desc.DSVFormat = dsv_format;
+        mesh_desc.SampleDesc = sample_desc;
+
+        CD3DX12_PIPELINE_MESH_STATE_STREAM stream_desc(mesh_desc);
+        D3D12_PIPELINE_STATE_STREAM_DESC pso_stream_desc{};
+        pso_stream_desc.SizeInBytes = sizeof(stream_desc);
+        pso_stream_desc.pPipelineStateSubobjectStream = &stream_desc;
+
+        Microsoft::WRL::ComPtr<ID3D12Device2> device2;
+        hr = m_context.device.As(&device2);
+        if (FAILED(hr) || device2 == nullptr)
+        {
+            LOG_ERROR("Failed to query ID3D12Device2 for mesh pipeline state creation: {}", hr);
+            return;
+        }
+        hr = device2->CreatePipelineState(&pso_stream_desc, IID_PPV_ARGS(&m_pipeline_state));
+    }
+    else
+    {
+        auto vs = reinterpret_cast<DX12Shader *>(create_info.shader_program.VertexShader());
+        if (vs == nullptr)
+        {
+            LOG_ERROR("DX12 graphics pipeline creation failed: vertex shader is null.");
+            return;
+        }
+
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{};
+        pso_desc.pRootSignature = m_root_signature.Get();
+        pso_desc.VS = vs->GetD3D12Bytecode();
+        pso_desc.PS = (ps != nullptr) ? ps->GetD3D12Bytecode() : D3D12_SHADER_BYTECODE{};
+
+        std::vector<D3D12_INPUT_ELEMENT_DESC> input_elements;
+        for (u32 i = 0; i < ci->vertex_input_state.attribute_count; ++i)
+        {
+            const auto &attr = ci->vertex_input_state.attributes[i];
+            D3D12_INPUT_ELEMENT_DESC element{};
+            element.SemanticName = Horizon::GetDX12SemanticName(attr);
+            element.SemanticIndex = Horizon::GetDX12SemanticIndex(attr);
+            element.Format = Horizon::ToDX12VertexFormat(attr.attrib_format, attr.portion);
+            element.InputSlot = attr.binding;
+            element.AlignedByteOffset = attr.offset;
+            element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+            element.InstanceDataStepRate = 0;
+            input_elements.push_back(element);
+        }
+        pso_desc.InputLayout.NumElements = static_cast<UINT>(input_elements.size());
+        pso_desc.InputLayout.pInputElementDescs = input_elements.data();
+        pso_desc.RasterizerState = rasterizer_desc;
+        pso_desc.BlendState = blend_desc;
+        pso_desc.SampleMask = sample_mask;
+        pso_desc.DepthStencilState = depth_stencil_desc;
+        for (u32 i = 0; i < rt_formats.NumRenderTargets; ++i)
+        {
+            pso_desc.RTVFormats[i] = rt_formats.RTFormats[i];
+        }
+        pso_desc.NumRenderTargets = rt_formats.NumRenderTargets;
+        pso_desc.DSVFormat = dsv_format;
+
+        m_topology = ci->input_assembly_state.topology;
+        pso_desc.PrimitiveTopologyType = Horizon::ToDX12PrimitiveTopologyType(m_topology);
+        pso_desc.SampleDesc = sample_desc;
+
+        hr = m_context.device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&m_pipeline_state));
+    }
+
     if (FAILED(hr))
     {
-        LOG_ERROR("Failed to create graphics pipeline state: {}", hr);
+        LOG_ERROR("Failed to create DX12 graphics pipeline state: {}", hr);
     }
 }
 

@@ -33,7 +33,7 @@ class DeferredShadingRDGPass : public Horizon::Backend::RDGPass
     void SetGBufferHandles(Horizon::Backend::TextureHandle gbuffer0, Horizon::Backend::TextureHandle gbuffer1,
                            Horizon::Backend::TextureHandle gbuffer2, Horizon::Backend::TextureHandle gbuffer3,
                            Horizon::Backend::TextureHandle depth);
-    void SetSSAOBlurHandle(Horizon::Backend::TextureHandle ssao_blur);
+    void SetGTAOBlurHandle(Horizon::Backend::TextureHandle gtao_blur);
 
     // Accessors for ResourceUploadPass
     Buffer *GetDeferredShadingConstantsBuffer() const
@@ -114,7 +114,7 @@ class DeferredShadingRDGPass : public Horizon::Backend::RDGPass
     Horizon::Backend::TextureHandle m_gbuffer3_handle;
     Horizon::Backend::TextureHandle m_depth_handle;
     Horizon::Backend::TextureHandle m_shading_color_handle;
-    Horizon::Backend::TextureHandle m_ssao_blur_handle;
+    Horizon::Backend::TextureHandle m_gtao_blur_handle;
     Horizon::Backend::TextureHandle m_brdf_lut_handle;
     Horizon::Backend::TextureHandle m_prefiltered_env_handle;
 };

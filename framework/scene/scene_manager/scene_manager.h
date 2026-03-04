@@ -42,6 +42,23 @@ struct InstanceParameters
     u32 skinning_enabled;
 };
 
+// Runtime meshlet metadata used by mesh-shader path.
+// triangle_indices stores local triangle indices packed as:
+// bits [7:0]=i0, [15:8]=i1, [23:16]=i2.
+struct MeshletDesc
+{
+    Math::float4 bounding_sphere;   // xyz: center, w: radius
+    Math::float4 cone_axis_cutoff;  // xyz: axis, w: min dot cutoff
+    u32 vertex_offset;
+    u32 vertex_count;
+    u32 triangle_offset;
+    u32 triangle_count;
+    u32 vertex_buffer_index;
+    u32 instance_index;
+    u32 material_index;
+    u32 pad0{};
+};
+
 // struct DecalInstanceParameters {
 //    Math::float4x4 model;
 //    Math::float4x4 decal_to_world;
@@ -97,6 +114,18 @@ class SceneManager
 
     Buffer *GetUnitCubeVertexBuffer() const noexcept;
     Buffer *GetUnitCubeIndexBuffer() const noexcept;
+    Buffer *GetMeshletDescBuffer() const noexcept
+    {
+        return meshlet_desc_buffer;
+    }
+    Buffer *GetMeshletVertexIndexBuffer() const noexcept
+    {
+        return meshlet_vertex_index_buffer;
+    }
+    Buffer *GetMeshletTriangleBuffer() const noexcept
+    {
+        return meshlet_triangle_buffer;
+    }
 
     // camera
 
@@ -139,6 +168,12 @@ class SceneManager
     Buffer *skin_joint_matrix_buffer{};
     Buffer *prev_skin_joint_matrix_buffer{};
     Buffer *material_description_buffer{};
+    std::vector<MeshletDesc> meshlet_descs{};
+    std::vector<u32> meshlet_vertex_indices{};
+    std::vector<u32> meshlet_triangle_indices{};
+    Buffer *meshlet_desc_buffer{};
+    Buffer *meshlet_vertex_index_buffer{};
+    Buffer *meshlet_triangle_buffer{};
 
     u32 draw_count{0};
     Buffer *indirect_draw_command_buffer1{};

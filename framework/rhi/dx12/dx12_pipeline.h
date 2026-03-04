@@ -58,6 +58,11 @@ class DX12Pipeline : public Pipeline
         return rsd;
     }
 
+    bool UsesMeshShading() const noexcept
+    {
+        return m_uses_mesh_shading;
+    }
+
   private:
     void CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info);
     void CreateComputePipeline(const ComputePipelineCreateInfo &create_info);
@@ -88,5 +93,6 @@ class DX12Pipeline : public Pipeline
   private:
     // Store vertex input state for graphics pipelines
     VertexInputState m_vertex_input_state{};
+    bool m_uses_mesh_shading{false};
 };
 } // namespace Horizon::Backend

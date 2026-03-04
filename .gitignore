@@ -11,3 +11,4 @@ samples/*/config.hpp
 compile_commands.json
 CLAUDE.md
 PROGRESS.md
+build_codex

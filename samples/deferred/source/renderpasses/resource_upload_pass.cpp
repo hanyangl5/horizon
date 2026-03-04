@@ -1,9 +1,8 @@
 #include "resource_upload_pass.h"
 #include "deferred_geometry_rdg_pass.h"
 #include "deferred_shading_rdg_pass.h"
-#include "luminance_histogram_rdg_pass.h"
 #include "post_process_rdg_pass.h"
-#include "ssao_rdg_pass.h"
+#include "gtao_rdg_pass.h"
 #include "taa_rdg_pass.h"
 #include <scene/scene_manager/scene_manager.h>
 
@@ -23,34 +22,29 @@ void ResourceUploadRDGPass::ImportResources(Horizon::Backend::FrameGraph *frame_
 
 void ResourceUploadRDGPass::SetResourceHandles(
     Horizon::Backend::TextureHandle shading_color, Horizon::Backend::TextureHandle pp_color,
-    Horizon::Backend::TextureHandle ssao_factor, Horizon::Backend::TextureHandle ssao_blur,
+    Horizon::Backend::TextureHandle gtao_factor, Horizon::Backend::TextureHandle gtao_blur,
     Horizon::Backend::TextureHandle output_color, Horizon::Backend::TextureHandle previous_color,
-    Horizon::Backend::TextureHandle ssao_noise, Horizon::Backend::TextureHandle brdf_lut,
-    Horizon::Backend::TextureHandle prefiltered_env, Horizon::Backend::BufferHandle histogram_buffer,
-    Horizon::Backend::BufferHandle adapted_luminance)
+    Horizon::Backend::TextureHandle brdf_lut,
+    Horizon::Backend::TextureHandle prefiltered_env)
 {
     m_shading_color_handle = shading_color;
     m_pp_color_handle = pp_color;
-    m_ssao_factor_handle = ssao_factor;
-    m_ssao_blur_handle = ssao_blur;
+    m_gtao_factor_handle = gtao_factor;
+    m_gtao_blur_handle = gtao_blur;
     m_output_color_handle = output_color;
     m_previous_color_handle = previous_color;
-    m_ssao_noise_handle = ssao_noise;
     m_brdf_lut_handle = brdf_lut;
     m_prefiltered_env_handle = prefiltered_env;
-    m_histogram_buffer_handle = histogram_buffer;
-    m_adapted_luminance_handle = adapted_luminance;
 }
 
 void ResourceUploadRDGPass::SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred,
-                                            SSAORDGPass *ssao, PostProcessRDGPass *post_process,
-                                            LuminanceHistogramRDGPass *luminance_histogram, TAARDGPass *taa)
+                                            GTAORDGPass *gtao, PostProcessRDGPass *post_process,
+                                            TAARDGPass *taa)
 {
     m_geometry = geometry;
     m_deferred = deferred;
-    m_ssao = ssao;
+    m_gtao = gtao;
     m_post_process = post_process;
-    m_luminance_histogram = luminance_histogram;
     m_taa = taa;
 }
 
@@ -58,14 +52,13 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
 {
     builder.WriteTexture(m_shading_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
     builder.WriteTexture(m_pp_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-    builder.WriteTexture(m_ssao_factor_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-    builder.WriteTexture(m_ssao_blur_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.WriteTexture(m_gtao_factor_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
+    builder.WriteTexture(m_gtao_blur_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
     builder.WriteTexture(m_output_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 
     if (m_first_frame)
     {
         builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-        builder.WriteTexture(m_ssao_noise_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
         builder.WriteTexture(m_brdf_lut_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
         builder.WriteTexture(m_prefiltered_env_handle, ResourceState::RESOURCE_STATE_COPY_DEST);
     }
@@ -74,8 +67,6 @@ void ResourceUploadRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
         builder.WriteTexture(m_previous_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
     }
 
-    builder.WriteBuffer(m_histogram_buffer_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
-    builder.WriteBuffer(m_adapted_luminance_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
 }
 
 void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGraphBuilder &builder)
@@ -107,18 +98,10 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
                          sizeof(PostProcessRDGPass::ExposureConstant));
     }
 
-    // Luminance histogram data
-    if (m_luminance_histogram)
+    // GTAO data
+    if (m_gtao)
     {
-        cl->UpdateBuffer(m_luminance_histogram->GetConstantsBuffer(),
-                         &m_luminance_histogram->GetLuminanceHistogramConstants(),
-                         sizeof(LuminanceHistogramRDGPass::LuminanceHistogramConstants));
-    }
-
-    // SSAO data
-    if (m_ssao)
-    {
-        cl->UpdateBuffer(m_ssao->GetConstantsBuffer(), &m_ssao->GetSSAOConstants(), sizeof(SSAORDGPass::SSAOConstant));
+        cl->UpdateBuffer(m_gtao->GetConstantsBuffer(), &m_gtao->GetGTAOConstants(), sizeof(GTAORDGPass::GTAOConstant));
     }
 
     // TAA data
@@ -137,13 +120,6 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
         cl->UpdateBuffer(m_taa->GetTAAConstantsBuffer(), &taa_constants, sizeof(taa_constants));
     }
 
-    // Clear buffers
-    if (m_luminance_histogram)
-    {
-        cl->ClearBuffer(m_luminance_histogram->GetHistogramBuffer(), 0.0f);
-        cl->ClearBuffer(m_luminance_histogram->GetAdaptedLuminanceBuffer(), 0.0f);
-    }
-
     if (m_first_frame)
     {
         // Deferred IBL data
@@ -152,15 +128,6 @@ void ResourceUploadRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGrap
             cl->UpdateBuffer(m_deferred->GetDiffuseIrradianceSH3Buffer(),
                              &m_deferred->GetDiffuseIrradianceSH3Constants(),
                              sizeof(DeferredShadingRDGPass::DiffuseIrradianceSH3));
-
-            // SSAO noise texture
-            if (m_ssao)
-            {
-                TextureUpdateDesc desc{};
-                desc.texture_data_desc = &m_ssao->GetSSAONoiseTexDataDesc();
-                desc.size = GetBytesFromTextureFormat(m_ssao->GetSSAONoiseTex()->m_format) * 4 * 4;
-                cl->UpdateTexture(m_ssao->GetSSAONoiseTex(), desc);
-            }
 
             // Prefiltered irradiance env map
             if (m_deferred)

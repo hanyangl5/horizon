@@ -8,7 +8,6 @@ Horizon::Path shader_dir = SHADER_DIR;
 
 DeferredRenderApp::DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
 {
-    SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_VULKAN);
 }
 
 void DeferredRenderApp::Initialize()
@@ -66,21 +65,17 @@ void DeferredRenderApp::ResizePipelineResources(u32 new_width, u32 new_height)
     {
         deferred_shading_pass->ResizePassResources(m_width, m_height);
     }
-    if (ssao_pass)
+    if (gtao_pass)
     {
-        ssao_pass->ResizePassResources(m_width, m_height);
+        gtao_pass->ResizePassResources(m_width, m_height);
     }
-    if (ssao_blur_pass)
+    if (gtao_blur_pass)
     {
-        ssao_blur_pass->ResizePassResources(m_width, m_height);
+        gtao_blur_pass->ResizePassResources(m_width, m_height);
     }
     if (post_process_pass)
     {
         post_process_pass->ResizePassResources(m_width, m_height);
-    }
-    if (luminance_histogram_pass)
-    {
-        luminance_histogram_pass->ResizePassResources(m_width, m_height);
     }
     if (taa_pass)
     {
@@ -120,11 +115,9 @@ void DeferredRenderApp::InitPipelineResources()
     geometry_pass =
         std::make_unique<DeferredShadingGeometryPass>(rhi, scene->m_scene_manager, sampler, m_width, m_height);
     deferred_shading_pass = std::make_unique<DeferredShadingRDGPass>(rhi, scene->m_scene_manager, m_width, m_height);
-    ssao_pass = std::make_unique<SSAORDGPass>(rhi, sampler, m_width, m_height);
-    ssao_blur_pass = std::make_unique<SSAOBlurRDGPass>(rhi, m_width, m_height);
+    gtao_pass = std::make_unique<GTAORDGPass>(rhi, sampler, m_width, m_height);
+    gtao_blur_pass = std::make_unique<GTAOBlurRDGPass>(rhi, m_width, m_height);
     post_process_pass = std::make_unique<PostProcessRDGPass>(rhi, m_width, m_height);
-    luminance_histogram_pass = std::make_unique<LuminanceHistogramRDGPass>(rhi, m_width, m_height);
-    luminance_average_pass = std::make_unique<LuminanceAverageRDGPass>(rhi);
     taa_pass = std::make_unique<TAARDGPass>(rhi, m_width, m_height);
     resource_upload_pass = std::make_unique<ResourceUploadRDGPass>(rhi, scene->m_scene_manager);
 }
@@ -178,19 +171,19 @@ void DeferredRenderApp::UpdatePipelineResources()
     deferred_shading_pass->GetDeferredShadingConstants().camera_pos = Math::float4(cam->GetPosition());
     deferred_shading_pass->GetDeferredShadingConstants().inverse_vp = inverse_vp;
 
-    // SSAO constants
-    ssao_pass->GetSSAOConstants().proj = proj;
-    ssao_pass->GetSSAOConstants().inv_proj = proj.Invert();
-    ssao_pass->GetSSAOConstants().view = view;
-    ssao_pass->GetSSAOConstants().noise_scale_x = (f32)m_width / SSAORDGPass::SSAO_NOISE_TEX_WIDTH;
-    ssao_pass->GetSSAOConstants().noise_scale_y = (f32)m_height / SSAORDGPass::SSAO_NOISE_TEX_HEIGHT;
-
-    // Luminance histogram constants
-    luminance_histogram_pass->GetLuminanceHistogramConstants().width = m_width;
-    luminance_histogram_pass->GetLuminanceHistogramConstants().height = m_height;
-    luminance_histogram_pass->GetLuminanceHistogramConstants().pixelCount = m_width * m_height;
-    luminance_histogram_pass->GetLuminanceHistogramConstants().maxLuminance = 20000.0f;
-    luminance_histogram_pass->GetLuminanceHistogramConstants().timeCoeff = 0.5f;
+    // GTAO constants
+    auto &gtao_constants = gtao_pass->GetGTAOConstants();
+    gtao_constants.proj = proj;
+    gtao_constants.inv_proj = proj.Invert();
+    gtao_constants.view = view;
+    gtao_constants.radius = 1.5f;
+    gtao_constants.falloff = 2.0f;
+    gtao_constants.thickness = 0.35f;
+    gtao_constants.bias = 0.03f;
+    gtao_constants.direction_count = 6;
+    gtao_constants.step_count = 6;
+    gtao_constants.max_pixel_radius = 48.0f;
+    gtao_constants.intensity = 1.0f;
 }
 
 void DeferredRenderApp::RenderLoop()
@@ -207,11 +200,9 @@ void DeferredRenderApp::RenderLoop()
     // FrameGraph will call RDGPass::ImportResources() when adding each pass.
     frame_graph->AddPass(resource_upload_pass.get());
     frame_graph->AddPass(geometry_pass.get());
-    frame_graph->AddPass(ssao_pass.get());
-    frame_graph->AddPass(ssao_blur_pass.get());
+    frame_graph->AddPass(gtao_pass.get());
+    frame_graph->AddPass(gtao_blur_pass.get());
     frame_graph->AddPass(deferred_shading_pass.get());
-    frame_graph->AddPass(luminance_histogram_pass.get());
-    frame_graph->AddPass(luminance_average_pass.get());
     frame_graph->AddPass(post_process_pass.get());
     frame_graph->AddPass(taa_pass.get());
 
@@ -223,36 +214,29 @@ void DeferredRenderApp::RenderLoop()
     auto gbuffer4_handle = geometry_pass->GetGBuffer4Handle();
     auto depth_handle = geometry_pass->GetDepthHandle();
     auto shading_color_handle = deferred_shading_pass->GetShadingColorHandle();
-    auto ssao_factor_handle = ssao_pass->GetSSAOFactorHandle();
-    auto ssao_blur_handle = ssao_blur_pass->GetOutputHandle();
-    auto ssao_noise_handle = ssao_pass->GetSSAONoiseHandle();
+    auto gtao_factor_handle = gtao_pass->GetGTAOFactorHandle();
+    auto gtao_blur_handle = gtao_blur_pass->GetOutputHandle();
     auto brdf_lut_handle = deferred_shading_pass->GetBRDFLUTHandle();
     auto prefiltered_env_handle = deferred_shading_pass->GetPrefilteredEnvHandle();
     auto pp_color_handle = post_process_pass->GetPPColorHandle();
-    auto histogram_buffer_handle = luminance_histogram_pass->GetHistogramBufferHandle();
-    auto adapted_luminance_handle = luminance_histogram_pass->GetAdaptedLuminanceHandle();
     auto output_color_handle = taa_pass->GetOutputColorHandle();
     auto previous_color_handle = taa_pass->GetPreviousColorHandle();
 
     // Set input handles for passes
     deferred_shading_pass->SetGBufferHandles(gbuffer0_handle, gbuffer1_handle, gbuffer2_handle, gbuffer3_handle,
                                              depth_handle);
-    deferred_shading_pass->SetSSAOBlurHandle(ssao_blur_handle);
-    ssao_pass->SetInputHandles(depth_handle, gbuffer0_handle);
-    ssao_blur_pass->SetInputHandle(ssao_factor_handle);
-    post_process_pass->SetInputHandles(shading_color_handle, adapted_luminance_handle);
-    luminance_histogram_pass->SetInputHandle(shading_color_handle);
-    luminance_average_pass->SetInputHandles(histogram_buffer_handle, adapted_luminance_handle);
-    luminance_average_pass->SetLuminanceHistogramPass(luminance_histogram_pass.get());
+    deferred_shading_pass->SetGTAOBlurHandle(gtao_blur_handle);
+    gtao_pass->SetInputHandles(depth_handle, gbuffer0_handle);
+    gtao_blur_pass->SetInputHandles(gtao_factor_handle, depth_handle, gbuffer0_handle);
+    post_process_pass->SetInputHandle(shading_color_handle);
     taa_pass->SetInputHandles(previous_color_handle, pp_color_handle, gbuffer4_handle);
 
     // Set resource handles for resource upload pass
-    resource_upload_pass->SetResourceHandles(shading_color_handle, pp_color_handle, ssao_factor_handle,
-                                             ssao_blur_handle, output_color_handle, previous_color_handle,
-                                             ssao_noise_handle, brdf_lut_handle, prefiltered_env_handle,
-                                             histogram_buffer_handle, adapted_luminance_handle);
-    resource_upload_pass->SetPassPointers(geometry_pass.get(), deferred_shading_pass.get(), ssao_pass.get(),
-                                          post_process_pass.get(), luminance_histogram_pass.get(), taa_pass.get());
+    resource_upload_pass->SetResourceHandles(shading_color_handle, pp_color_handle, gtao_factor_handle,
+                                             gtao_blur_handle, output_color_handle, previous_color_handle,
+                                             brdf_lut_handle, prefiltered_env_handle);
+    resource_upload_pass->SetPassPointers(geometry_pass.get(), deferred_shading_pass.get(), gtao_pass.get(),
+                                          post_process_pass.get(), taa_pass.get());
     resource_upload_pass->SetFirstFrame(m_first_frame);
     resource_upload_pass->SetUploadSceneResources(m_upload_scene_resources);
     resource_upload_pass->SetInitializeHistory(m_reset_history);
@@ -349,11 +333,9 @@ void DeferredRenderApp::Cleanup()
 
     geometry_pass = nullptr;
     deferred_shading_pass = nullptr;
-    ssao_pass = nullptr;
-    ssao_blur_pass = nullptr;
+    gtao_pass = nullptr;
+    gtao_blur_pass = nullptr;
     post_process_pass = nullptr;
-    luminance_histogram_pass = nullptr;
-    luminance_average_pass = nullptr;
     taa_pass = nullptr;
     resource_upload_pass = nullptr;
     scene = nullptr;

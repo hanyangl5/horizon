@@ -104,6 +104,11 @@ class RHI
 
     virtual void Present(const QueuePresentInfo &queue_present_info) = 0;
 
+    virtual bool SupportsMeshShader() const noexcept
+    {
+        return false;
+    }
+
     void SetWindow(Window *window) noexcept
     {
         m_window = window;

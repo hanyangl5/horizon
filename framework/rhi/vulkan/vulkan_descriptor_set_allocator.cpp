@@ -95,7 +95,6 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
             {
                 VkDescriptorSetLayoutBinding binding{};
                 binding.binding = descriptor.vk_binding;
-                binding.descriptorCount = k_max_bindless_resources;
                 binding.stageFlags = VK_SHADER_STAGE_ALL;
                 binding.descriptorType = util_to_vk_descriptor_type(descriptor.type);
                 bindings.push_back(binding);
@@ -105,14 +104,41 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
                           return lhs.binding < rhs.binding;
                       });
 
+            // Policy (per your choice A): make Textures the only variable-count binding, and ensure it's the highest binding.
+            // Other bindless bindings (e.g. samplers/buffers) are fixed-size.
+            for (auto &b : bindings)
+            {
+                const bool is_texture = (b.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) ||
+                                        (b.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) ||
+                                        (b.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                b.descriptorCount = is_texture ? k_max_bindless_resources : 1;
+            }
+
+            // Enforce: highest binding must be the texture binding (required because VARIABLE_DESCRIPTOR_COUNT must be on it).
+            if (!bindings.empty())
+            {
+                auto &last = bindings.back();
+                const bool last_is_texture = (last.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) ||
+                                             (last.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) ||
+                                             (last.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                if (!last_is_texture)
+                {
+                    LOG_ERROR("Bindless set{}: expected highest binding to be a texture binding for variable descriptor count, but got type={} (binding={}).",
+                              set_number, static_cast<int>(last.descriptorType), last.binding);
+                }
+            }
+
             // Binding flags for bindless
             VkDescriptorSetLayoutBindingFlagsCreateInfoEXT set_layout_binding_flags{};
             set_layout_binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
             set_layout_binding_flags.bindingCount = static_cast<u32>(bindings.size());
-            std::vector<VkDescriptorBindingFlags> flags(bindings.size(),
-                                                        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
-                                                            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
-                                                            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
+            std::vector<VkDescriptorBindingFlags> flags(
+                bindings.size(), VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
+            // Only the highest binding may have VARIABLE_DESCRIPTOR_COUNT_BIT.
+            if (!flags.empty())
+            {
+                flags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;
+            }
             set_layout_binding_flags.pBindingFlags = flags.data();
 
             VkDescriptorSetLayoutCreateInfo layout_create_info{};
@@ -230,7 +256,7 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetBindlessDescriptorSet(Vulk
     VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountInfo = {};
     variableDescriptorCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
     variableDescriptorCountInfo.descriptorSetCount = 1; // Number of descriptor sets being allocated
-    u32 maxDescriptors = k_max_bindless_resources;      // Maximum descriptors for the variable-sized binding
+    u32 maxDescriptors = k_max_bindless_resources;      // Maximum descriptors for the variable-sized binding (highest binding)
     variableDescriptorCountInfo.pDescriptorCounts = &maxDescriptors;
 
     VkDescriptorSetAllocateInfo alloc_info{};

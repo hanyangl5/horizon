@@ -53,11 +53,15 @@ class DeferredShadingGeometryPass : public Horizon::Backend::RDGPass
     Buffer *m_taa_prev_curr_offset_buffer;
 
     // Pipeline resources (owned by pass, not FrameGraph)
-    Shader *m_geometry_static_vs;
-    Shader *m_geometry_skinned_vs;
-    Shader *m_geometry_ps;
-    Pipeline *m_geometry_static_pipeline;
-    Pipeline *m_geometry_skinned_pipeline;
+    bool m_use_mesh_shader_path{false};
+    Shader *m_geometry_static_vs{};
+    Shader *m_geometry_skinned_vs{};
+    Shader *m_geometry_task_shader{};
+    Shader *m_geometry_mesh_shader{};
+    Shader *m_geometry_ps{};
+    Pipeline *m_geometry_static_pipeline{};
+    Pipeline *m_geometry_skinned_pipeline{};
+    Pipeline *m_geometry_mesh_pipeline{};
 
     // Render targets (owned by pass)
     RenderTarget *m_gbuffer0_rt;

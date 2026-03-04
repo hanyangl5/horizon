@@ -18,8 +18,7 @@ class PostProcessRDGPass : public Horizon::Backend::RDGPass
     void Setup(Horizon::Backend::FrameGraphBuilder &builder) override;
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
-    void SetInputHandles(Horizon::Backend::TextureHandle shading_color,
-                         Horizon::Backend::BufferHandle adapted_luminance);
+    void SetInputHandle(Horizon::Backend::TextureHandle shading_color);
     Buffer *GetConstantsBuffer() const
     {
         return m_exposure_constants_buffer;
@@ -48,5 +47,4 @@ class PostProcessRDGPass : public Horizon::Backend::RDGPass
 
     Horizon::Backend::TextureHandle m_shading_color_handle;
     Horizon::Backend::TextureHandle m_pp_color_handle;
-    Horizon::Backend::BufferHandle m_adapted_luminance_handle;
 };

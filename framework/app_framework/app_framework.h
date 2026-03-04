@@ -36,6 +36,9 @@ class AppFramework
     // Run the application
     void Run();
 
+    // Parse CLI args like: -vk / -dx12 (or -dx)
+    void ConfigureFromCommandLine(int argc, char **argv);
+
   protected:
     // Override these methods in derived classes
     virtual void Initialize() = 0;
@@ -106,10 +109,11 @@ class AppFramework
     }
 #else
 #define DEFINE_HORIZON_APP_WITH_CLASS(AppName, AppClass)                                                               \
-    int main()                                                                                                         \
-    {                                                                                                                  \
-        AppClass app;                                                                                                  \
-        app.Run();                                                                                                     \
-        return 0;                                                                                                      \
+    int main(int argc, char **argv)                                                                                      \
+    {                                                                                                                    \
+        AppClass app;                                                                                                    \
+        app.ConfigureFromCommandLine(argc, argv);                                                                        \
+        app.Run();                                                                                                       \
+        return 0;                                                                                                        \
     }
 #endif

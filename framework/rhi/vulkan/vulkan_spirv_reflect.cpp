@@ -24,6 +24,10 @@ u32 spv_stage_to_internal(SpvReflectShaderStageFlagBits stage) noexcept
         s |= static_cast<u32>(ShaderStageFlags::SHADER_STAGE_PIXEL_SHADER);
     if (stage & SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT)
         s |= static_cast<u32>(ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER);
+    if (stage & SPV_REFLECT_SHADER_STAGE_TASK_BIT_NV)
+        s |= static_cast<u32>(ShaderStageFlags::SHADER_STAGE_TASK_SHADER);
+    if (stage & SPV_REFLECT_SHADER_STAGE_MESH_BIT_NV)
+        s |= static_cast<u32>(ShaderStageFlags::SHADER_STAGE_MESH_SHADER);
     return s;
 }
 
@@ -48,6 +52,10 @@ void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stag
         stage_bits = static_cast<u32>(ShaderStageFlags::SHADER_STAGE_COMPUTE_SHADER);
     else if (stage == ShaderType::VERTEX_SHADER)
         stage_bits = static_cast<u32>(ShaderStageFlags::SHADER_STAGE_VERTEX_SHADER);
+    else if (stage == ShaderType::TASK_SHADER)
+        stage_bits = static_cast<u32>(ShaderStageFlags::SHADER_STAGE_TASK_SHADER);
+    else if (stage == ShaderType::MESH_SHADER)
+        stage_bits = static_cast<u32>(ShaderStageFlags::SHADER_STAGE_MESH_SHADER);
 
     uint32_t binding_count = 0;
     spvReflectEnumerateDescriptorBindings(&module, &binding_count, nullptr);

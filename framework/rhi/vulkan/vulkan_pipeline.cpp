@@ -103,6 +103,7 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
 {
     // auto ci = m_create_info.gpci;
     {
+        const bool uses_mesh_shading = (create_info.shader_program.MeshShader() != nullptr);
 
         VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
         graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -127,17 +128,44 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
         std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_state;
         // shader stage
         {
+            shader_stage_create_infos.reserve(3);
 
-            shader_stage_create_infos.reserve(2);
+            if (uses_mesh_shading)
+            {
+                if (auto ts = reinterpret_cast<VulkanShader *>(create_info.shader_program.TaskShader()))
+                {
+                    shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
+                        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(ts->GetType()),
+                        ts->m_shader_module, ts->GetEntryPoint(), nullptr});
+                }
+
+                auto ms = reinterpret_cast<VulkanShader *>(create_info.shader_program.MeshShader());
+                if (ms == nullptr)
+                {
+                    LOG_ERROR("Mesh shading pipeline requires a mesh shader.");
+                    return;
+                }
+                shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
+                    VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(ms->GetType()),
+                    ms->m_shader_module, ms->GetEntryPoint(), nullptr});
+            }
+            else
             {
                 auto vs = reinterpret_cast<VulkanShader *>(create_info.shader_program.VertexShader());
+                if (vs == nullptr)
+                {
+                    LOG_ERROR("Graphics pipeline requires a vertex shader when mesh shader is not used.");
+                    return;
+                }
 
                 shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
                     VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(vs->GetType()),
                     vs->m_shader_module, vs->GetEntryPoint(), nullptr});
+            }
 
-                auto ps = reinterpret_cast<VulkanShader *>(create_info.shader_program.PixelShader());
-
+            auto ps = reinterpret_cast<VulkanShader *>(create_info.shader_program.PixelShader());
+            if (ps != nullptr)
+            {
                 shader_stage_create_infos.emplace_back(VkPipelineShaderStageCreateInfo{
                     VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, ToVkShaderStageBit(ps->GetType()),
                     ps->m_shader_module, ps->GetEntryPoint(), nullptr});
@@ -149,54 +177,56 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
 
         // vertex input state
         {
-
-            for (u32 i = 0; i < create_info.vertex_input_state.attribute_count; ++i)
+            if (!uses_mesh_shading)
             {
-                auto *attrib = &(create_info.vertex_input_state.attributes[i]);
-                uint32_t binding_index = UINT32_MAX;
-                for (uint32_t j = 0; j < input_binding_count; ++j)
+                for (u32 i = 0; i < create_info.vertex_input_state.attribute_count; ++i)
                 {
-                    if (input_bindings[j].binding == attrib->binding)
+                    auto *attrib = &(create_info.vertex_input_state.attributes[i]);
+                    uint32_t binding_index = UINT32_MAX;
+                    for (uint32_t j = 0; j < input_binding_count; ++j)
                     {
-                        binding_index = j;
-                        break;
+                        if (input_bindings[j].binding == attrib->binding)
+                        {
+                            binding_index = j;
+                            break;
+                        }
                     }
-                }
-                if (binding_index == UINT32_MAX)
-                {
-                    binding_index = input_binding_count++;
-                    input_bindings[binding_index].binding = attrib->binding;
-                    input_bindings[binding_index].stride = 0;
-                    input_bindings[binding_index].inputRate =
-                        (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
-                            ? VK_VERTEX_INPUT_RATE_INSTANCE
-                            : VK_VERTEX_INPUT_RATE_VERTEX;
-                }
-                else
-                {
-                    const VkVertexInputRate expected_rate =
-                        (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
-                            ? VK_VERTEX_INPUT_RATE_INSTANCE
-                            : VK_VERTEX_INPUT_RATE_VERTEX;
-                    if (input_bindings[binding_index].inputRate != expected_rate)
+                    if (binding_index == UINT32_MAX)
                     {
-                        LOG_WARN("Vertex input binding {} has mixed input rates; using first declared rate",
-                                 attrib->binding);
+                        binding_index = input_binding_count++;
+                        input_bindings[binding_index].binding = attrib->binding;
+                        input_bindings[binding_index].stride = 0;
+                        input_bindings[binding_index].inputRate =
+                            (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                                ? VK_VERTEX_INPUT_RATE_INSTANCE
+                                : VK_VERTEX_INPUT_RATE_VERTEX;
                     }
+                    else
+                    {
+                        const VkVertexInputRate expected_rate =
+                            (attrib->input_rate == VertexInputRate::VERTEX_ATTRIB_RATE_INSTANCE)
+                                ? VK_VERTEX_INPUT_RATE_INSTANCE
+                                : VK_VERTEX_INPUT_RATE_VERTEX;
+                        if (input_bindings[binding_index].inputRate != expected_rate)
+                        {
+                            LOG_WARN("Vertex input binding {} has mixed input rates; using first declared rate",
+                                     attrib->binding);
+                        }
+                    }
+
+                    const uint32_t attrib_stride =
+                        (attrib->stride != 0)
+                            ? attrib->stride
+                            : GetStrideFromVertexAttributeDescription(attrib->attrib_format, attrib->portion);
+                    input_bindings[binding_index].stride = std::max(input_bindings[binding_index].stride, attrib_stride);
+
+                    input_attributes[input_attribute_count].location = attrib->location;
+                    input_attributes[input_attribute_count].binding = attrib->binding;
+                    input_attributes[input_attribute_count].format =
+                        ToVkImageFormat(attrib->attrib_format, attrib->portion);
+                    input_attributes[input_attribute_count].offset = attrib->offset;
+                    ++input_attribute_count;
                 }
-
-                const uint32_t attrib_stride =
-                    (attrib->stride != 0)
-                        ? attrib->stride
-                        : GetStrideFromVertexAttributeDescription(attrib->attrib_format, attrib->portion);
-                input_bindings[binding_index].stride = std::max(input_bindings[binding_index].stride, attrib_stride);
-
-                input_attributes[input_attribute_count].location = attrib->location;
-                input_attributes[input_attribute_count].binding = attrib->binding;
-                input_attributes[input_attribute_count].format =
-                    ToVkImageFormat(attrib->attrib_format, attrib->portion);
-                input_attributes[input_attribute_count].offset = attrib->offset;
-                ++input_attribute_count;
             }
 
             vertex_input_state_create_info.flags = 0;
@@ -216,8 +246,9 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &cr
             input_assembly_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             input_assembly_state_create_info.flags = 0;
             input_assembly_state_create_info.pNext = nullptr;
-            input_assembly_state_create_info.topology =
-                ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
+            input_assembly_state_create_info.topology = uses_mesh_shading
+                                                            ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+                                                            : ToVkPrimitiveTopology(create_info.input_assembly_state.topology);
             input_assembly_state_create_info.primitiveRestartEnable = VK_FALSE;
 
             graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;

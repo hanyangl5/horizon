@@ -215,6 +215,16 @@ void VulkanCommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset,
                              draw_count, vk_stride);
 }
 
+void VulkanCommandList::DrawMeshTasks(u32 group_count_x, u32 group_count_y, u32 group_count_z)
+{
+    if (vkCmdDrawMeshTasksEXT == nullptr)
+    {
+        LOG_ERROR("vkCmdDrawMeshTasksEXT is null. VK_EXT_mesh_shader is not available.");
+        return;
+    }
+    vkCmdDrawMeshTasksEXT(m_command_buffer, group_count_x, group_count_y, group_count_z);
+}
+
 // compute commands
 void VulkanCommandList::BeginComputePass(const char *debug_name)
 {

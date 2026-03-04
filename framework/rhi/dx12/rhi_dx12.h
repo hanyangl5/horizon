@@ -76,6 +76,10 @@ class RHIDX12 : public RHI
 
     void Present(const QueuePresentInfo &queue_present_info) override;
     void AcquireNextFrame(SwapChain *swap_chain) override;
+    bool SupportsMeshShader() const noexcept override
+    {
+        return m_mesh_shader_supported;
+    }
 
   private:
     CommandContext *m_command_context{nullptr};
@@ -99,6 +103,7 @@ class RHIDX12 : public RHI
     DX12RendererContext m_dx12{};
     SwapChainSemaphoreContext semaphore_ctx{};
     DX12DescriptorHeapAllocator *m_descriptor_heap_allocator{nullptr};
+    bool m_mesh_shader_supported{false};
 };
 
 extern std::unique_ptr<RHI> CreateDX12RenderBackend(bool offscreen) noexcept;

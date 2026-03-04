@@ -1,5 +1,6 @@
 #include "deferred_geometry_rdg_pass.h"
 #include "taa_rdg_pass.h"
+#include <algorithm>
 #include <scene/scene_manager/scene_manager.h>
 
 DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager,
@@ -7,11 +8,20 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
     : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler), m_width(width),
       m_height(height)
 {
-    // Create shaders and pipeline using base class helper functions
-    m_geometry_static_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
-    m_geometry_skinned_vs =
-        CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_skinned_vs.hlsl", "vs_main_skinned");
-    m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
+    m_use_mesh_shader_path = (m_rhi != nullptr) && m_rhi->SupportsMeshShader();
+    if (m_use_mesh_shader_path)
+    {
+        m_geometry_task_shader = CreateShader(ShaderType::TASK_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ts_main");
+        m_geometry_mesh_shader = CreateShader(ShaderType::MESH_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ms_main");
+        m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_meshshader.hlsl", "ps_main");
+    }
+    else
+    {
+        m_geometry_static_vs = CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_bindless.hlsl", "vs_main");
+        m_geometry_skinned_vs =
+            CreateShader(ShaderType::VERTEX_SHADER, shader_dir / "gbuffer_skinned_vs.hlsl", "vs_main_skinned");
+        m_geometry_ps = CreateShader(ShaderType::PIXEL_SHADER, shader_dir / "gbuffer_bindless.hlsl", "ps_main");
+    }
 
     auto setup_common_pipeline_state = [this](GraphicsPipelineCreateInfo &ci) {
         ci.view_port_state.width = m_width;
@@ -27,7 +37,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
         ci.input_assembly_state.topology = PrimitiveTopology::TRIANGLE_LIST;
         ci.multi_sample_state.sample_count = 1;
 
-        ci.rasterization_state.cull_mode = CullMode::BACK;
+        ci.rasterization_state.cull_mode = CullMode::NONE;
         ci.rasterization_state.discard = false;
         ci.rasterization_state.fill_mode = FillMode::TRIANGLE;
         ci.rasterization_state.front_face = FrontFace::CCW;
@@ -43,6 +53,15 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
         ci.shader_program.SetShader(ShaderType::PIXEL_SHADER, m_geometry_ps);
     };
 
+    if (m_use_mesh_shader_path)
+    {
+        GraphicsPipelineCreateInfo mesh_ci{};
+        setup_common_pipeline_state(mesh_ci);
+        mesh_ci.shader_program.SetShader(ShaderType::TASK_SHADER, m_geometry_task_shader);
+        mesh_ci.shader_program.SetShader(ShaderType::MESH_SHADER, m_geometry_mesh_shader);
+        m_geometry_mesh_pipeline = CreateGraphicsPipeline(mesh_ci);
+    }
+    else
     {
         GraphicsPipelineCreateInfo static_ci{};
         setup_common_pipeline_state(static_ci);
@@ -107,6 +126,7 @@ DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::Scen
         m_geometry_static_pipeline = CreateGraphicsPipeline(static_ci);
     }
 
+    if (!m_use_mesh_shader_path)
     {
         GraphicsPipelineCreateInfo skinned_ci{};
         setup_common_pipeline_state(skinned_ci);
@@ -223,9 +243,12 @@ DeferredShadingGeometryPass::~DeferredShadingGeometryPass()
 {
     DestroyShader(m_geometry_static_vs);
     DestroyShader(m_geometry_skinned_vs);
+    DestroyShader(m_geometry_task_shader);
+    DestroyShader(m_geometry_mesh_shader);
     DestroyShader(m_geometry_ps);
     DestroyPipeline(m_geometry_static_pipeline);
     DestroyPipeline(m_geometry_skinned_pipeline);
+    DestroyPipeline(m_geometry_mesh_pipeline);
     m_rhi->DestroyRenderTarget(m_gbuffer0_rt);
     m_rhi->DestroyRenderTarget(m_gbuffer1_rt);
     m_rhi->DestroyRenderTarget(m_gbuffer2_rt);
@@ -308,7 +331,11 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
         material_textures.push_back(tex);
     }
 
-    auto setup_pipeline_resources = [&](Pipeline *pipeline, bool skinned) {
+    auto setup_raster_pipeline_resources = [&](Pipeline *pipeline, bool skinned) {
+        if (pipeline == nullptr)
+        {
+            return;
+        }
         pipeline->SetResource(m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
         pipeline->SetResource(m_scene_manager->instance_parameter_buffer, "instance_parameter");
         pipeline->SetResource(m_scene_manager->prev_instance_model_buffer, "prev_instance_model_matrices");
@@ -326,50 +353,102 @@ void DeferredShadingGeometryPass::Execute(CommandList *cl, Horizon::Backend::Fra
         }
     };
 
-    setup_pipeline_resources(m_geometry_static_pipeline, false);
-    setup_pipeline_resources(m_geometry_skinned_pipeline, true);
+    auto setup_mesh_pipeline_resources = [&](Pipeline *pipeline) {
+        if (pipeline == nullptr)
+        {
+            return;
+        }
+        std::vector<Buffer *> vertex_buffers = m_scene_manager->vertex_buffers;
+        pipeline->SetResource(m_scene_manager->GetCameraBuffer(), "CameraParamsUb_cb");
+        pipeline->SetResource(m_scene_manager->instance_parameter_buffer, "instance_parameter");
+        pipeline->SetResource(m_scene_manager->prev_instance_model_buffer, "prev_instance_model_matrices");
+        pipeline->SetResource(m_scene_manager->skin_joint_matrix_buffer, "skin_joint_matrices");
+        pipeline->SetResource(m_scene_manager->prev_skin_joint_matrix_buffer, "prev_skin_joint_matrices");
+        pipeline->SetResource(m_scene_manager->material_description_buffer, "material_descriptions");
+        pipeline->SetResource(m_scene_manager->GetMeshletDescBuffer(), "meshlet_descs");
+        pipeline->SetResource(m_scene_manager->GetMeshletVertexIndexBuffer(), "meshlet_vertex_indices");
+        pipeline->SetResource(m_scene_manager->GetMeshletTriangleBuffer(), "meshlet_triangle_indices");
+        pipeline->SetResource(m_sampler, "default_sampler");
+        pipeline->SetResource(m_taa_prev_curr_offset_buffer, "TAAOffsets_cb");
+        if (!vertex_buffers.empty())
+        {
+            pipeline->SetBindlessResource(vertex_buffers, "vertex_buffers");
+        }
+        if (!material_textures.empty())
+        {
+            pipeline->SetBindlessResource(material_textures, "material_textures");
+        }
+    };
+
+    if (m_use_mesh_shader_path)
+    {
+        setup_mesh_pipeline_resources(m_geometry_mesh_pipeline);
+    }
+    else
+    {
+        setup_raster_pipeline_resources(m_geometry_static_pipeline, false);
+        setup_raster_pipeline_resources(m_geometry_skinned_pipeline, true);
+    }
 
     cl->BeginRenderPass(begin_info);
 
-    for (u32 mesh_data = 0; mesh_data < m_scene_manager->mesh_data.size(); mesh_data++)
+    if (m_use_mesh_shader_path)
     {
-        auto &mesh = m_scene_manager->mesh_data[mesh_data];
-        auto ib = m_scene_manager->index_buffers[mesh.index_buffer_offset];
-        auto vb = m_scene_manager->vertex_buffers[mesh.vertex_buffer_offset];
-
-        u32 command_index = mesh.draw_offset;
-        const u32 command_end = mesh.draw_offset + mesh.draw_count;
-        while (command_index < command_end)
+        constexpr u32 k_max_mesh_tasks_per_draw = 65535;
+        cl->BindPipeline(m_geometry_mesh_pipeline);
+        u32 remaining = static_cast<u32>(m_scene_manager->meshlet_descs.size());
+        u32 meshlet_offset = 0;
+        while (remaining > 0)
         {
-            const auto &first_command = m_scene_manager->scene_indirect_draw_command1[command_index];
-            const bool first_is_skinned =
-                m_scene_manager->instance_params[first_command.mesh_id_offset].skinning_enabled != 0;
+            const u32 batch = std::min(k_max_mesh_tasks_per_draw, remaining);
+            cl->BindPushConstant(m_geometry_mesh_pipeline, "meshlet_draw_offset", &meshlet_offset);
+            cl->DrawMeshTasks(batch, 1, 1);
+            meshlet_offset += batch;
+            remaining -= batch;
+        }
+    }
+    else
+    {
+        for (u32 mesh_data = 0; mesh_data < m_scene_manager->mesh_data.size(); mesh_data++)
+        {
+            auto &mesh = m_scene_manager->mesh_data[mesh_data];
+            auto ib = m_scene_manager->index_buffers[mesh.index_buffer_offset];
+            auto vb = m_scene_manager->vertex_buffers[mesh.vertex_buffer_offset];
 
-            u32 batch_end = command_index + 1;
-            while (batch_end < command_end)
+            u32 command_index = mesh.draw_offset;
+            const u32 command_end = mesh.draw_offset + mesh.draw_count;
+            while (command_index < command_end)
             {
-                const auto &cmd = m_scene_manager->scene_indirect_draw_command1[batch_end];
-                const bool is_skinned = m_scene_manager->instance_params[cmd.mesh_id_offset].skinning_enabled != 0;
-                if (is_skinned != first_is_skinned)
+                const auto &first_command = m_scene_manager->scene_indirect_draw_command1[command_index];
+                const bool first_is_skinned =
+                    m_scene_manager->instance_params[first_command.mesh_id_offset].skinning_enabled != 0;
+
+                u32 batch_end = command_index + 1;
+                while (batch_end < command_end)
                 {
-                    break;
+                    const auto &cmd = m_scene_manager->scene_indirect_draw_command1[batch_end];
+                    const bool is_skinned = m_scene_manager->instance_params[cmd.mesh_id_offset].skinning_enabled != 0;
+                    if (is_skinned != first_is_skinned)
+                    {
+                        break;
+                    }
+                    ++batch_end;
                 }
-                ++batch_end;
+
+                Pipeline *pipeline = first_is_skinned ? m_geometry_skinned_pipeline : m_geometry_static_pipeline;
+                cl->BindPipeline(pipeline);
+                u32 offset = 0;
+                cl->BindVertexBuffers(1, &vb, &offset);
+                cl->BindIndexBuffer(ib, 0);
+
+                u32 mesh_id_offset = first_command.mesh_id_offset;
+                cl->BindPushConstant(pipeline, "mesh_draw_offset", &mesh_id_offset);
+                cl->DrawIndirectIndexedInstanced(m_scene_manager->indirect_draw_command_buffer1,
+                                                 sizeof(DX12DrawIndexedInstancedCommand) * command_index,
+                                                 batch_end - command_index, sizeof(DX12DrawIndexedInstancedCommand));
+
+                command_index = batch_end;
             }
-
-            Pipeline *pipeline = first_is_skinned ? m_geometry_skinned_pipeline : m_geometry_static_pipeline;
-            cl->BindPipeline(pipeline);
-            u32 offset = 0;
-            cl->BindVertexBuffers(1, &vb, &offset);
-            cl->BindIndexBuffer(ib, 0);
-
-            u32 mesh_id_offset = first_command.mesh_id_offset;
-            cl->BindPushConstant(pipeline, "mesh_draw_offset", &mesh_id_offset);
-            cl->DrawIndirectIndexedInstanced(m_scene_manager->indirect_draw_command_buffer1,
-                                             sizeof(DX12DrawIndexedInstancedCommand) * command_index,
-                                             batch_end - command_index, sizeof(DX12DrawIndexedInstancedCommand));
-
-            command_index = batch_end;
         }
     }
 

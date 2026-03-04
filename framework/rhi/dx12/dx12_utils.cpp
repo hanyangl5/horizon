@@ -333,6 +333,9 @@ D3D12_SHADER_VISIBILITY ToDX12ShaderVisibility(ShaderType type) noexcept
         return D3D12_SHADER_VISIBILITY_PIXEL;
     case ShaderType::COMPUTE_SHADER:
         return D3D12_SHADER_VISIBILITY_ALL; // Compute shaders use ALL
+    case ShaderType::TASK_SHADER:
+    case ShaderType::MESH_SHADER:
+        return D3D12_SHADER_VISIBILITY_ALL;
     default:
         return D3D12_SHADER_VISIBILITY_ALL;
     }

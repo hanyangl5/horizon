@@ -7,11 +7,19 @@
                                                                      *********************************************************************/
 
 #include "scene_manager.h"
+#include "scene_manager_meshlet.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <limits>
+#include <type_traits>
+#include <unordered_map>
 
 #include <core/log.h>
+#include <core/path.h>
 
 namespace Horizon
 {
@@ -49,7 +57,19 @@ void SceneManager::CreateMeshResources()
     m_has_animated_mesh = false;
     m_scene_joint_matrices.clear();
     m_prev_scene_joint_matrices.clear();
+    material_textures.clear();
+    textuer_upload_desc.clear();
+    vertex_buffers.clear();
+    index_buffers.clear();
+    instance_params.clear();
+    material_descs.clear();
+    mesh_data.clear();
+    scene_indirect_draw_command1.clear();
     prev_instance_model_matrices.clear();
+    meshlet_descs.clear();
+    meshlet_vertex_indices.clear();
+    meshlet_triangle_indices.clear();
+    draw_count = 0;
 
     for (auto &mesh : scene_meshes)
     {
@@ -57,10 +77,13 @@ void SceneManager::CreateMeshResources()
         mesh_data.push_back(
             MeshData{texture_offset, vertex_buffer_offset, index_buffer_offset, draw_offset, draw_count});
         draw_offset += draw_count;
+        const u32 current_vertex_buffer_index = vertex_buffer_offset;
         BufferCreateInfo vertex_buffer_create_info{};
         vertex_buffer_create_info.size = mesh->m_vertices.size() * sizeof(Vertex);
-        vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        vertex_buffer_create_info.descriptor_types =
+            DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER | DescriptorType::DESCRIPTOR_TYPE_BUFFER;
+        vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_GENERIC_READ;
+        vertex_buffer_create_info.structured_byte_stride = sizeof(Vertex);
         vertex_buffers.push_back(resource_manager->CreateGpuBuffer(vertex_buffer_create_info));
 
         BufferCreateInfo index_buffer_create_info{};
@@ -81,6 +104,11 @@ void SceneManager::CreateMeshResources()
             scene_joint_offset += static_cast<u32>(mesh_joint_matrices.size());
             m_has_animated_mesh = true;
         }
+
+        std::vector<u32> primitive_instance_indices{};
+        std::vector<u32> primitive_material_indices{};
+        primitive_instance_indices.reserve(mesh->m_mesh_primitives.size());
+        primitive_material_indices.reserve(mesh->m_mesh_primitives.size());
 
         for (u32 primitive_index = 0; primitive_index < mesh->m_mesh_primitives.size(); ++primitive_index)
         {
@@ -111,7 +139,12 @@ void SceneManager::CreateMeshResources()
                     instance.skinning_enabled = 1;
                 }
             }
+            primitive_instance_indices.push_back(command.mesh_id_offset);
+            primitive_material_indices.push_back(instance.material_index);
         }
+
+        AppendMeshletDataForMesh(mesh, current_vertex_buffer_index, primitive_instance_indices, primitive_material_indices,
+                                 meshlet_descs, meshlet_vertex_indices, meshlet_triangle_indices);
 
         for (auto &material : mesh->materials)
         {
@@ -222,6 +255,28 @@ void SceneManager::CreateMeshResources()
     prev_skin_joint_matrix_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float4x4) * m_prev_scene_joint_matrices.size(), nullptr, sizeof(Math::float4x4)});
+    if (meshlet_descs.empty())
+    {
+        meshlet_descs.push_back(MeshletDesc{});
+    }
+    if (meshlet_vertex_indices.empty())
+    {
+        meshlet_vertex_indices.push_back(0);
+    }
+    if (meshlet_triangle_indices.empty())
+    {
+        meshlet_triangle_indices.push_back(0);
+    }
+
+    meshlet_desc_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(MeshletDesc) * meshlet_descs.size(), nullptr, sizeof(MeshletDesc)});
+    meshlet_vertex_index_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(u32) * meshlet_vertex_indices.size(), nullptr, sizeof(u32)});
+    meshlet_triangle_buffer = resource_manager->CreateGpuBuffer(
+        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                         sizeof(u32) * meshlet_triangle_indices.size(), nullptr, sizeof(u32)});
 
     empty_vertex_buffer = resource_manager->GetEmptyVertexBuffer();
 }
@@ -251,6 +306,11 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
                               m_scene_joint_matrices.size() * sizeof(Math::float4x4));
     commandlist->UpdateBuffer(prev_skin_joint_matrix_buffer, m_prev_scene_joint_matrices.data(),
                               m_prev_scene_joint_matrices.size() * sizeof(Math::float4x4));
+    commandlist->UpdateBuffer(meshlet_desc_buffer, meshlet_descs.data(), meshlet_descs.size() * sizeof(MeshletDesc));
+    commandlist->UpdateBuffer(meshlet_vertex_index_buffer, meshlet_vertex_indices.data(),
+                              meshlet_vertex_indices.size() * sizeof(u32));
+    commandlist->UpdateBuffer(meshlet_triangle_buffer, meshlet_triangle_indices.data(),
+                              meshlet_triangle_indices.size() * sizeof(u32));
 
     // UPLOAD TEXTURES
     std::vector<u32> runtime_gen_mip_tex_indices;

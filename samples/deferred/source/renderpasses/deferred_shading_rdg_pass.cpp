@@ -127,9 +127,9 @@ void DeferredShadingRDGPass::SetGBufferHandles(Horizon::Backend::TextureHandle g
     m_depth_handle = depth;
 }
 
-void DeferredShadingRDGPass::SetSSAOBlurHandle(Horizon::Backend::TextureHandle ssao_blur)
+void DeferredShadingRDGPass::SetGTAOBlurHandle(Horizon::Backend::TextureHandle gtao_blur)
 {
-    m_ssao_blur_handle = ssao_blur;
+    m_gtao_blur_handle = gtao_blur;
 }
 
 void DeferredShadingRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
@@ -143,7 +143,7 @@ void DeferredShadingRDGPass::Setup(Horizon::Backend::FrameGraphBuilder &builder)
     builder.ReadTexture(m_gbuffer2_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_gbuffer3_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_depth_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
-    builder.ReadTexture(m_ssao_blur_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
+    builder.ReadTexture(m_gtao_blur_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_brdf_lut_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.ReadTexture(m_prefiltered_env_handle, ResourceState::RESOURCE_STATE_SHADER_RESOURCE);
     builder.WriteTexture(m_shading_color_handle, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS);
@@ -161,7 +161,7 @@ void DeferredShadingRDGPass::Execute(CommandList *cl, Horizon::Backend::FrameGra
     m_shading_pipeline->SetResource(m_scene_manager->GetLightCountBuffer(), "LightCountUb_cb");
     m_shading_pipeline->SetResource(m_scene_manager->GetLightParamBuffer(), "LightDataUb_cb");
     m_shading_pipeline->SetResource(builder.GetTexture(m_shading_color_handle), "out_color");
-    m_shading_pipeline->SetResource(builder.GetTexture(m_ssao_blur_handle), "ao_tex");
+    m_shading_pipeline->SetResource(builder.GetTexture(m_gtao_blur_handle), "ao_tex");
     m_shading_pipeline->SetResource(m_diffuse_irradiance_sh3_buffer, "DiffuseIrradianceSH3_cb");
     m_shading_pipeline->SetResource(builder.GetTexture(m_prefiltered_env_handle), "specular_map");
     m_shading_pipeline->SetResource(builder.GetTexture(m_brdf_lut_handle), "specular_brdf_lut");

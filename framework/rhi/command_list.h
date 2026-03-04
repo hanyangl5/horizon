@@ -57,6 +57,7 @@ class CommandList
                                       u32 first_instance = 0) = 0;
     virtual void DrawIndirect() = 0;
     virtual void DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) = 0;
+    virtual void DrawMeshTasks(u32 group_count_x, u32 group_count_y = 1, u32 group_count_z = 1) = 0;
     virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) = 0;
     virtual void DispatchIndirect() = 0;
 

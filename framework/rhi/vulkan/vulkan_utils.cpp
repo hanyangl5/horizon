@@ -30,6 +30,10 @@ VkShaderStageFlagBits ToVkShaderStageBit(ShaderType type) noexcept
         return VK_SHADER_STAGE_FRAGMENT_BIT;
     case Horizon::ShaderType::COMPUTE_SHADER:
         return VK_SHADER_STAGE_COMPUTE_BIT;
+    case Horizon::ShaderType::TASK_SHADER:
+        return VK_SHADER_STAGE_TASK_BIT_EXT;
+    case Horizon::ShaderType::MESH_SHADER:
+        return VK_SHADER_STAGE_MESH_BIT_EXT;
     default:
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         break;
@@ -237,6 +241,14 @@ VkShaderStageFlags ToVkShaderStageFlags(u32 stage) noexcept
     if (stage & SHADER_STAGE_COMPUTE_SHADER)
     {
         flags |= VK_SHADER_STAGE_COMPUTE_BIT;
+    }
+    if (stage & SHADER_STAGE_TASK_SHADER)
+    {
+        flags |= VK_SHADER_STAGE_TASK_BIT_EXT;
+    }
+    if (stage & SHADER_STAGE_MESH_SHADER)
+    {
+        flags |= VK_SHADER_STAGE_MESH_BIT_EXT;
     }
     return flags;
 }

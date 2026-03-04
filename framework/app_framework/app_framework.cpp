@@ -10,6 +10,7 @@
 #include "app_framework.h"
 #include <chrono>
 #include <core/log.h>
+#include <cstring>
 #include <thread>
 #ifdef __ANDROID__
 #include <core/android/android_native.h>
@@ -36,6 +37,38 @@ AppFramework::~AppFramework()
     //    should handle cleanup in its own destructor
     // If cleanup is needed, derived classes should call Cleanup() in their destructor
     // before the base class destructor runs
+}
+
+void AppFramework::ConfigureFromCommandLine(int argc, char **argv)
+{
+#ifdef __ANDROID__
+    (void)argc;
+    (void)argv;
+    return;
+#else
+    for (int i = 1; i < argc; ++i)
+    {
+        const char *arg = argv[i];
+        if (!arg)
+        {
+            continue;
+        }
+
+        if (strcmp(arg, "-vk") == 0 || strcmp(arg, "--vk") == 0 || strcmp(arg, "-vulkan") == 0 ||
+            strcmp(arg, "--vulkan") == 0)
+        {
+            SetRenderBackend(RenderBackend::RENDER_BACKEND_VULKAN);
+            continue;
+        }
+
+        if (strcmp(arg, "-dx") == 0 || strcmp(arg, "--dx") == 0 || strcmp(arg, "-dx12") == 0 ||
+            strcmp(arg, "--dx12") == 0)
+        {
+            SetRenderBackend(RenderBackend::RENDER_BACKEND_DX12);
+            continue;
+        }
+    }
+#endif
 }
 
 void AppFramework::Run()

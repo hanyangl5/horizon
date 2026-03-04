@@ -1,5 +1,7 @@
 #include "rhi_vulkan.h"
 
+#include <algorithm>
+#include <cstring>
 #include <core/path.h>
 #include <thread>
 #include <volk.h>
@@ -165,6 +167,12 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
             break;
         case Horizon::ShaderType::COMPUTE_SHADER:
             return "cs";
+            break;
+        case Horizon::ShaderType::TASK_SHADER:
+            return "as";
+            break;
+        case Horizon::ShaderType::MESH_SHADER:
+            return "ms";
             break;
         default:
             return "error";
@@ -394,6 +402,34 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
 {
     PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
 
+    u32 ext_count = 0;
+    vkEnumerateDeviceExtensionProperties(m_vulkan.active_gpu, nullptr, &ext_count, nullptr);
+    std::vector<VkExtensionProperties> available_extensions(ext_count);
+    vkEnumerateDeviceExtensionProperties(m_vulkan.active_gpu, nullptr, &ext_count, available_extensions.data());
+
+    auto has_extension = [&available_extensions](const char *name) {
+        return std::any_of(available_extensions.begin(), available_extensions.end(),
+                           [name](const VkExtensionProperties &p) { return strcmp(p.extensionName, name) == 0; });
+    };
+
+    const bool has_mesh_shader_ext = has_extension(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+    if (has_mesh_shader_ext)
+    {
+        device_extensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+    }
+
+    const bool has_shader_demote_ext = has_extension(VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME);
+    if (has_shader_demote_ext)
+    {
+        device_extensions.emplace_back(VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME);
+    }
+
+    const bool has_fsr_ext = has_extension(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
+    if (has_fsr_ext)
+    {
+        device_extensions.emplace_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
+    }
+
     VkPhysicalDeviceShaderDrawParametersFeatures shader_draw_parameters_features{};
     shader_draw_parameters_features.shaderDrawParameters = true;
     shader_draw_parameters_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
@@ -406,7 +442,68 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
 
     VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
     descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-    descriptor_indexing_features.pNext = &dyanmic_rendering_features;
+
+    VkPhysicalDeviceMeshShaderFeaturesEXT mesh_shader_features{};
+    mesh_shader_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+
+    VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features{};
+    fragment_shading_rate_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+
+    VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT demote_to_helper_features{};
+    demote_to_helper_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT;
+
+    // Build pNext chain from descriptor_indexing_features -> ... -> dynamic rendering -> shader draw parameters.
+    if (has_mesh_shader_ext)
+    {
+        descriptor_indexing_features.pNext = &mesh_shader_features;
+        if (has_fsr_ext)
+        {
+            mesh_shader_features.pNext = &fragment_shading_rate_features;
+            if (has_shader_demote_ext)
+            {
+                fragment_shading_rate_features.pNext = &demote_to_helper_features;
+                demote_to_helper_features.pNext = &dyanmic_rendering_features;
+            }
+            else
+            {
+                fragment_shading_rate_features.pNext = &dyanmic_rendering_features;
+            }
+        }
+        else if (has_shader_demote_ext)
+        {
+            mesh_shader_features.pNext = &demote_to_helper_features;
+            demote_to_helper_features.pNext = &dyanmic_rendering_features;
+        }
+        else
+        {
+            mesh_shader_features.pNext = &dyanmic_rendering_features;
+        }
+    }
+    else
+    {
+        if (has_fsr_ext)
+        {
+            descriptor_indexing_features.pNext = &fragment_shading_rate_features;
+            if (has_shader_demote_ext)
+            {
+                fragment_shading_rate_features.pNext = &demote_to_helper_features;
+                demote_to_helper_features.pNext = &dyanmic_rendering_features;
+            }
+            else
+            {
+                fragment_shading_rate_features.pNext = &dyanmic_rendering_features;
+            }
+        }
+        else if (has_shader_demote_ext)
+        {
+            descriptor_indexing_features.pNext = &demote_to_helper_features;
+            demote_to_helper_features.pNext = &dyanmic_rendering_features;
+        }
+        else
+        {
+            descriptor_indexing_features.pNext = &dyanmic_rendering_features;
+        }
+    }
     descriptor_indexing_features.runtimeDescriptorArray = VK_TRUE;
     descriptor_indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
     descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
@@ -437,13 +534,53 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
 
     VkPhysicalDeviceHostQueryResetFeaturesEXT host_query_reset_features{};
     host_query_reset_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT;
-    host_query_reset_features.pNext = &descriptor_indexing_features;
+
+    VkPhysicalDeviceScalarBlockLayoutFeatures scalar_block_layout_features{};
+    scalar_block_layout_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
+    host_query_reset_features.pNext = &scalar_block_layout_features;
+    scalar_block_layout_features.pNext = &descriptor_indexing_features;
 
     VkPhysicalDeviceFeatures2 device_features{};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     // device_features.features = &requested_descriptor_indexing;
     device_features.pNext = &host_query_reset_features;
     vkGetPhysicalDeviceFeatures2(m_vulkan.active_gpu, &device_features);
+
+    if (scalar_block_layout_features.scalarBlockLayout == VK_TRUE)
+    {
+        scalar_block_layout_features.scalarBlockLayout = VK_TRUE;
+    }
+    else
+    {
+        LOG_WARN("scalarBlockLayout is not supported on this device; some DX-layout storage buffers may fail validation");
+    }
+
+    m_mesh_shader_supported =
+        has_mesh_shader_ext && mesh_shader_features.meshShader == VK_TRUE && mesh_shader_features.taskShader == VK_TRUE;
+    if (m_mesh_shader_supported)
+    {
+        mesh_shader_features.meshShader = VK_TRUE;
+        mesh_shader_features.taskShader = VK_TRUE;
+        // Keep optional mesh shader sub-features disabled unless explicitly needed.
+        // vkGetPhysicalDeviceFeatures2 fills support bits for all fields; leaving them
+        // untouched can accidentally request unsupported dependency chains (e.g. multiviewMeshShader).
+        mesh_shader_features.multiviewMeshShader = VK_FALSE;
+        mesh_shader_features.primitiveFragmentShadingRateMeshShader = VK_FALSE;
+        mesh_shader_features.meshShaderQueries = VK_FALSE;
+
+        // Note: don't enable fragment shading rate features unless we actually use them.
+    }
+    else
+    {
+        mesh_shader_features.meshShader = VK_FALSE;
+        mesh_shader_features.taskShader = VK_FALSE;
+        mesh_shader_features.multiviewMeshShader = VK_FALSE;
+        mesh_shader_features.primitiveFragmentShadingRateMeshShader = VK_FALSE;
+        mesh_shader_features.meshShaderQueries = VK_FALSE;
+    }
+
+    // Note: shaderDemoteToHelperInvocation should only be enabled when required by shaders and supported by the device.
+
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pQueueCreateInfos = device_queue_create_info.data();

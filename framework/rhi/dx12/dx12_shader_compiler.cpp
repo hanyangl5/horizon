@@ -41,6 +41,10 @@ std::wstring DX12ShaderCompiler::GetShaderProfileDXC(ShaderType type)
         return L"ps_6_6";
     case ShaderType::COMPUTE_SHADER:
         return L"cs_6_6";
+    case ShaderType::TASK_SHADER:
+        return L"as_6_6";
+    case ShaderType::MESH_SHADER:
+        return L"ms_6_6";
     default:
         LOG_ERROR("Unsupported shader type for DX12");
         return L"";

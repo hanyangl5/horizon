@@ -76,6 +76,10 @@ class RHIVulkan : public RHI
 
     void Present(const QueuePresentInfo &quue_present_info) override;
     void AcquireNextFrame(SwapChain *swap_chain) override;
+    bool SupportsMeshShader() const noexcept override
+    {
+        return m_mesh_shader_supported;
+    }
 
   private:
     void InitializeVulkanRenderer(const std::string &app_name);
@@ -104,6 +108,7 @@ class RHIVulkan : public RHI
     VulkanDescriptorSetAllocator *m_descriptor_set_allocator{};
     std::array<std::vector<VkFence>, 3> fences{};
     std::array<u32, 3> fence_index{};
+    bool m_mesh_shader_supported{false};
 };
 
 extern std::unique_ptr<RHI> CreateVulkanRenderBackend(bool offscreen) noexcept;

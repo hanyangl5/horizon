@@ -103,6 +103,7 @@ enum class ShaderType
     DOMAIN_SHADER,
     HULL_SHADER,
     COMPUTE_SHADER,
+    TASK_SHADER,
     MESH_SHADER,
     RAY_GENERATION_SHADER,
     RAY_CLOSEST_HIT_SHADER,
@@ -120,11 +121,12 @@ enum ShaderStageFlags
     SHADER_STAGE_GEOMETRY_SHADER = 8,
     SHADER_STAGE_DOMAIN_SHADER = 16,
     SHADER_STAGE_HULL_SHADER = 32,
-    SHADER_STAGE_MESH_SHADER = 64,
-    SHADER_STAGE_RAY_GENERATION_SHADER = 128,
-    SHADER_STAGE_RAY_CLOSEST_HIT_SHADER = 256,
-    SHADER_STAGE_RAY_MISS_SHADER = 512,
-    SHADER_STAGE_RAY_ANY_HIT_SHADER = 1024,
+    SHADER_STAGE_TASK_SHADER = 64,
+    SHADER_STAGE_MESH_SHADER = 128,
+    SHADER_STAGE_RAY_GENERATION_SHADER = 256,
+    SHADER_STAGE_RAY_CLOSEST_HIT_SHADER = 512,
+    SHADER_STAGE_RAY_MISS_SHADER = 1024,
+    SHADER_STAGE_RAY_ANY_HIT_SHADER = 2048,
 };
 
 enum class TextureType
@@ -445,6 +447,10 @@ struct ShaderPrograms
     void *MeshShader() const
     {
         return m_shaders[(u32)ShaderType::MESH_SHADER];
+    }
+    void *TaskShader() const
+    {
+        return m_shaders[(u32)ShaderType::TASK_SHADER];
     }
     void *RayGenerationShader() const
     {

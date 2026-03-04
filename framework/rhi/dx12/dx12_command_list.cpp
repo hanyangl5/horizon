@@ -514,6 +514,19 @@ void DX12CommandList::DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u
     m_command_list->ExecuteIndirect(command_signature, draw_count, dx12_buffer->GetResource(), offset, nullptr, 0);
 }
 
+void DX12CommandList::DrawMeshTasks(u32 group_count_x, u32 group_count_y, u32 group_count_z)
+{
+#ifdef _WIN32
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6> mesh_command_list;
+    if (SUCCEEDED(m_command_list.As(&mesh_command_list)) && mesh_command_list)
+    {
+        mesh_command_list->DispatchMesh(group_count_x, group_count_y, group_count_z);
+        return;
+    }
+#endif
+    LOG_ERROR("DrawMeshTasks is not supported by the current DX12 command list/device.");
+}
+
 void DX12CommandList::Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z)
 {
     if (!m_is_recording)
@@ -889,7 +902,10 @@ void DX12CommandList::BindPipeline(Pipeline *pipeline)
 
     if (pipeline->GetType() == PipelineType::GRAPHICS)
     {
-        m_command_list->IASetPrimitiveTopology(ToDX12PrimitiveTopology(pipeline->GetTopology()));
+        if (!dx12_pipeline->UsesMeshShading())
+        {
+            m_command_list->IASetPrimitiveTopology(ToDX12PrimitiveTopology(pipeline->GetTopology()));
+        }
         m_command_list->SetPipelineState(dx12_pipeline->GetPipelineState());
         m_command_list->SetGraphicsRootSignature(dx12_pipeline->GetRootSignature());
 

@@ -41,6 +41,7 @@ class VulkanCommandList : public CommandList
                                       u32 first_instance = 0) override;
     void DrawIndirect() override;
     void DrawIndirectIndexedInstanced(Buffer *buffer, u32 offset, u32 draw_count, u32 stride) override;
+    void DrawMeshTasks(u32 group_count_x, u32 group_count_y = 1, u32 group_count_z = 1) override;
     // compute commands
     virtual void Dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) override;
     virtual void DispatchIndirect() override;

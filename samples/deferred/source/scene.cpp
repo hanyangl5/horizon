@@ -16,7 +16,7 @@ SceneData::SceneData(SceneManager *scene_manager, u32 width, u32 height) noexcep
 
     scene_camera->SetCameraSpeed(0.05f);
 
-    // scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
+    scene_camera->SetExposure(16.0f, 1 / 125.0f, 100.0f);
 
     scene_camera->SetPerspectiveProjectionMatrix(Math::Radians(75.0f), (float)width / (float)height, 0.1f, 10000.0f);
     extern Horizon::Path asset_path;
@@ -25,7 +25,8 @@ SceneData::SceneData(SceneManager *scene_manager, u32 width, u32 height) noexcep
                                                                VertexAttributeType::UV0 | VertexAttributeType::TANGENT,
                                                            EMeshAssetFormat::MESH_FORMAT_GLTF},
                                                   (asset_path / "models/Sponza/glTF/Sponza.gltf").c_str());
-    scene_manager->AddMesh(sponza);
+                         
+   scene_manager->AddMesh(sponza);
 
     scene_manager->CreateMeshResources();
 
@@ -56,7 +57,8 @@ SceneData::SceneData(SceneManager *scene_manager, u32 width, u32 height) noexcep
     auto dir = Math::float3(-1.0, -1.0, -1.0);
 
     dir.Normalize();
-    scene_manager->AddDirectionalLight(Math::float3(1.0, 1.0, 1.0), 120000.0f, dir);
+    // Approximate UE sun tint (sRGB #FFF4D6) converted to linear RGB.
+    scene_manager->AddDirectionalLight(Math::float3(1.0f, 0.905f, 0.672f), 120000.0f, dir);
 
     scene_manager->CreateLightResources();
     scene_manager->CreateCameraResources();

@@ -6,9 +6,8 @@
 
 class DeferredShadingRDGPass;
 class DeferredShadingGeometryPass;
-class SSAORDGPass;
+class GTAORDGPass;
 class PostProcessRDGPass;
-class LuminanceHistogramRDGPass;
 class TAARDGPass;
 
 class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
@@ -22,15 +21,13 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
     void Execute(CommandList *command_list, Horizon::Backend::FrameGraphBuilder &builder) override;
 
     void SetResourceHandles(Horizon::Backend::TextureHandle shading_color, Horizon::Backend::TextureHandle pp_color,
-                            Horizon::Backend::TextureHandle ssao_factor, Horizon::Backend::TextureHandle ssao_blur,
+                            Horizon::Backend::TextureHandle gtao_factor, Horizon::Backend::TextureHandle gtao_blur,
                             Horizon::Backend::TextureHandle output_color,
-                            Horizon::Backend::TextureHandle previous_color, Horizon::Backend::TextureHandle ssao_noise,
-                            Horizon::Backend::TextureHandle brdf_lut, Horizon::Backend::TextureHandle prefiltered_env,
-                            Horizon::Backend::BufferHandle histogram_buffer,
-                            Horizon::Backend::BufferHandle adapted_luminance);
-    void SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred, SSAORDGPass *ssao,
-                         PostProcessRDGPass *post_process, LuminanceHistogramRDGPass *luminance_histogram,
-                         TAARDGPass *taa);
+                            Horizon::Backend::TextureHandle previous_color,
+                            Horizon::Backend::TextureHandle brdf_lut,
+                            Horizon::Backend::TextureHandle prefiltered_env);
+    void SetPassPointers(DeferredShadingGeometryPass *geometry, DeferredShadingRDGPass *deferred, GTAORDGPass *gtao,
+                         PostProcessRDGPass *post_process, TAARDGPass *taa);
     void SetFirstFrame(bool first_frame)
     {
         m_first_frame = first_frame;
@@ -54,9 +51,8 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
 
     DeferredShadingGeometryPass *m_geometry{nullptr};
     DeferredShadingRDGPass *m_deferred{nullptr};
-    SSAORDGPass *m_ssao{nullptr};
+    GTAORDGPass *m_gtao{nullptr};
     PostProcessRDGPass *m_post_process{nullptr};
-    LuminanceHistogramRDGPass *m_luminance_histogram{nullptr};
     TAARDGPass *m_taa{nullptr};
 
     bool m_first_frame = false;
@@ -66,13 +62,10 @@ class ResourceUploadRDGPass : public Horizon::Backend::RDGPass
 
     Horizon::Backend::TextureHandle m_shading_color_handle;
     Horizon::Backend::TextureHandle m_pp_color_handle;
-    Horizon::Backend::TextureHandle m_ssao_factor_handle;
-    Horizon::Backend::TextureHandle m_ssao_blur_handle;
+    Horizon::Backend::TextureHandle m_gtao_factor_handle;
+    Horizon::Backend::TextureHandle m_gtao_blur_handle;
     Horizon::Backend::TextureHandle m_output_color_handle;
     Horizon::Backend::TextureHandle m_previous_color_handle;
-    Horizon::Backend::TextureHandle m_ssao_noise_handle;
     Horizon::Backend::TextureHandle m_brdf_lut_handle;
     Horizon::Backend::TextureHandle m_prefiltered_env_handle;
-    Horizon::Backend::BufferHandle m_histogram_buffer_handle;
-    Horizon::Backend::BufferHandle m_adapted_luminance_handle;
 };

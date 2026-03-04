@@ -29,7 +29,6 @@ class HelloTriangleApp : public AppFramework
   public:
     HelloTriangleApp() : AppFramework("Hello Triangle", 800, 600)
     {
-        SetRenderBackend(Horizon::RenderBackend::RENDER_BACKEND_DX12);
     }
 
   protected:

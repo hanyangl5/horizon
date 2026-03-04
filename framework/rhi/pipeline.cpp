@@ -27,8 +27,22 @@ void Pipeline::ParseRootSignature(const ShaderPrograms &shaders)
 {
     if (m_type == PipelineType::GRAPHICS)
     {
-        ParseRootSignatureFromShader((Shader *)shaders.VertexShader());
-        ParseRootSignatureFromShader((Shader *)shaders.PixelShader());
+        if (shaders.VertexShader() != nullptr)
+        {
+            ParseRootSignatureFromShader((Shader *)shaders.VertexShader());
+        }
+        if (shaders.TaskShader() != nullptr)
+        {
+            ParseRootSignatureFromShader((Shader *)shaders.TaskShader());
+        }
+        if (shaders.MeshShader() != nullptr)
+        {
+            ParseRootSignatureFromShader((Shader *)shaders.MeshShader());
+        }
+        if (shaders.PixelShader() != nullptr)
+        {
+            ParseRootSignatureFromShader((Shader *)shaders.PixelShader());
+        }
     }
     else if (m_type == PipelineType::COMPUTE)
     {
@@ -38,6 +52,9 @@ void Pipeline::ParseRootSignature(const ShaderPrograms &shaders)
 
 void Pipeline::ParseRootSignatureFromShader(Shader *shader)
 {
+    if (shader == nullptr)
+        return;
+
     const RootSignatureDesc *refl = shader->GetReflectionData();
     if (!refl)
         return;
