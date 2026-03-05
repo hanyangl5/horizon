@@ -1,17 +1,21 @@
+#include "config.hpp"
 #include "app.h"
 #include "renderpasses/resource_upload_pass.h"
 
 #include <core/path.h>
 
-Horizon::Path asset_path = ASSET_DIR;
-Horizon::Path shader_dir = SHADER_DIR;
+Horizon::Path asset_path;
+Horizon::Path shader_dir;
 
 DeferredRenderApp::DeferredRenderApp() : AppFramework("Horizon Deferred", 1600, 900)
 {
+    Horizon::Path::set_project_root(RUNTIME_SAMPLE_ROOT);
 }
 
 void DeferredRenderApp::Initialize()
 {
+
+    Horizon::Path::resolve_resource_paths(&shader_dir, &asset_path);
     rhi = GetRhi();
     if (!rhi)
     {

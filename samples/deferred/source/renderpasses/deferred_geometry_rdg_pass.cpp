@@ -2,13 +2,24 @@
 #include "taa_rdg_pass.h"
 #include <algorithm>
 #include <scene/scene_manager/scene_manager.h>
-
 DeferredShadingGeometryPass::DeferredShadingGeometryPass(RHI *rhi, Horizon::SceneManager *scene_manager,
                                                          Sampler *sampler, u32 width, u32 height)
     : RDGPass("Geometry Pass", rhi), m_rhi(rhi), m_scene_manager(scene_manager), m_sampler(sampler), m_width(width),
       m_height(height)
 {
-    m_use_mesh_shader_path = (m_rhi != nullptr) && m_rhi->SupportsMeshShader();
+    const bool use_mesh_shader_from_config = GenericPlatformConfig::use_mesh_shader();
+    const bool mesh_shader_supported = (m_rhi != nullptr) && m_rhi->SupportsMeshShader();
+    m_use_mesh_shader_path = use_mesh_shader_from_config && mesh_shader_supported;
+
+    if (!use_mesh_shader_from_config)
+    {
+        LOG_INFO("Mesh shader path is disabled by config.toml.");
+    }
+    else if (!mesh_shader_supported)
+    {
+        LOG_INFO("Mesh shader path is unsupported on current backend/GPU, using raster path.");
+    }
+
     if (m_use_mesh_shader_path)
     {
         m_geometry_task_shader =

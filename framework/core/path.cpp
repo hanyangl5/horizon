@@ -10,10 +10,14 @@
 
 #include <algorithm>
 #include <cerrno>
-#include <cstring>
 #include <fstream>
 
 #include <core/log.h>
+#include <core/generic_platform_config.h>
+
+#ifdef __ANDROID__
+#include <core/android/android_native.h>
+#endif
 
 #ifdef _WIN32
 #include <direct.h>
@@ -28,8 +32,61 @@
 #include <unistd.h>
 #endif
 
+
+
 namespace Horizon
 {
+
+namespace
+{
+
+Path g_runtime_sample_root;
+
+Path combine_sample_relative_path(const Path &subdir)
+{
+    // Prefer per-sample runtime root when available (from generated config.hpp).
+    if (!g_runtime_sample_root.empty())
+    {
+        return g_runtime_sample_root / subdir;
+    }
+    return Path(subdir);
+}
+
+Path combine_external_path(const Path &subdir)
+{
+#ifdef __ANDROID__
+    const std::string &external_files_dir = GetAndroidExternalFilesDir();
+    if (!external_files_dir.empty())
+    {
+        if (subdir.empty())
+        {
+            return Path(external_files_dir);
+        }
+        return Path(external_files_dir) / subdir;
+    }
+#endif
+    return Path();
+}
+
+Path resolve_android_directory(bool use_external_files_dir, const Path &relative_dir, const Path &fallback = Path())
+{
+#ifdef __ANDROID__
+    if (use_external_files_dir)
+    {
+        const Path external_path = combine_external_path(relative_dir);
+        if (!external_path.empty())
+        {
+            return external_path;
+        }
+    }
+#else
+    (void)use_external_files_dir;
+    (void)relative_dir;
+#endif
+    return fallback;
+}
+
+} // namespace
 
 Path::Path(const char *path) : m_path(path ? path : "")
 {
@@ -37,6 +94,11 @@ Path::Path(const char *path) : m_path(path ? path : "")
 }
 
 Path::Path(const std::string &path) : m_path(path)
+{
+    normalize();
+}
+
+Path::Path(std::string_view path) : m_path(path)
 {
     normalize();
 }
@@ -383,38 +445,12 @@ bool Path::is_absolute() const
 #endif
 }
 
-// Helper functions
-bool exists(const Path &path)
-{
-    return path.exists();
-}
-
-bool is_directory(const Path &path)
-{
-    return path.is_directory();
-}
-
-bool is_file(const Path &path)
-{
-    return path.is_file();
-}
-
-std::time_t last_write_time(const Path &path)
-{
-    return path.last_write_time();
-}
-
-bool create_directories(const Path &path)
-{
-    return path.create_directories();
-}
-
-std::vector<char> ReadFile(const char *path)
+std::vector<char> Path::read_file(const char *path)
 {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open())
     {
-        LOG_ERROR("failed to open shader file: {}", path);
+        LOG_ERROR("failed to open file: {}", path);
         return {};
     }
     size_t fileSize = (size_t)file.tellg();
@@ -425,4 +461,93 @@ std::vector<char> ReadFile(const char *path)
 
     return buffer;
 }
+
+void Path::set_project_root(const Path &project_root)
+{
+    g_runtime_sample_root = project_root;
+}
+
+Path Path::project_root()
+{
+    return g_runtime_sample_root;
+}
+
+Path Path::asset_directory()
+{
+#ifdef __ANDROID__
+    const GenericPlatformConfig::AndroidPathConfig &cfg = GenericPlatformConfig::get_android_path_config();
+    return resolve_android_directory(cfg.use_external_files_dir, cfg.external_assets_dir, Path("assets"));
+#else
+    const GenericPlatformConfig::WindowsPathConfig &cfg = GenericPlatformConfig::get_windows_path_config();
+    return combine_sample_relative_path(cfg.assets_dir);
+#endif
+}
+
+Path Path::shader_source_directory()
+{
+#ifdef __ANDROID__
+    return Path();
+#endif
+
+    const GenericPlatformConfig::WindowsPathConfig &cfg = GenericPlatformConfig::get_windows_path_config();
+    return combine_sample_relative_path(cfg.shader_source_dir);
+}
+
+Path Path::shader_directory()
+{
+#ifdef __ANDROID__
+    const GenericPlatformConfig::AndroidPathConfig &cfg = GenericPlatformConfig::get_android_path_config();
+    return resolve_android_directory(cfg.use_external_files_dir, cfg.external_shader_dir);
+#else
+    const GenericPlatformConfig::WindowsPathConfig &cfg = GenericPlatformConfig::get_windows_path_config();
+    return combine_sample_relative_path(cfg.shader_ir_dir);
+#endif
+}
+
+Path Path::meshlet_cache_path()
+{
+#ifdef __ANDROID__
+    const GenericPlatformConfig::AndroidPathConfig &cfg = GenericPlatformConfig::get_android_path_config();
+    return resolve_android_directory(cfg.use_external_files_dir, cfg.meshlet_dir);
+#else
+    const GenericPlatformConfig::WindowsPathConfig &cfg = GenericPlatformConfig::get_windows_path_config();
+    return combine_sample_relative_path(cfg.meshlet_dir);
+#endif
+}
+
+
+Path Path::log_file_path()
+{
+#ifdef __ANDROID__
+    const GenericPlatformConfig::AndroidPathConfig &cfg = GenericPlatformConfig::get_android_path_config();
+    const Path log_dir = resolve_android_directory(cfg.use_external_files_dir, cfg.external_log_dir, Path("logs"));
+    return log_dir.empty() ? Path("logs/log.log") : (log_dir / "log.log");
+#else
+    const GenericPlatformConfig::WindowsPathConfig &cfg = GenericPlatformConfig::get_windows_path_config();
+    return combine_sample_relative_path(cfg.log_dir) / "log.log";
+#endif
+}
+
+void Path::resolve_resource_paths(Path *shader_dir, Path *asset_dir)
+{
+#ifdef __ANDROID__
+    const Path runtime_shader_dir = shader_directory();
+    if (!runtime_shader_dir.empty())
+    {
+        *shader_dir = runtime_shader_dir;
+    }
+
+    if (asset_dir)
+    {
+        *asset_dir = asset_directory();
+    }
+#else
+    *shader_dir = shader_source_directory();
+    if (asset_dir)
+    {
+        *asset_dir = asset_directory();
+    }
+#endif
+}
+
 } // namespace Horizon

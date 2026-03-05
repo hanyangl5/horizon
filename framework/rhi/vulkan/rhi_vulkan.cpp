@@ -116,46 +116,6 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
 {
     Path file_path(file_name);
 
-    // Determine shader directory and saved shader directory
-    // Try to use macros first (if available from samples), otherwise infer from file_name
-    Path shader_dir;
-    Path saved_shader_dir;
-
-#ifdef SHADER_DIR
-    shader_dir = Path(SHADER_DIR);
-#else
-    // Infer from file_name: assume file_name is relative to shader source directory
-    // If absolute, use parent; if relative, we'll need to resolve it
-    if (file_path.is_absolute())
-    {
-        shader_dir = file_path.parent_path();
-    }
-    else
-    {
-        // For relative paths, try to find the shader directory
-        // Look for common patterns: .../shaders/... or .../source/shaders/...
-        shader_dir = file_path.parent_path();
-    }
-#endif
-
-#ifdef SAVED_SHADER_DIR
-    saved_shader_dir = Path(SAVED_SHADER_DIR);
-#else
-    // Infer saved shader directory: look for "saved/shaders" relative to shader_dir
-    // Or try "bin/VULKAN" for backward compatibility
-    Path parent = shader_dir.parent_path();
-    Path saved_path = parent / "saved" / "shaders";
-    if (saved_path.exists())
-    {
-        saved_shader_dir = saved_path;
-    }
-    else
-    {
-        // Default: create saved/shaders in shader_dir's parent
-        saved_shader_dir = saved_path;
-    }
-#endif
-
     auto shader_type_to_extstr = [](ShaderType type) -> std::string {
         switch (type)
         {
@@ -180,16 +140,40 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
         }
     };
 
-    // Construct paths
-    const Path hlsl_path = file_path.is_absolute() ? file_path : (shader_dir / file_path.string());
+#ifdef __ANDROID__
+    const Path runtime_shader_dir = Horizon::Path::shader_directory();
+    if (runtime_shader_dir.empty())
+    {
+        LOG_ERROR("Android runtime shader dir is empty; cannot locate SPIR-V shader for {}", file_name.string());
+        return nullptr;
+    }
+
+    const std::string android_stem = file_path.stem() + "." + shader_type_to_extstr(type);
+    const Path runtime_spirv_path = runtime_shader_dir / (android_stem + ".spv");
+
+    auto android_spirv_code = Horizon::Path::read_file(runtime_spirv_path.generic_string().c_str());
+    if (android_spirv_code.empty())
+    {
+        LOG_ERROR("Failed to load Android SPIR-V shader: {}", runtime_spirv_path.string());
+        return nullptr;
+    }
+
+    return new VulkanShader(m_vulkan, type, android_spirv_code, entry_point);
+#endif
+
+    const Path runtime_shader_source_dir = Horizon::Path::shader_source_directory();
+    const Path runtime_shader_ir_dir = Horizon::Path::shader_directory();
+
+    const Path hlsl_path = file_path.is_absolute() ? file_path : (runtime_shader_source_dir / file_path.filename());
     const std::string stem = hlsl_path.stem() + "." + shader_type_to_extstr(type);
-    const Path spirv_path = saved_shader_dir / (stem + ".spv");
+    const Path spirv_path = runtime_shader_ir_dir / (stem + ".spv");
 
     // Check if recompilation is needed
     if (ShaderCompiler::NeedsRecompilation(hlsl_path, spirv_path))
     {
         LOG_DEBUG("Compiling shader: {} -> {}", hlsl_path.string(), spirv_path.string());
-        if (!ShaderCompiler::CompileHLSLToSPIRV(hlsl_path, spirv_path, type, shader_dir, saved_shader_dir, entry_point))
+        if (!ShaderCompiler::CompileHLSLToSPIRV(hlsl_path, spirv_path, type, runtime_shader_source_dir,
+                                                runtime_shader_ir_dir, entry_point))
         {
             LOG_ERROR("Failed to compile shader: {}", hlsl_path.string());
             return nullptr;
@@ -201,7 +185,7 @@ Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const ch
     }
 
     // Load compiled SPIR-V
-    auto spirv_code = ReadFile(spirv_path.generic_string().c_str());
+    auto spirv_code = Horizon::Path::read_file(spirv_path.generic_string().c_str());
     if (spirv_code.empty())
     {
         LOG_ERROR("Failed to load compiled shader: {}", spirv_path.string());
@@ -297,22 +281,65 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
     vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, available_extensions.data());
 
+    std::vector<const char *> enabled_layers;
+    enabled_layers.reserve(instance_layers.size());
+    for (const char *requested_layer : instance_layers)
+    {
+        bool found = false;
+        for (const auto &available_layer : available_layers)
+        {
+            if (strcmp(requested_layer, available_layer.layerName) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (found)
+        {
+            enabled_layers.push_back(requested_layer);
+        }
+    }
+
+    std::vector<const char *> enabled_extensions;
+    enabled_extensions.reserve(instance_extensions.size());
+    for (const char *requested_extension : instance_extensions)
+    {
+        bool found = false;
+        for (const auto &available_extension : available_extensions)
+        {
+            if (strcmp(requested_extension, available_extension.extensionName) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (found)
+        {
+            enabled_extensions.push_back(requested_extension);
+        }
+    }
+
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = app_name.data();
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "Horizon Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VULKAN_API_VERSION;
+    u32 loader_api_version = VK_API_VERSION_1_0;
+    if (vkEnumerateInstanceVersion)
+    {
+        vkEnumerateInstanceVersion(&loader_api_version);
+    }
+    app_info.apiVersion = std::min(loader_api_version, static_cast<u32>(VULKAN_API_VERSION));
 
     VkInstanceCreateInfo instance_create_info{};
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_create_info.pApplicationInfo = &app_info;
     instance_create_info.flags = 0;
-    instance_create_info.enabledExtensionCount = static_cast<u32>(instance_extensions.size());
-    instance_create_info.ppEnabledExtensionNames = instance_extensions.data();
-    instance_create_info.enabledLayerCount = static_cast<u32>(instance_layers.size());
-    instance_create_info.ppEnabledLayerNames = instance_layers.data();
+    instance_create_info.enabledExtensionCount = static_cast<u32>(enabled_extensions.size());
+    instance_create_info.ppEnabledExtensionNames = enabled_extensions.data();
+    instance_create_info.enabledLayerCount = static_cast<u32>(enabled_layers.size());
+    instance_create_info.ppEnabledLayerNames = enabled_layers.data();
 
     CHECK_VK_RESULT(vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
 }
@@ -804,6 +831,17 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
     auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(swap_chain);
     semaphore_ctx.frame_image_acquired = false;
 
+    if (vk_swap_chain->render_targets.empty() && m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0)
+    {
+        vk_swap_chain->Resize(m_window->GetWidth(), m_window->GetHeight());
+    }
+
+    if (vk_swap_chain->render_targets.empty())
+    {
+        LOG_WARN("Swapchain has no render targets; skip acquire");
+        return;
+    }
+
     if (m_window && (m_window->GetWidth() == 0 || m_window->GetHeight() == 0))
     {
         ResetFence(CommandQueueType::GRAPHICS);
@@ -823,6 +861,14 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
                                          reinterpret_cast<VulkanSemaphore *>(sm)->m_semaphore, nullptr,
                                          &vk_swap_chain->image_index);
 
+    if ((res == VK_TIMEOUT || res == VK_NOT_READY) && m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0)
+    {
+        vk_swap_chain->Resize(m_window->GetWidth(), m_window->GetHeight());
+        res = vkAcquireNextImageKHR(m_vulkan.device, vk_swap_chain->swap_chain, UINT64_MAX,
+                                    reinterpret_cast<VulkanSemaphore *>(sm)->m_semaphore, nullptr,
+                                    &vk_swap_chain->image_index);
+    }
+
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
     {
         if (m_window && m_window->GetWidth() > 0 && m_window->GetHeight() > 0)
@@ -840,10 +886,21 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
         {
             LOG_DEBUG("Skip frame: swapchain is out of date/suboptimal while acquiring image");
         }
+        else if (res == VK_TIMEOUT || res == VK_NOT_READY)
+        {
+            LOG_WARN("Acquire next image not ready/timeout, VkResult={}", static_cast<int>(res));
+        }
         else
         {
             LOG_ERROR("failed to acquire next image, VkResult={}", static_cast<int>(res));
         }
+
+        if (!semaphore_ctx.present_complete_semaphore.empty())
+        {
+            semaphore_ctx.current_frame_index = (semaphore_ctx.current_frame_index + 1) %
+                                                static_cast<u32>(semaphore_ctx.present_complete_semaphore.size());
+        }
+
         ResetFence(CommandQueueType::GRAPHICS);
         ResetRHIResources();
         return;

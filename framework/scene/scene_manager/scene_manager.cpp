@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <type_traits>
@@ -142,11 +141,12 @@ void SceneManager::CreateMeshResources()
             primitive_instance_indices.push_back(command.mesh_id_offset);
             primitive_material_indices.push_back(instance.material_index);
         }
-
-        AppendMeshletDataForMesh(mesh, current_vertex_buffer_index, primitive_instance_indices,
-                                 primitive_material_indices, meshlet_descs, meshlet_vertex_indices,
-                                 meshlet_triangle_indices);
-
+        if (GenericPlatformConfig::use_mesh_shader())
+        {
+            AppendMeshletDataForMesh(mesh, current_vertex_buffer_index, primitive_instance_indices,
+                                     primitive_material_indices, meshlet_descs, meshlet_vertex_indices,
+                                     meshlet_triangle_indices);
+        }
         for (auto &material : mesh->materials)
         {
 
@@ -256,29 +256,31 @@ void SceneManager::CreateMeshResources()
     prev_skin_joint_matrix_buffer = resource_manager->CreateGpuBuffer(
         BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
                          sizeof(Math::float4x4) * m_prev_scene_joint_matrices.size(), nullptr, sizeof(Math::float4x4)});
-    if (meshlet_descs.empty())
+    if (Horizon::GenericPlatformConfig::use_mesh_shader())
     {
-        meshlet_descs.push_back(MeshletDesc{});
-    }
-    if (meshlet_vertex_indices.empty())
-    {
-        meshlet_vertex_indices.push_back(0);
-    }
-    if (meshlet_triangle_indices.empty())
-    {
-        meshlet_triangle_indices.push_back(0);
-    }
+        if (meshlet_descs.empty())
+        {
+            meshlet_descs.push_back(MeshletDesc{});
+        }
+        if (meshlet_vertex_indices.empty())
+        {
+            meshlet_vertex_indices.push_back(0);
+        }
+        if (meshlet_triangle_indices.empty())
+        {
+            meshlet_triangle_indices.push_back(0);
+        }
 
-    meshlet_desc_buffer = resource_manager->CreateGpuBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(MeshletDesc) * meshlet_descs.size(), nullptr, sizeof(MeshletDesc)});
-    meshlet_vertex_index_buffer = resource_manager->CreateGpuBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(u32) * meshlet_vertex_indices.size(), nullptr, sizeof(u32)});
-    meshlet_triangle_buffer = resource_manager->CreateGpuBuffer(
-        BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
-                         sizeof(u32) * meshlet_triangle_indices.size(), nullptr, sizeof(u32)});
-
+        meshlet_desc_buffer = resource_manager->CreateGpuBuffer(
+            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                             sizeof(MeshletDesc) * meshlet_descs.size(), nullptr, sizeof(MeshletDesc)});
+        meshlet_vertex_index_buffer = resource_manager->CreateGpuBuffer(
+            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                             sizeof(u32) * meshlet_vertex_indices.size(), nullptr, sizeof(u32)});
+        meshlet_triangle_buffer = resource_manager->CreateGpuBuffer(
+            BufferCreateInfo{DescriptorType::DESCRIPTOR_TYPE_BUFFER, ResourceState::RESOURCE_STATE_SHADER_RESOURCE,
+                             sizeof(u32) * meshlet_triangle_indices.size(), nullptr, sizeof(u32)});
+    }
     empty_vertex_buffer = resource_manager->GetEmptyVertexBuffer();
 }
 
@@ -307,12 +309,15 @@ void SceneManager::UploadMeshResources(Backend::CommandList *commandlist)
                               m_scene_joint_matrices.size() * sizeof(Math::float4x4));
     commandlist->UpdateBuffer(prev_skin_joint_matrix_buffer, m_prev_scene_joint_matrices.data(),
                               m_prev_scene_joint_matrices.size() * sizeof(Math::float4x4));
-    commandlist->UpdateBuffer(meshlet_desc_buffer, meshlet_descs.data(), meshlet_descs.size() * sizeof(MeshletDesc));
-    commandlist->UpdateBuffer(meshlet_vertex_index_buffer, meshlet_vertex_indices.data(),
-                              meshlet_vertex_indices.size() * sizeof(u32));
-    commandlist->UpdateBuffer(meshlet_triangle_buffer, meshlet_triangle_indices.data(),
-                              meshlet_triangle_indices.size() * sizeof(u32));
-
+    if (GenericPlatformConfig::use_mesh_shader())
+    {
+        commandlist->UpdateBuffer(meshlet_desc_buffer, meshlet_descs.data(),
+                                  meshlet_descs.size() * sizeof(MeshletDesc));
+        commandlist->UpdateBuffer(meshlet_vertex_index_buffer, meshlet_vertex_indices.data(),
+                                  meshlet_vertex_indices.size() * sizeof(u32));
+        commandlist->UpdateBuffer(meshlet_triangle_buffer, meshlet_triangle_indices.data(),
+                                  meshlet_triangle_indices.size() * sizeof(u32));
+    }
     // UPLOAD TEXTURES
     std::vector<u32> runtime_gen_mip_tex_indices;
     for (u32 tex = 0; tex < material_textures.size(); tex++)

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <filesystem>
 #include <fstream>
 #include <type_traits>
 #include <unordered_map>
@@ -67,19 +66,13 @@ struct MeshMeshletCache
 
 Path GetMeshletCachePath(const Mesh *mesh)
 {
-    (void)mesh;
-    return Path("tesemesh.meshlet_cache.bin");
+    return Path::meshlet_cache_path() / (mesh->m_asset_path.filename() + ".meshlet");
 }
 
 i64 GetMeshFileTimestamp(const Mesh *mesh)
 {
-    std::error_code ec{};
-    const auto t = std::filesystem::last_write_time(std::filesystem::path(mesh->m_path), ec);
-    if (ec)
-    {
-        return 0;
-    }
-    return static_cast<i64>(t.time_since_epoch().count());
+    auto t = mesh->m_asset_path.last_write_time();
+    return static_cast<i64>(t);
 }
 
 bool SaveMeshletCache(const Mesh *mesh, const MeshMeshletCache &cache)
@@ -88,13 +81,12 @@ bool SaveMeshletCache(const Mesh *mesh, const MeshMeshletCache &cache)
     static_assert(std::is_trivially_copyable_v<CachedMeshletDesc>, "CachedMeshletDesc must be POD");
 
     const Path cache_path = GetMeshletCachePath(mesh);
-    const std::filesystem::path fs_path(cache_path.string());
-    const std::filesystem::path parent = fs_path.parent_path();
-    std::error_code ec{};
+    const Path fs_path(cache_path.string());
+    const Path parent = fs_path.parent_path();
     if (!parent.empty())
     {
-        std::filesystem::create_directories(parent, ec);
-        if (ec)
+        Path path(parent);
+        if (!path.create_directories())
         {
             LOG_WARN("Failed to create meshlet cache directory: {}", cache_path.string());
             return false;
@@ -488,7 +480,7 @@ void AppendMeshletDataForMesh(const Mesh *mesh, u32 vertex_buffer_index,
     }
     if (!cache_layout_valid)
     {
-        LOG_WARN("Meshlet cache layout invalid for '{}', rebuilding runtime.", mesh->m_path);
+        LOG_WARN("Meshlet cache layout invalid for '{}', rebuilding runtime.", mesh->m_asset_path.string());
         mesh_cache = BuildMeshletCacheRuntime(mesh);
         SaveMeshletCache(mesh, mesh_cache);
     }
@@ -496,7 +488,7 @@ void AppendMeshletDataForMesh(const Mesh *mesh, u32 vertex_buffer_index,
     if (primitive_instance_indices.size() != mesh_cache.primitive_ranges.size() ||
         primitive_material_indices.size() != mesh_cache.primitive_ranges.size())
     {
-        LOG_WARN("Primitive metadata size mismatch for '{}', skip meshlet append.", mesh->m_path);
+        LOG_WARN("Primitive metadata size mismatch for '{}', skip meshlet append.", mesh->m_asset_path.string());
         return;
     }
 

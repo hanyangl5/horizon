@@ -7,8 +7,6 @@
                                                                      *********************************************************************/
 #pragma once
 
-#include <filesystem>
-
 #include <core/definations.h>
 #include <rhi/enums.h>
 

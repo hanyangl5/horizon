@@ -63,6 +63,8 @@
 
 #include <core/definations.h>
 #include <core/public_singleton.h>
+#include <memory>
+#include <string>
 
 namespace Horizon
 {
@@ -81,6 +83,8 @@ class Log : public PublicSingleton<Log>
   public:
     Log() noexcept;
     ~Log() noexcept;
+
+    void SetFileSink(const std::string &file_path) noexcept;
 
     template <typename... args> inline void Debug(args &&..._args) const noexcept
     {
@@ -104,6 +108,7 @@ class Log : public PublicSingleton<Log>
 
   private:
     std::shared_ptr<spdlog::logger> m_logger;
+    std::string m_file_sink_path;
 };
 
 #define LOG_DEBUG(...) Log::GetInstance().Debug("[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);

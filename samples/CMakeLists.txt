@@ -25,15 +25,25 @@ macro(addproject projectdir)
 
     target_link_libraries(${PROJECT_NAME} PUBLIC framework)
     target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/framework)
-    set(ASSET_DIR "${CMAKE_SOURCE_DIR}/assets")
-    set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/shaders")
-    set(SAVED_SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/saved/shaders")
 
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        ASSET_DIR="${ASSET_DIR}"
-        SHADER_DIR="${SHADER_DIR}"
-        SAVED_SHADER_DIR="${SAVED_SHADER_DIR}"
-    )
+    # Absolute sample root for SetRuntimeSampleRoot (works when assets symlink is missing, e.g. on Windows).
+    get_filename_component(SAMPLE_ROOT_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}" ABSOLUTE)
+    string(REPLACE "\\" "/" RUNTIME_SAMPLE_ROOT "${SAMPLE_ROOT_ABS}")
+    set(SAMPLE_CONFIG_DIR "${CMAKE_BINARY_DIR}/samples/${projectdir}")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.hpp.in ${SAMPLE_CONFIG_DIR}/config.hpp @ONLY)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${SAMPLE_CONFIG_DIR})
+
+    # Development-time sample assets path: create samples/<name>/assets symlink to repo assets.
+    set(SAMPLE_ASSETS_LINK "${CMAKE_CURRENT_SOURCE_DIR}/${projectdir}/assets")
+    if(NOT EXISTS "${SAMPLE_ASSETS_LINK}")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_SOURCE_DIR}/assets" "${SAMPLE_ASSETS_LINK}"
+            RESULT_VARIABLE _assets_link_result)
+        if(NOT _assets_link_result EQUAL 0)
+            message(WARNING "Failed to create assets symlink for ${projectdir}: ${SAMPLE_ASSETS_LINK}")
+        endif()
+    endif()
+
     set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "samples")
     configure_compile_options(${projectdir})
 

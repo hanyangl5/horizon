@@ -123,8 +123,7 @@ class Mesh
 
   public:
     u32 vertex_attribute_flag{};
-    const char *m_path{};
-
+    Path m_asset_path{};
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};
     std::vector<Index> m_indices{};

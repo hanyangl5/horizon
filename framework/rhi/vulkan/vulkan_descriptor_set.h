@@ -8,6 +8,7 @@
 #include <rhi/vulkan/vulkan_buffer.h>
 #include <rhi/vulkan/vulkan_sampler.h>
 #include <rhi/vulkan/vulkan_texture.h>
+#include <unordered_set>
 
 namespace Horizon::Backend
 {
@@ -16,8 +17,7 @@ class VulkanDescriptorSet : public DescriptorSet
 {
   public:
     VulkanDescriptorSet(const VulkanRendererContext &context, u32 set_number,
-                        const std::unordered_map<std::string, DescriptorDesc> &write_descs,
-                        VkDescriptorSet set) noexcept;
+                        std::unordered_map<std::string, DescriptorDesc> write_descs, VkDescriptorSet set) noexcept;
     virtual ~VulkanDescriptorSet() noexcept {};
 
     VulkanDescriptorSet(const VulkanDescriptorSet &rhs) noexcept = delete;
@@ -35,16 +35,18 @@ class VulkanDescriptorSet : public DescriptorSet
 
     void Update() override;
     bool IsDirty() const override;
+    void Rebind(VkDescriptorSet set) noexcept;
 
   public:
     const VulkanRendererContext &m_context{};
-    const std::unordered_map<std::string, DescriptorDesc> &write_descs{}; // move to base class?
+    std::unordered_map<std::string, DescriptorDesc> write_descs{}; // move to base class?
     std::unordered_map<std::string, VkWriteDescriptorSet> m_pending_writes{};
     std::vector<VkWriteDescriptorSet> m_write_batch{};
     std::unordered_map<std::string, VkDescriptorBufferInfo> m_buffer_descriptors{};
     std::unordered_map<std::string, VkDescriptorImageInfo> m_image_descriptors{};
     std::unordered_map<std::string, std::vector<VkDescriptorImageInfo>> bindless_image_descriptors;
     std::unordered_map<std::string, std::vector<VkDescriptorBufferInfo>> bindless_buffer_descriptors;
+    std::unordered_set<std::string> m_overflow_warned_resources{};
     bool m_dirty{false};
     VkDescriptorSet m_set{};
 };

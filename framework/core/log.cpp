@@ -50,6 +50,7 @@
 #endif
 #endif
 
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h> // or "../stdout_sinks.h" if no colors needed
 
 // Restore warnings
@@ -60,6 +61,8 @@
 #endif
 
 #include "log.h"
+
+#include <core/path.h>
 
 namespace Horizon
 {
@@ -73,6 +76,27 @@ Log::Log() noexcept
 #else
     spdlog::set_level(spdlog::level::info);
 #endif // !NDEBUG
+    spdlog::flush_on(spdlog::level::info);
+}
+
+void Log::SetFileSink(const std::string &file_path) noexcept
+{
+    if (file_path.empty() || file_path == m_file_sink_path)
+    {
+        return;
+    }
+
+    const Path log_file(file_path);
+    const Path log_dir = log_file.parent_path();
+    if (!log_dir.empty() && !log_dir.exists())
+    {
+        log_dir.create_directories();
+    }
+
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path, true);
+    m_logger->sinks().push_back(file_sink);
+    m_file_sink_path = file_path;
+    m_logger->info("[SetFileSink] Logging to file: {}", m_file_sink_path);
 }
 
 Log::~Log() noexcept

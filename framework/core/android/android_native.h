@@ -9,6 +9,7 @@
 
 #include <android/native_window.h>
 #include <jni.h>
+#include <string>
 
 #include <core/definations.h>
 
@@ -24,6 +25,7 @@ struct AndroidAppState
     bool window_ready{false};
     bool paused{false};
     bool destroyed{false};
+    std::string external_files_dir;
 };
 
 // Get global Android application state
@@ -52,6 +54,10 @@ void OnAppResume();
 
 // Handle app destroy
 void OnAppDestroy();
+
+// Set/get Android external files directory (e.g. /storage/emulated/0/Android/data/<pkg>/files)
+void SetAndroidExternalFilesDir(const char *path);
+const std::string &GetAndroidExternalFilesDir();
 
 // Application entry point callback type
 // Using std::function to allow capturing lambdas

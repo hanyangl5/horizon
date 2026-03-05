@@ -63,31 +63,51 @@ VulkanPipeline::~VulkanPipeline() noexcept
 void VulkanPipeline::SetResource(Buffer *resource, const std::string &resource_name)
 {
     auto ds = m_descriptor_set_allocator.GetDescriptorSet(this);
-
+    if (ds == nullptr)
+    {
+        LOG_ERROR("Failed to get descriptor set0 while setting buffer resource '{}'", resource_name);
+        return;
+    }
     ds->SetResource(resource, resource_name);
 }
 void VulkanPipeline::SetResource(Texture *resource, const std::string &resource_name)
 {
     auto ds = m_descriptor_set_allocator.GetDescriptorSet(this);
-
+    if (ds == nullptr)
+    {
+        LOG_ERROR("Failed to get descriptor set0 while setting texture resource '{}'", resource_name);
+        return;
+    }
     ds->SetResource(resource, resource_name);
 }
 void VulkanPipeline::SetResource(Sampler *resource, const std::string &resource_name)
 {
     auto ds = m_descriptor_set_allocator.GetDescriptorSet(this);
-
+    if (ds == nullptr)
+    {
+        LOG_ERROR("Failed to get descriptor set0 while setting sampler resource '{}'", resource_name);
+        return;
+    }
     ds->SetResource(resource, resource_name);
 }
 void VulkanPipeline::SetBindlessResource(std::vector<Buffer *> &resource, const std::string &resource_name)
 {
     auto ds = m_descriptor_set_allocator.GetBindlessDescriptorSet(this);
-
+    if (ds == nullptr)
+    {
+        LOG_ERROR("Failed to get descriptor set1 while setting bindless buffer resource '{}'", resource_name);
+        return;
+    }
     ds->SetBindlessResource(resource, resource_name);
 }
 void VulkanPipeline::SetBindlessResource(std::vector<Texture *> &resource, const std::string &resource_name)
 {
     auto ds = m_descriptor_set_allocator.GetBindlessDescriptorSet(this);
-
+    if (ds == nullptr)
+    {
+        LOG_ERROR("Failed to get descriptor set1 while setting bindless texture resource '{}'", resource_name);
+        return;
+    }
     ds->SetBindlessResource(resource, resource_name);
 }
 
@@ -430,15 +450,25 @@ void VulkanPipeline::CreatePipelineLayout(const ShaderPrograms &shaders)
 
         m_descriptor_set_allocator.CreateDescriptorSetLayout(this);
 
-        if (m_pipeline_layout_desc.descriptor_set_hash_key != 0)
+        const VkDescriptorSetLayout empty_layout =
+            m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_descriptor_set_allocator.m_empty_descriptor_set_layout_hash_key);
+        const bool has_bindless_set = (m_pipeline_layout_desc.bindless_descriptor_set_hash_key != 0);
+        const bool has_default_set = (m_pipeline_layout_desc.descriptor_set_hash_key != 0);
+
+        if (has_bindless_set)
         {
-            layouts.emplace_back(
-                m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.descriptor_set_hash_key));
+            layouts.resize(BINDLESS_DESCRIPTOR_SET_NUMBER + 1, empty_layout);
+            layouts[DEFAULT_DESCRIPTOR_SET_NUMBER] =
+                has_default_set ? m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.descriptor_set_hash_key)
+                                : empty_layout;
+            layouts[BINDLESS_DESCRIPTOR_SET_NUMBER] =
+                m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.bindless_descriptor_set_hash_key);
         }
-        if (m_pipeline_layout_desc.bindless_descriptor_set_hash_key != 0)
+        else if (has_default_set)
         {
-            layouts.emplace_back(m_descriptor_set_allocator.GetVkDescriptorSetLayout(
-                m_pipeline_layout_desc.bindless_descriptor_set_hash_key));
+            layouts.resize(DEFAULT_DESCRIPTOR_SET_NUMBER + 1, empty_layout);
+            layouts[DEFAULT_DESCRIPTOR_SET_NUMBER] =
+                m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.descriptor_set_hash_key);
         }
 
         push_constant_ranges.reserve(rsd.push_constants.size());

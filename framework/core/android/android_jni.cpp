@@ -6,19 +6,95 @@
 #include <cstdlib>
 #include <jni.h>
 #include <mutex>
+#include <string>
 #include <thread>
 
 namespace Horizon
 {
 
+extern "C" void HorizonRegisterAppEntryPoint() __attribute__((weak));
+
 static bool g_app_initialized = false;
 static std::thread *g_render_thread = nullptr;
 static std::mutex g_app_mutex;
+
+static std::string GetExternalFilesDirPath(JNIEnv *env, jobject activity)
+{
+    if (!env || !activity)
+    {
+        return {};
+    }
+
+    jclass activity_cls = env->GetObjectClass(activity);
+    if (!activity_cls)
+    {
+        return {};
+    }
+
+    jmethodID get_external_files_dir =
+        env->GetMethodID(activity_cls, "getExternalFilesDir", "(Ljava/lang/String;)Ljava/io/File;");
+    if (!get_external_files_dir)
+    {
+        env->DeleteLocalRef(activity_cls);
+        return {};
+    }
+
+    jobject file_obj = env->CallObjectMethod(activity, get_external_files_dir, nullptr);
+    env->DeleteLocalRef(activity_cls);
+    if (!file_obj)
+    {
+        return {};
+    }
+
+    jclass file_cls = env->FindClass("java/io/File");
+    if (!file_cls)
+    {
+        env->DeleteLocalRef(file_obj);
+        return {};
+    }
+
+    jmethodID get_absolute_path = env->GetMethodID(file_cls, "getAbsolutePath", "()Ljava/lang/String;");
+    if (!get_absolute_path)
+    {
+        env->DeleteLocalRef(file_cls);
+        env->DeleteLocalRef(file_obj);
+        return {};
+    }
+
+    auto path_jstr = static_cast<jstring>(env->CallObjectMethod(file_obj, get_absolute_path));
+    std::string result;
+    if (path_jstr)
+    {
+        const char *path_chars = env->GetStringUTFChars(path_jstr, nullptr);
+        if (path_chars)
+        {
+            result = path_chars;
+            env->ReleaseStringUTFChars(path_jstr, path_chars);
+        }
+        env->DeleteLocalRef(path_jstr);
+    }
+
+    env->DeleteLocalRef(file_cls);
+    env->DeleteLocalRef(file_obj);
+    return result;
+}
 
 static void nativeOnCreate(JNIEnv *env, jobject thiz, jobject activity, jobject asset_manager)
 {
     LOG_INFO("JNI: nativeOnCreate called");
     InitializeAndroidApp(env, activity, asset_manager);
+    const std::string external_files_dir = GetExternalFilesDirPath(env, activity);
+    SetAndroidExternalFilesDir(external_files_dir.c_str());
+
+    std::lock_guard<std::mutex> lock(g_app_mutex);
+    if (!g_app_initialized)
+    {
+        g_app_initialized = true;
+        g_render_thread = new std::thread([]() {
+            LOG_INFO("Starting render thread");
+            RunAppEntryPoint();
+        });
+    }
 }
 
 static void nativeOnDestroy(JNIEnv *env, jobject thiz)
@@ -59,18 +135,6 @@ static void nativeOnSurfaceCreated(JNIEnv *env, jobject thiz, jobject surface)
     if (window)
     {
         OnNativeWindowCreated(window);
-
-        {
-            std::lock_guard<std::mutex> lock(g_app_mutex);
-            if (!g_app_initialized)
-            {
-                g_app_initialized = true;
-                g_render_thread = new std::thread([]() {
-                    LOG_INFO("Starting render thread");
-                    RunAppEntryPoint();
-                });
-            }
-        }
     }
     else
     {
@@ -121,6 +185,11 @@ extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/)
     if (env->RegisterNatives(cls, methods, sizeof(methods) / sizeof(methods[0])) < 0)
     {
         return JNI_ERR;
+    }
+
+    if (Horizon::HorizonRegisterAppEntryPoint)
+    {
+        Horizon::HorizonRegisterAppEntryPoint();
     }
 
     return JNI_VERSION_1_6;

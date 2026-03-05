@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include <app_framework/app_framework.h>
 #include <core/log.h>
 #include <core/math.h>
@@ -12,9 +13,11 @@
 #include <rhi/swap_chain.h>
 
 #include <array>
+#include <chrono>
 #include <memory>
+#include <thread>
 
-Horizon::Path shader_dir = SHADER_DIR;
+Horizon::Path shader_dir;
 using namespace Horizon;
 using namespace Horizon::Backend;
 
@@ -29,11 +32,13 @@ class HelloTriangleApp : public AppFramework
   public:
     HelloTriangleApp() : AppFramework("Hello Triangle", 800, 600)
     {
+        Horizon::Path::set_project_root(RUNTIME_SAMPLE_ROOT);
     }
 
   protected:
     void Initialize() override
     {
+        Horizon::Path::resolve_resource_paths(&shader_dir);
         auto rhi = GetRhi();
         if (!rhi)
         {

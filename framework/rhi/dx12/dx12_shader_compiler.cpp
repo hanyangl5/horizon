@@ -1,7 +1,6 @@
 #include "dx12_shader_compiler.h"
 #include <core/log.h>
 #include <core/path.h>
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 

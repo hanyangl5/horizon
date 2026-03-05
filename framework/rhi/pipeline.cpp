@@ -1,6 +1,7 @@
 #include "pipeline.h"
 
 #include <algorithm>
+#include <core/log.h>
 
 namespace Horizon::Backend
 {
@@ -53,18 +54,80 @@ void Pipeline::ParseRootSignature(const ShaderPrograms &shaders)
 void Pipeline::ParseRootSignatureFromShader(Shader *shader)
 {
     if (shader == nullptr)
+    {
+        LOG_ERROR("ParseRootSignatureFromShader received null shader");
         return;
+    }
 
     const RootSignatureDesc *refl = shader->GetReflectionData();
     if (!refl)
         return;
 
-    // Merge descriptors from shader reflection, using set number directly
+    // Merge descriptors from shader reflection, using set number directly.
+    // Resource names are used by the runtime as lookup keys, so enforce
+    // consistent set/binding/type for the same name across stages.
     for (const auto &[set_number, descriptors] : refl->descriptors)
     {
         for (const auto &[name, desc] : descriptors)
         {
-            rsd.descriptors[set_number].try_emplace(name, desc);
+            bool conflict = false;
+            for (const auto &[existing_set, existing_descriptors] : rsd.descriptors)
+            {
+                auto existing_name_it = existing_descriptors.find(name);
+                if (existing_name_it == existing_descriptors.end())
+                {
+                    continue;
+                }
+
+                const auto &existing = existing_name_it->second;
+                if (existing_set != set_number || existing.vk_binding != desc.vk_binding || existing.type != desc.type)
+                {
+                    LOG_ERROR("Descriptor '{}' reflection mismatch across shader stages: existing(set={}, binding={}, "
+                              "type={}), incoming(set={}, binding={}, type={})",
+                              name, existing_set, existing.vk_binding, static_cast<u32>(existing.type), set_number,
+                              desc.vk_binding, static_cast<u32>(desc.type));
+                    conflict = true;
+                }
+                break;
+            }
+            if (conflict)
+            {
+                continue;
+            }
+
+            auto &set_descriptors = rsd.descriptors[set_number];
+            auto existing_it = set_descriptors.find(name);
+            if (existing_it == set_descriptors.end())
+            {
+                DescriptorDesc merged = desc;
+                if (!merged.is_runtime_array && merged.descriptor_count == 0)
+                {
+                    merged.descriptor_count = 1;
+                }
+                set_descriptors.emplace(name, merged);
+                continue;
+            }
+
+            auto &existing = existing_it->second;
+            if (existing.vk_binding != desc.vk_binding || existing.type != desc.type)
+            {
+                LOG_ERROR("Descriptor '{}' reflection mismatch in set {}: existing(binding={}, type={}), "
+                          "incoming(binding={}, type={})",
+                          name, set_number, existing.vk_binding, static_cast<u32>(existing.type), desc.vk_binding,
+                          static_cast<u32>(desc.type));
+                continue;
+            }
+
+            existing.is_runtime_array = existing.is_runtime_array || desc.is_runtime_array;
+            if (existing.is_runtime_array)
+            {
+                existing.descriptor_count = 0;
+            }
+            else
+            {
+                const u32 incoming_count = std::max(1u, desc.descriptor_count);
+                existing.descriptor_count = std::max(existing.descriptor_count, incoming_count);
+            }
         }
     }
 

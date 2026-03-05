@@ -10,6 +10,7 @@
 #include "app_framework.h"
 #include <chrono>
 #include <core/log.h>
+#include <core/path.h>
 #include <cstring>
 #include <thread>
 #ifdef __ANDROID__
@@ -73,9 +74,12 @@ void AppFramework::ConfigureFromCommandLine(int argc, char **argv)
 
 void AppFramework::Run()
 {
+
 #ifdef __ANDROID__
+    // Single place for setting log file sink (desktop and Android; on Android external_files_dir is set before Run()).
+    Log::GetInstance().SetFileSink(Horizon::Path::log_file_path().string());
     // Wait for native window to be ready
-    while (!GetAndroidAppState().window_ready)
+    while (!GetAndroidAppState().window_ready || GetAndroidAppState().native_window == nullptr)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
         if (GetAndroidAppState().destroyed)
@@ -154,6 +158,11 @@ void AppFramework::InitializeWindow()
     m_window = std::make_unique<Window>(m_app_name, m_width, m_height);
 
 #ifdef __ANDROID__
+    while (!GetAndroidAppState().destroyed && GetAndroidAppState().native_window == nullptr)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+
     auto &android_state = GetAndroidAppState();
     if (android_state.native_window)
     {

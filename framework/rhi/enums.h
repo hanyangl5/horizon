@@ -539,6 +539,8 @@ struct DescriptorDesc
 {
     DescriptorType type{};
     u32 vk_binding{};
+    u32 descriptor_count{1};
+    bool is_runtime_array{false};
     // std::string dx_reg{}; // todo : type -> reg type
 };
 

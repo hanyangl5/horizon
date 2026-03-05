@@ -102,10 +102,17 @@ class AppFramework
 
 #ifdef __ANDROID__
 #define DEFINE_HORIZON_APP_WITH_CLASS(AppName, AppClass)                                                               \
+    namespace                                                                                                          \
+    {                                                                                                                  \
+    static AppClass g_##AppName##_android_app_instance;                                                                \
+    }                                                                                                                  \
+    extern "C" void HorizonRegisterAppEntryPoint()                                                                     \
+    {                                                                                                                  \
+        Horizon::RegisterAppEntryPoint([]() { g_##AppName##_android_app_instance.Run(); });                            \
+    }                                                                                                                  \
     void Run##AppName##App()                                                                                           \
     {                                                                                                                  \
-        AppClass app;                                                                                                  \
-        app.Run();                                                                                                     \
+        g_##AppName##_android_app_instance.Run();                                                                      \
     }
 #else
 #define DEFINE_HORIZON_APP_WITH_CLASS(AppName, AppClass)                                                               \

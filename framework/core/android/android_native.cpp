@@ -19,6 +19,13 @@ AndroidAppState &GetAndroidAppState()
 void InitializeAndroidApp(JNIEnv *env, jobject activity, jobject asset_manager)
 {
     std::lock_guard<std::mutex> lock(g_android_mutex);
+    g_android_state.native_window = nullptr;
+    g_android_state.width = 0;
+    g_android_state.height = 0;
+    g_android_state.window_ready = false;
+    g_android_state.paused = false;
+    g_android_state.destroyed = false;
+    g_android_state.external_files_dir.clear();
     LOG_INFO("Android app initialized");
     // Store JNI references if needed
     (void)env;
@@ -89,6 +96,19 @@ void OnAppDestroy()
     g_android_state.window_ready = false;
     g_android_state.native_window = nullptr;
     LOG_INFO("App destroyed");
+}
+
+void SetAndroidExternalFilesDir(const char *path)
+{
+    std::lock_guard<std::mutex> lock(g_android_mutex);
+    g_android_state.external_files_dir = (path != nullptr) ? path : "";
+    LOG_INFO("Android external files dir: {}", g_android_state.external_files_dir);
+    // Log file sink is set once in AppFramework::Run() after external_files_dir is available.
+}
+
+const std::string &GetAndroidExternalFilesDir()
+{
+    return g_android_state.external_files_dir;
 }
 
 void RegisterAppEntryPoint(AppEntryPoint entry_point)

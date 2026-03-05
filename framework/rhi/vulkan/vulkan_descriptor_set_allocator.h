@@ -10,6 +10,8 @@
 #include <rhi/vulkan/vulkan_sampler.h>
 #include <rhi/vulkan/vulkan_shader.h>
 #include <rhi/vulkan/vulkan_texture.h>
+
+#include <vector>
 namespace Horizon::Backend
 {
 
@@ -44,6 +46,46 @@ class VulkanDescriptorSetAllocator
     VulkanDescriptorSet *GetBindlessDescriptorSet(VulkanPipeline *pipeline);
     void ReleaseDescriptorSets(VulkanPipeline *pipeline);
 
+  private:
+    void InitializeUpdateAfterBindLimits();
+    void InitializeDescriptorIndexingFeatures();
+    u32 GetUpdateAfterBindTypeLimit(VkDescriptorType type) const;
+    bool CheckBindlessFeatureSupport(const std::vector<VkDescriptorSetLayoutBinding> &bindings,
+                                     bool requires_variable_descriptor) const;
+
+    std::unordered_map<VkDescriptorType, u32>
+        BuildPerSetTypeCounts(const std::unordered_map<std::string, DescriptorDesc> &descriptors) const;
+    bool CreateDefaultPool(const std::unordered_map<VkDescriptorType, u32> &per_set_type_counts, u32 max_sets,
+                           VkDescriptorPool &out_pool) const;
+    bool EnsureBindlessPool();
+    bool RecreateBindlessPool(bool grow_pool);
+    bool RebindSharedBindlessSets();
+
+    struct DefaultSetAllocation
+    {
+        VulkanDescriptorSet *set{};
+        size_t pool_index{};
+    };
+
+    struct DefaultPoolState
+    {
+        VkDescriptorPool pool{};
+        u32 max_sets{};
+        std::unordered_map<VkDescriptorType, u32> per_set_type_counts{};
+    };
+
+    struct BindlessLayoutMeta
+    {
+        std::unordered_map<std::string, DescriptorDesc> write_descs{};
+        u32 variable_descriptor_count{1};
+    };
+
+    struct BindlessSetState
+    {
+        VulkanDescriptorSet *set{};
+        u32 variable_descriptor_count{1};
+    };
+
   public:
     const VulkanRendererContext &m_context{};
 
@@ -51,13 +93,21 @@ class VulkanDescriptorSetAllocator
     VkDescriptorSet m_empty_descriptor_set{};
 
     std::unordered_map<u64, VkDescriptorSetLayout> m_descriptor_set_layout_map{}; // cache exist layout
-    std::unordered_map<void *, VulkanDescriptorSet *> allocated_descriptorsets;
-    std::unordered_map<void *, VulkanDescriptorSet *> allocated_bindless_descriptorsets;
-    // std::vector<DescriptorSet *> allocated_sets{};
-    VkDescriptorPool m_temp_descriptor_pool{};
+    std::unordered_map<void *, DefaultSetAllocation> allocated_descriptorsets;
+    std::unordered_map<u64, BindlessSetState> allocated_bindless_descriptorsets;
+    std::vector<DefaultPoolState> m_default_pools{};
 
-    // bindless
-    static constexpr u32 k_max_bindless_resources = 65536;
+    u32 m_max_uab_uniform_buffers{1};
+    u32 m_max_uab_storage_buffers{1};
+    u32 m_max_uab_samplers{1};
+    u32 m_max_uab_sampled_images{1};
+    u32 m_max_uab_storage_images{1};
+    u32 m_max_uab_descriptors_all_pools{0};
+    VkPhysicalDeviceDescriptorIndexingFeatures m_descriptor_indexing_features{};
+    std::unordered_map<u64, BindlessLayoutMeta> m_bindless_layout_meta{};
+    std::unordered_map<void *, u64> m_pipeline_bindless_layout_map{};
+    std::unordered_map<u64, u32> m_bindless_layout_ref_count{};
+    u32 m_bindless_pool_max_sets{1};
 
     VkDescriptorPool m_bindless_descriptor_pool{};
 };

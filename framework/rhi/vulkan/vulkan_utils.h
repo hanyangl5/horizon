@@ -170,7 +170,7 @@ inline void CheckVulkanResult(VkResult _res, const char *func_name, int line) no
 {
     if (_res != VK_SUCCESS)
     {
-        LOG_ERROR("[function: {}], [line: {}], vulkan error", func_name, line);
+        LOG_ERROR("[function: {}], [line: {}], vulkan error (VkResult={})", func_name, line, static_cast<int>(_res));
     }
     assert(_res == VK_SUCCESS);
 }

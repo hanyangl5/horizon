@@ -1,4 +1,0 @@
-#define ASSET_DIR "@ASSET_DIR@"
-#define SHADER_DIR "@SHADER_DIR@"
-#define SAVED_SHADER_DIR "@SAVED_SHADER_DIR@"
-

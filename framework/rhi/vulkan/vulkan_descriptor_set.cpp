@@ -1,14 +1,17 @@
 #include "vulkan_descriptor_set.h"
 
+#include <algorithm>
+#include <utility>
+
 #include <core/log.h>
 
 namespace Horizon::Backend
 {
 
 VulkanDescriptorSet::VulkanDescriptorSet(const VulkanRendererContext &context, u32 set_number,
-                                         const std::unordered_map<std::string, DescriptorDesc> &write_descs,
+                                         std::unordered_map<std::string, DescriptorDesc> write_descs,
                                          VkDescriptorSet set) noexcept
-    : DescriptorSet(set_number), m_context(context), write_descs(write_descs), m_set(set)
+    : DescriptorSet(set_number), m_context(context), write_descs(std::move(write_descs)), m_set(set)
 {
 }
 
@@ -114,12 +117,27 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, c
         return;
     }
 
+    u32 capacity = res->second.descriptor_count;
+    if (capacity == 0)
+    {
+        capacity = static_cast<u32>(resource.size());
+    }
+    capacity = std::max(1u, capacity);
+
+    const u32 write_count = std::min(static_cast<u32>(resource.size()), capacity);
+    if (write_count < resource.size() && m_overflow_warned_resources.insert(resource_name).second)
+    {
+        LOG_WARN("Bindless buffer '{}' overflow on set {}: requested={}, capacity={}, truncating update", resource_name,
+                 GetSetNumber(), resource.size(), capacity);
+    }
+
     auto &buffer_descriptors = bindless_buffer_descriptors[resource_name];
     buffer_descriptors.clear();
-    buffer_descriptors.reserve(resource.size());
+    buffer_descriptors.reserve(write_count);
 
-    for (auto &buffer : resource)
+    for (u32 i = 0; i < write_count; ++i)
     {
+        auto *buffer = resource[i];
         auto vk_buffer = reinterpret_cast<VulkanBuffer *>(buffer);
 
         buffer_descriptors.push_back(*vk_buffer->GetDescriptorBufferInfo(0, (u32)buffer->m_size));
@@ -131,7 +149,7 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Buffer *> &resource, c
     write.dstArrayElement = 0;
     write.descriptorType = util_to_vk_descriptor_type(res->second.type);
 
-    write.descriptorCount = static_cast<uint32_t>(resource.size());
+    write.descriptorCount = write_count;
     write.pBufferInfo = buffer_descriptors.data();
     write.dstSet = m_set;
     m_pending_writes[resource_name] = write;
@@ -158,12 +176,27 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
         return;
     }
 
+    u32 capacity = res->second.descriptor_count;
+    if (capacity == 0)
+    {
+        capacity = static_cast<u32>(resource.size());
+    }
+    capacity = std::max(1u, capacity);
+
+    const u32 write_count = std::min(static_cast<u32>(resource.size()), capacity);
+    if (write_count < resource.size() && m_overflow_warned_resources.insert(resource_name).second)
+    {
+        LOG_WARN("Bindless texture '{}' overflow on set {}: requested={}, capacity={}, truncating update", resource_name,
+                 GetSetNumber(), resource.size(), capacity);
+    }
+
     auto &bindless_texture_descriptors = bindless_image_descriptors[resource_name];
     bindless_texture_descriptors.clear();
-    bindless_texture_descriptors.reserve(resource.size());
+    bindless_texture_descriptors.reserve(write_count);
 
-    for (auto &texture : resource)
+    for (u32 i = 0; i < write_count; ++i)
     {
+        auto *texture = resource[i];
         auto vk_texture = reinterpret_cast<VulkanTexture *>(texture);
 
         bindless_texture_descriptors.push_back(*vk_texture->GetDescriptorImageInfo(res->second.type));
@@ -175,7 +208,7 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
     write.dstArrayElement = 0;
     write.descriptorType = util_to_vk_descriptor_type(res->second.type);
 
-    write.descriptorCount = static_cast<uint32_t>(resource.size());
+    write.descriptorCount = write_count;
     write.pBufferInfo = nullptr;
     write.dstSet = m_set;
     write.pImageInfo = bindless_texture_descriptors.data();
@@ -195,7 +228,9 @@ void VulkanDescriptorSet::Update()
     for (const auto &[name, write] : m_pending_writes)
     {
         (void)name;
-        m_write_batch.push_back(write);
+        auto resolved_write = write;
+        resolved_write.dstSet = m_set;
+        m_write_batch.push_back(resolved_write);
     }
 
     vkUpdateDescriptorSets(m_context.device, static_cast<u32>(m_write_batch.size()), m_write_batch.data(), 0, nullptr);
@@ -205,5 +240,11 @@ void VulkanDescriptorSet::Update()
 bool VulkanDescriptorSet::IsDirty() const
 {
     return m_dirty;
+}
+
+void VulkanDescriptorSet::Rebind(VkDescriptorSet set) noexcept
+{
+    m_set = set;
+    m_dirty = true;
 }
 } // namespace Horizon::Backend

@@ -31,6 +31,33 @@ u32 spv_stage_to_internal(SpvReflectShaderStageFlagBits stage) noexcept
     return s;
 }
 
+u32 GetReflectedDescriptorCount(const SpvReflectDescriptorBinding *binding, bool &is_runtime_array) noexcept
+{
+    is_runtime_array = false;
+    if (binding == nullptr)
+    {
+        return 1;
+    }
+
+    if (binding->count == 0)
+    {
+        is_runtime_array = true;
+        return 0;
+    }
+
+    // Fallback for older compilers/libraries where runtime arrays can surface through dims.
+    for (u32 i = 0; i < binding->array.dims_count; ++i)
+    {
+        if (binding->array.dims[i] == 0)
+        {
+            is_runtime_array = true;
+            return 0;
+        }
+    }
+
+    return binding->count;
+}
+
 } // namespace
 
 void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stage, RootSignatureDesc &out) noexcept
@@ -70,6 +97,7 @@ void ReflectSpirvToRootSignature(const void *spirv, size_t size, ShaderType stag
             DescriptorDesc desc{};
             desc.type = vk_to_descriptor_type(static_cast<VkDescriptorType>(b->descriptor_type));
             desc.vk_binding = b->binding;
+            desc.descriptor_count = GetReflectedDescriptorCount(b, desc.is_runtime_array);
             const char *name = b->name && b->name[0] ? b->name : "?";
             out.descriptors[set].try_emplace(std::string(name), desc);
         }

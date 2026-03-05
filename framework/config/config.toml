@@ -1,0 +1,17 @@
+
+
+[android]
+use_external_files_dir = true
+external_assets_dir = "assets"
+external_shader_dir = "saved/shaders"
+external_log_dir = "logs"
+use_mesh_shader = false
+
+[windows]
+development_config = true
+assets_dir = "assets"
+shader_source_dir = "shaders"
+shader_ir_dir = "saved/shaders"
+log_dir = "logs"
+meshlet_path = "saved/meshlet"
+use_mesh_shader = true

@@ -135,7 +135,7 @@ void NormalizeJointWeights(Math::float4 &weights)
 } // namespace
 
 Mesh::Mesh(const MeshDesc &desc, const char *path) noexcept
-    : vertex_attribute_flag(desc.vertex_attribute_flag), m_path(path)
+    : vertex_attribute_flag(desc.vertex_attribute_flag), m_asset_path(path)
 {
 }
 
@@ -237,7 +237,7 @@ void Mesh::ProcessMaterials(const aiScene *scene)
         {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType::aiTextureType_BASE_COLOR, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
-            Path abs_path = Path(m_path).parent_path();
+            Path abs_path = Path(m_asset_path).parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::BASE_COLOR, abs_path);
             materials[i].material_params.param_bitmask |= HAS_BASE_COLOR;
@@ -247,7 +247,7 @@ void Mesh::ProcessMaterials(const aiScene *scene)
         {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType::aiTextureType_NORMALS, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
-            Path abs_path = Path(m_path).parent_path();
+            Path abs_path = Path(m_asset_path).parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::NORMAL, abs_path);
             materials[i].material_params.param_bitmask |= HAS_NORMAL;
@@ -258,7 +258,7 @@ void Mesh::ProcessMaterials(const aiScene *scene)
         {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
-            Path abs_path = Path(m_path).parent_path();
+            Path abs_path = Path(m_asset_path).parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::METALLIC_ROUGHTNESS, abs_path);
             materials[i].material_params.param_bitmask |= HAS_METALLIC_ROUGHNESS;
@@ -268,7 +268,7 @@ void Mesh::ProcessMaterials(const aiScene *scene)
         {
             ret = scene->mMaterials[i]->GetTexture(aiTextureType_EMISSIVE, t, &temp_path);
             assert(ret == aiReturn_SUCCESS);
-            Path abs_path = Path(m_path).parent_path();
+            Path abs_path = Path(m_asset_path).parent_path();
             abs_path /= temp_path.C_Str();
             materials[i].material_textures.emplace(MaterialTextureType::EMISSIVE, abs_path);
             materials[i].material_params.param_bitmask |= HAS_EMISSIVE;
@@ -460,7 +460,7 @@ void Mesh::Load()
     }
 
     const aiScene *scene =
-        assimp_importer.ReadFile(Path(m_path).string().c_str(),
+        assimp_importer.ReadFile(Path(m_asset_path).string().c_str(),
                                  (u32)(aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
                                        aiProcess_FlipUVs | aiProcess_GenBoundingBoxes | aiProcess_CalcTangentSpace));
 
@@ -552,7 +552,7 @@ void Mesh::Load()
                 }
                 else
                 {
-                    LOG_WARN("joint '{}' is missing in node hierarchy for mesh '{}'", bone->mName.C_Str(), m_path);
+                    LOG_WARN("joint '{}' is missing in node hierarchy for mesh '{}'", bone->mName.C_Str(), m_asset_path.string());
                 }
 
                 skin.inverse_bind_matrices[bone_index] = AiToMathMatrix(bone->mOffsetMatrix);

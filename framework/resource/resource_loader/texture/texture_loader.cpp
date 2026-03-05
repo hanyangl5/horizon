@@ -3,16 +3,14 @@
 #include <stb_image.h>
 
 #include "texture_loader.h"
-#ifdef _WIN32
-#include <DXGIFormat.h>
+#include <algorithm>
+#include <cctype>
 
 #include "ddspp.h"
-#endif
 #include <core/log.h>
 #include <core/path.h>
 namespace Horizon
 {
-#ifdef _WIN32
 TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
 {
     switch (format)
@@ -349,12 +347,14 @@ TextureFormat GetTextureFormatFromDXGIForamt(ddspp::DXGIFormat format)
     }
     return {};
 }
-#endif
+
 TextureDataDesc TextureLoader::Load(const char *path)
 {
     TextureDataDesc texture_info{};
     Path path_obj(path);
     std::string extension = path_obj.extension();
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     if (extension == ".png")
     {
         LoadPNG(path, texture_info);
@@ -365,11 +365,7 @@ TextureDataDesc TextureLoader::Load(const char *path)
     }
     else if (extension == ".dds")
     {
-#ifdef _WIN32
         LoadDDS(path, texture_info);
-#else
-        LOG_ERROR("DDS loading is not supported on this platform");
-#endif
     }
     else if (extension == ".tga")
     {
@@ -417,18 +413,24 @@ void TextureLoader::LoadPNG(const char *path, TextureDataDesc &texture_info)
     texture_info.data_offset_map.clear();
     stbi_image_free(data);
 }
-#ifdef _WIN32
+
 void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info)
 {
 
-    auto raw_data = ReadFile(path);
+    auto raw_data = Path::read_file(path);
     if (raw_data.empty())
     {
+        LOG_ERROR("failed to read DDS file: {}", path);
         return;
     }
 
     ddspp::Descriptor desc;
-    ddspp::decode_header(reinterpret_cast<unsigned char *>(raw_data.data()), desc);
+    const ddspp::Result parse_result = ddspp::decode_header(reinterpret_cast<unsigned char *>(raw_data.data()), desc);
+    if (parse_result != ddspp::Success)
+    {
+        LOG_ERROR("failed to parse DDS header: {}", path);
+        return;
+    }
 
     texture_info.width = desc.width;
     texture_info.height = desc.height;
@@ -438,13 +440,23 @@ void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info)
     texture_info.layer_count = desc.arraySize;
     if (texture_info.type == TextureType::TEXTURE_TYPE_CUBE)
     {
-        texture_info.layer_count = 6;
+        texture_info.layer_count = std::max<u32>(1u, desc.arraySize) * 6;
     }
     texture_info.format = GetTextureFormatFromDXGIForamt(desc.format);
+    if (texture_info.format == TextureFormat::TEXTURE_FORMAT_UNDEFINED)
+    {
+        LOG_ERROR("DDS format {} is unsupported by engine: {}", static_cast<u32>(desc.format), path);
+        return;
+    }
+    if (desc.headerSize >= raw_data.size())
+    {
+        LOG_ERROR("DDS header size is invalid: {}", path);
+        return;
+    }
     raw_data = {raw_data.begin() + desc.headerSize, raw_data.end()};
     texture_info.raw_data.swap(raw_data);
 
-    texture_info.data_offset_map.resize(6, std::vector<u32>(desc.numMips));
+    texture_info.data_offset_map.resize(texture_info.layer_count, std::vector<u32>(desc.numMips));
 
     for (u32 layer = 0; layer < texture_info.layer_count; layer++)
     {
@@ -454,7 +466,7 @@ void TextureLoader::LoadDDS(const char *path, TextureDataDesc &texture_info)
         }
     }
 }
-#endif
+
 void TextureLoader::LoadTGA(const char *path, TextureDataDesc &texture_info)
 {
     int channels;

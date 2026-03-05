@@ -6,6 +6,8 @@
 .cache
 
 samples/*/saved/shaders
+samples/*/saved/meshlet
+samples/*/assets
 samples/*/config.hpp
 .claude
 compile_commands.json
