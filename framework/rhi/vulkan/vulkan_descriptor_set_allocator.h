@@ -53,8 +53,8 @@ class VulkanDescriptorSetAllocator
     bool CheckBindlessFeatureSupport(const std::vector<VkDescriptorSetLayoutBinding> &bindings,
                                      bool requires_variable_descriptor) const;
 
-    std::unordered_map<VkDescriptorType, u32>
-        BuildPerSetTypeCounts(const std::unordered_map<std::string, DescriptorDesc> &descriptors) const;
+    std::unordered_map<VkDescriptorType, u32> BuildPerSetTypeCounts(
+        const std::unordered_map<std::string, DescriptorDesc> &descriptors) const;
     bool CreateDefaultPool(const std::unordered_map<VkDescriptorType, u32> &per_set_type_counts, u32 max_sets,
                            VkDescriptorPool &out_pool) const;
     bool EnsureBindlessPool();

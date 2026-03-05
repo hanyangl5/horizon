@@ -52,8 +52,7 @@ Path parse_path(std::string_view value)
     return Path(unquote(trim(value)));
 }
 
-template <typename Fn>
-void parse_toml_section(const Path &config_path, std::string_view section_name, Fn &&on_entry)
+template <typename Fn> void parse_toml_section(const Path &config_path, std::string_view section_name, Fn &&on_entry)
 {
     // Lightweight line-based parser: enough for flat key/value config sections.
     std::ifstream file(config_path.c_str());

@@ -552,7 +552,8 @@ void Mesh::Load()
                 }
                 else
                 {
-                    LOG_WARN("joint '{}' is missing in node hierarchy for mesh '{}'", bone->mName.C_Str(), m_asset_path.string());
+                    LOG_WARN("joint '{}' is missing in node hierarchy for mesh '{}'", bone->mName.C_Str(),
+                             m_asset_path.string());
                 }
 
                 skin.inverse_bind_matrices[bone_index] = AiToMathMatrix(bone->mOffsetMatrix);

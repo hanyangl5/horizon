@@ -1,5 +1,5 @@
-#include "config.hpp"
 #include "app.h"
+#include "config.hpp"
 #include "renderpasses/resource_upload_pass.h"
 
 #include <core/path.h>

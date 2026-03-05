@@ -12,8 +12,8 @@
 #include <cerrno>
 #include <fstream>
 
-#include <core/log.h>
 #include <core/generic_platform_config.h>
+#include <core/log.h>
 
 #ifdef __ANDROID__
 #include <core/android/android_native.h>
@@ -31,8 +31,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
-
-
 
 namespace Horizon
 {
@@ -514,7 +512,6 @@ Path Path::meshlet_cache_path()
     return combine_sample_relative_path(cfg.meshlet_dir);
 #endif
 }
-
 
 Path Path::log_file_path()
 {
