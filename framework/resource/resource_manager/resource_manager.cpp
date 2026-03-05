@@ -4,7 +4,7 @@
 
 namespace Horizon
 {
-ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : mRhi(rhi)
+ResourceManager::ResourceManager(Backend::RHI *rhi) noexcept : m_rhi(rhi)
 {
 }
 
@@ -15,7 +15,7 @@ ResourceManager::~ResourceManager() noexcept
 
 Buffer *ResourceManager::CreateGpuBuffer(const BufferCreateInfo &buffer_create_info)
 {
-    auto buffer = mRhi->CreateBuffer(buffer_create_info);
+    auto buffer = m_rhi->CreateBuffer(buffer_create_info);
     allocated_buffers.emplace(buffer);
     return buffer;
 }
@@ -30,7 +30,7 @@ Buffer *ResourceManager::GetEmptyVertexBuffer()
         vertex_buffer_create_info.size = 1;
         vertex_buffer_create_info.descriptor_types = DescriptorType::DESCRIPTOR_TYPE_VERTEX_BUFFER;
         vertex_buffer_create_info.initial_state = ResourceState::RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        empty_vertex_buffer = mRhi->CreateBuffer(vertex_buffer_create_info);
+        empty_vertex_buffer = m_rhi->CreateBuffer(vertex_buffer_create_info);
         allocated_buffers.emplace(empty_vertex_buffer);
     }
     return empty_vertex_buffer;
@@ -59,14 +59,14 @@ void ResourceManager::ClearAllResources()
     {
         if (remain_buffer != nullptr)
         {
-            mRhi->DestroyBuffer(remain_buffer);
+            m_rhi->DestroyBuffer(remain_buffer);
         }
     }
     for (auto &remain_texture : allocated_textures)
     {
         if (remain_texture != nullptr)
         {
-            mRhi->DestroyTexture(remain_texture);
+            m_rhi->DestroyTexture(remain_texture);
         }
     }
     allocated_textures.clear();
@@ -78,13 +78,13 @@ void ResourceManager::DestroyGpuBuffer(Buffer *buffer)
     if (allocated_buffers.find(buffer) != allocated_buffers.end())
     {
         allocated_buffers.erase(buffer);
-        mRhi->DestroyBuffer(buffer);
+        m_rhi->DestroyBuffer(buffer);
     }
 }
 
 Texture *ResourceManager::CreateGpuTexture(const TextureCreateInfo &texture_create_info)
 {
-    auto texture = mRhi->CreateTexture(texture_create_info);
+    auto texture = m_rhi->CreateTexture(texture_create_info);
     allocated_textures.emplace(texture);
     return texture;
 }
@@ -94,7 +94,7 @@ void ResourceManager::DestroyGpuTexture(Texture *texture)
     if (allocated_textures.find(texture) != allocated_textures.end())
     {
         allocated_textures.erase(texture);
-        mRhi->DestroyTexture(texture);
+        m_rhi->DestroyTexture(texture);
     }
 }
 

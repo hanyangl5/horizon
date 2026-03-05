@@ -22,12 +22,12 @@ Renderer::Renderer(const Config &config) noexcept
     }
     m_window = config.window;
 
-    mRhi = Horizon::Backend::CreateRenderBackend(config.render_backend, bOffScreen);
-    mRhi->InitializeRenderer();
+    m_rhi = Horizon::Backend::CreateRenderBackend(config.render_backend, bOffScreen);
+    m_rhi->InitializeRenderer();
 
-    mRhi->SetWindow(m_window);
+    m_rhi->SetWindow(m_window);
 
-    m_resource_manager = std::make_unique<ResourceManager>(mRhi.get());
+    m_resource_manager = std::make_unique<ResourceManager>(m_rhi.get());
 
     m_scene_manager = std::make_unique<SceneManager>(m_resource_manager.get());
 }
@@ -36,7 +36,7 @@ Renderer::~Renderer() noexcept
 {
     m_scene_manager = nullptr;
     m_resource_manager = nullptr;
-    mRhi = nullptr;
+    m_rhi = nullptr;
 }
 
 } // namespace Horizon
