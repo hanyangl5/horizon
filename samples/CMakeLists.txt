@@ -129,7 +129,7 @@ if(BUILD_ANDROID_APK)
         else()
             # Host is Unix-like: use gradlew, need chmod
             add_custom_target(apk_${sample}
-                COMMAND ${CMAKE_COMMAND} -E chmod +x ${ANDROID_APK_DIR}/gradlew
+                COMMAND chmod +x ${ANDROID_APK_DIR}/gradlew
                 COMMAND ${CMAKE_COMMAND} -E chdir ${ANDROID_APK_DIR} ./gradlew :${sample}:assembleDebug
                 DEPENDS ${sample}
                 COMMENT "Packaging APK for ${sample}"
