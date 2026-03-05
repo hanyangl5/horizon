@@ -12,8 +12,8 @@
 #include <tuple>
 
 #include <core/definations.h>
-#include <core/math.h>
 #include <core/generic_platform_config.h>
+#include <core/math.h>
 
 #include <resource/resource_manager/resource_manager.h>
 #include <resource/resources/mesh/mesh.h>

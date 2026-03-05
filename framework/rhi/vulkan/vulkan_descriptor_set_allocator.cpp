@@ -58,8 +58,9 @@ u32 GetResolvedDescriptorCount(const DescriptorDesc &desc)
     return std::max(1u, desc.descriptor_count);
 }
 
-VkResult AllocateDescriptorSetWithOptionalVariableCount(VkDevice device, VkDescriptorPool pool, VkDescriptorSetLayout layout,
-                                                        u32 variable_descriptor_count, VkDescriptorSet &out_set)
+VkResult AllocateDescriptorSetWithOptionalVariableCount(VkDevice device, VkDescriptorPool pool,
+                                                        VkDescriptorSetLayout layout, u32 variable_descriptor_count,
+                                                        VkDescriptorSet &out_set)
 {
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -130,11 +131,15 @@ void VulkanDescriptorSetAllocator::InitializeUpdateAfterBindLimits()
     device_properties.pNext = &descriptor_indexing_properties;
     vkGetPhysicalDeviceProperties2(m_context.active_gpu, &device_properties);
 
-    m_max_uab_uniform_buffers = std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindUniformBuffers);
-    m_max_uab_storage_buffers = std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindStorageBuffers);
+    m_max_uab_uniform_buffers =
+        std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindUniformBuffers);
+    m_max_uab_storage_buffers =
+        std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindStorageBuffers);
     m_max_uab_samplers = std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindSamplers);
-    m_max_uab_sampled_images = std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindSampledImages);
-    m_max_uab_storage_images = std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindStorageImages);
+    m_max_uab_sampled_images =
+        std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindSampledImages);
+    m_max_uab_storage_images =
+        std::max(1u, descriptor_indexing_properties.maxDescriptorSetUpdateAfterBindStorageImages);
     m_max_uab_descriptors_all_pools = descriptor_indexing_properties.maxUpdateAfterBindDescriptorsInAllPools;
 
     LOG_INFO("Bindless limits (UAB): UB={}, SB={}, S={}, SI={}, STI={}, ALL_POOLS={}", m_max_uab_uniform_buffers,
@@ -163,14 +168,15 @@ u32 VulkanDescriptorSetAllocator::GetUpdateAfterBindTypeLimit(VkDescriptorType t
     }
 }
 
-bool VulkanDescriptorSetAllocator::CheckBindlessFeatureSupport(const std::vector<VkDescriptorSetLayoutBinding> &bindings,
-                                                               bool requires_variable_descriptor) const
+bool VulkanDescriptorSetAllocator::CheckBindlessFeatureSupport(
+    const std::vector<VkDescriptorSetLayoutBinding> &bindings, bool requires_variable_descriptor) const
 {
     if (!m_descriptor_indexing_features.runtimeDescriptorArray ||
         !m_descriptor_indexing_features.descriptorBindingPartiallyBound)
     {
-        LOG_ERROR("Bindless layout requested but descriptor indexing features runtimeDescriptorArray/partiallyBound are "
-                  "not supported");
+        LOG_ERROR(
+            "Bindless layout requested but descriptor indexing features runtimeDescriptorArray/partiallyBound are "
+            "not supported");
         return false;
     }
     if (requires_variable_descriptor && !m_descriptor_indexing_features.descriptorBindingVariableDescriptorCount)
@@ -234,8 +240,9 @@ std::unordered_map<VkDescriptorType, u32> VulkanDescriptorSetAllocator::BuildPer
     return type_counts;
 }
 
-bool VulkanDescriptorSetAllocator::CreateDefaultPool(const std::unordered_map<VkDescriptorType, u32> &per_set_type_counts,
-                                                     u32 max_sets, VkDescriptorPool &out_pool) const
+bool VulkanDescriptorSetAllocator::CreateDefaultPool(
+    const std::unordered_map<VkDescriptorType, u32> &per_set_type_counts, u32 max_sets,
+    VkDescriptorPool &out_pool) const
 {
     if (per_set_type_counts.empty())
     {
@@ -246,7 +253,8 @@ bool VulkanDescriptorSetAllocator::CreateDefaultPool(const std::unordered_map<Vk
     pool_sizes.reserve(per_set_type_counts.size());
     for (const auto &[type, per_set_count] : per_set_type_counts)
     {
-        const u64 scaled_count = static_cast<u64>(std::max(1u, per_set_count)) * static_cast<u64>(std::max(1u, max_sets));
+        const u64 scaled_count =
+            static_cast<u64>(std::max(1u, per_set_count)) * static_cast<u64>(std::max(1u, max_sets));
         pool_sizes.push_back(VkDescriptorPoolSize{type, static_cast<u32>(std::min<u64>(scaled_count, UINT32_MAX))});
     }
 
@@ -260,8 +268,8 @@ bool VulkanDescriptorSetAllocator::CreateDefaultPool(const std::unordered_map<Vk
     const VkResult result = vkCreateDescriptorPool(m_context.device, &pool_create_info, nullptr, &out_pool);
     if (result != VK_SUCCESS)
     {
-        LOG_ERROR("Failed to create default descriptor pool (maxSets={}, types={}, VkResult={})", pool_create_info.maxSets,
-                  pool_create_info.poolSizeCount, static_cast<int>(result));
+        LOG_ERROR("Failed to create default descriptor pool (maxSets={}, types={}, VkResult={})",
+                  pool_create_info.maxSets, pool_create_info.poolSizeCount, static_cast<int>(result));
         return false;
     }
 
@@ -289,7 +297,8 @@ bool VulkanDescriptorSetAllocator::EnsureBindlessPool()
         {VK_DESCRIPTOR_TYPE_SAMPLER, m_max_uab_samplers},
         {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, m_max_uab_sampled_images},
         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_max_uab_storage_images},
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, std::max(1u, std::min(m_max_uab_samplers, m_max_uab_sampled_images))},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+         std::max(1u, std::min(m_max_uab_samplers, m_max_uab_sampled_images))},
     }};
 
     u64 total_descriptors = 0;
@@ -343,8 +352,8 @@ bool VulkanDescriptorSetAllocator::EnsureBindlessPool()
             continue;
         }
 
-        LOG_ERROR("Failed to create bindless descriptor pool (maxSets={}, scale={}, VkResult={})", pool_create_info.maxSets,
-                  global_scale * allocation_scale, static_cast<int>(result));
+        LOG_ERROR("Failed to create bindless descriptor pool (maxSets={}, scale={}, VkResult={})",
+                  pool_create_info.maxSets, global_scale * allocation_scale, static_cast<int>(result));
         return false;
     }
 }
@@ -567,14 +576,16 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
 
     if (!CheckBindlessFeatureSupport(bindings, enable_variable_descriptor_count))
     {
-        LOG_ERROR("Disable bindless descriptor set layout for pipeline {} due to unsupported descriptor indexing features",
-                  static_cast<const void *>(pipeline));
+        LOG_ERROR(
+            "Disable bindless descriptor set layout for pipeline {} due to unsupported descriptor indexing features",
+            static_cast<const void *>(pipeline));
         pipeline->m_pipeline_layout_desc.bindless_descriptor_set_hash_key = 0;
         return;
     }
 
-    std::vector<VkDescriptorBindingFlags> binding_flags(
-        bindings.size(), VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
+    std::vector<VkDescriptorBindingFlags> binding_flags(bindings.size(),
+                                                        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+                                                            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
     if (enable_variable_descriptor_count && !binding_flags.empty())
     {
         binding_flags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;
@@ -642,7 +653,8 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetDescriptorSet(VulkanPipeli
         return nullptr;
     }
 
-    const VkDescriptorSetLayout layout = GetVkDescriptorSetLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key);
+    const VkDescriptorSetLayout layout =
+        GetVkDescriptorSetLayout(pipeline->m_pipeline_layout_desc.descriptor_set_hash_key);
     if (layout == VK_NULL_HANDLE)
     {
         LOG_ERROR("Missing descriptor set layout for set0 (hash={})",
@@ -675,9 +687,9 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetDescriptorSet(VulkanPipeli
 
     if (pool_index == std::numeric_limits<size_t>::max())
     {
-        const u32 next_pool_sets =
-            m_default_pools.empty() ? std::max(1u, static_cast<u32>(allocated_descriptorsets.size() + 1))
-                                    : std::max(1u, m_default_pools.back().max_sets * 2u);
+        const u32 next_pool_sets = m_default_pools.empty()
+                                       ? std::max(1u, static_cast<u32>(allocated_descriptorsets.size() + 1))
+                                       : std::max(1u, m_default_pools.back().max_sets * 2u);
 
         VkDescriptorPool new_pool = VK_NULL_HANDLE;
         if (!CreateDefaultPool(type_counts, next_pool_sets, new_pool))
@@ -763,8 +775,9 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetBindlessDescriptorSet(Vulk
     }
 
     VkDescriptorSet vk_ds = VK_NULL_HANDLE;
-    VkResult allocate_result = AllocateDescriptorSetWithOptionalVariableCount(
-        m_context.device, m_bindless_descriptor_pool, layout_it->second, meta_it->second.variable_descriptor_count, vk_ds);
+    VkResult allocate_result =
+        AllocateDescriptorSetWithOptionalVariableCount(m_context.device, m_bindless_descriptor_pool, layout_it->second,
+                                                       meta_it->second.variable_descriptor_count, vk_ds);
 
     if (IsRecoverableAllocateError(allocate_result))
     {
@@ -840,11 +853,8 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool()
     }
 
     std::unordered_map<VkDescriptorType, u32> default_counts{
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_SAMPLER, 1},
-        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}, {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}, {VK_DESCRIPTOR_TYPE_SAMPLER, 1},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1},  {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
     };
 
     VkDescriptorPool pool = VK_NULL_HANDLE;

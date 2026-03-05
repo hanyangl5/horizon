@@ -186,8 +186,8 @@ void VulkanDescriptorSet::SetBindlessResource(std::vector<Texture *> &resource, 
     const u32 write_count = std::min(static_cast<u32>(resource.size()), capacity);
     if (write_count < resource.size() && m_overflow_warned_resources.insert(resource_name).second)
     {
-        LOG_WARN("Bindless texture '{}' overflow on set {}: requested={}, capacity={}, truncating update", resource_name,
-                 GetSetNumber(), resource.size(), capacity);
+        LOG_WARN("Bindless texture '{}' overflow on set {}: requested={}, capacity={}, truncating update",
+                 resource_name, GetSetNumber(), resource.size(), capacity);
     }
 
     auto &bindless_texture_descriptors = bindless_image_descriptors[resource_name];

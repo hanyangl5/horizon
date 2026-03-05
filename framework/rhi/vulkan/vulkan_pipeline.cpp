@@ -450,19 +450,20 @@ void VulkanPipeline::CreatePipelineLayout(const ShaderPrograms &shaders)
 
         m_descriptor_set_allocator.CreateDescriptorSetLayout(this);
 
-        const VkDescriptorSetLayout empty_layout =
-            m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_descriptor_set_allocator.m_empty_descriptor_set_layout_hash_key);
+        const VkDescriptorSetLayout empty_layout = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+            m_descriptor_set_allocator.m_empty_descriptor_set_layout_hash_key);
         const bool has_bindless_set = (m_pipeline_layout_desc.bindless_descriptor_set_hash_key != 0);
         const bool has_default_set = (m_pipeline_layout_desc.descriptor_set_hash_key != 0);
 
         if (has_bindless_set)
         {
             layouts.resize(BINDLESS_DESCRIPTOR_SET_NUMBER + 1, empty_layout);
-            layouts[DEFAULT_DESCRIPTOR_SET_NUMBER] =
-                has_default_set ? m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.descriptor_set_hash_key)
-                                : empty_layout;
-            layouts[BINDLESS_DESCRIPTOR_SET_NUMBER] =
-                m_descriptor_set_allocator.GetVkDescriptorSetLayout(m_pipeline_layout_desc.bindless_descriptor_set_hash_key);
+            layouts[DEFAULT_DESCRIPTOR_SET_NUMBER] = has_default_set
+                                                         ? m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+                                                               m_pipeline_layout_desc.descriptor_set_hash_key)
+                                                         : empty_layout;
+            layouts[BINDLESS_DESCRIPTOR_SET_NUMBER] = m_descriptor_set_allocator.GetVkDescriptorSetLayout(
+                m_pipeline_layout_desc.bindless_descriptor_set_hash_key);
         }
         else if (has_default_set)
         {
