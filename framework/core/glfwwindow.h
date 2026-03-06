@@ -53,7 +53,7 @@ class Window
 #endif
     u32 m_width{};
     u32 m_height{};
-    //bool m_vsync_enabled = true;
+    // bool m_vsync_enabled = true;
 };
 
 } // namespace Horizon
