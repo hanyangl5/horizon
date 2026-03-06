@@ -423,7 +423,11 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     // Platform-specific instance extensions
 #ifdef __ANDROID__
     AppendUniqueCString(instance_extensions, VK_KHR_SURFACE_EXTENSION_NAME);
+#ifdef VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
     AppendUniqueCString(instance_extensions, VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#else
+    AppendUniqueCString(instance_extensions, "VK_KHR_android_surface");
+#endif
 #else
 #ifdef HZ_GLFW_HAS_INIT_VULKAN_LOADER
     // Let GLFW reuse the Vulkan loader function resolved by Volk.
