@@ -52,13 +52,12 @@ add_subdirectory(assimp)
 
 option(BUILD_DXIL_SHADERS "Use DXC Shader Model 6 for shaders" OFF)
 
-# add_subdirectory(directxtk12)
-
-# SimpleMath cpp implementation in this tree pulls in Windows-only headers.
-if(WIN32)
-    add_library(simplemath STATIC directxtk12/src/SimpleMath.cpp)
-    target_include_directories(simplemath PUBLIC directxtk12/Inc)
-endif()
+add_library(h3d_math STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/h3d_math/src/h3d_math.c
+)
+target_include_directories(h3d_math PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/h3d_math/include
+)
 
 # GLFW is not supported on Android, skip building it
 if(NOT ANDROID)
@@ -73,20 +72,18 @@ target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_reflect.c PROPERTIES LANGUAGE C)
 
 # Link libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC h3d_math)
 if(ANDROID)
     target_link_libraries(${PROJECT_NAME} PRIVATE spdlog GPUOpen::VulkanMemoryAllocator assimp)
 elseif(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE glfw simplemath spdlog GPUOpen::VulkanMemoryAllocator assimp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator assimp)
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator assimp)
 endif()
 
-set(_THIRD_PARTY_FOLDER_TARGETS ${PROJECT_NAME} assimp spdlog VulkanMemoryAllocator)
+set(_THIRD_PARTY_FOLDER_TARGETS ${PROJECT_NAME} assimp spdlog VulkanMemoryAllocator h3d_math)
 if(TARGET glfw)
     list(APPEND _THIRD_PARTY_FOLDER_TARGETS glfw)
-endif()
-if(TARGET simplemath)
-    list(APPEND _THIRD_PARTY_FOLDER_TARGETS simplemath)
 endif()
 if(TARGET uninstall)
     list(APPEND _THIRD_PARTY_FOLDER_TARGETS uninstall)
@@ -119,7 +116,6 @@ if(ANDROID)
 elseif(WIN32)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
         assimp/include
-        directxtk12/Inc
         glfw3/include
         spdlog/include
         VulkanMemoryAllocator/include

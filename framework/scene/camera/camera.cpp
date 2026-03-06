@@ -45,7 +45,7 @@ void Camera::SetLensProjectionMatrix(f32 focal_length, f32 aspect_ratio, f32 nea
 
     f32 h = (0.5f * near_plane) * ((SENSOR_SIZE * 1000.0f) / focal_length);
     f32 w = h * aspect_ratio;
-    m_projection = DirectX::SimpleMath::Matrix::CreatePerspective(w, h, near_plane, far_plane);
+    m_projection = Math::float4x4::CreatePerspective(w, h, near_plane, far_plane);
 }
 
 void Camera::SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plane) noexcept
@@ -57,7 +57,7 @@ void Camera::SetOrthoProjectionMatrix(f32 w, f32 h, f32 near_plane, f32 far_plan
     }
     m_near_plane = near_plane;
     m_far_plane = far_plane;
-    m_projection = DirectX::SimpleMath::Matrix::CreateOrthographic(w, h, near_plane, far_plane);
+    m_projection = Math::Ortho(w, h, near_plane, far_plane);
 }
 Math::float4x4 Camera::GetProjectionMatrix() const noexcept
 {

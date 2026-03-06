@@ -9,15 +9,7 @@
 #pragma once
 
 #include <core/definations.h>
-
-// Use portable SimpleMath wrapper on non-Windows platforms
-#if !defined(_WIN32)
-#include <core/android_simplemath.h>
-#else
-// Use DirectX SimpleMath on Windows
-#include <DirectXCollision.h>
-#include <SimpleMath.h>
-#endif
+#include <h3d_simplemath_compat.hpp>
 
 namespace Horizon
 {
