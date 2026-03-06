@@ -5,6 +5,11 @@ project(framework)
 option(USE_VULKAN "Enable Vulkan backend" ON)
 option(USE_DX12 "Enable DirectX 12 backend" ON)
 
+if(NOT WIN32 AND USE_DX12)
+    message(STATUS "DirectX 12 backend is Windows-only; forcing USE_DX12=OFF on this platform")
+    set(USE_DX12 OFF CACHE BOOL "Enable DirectX 12 backend" FORCE)
+endif()
+
 # 收集头文件
 file(GLOB_RECURSE HEADER_FILES "*.h" "*.hpp")
 

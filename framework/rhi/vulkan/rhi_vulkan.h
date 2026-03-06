@@ -28,6 +28,10 @@ class RHIVulkan : public RHI
     RHIVulkan &operator=(RHIVulkan &&rhs) noexcept = delete;
 
     void InitializeRenderer() override;
+    bool IsInitialized() const override
+    {
+        return m_initialized;
+    }
 
     Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
 
@@ -104,6 +108,7 @@ class RHIVulkan : public RHI
 
   private:
     VulkanRendererContext m_vulkan{};
+    bool m_initialized{false};
     SwapChainSemaphoreContext semaphore_ctx{};
     VulkanDescriptorSetAllocator *m_descriptor_set_allocator{};
     std::array<std::vector<VkFence>, 3> fences{};

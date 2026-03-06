@@ -42,15 +42,20 @@ OPTION(ASSIMP_WARNINGS_AS_ERRORS
     "Treat all warnings as errors."
     OFF
 )
+
+# Use system zlib on macOS to avoid bundled zlib compile issues with Apple SDK headers.
+if(APPLE)
+    set(ASSIMP_BUILD_ZLIB OFF CACHE BOOL "Build your own zlib" FORCE)
+endif()
+
 add_subdirectory(assimp)
 
 option(BUILD_DXIL_SHADERS "Use DXC Shader Model 6 for shaders" OFF)
 
 # add_subdirectory(directxtk12)
 
-# SimpleMath depends on DirectXMath which is Windows-specific
-# On Android, we need to use an alternative math library (e.g., GLM)
-if(NOT ANDROID)
+# SimpleMath cpp implementation in this tree pulls in Windows-only headers.
+if(WIN32)
     add_library(simplemath STATIC directxtk12/src/SimpleMath.cpp)
     target_include_directories(simplemath PUBLIC directxtk12/Inc)
 endif()
@@ -67,30 +72,38 @@ add_subdirectory(VulkanMemoryAllocator)
 target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_reflect.c)
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_reflect.c PROPERTIES LANGUAGE C)
 
-# Link libraries - glfw and simplemath are not available on Android
+# Link libraries
 if(ANDROID)
     target_link_libraries(${PROJECT_NAME} PRIVATE spdlog GPUOpen::VulkanMemoryAllocator assimp)
-else()
+elseif(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE glfw simplemath spdlog GPUOpen::VulkanMemoryAllocator assimp)
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator assimp)
 endif()
 
-# Set folder property - glfw and simplemath are not available on Android
-if(ANDROID)
-    set_property(TARGET ${PROJECT_NAME} spdlog VulkanMemoryAllocator
-        assimp zlibstatic
-        PROPERTY FOLDER "third_party")
-else()
-    set_property(TARGET ${PROJECT_NAME} glfw simplemath spdlog VulkanMemoryAllocator
-        assimp uninstall zlibstatic
-        update_mappings
-        PROPERTY FOLDER "third_party")
+set(_THIRD_PARTY_FOLDER_TARGETS ${PROJECT_NAME} assimp spdlog VulkanMemoryAllocator)
+if(TARGET glfw)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS glfw)
 endif()
+if(TARGET simplemath)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS simplemath)
+endif()
+if(TARGET uninstall)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS uninstall)
+endif()
+if(TARGET zlibstatic)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS zlibstatic)
+endif()
+if(TARGET update_mappings)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS update_mappings)
+endif()
+set_property(TARGET ${_THIRD_PARTY_FOLDER_TARGETS} PROPERTY FOLDER "third_party")
     
 IF(MSVC12 OR MSVC14 OR MSVC15 )
     set_property(TARGET UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTY FOLDER "third_party")
 endif()
 
-# Include directories - glfw3/include and directxtk12/Inc are not available on Android
+# Include directories
 if(ANDROID)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
         assimp/include
@@ -103,10 +116,23 @@ if(ANDROID)
         include
         dxc_2025_07_14/inc
     )
-else()
+elseif(WIN32)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
         assimp/include
         directxtk12/Inc
+        glfw3/include
+        spdlog/include
+        VulkanMemoryAllocator/include
+        spirv-reflect
+        spirv-reflect/include
+        nlohmann_json/include
+        ${CMAKE_BINARY_DIR}/third_party/assimp/include
+        include
+        dxc_2025_07_14/inc
+    )
+else()
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+        assimp/include
         glfw3/include
         spdlog/include
         VulkanMemoryAllocator/include

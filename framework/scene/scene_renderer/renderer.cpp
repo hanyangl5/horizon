@@ -23,7 +23,19 @@ Renderer::Renderer(const Config &config) noexcept
     m_window = config.window;
 
     m_rhi = Horizon::Backend::CreateRenderBackend(config.render_backend, bOffScreen);
+    if (!m_rhi)
+    {
+        LOG_ERROR("Failed to create RHI backend");
+        return;
+    }
+
     m_rhi->InitializeRenderer();
+    if (!m_rhi->IsInitialized())
+    {
+        LOG_ERROR("RHI backend initialization failed");
+        m_rhi.reset();
+        return;
+    }
 
     m_rhi->SetWindow(m_window);
 

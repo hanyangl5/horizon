@@ -1,8 +1,11 @@
 #include "rhi_vulkan.h"
 
 #include <algorithm>
-#include <core/path.h>
+#include <array>
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <core/path.h>
 #include <thread>
 #include <volk.h>
 
@@ -22,6 +25,123 @@
 
 namespace Horizon::Backend
 {
+#if !defined(__ANDROID__) && (GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4))
+extern "C" GLFWAPI void glfwInitVulkanLoader(PFN_vkGetInstanceProcAddr loader);
+#define HZ_GLFW_HAS_INIT_VULKAN_LOADER 1
+#endif
+
+namespace
+{
+bool ContainsCString(const std::vector<const char *> &list, const char *value)
+{
+    return std::any_of(list.begin(), list.end(),
+                       [value](const char *item) { return std::strcmp(item, value) == 0; });
+}
+
+void AppendUniqueCString(std::vector<const char *> &list, const char *value)
+{
+    if (!ContainsCString(list, value))
+    {
+        list.emplace_back(value);
+    }
+}
+
+bool FileExists(const char *path)
+{
+    std::error_code ec;
+    return std::filesystem::exists(path, ec);
+}
+
+#ifdef __APPLE__
+bool TryAutoConfigureMoltenVKIcd()
+{
+    const char *configured_icd = std::getenv("VK_ICD_FILENAMES");
+    if (configured_icd && *configured_icd)
+    {
+        return false;
+    }
+
+    std::array<const char *, 4> candidates = {
+        "/opt/homebrew/opt/molten-vk/etc/vulkan/icd.d/MoltenVK_icd.json",
+        "/usr/local/opt/molten-vk/etc/vulkan/icd.d/MoltenVK_icd.json",
+        "/opt/homebrew/share/vulkan/icd.d/MoltenVK_icd.json",
+        "/usr/local/share/vulkan/icd.d/MoltenVK_icd.json",
+    };
+
+    for (const char *candidate : candidates)
+    {
+        if (FileExists(candidate))
+        {
+            setenv("VK_ICD_FILENAMES", candidate, 1);
+            LOG_INFO("Auto-configured VK_ICD_FILENAMES={}", candidate);
+            return true;
+        }
+    }
+
+    const char *vulkan_sdk = std::getenv("VULKAN_SDK");
+    if (vulkan_sdk && *vulkan_sdk)
+    {
+        std::filesystem::path sdk_root(vulkan_sdk);
+        std::array<std::filesystem::path, 2> sdk_candidates = {
+            sdk_root / "share" / "vulkan" / "icd.d" / "MoltenVK_icd.json",
+            sdk_root / "etc" / "vulkan" / "icd.d" / "MoltenVK_icd.json",
+        };
+        for (const auto &candidate : sdk_candidates)
+        {
+            std::error_code ec;
+            if (std::filesystem::exists(candidate, ec))
+            {
+                const std::string candidate_str = candidate.string();
+                setenv("VK_ICD_FILENAMES", candidate_str.c_str(), 1);
+                LOG_INFO("Auto-configured VK_ICD_FILENAMES={}", candidate_str);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+#endif
+
+const char *VkResultToString(VkResult result)
+{
+    switch (result)
+    {
+    case VK_SUCCESS:
+        return "VK_SUCCESS";
+    case VK_NOT_READY:
+        return "VK_NOT_READY";
+    case VK_TIMEOUT:
+        return "VK_TIMEOUT";
+    case VK_EVENT_SET:
+        return "VK_EVENT_SET";
+    case VK_EVENT_RESET:
+        return "VK_EVENT_RESET";
+    case VK_INCOMPLETE:
+        return "VK_INCOMPLETE";
+    case VK_ERROR_OUT_OF_HOST_MEMORY:
+        return "VK_ERROR_OUT_OF_HOST_MEMORY";
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+        return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+    case VK_ERROR_INITIALIZATION_FAILED:
+        return "VK_ERROR_INITIALIZATION_FAILED";
+    case VK_ERROR_LAYER_NOT_PRESENT:
+        return "VK_ERROR_LAYER_NOT_PRESENT";
+    case VK_ERROR_EXTENSION_NOT_PRESENT:
+        return "VK_ERROR_EXTENSION_NOT_PRESENT";
+    case VK_ERROR_FEATURE_NOT_PRESENT:
+        return "VK_ERROR_FEATURE_NOT_PRESENT";
+    case VK_ERROR_INCOMPATIBLE_DRIVER:
+        return "VK_ERROR_INCOMPATIBLE_DRIVER";
+    case VK_ERROR_TOO_MANY_OBJECTS:
+        return "VK_ERROR_TOO_MANY_OBJECTS";
+    case VK_ERROR_FORMAT_NOT_SUPPORTED:
+        return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+    default:
+        return "VK_ERROR_UNKNOWN";
+    }
+}
+} // namespace
 
 std::unique_ptr<RHI> CreateVulkanRenderBackend(bool offscreen) noexcept
 {
@@ -31,23 +151,31 @@ std::unique_ptr<RHI> CreateVulkanRenderBackend(bool offscreen) noexcept
 RHIVulkan::RHIVulkan(bool offscreen) noexcept
 {
     m_offscreen = offscreen;
+    m_initialized = false;
 }
 
 RHIVulkan::~RHIVulkan() noexcept
 {
-    for (auto &type : fences)
+    if (m_vulkan.device != VK_NULL_HANDLE)
     {
-        if (type.empty())
-            continue;
-        vkWaitForFences(m_vulkan.device, (u32)type.size(), type.data(), VK_TRUE, UINT64_MAX);
-        for (auto fence : type)
+        for (auto &type : fences)
         {
-            vkDestroyFence(m_vulkan.device, fence, nullptr);
+            if (type.empty())
+                continue;
+            vkWaitForFences(m_vulkan.device, (u32)type.size(), type.data(), VK_TRUE, UINT64_MAX);
+            for (auto fence : type)
+            {
+                vkDestroyFence(m_vulkan.device, fence, nullptr);
+            }
         }
+
+        if (m_vulkan.command_queues[CommandQueueType::GRAPHICS] != VK_NULL_HANDLE)
+        {
+            vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
+        }
+        // vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::COMPUTE]);
+        // vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::TRANSFER]);
     }
-    vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::GRAPHICS]);
-    // vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::COMPUTE]);
-    // vkQueueWaitIdle(m_vulkan.command_queues[CommandQueueType::TRANSFER]);
 
     Memory::Free(thread_command_context);
     thread_command_context = nullptr;
@@ -72,35 +200,74 @@ RHIVulkan::~RHIVulkan() noexcept
         }
     }
 
-    vkDestroyQueryPool(m_vulkan.device, m_vulkan.gpu_query_pool, nullptr);
-    vmaDestroyAllocator(m_vulkan.vma_allocator);
-    vkDestroyDevice(m_vulkan.device, nullptr);
-    vkDestroyInstance(m_vulkan.instance, nullptr);
+    if (m_vulkan.device != VK_NULL_HANDLE && m_vulkan.gpu_query_pool != VK_NULL_HANDLE)
+    {
+        vkDestroyQueryPool(m_vulkan.device, m_vulkan.gpu_query_pool, nullptr);
+    }
+    if (m_vulkan.vma_allocator != VK_NULL_HANDLE)
+    {
+        vmaDestroyAllocator(m_vulkan.vma_allocator);
+    }
+    if (m_vulkan.device != VK_NULL_HANDLE)
+    {
+        vkDestroyDevice(m_vulkan.device, nullptr);
+    }
+    if (m_vulkan.instance != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance(m_vulkan.instance, nullptr);
+    }
 }
 
 void RHIVulkan::InitializeRenderer()
 {
+    m_initialized = false;
     LOG_DEBUG("using vulkan renderer");
     InitializeVulkanRenderer("vulkan renderer");
 }
 
 Buffer *RHIVulkan::CreateBuffer(const BufferCreateInfo &buffer_create_info)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateBuffer called before Vulkan backend initialization");
+        return nullptr;
+    }
     return Memory::Alloc<VulkanBuffer>(m_vulkan, buffer_create_info, MemoryFlag::DEDICATE_GPU_MEMORY);
 }
 
 Texture *RHIVulkan::CreateTexture(const TextureCreateInfo &texture_create_info)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateTexture called before Vulkan backend initialization");
+        return nullptr;
+    }
     return Memory::Alloc<VulkanTexture>(m_vulkan, texture_create_info);
 }
 
 RenderTarget *RHIVulkan::CreateRenderTarget(const RenderTargetCreateInfo &render_target_create_info)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateRenderTarget called before Vulkan backend initialization");
+        return nullptr;
+    }
     return Memory::Alloc<VulkanRenderTarget>(m_vulkan, render_target_create_info);
 }
 
 SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info)
 {
+    if (!m_initialized || m_vulkan.instance == VK_NULL_HANDLE || m_vulkan.device == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("CreateSwapChain failed: Vulkan backend not initialized");
+        return nullptr;
+    }
+    if (m_window == nullptr)
+    {
+        LOG_ERROR("CreateSwapChain failed: window is null");
+        return nullptr;
+    }
+
     SwapChain *sc = Memory::Alloc<VulkanSwapChain>(m_vulkan, create_info, m_window);
     semaphore_ctx.present_complete_semaphore.resize(create_info.back_buffer_count);
     semaphore_ctx.render_complete_semaphore.resize(create_info.back_buffer_count);
@@ -114,6 +281,12 @@ SwapChain *RHIVulkan::CreateSwapChain(const SwapChainCreateInfo &create_info)
 
 Shader *RHIVulkan::CreateShader(ShaderType type, const Path &file_name, const char *entry_point)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateShader called before Vulkan backend initialization");
+        return nullptr;
+    }
+
     Path file_path(file_name);
 
     auto shader_type_to_extstr = [](ShaderType type) -> std::string {
@@ -218,6 +391,7 @@ void RHIVulkan::CreateGpuQueryPool()
 
 void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
 {
+    m_initialized = false;
 
     std::vector<const char *> instance_layers;
     std::vector<const char *> instance_extensions;
@@ -227,36 +401,99 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     instance_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #endif
-    instance_extensions.emplace_back("VK_KHR_surface");
 
-    // Platform-specific surface extensions
-#ifdef _WIN32
-    instance_extensions.emplace_back("VK_KHR_win32_surface");
-#elif defined(__ANDROID__)
-    instance_extensions.emplace_back("VK_KHR_android_surface");
-#elif defined(__linux__)
-    // Linux can use X11, Wayland, or both
-    instance_extensions.emplace_back("VK_KHR_xlib_surface");
-    // instance_extensions.emplace_back("VK_KHR_wayland_surface");
+#ifdef __APPLE__
+    TryAutoConfigureMoltenVKIcd();
 #endif
 
-    device_extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-    device_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
-    device_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-    device_extensions.emplace_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-    // device_extensions.emplace_back(VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME);
-    // device_extensions.emplace_back(VK_GOOGLE_USER_TYPE_EXTENSION_NAME);
-
-    if (volkInitialize() != VK_SUCCESS)
+    const VkResult volk_init_result = volkInitialize();
+    if (volk_init_result != VK_SUCCESS)
     {
-        LOG_ERROR("volkInitialize failed");
+        LOG_ERROR("volkInitialize failed: {} ({})", VkResultToString(volk_init_result),
+                  static_cast<int>(volk_init_result));
+#ifdef __APPLE__
+        const char *vulkan_sdk = std::getenv("VULKAN_SDK");
+        const char *vk_icd_filenames = std::getenv("VK_ICD_FILENAMES");
+        LOG_INFO("VULKAN_SDK={}", (vulkan_sdk && *vulkan_sdk) ? vulkan_sdk : "<not set>");
+        LOG_INFO("VK_ICD_FILENAMES={}", (vk_icd_filenames && *vk_icd_filenames) ? vk_icd_filenames : "<not set>");
+        LOG_INFO("Ensure Vulkan loader (libvulkan.1.dylib) and MoltenVK ICD are available");
+#endif
         return;
     }
+
+    // Platform-specific instance extensions
+#ifdef __ANDROID__
+    AppendUniqueCString(instance_extensions, VK_KHR_SURFACE_EXTENSION_NAME);
+    AppendUniqueCString(instance_extensions, VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#else
+#ifdef HZ_GLFW_HAS_INIT_VULKAN_LOADER
+    // Let GLFW reuse the Vulkan loader function resolved by Volk.
+    glfwInitVulkanLoader(vkGetInstanceProcAddr);
+#endif
+
+    u32 glfw_extension_count = 0;
+    const char **glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+    if (glfw_extensions == nullptr || glfw_extension_count == 0)
+    {
+        const char *glfw_error_desc = nullptr;
+        const int glfw_error = glfwGetError(&glfw_error_desc);
+        LOG_ERROR("GLFW Vulkan initialization failed (error {}: {})", glfw_error,
+                  glfw_error_desc ? glfw_error_desc : "unknown");
+#ifdef __APPLE__
+        const char *vulkan_sdk = std::getenv("VULKAN_SDK");
+        LOG_ERROR("GLFW does not report Vulkan support (check Vulkan loader/MoltenVK runtime availability)");
+        if (vulkan_sdk && *vulkan_sdk)
+        {
+            LOG_INFO("VULKAN_SDK={}", vulkan_sdk);
+        }
+        else
+        {
+            LOG_INFO("VULKAN_SDK is not set");
+        }
+#endif
+        return;
+    }
+    for (u32 i = 0; i < glfw_extension_count; ++i)
+    {
+        AppendUniqueCString(instance_extensions, glfw_extensions[i]);
+    }
+#endif
+
+#ifdef __APPLE__
+    // Required on modern Vulkan loaders to enumerate MoltenVK physical devices.
+    AppendUniqueCString(instance_extensions, "VK_KHR_portability_enumeration");
+#endif
+
+    AppendUniqueCString(device_extensions, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    AppendUniqueCString(device_extensions, VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    AppendUniqueCString(device_extensions, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+    AppendUniqueCString(device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+#ifdef __APPLE__
+    // MoltenVK exposes portability subset and expects it to be enabled at device creation.
+    AppendUniqueCString(device_extensions, "VK_KHR_portability_subset");
+#endif
+    // device_extensions.emplace_back(VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME);
+    // device_extensions.emplace_back(VK_GOOGLE_USER_TYPE_EXTENSION_NAME);
     CreateInstance(app_name, instance_layers, instance_extensions);
+    if (m_vulkan.instance == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("vkCreateInstance failed; Vulkan backend not initialized");
+        return;
+    }
     volkLoadInstance(m_vulkan.instance);
     CreateDevice(device_extensions);
+    if (m_vulkan.device == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("vkCreateDevice failed; Vulkan backend not initialized");
+        return;
+    }
     volkLoadDevice(m_vulkan.device);
     InitializeVMA();
+    if (m_vulkan.vma_allocator == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("VMA allocator creation failed; Vulkan backend not initialized");
+        return;
+    }
     // create sync objects
     CreateSyncObjects();
     m_descriptor_set_allocator = Memory::Alloc<VulkanDescriptorSetAllocator>(m_vulkan);
@@ -266,6 +503,7 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(m_vulkan.active_gpu, &deviceProperties);
     m_vulkan.timestampPeriod = deviceProperties.limits.timestampPeriod;
+    m_initialized = true;
 }
 
 void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
@@ -283,39 +521,41 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
 
     std::vector<const char *> enabled_layers;
     enabled_layers.reserve(instance_layers.size());
-    for (const char *requested_layer : instance_layers)
+    for (const char *layer : instance_layers)
     {
-        bool found = false;
-        for (const auto &available_layer : available_layers)
-        {
-            if (strcmp(requested_layer, available_layer.layerName) == 0)
-            {
-                found = true;
-                break;
-            }
-        }
+        const bool found = std::any_of(available_layers.begin(), available_layers.end(), [layer](const auto &prop) {
+            return std::strcmp(prop.layerName, layer) == 0;
+        });
         if (found)
         {
-            enabled_layers.push_back(requested_layer);
+            enabled_layers.emplace_back(layer);
+        }
+        else
+        {
+            LOG_WARN("Vulkan instance layer not available, skipping: {}", layer);
         }
     }
 
     std::vector<const char *> enabled_extensions;
     enabled_extensions.reserve(instance_extensions.size());
-    for (const char *requested_extension : instance_extensions)
+    bool enable_portability_enumeration = false;
+    for (const char *extension : instance_extensions)
     {
-        bool found = false;
-        for (const auto &available_extension : available_extensions)
-        {
-            if (strcmp(requested_extension, available_extension.extensionName) == 0)
-            {
-                found = true;
-                break;
-            }
-        }
+        const bool found =
+            std::any_of(available_extensions.begin(), available_extensions.end(), [extension](const auto &prop) {
+                return std::strcmp(prop.extensionName, extension) == 0;
+            });
         if (found)
         {
-            enabled_extensions.push_back(requested_extension);
+            enabled_extensions.emplace_back(extension);
+            if (std::strcmp(extension, "VK_KHR_portability_enumeration") == 0)
+            {
+                enable_portability_enumeration = true;
+            }
+        }
+        else
+        {
+            LOG_WARN("Vulkan instance extension not available, skipping: {}", extension);
         }
     }
 
@@ -340,12 +580,21 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
     instance_create_info.ppEnabledExtensionNames = enabled_extensions.data();
     instance_create_info.enabledLayerCount = static_cast<u32>(enabled_layers.size());
     instance_create_info.ppEnabledLayerNames = enabled_layers.data();
+    if (enable_portability_enumeration)
+    {
+#ifdef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+        instance_create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#else
+        instance_create_info.flags |= 0x00000001;
+#endif
+    }
 
     CHECK_VK_RESULT(vkCreateInstance(&instance_create_info, nullptr, &(m_vulkan.instance)));
 }
 
 void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
 {
+    *gpu = VK_NULL_HANDLE;
     u32 device_count{0};
 
     std::vector<VkPhysicalDevice> physical_devices;
@@ -362,7 +611,7 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
 
     for (const auto &physical_device : physical_devices)
     {
-        u32 queue_family_count = (u32)m_vulkan.command_queues.size();
+        u32 queue_family_count = 0;
 
         std::vector<VkQueueFamilyProperties> queue_family_properties;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
@@ -414,12 +663,12 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
             // }
             *gpu = physical_device;
         }
-        if (gpu != VK_NULL_HANDLE)
+        if (*gpu != VK_NULL_HANDLE)
         {
             break;
         }
     }
-    if (gpu == VK_NULL_HANDLE)
+    if (*gpu == VK_NULL_HANDLE)
     {
         LOG_ERROR("no suitable gpu found");
     }
@@ -428,6 +677,45 @@ void RHIVulkan::PickGPU(VkInstance instance, VkPhysicalDevice *gpu)
 void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
 {
     PickGPU(m_vulkan.instance, &m_vulkan.active_gpu);
+    if (m_vulkan.active_gpu == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("CreateDevice failed: no suitable physical device");
+        return;
+    }
+
+    u32 available_extension_count = 0;
+    vkEnumerateDeviceExtensionProperties(m_vulkan.active_gpu, nullptr, &available_extension_count, nullptr);
+    std::vector<VkExtensionProperties> available_device_extensions(available_extension_count);
+    if (available_extension_count > 0)
+    {
+        vkEnumerateDeviceExtensionProperties(m_vulkan.active_gpu, nullptr, &available_extension_count,
+                                             available_device_extensions.data());
+    }
+
+    if (std::any_of(available_device_extensions.begin(), available_device_extensions.end(), [](const auto &prop) {
+            return std::strcmp(prop.extensionName, "VK_KHR_portability_subset") == 0;
+        }))
+    {
+        AppendUniqueCString(device_extensions, "VK_KHR_portability_subset");
+    }
+
+    std::vector<const char *> enabled_device_extensions;
+    enabled_device_extensions.reserve(device_extensions.size());
+    for (const char *extension : device_extensions)
+    {
+        const bool found = std::any_of(available_device_extensions.begin(), available_device_extensions.end(),
+                                       [extension](const auto &prop) {
+                                           return std::strcmp(prop.extensionName, extension) == 0;
+                                       });
+        if (found)
+        {
+            enabled_device_extensions.emplace_back(extension);
+        }
+        else
+        {
+            LOG_WARN("Vulkan device extension not available, skipping: {}", extension);
+        }
+    }
 
     u32 ext_count = 0;
     vkEnumerateDeviceExtensionProperties(m_vulkan.active_gpu, nullptr, &ext_count, nullptr);
@@ -613,8 +901,8 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pQueueCreateInfos = device_queue_create_info.data();
     device_create_info.queueCreateInfoCount = static_cast<u32>(device_queue_create_info.size());
-    device_create_info.enabledExtensionCount = static_cast<u32>(device_extensions.size());
-    device_create_info.ppEnabledExtensionNames = device_extensions.data();
+    device_create_info.enabledExtensionCount = static_cast<u32>(enabled_device_extensions.size());
+    device_create_info.ppEnabledExtensionNames = enabled_device_extensions.data();
     device_create_info.pNext = &device_features;
 
     CHECK_VK_RESULT(vkCreateDevice(m_vulkan.active_gpu, &device_create_info, nullptr, &m_vulkan.device));
@@ -688,6 +976,11 @@ VkFence RHIVulkan::GetFence(CommandQueueType type) noexcept
 
 void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
 {
+    if (!m_initialized || m_vulkan.device == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
     if (queue_submit_info.wait_image_acquired && !semaphore_ctx.frame_image_acquired)
     {
         return;
@@ -774,6 +1067,15 @@ void RHIVulkan::SubmitCommandLists(const QueueSubmitInfo &queue_submit_info)
 
 void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
 {
+    if (!m_initialized || m_vulkan.device == VK_NULL_HANDLE)
+    {
+        return;
+    }
+    if (queue_present_info.swap_chain == nullptr)
+    {
+        return;
+    }
+
     if (!semaphore_ctx.frame_image_acquired)
     {
         return;
@@ -828,6 +1130,11 @@ void RHIVulkan::Present(const QueuePresentInfo &queue_present_info)
 
 void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
 {
+    if (!m_initialized || m_vulkan.device == VK_NULL_HANDLE || swap_chain == nullptr)
+    {
+        return;
+    }
+
     auto vk_swap_chain = reinterpret_cast<VulkanSwapChain *>(swap_chain);
     semaphore_ctx.frame_image_acquired = false;
 
@@ -922,6 +1229,11 @@ void RHIVulkan::AcquireNextFrame(SwapChain *swap_chain)
 
 CommandList *RHIVulkan::GetCommandList(CommandQueueType type)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("GetCommandList called before Vulkan backend initialization");
+        return nullptr;
+    }
 
     if (!thread_command_context)
     {
@@ -933,6 +1245,11 @@ CommandList *RHIVulkan::GetCommandList(CommandQueueType type)
 
 void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type)
 {
+    if (!m_initialized || m_vulkan.device == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
     assert(fence_index[queue_type] != UINT_MAX); // no need to wait twice
     if (fence_index[queue_type] == 0)
         return;
@@ -943,6 +1260,11 @@ void RHIVulkan::WaitGpuExecution(CommandQueueType queue_type)
 
 void RHIVulkan::ResetFence(CommandQueueType queue_type)
 {
+    if (!m_initialized || m_vulkan.device == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
     if (fence_index[queue_type] == 0)
         return;
     vkResetFences(m_vulkan.device, static_cast<u32>(fences[queue_type].size()), fences[queue_type].data());
@@ -959,11 +1281,21 @@ void RHIVulkan::ResetRHIResources()
 
 Pipeline *RHIVulkan::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo &create_info)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateGraphicsPipeline called before Vulkan backend initialization");
+        return nullptr;
+    }
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator);
 }
 
 Pipeline *RHIVulkan::CreateComputePipeline(const ComputePipelineCreateInfo &create_info)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateComputePipeline called before Vulkan backend initialization");
+        return nullptr;
+    }
     return new VulkanPipeline(m_vulkan, create_info, *m_descriptor_set_allocator);
 }
 
@@ -974,11 +1306,21 @@ void RHIVulkan::DestroyPipeline(Pipeline *pipeline)
 
 Semaphore *RHIVulkan::CreateSemaphore1()
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateSemaphore called before Vulkan backend initialization");
+        return nullptr;
+    }
     return Memory::Alloc<VulkanSemaphore>(m_vulkan);
 }
 
 Sampler *RHIVulkan::CreateSampler(const SamplerDesc &sampler_desc)
 {
+    if (!m_initialized)
+    {
+        LOG_ERROR("CreateSampler called before Vulkan backend initialization");
+        return nullptr;
+    }
     return Memory::Alloc<VulkanSampler>(m_vulkan, sampler_desc);
 }
 

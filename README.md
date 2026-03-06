@@ -9,12 +9,12 @@ horizon is a real time render framework.
 - DirectX12 & Vulkan Render Backend
 - Bindless Resource & Indirect Draw Geometry Pipeline
 - FrameGraph
-- Deferred Rendering
 - Physically Based Rendering
   - ![](docs/figs/samples/pbs.png)
+- Ambient Occlusion
+- Deferred Rendering
 - Image-Based Lighting (IBL)
 - Skeletal Mesh Animation
-- Ambient Occlusion
 - [Precomputed Atmospheric Scattering](https://github.com/hanyangl5/horizon/tree/PrecomputeAtmosphericScattering)
   - ![](docs/figs/samples/atmosphere.png)
 - Temporal Antialiasing
@@ -22,10 +22,11 @@ horizon is a real time render framework.
 
 ## Build status
 
-| Platform |        MSVC        |      Vulkan        |
-| -------- | :----------------: | :----------------: |
-| Windows  | :heavy_check_mark: | :heavy_check_mark: |
-| Android  |                    | :heavy_check_mark: |
+| Platform |        MSVC        |       Clang        |      Vulkan        |
+| -------- | :----------------: | :----------------: | :----------------: |
+| Windows  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| macOS    |                    | :heavy_check_mark: | :heavy_check_mark: |
+| Android  |                    |                    | :heavy_check_mark: |
 
 ## Build From Source
 
@@ -70,6 +71,20 @@ cmake --build --preset android_app --target apk_hellotriangle
 - Android NDK 27+ (path configured in `CMakePresets.json`)
 - Android SDK with build-tools 36.0.0 and platform android-36
 - JDK 17+
+
+### macOS (MoltenVK)
+
+```bash
+cmake --preset macos_clang
+cmake --build --preset macos_clang
+```
+
+**Prerequisites:**
+
+- Vulkan SDK installed with MoltenVK
+- Xcode Command Line Tools
+- `VULKAN_SDK` points to your Vulkan SDK root (required for `find_package(Vulkan)`)
+- Uses the `Xcode` generator preset
 
 ---
 

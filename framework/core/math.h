@@ -10,11 +10,11 @@
 
 #include <core/definations.h>
 
-#ifdef __ANDROID__
-// Use Android-compatible SimpleMath wrapper
+// Use portable SimpleMath wrapper on non-Windows platforms
+#if !defined(_WIN32)
 #include <core/android_simplemath.h>
 #else
-// Use DirectX SimpleMath on Windows/other platforms
+// Use DirectX SimpleMath on Windows
 #include <DirectXCollision.h>
 #include <SimpleMath.h>
 #endif

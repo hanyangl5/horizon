@@ -63,6 +63,28 @@
         "USE_VULKAN": "ON",
         "USE_DX12": "ON"
       }
+    },
+    {
+      "name": "macos",
+      "displayName": "macos",
+      "description": "Build for macOS with Xcode (Vulkan via MoltenVK)",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/macos",
+      "environment": {
+        "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USE_VULKAN": "ON",
+        "USE_DX12": "OFF"
+      }
+    },
+    {
+      "name": "macos_clang",
+      "displayName": "macos_clang",
+      "description": "Compatibility preset name for macOS build (uses Xcode generator)",
+      "inherits": "macos",
+      "binaryDir": "${sourceDir}/build/macos_clang"
     }
   ],
   "buildPresets": [
@@ -83,6 +105,16 @@
     {
       "name": "clangwin64",
       "configurePreset": "clangwin64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos",
+      "configurePreset": "macos",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos_clang",
+      "configurePreset": "macos_clang",
       "configuration": "Debug"
     }
   ]

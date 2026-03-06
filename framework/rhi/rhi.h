@@ -55,6 +55,11 @@ class RHI
 
     virtual void InitializeRenderer() = 0;
 
+    virtual bool IsInitialized() const
+    {
+        return true;
+    }
+
     virtual Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) = 0;
 
     virtual void DestroyBuffer(Buffer *buffer) = 0;

@@ -10,11 +10,17 @@
 
 #pragma once
 
-#ifdef __ANDROID__
+#if !defined(_WIN32)
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#endif
 
 namespace DirectX
 {
@@ -755,4 +761,8 @@ struct BoundingFrustum
 };
 } // namespace DirectX
 
-#endif // __ANDROID__
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#endif // !defined(_WIN32)
