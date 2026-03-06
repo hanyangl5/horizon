@@ -125,6 +125,7 @@ elseif(WIN32)
         ${CMAKE_BINARY_DIR}/third_party/assimp/include
         include
         dxc_2025_07_14/inc
+        directxtk12/Inc
     )
 else()
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
