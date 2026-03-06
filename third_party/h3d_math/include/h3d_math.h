@@ -30,6 +30,8 @@ typedef struct
     float m[4][4];
 } h3d_mat4;
 
+const char *h3d_math_simd_backend(void);
+
 h3d_vec3 h3d_vec3_add(h3d_vec3 lhs, h3d_vec3 rhs);
 h3d_vec3 h3d_vec3_sub(h3d_vec3 lhs, h3d_vec3 rhs);
 h3d_vec3 h3d_vec3_mul_scalar(h3d_vec3 v, float s);

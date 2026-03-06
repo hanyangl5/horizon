@@ -52,12 +52,27 @@ add_subdirectory(assimp)
 
 option(BUILD_DXIL_SHADERS "Use DXC Shader Model 6 for shaders" OFF)
 
+option(H3D_MATH_ENABLE_SIMD "Enable SIMD optimizations in h3d_math" ON)
+option(H3D_MATH_ENABLE_AVX "Enable AVX path in h3d_math (x86/x64 only, raises CPU baseline)" OFF)
+
 add_library(h3d_math STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/h3d_math/src/h3d_math.c
 )
 target_include_directories(h3d_math PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/h3d_math/include
 )
+target_compile_definitions(h3d_math PRIVATE
+    H3D_MATH_ENABLE_SIMD=$<BOOL:${H3D_MATH_ENABLE_SIMD}>
+    H3D_MATH_ENABLE_AVX=$<BOOL:${H3D_MATH_ENABLE_AVX}>
+)
+
+if(H3D_MATH_ENABLE_SIMD AND H3D_MATH_ENABLE_AVX)
+    if(MSVC)
+        target_compile_options(h3d_math PRIVATE /arch:AVX)
+    elseif(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(h3d_math PRIVATE -mavx)
+    endif()
+endif()
 
 # GLFW is not supported on Android, skip building it
 if(NOT ANDROID)
