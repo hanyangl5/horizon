@@ -28,10 +28,6 @@ class RHIVulkan : public RHI
     RHIVulkan &operator=(RHIVulkan &&rhs) noexcept = delete;
 
     void InitializeRenderer() override;
-    bool IsInitialized() const override
-    {
-        return m_initialized;
-    }
 
     Buffer *CreateBuffer(const BufferCreateInfo &buffer_create_info) override;
 

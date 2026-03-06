@@ -30,12 +30,6 @@ Renderer::Renderer(const Config &config) noexcept
     }
 
     m_rhi->InitializeRenderer();
-    if (!m_rhi->IsInitialized())
-    {
-        LOG_ERROR("RHI backend initialization failed");
-        m_rhi.reset();
-        return;
-    }
 
     m_rhi->SetWindow(m_window);
 

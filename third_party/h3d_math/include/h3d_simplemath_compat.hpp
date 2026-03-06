@@ -13,9 +13,7 @@
 #pragma clang diagnostic ignored "-Wnested-anon-types"
 #endif
 
-namespace DirectX
-{
-namespace SimpleMath
+namespace H3D
 {
 
 struct Vector2
@@ -579,16 +577,15 @@ inline const Matrix Matrix::Identity = []() {
     return tm;
 }();
 
-} // namespace SimpleMath
-} // namespace DirectX
+}
 
-namespace DirectX
+namespace H3D
 {
 struct BoundingFrustum
 {
     BoundingFrustum() = default;
 };
-} // namespace DirectX
+} // namespace H3D
 
 #ifdef __clang__
 #pragma clang diagnostic pop

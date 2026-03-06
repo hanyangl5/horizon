@@ -98,7 +98,7 @@ void AppFramework::Run()
     InitializeWindow();
     InitializeRenderer();
 
-    if (!m_renderer || !m_renderer->GetRhi())
+    if (!m_renderer)
     {
         LOG_ERROR("Failed to initialize renderer");
         return;

@@ -36,16 +36,14 @@ static constexpr f32 _1DIV2PI = 0.159154943f;
 static constexpr f32 _PIDIV2 = 1.570796327f;
 static constexpr f32 _PIDIV4 = 0.785398163f;
 
-using float2 = DirectX::SimpleMath::Vector2;
-using float3 = DirectX::SimpleMath::Vector3;
-using float4 = DirectX::SimpleMath::Vector4;
-using float4x4 = DirectX::SimpleMath::Matrix;
-using quaternion = DirectX::SimpleMath::Quaternion;
-using plane = DirectX::SimpleMath::Plane;
-using ray = DirectX::SimpleMath::Ray;
-using color = DirectX::SimpleMath::Color;
-
-using BoundingFrustum = DirectX::BoundingFrustum;
+using float2 = H3D::Vector2;
+using float3 = H3D::Vector3;
+using float4 = H3D::Vector4;
+using float4x4 = H3D::Matrix;
+using quaternion = H3D::Quaternion;
+using plane = H3D::Plane;
+using ray = H3D::Ray;
+using color = H3D::Color;
 
 inline float3 Normalize(const float3 &f)
 {
@@ -66,18 +64,18 @@ inline f32 Radians(f32 angle)
 
 inline float4x4 LookAt(const float3 &eye, const float3 &target, const float3 &up)
 {
-    return DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);
+    return H3D::Matrix::CreateLookAt(eye, target, up);
 }
 
 inline float4x4 Perspective(float fov, float aspect_ratio, float near_plane, float far_plane)
 {
-    auto mat = DirectX::SimpleMath::Matrix::CreatePerspectiveFieldOfView(fov, aspect_ratio, near_plane, far_plane);
+    auto mat = H3D::Matrix::CreatePerspectiveFieldOfView(fov, aspect_ratio, near_plane, far_plane);
     return mat;
 }
 
 inline float4x4 Ortho(float width, float height, float near_plane, float far_plane)
 {
-    auto mat = DirectX::SimpleMath::Matrix::CreateOrthographic(width, height, near_plane, far_plane);
+    auto mat = H3D::Matrix::CreateOrthographic(width, height, near_plane, far_plane);
     return mat;
 }
 
