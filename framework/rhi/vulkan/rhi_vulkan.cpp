@@ -2,10 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <core/path.h>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <core/path.h>
 #include <thread>
 #include <volk.h>
 
@@ -34,8 +34,7 @@ namespace
 {
 bool ContainsCString(const std::vector<const char *> &list, const char *value)
 {
-    return std::any_of(list.begin(), list.end(),
-                       [value](const char *item) { return std::strcmp(item, value) == 0; });
+    return std::any_of(list.begin(), list.end(), [value](const char *item) { return std::strcmp(item, value) == 0; });
 }
 
 void AppendUniqueCString(std::vector<const char *> &list, const char *value)
@@ -523,9 +522,8 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
     enabled_layers.reserve(instance_layers.size());
     for (const char *layer : instance_layers)
     {
-        const bool found = std::any_of(available_layers.begin(), available_layers.end(), [layer](const auto &prop) {
-            return std::strcmp(prop.layerName, layer) == 0;
-        });
+        const bool found = std::any_of(available_layers.begin(), available_layers.end(),
+                                       [layer](const auto &prop) { return std::strcmp(prop.layerName, layer) == 0; });
         if (found)
         {
             enabled_layers.emplace_back(layer);
@@ -542,9 +540,8 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
     for (const char *extension : instance_extensions)
     {
         const bool found =
-            std::any_of(available_extensions.begin(), available_extensions.end(), [extension](const auto &prop) {
-                return std::strcmp(prop.extensionName, extension) == 0;
-            });
+            std::any_of(available_extensions.begin(), available_extensions.end(),
+                        [extension](const auto &prop) { return std::strcmp(prop.extensionName, extension) == 0; });
         if (found)
         {
             enabled_extensions.emplace_back(extension);
@@ -692,9 +689,8 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
                                              available_device_extensions.data());
     }
 
-    if (std::any_of(available_device_extensions.begin(), available_device_extensions.end(), [](const auto &prop) {
-            return std::strcmp(prop.extensionName, "VK_KHR_portability_subset") == 0;
-        }))
+    if (std::any_of(available_device_extensions.begin(), available_device_extensions.end(),
+                    [](const auto &prop) { return std::strcmp(prop.extensionName, "VK_KHR_portability_subset") == 0; }))
     {
         AppendUniqueCString(device_extensions, "VK_KHR_portability_subset");
     }
@@ -703,10 +699,9 @@ void RHIVulkan::CreateDevice(std::vector<const char *> &device_extensions)
     enabled_device_extensions.reserve(device_extensions.size());
     for (const char *extension : device_extensions)
     {
-        const bool found = std::any_of(available_device_extensions.begin(), available_device_extensions.end(),
-                                       [extension](const auto &prop) {
-                                           return std::strcmp(prop.extensionName, extension) == 0;
-                                       });
+        const bool found =
+            std::any_of(available_device_extensions.begin(), available_device_extensions.end(),
+                        [extension](const auto &prop) { return std::strcmp(prop.extensionName, extension) == 0; });
         if (found)
         {
             enabled_device_extensions.emplace_back(extension);
