@@ -65,7 +65,6 @@ const char *VkResultToString(VkResult result)
     }
 }
 
-
 std::unique_ptr<RHI> CreateVulkanRenderBackend(bool offscreen) noexcept
 {
     return std::make_unique<RHIVulkan>(offscreen);
