@@ -31,6 +31,26 @@
       }
     },
     {
+      "name": "android_framework_lto",
+      "displayName": "android_framework_lto",
+      "description": "Android framework build with LTO enabled",
+      "inherits": "android_framework",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_ENABLE_LTO": "ON"
+      }
+    },
+    {
+      "name": "android_app_lto",
+      "displayName": "android_app_lto",
+      "description": "Android APK build with LTO enabled",
+      "inherits": "android_app",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_ENABLE_LTO": "ON"
+      }
+    },
+    {
       "name": "android_pgo_gen",
       "displayName": "android_pgo_gen",
       "description": "Android PGO instrument build",
@@ -109,6 +129,16 @@
       "binaryDir": "${sourceDir}/build/macos_clang"
     },
     {
+      "name": "macos_lto",
+      "displayName": "macos_lto",
+      "description": "macOS build with LTO enabled",
+      "inherits": "macos_clang",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_ENABLE_LTO": "ON"
+      }
+    },
+    {
       "name": "macos_pgo_gen",
       "displayName": "macos_pgo_gen",
       "description": "macOS PGO instrument build",
@@ -149,6 +179,16 @@
       "cacheVariables": {
         "HORIZON_PGO_USE": "ON"
       }
+    },
+    {
+      "name": "msvcwin64_lto",
+      "displayName": "msvcwin64_lto",
+      "description": "Windows MSVC build with LTO enabled",
+      "inherits": "msvcwin64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_ENABLE_LTO": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -159,6 +199,15 @@
     {
       "name": "android_app",
       "configurePreset": "android_app",
+      "targets": ["apk_all"]
+    },
+    {
+      "name": "android_framework_lto",
+      "configurePreset": "android_framework_lto"
+    },
+    {
+      "name": "android_app_lto",
+      "configurePreset": "android_app_lto",
       "targets": ["apk_all"]
     },
     {
@@ -190,6 +239,11 @@
       "configuration": "Debug"
     },
     {
+      "name": "macos_lto",
+      "configurePreset": "macos_lto",
+      "configuration": "Release"
+    },
+    {
       "name": "macos_pgo_gen",
       "configurePreset": "macos_pgo_gen",
       "configuration": "RelWithDebInfo"
@@ -207,6 +261,11 @@
     {
       "name": "msvcwin64_pgo_use",
       "configurePreset": "msvcwin64_pgo_use",
+      "configuration": "Release"
+    },
+    {
+      "name": "msvcwin64_lto",
+      "configurePreset": "msvcwin64_lto",
       "configuration": "Release"
     }
   ]

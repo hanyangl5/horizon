@@ -70,6 +70,16 @@
 
 ## 符号处理方案
 
+### 与 LTO 协同
+
+LTO 由独立开关控制，不改变 Build Mode 语义：
+
+- `HORIZON_ENABLE_LTO=ON`：启用全局 LTO
+- `HORIZON_LTO_MODE=AUTO|THIN|FULL`：选择 LTO 模式（`AUTO` 下 Clang 默认 ThinLTO，MSVC 使用 `/GL + /LTCG`）
+- `Development` 默认不开启 LTO；`Shipping` 推荐按平台评估后启用
+
+该方案与 PGO 可共存，组合时以 PGO 原有流程为主（仅叠加 LTO 链接期优化能力）。
+
 ### macOS / iOS
 
 ```

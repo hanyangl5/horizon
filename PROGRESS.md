@@ -48,3 +48,32 @@
 ### 待办事项
 - 增加一个可自动执行的 PGO smoke 流程（采样 workload + merge + use 构建）用于 CI。
 - 在 Android 真机场景补充 profile 采集/回传脚本，减少手工 adb 操作。
+
+## [2026-03-06] - LTO 基础设施接入（CMake/Preset/文档）
+
+### 完成内容
+- 新增 `cmake/lto.cmake`：
+  - 增加 `HORIZON_ENABLE_LTO`（默认 `OFF`）和 `HORIZON_LTO_MODE`（`AUTO/THIN/FULL`）
+  - Clang 注入 `-flto=thin`/`-flto`（编译+链接）
+  - MSVC 注入 `/GL` + `/LTCG`，并对 `THIN` 模式回退到 `FULL`
+  - 增加模式校验与配置期提示（含 LTO+PGO 组合提示）
+- 根 `CMakeLists.txt` 接入 `include(cmake/lto.cmake)`。
+- 扩展 `CMakePresets.json`：新增 `android_framework_lto`、`android_app_lto`、`macos_lto`、`msvcwin64_lto` 及对应 build presets。
+- 文档联动：
+  - `README.md` 增加 LTO 文档入口
+  - `docs/build_modes_prd.md` 增补 Build Mode 与 LTO 协同说明
+  - `docs/pgo.md` 增补 PGO 与 LTO 组合说明和示例 preset
+
+### 关键决策
+- LTO 采用独立 `cmake/lto.cmake`，保持与 `cmake/pgo.cmake` 解耦，最小侵入接入根 CMake。
+- `AUTO` 在 Clang 下默认走 ThinLTO（兼顾优化收益与链接时长），符合 PRD 建议。
+- 与 PGO 组合时仅提示不改变 PGO 行为，满足“PGO 开关优先、可共存”。
+
+### 踩坑记录
+- Horizon 主工程配置仍受缺失子模块阻塞（`third_party/volk`），无法在当前环境完成全量构建验证。
+- 为保证闭环，补充了最小 smoke 工程验证：确认 `-flto=thin` 与 `-flto` 均实际进入编译与链接命令并可成功产出可执行文件。
+
+### 待办事项
+- 初始化 third_party 子模块后，补跑 `macos_lto`/`android_*_lto`/`msvcwin64_lto` 的主工程 configure + build smoke。
+- 在 Windows 环境补充 `/GL` + `/LTCG` 的实机构建验证记录。
+- 评估是否新增 `*_pgo_use_lto` 组合 preset 作为后续优化入口。

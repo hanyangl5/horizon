@@ -89,6 +89,7 @@ cmake --build --preset macos_clang
 ## Advanced Build
 
 - PGO workflow and presets: `docs/pgo.md`
+- LTO options and presets: `docs/lto_prd.md`
 
 ---
 

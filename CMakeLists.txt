@@ -4,6 +4,7 @@ project(Horizon)
 
 include(${CMAKE_SOURCE_DIR}/cmake/compiler_args.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/pgo.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/lto.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

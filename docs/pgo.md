@@ -99,6 +99,27 @@ endif()
 <platform>_pgo_use    macos_pgo_use / android_pgo_use / msvcwin64_pgo_use
 ```
 
+### 与 LTO 组合
+
+PGO 与 LTO 可以同时启用：
+
+- `HORIZON_PGO_GENERATE`/`HORIZON_PGO_USE` 保持既有语义
+- 额外开启 `HORIZON_ENABLE_LTO=ON` 即可叠加 LTO
+- Clang 推荐 `HORIZON_LTO_MODE=THIN`（或 `AUTO`），MSVC 使用 `/GL + /LTCG`
+
+示例（macOS PGO Use + LTO）：
+
+```jsonc
+{
+  "name": "macos_pgo_use_lto",
+  "inherits": "macos_pgo_use",
+  "cacheVariables": {
+    "HORIZON_ENABLE_LTO": "ON",
+    "HORIZON_LTO_MODE": "THIN"
+  }
+}
+```
+
 示例（macOS）：
 
 ```jsonc
