@@ -11,6 +11,5 @@ samples/*/assets
 samples/*/config.hpp
 .claude
 compile_commands.json
-CLAUDE.md
-PROGRESS.md
+
 build_codex
