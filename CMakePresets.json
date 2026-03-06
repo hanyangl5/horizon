@@ -31,6 +31,28 @@
       }
     },
     {
+      "name": "android_pgo_gen",
+      "displayName": "android_pgo_gen",
+      "description": "Android PGO instrument build",
+      "inherits": "android_framework",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "HORIZON_PGO_GENERATE": "ON"
+      }
+    },
+    {
+      "name": "android_pgo_use",
+      "displayName": "android_pgo_use",
+      "description": "Android PGO optimized build",
+      "inherits": "android_framework",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "HORIZON_PGO_USE": "ON"
+      }
+    },
+    {
       "name": "msvcwin64",
       "displayName": "msvcwin64",
       "description": "Build for Windows x64 with MSVC",
@@ -85,6 +107,48 @@
       "description": "Compatibility preset name for macOS build (uses Xcode generator)",
       "inherits": "macos",
       "binaryDir": "${sourceDir}/build/macos_clang"
+    },
+    {
+      "name": "macos_pgo_gen",
+      "displayName": "macos_pgo_gen",
+      "description": "macOS PGO instrument build",
+      "inherits": "macos_clang",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "HORIZON_PGO_GENERATE": "ON"
+      }
+    },
+    {
+      "name": "macos_pgo_use",
+      "displayName": "macos_pgo_use",
+      "description": "macOS PGO optimized build",
+      "inherits": "macos_clang",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "HORIZON_PGO_USE": "ON"
+      }
+    },
+    {
+      "name": "msvcwin64_pgo_gen",
+      "displayName": "msvcwin64_pgo_gen",
+      "description": "Windows MSVC PGO instrument build",
+      "inherits": "msvcwin64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_PGO_GENERATE": "ON"
+      }
+    },
+    {
+      "name": "msvcwin64_pgo_use",
+      "displayName": "msvcwin64_pgo_use",
+      "description": "Windows MSVC PGO optimized build",
+      "inherits": "msvcwin64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_PGO_USE": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -96,6 +160,14 @@
       "name": "android_app",
       "configurePreset": "android_app",
       "targets": ["apk_all"]
+    },
+    {
+      "name": "android_pgo_gen",
+      "configurePreset": "android_pgo_gen"
+    },
+    {
+      "name": "android_pgo_use",
+      "configurePreset": "android_pgo_use"
     },
     {
       "name": "msvcwin64",
@@ -116,6 +188,26 @@
       "name": "macos_clang",
       "configurePreset": "macos_clang",
       "configuration": "Debug"
+    },
+    {
+      "name": "macos_pgo_gen",
+      "configurePreset": "macos_pgo_gen",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "macos_pgo_use",
+      "configurePreset": "macos_pgo_use",
+      "configuration": "Release"
+    },
+    {
+      "name": "msvcwin64_pgo_gen",
+      "configurePreset": "msvcwin64_pgo_gen",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "msvcwin64_pgo_use",
+      "configurePreset": "msvcwin64_pgo_use",
+      "configuration": "Release"
     }
   ]
 }

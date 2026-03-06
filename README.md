@@ -86,6 +86,10 @@ cmake --build --preset macos_clang
 - `VULKAN_SDK` points to your Vulkan SDK root (required for `find_package(Vulkan)`)
 - Uses the `Xcode` generator preset
 
+## Advanced Build
+
+- PGO workflow and presets: `docs/pgo.md`
+
 ---
 
 the app default load the sponza scene taken from [glTF-Sample-Models](https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/Sponza)

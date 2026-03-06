@@ -25,3 +25,26 @@
 - 拉取并初始化第三方子模块后，执行完整预设构建与单元测试。
 - 在 Windows/macOS/Android 三端补齐矩阵数值回归测试（尤其 `Invert` 与投影矩阵关键元素一致性）。
 - 后续 Phase 3/4 清理残余兼容路径（如 `android_simplemath.h` 的历史文件处理策略）。
+
+## [2026-03-06] - PGO 基础设施接入（CMake/Preset/脚本）
+
+### 完成内容
+- 新增 `cmake/pgo.cmake`，提供 `HORIZON_PGO_GENERATE`、`HORIZON_PGO_USE`、`HORIZON_PGO_PROFILE_DIR` 三个 CMake 选项。
+- 在根 `CMakeLists.txt` 引入 `cmake/pgo.cmake`，统一对全工程生效。
+- 新增 PGO preset：`macos_pgo_gen/use`、`android_pgo_gen/use`、`msvcwin64_pgo_gen/use`，并补充对应 build preset。
+- 新增 `tools/pgo_merge.sh`（可执行）用于 Clang `.profraw` 合并为 `merged.profdata`。
+- 更新 `docs/pgo.md` 与 `README.md`，补齐脚本和流程联动。
+- 完成可执行验证：`cmake --list-presets` 可见新增 PGO preset（含 macOS/Android）；临时 smoke 工程复用 `cmake/pgo.cmake` 跑通 `HORIZON_PGO_GENERATE -> tools/pgo_merge.sh -> HORIZON_PGO_USE` 全链路。
+
+### 关键决策
+- 将 PGO 逻辑放在独立 `cmake/pgo.cmake`，避免污染已有模块并保持最小入侵。
+- `HORIZON_PGO_GENERATE` 与 `HORIZON_PGO_USE` 互斥，配置阶段直接失败，避免误配。
+- Clang `use` 阶段在配置时检查 `merged.profdata` 是否存在，提前暴露问题。
+
+### 踩坑记录
+- 仓库初始缺少 `PROGRESS.md`，按 `CLAUDE.md` 要求本次任务中补建并记录。
+- 当前工作区缺失多个 third_party 子模块（`volk/assimp/glfw3/spdlog/VulkanMemoryAllocator`），导致 Horizon 主工程无法在本机完成完整 configure/build；已改用最小 smoke 工程验证 PGO 基础设施行为。
+
+### 待办事项
+- 增加一个可自动执行的 PGO smoke 流程（采样 workload + merge + use 构建）用于 CI。
+- 在 Android 真机场景补充 profile 采集/回传脚本，减少手工 adb 操作。

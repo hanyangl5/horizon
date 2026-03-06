@@ -46,7 +46,8 @@ Instrument → Profile → Optimize
 | `HORIZON_PGO_USE` | `OFF` | 使用已收集的 profile 优化构建 |
 | `HORIZON_PGO_PROFILE_DIR` | `<root>/pgo_profiles` | profile 数据目录 |
 
-加入 `framework/CMakeLists.txt`：
+接入位置：根 `CMakeLists.txt` 通过 `include(cmake/pgo.cmake)` 统一启用。
+核心逻辑如下：
 
 ```cmake
 option(HORIZON_PGO_GENERATE "Instrument build for PGO profiling" OFF)
@@ -54,28 +55,37 @@ option(HORIZON_PGO_USE      "Optimized build using PGO profile"  OFF)
 set(HORIZON_PGO_PROFILE_DIR "${CMAKE_SOURCE_DIR}/pgo_profiles"
     CACHE PATH "Directory containing merged profile data")
 
+if(HORIZON_PGO_GENERATE AND HORIZON_PGO_USE)
+    message(FATAL_ERROR "HORIZON_PGO_GENERATE and HORIZON_PGO_USE are mutually exclusive.")
+endif()
+
 if(HORIZON_PGO_GENERATE OR HORIZON_PGO_USE)
-    if(MSVC)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_compile_options(/GL)
         add_link_options(/LTCG)
         if(HORIZON_PGO_GENERATE)
+            add_compile_definitions(HORIZON_PGO_GENERATE=1)
             add_link_options(/GENPROFILE:PGD=${HORIZON_PGO_PROFILE_DIR}/horizon.pgd)
-        elseif(HORIZON_PGO_USE)
+        else()
             add_link_options(/USEPROFILE:PGD=${HORIZON_PGO_PROFILE_DIR}/horizon.pgd)
         endif()
 
-    elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    elseif(CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         if(HORIZON_PGO_GENERATE)
+            add_compile_definitions(HORIZON_PGO_GENERATE=1)
             add_compile_options(-fprofile-instr-generate)
             add_link_options(-fprofile-instr-generate)
-        elseif(HORIZON_PGO_USE)
+        else()
             set(_profdata "${HORIZON_PGO_PROFILE_DIR}/merged.profdata")
             if(NOT EXISTS "${_profdata}")
                 message(FATAL_ERROR
                     "PGO profile not found: ${_profdata}\n"
-                    "Run: llvm-profdata merge -output=${_profdata} ${HORIZON_PGO_PROFILE_DIR}/*.profraw")
+                    "Run: tools/pgo_merge.sh ${HORIZON_PGO_PROFILE_DIR}")
             endif()
-            add_compile_options(-fprofile-instr-use=${_profdata} -fprofile-correction)
+            add_compile_options(-fprofile-instr-use=${_profdata})
+            if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+                add_compile_options(-fprofile-correction)
+            endif()
             add_link_options(-fprofile-instr-use=${_profdata})
         endif()
     endif()
@@ -121,9 +131,7 @@ LLVM_PROFILE_FILE="$(pwd)/pgo_profiles/%p.profraw" \
     ./build/macos_pgo_gen/samples/your_sample
 
 # 3. Merge raw profiles
-llvm-profdata merge \
-    -output=pgo_profiles/merged.profdata \
-    pgo_profiles/*.profraw
+tools/pgo_merge.sh pgo_profiles
 
 # 4. Optimized build
 cmake --preset macos_pgo_use && cmake --build --preset macos_pgo_use
@@ -210,23 +218,13 @@ cmake --build --preset msvcwin64_pgo_use
 
 ### `tools/pgo_merge.sh`（Clang 平台通用 merge）
 
+仓库已提供可执行脚本：
+
 ```bash
-#!/usr/bin/env bash
-# Usage: pgo_merge.sh <profile_dir> [llvm-profdata]
-set -euo pipefail
-
-PROFILE_DIR="${1:?Usage: $0 <profile_dir> [llvm-profdata]}"
-PROFDATA="${2:-llvm-profdata}"
-OUTPUT="${PROFILE_DIR}/merged.profdata"
-
-RAW_FILES=("${PROFILE_DIR}"/*.profraw)
-if [ ${#RAW_FILES[@]} -eq 0 ]; then
-    echo "No .profraw files found in ${PROFILE_DIR}" >&2
-    exit 1
-fi
-
-"${PROFDATA}" merge -output="${OUTPUT}" "${RAW_FILES[@]}"
-echo "Merged profile written to: ${OUTPUT}"
+tools/pgo_merge.sh pgo_profiles
+# 或指定特定 llvm-profdata
+tools/pgo_merge.sh pgo_profiles \
+  "$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-arm64/bin/llvm-profdata"
 ```
 
 ---
