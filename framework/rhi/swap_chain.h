@@ -26,7 +26,7 @@ class SwapChain
 {
   public:
     SwapChain(const SwapChainCreateInfo &swap_chain_create_info, Window *window) noexcept
-        : m_back_buffer_count(swap_chain_create_info.back_buffer_count)
+        : m_back_buffer_count(swap_chain_create_info.back_buffer_count), m_enable_vsync(swap_chain_create_info.enable_vsync)
     {
         width = window->GetWidth();
         height = window->GetHeight();
@@ -43,6 +43,16 @@ class SwapChain
         return render_targets[image_index];
     }
 
+    virtual void SetVSyncEnabled(bool enabled) noexcept
+    {
+        m_enable_vsync = enabled;
+    }
+
+    bool IsVSyncEnabled() const noexcept
+    {
+        return m_enable_vsync;
+    }
+
   public:
     std::vector<RenderTarget *> render_targets{};
     u32 m_back_buffer_count{};
@@ -50,6 +60,7 @@ class SwapChain
     u32 image_index{};
     u32 width{};
     u32 height{};
+    bool m_enable_vsync{false};
 
   protected:
 };

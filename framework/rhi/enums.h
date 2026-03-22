@@ -277,6 +277,7 @@ using SwapChainFormat = TextureFormat;
 struct SwapChainCreateInfo
 {
     u32 back_buffer_count;
+    bool enable_vsync = false;
 };
 
 // dx12

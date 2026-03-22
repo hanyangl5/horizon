@@ -25,13 +25,18 @@ float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
                     Pow5(clamp(1.0 - cosTheta, 0.0, 1.0));
 }
 
+float3 EnvBRDF(float3 F0, float2 env)
+{
+    float f90 = saturate(50.0 * F0.g);
+    return F0 * env.x + f90.xxx * env.y;
+}
+
 float3 IBL(DiffuseIrradianceSH3 ibl, float3 specular, float2 env, float3 normal, float NoV, MaterialProperties mat)
 {
-    float3 specular_color = (mat.f0 * env.x + env.y) * specular;
-    float3 diffuse_color = Irradiance_SphericalHarmonics(ibl, normal) * Diffuse_Lambert(mat.albedo);
     float3 f = fresnelSchlickRoughness(NoV, mat.f0, mat.roughness);
     float3 kd = (float3(1.0, 1.0, 1.0) - f) * (1.0 - mat.metallic);
-    diffuse_color *= kd;
+    float3 diffuse_color = Irradiance_SphericalHarmonics(ibl, normal) * Diffuse_Lambert(mat.albedo) * kd;
+    float3 specular_color = EnvBRDF(mat.f0, env) * specular;
     return diffuse_color + specular_color;
 }
 

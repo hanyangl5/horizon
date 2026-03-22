@@ -41,6 +41,7 @@ void DeferredRenderApp::InitAPI()
 void DeferredRenderApp::InitResources()
 {
     InitPipelineResources();
+    InitializeControlWindow();
 }
 
 void DeferredRenderApp::ResizePipelineResources(u32 new_width, u32 new_height)
@@ -97,8 +98,7 @@ void DeferredRenderApp::OnResize(u32 new_width, u32 new_height)
 
 void DeferredRenderApp::InitPipelineResources()
 {
-
-    swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2});
+    swap_chain = rhi->CreateSwapChain(SwapChainCreateInfo{2, m_swapchain_vsync_enabled});
 
     {
 
@@ -124,6 +124,27 @@ void DeferredRenderApp::InitPipelineResources()
     post_process_pass = std::make_unique<PostProcessRDGPass>(rhi, m_width, m_height);
     taa_pass = std::make_unique<TAARDGPass>(rhi, m_width, m_height);
     resource_upload_pass = std::make_unique<ResourceUploadRDGPass>(rhi, scene->m_scene_manager);
+}
+
+void DeferredRenderApp::InitializeControlWindow()
+{
+#ifndef __ANDROID__
+    m_control_window = std::make_unique<SampleControlWindow>();
+    m_control_window->Initialize(GetWindow(),
+                                 [this](bool enabled) {
+                                     m_swapchain_vsync_enabled = enabled;
+                                     if (swap_chain)
+                                     {
+                                         swap_chain->SetVSyncEnabled(enabled);
+                                     }
+                                 },
+                                 [this](u32 width, u32 height) {
+                                     if (auto *window = GetWindow())
+                                     {
+                                         window->SetWindowSize(width, height);
+                                     }
+                                 });
+#endif
 }
 
 void DeferredRenderApp::UpdatePipelineResources()
@@ -193,6 +214,10 @@ void DeferredRenderApp::UpdatePipelineResources()
 void DeferredRenderApp::RenderLoop()
 {
     scene->scene_camera_controller->ProcessInput(GetWindow());
+    if (m_control_window)
+    {
+        m_control_window->RenderFrame(swap_chain ? swap_chain->IsVSyncEnabled() : m_swapchain_vsync_enabled);
+    }
 
     rhi->AcquireNextFrame(swap_chain);
     rhi->ResetRHIResources();
@@ -344,6 +369,7 @@ void DeferredRenderApp::Cleanup()
     resource_upload_pass = nullptr;
     scene = nullptr;
     frame_graph = nullptr;
+    m_control_window = nullptr;
 }
 
 DEFINE_HORIZON_APP_WITH_CLASS(Deferred, DeferredRenderApp)

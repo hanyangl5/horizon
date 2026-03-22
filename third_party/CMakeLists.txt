@@ -30,6 +30,25 @@ add_library(cgltf INTERFACE)
 target_include_directories(cgltf INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/cgltf)
 add_library(cgltf::cgltf ALIAS cgltf)
 
+if(NOT ANDROID)
+    add_library(imgui STATIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_draw.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_tables.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_widgets.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_glfw.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_opengl2.cpp
+    )
+    target_include_directories(imgui PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends
+    )
+    target_link_libraries(imgui PUBLIC glfw)
+    if(WIN32)
+        target_link_libraries(imgui PUBLIC opengl32)
+    endif()
+endif()
+
 option(HORIZON_ENABLE_FBXSDK "Enable Autodesk FBX SDK mesh importer when the SDK is installed" ON)
 set(HORIZON_HAS_FBXSDK OFF)
 if(WIN32 AND HORIZON_ENABLE_FBXSDK)
@@ -140,6 +159,9 @@ endif()
 set(_THIRD_PARTY_FOLDER_TARGETS ${PROJECT_NAME} cgltf spdlog VulkanMemoryAllocator h3d_math)
 if(TARGET glfw)
     list(APPEND _THIRD_PARTY_FOLDER_TARGETS glfw)
+endif()
+if(TARGET imgui)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS imgui)
 endif()
 if(TARGET uninstall)
     list(APPEND _THIRD_PARTY_FOLDER_TARGETS uninstall)

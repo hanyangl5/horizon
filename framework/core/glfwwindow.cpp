@@ -97,6 +97,16 @@ void Window::UpdateWindowTitle(const char *title)
 #endif
 }
 
+void Window::SetWindowSize(u32 width, u32 height)
+{
+#ifndef __ANDROID__
+    glfwSetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height));
+#else
+    (void)width;
+    (void)height;
+#endif
+}
+
 void Window::ProcessEvents()
 {
     // Process window events (mouse, keyboard, etc.)

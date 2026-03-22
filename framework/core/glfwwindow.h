@@ -43,6 +43,7 @@ class Window
     int ShouldClose() const noexcept;
     void Close() noexcept;
     void UpdateWindowTitle(const char *title);
+    void SetWindowSize(u32 width, u32 height);
     void ProcessEvents();
 
   private:

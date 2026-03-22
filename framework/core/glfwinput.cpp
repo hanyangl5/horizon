@@ -23,19 +23,19 @@ Direction ProcessKeyboardInput(Window *window)
     }
     if (GetKeyPress(window, Key::KEY_W))
     {
-        return Direction::BACKWARD;
+        return Direction::FORWARD;
     }
     if (GetKeyPress(window, Key::KEY_S))
     {
-        return Direction::FORWARD;
+        return Direction::BACKWARD;
     }
     if (GetKeyPress(window, Key::KEY_A))
     {
-        return Direction::RIGHT;
+        return Direction::LEFT;
     }
     if (GetKeyPress(window, Key::KEY_D))
     {
-        return Direction::LEFT;
+        return Direction::RIGHT;
     }
     if (GetKeyPress(window, Key::SPACE))
     {

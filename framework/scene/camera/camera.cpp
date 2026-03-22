@@ -18,7 +18,8 @@ Camera::Camera(const CameraSetting &setting, const Math::float3 &eye, const Math
     : m_settings(setting), m_eye(eye), m_at(at), m_up(up)
 {
     m_forward = Math::Normalize(m_at - m_eye);
-    m_right = Math::Cross(m_forward, m_up);
+    m_right = Math::Normalize(Math::Cross(m_up, m_forward));
+    m_up = Math::Normalize(Math::Cross(m_forward, m_right));
     UpdateViewMatrix();
 }
 
@@ -121,7 +122,7 @@ void Camera::Move(Direction direction) noexcept
 void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept
 {
     m_yaw += xoffset * m_sensitivity.x;
-    m_pitch += yoffset * m_sensitivity.y;
+    m_pitch -= yoffset * m_sensitivity.y;
 
     // prevent locked
     if (m_pitch > 89.0f)
@@ -139,11 +140,9 @@ void Camera::UpdateViewMatrix() noexcept
     front.z = sin(Math::Radians(m_yaw)) * cos(Math::Radians(m_pitch));
 
     m_forward = Math::Normalize(front);
-    m_right = Math::Normalize(Math::Cross(m_forward, Math::float3(0.0, 1.0,
-                                                                  0.0))); // normalize the vectors, because their length
-                                                                          // gets closer to 0 the more you look up or
-                                                                          // down which results in slower Movement.
-    m_up = Math::Normalize(Math::Cross(m_right, m_forward));
+    const Math::float3 world_up(0.0f, 1.0f, 0.0f);
+    m_right = Math::Normalize(Math::Cross(world_up, m_forward));
+    m_up = Math::Normalize(Math::Cross(m_forward, m_right));
 
     m_view = Math::LookAt(m_eye, m_eye + m_forward, m_up);
 }

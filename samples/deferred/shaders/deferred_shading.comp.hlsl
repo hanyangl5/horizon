@@ -63,7 +63,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float roughness = max(0.045f, gbuffer3.y);
     float alpha = gbuffer3.z;
     mat.roughness = roughness;
-    mat.roughness2 = Pow2(roughness);
+    // UE uses alpha = roughness^2, and the GGX D/Vis terms consume alpha^2.
+    mat.roughness2 = Pow4(roughness);
     mat.f0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
     // Unpack emissive from R11G11B10 (GPU auto-unpacks)
     mat.emissive = gbuffer2;
@@ -80,7 +81,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
         radiance += Radiance(mat, LightDataUb_cb.light_data[i], n, v, world_pos);
     }
 
-    float3 reflect_dir = normalize(2.0 * dot(n, v) * n - v);
+    float3 reflect_dir = reflect(-v, n);
     float3 specular = specular_map.SampleLevel(ibl_sampler, reflect_dir, roughness * 8.0).xyz;
     float2 ibl_uv = float2(roughness, NoV);
     float2 env = specular_brdf_lut.SampleLevel(ibl_sampler, ibl_uv,0).xy;

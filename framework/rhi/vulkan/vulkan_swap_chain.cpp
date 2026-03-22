@@ -91,13 +91,13 @@ Horizon::Backend::VulkanSwapChain::~VulkanSwapChain() noexcept
     vkDestroySurfaceKHR(m_context.instance, surface, nullptr);
 }
 
-bool Horizon::Backend::VulkanSwapChain::Resize(u32 new_width, u32 new_height) noexcept
+bool Horizon::Backend::VulkanSwapChain::Resize(u32 new_width, u32 new_height, bool force_recreate) noexcept
 {
     if (new_width == 0 || new_height == 0)
     {
         return false;
     }
-    if (new_width == width && new_height == height)
+    if (!force_recreate && new_width == width && new_height == height)
     {
         return true;
     }
@@ -113,6 +113,17 @@ bool Horizon::Backend::VulkanSwapChain::Resize(u32 new_width, u32 new_height) no
     VkSwapchainKHR old_swap_chain = swap_chain;
     CreateSwapChainImagesAndViews(new_width, new_height, old_swap_chain);
     return true;
+}
+
+void Horizon::Backend::VulkanSwapChain::SetVSyncEnabled(bool enabled) noexcept
+{
+    if (m_enable_vsync == enabled)
+    {
+        return;
+    }
+
+    m_enable_vsync = enabled;
+    Resize(width, height, true);
 }
 
 void Horizon::Backend::VulkanSwapChain::CreateSwapChainImagesAndViews(u32 new_width, u32 new_height,
@@ -141,12 +152,19 @@ void Horizon::Backend::VulkanSwapChain::CreateSwapChainImagesAndViews(u32 new_wi
     CHECK_VK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_context.active_gpu, surface, &present_mode_count,
                                                               present_modes.data()));
     vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    for (const auto mode : present_modes)
+    if (!m_enable_vsync)
     {
-        if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+        for (const auto mode : present_modes)
         {
-            vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-            break;
+            if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                break;
+            }
+            if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+            {
+                vk_swap_chain_create_info.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            }
         }
     }
     vk_swap_chain_create_info.clipped = VK_TRUE;

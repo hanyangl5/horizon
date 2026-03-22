@@ -12,7 +12,8 @@ class VulkanSwapChain : public SwapChain
     VulkanSwapChain(const VulkanRendererContext &context, const SwapChainCreateInfo &SwapChain_create_info,
                     Window *window) noexcept;
     virtual ~VulkanSwapChain() noexcept;
-    bool Resize(u32 new_width, u32 new_height) noexcept;
+    bool Resize(u32 new_width, u32 new_height, bool force_recreate = false) noexcept;
+    void SetVSyncEnabled(bool enabled) noexcept override;
     VulkanSwapChain(const VulkanSwapChain &rhs) noexcept = delete;
     VulkanSwapChain &operator=(const VulkanSwapChain &rhs) noexcept = delete;
     VulkanSwapChain(VulkanSwapChain &&rhs) noexcept = delete;

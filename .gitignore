@@ -13,3 +13,4 @@ samples/*/config.hpp
 compile_commands.json
 
 build_codex
+imgui.ini

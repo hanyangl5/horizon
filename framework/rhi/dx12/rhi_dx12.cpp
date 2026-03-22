@@ -717,7 +717,7 @@ void RHIDX12::Present(const QueuePresentInfo &queue_present_info)
     }
 
     // Present the swap chain
-    HRESULT hr = dx12_swap_chain->m_swap_chain->Present(1, 0); // VSync enabled
+    HRESULT hr = dx12_swap_chain->m_swap_chain->Present(dx12_swap_chain->IsVSyncEnabled() ? 1 : 0, 0);
     if (FAILED(hr))
     {
         LOG_ERROR("Failed to present swap chain: {}", hr);

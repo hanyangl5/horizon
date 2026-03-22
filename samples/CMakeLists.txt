@@ -24,6 +24,9 @@ macro(addproject projectdir)
     endif()
 
     target_link_libraries(${PROJECT_NAME} PUBLIC framework)
+    if(TARGET imgui)
+        target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
+    endif()
     target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/framework)
 
     # Absolute sample root for SetRuntimeSampleRoot (works when assets symlink is missing, e.g. on Windows).
