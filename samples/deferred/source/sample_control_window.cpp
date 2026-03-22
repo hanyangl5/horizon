@@ -79,12 +79,10 @@ SampleControlWindow::~SampleControlWindow()
     Shutdown();
 }
 
-void SampleControlWindow::Initialize(Horizon::Window *target_window, const VSyncCallback &vsync_callback,
-                                     const ResizeCallback &resize_callback)
+void SampleControlWindow::Initialize(Horizon::Window *target_window, const VSyncCallback &vsync_callback)
 {
     m_target_window = target_window;
     m_vsync_callback = vsync_callback;
-    m_resize_callback = resize_callback;
 
 #ifndef __ANDROID__
     if (m_initialized)
@@ -117,24 +115,11 @@ void SampleControlWindow::Initialize(Horizon::Window *target_window, const VSync
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     ImGui_ImplOpenGL2_Init();
 
-    if (m_target_window && m_target_window->GetWindow())
-    {
-        int current_width = 0;
-        int current_height = 0;
-        glfwGetWindowSize(m_target_window->GetWindow(), &current_width, &current_height);
-        if (current_width > 0 && current_height > 0)
-        {
-            m_pending_width = current_width;
-            m_pending_height = current_height;
-        }
-    }
-
     glfwMakeContextCurrent(nullptr);
     m_initialized = true;
 #else
     (void)target_window;
     (void)vsync_callback;
-    (void)resize_callback;
 #endif
 }
 
@@ -196,25 +181,6 @@ void SampleControlWindow::RenderFrame(bool vsync_enabled)
         if (ImGui::Checkbox("VSync", &requested_vsync) && m_vsync_callback)
         {
             m_vsync_callback(requested_vsync);
-        }
-
-        ImGui::InputInt("Width", &m_pending_width);
-        const bool width_field_active = ImGui::IsItemActive() || ImGui::IsItemFocused();
-        ImGui::InputInt("Height", &m_pending_height);
-        const bool height_field_active = ImGui::IsItemActive() || ImGui::IsItemFocused();
-
-        if (!width_field_active && !height_field_active && current_width > 0 && current_height > 0 &&
-            (m_pending_width != current_width || m_pending_height != current_height))
-        {
-            m_pending_width = current_width;
-            m_pending_height = current_height;
-        }
-
-        if (ImGui::Button("Apply Window Size") && m_resize_callback)
-        {
-            m_pending_width = (m_pending_width < 64) ? 64 : m_pending_width;
-            m_pending_height = (m_pending_height < 64) ? 64 : m_pending_height;
-            m_resize_callback(static_cast<Horizon::u32>(m_pending_width), static_cast<Horizon::u32>(m_pending_height));
         }
 
         const float fps = ImGui::GetIO().Framerate;

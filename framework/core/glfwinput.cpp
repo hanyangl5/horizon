@@ -23,11 +23,11 @@ Direction ProcessKeyboardInput(Window *window)
     }
     if (GetKeyPress(window, Key::KEY_W))
     {
-        return Direction::FORWARD;
+        return Direction::BACKWARD;
     }
     if (GetKeyPress(window, Key::KEY_S))
     {
-        return Direction::BACKWARD;
+        return Direction::FORWARD;
     }
     if (GetKeyPress(window, Key::KEY_A))
     {

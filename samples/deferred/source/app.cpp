@@ -137,12 +137,6 @@ void DeferredRenderApp::InitializeControlWindow()
                                      {
                                          swap_chain->SetVSyncEnabled(enabled);
                                      }
-                                 },
-                                 [this](u32 width, u32 height) {
-                                     if (auto *window = GetWindow())
-                                     {
-                                         window->SetWindowSize(width, height);
-                                     }
                                  });
 #endif
 }

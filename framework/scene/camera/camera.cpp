@@ -122,7 +122,7 @@ void Camera::Move(Direction direction) noexcept
 void Camera::Rotate(f32 xoffset, f32 yoffset) noexcept
 {
     m_yaw += xoffset * m_sensitivity.x;
-    m_pitch -= yoffset * m_sensitivity.y;
+    m_pitch += yoffset * m_sensitivity.y;
 
     // prevent locked
     if (m_pitch > 89.0f)
