@@ -25,6 +25,12 @@ if(USE_VULKAN AND NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/volk/CMakeLists.tx
         "Run: git submodule update --init --recursive third_party/volk")
 endif()
 
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/cgltf/cgltf.h")
+    message(FATAL_ERROR
+        "Missing third_party/cgltf submodule.\n"
+        "Run: git submodule update --init --recursive third_party/cgltf")
+endif()
+
 add_subdirectory(third_party)
 add_subdirectory(framework)
 add_subdirectory(unit_tests)

@@ -5,9 +5,6 @@
 #include <thread>
 #include <unordered_map>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-
 #include <core/definations.h>
 #include <core/math.h>
 
@@ -23,8 +20,6 @@
 
 namespace Horizon
 {
-
-static thread_local Assimp::Importer assimp_importer;
 // mesh description for horizon runtime
 
 struct MeshPrimitive
@@ -113,16 +108,19 @@ class Mesh
     }
 
   private:
-    u32 ProcessNode(const aiScene *scene, aiNode *node, u32 parent_index, const Math::float4x4 &parent_model_matrx);
-
-    void ProcessMaterials(const aiScene *scene);
-    void ProcessAnimations(const aiScene *scene);
+    void ResetImportData();
+    void RebuildNodeNameMap();
+    void LoadMaterialTextures();
     void UpdateNodeMatrices();
     void UpdateSkinMatrices();
     void FlattenJointMatrices();
 
+    friend bool LoadMeshWithCgltf(Mesh &mesh);
+    friend bool LoadMeshWithFbxSdk(Mesh &mesh);
+
   public:
     u32 vertex_attribute_flag{};
+    EMeshAssetFormat mesh_format{EMeshAssetFormat::MESH_FORMAT_NONE};
     Path m_asset_path{};
     std::vector<MeshPrimitive> m_mesh_primitives{};
     std::vector<Vertex> m_vertices{};

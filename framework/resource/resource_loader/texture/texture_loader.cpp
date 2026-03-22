@@ -381,6 +381,39 @@ TextureDataDesc TextureLoader::Load(const char *path)
     return texture_info;
 }
 
+TextureDataDesc TextureLoader::LoadFromMemory(const void *data, u64 size)
+{
+    TextureDataDesc texture_info{};
+    if (!data || size == 0)
+    {
+        LOG_ERROR("failed to load texture from memory: empty payload");
+        return texture_info;
+    }
+
+    int channels = 0;
+    int width = 0;
+    int height = 0;
+    u8 *decoded = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(data), static_cast<int>(size), &width,
+                                        &height, &channels, STBI_rgb_alpha);
+    if (!decoded)
+    {
+        LOG_ERROR("failed to decode in-memory texture payload");
+        return texture_info;
+    }
+
+    texture_info.width = static_cast<u32>(width);
+    texture_info.height = static_cast<u32>(height);
+    texture_info.depth = 1;
+    texture_info.format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
+    texture_info.type = TextureType::TEXTURE_TYPE_2D;
+    texture_info.layer_count = 1;
+    texture_info.mipmap_count = 1;
+    texture_info.raw_data = {decoded, decoded + width * height * 4};
+    texture_info.data_offset_map.clear();
+    stbi_image_free(decoded);
+    return texture_info;
+}
+
 void Horizon::TextureLoader::LoadJPG(const char *path, TextureDataDesc &texture_info)
 {
     int channels;

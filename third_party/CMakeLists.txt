@@ -26,29 +26,65 @@ if(USE_VULKAN)
     set_property(TARGET volk PROPERTY FOLDER "third_party")
 endif()
 
-OPTION(BUILD_SHARED_LIBS
-    "Build package with shared libraries."
-    OFF
-)
-OPTION(ASSIMP_BUILD_TESTS
-    "If the test suite for Assimp is built in addition to the library."
-    OFF
-)
-OPTION(ASSIMP_INSTALL
-    "Disable this if you want to use assimp as a submodule."
-    OFF
-)
-OPTION(ASSIMP_WARNINGS_AS_ERRORS
-    "Treat all warnings as errors."
-    OFF
-)
+add_library(cgltf INTERFACE)
+target_include_directories(cgltf INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/cgltf)
+add_library(cgltf::cgltf ALIAS cgltf)
 
-# Use system zlib on macOS to avoid bundled zlib compile issues with Apple SDK headers.
-if(APPLE)
-    set(ASSIMP_BUILD_ZLIB OFF CACHE BOOL "Build your own zlib" FORCE)
+option(HORIZON_ENABLE_FBXSDK "Enable Autodesk FBX SDK mesh importer when the SDK is installed" ON)
+set(HORIZON_HAS_FBXSDK OFF)
+if(WIN32 AND HORIZON_ENABLE_FBXSDK)
+    set(_FBXSDK_HINTS)
+    if(DEFINED ENV{FBXSDK_ROOT})
+        list(APPEND _FBXSDK_HINTS "$ENV{FBXSDK_ROOT}")
+    endif()
+    file(GLOB _FBXSDK_AUTODESK_HINTS "C:/Program Files/Autodesk/FBX/FBX SDK/*")
+    list(APPEND _FBXSDK_HINTS ${_FBXSDK_AUTODESK_HINTS})
+
+    find_path(FBXSDK_INCLUDE_DIR
+        NAMES fbxsdk.h
+        PATHS ${_FBXSDK_HINTS}
+        PATH_SUFFIXES include
+    )
+
+    set(_FBXSDK_LIB_SUFFIXES
+        lib/x64/release
+        lib/x64/debug
+        lib/vs2022/x64/release
+        lib/vs2022/x64/debug
+        lib/vs2019/x64/release
+        lib/vs2019/x64/debug
+        lib/vs2017/x64/release
+        lib/vs2017/x64/debug
+    )
+
+    find_library(FBXSDK_LIBRARY_RELEASE
+        NAMES libfbxsdk-md libfbxsdk
+        PATHS ${_FBXSDK_HINTS}
+        PATH_SUFFIXES ${_FBXSDK_LIB_SUFFIXES}
+    )
+    find_library(FBXSDK_LIBRARY_DEBUG
+        NAMES libfbxsdk-mdd libfbxsdk-md libfbxsdk
+        PATHS ${_FBXSDK_HINTS}
+        PATH_SUFFIXES ${_FBXSDK_LIB_SUFFIXES}
+    )
+
+    if(FBXSDK_INCLUDE_DIR AND (FBXSDK_LIBRARY_RELEASE OR FBXSDK_LIBRARY_DEBUG))
+        add_library(fbxsdk UNKNOWN IMPORTED)
+        set_target_properties(fbxsdk PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${FBXSDK_INCLUDE_DIR}"
+        )
+        if(FBXSDK_LIBRARY_RELEASE)
+            set_target_properties(fbxsdk PROPERTIES IMPORTED_LOCATION_RELEASE "${FBXSDK_LIBRARY_RELEASE}")
+        endif()
+        if(FBXSDK_LIBRARY_DEBUG)
+            set_target_properties(fbxsdk PROPERTIES IMPORTED_LOCATION_DEBUG "${FBXSDK_LIBRARY_DEBUG}")
+        endif()
+        set(HORIZON_HAS_FBXSDK ON)
+        message(STATUS "FBX SDK found: ${FBXSDK_INCLUDE_DIR}")
+    else()
+        message(STATUS "FBX SDK not found; FBX import will be disabled")
+    endif()
 endif()
-
-add_subdirectory(assimp)
 
 option(BUILD_DXIL_SHADERS "Use DXC Shader Model 6 for shaders" OFF)
 
@@ -87,16 +123,21 @@ target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/spirv-reflect/spirv_reflect.c PROPERTIES LANGUAGE C)
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PUBLIC h3d_math)
+target_link_libraries(${PROJECT_NAME} PUBLIC h3d_math cgltf::cgltf)
 if(ANDROID)
-    target_link_libraries(${PROJECT_NAME} PRIVATE spdlog GPUOpen::VulkanMemoryAllocator assimp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE spdlog GPUOpen::VulkanMemoryAllocator)
 elseif(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator assimp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator)
 else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator assimp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw spdlog GPUOpen::VulkanMemoryAllocator)
 endif()
 
-set(_THIRD_PARTY_FOLDER_TARGETS ${PROJECT_NAME} assimp spdlog VulkanMemoryAllocator h3d_math)
+if(HORIZON_HAS_FBXSDK)
+    target_link_libraries(${PROJECT_NAME} PUBLIC fbxsdk)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC HORIZON_HAS_FBXSDK=1)
+endif()
+
+set(_THIRD_PARTY_FOLDER_TARGETS ${PROJECT_NAME} cgltf spdlog VulkanMemoryAllocator h3d_math)
 if(TARGET glfw)
     list(APPEND _THIRD_PARTY_FOLDER_TARGETS glfw)
 endif()
@@ -109,49 +150,45 @@ endif()
 if(TARGET update_mappings)
     list(APPEND _THIRD_PARTY_FOLDER_TARGETS update_mappings)
 endif()
-set_property(TARGET ${_THIRD_PARTY_FOLDER_TARGETS} PROPERTY FOLDER "third_party")
-    
-IF(MSVC12 OR MSVC14 OR MSVC15 )
-    set_property(TARGET UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTY FOLDER "third_party")
+if(TARGET fbxsdk)
+    list(APPEND _THIRD_PARTY_FOLDER_TARGETS fbxsdk)
 endif()
+set_property(TARGET ${_THIRD_PARTY_FOLDER_TARGETS} PROPERTY FOLDER "third_party")
 
 # Include directories
 if(ANDROID)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-        assimp/include
+        cgltf
         spdlog/include
         VulkanMemoryAllocator/include
         spirv-reflect
         spirv-reflect/include
         nlohmann_json/include
-        ${CMAKE_BINARY_DIR}/third_party/assimp/include
         include
         dxc_2025_07_14/inc
     )
 elseif(WIN32)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-        assimp/include
+        cgltf
         glfw3/include
         spdlog/include
         VulkanMemoryAllocator/include
         spirv-reflect
         spirv-reflect/include
         nlohmann_json/include
-        ${CMAKE_BINARY_DIR}/third_party/assimp/include
         include
         dxc_2025_07_14/inc
         directxtk12/Inc
     )
 else()
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-        assimp/include
+        cgltf
         glfw3/include
         spdlog/include
         VulkanMemoryAllocator/include
         spirv-reflect
         spirv-reflect/include
         nlohmann_json/include
-        ${CMAKE_BINARY_DIR}/third_party/assimp/include
         include
         dxc_2025_07_14/inc
     )

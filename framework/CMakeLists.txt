@@ -178,6 +178,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # to avoid duplicate symbol / macro leaking issues in unity batches.
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/resource/resource_loader/texture/texture_loader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/resource/resources/mesh/cgltf_mesh_importer.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
 )
 if(USE_VULKAN)
