@@ -2,9 +2,9 @@
 
 #ifndef __ANDROID__
 #include <GLFW/glfw3.h>
-#include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl2.h>
+#include <imgui.h>
 #if defined(_WIN32)
 #include <windows.h>
 #endif

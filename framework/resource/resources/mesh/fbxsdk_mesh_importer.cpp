@@ -26,12 +26,14 @@ using namespace MeshImportUtils;
 Math::float4x4 FbxMatrixToInternal(const FbxAMatrix &matrix)
 {
     float external[16] = {
-        static_cast<float>(matrix.Get(0, 0)), static_cast<float>(matrix.Get(1, 0)), static_cast<float>(matrix.Get(2, 0)),
-        static_cast<float>(matrix.Get(3, 0)), static_cast<float>(matrix.Get(0, 1)), static_cast<float>(matrix.Get(1, 1)),
-        static_cast<float>(matrix.Get(2, 1)), static_cast<float>(matrix.Get(3, 1)), static_cast<float>(matrix.Get(0, 2)),
-        static_cast<float>(matrix.Get(1, 2)), static_cast<float>(matrix.Get(2, 2)), static_cast<float>(matrix.Get(3, 2)),
-        static_cast<float>(matrix.Get(0, 3)), static_cast<float>(matrix.Get(1, 3)), static_cast<float>(matrix.Get(2, 3)),
-        static_cast<float>(matrix.Get(3, 3)),
+        static_cast<float>(matrix.Get(0, 0)), static_cast<float>(matrix.Get(1, 0)),
+        static_cast<float>(matrix.Get(2, 0)), static_cast<float>(matrix.Get(3, 0)),
+        static_cast<float>(matrix.Get(0, 1)), static_cast<float>(matrix.Get(1, 1)),
+        static_cast<float>(matrix.Get(2, 1)), static_cast<float>(matrix.Get(3, 1)),
+        static_cast<float>(matrix.Get(0, 2)), static_cast<float>(matrix.Get(1, 2)),
+        static_cast<float>(matrix.Get(2, 2)), static_cast<float>(matrix.Get(3, 2)),
+        static_cast<float>(matrix.Get(0, 3)), static_cast<float>(matrix.Get(1, 3)),
+        static_cast<float>(matrix.Get(2, 3)), static_cast<float>(matrix.Get(3, 3)),
     };
     return ExternalToInternalMatrix(external);
 }
@@ -113,8 +115,8 @@ u32 GetOrCreateMaterialIndex(Mesh &mesh, FbxSurfaceMaterial *material,
         destination.material_params.param_bitmask |= HAS_ALPHA;
     }
 
-    AssignFileTexture(destination, MaterialTextureType::BASE_COLOR, material->FindProperty(FbxSurfaceMaterial::sDiffuse),
-                      HAS_BASE_COLOR);
+    AssignFileTexture(destination, MaterialTextureType::BASE_COLOR,
+                      material->FindProperty(FbxSurfaceMaterial::sDiffuse), HAS_BASE_COLOR);
     AssignFileTexture(destination, MaterialTextureType::NORMAL, material->FindProperty(FbxSurfaceMaterial::sNormalMap),
                       HAS_NORMAL);
     if (destination.material_textures.find(MaterialTextureType::NORMAL) == destination.material_textures.end())
@@ -248,7 +250,8 @@ void PopulateAnimationChannels(MeshAnimationClip &clip, FbxNode *node, FbxAnimLa
 }
 
 u32 ImportNode(Mesh &mesh, FbxNode *node, u32 parent_index, std::unordered_map<FbxNode *, u32> &node_indices,
-               std::unordered_map<FbxSurfaceMaterial *, u32> &material_indices, std::unordered_map<FbxNode *, u32> &joint_nodes)
+               std::unordered_map<FbxSurfaceMaterial *, u32> &material_indices,
+               std::unordered_map<FbxNode *, u32> &joint_nodes)
 {
     if (!node)
     {
@@ -264,10 +267,11 @@ u32 ImportNode(Mesh &mesh, FbxNode *node, u32 parent_index, std::unordered_map<F
     const FbxQuaternion rotation = local_transform.GetQ();
     const FbxVector4 scale = local_transform.GetS();
 
-    destination.translation =
-        Math::float3(static_cast<float>(translation[0]), static_cast<float>(translation[1]), static_cast<float>(translation[2]));
+    destination.translation = Math::float3(static_cast<float>(translation[0]), static_cast<float>(translation[1]),
+                                           static_cast<float>(translation[2]));
     destination.rotation = ToFloat4(rotation);
-    destination.scale = Math::float3(static_cast<float>(scale[0]), static_cast<float>(scale[1]), static_cast<float>(scale[2]));
+    destination.scale =
+        Math::float3(static_cast<float>(scale[0]), static_cast<float>(scale[1]), static_cast<float>(scale[2]));
     destination.local_matrix = ComposeMatrix(destination.translation, destination.rotation, destination.scale);
 
     const u32 node_index = static_cast<u32>(mesh.m_nodes.size());
@@ -283,13 +287,15 @@ u32 ImportNode(Mesh &mesh, FbxNode *node, u32 parent_index, std::unordered_map<F
         MeshPrimitive &primitive = mesh.m_mesh_primitives.back();
         primitive.node_index = node_index;
         primitive.index_offset = static_cast<u32>(mesh.m_indices.size());
-        primitive.material_id = GetOrCreateMaterialIndex(mesh, node->GetMaterialCount() > 0 ? node->GetMaterial(0) : nullptr,
-                                                         material_indices);
+        primitive.material_id = GetOrCreateMaterialIndex(
+            mesh, node->GetMaterialCount() > 0 ? node->GetMaterial(0) : nullptr, material_indices);
 
         i32 skin_index = -1;
         const int control_point_count = fbx_mesh->GetControlPointsCount();
-        std::vector<Math::float4> control_point_joint_indices(control_point_count, Math::float4(0.0f, 0.0f, 0.0f, 0.0f));
-        std::vector<Math::float4> control_point_joint_weights(control_point_count, Math::float4(0.0f, 0.0f, 0.0f, 0.0f));
+        std::vector<Math::float4> control_point_joint_indices(control_point_count,
+                                                              Math::float4(0.0f, 0.0f, 0.0f, 0.0f));
+        std::vector<Math::float4> control_point_joint_weights(control_point_count,
+                                                              Math::float4(0.0f, 0.0f, 0.0f, 0.0f));
 
         const int skin_deformer_count = fbx_mesh->GetDeformerCount(FbxDeformer::eSkin);
         if (skin_deformer_count > 0)
@@ -344,7 +350,8 @@ u32 ImportNode(Mesh &mesh, FbxNode *node, u32 parent_index, std::unordered_map<F
                     FbxAMatrix link_transform;
                     cluster->GetTransformMatrix(mesh_transform);
                     cluster->GetTransformLinkMatrix(link_transform);
-                    skin.inverse_bind_matrices[joint_cursor] = FbxMatrixToInternal(link_transform.Inverse() * mesh_transform);
+                    skin.inverse_bind_matrices[joint_cursor] =
+                        FbxMatrixToInternal(link_transform.Inverse() * mesh_transform);
 
                     const int *control_point_indices = cluster->GetControlPointIndices();
                     const double *control_point_weights = cluster->GetControlPointWeights();
@@ -400,7 +407,8 @@ u32 ImportNode(Mesh &mesh, FbxNode *node, u32 parent_index, std::unordered_map<F
                 {
                     FbxVector2 uv;
                     bool unmapped = false;
-                    if (fbx_mesh->GetPolygonVertexUV(polygon_index, vertex_in_polygon, uv_set_name, uv, unmapped) && !unmapped)
+                    if (fbx_mesh->GetPolygonVertexUV(polygon_index, vertex_in_polygon, uv_set_name, uv, unmapped) &&
+                        !unmapped)
                     {
                         vertex.uv0 = Math::float2(static_cast<float>(uv[0]), 1.0f - static_cast<float>(uv[1]));
                     }
@@ -426,7 +434,8 @@ u32 ImportNode(Mesh &mesh, FbxNode *node, u32 parent_index, std::unordered_map<F
     mesh.m_nodes[node_index].childs.reserve(child_count);
     for (int child_index = 0; child_index < child_count; ++child_index)
     {
-        const u32 imported_child = ImportNode(mesh, node->GetChild(child_index), node_index, node_indices, material_indices, joint_nodes);
+        const u32 imported_child =
+            ImportNode(mesh, node->GetChild(child_index), node_index, node_indices, material_indices, joint_nodes);
         if (imported_child != INVALID_NODE_INDEX)
         {
             mesh.m_nodes[node_index].childs.push_back(imported_child);
