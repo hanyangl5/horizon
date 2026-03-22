@@ -105,10 +105,9 @@ void PopulateMaterials(Mesh &mesh, const cgltf_data &data,
         Material &destination = mesh.materials[material_index];
         material_indices[&source] = static_cast<u32>(material_index);
 
-        destination.material_params.base_color_factor =
-            Math::float3(source.pbr_metallic_roughness.base_color_factor[0],
-                         source.pbr_metallic_roughness.base_color_factor[1],
-                         source.pbr_metallic_roughness.base_color_factor[2]);
+        destination.material_params.base_color_factor = Math::float3(
+            source.pbr_metallic_roughness.base_color_factor[0], source.pbr_metallic_roughness.base_color_factor[1],
+            source.pbr_metallic_roughness.base_color_factor[2]);
         destination.material_params.metallic_factor = source.pbr_metallic_roughness.metallic_factor;
         destination.material_params.roughness_factor = source.pbr_metallic_roughness.roughness_factor;
         destination.material_params.emmissive_factor =
@@ -138,8 +137,8 @@ void PopulateMaterials(Mesh &mesh, const cgltf_data &data,
             break;
         }
 
-        AssignTexture(destination, MaterialTextureType::BASE_COLOR,
-                      source.pbr_metallic_roughness.base_color_texture, mesh.m_asset_path, HAS_BASE_COLOR);
+        AssignTexture(destination, MaterialTextureType::BASE_COLOR, source.pbr_metallic_roughness.base_color_texture,
+                      mesh.m_asset_path, HAS_BASE_COLOR);
         AssignTexture(destination, MaterialTextureType::NORMAL, source.normal_texture, mesh.m_asset_path, HAS_NORMAL);
         AssignTexture(destination, MaterialTextureType::METALLIC_ROUGHTNESS,
                       source.pbr_metallic_roughness.metallic_roughness_texture, mesh.m_asset_path,
@@ -169,15 +168,15 @@ void PopulateNodes(Mesh &mesh, const cgltf_data &data, std::unordered_map<const 
         }
         else
         {
-            destination.translation = source.has_translation
-                                          ? Math::float3(source.translation[0], source.translation[1], source.translation[2])
-                                          : Math::float3(0.0f, 0.0f, 0.0f);
-            destination.rotation =
-                source.has_rotation ? Math::float4(source.rotation[0], source.rotation[1], source.rotation[2], source.rotation[3])
-                                    : Math::float4(0.0f, 0.0f, 0.0f, 1.0f);
-            destination.scale =
-                source.has_scale ? Math::float3(source.scale[0], source.scale[1], source.scale[2])
-                                 : Math::float3(1.0f, 1.0f, 1.0f);
+            destination.translation =
+                source.has_translation
+                    ? Math::float3(source.translation[0], source.translation[1], source.translation[2])
+                    : Math::float3(0.0f, 0.0f, 0.0f);
+            destination.rotation = source.has_rotation ? Math::float4(source.rotation[0], source.rotation[1],
+                                                                      source.rotation[2], source.rotation[3])
+                                                       : Math::float4(0.0f, 0.0f, 0.0f, 1.0f);
+            destination.scale = source.has_scale ? Math::float3(source.scale[0], source.scale[1], source.scale[2])
+                                                 : Math::float3(1.0f, 1.0f, 1.0f);
             destination.local_matrix = ComposeMatrix(destination.translation, destination.rotation, destination.scale);
         }
     }
@@ -321,7 +320,8 @@ bool AppendPrimitive(Mesh &mesh, const cgltf_primitive &primitive, i32 skin_inde
         mesh.m_indices.reserve(mesh.m_indices.size() + primitive.indices->count);
         for (cgltf_size index = 0; index < primitive.indices->count; ++index)
         {
-            mesh.m_indices.emplace_back(vertex_offset + static_cast<u32>(cgltf_accessor_read_index(primitive.indices, index)));
+            mesh.m_indices.emplace_back(vertex_offset +
+                                        static_cast<u32>(cgltf_accessor_read_index(primitive.indices, index)));
         }
     }
     else
@@ -402,7 +402,8 @@ void PopulatePrimitives(Mesh &mesh, const cgltf_data &data,
     }
 }
 
-void PopulateAnimations(Mesh &mesh, const cgltf_data &data, const std::unordered_map<const cgltf_node *, u32> &node_indices)
+void PopulateAnimations(Mesh &mesh, const cgltf_data &data,
+                        const std::unordered_map<const cgltf_node *, u32> &node_indices)
 {
     mesh.m_animations.reserve(data.animations_count);
 

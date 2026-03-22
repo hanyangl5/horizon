@@ -130,20 +130,21 @@ void DeferredRenderApp::InitializeControlWindow()
 {
 #ifndef __ANDROID__
     m_control_window = std::make_unique<SampleControlWindow>();
-    m_control_window->Initialize(GetWindow(),
-                                 [this](bool enabled) {
-                                     m_swapchain_vsync_enabled = enabled;
-                                     if (swap_chain)
-                                     {
-                                         swap_chain->SetVSyncEnabled(enabled);
-                                     }
-                                 },
-                                 [this](u32 width, u32 height) {
-                                     if (auto *window = GetWindow())
-                                     {
-                                         window->SetWindowSize(width, height);
-                                     }
-                                 });
+    m_control_window->Initialize(
+        GetWindow(),
+        [this](bool enabled) {
+            m_swapchain_vsync_enabled = enabled;
+            if (swap_chain)
+            {
+                swap_chain->SetVSyncEnabled(enabled);
+            }
+        },
+        [this](u32 width, u32 height) {
+            if (auto *window = GetWindow())
+            {
+                window->SetWindowSize(width, height);
+            }
+        });
 #endif
 }
 

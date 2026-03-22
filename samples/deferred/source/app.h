@@ -7,8 +7,8 @@
 #include "renderpasses/gtao_rdg_pass.h"
 #include "renderpasses/post_process_rdg_pass.h"
 #include "renderpasses/resource_upload_pass.h"
-#include "sample_control_window.h"
 #include "renderpasses/taa_rdg_pass.h"
+#include "sample_control_window.h"
 #include "scene.h"
 #include <app_framework/app_framework.h>
 #include <render_graph/frame_graph.h>

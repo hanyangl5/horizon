@@ -15,8 +15,7 @@ constexpr u32 INVALID_NODE_INDEX = std::numeric_limits<u32>::max();
 inline Math::float4x4 ExternalToInternalMatrix(const float *m)
 {
     return Math::float4x4{
-        m[0],  m[1],  m[2],  m[3],  m[4],  m[5],  m[6],  m[7],
-        m[8],  m[9],  m[10], m[11], m[12], m[13], m[14], m[15],
+        m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15],
     };
 }
 
@@ -126,8 +125,8 @@ inline void DecomposeExternalMatrix(const float *m, Math::float3 &translation, M
         column0 = -column0;
     }
 
-    rotation = QuaternionFromRotationRows(column0.x, column1.x, column2.x, column0.y, column1.y, column2.y,
-                                          column0.z, column1.z, column2.z);
+    rotation = QuaternionFromRotationRows(column0.x, column1.x, column2.x, column0.y, column1.y, column2.y, column0.z,
+                                          column1.z, column2.z);
 }
 
 inline Math::float4 SlerpQuaternion(const Math::float4 &lhs, const Math::float4 &rhs, float t)

@@ -26,7 +26,8 @@ class SwapChain
 {
   public:
     SwapChain(const SwapChainCreateInfo &swap_chain_create_info, Window *window) noexcept
-        : m_back_buffer_count(swap_chain_create_info.back_buffer_count), m_enable_vsync(swap_chain_create_info.enable_vsync)
+        : m_back_buffer_count(swap_chain_create_info.back_buffer_count),
+          m_enable_vsync(swap_chain_create_info.enable_vsync)
     {
         width = window->GetWidth();
         height = window->GetHeight();
