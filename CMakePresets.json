@@ -2,9 +2,8 @@
   "version": 5,
   "configurePresets": [
     {
-      "name": "android_framework",
-      "displayName": "android_framework",
-      "description": "Build android framework (Vulkan only)",
+      "name": "android_app_base",
+      "hidden": true,
       "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
@@ -12,49 +11,24 @@
           "type": "FILEPATH",
           "value": "$env{ANDROID_NDK}/build/cmake/android.toolchain.cmake"
         },
+        "CMAKE_MAKE_PROGRAM": {
+          "type": "FILEPATH",
+          "value": "$env{ANDROID_NDK}/prebuilt/windows-x86_64/bin/make"
+        },
         "ANDROID_PLATFORM": "31",
         "ANDROID_ABI": "arm64-v8a",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
         "ANDROID": "ON",
         "USE_VULKAN": "ON",
-        "USE_DX12": "OFF"
-      }
-    },
-    {
-      "name": "android_app",
-      "displayName": "Android APK",
-      "description": "Build Android APKs for all samples",
-      "inherits": "android_framework",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
+        "USE_DX12": "OFF",
         "BUILD_ANDROID_APK": "ON"
       }
     },
     {
-      "name": "android_framework_lto",
-      "displayName": "android_framework_lto",
-      "description": "Android framework build with LTO enabled",
-      "inherits": "android_framework",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "HORIZON_ENABLE_LTO": "ON"
-      }
-    },
-    {
-      "name": "android_app_lto",
-      "displayName": "android_app_lto",
-      "description": "Android APK build with LTO enabled",
-      "inherits": "android_app",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "HORIZON_ENABLE_LTO": "ON"
-      }
-    },
-    {
-      "name": "android_pgo_gen",
-      "displayName": "android_pgo_gen",
-      "description": "Android PGO instrument build",
-      "inherits": "android_framework",
+      "name": "android_app_profile",
+      "displayName": "android_app_profile",
+      "description": "Android APK PGO instrument build",
+      "inherits": "android_app_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
@@ -62,10 +36,10 @@
       }
     },
     {
-      "name": "android_pgo_use",
-      "displayName": "android_pgo_use",
-      "description": "Android PGO optimized build",
-      "inherits": "android_framework",
+      "name": "android_app_release",
+      "displayName": "android_app_release",
+      "description": "Android APK PGO optimized build",
+      "inherits": "android_app_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -73,9 +47,8 @@
       }
     },
     {
-      "name": "msvcwin64",
-      "displayName": "msvcwin64",
-      "description": "Build for Windows x64 with MSVC",
+      "name": "msvcwin64_base",
+      "hidden": true,
       "generator": "Visual Studio 17 2022",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "architecture": {
@@ -83,16 +56,34 @@
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "USE_VULKAN": "ON",
         "USE_DX12": "ON"
       }
     },
     {
-      "name": "clangwin64",
-      "displayName": "clangwin64",
-      "description": "Build for Windows x64 with Clang + Ninja",
+      "name": "msvcwin64_profile",
+      "displayName": "msvcwin64_profile",
+      "description": "Windows MSVC PGO instrument build",
+      "inherits": "msvcwin64_base",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_PGO_GENERATE": "ON"
+      }
+    },
+    {
+      "name": "msvcwin64_release",
+      "displayName": "msvcwin64_release",
+      "description": "Windows MSVC PGO optimized build",
+      "inherits": "msvcwin64_base",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HORIZON_PGO_USE": "ON"
+      }
+    },
+    {
+      "name": "clangwin64_base",
+      "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "architecture": {
@@ -100,18 +91,38 @@
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "USE_VULKAN": "ON",
         "USE_DX12": "ON"
       }
     },
     {
-      "name": "macos",
-      "displayName": "macos",
-      "description": "Build for macOS with Xcode (Vulkan via MoltenVK)",
+      "name": "clangwin64_profile",
+      "displayName": "clangwin64_profile",
+      "description": "Windows Clang PGO instrument build",
+      "inherits": "clangwin64_base",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "HORIZON_PGO_GENERATE": "ON"
+      }
+    },
+    {
+      "name": "clangwin64_release",
+      "displayName": "clangwin64_release",
+      "description": "Windows Clang PGO optimized build",
+      "inherits": "clangwin64_base",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "HORIZON_PGO_USE": "ON"
+      }
+    },
+    {
+      "name": "macos_base",
+      "hidden": true,
       "generator": "Xcode",
-      "binaryDir": "${sourceDir}/build/macos",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "environment": {
         "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"
       },
@@ -122,150 +133,63 @@
       }
     },
     {
-      "name": "macos_clang",
-      "displayName": "macos_clang",
-      "description": "Compatibility preset name for macOS build (uses Xcode generator)",
-      "inherits": "macos",
-      "binaryDir": "${sourceDir}/build/macos_clang"
-    },
-    {
-      "name": "macos_lto",
-      "displayName": "macos_lto",
-      "description": "macOS build with LTO enabled",
-      "inherits": "macos_clang",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "HORIZON_ENABLE_LTO": "ON"
-      }
-    },
-    {
-      "name": "macos_pgo_gen",
-      "displayName": "macos_pgo_gen",
+      "name": "macos_profile",
+      "displayName": "macos_profile",
       "description": "macOS PGO instrument build",
-      "inherits": "macos_clang",
+      "inherits": "macos_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "HORIZON_PGO_GENERATE": "ON"
       }
     },
     {
-      "name": "macos_pgo_use",
-      "displayName": "macos_pgo_use",
+      "name": "macos_release",
+      "displayName": "macos_release",
       "description": "macOS PGO optimized build",
-      "inherits": "macos_clang",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "HORIZON_PGO_USE": "ON"
-      }
-    },
-    {
-      "name": "msvcwin64_pgo_gen",
-      "displayName": "msvcwin64_pgo_gen",
-      "description": "Windows MSVC PGO instrument build",
-      "inherits": "msvcwin64",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "HORIZON_PGO_GENERATE": "ON"
-      }
-    },
-    {
-      "name": "msvcwin64_pgo_use",
-      "displayName": "msvcwin64_pgo_use",
-      "description": "Windows MSVC PGO optimized build",
-      "inherits": "msvcwin64",
+      "inherits": "macos_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "HORIZON_PGO_USE": "ON"
-      }
-    },
-    {
-      "name": "msvcwin64_lto",
-      "displayName": "msvcwin64_lto",
-      "description": "Windows MSVC build with LTO enabled",
-      "inherits": "msvcwin64",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "HORIZON_ENABLE_LTO": "ON"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "android_framework",
-      "configurePreset": "android_framework"
-    },
-    {
-      "name": "android_app",
-      "configurePreset": "android_app",
+      "name": "android_app_profile",
+      "configurePreset": "android_app_profile",
       "targets": ["apk_all"]
     },
     {
-      "name": "android_framework_lto",
-      "configurePreset": "android_framework_lto"
-    },
-    {
-      "name": "android_app_lto",
-      "configurePreset": "android_app_lto",
+      "name": "android_app_release",
+      "configurePreset": "android_app_release",
       "targets": ["apk_all"]
     },
     {
-      "name": "android_pgo_gen",
-      "configurePreset": "android_pgo_gen"
-    },
-    {
-      "name": "android_pgo_use",
-      "configurePreset": "android_pgo_use"
-    },
-    {
-      "name": "msvcwin64",
-      "configurePreset": "msvcwin64",
-      "configuration": "Release"
-    },
-    {
-      "name": "clangwin64",
-      "configurePreset": "clangwin64",
-      "configuration": "Debug"
-    },
-    {
-      "name": "macos",
-      "configurePreset": "macos",
-      "configuration": "Debug"
-    },
-    {
-      "name": "macos_clang",
-      "configurePreset": "macos_clang",
-      "configuration": "Debug"
-    },
-    {
-      "name": "macos_lto",
-      "configurePreset": "macos_lto",
-      "configuration": "Release"
-    },
-    {
-      "name": "macos_pgo_gen",
-      "configurePreset": "macos_pgo_gen",
+      "name": "msvcwin64_profile",
+      "configurePreset": "msvcwin64_profile",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "macos_pgo_use",
-      "configurePreset": "macos_pgo_use",
+      "name": "msvcwin64_release",
+      "configurePreset": "msvcwin64_release",
       "configuration": "Release"
     },
     {
-      "name": "msvcwin64_pgo_gen",
-      "configurePreset": "msvcwin64_pgo_gen",
+      "name": "clangwin64_profile",
+      "configurePreset": "clangwin64_profile"
+    },
+    {
+      "name": "clangwin64_release",
+      "configurePreset": "clangwin64_release"
+    },
+    {
+      "name": "macos_profile",
+      "configurePreset": "macos_profile",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "msvcwin64_pgo_use",
-      "configurePreset": "msvcwin64_pgo_use",
-      "configuration": "Release"
-    },
-    {
-      "name": "msvcwin64_lto",
-      "configurePreset": "msvcwin64_lto",
+      "name": "macos_release",
+      "configurePreset": "macos_release",
       "configuration": "Release"
     }
   ]

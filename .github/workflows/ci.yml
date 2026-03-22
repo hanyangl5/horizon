@@ -17,11 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - preset: android_framework
+          - preset: android_app_profile
             os: ubuntu-latest
-          - preset: android_app
-            os: ubuntu-latest
-          - preset: msvcwin64
+          - preset: msvcwin64_profile
             os: windows-2022
 
     steps:
@@ -74,6 +72,8 @@ jobs:
       # ============================================================
       # Configure & Build
       # ============================================================
+      # Release presets are PGO-use builds now, so they require pre-collected
+      # profile data and are not suitable for clean CI runners by default.
       - name: Configure (${{ matrix.preset }})
         run: cmake --preset ${{ matrix.preset }}
 

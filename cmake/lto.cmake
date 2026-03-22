@@ -1,4 +1,4 @@
-option(HORIZON_ENABLE_LTO "Enable link-time optimization" OFF)
+option(HORIZON_ENABLE_LTO "Enable link-time optimization" ON)
 set(HORIZON_LTO_MODE "AUTO" CACHE STRING "LTO mode: AUTO, THIN, FULL")
 set_property(CACHE HORIZON_LTO_MODE PROPERTY STRINGS AUTO THIN FULL)
 
@@ -13,6 +13,10 @@ if(NOT HORIZON_LTO_MODE MATCHES "^(AUTO|THIN|FULL)$")
 endif()
 
 if(HORIZON_PGO_GENERATE OR HORIZON_PGO_USE)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        message(STATUS "MSVC PGO already enables /GL + /LTCG; skipping extra LTO flags.")
+        return()
+    endif()
     message(STATUS "LTO enabled together with PGO; keeping PGO behavior unchanged and adding LTO flags.")
 endif()
 
@@ -37,6 +41,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
     add_compile_options(/GL)
     add_link_options(/LTCG)
+    add_link_options(/INCREMENTAL:NO)
     message(STATUS "LTO enabled (${_horizon_lto_mode_effective}) for MSVC via /GL + /LTCG.")
 else()
     message(WARNING

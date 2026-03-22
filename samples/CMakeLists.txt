@@ -21,6 +21,7 @@ macro(addproject projectdir)
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/${projectdir}/${ANDROID_ABI}")
     else()
         add_executable(${PROJECT_NAME} ${APP_HEADERS} ${APP_SOURCES})
+        horizon_copy_pgo_runtime(${PROJECT_NAME})
     endif()
 
     target_link_libraries(${PROJECT_NAME} PUBLIC framework)
