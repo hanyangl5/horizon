@@ -308,8 +308,8 @@ std::vector<VkDescriptorPoolSize> VulkanDescriptorSetAllocator::BuildDefaultPool
             continue;
         }
 
-        const u64 average_per_set = std::max<u64>(
-            1ULL, (total_count + static_cast<u64>(measured_set_count) - 1ULL) / static_cast<u64>(measured_set_count));
+        const u64 average_per_set = std::max<u64>(1ULL, (total_count + static_cast<u64>(measured_set_count) - 1ULL) /
+                                                            static_cast<u64>(measured_set_count));
         const u64 averaged_capacity = average_per_set * static_cast<u64>(std::max(1u, max_sets));
         descriptor_capacities[type] = static_cast<u32>(std::min<u64>(averaged_capacity, UINT32_MAX));
     }
@@ -329,9 +329,8 @@ std::vector<VkDescriptorPoolSize> VulkanDescriptorSetAllocator::BuildDefaultPool
         pool_sizes.push_back(VkDescriptorPoolSize{type, descriptor_count});
     }
 
-    std::sort(pool_sizes.begin(), pool_sizes.end(), [](const VkDescriptorPoolSize &lhs, const VkDescriptorPoolSize &rhs) {
-        return lhs.type < rhs.type;
-    });
+    std::sort(pool_sizes.begin(), pool_sizes.end(),
+              [](const VkDescriptorPoolSize &lhs, const VkDescriptorPoolSize &rhs) { return lhs.type < rhs.type; });
     return pool_sizes;
 }
 
