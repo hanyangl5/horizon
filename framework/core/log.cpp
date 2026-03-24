@@ -71,11 +71,11 @@ Log::Log() noexcept
 {
     m_logger = spdlog::stdout_color_mt("log");
     spdlog::set_default_logger(m_logger);
-#ifndef NDEBUG
+//#ifndef NDEBUG
     spdlog::set_level(spdlog::level::debug);
-#else
-    spdlog::set_level(spdlog::level::info);
-#endif // !NDEBUG
+//#else
+    //spdlog::set_level(spdlog::level::info);
+//#endif // !NDEBUG
     spdlog::flush_on(spdlog::level::info);
 }
 

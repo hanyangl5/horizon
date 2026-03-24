@@ -55,7 +55,12 @@ class VulkanDescriptorSetAllocator
 
     std::unordered_map<VkDescriptorType, u32> BuildPerSetTypeCounts(
         const std::unordered_map<std::string, DescriptorDesc> &descriptors) const;
-    bool CreateDefaultPool(const std::unordered_map<VkDescriptorType, u32> &per_set_type_counts, u32 max_sets,
+    void UpdateDefaultSetTypeStats(VulkanPipeline *pipeline,
+                                   const std::unordered_map<VkDescriptorType, u32> &type_counts);
+    void RemoveDefaultSetTypeStats(VulkanPipeline *pipeline);
+    std::vector<VkDescriptorPoolSize> BuildDefaultPoolSizes(
+        const std::unordered_map<VkDescriptorType, u32> &requested_type_counts, u32 max_sets) const;
+    bool CreateDefaultPool(const std::unordered_map<VkDescriptorType, u32> &requested_type_counts, u32 max_sets,
                            VkDescriptorPool &out_pool) const;
     bool EnsureBindlessPool();
     bool RecreateBindlessPool(bool grow_pool);
@@ -71,7 +76,6 @@ class VulkanDescriptorSetAllocator
     {
         VkDescriptorPool pool{};
         u32 max_sets{};
-        std::unordered_map<VkDescriptorType, u32> per_set_type_counts{};
     };
 
     struct BindlessLayoutMeta
@@ -96,6 +100,9 @@ class VulkanDescriptorSetAllocator
     std::unordered_map<void *, DefaultSetAllocation> allocated_descriptorsets;
     std::unordered_map<u64, BindlessSetState> allocated_bindless_descriptorsets;
     std::vector<DefaultPoolState> m_default_pools{};
+    std::unordered_map<void *, std::unordered_map<VkDescriptorType, u32>> m_default_pipeline_type_counts{};
+    std::unordered_map<VkDescriptorType, u64> m_default_live_descriptor_totals{};
+    u32 m_default_live_set_count{};
 
     u32 m_max_uab_uniform_buffers{1};
     u32 m_max_uab_storage_buffers{1};

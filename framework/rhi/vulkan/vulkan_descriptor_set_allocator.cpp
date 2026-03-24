@@ -15,6 +15,8 @@ namespace Horizon::Backend
 {
 namespace
 {
+constexpr u32 kDefaultDescriptorPoolMaxSets = 1024;
+
 inline u64 HashCombine(u64 seed, u64 value)
 {
     return seed ^ (value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2));
@@ -240,22 +242,107 @@ std::unordered_map<VkDescriptorType, u32> VulkanDescriptorSetAllocator::BuildPer
     return type_counts;
 }
 
-bool VulkanDescriptorSetAllocator::CreateDefaultPool(
-    const std::unordered_map<VkDescriptorType, u32> &per_set_type_counts, u32 max_sets,
-    VkDescriptorPool &out_pool) const
+void VulkanDescriptorSetAllocator::UpdateDefaultSetTypeStats(
+    VulkanPipeline *pipeline, const std::unordered_map<VkDescriptorType, u32> &type_counts)
 {
-    if (per_set_type_counts.empty())
+    RemoveDefaultSetTypeStats(pipeline);
+    if (type_counts.empty())
     {
-        return false;
+        return;
+    }
+
+    m_default_pipeline_type_counts[pipeline] = type_counts;
+    ++m_default_live_set_count;
+
+    for (const auto &[type, count] : type_counts)
+    {
+        m_default_live_descriptor_totals[type] += count;
+    }
+}
+
+void VulkanDescriptorSetAllocator::RemoveDefaultSetTypeStats(VulkanPipeline *pipeline)
+{
+    auto pipeline_it = m_default_pipeline_type_counts.find(pipeline);
+    if (pipeline_it == m_default_pipeline_type_counts.end())
+    {
+        return;
+    }
+
+    if (m_default_live_set_count > 0)
+    {
+        --m_default_live_set_count;
+    }
+
+    for (const auto &[type, count] : pipeline_it->second)
+    {
+        auto total_it = m_default_live_descriptor_totals.find(type);
+        if (total_it == m_default_live_descriptor_totals.end())
+        {
+            continue;
+        }
+
+        if (total_it->second <= count)
+        {
+            m_default_live_descriptor_totals.erase(total_it);
+        }
+        else
+        {
+            total_it->second -= count;
+        }
+    }
+
+    m_default_pipeline_type_counts.erase(pipeline_it);
+}
+
+std::vector<VkDescriptorPoolSize> VulkanDescriptorSetAllocator::BuildDefaultPoolSizes(
+    const std::unordered_map<VkDescriptorType, u32> &requested_type_counts, u32 max_sets) const
+{
+    std::unordered_map<VkDescriptorType, u32> descriptor_capacities;
+    descriptor_capacities.reserve(m_default_live_descriptor_totals.size() + requested_type_counts.size());
+
+    const u32 measured_set_count = m_default_live_set_count;
+    for (const auto &[type, total_count] : m_default_live_descriptor_totals)
+    {
+        if (measured_set_count == 0)
+        {
+            continue;
+        }
+
+        const u64 average_per_set = std::max<u64>(
+            1ULL, (total_count + static_cast<u64>(measured_set_count) - 1ULL) / static_cast<u64>(measured_set_count));
+        const u64 averaged_capacity = average_per_set * static_cast<u64>(std::max(1u, max_sets));
+        descriptor_capacities[type] = static_cast<u32>(std::min<u64>(averaged_capacity, UINT32_MAX));
+    }
+
+    for (const auto &[type, requested_count] : requested_type_counts)
+    {
+        const u32 fallback_capacity = std::max(1u, max_sets);
+        const auto capacity_it = descriptor_capacities.find(type);
+        const u32 current_capacity = (capacity_it != descriptor_capacities.end()) ? capacity_it->second : 0u;
+        descriptor_capacities[type] = std::max({current_capacity, fallback_capacity, std::max(1u, requested_count)});
     }
 
     std::vector<VkDescriptorPoolSize> pool_sizes;
-    pool_sizes.reserve(per_set_type_counts.size());
-    for (const auto &[type, per_set_count] : per_set_type_counts)
+    pool_sizes.reserve(descriptor_capacities.size());
+    for (const auto &[type, descriptor_count] : descriptor_capacities)
     {
-        const u64 scaled_count =
-            static_cast<u64>(std::max(1u, per_set_count)) * static_cast<u64>(std::max(1u, max_sets));
-        pool_sizes.push_back(VkDescriptorPoolSize{type, static_cast<u32>(std::min<u64>(scaled_count, UINT32_MAX))});
+        pool_sizes.push_back(VkDescriptorPoolSize{type, descriptor_count});
+    }
+
+    std::sort(pool_sizes.begin(), pool_sizes.end(), [](const VkDescriptorPoolSize &lhs, const VkDescriptorPoolSize &rhs) {
+        return lhs.type < rhs.type;
+    });
+    return pool_sizes;
+}
+
+bool VulkanDescriptorSetAllocator::CreateDefaultPool(
+    const std::unordered_map<VkDescriptorType, u32> &requested_type_counts, u32 max_sets,
+    VkDescriptorPool &out_pool) const
+{
+    const std::vector<VkDescriptorPoolSize> pool_sizes = BuildDefaultPoolSizes(requested_type_counts, max_sets);
+    if (pool_sizes.empty())
+    {
+        return false;
     }
 
     VkDescriptorPoolCreateInfo pool_create_info{};
@@ -272,6 +359,9 @@ bool VulkanDescriptorSetAllocator::CreateDefaultPool(
                   pool_create_info.maxSets, pool_create_info.poolSizeCount, static_cast<int>(result));
         return false;
     }
+
+    LOG_INFO("Create default descriptor pool: maxSets={}, types={}, measuredSets={}", pool_create_info.maxSets,
+             pool_create_info.poolSizeCount, m_default_live_set_count);
 
     return true;
 }
@@ -451,6 +541,8 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
     if (auto default_set_it = rsd.descriptors.find(DEFAULT_DESCRIPTOR_SET_NUMBER);
         default_set_it != rsd.descriptors.end() && !default_set_it->second.empty())
     {
+        UpdateDefaultSetTypeStats(pipeline, BuildPerSetTypeCounts(default_set_it->second));
+
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         bindings.reserve(default_set_it->second.size());
         for (const auto &[name, descriptor] : default_set_it->second)
@@ -483,6 +575,10 @@ void VulkanDescriptorSetAllocator::CreateDescriptorSetLayout(VulkanPipeline *pip
             m_descriptor_set_layout_map.emplace(key, layout);
         }
         pipeline->m_pipeline_layout_desc.descriptor_set_hash_key = key;
+    }
+    else
+    {
+        RemoveDefaultSetTypeStats(pipeline);
     }
 
     auto bindless_set_it = rsd.descriptors.find(BINDLESS_DESCRIPTOR_SET_NUMBER);
@@ -687,9 +783,7 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetDescriptorSet(VulkanPipeli
 
     if (pool_index == std::numeric_limits<size_t>::max())
     {
-        const u32 next_pool_sets = m_default_pools.empty()
-                                       ? std::max(1u, static_cast<u32>(allocated_descriptorsets.size() + 1))
-                                       : std::max(1u, m_default_pools.back().max_sets * 2u);
+        const u32 next_pool_sets = kDefaultDescriptorPoolMaxSets;
 
         VkDescriptorPool new_pool = VK_NULL_HANDLE;
         if (!CreateDefaultPool(type_counts, next_pool_sets, new_pool))
@@ -697,7 +791,7 @@ VulkanDescriptorSet *VulkanDescriptorSetAllocator::GetDescriptorSet(VulkanPipeli
             return nullptr;
         }
 
-        m_default_pools.push_back(DefaultPoolState{new_pool, next_pool_sets, type_counts});
+        m_default_pools.push_back(DefaultPoolState{new_pool, next_pool_sets});
         pool_index = m_default_pools.size() - 1;
 
         VkDescriptorSetAllocateInfo alloc_info{};
@@ -858,11 +952,11 @@ void VulkanDescriptorSetAllocator::CreateDescriptorPool()
     };
 
     VkDescriptorPool pool = VK_NULL_HANDLE;
-    if (!CreateDefaultPool(default_counts, 1, pool))
+    if (!CreateDefaultPool(default_counts, kDefaultDescriptorPoolMaxSets, pool))
     {
         return;
     }
-    m_default_pools.push_back(DefaultPoolState{pool, 1, default_counts});
+    m_default_pools.push_back(DefaultPoolState{pool, kDefaultDescriptorPoolMaxSets});
 }
 
 void VulkanDescriptorSetAllocator::CreateBindlessDescriptorPool()
@@ -900,6 +994,8 @@ void VulkanDescriptorSetAllocator::ReleaseDescriptorSets(VulkanPipeline *pipelin
         delete default_it->second.set;
         allocated_descriptorsets.erase(default_it);
     }
+
+    RemoveDefaultSetTypeStats(pipeline);
 
     auto pipeline_layout_it = m_pipeline_bindless_layout_map.find(pipeline);
     if (pipeline_layout_it == m_pipeline_bindless_layout_map.end())

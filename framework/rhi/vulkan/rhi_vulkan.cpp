@@ -283,11 +283,11 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     std::vector<const char *> instance_layers;
     std::vector<const char *> instance_extensions;
     std::vector<const char *> device_extensions;
-#ifndef NDEBUG
+//#ifndef NDEBUG
     instance_layers.emplace_back("VK_LAYER_KHRONOS_validation");
     instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     instance_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-#endif
+//#endif
     instance_extensions.emplace_back("VK_KHR_surface");
 
     // Platform-specific surface extensions
