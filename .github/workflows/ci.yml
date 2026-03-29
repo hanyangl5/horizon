@@ -17,10 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - preset: android_app_profile
+          - preset: android_dev
             os: ubuntu-latest
-          - preset: msvcwin64_profile
+          - preset: windows_dev
             os: windows-2022
+          - preset: macos_dev
+            os: macos-14
 
     steps:
       - uses: actions/checkout@v4

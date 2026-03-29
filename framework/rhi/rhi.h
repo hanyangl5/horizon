@@ -4,7 +4,7 @@
 
 #include <utility>
 
-#include <core/glfwwindow.h>
+#include <core/window.h>
 #include <core/path.h>
 
 #include <rhi/buffer.h>

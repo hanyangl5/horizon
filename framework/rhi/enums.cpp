@@ -134,7 +134,7 @@ u32 GetBytesFromTextureFormat(TextureFormat format)
         return 0;
 
     default:
-        LOG_ERROR("invalid format")
+        LOG_ERROR("invalid format");
         return 0;
     }
 }

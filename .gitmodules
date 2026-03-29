@@ -1,9 +1,9 @@
 [submodule "third_party/nlohmann_json"]
 	path = third_party/nlohmann_json
 	url = https://github.com/nlohmann/json.git
-[submodule "third_party/glfw3"]
-	path = third_party/glfw3
-	url = https://github.com/glfw/glfw.git
+[submodule "third_party/sdl3"]
+	path = third_party/sdl3
+	url = https://github.com/libsdl-org/SDL.git
 [submodule "third_party/directxtk12"]
 	path = third_party/directxtk12
 	url = https://github.com/microsoft/DirectXTK12.git
@@ -25,3 +25,6 @@
 [submodule "third_party/imgui"]
 	path = third_party/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "third_party/metal-cpp"]
+	path = third_party/metal-cpp
+	url = https://github.com/bkaradzic/metal-cpp

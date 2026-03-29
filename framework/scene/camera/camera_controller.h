@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <core/glfwwindow.h>
+#include <core/window.h>
 #include <core/math.h>
 #include <scene/camera/camera.h>
 

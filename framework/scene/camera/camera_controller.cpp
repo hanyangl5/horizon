@@ -11,7 +11,7 @@
 #include <cassert>
 
 #ifndef __ANDROID__
-#include <core/glfwinput.h>
+#include <core/input.h>
 #endif
 
 namespace Horizon

@@ -7,7 +7,7 @@
                                                                      *********************************************************************/
 #pragma once
 
-#include <core/glfwwindow.h>
+#include <core/window.h>
 #include <core/memory.h>
 #include <rhi/enums.h>
 #include <scene/scene_renderer/config.h>
@@ -67,6 +67,10 @@ class AppFramework
     u32 GetHeight() const noexcept
     {
         return m_height;
+    }
+    RenderBackend GetRenderBackend() const noexcept
+    {
+        return m_render_backend;
     }
 
     // Configuration

@@ -1,6 +1,6 @@
 #include "rhi_dx12.h"
 
-#include <core/glfwwindow.h>
+#include <core/window.h>
 #include <core/log.h>
 #include <core/memory.h>
 #include <core/path.h>

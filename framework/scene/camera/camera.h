@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <core/glfwinput.h>
+#include <core/input.h>
 #include <core/math.h>
 
 namespace Horizon

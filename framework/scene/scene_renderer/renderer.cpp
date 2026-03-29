@@ -29,9 +29,8 @@ Renderer::Renderer(const Config &config) noexcept
         return;
     }
 
-    m_rhi->InitializeRenderer();
-
     m_rhi->SetWindow(m_window);
+    m_rhi->InitializeRenderer();
 
     m_resource_manager = std::make_unique<ResourceManager>(m_rhi.get());
 

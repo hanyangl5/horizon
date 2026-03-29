@@ -15,14 +15,22 @@
 #include <thread>
 #ifdef __ANDROID__
 #include <core/android/android_native.h>
+#else
+#include <SDL3/SDL.h>
 #endif
 
 namespace Horizon
 {
 
 AppFramework::AppFramework(const char *app_name, u32 default_width, u32 default_height)
-    : m_app_name(app_name), m_width(default_width), m_height(default_height),
-      m_render_backend(RenderBackend::RENDER_BACKEND_VULKAN), m_app_type(ApplicationType::GRAPHICS)
+    : m_app_name(app_name), m_width(default_width), m_height(default_height), m_render_backend(
+#if defined(USE_METAL) && defined(__APPLE__)
+                                                                                  RenderBackend::RENDER_BACKEND_METAL
+#else
+                                                                                  RenderBackend::RENDER_BACKEND_VULKAN
+#endif
+                                                                                  ),
+      m_app_type(ApplicationType::GRAPHICS)
 {
 #ifdef __ANDROID__
     // Automatically register this app instance for Android
@@ -66,6 +74,13 @@ void AppFramework::ConfigureFromCommandLine(int argc, char **argv)
             strcmp(arg, "--dx12") == 0)
         {
             SetRenderBackend(RenderBackend::RENDER_BACKEND_DX12);
+            continue;
+        }
+
+        if (strcmp(arg, "-mtl") == 0 || strcmp(arg, "--mtl") == 0 || strcmp(arg, "-metal") == 0 ||
+            strcmp(arg, "--metal") == 0)
+        {
+            SetRenderBackend(RenderBackend::RENDER_BACKEND_METAL);
             continue;
         }
     }
@@ -155,7 +170,9 @@ void AppFramework::OnResize(u32 new_width, u32 new_height)
 
 void AppFramework::InitializeWindow()
 {
-    m_window = std::make_unique<Window>(m_app_name, m_width, m_height);
+    // TODO(hyl5): Make window creation more flexible 
+    const bool enable_vulkan_surface = m_render_backend == RenderBackend::RENDER_BACKEND_VULKAN;
+    m_window = std::make_unique<Window>(m_app_name, m_width, m_height, enable_vulkan_surface);
 
 #ifdef __ANDROID__
     while (!GetAndroidAppState().destroyed && GetAndroidAppState().native_window == nullptr)
@@ -207,6 +224,11 @@ void AppFramework::ProcessEvents()
         }
     }
 #else
+    SDL_Event event{};
+    while (SDL_PollEvent(&event))
+    {
+        m_window->HandleSDLEvent(event);
+    }
     m_window->ProcessEvents();
     m_width = m_window->GetWidth();
     m_height = m_window->GetHeight();

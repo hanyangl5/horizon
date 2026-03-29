@@ -77,8 +77,11 @@ macro(addproject projectdir)
     endif()
 endmacro()
 
-addproject(deferred)
 addproject(hellotriangle)
+
+if(NOT (APPLE AND USE_METAL))
+    addproject(deferred)
+endif()
 
 # Generate root Gradle project and APK packaging targets
 if(BUILD_ANDROID_APK)

@@ -21,8 +21,8 @@
       }
     },
     {
-      "name": "android_app_profile",
-      "displayName": "android_app_profile",
+      "name": "android_dev",
+      "displayName": "android_dev",
       "description": "Android APK PGO instrument build",
       "inherits": "android_app_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -32,8 +32,8 @@
       }
     },
     {
-      "name": "android_app_release",
-      "displayName": "android_app_release",
+      "name": "android_rel",
+      "displayName": "android_rel",
       "description": "Android APK PGO optimized build",
       "inherits": "android_app_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -58,8 +58,8 @@
       }
     },
     {
-      "name": "msvcwin64_profile",
-      "displayName": "msvcwin64_profile",
+      "name": "windows_dev",
+      "displayName": "windows_dev",
       "description": "Windows MSVC PGO instrument build",
       "inherits": "msvcwin64_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -68,8 +68,8 @@
       }
     },
     {
-      "name": "msvcwin64_release",
-      "displayName": "msvcwin64_release",
+      "name": "windows_rel",
+      "displayName": "windows_rel",
       "description": "Windows MSVC PGO optimized build",
       "inherits": "msvcwin64_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -93,8 +93,8 @@
       }
     },
     {
-      "name": "clangwin64_profile",
-      "displayName": "clangwin64_profile",
+      "name": "windows_dev_clang",
+      "displayName": "windows_dev_clang",
       "description": "Windows Clang PGO instrument build",
       "inherits": "clangwin64_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -104,8 +104,8 @@
       }
     },
     {
-      "name": "clangwin64_release",
-      "displayName": "clangwin64_release",
+      "name": "windows_rel_clang",
+      "displayName": "windows_rel_clang",
       "description": "Windows Clang PGO optimized build",
       "inherits": "clangwin64_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -124,13 +124,14 @@
       },
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "USE_VULKAN": "ON",
-        "USE_DX12": "OFF"
+        "USE_VULKAN": "OFF",
+        "USE_DX12": "OFF",
+        "USE_METAL": "ON"
       }
     },
     {
-      "name": "macos_profile",
-      "displayName": "macos_profile",
+      "name": "macos_dev",
+      "displayName": "macos_dev",
       "description": "macOS PGO instrument build",
       "inherits": "macos_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -139,8 +140,8 @@
       }
     },
     {
-      "name": "macos_release",
-      "displayName": "macos_release",
+      "name": "macos_rel",
+      "displayName": "macos_rel",
       "description": "macOS PGO optimized build",
       "inherits": "macos_base",
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -151,41 +152,41 @@
   ],
   "buildPresets": [
     {
-      "name": "android_app_profile",
-      "configurePreset": "android_app_profile",
+      "name": "android_dev",
+      "configurePreset": "android_dev",
       "targets": ["apk_all"]
     },
     {
-      "name": "android_app_release",
-      "configurePreset": "android_app_release",
+      "name": "android_rel",
+      "configurePreset": "android_rel",
       "targets": ["apk_all"]
     },
     {
-      "name": "msvcwin64_profile",
-      "configurePreset": "msvcwin64_profile",
+      "name": "windows_dev",
+      "configurePreset": "windows_dev",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "msvcwin64_release",
-      "configurePreset": "msvcwin64_release",
+      "name": "windows_rel",
+      "configurePreset": "windows_rel",
       "configuration": "Release"
     },
     {
-      "name": "clangwin64_profile",
-      "configurePreset": "clangwin64_profile"
+      "name": "windows_dev_clang",
+      "configurePreset": "windows_dev_clang"
     },
     {
-      "name": "clangwin64_release",
-      "configurePreset": "clangwin64_release"
+      "name": "windows_rel_clang",
+      "configurePreset": "windows_rel_clang"
     },
     {
-      "name": "macos_profile",
-      "configurePreset": "macos_profile",
+      "name": "macos_dev",
+      "configurePreset": "macos_dev",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "macos_release",
-      "configurePreset": "macos_release",
+      "name": "macos_rel",
+      "configurePreset": "macos_rel",
       "configuration": "Release"
     }
   ]

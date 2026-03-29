@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
 #include <core/log.h>

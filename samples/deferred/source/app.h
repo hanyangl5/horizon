@@ -8,7 +8,6 @@
 #include "renderpasses/post_process_rdg_pass.h"
 #include "renderpasses/resource_upload_pass.h"
 #include "renderpasses/taa_rdg_pass.h"
-#include "sample_control_window.h"
 #include "scene.h"
 #include <app_framework/app_framework.h>
 #include <render_graph/frame_graph.h>
@@ -33,7 +32,6 @@ class DeferredRenderApp : public Horizon::AppFramework
     void InitPipelineResources(); // create pass related resource, shader, pipeline, buffer/tex/rt
     void ResizePipelineResources(u32 new_width, u32 new_height);
     void UpdatePipelineResources();
-    void InitializeControlWindow();
 
     Horizon::Backend::RHI *rhi{};
     SwapChain *swap_chain{};
@@ -55,9 +53,7 @@ class DeferredRenderApp : public Horizon::AppFramework
     bool m_first_frame{true};
     bool m_reset_history{false};
     bool m_upload_scene_resources{true};
-    bool m_swapchain_vsync_enabled{false};
     u32 m_width{};
     u32 m_height{};
     TAARDGPass::TAAPrevCurrOffset m_taa_prev_curr_offset{};
-    std::unique_ptr<SampleControlWindow> m_control_window{};
 };

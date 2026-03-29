@@ -85,6 +85,7 @@ class RHIVulkan : public RHI
     void InitializeVulkanRenderer(const std::string &app_name);
     void CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
                         std::vector<const char *> &instance_extensions);
+    bool CollectRequiredInstanceExtensions(std::vector<const char *> &instance_extensions) const;
     void PickGPU(VkInstance instance, VkPhysicalDevice *gpu);
     void CreateDevice(std::vector<const char *> &device_extensions);
     void InitializeVMA();

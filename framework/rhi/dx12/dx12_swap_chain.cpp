@@ -1,11 +1,7 @@
 #include "dx12_swap_chain.h"
-#include <core/glfwwindow.h>
+#include <core/window.h>
 #include <core/log.h>
 #include <core/memory.h>
-#ifdef _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include "GLFW/glfw3native.h"
-#endif
 
 #include "dx12_render_target.h"
 #include "dx12_texture.h"
@@ -23,8 +19,12 @@ DX12SwapChain::DX12SwapChain(const DX12RendererContext &context, const SwapChain
 {
     // Get window handle
 #ifdef _WIN32
-    GLFWwindow *w = window->GetWindow();
-    HWND hwnd = reinterpret_cast<HWND>(glfwGetWin32Window(w));
+    HWND hwnd = window != nullptr ? reinterpret_cast<HWND>(window->GetNativeWindow()) : nullptr;
+    if (hwnd == nullptr)
+    {
+        LOG_ERROR("Failed to get native Win32 window handle from SDL window");
+        return;
+    }
 
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
     swap_chain_desc.Width = width;

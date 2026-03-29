@@ -10,13 +10,10 @@
 
 #include <cstdint>
 
-// include windows.h before glfw3 to prevent compile warning
-// https://social.msdn.microsoft.com/Forums/en-US/7d5d7d91-5ec3-42fb-a2fd-c52b5e01349b/c4005-apientry-makro-neudefinition-in-minwindefh-and-thus-2-unknown-identifier?forum=vcgeneral
-
 #ifdef __ANDROID__
 #include <android/native_window.h>
 #else
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 #endif
 
 #include <core/definations.h>
@@ -27,7 +24,7 @@ namespace Horizon
 class Window
 {
   public:
-    Window(const char *_name, u32 _width, u32 _height) noexcept;
+    Window(const char *_name, u32 _width, u32 _height, bool enable_vulkan_surface = false) noexcept;
     ~Window() noexcept;
 
     u32 GetWidth() const noexcept;
@@ -37,7 +34,12 @@ class Window
     ANativeWindow *GetNativeWindow() const noexcept;
     void SetNativeWindow(ANativeWindow *window) noexcept;
 #else
-    GLFWwindow *GetWindow() const noexcept;
+    SDL_Window *GetSDLWindow() const noexcept;
+    void *GetNativeWindow() const noexcept;
+#if defined(__APPLE__) && defined(USE_METAL)
+    void *GetNativeView() const noexcept;
+#endif
+    void HandleSDLEvent(const SDL_Event &event) noexcept;
 #endif
 
     int ShouldClose() const noexcept;
@@ -47,14 +49,22 @@ class Window
     void ProcessEvents();
 
   private:
+    void UpdatePixelSize() noexcept;
+
 #ifdef __ANDROID__
     ANativeWindow *m_native_window{};
 #else
-    GLFWwindow *m_window{};
+    SDL_Window *m_window{};
+#if defined(__APPLE__) && defined(USE_METAL)
+    void *m_view{};
 #endif
+    bool m_should_close{false};
+    bool m_enable_vulkan_surface{false};
+    SDL_WindowID m_window_id{};
+#endif
+
     u32 m_width{};
     u32 m_height{};
-    // bool m_vsync_enabled = true;
 };
 
 } // namespace Horizon

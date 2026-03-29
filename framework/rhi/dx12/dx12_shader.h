@@ -5,7 +5,10 @@
 #include <wrl/client.h>
 
 #include <core/definations.h>
+#ifdef _WIN32
+#include <windows.h>
 #include <dxc/dxcapi.h>
+#endif
 #include <rhi/shader.h>
 #include <vector>
 

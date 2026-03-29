@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "glfwwindow.h"
+#include "window.h"
 
 #include <core/math.h>
 

@@ -1,46 +1,74 @@
 project(framework)
 
-# 定义选项来控制是否编译相应的后端
-# 可以通过命令行参数设置：-DUSE_VULKAN=ON 或 -DUSE_DX12=OFF
-option(USE_VULKAN "Enable Vulkan backend" ON)
-option(USE_DX12 "Enable DirectX 12 backend" ON)
+set(HORIZON_FRAMEWORK_USE_VULKAN OFF)
+set(HORIZON_FRAMEWORK_USE_DX12 OFF)
+set(HORIZON_FRAMEWORK_USE_METAL OFF)
 
-if(NOT WIN32 AND USE_DX12)
-    message(STATUS "DirectX 12 backend is Windows-only; forcing USE_DX12=OFF on this platform")
-    set(USE_DX12 OFF CACHE BOOL "Enable DirectX 12 backend" FORCE)
+if(WIN32)
+    set(HORIZON_FRAMEWORK_USE_VULKAN ${USE_VULKAN})
+    set(HORIZON_FRAMEWORK_USE_DX12 ${USE_DX12})
+elseif(ANDROID)
+    if(NOT USE_VULKAN)
+        message(STATUS "Android only compiles the Vulkan backend; forcing USE_VULKAN=ON in framework")
+    endif()
+    if(USE_DX12)
+        message(STATUS "Android does not compile the DirectX 12 backend; forcing USE_DX12=OFF in framework")
+    endif()
+    if(USE_METAL)
+        message(STATUS "Android does not compile the Metal backend; forcing USE_METAL=OFF in framework")
+    endif()
+    set(HORIZON_FRAMEWORK_USE_VULKAN ON)
+elseif(APPLE)
+    if(USE_VULKAN)
+        message(STATUS "Apple platforms only compile the Metal backend in framework; forcing USE_VULKAN=OFF")
+    endif()
+    if(USE_DX12)
+        message(STATUS "Apple platforms do not compile the DirectX 12 backend; forcing USE_DX12=OFF in framework")
+    endif()
+    if(NOT USE_METAL)
+        message(STATUS "Apple platforms only compile the Metal backend in framework; forcing USE_METAL=ON")
+    endif()
+    set(HORIZON_FRAMEWORK_USE_METAL ON)
+else()
+    set(HORIZON_FRAMEWORK_USE_VULKAN ${USE_VULKAN})
+    if(USE_DX12)
+        message(STATUS "DirectX 12 is Windows-only; forcing USE_DX12=OFF in framework")
+    endif()
+    if(USE_METAL)
+        message(STATUS "Metal is Apple-only; forcing USE_METAL=OFF in framework")
+    endif()
 endif()
 
-# 收集头文件
+set(USE_VULKAN ${HORIZON_FRAMEWORK_USE_VULKAN} CACHE BOOL "Enable Vulkan backend" FORCE)
+set(USE_DX12 ${HORIZON_FRAMEWORK_USE_DX12} CACHE BOOL "Enable DirectX 12 backend" FORCE)
+set(USE_METAL ${HORIZON_FRAMEWORK_USE_METAL} CACHE BOOL "Enable Metal backend" FORCE)
+
 file(GLOB_RECURSE HEADER_FILES "*.h" "*.hpp")
+file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.c" "*.mm")
 
-# 收集除了 rhi/dx12 和 rhi/vulkan 之外的所有源文件
-file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.c")
-
-# 排除 rhi/dx12 和 rhi/vulkan 文件夹中的源文件（稍后根据条件添加）
 list(FILTER SOURCE_FILES EXCLUDE REGEX ".*rhi/dx12/.*")
 list(FILTER SOURCE_FILES EXCLUDE REGEX ".*rhi/vulkan/.*")
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*rhi/metal/.*")
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*core/glfwwindow_macos\\.(mm|cpp)")
 
-# Exclude GLFW-related files on Android (GLFW is not supported on Android)
-if(ANDROID)
-    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*core/glfwinput.*")
-    list(FILTER HEADER_FILES EXCLUDE REGEX ".*core/glfwinput.*")
-endif()
-
-# Include Android sources on Android
 if(ANDROID)
     file(GLOB_RECURSE ANDROID_SOURCES "core/android/*.cpp")
     list(APPEND SOURCE_FILES ${ANDROID_SOURCES})
 endif()
 
-# 根据变量决定是否添加相应的源文件
-if(USE_VULKAN)
+if(HORIZON_FRAMEWORK_USE_VULKAN)
     file(GLOB_RECURSE VULKAN_SOURCES "rhi/vulkan/*.cpp" "rhi/vulkan/*.c")
     list(APPEND SOURCE_FILES ${VULKAN_SOURCES})
 endif()
 
-if(USE_DX12)
+if(HORIZON_FRAMEWORK_USE_DX12)
     file(GLOB_RECURSE DX12_SOURCES "rhi/dx12/*.cpp" "rhi/dx12/*.c")
     list(APPEND SOURCE_FILES ${DX12_SOURCES})
+endif()
+
+if(HORIZON_FRAMEWORK_USE_METAL)
+    file(GLOB_RECURSE METAL_SOURCES "rhi/metal/*.cpp" "rhi/metal/*.mm")
+    list(APPEND SOURCE_FILES ${METAL_SOURCES})
 endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
@@ -48,19 +76,15 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_F
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/framework)
 
-# Add Android NDK include directories (after target is created)
 if(ANDROID AND DEFINED ANDROID_NDK)
-    # Standard Android NDK includes
     if(EXISTS "${ANDROID_NDK}/sources/android/native_app_glue")
-        target_include_directories(${PROJECT_NAME} PUBLIC 
+        target_include_directories(${PROJECT_NAME} PUBLIC
             "${ANDROID_NDK}/sources/android/native_app_glue"
         )
     endif()
-    
-    # Platform-specific includes
+
     if(DEFINED ANDROID_PLATFORM AND DEFINED ANDROID_ABI)
         string(REPLACE "android-" "" ANDROID_API_LEVEL "${ANDROID_PLATFORM}")
-        # Map ABI to architecture name
         if(ANDROID_ABI STREQUAL "arm64-v8a")
             set(ANDROID_ARCH_NAME "arm64")
         elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
@@ -70,37 +94,31 @@ if(ANDROID AND DEFINED ANDROID_NDK)
         elseif(ANDROID_ABI STREQUAL "x86")
             set(ANDROID_ARCH_NAME "x86")
         else()
-            set(ANDROID_ARCH_NAME "arm64")  # Default
+            set(ANDROID_ARCH_NAME "arm64")
         endif()
+
         if(EXISTS "${ANDROID_NDK}/platforms/android-${ANDROID_API_LEVEL}/arch-${ANDROID_ARCH_NAME}/usr/include")
-            target_include_directories(${PROJECT_NAME} PUBLIC 
+            target_include_directories(${PROJECT_NAME} PUBLIC
                 "${ANDROID_NDK}/platforms/android-${ANDROID_API_LEVEL}/arch-${ANDROID_ARCH_NAME}/usr/include"
             )
         endif()
     endif()
 endif()
 
-# 根据变量设置编译定义
-if(USE_VULKAN)
+if(HORIZON_FRAMEWORK_USE_VULKAN)
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_VULKAN)
-    # VK_NO_PROTOTYPES: Vulkan headers must not declare function prototypes so Volk can provide them (avoids redefinition on Windows)
     target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
-    # Volk: load Vulkan at runtime (avoids undefined symbols on Android for vkCmdBeginRendering etc.)
     target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk)
-    
-    # Android-specific configuration
+
     if(ANDROID)
-        # Link Android NDK libraries
-        target_link_libraries(${PROJECT_NAME} PUBLIC 
-            android      # Android native API
-            log          # Android logging
+        target_link_libraries(${PROJECT_NAME} PUBLIC
+            android
+            log
         )
-        
-        # Add NDK include directories for Vulkan
+
         if(DEFINED ANDROID_NDK)
-            # Vulkan headers are included in NDK
             if(EXISTS "${ANDROID_NDK}/sources/third_party/vulkan/src/include")
-                target_include_directories(${PROJECT_NAME} PUBLIC 
+                target_include_directories(${PROJECT_NAME} PUBLIC
                     "${ANDROID_NDK}/sources/third_party/vulkan/src/include"
                 )
             endif()
@@ -108,12 +126,10 @@ if(USE_VULKAN)
     endif()
 endif()
 
-if(USE_DX12)
+if(HORIZON_FRAMEWORK_USE_DX12)
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_DX12)
-    
-    # Configure DXC paths
+
     if(WIN32)
-        # Determine architecture
         if(CMAKE_SIZEOF_VOID_P EQUAL 8)
             if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
                 set(DXC_ARCH "arm64")
@@ -123,23 +139,17 @@ if(USE_DX12)
         else()
             set(DXC_ARCH "x86")
         endif()
-        
-        # Set DXC paths
+
         set(DXC_BIN_DIR "${CMAKE_SOURCE_DIR}/third_party/dxc_2025_07_14/bin/${DXC_ARCH}")
         set(DXC_LIB_DIR "${CMAKE_SOURCE_DIR}/third_party/dxc_2025_07_14/lib/${DXC_ARCH}")
-        
-        # Convert to native path format (Windows uses backslashes)
+
         file(TO_NATIVE_PATH "${DXC_BIN_DIR}" DXC_BIN_DIR_NATIVE)
-        
-        # Escape backslashes for C++ string literal in preprocessor
         string(REPLACE "\\" "\\\\" DXC_BIN_DIR_ESCAPED "${DXC_BIN_DIR_NATIVE}")
-        
-        # Pass DXC bin directory path to C++ code as a string literal
-        target_compile_definitions(${PROJECT_NAME} PRIVATE 
+
+        target_compile_definitions(${PROJECT_NAME} PRIVATE
             DXC_BIN_DIR="${DXC_BIN_DIR_ESCAPED}"
         )
-        
-        # Copy DXC DLLs to output directory for runtime
+
         if(EXISTS "${DXC_BIN_DIR}/dxcompiler.dll")
             add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -159,32 +169,120 @@ if(USE_DX12)
     endif()
 endif()
 
+if(HORIZON_FRAMEWORK_USE_METAL)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_METAL)
+endif()
+
 target_link_libraries(${PROJECT_NAME} PUBLIC third_party)
+
+if(HORIZON_FRAMEWORK_USE_METAL)
+    find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
+    find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+    find_library(METAL_FRAMEWORK Metal REQUIRED)
+    find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        ${APPKIT_FRAMEWORK}
+        ${FOUNDATION_FRAMEWORK}
+        ${METAL_FRAMEWORK}
+        ${QUARTZCORE_FRAMEWORK}
+    )
+endif()
 
 configure_compile_options(${PROJECT_NAME})
 
-# --- Precompiled Header (PCH) ---
 target_precompile_headers(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/pch.h
 )
 
-# --- Unity Build ---
+function(horizon_assign_unity_group group_name)
+    set(group_sources ${ARGN})
+    if(group_sources)
+        set_source_files_properties(${group_sources} PROPERTIES UNITY_GROUP ${group_name})
+    endif()
+endfunction()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
     UNITY_BUILD ON
-    UNITY_BUILD_BATCH_SIZE 8
+    UNITY_BUILD_MODE GROUP
 )
 
-# Files with #define ...IMPLEMENTATION must compile alone
-# to avoid duplicate symbol / macro leaking issues in unity batches.
+set(_FRAMEWORK_CORE_SOURCES ${SOURCE_FILES})
+list(FILTER _FRAMEWORK_CORE_SOURCES INCLUDE REGEX ".*/core/.*\\.(cpp|c|mm)$")
+list(FILTER _FRAMEWORK_CORE_SOURCES EXCLUDE REGEX ".*/core/android/.*")
+
+set(_FRAMEWORK_APP_SOURCES ${SOURCE_FILES})
+list(FILTER _FRAMEWORK_APP_SOURCES INCLUDE REGEX ".*/app_framework/.*\\.(cpp|c|mm)$")
+
+set(_FRAMEWORK_RENDER_GRAPH_SOURCES ${SOURCE_FILES})
+list(FILTER _FRAMEWORK_RENDER_GRAPH_SOURCES INCLUDE REGEX ".*/render_graph/.*\\.(cpp|c|mm)$")
+
+set(_FRAMEWORK_RESOURCE_SOURCES ${SOURCE_FILES})
+list(FILTER _FRAMEWORK_RESOURCE_SOURCES INCLUDE REGEX ".*/resource/.*\\.(cpp|c|mm)$")
+list(FILTER _FRAMEWORK_RESOURCE_SOURCES EXCLUDE REGEX ".*/stb_image_impl\\.cpp$")
+list(FILTER _FRAMEWORK_RESOURCE_SOURCES EXCLUDE REGEX ".*/cgltf_impl\\.cpp$")
+
+set(_FRAMEWORK_SCENE_SOURCES ${SOURCE_FILES})
+list(FILTER _FRAMEWORK_SCENE_SOURCES INCLUDE REGEX ".*/scene/.*\\.(cpp|c|mm)$")
+
+set(_FRAMEWORK_RHI_COMMON_SOURCES ${SOURCE_FILES})
+list(FILTER _FRAMEWORK_RHI_COMMON_SOURCES INCLUDE REGEX ".*/rhi/[^/]+\\.(cpp|c|mm)$")
+
+horizon_assign_unity_group("framework-core" ${_FRAMEWORK_CORE_SOURCES})
+horizon_assign_unity_group("framework-app" ${_FRAMEWORK_APP_SOURCES})
+horizon_assign_unity_group("framework-render-graph" ${_FRAMEWORK_RENDER_GRAPH_SOURCES})
+horizon_assign_unity_group("framework-resource" ${_FRAMEWORK_RESOURCE_SOURCES})
+horizon_assign_unity_group("framework-scene" ${_FRAMEWORK_SCENE_SOURCES})
+horizon_assign_unity_group("framework-rhi-common" ${_FRAMEWORK_RHI_COMMON_SOURCES})
+
+if(HORIZON_FRAMEWORK_USE_VULKAN)
+    set(_FRAMEWORK_RHI_VULKAN_SOURCES ${SOURCE_FILES})
+    list(FILTER _FRAMEWORK_RHI_VULKAN_SOURCES INCLUDE REGEX ".*/rhi/vulkan/.*\\.(cpp|c)$")
+    list(FILTER _FRAMEWORK_RHI_VULKAN_SOURCES EXCLUDE REGEX ".*/vma_impl\\.cpp$")
+    list(FILTER _FRAMEWORK_RHI_VULKAN_SOURCES EXCLUDE REGEX ".*/vulkan_swap_chain\\.cpp$")
+    horizon_assign_unity_group("framework-rhi-vulkan" ${_FRAMEWORK_RHI_VULKAN_SOURCES})
+endif()
+
+if(HORIZON_FRAMEWORK_USE_DX12)
+    set(_FRAMEWORK_RHI_DX12_SHADER_SOURCES ${SOURCE_FILES})
+    list(FILTER _FRAMEWORK_RHI_DX12_SHADER_SOURCES INCLUDE REGEX ".*/rhi/dx12/(dx12_shader|dx12_shader_compiler)\\.cpp$")
+
+    set(_FRAMEWORK_RHI_DX12_RUNTIME_SOURCES ${SOURCE_FILES})
+    list(FILTER _FRAMEWORK_RHI_DX12_RUNTIME_SOURCES INCLUDE REGEX ".*/rhi/dx12/.*\\.(cpp|c)$")
+    list(FILTER _FRAMEWORK_RHI_DX12_RUNTIME_SOURCES EXCLUDE REGEX ".*/rhi/dx12/(dx12_shader|dx12_shader_compiler)\\.cpp$")
+
+    horizon_assign_unity_group("framework-rhi-dx12-shaders" ${_FRAMEWORK_RHI_DX12_SHADER_SOURCES})
+    horizon_assign_unity_group("framework-rhi-dx12-runtime" ${_FRAMEWORK_RHI_DX12_RUNTIME_SOURCES})
+endif()
+
 set_source_files_properties(
-    ${CMAKE_CURRENT_SOURCE_DIR}/resource/resource_loader/texture/texture_loader.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/resource/resources/mesh/cgltf_mesh_importer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/resource/resource_loader/texture/stb_image_impl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/resource/resources/mesh/cgltf_impl.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
 )
-if(USE_VULKAN)
+
+if(HORIZON_FRAMEWORK_USE_VULKAN)
     set_source_files_properties(
-        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/vulkan/rhi_vulkan.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/vulkan/vma_impl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/rhi/vulkan/vulkan_swap_chain.cpp
         PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+    )
+endif()
+
+if(HORIZON_FRAMEWORK_USE_METAL)
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_utils.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_buffer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_texture.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_render_target.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_shader.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_sampler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_swap_chain.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_command_list.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/metal_semaphore.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/rhi/metal/rhi_metal.cpp
+        PROPERTIES
+            SKIP_UNITY_BUILD_INCLUSION ON
+            SKIP_PRECOMPILE_HEADERS ON
     )
 endif()

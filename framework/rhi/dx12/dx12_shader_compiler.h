@@ -6,7 +6,10 @@
 
 #include <rhi/enums.h>
 
+#ifdef _WIN32
+#include <windows.h>
 #include <dxc/dxcapi.h>
+#endif
 
 namespace Horizon::Backend
 {

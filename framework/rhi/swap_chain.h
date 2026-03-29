@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/glfwwindow.h>
+#include <core/window.h>
 
 #include <core/definations.h>
 #include <rhi/enums.h>

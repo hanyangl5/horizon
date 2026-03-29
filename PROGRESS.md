@@ -195,7 +195,7 @@
   - 所有平台统一收敛为两档可见 preset：`*_profile`（PGO generate）与 `*_release`（PGO use）
   - 使用 hidden base preset 承载公共 generator / cacheVariables
 - 调整 CI：
-  - `.github/workflows/ci.yml` 改为使用 `android_app_profile` 与 `msvcwin64_profile`
+  - `.github/workflows/ci.yml` 改为使用 `android_dev` 与 `windows_dev`
   - 避免在干净 runner 上直接使用需要预先 profile 数据的 `*_release`
 - `.gitignore` 新增：
   - `imgui.ini`
@@ -217,13 +217,87 @@
 
 ### 验证记录
 - `cmake --list-presets` 已验证新 preset 结构可见：
-  - `android_app_profile/release`
-  - `msvcwin64_profile/release`
-  - `clangwin64_profile/release`
-- `cmake --preset msvcwin64_profile` 配置通过。
-- `cmake --build --preset msvcwin64_profile --target deferred` 通过，并确认 `pgort140.dll` 已复制到输出目录。
+  - `android_dev/release`
+  - `windows_dev/release`
+  - `window_dev_clang/release`
+- `cmake --preset windows_dev` 配置通过。
+- `cmake --build --preset windows_dev --target deferred` 通过，并确认 `pgort140.dll` 已复制到输出目录。
 - `cmake --build build/msvcwin64_pgo_gen --config RelWithDebInfo -- /v:m /nologo` 全量通过，验证了 MSVC PGO 并行构建修复生效。
 
 ### 待办事项
-- 为 `clangwin64_profile/release` 与 `android_app_profile/release` 增加更明确的 profile 采集与合并脚本说明，降低 `merged.profdata` 缺失带来的使用门槛。
+- 为 `window_dev_clang/release` 与 `android_dev/release` 增加更明确的 profile 采集与合并脚本说明，降低 `merged.profdata` 缺失带来的使用门槛。
 - 评估是否将 PGO merge / artifact 流程纳入 CI 的可选性能流水线，而不是当前仅做 `profile` 构建验证。
+
+## [2026-03-25] - macOS Metal backend Phase 1 + HelloTriangle 闭环
+
+### 完成内容
+- 为 RHI 增加 `RenderBackend::RENDER_BACKEND_METAL`，在 `AppFramework` 中补齐 macOS 默认后端和 `-mtl/--metal` 命令行解析。
+- 新增 `framework/rhi/metal/rhi_metal.mm`，基于 macOS 原生 Metal API 打通 Phase 1 最小链路：
+  - `MTLDevice` / `MTLCommandQueue`
+  - `CAMetalLayer` swapchain
+  - buffer / texture / render target / sampler
+  - shader 编译
+  - graphics pipeline
+  - graphics command list / submit / present
+- 为 macOS 新增原生窗口实现 `framework/core/glfwwindow_macos.mm`，不再依赖当前缺失的 GLFW 子模块。
+- 调整 `third_party/CMakeLists.txt`、`framework/CMakeLists.txt`、`samples/CMakeLists.txt`、`CMakePresets.json`：
+  - macOS preset 默认走 `USE_METAL=ON`、`USE_VULKAN=OFF`
+  - 缺失子模块时不再硬卡在 `spdlog/glfw/cgltf/VMA/volk`
+  - macOS Metal 构建下跳过 `deferred` sample，仅保留 `hellotriangle`
+- 新增 `samples/hellotriangle/shaders/triangle.metal`，并让 HelloTriangle 按后端选择 shader。
+- 为 `cgltf` 缺失场景新增 `cgltf_mesh_importer_stub.cpp`，避免 HelloTriangle 这条链被无关 mesh importer 阻塞。
+- 将日志系统改为项目内自给实现，移除对当前缺失 `spdlog` 子模块的构建依赖。
+- 修复 `framework/rhi/enums.cpp` 中历史遗留的漏分号问题。
+
+### 关键决策
+- 这轮只覆盖 HelloTriangle 所需的 Metal 图形路径，不扩展 compute / deferred / 贴图上传 / 通用资源绑定能力，保持 Phase 1 的最小可验收范围。
+- 当前机器的 Command Line Tools / 工作区都没有现成 `metal-cpp` 头文件，仓库也没有 vendor 版本；为了先打通闭环，本轮先用 Objective-C++ 直接接 Apple Metal API 落地 macOS 路径，并把偏差记录在这里。
+- 由于仓库 `third_party` 子模块几乎全空，本轮策略是“让 macOS Metal/HelloTriangle 路径脱离这些缺依赖而能单独 configure/build/run”，而不是顺手补齐整仓第三方依赖体系。
+- HelloTriangle 的失败路径改成可控退出：如果 Metal device / swapchain / shader / pipeline 任一初始化失败，sample 会记录错误并主动关闭窗口，不再以崩溃结束。
+
+### 踩坑记录
+- 用户要求遵守的 `design/metal_backend_phase1.md` 在当前仓库中不存在；本轮只能按任务说明和现有代码结构自行收敛 Phase 1 边界，并在这里补记录。
+- 当前工作区的 `third_party/volk`、`glfw3`、`spdlog`、`VulkanMemoryAllocator`、`imgui`、`cgltf` 都是空目录；如果不先调整 CMake，macOS 甚至无法完成 configure。
+
+## [2026-03-25] - macOS Metal backend 切换到 metal-cpp
+
+### 完成内容
+- 在 `.gitmodules` 增加 `third_party/metal-cpp`，并在 `CMakeLists.txt` / `third_party/CMakeLists.txt` 中补齐 macOS Metal 构建对 `third_party/metal-cpp` 的检查与头文件入口。
+- 将 `framework/rhi/metal/rhi_metal.mm` 从 Objective-C++ 直接调用 `MTL*` / `CAMetal*` API 改为统一走 `MTL::` / `CA::` 调用路径，覆盖：
+  - device / command queue / command buffer
+  - buffer / texture / sampler
+  - shader library / function
+  - render pipeline / depth stencil / render pass
+  - `CAMetalLayer` / drawable / present
+- 在 `third_party/metal-cpp` 中补了当前 Phase 1 所需的最小头文件子集（`Foundation.hpp` / `Metal.hpp` / `QuartzCore.hpp`），让 `hellotriangle` 这条链在离线环境下可编译、可验证。
+- 重新验证了 `macos_dev`：
+  - `cmake --preset macos_dev`
+  - `cmake --build --preset macos_dev --target hellotriangle`
+  - 运行 `build/macos_dev/samples/RelWithDebInfo/hellotriangle`
+
+### 关键决策
+- 保持 `.mm` 文件与外部接口不变，只替换内部 Metal 调用面，避免把这次迁移扩散成 RHI 重构。
+- 由于当前 shell 无法解析 `github.com`，不能直接 `git submodule add` 真正拉取上游 `bkaradzic/metal-cpp`；因此先在 `third_party/metal-cpp` 里放入 HelloTriangle Phase 1 所需的最小离线头文件镜像，并把 submodule URL 指向正式仓库，后续在有外网的环境再替换为上游真实 commit。
+- 运行时保留已有失败保护逻辑：当前机器如果 `MTLCreateSystemDefaultDevice()` 返回空，sample 会打印错误并受控退出，而不是崩溃。
+
+### 踩坑记录
+- 本机虽然有 Xcode 26.2，但 `xcrun metal --version` 提示缺少 Metal Toolchain；这不影响当前工程，因为 HelloTriangle 的 `.metal` 仍走运行时源码编译，而不是构建期离线编译。
+- 当前运行环境里，独立最小程序直接调用 `MTLCreateSystemDefaultDevice()` 也返回空，因此 `hellotriangle` 无法真正进入绘制循环；这个现象不是本次 `metal-cpp` 包装层引入的回归。
+- 当前 Codex 沙箱允许改工作树文件，但不允许写当前 worktree 对应的真实 git 元数据目录 `/Users/hyl5/codes/horizon/.git/worktrees/horizon-metal`，因此本轮无法在此环境直接执行 `git add` / `git commit`。
+
+### 待办事项
+- 在可联网环境下，将 `third_party/metal-cpp` 从当前离线最小镜像替换为上游 `https://github.com/bkaradzic/metal-cpp` 的真实 submodule commit。
+- 在具备可用 Metal device 的 macOS 机器上补一次真实渲染验证，确认窗口内三角形正确出图，而不只是初始化/退出路径。
+- 如果后续继续扩展 Metal backend，再评估是否引入上游 `NS::SharedPtr`，减少手写 `retain/release` 管理点。
+- 在当前执行环境运行 `hellotriangle` 时，`MTLCreateSystemDefaultDevice()` 返回空，导致无法真正获得 Metal device；现已验证 sample 会记录失败并以 `exit code 0` 干净退出，但无法在本环境完成实际三角形显示。
+- 本机没有 `clang-format`，本轮未能执行本地格式化工具统一代码风格。
+
+### 验证记录
+- `cmake --preset macos_dev`：通过。
+- `cmake --build --preset macos_dev --target hellotriangle`：通过。
+- `./build/macos_dev/samples/RelWithDebInfo/hellotriangle`：进程成功启动并进入初始化流程，随后因当前环境无法创建 Metal device 而按预期记录错误并正常退出，无崩溃。
+
+### 待办事项
+- 后续如果要严格满足“基于 metal-cpp”，需要把官方 `metal-cpp` 头纳入仓库或明确其获取方式，再把当前 Objective-C++ 直接调用层切到 `metal-cpp` 包装。
+- Phase 2 需要补齐纹理上传、更多格式映射、depth attachment、sampler/资源绑定和更完整的 command encoder 能力，才能支撑 deferred 等复杂 sample。
+- 在具备真实 Metal device 的 macOS 图形环境重新运行 HelloTriangle，确认窗口可见、swapchain present 正常以及三角形实际出图。

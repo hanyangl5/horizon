@@ -9,6 +9,10 @@
 
 #include <volk.h>
 
+#ifndef __ANDROID__
+#include <SDL3/SDL_vulkan.h>
+#endif
+
 #include "vulkan_render_target.h"
 #include "vulkan_semaphore.h"
 #include "vulkan_swap_chain.h"
@@ -50,8 +54,17 @@ Horizon::Backend::VulkanSwapChain::VulkanSwapChain(const VulkanRendererContext &
 
     CHECK_VK_RESULT(create_android_surface(m_context.instance, &surface_create_info, nullptr, &surface));
 #else
-    // Use GLFW to create surface
-    CHECK_VK_RESULT(glfwCreateWindowSurface(m_context.instance, window->GetWindow(), nullptr, &surface));
+    if (window == nullptr || window->GetSDLWindow() == nullptr)
+    {
+        LOG_ERROR("Cannot create SDL Vulkan surface: window is null");
+        return;
+    }
+
+    if (!SDL_Vulkan_CreateSurface(window->GetSDLWindow(), m_context.instance, nullptr, &surface))
+    {
+        LOG_ERROR("Failed to create SDL Vulkan surface: {}", SDL_GetError());
+        return;
+    }
 #endif
     u32 surface_format_count = 0;
     // Get surface formats count

@@ -35,6 +35,14 @@ std::unique_ptr<RHI> CreateRenderBackend(RenderBackend render_backend, bool offs
         LOG_ERROR("DirectX 12 is not supported in this build");
         return nullptr;
 #endif
+    case Horizon::RenderBackend::RENDER_BACKEND_METAL:
+#if defined(USE_METAL)
+        extern std::unique_ptr<RHI> CreateMetalRenderBackend(bool offscreen) noexcept;
+        return CreateMetalRenderBackend(offscreen);
+#else
+        LOG_ERROR("Metal is not supported in this build");
+        return nullptr;
+#endif
     default:
         LOG_ERROR("invalid render backend");
         return nullptr;

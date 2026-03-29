@@ -6,7 +6,7 @@
                                                                      * \date   November 2022
                                                                      *********************************************************************/
 
-#include "glfwinput.h"
+#include "input.h"
 
 namespace Horizon::Input
 {
@@ -50,8 +50,24 @@ Direction ProcessKeyboardInput(Window *window)
 
 Math::float2 ProcessMouseInput(Window *window)
 {
-    f64 xposIn, yposIn;
-    glfwGetCursorPos(window->GetWindow(), &xposIn, &yposIn);
+#ifdef __ANDROID__
+    (void)window;
+    return {};
+#else
+    if (window == nullptr || window->GetSDLWindow() == nullptr)
+    {
+        return {};
+    }
+
+    if (SDL_GetMouseFocus() != window->GetSDLWindow())
+    {
+        first_mouse = true;
+        return {};
+    }
+
+    float xposIn = 0.0f;
+    float yposIn = 0.0f;
+    SDL_GetMouseState(&xposIn, &yposIn);
 
     f32 xpos = static_cast<f32>(xposIn);
     f32 ypos = static_cast<f32>(yposIn);
@@ -82,84 +98,125 @@ Math::float2 ProcessMouseInput(Window *window)
         first_mouse = true;
     }
     return {};
+#endif
 }
 
 bool GetKeyPress(Window *window, Key inputKey)
 {
+#ifdef __ANDROID__
+    (void)window;
+    (void)inputKey;
+    return false;
+#else
+    if (window == nullptr || window->GetSDLWindow() == nullptr)
+    {
+        return false;
+    }
+
+    if (SDL_GetKeyboardFocus() != window->GetSDLWindow())
+    {
+        return false;
+    }
+
+    const bool *keyboard_state = SDL_GetKeyboardState(nullptr);
+    if (keyboard_state == nullptr)
+    {
+        return false;
+    }
+
     switch (inputKey)
     {
     case Key::ESCAPE:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_ESCAPE];
     case Key::SPACE:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_SPACE) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_SPACE];
     case Key::KEY_W:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_W) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_W];
     case Key::KEY_S:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_S) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_S];
     case Key::KEY_A:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_A) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_A];
     case Key::KEY_D:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_D) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_D];
     case Key::KEY_LCTRL:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_LCTRL];
     case Key::KEY_LSHIFT:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_LSHIFT];
     case Key::KEY_1:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_1) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_1];
     case Key::KEY_2:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_2) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_2];
     case Key::KEY_3:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_3) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_3];
     case Key::KEY_4:
-        return glfwGetKey(window->GetWindow(), GLFW_KEY_4) == GLFW_PRESS;
-        break;
+        return keyboard_state[SDL_SCANCODE_4];
     default:
-        return false;
         break;
     }
+    return false;
+#endif
 }
 
 int GetMouseButtonPress(Window *window, MouseButton button)
 {
+#ifdef __ANDROID__
+    (void)window;
+    (void)button;
+    return 0;
+#else
+    if (window == nullptr || window->GetSDLWindow() == nullptr)
+    {
+        return 0;
+    }
+
+    if (SDL_GetMouseFocus() != window->GetSDLWindow())
+    {
+        return 0;
+    }
+
+    const SDL_MouseButtonFlags mouse_state = SDL_GetMouseState(nullptr, nullptr);
     switch (button)
     {
     case MouseButton::LEFT_BUTTON:
-        return glfwGetMouseButton(window->GetWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-        break;
+        return (mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0;
     case MouseButton::RIGHT_BUTTON:
-        return glfwGetMouseButton(window->GetWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-        break;
+        return (mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
     default:
-        return 0;
         break;
     }
+    return 0;
+#endif
 }
 
 int GetMouseButtonRelease(Window *window, MouseButton button)
 {
+#ifdef __ANDROID__
+    (void)window;
+    (void)button;
+    return 0;
+#else
+    if (window == nullptr || window->GetSDLWindow() == nullptr)
+    {
+        return 0;
+    }
+
+    if (SDL_GetMouseFocus() != window->GetSDLWindow())
+    {
+        return 0;
+    }
+
+    const SDL_MouseButtonFlags mouse_state = SDL_GetMouseState(nullptr, nullptr);
     switch (button)
     {
     case MouseButton::LEFT_BUTTON:
-        return glfwGetMouseButton(window->GetWindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE;
-        break;
+        return (mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) == 0;
     case MouseButton::RIGHT_BUTTON:
-        return glfwGetMouseButton(window->GetWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE;
-        break;
+        return (mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) == 0;
     default:
-        return 0;
         break;
     }
+    return 0;
+#endif
 }
 
 } // namespace Horizon::Input

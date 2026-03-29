@@ -9,7 +9,6 @@
 #include <thread>
 #include <volk.h>
 
-#define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
 #include <core/memory.h>
@@ -23,8 +22,32 @@
 #include <rhi/vulkan/vulkan_shader_compiler.h>
 #include <rhi/vulkan/vulkan_texture.h>
 
+#ifndef __ANDROID__
+#include <SDL3/SDL_vulkan.h>
+#endif
+
 namespace Horizon::Backend
 {
+namespace
+{
+bool ContainsExtensionName(const std::vector<const char *> &extensions, const char *extension_name)
+{
+    return std::any_of(extensions.begin(), extensions.end(), [extension_name](const char *existing_extension) {
+        return existing_extension != nullptr && extension_name != nullptr &&
+               strcmp(existing_extension, extension_name) == 0;
+    });
+}
+
+void AppendUniqueExtensionName(std::vector<const char *> &extensions, const char *extension_name)
+{
+    if (extension_name == nullptr || ContainsExtensionName(extensions, extension_name))
+    {
+        return;
+    }
+
+    extensions.push_back(extension_name);
+}
+} // namespace
 
 const char *VkResultToString(VkResult result)
 {
@@ -285,21 +308,12 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     std::vector<const char *> device_extensions;
     //#ifndef NDEBUG
     instance_layers.emplace_back("VK_LAYER_KHRONOS_validation");
-    instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    instance_extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     //#endif
-    instance_extensions.emplace_back("VK_KHR_surface");
 
-    // Platform-specific surface extensions
-#ifdef _WIN32
-    instance_extensions.emplace_back("VK_KHR_win32_surface");
-#elif defined(__ANDROID__)
-    instance_extensions.emplace_back("VK_KHR_android_surface");
-#elif defined(__linux__)
-    // Linux can use X11, Wayland, or both
-    instance_extensions.emplace_back("VK_KHR_xlib_surface");
-    // instance_extensions.emplace_back("VK_KHR_wayland_surface");
-#endif
+    if (!CollectRequiredInstanceExtensions(instance_extensions))
+    {
+        return;
+    }
 
     device_extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     device_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
@@ -327,6 +341,39 @@ void RHIVulkan::InitializeVulkanRenderer(const std::string &app_name)
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(m_vulkan.active_gpu, &deviceProperties);
     m_vulkan.timestampPeriod = deviceProperties.limits.timestampPeriod;
+}
+
+bool RHIVulkan::CollectRequiredInstanceExtensions(std::vector<const char *> &instance_extensions) const
+{
+    AppendUniqueExtensionName(instance_extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    AppendUniqueExtensionName(instance_extensions, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+#ifdef __ANDROID__
+    AppendUniqueExtensionName(instance_extensions, VK_KHR_SURFACE_EXTENSION_NAME);
+    AppendUniqueExtensionName(instance_extensions, "VK_KHR_android_surface");
+    return true;
+#else
+    if (m_window == nullptr || m_window->GetSDLWindow() == nullptr)
+    {
+        LOG_ERROR("Vulkan renderer requires a valid SDL window to query surface instance extensions");
+        return false;
+    }
+
+    Uint32 sdl_extension_count = 0;
+    const char *const *sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count);
+    if (sdl_extensions == nullptr || sdl_extension_count == 0)
+    {
+        LOG_ERROR("Failed to query SDL Vulkan instance extensions: {}", SDL_GetError());
+        return false;
+    }
+
+    for (Uint32 extension_index = 0; extension_index < sdl_extension_count; ++extension_index)
+    {
+        AppendUniqueExtensionName(instance_extensions, sdl_extensions[extension_index]);
+    }
+
+    return true;
+#endif
 }
 
 void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const char *> &instance_layers,
@@ -359,6 +406,10 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
         {
             enabled_layers.push_back(requested_layer);
         }
+        else
+        {
+            LOG_WARN("Skipping unavailable Vulkan instance layer: {}", requested_layer);
+        }
     }
 
     std::vector<const char *> enabled_extensions;
@@ -377,6 +428,10 @@ void RHIVulkan::CreateInstance(const std::string &app_name, std::vector<const ch
         if (found)
         {
             enabled_extensions.push_back(requested_extension);
+        }
+        else
+        {
+            LOG_WARN("Skipping unavailable Vulkan instance extension: {}", requested_extension);
         }
     }
 

@@ -27,7 +27,8 @@ static constexpr u32 MAX_BINDING_COUNT = 32;
 enum class RenderBackend
 {
     RENDER_BACKEND_VULKAN,
-    RENDER_BACKEND_DX12
+    RENDER_BACKEND_DX12,
+    RENDER_BACKEND_METAL
 };
 // always assum queue family index: graphics = 0, compute = 1, transfer = 2
 enum CommandQueueType
