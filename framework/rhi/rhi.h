@@ -4,8 +4,8 @@
 
 #include <utility>
 
-#include <core/window.h>
 #include <core/path.h>
+#include <core/window.h>
 
 #include <rhi/buffer.h>
 #include <rhi/command_context.h>

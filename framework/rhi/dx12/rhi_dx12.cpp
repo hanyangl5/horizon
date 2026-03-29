@@ -1,9 +1,9 @@
 #include "rhi_dx12.h"
 
-#include <core/window.h>
 #include <core/log.h>
 #include <core/memory.h>
 #include <core/path.h>
+#include <core/window.h>
 
 #include "dx12_buffer.h"
 #include "dx12_command_context.h"

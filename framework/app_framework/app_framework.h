@@ -7,8 +7,8 @@
                                                                      *********************************************************************/
 #pragma once
 
-#include <core/window.h>
 #include <core/memory.h>
+#include <core/window.h>
 #include <rhi/enums.h>
 #include <scene/scene_renderer/config.h>
 #include <scene/scene_renderer/renderer.h>

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <core/window.h>
 #include <core/math.h>
+#include <core/window.h>
 #include <scene/camera/camera.h>
 
 namespace Horizon

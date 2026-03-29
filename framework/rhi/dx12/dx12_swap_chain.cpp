@@ -1,7 +1,7 @@
 #include "dx12_swap_chain.h"
-#include <core/window.h>
 #include <core/log.h>
 #include <core/memory.h>
+#include <core/window.h>
 
 #include "dx12_render_target.h"
 #include "dx12_texture.h"

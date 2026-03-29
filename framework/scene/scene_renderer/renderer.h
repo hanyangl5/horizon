@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/window.h>
 #include <core/log.h>
 #include <core/memory.h>
+#include <core/window.h>
 
 #include <resource/resource_manager/resource_manager.h>
 #include <rhi/rhi.h>

@@ -81,8 +81,8 @@ Window::Window(const char *_name, u32 _width, u32 _height, bool enable_vulkan_su
     window_flags |= SDL_WINDOW_METAL;
 #endif
 
-    m_window = SDL_CreateWindow(_name != nullptr ? _name : "Horizon", static_cast<int>(_width), static_cast<int>(_height),
-                                window_flags);
+    m_window = SDL_CreateWindow(_name != nullptr ? _name : "Horizon", static_cast<int>(_width),
+                                static_cast<int>(_height), window_flags);
 
     if (!m_window)
     {

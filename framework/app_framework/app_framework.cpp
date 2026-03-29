@@ -170,7 +170,7 @@ void AppFramework::OnResize(u32 new_width, u32 new_height)
 
 void AppFramework::InitializeWindow()
 {
-    // TODO(hyl5): Make window creation more flexible 
+    // TODO(hyl5): Make window creation more flexible
     const bool enable_vulkan_surface = m_render_backend == RenderBackend::RENDER_BACKEND_VULKAN;
     m_window = std::make_unique<Window>(m_app_name, m_width, m_height, enable_vulkan_surface);
 
