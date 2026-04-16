@@ -4,9 +4,9 @@ name: build
 
 on:
   push:
-    branches: [ "horizon" ]
+    branches: [ "horizon", "horizon_dev" ]
   pull_request:
-    branches: [ "horizon" ]
+    branches: [ "horizon", "horizon_dev" ]
 
 jobs:
   build:
