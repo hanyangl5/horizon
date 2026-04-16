@@ -42,10 +42,6 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
     isSame = isSame && (a->set == b->set);
     isSame = isSame && (a->reg == b->reg);
 
-#ifdef METAL
-    isSame = isSame && (a->mArgumentDescriptor.mArgumentIndex == b->mArgumentDescriptor.mArgumentIndex);
-#endif
-
 #ifdef RESOURCE_NAME_CHECK
     // we may not need this, the rest is enough but if we want to be super sure we can do this check
     isSame = isSame && (a->name_size == b->name_size);
@@ -141,7 +137,6 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         {
             vertexStageIndex = i;
         }
-#if !defined(METAL)
         else if (pSrcRef->mShaderStage == SHADER_STAGE_HULL)
         {
             hullStageIndex = i;
@@ -154,7 +149,6 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         {
             geometryStageIndex = i;
         }
-#endif
         else if (pSrcRef->mShaderStage == SHADER_STAGE_FRAG)
         {
             pixelStageIndex = i;

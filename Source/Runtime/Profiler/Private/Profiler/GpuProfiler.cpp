@@ -47,6 +47,7 @@ void         removeGpuProfiler(ProfileToken nProfileToken) {}
 #else
 
 #include "RHI/IGraphics.h"
+#include "../../../RHI/Private/RendererResourceAPI.h"
 #include "Resources/IResourceLoader.h"
 #include "Core/ILog.h"
 #include "Core/ITime.h"
@@ -54,9 +55,6 @@ void         removeGpuProfiler(ProfileToken nProfileToken) {}
 #include "ProfilerBase.h"
 
 #include "Core/IMemory.h"
-
-DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
-DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
 GpuProfilerContainer* gGpuProfilerContainer = NULL;
 

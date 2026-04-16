@@ -46,29 +46,11 @@
 
 // ------------------------------- renderer configuration ------------------------------- //
 
-// Comment/uncomment includes to disable/enable rendering APIs
+// Horizon only keeps the Windows Direct3D 12 backend.
 #if defined(_WINDOWS)
-#ifndef _WINDOWS7
 #include "Direct3D12/Direct3D12Config.h"
-#endif
-//#include "Direct3D11/Direct3D11Config.h"
-#elif defined(_WINDOWS) && ENABLE_VULKAN
-#include "Vulkan/VulkanConfig.h"
-#elif defined(XBOX)
-#include "Direct3D12/Direct3D12Config.h"
-#elif defined(__APPLE__)
-#include "Metal/MetalConfig.h"
-#elif defined(__ANDROID__)
-#ifndef QUEST_VR
-#include "OpenGLES/GLESConfig.h"
-#endif
-#ifdef ARCH_ARM64
-#include "Vulkan/VulkanConfig.h"
-#endif
-#elif defined(NX64)
-#include "Vulkan/VulkanConfig.h"
-#elif defined(__linux__)
-#include "Vulkan/VulkanConfig.h"
+#else
+#error "Horizon only supports the Windows Direct3D12 renderer backend."
 #endif
 
 // Uncomment this macro to define custom rendering max options
@@ -88,20 +70,16 @@ enum
     MAX_MIP_LEVELS = 0xFFFFFFFF,
     MAX_SWAPCHAIN_IMAGES = 3,
     MAX_GPU_VENDOR_STRING_LENGTH = 64, // max size for GPUVendorPreset strings
-#if defined(VULKAN)
-    MAX_PLANE_COUNT = 3,
-#endif
 };
 #endif
 
-// Enable raytracing if available
-// Possible renderers: D3D12, Vulkan, Metal
-#if defined(D3D12_RAYTRACING_AVAILABLE) || defined(VK_RAYTRACING_AVAILABLE) || defined(MTL_RAYTRACING_AVAILABLE) || defined(PROSPERO)
+// Enable raytracing if available.
+#if defined(D3D12_RAYTRACING_AVAILABLE)
 #define ENABLE_RAYTRACING
 #endif
 
 #ifdef ENABLE_PROFILER
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO) || defined(GLES)
+#if defined(DIRECT3D12)
 #define ENABLE_GPU_PROFILER
 #endif
 #endif
@@ -117,12 +95,8 @@ enum
 #endif
 #endif
 
-#if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + \
-     defined(NX64)) == 0
+#if !defined(DIRECT3D12)
 #error "No rendering API defined"
-#elif (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + \
-       defined(NX64)) > 1
-#define USE_MULTIPLE_RENDER_APIS
 #endif
 
 #if defined(ANDROID) || defined(SWITCH) || defined(TARGET_APPLE_ARM64)
@@ -133,13 +107,7 @@ enum
 #define ENABLE_DEPENDENCY_TRACKER
 #endif
 
-#if defined(FORGE_DEBUG) && defined(VULKAN)
-#define GFX_DRIVER_MEMORY_TRACKING
-#define GFX_DEVICE_MEMORY_TRACKING
-#endif
-
-#if defined(_WIN32) && !defined(XBOX)
-#define FORGE_D3D11_DYNAMIC_LOADING
+#if defined(_WIN32)
 #define FORGE_D3D12_DYNAMIC_LOADING
 #endif
 
@@ -151,14 +119,14 @@ enum
 struct GPUSettings;
 struct GPUCapBits;
 
-typedef struct ExtendedSettings
+struct ExtendedSettings
 {
     uint32_t     mNumSettings;
     uint32_t*    pSettings;
     const char** ppSettingNames;
-} ExtendedSettings;
+};
 
-typedef enum GPUPresetLevel
+enum GPUPresetLevel : uint32_t
 {
     GPU_PRESET_NONE = 0,
     GPU_PRESET_OFFICE,  // This means unsupported
@@ -168,7 +136,7 @@ typedef enum GPUPresetLevel
     GPU_PRESET_HIGH,
     GPU_PRESET_ULTRA,
     GPU_PRESET_COUNT
-} GPUPresetLevel;
+};
 
 // read gpu.cfg and store all its content in specific structures
 FORGE_API void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings);

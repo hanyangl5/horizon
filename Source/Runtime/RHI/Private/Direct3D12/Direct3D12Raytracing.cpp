@@ -51,12 +51,10 @@
 #include "Direct3D12Hooks.h"
 
 #include "Core/IMemory.h"
+#include "../RendererResourceAPI.h"
 
 // check if WindowsSDK is used which supports raytracing
 #ifdef D3D12_RAYTRACING_AVAILABLE
-
-DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
 // Enable experimental features and return if they are supported.
 // To test them being supported we need to check both their enablement as well as device creation afterwards.
@@ -495,14 +493,6 @@ void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructur
 
 void initD3D12RaytracingFunctions()
 {
-#ifdef D3D12_RAYTRACING_AVAILABLE
-    initRaytracing = d3d12_initRaytracing;
-    removeRaytracing = d3d12_removeRaytracing;
-    addAccelerationStructure = d3d12_addAccelerationStructure;
-    removeAccelerationStructure = d3d12_removeAccelerationStructure;
-    removeAccelerationStructureScratch = d3d12_removeAccelerationStructureScratch;
-    cmdBuildAccelerationStructure = d3d12_cmdBuildAccelerationStructure;
-#endif
 }
 
 #endif

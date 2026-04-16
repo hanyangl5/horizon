@@ -55,7 +55,7 @@
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <ThirdParty/ags/AgsHelper.h>
 #include <ThirdParty/nvapi/NvApiHelper.h>
-#include <ThirdParty/dxcapi.h>
+#include <ThirdParty/DirectXShaderCompiler/inc/dxcapi.h>
 //#include <ThirdParty/renderdoc/renderdoc_app.h>
 
 #include "Core/IFileSystem.h"
@@ -88,6 +88,7 @@
 #endif
 
 #include "Core/IMemory.h"
+#include "../RendererResourceAPI.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL    ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
@@ -107,21 +108,6 @@ extern void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationS
 #if defined(_WIN32) && defined(_DEBUG) && defined(DRED)
 #define USE_DRED 1
 #endif
-
-DECLARE_RENDERER_FUNCTION(void, getBufferSizeAlign, Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
-DECLARE_RENDERER_FUNCTION(void, getTextureSizeAlign, Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
-DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
-DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
-DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset,
-                          uint64_t size)
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer,
-                          const struct SubresourceDataDesc* pSubresourceDesc)
-DECLARE_RENDERER_FUNCTION(void, cmdCopySubresource, Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture,
-                          const struct SubresourceDataDesc* pSubresourceDesc)
-DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
-DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
 
 static void SetObjectName(ID3D12Object* pObject, const char* pName)
 {
@@ -285,11 +271,11 @@ PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER fnD3D12CreateVersionedRoo
 /************************************************************************/
 // Descriptor Heap Defines
 /************************************************************************/
-typedef struct DescriptorHeapProperties
+struct DescriptorHeapProperties
 {
     uint32_t                    mMaxDescriptors;
     D3D12_DESCRIPTOR_HEAP_FLAGS mFlags;
-} DescriptorHeapProperties;
+};
 
 DescriptorHeapProperties gCpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {
     { 1024 * 256, D3D12_DESCRIPTOR_HEAP_FLAG_NONE }, // CBV SRV UAV
@@ -298,7 +284,7 @@ DescriptorHeapProperties gCpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE
     { 512, D3D12_DESCRIPTOR_HEAP_FLAG_NONE },        // DSV
 };
 
-typedef struct NullDescriptors
+struct NullDescriptors
 {
     // Default NULL Descriptors for binding at empty descriptor slots to make sure all descriptors are bound at submit
     DxDescriptorID mNullTextureSRV[TEXTURE_DIM_COUNT];
@@ -307,12 +293,12 @@ typedef struct NullDescriptors
     DxDescriptorID mNullBufferUAV;
     DxDescriptorID mNullBufferCBV;
     DxDescriptorID mNullSampler;
-} NullDescriptors;
+};
 /************************************************************************/
 // Descriptor Heap Structures
 /************************************************************************/
 /// CPU Visible Heap to store all the resources needing CPU read / write operations - Textures/Buffers/RTV
-typedef struct DescriptorHeap
+struct DescriptorHeap
 {
     /// DX Heap
     ID3D12DescriptorHeap*       pHeap;
@@ -331,13 +317,13 @@ typedef struct DescriptorHeap
     uint32_t                    mDescriptorSize;
     // Usage
     uint32_t                    mUsedDescriptors;
-} DescriptorHeap;
+};
 
-typedef struct DescriptorIndexMap
+struct DescriptorIndexMap
 {
     char*    key;
     uint32_t value;
-} DescriptorIndexMap;
+};
 
 char* processErrorMessages(IDxcBlobEncoding* pEncoding)
 {
@@ -1130,11 +1116,11 @@ static void remove_default_resources(Renderer* pRenderer)
 /************************************************************************/
 // Internal Root Signature Functions
 /************************************************************************/
-typedef struct RootParameter
+struct RootParameter
 {
     ShaderResource  mShaderResource;
     DescriptorInfo* pDescriptorInfo;
-} RootParameter;
+};
 
 // For sort
 // sort table by type (CBV/SRV/UAV) by register by space
@@ -1161,12 +1147,12 @@ DEFINE_SORT_ALGORITHMS_FOR_TYPE(static, RootParameter, lessRootParameter)
 #undef DESTROY_TEMP_ROOT_PARAM
 #undef COPY_ROOT_PARAM
 
-typedef struct DescriptorInfoIndexNode
+struct DescriptorInfoIndexNode
 {
     DescriptorInfo* key;
     uint32_t        value;
-} DescriptorInfoIndexNode;
-typedef struct d3d12_UpdateFrequencyLayoutInfo
+};
+struct UpdateFrequencyLayoutInfo
 {
     // stb_ds array
     RootParameter*           mCbvSrvUavTable;
@@ -1178,7 +1164,7 @@ typedef struct d3d12_UpdateFrequencyLayoutInfo
     RootParameter*           mRootConstants;
     // stb_ds hash map
     DescriptorInfoIndexNode* mDescriptorIndexMap;
-} UpdateFrequencyLayoutInfo;
+};
 
 /// Calculates the total size of the root signature (in DWORDS) from the input layouts
 uint32_t calculate_root_signature_size(UpdateFrequencyLayoutInfo* pLayouts, uint32_t numLayouts)
@@ -2702,7 +2688,6 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         {
             RendererContextDesc contextDesc = {};
             contextDesc.mEnableGpuBasedValidation = pDesc->mEnableGpuBasedValidation;
-            contextDesc.mD3D11Supported = pDesc->mD3D11Supported;
             contextDesc.mDx.mFeatureLevel = pDesc->mDx.mFeatureLevel;
             pRenderer->mOwnsContext = true;
             d3d12_initRendererContext(appName, &contextDesc, &pRenderer->pContext);
@@ -4360,8 +4345,8 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
 
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
-        ShaderStage                  stage_mask = (ShaderStage)(1 << i);
-        const BinaryShaderStageDesc* pStage = NULL;
+        ShaderStage               stage_mask = (ShaderStage)(1 << i);
+        const ShaderSrcStageDesc* pStage = NULL;
         if (stage_mask == (pShaderProgram->mStages & stage_mask))
         {
             switch (stage_mask)
@@ -4435,17 +4420,17 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     ASSERT(pRenderer->pGpu->mSettings.mMaxRootSignatureDWORDS > 0);
     ASSERT(ppRootSignature);
 
-    typedef struct StaticSampler
+    struct StaticSampler
     {
         ShaderResource* pShaderResource;
         Sampler*        pSampler;
-    } StaticSampler;
+    };
 
-    typedef struct StaticSamplerNode
+    struct StaticSamplerNode
     {
         char*    key;
         Sampler* value;
-    } StaticSamplerNode;
+    };
 
     static constexpr uint32_t kMaxLayoutCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
     UpdateFrequencyLayoutInfo layouts[kMaxLayoutCount] = {};
@@ -6626,12 +6611,12 @@ void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffe
     }
 }
 
-typedef struct SubresourceDataDesc
+struct SubresourceDataDesc
 {
     uint64_t mSrcOffset;
     uint32_t mMipLevel;
     uint32_t mArrayLayer;
-} SubresourceDataDesc;
+};
 
 void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pDesc)
 {
@@ -7403,142 +7388,6 @@ void d3d12_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char*
 
 void initD3D12Renderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
 {
-    // API functions
-    addFence = d3d12_addFence;
-    removeFence = d3d12_removeFence;
-    addSemaphore = d3d12_addSemaphore;
-    removeSemaphore = d3d12_removeSemaphore;
-    addQueue = d3d12_addQueue;
-    removeQueue = d3d12_removeQueue;
-    addSwapChain = d3d12_addSwapChain;
-    removeSwapChain = d3d12_removeSwapChain;
-
-    // command pool functions
-    addCmdPool = d3d12_addCmdPool;
-    removeCmdPool = d3d12_removeCmdPool;
-    addCmd = d3d12_addCmd;
-    removeCmd = d3d12_removeCmd;
-    addCmd_n = d3d12_addCmd_n;
-    removeCmd_n = d3d12_removeCmd_n;
-
-    addRenderTarget = d3d12_addRenderTarget;
-    removeRenderTarget = d3d12_removeRenderTarget;
-    addSampler = d3d12_addSampler;
-    removeSampler = d3d12_removeSampler;
-
-    // Resource Load functions
-    addResourceHeap = d3d12_addResourceHeap;
-    removeResourceHeap = d3d12_removeResourceHeap;
-    getBufferSizeAlign = d3d12_getBufferSizeAlign;
-    getTextureSizeAlign = d3d12_getTextureSizeAlign;
-    addBuffer = d3d12_addBuffer;
-    removeBuffer = d3d12_removeBuffer;
-    mapBuffer = d3d12_mapBuffer;
-    unmapBuffer = d3d12_unmapBuffer;
-    cmdUpdateBuffer = d3d12_cmdUpdateBuffer;
-    cmdUpdateSubresource = d3d12_cmdUpdateSubresource;
-    cmdCopySubresource = d3d12_cmdCopySubresource;
-    addTexture = d3d12_addTexture;
-    removeTexture = d3d12_removeTexture;
-
-    // shader functions
-    addShaderBinary = d3d12_addShaderBinary;
-    addShaderSource = d3d12_addShaderSource;
-    removeShader = d3d12_removeShader;
-
-    addRootSignature = d3d12_addRootSignature;
-    removeRootSignature = d3d12_removeRootSignature;
-    getDescriptorIndexFromName = d3d12_getDescriptorIndexFromName;
-
-    // pipeline functions
-    addPipeline = d3d12_addPipeline;
-    removePipeline = d3d12_removePipeline;
-    addPipelineCache = d3d12_addPipelineCache;
-    getPipelineCacheData = d3d12_getPipelineCacheData;
-    removePipelineCache = d3d12_removePipelineCache;
-#if defined(SHADER_STATS_AVAILABLE)
-    addPipelineStats = NULL;
-    removePipelineStats = NULL;
-#endif
-
-    // Descriptor Set functions
-    addDescriptorSet = d3d12_addDescriptorSet;
-    removeDescriptorSet = d3d12_removeDescriptorSet;
-    updateDescriptorSet = d3d12_updateDescriptorSet;
-
-    // command buffer functions
-    resetCmdPool = d3d12_resetCmdPool;
-    beginCmd = d3d12_beginCmd;
-    endCmd = d3d12_endCmd;
-    cmdBindRenderTargets = d3d12_cmdBindRenderTargets;
-    cmdSetViewport = d3d12_cmdSetViewport;
-    cmdSetScissor = d3d12_cmdSetScissor;
-    cmdSetStencilReferenceValue = d3d12_cmdSetStencilReferenceValue;
-    cmdSetSampleLocations = d3d12_cmdSetSampleLocations;
-    cmdBindPipeline = d3d12_cmdBindPipeline;
-    cmdBindDescriptorSet = d3d12_cmdBindDescriptorSet;
-    cmdBindPushConstants = d3d12_cmdBindPushConstants;
-    cmdBindDescriptorSetWithRootCbvs = d3d12_cmdBindDescriptorSetWithRootCbvs;
-    cmdBindIndexBuffer = d3d12_cmdBindIndexBuffer;
-    cmdBindVertexBuffer = d3d12_cmdBindVertexBuffer;
-    cmdDraw = d3d12_cmdDraw;
-    cmdDrawInstanced = d3d12_cmdDrawInstanced;
-    cmdDrawIndexed = d3d12_cmdDrawIndexed;
-    cmdDrawIndexedInstanced = d3d12_cmdDrawIndexedInstanced;
-    cmdDispatch = d3d12_cmdDispatch;
-
-    // Transition Commands
-    cmdResourceBarrier = d3d12_cmdResourceBarrier;
-
-    // queue/fence/swapchain functions
-    acquireNextImage = d3d12_acquireNextImage;
-    queueSubmit = d3d12_queueSubmit;
-    queuePresent = d3d12_queuePresent;
-    waitQueueIdle = d3d12_waitQueueIdle;
-    getFenceStatus = d3d12_getFenceStatus;
-    waitForFences = d3d12_waitForFences;
-    toggleVSync = d3d12_toggleVSync;
-
-    getSupportedSwapchainFormat = d3d12_getSupportedSwapchainFormat;
-    getRecommendedSwapchainImageCount = d3d12_getRecommendedSwapchainImageCount;
-
-    // indirect Draw functions
-    addIndirectCommandSignature = d3d12_addIndirectCommandSignature;
-    removeIndirectCommandSignature = d3d12_removeIndirectCommandSignature;
-    cmdExecuteIndirect = d3d12_cmdExecuteIndirect;
-
-    /************************************************************************/
-    // GPU Query Interface
-    /************************************************************************/
-    getTimestampFrequency = d3d12_getTimestampFrequency;
-    addQueryPool = d3d12_addQueryPool;
-    removeQueryPool = d3d12_removeQueryPool;
-    cmdBeginQuery = d3d12_cmdBeginQuery;
-    cmdEndQuery = d3d12_cmdEndQuery;
-    cmdResolveQuery = d3d12_cmdResolveQuery;
-    cmdResetQuery = d3d12_cmdResetQuery;
-    getQueryData = d3d12_getQueryData;
-    /************************************************************************/
-    // Stats Info Interface
-    /************************************************************************/
-    calculateMemoryStats = d3d12_calculateMemoryStats;
-    calculateMemoryUse = d3d12_calculateMemoryUse;
-    freeMemoryStats = d3d12_freeMemoryStats;
-    /************************************************************************/
-    // Debug Marker Interface
-    /************************************************************************/
-    cmdBeginDebugMarker = d3d12_cmdBeginDebugMarker;
-    cmdEndDebugMarker = d3d12_cmdEndDebugMarker;
-    cmdAddDebugMarker = d3d12_cmdAddDebugMarker;
-    cmdWriteMarker = d3d12_cmdWriteMarker;
-    /************************************************************************/
-    // Resource Debug Naming Interface
-    /************************************************************************/
-    setBufferName = d3d12_setBufferName;
-    setTextureName = d3d12_setTextureName;
-    setRenderTargetName = d3d12_setRenderTargetName;
-    setPipelineName = d3d12_setPipelineName;
-
     d3d12_initRenderer(appName, pSettings, ppRenderer);
 }
 

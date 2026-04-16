@@ -72,12 +72,8 @@
 // indirect draw buffers.
 #define CLEAR_THREAD_COUNT 256
 
-#if defined(DIRECT3D12)
 #define INDIRECT_ROOT_CONSTANT 1
 #define SET_DRAW_ID(o, drawId, instanceId)
-#else
-#define SET_DRAW_ID(o, drawId, instanceId) o.drawId = instanceId
-#endif
 
 // Define different geometry sets (opaque, alpha tested, and transparent geometry)
 
@@ -120,11 +116,7 @@
 #define OIT_MAX_FRAG_COUNT 8
 #endif
 
-#if defined(ORBIS)
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 5
-#else
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 8
-#endif
 #if defined(INDIRECT_ROOT_CONSTANT)
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET 1
 #else
@@ -206,14 +198,8 @@ typedef struct IndirectDrawIndexArguments
 // Size for the IndirectDrawArgsBuffer
 #define INDIRECT_DRAW_ARGS_BUFFER_SIZE                 (MAX_DRAWS_INDIRECT_ELEMENTS * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
 
-// While processing animated instances we sometimes need to access VertexID, DirectX12 treats vertexID differently to other APIs
-#if defined(DIRECT3D12)
 // VertexID starts at 0 from the first drawn vertex, no matter the offset. If vertexOffset=X first VertexID=0
 #define VERTEX_ID_RELATIVE_TO_DRAW 1
-#else
-// VertexID is always the ID of the vertex in the entire mesh. If vertexOffset=X first VertexID=X
-#define VERTEX_ID_RELATIVE_TO_DRAW 0
-#endif
 
 CBUFFER(PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
 {

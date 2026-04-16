@@ -52,7 +52,7 @@ typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
         name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
             [](GPUSettings* pSetting, uint64_t value)                               \
         {                                                                           \
-            COMPILE_ASSERT(sizeof(decltype(pSetting->prop)) <= sizeof(value));      \
+            static_assert(sizeof(decltype(pSetting->prop)) <= sizeof(value));       \
             pSetting->prop = (decltype(pSetting->prop))value;                       \
         }                                                                           \
     }
@@ -81,32 +81,17 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY("allowbuffertextureinsameheap", mAllowBufferTextureInSameHeap),
     GPU_CONFIG_PROPERTY("amdasicfamily", mAmdAsicFamily),
     GPU_CONFIG_PROPERTY("builtindrawid", mBuiltinDrawID),
-#if defined(METAL)
-    GPU_CONFIG_PROPERTY("cubemaptexturearraysupported", mCubeMapTextureArraySupported),
-    GPU_CONFIG_PROPERTY("tessellationindirectdrawsupported", mTessellationIndirectDrawSupported),
-#if !defined(TARGET_IOS)
-    GPU_CONFIG_PROPERTY("isheadless", mIsHeadLess),
-#endif
-#endif
     GPU_CONFIG_PROPERTY_READ_ONLY("deviceid", mGpuVendorPreset.mModelId),
-#if defined(DIRECT3D11) || defined(DIRECT3D12)
     GPU_CONFIG_PROPERTY("directxfeaturelevel", mFeatureLevel),
     GPU_CONFIG_PROPERTY("suppressinvalidsubresourcestateafterexit", mSuppressInvalidSubresourceStateAfterExit),
-#endif
     GPU_CONFIG_PROPERTY("geometryshadersupported", mGeometryShaderSupported),
     GPU_CONFIG_PROPERTY("gpupresetlevel", mGpuVendorPreset.mPresetLevel),
     GPU_CONFIG_PROPERTY("graphicqueuesupported", mGraphicsQueueSupported),
     GPU_CONFIG_PROPERTY("hdrsupported", mHDRSupported),
-#if defined(VULKAN)
-    GPU_CONFIG_PROPERTY("dynamicrenderingenabled", mDynamicRenderingSupported),
-    GPU_CONFIG_PROPERTY("xclipsetransferqueueworkaroundenabled", mXclipseTransferQueueWorkaround),
-#endif
     GPU_CONFIG_PROPERTY("indirectcommandbuffer", mIndirectCommandBuffer),
     GPU_CONFIG_PROPERTY("indirectrootconstant", mIndirectRootConstant),
     GPU_CONFIG_PROPERTY("maxboundtextures", mMaxBoundTextures),
-#if defined(DIRECT3D12)
     GPU_CONFIG_PROPERTY("maxrootsignaturedwords", mMaxRootSignatureDWORDS),
-#endif
     GPU_CONFIG_PROPERTY("maxvertexinputbindings", mMaxVertexInputBindings),
     GPU_CONFIG_PROPERTY("multidrawindirect", mMultiDrawIndirect),
     GPU_CONFIG_PROPERTY("occlusionqueries", mOcclusionQueries),
@@ -157,35 +142,35 @@ struct GPUModelDefinition
     char           mModelName[MAX_GPU_VENDOR_STRING_LENGTH];
 };
 
-static GPUModelDefinition* gGPUModels = NULL;
+static GPUModelDefinition* gGPUModels = nullptr;
 
 /* ------------------------ gpu.cfg ------------------------ */
 struct ConfigurationRule
 {
-    const GPUProperty* pGpuProperty = NULL;
+    const GPUProperty* pGpuProperty = nullptr;
     char               comparator[3] = ""; // optional
     uint64_t           comparatorValue = INVALID_OPTION;
 };
 
 struct GPUComparisonChoice
 {
-    ConfigurationRule* pGpuComparisonRules = NULL;
+    ConfigurationRule* pGpuComparisonRules = nullptr;
     uint32_t           comparisonRulesCount = 0;
 };
 
 struct ConfigurationSetting
 {
-    const GPUProperty* pUpdateProperty = NULL;
-    ConfigurationRule* pConfigurationRules = NULL;
+    const GPUProperty* pUpdateProperty = nullptr;
+    ConfigurationRule* pConfigurationRules = nullptr;
     uint32_t           comparisonRulesCount = 0;
     uint64_t           assignmentValue = 0;
 };
 
 struct UserSetting
 {
-    const char*        name = NULL;
-    uint32_t*          pSettingValue = NULL;
-    ConfigurationRule* pConfigurationRules = NULL;
+    const char*        name = nullptr;
+    uint32_t*          pSettingValue = nullptr;
+    ConfigurationRule* pConfigurationRules = nullptr;
     uint32_t           comparisonRulesCount = 0;
     uint32_t           assignmentValue = 0;
 };
@@ -242,22 +227,22 @@ bool bufferedGetLine(char* lineStrOut, char** bufferCursorInOut, const char* buf
 ///////////////////////////////////////////////////////////
 // CONFIG INTERFACE
 
-typedef enum DataParsingStatus
+enum DataParsingStatus : uint32_t
 {
     DATA_PARSE_NONE,
     DATA_PARSE_DEFAULT_CONFIGURATION,
     DATA_PARSE_GPU_VENDOR,
     DATA_PARSE_GPU_MODEL,
-} DataParsingStatus;
+};
 
-typedef enum ConfigParsingStatus
+enum ConfigParsingStatus : uint32_t
 {
     CONFIG_PARSE_NONE,
     CONFIG_PARSE_SELECTION_RULE,
     CONFIG_PARSE_DRIVER_REJECTION,
     CONFIG_PARSE_GPU_CONFIGURATION,
     CONFIG_PARSE_USER_EXTENDED_SETTINGS,
-} ConfigParsingStatus;
+};
 
 // ------ gpu.data
 static GPUVendorDefinition  gGPUVendorDefinitions[MAX_GPU_VENDOR_COUNT] = {};
@@ -268,7 +253,7 @@ static GPUComparisonChoice  gGPUComparisonChoices[MAXIMUM_GPU_COMPARISON_CHOICES
 static ConfigurationSetting gConfigurationSettings[MAXIMUM_GPU_SETTINGS];
 static UserSetting          gUserSettings[MAXIMUM_GPU_SETTINGS];
 // gDriverRejectionRules[MAXIMUM_GPU_COMPARISON_CHOICES]; 72776 bytes moves it on the heap instead
-static DriverRejectionRule* gDriverRejectionRules = NULL;
+static DriverRejectionRule* gDriverRejectionRules = nullptr;
 static uint32_t             gGPUComparisonChoiceCount = 0;
 static uint32_t             gDriverRejectionRulesCount = 0;
 static uint32_t             gConfigurationSettingsCount = 0;
@@ -611,7 +596,7 @@ void removeGPUConfigurationRules()
     tf_free(gGpuDataFileBuffer);
     tf_free(gDriverRejectionRules);
     arrfree(gGPUModels);
-    gDriverRejectionRules = NULL;
+    gDriverRejectionRules = nullptr;
 
     for (uint32_t i = 0; i < gGPUComparisonChoiceCount; i++)
     {
@@ -1241,7 +1226,7 @@ const char* presetLevelToString(GPUPresetLevel preset)
     case GPU_PRESET_ULTRA:
         return "ultra";
     default:
-        return NULL;
+        return nullptr;
     }
 }
 
@@ -1277,7 +1262,7 @@ const GPUProperty* propertyNameToGpuProperty(const char* str)
             return &availableGpuProperties[i];
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 bool isValidGPUVendorId(uint32_t vendorId)

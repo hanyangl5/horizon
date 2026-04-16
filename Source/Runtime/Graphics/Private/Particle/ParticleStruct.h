@@ -38,12 +38,7 @@
 #define MAX_PARTICLE_SET_COUNT 8
 #define BOIDS_SAMPLE_COUNT     32
 
-// ORBIS goes out of memory at 4K with 24 layers
-#if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS 16
-#else
 #define MAX_TRANSPARENCY_LAYERS 24
-#endif
 
 #define TRANSPARENCY_CONTRIBUTION_THRESHOLD  0.05
 

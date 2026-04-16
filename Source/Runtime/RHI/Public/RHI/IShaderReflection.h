@@ -25,15 +25,12 @@
 #pragma once
 
 #include "RHI/IGraphics.h"
-#ifdef GLES
-#include "../ThirdParty/OpenSource/OpenGL/GLES2/gl2.h"
-#endif
 
 #include <ctype.h>
 
 static const uint32_t MAX_SHADER_STAGE_COUNT = 5;
 
-typedef enum TextureDimension
+enum TextureDimension : uint32_t
 {
     TEXTURE_DIM_1D,
     TEXTURE_DIM_2D,
@@ -46,7 +43,7 @@ typedef enum TextureDimension
     TEXTURE_DIM_CUBE_ARRAY,
     TEXTURE_DIM_COUNT,
     TEXTURE_DIM_UNDEFINED,
-} TextureDimension;
+};
 
 struct VertexInput
 {
@@ -59,19 +56,6 @@ struct VertexInput
     // name size
     uint32_t name_size;
 };
-
-#if defined(METAL)
-struct ArgumentDescriptor
-{
-    MTLDataType     mDataType;
-    uint32_t        mBufferIndex;
-    uint32_t        mArgumentIndex;
-    uint32_t        mArrayLength;
-    MTL_ACCESS_TYPE mAccessType;
-    MTLTextureType  mTextureType;
-    size_t          mAlignment;
-};
-#endif
 
 struct ShaderResource
 {
@@ -98,12 +82,6 @@ struct ShaderResource
 
     // 1D / 2D / Array / MSAA / ...
     TextureDimension dim;
-
-#if defined(METAL)
-    uint32_t           alignment;
-    bool               mIsArgumentBufferField;
-    ArgumentDescriptor mArgumentDescriptor;
-#endif
 };
 
 struct ShaderVariable
@@ -122,10 +100,6 @@ struct ShaderVariable
 
     // name size
     uint32_t name_size;
-
-#if defined(GLES)
-    GLenum type; // Needed to use the right glUniform(i) function to upload the data
-#endif
 };
 
 struct ShaderReflection
@@ -135,10 +109,7 @@ struct ShaderReflection
     VertexInput*    pVertexInputs;
     ShaderResource* pShaderResources;
     ShaderVariable* pVariables;
-
-#if defined(VULKAN)
-    char* pEntryPoint;
-#endif
+    //char*           pEntryPoint;
 
     ShaderStage mShaderStage;
 
@@ -154,11 +125,8 @@ struct ShaderReflection
 
     // number of tessellation control point
     uint32_t mNumControlPoint;
-
-#if defined(DIRECT3D12)
     bool mCbvHeapIndexing;
     bool mSamplerHeapIndexing;
-#endif
 };
 
 struct PipelineReflection

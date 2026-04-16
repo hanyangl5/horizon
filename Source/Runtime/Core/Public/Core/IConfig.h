@@ -225,12 +225,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #if defined(_WIN32)
 
 #ifdef _GAMING_XBOX
-#define XBOX
-#ifdef _GAMING_XBOX_SCARLETT
-#ifndef SCARLETT
-#define SCARLETT
-#endif
-#endif
+#error "Horizon no longer supports Xbox targets."
 #elif !defined(_WINDOWS)
 #define _WINDOWS
 #endif
@@ -252,43 +247,12 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define _WIN32_WINNT  _WIN32_WINNT_WIN7
 #endif
 
-#elif defined(__APPLE__)
-#include <TargetConditionals.h>
-
-#if defined(ARCH_ARM64)
-#define TARGET_APPLE_ARM64
-#endif
-
-#if TARGET_OS_IPHONE
-#define TARGET_IOS
-#endif
-
-#if TARGET_IPHONE_SIMULATOR
-#define TARGET_IOS_SIMULATOR
-#endif
-
-#elif defined(__ANDROID__)
-#define ANDROID
-#define API_EXPORT
-
-#elif defined(__ORBIS__)
-#define ORBIS
-#elif defined(__PROSPERO__)
-#define PROSPERO
+#else
+#error "Horizon only supports Windows targets."
 #endif
 
 #ifndef MIN_MALLOC_ALIGNMENT
-#if defined(__APPLE__)
-#define MIN_MALLOC_ALIGNMENT 16
-#elif defined(ANDROID) && defined(ARCH_ARM_FAMILY)
-#define MIN_MALLOC_ALIGNMENT 8
-#elif defined(ANDROID) && defined(ARCH_X86_FAMILY)
-#define MIN_MALLOC_ALIGNMENT 8
-#elif defined(NX64) && defined(ARCH_ARM_FAMILY)
-#define MIN_MALLOC_ALIGNMENT 8
-#else
 #define MIN_MALLOC_ALIGNMENT (PTR_SIZE * 2)
-#endif
 #endif
 
 //////////////////////////////////////////////
@@ -303,11 +267,6 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_SCREENSHOT
 //#define ENABLE_PROFILER
 #define ENABLE_MESHOPTIMIZER
-#ifdef TARGET_IOS
-// needed for ios haptics. Because we have to link CoreHaptics libs
-// Comment to avoid linking CoreHaptics and using haptics feature.
-#define ENABLE_FORGE_IOS_HAPTICS
-#endif
 // Uncomment this to enable empty mounts
 // used for absolute paths
 //#define ENABLE_FS_EMPTY_MOUNT
@@ -350,7 +309,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 // #define ENABLE_FORGE_STACKTRACE_DUMP
 
 #ifdef AUTOMATED_TESTING
-#if defined(NX64) || (defined(_WINDOWS) && defined(_M_X64)) || defined(ORBIS)
+#if defined(_WINDOWS) && defined(_M_X64)
 #define ENABLE_FORGE_STACKTRACE_DUMP
 #endif
 #endif

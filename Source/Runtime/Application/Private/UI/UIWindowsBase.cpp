@@ -30,10 +30,8 @@
 
 #include "Core/IConfig.h"
 
-#if !defined(XBOX)
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
-#endif
 
 #include <ThirdParty/bstrlib/bstrlib.h>
 #include <ThirdParty/rmem/inc/rmem.h>
@@ -88,7 +86,6 @@ static uint32_t  gSelectedApiIndex = 0;
 
 // PickRenderingAPI.cpp
 extern PlatformParameters gPlatformParameters;
-extern bool               gD3D11Unsupported;
 
 // WindowsWindow.cpp
 extern IApp*        pWindowAppRef;
@@ -287,34 +284,16 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     // API SWITCHING
     uiDesc = {};
     uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.6f, pSettings->mHeight * 0.01f);
-    uiCreateComponent("API Switching", &uiDesc, &pAPISwitchingComponent);
+    uiCreateComponent("Graphics Control", &uiDesc, &pAPISwitchingComponent);
 
-    static const char* pApiNames[] = {
-#if defined(DIRECT3D12)
-        "D3D12",
-#endif
-#if defined(VULKAN)
-        "Vulkan",
-#endif
-#if defined(DIRECT3D11)
-        "D3D11",
-#endif
-    };
+    static const char* pApiNames[] = { "D3D12" };
 
     // Select Api
     DropdownWidget selectApUIWidget = {};
     selectApUIWidget.pData = &gSelectedApiIndex;
 
-    uint32_t apiCount = RENDERER_API_COUNT;
-#ifdef DIRECT3D11
-    if (gD3D11Unsupported)
-    {
-        --apiCount;
-    }
-#endif
-    ASSERT(apiCount != 0 && "No supported Graphics API available!");
     selectApUIWidget.pNames = pApiNames;
-    selectApUIWidget.mCount = apiCount;
+    selectApUIWidget.mCount = (uint32_t)elementsOf(pApiNames);
 
     pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
     pSelectApUIWidget->pOnEdited = [](void* pUserData)
@@ -397,12 +376,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
         return EXIT_FAILURE;
 
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
-    // We are now shipping validation layer in the repo itself to remove dependency on Vulkan SDK to be installed
-    // Set VK_LAYER_PATH to executable location so it can find the layer files that our application wants to use
-    SetEnvironmentVariableA("VK_LAYER_PATH", pSystemFileIO->GetResourceMount(RM_DEBUG));
-#endif
 
 #ifdef ENABLE_MTUNER
     rmemInit(0);
@@ -513,20 +486,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
         // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
         // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
         // but for projects where we compile without our lua interface we cannot do this.
-#if defined(DIRECT3D11)
-        else if (strcmp(argv[i], "--d3d11") == 0)
-        {
-            if (paramRenderingAPIFound)
-            {
-                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
-                ASSERT(false);
-                return -1;
-            }
-            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D11;
-            paramRenderingAPIFound = true;
-        }
-#endif
-#if defined(DIRECT3D12)
         else if (strcmp(argv[i], "--d3d12") == 0)
         {
             if (paramRenderingAPIFound)
@@ -538,20 +497,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
             gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D12;
             paramRenderingAPIFound = true;
         }
-#endif
-#if defined(VULKAN)
-        else if (strcmp(argv[i], "--vulkan") == 0)
-        {
-            if (paramRenderingAPIFound)
-            {
-                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
-                ASSERT(false);
-                return -1;
-            }
-            gPlatformParameters.mSelectedRendererApi = RENDERER_API_VULKAN;
-            paramRenderingAPIFound = true;
-        }
-#endif
     }
 #endif
 

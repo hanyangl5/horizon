@@ -54,17 +54,17 @@ extern void remoteControlSendInputData();
 extern void remoteControlReceiveTexture();
 extern UserInterfaceDrawData* remoteControlReceiveDrawData();
 
-Renderer* pRenderer = NULL;
+Renderer* pRenderer = nullptr;
 
-Queue*     pGraphicsQueue = NULL;
+Queue*     pGraphicsQueue = nullptr;
 GpuCmdRing gGraphicsCmdRing = {};
 
-SwapChain* pSwapChain = NULL;
-Semaphore* pImageAcquiredSemaphore = NULL;
+SwapChain* pSwapChain = nullptr;
+Semaphore* pImageAcquiredSemaphore = nullptr;
 
-UIComponent* pGuiConnect = NULL;
-UIComponent* pGuiDisconnect = NULL;
-UIComponent* pAddHostWindow = NULL;
+UIComponent* pGuiConnect = nullptr;
+UIComponent* pGuiDisconnect = nullptr;
+UIComponent* pAddHostWindow = nullptr;
 
 const uint32_t gDataBufferCount = 1;
 uint32_t       gFontID = 0;
@@ -249,8 +249,6 @@ public:
         // window and renderer setup
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
-        settings.mD3D11Supported = true;
-        settings.mGLESSupported = true;
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
         if (!pRenderer)
