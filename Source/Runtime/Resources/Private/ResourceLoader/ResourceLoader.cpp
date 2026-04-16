@@ -3545,11 +3545,11 @@ extern "C"
 
 #define MIP_REDUCE(s, mip) (max(1u, (uint32_t)((s) >> (mip))))
 
-#define SAFE_FREE(x)  \
-    if ((x) != nullptr)  \
-    {                 \
-        tf_free((x)); \
-        (x) = nullptr;   \
+#define SAFE_FREE(x)    \
+    if ((x) != nullptr) \
+    {                   \
+        tf_free((x));   \
+        (x) = nullptr;  \
     }
 
 #define MAX_FRAMES 3U
@@ -3799,16 +3799,14 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 static void materialLoadBinaryShader(Renderer* pRenderer, const MaterialDesc* pMaterialDesc, const MaterialDesc::ShaderSet* pShaderSet,
                                      BinaryShaderDesc* pBinaryShaderDesc, ShaderByteCodeBuffer* pShaderBytecodeBuffer)
 {
-    const uint32_t shaderIds[MATERIAL_MAX_SHADER_STAGES] = {
-        pShaderSet->mVertIdx, pShaderSet->mFragIdx, pShaderSet->mHullIdx, pShaderSet->mDomainIdx, pShaderSet->mGeomIdx, pShaderSet->mCompIdx
-    };
+    const uint32_t shaderIds[MATERIAL_MAX_SHADER_STAGES] = { pShaderSet->mVertIdx,   pShaderSet->mFragIdx, pShaderSet->mHullIdx,
+                                                             pShaderSet->mDomainIdx, pShaderSet->mGeomIdx, pShaderSet->mCompIdx };
 
-    const ShaderStage pStages[MATERIAL_MAX_SHADER_STAGES] = {
-        SHADER_STAGE_VERT, SHADER_STAGE_FRAG, SHADER_STAGE_HULL, SHADER_STAGE_DOMN, SHADER_STAGE_GEOM, SHADER_STAGE_COMP
-    };
+    const ShaderStage pStages[MATERIAL_MAX_SHADER_STAGES] = { SHADER_STAGE_VERT, SHADER_STAGE_FRAG, SHADER_STAGE_HULL,
+                                                              SHADER_STAGE_DOMN, SHADER_STAGE_GEOM, SHADER_STAGE_COMP };
 
     BinaryShaderStageDesc* pStageDescriptors[MATERIAL_MAX_SHADER_STAGES] = {
-        &pBinaryShaderDesc->mVert, &pBinaryShaderDesc->mFrag, &pBinaryShaderDesc->mHull,
+        &pBinaryShaderDesc->mVert,   &pBinaryShaderDesc->mFrag, &pBinaryShaderDesc->mHull,
         &pBinaryShaderDesc->mDomain, &pBinaryShaderDesc->mGeom, &pBinaryShaderDesc->mComp,
     };
 
@@ -6208,7 +6206,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     // (this step could be delayed in time, by extending the API we could allow the user to only load specific MaterialSets)
 
     ShaderByteCodeBuffer shaderByteCodeBuffer = {};
-    char bytecodeStack[ShaderByteCodeBuffer::kStackSize] = {};
+    char                 bytecodeStack[ShaderByteCodeBuffer::kStackSize] = {};
     shaderByteCodeBuffer.pStackMemory = bytecodeStack;
 
     SyncToken token = {};

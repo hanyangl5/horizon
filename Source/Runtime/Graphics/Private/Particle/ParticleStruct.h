@@ -25,20 +25,20 @@
 #ifndef _PARTICLE_DEFS_H
 #define _PARTICLE_DEFS_H
 
-#define LIGHT_SIZE             0.4
-#define SHADOW_PARTICLE_RADIUS 3
+#define LIGHT_SIZE                           0.4
+#define SHADOW_PARTICLE_RADIUS               3
 
-#define SHADOW_COUNT           8
-#define LIGHT_COUNT            (10000 + SHADOW_COUNT)
-#define STANDARD_COUNT         4002000
-#define PARTICLE_COUNT         (STANDARD_COUNT + LIGHT_COUNT)
+#define SHADOW_COUNT                         8
+#define LIGHT_COUNT                          (10000 + SHADOW_COUNT)
+#define STANDARD_COUNT                       4002000
+#define PARTICLE_COUNT                       (STANDARD_COUNT + LIGHT_COUNT)
 
-#define PARTICLES_BATCH_X      32
-#define PARTICLES_BATCH_Y      1
-#define MAX_PARTICLE_SET_COUNT 8
-#define BOIDS_SAMPLE_COUNT     32
+#define PARTICLES_BATCH_X                    32
+#define PARTICLES_BATCH_Y                    1
+#define MAX_PARTICLE_SET_COUNT               8
+#define BOIDS_SAMPLE_COUNT                   32
 
-#define MAX_TRANSPARENCY_LAYERS 24
+#define MAX_TRANSPARENCY_LAYERS              24
 
 #define TRANSPARENCY_CONTRIBUTION_THRESHOLD  0.05
 

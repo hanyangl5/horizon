@@ -109,7 +109,7 @@ struct ShaderReflection
     VertexInput*    pVertexInputs;
     ShaderResource* pShaderResources;
     ShaderVariable* pVariables;
-    //char*           pEntryPoint;
+    // char*           pEntryPoint;
 
     ShaderStage mShaderStage;
 
@@ -125,8 +125,8 @@ struct ShaderReflection
 
     // number of tessellation control point
     uint32_t mNumControlPoint;
-    bool mCbvHeapIndexing;
-    bool mSamplerHeapIndexing;
+    bool     mCbvHeapIndexing;
+    bool     mSamplerHeapIndexing;
 };
 
 struct PipelineReflection

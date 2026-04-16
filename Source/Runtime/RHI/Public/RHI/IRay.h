@@ -142,12 +142,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Ray
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
 FORGE_RENDERER_API void FORGE_CALLCONV addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
                                                                 AccelerationStructure** ppAccelerationStructure);
-FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing,
-                                                                   AccelerationStructure* pAccelerationStructure);
+FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 /// Free the scratch memory allocated by acceleration structure after it has been built completely
 /// Does not free acceleration structure
-FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructureScratch(Raytracing* pRaytracing,
+FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructureScratch(Raytracing*            pRaytracing,
                                                                           AccelerationStructure* pAccelerationStructure);
 
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing,
-                                                                     RaytracingBuildASDesc* pDesc);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);

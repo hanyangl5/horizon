@@ -70,7 +70,7 @@
 
 // This value defines the amount of threads per group that will be used to clear the
 // indirect draw buffers.
-#define CLEAR_THREAD_COUNT 256
+#define CLEAR_THREAD_COUNT     256
 
 #define INDIRECT_ROOT_CONSTANT 1
 #define SET_DRAW_ID(o, drawId, instanceId)
@@ -199,7 +199,7 @@ typedef struct IndirectDrawIndexArguments
 #define INDIRECT_DRAW_ARGS_BUFFER_SIZE                 (MAX_DRAWS_INDIRECT_ELEMENTS * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
 
 // VertexID starts at 0 from the first drawn vertex, no matter the offset. If vertexOffset=X first VertexID=0
-#define VERTEX_ID_RELATIVE_TO_DRAW 1
+#define VERTEX_ID_RELATIVE_TO_DRAW                     1
 
 CBUFFER(PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
 {

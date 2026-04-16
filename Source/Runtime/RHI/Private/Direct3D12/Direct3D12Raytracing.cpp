@@ -491,8 +491,6 @@ void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructur
 
 #endif
 
-void initD3D12RaytracingFunctions()
-{
-}
+void initD3D12RaytracingFunctions() {}
 
 #endif
