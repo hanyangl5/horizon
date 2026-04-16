@@ -159,10 +159,10 @@ void stableSortDouble(double* pArr, size_t memberCount)
 
 // PARTITION
 // V_RET_NOT_NULL, function:partitionImpl
-static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t memberSize, LessFn less, void* pUserData){
-    PARTITION_IMPL(char, pBegin, pEnd, pPivot, LESS_GENERIC, CREATE_TEMP_GENERIC, DESTROY_TEMP_GENERIC, COPY_GENERIC, PTR_INC_GENERIC,
-                   PTR_SUB_GENERIC)
-} size_t partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t memberSize, LessFn less,
+                           void* pUserData){ PARTITION_IMPL(char, pBegin, pEnd, pPivot, LESS_GENERIC, CREATE_TEMP_GENERIC,
+                                                            DESTROY_TEMP_GENERIC, COPY_GENERIC, PTR_INC_GENERIC, PTR_SUB_GENERIC) } size_t
+    partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
 {
     if (memberCount == 0)
         return 0;
@@ -218,10 +218,10 @@ static int64_t* partitionImplInt64(int64_t* pBegin, int64_t* pEnd, int64_t* pPiv
 }
 
 // V_RET_NOT_NULL, function:partitionImplUInt8
-static uint8_t* partitionImplUInt8(uint8_t* pBegin, uint8_t* pEnd, uint8_t* pPivot){
-    PARTITION_IMPL(uint8_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
-                   PTR_SUB_NUMERIC)
-} // V_RET_NOT_NULL, function:partitionUInt8
+static uint8_t* partitionImplUInt8(uint8_t* pBegin, uint8_t* pEnd,
+                                   uint8_t* pPivot){ PARTITION_IMPL(uint8_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC,
+                                                                    DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC, PTR_SUB_NUMERIC) }
+// V_RET_NOT_NULL, function:partitionUInt8
 size_t partitionUInt8(uint8_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)

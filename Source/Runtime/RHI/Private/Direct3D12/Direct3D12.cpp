@@ -4311,8 +4311,8 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
     ASSERT(ppShaderProgram);
 
     // Compile HLSL source contained in BinaryShaderDesc into DXIL blobs first.
-    IDxcLibrary*       pLibrary = NULL;
-    IDxcCompiler*      pCompiler = NULL;
+    IDxcLibrary*        pLibrary = NULL;
+    IDxcCompiler*       pCompiler = NULL;
     IDxcIncludeHandler* pIncludeHandler = NULL;
 
     CHECK_HRESULT(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary)));
@@ -4407,8 +4407,8 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
 
             // Create source blob from HLSL text.
             IDxcBlobEncoding* pSourceBlob = NULL;
-            CHECK_HRESULT(pLibrary->CreateBlobWithEncodingOnHeapCopy((LPCVOID)pStage->pByteCode, pStage->mByteCodeSize, DXC_CP_ACP,
-                                                                     &pSourceBlob));
+            CHECK_HRESULT(
+                pLibrary->CreateBlobWithEncodingOnHeapCopy((LPCVOID)pStage->pByteCode, pStage->mByteCodeSize, DXC_CP_ACP, &pSourceBlob));
 
             // Convert entry point to wide string.
             wchar_t entryPointWide[128] = {};
@@ -4425,7 +4425,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
             const wchar_t* profile = d3d12_getShaderProfile(stage_mask);
 
             // Build compile arguments.
-            LPCWSTR args[MAX_COMPILE_ARGS];
+            LPCWSTR  args[MAX_COMPILE_ARGS];
             uint32_t argCount = 0;
 
             args[argCount++] = L"-E";
@@ -4439,8 +4439,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
 #endif
 
             IDxcOperationResult* pResult = NULL;
-            HRESULT              hr = pCompiler->Compile(pSourceBlob, NULL, entryPointWide, profile, args, argCount, NULL, 0,
-                                                        pIncludeHandler, &pResult);
+            HRESULT hr = pCompiler->Compile(pSourceBlob, NULL, entryPointWide, profile, args, argCount, NULL, 0, pIncludeHandler, &pResult);
             pSourceBlob->Release();
 
             if (FAILED(hr) || !pResult)
@@ -4471,10 +4470,9 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
             CHECK_HRESULT(pCodeBlob->QueryInterface(IID_PPV_ARGS(&pShaderProgram->mDx.pShaderBlobs[reflectionCount])));
             pCodeBlob->Release();
 
-            d3d12_createShaderReflection(
-                (uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
-                (uint32_t)pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferSize(), stage_mask,
-                &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
+            d3d12_createShaderReflection((uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
+                                         (uint32_t)pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferSize(), stage_mask,
+                                         &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
 
             WCHAR* entryPointName = (WCHAR*)mem;
             mbstowcs((WCHAR*)entryPointName, pStage->pEntryPoint, strlen(pStage->pEntryPoint));
@@ -4485,8 +4483,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
         }
     }
 
-    createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount,
-                             pShaderProgram->pReflection);
+    createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
 
     *ppShaderProgram = pShaderProgram;
 
