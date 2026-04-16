@@ -87,10 +87,11 @@
         INSERTION_SORT_IMPL(type, pArr, memberCount, simpleSortFn, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, \
                             PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)                                    \
     }
-#define DEFINE_PARTITION_IMPL_FUNCTION(attrs, fnName, type, lessFn)                                                                 \
-    attrs type* fnName(type* pBegin, type* pEnd, type* pPivot)                                                                      \
-    {                                                                                                                               \
-        PARTITION_IMPL(type, pBegin, pEnd, pPivot, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, PTR_INC_NUMERIC) \
+#define DEFINE_PARTITION_IMPL_FUNCTION(attrs, fnName, type, lessFn)                                                                          \
+    attrs type* fnName(type* pBegin, type* pEnd, type* pPivot)                                                                               \
+    {                                                                                                                                        \
+        PARTITION_IMPL(type, pBegin, pEnd, pPivot, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, PTR_INC_NUMERIC,        \
+                       PTR_SUB_NUMERIC)                                                                                                      \
     }
 #define DEFINE_PARTITION_FUNCTION(attrs, fnName, type, lessFn, partitionImplFn) \
     attrs size_t fnName(type* pArr, size_t pivot, size_t memberCount)           \
@@ -240,29 +241,29 @@
 
 // PARTITION
 
-#define PARTITION_IMPL(type, pBegin, pEnd, pPivot, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC) \
-    if (pBegin == pEnd)                                                                            \
-        return NULL;                                                                               \
-    /* skip all elements that are in correct place */                                              \
-    while (pBegin < pEnd && LESS(pBegin, pPivot))                                                  \
-        PTR_INC(pBegin);                                                                           \
-                                                                                                   \
-    CREATE_TEMP(type, tmp);                                                                        \
-                                                                                                   \
-    type* pNewPivot = pBegin;                                                                      \
-    for (type* pCurrent = pBegin; pCurrent < pEnd; PTR_INC(pCurrent))                              \
-    {                                                                                              \
-        if (LESS(pCurrent, pPivot))                                                                \
-        {                                                                                          \
-            SWAP(pCurrent, pNewPivot, tmp, COPY);                                                  \
-            PTR_INC(pNewPivot);                                                                    \
-        }                                                                                          \
-    }                                                                                              \
-                                                                                                   \
-    SWAP(pPivot, pNewPivot, tmp, COPY);                                                            \
-                                                                                                   \
-    DESTROY_TEMP(tmp);                                                                             \
-                                                                                                   \
+#define PARTITION_IMPL(type, pBegin, pEnd, pPivot, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_SUB) \
+    if (pBegin == pEnd)                                                                                        \
+        return NULL;                                                                                           \
+                                                                                                               \
+    CREATE_TEMP(type, tmp);                                                                                    \
+                                                                                                               \
+    type* pLast = PTR_SUB(pEnd, 1);                                                                            \
+    SWAP(pPivot, pLast, tmp, COPY);                                                                            \
+                                                                                                               \
+    type* pNewPivot = pBegin;                                                                                  \
+    for (type* pCurrent = pBegin; pCurrent < pLast; PTR_INC(pCurrent))                                         \
+    {                                                                                                          \
+        if (LESS(pCurrent, pLast))                                                                             \
+        {                                                                                                      \
+            SWAP(pCurrent, pNewPivot, tmp, COPY);                                                              \
+            PTR_INC(pNewPivot);                                                                                \
+        }                                                                                                      \
+    }                                                                                                          \
+                                                                                                               \
+    SWAP(pLast, pNewPivot, tmp, COPY);                                                                         \
+                                                                                                               \
+    DESTROY_TEMP(tmp);                                                                                         \
+                                                                                                               \
     return pNewPivot;
 
 // Picks middle element out of 5 elements and sorts them

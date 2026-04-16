@@ -1,4 +1,5 @@
-option(CMAKE_INCLUDE_SHADERS "Enable inclusion of shaders in the project" ON)
+option(CMAKE_INCLUDE_SHADERS "Enable inclusion of shaders in the project" OFF)
+option(HORIZON_BUILD_TESTS "Build Horizon tests" ${PROJECT_IS_TOP_LEVEL})
 
 if(CMAKE_INCLUDE_SHADERS)
     message(STATUS "Shaders will be included in the project.")
@@ -21,6 +22,10 @@ if(${CMAKE_INCLUDE_SHADERS})
     include(Shaders)
 endif()
 include(Runtime)
+
+if(HORIZON_BUILD_TESTS)
+    include(Tests)
+endif()
 
 add_definitions(-DPROJECT_ROOT="${PROJECT_ROOT}")
 

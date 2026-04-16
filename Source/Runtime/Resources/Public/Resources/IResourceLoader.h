@@ -448,6 +448,7 @@ typedef struct ShaderLoadDesc
     ShaderStageLoadDesc   mStages[SHADER_STAGE_COUNT];
     const ShaderConstant* pConstants;
     uint32_t              mConstantCount;
+    bool                  bIsSourceCode;
 } ShaderLoadDesc;
 
 typedef struct PipelineCacheLoadDesc

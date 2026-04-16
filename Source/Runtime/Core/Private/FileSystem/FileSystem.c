@@ -293,6 +293,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
     {
         *cur = '.';
         ++cur;
+        size = (size_t)(cur - beg);
     }
 
     // success

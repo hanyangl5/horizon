@@ -97,6 +97,27 @@
 
 #define MAX_COMPILE_ARGS                  64
 
+static const wchar_t* d3d12_getShaderProfile(ShaderStage stage)
+{
+    switch (stage)
+    {
+    case SHADER_STAGE_VERT:
+        return L"vs_6_0";
+    case SHADER_STAGE_FRAG:
+        return L"ps_6_0";
+    case SHADER_STAGE_COMP:
+        return L"cs_6_0";
+    case SHADER_STAGE_HULL:
+        return L"hs_6_0";
+    case SHADER_STAGE_DOMN:
+        return L"ds_6_0";
+    case SHADER_STAGE_GEOM:
+        return L"gs_6_0";
+    default:
+        return L"vs_6_0";
+    }
+}
+
 extern void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage,
                                          ShaderReflection* pOutReflection);
 
@@ -4289,6 +4310,15 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
     ASSERT(pDesc && pDesc->mStages);
     ASSERT(ppShaderProgram);
 
+    // Compile HLSL source contained in BinaryShaderDesc into DXIL blobs first.
+    IDxcLibrary*       pLibrary = NULL;
+    IDxcCompiler*      pCompiler = NULL;
+    IDxcIncludeHandler* pIncludeHandler = NULL;
+
+    CHECK_HRESULT(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary)));
+    CHECK_HRESULT(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
+    CHECK_HRESULT(pLibrary->CreateIncludeHandler(&pIncludeHandler));
+
     size_t totalSize = sizeof(Shader);
     totalSize += sizeof(PipelineReflection);
 
@@ -4375,15 +4405,76 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
                 break;
             }
 
-            IDxcUtils* pUtils;
-            CHECK_HRESULT(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
-            pUtils->CreateBlob(pStage->pByteCode, pStage->mByteCodeSize, DXC_CP_ACP,
-                               &pShaderProgram->mDx.pShaderBlobs[reflectionCount]); //-V522
-            pUtils->Release();
+            // Create source blob from HLSL text.
+            IDxcBlobEncoding* pSourceBlob = NULL;
+            CHECK_HRESULT(pLibrary->CreateBlobWithEncodingOnHeapCopy((LPCVOID)pStage->pByteCode, pStage->mByteCodeSize, DXC_CP_ACP,
+                                                                     &pSourceBlob));
 
-            d3d12_createShaderReflection((uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
-                                         (uint32_t)pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferSize(), stage_mask,
-                                         &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
+            // Convert entry point to wide string.
+            wchar_t entryPointWide[128] = {};
+            if (pStage->pEntryPoint)
+            {
+                size_t converted = 0;
+                mbstowcs_s(&converted, entryPointWide, TF_ARRAY_COUNT(entryPointWide), pStage->pEntryPoint, _TRUNCATE);
+            }
+            else
+            {
+                wcscpy_s(entryPointWide, TF_ARRAY_COUNT(entryPointWide), L"main");
+            }
+
+            const wchar_t* profile = d3d12_getShaderProfile(stage_mask);
+
+            // Build compile arguments.
+            LPCWSTR args[MAX_COMPILE_ARGS];
+            uint32_t argCount = 0;
+
+            args[argCount++] = L"-E";
+            args[argCount++] = entryPointWide;
+            args[argCount++] = L"-T";
+            args[argCount++] = profile;
+
+#if defined(ENABLE_GRAPHICS_DEBUG)
+            args[argCount++] = L"-Zi";
+            args[argCount++] = L"-Qembed_debug";
+#endif
+
+            IDxcOperationResult* pResult = NULL;
+            HRESULT              hr = pCompiler->Compile(pSourceBlob, NULL, entryPointWide, profile, args, argCount, NULL, 0,
+                                                        pIncludeHandler, &pResult);
+            pSourceBlob->Release();
+
+            if (FAILED(hr) || !pResult)
+            {
+                LOGF(LogLevel::eERROR, "Failed to compile HLSL shader for stage %i", stage_mask);
+                continue;
+            }
+
+            HRESULT status = S_OK;
+            pResult->GetStatus(&status);
+            if (FAILED(status))
+            {
+                IDxcBlobEncoding* pError = NULL;
+                if (SUCCEEDED(pResult->GetErrorBuffer(&pError)) && pError)
+                {
+                    LOGF(LogLevel::eERROR, "HLSL compilation error: %s", (const char*)pError->GetBufferPointer());
+                    pError->Release();
+                }
+                pResult->Release();
+                continue;
+            }
+
+            IDxcBlob* pCodeBlob = NULL;
+            CHECK_HRESULT(pResult->GetResult(&pCodeBlob));
+            pResult->Release();
+
+            // Store compiled blob as IDxcBlobEncoding in the shader program.
+            CHECK_HRESULT(pCodeBlob->QueryInterface(IID_PPV_ARGS(&pShaderProgram->mDx.pShaderBlobs[reflectionCount])));
+            pCodeBlob->Release();
+
+            d3d12_createShaderReflection(
+                (uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
+                (uint32_t)pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferSize(), stage_mask,
+                &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
 
             WCHAR* entryPointName = (WCHAR*)mem;
             mbstowcs((WCHAR*)entryPointName, pStage->pEntryPoint, strlen(pStage->pEntryPoint));
@@ -4394,9 +4485,17 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
         }
     }
 
-    createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
+    createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount,
+                             pShaderProgram->pReflection);
 
     *ppShaderProgram = pShaderProgram;
+
+    if (pIncludeHandler)
+        pIncludeHandler->Release();
+    if (pCompiler)
+        pCompiler->Release();
+    if (pLibrary)
+        pLibrary->Release();
 }
 
 void d3d12_removeShader(Renderer* pRenderer, Shader* pShaderProgram)

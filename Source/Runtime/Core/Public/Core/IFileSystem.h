@@ -146,7 +146,7 @@ extern "C"
         FM_READ_APPEND = FM_READ | FM_APPEND,
 
         // RW mode and set position to the end
-        FM_READ_WRITE_APPEND = FM_READ | FM_APPEND,
+        FM_READ_WRITE_APPEND = FM_READ | FM_WRITE | FM_APPEND,
 
         // -- mode and -- and also read access for other processes.
         FM_WRITE_ALLOW_READ = FM_WRITE | FM_ALLOW_READ,
