@@ -26,6 +26,7 @@ void expectIntArrayEquals(const int32_t* actual, const int32_t* expected, size_t
 }
 } // namespace
 
+// Verifies that sortInt32 orders a mixed input containing negatives and duplicates.
 TEST(CoreAlgorithmsTest, SortInt32OrdersLargeInput)
 {
     int32_t values[] = {
@@ -44,6 +45,7 @@ TEST(CoreAlgorithmsTest, SortInt32OrdersLargeInput)
     expectIntArrayEquals(values, expected, TF_ARRAY_COUNT(values));
 }
 
+// Verifies that stableSort keeps the original relative order of elements with equal keys.
 TEST(CoreAlgorithmsTest, StableSortPreservesRelativeOrderForEqualKeys)
 {
     SortItem items[] = {
@@ -71,6 +73,7 @@ TEST(CoreAlgorithmsTest, StableSortPreservesRelativeOrderForEqualKeys)
     EXPECT_EQ(items[5].originalIndex, 4);
 }
 
+// Verifies that partitionInt32 places the pivot in its final slot and partitions around it.
 TEST(CoreAlgorithmsTest, PartitionInt32PlacesElementsAroundPivotValue)
 {
     int32_t values[] = { 9, 1, 5, 3, 5, 8, 2, 7 };
@@ -92,6 +95,7 @@ TEST(CoreAlgorithmsTest, PartitionInt32PlacesElementsAroundPivotValue)
     }
 }
 
+// Verifies that the generic comparator-based sort produces nondecreasing keys.
 TEST(CoreAlgorithmsTest, GenericSortOrdersByComparator)
 {
     SortItem items[] = {

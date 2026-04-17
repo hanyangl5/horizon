@@ -17,23 +17,27 @@ void expectNormalizedPath(const char* input, const char* expected, char separato
 }
 } // namespace
 
+// Verifies that path normalization resolves dot segments and mixed separators into a canonical path.
 TEST(CoreToolFileSystemTest, NormalizePathResolvesCurrentParentAndMixedSeparators)
 {
     EXPECT_FALSE(fsIsNormalizedPath("Assets\\Meshes\\.\\Characters\\..\\Hero//body.mesh", '/'));
     expectNormalizedPath("Assets\\Meshes\\.\\Characters\\..\\Hero//body.mesh", "Assets/Meshes/Hero/body.mesh");
 }
 
+// Verifies that normalization preserves leading parent traversals that cannot be collapsed further.
 TEST(CoreToolFileSystemTest, NormalizePathPreservesLeadingUnresolvableParents)
 {
     expectNormalizedPath("../../Shaders/../Common/lighting.hlsl", "../../Common/lighting.hlsl");
     expectNormalizedPath("a/..", ".");
 }
 
+// Verifies that normalization keeps Windows drive prefixes while cleaning the remaining path segments.
 TEST(CoreToolFileSystemTest, NormalizePathHandlesWindowsDriveLetters)
 {
     expectNormalizedPath("C:\\Project\\Assets\\..\\Shaders\\.\\main.hlsl", "C:/Project/Shaders/main.hlsl");
 }
 
+// Verifies that merging a directory and file name also normalizes relative path segments in the result.
 TEST(CoreToolFileSystemTest, MergeDirAndFileNameNormalizesCombinedPath)
 {
     char output[FS_MAX_PATH] = {};
@@ -42,6 +46,7 @@ TEST(CoreToolFileSystemTest, MergeDirAndFileNameNormalizesCombinedPath)
     EXPECT_STREQ(output, "Assets/Textures/hero_albedo.dds");
 }
 
+// Verifies that path component and extension helpers split, append, and replace path parts consistently.
 TEST(CoreToolFileSystemTest, PathExtensionAndComponentHelpersSplitAndAppendConsistently)
 {
     char appended[FS_MAX_PATH] = {};

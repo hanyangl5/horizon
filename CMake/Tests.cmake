@@ -36,6 +36,22 @@ function(add_test_target target_name)
         target_link_libraries(${target_name} PRIVATE winmm)
     endif()
 
+    if(WIN32)
+        set(HORIZON_TEST_RUNTIME_DLLS
+            $<TARGET_FILE:WinPixEventRuntime>
+            $<TARGET_FILE:AGS>
+            ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxcompiler.dll
+            ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxil.dll
+        )
+
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${HORIZON_TEST_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:${target_name}>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
+
     source_group(TREE ${HORIZON_TEST_SOURCE_DIR} PREFIX "Tests" FILES ${ARGN})
     set_target_properties(${target_name} PROPERTIES FOLDER "Horizon/Tests")
 
@@ -43,4 +59,5 @@ function(add_test_target target_name)
 endfunction()
 
 include(${HORIZON_TEST_CMAKE_DIR}/Core.cmake)
+include(${HORIZON_TEST_CMAKE_DIR}/RHI.cmake)
 include(${HORIZON_TEST_CMAKE_DIR}/Smoke.cmake)

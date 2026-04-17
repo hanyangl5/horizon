@@ -49,6 +49,7 @@ void namedThreadProbe(void* userData)
 }
 } // namespace
 
+// Verifies that callOnce executes the guarded function exactly once even when multiple threads race to invoke it.
 TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
 {
     int callCount = 0;
@@ -80,6 +81,7 @@ TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
     gCallOnceCounter = nullptr;
 }
 
+// Verifies that worker threads expose their assigned name and can coordinate readiness with a condition variable.
 TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
 {
     setMainThread();

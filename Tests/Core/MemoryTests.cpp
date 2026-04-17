@@ -22,6 +22,7 @@ int LifetimeProbe::ctorCount = 0;
 int LifetimeProbe::dtorCount = 0;
 } // namespace
 
+// Verifies aligned, zero-initialized, and resized allocations through the core memory helpers.
 TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
 {
     ASSERT_TRUE(initMemAlloc(nullptr));
@@ -57,6 +58,7 @@ TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
     exitMemAlloc();
 }
 
+// Verifies that tf_new and tf_delete invoke constructors and destructors exactly once.
 TEST(CoreMemoryTest, TfNewAndTfDeleteRespectObjectLifetime)
 {
     LifetimeProbe::ctorCount = 0;

@@ -7,6 +7,7 @@
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
 
+// Verifies that memory streams support sequential reads, seeking, substring search, mapping, and closing.
 TEST(CoreFileSystemTest, MemoryStreamSupportsReadSeekFindAndClose)
 {
     constexpr char buffer[] = "abcXYZabc";
@@ -40,6 +41,7 @@ TEST(CoreFileSystemTest, MemoryStreamSupportsReadSeekFindAndClose)
     EXPECT_EQ(stream.pIO, nullptr);
 }
 
+// Verifies that writable memory streams can grow independently without mutating the original source buffer.
 TEST(CoreFileSystemTest, WritableMemoryStreamGrowsWithoutTouchingOriginalBuffer)
 {
     char original[] = "abc";
@@ -64,6 +66,7 @@ TEST(CoreFileSystemTest, WritableMemoryStreamGrowsWithoutTouchingOriginalBuffer)
     EXPECT_TRUE(fsCloseStream(&stream));
 }
 
+// Verifies that Buny archive block pointers preserve compression, size, and offset metadata through encode/decode.
 TEST(CoreFileSystemTest, BunyArchiveBlockPointerRoundTripsMetadata)
 {
     const BunyArBlockInfo info = { true, 345u, 432u };
@@ -77,6 +80,7 @@ TEST(CoreFileSystemTest, BunyArchiveBlockPointerRoundTripsMetadata)
     EXPECT_EQ(decoded.offset, info.offset);
 }
 
+// Verifies that the Buny archive hash table resolves existing entries and reports misses outside the valid range.
 TEST(CoreFileSystemTest, BunyArchiveHashTableResolvesExistingAndMissingEntries)
 {
     constexpr char nodeNames[] = "foo\0bar\0baz.txt\0";

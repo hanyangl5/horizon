@@ -2,6 +2,7 @@
 
 #include "Core/ITime.h"
 
+// Verifies that int64MulDiv preserves expected scaling behavior for representative integer inputs.
 TEST(CoreMathTest, Int64MulDivScalesValuesWithoutLosingRemainderBehavior)
 {
     EXPECT_EQ(int64MulDiv(42, 7, 3), 98);

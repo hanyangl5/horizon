@@ -3,6 +3,7 @@
 #include "Core/ITime.h"
 #include "Core/IThread.h"
 
+// Verifies timer frequency, monotonic elapsed time, and reset semantics for the basic timer helpers.
 TEST(CoreTimeTest, TimerFunctionsReportMonotonicElapsedTime)
 {
     EXPECT_GT(getTimerFrequency(), 0);
@@ -26,6 +27,7 @@ TEST(CoreTimeTest, TimerFunctionsReportMonotonicElapsedTime)
     EXPECT_LE(elapsedAfterReset, elapsedAtReset);
 }
 
+// Verifies that the high-resolution timer records multiple samples and reports a positive running average.
 TEST(CoreTimeTest, HiresTimerTracksHistoryAndAverage)
 {
     HiresTimer timer = {};

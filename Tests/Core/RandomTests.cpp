@@ -2,6 +2,7 @@
 
 #include "Core/IRandom.h"
 
+// Verifies that random integers stay within the advertised range and do not degenerate into a constant sample.
 TEST(CoreRandomTest, RandomValuesStayWithinExpectedRangeAndVary)
 {
     int32_t values[16] = {};

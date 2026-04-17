@@ -2,6 +2,7 @@
 
 #include "Core/IConfig.h"
 
+// Verifies that public runtime headers expose the expected basic configuration macros.
 TEST(HorizonSmokeTest, RuntimePublicHeadersAreAvailable)
 {
     constexpr int values[] = { 1, 2, 3 };

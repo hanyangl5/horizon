@@ -44,6 +44,7 @@ bool containsMessage(const LogCapture& capture, const char* snippet)
 }
 } // namespace
 
+// Verifies that interactive logging mode can be toggled off and back on without losing state.
 TEST(CoreLogTest, InteractiveModeToggleRoundTrips)
 {
     const bool initial = _IsInteractiveMode();
@@ -55,6 +56,7 @@ TEST(CoreLogTest, InteractiveModeToggleRoundTrips)
     EXPECT_EQ(_IsInteractiveMode(), initial);
 }
 
+// Verifies that log callbacks receive formatted and raw messages and are closed during shutdown.
 TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
 {
     LogCapture capture = {};
@@ -75,6 +77,7 @@ TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
     EXPECT_EQ(capture.closeCount, 1);
 }
 
+// Verifies that human-readable log helpers format representative size and time values.
 TEST(CoreLogTest, HumanReadableHelpersFormatExpectedUnits)
 {
     EXPECT_STREQ(humanReadableSize(999).str, "999B");

@@ -4311,10 +4311,12 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
     ASSERT(ppShaderProgram);
 
     // Compile HLSL source contained in BinaryShaderDesc into DXIL blobs first.
+    IDxcUtils*          pUtils = NULL;
     IDxcLibrary*        pLibrary = NULL;
     IDxcCompiler*       pCompiler = NULL;
     IDxcIncludeHandler* pIncludeHandler = NULL;
 
+    CHECK_HRESULT(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
     CHECK_HRESULT(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary)));
     CHECK_HRESULT(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
     CHECK_HRESULT(pLibrary->CreateIncludeHandler(&pIncludeHandler));
@@ -4466,8 +4468,9 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
             CHECK_HRESULT(pResult->GetResult(&pCodeBlob));
             pResult->Release();
 
-            // Store compiled blob as IDxcBlobEncoding in the shader program.
-            CHECK_HRESULT(pCodeBlob->QueryInterface(IID_PPV_ARGS(&pShaderProgram->mDx.pShaderBlobs[reflectionCount])));
+            // Normalize the compiler output into the blob type the rest of the D3D12 backend already consumes.
+            CHECK_HRESULT(pUtils->CreateBlob(pCodeBlob->GetBufferPointer(), (uint32_t)pCodeBlob->GetBufferSize(), DXC_CP_ACP,
+                                             &pShaderProgram->mDx.pShaderBlobs[reflectionCount]));
             pCodeBlob->Release();
 
             d3d12_createShaderReflection((uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
@@ -4493,6 +4496,8 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
         pCompiler->Release();
     if (pLibrary)
         pLibrary->Release();
+    if (pUtils)
+        pUtils->Release();
 }
 
 void d3d12_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
