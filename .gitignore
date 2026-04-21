@@ -31,6 +31,10 @@
 *.out
 *.app
 
+# Third-party binaries that are intentionally checked in through Git LFS.
+!Source/ThirdParty/Prebuilt/
+!Source/ThirdParty/Prebuilt/**
+
 # Visual Studio
 **/.vs/
 **/.vscode/
