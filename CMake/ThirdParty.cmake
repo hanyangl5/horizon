@@ -296,6 +296,10 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
 set(THIRD_PARTY_DEPS ${HORIZON_THIRD_PARTY_DEPS})
 
 if(HORIZON_ENABLE_TRACY)
+    if(NOT EXISTS ${ENGINE_THIRD_PARTY_SOURCE_DIR}/tracy/public/TracyClient.cpp)
+        message(FATAL_ERROR "Tracy submodule is missing. Run `git submodule update --init --recursive` or checkout with submodules enabled.")
+    endif()
+
     add_library(TracyClient STATIC
         ${ENGINE_THIRD_PARTY_SOURCE_DIR}/tracy/public/TracyClient.cpp
     )

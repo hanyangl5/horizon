@@ -2732,13 +2732,16 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         }
 
 #if !defined(XBOX)
-        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel == GPU_PRESET_NONE)
+        GPUPresetLevel selectedPreset = pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel;
+        if (selectedPreset == GPU_PRESET_NONE || selectedPreset == GPU_PRESET_OFFICE)
         {
             RemoveDevice(pRenderer);
             SAFE_FREE(pRenderer);
-            LOGF(LogLevel::eERROR, "Selected GPU has no usable preset.");
+            const char* reason = selectedPreset == GPU_PRESET_OFFICE ? "Selected GPU has an Office preset." : "Selected GPU has no usable preset.";
+            setRendererInitializationError(reason);
+            LOGF(LogLevel::eERROR, "%s", reason);
 
-            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel != GPU_PRESET_NONE); //-V547
+            ASSERT(selectedPreset != GPU_PRESET_NONE && selectedPreset != GPU_PRESET_OFFICE); //-V547
 
             *ppRenderer = NULL;
             return;
