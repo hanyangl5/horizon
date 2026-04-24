@@ -2737,7 +2737,8 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         {
             RemoveDevice(pRenderer);
             SAFE_FREE(pRenderer);
-            const char* reason = selectedPreset == GPU_PRESET_OFFICE ? "Selected GPU has an Office preset." : "Selected GPU has no usable preset.";
+            const char* reason =
+                selectedPreset == GPU_PRESET_OFFICE ? "Selected GPU has an Office preset." : "Selected GPU has no usable preset.";
             setRendererInitializationError(reason);
             LOGF(LogLevel::eERROR, "%s", reason);
 
