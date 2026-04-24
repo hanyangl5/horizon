@@ -63,7 +63,9 @@ function(add_test_target target_name)
     source_group(TREE ${HORIZON_TEST_SOURCE_DIR} PREFIX "Tests" FILES ${ARGN})
     set_target_properties(${target_name} PROPERTIES FOLDER "Horizon/Tests")
 
-    gtest_discover_tests(${target_name})
+    gtest_discover_tests(${target_name}
+        DISCOVERY_TIMEOUT 30
+    )
 endfunction()
 
 include(${HORIZON_TEST_CMAKE_DIR}/Core.cmake)
