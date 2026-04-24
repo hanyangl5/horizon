@@ -121,8 +121,8 @@ public:
         bool    mInitialized = false;
         /// if requested to quit the application
         bool    mQuit = false;
-        /// if benchmarking mode is enabled
-        bool    mBenchmarking = false;
+        // Benchmarking is parked while the legacy MicroProfile dump path is replaced.
+        // bool    mBenchmarking = false;
         /// if the window is positioned in the center of the screen
         bool    mCentered = true;
         /// if the window is focused or in foreground

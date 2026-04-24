@@ -32,6 +32,10 @@
 
 #include "Core/IMemory.h"
 
+#if defined(ENABLE_PROFILER)
+#include <tracy/TracyC.h>
+#endif
+
 #if defined(ENABLE_THREAD_PERFORMANCE_STATS)
 
 #if defined(XBOX)
@@ -142,7 +146,13 @@ void getCurrentThreadName(char* buffer, int size)
         buffer[0] = 0;
 }
 
-void setCurrentThreadName(const char* name) { strcpy_s(thread_name(), MAX_THREAD_NAME_LENGTH + 1, name); }
+void setCurrentThreadName(const char* name)
+{
+    strcpy_s(thread_name(), MAX_THREAD_NAME_LENGTH + 1, name);
+#if defined(ENABLE_PROFILER)
+    TracyCSetThreadName(name);
+#endif
+}
 
 bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
 

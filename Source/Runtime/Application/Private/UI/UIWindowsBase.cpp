@@ -458,13 +458,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 #ifdef AUTOMATED_TESTING
     bool paramRenderingAPIFound = false;
-    char benchmarkOutput[1024] = { "\0" };
+    // char benchmarkOutput[1024] = { "\0" };
     // Check if benchmarking was given through command line
     for (int i = 0; i < argc; i += 1)
     {
         if (strcmp(argv[i], "-b") == 0)
         {
-            pSettings->mBenchmarking = true;
+            // pSettings->mBenchmarking = true;
             if (i + 1 < argc && isdigit(*argv[i + 1]))
                 targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
         }
@@ -534,10 +534,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
         LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
     }
 
-#ifdef AUTOMATED_TESTING
-    if (pSettings->mBenchmarking)
-        setAggregateFrames(targetFrameCount / 2);
-#endif
+// #ifdef AUTOMATED_TESTING
+//     if (pSettings->mBenchmarking)
+//         setAggregateFrames(targetFrameCount / 2);
+// #endif
 
     bool    baseSubsystemAppDrawn = false;
     bool    quit = false;
@@ -677,13 +677,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
 #endif
     }
 
-#ifdef AUTOMATED_TESTING
-    if (pSettings->mBenchmarking)
-    {
-        dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
-        dumpProfileData(benchmarkOutput, targetFrameCount);
-    }
-#endif
+// #ifdef AUTOMATED_TESTING
+//     if (pSettings->mBenchmarking)
+//     {
+//         dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
+//         dumpProfileData(benchmarkOutput, targetFrameCount);
+//     }
+// #endif
 
     gReloadDescriptor.mType = RELOAD_TYPE_ALL;
     pApp->mSettings.mQuit = true;

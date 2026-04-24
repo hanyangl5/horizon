@@ -473,7 +473,7 @@ typedef struct UserInterfaceDesc
 
     uint32_t mFrameCount = 2u;
     bool     mEnableDocking = false;
-    bool     mEnableRemoteUI = true;
+    bool     mEnableRemoteUI = false;
 } UserInterfaceDesc;
 
 typedef struct UserInterfaceLoadDesc

@@ -295,6 +295,19 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
 
 set(THIRD_PARTY_DEPS ${HORIZON_THIRD_PARTY_DEPS})
 
+if(HORIZON_ENABLE_TRACY)
+    add_library(TracyClient STATIC
+        ${ENGINE_THIRD_PARTY_SOURCE_DIR}/tracy/public/TracyClient.cpp
+    )
+
+    target_include_directories(TracyClient PUBLIC
+        ${ENGINE_THIRD_PARTY_SOURCE_DIR}/tracy/public
+    )
+
+    target_compile_definitions(TracyClient PUBLIC TRACY_ENABLE)
+    list(APPEND THIRD_PARTY_DEPS TracyClient)
+endif()
+
 foreach(LIB ${THIRD_PARTY_DEPS})
     set_target_properties(${LIB} PROPERTIES FOLDER "Horizon/ThirdParty")
     

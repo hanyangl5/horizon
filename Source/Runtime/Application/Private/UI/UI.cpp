@@ -134,8 +134,8 @@ typedef struct UserInterface
     // Stops rendering UI elements (disables command recording)
     bool mEnableRendering = true;
 
-    // Enable Net Imgui to control UI remotely.
-    bool mEnableRemoteUI = true;
+    // Disabled by default for the single-client path.
+    bool mEnableRemoteUI = false;
 } UserInterface;
 
 #if defined(ENABLE_FORGE_REMOTE_UI)
@@ -2820,8 +2820,8 @@ void platformUpdateUserInterface(float deltaTime)
 
     arrfree(activeComponents);
 
-    extern void updateProfilerUI();
-    updateProfilerUI();
+    //extern void updateProfilerUI();
+    //updateProfilerUI();
 #endif
 }
 
@@ -2931,7 +2931,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
         }
         Texture* tex = hmgetp(pUserInterface->pTextureHashmap, id)->value;
 
-#ifdef ENABLE_FORGE_REMOTE_UI
+#if defined(ENABLE_FORGE_REMOTE_UI)
         // UI Remote Control still receives texture pointers as IDs
         if (tex == NULL)
         {
@@ -2986,7 +2986,8 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     pUserInterface->mMaxDynamicUIUpdatesPerBatch = pDesc->mMaxDynamicUIUpdatesPerBatch;
     pUserInterface->mMaxUIFonts = pDesc->mMaxUIFonts + 1; // +1 to account for a default fallback font
     pUserInterface->mFrameCount = pDesc->mFrameCount;
-    pUserInterface->mEnableRemoteUI = pDesc->mEnableRemoteUI;
+    // Remote UI is intentionally parked while the runtime focuses on a single-client path.
+    pUserInterface->mEnableRemoteUI = false;
     ASSERT(pUserInterface->mFrameCount <= MAX_FRAMES);
     /************************************************************************/
     // Rendering resources

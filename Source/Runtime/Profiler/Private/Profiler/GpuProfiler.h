@@ -30,7 +30,6 @@ struct Renderer;
 struct Buffer;
 struct Queue;
 struct QueryPool;
-struct ProfileThreadLog;
 typedef uint64_t ProfileToken;
 
 typedef struct GpuTimer
@@ -50,10 +49,11 @@ typedef struct GpuTimer
     uint64_t     mGpuHistory[LENGTH_OF_HISTORY] = {};
     size_t       mHash = 0;
     ProfileToken mToken = {};
-    ProfileToken mMicroProfileToken = {};
+    void*        pBackendGpuZone = NULL;
     GpuTimer*    pParent = NULL;
     bool         mDebugMarker = false;
     bool         mStarted = false;
+    bool         mBackendGpuZoneActive = false;
 
 } GpuTimer;
 
@@ -74,10 +74,9 @@ typedef struct GpuProfiler
 
     GpuTimer* pGpuTimerPool = NULL;
     GpuTimer* pCurrentNode = NULL;
+    void*     pBackendGpuContext = NULL;
 
-    // MicroProfile
-    char              mGroupName[256] = "GPU";
-    ProfileThreadLog* pLog = nullptr;
+    char mGroupName[256] = "GPU";
 } GpuProfiler;
 
 struct GpuProfilerContainer

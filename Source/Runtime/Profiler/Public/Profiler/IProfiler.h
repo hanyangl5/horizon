@@ -64,14 +64,10 @@ FORGE_API void exitProfiler();
 // Call once per frame to update profiler
 FORGE_API void flipProfiler();
 
-// Set amount of frames before aggregation
-FORGE_API void setAggregateFrames(uint32_t nFrames);
-
-// Dump profile data to "profile-(date).html" of recorded frames, until a maximum amount of frames
-FORGE_API void dumpProfileData(const char* appName = "", uint32_t nMaxFrames = 64);
-
-// Dump benchmark data to "benchmark-(data).txt" of recorded frames
-FORGE_API void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename = "", const char* appName = "");
+// Legacy MicroProfile benchmark/dump APIs are parked while Tracy capture export is wired up.
+// FORGE_API void setAggregateFrames(uint32_t nFrames);
+// FORGE_API void dumpProfileData(const char* appName = "", uint32_t nMaxFrames = 64);
+// FORGE_API void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename = "", const char* appName = "");
 
 //------ Profiler UI Widget --------//
 
@@ -128,14 +124,16 @@ FORGE_API uint64_t cpuProfileEnter(ProfileToken nToken);
 FORGE_API void cpuProfileLeave(ProfileToken nToken, uint64_t nTick);
 
 FORGE_API ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor);
+FORGE_API void         removeCpuProfileToken(ProfileToken nToken);
+FORGE_API uint64_t     cpuProfileEnterNamed(const char* pGroup, const char* pName, uint32_t nColor);
 
 struct CpuProfileScopeMarker
 {
     ProfileToken nToken;
     uint64_t     nTick;
-    CpuProfileScopeMarker(const char* pGroup, const char* pName, uint32_t nColor)
+    explicit CpuProfileScopeMarker(ProfileToken token)
     {
-        nToken = getCpuProfileToken(pGroup, pName, nColor);
+        nToken = token;
         nTick = cpuProfileEnter(nToken);
     }
     ~CpuProfileScopeMarker() { cpuProfileLeave(nToken, nTick); }
@@ -144,7 +142,10 @@ struct CpuProfileScopeMarker
 #define PROFILER_CONCAT0(a, b)                     a##b
 #define PROFILER_CONCAT(a, b)                      PROFILER_CONCAT0(a, b)
 // Call at the start of a block to profile cpu time between '{' '}'
-#define PROFILER_SET_CPU_SCOPE(group, name, color) CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(group, name, color)
+// TODO(profiler): Register these static tokens and release them from exitProfiler().
+#define PROFILER_SET_CPU_SCOPE(group, name, color)                                                                  \
+    static ProfileToken PROFILER_CONCAT(cpuProfileToken, __LINE__) = getCpuProfileToken(group, name, color);        \
+    CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(PROFILER_CONCAT(cpuProfileToken, __LINE__))
 
 // Cpu times in milliseconds
 FORGE_API float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);

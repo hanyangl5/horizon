@@ -78,10 +78,8 @@ enum
 #define ENABLE_RAYTRACING
 #endif
 
-#ifdef ENABLE_PROFILER
 #if defined(DIRECT3D12)
 #define ENABLE_GPU_PROFILER
-#endif
 #endif
 
 // Enable graphics debug if general debug is turned on

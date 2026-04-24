@@ -128,6 +128,13 @@ target_link_directories(${ENGINE_RUNTIME} PUBLIC ${RHI_LIBRARY_PATHS})
 
 target_compile_definitions(${ENGINE_RUNTIME} PUBLIC ${RHI_DEFINES})
 
+if(HORIZON_ENABLE_TRACY)
+    target_compile_definitions(${ENGINE_RUNTIME} PUBLIC
+        ENABLE_PROFILER
+        TRACY_ENABLE
+    )
+endif()
+
 # unity build
 #TODO(hyl5): fix tf_malloc/tf_new
 #set_target_properties(${ENGINE_RUNTIME} PROPERTIES UNITY_BUILD ON)
