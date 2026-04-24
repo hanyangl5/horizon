@@ -305,8 +305,8 @@ void parseGPUDataFile()
         }
         else if (versionMajor != GPUCFG_VERSION_MAJOR || versionMinor != GPUCFG_VERSION_MINOR)
         {
-            LOGF(eINFO, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR, GPUCFG_VERSION_MINOR,
-                 versionMajor, versionMinor);
+            LOGF(eINFO, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR,
+                 GPUCFG_VERSION_MINOR, versionMajor, versionMinor);
             fsCloseStream(&fh);
             return;
         }
@@ -973,10 +973,7 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
         }
     }
 
-    auto isIntegratedVendor = [](uint32_t vendorId) -> bool
-    {
-        return vendorId == getGPUVendorID("intel");
-    };
+    auto isIntegratedVendor = [](uint32_t vendorId) -> bool { return vendorId == getGPUVendorID("intel"); };
 
     auto isBetterPlaygroundGpu = [&](const GPUSettings& testSettings, const GPUSettings& refSettings) -> bool
     {
@@ -1014,7 +1011,6 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
     }
 
     return availableSettings[gpuIndex].mGraphicsQueueSupported ? gpuIndex : UINT32_MAX;
-
 }
 
 void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)

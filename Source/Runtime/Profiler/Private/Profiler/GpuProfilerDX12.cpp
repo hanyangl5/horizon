@@ -38,10 +38,7 @@
 
 #include <string.h>
 
-static TracyD3D12Ctx getTracyGpuContext(GpuProfiler* pGpuProfiler)
-{
-    return (TracyD3D12Ctx)pGpuProfiler->pBackendGpuContext;
-}
+static TracyD3D12Ctx getTracyGpuContext(GpuProfiler* pGpuProfiler) { return (TracyD3D12Ctx)pGpuProfiler->pBackendGpuContext; }
 
 static void freeTracyGpuZones(GpuProfiler* pGpuProfiler)
 {

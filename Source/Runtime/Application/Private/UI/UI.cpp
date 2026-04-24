@@ -2820,8 +2820,8 @@ void platformUpdateUserInterface(float deltaTime)
 
     arrfree(activeComponents);
 
-    //extern void updateProfilerUI();
-    //updateProfilerUI();
+    // extern void updateProfilerUI();
+    // updateProfilerUI();
 #endif
 }
 

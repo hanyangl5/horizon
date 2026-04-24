@@ -534,10 +534,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
         LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
     }
 
-// #ifdef AUTOMATED_TESTING
-//     if (pSettings->mBenchmarking)
-//         setAggregateFrames(targetFrameCount / 2);
-// #endif
+    // #ifdef AUTOMATED_TESTING
+    //     if (pSettings->mBenchmarking)
+    //         setAggregateFrames(targetFrameCount / 2);
+    // #endif
 
     bool    baseSubsystemAppDrawn = false;
     bool    quit = false;
@@ -677,13 +677,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
 #endif
     }
 
-// #ifdef AUTOMATED_TESTING
-//     if (pSettings->mBenchmarking)
-//     {
-//         dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
-//         dumpProfileData(benchmarkOutput, targetFrameCount);
-//     }
-// #endif
+    // #ifdef AUTOMATED_TESTING
+    //     if (pSettings->mBenchmarking)
+    //     {
+    //         dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
+    //         dumpProfileData(benchmarkOutput, targetFrameCount);
+    //     }
+    // #endif
 
     gReloadDescriptor.mType = RELOAD_TYPE_ALL;
     pApp->mSettings.mQuit = true;
