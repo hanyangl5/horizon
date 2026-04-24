@@ -2,36 +2,21 @@ set(HORIZON_TEST_SOURCE_DIR ${ENGINE_DIR}/Tests)
 set(HORIZON_TEST_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR}/Tests)
 
 if(NOT TARGET gtest_main)
-    set(HORIZON_GTEST_INCLUDE_DIR ${ENGINE_SOURCE_DIR}/ThirdParty/googletest/googletest/include)
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-    if(HORIZON_REBUILD_THIRDPARTY)
-        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    add_subdirectory(
+        ${ENGINE_SOURCE_DIR}/ThirdParty/googletest
+        ${CMAKE_BINARY_DIR}/Source/ThirdParty/googletest
+        EXCLUDE_FROM_ALL
+    )
 
-        add_subdirectory(
-            ${ENGINE_SOURCE_DIR}/ThirdParty/googletest
-            ${CMAKE_BINARY_DIR}/Source/ThirdParty/googletest
-            EXCLUDE_FROM_ALL
-        )
-
-        if(TARGET HorizonPackageThirdParty)
-            add_dependencies(HorizonPackageThirdParty gtest gtest_main)
-            foreach(GTEST_PACKAGE_TARGET gtest gtest_main)
-                add_custom_command(TARGET HorizonPackageThirdParty POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E make_directory "${HORIZON_THIRD_PARTY_PREBUILT_DIR}/$<CONFIG>/lib"
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${GTEST_PACKAGE_TARGET}>" "${HORIZON_THIRD_PARTY_PREBUILT_DIR}/$<CONFIG>/lib/$<TARGET_FILE_NAME:${GTEST_PACKAGE_TARGET}>"
-                    VERBATIM
-                )
-            endforeach()
-        endif()
-    else()
-        horizon_import_static_third_party(gtest "gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        target_include_directories(gtest SYSTEM INTERFACE ${HORIZON_GTEST_INCLUDE_DIR})
+    if(NOT TARGET GTest::gtest)
         add_library(GTest::gtest ALIAS gtest)
+    endif()
 
-        horizon_import_static_third_party(gtest_main "gtest_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        target_link_libraries(gtest_main INTERFACE gtest)
+    if(NOT TARGET GTest::gtest_main)
         add_library(GTest::gtest_main ALIAS gtest_main)
     endif()
 endif()
