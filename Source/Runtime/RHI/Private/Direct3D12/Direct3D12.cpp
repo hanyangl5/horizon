@@ -2327,7 +2327,6 @@ static bool SelectBestGpu(Renderer* pRenderer, const RendererDesc* pDesc, D3D_FE
     pRenderer->pGpu = &pRenderer->pContext->mGpus[gpuIndex];
     ASSERT(pRenderer->pGpu != NULL);
 
-    //  driver rejection rules from gpu.cfg
     bool driverValid = checkDriverRejectionSettings(&gpuSettings[gpuIndex]);
     if (!driverValid)
     {
@@ -2733,21 +2732,14 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         }
 
 #if !defined(XBOX)
-        // anything below LOW preset is not supported and we will exit
-        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_VERYLOW)
+        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel == GPU_PRESET_NONE)
         {
-            // remove device and any memory we allocated in just above as this is the first function called
-            // when initializing the forge
             RemoveDevice(pRenderer);
             SAFE_FREE(pRenderer);
-            LOGF(LogLevel::eERROR, "Selected GPU has an Office Preset in gpu.cfg.");
-            LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
+            LOGF(LogLevel::eERROR, "Selected GPU has no usable preset.");
 
-            // have the condition in the assert as well so its cleared when the assert message box appears
-            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_VERYLOW); //-V547
+            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel != GPU_PRESET_NONE); //-V547
 
-            // return NULL pRenderer so that client can gracefully handle exit
-            // This is better than exiting from here in case client has allocated memory or has fallbacks
             *ppRenderer = NULL;
             return;
         }

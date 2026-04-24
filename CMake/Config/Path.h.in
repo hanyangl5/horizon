@@ -1,4 +1,0 @@
-#pragma once
-#define ENGINE_PATH "${ENGINE_PATH}"
-#define PROJECT_PATH "${PROJECT_PATH}"
-

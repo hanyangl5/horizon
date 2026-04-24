@@ -138,29 +138,29 @@ enum GPUPresetLevel : uint32_t
     GPU_PRESET_COUNT
 };
 
-// read gpu.cfg and store all its content in specific structures
+// initialize built-in GPU selection defaults
 FORGE_API void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings);
 
-// free all specific gpu.cfg structures
+// free GPU selection scratch data
 FORGE_API void removeGPUConfigurationRules();
 
 // set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
 FORGE_API void setDefaultGPUSettings(struct GPUSettings* pGpuSettings);
 
-// selects best gpu depending on the gpu comparison rules stored in gpu.cfg
+// selects the best GPU for the playground's built-in adapter policy
 FORGE_API uint32_t util_select_best_gpu(struct GPUSettings* availableSettings, uint32_t gpuCount);
 
-// reads the gpu data and sets the preset level of all available gpu's
+// returns the built-in default/preset level
 FORGE_API GPUPresetLevel getDefaultPresetLevel();
 FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName);
 
-// apply the configuration rules stored in gpu.cfg to to a single GPUSettings
+// apply built-in backend defaults to a single GPUSettings
 FORGE_API void applyGPUConfigurationRules(struct GPUSettings* pGpuSettings, struct GPUCapBits* pCapBits);
 
-// apply the user extended configuration rules stored in gpu.cfg to the ExtendedSetting structure
+// kept for API compatibility; external extended settings are not changed by built-in GPU selection
 FORGE_API void setupExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GPUSettings* pGpuSettings);
 
-// return if the the GPUSettings validate the current driver rejection rules
+// kept for API compatibility; driver rejection tables are not used
 FORGE_API bool checkDriverRejectionSettings(const struct GPUSettings* pGpuSettings);
 
 // ------ utilities ------

@@ -14,10 +14,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS TRUE)
 
 include(CMakeUtils)
 include(ThirdParty)
-
-if(NOT PROJECT_IS_TOP_LEVEL)
-    include(Config)
-endif()
+add_compile_definitions(PROJECT_ROOT="${PROJECT_ROOT}")
 
 if(${CMAKE_INCLUDE_SHADERS})
     include(Shaders)
@@ -31,8 +28,6 @@ endif()
 if(HORIZON_BUILD_TESTS)
     include(Tests)
 endif()
-
-add_definitions(-DPROJECT_ROOT="${PROJECT_ROOT}")
 
 if(PROJECT_IS_TOP_LEVEL)
 else()

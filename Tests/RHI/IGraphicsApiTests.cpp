@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <filesystem>
 #include <functional>
 #include <string>
 #include <vector>
@@ -585,45 +584,15 @@ void expectPixelEq(const uint8_t* pixel, uint8_t r, uint8_t g, uint8_t b, uint8_
     EXPECT_EQ(pixel[3], a);
 }
 
-std::string findWorkspaceRoot()
-{
-    namespace fs = std::filesystem;
-
-    fs::path probe = fs::current_path();
-    for (uint32_t i = 0; i < 6; ++i)
-    {
-        if (fs::exists(probe / "CMake" / "Config" / "gpu.data"))
-        {
-            return probe.string();
-        }
-
-        if (!probe.has_parent_path())
-        {
-            break;
-        }
-
-        probe = probe.parent_path();
-    }
-
-    return {};
-}
 } // namespace
 
 class RHIIGraphicsApiTest : public ::testing::Test
 {
 protected:
-    static inline std::string sWorkspaceRoot;
-    static inline std::string sGpuConfigDirectory;
-
     static void SetUpTestSuite()
     {
         ASSERT_TRUE(initMemAlloc(nullptr));
         _EnableInteractiveMode(false);
-
-        sWorkspaceRoot = findWorkspaceRoot();
-        ASSERT_FALSE(sWorkspaceRoot.empty());
-
-        sGpuConfigDirectory = (std::filesystem::path(sWorkspaceRoot) / "CMake" / "Config").string();
 
         FileSystemInitDesc fsDesc = {};
         fsDesc.pAppName = "RHITests";
@@ -631,7 +600,6 @@ protected:
 
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_GPU_CONFIG, sGpuConfigDirectory.c_str());
 
         initLog(nullptr, eERROR);
     }

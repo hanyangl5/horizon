@@ -64,7 +64,7 @@ typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
         {                                                                           \
             UNREF_PARAM(value);                                                     \
             UNREF_PARAM(pSetting);                                                  \
-            LOGF(eDEBUG, "GPUConfig: Unsupported setting %s from gpu.cfg", name);   \
+            LOGF(eDEBUG, "GPUConfig: Unsupported setting %s", name);                \
             ASSERT(false);                                                          \
         }                                                                           \
     }
@@ -122,7 +122,7 @@ void setDefaultGPUSettings(GPUSettings* pGpuSettings)
     pGpuSettings->mPrimitiveIdSupported = 1;
 }
 
-/* ------------------------ gpu.data ------------------------ */
+/* ------------------------ legacy gpu data parser ------------------------ */
 // intel use 3 identifiers 0x163C, 0x8086, 0x8087;
 #define MAX_GPU_VENDOR_COUNT                 64
 #define MAX_GPU_VENDOR_IDENTIFIER_LENGTH     16
@@ -144,7 +144,7 @@ struct GPUModelDefinition
 
 static GPUModelDefinition* gGPUModels = nullptr;
 
-/* ------------------------ gpu.cfg ------------------------ */
+/* ------------------------ legacy gpu rule parser ------------------------ */
 struct ConfigurationRule
 {
     const GPUProperty* pGpuProperty = nullptr;
@@ -244,11 +244,11 @@ enum ConfigParsingStatus : uint32_t
     CONFIG_PARSE_USER_EXTENDED_SETTINGS,
 };
 
-// ------ gpu.data
+// ------ legacy gpu data
 static GPUVendorDefinition  gGPUVendorDefinitions[MAX_GPU_VENDOR_COUNT] = {};
 static uint32_t             gGPUVendorCount = 0;
 static char*                gGpuDataFileBuffer = nullptr;
-// ------ gpu.cfg
+// ------ legacy gpu rules
 static GPUComparisonChoice  gGPUComparisonChoices[MAXIMUM_GPU_COMPARISON_CHOICES] = {};
 static ConfigurationSetting gConfigurationSettings[MAXIMUM_GPU_SETTINGS];
 static UserSetting          gUserSettings[MAXIMUM_GPU_SETTINGS];
@@ -261,9 +261,12 @@ static uint32_t             gUserExtendedSettingsCount = 0;
 
 void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings)
 {
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-    parseGPUDataFile();
-    parseGPUConfigFile(pExtendedSettings);
+    UNREF_PARAM(pExtendedSettings);
+    gDefaultPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
+    gGPUComparisonChoiceCount = 0;
+    gDriverRejectionRulesCount = 0;
+    gConfigurationSettingsCount = 0;
+    gUserExtendedSettingsCount = 0;
 }
 
 void parseGPUDataFile()
@@ -271,9 +274,9 @@ void parseGPUDataFile()
     gDefaultPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 
     FileStream fh = {};
-    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.data", FM_READ, &fh))
+    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_data", FM_READ, &fh))
     {
-        LOGF(LogLevel::eWARNING, "gpu.data could not be found, setting preset will be set to Low as a default.");
+        LOGF(LogLevel::eWARNING, "Legacy GPU data could not be found, setting preset will be set to Low as a default.");
         return;
     }
     DataParsingStatus parsingStatus = DataParsingStatus::DATA_PARSE_NONE;
@@ -296,13 +299,13 @@ void parseGPUDataFile()
         int      read = sscanf(currentLineStr, "version:%u.%u", &versionMajor, &versionMinor);
         if (read != 2)
         {
-            LOGF(eINFO, "Ill-formatted gpu.data file. Missing version at beginning of file");
+            LOGF(eINFO, "Ill-formatted legacy GPU data file. Missing version at beginning of file");
             fsCloseStream(&fh);
             return;
         }
         else if (versionMajor != GPUCFG_VERSION_MAJOR || versionMinor != GPUCFG_VERSION_MINOR)
         {
-            LOGF(eINFO, "gpu.data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR, GPUCFG_VERSION_MINOR,
+            LOGF(eINFO, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR, GPUCFG_VERSION_MINOR,
                  versionMajor, versionMinor);
             fsCloseStream(&fh);
             return;
@@ -427,7 +430,7 @@ void parseGPUDataFile()
 
     if (!gpuListBeginFileCursor || !gpuListEndFileCursor)
     {
-        LOGF(eINFO, "Could not find a valid list of gpu in gpu.data please check BEGIN_GPU_LIST; END_GPU_LIST; is properly defined");
+        LOGF(eINFO, "Could not find a valid GPU list in legacy GPU data.");
     }
 
     fsCloseStream(&fh);
@@ -436,9 +439,9 @@ void parseGPUDataFile()
 void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
 {
     FileStream fh = {};
-    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
+    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_rules", FM_READ, &fh))
     {
-        LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, first gpu found set as active gpu.");
+        LOGF(LogLevel::eWARNING, "Legacy GPU rule data could not be found, first GPU found set as active GPU.");
         return;
     }
     ConfigParsingStatus parsingStatus = ConfigParsingStatus::CONFIG_PARSE_NONE;
@@ -956,217 +959,84 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
 {
     uint32_t gpuIndex = gpuCount > 0 ? 0 : UINT32_MAX;
 
-    typedef bool (*DeviceBetterFn)(GPUSettings * testSettings, GPUSettings * refSettings, GPUComparisonChoice * choices,
-                                   uint32_t choicesCount);
-    DeviceBetterFn isDeviceBetterThan = [](GPUSettings* testSettings, GPUSettings* refSettings, GPUComparisonChoice* choices,
-                                           uint32_t choicesCount) -> bool
+    if (!gpuCount)
     {
-        for (uint32_t choiceIndex = 0; choiceIndex < choicesCount; choiceIndex++)
+        return UINT32_MAX;
+    }
+
+    for (uint32_t i = 0; i < gpuCount; ++i)
+    {
+        if (availableSettings[i].mGraphicsQueueSupported &&
+            availableSettings[i].mGpuVendorPreset.mModelId == gPlatformParameters.mPreferedGpuId)
         {
-            GPUComparisonChoice* currentGPUChoice = &choices[choiceIndex];
-            for (uint32_t ruleIndex = 0; ruleIndex < currentGPUChoice->comparisonRulesCount; ruleIndex++)
-            {
-                ConfigurationRule* currentRule = &currentGPUChoice->pGpuComparisonRules[ruleIndex];
-                if (currentRule != NULL)
-                {
-                    bool     refPass = true;
-                    bool     testPass = true;
-                    uint64_t refValue = currentRule->pGpuProperty->getter(refSettings);
-                    uint64_t testValue = currentRule->pGpuProperty->getter(testSettings);
-                    if (refValue != INVALID_OPTION && testValue != INVALID_OPTION)
-                    {
-                        if (currentRule->comparatorValue != INVALID_OPTION)
-                        {
-                            refPass &= compare(currentRule->comparator, refValue, currentRule->comparatorValue);
-                            testPass &= compare(currentRule->comparator, testValue, currentRule->comparatorValue);
-                        }
-                        else
-                        {
-                            testPass &= testValue >= refValue;
-                            refPass &= refValue >= testValue;
-                        }
-                    }
-
-                    if (testPass != refPass)
-                    {
-                        // log rule selection
-                        GPUSettings* chosenSettings = testPass ? testSettings : refSettings;
-                        GPUSettings* nonChosenSettings = testPass ? refSettings : testSettings;
-                        uint64_t     chosenValue = testPass ? testValue : refValue;
-                        uint64_t     nonChosenValue = testPass ? refValue : testValue;
-                        LOGF(eINFO, "Choosing GPU: %s", chosenSettings->mGpuVendorPreset.mGpuName);
-                        if (currentRule->comparatorValue != INVALID_OPTION)
-                        {
-                            LOGF(eINFO, "%s::%s: %llu %s %llu return true", chosenSettings->mGpuVendorPreset.mGpuName,
-                                 currentRule->pGpuProperty->name, chosenValue, currentRule->comparator, currentRule->comparatorValue);
-                            LOGF(eINFO, "%s::%s: %llu %s %llu return false", nonChosenSettings->mGpuVendorPreset.mGpuName,
-                                 currentRule->pGpuProperty->name, nonChosenValue, currentRule->comparator, currentRule->comparatorValue);
-                        }
-                        else
-                        {
-                            LOGF(eINFO, "%s::%s: %llu >= %s::%s: %llu return true", chosenSettings->mGpuVendorPreset.mGpuName,
-                                 currentRule->pGpuProperty->name, chosenValue, nonChosenSettings->mGpuVendorPreset.mGpuName,
-                                 currentRule->pGpuProperty->name, nonChosenValue);
-                        }
-                        // return if test is better than ref
-                        return testPass && !refPass;
-                    }
-                }
-            }
+            return i;
         }
+    }
 
-        return false;
+    auto isIntegratedVendor = [](uint32_t vendorId) -> bool
+    {
+        return vendorId == getGPUVendorID("intel");
     };
 
-    // perform gpu selection based on gpu.cfg rules
+    auto isBetterPlaygroundGpu = [&](const GPUSettings& testSettings, const GPUSettings& refSettings) -> bool
+    {
+        if (testSettings.mGraphicsQueueSupported != refSettings.mGraphicsQueueSupported)
+        {
+            return testSettings.mGraphicsQueueSupported;
+        }
+
+        bool testIntegrated = isIntegratedVendor(testSettings.mGpuVendorPreset.mVendorId);
+        bool refIntegrated = isIntegratedVendor(refSettings.mGpuVendorPreset.mVendorId);
+        if (testIntegrated != refIntegrated)
+        {
+            return !testIntegrated;
+        }
+
+        if (testSettings.mGpuVendorPreset.mPresetLevel != refSettings.mGpuVendorPreset.mPresetLevel)
+        {
+            return testSettings.mGpuVendorPreset.mPresetLevel > refSettings.mGpuVendorPreset.mPresetLevel;
+        }
+
+        if (testSettings.mFeatureLevel != refSettings.mFeatureLevel)
+        {
+            return testSettings.mFeatureLevel > refSettings.mFeatureLevel;
+        }
+
+        return testSettings.mVRAM > refSettings.mVRAM;
+    };
+
     for (uint32_t i = 1; i < gpuCount; ++i)
     {
-        if (isDeviceBetterThan(&availableSettings[i], &availableSettings[gpuIndex], gGPUComparisonChoices, gGPUComparisonChoiceCount))
+        if (isBetterPlaygroundGpu(availableSettings[i], availableSettings[gpuIndex]))
         {
             gpuIndex = i;
         }
     }
 
-    // if there are no rules, we select the preffered gpu
-    if (gGPUComparisonChoiceCount == 0)
-    {
-        for (uint32_t i = 0; i < gpuCount; ++i)
-        {
-            if (availableSettings[i].mGpuVendorPreset.mModelId == gPlatformParameters.mPreferedGpuId)
-            {
-                gpuIndex = i;
-                break;
-            }
-        }
-    }
+    return availableSettings[gpuIndex].mGraphicsQueueSupported ? gpuIndex : UINT32_MAX;
 
-    // Last hard coded rule checking, should we get rid of this one ?
-    if (!availableSettings[gpuIndex].mGraphicsQueueSupported)
-    {
-        gpuIndex = UINT32_MAX;
-    }
-
-    return gpuIndex;
 }
 
 void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
 {
     UNREF_PARAM(pCapBits);
-    for (uint32_t i = 0; i < gConfigurationSettingsCount; i++)
-    {
-        ConfigurationSetting* currentSetting = &gConfigurationSettings[i];
-        bool                  hasValidatedComparisonRules = true;
-        for (uint32_t j = 0; j < currentSetting->comparisonRulesCount; j++)
-        {
-            ConfigurationRule* currentRule = currentSetting->pConfigurationRules;
-            uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuSettings);
-            if (currentRule->comparatorValue != INVALID_OPTION)
-            {
-                hasValidatedComparisonRules &= compare(currentRule->comparator, refValue, currentRule->comparatorValue);
-            }
-            else
-            {
-                hasValidatedComparisonRules &= (refValue > 0);
-            }
-        }
 
-        if (hasValidatedComparisonRules)
-        {
-            LOGF(eINFO, "GPU: %s, setting %s to %llu", pGpuSettings->mGpuVendorPreset.mGpuName, currentSetting->pUpdateProperty->name,
-                 currentSetting->assignmentValue);
-            currentSetting->pUpdateProperty->setter(pGpuSettings, currentSetting->assignmentValue);
-        }
+    if (gpuVendorEquals(pGpuSettings->mGpuVendorPreset.mVendorId, "nvidia") ||
+        gpuVendorEquals(pGpuSettings->mGpuVendorPreset.mVendorId, "intel"))
+    {
+        pGpuSettings->mMaxRootSignatureDWORDS = 64;
     }
 }
 
 void setupExtendedSettings(ExtendedSettings* pExtendedSettings, const GPUSettings* pGpuSettings)
 {
-    ASSERT(pExtendedSettings && pExtendedSettings->pSettings);
-
-    // apply rules to ExtendedSettings
-    for (uint32_t i = 0; i < gUserExtendedSettingsCount; i++)
-    {
-        UserSetting* currentSetting = &gUserSettings[i];
-        bool         hasValidatedComparisonRules = true;
-        for (uint32_t j = 0; j < currentSetting->comparisonRulesCount; j++)
-        {
-            ConfigurationRule* currentRule = currentSetting->pConfigurationRules;
-            uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuSettings);
-            if (currentRule->comparatorValue != INVALID_OPTION)
-            {
-                hasValidatedComparisonRules &= compare(currentRule->comparator, refValue, currentRule->comparatorValue);
-            }
-            else
-            {
-                hasValidatedComparisonRules &= (refValue > 0);
-            }
-        }
-
-        if (hasValidatedComparisonRules)
-        {
-            LOGF(eINFO, "Extended setting: setting %s to %u", currentSetting->name, currentSetting->assignmentValue);
-            *currentSetting->pSettingValue = currentSetting->assignmentValue;
-        }
-    }
+    UNREF_PARAM(pExtendedSettings);
+    UNREF_PARAM(pGpuSettings);
 }
 
 FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
 {
-    DriverVersion driverVersion = {};
-    bool          hasValidDriverStr = parseDriverVersion(pGpuSettings->mGpuVendorPreset.mGpuDriverVersion, &driverVersion);
-    if (hasValidDriverStr)
-    {
-        for (uint32_t i = 0; i < gDriverRejectionRulesCount; i++)
-        {
-            if (pGpuSettings->mGpuVendorPreset.mVendorId == gDriverRejectionRules[i].vendorId)
-            {
-                DriverVersion* comparisonVersion = &gDriverRejectionRules[i].driverComparisonValue;
-                uint32_t       tokenLength = TF_MAX(comparisonVersion->versionNumbersCount, driverVersion.versionNumbersCount);
-                bool           shouldCheckEqualityFirst = strcmp(gDriverRejectionRules[i].comparator, "<=") == 0 ||
-                                                strcmp(gDriverRejectionRules[i].comparator, ">=") == 0 ||
-                                                strcmp(gDriverRejectionRules[i].comparator, "==") == 0;
-                // first check for equality 30.0.12 <= 30.0.12.0
-                if (shouldCheckEqualityFirst)
-                {
-                    bool isEqual = true;
-                    for (uint32_t j = 0; j < tokenLength; j++)
-                    {
-                        isEqual &= driverVersion.versionNumbers[j] == comparisonVersion->versionNumbers[j];
-                    }
-
-                    if (isEqual)
-                    {
-                        LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuSettings->mGpuVendorPreset.mGpuDriverVersion,
-                             gDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
-                             comparisonVersion->versionNumbers[1], comparisonVersion->versionNumbers[2],
-                             comparisonVersion->versionNumbers[3]);
-                        LOGF(eINFO, "Driver rejection reason: %s ", gDriverRejectionRules[i].reasonStr);
-                        return false;
-                    }
-                }
-
-                // then return after the first non equal value 30.2.12 < 30.3.12.3
-                for (uint32_t j = 0; j < comparisonVersion->versionNumbersCount; j++)
-                {
-                    if (driverVersion.versionNumbers[j] != comparisonVersion->versionNumbers[j])
-                    {
-                        bool shouldBeRejected = compare(gDriverRejectionRules[i].comparator, driverVersion.versionNumbers[j],
-                                                        comparisonVersion->versionNumbers[j]);
-                        if (shouldBeRejected)
-                        {
-                            LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuSettings->mGpuVendorPreset.mGpuDriverVersion,
-                                 gDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
-                                 comparisonVersion->versionNumbers[1], comparisonVersion->versionNumbers[2],
-                                 comparisonVersion->versionNumbers[3]);
-                            LOGF(eINFO, "Driver rejection reason: %s ", gDriverRejectionRules[i].reasonStr);
-                            return false;
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }
+    UNREF_PARAM(pGpuSettings);
     return true;
 }
 
@@ -1174,35 +1044,16 @@ GPUPresetLevel getDefaultPresetLevel() { return gDefaultPresetLevel; }
 
 GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName)
 {
-    UNREF_PARAM(vendorName);
+    UNREF_PARAM(modelId);
     UNREF_PARAM(modelName);
-    GPUPresetLevel presetLevel = GPU_PRESET_NONE;
 
-    if (arrlenu(gGPUModels))
+    GPUPresetLevel presetLevel = GPU_PRESET_LOW;
+    if (gpuVendorEquals(vendorId, "nvidia") || gpuVendorEquals(vendorId, "amd"))
     {
-        for (uint32_t gpuModelIndex = 0; gpuModelIndex < arrlenu(gGPUModels); ++gpuModelIndex)
-        {
-            GPUModelDefinition model = gGPUModels[gpuModelIndex];
-            if (model.mVendorId == vendorId && model.mDeviceId == modelId && model.mDeviceId)
-            {
-                presetLevel = model.mPreset;
-                break;
-            }
-        }
+        presetLevel = GPU_PRESET_HIGH;
     }
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
-    if (presetLevel != GPU_PRESET_NONE)
-    {
-        LOGF(eINFO, "Setting preset level %s for gpu vendor:%s model:%s", presetLevelToString(presetLevel), vendorName, modelName);
-    }
-    else
-    {
-        presetLevel = gDefaultPresetLevel;
-        LOGF(eWARNING, "Couldn't find gpu %s model: %s in gpu.data. Setting preset to %s as a default.", vendorName, modelName,
-             presetLevelToString(presetLevel));
-    }
-#endif
+    LOGF(eINFO, "Using built-in %s GPU preset for vendor %s.", presetLevelToString(presetLevel), vendorName);
 
     return presetLevel;
 }
@@ -1267,6 +1118,12 @@ const GPUProperty* propertyNameToGpuProperty(const char* str)
 
 bool isValidGPUVendorId(uint32_t vendorId)
 {
+    // FIXME: Preserve Intel vendor aliases from the removed gpu.data/gpu.cfg path (0x8087 and 0x163C).
+    if (vendorId == 0x8086 || vendorId == 0x1002 || vendorId == 0x1022 || vendorId == 0x10DE || vendorId == 0x5143)
+    {
+        return true;
+    }
+
     for (uint32_t i = 0; i < gGPUVendorCount; i++)
     {
         GPUVendorDefinition* currentGPUVendorDefinition = &gGPUVendorDefinitions[i];
@@ -1281,6 +1138,22 @@ bool isValidGPUVendorId(uint32_t vendorId)
 
 const char* getGPUVendorName(uint32_t vendorId)
 {
+    // FIXME: Preserve Intel vendor aliases from the removed gpu.data/gpu.cfg path (0x8087 and 0x163C).
+    switch (vendorId)
+    {
+    case 0x8086:
+        return "intel";
+    case 0x1002:
+    case 0x1022:
+        return "amd";
+    case 0x10DE:
+        return "nvidia";
+    case 0x5143:
+        return "qualcomm";
+    default:
+        break;
+    }
+
     for (uint32_t i = 0; i < gGPUVendorCount; i++)
     {
         GPUVendorDefinition* currentGPUVendorDefinition = &gGPUVendorDefinitions[i];
@@ -1295,6 +1168,16 @@ const char* getGPUVendorName(uint32_t vendorId)
 
 uint32_t getGPUVendorID(const char* vendorName)
 {
+    // FIXME: Preserve Intel vendor aliases from the removed gpu.data/gpu.cfg path (0x8087 and 0x163C).
+    if (!stricmp(vendorName, "intel"))
+        return 0x8086;
+    if (!stricmp(vendorName, "amd"))
+        return 0x1002;
+    if (!stricmp(vendorName, "nvidia"))
+        return 0x10DE;
+    if (!stricmp(vendorName, "qualcomm"))
+        return 0x5143;
+
     for (uint32_t i = 0; i < gGPUVendorCount; ++i)
     {
         GPUVendorDefinition* currentGPUVendorDefinition = &gGPUVendorDefinitions[i];
@@ -1573,7 +1456,7 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
     // convert ids to lower case
     stringToLower(presetLevel);
     stringToLower(pOutModelId);
-    stringToLower(pOutRevisionId); // RevisionID is no longer used for comparision. Just compare name and modelID if provided in gpu.data
+    stringToLower(pOutRevisionId); // RevisionID is no longer used for comparison. Just compare name and modelID if provided.
 
     // Parsing logic
 
@@ -1588,7 +1471,7 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
     {
         if (strcmp(pInModelId, pOutModelId) != 0)
         {
-            LOGF(LogLevel::eWARNING, "Entry with matching GPUName found in gpu.data, however there was a mismatch in device IDs. \
+            LOGF(LogLevel::eWARNING, "Entry with matching GPUName found in legacy GPU data, however there was a mismatch in device IDs. \
                                       Entry has ID: %s | Device has ID: %s",
                  pInModelId, pInModelName);
             success = false;

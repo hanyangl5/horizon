@@ -1,7 +1,0 @@
-[General]
-;AppName = ${APP_NAME}
-;Version = ${APP_VERSION}
-
-[Paths]
-ENGINE_PATH = ${ENGINE_PATH}
-PROJECT_PATH = ${PROJECT_PATH}
