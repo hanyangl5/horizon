@@ -139,12 +139,12 @@ struct CpuProfileScopeMarker
     ~CpuProfileScopeMarker() { cpuProfileLeave(nToken, nTick); }
 };
 
-#define PROFILER_CONCAT0(a, b)                     a##b
-#define PROFILER_CONCAT(a, b)                      PROFILER_CONCAT0(a, b)
+#define PROFILER_CONCAT0(a, b) a##b
+#define PROFILER_CONCAT(a, b)  PROFILER_CONCAT0(a, b)
 // Call at the start of a block to profile cpu time between '{' '}'
 // TODO(profiler): Register these static tokens and release them from exitProfiler().
-#define PROFILER_SET_CPU_SCOPE(group, name, color)                                                                  \
-    static ProfileToken PROFILER_CONCAT(cpuProfileToken, __LINE__) = getCpuProfileToken(group, name, color);        \
+#define PROFILER_SET_CPU_SCOPE(group, name, color)                                                             \
+    static ProfileToken   PROFILER_CONCAT(cpuProfileToken, __LINE__) = getCpuProfileToken(group, name, color); \
     CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(PROFILER_CONCAT(cpuProfileToken, __LINE__))
 
 // Cpu times in milliseconds

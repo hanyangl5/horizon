@@ -212,8 +212,7 @@ uint64_t cpuProfileEnterNamed(const char* pGroup, const char* pName, uint32_t nC
 
     const char* function = "cpuProfileEnterNamed";
     const char* file = "Profiler/IProfiler.h";
-    uint64_t    sourceLocation =
-        ___tracy_alloc_srcloc_name(0, file, strlen(file), function, strlen(function), name, strlen(name), nColor);
+    uint64_t    sourceLocation = ___tracy_alloc_srcloc_name(0, file, strlen(file), function, strlen(function), name, strlen(name), nColor);
     return packTracyZoneCtx(___tracy_emit_zone_begin_alloc_callstack(sourceLocation, TRACY_CALLSTACK, true));
 #else
     UNREF_PARAM(pGroup);
