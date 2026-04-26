@@ -16,10 +16,11 @@ TEST(RHIRingBufferTest, RingBufferOffsetsHonorAlignmentAndWrap)
 {
     Buffer buffer = {};
 
-    GPURingBuffer ring = {};
-    ring.pBuffer = &buffer;
-    ring.mBufferAlignment = 16;
-    ring.mMaxBufferSize = 64;
+    GPURingBuffer ring = {
+        .pBuffer = &buffer,
+        .mBufferAlignment = 16,
+        .mMaxBufferSize = 64,
+    };
 
     const GPURingBufferOffset first = getGPURingBufferOffset(&ring, 1);
     EXPECT_EQ(first.pBuffer, &buffer);
@@ -40,11 +41,12 @@ TEST(RHIRingBufferTest, ResetClearsCurrentOffset)
 {
     Buffer buffer = {};
 
-    GPURingBuffer ring = {};
-    ring.pBuffer = &buffer;
-    ring.mBufferAlignment = 16;
-    ring.mMaxBufferSize = 128;
-    ring.mCurrentBufferOffset = 64;
+    GPURingBuffer ring = {
+        .pBuffer = &buffer,
+        .mBufferAlignment = 16,
+        .mMaxBufferSize = 128,
+        .mCurrentBufferOffset = 64,
+    };
 
     resetGPURingBuffer(&ring);
 
@@ -58,12 +60,13 @@ TEST(RHIRingBufferTest, ResetClearsCurrentOffset)
 // Verifies that the GPU command ring advances command and fence indices within a pool and cycles to the next pool on request.
 TEST(RHIRingBufferTest, CommandRingReturnsSequentialElementsAcrossPools)
 {
-    GpuCmdRing ring = {};
-    ring.mPoolCount = 2;
-    ring.mCmdPerPoolCount = 3;
-    ring.mPoolIndex = UINT32_MAX;
-    ring.mCmdIndex = UINT32_MAX;
-    ring.mFenceIndex = UINT32_MAX;
+    GpuCmdRing ring = {
+        .mPoolIndex = UINT32_MAX,
+        .mCmdIndex = UINT32_MAX,
+        .mFenceIndex = UINT32_MAX,
+        .mPoolCount = 2,
+        .mCmdPerPoolCount = 3,
+    };
 
     ring.pCmdPools[0] = fakeHandle<CmdPool>(0x1000);
     ring.pCmdPools[1] = fakeHandle<CmdPool>(0x2000);

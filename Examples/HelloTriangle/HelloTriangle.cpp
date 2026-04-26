@@ -54,20 +54,21 @@ float4 PSMain(VSOutput input) : SV_Target0
 
 ShaderSrcDesc makeShaderSourceDesc()
 {
-    ShaderSrcDesc desc = {};
-    desc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
-
-    desc.mVert.pName = "HelloTriangleVS";
-    desc.mVert.pByteCode = const_cast<char*>(kHelloTriangleShader);
-    desc.mVert.mByteCodeSize = static_cast<uint32_t>(sizeof(kHelloTriangleShader) - 1);
-    desc.mVert.pEntryPoint = "VSMain";
-
-    desc.mFrag.pName = "HelloTrianglePS";
-    desc.mFrag.pByteCode = const_cast<char*>(kHelloTriangleShader);
-    desc.mFrag.mByteCodeSize = static_cast<uint32_t>(sizeof(kHelloTriangleShader) - 1);
-    desc.mFrag.pEntryPoint = "PSMain";
-
-    return desc;
+    return {
+        .mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+        .mVert = {
+            .pName = "HelloTriangleVS",
+            .pByteCode = const_cast<char*>(kHelloTriangleShader),
+            .mByteCodeSize = static_cast<uint32_t>(sizeof(kHelloTriangleShader) - 1),
+            .pEntryPoint = "VSMain",
+        },
+        .mFrag = {
+            .pName = "HelloTrianglePS",
+            .pByteCode = const_cast<char*>(kHelloTriangleShader),
+            .mByteCodeSize = static_cast<uint32_t>(sizeof(kHelloTriangleShader) - 1),
+            .pEntryPoint = "PSMain",
+        },
+    };
 }
 } // namespace
 
@@ -94,12 +95,13 @@ public:
             return false;
         }
 
-        QueueDesc queueDesc = {};
-        queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-        queueDesc.mFlag = QUEUE_FLAG_NONE;
-        queueDesc.mPriority = QUEUE_PRIORITY_NORMAL;
-        queueDesc.mNodeIndex = pRenderer->mUnlinkedRendererIndex;
-        queueDesc.pName = "HelloTriangle.GraphicsQueue";
+        QueueDesc queueDesc = {
+            .mType = QUEUE_TYPE_GRAPHICS,
+            .mFlag = QUEUE_FLAG_NONE,
+            .mPriority = QUEUE_PRIORITY_NORMAL,
+            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
+            .pName = "HelloTriangle.GraphicsQueue",
+        };
         addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
         if (!pGraphicsQueue)
         {
@@ -107,21 +109,23 @@ public:
             return false;
         }
 
-        GpuCmdRingDesc cmdRingDesc = {};
-        cmdRingDesc.pQueue = pGraphicsQueue;
-        cmdRingDesc.mPoolCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle);
-        cmdRingDesc.mCmdPerPoolCount = 1;
-        cmdRingDesc.mAddSyncPrimitives = true;
+        GpuCmdRingDesc cmdRingDesc = {
+            .pQueue = pGraphicsQueue,
+            .mPoolCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle),
+            .mCmdPerPoolCount = 1,
+            .mAddSyncPrimitives = true,
+        };
         addGpuCmdRing(pRenderer, &cmdRingDesc, &mGraphicsCmdRing);
 
         Queue*         profilerQueues[] = { pGraphicsQueue };
         const char*    profilerNames[] = { "HelloTriangle GPU" };
-        ProfilerDesc   profilerDesc = {};
-        profilerDesc.pRenderer = pRenderer;
-        profilerDesc.ppQueues = profilerQueues;
-        profilerDesc.ppProfilerNames = profilerNames;
-        profilerDesc.pProfileTokens = &mGpuProfileToken;
-        profilerDesc.mGpuProfilerCount = 1;
+        ProfilerDesc   profilerDesc = {
+            .pRenderer = pRenderer,
+            .ppQueues = profilerQueues,
+            .ppProfilerNames = profilerNames,
+            .pProfileTokens = &mGpuProfileToken,
+            .mGpuProfilerCount = 1,
+        };
         initProfiler(&profilerDesc);
 
         addSemaphore(pRenderer, &pImageAcquiredSemaphore);
@@ -245,22 +249,25 @@ public:
         beginCmd(pCmd);
         cmdBeginGpuFrameProfile(pCmd, mGpuProfileToken);
 
-        RenderTargetBarrier toRenderTarget = {};
-        toRenderTarget.pRenderTarget = pRenderTarget;
-        toRenderTarget.mCurrentState = RESOURCE_STATE_PRESENT;
-        toRenderTarget.mNewState = RESOURCE_STATE_RENDER_TARGET;
+        RenderTargetBarrier toRenderTarget = {
+            .pRenderTarget = pRenderTarget,
+            .mCurrentState = RESOURCE_STATE_PRESENT,
+            .mNewState = RESOURCE_STATE_RENDER_TARGET,
+        };
         cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, &toRenderTarget);
 
-        BindRenderTargetsDesc bindDesc = {};
-        bindDesc.mRenderTargetCount = 1;
-        bindDesc.mRenderTargets[0].pRenderTarget = pRenderTarget;
-        bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_CLEAR;
-        bindDesc.mRenderTargets[0].mStoreAction = STORE_ACTION_STORE;
-        bindDesc.mRenderTargets[0].mOverrideClearValue = true;
-        bindDesc.mRenderTargets[0].mClearValue.r = 0.05f;
-        bindDesc.mRenderTargets[0].mClearValue.g = 0.06f;
-        bindDesc.mRenderTargets[0].mClearValue.b = 0.08f;
-        bindDesc.mRenderTargets[0].mClearValue.a = 1.0f;
+        BindRenderTargetsDesc bindDesc = {
+            .mRenderTargetCount = 1,
+            .mRenderTargets = {
+                {
+                    .pRenderTarget = pRenderTarget,
+                    .mLoadAction = LOAD_ACTION_CLEAR,
+                    .mStoreAction = STORE_ACTION_STORE,
+                    .mClearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
+                    .mOverrideClearValue = true,
+                },
+            },
+        };
         cmdBindRenderTargets(pCmd, &bindDesc);
 
         cmdBeginGpuTimestampQuery(pCmd, mGpuProfileToken, "Triangle Pass");
@@ -279,32 +286,35 @@ public:
 
         cmdBindRenderTargets(pCmd, nullptr);
 
-        RenderTargetBarrier toPresent = {};
-        toPresent.pRenderTarget = pRenderTarget;
-        toPresent.mCurrentState = RESOURCE_STATE_RENDER_TARGET;
-        toPresent.mNewState = RESOURCE_STATE_PRESENT;
+        RenderTargetBarrier toPresent = {
+            .pRenderTarget = pRenderTarget,
+            .mCurrentState = RESOURCE_STATE_RENDER_TARGET,
+            .mNewState = RESOURCE_STATE_PRESENT,
+        };
         cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, &toPresent);
 
         cmdEndGpuFrameProfile(pCmd, mGpuProfileToken);
         endCmd(pCmd);
 
         Semaphore* waitSemaphores[] = { pImageAcquiredSemaphore };
-        QueueSubmitDesc submitDesc = {};
-        submitDesc.ppCmds = &pCmd;
-        submitDesc.pSignalFence = cmdRingElement.pFence;
-        submitDesc.ppWaitSemaphores = waitSemaphores;
-        submitDesc.ppSignalSemaphores = &cmdRingElement.pSemaphore;
-        submitDesc.mCmdCount = 1;
-        submitDesc.mWaitSemaphoreCount = 1;
-        submitDesc.mSignalSemaphoreCount = 1;
+        QueueSubmitDesc submitDesc = {
+            .ppCmds = &pCmd,
+            .pSignalFence = cmdRingElement.pFence,
+            .ppWaitSemaphores = waitSemaphores,
+            .ppSignalSemaphores = &cmdRingElement.pSemaphore,
+            .mCmdCount = 1,
+            .mWaitSemaphoreCount = 1,
+            .mSignalSemaphoreCount = 1,
+        };
         queueSubmit(pGraphicsQueue, &submitDesc);
 
-        QueuePresentDesc presentDesc = {};
-        presentDesc.pSwapChain = pSwapChain;
-        presentDesc.ppWaitSemaphores = &cmdRingElement.pSemaphore;
-        presentDesc.mWaitSemaphoreCount = 1;
-        presentDesc.mIndex = static_cast<uint8_t>(swapchainImageIndex);
-        presentDesc.mSubmitDone = true;
+        QueuePresentDesc presentDesc = {
+            .pSwapChain = pSwapChain,
+            .ppWaitSemaphores = &cmdRingElement.pSemaphore,
+            .mWaitSemaphoreCount = 1,
+            .mIndex = static_cast<uint8_t>(swapchainImageIndex),
+            .mSubmitDone = true,
+        };
         queuePresent(pGraphicsQueue, &presentDesc);
 
         flipProfiler();
@@ -324,9 +334,10 @@ private:
         }
 
         Shader* shaders[] = { pShader };
-        RootSignatureDesc rootSignatureDesc = {};
-        rootSignatureDesc.ppShaders = shaders;
-        rootSignatureDesc.mShaderCount = 1;
+        RootSignatureDesc rootSignatureDesc = {
+            .ppShaders = shaders,
+            .mShaderCount = 1,
+        };
         addRootSignature(pRenderer, &rootSignatureDesc, &pRootSignature);
         if (!pRootSignature)
         {
@@ -339,14 +350,15 @@ private:
 
     bool createVertexBuffer()
     {
-        BufferDesc vertexBufferDesc = {};
-        vertexBufferDesc.mSize = sizeof(kTriangleVertices);
-        vertexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        vertexBufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        vertexBufferDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        vertexBufferDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
-        vertexBufferDesc.pName = "HelloTriangle.VertexBuffer";
-        vertexBufferDesc.mNodeIndex = pRenderer->mUnlinkedRendererIndex;
+        BufferDesc vertexBufferDesc = {
+            .mSize = sizeof(kTriangleVertices),
+            .pName = "HelloTriangle.VertexBuffer",
+            .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+            .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+            .mStartState = RESOURCE_STATE_GENERIC_READ,
+            .mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER,
+            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
+        };
         addBuffer(pRenderer, &vertexBufferDesc, &pVertexBuffer);
         if (!pVertexBuffer || !pVertexBuffer->pCpuMappedAddress)
         {
@@ -367,41 +379,54 @@ private:
 
         removePipelineResource();
 
-        VertexLayout vertexLayout = {};
-        vertexLayout.mBindingCount = 1;
-        vertexLayout.mBindings[0].mStride = sizeof(Vertex);
-        vertexLayout.mBindings[0].mRate = VERTEX_BINDING_RATE_VERTEX;
+        VertexLayout vertexLayout = {
+            .mBindings = {
+                {
+                    .mStride = sizeof(Vertex),
+                    .mRate = VERTEX_BINDING_RATE_VERTEX,
+                },
+            },
+            .mAttribs = {
+                {
+                    .mSemantic = SEMANTIC_POSITION,
+                    .mFormat = TinyImageFormat_R32G32_SFLOAT,
+                    .mBinding = 0,
+                    .mLocation = 0,
+                    .mOffset = offsetof(Vertex, position),
+                },
+                {
+                    .mSemantic = SEMANTIC_COLOR,
+                    .mFormat = TinyImageFormat_R32G32B32_SFLOAT,
+                    .mBinding = 0,
+                    .mLocation = 1,
+                    .mOffset = offsetof(Vertex, color),
+                },
+            },
+            .mBindingCount = 1,
+            .mAttribCount = 2,
+        };
 
-        vertexLayout.mAttribCount = 2;
-        vertexLayout.mAttribs[0].mBinding = 0;
-        vertexLayout.mAttribs[0].mLocation = 0;
-        vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
-        vertexLayout.mAttribs[0].mOffset = offsetof(Vertex, position);
-
-        vertexLayout.mAttribs[1].mBinding = 0;
-        vertexLayout.mAttribs[1].mLocation = 1;
-        vertexLayout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
-        vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-        vertexLayout.mAttribs[1].mOffset = offsetof(Vertex, color);
-
-        RasterizerStateDesc rasterizerDesc = {};
-        rasterizerDesc.mCullMode = CULL_MODE_NONE;
+        RasterizerStateDesc rasterizerDesc = {
+            .mCullMode = CULL_MODE_NONE,
+        };
 
         TinyImageFormat colorFormat = pSwapChain->mFormat;
 
-        PipelineDesc pipelineDesc = {};
-        pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-        pipelineDesc.pName = "HelloTriangle.Pipeline";
-        pipelineDesc.mGraphicsDesc.pShaderProgram = pShader;
-        pipelineDesc.mGraphicsDesc.pRootSignature = pRootSignature;
-        pipelineDesc.mGraphicsDesc.pVertexLayout = &vertexLayout;
-        pipelineDesc.mGraphicsDesc.pRasterizerState = &rasterizerDesc;
-        pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
-        pipelineDesc.mGraphicsDesc.pColorFormats = &colorFormat;
-        pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
-        pipelineDesc.mGraphicsDesc.mSampleQuality = 0;
-        pipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+        PipelineDesc pipelineDesc = {
+            .mGraphicsDesc = {
+                .pShaderProgram = pShader,
+                .pRootSignature = pRootSignature,
+                .pVertexLayout = &vertexLayout,
+                .pRasterizerState = &rasterizerDesc,
+                .pColorFormats = &colorFormat,
+                .mRenderTargetCount = 1,
+                .mSampleCount = SAMPLE_COUNT_1,
+                .mSampleQuality = 0,
+                .mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST,
+            },
+            .pName = "HelloTriangle.Pipeline",
+            .mType = PIPELINE_TYPE_GRAPHICS,
+        };
         addPipeline(pRenderer, &pipelineDesc, &pPipeline);
 
         if (!pPipeline)
@@ -417,15 +442,16 @@ private:
     {
         removeSwapChainResource();
 
-        SwapChainDesc swapChainDesc = {};
-        swapChainDesc.mWindowHandle = pWindow->handle;
-        swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-        swapChainDesc.mPresentQueueCount = 1;
-        swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle);
-        swapChainDesc.mWidth = static_cast<uint32_t>(mSettings.mWidth);
-        swapChainDesc.mHeight = static_cast<uint32_t>(mSettings.mHeight);
-        swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
-        swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        SwapChainDesc swapChainDesc = {
+            .mWindowHandle = pWindow->handle,
+            .ppPresentQueues = &pGraphicsQueue,
+            .mPresentQueueCount = 1,
+            .mImageCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle),
+            .mWidth = static_cast<uint32_t>(mSettings.mWidth),
+            .mHeight = static_cast<uint32_t>(mSettings.mHeight),
+            .mEnableVsync = mSettings.mVSyncEnabled,
+            .mColorSpace = COLOR_SPACE_SDR_SRGB,
+        };
         swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, swapChainDesc.mColorSpace);
         addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

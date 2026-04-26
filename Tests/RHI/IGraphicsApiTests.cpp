@@ -167,8 +167,9 @@ const char* getRendererInitReason()
 
 ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const char* entry0, const char* entry1 = nullptr)
 {
-    ShaderSrcDesc desc = {};
-    desc.mStages = stages;
+    ShaderSrcDesc desc = {
+        .mStages = stages,
+    };
 
     if (stages & SHADER_STAGE_VERT)
     {
@@ -199,8 +200,9 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
 
 BinaryShaderDesc makeBinaryShaderDescFromSourceShader(const Shader* pShader, ShaderStage stage, const char* entryPoint)
 {
-    BinaryShaderDesc desc = {};
-    desc.mStages = stage;
+    BinaryShaderDesc desc = {
+        .mStages = stage,
+    };
 
     if (stage == SHADER_STAGE_COMP)
     {
@@ -239,8 +241,9 @@ struct LiveRendererHarness
             return false;
         }
 
-        RendererDesc rendererDesc = {};
-        rendererDesc.pContext = pContext;
+        RendererDesc rendererDesc = {
+            .pContext = pContext,
+        };
         initRenderer(appName, &rendererDesc, &pRenderer);
         if (!pRenderer)
         {
@@ -258,12 +261,13 @@ struct LiveRendererHarness
             return false;
         }
 
-        QueueDesc queueDesc = {};
-        queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-        queueDesc.mFlag = QUEUE_FLAG_NONE;
-        queueDesc.mPriority = QUEUE_PRIORITY_NORMAL;
-        queueDesc.mNodeIndex = pRenderer->mUnlinkedRendererIndex;
-        queueDesc.pName = "IGraphicsApiTest.Queue";
+        QueueDesc queueDesc = {
+            .mType = QUEUE_TYPE_GRAPHICS,
+            .mFlag = QUEUE_FLAG_NONE,
+            .mPriority = QUEUE_PRIORITY_NORMAL,
+            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
+            .pName = "IGraphicsApiTest.Queue",
+        };
         addQueue(pRenderer, &queueDesc, &pQueue);
         if (!pQueue)
         {
@@ -306,9 +310,10 @@ struct LiveRendererHarness
             return false;
         }
 
-        CmdPoolDesc poolDesc = {};
-        poolDesc.pQueue = pQueue;
-        poolDesc.mTransient = false;
+        CmdPoolDesc poolDesc = {
+            .pQueue = pQueue,
+            .mTransient = false,
+        };
         addCmdPool(pRenderer, &poolDesc, &pCmdPool);
         if (!pCmdPool)
         {
@@ -332,11 +337,12 @@ struct LiveRendererHarness
             return false;
         }
 
-        CmdDesc cmdDesc = {};
-        cmdDesc.pPool = pCmdPool;
+        CmdDesc cmdDesc = {
+            .pPool = pCmdPool,
 #ifdef ENABLE_GRAPHICS_DEBUG
-        cmdDesc.pName = "IGraphicsApiTest.PrimaryCmd";
+            .pName = "IGraphicsApiTest.PrimaryCmd",
 #endif
+        };
         addCmd(pRenderer, &cmdDesc, &pCmd);
         if (!pCmd)
         {
@@ -365,8 +371,9 @@ struct LiveRendererHarness
             return true;
         }
 
-        CmdDesc cmdDesc = {};
-        cmdDesc.pPool = pCmdPool;
+        CmdDesc cmdDesc = {
+            .pPool = pCmdPool,
+        };
 
         if (extraCmdCount > 0)
         {
@@ -394,13 +401,14 @@ struct LiveRendererHarness
         initWindowClass();
         mWindowClassInitialized = true;
 
-        mWindow = {};
-        mWindow.clientRect = { 0, 0, (int)width, (int)height };
-        mWindow.windowedRect = mWindow.clientRect;
-        mWindow.fullscreenRect = mWindow.clientRect;
-        mWindow.hide = true;
-        mWindow.noresizeFrame = true;
-        mWindow.overrideDefaultPosition = true;
+        mWindow = {
+            .windowedRect = { 0, 0, (int)width, (int)height },
+            .fullscreenRect = { 0, 0, (int)width, (int)height },
+            .clientRect = { 0, 0, (int)width, (int)height },
+            .hide = true,
+            .noresizeFrame = true,
+            .overrideDefaultPosition = true,
+        };
 
         openWindow(appName, &mWindow);
         mWindowOpened = mWindow.handle.window != nullptr;
@@ -411,15 +419,16 @@ struct LiveRendererHarness
         }
 
         Queue* presentQueues[] = { pQueue };
-        SwapChainDesc swapChainDesc = {};
-        swapChainDesc.mWindowHandle = mWindow.handle;
-        swapChainDesc.ppPresentQueues = presentQueues;
-        swapChainDesc.mPresentQueueCount = 1;
-        swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRenderer, &mWindow.handle);
-        swapChainDesc.mWidth = width;
-        swapChainDesc.mHeight = height;
-        swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
-        swapChainDesc.mEnableVsync = false;
+        SwapChainDesc swapChainDesc = {
+            .mWindowHandle = mWindow.handle,
+            .ppPresentQueues = presentQueues,
+            .mPresentQueueCount = 1,
+            .mImageCount = getRecommendedSwapchainImageCount(pRenderer, &mWindow.handle),
+            .mWidth = width,
+            .mHeight = height,
+            .mEnableVsync = false,
+            .mColorSpace = COLOR_SPACE_SDR_SRGB,
+        };
         swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, swapChainDesc.mColorSpace);
 
         addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -435,14 +444,15 @@ struct LiveRendererHarness
     void submitAndWait(Cmd* pCmdToSubmit, Fence* pSubmitFence, uint32_t waitSemaphoreCount = 0, Semaphore** ppWaitSemaphores = nullptr,
                        uint32_t signalSemaphoreCount = 0, Semaphore** ppSignalSemaphores = nullptr)
     {
-        QueueSubmitDesc submitDesc = {};
-        submitDesc.ppCmds = &pCmdToSubmit;
-        submitDesc.pSignalFence = pSubmitFence;
-        submitDesc.ppWaitSemaphores = ppWaitSemaphores;
-        submitDesc.ppSignalSemaphores = ppSignalSemaphores;
-        submitDesc.mCmdCount = 1;
-        submitDesc.mWaitSemaphoreCount = waitSemaphoreCount;
-        submitDesc.mSignalSemaphoreCount = signalSemaphoreCount;
+        QueueSubmitDesc submitDesc = {
+            .ppCmds = &pCmdToSubmit,
+            .pSignalFence = pSubmitFence,
+            .ppWaitSemaphores = ppWaitSemaphores,
+            .ppSignalSemaphores = ppSignalSemaphores,
+            .mCmdCount = 1,
+            .mWaitSemaphoreCount = waitSemaphoreCount,
+            .mSignalSemaphoreCount = signalSemaphoreCount,
+        };
         queueSubmit(pQueue, &submitDesc);
         waitForFences(pRenderer, 1, &pSubmitFence);
     }
@@ -594,8 +604,9 @@ protected:
         ASSERT_TRUE(initMemAlloc(nullptr));
         _EnableInteractiveMode(false);
 
-        FileSystemInitDesc fsDesc = {};
-        fsDesc.pAppName = "RHITests";
+        FileSystemInitDesc fsDesc = {
+            .pAppName = "RHITests",
+        };
         ASSERT_TRUE(initFileSystem(&fsDesc));
 
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
@@ -634,14 +645,16 @@ TEST_F(RHIIGraphicsApiTest, RendererInitializationErrorHelpersRoundTripState)
 // Verifies that descriptor lookup, flag operators, and indirect argument index helpers behave as expected for the public API surface.
 TEST_F(RHIIGraphicsApiTest, HeaderHelpersPreserveExpectedLookupAndFlagBehavior)
 {
-    DescriptorInfo descriptors[3] = {};
-    descriptors[0].pName = "FrameData";
-    descriptors[1].pName = "SceneTexture";
-    descriptors[2].pName = "OutputBuffer";
+    DescriptorInfo descriptors[3] = {
+        { .pName = "FrameData" },
+        { .pName = "SceneTexture" },
+        { .pName = "OutputBuffer" },
+    };
 
-    RootSignature rootSignature = {};
-    rootSignature.pDescriptors = descriptors;
-    rootSignature.mDescriptorCount = TF_ARRAY_COUNT(descriptors);
+    RootSignature rootSignature = {
+        .mDescriptorCount = TF_ARRAY_COUNT(descriptors),
+        .pDescriptors = descriptors,
+    };
 
     EXPECT_EQ(getDescriptorIndexFromName(&rootSignature, "FrameData"), 0u);
     EXPECT_EQ(getDescriptorIndexFromName(&rootSignature, "SceneTexture"), 1u);
@@ -781,9 +794,10 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
     });
 
     Shader* rootShaders[] = { pOut->pBinaryShader };
-    RootSignatureDesc rootSignatureDesc = {};
-    rootSignatureDesc.ppShaders = rootShaders;
-    rootSignatureDesc.mShaderCount = 1;
+    RootSignatureDesc rootSignatureDesc = {
+        .ppShaders = rootShaders,
+        .mShaderCount = 1,
+    };
     addRootSignature(harness.pRenderer, &rootSignatureDesc, &pOut->pRootSignature);
     if (!pOut->pRootSignature)
     {
@@ -811,25 +825,27 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
 
 bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, LifecyclePlacedBufferBundle* pOut)
 {
-    BufferDesc placedBufferDesc = {};
-    placedBufferDesc.mSize = sizeof(uint32_t) * 4;
-    placedBufferDesc.mElementCount = 4;
-    placedBufferDesc.mStructStride = sizeof(uint32_t);
-    placedBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    placedBufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-    placedBufferDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-    placedBufferDesc.pName = "LifecyclePlacedBuffer";
-    placedBufferDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc placedBufferDesc = {
+        .mSize = sizeof(uint32_t) * 4,
+        .mElementCount = 4,
+        .mStructStride = sizeof(uint32_t),
+        .pName = "LifecyclePlacedBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .mStartState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     getBufferSizeAlign(harness.pRenderer, &placedBufferDesc, &pOut->sizeAlign);
 
-    ResourceHeapDesc heapDesc = {};
-    heapDesc.mSize = pOut->sizeAlign.mSize;
-    heapDesc.mAlignment = pOut->sizeAlign.mAlignment;
-    heapDesc.mMemoryUsage = placedBufferDesc.mMemoryUsage;
-    heapDesc.mDescriptors = placedBufferDesc.mDescriptors;
-    heapDesc.mFlags = RESOURCE_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-    heapDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
-    heapDesc.pName = "LifecycleBufferHeap";
+    ResourceHeapDesc heapDesc = {
+        .mSize = pOut->sizeAlign.mSize,
+        .mAlignment = pOut->sizeAlign.mAlignment,
+        .mMemoryUsage = placedBufferDesc.mMemoryUsage,
+        .mDescriptors = placedBufferDesc.mDescriptors,
+        .mFlags = RESOURCE_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+        .pName = "LifecycleBufferHeap",
+    };
     addResourceHeap(harness.pRenderer, &heapDesc, &pOut->pHeap);
     if (!pOut->pHeap)
     {
@@ -845,9 +861,10 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         }
     });
 
-    ResourcePlacement placement = {};
-    placement.pHeap = pOut->pHeap;
-    placement.mOffset = 0;
+    ResourcePlacement placement = {
+        .pHeap = pOut->pHeap,
+        .mOffset = 0,
+    };
     placedBufferDesc.pPlacement = &placement;
     addBuffer(harness.pRenderer, &placedBufferDesc, &pOut->pBuffer);
     if (!pOut->pBuffer)
@@ -870,10 +887,11 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
 bool createDescriptorSetForOutput(LiveRendererHarness& harness, DeferredCleanup& cleanup, RootSignature* pRootSignature, Buffer* pBuffer,
                                   DescriptorSet** ppDescriptorSet)
 {
-    DescriptorSetDesc descriptorSetDesc = {};
-    descriptorSetDesc.pRootSignature = pRootSignature;
-    descriptorSetDesc.mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE;
-    descriptorSetDesc.mMaxSets = 1;
+    DescriptorSetDesc descriptorSetDesc = {
+        .pRootSignature = pRootSignature,
+        .mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
+        .mMaxSets = 1,
+    };
     addDescriptorSet(harness.pRenderer, &descriptorSetDesc, ppDescriptorSet);
     if (!*ppDescriptorSet)
     {
@@ -889,10 +907,11 @@ bool createDescriptorSetForOutput(LiveRendererHarness& harness, DeferredCleanup&
         }
     });
 
-    DescriptorData bufferUpdate = {};
-    bufferUpdate.pName = "OutputBuffer";
-    bufferUpdate.ppBuffers = &pBuffer;
-    bufferUpdate.mCount = 1;
+    DescriptorData bufferUpdate = {
+        .pName = "OutputBuffer",
+        .mCount = 1,
+        .ppBuffers = &pBuffer,
+    };
     updateDescriptorSet(harness.pRenderer, 0, *ppDescriptorSet, 1, &bufferUpdate);
     return true;
 }
@@ -916,12 +935,15 @@ bool createLifecyclePipelineBundle(LiveRendererHarness& harness, DeferredCleanup
         }
     });
 
-    PipelineDesc pipelineDesc = {};
-    pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
-    pipelineDesc.pCache = pOut->pPipelineCache;
-    pipelineDesc.pName = "LifecycleComputePipeline";
-    pipelineDesc.mComputeDesc.pShaderProgram = pShader;
-    pipelineDesc.mComputeDesc.pRootSignature = pRootSignature;
+    PipelineDesc pipelineDesc = {
+        .mComputeDesc = {
+            .pShaderProgram = pShader,
+            .pRootSignature = pRootSignature,
+        },
+        .pCache = pOut->pPipelineCache,
+        .pName = "LifecycleComputePipeline",
+        .mType = PIPELINE_TYPE_COMPUTE,
+    };
     addPipeline(harness.pRenderer, &pipelineDesc, &pOut->pPipeline);
     if (!pOut->pPipeline)
     {
@@ -943,17 +965,18 @@ bool createLifecyclePipelineBundle(LiveRendererHarness& harness, DeferredCleanup
 bool createRenderTarget(LiveRendererHarness& harness, DeferredCleanup& cleanup, const char* name, uint32_t width, uint32_t height,
                         RenderTarget** ppRenderTarget)
 {
-    RenderTargetDesc renderTargetDesc = {};
-    renderTargetDesc.mWidth = width;
-    renderTargetDesc.mHeight = height;
-    renderTargetDesc.mDepth = 1;
-    renderTargetDesc.mArraySize = 1;
-    renderTargetDesc.mMipLevels = 1;
-    renderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
-    renderTargetDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-    renderTargetDesc.mStartState = RESOURCE_STATE_RENDER_TARGET;
-    renderTargetDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
-    renderTargetDesc.pName = name;
+    RenderTargetDesc renderTargetDesc = {
+        .mWidth = width,
+        .mHeight = height,
+        .mDepth = 1,
+        .mArraySize = 1,
+        .mMipLevels = 1,
+        .mSampleCount = SAMPLE_COUNT_1,
+        .mFormat = TinyImageFormat_R8G8B8A8_UNORM,
+        .mStartState = RESOURCE_STATE_RENDER_TARGET,
+        .pName = name,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addRenderTarget(harness.pRenderer, &renderTargetDesc, ppRenderTarget);
     if (!*ppRenderTarget)
     {
@@ -984,12 +1007,13 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     harness.pRenderer->mDx.pDevice->GetCopyableFootprints(&textureResourceDesc, 0, 1, 0, &pOut->footprint, &numRows, &rowSizeInBytes,
                                                           &pOut->totalTextureBytes);
 
-    BufferDesc textureReadbackDesc = {};
-    textureReadbackDesc.mSize = pOut->totalTextureBytes;
-    textureReadbackDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-    textureReadbackDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-    textureReadbackDesc.pName = "CommandTextureReadback";
-    textureReadbackDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc textureReadbackDesc = {
+        .mSize = pOut->totalTextureBytes,
+        .pName = "CommandTextureReadback",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .mStartState = RESOURCE_STATE_COPY_DEST,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &textureReadbackDesc, &pOut->pReadbackBuffer);
     if (!pOut->pReadbackBuffer)
     {
@@ -1022,9 +1046,10 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     });
 
     Shader* graphicsShaders[] = { pOut->pShader };
-    RootSignatureDesc graphicsRootSignatureDesc = {};
-    graphicsRootSignatureDesc.ppShaders = graphicsShaders;
-    graphicsRootSignatureDesc.mShaderCount = 1;
+    RootSignatureDesc graphicsRootSignatureDesc = {
+        .ppShaders = graphicsShaders,
+        .mShaderCount = 1,
+    };
     addRootSignature(harness.pRenderer, &graphicsRootSignatureDesc, &pOut->pRootSignature);
     if (!pOut->pRootSignature)
     {
@@ -1047,14 +1072,15 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
 
-    BufferDesc vertexBufferDesc = {};
-    vertexBufferDesc.mSize = sizeof(float) * 2 * 3;
-    vertexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vertexBufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    vertexBufferDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vertexBufferDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
-    vertexBufferDesc.pName = "GraphicsVertexBuffer";
-    vertexBufferDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc vertexBufferDesc = {
+        .mSize = sizeof(float) * 2 * 3,
+        .pName = "GraphicsVertexBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .mStartState = RESOURCE_STATE_GENERIC_READ,
+        .mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &vertexBufferDesc, &pOut->pVertexBuffer);
     if (!pOut->pVertexBuffer)
     {
@@ -1073,14 +1099,15 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     const float fullscreenTriangle[3][2] = { { -1.0f, -1.0f }, { -1.0f, 3.0f }, { 3.0f, -1.0f } };
     memcpy(pOut->pVertexBuffer->pCpuMappedAddress, fullscreenTriangle, sizeof(fullscreenTriangle));
 
-    BufferDesc indexBufferDesc = {};
-    indexBufferDesc.mSize = sizeof(uint16_t) * 3;
-    indexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    indexBufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    indexBufferDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-    indexBufferDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
-    indexBufferDesc.pName = "GraphicsIndexBuffer";
-    indexBufferDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc indexBufferDesc = {
+        .mSize = sizeof(uint16_t) * 3,
+        .pName = "GraphicsIndexBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .mStartState = RESOURCE_STATE_GENERIC_READ,
+        .mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &indexBufferDesc, &pOut->pIndexBuffer);
     if (!pOut->pIndexBuffer)
     {
@@ -1099,31 +1126,44 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     const uint16_t triangleIndices[3] = { 0u, 1u, 2u };
     memcpy(pOut->pIndexBuffer->pCpuMappedAddress, triangleIndices, sizeof(triangleIndices));
 
-    VertexLayout vertexLayout = {};
-    vertexLayout.mBindingCount = 1;
-    vertexLayout.mBindings[0].mStride = sizeof(float) * 2;
-    vertexLayout.mBindings[0].mRate = VERTEX_BINDING_RATE_VERTEX;
-    vertexLayout.mAttribCount = 1;
-    vertexLayout.mAttribs[0].mBinding = 0;
-    vertexLayout.mAttribs[0].mLocation = 0;
-    vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-    vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
+    VertexLayout vertexLayout = {
+        .mBindings = {
+            {
+                .mStride = sizeof(float) * 2,
+                .mRate = VERTEX_BINDING_RATE_VERTEX,
+            },
+        },
+        .mAttribs = {
+            {
+                .mSemantic = SEMANTIC_POSITION,
+                .mFormat = TinyImageFormat_R32G32_SFLOAT,
+                .mBinding = 0,
+                .mLocation = 0,
+            },
+        },
+        .mBindingCount = 1,
+        .mAttribCount = 1,
+    };
 
-    RasterizerStateDesc graphicsRasterizerDesc = {};
-    graphicsRasterizerDesc.mCullMode = CULL_MODE_NONE;
+    RasterizerStateDesc graphicsRasterizerDesc = {
+        .mCullMode = CULL_MODE_NONE,
+    };
 
-    PipelineDesc graphicsPipelineDesc = {};
-    graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-    graphicsPipelineDesc.pName = "GraphicsPipeline";
-    graphicsPipelineDesc.mGraphicsDesc.pShaderProgram = pOut->pShader;
-    graphicsPipelineDesc.mGraphicsDesc.pRootSignature = pOut->pRootSignature;
-    graphicsPipelineDesc.mGraphicsDesc.pVertexLayout = &vertexLayout;
-    graphicsPipelineDesc.mGraphicsDesc.pRasterizerState = &graphicsRasterizerDesc;
-    graphicsPipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
-    graphicsPipelineDesc.mGraphicsDesc.pColorFormats = &pOut->pRenderTarget->mFormat;
-    graphicsPipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
-    graphicsPipelineDesc.mGraphicsDesc.mSampleQuality = 0;
-    graphicsPipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+    PipelineDesc graphicsPipelineDesc = {
+        .mGraphicsDesc = {
+            .pShaderProgram = pOut->pShader,
+            .pRootSignature = pOut->pRootSignature,
+            .pVertexLayout = &vertexLayout,
+            .pRasterizerState = &graphicsRasterizerDesc,
+            .pColorFormats = &pOut->pRenderTarget->mFormat,
+            .mRenderTargetCount = 1,
+            .mSampleCount = SAMPLE_COUNT_1,
+            .mSampleQuality = 0,
+            .mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST,
+        },
+        .pName = "GraphicsPipeline",
+        .mType = PIPELINE_TYPE_GRAPHICS,
+    };
     addPipeline(harness.pRenderer, &graphicsPipelineDesc, &pOut->pPipeline);
     if (!pOut->pPipeline)
     {
@@ -1147,13 +1187,18 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
     resetCmdPool(harness.pRenderer, harness.pCmdPool);
     beginCmd(harness.pCmd);
 
-    BindRenderTargetsDesc bindDesc = {};
-    bindDesc.mRenderTargetCount = 1;
-    bindDesc.mRenderTargets[0].pRenderTarget = setup.pRenderTarget;
-    bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_CLEAR;
-    bindDesc.mRenderTargets[0].mStoreAction = STORE_ACTION_STORE;
-    bindDesc.mRenderTargets[0].mOverrideClearValue = true;
-    bindDesc.mRenderTargets[0].mClearValue.a = 1.0f;
+    BindRenderTargetsDesc bindDesc = {
+        .mRenderTargetCount = 1,
+        .mRenderTargets = {
+            {
+                .pRenderTarget = setup.pRenderTarget,
+                .mLoadAction = LOAD_ACTION_CLEAR,
+                .mStoreAction = STORE_ACTION_STORE,
+                .mClearValue = { .a = 1.0f },
+                .mOverrideClearValue = true,
+            },
+        },
+    };
     cmdBindRenderTargets(harness.pCmd, &bindDesc);
     cmdSetViewport(harness.pCmd, 0.0f, 0.0f, (float)kRenderTargetWidth, (float)kRenderTargetHeight, 0.0f, 1.0f);
     cmdSetScissor(harness.pCmd, 0, 0, kRenderTargetWidth, kRenderTargetHeight);
@@ -1184,10 +1229,11 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
         break;
     }
 
-    RenderTargetBarrier renderTargetBarrier = {};
-    renderTargetBarrier.pRenderTarget = setup.pRenderTarget;
-    renderTargetBarrier.mCurrentState = RESOURCE_STATE_RENDER_TARGET;
-    renderTargetBarrier.mNewState = RESOURCE_STATE_COPY_SOURCE;
+    RenderTargetBarrier renderTargetBarrier = {
+        .pRenderTarget = setup.pRenderTarget,
+        .mCurrentState = RESOURCE_STATE_RENDER_TARGET,
+        .mNewState = RESOURCE_STATE_COPY_SOURCE,
+    };
     cmdResourceBarrier(harness.pCmd, 0, nullptr, 0, nullptr, 1, &renderTargetBarrier);
 
     SubresourceDataDesc subresourceCopy = {};
@@ -1197,9 +1243,10 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
     harness.submitAndWait(harness.pCmd, harness.pFence);
     waitQueueIdle(harness.pQueue);
 
-    ReadRange textureReadRange = {};
-    textureReadRange.mOffset = 0;
-    textureReadRange.mSize = setup.totalTextureBytes;
+    ReadRange textureReadRange = {
+        .mOffset = 0,
+        .mSize = setup.totalTextureBytes,
+    };
     mapBuffer(harness.pRenderer, setup.pReadbackBuffer, &textureReadRange);
     const uint8_t* textureBytes = static_cast<const uint8_t*>(setup.pReadbackBuffer->pCpuMappedAddress);
     PixelValue result = {};
@@ -1234,9 +1281,10 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     });
 
     Shader* computeShaders[] = { pOut->pShader };
-    RootSignatureDesc computeRootSignatureDesc = {};
-    computeRootSignatureDesc.ppShaders = computeShaders;
-    computeRootSignatureDesc.mShaderCount = 1;
+    RootSignatureDesc computeRootSignatureDesc = {
+        .ppShaders = computeShaders,
+        .mShaderCount = 1,
+    };
     addRootSignature(harness.pRenderer, &computeRootSignatureDesc, &pOut->pRootSignature);
     if (!pOut->pRootSignature)
     {
@@ -1261,10 +1309,11 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
 
-    DescriptorSetDesc computeDescriptorSetDesc = {};
-    computeDescriptorSetDesc.pRootSignature = pOut->pRootSignature;
-    computeDescriptorSetDesc.mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE;
-    computeDescriptorSetDesc.mMaxSets = 1;
+    DescriptorSetDesc computeDescriptorSetDesc = {
+        .pRootSignature = pOut->pRootSignature,
+        .mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
+        .mMaxSets = 1,
+    };
     addDescriptorSet(harness.pRenderer, &computeDescriptorSetDesc, &pOut->pDescriptorSet);
     if (!pOut->pDescriptorSet)
     {
@@ -1280,15 +1329,16 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         }
     });
 
-    BufferDesc computeOutputDesc = {};
-    computeOutputDesc.mSize = sizeof(uint32_t) * 2;
-    computeOutputDesc.mElementCount = 2;
-    computeOutputDesc.mStructStride = sizeof(uint32_t);
-    computeOutputDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    computeOutputDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-    computeOutputDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-    computeOutputDesc.pName = "ComputeOutputBuffer";
-    computeOutputDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc computeOutputDesc = {
+        .mSize = sizeof(uint32_t) * 2,
+        .mElementCount = 2,
+        .mStructStride = sizeof(uint32_t),
+        .pName = "ComputeOutputBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .mStartState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &computeOutputDesc, &pOut->pOutputBuffer);
     if (!pOut->pOutputBuffer)
     {
@@ -1304,20 +1354,22 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         }
     });
 
-    DescriptorData computeOutputUpdate = {};
-    computeOutputUpdate.pName = "OutputBuffer";
-    computeOutputUpdate.ppBuffers = &pOut->pOutputBuffer;
-    computeOutputUpdate.mCount = 1;
+    DescriptorData computeOutputUpdate = {
+        .pName = "OutputBuffer",
+        .mCount = 1,
+        .ppBuffers = &pOut->pOutputBuffer,
+    };
     updateDescriptorSet(harness.pRenderer, 0, pOut->pDescriptorSet, 1, &computeOutputUpdate);
 
-    BufferDesc computeRootCbvDesc = {};
-    computeRootCbvDesc.mSize = 256;
-    computeRootCbvDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    computeRootCbvDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    computeRootCbvDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    computeRootCbvDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
-    computeRootCbvDesc.pName = "ComputeRootCbvBuffer";
-    computeRootCbvDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc computeRootCbvDesc = {
+        .mSize = 256,
+        .pName = "ComputeRootCbvBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .mStartState = RESOURCE_STATE_GENERIC_READ,
+        .mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &computeRootCbvDesc, &pOut->pRootCbvBuffer);
     if (!pOut->pRootCbvBuffer)
     {
@@ -1336,12 +1388,13 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     pOut->rootCbvData.multiplier = 3u;
     memcpy(pOut->pRootCbvBuffer->pCpuMappedAddress, &pOut->rootCbvData, sizeof(pOut->rootCbvData));
 
-    BufferDesc computeReadbackDesc = {};
-    computeReadbackDesc.mSize = sizeof(uint32_t) * 2;
-    computeReadbackDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-    computeReadbackDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-    computeReadbackDesc.pName = "ComputeReadbackBuffer";
-    computeReadbackDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc computeReadbackDesc = {
+        .mSize = sizeof(uint32_t) * 2,
+        .pName = "ComputeReadbackBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .mStartState = RESOURCE_STATE_COPY_DEST,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &computeReadbackDesc, &pOut->pReadbackBuffer);
     if (!pOut->pReadbackBuffer)
     {
@@ -1357,14 +1410,15 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         }
     });
 
-    BufferDesc indirectBufferDesc = {};
-    indirectBufferDesc.mSize = sizeof(DispatchCommandData);
-    indirectBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    indirectBufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    indirectBufferDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER;
-    indirectBufferDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
-    indirectBufferDesc.pName = "DispatchIndirectBuffer";
-    indirectBufferDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc indirectBufferDesc = {
+        .mSize = sizeof(DispatchCommandData),
+        .pName = "DispatchIndirectBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .mStartState = RESOURCE_STATE_GENERIC_READ,
+        .mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &indirectBufferDesc, &pOut->pIndirectBuffer);
     if (!pOut->pIndirectBuffer)
     {
@@ -1380,17 +1434,23 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         }
     });
 
-    DispatchCommandData dispatchData = {};
-    dispatchData.args.mGroupCountX = 1;
-    dispatchData.args.mGroupCountY = 1;
-    dispatchData.args.mGroupCountZ = 1;
+    DispatchCommandData dispatchData = {
+        .args = {
+            .mGroupCountX = 1,
+            .mGroupCountY = 1,
+            .mGroupCountZ = 1,
+        },
+    };
     memcpy(pOut->pIndirectBuffer->pCpuMappedAddress, &dispatchData, sizeof(dispatchData));
 
-    PipelineDesc computePipelineDesc = {};
-    computePipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
-    computePipelineDesc.pName = "ComputePipeline";
-    computePipelineDesc.mComputeDesc.pShaderProgram = pOut->pShader;
-    computePipelineDesc.mComputeDesc.pRootSignature = pOut->pRootSignature;
+    PipelineDesc computePipelineDesc = {
+        .mComputeDesc = {
+            .pShaderProgram = pOut->pShader,
+            .pRootSignature = pOut->pRootSignature,
+        },
+        .pName = "ComputePipeline",
+        .mType = PIPELINE_TYPE_COMPUTE,
+    };
     addPipeline(harness.pRenderer, &computePipelineDesc, &pOut->pPipeline);
     if (!pOut->pPipeline)
     {
@@ -1406,11 +1466,13 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         }
     });
 
-    IndirectArgumentDescriptor dispatchArg = {};
-    dispatchArg.mType = INDIRECT_DISPATCH;
-    CommandSignatureDesc dispatchSignatureDesc = {};
-    dispatchSignatureDesc.pArgDescs = &dispatchArg;
-    dispatchSignatureDesc.mIndirectArgCount = 1;
+    IndirectArgumentDescriptor dispatchArg = {
+        .mType = INDIRECT_DISPATCH,
+    };
+    CommandSignatureDesc dispatchSignatureDesc = {
+        .pArgDescs = &dispatchArg,
+        .mIndirectArgCount = 1,
+    };
     addIndirectCommandSignature(harness.pRenderer, &dispatchSignatureDesc, &pOut->pDispatchSignature);
     if (!pOut->pDispatchSignature)
     {
@@ -1445,14 +1507,16 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
 
     if (bindRootCbv)
     {
-        DescriptorDataRange computeRootCbvRange = {};
-        computeRootCbvRange.mOffset = 0;
-        computeRootCbvRange.mSize = (uint32_t)sizeof(setup.rootCbvData);
-        DescriptorData computeRootCbvBinding = {};
-        computeRootCbvBinding.pName = "ComputeRootCbv";
-        computeRootCbvBinding.pRanges = &computeRootCbvRange;
-        computeRootCbvBinding.ppBuffers = const_cast<Buffer**>(&setup.pRootCbvBuffer);
-        computeRootCbvBinding.mCount = 1;
+        DescriptorDataRange computeRootCbvRange = {
+            .mOffset = 0,
+            .mSize = (uint32_t)sizeof(setup.rootCbvData),
+        };
+        DescriptorData computeRootCbvBinding = {
+            .pName = "ComputeRootCbv",
+            .mCount = 1,
+            .pRanges = &computeRootCbvRange,
+            .ppBuffers = const_cast<Buffer**>(&setup.pRootCbvBuffer),
+        };
         cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, setup.pDescriptorSet, 1, &computeRootCbvBinding);
     }
 
@@ -1467,10 +1531,11 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
         cmdDispatch(harness.pCmd, 1, 1, 1);
     }
 
-    BufferBarrier computeBarrier = {};
-    computeBarrier.pBuffer = setup.pOutputBuffer;
-    computeBarrier.mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
-    computeBarrier.mNewState = RESOURCE_STATE_COPY_SOURCE;
+    BufferBarrier computeBarrier = {
+        .pBuffer = setup.pOutputBuffer,
+        .mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .mNewState = RESOURCE_STATE_COPY_SOURCE,
+    };
     cmdResourceBarrier(harness.pCmd, 1, &computeBarrier, 0, nullptr, 0, nullptr);
     cmdUpdateBuffer(harness.pCmd, setup.pReadbackBuffer, 0, setup.pOutputBuffer, 0, sizeof(uint32_t) * 2);
     endCmd(harness.pCmd);
@@ -1478,9 +1543,10 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
     harness.submitAndWait(harness.pCmd, harness.pFence);
     waitQueueIdle(harness.pQueue);
 
-    ReadRange computeReadRange = {};
-    computeReadRange.mOffset = 0;
-    computeReadRange.mSize = sizeof(uint32_t) * 2;
+    ReadRange computeReadRange = {
+        .mOffset = 0,
+        .mSize = sizeof(uint32_t) * 2,
+    };
     mapBuffer(harness.pRenderer, setup.pReadbackBuffer, &computeReadRange);
     const uint32_t* computeValues = static_cast<const uint32_t*>(setup.pReadbackBuffer->pCpuMappedAddress);
     pOutValues[0] = computeValues ? computeValues[0] : 0u;
@@ -1490,11 +1556,12 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
 
 bool createQueryPool(LiveRendererHarness& harness, DeferredCleanup& cleanup, QueryPool** ppQueryPool)
 {
-    QueryPoolDesc queryPoolDesc = {};
-    queryPoolDesc.pName = "CommandTimestampQuery";
-    queryPoolDesc.mType = QUERY_TYPE_TIMESTAMP;
-    queryPoolDesc.mQueryCount = 1;
-    queryPoolDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    QueryPoolDesc queryPoolDesc = {
+        .pName = "CommandTimestampQuery",
+        .mType = QUERY_TYPE_TIMESTAMP,
+        .mQueryCount = 1,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addQueryPool(harness.pRenderer, &queryPoolDesc, ppQueryPool);
     if (!*ppQueryPool)
     {
@@ -1514,13 +1581,14 @@ bool createQueryPool(LiveRendererHarness& harness, DeferredCleanup& cleanup, Que
 
 bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, Buffer** ppMarkerBuffer)
 {
-    BufferDesc markerBufferDesc = {};
-    markerBufferDesc.mSize = sizeof(uint32_t);
-    markerBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-    markerBufferDesc.mFlags = BUFFER_CREATION_FLAG_MARKER;
-    markerBufferDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-    markerBufferDesc.pName = "GpuMarkerBuffer";
-    markerBufferDesc.mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex;
+    BufferDesc markerBufferDesc = {
+        .mSize = sizeof(uint32_t),
+        .pName = "GpuMarkerBuffer",
+        .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .mFlags = BUFFER_CREATION_FLAG_MARKER,
+        .mStartState = RESOURCE_STATE_COPY_DEST,
+        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
+    };
     addBuffer(harness.pRenderer, &markerBufferDesc, ppMarkerBuffer);
     if (!*ppMarkerBuffer)
     {
@@ -1621,9 +1689,10 @@ TEST_F(RHIIGraphicsApiTest, SwapChainApisAcquirePresentAndToggleVsync)
     acquireNextImage(harness.pRenderer, harness.pSwapChain, harness.pSemaphore, harness.pFence, &imageIndex);
     EXPECT_LT(imageIndex, harness.pSwapChain->mImageCount);
 
-    QueuePresentDesc presentDesc = {};
-    presentDesc.pSwapChain = harness.pSwapChain;
-    presentDesc.mIndex = (uint8_t)imageIndex;
+    QueuePresentDesc presentDesc = {
+        .pSwapChain = harness.pSwapChain,
+        .mIndex = (uint8_t)imageIndex,
+    };
     queuePresent(harness.pQueue, &presentDesc);
     waitQueueIdle(harness.pQueue);
 
@@ -1641,15 +1710,16 @@ TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsSampler"));
 
     Sampler* pSampler = nullptr;
-    SamplerDesc samplerDesc = {};
-    samplerDesc.mMinFilter = FILTER_LINEAR;
-    samplerDesc.mMagFilter = FILTER_LINEAR;
-    samplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
-    samplerDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerDesc.mAddressV = ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
-    samplerDesc.mCompareFunc = CMP_NEVER;
-    samplerDesc.mMaxAnisotropy = 1.0f;
+    SamplerDesc samplerDesc = {
+        .mMinFilter = FILTER_LINEAR,
+        .mMagFilter = FILTER_LINEAR,
+        .mMipMapMode = MIPMAP_MODE_LINEAR,
+        .mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE,
+        .mAddressV = ADDRESS_MODE_CLAMP_TO_EDGE,
+        .mAddressW = ADDRESS_MODE_REPEAT,
+        .mMaxAnisotropy = 1.0f,
+        .mCompareFunc = CMP_NEVER,
+    };
     addSampler(harness.pRenderer, &samplerDesc, &pSampler);
     ASSERT_NE(pSampler, nullptr);
 
@@ -1920,14 +1990,16 @@ TEST_F(RHIIGraphicsApiTest, QueryApisProduceValidTimestamps)
     cmdBindPipeline(harness.pCmd, computeSetup.pPipeline);
     cmdBindDescriptorSet(harness.pCmd, 0, computeSetup.pDescriptorSet);
 
-    DescriptorDataRange computeRootCbvRange = {};
-    computeRootCbvRange.mOffset = 0;
-    computeRootCbvRange.mSize = (uint32_t)sizeof(computeSetup.rootCbvData);
-    DescriptorData computeRootCbvBinding = {};
-    computeRootCbvBinding.pName = "ComputeRootCbv";
-    computeRootCbvBinding.pRanges = &computeRootCbvRange;
-    computeRootCbvBinding.ppBuffers = &computeSetup.pRootCbvBuffer;
-    computeRootCbvBinding.mCount = 1;
+    DescriptorDataRange computeRootCbvRange = {
+        .mOffset = 0,
+        .mSize = (uint32_t)sizeof(computeSetup.rootCbvData),
+    };
+    DescriptorData computeRootCbvBinding = {
+        .pName = "ComputeRootCbv",
+        .mCount = 1,
+        .pRanges = &computeRootCbvRange,
+        .ppBuffers = &computeSetup.pRootCbvBuffer,
+    };
     cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, computeSetup.pDescriptorSet, 1, &computeRootCbvBinding);
 
     uint32_t dispatchConstants[4] = { 5u, 0u, 0u, 0u };
@@ -1971,50 +2043,56 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
     cmdBindPipeline(harness.pCmd, computeSetup.pPipeline);
     cmdBindDescriptorSet(harness.pCmd, 0, computeSetup.pDescriptorSet);
 
-    DescriptorDataRange computeRootCbvRange = {};
-    computeRootCbvRange.mOffset = 0;
-    computeRootCbvRange.mSize = (uint32_t)sizeof(computeSetup.rootCbvData);
-    DescriptorData computeRootCbvBinding = {};
-    computeRootCbvBinding.pName = "ComputeRootCbv";
-    computeRootCbvBinding.pRanges = &computeRootCbvRange;
-    computeRootCbvBinding.ppBuffers = &computeSetup.pRootCbvBuffer;
-    computeRootCbvBinding.mCount = 1;
+    DescriptorDataRange computeRootCbvRange = {
+        .mOffset = 0,
+        .mSize = (uint32_t)sizeof(computeSetup.rootCbvData),
+    };
+    DescriptorData computeRootCbvBinding = {
+        .pName = "ComputeRootCbv",
+        .mCount = 1,
+        .pRanges = &computeRootCbvRange,
+        .ppBuffers = &computeSetup.pRootCbvBuffer,
+    };
     cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, computeSetup.pDescriptorSet, 1, &computeRootCbvBinding);
 
     uint32_t dispatchConstants[4] = { 5u, 0u, 0u, 0u };
     cmdBindPushConstants(harness.pCmd, computeSetup.pRootSignature, computeSetup.rootConstantIndex, dispatchConstants);
     cmdDispatch(harness.pCmd, 1, 1, 1);
 
-    BufferBarrier computeBarrier = {};
-    computeBarrier.pBuffer = computeSetup.pOutputBuffer;
-    computeBarrier.mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
-    computeBarrier.mNewState = RESOURCE_STATE_COPY_SOURCE;
+    BufferBarrier computeBarrier = {
+        .pBuffer = computeSetup.pOutputBuffer,
+        .mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .mNewState = RESOURCE_STATE_COPY_SOURCE,
+    };
     cmdResourceBarrier(harness.pCmd, 1, &computeBarrier, 0, nullptr, 0, nullptr);
     cmdUpdateBuffer(harness.pCmd, computeSetup.pReadbackBuffer, 0, computeSetup.pOutputBuffer, 0, sizeof(uint32_t) * 2);
 
-    MarkerDesc markerDesc = {};
-    markerDesc.pBuffer = pMarkerBuffer;
-    markerDesc.mOffset = 0;
-    markerDesc.mValue = 0xCAFEBABEu;
-    markerDesc.mFlags = MARKER_FLAG_WAIT_FOR_WRITE;
+    MarkerDesc markerDesc = {
+        .pBuffer = pMarkerBuffer,
+        .mOffset = 0,
+        .mValue = 0xCAFEBABEu,
+        .mFlags = MARKER_FLAG_WAIT_FOR_WRITE,
+    };
     cmdWriteMarker(harness.pCmd, &markerDesc);
     endCmd(harness.pCmd);
 
     harness.submitAndWait(harness.pCmd, harness.pFence);
     waitQueueIdle(harness.pQueue);
 
-    ReadRange computeReadRange = {};
-    computeReadRange.mOffset = 0;
-    computeReadRange.mSize = sizeof(uint32_t) * 2;
+    ReadRange computeReadRange = {
+        .mOffset = 0,
+        .mSize = sizeof(uint32_t) * 2,
+    };
     mapBuffer(harness.pRenderer, computeSetup.pReadbackBuffer, &computeReadRange);
     const uint32_t* computeValues = static_cast<const uint32_t*>(computeSetup.pReadbackBuffer->pCpuMappedAddress);
     ASSERT_NE(computeValues, nullptr);
     EXPECT_EQ(computeValues[0], 15u);
     unmapBuffer(harness.pRenderer, computeSetup.pReadbackBuffer);
 
-    ReadRange markerReadRange = {};
-    markerReadRange.mOffset = 0;
-    markerReadRange.mSize = sizeof(uint32_t);
+    ReadRange markerReadRange = {
+        .mOffset = 0,
+        .mSize = sizeof(uint32_t),
+    };
     mapBuffer(harness.pRenderer, pMarkerBuffer, &markerReadRange);
     const uint32_t* markerValue = static_cast<const uint32_t*>(pMarkerBuffer->pCpuMappedAddress);
     ASSERT_NE(markerValue, nullptr);

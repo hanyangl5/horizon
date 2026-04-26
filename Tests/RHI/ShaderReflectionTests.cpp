@@ -36,27 +36,27 @@ uint32_t findVariableIndexByName(const PipelineReflection& reflection, const cha
 
 ShaderResource makeResource(DescriptorType type, uint32_t set, uint32_t reg, ShaderStage stage, const char* name)
 {
-    ShaderResource resource = {};
-    resource.type = type;
-    resource.set = set;
-    resource.reg = reg;
-    resource.size = 1;
-    resource.used_stages = stage;
-    resource.name = name;
-    resource.name_size = (uint32_t)strlen(name);
-    resource.dim = TEXTURE_DIM_2D;
-    return resource;
+    return {
+        .type = type,
+        .set = set,
+        .reg = reg,
+        .size = 1,
+        .used_stages = stage,
+        .name = name,
+        .name_size = (uint32_t)strlen(name),
+        .dim = TEXTURE_DIM_2D,
+    };
 }
 
 ShaderVariable makeVariable(const char* name, uint32_t parentIndex, uint32_t offset, uint32_t size)
 {
-    ShaderVariable variable = {};
-    variable.name = name;
-    variable.name_size = (uint32_t)strlen(name);
-    variable.parent_index = parentIndex;
-    variable.offset = offset;
-    variable.size = size;
-    return variable;
+    return {
+        .name = name,
+        .parent_index = parentIndex,
+        .offset = offset,
+        .size = size,
+        .name_size = (uint32_t)strlen(name),
+    };
 }
 } // namespace
 
@@ -82,18 +82,22 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
         makeVariable("Exposure", 0, 80, 4),
     };
 
-    ShaderReflection stages[2] = {};
-    stages[0].mShaderStage = SHADER_STAGE_VERT;
-    stages[0].pShaderResources = vertexResources;
-    stages[0].mShaderResourceCount = TF_ARRAY_COUNT(vertexResources);
-    stages[0].pVariables = vertexVariables;
-    stages[0].mVariableCount = TF_ARRAY_COUNT(vertexVariables);
-
-    stages[1].mShaderStage = SHADER_STAGE_FRAG;
-    stages[1].pShaderResources = fragmentResources;
-    stages[1].mShaderResourceCount = TF_ARRAY_COUNT(fragmentResources);
-    stages[1].pVariables = fragmentVariables;
-    stages[1].mVariableCount = TF_ARRAY_COUNT(fragmentVariables);
+    ShaderReflection stages[2] = {
+        {
+            .pShaderResources = vertexResources,
+            .pVariables = vertexVariables,
+            .mShaderStage = SHADER_STAGE_VERT,
+            .mShaderResourceCount = TF_ARRAY_COUNT(vertexResources),
+            .mVariableCount = TF_ARRAY_COUNT(vertexVariables),
+        },
+        {
+            .pShaderResources = fragmentResources,
+            .pVariables = fragmentVariables,
+            .mShaderStage = SHADER_STAGE_FRAG,
+            .mShaderResourceCount = TF_ARRAY_COUNT(fragmentResources),
+            .mVariableCount = TF_ARRAY_COUNT(fragmentVariables),
+        },
+    };
 
     PipelineReflection pipeline = {};
     createPipelineReflection(stages, TF_ARRAY_COUNT(stages), &pipeline);

@@ -5,12 +5,13 @@
 // Verifies that default GPU settings reset the structure and enable the baseline capabilities expected by the renderer.
 TEST(RHIGraphicsConfigTest, DefaultGpuSettingsInitializeBaselineCapabilities)
 {
-    GPUSettings settings = {};
-    settings.mUniformBufferAlignment = 256;
-    settings.mSamplerAnisotropySupported = 0;
-    settings.mGraphicsQueueSupported = 0;
-    settings.mPrimitiveIdSupported = 0;
-    settings.mMaxBoundTextures = 99;
+    GPUSettings settings = {
+        .mUniformBufferAlignment = 256,
+        .mPrimitiveIdSupported = 0,
+        .mMaxBoundTextures = 99,
+        .mSamplerAnisotropySupported = 0,
+        .mGraphicsQueueSupported = 0,
+    };
 
     setDefaultGPUSettings(&settings);
 

@@ -66,9 +66,10 @@ TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
 
     for (size_t i = 0; i < TF_ARRAY_COUNT(handles); ++i)
     {
-        ThreadDesc desc = {};
-        desc.pFunc = callOnceWorker;
-        desc.pData = &workerData[i];
+        ThreadDesc desc = {
+            .pFunc = callOnceWorker,
+            .pData = &workerData[i],
+        };
         ASSERT_TRUE(initThread(&desc, &handles[i]));
     }
 
@@ -93,14 +94,16 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
     ASSERT_TRUE(initConditionVariable(&condition));
 
     bool ready = false;
-    ThreadProbeData data = {};
-    data.mutex = &mutex;
-    data.condition = &condition;
-    data.ready = &ready;
+    ThreadProbeData data = {
+        .mutex = &mutex,
+        .condition = &condition,
+        .ready = &ready,
+    };
 
-    ThreadDesc desc = {};
-    desc.pFunc = namedThreadProbe;
-    desc.pData = &data;
+    ThreadDesc desc = {
+        .pFunc = namedThreadProbe,
+        .pData = &data,
+    };
     memcpy(desc.mThreadName, "CoreThreadUT", sizeof("CoreThreadUT"));
 
     ThreadHandle handle = nullptr;
