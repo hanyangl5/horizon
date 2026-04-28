@@ -1,0 +1,39 @@
+{
+  "dependencies": {
+    "agility_sdk": {
+      "kind": "nuget",
+      "package": "Microsoft.Direct3D.D3D12",
+      "version": "1.720.0-preview",
+      "sdk_version": 720,
+      "allow_preview": true,
+      "architectures": [
+        "x64"
+      ],
+      "layout": "agility",
+      "destination": "Source/ThirdParty/AgilitySDK",
+      "required": [
+        "microsoft.direct3d.d3d12.{version}/include/d3d12.h",
+        "microsoft.direct3d.d3d12.{version}/bin/x64/D3D12Core.dll",
+        "microsoft.direct3d.d3d12.{version}/bin/x64/d3d12SDKLayers.dll"
+      ]
+    },
+    "direct_storage": {
+      "kind": "nuget",
+      "package": "Microsoft.Direct3D.DirectStorage",
+      "version": "1.3.0",
+      "allow_preview": false,
+      "architectures": [
+        "x64"
+      ],
+      "layout": "directstorage",
+      "destination": "Source/ThirdParty/DirectStorage",
+      "required": [
+        "include/dstorage.h",
+        "include/dstorageerr.h",
+        "bin/x64/dstorage.dll",
+        "bin/x64/dstoragecore.dll",
+        "lib/x64/dstorage.lib"
+      ]
+    }
+  }
+}

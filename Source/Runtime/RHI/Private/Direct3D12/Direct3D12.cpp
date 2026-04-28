@@ -37,11 +37,9 @@
 // Pull in minimal Windows headers
 #include <Windows.h>
 
-#define D3D12MA_IMPLEMENTATION
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
 #include <ThirdParty/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
-#include "Direct3D12MemoryAllocator.h"
 
 #include "RHI/IGraphics.h"
 
@@ -53,9 +51,8 @@
 
 #include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
-#include <ThirdParty/ags/AgsHelper.h>
-#include <ThirdParty/nvapi/NvApiHelper.h>
 #include <ThirdParty/DirectXShaderCompiler/inc/dxcapi.h>
+#include <ThirdParty/DirectStorage/include/dstorage.h>
 //#include <ThirdParty/renderdoc/renderdoc_app.h>
 
 #include "Core/IFileSystem.h"
@@ -66,6 +63,8 @@
 
 #include "Direct3D12CapBuilder.h"
 #include "Direct3D12Hooks.h"
+#include "AgsHelper.h"
+#include "NvApiHelper.h"
 
 #if defined(AUTOMATED_TESTING)
 #include "Application/IScreenshot.h"
@@ -279,6 +278,7 @@ D3D12_FILTER
 util_to_dx12_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled);
 D3D12_TEXTURE_ADDRESS_MODE    util_to_dx12_texture_address_mode(AddressMode addressMode);
 D3D12_PRIMITIVE_TOPOLOGY_TYPE util_to_dx12_primitive_topology_type(PrimitiveTopology topology);
+static bool                   is_directstorage_runtime_available();
 
 //
 // internal functions start with a capital letter / API starts with a small letter
@@ -1445,6 +1445,8 @@ D3D12_HEAP_TYPE util_to_heap_type(ResourceMemoryUsage memoryUsage)
         return D3D12_HEAP_TYPE_UPLOAD;
     case RESOURCE_MEMORY_USAGE_GPU_TO_CPU:
         return D3D12_HEAP_TYPE_READBACK;
+    case RESOURCE_MEMORY_USAGE_GPU_UPLOAD:
+        return D3D12_HEAP_TYPE_GPU_UPLOAD;
     default:
         ASSERT(false);
         break;
@@ -2021,6 +2023,8 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.mPipelineStatsQueries = true;
     gpuSettings.mSoftwareVRSSupported = true;
     gpuSettings.mAllowBufferTextureInSameHeap = pGpuDesc->mFeatureDataOptions.ResourceHeapTier >= D3D12_RESOURCE_HEAP_TIER_2;
+    gpuSettings.mGpuUploadHeapSupported = pGpuDesc->mFeatureDataOptions16.GPUUploadHeapSupported ? true : false;
+    gpuSettings.mDirectStorageSupported = is_directstorage_runtime_available();
     // compute shader group count
     gpuSettings.mMaxTotalComputeThreads = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
     gpuSettings.mMaxComputeThreads[0] = D3D12_CS_THREAD_GROUP_MAX_X;
@@ -3037,6 +3041,382 @@ void d3d12_removeQueue(Renderer* pRenderer, Queue* pQueue)
     SAFE_FREE(pQueue);
 }
 
+struct DirectStorage
+{
+    Renderer*          pRenderer;
+    HMODULE            pModule;
+    IDStorageFactory*  pFactory;
+};
+
+struct DirectStorageFile
+{
+    IDStorageFile* pFile;
+};
+
+struct DirectStorageQueue
+{
+    IDStorageQueue* pQueue;
+};
+
+struct DirectStorageStatusArray
+{
+    IDStorageStatusArray* pStatusArray;
+};
+
+typedef HRESULT(WINAPI* PFN_DStorageGetFactory)(REFIID riid, void** ppv);
+
+static HMODULE load_directstorage_module()
+{
+    HMODULE module = LoadLibraryA("dstorage.dll");
+    if (!module)
+    {
+        module = LoadLibraryA("dstoragecore.dll");
+    }
+
+    return module;
+}
+
+static bool is_directstorage_runtime_available()
+{
+    HMODULE module = load_directstorage_module();
+    if (!module)
+    {
+        return false;
+    }
+
+    const bool hasFactory = GetProcAddress(module, "DStorageGetFactory") != NULL;
+    FreeLibrary(module);
+    return hasFactory;
+}
+
+bool d3d12_isGpuUploadHeapSupported(Renderer* pRenderer)
+{
+    ASSERT(pRenderer);
+    return pRenderer && pRenderer->pGpu->mSettings.mGpuUploadHeapSupported;
+}
+
+bool d3d12_isDirectStorageSupported(Renderer* pRenderer)
+{
+    UNREF_PARAM(pRenderer);
+    return is_directstorage_runtime_available();
+}
+
+static DSTORAGE_PRIORITY util_to_dstorage_priority(DirectStoragePriority priority)
+{
+    switch (priority)
+    {
+    case DIRECT_STORAGE_PRIORITY_LOW:
+        return DSTORAGE_PRIORITY_LOW;
+    case DIRECT_STORAGE_PRIORITY_HIGH:
+        return DSTORAGE_PRIORITY_HIGH;
+    case DIRECT_STORAGE_PRIORITY_REALTIME:
+        return DSTORAGE_PRIORITY_REALTIME;
+    case DIRECT_STORAGE_PRIORITY_NORMAL:
+    default:
+        return DSTORAGE_PRIORITY_NORMAL;
+    }
+}
+
+static DSTORAGE_REQUEST_SOURCE_TYPE util_to_dstorage_source_type(DirectStorageSourceType sourceType)
+{
+    return sourceType == DIRECT_STORAGE_SOURCE_MEMORY ? DSTORAGE_REQUEST_SOURCE_MEMORY : DSTORAGE_REQUEST_SOURCE_FILE;
+}
+
+static DSTORAGE_COMPRESSION_FORMAT util_to_dstorage_compression(DirectStorageCompressionFormat compression)
+{
+    switch (compression)
+    {
+    case DIRECT_STORAGE_COMPRESSION_GDEFLATE:
+        return DSTORAGE_COMPRESSION_FORMAT_GDEFLATE;
+    case DIRECT_STORAGE_COMPRESSION_NONE:
+    default:
+        return DSTORAGE_COMPRESSION_FORMAT_NONE;
+    }
+}
+
+HRESULT d3d12_initDirectStorage(Renderer* pRenderer, const DirectStorageDesc* pDesc, DirectStorage** ppDirectStorage)
+{
+    ASSERT(pRenderer);
+    ASSERT(ppDirectStorage);
+
+    *ppDirectStorage = NULL;
+
+    HMODULE module = load_directstorage_module();
+    if (!module)
+    {
+        return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+    }
+
+    PFN_DStorageGetFactory getFactory = (PFN_DStorageGetFactory)GetProcAddress(module, "DStorageGetFactory");
+    if (!getFactory)
+    {
+        FreeLibrary(module);
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+    }
+
+    IDStorageFactory* pFactory = NULL;
+    HRESULT hr = getFactory(__uuidof(IDStorageFactory), (void**)&pFactory);
+    if (FAILED(hr))
+    {
+        FreeLibrary(module);
+        return hr;
+    }
+
+    if (pDesc)
+    {
+        pFactory->SetDebugFlags((UINT32)pDesc->mDebugFlags);
+        if (pDesc->mStagingBufferSize)
+        {
+            hr = pFactory->SetStagingBufferSize(pDesc->mStagingBufferSize);
+            if (FAILED(hr))
+            {
+                SAFE_RELEASE(pFactory);
+                FreeLibrary(module);
+                return hr;
+            }
+        }
+    }
+
+    DirectStorage* pDirectStorage = (DirectStorage*)tf_calloc(1, sizeof(DirectStorage));
+    ASSERT(pDirectStorage);
+    pDirectStorage->pRenderer = pRenderer;
+    pDirectStorage->pModule = module;
+    pDirectStorage->pFactory = pFactory;
+
+    *ppDirectStorage = pDirectStorage;
+    return S_OK;
+}
+
+void d3d12_exitDirectStorage(DirectStorage* pDirectStorage)
+{
+    if (!pDirectStorage)
+    {
+        return;
+    }
+
+    SAFE_RELEASE(pDirectStorage->pFactory);
+    if (pDirectStorage->pModule)
+    {
+        FreeLibrary(pDirectStorage->pModule);
+    }
+
+    SAFE_FREE(pDirectStorage);
+}
+
+HRESULT d3d12_addDirectStorageQueue(DirectStorage* pDirectStorage, const DirectStorageQueueDesc* pDesc, DirectStorageQueue** ppQueue)
+{
+    ASSERT(pDirectStorage);
+    ASSERT(pDesc);
+    ASSERT(ppQueue);
+
+    *ppQueue = NULL;
+
+    DSTORAGE_QUEUE_DESC queueDesc = {};
+    queueDesc.SourceType = util_to_dstorage_source_type(pDesc->mSourceType);
+    queueDesc.Capacity = pDesc->mCapacity ? pDesc->mCapacity : DSTORAGE_MIN_QUEUE_CAPACITY;
+    queueDesc.Priority = util_to_dstorage_priority(pDesc->mPriority);
+    queueDesc.Name = pDesc->pName;
+    queueDesc.Device = pDirectStorage->pRenderer->mDx.pDevice;
+
+    IDStorageQueue* pDxQueue = NULL;
+    HRESULT hr = pDirectStorage->pFactory->CreateQueue(&queueDesc, __uuidof(IDStorageQueue), (void**)&pDxQueue);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    DirectStorageQueue* pQueue = (DirectStorageQueue*)tf_calloc(1, sizeof(DirectStorageQueue));
+    ASSERT(pQueue);
+    pQueue->pQueue = pDxQueue;
+
+    *ppQueue = pQueue;
+    return S_OK;
+}
+
+void d3d12_removeDirectStorageQueue(DirectStorageQueue* pQueue)
+{
+    if (!pQueue)
+    {
+        return;
+    }
+
+    if (pQueue->pQueue)
+    {
+        pQueue->pQueue->Close();
+    }
+    SAFE_RELEASE(pQueue->pQueue);
+    SAFE_FREE(pQueue);
+}
+
+HRESULT d3d12_openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath, DirectStorageFile** ppFile)
+{
+    ASSERT(pDirectStorage);
+    ASSERT(pPath);
+    ASSERT(ppFile);
+
+    *ppFile = NULL;
+
+    IDStorageFile* pDxFile = NULL;
+    HRESULT hr = pDirectStorage->pFactory->OpenFile(pPath, __uuidof(IDStorageFile), (void**)&pDxFile);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    DirectStorageFile* pFile = (DirectStorageFile*)tf_calloc(1, sizeof(DirectStorageFile));
+    ASSERT(pFile);
+    pFile->pFile = pDxFile;
+
+    *ppFile = pFile;
+    return S_OK;
+}
+
+void d3d12_closeDirectStorageFile(DirectStorageFile* pFile)
+{
+    if (!pFile)
+    {
+        return;
+    }
+
+    if (pFile->pFile)
+    {
+        pFile->pFile->Close();
+    }
+    SAFE_RELEASE(pFile->pFile);
+    SAFE_FREE(pFile);
+}
+
+HRESULT d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+                                          DirectStorageStatusArray** ppStatusArray)
+{
+    ASSERT(pDirectStorage);
+    ASSERT(ppStatusArray);
+
+    *ppStatusArray = NULL;
+
+    IDStorageStatusArray* pDxStatusArray = NULL;
+    HRESULT hr = pDirectStorage->pFactory->CreateStatusArray(capacity, pName, __uuidof(IDStorageStatusArray), (void**)&pDxStatusArray);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    DirectStorageStatusArray* pStatusArray = (DirectStorageStatusArray*)tf_calloc(1, sizeof(DirectStorageStatusArray));
+    ASSERT(pStatusArray);
+    pStatusArray->pStatusArray = pDxStatusArray;
+
+    *ppStatusArray = pStatusArray;
+    return S_OK;
+}
+
+void d3d12_removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray)
+{
+    if (!pStatusArray)
+    {
+        return;
+    }
+
+    SAFE_RELEASE(pStatusArray->pStatusArray);
+    SAFE_FREE(pStatusArray);
+}
+
+bool d3d12_isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index)
+{
+    ASSERT(pStatusArray);
+    return pStatusArray && pStatusArray->pStatusArray->IsComplete(index);
+}
+
+HRESULT d3d12_getDirectStorageStatus(DirectStorageStatusArray* pStatusArray, uint32_t index)
+{
+    ASSERT(pStatusArray);
+    return pStatusArray ? pStatusArray->pStatusArray->GetHResult(index) : E_POINTER;
+}
+
+static void fill_dstorage_source(DSTORAGE_REQUEST* pDst, DirectStorageFile* pFile, const void* pMemory, uint64_t sourceOffset,
+                                 uint32_t sourceSize)
+{
+    if (pFile)
+    {
+        pDst->Options.SourceType = DSTORAGE_REQUEST_SOURCE_FILE;
+        pDst->Source.File.Source = pFile->pFile;
+        pDst->Source.File.Offset = sourceOffset;
+        pDst->Source.File.Size = sourceSize;
+    }
+    else
+    {
+        pDst->Options.SourceType = DSTORAGE_REQUEST_SOURCE_MEMORY;
+        pDst->Source.Memory.Source = pMemory;
+        pDst->Source.Memory.Size = sourceSize;
+    }
+}
+
+void d3d12_directStorageEnqueueBufferRequest(DirectStorageQueue* pQueue, const DirectStorageBufferRequest* pRequest)
+{
+    ASSERT(pQueue);
+    ASSERT(pRequest);
+    ASSERT(pRequest->pBuffer);
+    ASSERT(pRequest->pFile || pRequest->pMemory);
+
+    DSTORAGE_REQUEST request = {};
+    request.Options.CompressionFormat = util_to_dstorage_compression(pRequest->mCompressionFormat);
+    request.Options.DestinationType = DSTORAGE_REQUEST_DESTINATION_BUFFER;
+    fill_dstorage_source(&request, pRequest->pFile, pRequest->pMemory, pRequest->mSourceOffset, pRequest->mSourceSize);
+    request.Destination.Buffer.Resource = pRequest->pBuffer->mDx.pResource;
+    request.Destination.Buffer.Offset = pRequest->mDestinationOffset;
+    request.Destination.Buffer.Size = pRequest->mDestinationSize ? pRequest->mDestinationSize : pRequest->mSourceSize;
+    request.UncompressedSize = pRequest->mUncompressedSize;
+    request.CancellationTag = pRequest->mCancellationTag;
+    request.Name = pRequest->pName;
+
+    pQueue->pQueue->EnqueueRequest(&request);
+}
+
+void d3d12_directStorageEnqueueTextureRequest(DirectStorageQueue* pQueue, const DirectStorageTextureRequest* pRequest)
+{
+    ASSERT(pQueue);
+    ASSERT(pRequest);
+    ASSERT(pRequest->pTexture);
+    ASSERT(pRequest->pFile || pRequest->pMemory);
+
+    DSTORAGE_REQUEST request = {};
+    request.Options.CompressionFormat = util_to_dstorage_compression(pRequest->mCompressionFormat);
+    request.Options.DestinationType = DSTORAGE_REQUEST_DESTINATION_TEXTURE_REGION;
+    fill_dstorage_source(&request, pRequest->pFile, pRequest->pMemory, pRequest->mSourceOffset, pRequest->mSourceSize);
+    request.Destination.Texture.Resource = pRequest->pTexture->mDx.pResource;
+    request.Destination.Texture.SubresourceIndex = pRequest->mSubresourceIndex;
+    request.Destination.Texture.Region.left = pRequest->mX;
+    request.Destination.Texture.Region.top = pRequest->mY;
+    request.Destination.Texture.Region.front = pRequest->mZ;
+    request.Destination.Texture.Region.right = pRequest->mX + pRequest->mWidth;
+    request.Destination.Texture.Region.bottom = pRequest->mY + pRequest->mHeight;
+    request.Destination.Texture.Region.back = pRequest->mZ + pRequest->mDepth;
+    request.UncompressedSize = pRequest->mUncompressedSize;
+    request.CancellationTag = pRequest->mCancellationTag;
+    request.Name = pRequest->pName;
+
+    pQueue->pQueue->EnqueueRequest(&request);
+}
+
+void d3d12_directStorageEnqueueStatus(DirectStorageQueue* pQueue, DirectStorageStatusArray* pStatusArray, uint32_t index)
+{
+    ASSERT(pQueue);
+    ASSERT(pStatusArray);
+    pQueue->pQueue->EnqueueStatus(pStatusArray->pStatusArray, index);
+}
+
+void d3d12_directStorageEnqueueSignal(DirectStorageQueue* pQueue, Fence* pFence, uint64_t value)
+{
+    ASSERT(pQueue);
+    ASSERT(pFence);
+    pQueue->pQueue->EnqueueSignal(pFence->mDx.pFence, value);
+}
+
+void d3d12_directStorageSubmit(DirectStorageQueue* pQueue)
+{
+    ASSERT(pQueue);
+    pQueue->pQueue->Submit();
+}
+
 void d3d12_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
     // ASSERT that renderer is valid
@@ -3349,10 +3729,17 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
         allocationSize = round_up_64(allocationSize, pRenderer->pGpu->mSettings.mUniformBufferAlignment);
     }
 
+    ResourceMemoryUsage memoryUsage = pDesc->mMemoryUsage;
+    if (memoryUsage == RESOURCE_MEMORY_USAGE_GPU_UPLOAD && !pRenderer->pGpu->mSettings.mGpuUploadHeapSupported)
+    {
+        ASSERTMSG(false, "GPU_UPLOAD/ReBAR heap requested for '%s' but unsupported.",
+                  pDesc->pName ? pDesc->pName : "<unnamed>");
+    }
+
     D3D12_HEAP_DESC heapDesc = {};
     heapDesc.SizeInBytes = allocationSize;
     heapDesc.Alignment = pDesc->mAlignment;
-    heapDesc.Properties.Type = util_to_heap_type(pDesc->mMemoryUsage);
+    heapDesc.Properties.Type = util_to_heap_type(memoryUsage);
     heapDesc.Flags = util_to_heap_flags(pDesc->mFlags);
 
     // Multi GPU
@@ -3373,7 +3760,7 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
     hook_modify_heap_flags(pDesc->mDescriptors, &heapDesc.Flags);
 
     ID3D12Heap* pDxHeap = NULL;
-    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateHeap(&heapDesc, D3D12MA_IID_PPV_ARGS(&pDxHeap)));
+    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateHeap(&heapDesc, IID_ARGS(&pDxHeap)));
     ASSERT(pDxHeap);
 
     SetObjectName(pDxHeap, pDesc->pName);
@@ -3479,37 +3866,41 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
     InitializeBufferDesc(pRenderer, pDesc, &desc);
 
+    ResourceMemoryUsage memoryUsage = pDesc->mMemoryUsage;
+    if (memoryUsage == RESOURCE_MEMORY_USAGE_GPU_UPLOAD && !pRenderer->pGpu->mSettings.mGpuUploadHeapSupported)
+    {
+        ASSERTMSG(false, "GPU_UPLOAD/ReBAR buffer requested for '%s' but unsupported.",
+                  pDesc->pName ? pDesc->pName : "<unnamed>");
+    }
+
     D3D12MA::ALLOCATION_DESC alloc_desc = {};
-    alloc_desc.HeapType = util_to_heap_type(pDesc->mMemoryUsage);
+    alloc_desc.HeapType = util_to_heap_type(memoryUsage);
 
     if (pDesc->mFlags & BUFFER_CREATION_FLAG_OWN_MEMORY_BIT)
     {
         alloc_desc.Flags |= D3D12MA::ALLOCATION_FLAG_COMMITTED;
     }
 
-    // Multi GPU
+    UINT creationNodeMask = 1;
+    UINT visibleNodeMask = 1;
     if (pRenderer->mGpuMode == GPU_MODE_LINKED)
     {
-        alloc_desc.CreationNodeMask = (1 << pDesc->mNodeIndex);
-        alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
+        creationNodeMask = (1 << pDesc->mNodeIndex);
+        visibleNodeMask = creationNodeMask;
         for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
-            alloc_desc.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
-    }
-    else
-    {
-        alloc_desc.CreationNodeMask = 1;
-        alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
+            visibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
     }
 
     // Special heap flags
     hook_modify_heap_flags(pDesc->mDescriptors, &alloc_desc.ExtraHeapFlags);
 
     ResourceState start_state = pDesc->mStartState;
-    if (pDesc->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU || pDesc->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY)
+    if (memoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU || memoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY ||
+        memoryUsage == RESOURCE_MEMORY_USAGE_GPU_UPLOAD)
     {
         start_state = RESOURCE_STATE_GENERIC_READ;
     }
-    else if (pDesc->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
+    else if (memoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
     {
         start_state = RESOURCE_STATE_COPY_DEST;
     }
@@ -3523,7 +3914,8 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     }
     // #TODO: This is not at all good but seems like virtual textures are using this
     // Remove as soon as possible
-    else if (D3D12_HEAP_TYPE_DEFAULT != alloc_desc.HeapType && (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS))
+    else if (D3D12_HEAP_TYPE_DEFAULT != alloc_desc.HeapType && D3D12_HEAP_TYPE_GPU_UPLOAD != alloc_desc.HeapType &&
+             (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS))
     {
         ASSERT(!pDesc->pPlacement);
         LOGF(eWARNING, "Creating RWBuffer in Upload heap. GPU access might be slower than default");
@@ -3531,8 +3923,8 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
         heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
         heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-        heapProps.VisibleNodeMask = alloc_desc.VisibleNodeMask;
-        heapProps.CreationNodeMask = alloc_desc.CreationNodeMask;
+        heapProps.VisibleNodeMask = visibleNodeMask;
+        heapProps.CreationNodeMask = creationNodeMask;
         CHECK_HRESULT(pRenderer->mDx.pDevice->CreateCommittedResource(&heapProps, alloc_desc.ExtraHeapFlags, &desc, res_states, NULL,
                                                                       IID_ARGS(&pBuffer->mDx.pResource)));
     }
@@ -3549,7 +3941,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         }
     }
 
-    if (pDesc->mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
+    if (memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
     {
         pBuffer->mDx.pResource->Map(0, NULL, &pBuffer->pCpuMappedAddress);
     }
@@ -3616,7 +4008,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     SetObjectName(pBuffer->mDx.pResource, pDesc->pName);
 
     pBuffer->mSize = (uint32_t)pDesc->mSize;
-    pBuffer->mMemoryUsage = pDesc->mMemoryUsage;
+    pBuffer->mMemoryUsage = memoryUsage;
     pBuffer->mNodeIndex = pDesc->mNodeIndex;
     pBuffer->mDescriptors = pDesc->mDescriptors;
 
@@ -3755,20 +4147,6 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
             alloc_desc.ExtraHeapFlags |= D3D12_HEAP_FLAG_ALLOW_DISPLAY;
         }
 #endif
-
-        // Multi GPU
-        if (pRenderer->mGpuMode == GPU_MODE_LINKED)
-        {
-            alloc_desc.CreationNodeMask = (1 << pDesc->mNodeIndex);
-            alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
-            for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
-                alloc_desc.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
-        }
-        else
-        {
-            alloc_desc.CreationNodeMask = 1;
-            alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
-        }
 
         // Create resource
         if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, pClearValue, res_states, pDesc->mFlags, pTexture)))
@@ -6518,7 +6896,8 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
         // Note: General CPU_TO_GPU resources have to stay in generic read state. They are created in upload heap.
         // There is one corner case: CPU_TO_GPU resources with UAV usage can have state transition. And they are created in custom heap.
         if (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU ||
-            (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && (pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER)))
+            (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && (pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER)) ||
+            (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_UPLOAD && (pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER)))
         {
             // if (!(pBuffer->mCurrentState & pTransBarrier->mNewState) && pBuffer->mCurrentState != pTransBarrier->mNewState)
             if (RESOURCE_STATE_UNORDERED_ACCESS == pTransBarrier->mCurrentState &&

@@ -253,3 +253,14 @@ Tools/clang-tools/out-files.txt
 *.zip
 build
 build_msvc
+
+# Versioned GPU runtime SDK payloads are intentionally vendored.
+!Source/ThirdParty/AgilitySDK/**/
+!Source/ThirdParty/AgilitySDK/**/*.dll
+!Source/ThirdParty/AgilitySDK/**/*.pdb
+!Source/ThirdParty/AgilitySDK/**/*.exe
+!Source/ThirdParty/AgilitySDK/**/*.lib
+!Source/ThirdParty/DirectStorage/**/
+!Source/ThirdParty/DirectStorage/**/*.dll
+!Source/ThirdParty/DirectStorage/**/*.lib
+!Source/ThirdParty/DirectStorage/**/*.winmd

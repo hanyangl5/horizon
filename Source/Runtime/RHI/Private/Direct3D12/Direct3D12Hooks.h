@@ -37,6 +37,7 @@ typedef struct GpuDesc
     D3D_FEATURE_LEVEL                 mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
     D3D12_FEATURE_DATA_D3D12_OPTIONS  mFeatureDataOptions = {};
     D3D12_FEATURE_DATA_D3D12_OPTIONS1 mFeatureDataOptions1 = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS16 mFeatureDataOptions16 = {};
     SIZE_T                            mDedicatedVideoMemory = 0;
     uint32_t                          mVendorId = 0;
     uint32_t                          mDeviceId = 0;

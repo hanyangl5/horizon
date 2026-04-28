@@ -25,8 +25,6 @@
 
 #ifdef DIRECT3D12
 
-//#include "../ThirdParty/OpenSource/D3D12MemoryAllocator/Direct3D12MemoryAllocator.h"
-//#include <ThirdParty/D3D12MemoryAllocator/include/D3D12MemAlloc.h>
 #include "RHI/IGraphics.h"
 
 #include "Core/IMath.h"
@@ -291,9 +289,11 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     // Query the level of support of Shader Model.
     D3D12_FEATURE_DATA_D3D12_OPTIONS  featureData = {};
     D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureData1 = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS16 featureData16 = {};
     // Query the level of support of Wave Intrinsics.
     pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS, &featureData, sizeof(featureData));
     pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1, &featureData1, sizeof(featureData1));
+    pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS16, &featureData16, sizeof(featureData16));
 
     GpuDesc&           gpuDesc = *pInOutDesc;
     DXGI_ADAPTER_DESC3 desc = {};
@@ -303,6 +303,7 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     gpuDesc.mDedicatedVideoMemory = desc.DedicatedVideoMemory;
     gpuDesc.mFeatureDataOptions = featureData;
     gpuDesc.mFeatureDataOptions1 = featureData1;
+    gpuDesc.mFeatureDataOptions16 = featureData16;
 
     // save vendor and model Id as string
     // char hexChar[10];

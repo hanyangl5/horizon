@@ -18,11 +18,17 @@ if(WIN32)
     set(HORIZON_EXAMPLE_RUNTIME_DLLS
         $<TARGET_FILE:WinPixEventRuntime>
         $<TARGET_FILE:AGS>
+        ${HORIZON_DIRECTSTORAGE_RUNTIME_DLLS}
         ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxcompiler.dll
         ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxil.dll
     )
 
     add_custom_command(TARGET HelloTriangle POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            $<TARGET_FILE_DIR:HelloTriangle>/D3D12
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${HORIZON_AGILITYSDK_RUNTIME_DLLS}
+            $<TARGET_FILE_DIR:HelloTriangle>/D3D12
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${HORIZON_EXAMPLE_RUNTIME_DLLS}
             $<TARGET_FILE_DIR:HelloTriangle>
