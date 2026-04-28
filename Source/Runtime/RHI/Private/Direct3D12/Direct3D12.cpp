@@ -3043,9 +3043,9 @@ void d3d12_removeQueue(Renderer* pRenderer, Queue* pQueue)
 
 struct DirectStorage
 {
-    Renderer*          pRenderer;
-    HMODULE            pModule;
-    IDStorageFactory*  pFactory;
+    Renderer*         pRenderer;
+    HMODULE           pModule;
+    IDStorageFactory* pFactory;
 };
 
 struct DirectStorageFile
@@ -3155,7 +3155,7 @@ HRESULT d3d12_initDirectStorage(Renderer* pRenderer, const DirectStorageDesc* pD
     }
 
     IDStorageFactory* pFactory = NULL;
-    HRESULT hr = getFactory(__uuidof(IDStorageFactory), (void**)&pFactory);
+    HRESULT           hr = getFactory(__uuidof(IDStorageFactory), (void**)&pFactory);
     if (FAILED(hr))
     {
         FreeLibrary(module);
@@ -3219,7 +3219,7 @@ HRESULT d3d12_addDirectStorageQueue(DirectStorage* pDirectStorage, const DirectS
     queueDesc.Device = pDirectStorage->pRenderer->mDx.pDevice;
 
     IDStorageQueue* pDxQueue = NULL;
-    HRESULT hr = pDirectStorage->pFactory->CreateQueue(&queueDesc, __uuidof(IDStorageQueue), (void**)&pDxQueue);
+    HRESULT         hr = pDirectStorage->pFactory->CreateQueue(&queueDesc, __uuidof(IDStorageQueue), (void**)&pDxQueue);
     if (FAILED(hr))
     {
         return hr;
@@ -3257,7 +3257,7 @@ HRESULT d3d12_openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t
     *ppFile = NULL;
 
     IDStorageFile* pDxFile = NULL;
-    HRESULT hr = pDirectStorage->pFactory->OpenFile(pPath, __uuidof(IDStorageFile), (void**)&pDxFile);
+    HRESULT        hr = pDirectStorage->pFactory->OpenFile(pPath, __uuidof(IDStorageFile), (void**)&pDxFile);
     if (FAILED(hr))
     {
         return hr;
@@ -3732,8 +3732,7 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
     ResourceMemoryUsage memoryUsage = pDesc->mMemoryUsage;
     if (memoryUsage == RESOURCE_MEMORY_USAGE_GPU_UPLOAD && !pRenderer->pGpu->mSettings.mGpuUploadHeapSupported)
     {
-        ASSERTMSG(false, "GPU_UPLOAD/ReBAR heap requested for '%s' but unsupported.",
-                  pDesc->pName ? pDesc->pName : "<unnamed>");
+        ASSERTMSG(false, "GPU_UPLOAD/ReBAR heap requested for '%s' but unsupported.", pDesc->pName ? pDesc->pName : "<unnamed>");
     }
 
     D3D12_HEAP_DESC heapDesc = {};
@@ -3869,8 +3868,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     ResourceMemoryUsage memoryUsage = pDesc->mMemoryUsage;
     if (memoryUsage == RESOURCE_MEMORY_USAGE_GPU_UPLOAD && !pRenderer->pGpu->mSettings.mGpuUploadHeapSupported)
     {
-        ASSERTMSG(false, "GPU_UPLOAD/ReBAR buffer requested for '%s' but unsupported.",
-                  pDesc->pName ? pDesc->pName : "<unnamed>");
+        ASSERTMSG(false, "GPU_UPLOAD/ReBAR buffer requested for '%s' but unsupported.", pDesc->pName ? pDesc->pName : "<unnamed>");
     }
 
     D3D12MA::ALLOCATION_DESC alloc_desc = {};

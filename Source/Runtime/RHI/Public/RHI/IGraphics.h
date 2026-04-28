@@ -1873,37 +1873,37 @@ struct DirectStorageQueueDesc
 
 struct DirectStorageBufferRequest
 {
-    DirectStorageFile*              pFile;
-    const void*                     pMemory;
-    uint64_t                        mSourceOffset;
-    uint32_t                        mSourceSize;
-    Buffer*                         pBuffer;
-    uint64_t                        mDestinationOffset;
-    uint32_t                        mDestinationSize;
-    uint32_t                        mUncompressedSize;
-    uint64_t                        mCancellationTag;
-    DirectStorageCompressionFormat  mCompressionFormat;
-    const char*                     pName;
+    DirectStorageFile*             pFile;
+    const void*                    pMemory;
+    uint64_t                       mSourceOffset;
+    uint32_t                       mSourceSize;
+    Buffer*                        pBuffer;
+    uint64_t                       mDestinationOffset;
+    uint32_t                       mDestinationSize;
+    uint32_t                       mUncompressedSize;
+    uint64_t                       mCancellationTag;
+    DirectStorageCompressionFormat mCompressionFormat;
+    const char*                    pName;
 };
 
 struct DirectStorageTextureRequest
 {
-    DirectStorageFile*              pFile;
-    const void*                     pMemory;
-    uint64_t                        mSourceOffset;
-    uint32_t                        mSourceSize;
-    Texture*                        pTexture;
-    uint32_t                        mSubresourceIndex;
-    uint32_t                        mX;
-    uint32_t                        mY;
-    uint32_t                        mZ;
-    uint32_t                        mWidth;
-    uint32_t                        mHeight;
-    uint32_t                        mDepth;
-    uint32_t                        mUncompressedSize;
-    uint64_t                        mCancellationTag;
-    DirectStorageCompressionFormat  mCompressionFormat;
-    const char*                     pName;
+    DirectStorageFile*             pFile;
+    const void*                    pMemory;
+    uint64_t                       mSourceOffset;
+    uint32_t                       mSourceSize;
+    Texture*                       pTexture;
+    uint32_t                       mSubresourceIndex;
+    uint32_t                       mX;
+    uint32_t                       mY;
+    uint32_t                       mZ;
+    uint32_t                       mWidth;
+    uint32_t                       mHeight;
+    uint32_t                       mDepth;
+    uint32_t                       mUncompressedSize;
+    uint64_t                       mCancellationTag;
+    DirectStorageCompressionFormat mCompressionFormat;
+    const char*                    pName;
 };
 
 // Indirect command structure define

@@ -287,8 +287,8 @@ HRESULT hook_signal_flush(Queue* pQueue, ID3D12Fence* pFence, uint64_t fenceValu
 extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureLevel, GpuDesc* pInOutDesc)
 {
     // Query the level of support of Shader Model.
-    D3D12_FEATURE_DATA_D3D12_OPTIONS  featureData = {};
-    D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureData1 = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS   featureData = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS1  featureData1 = {};
     D3D12_FEATURE_DATA_D3D12_OPTIONS16 featureData16 = {};
     // Query the level of support of Wave Intrinsics.
     pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS, &featureData, sizeof(featureData));

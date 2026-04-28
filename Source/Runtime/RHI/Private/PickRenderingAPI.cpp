@@ -64,7 +64,7 @@ extern void     d3d12_removeDirectStorageQueue(DirectStorageQueue* pQueue);
 extern HRESULT  d3d12_openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath, DirectStorageFile** ppFile);
 extern void     d3d12_closeDirectStorageFile(DirectStorageFile* pFile);
 extern HRESULT  d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
-                                                 DirectStorageStatusArray** ppStatusArray);
+                                                  DirectStorageStatusArray** ppStatusArray);
 extern void     d3d12_removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
 extern bool     d3d12_isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);
 extern HRESULT  d3d12_getDirectStorageStatus(DirectStorageStatusArray* pStatusArray, uint32_t index);
@@ -237,52 +237,36 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeResourceHeap(Renderer* pRenderer, R
     d3d12_removeResourceHeap(pRenderer, pHeap);
 }
 
-FORGE_RENDERER_API bool FORGE_CALLCONV isGpuUploadHeapSupported(Renderer* pRenderer)
-{
-    return d3d12_isGpuUploadHeapSupported(pRenderer);
-}
+FORGE_RENDERER_API bool FORGE_CALLCONV isGpuUploadHeapSupported(Renderer* pRenderer) { return d3d12_isGpuUploadHeapSupported(pRenderer); }
 
-FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageSupported(Renderer* pRenderer)
-{
-    return d3d12_isDirectStorageSupported(pRenderer);
-}
+FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageSupported(Renderer* pRenderer) { return d3d12_isDirectStorageSupported(pRenderer); }
 
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV initDirectStorage(Renderer* pRenderer, const DirectStorageDesc* pDesc,
-                                                           DirectStorage** ppDirectStorage)
+                                                            DirectStorage** ppDirectStorage)
 {
     return d3d12_initDirectStorage(pRenderer, pDesc, ppDirectStorage);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV exitDirectStorage(DirectStorage* pDirectStorage)
-{
-    d3d12_exitDirectStorage(pDirectStorage);
-}
+FORGE_RENDERER_API void FORGE_CALLCONV exitDirectStorage(DirectStorage* pDirectStorage) { d3d12_exitDirectStorage(pDirectStorage); }
 
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageQueue(DirectStorage* pDirectStorage, const DirectStorageQueueDesc* pDesc,
-                                                               DirectStorageQueue** ppQueue)
+                                                                DirectStorageQueue** ppQueue)
 {
     return d3d12_addDirectStorageQueue(pDirectStorage, pDesc, ppQueue);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageQueue(DirectStorageQueue* pQueue)
-{
-    d3d12_removeDirectStorageQueue(pQueue);
-}
+FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageQueue(DirectStorageQueue* pQueue) { d3d12_removeDirectStorageQueue(pQueue); }
 
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath,
-                                                               DirectStorageFile** ppFile)
+                                                                DirectStorageFile** ppFile)
 {
     return d3d12_openDirectStorageFile(pDirectStorage, pPath, ppFile);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile* pFile)
-{
-    d3d12_closeDirectStorageFile(pFile);
-}
+FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile* pFile) { d3d12_closeDirectStorageFile(pFile); }
 
-FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity,
-                                                                     const char* pName,
-                                                                     DirectStorageStatusArray** ppStatusArray)
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+                                                                      DirectStorageStatusArray** ppStatusArray)
 {
     return d3d12_addDirectStorageStatusArray(pDirectStorage, capacity, pName, ppStatusArray);
 }
@@ -302,20 +286,20 @@ FORGE_RENDERER_API HRESULT FORGE_CALLCONV getDirectStorageStatus(DirectStorageSt
     return d3d12_getDirectStorageStatus(pStatusArray, index);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueBufferRequest(DirectStorageQueue* pQueue,
-                                                                        const DirectStorageBufferRequest* pRequest)
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueBufferRequest(DirectStorageQueue*               pQueue,
+                                                                         const DirectStorageBufferRequest* pRequest)
 {
     d3d12_directStorageEnqueueBufferRequest(pQueue, pRequest);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueTextureRequest(DirectStorageQueue* pQueue,
-                                                                         const DirectStorageTextureRequest* pRequest)
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueTextureRequest(DirectStorageQueue*                pQueue,
+                                                                          const DirectStorageTextureRequest* pRequest)
 {
     d3d12_directStorageEnqueueTextureRequest(pQueue, pRequest);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueStatus(DirectStorageQueue* pQueue,
-                                                                 DirectStorageStatusArray* pStatusArray, uint32_t index)
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueStatus(DirectStorageQueue* pQueue, DirectStorageStatusArray* pStatusArray,
+                                                                  uint32_t index)
 {
     d3d12_directStorageEnqueueStatus(pQueue, pStatusArray, index);
 }
@@ -325,10 +309,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueSignal(DirectStorageQ
     d3d12_directStorageEnqueueSignal(pQueue, pFence, value);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV directStorageSubmit(DirectStorageQueue* pQueue)
-{
-    d3d12_directStorageSubmit(pQueue);
-}
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageSubmit(DirectStorageQueue* pQueue) { d3d12_directStorageSubmit(pQueue); }
 
 FORGE_RENDERER_API void FORGE_CALLCONV addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
