@@ -182,6 +182,8 @@ enum ResourceMemoryUsage : uint32_t
     RESOURCE_MEMORY_USAGE_CPU_TO_GPU = 3,
     /// Memory will be used for writing on device and readback on host.
     RESOURCE_MEMORY_USAGE_GPU_TO_CPU = 4,
+    /// CPU-visible GPU-local upload memory. On D3D12 this maps to GPU_UPLOAD heaps when ReBAR is supported.
+    RESOURCE_MEMORY_USAGE_GPU_UPLOAD = 5,
     RESOURCE_MEMORY_USAGE_COUNT,
     RESOURCE_MEMORY_USAGE_MAX_ENUM = 0x7FFFFFFF
 };
@@ -212,6 +214,10 @@ struct RootSignature;
 struct DescriptorSet;
 struct DescriptorIndexMap;
 struct PipelineCache;
+struct DirectStorage;
+struct DirectStorageFile;
+struct DirectStorageQueue;
+struct DirectStorageStatusArray;
 
 // Raytracing
 struct Raytracing;
@@ -1745,6 +1751,8 @@ struct GPUSettings
     uint32_t          mMaxBoundTextures;
     uint32_t          mSamplerAnisotropySupported : 1;
     uint32_t          mGraphicsQueueSupported : 1;
+    uint32_t          mGpuUploadHeapSupported : 1;
+    uint32_t          mDirectStorageSupported : 1;
     uint32_t          mAmdAsicFamily;
 };
 
@@ -1818,6 +1826,84 @@ struct RendererContext
     } mDx;
     GpuInfo  mGpus[MAX_MULTIPLE_GPUS];
     uint32_t mGpuCount;
+};
+
+enum DirectStoragePriority : int8_t
+{
+    DIRECT_STORAGE_PRIORITY_LOW = -1,
+    DIRECT_STORAGE_PRIORITY_NORMAL = 0,
+    DIRECT_STORAGE_PRIORITY_HIGH = 1,
+    DIRECT_STORAGE_PRIORITY_REALTIME = 2,
+};
+
+enum DirectStorageSourceType : uint32_t
+{
+    DIRECT_STORAGE_SOURCE_FILE = 0,
+    DIRECT_STORAGE_SOURCE_MEMORY = 1,
+};
+
+enum DirectStorageDebugFlags : uint32_t
+{
+    DIRECT_STORAGE_DEBUG_NONE = 0,
+    DIRECT_STORAGE_DEBUG_SHOW_ERRORS = 0x1,
+    DIRECT_STORAGE_DEBUG_BREAK_ON_ERROR = 0x2,
+    DIRECT_STORAGE_DEBUG_RECORD_OBJECT_NAMES = 0x4,
+};
+MAKE_ENUM_FLAG(uint32_t, DirectStorageDebugFlags)
+
+enum DirectStorageCompressionFormat : uint32_t
+{
+    DIRECT_STORAGE_COMPRESSION_NONE = 0,
+    DIRECT_STORAGE_COMPRESSION_GDEFLATE = 1,
+};
+
+struct DirectStorageDesc
+{
+    uint32_t                mStagingBufferSize;
+    DirectStorageDebugFlags mDebugFlags;
+};
+
+struct DirectStorageQueueDesc
+{
+    DirectStorageSourceType mSourceType;
+    uint16_t                mCapacity;
+    DirectStoragePriority   mPriority;
+    const char*             pName;
+};
+
+struct DirectStorageBufferRequest
+{
+    DirectStorageFile*             pFile;
+    const void*                    pMemory;
+    uint64_t                       mSourceOffset;
+    uint32_t                       mSourceSize;
+    Buffer*                        pBuffer;
+    uint64_t                       mDestinationOffset;
+    uint32_t                       mDestinationSize;
+    uint32_t                       mUncompressedSize;
+    uint64_t                       mCancellationTag;
+    DirectStorageCompressionFormat mCompressionFormat;
+    const char*                    pName;
+};
+
+struct DirectStorageTextureRequest
+{
+    DirectStorageFile*             pFile;
+    const void*                    pMemory;
+    uint64_t                       mSourceOffset;
+    uint32_t                       mSourceSize;
+    Texture*                       pTexture;
+    uint32_t                       mSubresourceIndex;
+    uint32_t                       mX;
+    uint32_t                       mY;
+    uint32_t                       mZ;
+    uint32_t                       mWidth;
+    uint32_t                       mHeight;
+    uint32_t                       mDepth;
+    uint32_t                       mUncompressedSize;
+    uint64_t                       mCancellationTag;
+    DirectStorageCompressionFormat mCompressionFormat;
+    const char*                    pName;
 };
 
 // Indirect command structure define
@@ -1951,6 +2037,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeSwapChain(Renderer* pRenderer, Swap
 // memory functions
 FORGE_RENDERER_API void FORGE_CALLCONV addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, ResourceHeap** ppHeap);
 FORGE_RENDERER_API void FORGE_CALLCONV removeResourceHeap(Renderer* pRenderer, ResourceHeap* pHeap);
+FORGE_RENDERER_API bool FORGE_CALLCONV isGpuUploadHeapSupported(Renderer* pRenderer);
 
 // command pool functions
 FORGE_RENDERER_API void FORGE_CALLCONV addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool);
@@ -2026,6 +2113,33 @@ FORGE_RENDERER_API void FORGE_CALLCONV waitQueueIdle(Queue* pQueue);
 FORGE_RENDERER_API void FORGE_CALLCONV getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus);
 FORGE_RENDERER_API void FORGE_CALLCONV waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences);
 FORGE_RENDERER_API void FORGE_CALLCONV toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
+
+/************************************************************************/
+// DirectStorage Interface
+/************************************************************************/
+FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageSupported(Renderer* pRenderer);
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV initDirectStorage(Renderer* pRenderer, const DirectStorageDesc* pDesc,
+                                                           DirectStorage** ppDirectStorage);
+FORGE_RENDERER_API void FORGE_CALLCONV exitDirectStorage(DirectStorage* pDirectStorage);
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageQueue(DirectStorage* pDirectStorage, const DirectStorageQueueDesc* pDesc,
+                                                               DirectStorageQueue** ppQueue);
+FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageQueue(DirectStorageQueue* pQueue);
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath,
+                                                               DirectStorageFile** ppFile);
+FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile* pFile);
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+                                                                     DirectStorageStatusArray** ppStatusArray);
+FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
+FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV getDirectStorageStatus(DirectStorageStatusArray* pStatusArray, uint32_t index);
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueBufferRequest(DirectStorageQueue* pQueue,
+                                                                        const DirectStorageBufferRequest* pRequest);
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueTextureRequest(DirectStorageQueue* pQueue,
+                                                                         const DirectStorageTextureRequest* pRequest);
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueStatus(DirectStorageQueue* pQueue, DirectStorageStatusArray* pStatusArray,
+                                                                 uint32_t index);
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueSignal(DirectStorageQueue* pQueue, Fence* pFence, uint64_t value);
+FORGE_RENDERER_API void FORGE_CALLCONV directStorageSubmit(DirectStorageQueue* pQueue);
 
 //Returns the recommended format for the swapchain.
 //If true is passed for the hintHDR parameter, it will return an HDR format IF the platform supports it

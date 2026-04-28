@@ -36,8 +36,11 @@
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 
-// include "ThirdParty/OpenSource/Direct3d12Agility/include/d3d12.h"
+#if defined(D3D12_AGILITY_SDK)
+#include <d3d12.h>
+#else
 #include <ThirdParty/DirectX-Headers/include/directx/d3d12.h>
+#endif
 #include <ThirdParty/DirectXShaderCompiler/inc/dxcapi.h>
 #endif
 
