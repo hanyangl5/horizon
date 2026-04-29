@@ -28,7 +28,7 @@ jobs:
         os:
           #- ubuntu-20.04
           #- macos-10.15
-          - windows-latest
+          - windows-2025
 
         build_type:
           - Release
@@ -39,10 +39,10 @@ jobs:
           #- gcc-14
           - msvc
         include:
-          - os: windows-latest
+          - os: windows-2025
             compiler: msvc
             generator: "Ninja"
-          - os: windows-latest
+          - os: windows-2025
             compiler: llvm-20
             generator: "Ninja"
     steps:
@@ -67,29 +67,25 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-    - name: Setup Cpp
-      uses: aminya/setup-cpp@v1
-      with:
-        compiler: ${{ matrix.compiler }}
-        vcvarsall: ${{ matrix.compiler == 'msvc' }}
-
-        #cmake: true
-        ninja: true
-        # vcpkg: false
-        # ccache: true
-        # clangtidy: ${{ env.CLANG_TIDY_VERSION }}
-
-
-        # cppcheck: true
-
-        # gcovr: true
-        # opencppcoverage: true
+    - name: Setup MSVC developer environment
+      if: ${{ matrix.compiler == 'msvc' }}
+      uses: ilammy/msvc-dev-cmd@v1
     - name: Select MSVC compiler for Ninja
       if: ${{ matrix.compiler == 'msvc' }}
       shell: bash
       run: |
         echo "CC=cl" >> "$GITHUB_ENV"
         echo "CXX=cl" >> "$GITHUB_ENV"
+    - name: Select LLVM compiler for Ninja
+      if: ${{ matrix.compiler == 'llvm-20' }}
+      shell: pwsh
+      run: |
+        clang --version
+        ninja --version
+        $clang = (Get-Command clang.exe).Source
+        $clangxx = (Get-Command clang++.exe).Source
+        "CC=$clang" >> $env:GITHUB_ENV
+        "CXX=$clangxx" >> $env:GITHUB_ENV
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@v0.0.10
     - name: Configure CMake
