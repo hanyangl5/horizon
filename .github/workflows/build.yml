@@ -65,6 +65,16 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "cmake-cache-key=cmake-build-${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('.github/workflows/build.yml', 'CMakeLists.txt', 'CMake/**/*.cmake', 'Scripts/GpuDeps.json', '.gitmodules') }}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        echo "cmake-cache-restore-key=cmake-build-${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('.github/workflows/build.yml', 'CMakeLists.txt', 'CMake/**/*.cmake', 'Scripts/GpuDeps.json', '.gitmodules') }}-" >> "$GITHUB_OUTPUT"
+    - name: Restore CMake build cache
+      id: cmake-build-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.strings.outputs.build-output-dir }}
+        key: ${{ steps.strings.outputs.cmake-cache-key }}
+        restore-keys: |
+          ${{ steps.strings.outputs.cmake-cache-restore-key }}
     - name: Setup Cpp
       uses: aminya/setup-cpp@v1
       with:
@@ -110,3 +120,9 @@ jobs:
         ctest --test-dir ${{ steps.strings.outputs.build-output-dir }}
         --build-config ${{ matrix.build_type }}
         --output-on-failure
+    - name: Save CMake build cache
+      if: ${{ steps.cmake-build-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.strings.outputs.build-output-dir }}
+        key: ${{ steps.strings.outputs.cmake-cache-key }}
