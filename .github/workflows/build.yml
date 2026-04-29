@@ -104,6 +104,8 @@ jobs:
         -DHORIZON_BUILD_TESTS=ON
         -DCMAKE_C_COMPILER_LAUNCHER=sccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+        -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
