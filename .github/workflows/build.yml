@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
@@ -39,7 +41,7 @@ jobs:
         include:
           - os: windows-latest
             compiler: msvc
-            generator: "Visual Studio 17 2022"
+            generator: "Ninja"
           - os: windows-latest
             compiler: llvm-20
             generator: "Ninja"
@@ -65,21 +67,11 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-        echo "cmake-cache-key=cmake-build-${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('.github/workflows/build.yml', 'CMakeLists.txt', 'CMake/**/*.cmake', 'Scripts/GpuDeps.json', '.gitmodules') }}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
-        echo "cmake-cache-restore-key=cmake-build-${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('.github/workflows/build.yml', 'CMakeLists.txt', 'CMake/**/*.cmake', 'Scripts/GpuDeps.json', '.gitmodules') }}-" >> "$GITHUB_OUTPUT"
-    - name: Restore CMake build cache
-      id: cmake-build-cache
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ steps.strings.outputs.build-output-dir }}
-        key: ${{ steps.strings.outputs.cmake-cache-key }}
-        restore-keys: |
-          ${{ steps.strings.outputs.cmake-cache-restore-key }}
     - name: Setup Cpp
       uses: aminya/setup-cpp@v1
       with:
         compiler: ${{ matrix.compiler }}
-        #vcvarsall: ${{ contains(matrix.os, 'windows' )}}
+        vcvarsall: ${{ matrix.compiler == 'msvc' }}
 
         #cmake: true
         ninja: true
@@ -92,6 +84,14 @@ jobs:
 
         # gcovr: true
         # opencppcoverage: true
+    - name: Select MSVC compiler for Ninja
+      if: ${{ matrix.compiler == 'msvc' }}
+      shell: bash
+      run: |
+        echo "CC=cl" >> "$GITHUB_ENV"
+        echo "CXX=cl" >> "$GITHUB_ENV"
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.10
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -102,6 +102,8 @@ jobs:
         -S ${{ github.workspace }}
         -DCMAKE_INCLUDE_SHADERS=false
         -DHORIZON_BUILD_TESTS=ON
+        -DCMAKE_C_COMPILER_LAUNCHER=sccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
@@ -120,9 +122,7 @@ jobs:
         ctest --test-dir ${{ steps.strings.outputs.build-output-dir }}
         --build-config ${{ matrix.build_type }}
         --output-on-failure
-    - name: Save CMake build cache
-      if: ${{ steps.cmake-build-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ steps.strings.outputs.build-output-dir }}
-        key: ${{ steps.strings.outputs.cmake-cache-key }}
+    - name: Show sccache stats
+      if: always()
+      shell: pwsh
+      run: '& $env:SCCACHE_PATH --show-stats'
