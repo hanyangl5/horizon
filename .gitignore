@@ -250,6 +250,7 @@ Common_3/Application/ThirdParty/noesisgui/SDK/_build/**/build
 Tools/clang-tools/clang-format-files.txt
 Tools/clang-tools/out-files.txt
 .vscode
+/compile_commands.json
 *.zip
 build
 build_msvc

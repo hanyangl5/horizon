@@ -4,9 +4,6 @@
 [submodule "Source/ThirdParty/D3D12MemoryAllocator"]
 	path = Source/ThirdParty/D3D12MemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
-[submodule "Source/ThirdParty/DirectX-Headers"]
-	path = Source/ThirdParty/DirectX-Headers
-	url = https://github.com/microsoft/DirectX-Headers.git
 [submodule "Source/ThirdParty/ags"]
 	path = Source/ThirdParty/ags
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK.git

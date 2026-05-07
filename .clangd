@@ -1,0 +1,3 @@
+# Keep the CMake-generated compile_commands.json in the build directory.
+CompileFlags:
+  CompilationDatabase: build

@@ -16,7 +16,10 @@ if(NOT EXISTS "${AGILITYSDK_PACKAGE_DIR}/include/d3d12.h")
 endif()
 
 add_library(agilitysdk INTERFACE)
-target_include_directories(agilitysdk INTERFACE "${AGILITYSDK_PACKAGE_DIR}/include")
+target_include_directories(agilitysdk INTERFACE
+    "${AGILITYSDK_PACKAGE_DIR}/include"
+    "${AGILITYSDK_PACKAGE_DIR}/include/d3dx12"
+)
 target_compile_definitions(agilitysdk INTERFACE
     D3D12_AGILITY_SDK=1
     D3D12_AGILITY_SDK_VERSION=${HORIZON_AGILITYSDK_SDK_VERSION}
