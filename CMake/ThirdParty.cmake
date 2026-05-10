@@ -11,8 +11,6 @@ set(HORIZON_THIRD_PARTY_DEPS
     gainputstatic
     Ozz
     cpu_features
-    DirectX-Headers
-    DirectX-Guids
     utils
     imgui
     mimalloc-static
@@ -46,6 +44,9 @@ target_include_directories(Nvapi INTERFACE ${ENGINE_THIRD_PARTY_SOURCE_DIR}/nvap
 add_library(DirectXShaderCompiler STATIC IMPORTED)
 set_property(TARGET DirectXShaderCompiler PROPERTY IMPORTED_LOCATION
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/lib/x64/dxcompiler.lib
+)
+target_include_directories(DirectXShaderCompiler INTERFACE
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/inc
 )
 
 message(STATUS "Building third-party libraries from source.")
@@ -283,18 +284,17 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
     add_library(Ozz STATIC ${OZZ_FILES})
     target_include_directories(Ozz PUBLIC ${OZZ_INCLUDES})
 
-    add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectX-Headers)
     add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/mimalloc)
     add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/AgilitySDK)
     set(D3D12MA_BUILD_SAMPLE OFF CACHE BOOL "" FORCE)
+    set(HORIZON_D3D12MA_AGILITYSDK_DIR "${CMAKE_BINARY_DIR}/D3D12MAAgilitySDK")
+    file(MAKE_DIRECTORY "${HORIZON_D3D12MA_AGILITYSDK_DIR}/build/native")
+    file(COPY "${AGILITYSDK_DIR}/include" DESTINATION "${HORIZON_D3D12MA_AGILITYSDK_DIR}/build/native")
+    file(COPY "${AGILITYSDK_DIR}/bin" DESTINATION "${HORIZON_D3D12MA_AGILITYSDK_DIR}/build/native")
+    set(D3D12MA_AGILITY_SDK_DIRECTORY "${HORIZON_D3D12MA_AGILITYSDK_DIR}" CACHE STRING "" FORCE)
+    set(D3D12MA_AGILITY_SDK_PREVIEW ON CACHE BOOL "" FORCE)
     set(BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
     add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/D3D12MemoryAllocator)
-    target_include_directories(D3D12MemoryAllocator BEFORE PRIVATE ${AGILITYSDK_DIR}/include)
-    target_compile_definitions(D3D12MemoryAllocator PRIVATE
-        D3D12MA_USE_AGILITY_SDK=1
-        D3D12MA_USE_AGILITY_SDK_PREVIEW=1
-    )
-    message(STATUS "D3D12MA Agility SDK include path: ${AGILITYSDK_DIR}/include")
     add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectStorage)
     set(THIRD_PARTY_INCLUDES
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/mimalloc/include

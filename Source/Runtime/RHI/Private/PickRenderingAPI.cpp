@@ -125,6 +125,7 @@ extern void d3d12_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstI
 extern void d3d12_cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex,
                                           uint32_t firstInstance);
 extern void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+//extern void d3d12_cmdBarrier(Cmd* pCmd, const BarrierDesc* pDesc);
 extern void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t bufferBarrierCount, BufferBarrier* pBufferBarriers, uint32_t textureBarrierCount,
                                      TextureBarrier* pTextureBarriers, uint32_t rtBarrierCount, RenderTargetBarrier* pRtBarriers);
 extern void d3d12_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence,
@@ -528,6 +529,8 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdDispatch(Cmd* pCmd, uint32_t groupCoun
 {
     d3d12_cmdDispatch(pCmd, groupCountX, groupCountY, groupCountZ);
 }
+
+//void FORGE_CALLCONV cmdBarrier(Cmd* pCmd, const BarrierDesc* pDesc) { d3d12_cmdBarrier(pCmd, pDesc); }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdResourceBarrier(Cmd* pCmd, uint32_t bufferBarrierCount, BufferBarrier* pBufferBarriers,
                                                           uint32_t textureBarrierCount, TextureBarrier* pTextureBarriers,

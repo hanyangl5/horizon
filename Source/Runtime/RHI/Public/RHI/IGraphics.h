@@ -264,6 +264,7 @@ enum IndirectArgumentType : uint32_t
     INDIRECT_CONSTANT_BUFFER_VIEW,   // only for dx
     INDIRECT_SHADER_RESOURCE_VIEW,   // only for dx
     INDIRECT_UNORDERED_ACCESS_VIEW,  // only for dx
+    INDIRECT_INCREMENTING_CONSTANT,  // only for dx
     INDIRECT_COMMAND_BUFFER,         // metal ICB
     INDIRECT_COMMAND_BUFFER_RESET,   // metal ICB reset
     INDIRECT_COMMAND_BUFFER_OPTIMIZE // metal ICB optimization
@@ -499,6 +500,8 @@ enum PipelineType : uint32_t
     PIPELINE_TYPE_UNDEFINED = 0,
     PIPELINE_TYPE_COMPUTE,
     PIPELINE_TYPE_GRAPHICS,
+    PIPELINE_TYPE_COPY,
+    PIPELINE_TYPE_RAY_TRACING,
     PIPELINE_TYPE_COUNT,
 };
 
@@ -1223,6 +1226,7 @@ struct alignas(64) Cmd
     struct
     {
         ID3D12GraphicsCommandList1* pCmdList;
+        //ID3D12GraphicsCommandList7* pBarrierCmdList;
 #if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
         // For resource state validation
         ID3D12DebugCommandList* pDebugCmdList;
@@ -1619,13 +1623,33 @@ struct SwapChain
 
 enum ShaderTarget : uint32_t
 {
-    // 5.1 is supported on all DX12 hardware
+    // Zero-initialized RendererDesc uses the engine default shader model.
+    SHADER_TARGET_DEFAULT = 0,
+    // SM 5.1: baseline DX12 shaders; descriptor arrays and dynamic resource indexing.
     SHADER_TARGET_5_1,
+    // SM 6.0: DXIL/DXC baseline, wave intrinsics, and 64-bit integer operations.
     SHADER_TARGET_6_0,
+    // SM 6.1: view instancing and barycentrics.
     SHADER_TARGET_6_1,
+    // SM 6.2: native 16-bit scalar types and denorm mode controls.
     SHADER_TARGET_6_2,
-    SHADER_TARGET_6_3, // required for Raytracing
-    SHADER_TARGET_6_4, // required for VRS
+    // SM 6.3: DirectX Raytracing shader profiles and shader libraries.
+    SHADER_TARGET_6_3,
+    // SM 6.4: Variable Rate Shading and packed dot-product intrinsics.
+    SHADER_TARGET_6_4,
+    // SM 6.5: DXR 1.1, ray queries, mesh/amplification shaders, and sampler feedback.
+    SHADER_TARGET_6_5,
+    // SM 6.6: 64-bit/float atomics, dynamic resources, compute derivatives, and WaveSize.
+    SHADER_TARGET_6_6,
+    // SM 6.7: advanced texture operations and helper-lane-aware wave ops.
+    SHADER_TARGET_6_7,
+    // SM 6.8: work graphs, start vertex/instance system values, and expanded wave size range.
+    SHADER_TARGET_6_8,
+    // SM 6.9: required wave/16-bit/int64 support, OMM, SER, quad texture ops, and long vectors.
+    SHADER_TARGET_6_9,
+    // SM 6.10: preview LinAlg matrix ops, group wave size, and variable group shared memory.
+    SHADER_TARGET_6_10,
+    SHADER_TARGET_COUNT,
 };
 
 enum GpuMode : uint32_t
@@ -1642,7 +1666,7 @@ struct RendererDesc
         D3D_FEATURE_LEVEL mFeatureLevel;
     } mDx;
 
-    ShaderTarget mShaderTarget;
+    ShaderTarget mShaderTarget = SHADER_TARGET_6_9;
     GpuMode      mGpuMode;
 
     /// Apps may want to query additional state for their applications. That information is transferred through here.
@@ -1720,6 +1744,13 @@ struct GPUSettings
     uint32_t            mUploadBufferTextureRowAlignment;
     uint32_t            mMaxVertexInputBindings;
     uint32_t            mMaxRootSignatureDWORDS;
+    uint32_t            mMaxShaderModel;
+    uint32_t            mLinearAlgebraTier;
+    uint32_t            mMax1DDispatchSize;
+    uint32_t            mMax1DDispatchMeshSize;
+    uint32_t            mMaxGroupSharedMemoryPerGroupCS;
+    uint32_t            mMaxGroupSharedMemoryPerGroupAS;
+    uint32_t            mMaxGroupSharedMemoryPerGroupMS;
     uint32_t            mWaveLaneCount;
     WaveOpsSupportFlags mWaveOpsSupportFlags;
     GPUVendorPreset     mGpuVendorPreset;
@@ -1745,6 +1776,12 @@ struct GPUSettings
     uint32_t          mRayQuerySupported : 1;
     uint32_t          mSoftwareVRSSupported : 1;
     uint32_t          mPrimitiveIdSupported : 1;
+    uint32_t          mWaveOpsSupported : 1;
+    uint32_t          mNative16BitShaderOpsSupported : 1;
+    uint32_t          mInt64ShaderOpsSupported : 1;
+    uint32_t          mShaderExecutionReorderingActuallyReorders : 1;
+    uint32_t          mCreateByteOffsetViewsSupported : 1;
+    uint32_t          mLinearAlgebraSupported : 1;
     uint32_t          m64BitAtomicsSupported : 1;
     D3D_FEATURE_LEVEL mFeatureLevel;
     uint32_t          mSuppressInvalidSubresourceStateAfterExit : 1;
@@ -1753,6 +1790,8 @@ struct GPUSettings
     uint32_t          mGraphicsQueueSupported : 1;
     uint32_t          mGpuUploadHeapSupported : 1;
     uint32_t          mDirectStorageSupported : 1;
+    uint32_t          mEnhancedBarriersSupported : 1;
+    uint32_t          mExecuteIndirectIncrementingConstantSupported : 1;
     uint32_t          mAmdAsicFamily;
 };
 
@@ -1918,6 +1957,7 @@ struct IndirectArgumentDescriptor
     IndirectArgumentType mType;
     uint32_t             mIndex;
     uint32_t             mByteSize;
+    uint32_t             mRootConstantDestOffsetIn32BitValues;
 };
 
 struct CommandSignatureDesc

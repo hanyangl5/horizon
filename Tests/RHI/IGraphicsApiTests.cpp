@@ -231,6 +231,8 @@ struct LiveRendererHarness
     bool             mWindowOpened = false;
     bool             mWindowCreationUnavailable = false;
     SwapChain*       pSwapChain = nullptr;
+    bool             mOwnsRenderer = true;
+    bool             mOwnsContext = true;
 
     bool initRendererOnly(const char* appName)
     {
@@ -251,6 +253,15 @@ struct LiveRendererHarness
         }
 
         return true;
+    }
+
+    bool attachRendererOnly(RendererContext* pSharedContext, Renderer* pSharedRenderer)
+    {
+        pContext = pSharedContext;
+        pRenderer = pSharedRenderer;
+        mOwnsContext = false;
+        mOwnsRenderer = false;
+        return pContext && pRenderer;
     }
 
     bool addGraphicsQueueOnly()
@@ -519,17 +530,17 @@ struct LiveRendererHarness
             pQueue = nullptr;
         }
 
-        if (pRenderer)
+        if (pRenderer && mOwnsRenderer)
         {
             exitRenderer(pRenderer);
-            pRenderer = nullptr;
         }
+        pRenderer = nullptr;
 
-        if (pContext)
+        if (pContext && mOwnsContext)
         {
             exitRendererContext(pContext);
-            pContext = nullptr;
         }
+        pContext = nullptr;
     }
 };
 
@@ -613,16 +624,41 @@ protected:
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
 
         initLog(nullptr, eERROR);
+
+        sSharedRenderer = new LiveRendererHarness();
+        if (!sSharedRenderer->initRendererOnly("RHIIGraphicsApiTests"))
+        {
+            delete sSharedRenderer;
+            sSharedRenderer = nullptr;
+        }
     }
 
     static void TearDownTestSuite()
     {
+        delete sSharedRenderer;
+        sSharedRenderer = nullptr;
+
         exitLog();
         exitFileSystem();
         _EnableInteractiveMode(true);
         exitMemAlloc();
     }
+
+    static bool attachSharedRenderer(LiveRendererHarness& harness)
+    {
+        return sSharedRenderer && harness.attachRendererOnly(sSharedRenderer->pContext, sSharedRenderer->pRenderer);
+    }
+
+    static bool initSharedRendererHarness(LiveRendererHarness& harness, uint32_t extraCmdCount)
+    {
+        return attachSharedRenderer(harness) && harness.addGraphicsQueueOnly() && harness.addSynchronizationPrimitivesOnly() &&
+               harness.addCommandPoolOnly() && harness.addPrimaryCmdOnly() && harness.addExtraCmdsOnly(extraCmdCount);
+    }
+
+    static LiveRendererHarness* sSharedRenderer;
 };
+
+LiveRendererHarness* RHIIGraphicsApiTest::sSharedRenderer = nullptr;
 
 // Verifies that the renderer initialization error helpers expose the stored state and reason string.
 TEST_F(RHIIGraphicsApiTest, RendererInitializationErrorHelpersRoundTripState)
@@ -1002,6 +1038,10 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     }
 
     D3D12_RESOURCE_DESC textureResourceDesc = pOut->pRenderTarget->pTexture->mDx.pResource->GetDesc();
+    if (textureResourceDesc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        textureResourceDesc.Alignment = 0;
+    }
     UINT                numRows = 0;
     UINT64              rowSizeInBytes = 0;
     harness.pRenderer->mDx.pDevice->GetCopyableFootprints(&textureResourceDesc, 0, 1, 0, &pOut->footprint, &numRows, &rowSizeInBytes,
@@ -1610,7 +1650,7 @@ bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
 TEST_F(RHIIGraphicsApiTest, RendererApisCreateLiveContextAndRenderer)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsRendererApis"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     ASSERT_NE(harness.pContext, nullptr);
     ASSERT_NE(harness.pRenderer, nullptr);
@@ -1622,7 +1662,7 @@ TEST_F(RHIIGraphicsApiTest, RendererApisCreateLiveContextAndRenderer)
 TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsQueueSync"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
     ASSERT_TRUE(harness.addGraphicsQueueOnly());
     ASSERT_TRUE(harness.addSynchronizationPrimitivesOnly());
     ASSERT_TRUE(harness.addCommandPoolOnly());
@@ -1672,7 +1712,7 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
 TEST_F(RHIIGraphicsApiTest, SwapChainApisAcquirePresentAndToggleVsync)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsSwapchain", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
     if (!harness.createWindowAndSwapChain("RHIIGraphicsSwapchainWindow", kSwapChainWidth, kSwapChainHeight))
     {
         if (harness.mWindowCreationUnavailable)
@@ -1707,7 +1747,7 @@ TEST_F(RHIIGraphicsApiTest, SwapChainApisAcquirePresentAndToggleVsync)
 TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsSampler"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     Sampler* pSampler = nullptr;
     SamplerDesc samplerDesc = {
@@ -1742,7 +1782,7 @@ TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
 TEST_F(RHIIGraphicsApiTest, ShaderApisCreateSourceAndBinaryShaders)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsShaders"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     DeferredCleanup cleanup;
     LifecycleShaderBundle shaderBundle = {};
@@ -1758,7 +1798,7 @@ TEST_F(RHIIGraphicsApiTest, ShaderApisCreateSourceAndBinaryShaders)
 TEST_F(RHIIGraphicsApiTest, RootSignatureAndDescriptorSetApisExposeAndUpdateBindings)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsRootSignature"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     DeferredCleanup cleanup;
     LifecycleShaderBundle shaderBundle = {};
@@ -1779,7 +1819,7 @@ TEST_F(RHIIGraphicsApiTest, RootSignatureAndDescriptorSetApisExposeAndUpdateBind
 TEST_F(RHIIGraphicsApiTest, ResourceHeapAndPlacedBufferApisCreateExpectedAllocation)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsPlacedBuffer"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     DeferredCleanup cleanup;
     LifecyclePlacedBufferBundle placedBufferBundle = {};
@@ -1797,7 +1837,7 @@ TEST_F(RHIIGraphicsApiTest, ResourceHeapAndPlacedBufferApisCreateExpectedAllocat
 TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipeline)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsPipelineCache"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     DeferredCleanup cleanup;
     LifecycleShaderBundle shaderBundle = {};
@@ -1822,7 +1862,7 @@ TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipel
 TEST_F(RHIIGraphicsApiTest, RenderTargetAndMemoryStatsApisReportUsage)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.initRendererOnly("RHIIGraphicsMemoryStats"));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     DeferredCleanup cleanup;
     RenderTarget* pRenderTarget = nullptr;
@@ -1859,7 +1899,7 @@ TEST_F(RHIIGraphicsApiTest, RenderTargetAndMemoryStatsApisReportUsage)
 TEST_F(RHIIGraphicsApiTest, CmdDrawWritesExpectedPixels)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdDraw", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     GraphicsDrawSetup drawSetup = {};
@@ -1874,7 +1914,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawWritesExpectedPixels)
 TEST_F(RHIIGraphicsApiTest, CmdDrawInstancedWritesExpectedPixels)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdDrawInstanced", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     GraphicsDrawSetup drawSetup = {};
@@ -1889,7 +1929,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawInstancedWritesExpectedPixels)
 TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedWritesExpectedPixels)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdDrawIndexed", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     GraphicsDrawSetup drawSetup = {};
@@ -1904,7 +1944,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedWritesExpectedPixels)
 TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedInstancedWritesExpectedPixels)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdDrawIndexedInstanced", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     GraphicsDrawSetup drawSetup = {};
@@ -1919,7 +1959,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedInstancedWritesExpectedPixels)
 TEST_F(RHIIGraphicsApiTest, CmdBindDescriptorSetWithRootCbvsBindsComputeRootCbv)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdRootCbv", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     ComputeCommandSetup computeSetup = {};
@@ -1935,7 +1975,7 @@ TEST_F(RHIIGraphicsApiTest, CmdBindDescriptorSetWithRootCbvsBindsComputeRootCbv)
 TEST_F(RHIIGraphicsApiTest, CmdDispatchWritesExpectedBufferValues)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdDispatch", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     ComputeCommandSetup computeSetup = {};
@@ -1950,7 +1990,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDispatchWritesExpectedBufferValues)
 TEST_F(RHIIGraphicsApiTest, CmdExecuteIndirectDispatchWritesExpectedBufferValues)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdExecuteIndirect", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     ComputeCommandSetup computeSetup = {};
@@ -1967,7 +2007,7 @@ TEST_F(RHIIGraphicsApiTest, CmdExecuteIndirectDispatchWritesExpectedBufferValues
 TEST_F(RHIIGraphicsApiTest, QueryApisProduceValidTimestamps)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdQuery", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     ComputeCommandSetup computeSetup = {};
@@ -2024,7 +2064,7 @@ TEST_F(RHIIGraphicsApiTest, QueryApisProduceValidTimestamps)
 TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
 {
     LiveRendererHarness harness;
-    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(harness.init("RHIIGraphicsCmdMarkerCopy", 0));
+    ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
     DeferredCleanup cleanup;
     ComputeCommandSetup computeSetup = {};

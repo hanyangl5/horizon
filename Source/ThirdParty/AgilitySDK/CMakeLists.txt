@@ -31,6 +31,12 @@ if(MSVC)
     else()
         target_link_options(agilitysdk INTERFACE /include:_D3D12SDKVersion /include:_D3D12SDKPath)
     endif()
+elseif(WIN32 AND CMAKE_LINKER MATCHES "lld-link")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        target_link_options(agilitysdk INTERFACE LINKER:/include:D3D12SDKVersion LINKER:/include:D3D12SDKPath)
+    else()
+        target_link_options(agilitysdk INTERFACE LINKER:/include:_D3D12SDKVersion LINKER:/include:_D3D12SDKPath)
+    endif()
 endif()
 
 set(HORIZON_AGILITYSDK_RUNTIME_DLLS

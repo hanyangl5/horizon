@@ -31,10 +31,8 @@
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
-//#include "../ThirdParty/OpenSource/Direct3d12Agility/include/d3d12shader.h"
-//#include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
-#include <ThirdParty/DirectX-Headers/include/directx/d3d12shader.h>
-#include <ThirdParty/DirectXShaderCompiler/inc/dxcapi.h>
+#include <d3d12shader.h>
+#include <dxcapi.h>
 #endif
 
 #include "Core/IMemory.h"

@@ -51,7 +51,7 @@
 
 #include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
-#include <ThirdParty/DirectXShaderCompiler/inc/dxcapi.h>
+#include <dxcapi.h>
 #include <ThirdParty/DirectStorage/include/dstorage.h>
 //#include <ThirdParty/renderdoc/renderdoc_app.h>
 
@@ -96,24 +96,96 @@
 
 #define MAX_COMPILE_ARGS                  64
 
-static const wchar_t* d3d12_getShaderProfile(ShaderStage stage)
+static const wchar_t* d3d12_getShaderStageProfilePrefix(ShaderStage stage)
 {
     switch (stage)
     {
     case SHADER_STAGE_VERT:
-        return L"vs_6_0";
+        return L"vs";
     case SHADER_STAGE_FRAG:
-        return L"ps_6_0";
+        return L"ps";
     case SHADER_STAGE_COMP:
-        return L"cs_6_0";
+        return L"cs";
     case SHADER_STAGE_HULL:
-        return L"hs_6_0";
+        return L"hs";
     case SHADER_STAGE_DOMN:
-        return L"ds_6_0";
+        return L"ds";
     case SHADER_STAGE_GEOM:
-        return L"gs_6_0";
+        return L"gs";
     default:
-        return L"vs_6_0";
+        return L"vs";
+    }
+}
+
+static const wchar_t* d3d12_getShaderTargetProfileSuffix(ShaderTarget target)
+{
+    switch (target)
+    {
+    case SHADER_TARGET_5_1:
+        return L"5_1";
+    case SHADER_TARGET_6_0:
+        return L"6_0";
+    case SHADER_TARGET_6_1:
+        return L"6_1";
+    case SHADER_TARGET_6_2:
+        return L"6_2";
+    case SHADER_TARGET_6_3:
+        return L"6_3";
+    case SHADER_TARGET_6_4:
+        return L"6_4";
+    case SHADER_TARGET_6_5:
+        return L"6_5";
+    case SHADER_TARGET_6_6:
+        return L"6_6";
+    case SHADER_TARGET_6_7:
+        return L"6_7";
+    case SHADER_TARGET_6_8:
+        return L"6_8";
+    case SHADER_TARGET_6_9:
+        return L"6_9";
+    case SHADER_TARGET_6_10:
+        return L"6_10";
+    default:
+        ASSERT(false);
+        return L"6_0";
+    }
+}
+
+static void d3d12_getShaderProfile(ShaderStage stage, ShaderTarget target, wchar_t* pOutProfile, size_t profileCount)
+{
+    swprintf_s(pOutProfile, profileCount, L"%s_%s", d3d12_getShaderStageProfilePrefix(stage),
+               d3d12_getShaderTargetProfileSuffix(target));
+}
+
+static D3D_SHADER_MODEL d3d12_getD3DShaderModel(ShaderTarget target)
+{
+    switch (target)
+    {
+    case SHADER_TARGET_6_0:
+        return D3D_SHADER_MODEL_6_0;
+    case SHADER_TARGET_6_1:
+        return D3D_SHADER_MODEL_6_1;
+    case SHADER_TARGET_6_2:
+        return D3D_SHADER_MODEL_6_2;
+    case SHADER_TARGET_6_3:
+        return D3D_SHADER_MODEL_6_3;
+    case SHADER_TARGET_6_4:
+        return D3D_SHADER_MODEL_6_4;
+    case SHADER_TARGET_6_5:
+        return D3D_SHADER_MODEL_6_5;
+    case SHADER_TARGET_6_6:
+        return D3D_SHADER_MODEL_6_6;
+    case SHADER_TARGET_6_7:
+        return D3D_SHADER_MODEL_6_7;
+    case SHADER_TARGET_6_8:
+        return D3D_SHADER_MODEL_6_8;
+    case SHADER_TARGET_6_9:
+        return D3D_SHADER_MODEL_6_9;
+    case SHADER_TARGET_6_10:
+        return D3D_SHADER_MODEL_6_10;
+    default:
+        ASSERT(false);
+        return D3D_SHADER_MODEL_6_0;
     }
 }
 
@@ -1999,6 +2071,8 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.mVRAM = pGpuDesc->mDedicatedVideoMemory;
     // get wave lane count
     gpuSettings.mWaveLaneCount = pGpuDesc->mFeatureDataOptions1.WaveLaneCountMin;
+    gpuSettings.mWaveOpsSupported = pGpuDesc->mFeatureDataOptions1.WaveOps ? true : false;
+    gpuSettings.mInt64ShaderOpsSupported = pGpuDesc->mFeatureDataOptions1.Int64ShaderOps ? true : false;
     gpuSettings.mROVsSupported = pGpuDesc->mFeatureDataOptions.ROVsSupported ? true : false;
 #if defined(AMDAGS)
     gpuSettings.mAmdAsicFamily = agsGetAsicFamily(pGpuDesc->mDeviceId);
@@ -2006,12 +2080,16 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.mTessellationSupported = gpuSettings.mGeometryShaderSupported = true;
 
 #if defined(XBOXONE)
+    gpuSettings.mWaveOpsSupported = true;
     gpuSettings.mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_VOTE_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT |
                                        WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT;
     gpuSettings.mWaveOpsSupportedStageFlags |= SHADER_STAGE_ALL_GRAPHICS | SHADER_STAGE_COMP;
 #else
-    gpuSettings.mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_ALL;
-    gpuSettings.mWaveOpsSupportedStageFlags = SHADER_STAGE_ALL_GRAPHICS | SHADER_STAGE_COMP;
+    if (gpuSettings.mWaveOpsSupported)
+    {
+        gpuSettings.mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_ALL;
+        gpuSettings.mWaveOpsSupportedStageFlags = SHADER_STAGE_ALL_GRAPHICS | SHADER_STAGE_COMP;
+    }
 #endif
 
     gpuSettings.mGpuMarkers = true;
@@ -2024,6 +2102,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.mSoftwareVRSSupported = true;
     gpuSettings.mAllowBufferTextureInSameHeap = pGpuDesc->mFeatureDataOptions.ResourceHeapTier >= D3D12_RESOURCE_HEAP_TIER_2;
     gpuSettings.mGpuUploadHeapSupported = pGpuDesc->mFeatureDataOptions16.GPUUploadHeapSupported ? true : false;
+    gpuSettings.mExecuteIndirectIncrementingConstantSupported = true;
     gpuSettings.mDirectStorageSupported = is_directstorage_runtime_available();
     // compute shader group count
     gpuSettings.mMaxTotalComputeThreads = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
@@ -2093,9 +2172,9 @@ static void InitializeBufferDesc(Renderer* pRenderer, const BufferDesc* pDesc, D
     }
 
     desc->Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    // Alignment must be 64KB (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) or 0, which is effectively 64KB.
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/dn903813(v=vs.85).aspx
-    desc->Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+    // Keep this at 0 so the runtime/allocator can choose the proper alignment.
+    // D3D12MA may enable tight alignment, and that flag requires Alignment == 0.
+    // FIXME(hyl5): crash when set D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT
     desc->Width = allocationSize;
     desc->Height = 1;
     desc->DepthOrArraySize = 1;
@@ -2769,40 +2848,17 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
                 return;
             }
 
-            // If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating
-            // the device again.
-            if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || waveIntrinsicsSupport.WaveOps == FALSE)
-            {
-                // RENDERDOC_API_1_1_2* rdoc_api = NULL;
-                // // At init, on windows
-                // if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
-                // {
-                //     pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-                //     RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdoc_api);
-                // }
-
-                // // If RenderDoc is connected shader model 6 is not detected but it still works
-                // if (!rdoc_api || !rdoc_api->IsTargetControlConnected())
-                // {
-                //     // If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set
-                //     up
-                //     // your application to use the highest supported shader model. For simplicity we just exit the application here.
-                //     if (shaderModelSupport.HighestShaderModel < D3D_SHADER_MODEL_6_0 ||
-                //         (waveIntrinsicsSupport.WaveOps == FALSE && !SUCCEEDED(EnableExperimentalShaderModels())))
-                //     {
-                //         RemoveDevice(pRenderer);
-                //         LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.0");
-                //         return;
-                //     }
-                // }
-                // else
-                // {
-                //     LOGF(LogLevel::eWARNING,
-                //          "\nRenderDoc does not support SM 6.0 or higher. Application might work but you won't be able to debug the
-                //          SM 6.0+ " "shaders or view their bytecode.");
-                // }
-            }
+            // if (!pRenderer->pGpu->mSettings.mEnhancedBarriersSupported)
+            // {
+            //     RemoveDevice(pRenderer);
+            //     SAFE_FREE(pRenderer);
+            //     setRendererInitializationError("Selected GPU does not support D3D12 Enhanced Barriers.");
+            //     LOGF(LogLevel::eERROR, "Selected GPU does not support D3D12 Enhanced Barriers.");
+            //     *ppRenderer = NULL;
+            //     return;
+            // }
         }
+
 #endif
 
         /************************************************************************/
@@ -3484,6 +3540,7 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     // Command lists are addd in the recording state, but there is nothing
     // to record yet. The main loop expects it to be closed, so close it now.
     CHECK_HRESULT(pCmd->mDx.pCmdList->Close());
+    //CHECK_HRESULT(pCmd->mDx.pCmdList->QueryInterface(IID_ARGS(&pCmd->mDx.pBarrierCmdList)));
 
 #ifdef ENABLE_GRAPHICS_DEBUG
     if (pDesc->pName)
@@ -3506,6 +3563,7 @@ void d3d12_removeCmd(Renderer* pRenderer, Cmd* pCmd)
 #if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
     SAFE_RELEASE(pCmd->mDx.pDebugCmdList);
 #endif
+    //SAFE_RELEASE(pCmd->mDx.pBarrierCmdList);
 
     if (QUEUE_TYPE_TRANSFER == pCmd->mDx.mType)
     {
@@ -4796,7 +4854,8 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
                 wcscpy_s(entryPointWide, TF_ARRAY_COUNT(entryPointWide), L"main");
             }
 
-            const wchar_t* profile = d3d12_getShaderProfile(stage_mask);
+            wchar_t profile[16] = {};
+            d3d12_getShaderProfile(stage_mask, (ShaderTarget)pRenderer->mShaderTarget, profile, TF_ARRAY_COUNT(profile));
 
             // Build compile arguments.
             LPCWSTR  args[MAX_COMPILE_ARGS];
@@ -6873,6 +6932,11 @@ void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, ui
 #endif
 }
 
+// void d3d12_cmdBarrier(Cmd* pCmd, const BarrierDesc* pDesc)
+// {
+
+// }
+
 void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers,
                               TextureBarrier* pTextureBarriers, uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
 {
@@ -6905,19 +6969,19 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 pBarrier->UAV.pResource = pBuffer->mDx.pResource;
                 ++transitionCount;
-            }
+        }
 #ifdef D3D12_RAYTRACING_AVAILABLE
             else if ((RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE & pTransBarrier->mCurrentState) &&
                      (RESOURCE_STATE_ACCELERATION_STRUCTURE_READ & pTransBarrier->mNewState))
-            {
+        {
                 pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 pBarrier->UAV.pResource = pBuffer->mDx.pResource;
                 ++transitionCount;
-            }
+        }
 #endif
-            else
-            {
+        else
+        {
                 pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 if (pTransBarrier->mBeginOnly)
@@ -7097,6 +7161,11 @@ void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer
     uint32_t subresource =
         CALC_SUBRESOURCE_INDEX(pDesc->mMipLevel, pDesc->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1);
     D3D12_RESOURCE_DESC resourceDesc = pTexture->mDx.pResource->GetDesc();
+    // FIXME(hyl5): crash otherwise when dbg layer is enabled
+    if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        resourceDesc.Alignment = 0;
+    }
 
     D3D12_TEXTURE_COPY_LOCATION src = {};
     D3D12_TEXTURE_COPY_LOCATION dst = {};
@@ -7125,6 +7194,11 @@ void d3d12_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, 
     uint32_t subresource =
         CALC_SUBRESOURCE_INDEX(pDesc->mMipLevel, pDesc->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1);
     D3D12_RESOURCE_DESC resourceDesc = pTexture->mDx.pResource->GetDesc();
+    // FIXME(hyl5): crash otherwise when dbg layer is enabled
+    if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        resourceDesc.Alignment = 0;
+    }
 
     D3D12_TEXTURE_COPY_LOCATION src = {};
     D3D12_TEXTURE_COPY_LOCATION dst = {};
@@ -7428,6 +7502,12 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
             argumentDescs[i].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
             argumentDescs[i].ConstantBufferView.RootParameterIndex = desc->mHandleIndex;
             commandStride += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+            needRootSignature = true;
+            break;
+        case INDIRECT_INCREMENTING_CONSTANT:
+            argumentDescs[i].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT;
+            argumentDescs[i].IncrementingConstant.RootParameterIndex = desc->mHandleIndex;
+            argumentDescs[i].IncrementingConstant.DestOffsetIn32BitValues = pDesc->pArgDescs[i].mRootConstantDestOffsetIn32BitValues;
             needRootSignature = true;
             break;
         case INDIRECT_VERTEX_BUFFER:

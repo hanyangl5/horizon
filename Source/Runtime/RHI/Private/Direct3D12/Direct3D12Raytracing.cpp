@@ -401,6 +401,7 @@ void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Ray
     UNREF_PARAM(pRaytracing);
     ASSERT(pDesc);
 
+    // TODO: Cache the DXR command list interface on Cmd instead of querying it for every AS build.
     ID3D12GraphicsCommandList4* dxrCmd = NULL;
     pCmd->mDx.pCmdList->QueryInterface(IID_ARGS(&dxrCmd));
     ASSERT(dxrCmd);
