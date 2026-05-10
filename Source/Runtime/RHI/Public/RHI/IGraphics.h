@@ -1666,7 +1666,7 @@ struct RendererDesc
         D3D_FEATURE_LEVEL mFeatureLevel;
     } mDx;
 
-    ShaderTarget mShaderTarget = SHADER_TARGET_6_9;
+    ShaderTarget mShaderTarget = SHADER_TARGET_6_6;
     GpuMode      mGpuMode;
 
     /// Apps may want to query additional state for their applications. That information is transferred through here.
