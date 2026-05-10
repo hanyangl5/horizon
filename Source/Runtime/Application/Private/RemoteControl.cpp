@@ -368,7 +368,8 @@
 //     if (drawDataToSend)
 //     {
 //         sendSucceed =
-//             sendSucceed && (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.mSize) > 0);
+//             sendSucceed && (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.mSize) >
+//             0);
 //         mark_buffer_processed(&pRemoteAppServer->mAwaitingSendDrawData);
 //     }
 
@@ -431,8 +432,9 @@
 //                     uint32_t*      oldNumInputs = &((RemoteCommandUserInterfaceInput*)oldInputs)->mNumInputs;
 //                     isDataReceived = bufferedReceive(
 //                         socket,
-//                         oldInputs + sizeof(RemoteCommandUserInterfaceInput) + *oldNumInputs * sizeof(RemoteCommandUserInterfaceInputData),
-//                         remoteCommandHeader.mSize - sizeof(RemoteCommandUserInterfaceInput) - sizeof(RemoteCommandHeader));
+//                         oldInputs + sizeof(RemoteCommandUserInterfaceInput) + *oldNumInputs *
+//                         sizeof(RemoteCommandUserInterfaceInputData), remoteCommandHeader.mSize - sizeof(RemoteCommandUserInterfaceInput)
+//                         - sizeof(RemoteCommandHeader));
 //                     if (isDataReceived)
 //                     {
 //                         *oldNumInputs += inputData.mNumInputs;
@@ -676,7 +678,8 @@
 //         {
 //             tf_free(drawData->mDrawCommands);
 //         }
-//         drawData->mDrawCommands = (UserInterfaceDrawCommand*)tf_calloc(remoteDrawData->mNumDrawCommands, sizeof(UserInterfaceDrawCommand));
+//         drawData->mDrawCommands = (UserInterfaceDrawCommand*)tf_calloc(remoteDrawData->mNumDrawCommands,
+//         sizeof(UserInterfaceDrawCommand));
 //     }
 //     drawData->mNumDrawCommands = remoteDrawData->mNumDrawCommands;
 
@@ -772,7 +775,8 @@
 //     if (inputDataToSend)
 //     {
 //         sendSucceed =
-//             sendSucceed && (bufferedSend(socket, inputDataToSend, ((RemoteCommandUserInterfaceInput*)inputDataToSend)->mHeader.mSize) > 0);
+//             sendSucceed && (bufferedSend(socket, inputDataToSend, ((RemoteCommandUserInterfaceInput*)inputDataToSend)->mHeader.mSize) >
+//             0);
 //         mark_buffer_processed(&pRemoteControlClient->mAwaitingSendInput);
 //     }
 

@@ -1226,7 +1226,7 @@ struct alignas(64) Cmd
     struct
     {
         ID3D12GraphicsCommandList1* pCmdList;
-        //ID3D12GraphicsCommandList7* pBarrierCmdList;
+        // ID3D12GraphicsCommandList7* pBarrierCmdList;
 #if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
         // For resource state validation
         ID3D12DebugCommandList* pDebugCmdList;

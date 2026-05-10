@@ -4,15 +4,14 @@
 #include "Runtime/RHI/Private/RendererResourceAPI.h"
 #include <ThirdParty/stb/stb_ds.h>
 
-//TODO(hyl5): remove lots of defensive code or move them to debug only
+// TODO(hyl5): remove lots of defensive code or move them to debug only
 
 namespace
 {
-
 ResourceState getActualRenderTargetStartState(TinyImageFormat format, ResourceState requestedState)
 {
-    const bool isDepth = format == TinyImageFormat_D32_SFLOAT || format == TinyImageFormat_D24_UNORM_S8_UINT ||
-                         format == TinyImageFormat_D32_SFLOAT_S8_UINT;
+    const bool isDepth =
+        format == TinyImageFormat_D32_SFLOAT || format == TinyImageFormat_D24_UNORM_S8_UINT || format == TinyImageFormat_D32_SFLOAT_S8_UINT;
     const ResourceState attachmentState = isDepth ? RESOURCE_STATE_DEPTH_WRITE : RESOURCE_STATE_RENDER_TARGET;
     const ResourceState creationState = requestedState | attachmentState;
     return creationState > attachmentState ? (creationState & static_cast<ResourceState>(~attachmentState)) : attachmentState;
@@ -21,43 +20,40 @@ ResourceState getActualRenderTargetStartState(TinyImageFormat format, ResourceSt
 bool bufferDescMatches(const BufferDesc& a, const BufferDesc& b)
 {
     return a.mSize == b.mSize && a.mFirstElement == b.mFirstElement && a.mElementCount == b.mElementCount &&
-           a.mStructStride == b.mStructStride && a.mAlignment == b.mAlignment && a.mMemoryUsage == b.mMemoryUsage &&
-           a.mFlags == b.mFlags && a.mQueueType == b.mQueueType && a.mFormat == b.mFormat &&
-           a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
+           a.mStructStride == b.mStructStride && a.mAlignment == b.mAlignment && a.mMemoryUsage == b.mMemoryUsage && a.mFlags == b.mFlags &&
+           a.mQueueType == b.mQueueType && a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
 }
 
 bool textureDescMatches(const TextureDesc& a, const TextureDesc& b)
 {
-    return a.mFlags == b.mFlags && a.mWidth == b.mWidth && a.mHeight == b.mHeight && a.mDepth == b.mDepth &&
-           a.mArraySize == b.mArraySize && a.mMipLevels == b.mMipLevels && a.mSampleCount == b.mSampleCount &&
-           a.mSampleQuality == b.mSampleQuality && a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors &&
-           a.mNodeIndex == b.mNodeIndex;
+    return a.mFlags == b.mFlags && a.mWidth == b.mWidth && a.mHeight == b.mHeight && a.mDepth == b.mDepth && a.mArraySize == b.mArraySize &&
+           a.mMipLevels == b.mMipLevels && a.mSampleCount == b.mSampleCount && a.mSampleQuality == b.mSampleQuality &&
+           a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
 }
 
 bool renderTargetDescMatches(const RenderTargetDesc& a, const RenderTargetDesc& b)
 {
-    return a.mFlags == b.mFlags && a.mWidth == b.mWidth && a.mHeight == b.mHeight && a.mDepth == b.mDepth &&
-           a.mArraySize == b.mArraySize && a.mMipLevels == b.mMipLevels && a.mSampleCount == b.mSampleCount &&
-           a.mFormat == b.mFormat && a.mSampleQuality == b.mSampleQuality && a.mDescriptors == b.mDescriptors &&
-           a.mNodeIndex == b.mNodeIndex;
+    return a.mFlags == b.mFlags && a.mWidth == b.mWidth && a.mHeight == b.mHeight && a.mDepth == b.mDepth && a.mArraySize == b.mArraySize &&
+           a.mMipLevels == b.mMipLevels && a.mSampleCount == b.mSampleCount && a.mFormat == b.mFormat &&
+           a.mSampleQuality == b.mSampleQuality && a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
 }
 
 } // namespace
 
 RGPassContext::RGPassContext(RenderGraph& graph): pGraph(&graph) {}
 
-Renderer* RGPassContext::getRenderer() const { return pGraph ? pGraph->pRenderer : nullptr; }
-uint32_t RGPassContext::getWidth() const { return pGraph ? pGraph->mWidth : 0; }
-uint32_t RGPassContext::getHeight() const { return pGraph ? pGraph->mHeight : 0; }
-uint32_t RGPassContext::getNodeIndex() const { return pGraph ? pGraph->mNodeIndex : 0; }
+Renderer*     RGPassContext::getRenderer() const { return pGraph ? pGraph->pRenderer : nullptr; }
+uint32_t      RGPassContext::getWidth() const { return pGraph ? pGraph->mWidth : 0; }
+uint32_t      RGPassContext::getHeight() const { return pGraph ? pGraph->mHeight : 0; }
+uint32_t      RGPassContext::getNodeIndex() const { return pGraph ? pGraph->mNodeIndex : 0; }
 RenderTarget* RGPassContext::getRenderTarget(RGTexture handle) const { return pGraph ? pGraph->getRenderTarget(handle) : nullptr; }
-Texture* RGPassContext::getTexture(RGTexture handle) const { return pGraph ? pGraph->getTexture(handle) : nullptr; }
-Buffer* RGPassContext::getBuffer(RGBuffer handle) const { return pGraph ? pGraph->getBuffer(handle) : nullptr; }
+Texture*      RGPassContext::getTexture(RGTexture handle) const { return pGraph ? pGraph->getTexture(handle) : nullptr; }
+Buffer*       RGPassContext::getBuffer(RGBuffer handle) const { return pGraph ? pGraph->getBuffer(handle) : nullptr; }
 
 RGPassBuilder::RGPassBuilder(RenderGraph& graph, uint32_t passIndex): pGraph(&graph), mPassIndex(passIndex) {}
 
-RGPassBuilder& RGPassBuilder::writeRenderTarget(RGTexture handle, uint32_t colorIndex, LoadActionType loadAction, StoreActionType storeAction,
-                                      ClearValue clearValue, bool overrideClearValue)
+RGPassBuilder& RGPassBuilder::writeRenderTarget(RGTexture handle, uint32_t colorIndex, LoadActionType loadAction,
+                                                StoreActionType storeAction, ClearValue clearValue, bool overrideClearValue)
 {
     if (!pGraph || !handle.isValid())
         return *this;
@@ -68,7 +64,7 @@ RGPassBuilder& RGPassBuilder::writeRenderTarget(RGTexture handle, uint32_t color
     }
 
     RenderGraph::PassNode& pass = pGraph->pPasses[mPassIndex];
-    const uint32_t oldCount = static_cast<uint32_t>(arrlenu(pass.pColorAttachments));
+    const uint32_t         oldCount = static_cast<uint32_t>(arrlenu(pass.pColorAttachments));
     if (oldCount <= colorIndex)
     {
         arrsetlen(pass.pColorAttachments, colorIndex + 1);
@@ -84,7 +80,7 @@ RGPassBuilder& RGPassBuilder::writeRenderTarget(RGTexture handle, uint32_t color
 }
 
 RGPassBuilder& RGPassBuilder::writeDepthStencil(RGTexture handle, LoadActionType loadAction, StoreActionType storeAction,
-                                     ClearValue clearValue, bool overrideClearValue)
+                                                ClearValue clearValue, bool overrideClearValue)
 {
     if (!pGraph || !handle.isValid())
         return *this;
@@ -105,15 +101,12 @@ RGPassBuilder& RGPassBuilder::read(RGBuffer handle, ResourceState state)
     return *this;
 }
 
-
 RGPassBuilder& RGPassBuilder::read(RGTexture handle, ResourceState state)
 {
     if (pGraph && handle.isValid())
         arrpush(pGraph->pPasses[mPassIndex].pReads, (RenderGraph::ResourceUse{ handle.mId, ResourceKind::Texture, state, false }));
     return *this;
 }
-
-
 
 RGPassBuilder& RGPassBuilder::write(RGBuffer handle, ResourceState state)
 {
@@ -125,7 +118,6 @@ RGPassBuilder& RGPassBuilder::write(RGBuffer handle, ResourceState state)
     }
     return *this;
 }
-
 
 RGPassBuilder& RGPassBuilder::write(RGTexture handle, ResourceState state)
 {
@@ -151,10 +143,7 @@ RGPassBuilder& RGPassBuilder::setExecute(PassExecuteCallback callback, void* pUs
 
 RenderGraph::RenderGraph() = default;
 
-RenderGraph::~RenderGraph()
-{
-    reset();
-}
+RenderGraph::~RenderGraph() { reset(); }
 
 void RenderGraph::beginFrame(Renderer* pInRenderer, uint32_t width, uint32_t height, uint32_t nodeIndex, uint32_t frameResourceIndex,
                              Fence* pFrameFence)
@@ -174,7 +163,7 @@ void RenderGraph::beginFrame(Renderer* pInRenderer, uint32_t width, uint32_t hei
 }
 
 RGTexture RenderGraph::importRenderTarget(const char* pName, RenderTarget* pRenderTarget, ResourceState currentState,
-                                             ResourceState finalState)
+                                          ResourceState finalState)
 {
     if (!pRenderTarget)
         return {};
@@ -242,7 +231,7 @@ RGTexture RenderGraph::createRenderTarget(const char* pName, const RenderTargetD
     localDesc.mNodeIndex = localDesc.mNodeIndex ? localDesc.mNodeIndex : mNodeIndex;
 
     const ResourceState actualInitialState = getActualRenderTargetStartState(localDesc.mFormat, localDesc.mStartState);
-    ResourceNode node = {};
+    ResourceNode        node = {};
     node.pName = localDesc.pName ? localDesc.pName : "";
     node.mKind = ResourceKind::Texture;
     node.mInitialState = actualInitialState;
@@ -350,7 +339,7 @@ void RenderGraph::execute(Cmd* pCmd)
     RGPassContext context(*this);
     for (uint32_t passIndex = 0; passIndex < arrlenu(pPasses); ++passIndex)
     {
-        const PassNode& pass = pPasses[passIndex];
+        const PassNode&      pass = pPasses[passIndex];
         BufferBarrier*       pBufferBarriers = nullptr;
         TextureBarrier*      pTextureBarriers = nullptr;
         RenderTargetBarrier* pRtBarriers = nullptr;
@@ -360,10 +349,10 @@ void RenderGraph::execute(Cmd* pCmd)
             if (use.mResourceIndex >= arrlenu(pResourceStates))
                 return;
 
-            ResourceNode& resource = pResources[use.mResourceIndex];
+            ResourceNode&       resource = pResources[use.mResourceIndex];
             const ResourceState beforeState = pResourceStates[use.mResourceIndex];
-            const bool lastUseWasWrite = pResourceLastWrites[use.mResourceIndex];
-            const bool needsBarrier =
+            const bool          lastUseWasWrite = pResourceLastWrites[use.mResourceIndex];
+            const bool          needsBarrier =
                 beforeState != use.mState || (use.mState == RESOURCE_STATE_UNORDERED_ACCESS && (lastUseWasWrite || use.mWrite));
 
             if (needsBarrier)
@@ -415,7 +404,8 @@ void RenderGraph::execute(Cmd* pCmd)
                 RenderTarget* pRenderTarget = getRenderTarget(attachment.mHandle);
                 if (!pRenderTarget)
                 {
-                    LOGF(eERROR, "RenderGraph pass %s has an invalid color attachment at slot %u", pass.pName ? pass.pName : "<unnamed>", i);
+                    LOGF(eERROR, "RenderGraph pass %s has an invalid color attachment at slot %u", pass.pName ? pass.pName : "<unnamed>",
+                         i);
                     bindDescValid = false;
                     continue;
                 }
@@ -432,7 +422,7 @@ void RenderGraph::execute(Cmd* pCmd)
             if (pass.mHasDepthAttachment)
             {
                 const DepthAttachment& attachment = pass.mDepthAttachment;
-                RenderTarget* pDepthStencil = getRenderTarget(attachment.mHandle);
+                RenderTarget*          pDepthStencil = getRenderTarget(attachment.mHandle);
                 if (!pDepthStencil)
                 {
                     LOGF(eERROR, "RenderGraph pass %s has an invalid depth attachment", pass.pName ? pass.pName : "<unnamed>");
@@ -482,9 +472,8 @@ void RenderGraph::endFrame(Cmd* pCmd)
             continue;
 
         const ResourceState beforeState = pResourceStates[i];
-        const bool needsBarrier =
-            beforeState != resource.mFinalState ||
-            (resource.mFinalState == RESOURCE_STATE_UNORDERED_ACCESS && pResourceLastWrites[i]);
+        const bool          needsBarrier =
+            beforeState != resource.mFinalState || (resource.mFinalState == RESOURCE_STATE_UNORDERED_ACCESS && pResourceLastWrites[i]);
         if (!needsBarrier)
             continue;
 
@@ -504,8 +493,8 @@ void RenderGraph::endFrame(Cmd* pCmd)
     if (pCmd && (arrlenu(pRtBarriers) || arrlenu(pBufferBarriers) || arrlenu(pTextureBarriers)))
     {
         cmdResourceBarrier(pCmd, static_cast<uint32_t>(arrlenu(pBufferBarriers)), pBufferBarriers,
-                           static_cast<uint32_t>(arrlenu(pTextureBarriers)), pTextureBarriers,
-                           static_cast<uint32_t>(arrlenu(pRtBarriers)), pRtBarriers);
+                           static_cast<uint32_t>(arrlenu(pTextureBarriers)), pTextureBarriers, static_cast<uint32_t>(arrlenu(pRtBarriers)),
+                           pRtBarriers);
     }
 
     arrfree(pRtBarriers);
@@ -574,15 +563,9 @@ uint32_t RenderGraph::buildExecutionPlan()
     return static_cast<uint32_t>(arrlenu(pLastDebugEvents));
 }
 
-const DebugEvent* RenderGraph::getLastDebugEvents() const
-{
-    return pLastDebugEvents;
-}
+const DebugEvent* RenderGraph::getLastDebugEvents() const { return pLastDebugEvents; }
 
-uint32_t RenderGraph::getLastDebugEventCount() const
-{
-    return static_cast<uint32_t>(arrlenu(pLastDebugEvents));
-}
+uint32_t RenderGraph::getLastDebugEventCount() const { return static_cast<uint32_t>(arrlenu(pLastDebugEvents)); }
 
 bool RenderGraph::isResourceUsed(RGTexture handle) const
 {
@@ -802,8 +785,7 @@ void RenderGraph::prepareInternalResources()
                 break;
             }
 
-            if (resource.mHasTextureDesc && candidate.mHasTextureDesc &&
-                textureDescMatches(resource.mTextureDesc, candidate.mTextureDesc))
+            if (resource.mHasTextureDesc && candidate.mHasTextureDesc && textureDescMatches(resource.mTextureDesc, candidate.mTextureDesc))
             {
                 resource.pTexture = candidate.pTexture;
                 resource.mInitialState = candidate.mCurrentState;
@@ -883,15 +865,15 @@ void RenderGraph::recordPassEvents(uint32_t passIndex, DebugEvent** ppEvents, Re
                                    bool includeBindEvents) const
 {
     const PassNode& pass = pPasses[passIndex];
-    auto recordUse = [&](const ResourceUse& use)
+    auto            recordUse = [&](const ResourceUse& use)
     {
         if (use.mResourceIndex >= arrlenu(*ppStates))
             return;
 
         const ResourceNode& resource = pResources[use.mResourceIndex];
         const ResourceState beforeState = (*ppStates)[use.mResourceIndex];
-        const bool lastUseWasWrite = (*ppLastWrites)[use.mResourceIndex];
-        const bool needsBarrier =
+        const bool          lastUseWasWrite = (*ppLastWrites)[use.mResourceIndex];
+        const bool          needsBarrier =
             beforeState != use.mState || (use.mState == RESOURCE_STATE_UNORDERED_ACCESS && (lastUseWasWrite || use.mWrite));
         if (needsBarrier)
         {
@@ -925,7 +907,7 @@ void RenderGraph::recordFinalEvents(DebugEvent** ppEvents, ResourceState** ppSta
             continue;
 
         const ResourceState beforeState = (*ppStates)[i];
-        const bool needsBarrier =
+        const bool          needsBarrier =
             beforeState != resource.mFinalState || (resource.mFinalState == RESOURCE_STATE_UNORDERED_ACCESS && (*ppLastWrites)[i]);
         if (!needsBarrier)
             continue;

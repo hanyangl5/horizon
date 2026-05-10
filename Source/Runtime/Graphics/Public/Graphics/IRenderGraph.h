@@ -45,8 +45,8 @@ struct DebugEvent
     ResourceKind   mResourceKind = ResourceKind::Unknown;
     const char*    pPassName = nullptr;
     const char*    pResourceName = nullptr;
-    ResourceState mStateBefore = RESOURCE_STATE_UNDEFINED;
-    ResourceState mStateAfter = RESOURCE_STATE_UNDEFINED;
+    ResourceState  mStateBefore = RESOURCE_STATE_UNDEFINED;
+    ResourceState  mStateAfter = RESOURCE_STATE_UNDEFINED;
 };
 
 class RenderGraph;
@@ -130,19 +130,19 @@ public:
     Texture*      getTexture(RGTexture handle) const;
     Buffer*       getBuffer(RGBuffer handle) const;
 
-    uint32_t buildExecutionPlan();
+    uint32_t          buildExecutionPlan();
     const DebugEvent* getLastDebugEvents() const;
-    uint32_t getLastDebugEventCount() const;
-    bool     isResourceUsed(RGTexture handle) const;
-    bool     isResourceUsed(RGBuffer handle) const;
-    bool     isResourceAllocated(RGTexture handle) const;
-    bool     isResourceAllocated(RGBuffer handle) const;
-    bool     wasImportedResourceWritten(RGTexture handle) const;
-    bool     wasImportedResourceWritten(RGBuffer handle) const;
-    uint32_t getResourceFirstUse(RGTexture handle) const;
-    uint32_t getResourceFirstUse(RGBuffer handle) const;
-    uint32_t getResourceLastUse(RGTexture handle) const;
-    uint32_t getResourceLastUse(RGBuffer handle) const;
+    uint32_t          getLastDebugEventCount() const;
+    bool              isResourceUsed(RGTexture handle) const;
+    bool              isResourceUsed(RGBuffer handle) const;
+    bool              isResourceAllocated(RGTexture handle) const;
+    bool              isResourceAllocated(RGBuffer handle) const;
+    bool              wasImportedResourceWritten(RGTexture handle) const;
+    bool              wasImportedResourceWritten(RGBuffer handle) const;
+    uint32_t          getResourceFirstUse(RGTexture handle) const;
+    uint32_t          getResourceFirstUse(RGBuffer handle) const;
+    uint32_t          getResourceLastUse(RGTexture handle) const;
+    uint32_t          getResourceLastUse(RGBuffer handle) const;
 
 private:
     friend class RGPassBuilder;
@@ -159,7 +159,6 @@ private:
                           bool includeBindEvents) const;
     void recordFinalEvents(DebugEvent** ppEvents, ResourceState** ppStates, bool** ppLastWrites) const;
     void resetResourceStates();
-
 
     struct ColorAttachment
     {
@@ -242,25 +241,25 @@ private:
         void*               pUserData = nullptr;
     };
 
-    Renderer*             pRenderer = nullptr;
-    uint32_t              mWidth = 0;
-    uint32_t              mHeight = 0;
-    uint32_t              mNodeIndex = 0;
-    uint32_t              mFrameResourceIndex = 0;
-    ResourceNode*         pResources = nullptr;
-    PassNode*             pPasses = nullptr;
-    ResourceState*        pResourceStates = nullptr;
-    bool*                 pResourceLastWrites = nullptr;
-    DebugEvent*           pLastDebugEvents = nullptr;
-    TransientResource*    pAvailableTransientResources = nullptr;
-    TransientResource*    pRetiredTransientResources = nullptr;
+    Renderer*          pRenderer = nullptr;
+    uint32_t           mWidth = 0;
+    uint32_t           mHeight = 0;
+    uint32_t           mNodeIndex = 0;
+    uint32_t           mFrameResourceIndex = 0;
+    ResourceNode*      pResources = nullptr;
+    PassNode*          pPasses = nullptr;
+    ResourceState*     pResourceStates = nullptr;
+    bool*              pResourceLastWrites = nullptr;
+    DebugEvent*        pLastDebugEvents = nullptr;
+    TransientResource* pAvailableTransientResources = nullptr;
+    TransientResource* pRetiredTransientResources = nullptr;
 };
 
-#define RDG_EXECUTE(UserType, userData, ...)                                                  \
-    [](Cmd* pPassCmd, const RGPassContext& context, void* pUserData)                            \
-    {                                                                                         \
-        UserType* self = static_cast<UserType*>(pUserData);                                   \
-        (void)self;                                                                           \
-        __VA_ARGS__                                                                           \
-    },                                                                                        \
+#define RDG_EXECUTE(UserType, userData, ...)                         \
+    [](Cmd* pPassCmd, const RGPassContext& context, void* pUserData) \
+    {                                                                \
+        UserType* self = static_cast<UserType*>(pUserData);          \
+        (void)self;                                                  \
+        __VA_ARGS__                                                  \
+    },                                                               \
         userData

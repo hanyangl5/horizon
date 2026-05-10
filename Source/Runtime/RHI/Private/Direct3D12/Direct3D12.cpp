@@ -153,8 +153,7 @@ static const wchar_t* d3d12_getShaderTargetProfileSuffix(ShaderTarget target)
 
 static void d3d12_getShaderProfile(ShaderStage stage, ShaderTarget target, wchar_t* pOutProfile, size_t profileCount)
 {
-    swprintf_s(pOutProfile, profileCount, L"%s_%s", d3d12_getShaderStageProfilePrefix(stage),
-               d3d12_getShaderTargetProfileSuffix(target));
+    swprintf_s(pOutProfile, profileCount, L"%s_%s", d3d12_getShaderStageProfilePrefix(stage), d3d12_getShaderTargetProfileSuffix(target));
 }
 
 static D3D_SHADER_MODEL d3d12_getD3DShaderModel(ShaderTarget target)
@@ -3540,7 +3539,7 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     // Command lists are addd in the recording state, but there is nothing
     // to record yet. The main loop expects it to be closed, so close it now.
     CHECK_HRESULT(pCmd->mDx.pCmdList->Close());
-    //CHECK_HRESULT(pCmd->mDx.pCmdList->QueryInterface(IID_ARGS(&pCmd->mDx.pBarrierCmdList)));
+    // CHECK_HRESULT(pCmd->mDx.pCmdList->QueryInterface(IID_ARGS(&pCmd->mDx.pBarrierCmdList)));
 
 #ifdef ENABLE_GRAPHICS_DEBUG
     if (pDesc->pName)
@@ -3563,7 +3562,7 @@ void d3d12_removeCmd(Renderer* pRenderer, Cmd* pCmd)
 #if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
     SAFE_RELEASE(pCmd->mDx.pDebugCmdList);
 #endif
-    //SAFE_RELEASE(pCmd->mDx.pBarrierCmdList);
+    // SAFE_RELEASE(pCmd->mDx.pBarrierCmdList);
 
     if (QUEUE_TYPE_TRANSFER == pCmd->mDx.mType)
     {
@@ -6969,19 +6968,19 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 pBarrier->UAV.pResource = pBuffer->mDx.pResource;
                 ++transitionCount;
-        }
+            }
 #ifdef D3D12_RAYTRACING_AVAILABLE
             else if ((RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE & pTransBarrier->mCurrentState) &&
                      (RESOURCE_STATE_ACCELERATION_STRUCTURE_READ & pTransBarrier->mNewState))
-        {
+            {
                 pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 pBarrier->UAV.pResource = pBuffer->mDx.pResource;
                 ++transitionCount;
-        }
+            }
 #endif
-        else
-        {
+            else
+            {
                 pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 if (pTransBarrier->mBeginOnly)
