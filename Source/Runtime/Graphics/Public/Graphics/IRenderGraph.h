@@ -58,7 +58,7 @@ public:
     Renderer* getRenderer() const;
     uint32_t  getWidth() const;
     uint32_t  getHeight() const;
-    uint32_t  getNodeIndex() const;
+    uint32_t  getFrameResourceIndex() const;
 
     RenderTarget* getRenderTarget(RGTexture handle) const;
     Texture*      getTexture(RGTexture handle) const;
@@ -129,9 +129,9 @@ public:
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
 
-    void beginFrame(Renderer* pRenderer, uint32_t width, uint32_t height, uint32_t nodeIndex, uint32_t frameResourceIndex = 0,
+    void beginFrame(Renderer* pRenderer, uint32_t width, uint32_t height, uint32_t frameResourceIndex = 0,
                     Fence* pFrameFence = nullptr);
-
+    uint32_t getFrameResourceIndex() const { return mFrameResourceIndex; };
     RGTexture importRenderTarget(const char* pName, RenderTarget* pRenderTarget, ResourceState currentState, ResourceState finalState);
     RGTexture importTexture(const char* pName, Texture* pTexture, ResourceState currentState, ResourceState finalState);
     RGBuffer  importBuffer(const char* pName, Buffer* pBuffer, ResourceState currentState, ResourceState finalState);
@@ -267,7 +267,6 @@ private:
     Renderer*          pRenderer = nullptr;
     uint32_t           mWidth = 0;
     uint32_t           mHeight = 0;
-    uint32_t           mNodeIndex = 0;
     uint32_t           mFrameResourceIndex = 0;
     ResourceNode*      pResources = nullptr;
     PassNode*          pPasses = nullptr;

@@ -99,7 +99,6 @@ public:
             .mType = QUEUE_TYPE_GRAPHICS,
             .mFlag = QUEUE_FLAG_NONE,
             .mPriority = QUEUE_PRIORITY_NORMAL,
-            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
             .pName = "HelloTriangle.GraphicsQueue",
         };
         addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
@@ -357,7 +356,6 @@ private:
             .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
             .mStartState = RESOURCE_STATE_GENERIC_READ,
             .mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER,
-            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
         };
         addBuffer(pRenderer, &vertexBufferDesc, &pVertexBuffer);
         if (!pVertexBuffer || !pVertexBuffer->pCpuMappedAddress)

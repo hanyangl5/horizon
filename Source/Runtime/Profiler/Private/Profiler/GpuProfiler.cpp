@@ -142,9 +142,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
     strncpy(pGpuProfiler->mGroupName, pName, sizeof pGpuProfiler->mGroupName - 1);
     pGpuProfiler->mGroupName[sizeof pGpuProfiler->mGroupName - 1] = 0;
 
-    const uint32_t nodeIndex = pQueue->mNodeIndex;
     QueryPoolDesc  queryHeapDesc = {};
-    queryHeapDesc.mNodeIndex = nodeIndex;
     queryHeapDesc.mQueryCount = GpuProfiler::MAX_TIMERS;
     queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
 

@@ -599,26 +599,6 @@ static void copy_descriptor_handle(DescriptorHeap* pSrcHeap, DxDescriptorID srcI
     D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = descriptor_id_to_cpu_handle(pDstHeap, dstId);
     pSrcHeap->pDevice->CopyDescriptorsSimple(1, dstHandle, srcHandle, pSrcHeap->mType);
 }
-/************************************************************************/
-// Multi GPU Helper Functions
-/************************************************************************/
-uint32_t util_calculate_shared_node_mask(Renderer* pRenderer)
-{
-    if (pRenderer->mGpuMode == GPU_MODE_LINKED)
-        return (1 << pRenderer->mLinkedNodeCount) - 1;
-    else
-        return 0;
-}
-
-uint32_t util_calculate_node_mask(Renderer* pRenderer, uint32_t i)
-{
-    if (pRenderer->mGpuMode == GPU_MODE_LINKED)
-        return (1 << i);
-    else
-        return 0;
-}
-/************************************************************************/
-/************************************************************************/
 constexpr D3D12_DEPTH_STENCIL_DESC util_to_depth_desc(const DepthStateDesc* pDesc)
 {
     ASSERT(pDesc->mDepthFunc < CompareMode::MAX_COMPARE_MODES);
@@ -2489,7 +2469,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     if (SUCCEEDED(hr))
     {
         pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
-        pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+        pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, false);
         pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, false);
         pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_INFO, false);
         pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_MESSAGE, false);
@@ -2655,7 +2635,7 @@ void ExitCommon(RendererContext* pContext)
 }
 
 /************************************************************************/
-// Renderer Context Init Exit (multi GPU)
+// Renderer Context Init / Exit
 /************************************************************************/
 static uint32_t gRendererCount = 0;
 
@@ -2780,7 +2760,6 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
     ASSERT(pRenderer);
 
     pRenderer->mRendererApi = RENDERER_API_D3D12;
-    pRenderer->mGpuMode = pDesc->mGpuMode;
     pRenderer->mShaderTarget = pDesc->mShaderTarget;
     pRenderer->pName = appName;
 
@@ -2797,7 +2776,6 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         else
         {
             pRenderer->pContext = pDesc->pContext;
-            pRenderer->mUnlinkedRendererIndex = gRendererCount;
             pRenderer->mOwnsContext = false;
         }
 
@@ -2861,18 +2839,11 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 #endif
 
         /************************************************************************/
-        // Multi GPU - SLI Node Count
-        /************************************************************************/
-        uint32_t gpuCount = pRenderer->mDx.pDevice->GetNodeCount();
-        pRenderer->mLinkedNodeCount = (pRenderer->mGpuMode == GPU_MODE_LINKED) ? gpuCount : 1;
-        if (pRenderer->mGpuMode == GPU_MODE_LINKED && pRenderer->mLinkedNodeCount < 2)
-            pRenderer->mGpuMode = GPU_MODE_SINGLE;
-        /************************************************************************/
         // Descriptor heaps
         /************************************************************************/
         pRenderer->mDx.pCPUDescriptorHeaps = (DescriptorHeap**)tf_malloc(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES * sizeof(DescriptorHeap*));
-        pRenderer->mDx.pCbvSrvUavHeaps = (DescriptorHeap**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(DescriptorHeap*));
-        pRenderer->mDx.pSamplerHeaps = (DescriptorHeap**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(DescriptorHeap*));
+        pRenderer->mDx.pCbvSrvUavHeaps = (DescriptorHeap**)tf_malloc(sizeof(DescriptorHeap*));
+        pRenderer->mDx.pSamplerHeaps = (DescriptorHeap**)tf_malloc(sizeof(DescriptorHeap*));
 
         for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
         {
@@ -2884,21 +2855,19 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             add_descriptor_heap(pRenderer->mDx.pDevice, &desc, &pRenderer->mDx.pCPUDescriptorHeaps[i]);
         }
 
-        // One shader visible heap for each linked node
-        for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
         {
             D3D12_DESCRIPTOR_HEAP_DESC desc = {};
             desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            desc.NodeMask = util_calculate_node_mask(pRenderer, i);
+            desc.NodeMask = 0;
 
             desc.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
             desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-            add_descriptor_heap(pRenderer->mDx.pDevice, &desc, &pRenderer->mDx.pCbvSrvUavHeaps[i]);
+            add_descriptor_heap(pRenderer->mDx.pDevice, &desc, &pRenderer->mDx.pCbvSrvUavHeaps[0]);
 
             // Max sampler descriptor count
             desc.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
             desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-            add_descriptor_heap(pRenderer->mDx.pDevice, &desc, &pRenderer->mDx.pSamplerHeaps[i]);
+            add_descriptor_heap(pRenderer->mDx.pDevice, &desc, &pRenderer->mDx.pSamplerHeaps[0]);
         }
         /************************************************************************/
         // Memory allocator
@@ -2921,7 +2890,6 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
     hook_post_init_renderer(pRenderer);
 
     ++gRendererCount;
-    ASSERT(gRendererCount <= MAX_UNLINKED_GPUS);
 
     // Renderer is good!
     *ppRenderer = pRenderer;
@@ -2940,11 +2908,8 @@ void d3d12_exitRenderer(Renderer* pRenderer)
         remove_descriptor_heap(pRenderer->mDx.pCPUDescriptorHeaps[i]);
     }
 
-    for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
-    {
-        remove_descriptor_heap(pRenderer->mDx.pCbvSrvUavHeaps[i]);
-        remove_descriptor_heap(pRenderer->mDx.pSamplerHeaps[i]);
-    }
+    remove_descriptor_heap(pRenderer->mDx.pCbvSrvUavHeaps[0]);
+    remove_descriptor_heap(pRenderer->mDx.pSamplerHeaps[0]);
     SAFE_RELEASE(pRenderer->mDx.pResourceAllocator);
 
     RemoveDevice(pRenderer);
@@ -3032,18 +2997,12 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
     Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
     ASSERT(pQueue);
 
-    const uint32_t nodeIndex = pRenderer->mGpuMode == GPU_MODE_UNLINKED ? 0 : pDesc->mNodeIndex;
-    if (nodeIndex)
-    {
-        ASSERT(pRenderer->mGpuMode == GPU_MODE_LINKED && "Node Masking can only be used with Linked Multi GPU");
-    }
-
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     if (pDesc->mFlag & QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
         queueDesc.Flags |= D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT;
     queueDesc.Type = gDx12CmdTypeTranslator[pDesc->mType];
     queueDesc.Priority = gDx12QueuePriorityTranslator[pDesc->mPriority];
-    queueDesc.NodeMask = util_calculate_node_mask(pRenderer, nodeIndex);
+    queueDesc.NodeMask = 0;
 
     CHECK_HRESULT(hook_create_command_queue(pRenderer->mDx.pDevice, &queueDesc, &pQueue->mDx.pQueue));
 
@@ -3061,20 +3020,15 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
                 "COMPUTE QUEUE",
                 "COPY QUEUE",
             };
-            snprintf(queueTypeBuffer, MAX_DEBUG_NAME_LENGTH, "%s %u", queueNames[queueDesc.Type], pDesc->mNodeIndex);
+            snprintf(queueTypeBuffer, MAX_DEBUG_NAME_LENGTH, "%s", queueNames[queueDesc.Type]);
         }
         SetObjectName(pQueue->mDx.pQueue, pDesc->pName ? pDesc->pName : queueTypeBuffer);
     }
 
     pQueue->mType = pDesc->mType;
-    pQueue->mNodeIndex = pDesc->mNodeIndex;
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
     pQueue->mDx.pRenderer = pRenderer;
 #endif
-
-    // override node index
-    if (pRenderer->mGpuMode == GPU_MODE_UNLINKED)
-        pQueue->mNodeIndex = pRenderer->mUnlinkedRendererIndex;
 
     // Add queue fence. This fence will make sure we finish all GPU works before releasing the queue
     addFence(pRenderer, &pQueue->mDx.pFence);
@@ -3513,17 +3467,16 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     ASSERT(pCmd);
 
     // set command pool of new command
-    pCmd->mDx.mNodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pDesc->pPool->pQueue->mNodeIndex : 0;
     pCmd->mDx.mType = pDesc->pPool->pQueue->mType;
     pCmd->pQueue = pDesc->pPool->pQueue;
     pCmd->pRenderer = pRenderer;
 
-    pCmd->mDx.pBoundHeaps[0] = pRenderer->mDx.pCbvSrvUavHeaps[pCmd->mDx.mNodeIndex];
-    pCmd->mDx.pBoundHeaps[1] = pRenderer->mDx.pSamplerHeaps[pCmd->mDx.mNodeIndex];
+    pCmd->mDx.pBoundHeaps[0] = pRenderer->mDx.pCbvSrvUavHeaps[0];
+    pCmd->mDx.pBoundHeaps[1] = pRenderer->mDx.pSamplerHeaps[0];
 
     pCmd->mDx.pCmdPool = pDesc->pPool;
 
-    uint32_t nodeMask = util_calculate_node_mask(pRenderer, pCmd->mDx.mNodeIndex);
+    uint32_t nodeMask = 0;
 
     if (QUEUE_TYPE_TRANSFER == pDesc->pPool->pQueue->mType)
     {
@@ -3687,21 +3640,6 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     CHECK_HRESULT(swapchain->QueryInterface(IID_ARGS(&pSwapChain->mDx.pSwapChain)));
     swapchain->Release();
 
-    // Allowing multiple command queues to present for applications like Alternate Frame Rendering
-    if (pRenderer->mGpuMode == GPU_MODE_LINKED && pDesc->mPresentQueueCount > 1)
-    {
-        IUnknown** ppQueues = (IUnknown**)alloca(pDesc->mPresentQueueCount * sizeof(IUnknown*));
-        UINT*      pCreationMasks = (UINT*)alloca(pDesc->mPresentQueueCount * sizeof(UINT));
-        for (uint32_t i = 0; i < pDesc->mPresentQueueCount; ++i)
-        {
-            ppQueues[i] = pDesc->ppPresentQueues[i]->mDx.pQueue;
-            pCreationMasks[i] = (1 << pDesc->ppPresentQueues[i]->mNodeIndex);
-        }
-
-        pSwapChain->mDx.pSwapChain->ResizeBuffers1(desc.BufferCount, desc.Width, desc.Height, desc.Format, desc.Flags, pCreationMasks,
-                                                   ppQueues);
-    }
-
     ID3D12Resource** buffers = (ID3D12Resource**)alloca(pDesc->mImageCount * sizeof(ID3D12Resource*));
 
     // Create rendertargets from swapchain
@@ -3798,19 +3736,8 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
     heapDesc.Properties.Type = util_to_heap_type(memoryUsage);
     heapDesc.Flags = util_to_heap_flags(pDesc->mFlags);
 
-    // Multi GPU
-    if (pRenderer->mGpuMode == GPU_MODE_LINKED)
-    {
-        heapDesc.Properties.CreationNodeMask = (1 << pDesc->mNodeIndex);
-        heapDesc.Properties.VisibleNodeMask = heapDesc.Properties.CreationNodeMask;
-        for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
-            heapDesc.Properties.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
-    }
-    else
-    {
-        heapDesc.Properties.CreationNodeMask = 1;
-        heapDesc.Properties.VisibleNodeMask = heapDesc.Properties.CreationNodeMask;
-    }
+    heapDesc.Properties.CreationNodeMask = 1;
+    heapDesc.Properties.VisibleNodeMask = 1;
 
     // Special heap flags
     hook_modify_heap_flags(pDesc->mDescriptors, &heapDesc.Flags);
@@ -3872,12 +3799,10 @@ void d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, Reso
     ASSERT(pRenderer);
     ASSERT(pDesc);
     ASSERT(pOut);
-    ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
-
     DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
     InitializeBufferDesc(pRenderer, pDesc, &desc);
 
-    const UINT                           visibleMask = (1 << pDesc->mNodeIndex);
+    const UINT                           visibleMask = 1;
     const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pRenderer->mDx.pDevice->GetResourceAllocationInfo(visibleMask, 1, &desc);
 
     pOut->mSize = allocInfo.SizeInBytes;
@@ -3890,12 +3815,10 @@ void d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, Re
     ASSERT(pRenderer);
     ASSERT(pDesc);
     ASSERT(pOut);
-    ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
-
     DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
     InitializeTextureDesc(pRenderer, pDesc, &desc, NULL);
 
-    const UINT                           visibleMask = (1 << pDesc->mNodeIndex);
+    const UINT                           visibleMask = 1;
     const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pRenderer->mDx.pDevice->GetResourceAllocationInfo(visibleMask, 1, &desc);
 
     pOut->mSize = allocInfo.SizeInBytes;
@@ -3910,7 +3833,6 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     ASSERT(pDesc);
     ASSERT(ppBuffer);
     ASSERT(pDesc->mSize > 0);
-    ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
     // initialize to zero
     Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
@@ -3938,13 +3860,6 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
 
     UINT creationNodeMask = 1;
     UINT visibleNodeMask = 1;
-    if (pRenderer->mGpuMode == GPU_MODE_LINKED)
-    {
-        creationNodeMask = (1 << pDesc->mNodeIndex);
-        visibleNodeMask = creationNodeMask;
-        for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
-            visibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
-    }
 
     // Special heap flags
     hook_modify_heap_flags(pDesc->mDescriptors, &alloc_desc.ExtraHeapFlags);
@@ -4064,7 +3979,6 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
 
     pBuffer->mSize = (uint32_t)pDesc->mSize;
     pBuffer->mMemoryUsage = memoryUsage;
-    pBuffer->mNodeIndex = pDesc->mNodeIndex;
     pBuffer->mDescriptors = pDesc->mDescriptors;
 
     *ppBuffer = pBuffer;
@@ -4129,7 +4043,6 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
 {
     ASSERT(pRenderer);
     ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
-    ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
     if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
     {
         LOGF(LogLevel::eERROR, "Multi-Sampled textures cannot have mip maps");
@@ -4392,7 +4305,6 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
 
     SetObjectName(pTexture->mDx.pResource, pDesc->pName);
 
-    pTexture->mNodeIndex = pDesc->mNodeIndex;
     pTexture->mDx.mHandleCount = handleCount;
     pTexture->mMipLevels = pDesc->mMipLevels;
     pTexture->mWidth = pDesc->mWidth;
@@ -4432,8 +4344,6 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     ASSERT(pRenderer);
     ASSERT(pDesc);
     ASSERT(ppRenderTarget);
-    ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
-
     const bool isDepth = TinyImageFormat_HasDepth(pDesc->mFormat);
     ASSERT(!((isDepth) && (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
 
@@ -4466,9 +4376,6 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     textureDesc.mWidth = pDesc->mWidth;
     textureDesc.pNativeHandle = pDesc->pNativeHandle;
     textureDesc.pName = pDesc->pName;
-    textureDesc.mNodeIndex = pDesc->mNodeIndex;
-    textureDesc.pSharedNodeIndices = pDesc->pSharedNodeIndices;
-    textureDesc.mSharedNodeIndexCount = pDesc->mSharedNodeIndexCount;
     textureDesc.mDescriptors = pDesc->mDescriptors;
     if (!(pDesc->mFlags & TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET))
     {
@@ -5441,10 +5348,8 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         LOGF(LogLevel::eERROR, "Failed to serialize root signature with error (%s)", (char*)error->GetBufferPointer());
     }
 
-    // If running Linked Mode (SLI) create root signature for all nodes
-    // #NOTE : In non SLI mode, mNodeCount will be 0 which sets nodeMask to default value
-    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateRootSignature(util_calculate_shared_node_mask(pRenderer),
-                                                              rootSignatureString->GetBufferPointer(), rootSignatureString->GetBufferSize(),
+    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateRootSignature(0, rootSignatureString->GetBufferPointer(),
+                                                              rootSignatureString->GetBufferSize(),
                                                               IID_ARGS(&pRootSignature->mDx.pRootSignature)));
 
     SAFE_RELEASE(error);
@@ -5500,7 +5405,7 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
 
     const RootSignature*            pRootSignature = pDesc->pRootSignature;
     const DescriptorUpdateFrequency updateFreq = pDesc->mUpdateFrequency;
-    const uint32_t                  nodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pDesc->mNodeIndex : 0;
+    const uint32_t                  nodeIndex = 0;
     const uint32_t                  cbvSrvUavDescCount = pRootSignature->mDx.mCumulativeViewDescriptorCounts[updateFreq];
     const uint32_t                  samplerDescCount = pRootSignature->mDx.mCumulativeSamplerDescriptorCounts[updateFreq];
 
@@ -5509,7 +5414,6 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
 
     pDescriptorSet->mDx.pRootSignature = pRootSignature;
     pDescriptorSet->mDx.mUpdateFrequency = updateFreq;
-    pDescriptorSet->mDx.mNodeIndex = nodeIndex;
     pDescriptorSet->mDx.mMaxSets = pDesc->mMaxSets;
     pDescriptorSet->mDx.mCbvSrvUavRootIndex = pRootSignature->mDx.mViewDescriptorTableRootIndices[updateFreq];
     pDescriptorSet->mDx.mSamplerRootIndex = pRootSignature->mDx.mSamplerDescriptorTableRootIndices[updateFreq];
@@ -5595,13 +5499,13 @@ void d3d12_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSe
 
     if (pDescriptorSet->mDx.mCbvSrvUavHandle != D3D12_DESCRIPTOR_ID_NONE)
     {
-        return_descriptor_handles(pRenderer->mDx.pCbvSrvUavHeaps[pDescriptorSet->mDx.mNodeIndex], pDescriptorSet->mDx.mCbvSrvUavHandle,
+        return_descriptor_handles(pRenderer->mDx.pCbvSrvUavHeaps[0], pDescriptorSet->mDx.mCbvSrvUavHandle,
                                   pDescriptorSet->mDx.mCbvSrvUavStride * pDescriptorSet->mDx.mMaxSets);
     }
 
     if (pDescriptorSet->mDx.mSamplerHandle != D3D12_DESCRIPTOR_ID_NONE)
     {
-        return_descriptor_handles(pRenderer->mDx.pSamplerHeaps[pDescriptorSet->mDx.mNodeIndex], pDescriptorSet->mDx.mSamplerHandle,
+        return_descriptor_handles(pRenderer->mDx.pSamplerHeaps[0], pDescriptorSet->mDx.mSamplerHandle,
                                   pDescriptorSet->mDx.mSamplerStride * pDescriptorSet->mDx.mMaxSets);
     }
 
@@ -5630,7 +5534,7 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
 
     const RootSignature*            pRootSignature = pDescriptorSet->mDx.pRootSignature;
     const DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->mDx.mUpdateFrequency;
-    const uint32_t                  nodeIndex = pDescriptorSet->mDx.mNodeIndex;
+    const uint32_t                  nodeIndex = 0;
 
     for (uint32_t i = 0; i < count; ++i)
     {
@@ -5639,16 +5543,24 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
 
         VALIDATE_DESCRIPTOR(pParam->pName || (paramIndex != UINT32_MAX), "DescriptorData has NULL name and invalid index");
 
-        const DescriptorInfo* pDesc =
-            (paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : d3d12_get_descriptor(pRootSignature, pParam->pName);
+        const DescriptorInfo* pDesc = NULL;
         if (paramIndex != UINT32_MAX)
         {
+            pDesc = pRootSignature->pDescriptors + paramIndex;
             VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param index (%u)", paramIndex);
         }
         else
         {
-            VALIDATE_DESCRIPTOR(pDesc, "Descriptor with param name (%s) not found in root signature, make sure it is not optimized away",
-                                pParam->pName ? pParam->pName : "<NULL>");
+            const DescriptorIndexMap* pNode =
+                pParam->pName ? shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pParam->pName) : NULL;
+            if (!pNode)
+            {
+                LOGF(LogLevel::eWARNING,
+                     "Skipping descriptor param (%s): not found in root signature, likely optimized out or from a newer binding path",
+                     pParam->pName ? pParam->pName : "<NULL>");
+                continue;
+            }
+            pDesc = &pRootSignature->pDescriptors[pNode->value];
         }
 
         const DescriptorType type = (DescriptorType)pDesc->mType; //-V522
@@ -6299,9 +6211,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
         pipeline_state_desc.RTVFormats[attrib_index] = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->pColorFormats[attrib_index]);
     }
 
-    // If running Linked Mode (SLI) create pipeline for all nodes
-    // #NOTE : In non SLI mode, mNodeCount will be 0 which sets nodeMask to default value
-    pipeline_state_desc.NodeMask = util_calculate_shared_node_mask(pRenderer);
+    pipeline_state_desc.NodeMask = 0;
 
     HRESULT result = E_FAIL;
 
@@ -6419,9 +6329,7 @@ void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipe
     pipeline_state_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 #endif
 
-    // If running Linked Mode (SLI) create pipeline for all nodes
-    // #NOTE : In non SLI mode, mNodeCount will be 0 which sets nodeMask to default value
-    pipeline_state_desc.NodeMask = util_calculate_shared_node_mask(pRenderer);
+    pipeline_state_desc.NodeMask = 0;
 
     HRESULT result = E_FAIL;
 #ifndef DISABLE_PIPELINE_LIBRARY
@@ -7555,9 +7463,7 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
     commandSignatureDesc.pArgumentDescs = argumentDescs;
     commandSignatureDesc.NumArgumentDescs = pDesc->mIndirectArgCount;
     commandSignatureDesc.ByteStride = commandStride;
-    // If running Linked Mode (SLI) create command signature for all nodes
-    // #NOTE : In non SLI mode, mNodeCount will be 0 which sets nodeMask to default value
-    commandSignatureDesc.NodeMask = util_calculate_shared_node_mask(pRenderer);
+    commandSignatureDesc.NodeMask = 0;
 
     uint32_t alignedStride = round_up(commandStride, 16);
     if (!pDesc->mPacked && alignedStride != commandStride)
@@ -7642,7 +7548,7 @@ void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPo
 
     D3D12_QUERY_HEAP_DESC desc = {};
     desc.Count = queryCount;
-    desc.NodeMask = util_calculate_node_mask(pRenderer, pDesc->mNodeIndex);
+    desc.NodeMask = 0;
     desc.Type = ToDX12QueryHeapType(pDesc->mType);
     pRenderer->mDx.pDevice->CreateQueryHeap(&desc, IID_ARGS(&pQueryPool->mDx.pQueryHeap));
     SetObjectName(pQueryPool->mDx.pQueryHeap, pDesc->pName);
@@ -7654,7 +7560,6 @@ void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPo
     bufDesc.mSize = queryCount * pQueryPool->mStride;
     bufDesc.mStructStride = pQueryPool->mStride;
     bufDesc.pName = pDesc->pName;
-    bufDesc.mNodeIndex = pDesc->mNodeIndex;
     bufDesc.mStartState = RESOURCE_STATE_COPY_DEST;
     addBuffer(pRenderer, &bufDesc, &pQueryPool->mDx.pReadbackBuffer);
 

@@ -99,8 +99,6 @@ typedef struct TextureLoadDesc
     };
     /// Filename without extension. Extension will be determined based on mContainer
     const char*          pFileName;
-    /// The index of the GPU in SLI/Cross-Fire that owns this texture, or the Renderer index in unlinked mode.
-    uint32_t             mNodeIndex;
     /// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
     TextureCreationFlags mCreationFlag;
     /// The texture file format (dds/ktx/...)
@@ -322,8 +320,6 @@ typedef struct GeometryLoadDesc
     const char*         pFileName;
     /// Loading flags
     GeometryLoadFlags   mFlags;
-    /// Linked gpu node / Unlinked Renderer index
-    uint32_t            mNodeIndex;
     /// Specifies how to arrange the vertex data loaded from the file into GPU memory
     const VertexLayout* pVertexLayout;
 
@@ -483,7 +479,7 @@ FORGE_RENDERER_API extern ResourceLoaderDesc gDefaultResourceLoaderDesc;
 FORGE_RENDERER_API void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc = nullptr);
 FORGE_RENDERER_API void exitResourceLoaderInterface(Renderer* pRenderer);
 
-/// Multiple Renderer (unlinked GPU) variants. The Resource Loader must be shared between Renderers.
+/// Compatibility overload. The current resource loader path uses a single renderer.
 FORGE_RENDERER_API void initResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount, ResourceLoaderDesc* pDesc = nullptr);
 FORGE_RENDERER_API void exitResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount);
 
@@ -541,7 +537,7 @@ FORGE_RENDERER_API void removeGeometryBufferPart(BufferChunkAllocator* buffer, B
 
 typedef struct FlushResourceUpdateDesc
 {
-    uint32_t    mNodeIndex;
+    /// GPU node index. The current resource loader path uses node 0.
     uint32_t    mWaitSemaphoreCount;
     Semaphore** ppWaitSemaphores;
     Fence*      pOutFence;
@@ -549,7 +545,7 @@ typedef struct FlushResourceUpdateDesc
 } FlushResourceUpdateDesc;
 FORGE_RENDERER_API void flushResourceUpdates(FlushResourceUpdateDesc* pDesc);
 
-/// Copies data from GPU to the CPU, typically for transferring it to another GPU in unlinked mode.
+/// Copies texture data through the GPU copy path.
 /// For optimal use, the amount of data to transfer should be minimized as much as possible and applications should
 /// provide additional graphics/compute work that the GPU can execute alongside the copy.
 FORGE_RENDERER_API void copyResource(TextureCopyDesc* pTextureDesc, SyncToken* token);

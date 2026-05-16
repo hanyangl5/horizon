@@ -40,7 +40,6 @@ public:
             .mType = QUEUE_TYPE_GRAPHICS,
             .mFlag = QUEUE_FLAG_NONE,
             .mPriority = QUEUE_PRIORITY_NORMAL,
-            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
             .pName = "DeferredRenderer.GraphicsQueue",
         };
         addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
@@ -236,7 +235,6 @@ private:
                     .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
                     .mStartState = RESOURCE_STATE_GENERIC_READ,
                     .mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
                 };
                 addBuffer(pRenderer, &uniformDesc, &pSceneUniformBuffers[frame][i]);
                 if (!pSceneUniformBuffers[frame][i] || !pSceneUniformBuffers[frame][i]->pCpuMappedAddress)
@@ -298,7 +296,7 @@ private:
         const uint32_t width = static_cast<uint32_t>(mSettings.mWidth);
         const uint32_t height = static_cast<uint32_t>(mSettings.mHeight);
 
-        mGraph.beginFrame(pRenderer, width, height, pRenderer->mUnlinkedRendererIndex, frameResourceIndex, pFrameFence);
+        mGraph.beginFrame(pRenderer, width, height, frameResourceIndex, pFrameFence);
         mFrameData = {};
         mFrameData.backbuffer =
             mGraph.importRenderTarget("Backbuffer", pBackbuffer, RESOURCE_STATE_PRESENT, RESOURCE_STATE_PRESENT);
@@ -306,9 +304,9 @@ private:
         mGeometryBuildPass.createFrameResources(mGraph, mFrameData, pRenderer);
         mGBufferPass.createFrameResources(mGraph, mFrameData, pRenderer, width, height);
 
-        mGeometryBuildPass.record(mGraph, mFrameData, frameResourceIndex, mGpuProfileToken);
-        mGBufferPass.record(mGraph, mFrameData, pSceneUniformBuffers[frameResourceIndex], frameResourceIndex, mGpuProfileToken);
-        mLightingPass.record(mGraph, mFrameData, frameResourceIndex, mGpuProfileToken);
+        mGeometryBuildPass.record(mGraph, mFrameData, mGpuProfileToken);
+        mGBufferPass.record(mGraph, mFrameData, pSceneUniformBuffers[mGraph.getFrameResourceIndex()], mGpuProfileToken);
+        mLightingPass.record(mGraph, mFrameData, mGpuProfileToken);
 
         mGraph.execute(pCmd);
         mGraph.endFrame(pCmd);

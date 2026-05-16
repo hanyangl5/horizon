@@ -54,13 +54,12 @@ public:
 
     bool isReady() const;
     void createFrameResources(RenderGraph& graph, RGFrameData& frameData, Renderer* pRenderer) const;
-    void record(RenderGraph& graph, const RGFrameData& frameData, uint32_t frameResourceIndex, ProfileToken gpuProfileToken);
+    void record(RenderGraph& graph, const RGFrameData& frameData, ProfileToken gpuProfileToken);
 
 private:
     struct RecordContext
     {
         RGFrameData  frameData = {};
-        uint32_t     frameResourceIndex = 0;
         ProfileToken gpuProfileToken = PROFILE_INVALID_TOKEN;
     };
 
@@ -86,14 +85,12 @@ public:
 
     bool isReady() const;
     void createFrameResources(RenderGraph& graph, RGFrameData& frameData, Renderer* pRenderer, uint32_t width, uint32_t height) const;
-    void record(RenderGraph& graph, const RGFrameData& frameData, Buffer* const* ppSceneUniformBuffers, uint32_t frameResourceIndex,
-                ProfileToken gpuProfileToken);
+    void record(RenderGraph& graph, const RGFrameData& frameData, Buffer* const* ppSceneUniformBuffers, ProfileToken gpuProfileToken);
 
 private:
     struct RecordContext
     {
         RGFrameData  frameData = {};
-        uint32_t     frameResourceIndex = 0;
         ProfileToken gpuProfileToken = PROFILE_INVALID_TOKEN;
     };
 
@@ -117,13 +114,12 @@ public:
     void removePipeline(Renderer* pRenderer);
 
     bool isReady() const;
-    void record(RenderGraph& graph, const RGFrameData& frameData, uint32_t frameResourceIndex, ProfileToken gpuProfileToken);
+    void record(RenderGraph& graph, const RGFrameData& frameData, ProfileToken gpuProfileToken);
 
 private:
     struct RecordContext
     {
         RGFrameData  frameData = {};
-        uint32_t     frameResourceIndex = 0;
         ProfileToken gpuProfileToken = PROFILE_INVALID_TOKEN;
     };
 

@@ -57,11 +57,7 @@ enum
 {
     MAX_INSTANCE_EXTENSIONS = 64,
     MAX_DEVICE_EXTENSIONS = 64,
-    /// Max number of GPUs in SLI or Cross-Fire
-    MAX_LINKED_GPUS = 4,
-    /// Max number of GPUs in unlinked mode
-    MAX_UNLINKED_GPUS = 4,
-    /// Max number of GPus for either linked or unlinked mode. must update WindowsBase::setupPlatformUI accordingly
+    /// Max number of GPUs reported by adapter enumeration.
     MAX_MULTIPLE_GPUS = 4,
     MAX_RENDER_TARGET_ATTACHMENTS = 8,
     MAX_VERTEX_BINDINGS = 15,
@@ -680,7 +676,6 @@ struct QueryPoolDesc
     const char* pName;
     QueryType   mType;
     uint32_t    mQueryCount;
-    uint32_t    mNodeIndex;
 };
 
 struct QueryDesc
@@ -762,9 +757,6 @@ struct ResourceHeapDesc
     DescriptorType            mDescriptors;
     ResourceHeapCreationFlags mFlags;
 
-    uint32_t    mNodeIndex;
-    uint32_t    mSharedNodeIndexCount;
-    uint32_t*   pSharedNodeIndices;
     const char* pName;
 };
 
@@ -809,7 +801,6 @@ struct BufferDesc
     uint32_t            mAlignment;
     /// Debug name used in gpu profile
     const char*         pName;
-    uint32_t*           pSharedNodeIndices;
     /// Decides which memory heap buffer will use (default, upload, readback)
     ResourceMemoryUsage mMemoryUsage;
     /// Creation flags of the buffer
@@ -822,9 +813,6 @@ struct BufferDesc
     TinyImageFormat     mFormat;
     /// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
     DescriptorType      mDescriptors;
-    /// The index of the GPU in SLI/Cross-Fire that owns this buffer, or the Renderer index in unlinked mode.
-    uint32_t            mNodeIndex;
-    uint32_t            mSharedNodeIndexCount;
 };
 
 struct alignas(64) Buffer
@@ -854,7 +842,6 @@ struct alignas(64) Buffer
     uint64_t mSize : 32;
     uint64_t mDescriptors : 20;
     uint64_t mMemoryUsage : 3;
-    uint64_t mNodeIndex : 4;
 };
 // One cache line
 static_assert(sizeof(Buffer) == 8 * sizeof(uint64_t));
@@ -870,8 +857,6 @@ struct TextureDesc
     const void*          pNativeHandle;
     /// Debug name used in gpu profile
     const char*          pName;
-    /// GPU indices to share this texture
-    uint32_t*            pSharedNodeIndices;
     /// Texture creation flags (decides memory allocation strategy, sharing access,...)
     TextureCreationFlags mFlags;
     /// Width
@@ -895,10 +880,6 @@ struct TextureDesc
     ResourceState        mStartState;
     /// Descriptor creation
     DescriptorType       mDescriptors;
-    /// Number of GPUs to share this texture
-    uint32_t             mSharedNodeIndexCount;
-    /// GPU which will own this texture
-    uint32_t             mNodeIndex;
 };
 
 struct alignas(64) Texture
@@ -923,7 +904,6 @@ struct alignas(64) Texture
     uint32_t mFormat : 8;
     /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pImageView
     uint32_t mAspectMask : 4;
-    uint32_t mNodeIndex : 4;
     uint32_t mSampleCount : 5;
     uint32_t mUav : 1;
     /// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
@@ -964,12 +944,7 @@ struct RenderTargetDesc
     const void*          pNativeHandle;
     /// Debug name used in gpu profile
     const char*          pName;
-    /// GPU indices to share this texture
-    uint32_t*            pSharedNodeIndices;
-    /// Number of GPUs to share this texture
-    uint32_t             mSharedNodeIndexCount;
-    /// GPU which will own this texture
-    uint32_t             mNodeIndex;
+    /// Reserved for multi-node APIs. The current renderer path uses node 0 only.
 };
 
 struct alignas(64) RenderTarget
@@ -1164,7 +1139,6 @@ struct alignas(64) DescriptorSet
         const RootSignature* pRootSignature;
         uint32_t             mMaxSets : 16;
         uint32_t             mUpdateFrequency : 3;
-        uint32_t             mNodeIndex : 4;
         uint32_t             mCbvSrvUavRootIndex : 4;
         uint32_t             mSamplerRootIndex : 4;
         uint32_t             mPipelineType : 3;
@@ -1239,7 +1213,6 @@ struct alignas(64) Cmd
         const RootSignature* pBoundRootSignature;
         DescriptorSet*       pBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
         uint16_t             mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint32_t             mNodeIndex : 4;
         uint32_t             mType : 3;
         CmdPool*             pCmdPool;
     } mDx;
@@ -1283,7 +1256,6 @@ struct QueueDesc
     QueueType     mType;
     QueueFlag     mFlag;
     QueuePriority mPriority;
-    uint32_t      mNodeIndex;
     const char*   pName;
 };
 
@@ -1294,12 +1266,11 @@ struct Queue
         ID3D12CommandQueue* pQueue;
         Fence*              pFence;
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
-        // To silence mismatching command list on Windows 11 multi GPU
+        // To silence mismatching command list warnings on Windows 11 debug runtimes
         Renderer* pRenderer;
 #endif
     } mDx;
     uint32_t mType : 3;
-    uint32_t mNodeIndex : 4;
 };
 
 struct ShaderConstant
@@ -1652,13 +1623,6 @@ enum ShaderTarget : uint32_t
     SHADER_TARGET_COUNT,
 };
 
-enum GpuMode : uint32_t
-{
-    GPU_MODE_SINGLE = 0,
-    GPU_MODE_LINKED,
-    GPU_MODE_UNLINKED,
-};
-
 struct RendererDesc
 {
     struct
@@ -1667,12 +1631,11 @@ struct RendererDesc
     } mDx;
 
     ShaderTarget mShaderTarget = SHADER_TARGET_6_6;
-    GpuMode      mGpuMode;
 
     /// Apps may want to query additional state for their applications. That information is transferred through here.
     ExtendedSettings* pExtendedSettings;
 
-    /// Required when creating unlinked multiple renderers. Optional otherwise, can be used for explicit GPU selection.
+    /// Optional renderer context. Can be used to share adapter enumeration/device setup state.
     RendererContext* pContext;
     uint32_t         mGpuIndex;
 
@@ -1822,9 +1785,6 @@ struct alignas(64) Renderer
     const struct GpuInfo*   pGpu;
     const char*             pName;
     RendererApi             mRendererApi;
-    uint32_t                mLinkedNodeCount : 4;
-    uint32_t                mUnlinkedRendererIndex : 4;
-    uint32_t                mGpuMode : 3;
     uint32_t                mShaderTarget : 4;
     uint32_t                mOwnsContext : 1;
 };
@@ -1983,7 +1943,6 @@ struct DescriptorSetDesc
     RootSignature*            pRootSignature;
     DescriptorUpdateFrequency mUpdateFrequency;
     uint32_t                  mMaxSets;
-    uint32_t                  mNodeIndex;
 };
 
 struct QueueSubmitDesc

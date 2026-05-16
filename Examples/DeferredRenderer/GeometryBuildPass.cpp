@@ -110,7 +110,7 @@ bool GeometryBuildPass::init(Renderer* pRenderer)
         .mComp = {
             .pName = "DeferredRendererGeometryBuildCS",
             .pByteCode = const_cast<char*>(kGeometryBuildShader),
-            .mByteCodeSize = static_cast<uint32_t>(sizeof(kGeometryBuildShader) - 1),
+            .mByteCodeSize = (sizeof(kGeometryBuildShader) - 1),
             .pEntryPoint = "CSMain",
         },
     };
@@ -147,7 +147,6 @@ bool GeometryBuildPass::createDescriptorSet(Renderer* pRenderer, uint32_t frameR
         .pRootSignature = pRootSignature,
         .mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
         .mMaxSets = frameResourceCount,
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
     };
     addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
     return pDescriptorSet != nullptr;
@@ -201,8 +200,7 @@ void GeometryBuildPass::createFrameResources(RenderGraph& graph, RGFrameData& fr
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .mFlags = BUFFER_CREATION_FLAG_NONE,
         .mStartState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .mDescriptors = static_cast<DescriptorType>(DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER),
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
+        .mDescriptors = (DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER),
     };
     BufferDesc indexDesc = {
         .mSize = sizeof(uint32_t) * kGeneratedIndexCount,
@@ -213,25 +211,23 @@ void GeometryBuildPass::createFrameResources(RenderGraph& graph, RGFrameData& fr
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .mFlags = BUFFER_CREATION_FLAG_NONE,
         .mStartState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .mDescriptors = static_cast<DescriptorType>(DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER),
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
+        .mDescriptors = (DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER),
     };
     frameData.generatedVertices = graph.createBuffer("GeneratedVertices", &vertexDesc);
     frameData.generatedIndices = graph.createBuffer("GeneratedIndices", &indexDesc);
 }
 
-void GeometryBuildPass::record(RenderGraph& graph, const RGFrameData& frameData, uint32_t frameResourceIndex,
+void GeometryBuildPass::record(RenderGraph& graph, const RGFrameData& frameData,
                                ProfileToken gpuProfileToken)
 {
-    mRecordContext = { frameData, frameResourceIndex, gpuProfileToken };
+    mRecordContext = { frameData, gpuProfileToken };
 
     graph.addComputePass("BuildGeometry")
         .write(frameData.generatedVertices, RESOURCE_STATE_UNORDERED_ACCESS)
         .write(frameData.generatedIndices, RESOURCE_STATE_UNORDERED_ACCESS)
-        .setExecute(RDG_EXECUTE(GeometryBuildPass, this,
-        {
-            Buffer* generatedVertices = context.getBuffer(self->mRecordContext.frameData.generatedVertices);
-            Buffer* generatedIndices = context.getBuffer(self->mRecordContext.frameData.generatedIndices);
+        .setExecute([this](Cmd* pPassCmd, const RGPassContext& context) {
+            Buffer* generatedVertices = context.getBuffer(mRecordContext.frameData.generatedVertices);
+            Buffer* generatedIndices = context.getBuffer(mRecordContext.frameData.generatedIndices);
             if (!generatedVertices || !generatedIndices)
                 return;
 
@@ -240,12 +236,13 @@ void GeometryBuildPass::record(RenderGraph& graph, const RGFrameData& frameData,
             params[0].ppBuffers = &generatedVertices;
             params[1].pName = "GeneratedIndices";
             params[1].ppBuffers = &generatedIndices;
-            updateDescriptorSet(context.getRenderer(), self->mRecordContext.frameResourceIndex, self->pDescriptorSet, 2, params);
+            const uint32_t frameResourceIndex = context.getFrameResourceIndex();
+            updateDescriptorSet(context.getRenderer(), frameResourceIndex, pDescriptorSet, 2, params);
 
-            cmdBeginGpuTimestampQuery(pPassCmd, self->mRecordContext.gpuProfileToken, "RDG Build Geometry");
-            cmdBindPipeline(pPassCmd, self->pPipeline);
-            cmdBindDescriptorSet(pPassCmd, self->mRecordContext.frameResourceIndex, self->pDescriptorSet);
+            cmdBeginGpuTimestampQuery(pPassCmd, mRecordContext.gpuProfileToken, "RDG Build Geometry");
+            cmdBindPipeline(pPassCmd, pPipeline);
+            cmdBindDescriptorSet(pPassCmd, frameResourceIndex, pDescriptorSet);
             cmdDispatch(pPassCmd, 1, 1, 1);
-            cmdEndGpuTimestampQuery(pPassCmd, self->mRecordContext.gpuProfileToken);
-        }));
+            cmdEndGpuTimestampQuery(pPassCmd, mRecordContext.gpuProfileToken);
+        });
 }

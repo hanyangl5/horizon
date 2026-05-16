@@ -678,7 +678,6 @@
 //         endCmd(cmd);
 
 //         FlushResourceUpdateDesc flushUpdateDesc = {};
-//         flushUpdateDesc.mNodeIndex = 0;
 //         flushResourceUpdates(&flushUpdateDesc);
 //         Semaphore* waitSemaphores[2] = { flushUpdateDesc.pOutSubmittedSemaphore, pImageAcquiredSemaphore };
 

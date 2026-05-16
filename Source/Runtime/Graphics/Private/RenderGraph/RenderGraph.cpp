@@ -15,28 +15,28 @@ ResourceState getActualRenderTargetStartState(TinyImageFormat format, ResourceSt
         format == TinyImageFormat_D32_SFLOAT || format == TinyImageFormat_D24_UNORM_S8_UINT || format == TinyImageFormat_D32_SFLOAT_S8_UINT;
     const ResourceState attachmentState = isDepth ? RESOURCE_STATE_DEPTH_WRITE : RESOURCE_STATE_RENDER_TARGET;
     const ResourceState creationState = requestedState | attachmentState;
-    return creationState > attachmentState ? (creationState & static_cast<ResourceState>(~attachmentState)) : attachmentState;
+    return creationState > attachmentState ? (creationState & (ResourceState)(~attachmentState)) : attachmentState;
 }
 
 bool bufferDescMatches(const BufferDesc& a, const BufferDesc& b)
 {
     return a.mSize == b.mSize && a.mFirstElement == b.mFirstElement && a.mElementCount == b.mElementCount &&
            a.mStructStride == b.mStructStride && a.mAlignment == b.mAlignment && a.mMemoryUsage == b.mMemoryUsage && a.mFlags == b.mFlags &&
-           a.mQueueType == b.mQueueType && a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
+           a.mQueueType == b.mQueueType && a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors;
 }
 
 bool textureDescMatches(const TextureDesc& a, const TextureDesc& b)
 {
     return a.mFlags == b.mFlags && a.mWidth == b.mWidth && a.mHeight == b.mHeight && a.mDepth == b.mDepth && a.mArraySize == b.mArraySize &&
            a.mMipLevels == b.mMipLevels && a.mSampleCount == b.mSampleCount && a.mSampleQuality == b.mSampleQuality &&
-           a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
+           a.mFormat == b.mFormat && a.mDescriptors == b.mDescriptors;
 }
 
 bool renderTargetDescMatches(const RenderTargetDesc& a, const RenderTargetDesc& b)
 {
     return a.mFlags == b.mFlags && a.mWidth == b.mWidth && a.mHeight == b.mHeight && a.mDepth == b.mDepth && a.mArraySize == b.mArraySize &&
            a.mMipLevels == b.mMipLevels && a.mSampleCount == b.mSampleCount && a.mFormat == b.mFormat &&
-           a.mSampleQuality == b.mSampleQuality && a.mDescriptors == b.mDescriptors && a.mNodeIndex == b.mNodeIndex;
+           a.mSampleQuality == b.mSampleQuality && a.mDescriptors == b.mDescriptors;
 }
 
 } // namespace
@@ -46,7 +46,7 @@ RGPassContext::RGPassContext(RenderGraph& graph): pGraph(&graph) {}
 Renderer*     RGPassContext::getRenderer() const { return pGraph ? pGraph->pRenderer : nullptr; }
 uint32_t      RGPassContext::getWidth() const { return pGraph ? pGraph->mWidth : 0; }
 uint32_t      RGPassContext::getHeight() const { return pGraph ? pGraph->mHeight : 0; }
-uint32_t      RGPassContext::getNodeIndex() const { return pGraph ? pGraph->mNodeIndex : 0; }
+uint32_t      RGPassContext::getFrameResourceIndex() const { return pGraph ? pGraph->mFrameResourceIndex : 0; }
 RenderTarget* RGPassContext::getRenderTarget(RGTexture handle) const { return pGraph ? pGraph->getRenderTarget(handle) : nullptr; }
 Texture*      RGPassContext::getTexture(RGTexture handle) const { return pGraph ? pGraph->getTexture(handle) : nullptr; }
 Buffer*       RGPassContext::getBuffer(RGBuffer handle) const { return pGraph ? pGraph->getBuffer(handle) : nullptr; }
@@ -65,7 +65,7 @@ RGPassBuilder& RGPassBuilder::writeRenderTarget(RGTexture handle, uint32_t color
     }
 
     RenderGraph::PassNode& pass = pGraph->pPasses[mPassIndex];
-    const uint32_t         oldCount = static_cast<uint32_t>(arrlenu(pass.pColorAttachments));
+    const uint32_t         oldCount = (uint32_t)arrlenu(pass.pColorAttachments);
     if (oldCount <= colorIndex)
     {
         arrsetlen(pass.pColorAttachments, colorIndex + 1);
@@ -162,8 +162,7 @@ RenderGraph::RenderGraph() = default;
 
 RenderGraph::~RenderGraph() { reset(); }
 
-void RenderGraph::beginFrame(Renderer* pInRenderer, uint32_t width, uint32_t height, uint32_t nodeIndex, uint32_t frameResourceIndex,
-                             Fence* pFrameFence)
+void RenderGraph::beginFrame(Renderer* pInRenderer, uint32_t width, uint32_t height, uint32_t frameResourceIndex, Fence* pFrameFence)
 {
     retireActiveTransientResources();
     pRenderer = pInRenderer;
@@ -176,7 +175,6 @@ void RenderGraph::beginFrame(Renderer* pInRenderer, uint32_t width, uint32_t hei
     arrsetlen(pLastDebugEvents, 0);
     mWidth = width;
     mHeight = height;
-    mNodeIndex = nodeIndex;
 }
 
 RGTexture RenderGraph::importRenderTarget(const char* pName, RenderTarget* pRenderTarget, ResourceState currentState,
@@ -196,7 +194,7 @@ RGTexture RenderGraph::importRenderTarget(const char* pName, RenderTarget* pRend
     arrpush(pResources, node);
     arrpush(pResourceStates, currentState);
     arrpush(pResourceLastWrites, false);
-    return { static_cast<uint32_t>(arrlenu(pResources) - 1) };
+    return { (uint32_t)(arrlenu(pResources) - 1) };
 }
 
 RGTexture RenderGraph::importTexture(const char* pName, Texture* pTexture, ResourceState currentState, ResourceState finalState)
@@ -214,7 +212,7 @@ RGTexture RenderGraph::importTexture(const char* pName, Texture* pTexture, Resou
     arrpush(pResources, node);
     arrpush(pResourceStates, currentState);
     arrpush(pResourceLastWrites, false);
-    return { static_cast<uint32_t>(arrlenu(pResources) - 1) };
+    return { (uint32_t)(arrlenu(pResources) - 1) };
 }
 
 RGBuffer RenderGraph::importBuffer(const char* pName, Buffer* pBuffer, ResourceState currentState, ResourceState finalState)
@@ -232,7 +230,7 @@ RGBuffer RenderGraph::importBuffer(const char* pName, Buffer* pBuffer, ResourceS
     arrpush(pResources, node);
     arrpush(pResourceStates, currentState);
     arrpush(pResourceLastWrites, false);
-    return { static_cast<uint32_t>(arrlenu(pResources) - 1) };
+    return { (uint32_t)(arrlenu(pResources) - 1) };
 }
 
 RGTexture RenderGraph::createRenderTarget(const char* pName, const RenderTargetDesc* desc)
@@ -245,7 +243,6 @@ RGTexture RenderGraph::createRenderTarget(const char* pName, const RenderTargetD
     RenderTargetDesc localDesc = *desc;
     localDesc.pName = pName ? pName : localDesc.pName;
     localDesc.mStartState = localDesc.mStartState;
-    localDesc.mNodeIndex = localDesc.mNodeIndex ? localDesc.mNodeIndex : mNodeIndex;
 
     const ResourceState actualInitialState = getActualRenderTargetStartState(localDesc.mFormat, localDesc.mStartState);
     ResourceNode        node = {};
@@ -260,7 +257,7 @@ RGTexture RenderGraph::createRenderTarget(const char* pName, const RenderTargetD
     arrpush(pResources, node);
     arrpush(pResourceStates, actualInitialState);
     arrpush(pResourceLastWrites, false);
-    return { static_cast<uint32_t>(arrlenu(pResources) - 1) };
+    return { (uint32_t)(arrlenu(pResources) - 1) };
 }
 
 RGTexture RenderGraph::createTexture(const char* pName, const TextureDesc* desc)
@@ -273,7 +270,6 @@ RGTexture RenderGraph::createTexture(const char* pName, const TextureDesc* desc)
     TextureDesc localDesc = *desc;
     localDesc.pName = pName ? pName : localDesc.pName;
     localDesc.mStartState = localDesc.mStartState;
-    localDesc.mNodeIndex = localDesc.mNodeIndex ? localDesc.mNodeIndex : mNodeIndex;
 
     ResourceNode node = {};
     node.pName = localDesc.pName ? localDesc.pName : "";
@@ -286,7 +282,7 @@ RGTexture RenderGraph::createTexture(const char* pName, const TextureDesc* desc)
     arrpush(pResources, node);
     arrpush(pResourceStates, localDesc.mStartState);
     arrpush(pResourceLastWrites, false);
-    return { static_cast<uint32_t>(arrlenu(pResources) - 1) };
+    return { (uint32_t)(arrlenu(pResources) - 1) };
 }
 
 RGBuffer RenderGraph::createBuffer(const char* pName, const BufferDesc* desc)
@@ -299,7 +295,6 @@ RGBuffer RenderGraph::createBuffer(const char* pName, const BufferDesc* desc)
     BufferDesc localDesc = *desc;
     localDesc.pName = pName ? pName : localDesc.pName;
     localDesc.mStartState = localDesc.mStartState;
-    localDesc.mNodeIndex = localDesc.mNodeIndex ? localDesc.mNodeIndex : mNodeIndex;
 
     ResourceNode node = {};
     node.pName = localDesc.pName ? localDesc.pName : "";
@@ -312,7 +307,7 @@ RGBuffer RenderGraph::createBuffer(const char* pName, const BufferDesc* desc)
     arrpush(pResources, node);
     arrpush(pResourceStates, localDesc.mStartState);
     arrpush(pResourceLastWrites, false);
-    return { static_cast<uint32_t>(arrlenu(pResources) - 1) };
+    return { (uint32_t)(arrlenu(pResources) - 1) };
 }
 
 RGPassBuilder RenderGraph::addRasterPass(const char* pName)
@@ -320,7 +315,7 @@ RGPassBuilder RenderGraph::addRasterPass(const char* pName)
     PassNode pass = {};
     pass.pName = pName ? pName : "";
     arrpush(pPasses, pass);
-    return RGPassBuilder(*this, static_cast<uint32_t>(arrlenu(pPasses) - 1));
+    return RGPassBuilder(*this, (uint32_t)(arrlenu(pPasses) - 1));
 }
 
 RGPassBuilder RenderGraph::addComputePass(const char* pName)
@@ -328,7 +323,7 @@ RGPassBuilder RenderGraph::addComputePass(const char* pName)
     PassNode pass = {};
     pass.pName = pName ? pName : "";
     arrpush(pPasses, pass);
-    return RGPassBuilder(*this, static_cast<uint32_t>(arrlenu(pPasses) - 1));
+    return RGPassBuilder(*this, (uint32_t)(arrlenu(pPasses) - 1));
 }
 
 RGPassBuilder RenderGraph::addCopyPass(const char* pName)
@@ -336,7 +331,7 @@ RGPassBuilder RenderGraph::addCopyPass(const char* pName)
     PassNode pass = {};
     pass.pName = pName ? pName : "";
     arrpush(pPasses, pass);
-    return RGPassBuilder(*this, static_cast<uint32_t>(arrlenu(pPasses) - 1));
+    return RGPassBuilder(*this, (uint32_t)(arrlenu(pPasses) - 1));
 }
 
 RGPassBuilder RenderGraph::addRayTracingPass(const char* pName)
@@ -344,7 +339,7 @@ RGPassBuilder RenderGraph::addRayTracingPass(const char* pName)
     PassNode pass = {};
     pass.pName = pName ? pName : "";
     arrpush(pPasses, pass);
-    return RGPassBuilder(*this, static_cast<uint32_t>(arrlenu(pPasses) - 1));
+    return RGPassBuilder(*this, (uint32_t)(arrlenu(pPasses) - 1));
 }
 
 void RenderGraph::execute(Cmd* pCmd)
@@ -396,9 +391,9 @@ void RenderGraph::execute(Cmd* pCmd)
 
         if (pCmd && (arrlenu(pBufferBarriers) || arrlenu(pTextureBarriers) || arrlenu(pRtBarriers)))
         {
-            cmdResourceBarrier(pCmd, static_cast<uint32_t>(arrlenu(pBufferBarriers)), pBufferBarriers,
-                               static_cast<uint32_t>(arrlenu(pTextureBarriers)), pTextureBarriers,
-                               static_cast<uint32_t>(arrlenu(pRtBarriers)), pRtBarriers);
+            cmdResourceBarrier(pCmd, (uint32_t)arrlenu(pBufferBarriers), pBufferBarriers,
+                               (uint32_t)arrlenu(pTextureBarriers), pTextureBarriers,
+                               (uint32_t)arrlenu(pRtBarriers), pRtBarriers);
         }
 
         arrpush(pLastDebugEvents, (DebugEvent{ DebugEventType::Pass, ResourceKind::Unknown, pass.pName }));
@@ -406,7 +401,7 @@ void RenderGraph::execute(Cmd* pCmd)
         if (pCmd && (arrlenu(pass.pColorAttachments) || pass.mHasDepthAttachment))
         {
             BindRenderTargetsDesc bindDesc = {};
-            bindDesc.mRenderTargetCount = static_cast<uint32_t>(arrlenu(pass.pColorAttachments));
+            bindDesc.mRenderTargetCount = (uint32_t)arrlenu(pass.pColorAttachments);
             bool bindDescValid = true;
             for (uint32_t i = 0; i < arrlenu(pass.pColorAttachments); ++i)
             {
@@ -509,8 +504,8 @@ void RenderGraph::endFrame(Cmd* pCmd)
 
     if (pCmd && (arrlenu(pRtBarriers) || arrlenu(pBufferBarriers) || arrlenu(pTextureBarriers)))
     {
-        cmdResourceBarrier(pCmd, static_cast<uint32_t>(arrlenu(pBufferBarriers)), pBufferBarriers,
-                           static_cast<uint32_t>(arrlenu(pTextureBarriers)), pTextureBarriers, static_cast<uint32_t>(arrlenu(pRtBarriers)),
+        cmdResourceBarrier(pCmd, (uint32_t)arrlenu(pBufferBarriers), pBufferBarriers,
+                           (uint32_t)arrlenu(pTextureBarriers), pTextureBarriers, (uint32_t)arrlenu(pRtBarriers),
                            pRtBarriers);
     }
 
@@ -534,7 +529,6 @@ void RenderGraph::reset()
     pRenderer = nullptr;
     mWidth = 0;
     mHeight = 0;
-    mNodeIndex = 0;
     mFrameResourceIndex = 0;
 }
 
@@ -577,12 +571,12 @@ uint32_t RenderGraph::buildExecutionPlan()
 
     arrfree(pStates);
     arrfree(pLastWrites);
-    return static_cast<uint32_t>(arrlenu(pLastDebugEvents));
+    return (uint32_t)arrlenu(pLastDebugEvents);
 }
 
 const DebugEvent* RenderGraph::getLastDebugEvents() const { return pLastDebugEvents; }
 
-uint32_t RenderGraph::getLastDebugEventCount() const { return static_cast<uint32_t>(arrlenu(pLastDebugEvents)); }
+uint32_t RenderGraph::getLastDebugEventCount() const { return (uint32_t)arrlenu(pLastDebugEvents); }
 
 bool RenderGraph::isResourceUsed(RGTexture handle) const
 {
@@ -828,7 +822,6 @@ void RenderGraph::prepareInternalResources()
         {
             RenderTargetDesc desc = resource.mRenderTargetDesc;
             desc.pName = resource.pName;
-            desc.mNodeIndex = desc.mNodeIndex ? desc.mNodeIndex : mNodeIndex;
             addRenderTarget(pRenderer, &desc, &resource.pRenderTarget);
             if (!resource.pRenderTarget)
             {
@@ -842,7 +835,6 @@ void RenderGraph::prepareInternalResources()
         {
             TextureDesc desc = resource.mTextureDesc;
             desc.pName = resource.pName;
-            desc.mNodeIndex = desc.mNodeIndex ? desc.mNodeIndex : mNodeIndex;
             addTexture(pRenderer, &desc, &resource.pTexture);
             if (!resource.pTexture)
             {
@@ -855,7 +847,6 @@ void RenderGraph::prepareInternalResources()
         {
             BufferDesc desc = resource.mBufferDesc;
             desc.pName = resource.pName;
-            desc.mNodeIndex = desc.mNodeIndex ? desc.mNodeIndex : mNodeIndex;
             addBuffer(pRenderer, &desc, &resource.pBuffer);
             if (!resource.pBuffer)
             {

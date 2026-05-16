@@ -108,7 +108,6 @@ bool GBufferPass::createDescriptorSet(Renderer* pRenderer, Buffer* pSceneUniform
         .pRootSignature = pRootSignature,
         .mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
         .mMaxSets = frameResourceCount * kSceneObjectCount,
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
     };
     addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
     if (!pDescriptorSet)
@@ -233,7 +232,6 @@ void GBufferPass::createFrameResources(RenderGraph& graph, RGFrameData& frameDat
         .mSampleQuality = 0,
         .mDescriptors = DESCRIPTOR_TYPE_TEXTURE,
         .pName = "GBuffer.Albedo",
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
     };
     RenderTargetDesc normalDesc = {
         .mWidth = width,
@@ -248,7 +246,6 @@ void GBufferPass::createFrameResources(RenderGraph& graph, RGFrameData& frameDat
         .mSampleQuality = 0,
         .mDescriptors = DESCRIPTOR_TYPE_TEXTURE,
         .pName = "GBuffer.Normal",
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
     };
     RenderTargetDesc depthDesc = {
         .mWidth = width,
@@ -263,7 +260,6 @@ void GBufferPass::createFrameResources(RenderGraph& graph, RGFrameData& frameDat
         .mSampleQuality = 0,
         .mDescriptors = DESCRIPTOR_TYPE_TEXTURE,
         .pName = "GBuffer.Depth",
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
     };
 
     frameData.gbufferAlbedo = graph.createRenderTarget("GBuffer.Albedo", &albedoDesc);
@@ -272,9 +268,9 @@ void GBufferPass::createFrameResources(RenderGraph& graph, RGFrameData& frameDat
 }
 
 void GBufferPass::record(RenderGraph& graph, const RGFrameData& frameData, Buffer* const* ppSceneUniformBuffers,
-                         uint32_t frameResourceIndex, ProfileToken gpuProfileToken)
+                         ProfileToken gpuProfileToken)
 {
-    mRecordContext = { frameData, frameResourceIndex, gpuProfileToken };
+    mRecordContext = { frameData, gpuProfileToken };
 
     RGBuffer sceneUniforms[kSceneObjectCount] = {};
     for (uint32_t i = 0; i < kSceneObjectCount; ++i)
@@ -295,28 +291,27 @@ void GBufferPass::record(RenderGraph& graph, const RGFrameData& frameData, Buffe
         .writeRenderTarget(frameData.gbufferAlbedo, 0u, LOAD_ACTION_CLEAR, STORE_ACTION_STORE, blackClear, true)
         .writeRenderTarget(frameData.gbufferNormal, 1u, LOAD_ACTION_CLEAR, STORE_ACTION_STORE, normalClear, true)
         .writeDepthStencil(frameData.gbufferDepth, LOAD_ACTION_CLEAR, STORE_ACTION_STORE, depthClear, true)
-        .setExecute(RDG_EXECUTE(GBufferPass, this,
-        {
-            Buffer* vertexBuffer = context.getBuffer(self->mRecordContext.frameData.generatedVertices);
-            Buffer* indexBuffer = context.getBuffer(self->mRecordContext.frameData.generatedIndices);
+        .setExecute([this](Cmd* pPassCmd, const RGPassContext& context) {
+            Buffer* vertexBuffer = context.getBuffer(mRecordContext.frameData.generatedVertices);
+            Buffer* indexBuffer = context.getBuffer(mRecordContext.frameData.generatedIndices);
             if (!vertexBuffer || !indexBuffer)
                 return;
 
-            cmdBeginGpuTimestampQuery(pPassCmd, self->mRecordContext.gpuProfileToken, "RDG GBuffer");
+            cmdBeginGpuTimestampQuery(pPassCmd, mRecordContext.gpuProfileToken, "RDG GBuffer");
             cmdSetViewport(pPassCmd, 0.0f, 0.0f, static_cast<float>(context.getWidth()), static_cast<float>(context.getHeight()),
                            0.0f, 1.0f);
             cmdSetScissor(pPassCmd, 0, 0, context.getWidth(), context.getHeight());
-            cmdBindPipeline(pPassCmd, self->pPipeline);
+            cmdBindPipeline(pPassCmd, pPipeline);
             Buffer* vertexBuffers[] = { vertexBuffer };
             uint32_t vertexStrides[] = { static_cast<uint32_t>(sizeof(Vertex)) };
             uint64_t vertexOffsets[] = { 0 };
             cmdBindVertexBuffer(pPassCmd, 1, vertexBuffers, vertexStrides, vertexOffsets);
             cmdBindIndexBuffer(pPassCmd, indexBuffer, INDEX_TYPE_UINT32, 0);
-            const uint32_t objectSetBase = self->mRecordContext.frameResourceIndex * kSceneObjectCount;
-            cmdBindDescriptorSet(pPassCmd, objectSetBase, self->pDescriptorSet);
+            const uint32_t objectSetBase = context.getFrameResourceIndex() * kSceneObjectCount;
+            cmdBindDescriptorSet(pPassCmd, objectSetBase, pDescriptorSet);
             cmdDrawIndexed(pPassCmd, kCubeIndexCount, 0, 0);
-            cmdBindDescriptorSet(pPassCmd, objectSetBase + 1, self->pDescriptorSet);
+            cmdBindDescriptorSet(pPassCmd, objectSetBase + 1, pDescriptorSet);
             cmdDrawIndexed(pPassCmd, kPlaneIndexCount, kPlaneFirstIndex, kPlaneFirstVertex);
-            cmdEndGpuTimestampQuery(pPassCmd, self->mRecordContext.gpuProfileToken);
-        }));
+            cmdEndGpuTimestampQuery(pPassCmd, mRecordContext.gpuProfileToken);
+        });
 }

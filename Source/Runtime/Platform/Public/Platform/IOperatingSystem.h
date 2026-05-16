@@ -375,7 +375,6 @@ typedef enum ResetType
     RESET_TYPE_GRAPHIC_CARD_SWITCH = 0x2,
 #if defined(_WINDOWS)
     RESET_TYPE_DEVICE_LOST = 0x4,
-    RESET_TYPE_GPU_MODE_SWITCH = 0x8,
 #endif
 } ResetType;
 

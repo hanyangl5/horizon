@@ -95,7 +95,6 @@ bool LightingPass::createDescriptorSet(Renderer* pRenderer, uint32_t frameResour
         .pRootSignature = pRootSignature,
         .mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
         .mMaxSets = frameResourceCount,
-        .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
     };
     addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
     return pDescriptorSet != nullptr;
@@ -147,10 +146,9 @@ bool LightingPass::isReady() const
     return pPipeline && pDescriptorSet;
 }
 
-void LightingPass::record(RenderGraph& graph, const RGFrameData& frameData, uint32_t frameResourceIndex,
-                          ProfileToken gpuProfileToken)
+void LightingPass::record(RenderGraph& graph, const RGFrameData& frameData, ProfileToken gpuProfileToken)
 {
-    mRecordContext = { frameData, frameResourceIndex, gpuProfileToken };
+    mRecordContext = { frameData, gpuProfileToken };
 
     ClearValue backbufferClear = { .r = 0.02f, .g = 0.025f, .b = 0.03f, .a = 1.0f };
 
@@ -159,12 +157,11 @@ void LightingPass::record(RenderGraph& graph, const RGFrameData& frameData, uint
         .read(frameData.gbufferNormal, RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
         .read(frameData.gbufferDepth, RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
         .writeRenderTarget(frameData.backbuffer, 0u, LOAD_ACTION_CLEAR, STORE_ACTION_STORE, backbufferClear, true)
-        .setExecute(RDG_EXECUTE(LightingPass, this,
-        {
+        .setExecute([this](Cmd* pPassCmd, const RGPassContext& context) {
             Texture* textures[] = {
-                context.getTexture(self->mRecordContext.frameData.gbufferAlbedo),
-                context.getTexture(self->mRecordContext.frameData.gbufferNormal),
-                context.getTexture(self->mRecordContext.frameData.gbufferDepth),
+                context.getTexture(mRecordContext.frameData.gbufferAlbedo),
+                context.getTexture(mRecordContext.frameData.gbufferNormal),
+                context.getTexture(mRecordContext.frameData.gbufferDepth),
             };
             if (!textures[0] || !textures[1] || !textures[2])
                 return;
@@ -176,15 +173,16 @@ void LightingPass::record(RenderGraph& graph, const RGFrameData& frameData, uint
             params[1].ppTextures = &textures[1];
             params[2].pName = "DepthTexture";
             params[2].ppTextures = &textures[2];
-            updateDescriptorSet(context.getRenderer(), self->mRecordContext.frameResourceIndex, self->pDescriptorSet, 3, params);
+            const uint32_t frameResourceIndex = context.getFrameResourceIndex();
+            updateDescriptorSet(context.getRenderer(), frameResourceIndex, pDescriptorSet, 3, params);
 
-            cmdBeginGpuTimestampQuery(pPassCmd, self->mRecordContext.gpuProfileToken, "RDG Lighting");
+            cmdBeginGpuTimestampQuery(pPassCmd, mRecordContext.gpuProfileToken, "RDG Lighting");
             cmdSetViewport(pPassCmd, 0.0f, 0.0f, static_cast<float>(context.getWidth()), static_cast<float>(context.getHeight()),
                            0.0f, 1.0f);
             cmdSetScissor(pPassCmd, 0, 0, context.getWidth(), context.getHeight());
-            cmdBindPipeline(pPassCmd, self->pPipeline);
-            cmdBindDescriptorSet(pPassCmd, self->mRecordContext.frameResourceIndex, self->pDescriptorSet);
+            cmdBindPipeline(pPassCmd, pPipeline);
+            cmdBindDescriptorSet(pPassCmd, frameResourceIndex, pDescriptorSet);
             cmdDraw(pPassCmd, 3, 0);
-            cmdEndGpuTimestampQuery(pPassCmd, self->mRecordContext.gpuProfileToken);
-        }));
+            cmdEndGpuTimestampQuery(pPassCmd, mRecordContext.gpuProfileToken);
+        });
 }

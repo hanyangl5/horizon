@@ -276,7 +276,6 @@ struct LiveRendererHarness
             .mType = QUEUE_TYPE_GRAPHICS,
             .mFlag = QUEUE_FLAG_NONE,
             .mPriority = QUEUE_PRIORITY_NORMAL,
-            .mNodeIndex = pRenderer->mUnlinkedRendererIndex,
             .pName = "IGraphicsApiTest.Queue",
         };
         addQueue(pRenderer, &queueDesc, &pQueue);
@@ -869,7 +868,6 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .mStartState = RESOURCE_STATE_UNORDERED_ACCESS,
         .mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     getBufferSizeAlign(harness.pRenderer, &placedBufferDesc, &pOut->sizeAlign);
 
@@ -879,7 +877,6 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         .mMemoryUsage = placedBufferDesc.mMemoryUsage,
         .mDescriptors = placedBufferDesc.mDescriptors,
         .mFlags = RESOURCE_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
         .pName = "LifecycleBufferHeap",
     };
     addResourceHeap(harness.pRenderer, &heapDesc, &pOut->pHeap);
@@ -1011,7 +1008,6 @@ bool createRenderTarget(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
         .mFormat = TinyImageFormat_R8G8B8A8_UNORM,
         .mStartState = RESOURCE_STATE_RENDER_TARGET,
         .pName = name,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addRenderTarget(harness.pRenderer, &renderTargetDesc, ppRenderTarget);
     if (!*ppRenderTarget)
@@ -1052,7 +1048,6 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         .pName = "CommandTextureReadback",
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .mStartState = RESOURCE_STATE_COPY_DEST,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &textureReadbackDesc, &pOut->pReadbackBuffer);
     if (!pOut->pReadbackBuffer)
@@ -1119,7 +1114,6 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
         .mStartState = RESOURCE_STATE_GENERIC_READ,
         .mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &vertexBufferDesc, &pOut->pVertexBuffer);
     if (!pOut->pVertexBuffer)
@@ -1146,7 +1140,6 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
         .mStartState = RESOURCE_STATE_GENERIC_READ,
         .mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &indexBufferDesc, &pOut->pIndexBuffer);
     if (!pOut->pIndexBuffer)
@@ -1377,7 +1370,6 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .mStartState = RESOURCE_STATE_UNORDERED_ACCESS,
         .mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &computeOutputDesc, &pOut->pOutputBuffer);
     if (!pOut->pOutputBuffer)
@@ -1408,7 +1400,6 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
         .mStartState = RESOURCE_STATE_GENERIC_READ,
         .mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &computeRootCbvDesc, &pOut->pRootCbvBuffer);
     if (!pOut->pRootCbvBuffer)
@@ -1433,7 +1424,6 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         .pName = "ComputeReadbackBuffer",
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .mStartState = RESOURCE_STATE_COPY_DEST,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &computeReadbackDesc, &pOut->pReadbackBuffer);
     if (!pOut->pReadbackBuffer)
@@ -1457,7 +1447,6 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
         .mStartState = RESOURCE_STATE_GENERIC_READ,
         .mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &indirectBufferDesc, &pOut->pIndirectBuffer);
     if (!pOut->pIndirectBuffer)
@@ -1600,7 +1589,6 @@ bool createQueryPool(LiveRendererHarness& harness, DeferredCleanup& cleanup, Que
         .pName = "CommandTimestampQuery",
         .mType = QUERY_TYPE_TIMESTAMP,
         .mQueryCount = 1,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addQueryPool(harness.pRenderer, &queryPoolDesc, ppQueryPool);
     if (!*ppQueryPool)
@@ -1627,7 +1615,6 @@ bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
         .mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .mFlags = BUFFER_CREATION_FLAG_MARKER,
         .mStartState = RESOURCE_STATE_COPY_DEST,
-        .mNodeIndex = harness.pRenderer->mUnlinkedRendererIndex,
     };
     addBuffer(harness.pRenderer, &markerBufferDesc, ppMarkerBuffer);
     if (!*ppMarkerBuffer)
