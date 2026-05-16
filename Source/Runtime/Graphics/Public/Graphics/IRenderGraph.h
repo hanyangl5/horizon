@@ -71,8 +71,6 @@ private:
     RenderGraph* pGraph = nullptr;
 };
 
-using PassExecuteCallback = void (*)(Cmd*, const RGPassContext&, void*);
-
 class RGPassBuilder
 {
 public:
@@ -88,11 +86,35 @@ public:
     RGPassBuilder& read(RGBuffer handle, ResourceState state);
     RGPassBuilder& write(RGBuffer handle, ResourceState state);
 
-    RGPassBuilder& setExecute(PassExecuteCallback callback, void* pUserData = nullptr);
+    template<typename Callable>
+    RGPassBuilder& setExecute(Callable callback)
+    {
+        return storeExecuteCallback(
+            [](Cmd* pPassCmd, const RGPassContext& context, void* pUserData)
+            {
+                Callable* pCallback = (Callable*)pUserData;
+                (*pCallback)(pPassCmd, context);
+            },
+            &callback,
+            sizeof(Callable),
+            alignof(Callable),
+            [](void* pDestination, const void* pSource)
+            {
+                new (pDestination) Callable(*(const Callable*)pSource);
+            },
+            [](void* pUserData)
+            {
+                Callable* pCallback = (Callable*)pUserData;
+                pCallback->~Callable();
+            });
+    }
 
 private:
     friend class RenderGraph;
     RGPassBuilder(RenderGraph& graph, uint32_t passIndex);
+    RGPassBuilder& storeExecuteCallback(void (*executeCallback)(Cmd*, const RGPassContext&, void*), const void* pSource,
+                                        uint64_t size, uint64_t alignment, void (*constructCallback)(void*, const void*),
+                                        void (*destroyCallback)(void*));
 
     RenderGraph* pGraph = nullptr;
     uint32_t     mPassIndex = InvalidHandle;
@@ -237,8 +259,9 @@ private:
         DepthAttachment     mDepthAttachment;
         ResourceUse*        pReads = nullptr;
         ResourceUse*        pWrites = nullptr;
-        PassExecuteCallback pExecute = nullptr;
-        void*               pUserData = nullptr;
+        void (*pExecute)(Cmd*, const RGPassContext&, void*) = nullptr;
+        void* pUserData = nullptr;
+        void (*pDestroyUserData)(void*) = nullptr;
     };
 
     Renderer*          pRenderer = nullptr;
@@ -255,11 +278,3 @@ private:
     TransientResource* pRetiredTransientResources = nullptr;
 };
 
-#define RDG_EXECUTE(UserType, userData, ...)                         \
-    [](Cmd* pPassCmd, const RGPassContext& context, void* pUserData) \
-    {                                                                \
-        UserType* self = static_cast<UserType*>(pUserData);          \
-        (void)self;                                                  \
-        __VA_ARGS__                                                  \
-    },                                                               \
-        userData

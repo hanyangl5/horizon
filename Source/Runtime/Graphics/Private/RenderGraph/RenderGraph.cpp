@@ -3,6 +3,7 @@
 #include "Core/ILog.h"
 #include "Runtime/RHI/Private/RendererResourceAPI.h"
 #include <ThirdParty/stb/stb_ds.h>
+#include "Core/IMemory.h"
 
 // TODO(hyl5): remove lots of defensive code or move them to debug only
 
@@ -130,14 +131,30 @@ RGPassBuilder& RGPassBuilder::write(RGTexture handle, ResourceState state)
     return *this;
 }
 
-RGPassBuilder& RGPassBuilder::setExecute(PassExecuteCallback callback, void* pUserData)
+RGPassBuilder& RGPassBuilder::storeExecuteCallback(void (*executeCallback)(Cmd*, const RGPassContext&, void*), const void* pSource,
+                                                   uint64_t size, uint64_t alignment, void (*constructCallback)(void*, const void*),
+                                                   void (*destroyCallback)(void*))
 {
-    if (pGraph)
+    if (!pGraph)
+        return *this;
+
+    void* pUserData = tf_memalign((size_t)alignment, (size_t)size);
+    if (!pUserData)
+        return *this;
+
+    constructCallback(pUserData, pSource);
+
+    RenderGraph::PassNode& pass = pGraph->pPasses[mPassIndex];
+    if (pass.pUserData)
     {
-        RenderGraph::PassNode& pass = pGraph->pPasses[mPassIndex];
-        pass.pExecute = callback;
-        pass.pUserData = pUserData;
+        if (pass.pDestroyUserData)
+            pass.pDestroyUserData(pass.pUserData);
+        tf_free(pass.pUserData);
     }
+
+    pass.pExecute = executeCallback;
+    pass.pUserData = pUserData;
+    pass.pDestroyUserData = destroyCallback;
     return *this;
 }
 
@@ -854,6 +871,12 @@ void RenderGraph::clearPassStorage()
 {
     for (uint32_t i = 0; i < arrlenu(pPasses); ++i)
     {
+        if (pPasses[i].pUserData)
+        {
+            if (pPasses[i].pDestroyUserData)
+                pPasses[i].pDestroyUserData(pPasses[i].pUserData);
+            tf_free(pPasses[i].pUserData);
+        }
         arrfree(pPasses[i].pColorAttachments);
         arrfree(pPasses[i].pReads);
         arrfree(pPasses[i].pWrites);

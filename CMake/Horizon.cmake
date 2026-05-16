@@ -3,6 +3,7 @@ option(HORIZON_BUILD_TESTS "Build Horizon tests" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_BUILD_DOCS "Configure the Doxygen documentation target" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_BUILD_EXAMPLES "Build Horizon example applications" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_ENABLE_TRACY "Enable Tracy profiler integration" ON)
+option(HORIZON_ENABLE_TRACY_VERBOSE "Enable verbose Tracy profiler scopes" OFF)
 
 if(CMAKE_INCLUDE_SHADERS)
     message(STATUS "Shaders will be included in the project.")

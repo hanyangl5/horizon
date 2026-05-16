@@ -32,6 +32,24 @@
 #include "RHI/IGraphics.h"
 #include "Core/IMath.h"
 
+#if defined(ENABLE_PROFILER)
+#include <tracy/Tracy.hpp>
+#define PROFILER_SET_CPU_SCOPE_AUTO() ZoneScoped
+#define PROFILER_SET_CPU_SCOPE_AUTO_NAMED(name) ZoneScopedN(name)
+#if defined(ENABLE_PROFILER_VERBOSE)
+#define PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE() ZoneScoped
+#define PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE_NAMED(name) ZoneScopedN(name)
+#else
+#define PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE()
+#define PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE_NAMED(name)
+#endif
+#else
+#define PROFILER_SET_CPU_SCOPE_AUTO()
+#define PROFILER_SET_CPU_SCOPE_AUTO_NAMED(name)
+#define PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE()
+#define PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE_NAMED(name)
+#endif
+
 typedef uint64_t ProfileToken;
 #define PROFILE_INVALID_TOKEN (uint64_t) - 1
 

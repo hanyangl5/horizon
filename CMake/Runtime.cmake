@@ -133,6 +133,11 @@ if(HORIZON_ENABLE_TRACY)
         ENABLE_PROFILER
         TRACY_ENABLE
     )
+    if(HORIZON_ENABLE_TRACY_VERBOSE)
+        target_compile_definitions(${ENGINE_RUNTIME} PUBLIC
+            ENABLE_PROFILER_VERBOSE
+        )
+    endif()
 endif()
 
 # unity build
