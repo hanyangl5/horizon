@@ -391,9 +391,8 @@ void RenderGraph::execute(Cmd* pCmd)
 
         if (pCmd && (arrlenu(pBufferBarriers) || arrlenu(pTextureBarriers) || arrlenu(pRtBarriers)))
         {
-            cmdResourceBarrier(pCmd, (uint32_t)arrlenu(pBufferBarriers), pBufferBarriers,
-                               (uint32_t)arrlenu(pTextureBarriers), pTextureBarriers,
-                               (uint32_t)arrlenu(pRtBarriers), pRtBarriers);
+            cmdResourceBarrier(pCmd, (uint32_t)arrlenu(pBufferBarriers), pBufferBarriers, (uint32_t)arrlenu(pTextureBarriers),
+                               pTextureBarriers, (uint32_t)arrlenu(pRtBarriers), pRtBarriers);
         }
 
         arrpush(pLastDebugEvents, (DebugEvent{ DebugEventType::Pass, ResourceKind::Unknown, pass.pName }));
@@ -504,9 +503,8 @@ void RenderGraph::endFrame(Cmd* pCmd)
 
     if (pCmd && (arrlenu(pRtBarriers) || arrlenu(pBufferBarriers) || arrlenu(pTextureBarriers)))
     {
-        cmdResourceBarrier(pCmd, (uint32_t)arrlenu(pBufferBarriers), pBufferBarriers,
-                           (uint32_t)arrlenu(pTextureBarriers), pTextureBarriers, (uint32_t)arrlenu(pRtBarriers),
-                           pRtBarriers);
+        cmdResourceBarrier(pCmd, (uint32_t)arrlenu(pBufferBarriers), pBufferBarriers, (uint32_t)arrlenu(pTextureBarriers), pTextureBarriers,
+                           (uint32_t)arrlenu(pRtBarriers), pRtBarriers);
     }
 
     arrfree(pRtBarriers);

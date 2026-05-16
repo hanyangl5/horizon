@@ -5348,9 +5348,8 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         LOGF(LogLevel::eERROR, "Failed to serialize root signature with error (%s)", (char*)error->GetBufferPointer());
     }
 
-    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateRootSignature(0, rootSignatureString->GetBufferPointer(),
-                                                              rootSignatureString->GetBufferSize(),
-                                                              IID_ARGS(&pRootSignature->mDx.pRootSignature)));
+    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateRootSignature(
+        0, rootSignatureString->GetBufferPointer(), rootSignatureString->GetBufferSize(), IID_ARGS(&pRootSignature->mDx.pRootSignature)));
 
     SAFE_RELEASE(error);
     SAFE_RELEASE(rootSignatureString);
@@ -5551,8 +5550,7 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
         }
         else
         {
-            const DescriptorIndexMap* pNode =
-                pParam->pName ? shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pParam->pName) : NULL;
+            const DescriptorIndexMap* pNode = pParam->pName ? shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pParam->pName) : NULL;
             if (!pNode)
             {
                 LOGF(LogLevel::eWARNING,

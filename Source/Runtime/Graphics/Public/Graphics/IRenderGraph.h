@@ -95,13 +95,8 @@ public:
                 Callable* pCallback = (Callable*)pUserData;
                 (*pCallback)(pPassCmd, context);
             },
-            &callback,
-            sizeof(Callable),
-            alignof(Callable),
-            [](void* pDestination, const void* pSource)
-            {
-                new (pDestination) Callable(*(const Callable*)pSource);
-            },
+            &callback, sizeof(Callable), alignof(Callable),
+            [](void* pDestination, const void* pSource) { new (pDestination) Callable(*(const Callable*)pSource); },
             [](void* pUserData)
             {
                 Callable* pCallback = (Callable*)pUserData;
@@ -112,9 +107,8 @@ public:
 private:
     friend class RenderGraph;
     RGPassBuilder(RenderGraph& graph, uint32_t passIndex);
-    RGPassBuilder& storeExecuteCallback(void (*executeCallback)(Cmd*, const RGPassContext&, void*), const void* pSource,
-                                        uint64_t size, uint64_t alignment, void (*constructCallback)(void*, const void*),
-                                        void (*destroyCallback)(void*));
+    RGPassBuilder& storeExecuteCallback(void (*executeCallback)(Cmd*, const RGPassContext&, void*), const void* pSource, uint64_t size,
+                                        uint64_t alignment, void (*constructCallback)(void*, const void*), void (*destroyCallback)(void*));
 
     RenderGraph* pGraph = nullptr;
     uint32_t     mPassIndex = InvalidHandle;
@@ -129,9 +123,8 @@ public:
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
 
-    void beginFrame(Renderer* pRenderer, uint32_t width, uint32_t height, uint32_t frameResourceIndex = 0,
-                    Fence* pFrameFence = nullptr);
-    uint32_t getFrameResourceIndex() const { return mFrameResourceIndex; };
+    void beginFrame(Renderer* pRenderer, uint32_t width, uint32_t height, uint32_t frameResourceIndex = 0, Fence* pFrameFence = nullptr);
+    uint32_t  getFrameResourceIndex() const { return mFrameResourceIndex; };
     RGTexture importRenderTarget(const char* pName, RenderTarget* pRenderTarget, ResourceState currentState, ResourceState finalState);
     RGTexture importTexture(const char* pName, Texture* pTexture, ResourceState currentState, ResourceState finalState);
     RGBuffer  importBuffer(const char* pName, Buffer* pBuffer, ResourceState currentState, ResourceState finalState);
@@ -253,12 +246,12 @@ private:
 
     struct PassNode
     {
-        const char*         pName = nullptr;
-        ColorAttachment*    pColorAttachments = nullptr;
-        bool                mHasDepthAttachment = false;
-        DepthAttachment     mDepthAttachment;
-        ResourceUse*        pReads = nullptr;
-        ResourceUse*        pWrites = nullptr;
+        const char*      pName = nullptr;
+        ColorAttachment* pColorAttachments = nullptr;
+        bool             mHasDepthAttachment = false;
+        DepthAttachment  mDepthAttachment;
+        ResourceUse*     pReads = nullptr;
+        ResourceUse*     pWrites = nullptr;
         void (*pExecute)(Cmd*, const RGPassContext&, void*) = nullptr;
         void* pUserData = nullptr;
         void (*pDestroyUserData)(void*) = nullptr;
@@ -276,4 +269,3 @@ private:
     TransientResource* pAvailableTransientResources = nullptr;
     TransientResource* pRetiredTransientResources = nullptr;
 };
-
