@@ -53,7 +53,7 @@
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <dxcapi.h>
 #include <ThirdParty/DirectStorage/include/dstorage.h>
-//#include <ThirdParty/renderdoc/renderdoc_app.h>
+// #include <ThirdParty/renderdoc/renderdoc_app.h>
 
 #include "Core/IFileSystem.h"
 #include "Core/ILog.h"
@@ -90,7 +90,7 @@
 #include "../RendererResourceAPI.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL    ((D3D12_GPU_VIRTUAL_ADDRESS)0)
-#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS) - 1)
 #define D3D12_REQ_CONSTANT_BUFFER_SIZE    (D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16u)
 #define D3D12_DESCRIPTOR_ID_NONE          ((int32_t)-1)
 
@@ -296,11 +296,11 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 	D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME,
 #endif
 };
-    // clang-format on
+// clang-format on
 
-    // =================================================================================================
-    // IMPLEMENTATION
-    // =================================================================================================
+// =================================================================================================
+// IMPLEMENTATION
+// =================================================================================================
 
 #if defined(RENDERER_IMPLEMENTATION)
 
@@ -4877,6 +4877,8 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     StaticSampler*            staticSamplers = NULL;
     ShaderStage               shaderStages = SHADER_STAGE_NONE;
     bool                      useInputLayout = false;
+    bool                      useViewHeapIndexing = false;
+    bool                      useSamplerHeapIndexing = false;
     StaticSamplerNode*        staticSamplerMap = NULL;
     PipelineType              pipelineType = PIPELINE_TYPE_UNDEFINED;
     DescriptorIndexMap*       indexMap = NULL;
@@ -4893,6 +4895,12 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     for (uint32_t sh = 0; sh < pRootSignatureDesc->mShaderCount; ++sh)
     {
         PipelineReflection const* pReflection = pRootSignatureDesc->ppShaders[sh]->pReflection;
+
+        for (uint32_t stage = 0; stage < pReflection->mStageReflectionCount; ++stage)
+        {
+            useViewHeapIndexing |= pReflection->mStageReflections[stage].mCbvHeapIndexing;
+            useSamplerHeapIndexing |= pReflection->mStageReflections[stage].mSamplerHeapIndexing;
+        }
 
         // Keep track of the used pipeline stages
         shaderStages |= pReflection->mShaderStages;
@@ -5328,6 +5336,10 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
     if (!(shaderStages & SHADER_STAGE_FRAG))
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+    if (useViewHeapIndexing)
+        rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+    if (useSamplerHeapIndexing)
+        rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
     hook_modify_rootsignature_flags(shaderStages, &rootSignatureFlags);
 
@@ -5348,9 +5360,12 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         LOGF(LogLevel::eERROR, "Failed to serialize root signature with error (%s)", (char*)error->GetBufferPointer());
     }
 
-    CHECK_HRESULT(pRenderer->mDx.pDevice->CreateRootSignature(0, rootSignatureString->GetBufferPointer(),
-                                                              rootSignatureString->GetBufferSize(),
-                                                              IID_ARGS(&pRootSignature->mDx.pRootSignature)));
+    const HRESULT createRootSignatureResult = pRenderer->mDx.pDevice->CreateRootSignature(
+        0, rootSignatureString->GetBufferPointer(), rootSignatureString->GetBufferSize(), IID_ARGS(&pRootSignature->mDx.pRootSignature));
+    if (FAILED(createRootSignatureResult))
+        LOGF(LogLevel::eERROR, "D3D12 device removal reason while creating root signature: 0x%08X",
+             (uint32_t)pRenderer->mDx.pDevice->GetDeviceRemovedReason());
+    CHECK_HRESULT(createRootSignatureResult);
 
     SAFE_RELEASE(error);
     SAFE_RELEASE(rootSignatureString);
@@ -5383,15 +5398,14 @@ void d3d12_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignatur
 
 uint32_t d3d12_getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
 {
-    for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
-    {
-        if (!strcmp(pName, pRootSignature->pDescriptors[i].pName))
-        {
-            return i;
-        }
-    }
+    // for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
+    // {
+    //     if (!strcmp(pName, pRootSignature->pDescriptors[i].pName))
+    //         return i;
+    // }
 
-    return UINT32_MAX;
+    const DescriptorIndexMap* pNode = shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pName);
+    return pNode ? pNode->value : UINT32_MAX;
 }
 
 /************************************************************************/
@@ -5551,8 +5565,7 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
         }
         else
         {
-            const DescriptorIndexMap* pNode =
-                pParam->pName ? shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pParam->pName) : NULL;
+            const DescriptorIndexMap* pNode = pParam->pName ? shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pParam->pName) : NULL;
             if (!pNode)
             {
                 LOGF(LogLevel::eWARNING,
@@ -7043,6 +7056,8 @@ void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffe
     ASSERT(pSrcBuffer->mDx.pResource);
     ASSERT(pBuffer);
     ASSERT(pBuffer->mDx.pResource);
+    ASSERT(dstOffset <= pBuffer->mSize && size <= pBuffer->mSize - dstOffset);
+    ASSERT(srcOffset <= pSrcBuffer->mSize && size <= pSrcBuffer->mSize - srcOffset);
 
 #if defined(XBOX)
     if (pCmd->mDx.mDma.pCmdList)
@@ -7054,6 +7069,22 @@ void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffe
     {
         pCmd->mDx.pCmdList->CopyBufferRegion(pBuffer->mDx.pResource, dstOffset, pSrcBuffer->mDx.pResource, srcOffset, size);
     }
+}
+
+void d3d12_cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture)
+{
+    ASSERT(pCmd);
+    ASSERT(pDstTexture && pDstTexture->mDx.pResource);
+    ASSERT(pSrcTexture && pSrcTexture->mDx.pResource);
+
+    const D3D12_RESOURCE_DESC dstDesc = pDstTexture->mDx.pResource->GetDesc();
+    const D3D12_RESOURCE_DESC srcDesc = pSrcTexture->mDx.pResource->GetDesc();
+    ASSERT(dstDesc.Dimension == srcDesc.Dimension && dstDesc.Width == srcDesc.Width && dstDesc.Height == srcDesc.Height &&
+           dstDesc.DepthOrArraySize == srcDesc.DepthOrArraySize && dstDesc.MipLevels == srcDesc.MipLevels &&
+           dstDesc.Format == srcDesc.Format && dstDesc.SampleDesc.Count == srcDesc.SampleDesc.Count &&
+           dstDesc.SampleDesc.Quality == srcDesc.SampleDesc.Quality);
+
+    pCmd->mDx.pCmdList->CopyResource(pDstTexture->mDx.pResource, pSrcTexture->mDx.pResource);
 }
 
 struct SubresourceDataDesc

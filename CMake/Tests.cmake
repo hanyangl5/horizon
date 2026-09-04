@@ -31,7 +31,9 @@ foreach(GTEST_TARGET gtest gtest_main)
 endforeach()
 
 function(add_test_target target_name)
-    add_executable(${target_name} ${ARGN})
+    cmake_parse_arguments(ADD_TEST_TARGET "D3D12_RESOURCE_LOCK" "" "" ${ARGN})
+
+    add_executable(${target_name} ${ADD_TEST_TARGET_UNPARSED_ARGUMENTS})
 
     target_link_libraries(${target_name} PRIVATE ${ENGINE_RUNTIME} GTest::gtest_main)
     target_compile_features(${target_name} PRIVATE cxx_std_20)
@@ -66,11 +68,21 @@ function(add_test_target target_name)
         )
     endif()
 
-    source_group(TREE ${HORIZON_TEST_SOURCE_DIR} PREFIX "Tests" FILES ${ARGN})
+    source_group(TREE ${HORIZON_TEST_SOURCE_DIR} PREFIX "Tests" FILES ${ADD_TEST_TARGET_UNPARSED_ARGUMENTS})
     set_target_properties(${target_name} PROPERTIES FOLDER "Horizon/Tests")
 
+    set(GTEST_DISCOVERY_PROPERTIES)
+    if(WIN32 AND ADD_TEST_TARGET_D3D12_RESOURCE_LOCK)
+        list(APPEND GTEST_DISCOVERY_PROPERTIES
+            PROPERTIES
+                RESOURCE_LOCK horizon_d3d12
+        )
+    endif()
+
     gtest_discover_tests(${target_name}
+        DISCOVERY_MODE PRE_TEST
         DISCOVERY_TIMEOUT 30
+        ${GTEST_DISCOVERY_PROPERTIES}
     )
 endfunction()
 

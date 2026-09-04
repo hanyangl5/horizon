@@ -10,4 +10,8 @@ if(WIN32)
     )
 endif()
 
-add_test_target(RHITests ${RHI_TEST_FILES})
+add_test_target(RHITests D3D12_RESOURCE_LOCK ${RHI_TEST_FILES})
+
+target_include_directories(RHITests PRIVATE
+    ${ENGINE_RUNTIME_SOURCE_DIR}/Graphics/Private
+)

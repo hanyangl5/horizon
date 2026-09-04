@@ -1,17 +1,16 @@
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
+#include <optional>
 
 #include "Application/IApp.h"
 #include "Core/ILog.h"
+#include "Graphics/RenderContext.h"
 #include "Profiler/IProfiler.h"
-#include "RHI/IGraphics.h"
-#include "RHI/RingBuffer.h"
-#include "Runtime/RHI/Private/RendererResourceAPI.h"
 
 namespace
 {
-constexpr uint32_t kCpuProfileColor = 0x3399FF;
+constexpr uint32_t        kCpuProfileColor = 0x3399FF;
+constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
 
 struct Vertex
 {
@@ -52,24 +51,6 @@ float4 PSMain(VSOutput input) : SV_Target0
 }
 )";
 
-ShaderSrcDesc makeShaderSourceDesc()
-{
-    return {
-        .mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-        .mVert = {
-            .pName = "HelloTriangleVS",
-            .pByteCode = const_cast<char*>(kHelloTriangleShader),
-            .mByteCodeSize = static_cast<uint32_t>(sizeof(kHelloTriangleShader) - 1),
-            .pEntryPoint = "VSMain",
-        },
-        .mFrag = {
-            .pName = "HelloTrianglePS",
-            .pByteCode = const_cast<char*>(kHelloTriangleShader),
-            .mByteCodeSize = static_cast<uint32_t>(sizeof(kHelloTriangleShader) - 1),
-            .pEntryPoint = "PSMain",
-        },
-    };
-}
 } // namespace
 
 class HelloTriangleApp final: public IApp
@@ -87,435 +68,166 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Init", kCpuProfileColor);
 
-        RendererDesc rendererDesc = {};
-        initRenderer(GetName(), &rendererDesc, &pRenderer);
-        if (!pRenderer)
-        {
-            LOGF(eERROR, "Failed to initialize renderer for %s", GetName());
-            return false;
-        }
-
-        QueueDesc queueDesc = {
-            .mType = QUEUE_TYPE_GRAPHICS,
-            .mFlag = QUEUE_FLAG_NONE,
-            .mPriority = QUEUE_PRIORITY_NORMAL,
-            .pName = "HelloTriangle.GraphicsQueue",
+        hz::ContextDesc contextDesc = {
+            .pAppName = GetName(),
+            .windowHandle = pWindow->handle,
+            .width = 0,
+            .height = 0,
+            .imageCount = 3,
+            .colorFormat = kSurfaceFormat,
+            .colorSpace = COLOR_SPACE_SDR_SRGB,
+            .enableVSync = mSettings.mVSyncEnabled,
+            .enableGpuValidation = true,
+            .enableGpuProfiler = true,
         };
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-        if (!pGraphicsQueue)
-        {
-            LOGF(eERROR, "Failed to create graphics queue");
+        const bool initialized = context.init(contextDesc);
+        ASSERT(initialized);
+        if (!initialized)
             return false;
-        }
+        vSync = mSettings.mVSyncEnabled;
 
-        GpuCmdRingDesc cmdRingDesc = {
-            .pQueue = pGraphicsQueue,
-            .mPoolCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle),
-            .mCmdPerPoolCount = 1,
-            .mAddSyncPrimitives = true,
-        };
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &mGraphicsCmdRing);
-
-        Queue*         profilerQueues[] = { pGraphicsQueue };
-        const char*    profilerNames[] = { "HelloTriangle GPU" };
-        ProfilerDesc   profilerDesc = {
-            .pRenderer = pRenderer,
-            .ppQueues = profilerQueues,
-            .ppProfilerNames = profilerNames,
-            .pProfileTokens = &mGpuProfileToken,
-            .mGpuProfilerCount = 1,
-        };
-        initProfiler(&profilerDesc);
-
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-        if (!pImageAcquiredSemaphore)
-        {
-            LOGF(eERROR, "Failed to create image-acquired semaphore");
-            return false;
-        }
-
-        if (!createShaderResources())
-        {
-            return false;
-        }
-
-        return createVertexBuffer();
+        resources.emplace();
+        return createResources();
     }
 
     void Exit() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Exit", kCpuProfileColor);
-
-        if (pGraphicsQueue)
-        {
-            waitQueueIdle(pGraphicsQueue);
-        }
-
-        exitProfiler();
-        mGpuProfileToken = PROFILE_INVALID_TOKEN;
-
-        removeBufferResource();
-        removePipelineResource();
-        removeShaderResources();
-
-        if (pImageAcquiredSemaphore)
-        {
-            removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-            pImageAcquiredSemaphore = nullptr;
-        }
-
-        removeGpuCmdRing(pRenderer, &mGraphicsCmdRing);
-
-        if (pGraphicsQueue)
-        {
-            removeQueue(pRenderer, pGraphicsQueue);
-            pGraphicsQueue = nullptr;
-        }
-
-        if (pRenderer)
-        {
-            exitRenderer(pRenderer);
-            pRenderer = nullptr;
-        }
+        context.waitIdle();
+        resources.reset();
     }
 
     bool Load(ReloadDesc* pReloadDesc) override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Load", kCpuProfileColor);
+        if (!(pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+            return true;
 
-        if ((pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)) && !addSwapChainResource())
-        {
+        const uint32_t width = (uint32_t)mSettings.mWidth;
+        const uint32_t height = (uint32_t)mSettings.mHeight;
+        if (!context.resize(width, height))
             return false;
-        }
-
-        return addPipelineResource();
+        return true;
     }
 
-    void Unload(ReloadDesc* pReloadDesc) override
-    {
-        PROFILER_SET_CPU_SCOPE("HelloTriangle", "Unload", kCpuProfileColor);
+    void Unload(ReloadDesc*) override {}
 
-        if (pGraphicsQueue)
-        {
-            waitQueueIdle(pGraphicsQueue);
-        }
-
-        removePipelineResource();
-
-        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
-        {
-            removeSwapChainResource();
-        }
-    }
-
-    void Update(float deltaTime) override
-    {
-        PROFILER_SET_CPU_SCOPE("HelloTriangle", "Update", kCpuProfileColor);
-        mElapsedTime += deltaTime;
-    }
+    void Update(float) override { PROFILER_SET_CPU_SCOPE("HelloTriangle", "Update", kCpuProfileColor); }
 
     void Draw() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Draw", kCpuProfileColor);
+        if (vSync != mSettings.mVSyncEnabled && context.setVSync(mSettings.mVSyncEnabled))
+            vSync = mSettings.mVSyncEnabled;
 
-        if (!pSwapChain || !pPipeline || !pVertexBuffer)
-        {
+        if (context.isSuspended())
             return;
-        }
+        hz::CommandList&      commands = context.acquireCommandList();
+        const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
 
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
-        {
-            waitQueueIdle(pGraphicsQueue);
-            toggleVSync(pRenderer, &pSwapChain);
-        }
-
-        uint32_t swapchainImageIndex = 0;
-        acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &swapchainImageIndex);
-
-        GpuCmdRingElement cmdRingElement = getNextGpuCmdRingElement(&mGraphicsCmdRing, true, 1);
-        FenceStatus       fenceStatus = FENCE_STATUS_NOTSUBMITTED;
-        getFenceStatus(pRenderer, cmdRingElement.pFence, &fenceStatus);
-        if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-        {
-            waitForFences(pRenderer, 1, &cmdRingElement.pFence);
-        }
-
-        resetCmdPool(pRenderer, cmdRingElement.pCmdPool);
-
-        Cmd*         pCmd = cmdRingElement.pCmds[0];
-        RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-
-        beginCmd(pCmd);
-        cmdBeginGpuFrameProfile(pCmd, mGpuProfileToken);
-
-        RenderTargetBarrier toRenderTarget = {
-            .pRenderTarget = pRenderTarget,
-            .mCurrentState = RESOURCE_STATE_PRESENT,
-            .mNewState = RESOURCE_STATE_RENDER_TARGET,
+        hz::RenderPassDesc pass = {
+            .colorAttachments = { {
+                .pTexture = &backbuffer,
+                .loadAction = LOAD_ACTION_CLEAR,
+                .storeAction = STORE_ACTION_STORE,
+                .clearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
+            } },
+            .colorAttachmentCount = 1,
         };
-        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, &toRenderTarget);
-
-        BindRenderTargetsDesc bindDesc = {
-            .mRenderTargetCount = 1,
-            .mRenderTargets = {
-                {
-                    .pRenderTarget = pRenderTarget,
-                    .mLoadAction = LOAD_ACTION_CLEAR,
-                    .mStoreAction = STORE_ACTION_STORE,
-                    .mClearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
-                    .mOverrideClearValue = true,
-                },
-            },
-        };
-        cmdBindRenderTargets(pCmd, &bindDesc);
-
-        cmdBeginGpuTimestampQuery(pCmd, mGpuProfileToken, "Triangle Pass");
-
-        cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
-        cmdSetScissor(pCmd, 0, 0, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
-        cmdBindPipeline(pCmd, pPipeline);
-
-        Buffer*  vertexBuffers[] = { pVertexBuffer };
-        uint32_t vertexStrides[] = { static_cast<uint32_t>(sizeof(Vertex)) };
-        uint64_t vertexOffsets[] = { 0 };
-        cmdBindVertexBuffer(pCmd, 1, vertexBuffers, vertexStrides, vertexOffsets);
-        cmdDraw(pCmd, 3, 0);
-
-        cmdEndGpuTimestampQuery(pCmd, mGpuProfileToken);
-
-        cmdBindRenderTargets(pCmd, nullptr);
-
-        RenderTargetBarrier toPresent = {
-            .pRenderTarget = pRenderTarget,
-            .mCurrentState = RESOURCE_STATE_RENDER_TARGET,
-            .mNewState = RESOURCE_STATE_PRESENT,
-        };
-        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, &toPresent);
-
-        cmdEndGpuFrameProfile(pCmd, mGpuProfileToken);
-        endCmd(pCmd);
-
-        Semaphore* waitSemaphores[] = { pImageAcquiredSemaphore };
-        QueueSubmitDesc submitDesc = {
-            .ppCmds = &pCmd,
-            .pSignalFence = cmdRingElement.pFence,
-            .ppWaitSemaphores = waitSemaphores,
-            .ppSignalSemaphores = &cmdRingElement.pSemaphore,
-            .mCmdCount = 1,
-            .mWaitSemaphoreCount = 1,
-            .mSignalSemaphoreCount = 1,
-        };
-        queueSubmit(pGraphicsQueue, &submitDesc);
-
-        QueuePresentDesc presentDesc = {
-            .pSwapChain = pSwapChain,
-            .ppWaitSemaphores = &cmdRingElement.pSemaphore,
-            .mWaitSemaphoreCount = 1,
-            .mIndex = static_cast<uint8_t>(swapchainImageIndex),
-            .mSubmitDone = true,
-        };
-        queuePresent(pGraphicsQueue, &presentDesc);
-
-        flipProfiler();
+        commands.beginRendering(pass);
+        commands.beginGpuTimestamp("Triangle Pass");
+        commands.setViewport(0.0f, 0.0f, (float)context.getWidth(), (float)context.getHeight());
+        commands.setScissor(0, 0, context.getWidth(), context.getHeight());
+        commands.setPipeline(resources->pipeline);
+        commands.setVertexBuffer(0, resources->vertexBuffer, 0, sizeof(Vertex));
+        commands.draw(3);
+        commands.endGpuTimestamp();
+        commands.endRendering();
+        context.submit(commands, &backbuffer);
     }
 
     const char* GetName() override { return "HelloTriangle"; }
 
 private:
-    bool createShaderResources()
+    bool createResources()
     {
-        ShaderSrcDesc shaderDesc = makeShaderSourceDesc();
-        addShaderSource(pRenderer, &shaderDesc, &pShader);
-        if (!pShader)
-        {
-            LOGF(eERROR, "Failed to create hello-triangle shader");
-            return false;
-        }
-
-        Shader* shaders[] = { pShader };
-        RootSignatureDesc rootSignatureDesc = {
-            .ppShaders = shaders,
-            .mShaderCount = 1,
-        };
-        addRootSignature(pRenderer, &rootSignatureDesc, &pRootSignature);
-        if (!pRootSignature)
-        {
-            LOGF(eERROR, "Failed to create hello-triangle root signature");
-            return false;
-        }
-
-        return true;
-    }
-
-    bool createVertexBuffer()
-    {
-        BufferDesc vertexBufferDesc = {
-            .mSize = sizeof(kTriangleVertices),
+        hz::BufferDesc bufferDesc = {
+            .size = sizeof(kTriangleVertices),
+            .elementCount = sizeof(kTriangleVertices) / sizeof(uint32_t),
             .pName = "HelloTriangle.VertexBuffer",
-            .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-            .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-            .mStartState = RESOURCE_STATE_GENERIC_READ,
-            .mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER,
+            .pInitialData = kTriangleVertices,
+            .initialDataSize = sizeof(kTriangleVertices),
+            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+            .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+            .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_VERTEX_BUFFER,
+            .flags = BUFFER_CREATION_FLAG_NONE,
         };
-        addBuffer(pRenderer, &vertexBufferDesc, &pVertexBuffer);
-        if (!pVertexBuffer || !pVertexBuffer->pCpuMappedAddress)
-        {
-            LOGF(eERROR, "Failed to create hello-triangle vertex buffer");
-            return false;
-        }
+        resources->vertexBuffer = context.createBuffer(bufferDesc);
+        ASSERT(resources->vertexBuffer);
 
-        memcpy(pVertexBuffer->pCpuMappedAddress, kTriangleVertices, sizeof(kTriangleVertices));
-        return true;
-    }
-
-    bool addPipelineResource()
-    {
-        if (!pSwapChain)
-        {
-            return false;
-        }
-
-        removePipelineResource();
-
-        VertexLayout vertexLayout = {
-            .mBindings = {
+        hz::ShaderDesc shaderDesc = {
+            .stages = {
                 {
-                    .mStride = sizeof(Vertex),
-                    .mRate = VERTEX_BINDING_RATE_VERTEX,
-                },
-            },
-            .mAttribs = {
-                {
-                    .mSemantic = SEMANTIC_POSITION,
-                    .mFormat = TinyImageFormat_R32G32_SFLOAT,
-                    .mBinding = 0,
-                    .mLocation = 0,
-                    .mOffset = offsetof(Vertex, position),
+                    .stage = SHADER_STAGE_VERT,
+                    .pSource = kHelloTriangleShader,
+                    .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
+                    .pEntryPoint = "VSMain",
+                    .pName = "HelloTriangleVS",
                 },
                 {
-                    .mSemantic = SEMANTIC_COLOR,
-                    .mFormat = TinyImageFormat_R32G32B32_SFLOAT,
-                    .mBinding = 0,
-                    .mLocation = 1,
-                    .mOffset = offsetof(Vertex, color),
+                    .stage = SHADER_STAGE_FRAG,
+                    .pSource = kHelloTriangleShader,
+                    .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
+                    .pEntryPoint = "PSMain",
+                    .pName = "HelloTrianglePS",
                 },
             },
-            .mBindingCount = 1,
-            .mAttribCount = 2,
+            .stageCount = 2,
         };
-
-        RasterizerStateDesc rasterizerDesc = {
-            .mCullMode = CULL_MODE_NONE,
-        };
-
-        TinyImageFormat colorFormat = pSwapChain->mFormat;
-
-        PipelineDesc pipelineDesc = {
-            .mGraphicsDesc = {
-                .pShaderProgram = pShader,
-                .pRootSignature = pRootSignature,
-                .pVertexLayout = &vertexLayout,
-                .pRasterizerState = &rasterizerDesc,
-                .pColorFormats = &colorFormat,
-                .mRenderTargetCount = 1,
-                .mSampleCount = SAMPLE_COUNT_1,
-                .mSampleQuality = 0,
-                .mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST,
+        hz::GraphicsPipelineDesc pipelineDesc = {
+            .vertexLayout = {
+                .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
+                .mAttribs = {
+                    { .mSemantic = SEMANTIC_POSITION, .mFormat = TinyImageFormat_R32G32_SFLOAT, .mBinding = 0, .mLocation = 0,
+                      .mOffset = (uint32_t)offsetof(Vertex, position) },
+                    { .mSemantic = SEMANTIC_COLOR, .mFormat = TinyImageFormat_R32G32B32_SFLOAT, .mBinding = 0, .mLocation = 1,
+                      .mOffset = (uint32_t)offsetof(Vertex, color) },
+                },
+                .mBindingCount = 1,
+                .mAttribCount = 2,
             },
+            .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
+            .depth = { .mDepthFunc = CMP_ALWAYS },
+            .blend = {
+                .mSrcFactors = { BC_ONE },
+                .mDstFactors = { BC_ZERO },
+                .mSrcAlphaFactors = { BC_ONE },
+                .mDstAlphaFactors = { BC_ZERO },
+                .mBlendModes = { BM_ADD },
+                .mBlendAlphaModes = { BM_ADD },
+                .mColorWriteMasks = { COLOR_MASK_ALL },
+                .mRenderTargetMask = BLEND_STATE_TARGET_0,
+            },
+            .colorFormats = { kSurfaceFormat },
+            .renderTargetCount = 1,
+            .topology = PRIMITIVE_TOPO_TRI_LIST,
+            .sampleCount = SAMPLE_COUNT_1,
             .pName = "HelloTriangle.Pipeline",
-            .mType = PIPELINE_TYPE_GRAPHICS,
         };
-        addPipeline(pRenderer, &pipelineDesc, &pPipeline);
-
-        if (!pPipeline)
-        {
-            LOGF(eERROR, "Failed to create hello-triangle graphics pipeline");
-            return false;
-        }
-
+        resources->pipeline = context.createGraphicsPipeline(shaderDesc, pipelineDesc);
+        ASSERT(resources->pipeline);
         return true;
     }
 
-    bool addSwapChainResource()
+    struct Resources
     {
-        removeSwapChainResource();
+        hz::GPUBuffer   vertexBuffer;
+        hz::GPUPipeline pipeline;
+    };
 
-        SwapChainDesc swapChainDesc = {
-            .mWindowHandle = pWindow->handle,
-            .ppPresentQueues = &pGraphicsQueue,
-            .mPresentQueueCount = 1,
-            .mImageCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle),
-            .mWidth = static_cast<uint32_t>(mSettings.mWidth),
-            .mHeight = static_cast<uint32_t>(mSettings.mHeight),
-            .mEnableVsync = mSettings.mVSyncEnabled,
-            .mColorSpace = COLOR_SPACE_SDR_SRGB,
-        };
-        swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, swapChainDesc.mColorSpace);
-        addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
-
-        if (!pSwapChain)
-        {
-            LOGF(eERROR, "Failed to create hello-triangle swapchain");
-            return false;
-        }
-
-        return true;
-    }
-
-    void removePipelineResource()
-    {
-        if (pPipeline)
-        {
-            removePipeline(pRenderer, pPipeline);
-            pPipeline = nullptr;
-        }
-    }
-
-    void removeSwapChainResource()
-    {
-        if (pSwapChain)
-        {
-            removeSwapChain(pRenderer, pSwapChain);
-            pSwapChain = nullptr;
-        }
-    }
-
-    void removeBufferResource()
-    {
-        if (pVertexBuffer)
-        {
-            removeBuffer(pRenderer, pVertexBuffer);
-            pVertexBuffer = nullptr;
-        }
-    }
-
-    void removeShaderResources()
-    {
-        if (pRootSignature)
-        {
-            removeRootSignature(pRenderer, pRootSignature);
-            pRootSignature = nullptr;
-        }
-
-        if (pShader)
-        {
-            removeShader(pRenderer, pShader);
-            pShader = nullptr;
-        }
-    }
-
-private:
-    Renderer*      pRenderer = nullptr;
-    Queue*         pGraphicsQueue = nullptr;
-    SwapChain*     pSwapChain = nullptr;
-    Semaphore*     pImageAcquiredSemaphore = nullptr;
-    Shader*        pShader = nullptr;
-    RootSignature* pRootSignature = nullptr;
-    Pipeline*      pPipeline = nullptr;
-    Buffer*        pVertexBuffer = nullptr;
-    GpuCmdRing     mGraphicsCmdRing = {};
-    ProfileToken   mGpuProfileToken = PROFILE_INVALID_TOKEN;
-    float          mElapsedTime = 0.0f;
+    hz::RenderContext        context;
+    std::optional<Resources> resources;
+    bool                     vSync = true;
 };
 
 DEFINE_APPLICATION_MAIN(HelloTriangleApp)

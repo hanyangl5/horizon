@@ -43,13 +43,9 @@ set(HORIZON_HELLO_TRIANGLE_SOURCES
     ${HORIZON_EXAMPLES_SOURCE_DIR}/HelloTriangle/HelloTriangle.cpp
 )
 
-set(HORIZON_DEFERRED_RENDERER_SOURCES
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredRenderer/DeferredRenderer.cpp
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredRenderer/DeferredRendererPasses.h
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredRenderer/GeometryBuildPass.cpp
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredRenderer/GBufferPass.cpp
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredRenderer/LightingPass.cpp
+set(HORIZON_DEFERRED_SHADING_SOURCES
+    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredShading/DeferredShading.cpp
 )
 
 add_example_target(HelloTriangle ${HORIZON_HELLO_TRIANGLE_SOURCES})
-add_example_target(DeferredRenderer ${HORIZON_DEFERRED_RENDERER_SOURCES})
+add_example_target(DeferredShading ${HORIZON_DEFERRED_SHADING_SOURCES})

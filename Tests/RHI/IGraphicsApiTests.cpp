@@ -151,18 +151,18 @@ const char* getRendererInitReason()
     return reason ? reason : "";
 }
 
-#define ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(expr)                                                                                  \
-    do                                                                                                                                \
-    {                                                                                                                                 \
-        if (!(expr))                                                                                                                  \
-        {                                                                                                                             \
-            const char* reason = "";                                                                                                  \
-            if (hasRendererInitializationError(&reason))                                                                              \
-            {                                                                                                                         \
+#define ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(expr)                                                                                 \
+    do                                                                                                                               \
+    {                                                                                                                                \
+        if (!(expr))                                                                                                                 \
+        {                                                                                                                            \
+            const char* reason = "";                                                                                                 \
+            if (hasRendererInitializationError(&reason))                                                                             \
+            {                                                                                                                        \
                 GTEST_SKIP() << "Skipping because renderer initialization is unsupported: " << (reason ? reason : "unknown reason"); \
-            }                                                                                                                         \
-            FAIL() << #expr << " failed: " << getRendererInitReason();                                                                \
-        }                                                                                                                             \
+            }                                                                                                                        \
+            FAIL() << #expr << " failed: " << getRendererInitReason();                                                               \
+        }                                                                                                                            \
     } while (false)
 
 ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const char* entry0, const char* entry1 = nullptr)
@@ -174,7 +174,7 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
     if (stages & SHADER_STAGE_VERT)
     {
         desc.mVert.pName = "InlineVert";
-        desc.mVert.pByteCode = const_cast<char*>(source);
+        desc.mVert.pByteCode = (char*)source;
         desc.mVert.mByteCodeSize = (uint32_t)strlen(source);
         desc.mVert.pEntryPoint = entry0;
     }
@@ -182,7 +182,7 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
     if (stages & SHADER_STAGE_FRAG)
     {
         desc.mFrag.pName = "InlineFrag";
-        desc.mFrag.pByteCode = const_cast<char*>(source);
+        desc.mFrag.pByteCode = (char*)source;
         desc.mFrag.mByteCodeSize = (uint32_t)strlen(source);
         desc.mFrag.pEntryPoint = entry1 ? entry1 : entry0;
     }
@@ -190,7 +190,7 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
     if (stages & SHADER_STAGE_COMP)
     {
         desc.mComp.pName = "InlineComp";
-        desc.mComp.pByteCode = const_cast<char*>(source);
+        desc.mComp.pByteCode = (char*)source;
         desc.mComp.mByteCodeSize = (uint32_t)strlen(source);
         desc.mComp.pEntryPoint = entry0;
     }
@@ -428,7 +428,7 @@ struct LiveRendererHarness
             return false;
         }
 
-        Queue* presentQueues[] = { pQueue };
+        Queue*        presentQueues[] = { pQueue };
         SwapChainDesc swapChainDesc = {
             .mWindowHandle = mWindow.handle,
             .ppPresentQueues = presentQueues,
@@ -591,10 +591,7 @@ void expectD3DObjectName(ID3D12Object* pObject, const wchar_t* expectedName)
 }
 #endif
 
-const uint8_t* getTexturePixel(const uint8_t* data, uint32_t rowPitch, uint32_t x, uint32_t y)
-{
-    return data + rowPitch * y + x * 4;
-}
+const uint8_t* getTexturePixel(const uint8_t* data, uint32_t rowPitch, uint32_t x, uint32_t y) { return data + rowPitch * y + x * 4; }
 
 void expectPixelEq(const uint8_t* pixel, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
@@ -606,7 +603,7 @@ void expectPixelEq(const uint8_t* pixel, uint8_t r, uint8_t g, uint8_t b, uint8_
 
 } // namespace
 
-class RHIIGraphicsApiTest : public ::testing::Test
+class RHIIGraphicsApiTest: public ::testing::Test
 {
 protected:
     static void SetUpTestSuite()
@@ -736,9 +733,9 @@ struct LifecycleShaderBundle
 
 struct LifecyclePlacedBufferBundle
 {
-    ResourceHeap*      pHeap = nullptr;
-    Buffer*            pBuffer = nullptr;
-    ResourceSizeAlign  sizeAlign = {};
+    ResourceHeap*     pHeap = nullptr;
+    Buffer*           pBuffer = nullptr;
+    ResourceSizeAlign sizeAlign = {};
 };
 
 struct LifecyclePipelineBundle
@@ -765,33 +762,33 @@ enum class DrawCallKind
 
 struct GraphicsDrawSetup
 {
-    RenderTarget*                   pRenderTarget = nullptr;
-    Buffer*                         pReadbackBuffer = nullptr;
+    RenderTarget*                      pRenderTarget = nullptr;
+    Buffer*                            pReadbackBuffer = nullptr;
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
-    UINT64                          totalTextureBytes = 0;
-    Shader*                         pShader = nullptr;
-    RootSignature*                  pRootSignature = nullptr;
-    uint32_t                        rootConstantIndex = UINT32_MAX;
-    Buffer*                         pVertexBuffer = nullptr;
-    Buffer*                         pIndexBuffer = nullptr;
-    Pipeline*                       pPipeline = nullptr;
+    UINT64                             totalTextureBytes = 0;
+    Shader*                            pShader = nullptr;
+    RootSignature*                     pRootSignature = nullptr;
+    uint32_t                           rootConstantIndex = UINT32_MAX;
+    Buffer*                            pVertexBuffer = nullptr;
+    Buffer*                            pIndexBuffer = nullptr;
+    Pipeline*                          pPipeline = nullptr;
 };
 
 struct ComputeCommandSetup
 {
-    Shader*             pShader = nullptr;
-    RootSignature*      pRootSignature = nullptr;
-    DescriptorSet*      pDescriptorSet = nullptr;
-    uint32_t            outputIndex = UINT32_MAX;
-    uint32_t            rootCbvIndex = UINT32_MAX;
-    uint32_t            rootConstantIndex = UINT32_MAX;
-    Buffer*             pOutputBuffer = nullptr;
-    Buffer*             pRootCbvBuffer = nullptr;
-    RootCbvConstants    rootCbvData = {};
-    Buffer*             pReadbackBuffer = nullptr;
-    Buffer*             pIndirectBuffer = nullptr;
-    Pipeline*           pPipeline = nullptr;
-    CommandSignature*   pDispatchSignature = nullptr;
+    Shader*           pShader = nullptr;
+    RootSignature*    pRootSignature = nullptr;
+    DescriptorSet*    pDescriptorSet = nullptr;
+    uint32_t          outputIndex = UINT32_MAX;
+    uint32_t          rootCbvIndex = UINT32_MAX;
+    uint32_t          rootConstantIndex = UINT32_MAX;
+    Buffer*           pOutputBuffer = nullptr;
+    Buffer*           pRootCbvBuffer = nullptr;
+    RootCbvConstants  rootCbvData = {};
+    Buffer*           pReadbackBuffer = nullptr;
+    Buffer*           pIndirectBuffer = nullptr;
+    Pipeline*         pPipeline = nullptr;
+    CommandSignature* pDispatchSignature = nullptr;
 };
 
 bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& cleanup, LifecycleShaderBundle* pOut)
@@ -804,13 +801,14 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     Shader* pSourceShader = pOut->pSourceShader;
-    cleanup.add([renderer = harness.pRenderer, pSourceShader]
-    {
-        if (pSourceShader)
+    cleanup.add(
+        [renderer = harness.pRenderer, pSourceShader]
         {
-            removeShader(renderer, pSourceShader);
-        }
-    });
+            if (pSourceShader)
+            {
+                removeShader(renderer, pSourceShader);
+            }
+        });
 
     BinaryShaderDesc binaryShaderDesc = makeBinaryShaderDescFromSourceShader(pOut->pSourceShader, SHADER_STAGE_COMP, "CSMain");
     addShaderBinary(harness.pRenderer, &binaryShaderDesc, &pOut->pBinaryShader);
@@ -820,15 +818,16 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     Shader* pBinaryShader = pOut->pBinaryShader;
-    cleanup.add([renderer = harness.pRenderer, pBinaryShader]
-    {
-        if (pBinaryShader)
+    cleanup.add(
+        [renderer = harness.pRenderer, pBinaryShader]
         {
-            removeShader(renderer, pBinaryShader);
-        }
-    });
+            if (pBinaryShader)
+            {
+                removeShader(renderer, pBinaryShader);
+            }
+        });
 
-    Shader* rootShaders[] = { pOut->pBinaryShader };
+    Shader*           rootShaders[] = { pOut->pBinaryShader };
     RootSignatureDesc rootSignatureDesc = {
         .ppShaders = rootShaders,
         .mShaderCount = 1,
@@ -840,13 +839,14 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     RootSignature* pRootSignature = pOut->pRootSignature;
-    cleanup.add([renderer = harness.pRenderer, pRootSignature]
-    {
-        if (pRootSignature)
+    cleanup.add(
+        [renderer = harness.pRenderer, pRootSignature]
         {
-            removeRootSignature(renderer, pRootSignature);
-        }
-    });
+            if (pRootSignature)
+            {
+                removeRootSignature(renderer, pRootSignature);
+            }
+        });
 
     pOut->outputIndex = getDescriptorIndexFromName(pOut->pRootSignature, "OutputBuffer");
     if (pOut->outputIndex == UINT32_MAX)
@@ -886,13 +886,14 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     ResourceHeap* pHeap = pOut->pHeap;
-    cleanup.add([renderer = harness.pRenderer, pHeap]
-    {
-        if (pHeap)
+    cleanup.add(
+        [renderer = harness.pRenderer, pHeap]
         {
-            removeResourceHeap(renderer, pHeap);
-        }
-    });
+            if (pHeap)
+            {
+                removeResourceHeap(renderer, pHeap);
+            }
+        });
 
     ResourcePlacement placement = {
         .pHeap = pOut->pHeap,
@@ -906,13 +907,14 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     Buffer* pBuffer = pOut->pBuffer;
-    cleanup.add([renderer = harness.pRenderer, pBuffer]
-    {
-        if (pBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pBuffer]
         {
-            removeBuffer(renderer, pBuffer);
-        }
-    });
+            if (pBuffer)
+            {
+                removeBuffer(renderer, pBuffer);
+            }
+        });
 
     return true;
 }
@@ -932,13 +934,14 @@ bool createDescriptorSetForOutput(LiveRendererHarness& harness, DeferredCleanup&
         return false;
     }
     DescriptorSet* pDescriptorSet = *ppDescriptorSet;
-    cleanup.add([renderer = harness.pRenderer, pDescriptorSet]
-    {
-        if (pDescriptorSet)
+    cleanup.add(
+        [renderer = harness.pRenderer, pDescriptorSet]
         {
-            removeDescriptorSet(renderer, pDescriptorSet);
-        }
-    });
+            if (pDescriptorSet)
+            {
+                removeDescriptorSet(renderer, pDescriptorSet);
+            }
+        });
 
     DescriptorData bufferUpdate = {
         .pName = "OutputBuffer",
@@ -960,13 +963,14 @@ bool createLifecyclePipelineBundle(LiveRendererHarness& harness, DeferredCleanup
         return false;
     }
     PipelineCache* pPipelineCache = pOut->pPipelineCache;
-    cleanup.add([renderer = harness.pRenderer, pPipelineCache]
-    {
-        if (pPipelineCache)
+    cleanup.add(
+        [renderer = harness.pRenderer, pPipelineCache]
         {
-            removePipelineCache(renderer, pPipelineCache);
-        }
-    });
+            if (pPipelineCache)
+            {
+                removePipelineCache(renderer, pPipelineCache);
+            }
+        });
 
     PipelineDesc pipelineDesc = {
         .mComputeDesc = {
@@ -984,13 +988,14 @@ bool createLifecyclePipelineBundle(LiveRendererHarness& harness, DeferredCleanup
         return false;
     }
     Pipeline* pPipeline = pOut->pPipeline;
-    cleanup.add([renderer = harness.pRenderer, pPipeline]
-    {
-        if (pPipeline)
+    cleanup.add(
+        [renderer = harness.pRenderer, pPipeline]
         {
-            removePipeline(renderer, pPipeline);
-        }
-    });
+            if (pPipeline)
+            {
+                removePipeline(renderer, pPipeline);
+            }
+        });
 
     return true;
 }
@@ -1016,13 +1021,14 @@ bool createRenderTarget(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
         return false;
     }
     RenderTarget* pRenderTarget = *ppRenderTarget;
-    cleanup.add([renderer = harness.pRenderer, pRenderTarget]
-    {
-        if (pRenderTarget)
+    cleanup.add(
+        [renderer = harness.pRenderer, pRenderTarget]
         {
-            removeRenderTarget(renderer, pRenderTarget);
-        }
-    });
+            if (pRenderTarget)
+            {
+                removeRenderTarget(renderer, pRenderTarget);
+            }
+        });
     return true;
 }
 
@@ -1038,8 +1044,8 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     {
         textureResourceDesc.Alignment = 0;
     }
-    UINT                numRows = 0;
-    UINT64              rowSizeInBytes = 0;
+    UINT   numRows = 0;
+    UINT64 rowSizeInBytes = 0;
     harness.pRenderer->mDx.pDevice->GetCopyableFootprints(&textureResourceDesc, 0, 1, 0, &pOut->footprint, &numRows, &rowSizeInBytes,
                                                           &pOut->totalTextureBytes);
 
@@ -1056,13 +1062,14 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
     Buffer* pReadbackBuffer = pOut->pReadbackBuffer;
-    cleanup.add([renderer = harness.pRenderer, pReadbackBuffer]
-    {
-        if (pReadbackBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pReadbackBuffer]
         {
-            removeBuffer(renderer, pReadbackBuffer);
-        }
-    });
+            if (pReadbackBuffer)
+            {
+                removeBuffer(renderer, pReadbackBuffer);
+            }
+        });
 
     ShaderSrcDesc graphicsShaderDesc = makeShaderSourceDesc(SHADER_STAGE_VERT | SHADER_STAGE_FRAG, kGraphicsShader, "VSMain", "PSMain");
     addShaderSource(harness.pRenderer, &graphicsShaderDesc, &pOut->pShader);
@@ -1072,15 +1079,16 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
     Shader* pGraphicsShader = pOut->pShader;
-    cleanup.add([renderer = harness.pRenderer, pGraphicsShader]
-    {
-        if (pGraphicsShader)
+    cleanup.add(
+        [renderer = harness.pRenderer, pGraphicsShader]
         {
-            removeShader(renderer, pGraphicsShader);
-        }
-    });
+            if (pGraphicsShader)
+            {
+                removeShader(renderer, pGraphicsShader);
+            }
+        });
 
-    Shader* graphicsShaders[] = { pOut->pShader };
+    Shader*           graphicsShaders[] = { pOut->pShader };
     RootSignatureDesc graphicsRootSignatureDesc = {
         .ppShaders = graphicsShaders,
         .mShaderCount = 1,
@@ -1092,13 +1100,14 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
     RootSignature* pGraphicsRootSignature = pOut->pRootSignature;
-    cleanup.add([renderer = harness.pRenderer, pGraphicsRootSignature]
-    {
-        if (pGraphicsRootSignature)
+    cleanup.add(
+        [renderer = harness.pRenderer, pGraphicsRootSignature]
         {
-            removeRootSignature(renderer, pGraphicsRootSignature);
-        }
-    });
+            if (pGraphicsRootSignature)
+            {
+                removeRootSignature(renderer, pGraphicsRootSignature);
+            }
+        });
 
     pOut->rootConstantIndex = getDescriptorIndexFromName(pOut->pRootSignature, "RootConstantColor");
     if (pOut->rootConstantIndex == UINT32_MAX)
@@ -1122,13 +1131,14 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
     Buffer* pVertexBuffer = pOut->pVertexBuffer;
-    cleanup.add([renderer = harness.pRenderer, pVertexBuffer]
-    {
-        if (pVertexBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pVertexBuffer]
         {
-            removeBuffer(renderer, pVertexBuffer);
-        }
-    });
+            if (pVertexBuffer)
+            {
+                removeBuffer(renderer, pVertexBuffer);
+            }
+        });
 
     const float fullscreenTriangle[3][2] = { { -1.0f, -1.0f }, { -1.0f, 3.0f }, { 3.0f, -1.0f } };
     memcpy(pOut->pVertexBuffer->pCpuMappedAddress, fullscreenTriangle, sizeof(fullscreenTriangle));
@@ -1148,13 +1158,14 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
     Buffer* pIndexBuffer = pOut->pIndexBuffer;
-    cleanup.add([renderer = harness.pRenderer, pIndexBuffer]
-    {
-        if (pIndexBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pIndexBuffer]
         {
-            removeBuffer(renderer, pIndexBuffer);
-        }
-    });
+            if (pIndexBuffer)
+            {
+                removeBuffer(renderer, pIndexBuffer);
+            }
+        });
 
     const uint16_t triangleIndices[3] = { 0u, 1u, 2u };
     memcpy(pOut->pIndexBuffer->pCpuMappedAddress, triangleIndices, sizeof(triangleIndices));
@@ -1204,13 +1215,14 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         return false;
     }
     Pipeline* pGraphicsPipeline = pOut->pPipeline;
-    cleanup.add([renderer = harness.pRenderer, pGraphicsPipeline]
-    {
-        if (pGraphicsPipeline)
+    cleanup.add(
+        [renderer = harness.pRenderer, pGraphicsPipeline]
         {
-            removePipeline(renderer, pGraphicsPipeline);
-        }
-    });
+            if (pGraphicsPipeline)
+            {
+                removePipeline(renderer, pGraphicsPipeline);
+            }
+        });
 
     return true;
 }
@@ -1281,8 +1293,8 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
         .mSize = setup.totalTextureBytes,
     };
     mapBuffer(harness.pRenderer, setup.pReadbackBuffer, &textureReadRange);
-    const uint8_t* textureBytes = static_cast<const uint8_t*>(setup.pReadbackBuffer->pCpuMappedAddress);
-    PixelValue result = {};
+    const uint8_t* textureBytes = (const uint8_t*)setup.pReadbackBuffer->pCpuMappedAddress;
+    PixelValue     result = {};
     if (textureBytes)
     {
         const uint8_t* pixel = getTexturePixel(textureBytes, setup.footprint.Footprint.RowPitch, 1, 1);
@@ -1305,15 +1317,16 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     Shader* pComputeShader = pOut->pShader;
-    cleanup.add([renderer = harness.pRenderer, pComputeShader]
-    {
-        if (pComputeShader)
+    cleanup.add(
+        [renderer = harness.pRenderer, pComputeShader]
         {
-            removeShader(renderer, pComputeShader);
-        }
-    });
+            if (pComputeShader)
+            {
+                removeShader(renderer, pComputeShader);
+            }
+        });
 
-    Shader* computeShaders[] = { pOut->pShader };
+    Shader*           computeShaders[] = { pOut->pShader };
     RootSignatureDesc computeRootSignatureDesc = {
         .ppShaders = computeShaders,
         .mShaderCount = 1,
@@ -1325,13 +1338,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     RootSignature* pComputeRootSignature = pOut->pRootSignature;
-    cleanup.add([renderer = harness.pRenderer, pComputeRootSignature]
-    {
-        if (pComputeRootSignature)
+    cleanup.add(
+        [renderer = harness.pRenderer, pComputeRootSignature]
         {
-            removeRootSignature(renderer, pComputeRootSignature);
-        }
-    });
+            if (pComputeRootSignature)
+            {
+                removeRootSignature(renderer, pComputeRootSignature);
+            }
+        });
 
     pOut->outputIndex = getDescriptorIndexFromName(pOut->pRootSignature, "OutputBuffer");
     pOut->rootCbvIndex = getDescriptorIndexFromName(pOut->pRootSignature, "ComputeRootCbv");
@@ -1354,13 +1368,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     DescriptorSet* pComputeDescriptorSet = pOut->pDescriptorSet;
-    cleanup.add([renderer = harness.pRenderer, pComputeDescriptorSet]
-    {
-        if (pComputeDescriptorSet)
+    cleanup.add(
+        [renderer = harness.pRenderer, pComputeDescriptorSet]
         {
-            removeDescriptorSet(renderer, pComputeDescriptorSet);
-        }
-    });
+            if (pComputeDescriptorSet)
+            {
+                removeDescriptorSet(renderer, pComputeDescriptorSet);
+            }
+        });
 
     BufferDesc computeOutputDesc = {
         .mSize = sizeof(uint32_t) * 2,
@@ -1378,13 +1393,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     Buffer* pOutputBuffer = pOut->pOutputBuffer;
-    cleanup.add([renderer = harness.pRenderer, pOutputBuffer]
-    {
-        if (pOutputBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pOutputBuffer]
         {
-            removeBuffer(renderer, pOutputBuffer);
-        }
-    });
+            if (pOutputBuffer)
+            {
+                removeBuffer(renderer, pOutputBuffer);
+            }
+        });
 
     DescriptorData computeOutputUpdate = {
         .pName = "OutputBuffer",
@@ -1408,13 +1424,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     Buffer* pRootCbvBuffer = pOut->pRootCbvBuffer;
-    cleanup.add([renderer = harness.pRenderer, pRootCbvBuffer]
-    {
-        if (pRootCbvBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pRootCbvBuffer]
         {
-            removeBuffer(renderer, pRootCbvBuffer);
-        }
-    });
+            if (pRootCbvBuffer)
+            {
+                removeBuffer(renderer, pRootCbvBuffer);
+            }
+        });
 
     pOut->rootCbvData.multiplier = 3u;
     memcpy(pOut->pRootCbvBuffer->pCpuMappedAddress, &pOut->rootCbvData, sizeof(pOut->rootCbvData));
@@ -1432,13 +1449,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     Buffer* pComputeReadbackBuffer = pOut->pReadbackBuffer;
-    cleanup.add([renderer = harness.pRenderer, pComputeReadbackBuffer]
-    {
-        if (pComputeReadbackBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pComputeReadbackBuffer]
         {
-            removeBuffer(renderer, pComputeReadbackBuffer);
-        }
-    });
+            if (pComputeReadbackBuffer)
+            {
+                removeBuffer(renderer, pComputeReadbackBuffer);
+            }
+        });
 
     BufferDesc indirectBufferDesc = {
         .mSize = sizeof(DispatchCommandData),
@@ -1455,13 +1473,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     Buffer* pIndirectBuffer = pOut->pIndirectBuffer;
-    cleanup.add([renderer = harness.pRenderer, pIndirectBuffer]
-    {
-        if (pIndirectBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pIndirectBuffer]
         {
-            removeBuffer(renderer, pIndirectBuffer);
-        }
-    });
+            if (pIndirectBuffer)
+            {
+                removeBuffer(renderer, pIndirectBuffer);
+            }
+        });
 
     DispatchCommandData dispatchData = {
         .args = {
@@ -1487,13 +1506,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     Pipeline* pComputePipeline = pOut->pPipeline;
-    cleanup.add([renderer = harness.pRenderer, pComputePipeline]
-    {
-        if (pComputePipeline)
+    cleanup.add(
+        [renderer = harness.pRenderer, pComputePipeline]
         {
-            removePipeline(renderer, pComputePipeline);
-        }
-    });
+            if (pComputePipeline)
+            {
+                removePipeline(renderer, pComputePipeline);
+            }
+        });
 
     IndirectArgumentDescriptor dispatchArg = {
         .mType = INDIRECT_DISPATCH,
@@ -1509,13 +1529,14 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         return false;
     }
     CommandSignature* pDispatchSignature = pOut->pDispatchSignature;
-    cleanup.add([renderer = harness.pRenderer, pDispatchSignature]
-    {
-        if (pDispatchSignature)
+    cleanup.add(
+        [renderer = harness.pRenderer, pDispatchSignature]
         {
-            removeIndirectCommandSignature(renderer, pDispatchSignature);
-        }
-    });
+            if (pDispatchSignature)
+            {
+                removeIndirectCommandSignature(renderer, pDispatchSignature);
+            }
+        });
 
     return true;
 }
@@ -1544,7 +1565,7 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
             .pName = "ComputeRootCbv",
             .mCount = 1,
             .pRanges = &computeRootCbvRange,
-            .ppBuffers = const_cast<Buffer**>(&setup.pRootCbvBuffer),
+            .ppBuffers = (Buffer**)&setup.pRootCbvBuffer,
         };
         cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, setup.pDescriptorSet, 1, &computeRootCbvBinding);
     }
@@ -1577,7 +1598,7 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
         .mSize = sizeof(uint32_t) * 2,
     };
     mapBuffer(harness.pRenderer, setup.pReadbackBuffer, &computeReadRange);
-    const uint32_t* computeValues = static_cast<const uint32_t*>(setup.pReadbackBuffer->pCpuMappedAddress);
+    const uint32_t* computeValues = (const uint32_t*)setup.pReadbackBuffer->pCpuMappedAddress;
     pOutValues[0] = computeValues ? computeValues[0] : 0u;
     pOutValues[1] = computeValues ? computeValues[1] : 0u;
     unmapBuffer(harness.pRenderer, setup.pReadbackBuffer);
@@ -1597,13 +1618,14 @@ bool createQueryPool(LiveRendererHarness& harness, DeferredCleanup& cleanup, Que
         return false;
     }
     QueryPool* pQueryPool = *ppQueryPool;
-    cleanup.add([renderer = harness.pRenderer, pQueryPool]
-    {
-        if (pQueryPool)
+    cleanup.add(
+        [renderer = harness.pRenderer, pQueryPool]
         {
-            removeQueryPool(renderer, pQueryPool);
-        }
-    });
+            if (pQueryPool)
+            {
+                removeQueryPool(renderer, pQueryPool);
+            }
+        });
     return true;
 }
 
@@ -1623,13 +1645,14 @@ bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
         return false;
     }
     Buffer* pMarkerBuffer = *ppMarkerBuffer;
-    cleanup.add([renderer = harness.pRenderer, pMarkerBuffer]
-    {
-        if (pMarkerBuffer)
+    cleanup.add(
+        [renderer = harness.pRenderer, pMarkerBuffer]
         {
-            removeBuffer(renderer, pMarkerBuffer);
-        }
-    });
+            if (pMarkerBuffer)
+            {
+                removeBuffer(renderer, pMarkerBuffer);
+            }
+        });
     return true;
 }
 
@@ -1674,14 +1697,15 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
     ASSERT_NE(pWaitFence, nullptr);
 
     DeferredCleanup cleanup;
-    cleanup.add([&]
-    {
-        if (pWaitFence)
+    cleanup.add(
+        [&]
         {
-            removeFence(harness.pRenderer, pWaitFence);
-            pWaitFence = nullptr;
-        }
-    });
+            if (pWaitFence)
+            {
+                removeFence(harness.pRenderer, pWaitFence);
+                pWaitFence = nullptr;
+            }
+        });
 
     getFenceStatus(harness.pRenderer, pWaitFence, &fenceStatus);
     EXPECT_EQ(fenceStatus, FENCE_STATUS_NOTSUBMITTED);
@@ -1736,7 +1760,7 @@ TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
-    Sampler* pSampler = nullptr;
+    Sampler*    pSampler = nullptr;
     SamplerDesc samplerDesc = {
         .mMinFilter = FILTER_LINEAR,
         .mMagFilter = FILTER_LINEAR,
@@ -1751,14 +1775,15 @@ TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
     ASSERT_NE(pSampler, nullptr);
 
     DeferredCleanup cleanup;
-    cleanup.add([&]
-    {
-        if (pSampler)
+    cleanup.add(
+        [&]
         {
-            removeSampler(harness.pRenderer, pSampler);
-            pSampler = nullptr;
-        }
-    });
+            if (pSampler)
+            {
+                removeSampler(harness.pRenderer, pSampler);
+                pSampler = nullptr;
+            }
+        });
 
     EXPECT_EQ(pSampler->mDx.mDesc.AddressU, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
     EXPECT_EQ(pSampler->mDx.mDesc.AddressV, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
@@ -1771,7 +1796,7 @@ TEST_F(RHIIGraphicsApiTest, ShaderApisCreateSourceAndBinaryShaders)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup       cleanup;
     LifecycleShaderBundle shaderBundle = {};
     ASSERT_TRUE(createLifecycleShaderBundle(harness, cleanup, &shaderBundle));
 
@@ -1787,7 +1812,7 @@ TEST_F(RHIIGraphicsApiTest, RootSignatureAndDescriptorSetApisExposeAndUpdateBind
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup       cleanup;
     LifecycleShaderBundle shaderBundle = {};
     ASSERT_TRUE(createLifecycleShaderBundle(harness, cleanup, &shaderBundle));
 
@@ -1808,7 +1833,7 @@ TEST_F(RHIIGraphicsApiTest, ResourceHeapAndPlacedBufferApisCreateExpectedAllocat
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup             cleanup;
     LifecyclePlacedBufferBundle placedBufferBundle = {};
     ASSERT_TRUE(createLifecyclePlacedBuffer(harness, cleanup, &placedBufferBundle));
 
@@ -1826,7 +1851,7 @@ TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipel
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup       cleanup;
     LifecycleShaderBundle shaderBundle = {};
     ASSERT_TRUE(createLifecycleShaderBundle(harness, cleanup, &shaderBundle));
 
@@ -1852,7 +1877,7 @@ TEST_F(RHIIGraphicsApiTest, RenderTargetAndMemoryStatsApisReportUsage)
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
 
     DeferredCleanup cleanup;
-    RenderTarget* pRenderTarget = nullptr;
+    RenderTarget*   pRenderTarget = nullptr;
     ASSERT_TRUE(createRenderTarget(harness, cleanup, "LifecycleRenderTarget", 4, 4, &pRenderTarget));
 
     uint64_t usedBytes = 0;
@@ -1888,12 +1913,12 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawWritesExpectedPixels)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup   cleanup;
     GraphicsDrawSetup drawSetup = {};
     ASSERT_TRUE(createGraphicsDrawSetup(harness, cleanup, &drawSetup));
 
     const float red[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-    PixelValue pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::Draw, red);
+    PixelValue  pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::Draw, red);
     expectPixelEq(&pixel.r, 255, 0, 0, 255);
 }
 
@@ -1903,12 +1928,12 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawInstancedWritesExpectedPixels)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup   cleanup;
     GraphicsDrawSetup drawSetup = {};
     ASSERT_TRUE(createGraphicsDrawSetup(harness, cleanup, &drawSetup));
 
     const float green[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-    PixelValue pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::DrawInstanced, green);
+    PixelValue  pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::DrawInstanced, green);
     expectPixelEq(&pixel.r, 0, 255, 0, 255);
 }
 
@@ -1918,12 +1943,12 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedWritesExpectedPixels)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup   cleanup;
     GraphicsDrawSetup drawSetup = {};
     ASSERT_TRUE(createGraphicsDrawSetup(harness, cleanup, &drawSetup));
 
     const float blue[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-    PixelValue pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::DrawIndexed, blue);
+    PixelValue  pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::DrawIndexed, blue);
     expectPixelEq(&pixel.r, 0, 0, 255, 255);
 }
 
@@ -1933,12 +1958,12 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedInstancedWritesExpectedPixels)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup   cleanup;
     GraphicsDrawSetup drawSetup = {};
     ASSERT_TRUE(createGraphicsDrawSetup(harness, cleanup, &drawSetup));
 
     const float yellow[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    PixelValue pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::DrawIndexedInstanced, yellow);
+    PixelValue  pixel = executeDrawAndReadPixel(harness, drawSetup, DrawCallKind::DrawIndexedInstanced, yellow);
     expectPixelEq(&pixel.r, 255, 255, 0, 255);
 }
 
@@ -1948,7 +1973,7 @@ TEST_F(RHIIGraphicsApiTest, CmdBindDescriptorSetWithRootCbvsBindsComputeRootCbv)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup     cleanup;
     ComputeCommandSetup computeSetup = {};
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
@@ -1964,7 +1989,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDispatchWritesExpectedBufferValues)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup     cleanup;
     ComputeCommandSetup computeSetup = {};
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
@@ -1979,7 +2004,7 @@ TEST_F(RHIIGraphicsApiTest, CmdExecuteIndirectDispatchWritesExpectedBufferValues
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup     cleanup;
     ComputeCommandSetup computeSetup = {};
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
@@ -1996,7 +2021,7 @@ TEST_F(RHIIGraphicsApiTest, QueryApisProduceValidTimestamps)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup     cleanup;
     ComputeCommandSetup computeSetup = {};
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
@@ -2053,7 +2078,7 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
 
-    DeferredCleanup cleanup;
+    DeferredCleanup     cleanup;
     ComputeCommandSetup computeSetup = {};
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
@@ -2111,7 +2136,7 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
         .mSize = sizeof(uint32_t) * 2,
     };
     mapBuffer(harness.pRenderer, computeSetup.pReadbackBuffer, &computeReadRange);
-    const uint32_t* computeValues = static_cast<const uint32_t*>(computeSetup.pReadbackBuffer->pCpuMappedAddress);
+    const uint32_t* computeValues = (const uint32_t*)computeSetup.pReadbackBuffer->pCpuMappedAddress;
     ASSERT_NE(computeValues, nullptr);
     EXPECT_EQ(computeValues[0], 15u);
     unmapBuffer(harness.pRenderer, computeSetup.pReadbackBuffer);
@@ -2121,7 +2146,7 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
         .mSize = sizeof(uint32_t),
     };
     mapBuffer(harness.pRenderer, pMarkerBuffer, &markerReadRange);
-    const uint32_t* markerValue = static_cast<const uint32_t*>(pMarkerBuffer->pCpuMappedAddress);
+    const uint32_t* markerValue = (const uint32_t*)pMarkerBuffer->pCpuMappedAddress;
     ASSERT_NE(markerValue, nullptr);
     EXPECT_EQ(markerValue[0], 0xCAFEBABEu);
     unmapBuffer(harness.pRenderer, pMarkerBuffer);

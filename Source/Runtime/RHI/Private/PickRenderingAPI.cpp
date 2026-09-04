@@ -177,6 +177,7 @@ extern void d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void d3d12_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+extern void d3d12_cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture);
 extern void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc);
 extern void d3d12_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc);
 extern void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
@@ -930,6 +931,12 @@ void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffs
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
     d3d12_cmdUpdateBuffer(pCmd, pBuffer, dstOffset, pSrcBuffer, srcOffset, size);
+}
+
+void FORGE_CALLCONV cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture)
+{
+    PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
+    d3d12_cmdCopyTexture(pCmd, pDstTexture, pSrcTexture);
 }
 
 void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)

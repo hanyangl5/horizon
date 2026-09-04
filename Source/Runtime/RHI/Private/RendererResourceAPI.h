@@ -297,6 +297,7 @@ void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+void FORGE_CALLCONV cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture);
 void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc);
 void FORGE_CALLCONV cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc);
 // void FORGE_CALLCONV cmdBarrier(Cmd* pCmd, const BarrierDesc* pDesc);
