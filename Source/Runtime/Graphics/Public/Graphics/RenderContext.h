@@ -209,7 +209,6 @@ public:
 private:
     GPUShader(RenderContext*, Shader*);
     void           destroy();
-    Shader*        detach();
     RenderContext* pContext = nullptr;
     Shader*        pShader = nullptr;
     friend class CommandList;
@@ -234,7 +233,6 @@ private:
     RenderContext* pContext = nullptr;
     Pipeline*      pPipeline = nullptr;
     RootSignature* pRootSignature = nullptr;
-    Shader*        pOwnedShader = nullptr;
     friend class CommandList;
     friend class RenderContext;
 };
@@ -361,8 +359,6 @@ public:
     GPUShader   createShader(const ShaderDesc&);
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);
-    GPUPipeline createGraphicsPipeline(const ShaderDesc&, const GraphicsPipelineDesc&);
-    GPUPipeline createComputePipeline(const ShaderDesc&, const ComputePipelineDesc&);
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
     bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
 

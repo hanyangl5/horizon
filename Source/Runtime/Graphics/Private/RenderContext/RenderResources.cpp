@@ -58,16 +58,8 @@ void GPUBuffer::destroy()
     if (pBuffer)
     {
         ASSERT(pContext->resourceCount);
-        RenderContext* context = pContext;
-        Buffer*        native = pBuffer;
-        pContext = nullptr;
-        pBuffer = nullptr;
-        size = 0;
-        usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-        descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-        state = RESOURCE_STATE_UNDEFINED;
-        --context->resourceCount;
-        removeResource(native);
+        --pContext->resourceCount;
+        removeResource(pBuffer);
     }
 }
 
@@ -115,25 +107,14 @@ GPUTexture& GPUTexture::operator=(GPUTexture&& other) noexcept
 
 void GPUTexture::destroy()
 {
-    if (pTexture)
+    if (pTexture && owned)
     {
-        RenderContext* context = pContext;
-        Texture*       nativeTexture = pTexture;
-        RenderTarget*  nativeTarget = pRenderTarget;
-        pContext = nullptr;
-        pTexture = nullptr;
-        pRenderTarget = nullptr;
-        state = RESOURCE_STATE_UNDEFINED;
-        if (owned)
-        {
-            ASSERT(context && context->resourceCount);
-            --context->resourceCount;
-            if (nativeTarget)
-                removeRenderTarget(context->pRenderer, nativeTarget);
-            else
-                removeResource(nativeTexture);
-        }
-        owned = false;
+        ASSERT(pContext && pContext->resourceCount);
+        --pContext->resourceCount;
+        if (pRenderTarget)
+            removeRenderTarget(pContext->pRenderer, pRenderTarget);
+        else
+            removeResource(pTexture);
     }
 }
 
@@ -170,12 +151,8 @@ void GPUSampler::destroy()
     if (pSampler)
     {
         ASSERT(pContext->resourceCount);
-        RenderContext* context = pContext;
-        Sampler*       native = pSampler;
-        pContext = nullptr;
-        pSampler = nullptr;
-        --context->resourceCount;
-        removeSampler(context->pRenderer, native);
+        --pContext->resourceCount;
+        removeSampler(pContext->pRenderer, pSampler);
     }
 }
 
@@ -212,23 +189,9 @@ void GPUShader::destroy()
     if (pShader)
     {
         ASSERT(pContext->resourceCount);
-        RenderContext* context = pContext;
-        Shader*        native = pShader;
-        pContext = nullptr;
-        pShader = nullptr;
-        --context->resourceCount;
-        removeShader(context->pRenderer, native);
+        --pContext->resourceCount;
+        removeShader(pContext->pRenderer, pShader);
     }
-}
-
-Shader* GPUShader::detach()
-{
-    ASSERT(pContext && pShader && pContext->resourceCount);
-    Shader* native = pShader;
-    --pContext->resourceCount;
-    pContext = nullptr;
-    pShader = nullptr;
-    return native;
 }
 
 GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignature* rootSignature):
@@ -241,12 +204,11 @@ GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignatu
 GPUPipeline::~GPUPipeline() { destroy(); }
 
 GPUPipeline::GPUPipeline(GPUPipeline&& other) noexcept:
-    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature), pOwnedShader(other.pOwnedShader)
+    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature)
 {
     other.pContext = nullptr;
     other.pPipeline = nullptr;
     other.pRootSignature = nullptr;
-    other.pOwnedShader = nullptr;
 }
 
 GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
@@ -257,11 +219,9 @@ GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
         pContext = other.pContext;
         pPipeline = other.pPipeline;
         pRootSignature = other.pRootSignature;
-        pOwnedShader = other.pOwnedShader;
         other.pContext = nullptr;
         other.pPipeline = nullptr;
         other.pRootSignature = nullptr;
-        other.pOwnedShader = nullptr;
     }
     return *this;
 }
@@ -272,19 +232,9 @@ void GPUPipeline::destroy()
     if (pPipeline)
     {
         ASSERT(pContext->resourceCount && pRootSignature);
-        RenderContext* context = pContext;
-        Pipeline*      nativePipeline = pPipeline;
-        RootSignature* nativeRoot = pRootSignature;
-        Shader*        nativeShader = pOwnedShader;
-        pContext = nullptr;
-        pPipeline = nullptr;
-        pRootSignature = nullptr;
-        pOwnedShader = nullptr;
-        --context->resourceCount;
-        removePipeline(context->pRenderer, nativePipeline);
-        removeRootSignature(context->pRenderer, nativeRoot);
-        if (nativeShader)
-            removeShader(context->pRenderer, nativeShader);
+        --pContext->resourceCount;
+        removePipeline(pContext->pRenderer, pPipeline);
+        removeRootSignature(pContext->pRenderer, pRootSignature);
     }
 }
 
@@ -466,30 +416,6 @@ GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& inpu
     addPipeline(pRenderer, &desc, &pipeline);
     ASSERT(pipeline);
     return GPUPipeline(this, pipeline, rootSignature);
-}
-
-GPUPipeline RenderContext::createGraphicsPipeline(const ShaderDesc& shaderDesc, const GraphicsPipelineDesc& pipelineDesc)
-{
-    GPUShader shader = createShader(shaderDesc);
-    ASSERT(shader);
-    GraphicsPipelineDesc desc = pipelineDesc;
-    desc.pShader = &shader;
-    GPUPipeline pipeline = createGraphicsPipeline(desc);
-    ASSERT(pipeline);
-    pipeline.pOwnedShader = shader.detach();
-    return pipeline;
-}
-
-GPUPipeline RenderContext::createComputePipeline(const ShaderDesc& shaderDesc, const ComputePipelineDesc& pipelineDesc)
-{
-    GPUShader shader = createShader(shaderDesc);
-    ASSERT(shader);
-    ComputePipelineDesc desc = pipelineDesc;
-    desc.pShader = &shader;
-    GPUPipeline pipeline = createComputePipeline(desc);
-    ASSERT(pipeline);
-    pipeline.pOwnedShader = shader.detach();
-    return pipeline;
 }
 
 bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) const

@@ -184,7 +184,10 @@ private:
             },
             .stageCount = 2,
         };
+        resources->shader = context.createShader(shaderDesc);
+        ASSERT(resources->shader);
         hz::GraphicsPipelineDesc pipelineDesc = {
+            .pShader = &resources->shader,
             .vertexLayout = {
                 .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
                 .mAttribs = {
@@ -214,7 +217,7 @@ private:
             .sampleCount = SAMPLE_COUNT_1,
             .pName = "HelloTriangle.Pipeline",
         };
-        resources->pipeline = context.createGraphicsPipeline(shaderDesc, pipelineDesc);
+        resources->pipeline = context.createGraphicsPipeline(pipelineDesc);
         ASSERT(resources->pipeline);
         return true;
     }
@@ -222,6 +225,7 @@ private:
     struct Resources
     {
         hz::GPUBuffer   vertexBuffer;
+        hz::GPUShader   shader;
         hz::GPUPipeline pipeline;
     };
 

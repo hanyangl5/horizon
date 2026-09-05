@@ -10,8 +10,15 @@ extern void initWindowClass();
 extern void exitWindowClass();
 #endif
 
-static_assert(!std::is_copy_constructible_v<hz::GPUBuffer>);
-static_assert(std::is_move_constructible_v<hz::GPUBuffer>);
+template <typename T>
+constexpr bool IsMoveOnlyGpuResource = !std::is_copy_constructible_v<T> && !std::is_copy_assignable_v<T> &&
+                                     std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>;
+
+static_assert(IsMoveOnlyGpuResource<hz::GPUBuffer>);
+static_assert(IsMoveOnlyGpuResource<hz::GPUTexture>);
+static_assert(IsMoveOnlyGpuResource<hz::GPUSampler>);
+static_assert(IsMoveOnlyGpuResource<hz::GPUShader>);
+static_assert(IsMoveOnlyGpuResource<hz::GPUPipeline>);
 static_assert(!std::is_polymorphic_v<hz::CommandList>);
 static_assert(!std::is_polymorphic_v<hz::RenderContext>);
 static_assert(std::is_same_v<decltype(hz::BufferDesc{}.usage), ResourceMemoryUsage>);

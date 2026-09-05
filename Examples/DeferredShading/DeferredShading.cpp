@@ -36,6 +36,7 @@ public:
 private:
     hz::GPUBuffer   mVertices;
     hz::GPUBuffer   mIndices;
+    hz::GPUShader   mShader;
     hz::GPUPipeline mPipeline;
 };
 
@@ -54,6 +55,7 @@ private:
     hz::GPUTexture  mAlbedo;
     hz::GPUTexture  mNormal;
     hz::GPUTexture  mDepth;
+    hz::GPUShader   mShader;
     hz::GPUPipeline mPipeline;
 };
 
@@ -65,6 +67,7 @@ public:
                  const hz::GPUTexture& depth, uint32_t width, uint32_t height) const;
 
 private:
+    hz::GPUShader   mShader;
     hz::GPUPipeline mPipeline;
 };
 
@@ -176,8 +179,10 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
                       .pName = "DeferredShadingGeometryBuildCS" } },
         .stageCount = 1,
     };
-    hz::ComputePipelineDesc pipelineDesc = { .pName = "DeferredShading.GeometryBuildPipeline" };
-    mPipeline = context.createComputePipeline(shaderDesc, pipelineDesc);
+    mShader = context.createShader(shaderDesc);
+    ASSERT(mShader);
+    hz::ComputePipelineDesc pipelineDesc = { .pShader = &mShader, .pName = "DeferredShading.GeometryBuildPipeline" };
+    mPipeline = context.createComputePipeline(pipelineDesc);
     ASSERT(mPipeline);
 
     hz::BufferDesc vertexDesc = {
@@ -284,7 +289,10 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
         },
         .stageCount = 2,
     };
+    mShader = context.createShader(shaderDesc);
+    ASSERT(mShader);
     hz::GraphicsPipelineDesc pipelineDesc = {
+        .pShader = &mShader,
         .vertexLayout = {
             .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
             .mAttribs = {
@@ -317,7 +325,7 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
         .sampleCount = SAMPLE_COUNT_1,
         .pName = "DeferredShading.GBufferPipeline",
     };
-    mPipeline = context.createGraphicsPipeline(shaderDesc, pipelineDesc);
+    mPipeline = context.createGraphicsPipeline(pipelineDesc);
     ASSERT(mPipeline);
 }
 
@@ -438,7 +446,10 @@ LightingPass::LightingPass(hz::RenderContext& context, TinyImageFormat surfaceFo
         },
         .stageCount = 2,
     };
+    mShader = context.createShader(shaderDesc);
+    ASSERT(mShader);
     hz::GraphicsPipelineDesc pipelineDesc = {
+        .pShader = &mShader,
         .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
         .depth = { .mDepthFunc = CMP_ALWAYS },
         .blend = {
@@ -457,7 +468,7 @@ LightingPass::LightingPass(hz::RenderContext& context, TinyImageFormat surfaceFo
         .sampleCount = SAMPLE_COUNT_1,
         .pName = "DeferredShading.LightingPipeline",
     };
-    mPipeline = context.createGraphicsPipeline(shaderDesc, pipelineDesc);
+    mPipeline = context.createGraphicsPipeline(pipelineDesc);
     ASSERT(mPipeline);
 }
 

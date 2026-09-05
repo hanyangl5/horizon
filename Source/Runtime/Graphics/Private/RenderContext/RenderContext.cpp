@@ -160,7 +160,7 @@ void RenderContext::destroySwapChain()
     {
         waitQueueIdle(pGraphicsQueue);
         for (GPUTexture& backbuffer : backbuffers)
-            backbuffer.destroy();
+            backbuffer = GPUTexture{};
         removeSwapChain(pRenderer, pSwapChain);
         pSwapChain = nullptr;
     }
