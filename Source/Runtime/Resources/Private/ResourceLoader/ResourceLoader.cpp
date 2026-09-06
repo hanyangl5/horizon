@@ -4513,9 +4513,8 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                                                         sliceAlignment, texUpdateDesc.mBaseMipLevel, texUpdateDesc.mMipLevels,
                                                         texUpdateDesc.mBaseArrayLayer, texUpdateDesc.mLayerCount);
 
-    MappedMemoryRange upload =
-        dataAlreadyFilled ? texUpdateDesc.mRange : allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
-    uint64_t offset = 0;
+    MappedMemoryRange upload = dataAlreadyFilled ? texUpdateDesc.mRange : allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
+    uint64_t          offset = 0;
 
     Cmd* cmd = texUpdateDesc.pCmd ? texUpdateDesc.pCmd : acquireCmd(pCopyEngine);
     if (IssueTextureCopyBarriers() && texUpdateDesc.mCurrentState != RESOURCE_STATE_COPY_DEST)
@@ -5180,8 +5179,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     if (!gUma || (indexUpdateDesc.pMappedData && !indexUpdateDesc.pBuffer->pCpuMappedAddress))
     {
         indexUpdateDesc.mCurrentState = gUma ? indexUpdateDesc.mCurrentState : RESOURCE_STATE_COPY_DEST;
-        indexUpdateDesc.mInternal.mMappedRange =
-            allocateStagingMemory(pCopyEngine, indexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT);
+        indexUpdateDesc.mInternal.mMappedRange = allocateStagingMemory(pCopyEngine, indexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT);
         ASSERT(indexUpdateDesc.pMappedData);
         memcpy(indexUpdateDesc.mInternal.mMappedRange.pData, indexUpdateDesc.pMappedData, indexUpdateDesc.mSize);
         tf_free(indexUpdateDesc.pMappedData);
@@ -5275,10 +5273,7 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 /************************************************************************/
 // Internal Resource Loader Implementation
 /************************************************************************/
-static bool areTasksAvailable(ResourceLoader* pLoader)
-{
-    return arrlen(pLoader->mRequestQueue) > 0;
-}
+static bool areTasksAvailable(ResourceLoader* pLoader) { return arrlen(pLoader->mRequestQueue) > 0; }
 
 static void streamerThreadFunc(void* pThreadData)
 {
@@ -6984,8 +6979,8 @@ void endUpdateResource(TextureUpdateDesc* pTextureUpdate)
     desc.mBaseArrayLayer = pTextureUpdate->mBaseArrayLayer;
     desc.mLayerCount = pTextureUpdate->mLayerCount;
     desc.mCurrentState = pTextureUpdate->mCurrentState;
-    MutexLock      lock(pResourceLoader->mUploadEngineMutex);
-    CopyEngine*    pCopyEngine = &pResourceLoader->mUploadEngine;
+    MutexLock   lock(pResourceLoader->mUploadEngineMutex);
+    CopyEngine* pCopyEngine = &pResourceLoader->mUploadEngine;
     updateTexture(pResourceLoader->pRenderer, pCopyEngine, desc);
 
     // Restore the state to before the beginUpdateResource call.
@@ -7419,7 +7414,4 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
 /************************************************************************/
 /************************************************************************/
 
-void waitCopyQueueIdle()
-{
-    waitQueueIdle(pResourceLoader->mCopyEngine.pQueue);
-}
+void waitCopyQueueIdle() { waitQueueIdle(pResourceLoader->mCopyEngine.pQueue); }
