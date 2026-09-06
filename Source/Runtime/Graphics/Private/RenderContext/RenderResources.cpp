@@ -11,7 +11,8 @@ namespace hz
 {
 GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize, ResourceMemoryUsage memoryUsage,
                      DescriptorType bufferDescriptors, ResourceState initialState):
-    pContext(context), pBuffer(buffer), size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
+    pContext(context),
+    pBuffer(buffer), size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
 {
     ASSERT(pContext && pBuffer);
     ++pContext->resourceCount;

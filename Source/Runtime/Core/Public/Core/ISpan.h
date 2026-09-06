@@ -6,7 +6,6 @@
 
 namespace hz
 {
-
 template<typename T>
 struct Span
 {

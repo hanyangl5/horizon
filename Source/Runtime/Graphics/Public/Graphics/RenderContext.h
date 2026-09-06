@@ -8,7 +8,6 @@
 
 namespace hz
 {
-
 constexpr uint32_t MAX_SHADER_STAGES = 6;
 constexpr uint32_t MAX_RENDER_TARGETS = MAX_RENDER_TARGET_ATTACHMENTS;
 

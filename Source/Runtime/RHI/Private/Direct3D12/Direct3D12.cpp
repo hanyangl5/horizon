@@ -90,7 +90,7 @@
 #include "../RendererResourceAPI.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL    ((D3D12_GPU_VIRTUAL_ADDRESS)0)
-#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS) - 1)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 #define D3D12_REQ_CONSTANT_BUFFER_SIZE    (D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16u)
 #define D3D12_DESCRIPTOR_ID_NONE          ((int32_t)-1)
 
@@ -296,11 +296,11 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 	D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME,
 #endif
 };
-// clang-format on
+    // clang-format on
 
-// =================================================================================================
-// IMPLEMENTATION
-// =================================================================================================
+    // =================================================================================================
+    // IMPLEMENTATION
+    // =================================================================================================
 
 #if defined(RENDERER_IMPLEMENTATION)
 

@@ -53,25 +53,25 @@ bool RenderContext::initDevice()
 
     IndirectArgumentDescriptor drawArgument = { .mType = INDIRECT_DRAW };
     CommandSignatureDesc       drawSignatureDesc = {
-              .pArgDescs = &drawArgument,
-              .mIndirectArgCount = 1,
-              .mPacked = true,
+        .pArgDescs = &drawArgument,
+        .mIndirectArgCount = 1,
+        .mPacked = true,
     };
     addIndirectCommandSignature(pRenderer, &drawSignatureDesc, &pDrawIndirectSignature);
 
     IndirectArgumentDescriptor drawIndexedArgument = { .mType = INDIRECT_DRAW_INDEX };
     CommandSignatureDesc       drawIndexedSignatureDesc = {
-              .pArgDescs = &drawIndexedArgument,
-              .mIndirectArgCount = 1,
-              .mPacked = true,
+        .pArgDescs = &drawIndexedArgument,
+        .mIndirectArgCount = 1,
+        .mPacked = true,
     };
     addIndirectCommandSignature(pRenderer, &drawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
 
     IndirectArgumentDescriptor dispatchArgument = { .mType = INDIRECT_DISPATCH };
     CommandSignatureDesc       dispatchSignatureDesc = {
-              .pArgDescs = &dispatchArgument,
-              .mIndirectArgCount = 1,
-              .mPacked = true,
+        .pArgDescs = &dispatchArgument,
+        .mIndirectArgCount = 1,
+        .mPacked = true,
     };
     addIndirectCommandSignature(pRenderer, &dispatchSignatureDesc, &pDispatchIndirectSignature);
     ASSERT(pDrawIndirectSignature && pDrawIndexedIndirectSignature && pDispatchIndirectSignature);
@@ -103,8 +103,8 @@ bool RenderContext::initDevice()
     {
         CommandSlot& slot = commandSlots[i];
         CmdPoolDesc  poolDesc = {
-             .pQueue = pGraphicsQueue,
-             .mTransient = false,
+            .pQueue = pGraphicsQueue,
+            .mTransient = false,
         };
         addCmdPool(pRenderer, &poolDesc, &slot.pCmdPool);
         ASSERT(slot.pCmdPool);
