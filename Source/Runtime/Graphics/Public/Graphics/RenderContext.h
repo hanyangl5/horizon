@@ -62,8 +62,8 @@ struct ShaderStageDesc
 
 struct ShaderDesc
 {
-    ShaderStageDesc  stages[MAX_SHADER_STAGES];
-    uint32_t         stageCount;
+    ShaderStageDesc   stages[MAX_SHADER_STAGES];
+    uint32_t          stageCount;
     ResourceDirectory sourceDirectory;
     const char*       pFileName;
 };
