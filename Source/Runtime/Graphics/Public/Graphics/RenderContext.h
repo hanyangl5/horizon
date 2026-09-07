@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 #pragma once
 
+#include "Core/IFileSystem.h"
 #include "Core/ISpan.h"
 #include "RHI/IGraphics.h"
 
@@ -61,8 +62,10 @@ struct ShaderStageDesc
 
 struct ShaderDesc
 {
-    ShaderStageDesc stages[MAX_SHADER_STAGES];
-    uint32_t        stageCount;
+    ShaderStageDesc  stages[MAX_SHADER_STAGES];
+    uint32_t         stageCount;
+    ResourceDirectory sourceDirectory;
+    const char*       pFileName;
 };
 
 struct GraphicsPipelineDesc

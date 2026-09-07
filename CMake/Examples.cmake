@@ -58,7 +58,3 @@ if(TARGET AssetPipeline)
     target_link_libraries(Renderer PRIVATE AssetPipeline)
     target_compile_definitions(Renderer PRIVATE HORIZON_RENDERER_ASSET_COOKING)
 endif()
-
-target_compile_definitions(Renderer PRIVATE
-    HORIZON_RENDERER_ASSET_DIR="${CMAKE_BINARY_DIR}/RendererAssets"
-)

@@ -67,6 +67,8 @@ extern "C"
     {
         /// The main application's shader binaries directory
         RD_SHADER_BINARIES = 0,
+        /// The main application's shader source directory
+        RD_SHADER_SOURCES,
 
         RD_PIPELINE_CACHE,
         /// The main application's texture source directory (TODO processed texture folder)

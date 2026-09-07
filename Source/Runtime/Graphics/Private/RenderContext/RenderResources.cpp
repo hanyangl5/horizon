@@ -324,14 +324,24 @@ GPUSampler RenderContext::createSampler(const SamplerDesc& input)
 GPUShader RenderContext::createShader(const ShaderDesc& input)
 {
     ASSERT(ready && input.stageCount && input.stageCount <= MAX_SHADER_STAGES);
-    for (uint32_t i = 0; i < input.stageCount; ++i)
-        ASSERT(input.stages[i].pSource && input.stages[i].sourceSize && input.stages[i].pEntryPoint && input.stages[i].pEntryPoint[0]);
-
     ShaderSrcDesc source = {};
+    FileStream    sourceFile = {};
+    const void*   pFileSource = nullptr;
+    size_t        fileSize = 0;
+    if (input.pFileName && (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
+                            !fsStreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
+    {
+        LOGF(eERROR, "Could not map shader source '%s'", input.pFileName);
+        if (sourceFile.pIO)
+            fsCloseStream(&sourceFile);
+        return {};
+    }
+
     for (uint32_t i = 0; i < input.stageCount; ++i)
     {
+        const ShaderStageDesc& inputStage = input.stages[i];
         ShaderSrcStageDesc* stage = nullptr;
-        switch (input.stages[i].stage)
+        switch (inputStage.stage)
         {
         case SHADER_STAGE_VERT:
             stage = &source.mVert;
@@ -346,17 +356,20 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
             ASSERT(false);
             break;
         }
-        source.mStages |= input.stages[i].stage;
-        stage->pName = input.stages[i].pName;
-        stage->pByteCode = (void*)input.stages[i].pSource;
-        stage->mByteCodeSize = input.stages[i].sourceSize;
-        stage->pEntryPoint = input.stages[i].pEntryPoint;
+        source.mStages |= inputStage.stage;
+        stage->pName = inputStage.pName;
+        stage->pByteCode = (void*)(pFileSource ? pFileSource : inputStage.pSource);
+        stage->mByteCodeSize = pFileSource ? (uint32_t)fileSize : inputStage.sourceSize;
+        stage->pEntryPoint = inputStage.pEntryPoint;
+        ASSERT(stage->pByteCode && stage->mByteCodeSize && stage->pEntryPoint && stage->pEntryPoint[0]);
     }
 
     Shader* shader = nullptr;
     addShaderSource(pRenderer, &source, &shader);
+    if (sourceFile.pIO)
+        fsCloseStream(&sourceFile);
     ASSERT(shader);
-    return GPUShader(this, shader);
+    return shader ? GPUShader(this, shader) : GPUShader{};
 }
 
 GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& input)
