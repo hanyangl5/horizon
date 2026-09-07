@@ -4,6 +4,7 @@
 
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
+#include "Core/IThread.h"
 
 namespace
 {
@@ -26,10 +27,25 @@ int LifetimeProbe::dtorCount = 0;
 TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
 {
     ASSERT_TRUE(initMemAlloc(nullptr));
+    const MemoryTrackingStats initialStats = memGetTrackingStats();
+    if (initialStats.mTrackingEnabled)
+    {
+        EXPECT_EQ(initialStats.mLiveRequestedBytes, 0u);
+        EXPECT_EQ(initialStats.mLiveActualBytes, 0u);
+        EXPECT_EQ(initialStats.mLiveAllocationCount, 0u);
+    }
 
     void* aligned = tf_memalign(64, 128);
     ASSERT_NE(aligned, nullptr);
     EXPECT_EQ((uintptr_t)aligned % 64u, 0u);
+    const MemoryTrackingStats alignedStats = memGetTrackingStats();
+    if (alignedStats.mTrackingEnabled)
+    {
+        EXPECT_EQ(alignedStats.mLiveRequestedBytes, 128u);
+        EXPECT_GE(alignedStats.mLiveActualBytes, alignedStats.mLiveRequestedBytes);
+        EXPECT_EQ(alignedStats.mLiveSlackBytes, alignedStats.mLiveActualBytes - alignedStats.mLiveRequestedBytes);
+        EXPECT_EQ(alignedStats.mLiveAllocationCount, 1u);
+    }
     tf_free(aligned);
 
     auto* zeroed = (unsigned char*)tf_calloc(8, sizeof(unsigned char));
@@ -55,6 +71,69 @@ TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
     EXPECT_EQ(bytes[3], 4u);
     tf_free(bytes);
 
+    void* resized = tf_realloc(nullptr, 32);
+    ASSERT_NE(resized, nullptr);
+    EXPECT_EQ(tf_realloc(resized, 0), nullptr);
+    EXPECT_EQ(tf_calloc(SIZE_MAX, 2), nullptr);
+
+    const MemoryTrackingStats finalStats = memGetTrackingStats();
+    if (finalStats.mTrackingEnabled)
+    {
+        EXPECT_EQ(finalStats.mLiveRequestedBytes, 0u);
+        EXPECT_EQ(finalStats.mLiveActualBytes, 0u);
+        EXPECT_EQ(finalStats.mLiveSlackBytes, 0u);
+        EXPECT_EQ(finalStats.mLiveAllocationCount, 0u);
+        EXPECT_GE(finalStats.mPeakRequestedBytes, 128u);
+        EXPECT_GE(finalStats.mPeakActualBytes, finalStats.mPeakRequestedBytes);
+        EXPECT_GE(finalStats.mTotalAllocationCount, 3u);
+        EXPECT_GE(finalStats.mReallocationCount, 1u);
+        EXPECT_EQ(finalStats.mFailedAllocationCount, 1u);
+    }
+
+    exitMemAlloc();
+}
+
+TEST(CoreMemoryTest, ConcurrentReallocationsLeaveNoLiveAllocations)
+{
+    ASSERT_TRUE(initMemAlloc(nullptr));
+    ThreadHandle threads[4] = {};
+    uint32_t     started = 0;
+    ThreadDesc   desc = {
+          .pFunc =
+            [](void*)
+        {
+            for (uint32_t i = 0; i < 256; ++i)
+            {
+                unsigned char* bytes = (unsigned char*)tf_malloc(32);
+                ASSERT_NE(bytes, nullptr);
+                bytes[0] = 42;
+                unsigned char* resized = (unsigned char*)tf_realloc(bytes, 4096 + i * 16);
+                if (!resized)
+                {
+                    tf_free(bytes);
+                    FAIL() << "reallocation failed";
+                }
+                EXPECT_EQ(resized[0], 42);
+                tf_free(resized);
+            }
+        },
+    };
+    for (; started < TF_ARRAY_COUNT(threads); ++started)
+    {
+        if (!initThread(&desc, &threads[started]))
+            break;
+    }
+    for (uint32_t i = 0; i < started; ++i)
+        joinThread(threads[i]);
+    EXPECT_EQ(started, TF_ARRAY_COUNT(threads));
+    const MemoryTrackingStats stats = memGetTrackingStats();
+    if (stats.mTrackingEnabled)
+    {
+        EXPECT_EQ(stats.mLiveAllocationCount, 0u);
+        EXPECT_EQ(stats.mLiveRequestedBytes, 0u);
+        EXPECT_EQ(stats.mLiveActualBytes, 0u);
+        EXPECT_EQ(stats.mReallocationCount, started * 256u);
+    }
     exitMemAlloc();
 }
 

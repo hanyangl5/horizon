@@ -45,6 +45,22 @@
 #define TF_MB (1024 * TF_KB)
 #define TF_GB (1024 * TF_MB)
 
+typedef struct MemoryTrackingStats
+{
+    bool     mTrackingEnabled;
+    uint64_t mLiveRequestedBytes;
+    uint64_t mLiveActualBytes;
+    uint64_t mLiveSlackBytes;
+    uint64_t mPeakRequestedBytes;
+    uint64_t mPeakActualBytes;
+    uint64_t mLiveAllocationCount;
+    uint64_t mPeakAllocationCount;
+    uint64_t mTotalAllocationCount;
+    uint64_t mReallocationCount;
+    uint64_t mFailedAllocationCount;
+    float    mFragmentationPercent;
+} MemoryTrackingStats;
+
 #ifdef ENABLE_MEMORY_TRACKING
 typedef struct MemoryStatistics
 {
@@ -67,6 +83,8 @@ extern "C"
     // appName is used to create dump file, pass NULL to avoid it
     FORGE_API bool initMemAlloc(const char* appName);
     FORGE_API void exitMemAlloc(void);
+    FORGE_API MemoryTrackingStats memGetTrackingStats(void);
+    FORGE_API void                memPlotTrackingStats(void);
 
 #ifdef ENABLE_MEMORY_TRACKING
     FORGE_API MemoryStatistics memGetStatistics(void);

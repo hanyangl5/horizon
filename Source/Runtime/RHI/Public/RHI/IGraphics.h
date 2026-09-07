@@ -768,6 +768,7 @@ struct alignas(64) ResourceHeap
     } mDx;
 
     uint64_t mSize;
+    uint32_t mMemoryTrackingPool;
 };
 
 struct ResourceSizeAlign
@@ -842,6 +843,8 @@ struct alignas(64) Buffer
     uint64_t mSize : 32;
     uint64_t mDescriptors : 20;
     uint64_t mMemoryUsage : 3;
+    uint64_t mMemoryTrackingMode : 2;
+    uint64_t mMemoryTrackingPool : 3;
 };
 // One cache line
 static_assert(sizeof(Buffer) == 8 * sizeof(uint64_t));
@@ -908,6 +911,8 @@ struct alignas(64) Texture
     uint32_t mUav : 1;
     /// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
     uint32_t mOwnsImage : 1;
+    uint32_t mMemoryTrackingMode : 2;
+    uint32_t mMemoryTrackingPool : 3;
 };
 // One cache line
 static_assert(sizeof(Texture) == 8 * sizeof(uint64_t));

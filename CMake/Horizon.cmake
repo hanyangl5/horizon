@@ -5,6 +5,8 @@ option(HORIZON_BUILD_EXAMPLES "Build Horizon example applications" ${PROJECT_IS_
 option(HORIZON_BUILD_TOOLS "Build Horizon asset tools" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_ENABLE_TRACY "Enable Tracy profiler integration" ON)
 option(HORIZON_ENABLE_TRACY_VERBOSE "Enable verbose Tracy profiler scopes" OFF)
+option(HORIZON_ENABLE_TRACY_MEMORY "Enable Tracy memory allocation tracking" OFF)
+set(HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH "16" CACHE STRING "Callstack depth for Tracy memory allocation tracking")
 
 if(CMAKE_INCLUDE_SHADERS)
     message(STATUS "Shaders will be included in the project.")

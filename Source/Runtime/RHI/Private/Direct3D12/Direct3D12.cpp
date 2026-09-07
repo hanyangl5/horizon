@@ -70,6 +70,10 @@
 #include "Application/IScreenshot.h"
 #endif
 
+#if defined(ENABLE_TRACY_MEMORY)
+#include <tracy/TracyC.h>
+#endif
+
 #if !defined(_WINDOWS) && !defined(XBOX)
 #error "Windows is needed!"
 #endif
@@ -216,6 +220,148 @@ static void SetObjectName(ID3D12Object* pObject, const char* pName)
     pObject->SetName(wName);
 #endif
 }
+
+enum D3D12MemoryTrackingMode : uint32_t
+{
+    D3D12_MEMORY_TRACKING_NONE = 0,
+    D3D12_MEMORY_TRACKING_D3D12MA = 1,
+    D3D12_MEMORY_TRACKING_RESOURCE = 2,
+};
+
+enum D3D12MemoryTrackingPool : uint32_t
+{
+    D3D12_MEMORY_TRACKING_POOL_UNKNOWN = 0,
+    D3D12_MEMORY_TRACKING_POOL_DEFAULT = 1,
+    D3D12_MEMORY_TRACKING_POOL_UPLOAD = 2,
+    D3D12_MEMORY_TRACKING_POOL_READBACK = 3,
+    D3D12_MEMORY_TRACKING_POOL_CUSTOM = 4,
+    D3D12_MEMORY_TRACKING_POOL_GPU_UPLOAD = 5,
+    D3D12_MEMORY_TRACKING_POOL_EXPLICIT_HEAP = 6,
+};
+
+D3D12_HEAP_TYPE util_to_heap_type(ResourceMemoryUsage memoryUsage);
+
+#if defined(ENABLE_TRACY_MEMORY)
+#ifndef HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH
+#define HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH 16
+#endif
+
+static uint32_t d3d12_memory_pool_from_heap_type(D3D12_HEAP_TYPE heapType)
+{
+    switch (heapType)
+    {
+    case D3D12_HEAP_TYPE_DEFAULT:
+        return D3D12_MEMORY_TRACKING_POOL_DEFAULT;
+    case D3D12_HEAP_TYPE_UPLOAD:
+        return D3D12_MEMORY_TRACKING_POOL_UPLOAD;
+    case D3D12_HEAP_TYPE_READBACK:
+        return D3D12_MEMORY_TRACKING_POOL_READBACK;
+    case D3D12_HEAP_TYPE_CUSTOM:
+        return D3D12_MEMORY_TRACKING_POOL_CUSTOM;
+    case D3D12_HEAP_TYPE_GPU_UPLOAD:
+        return D3D12_MEMORY_TRACKING_POOL_GPU_UPLOAD;
+    default:
+        return D3D12_MEMORY_TRACKING_POOL_UNKNOWN;
+    }
+}
+
+static uint32_t d3d12_memory_pool_from_usage(ResourceMemoryUsage usage)
+{
+    return d3d12_memory_pool_from_heap_type(util_to_heap_type(usage));
+}
+
+static const char* d3d12_memory_pool_name(uint32_t pool)
+{
+    switch (pool)
+    {
+    case D3D12_MEMORY_TRACKING_POOL_DEFAULT:
+        return "GPU/D3D12 Default";
+    case D3D12_MEMORY_TRACKING_POOL_UPLOAD:
+        return "GPU/D3D12 Upload";
+    case D3D12_MEMORY_TRACKING_POOL_READBACK:
+        return "GPU/D3D12 Readback";
+    case D3D12_MEMORY_TRACKING_POOL_CUSTOM:
+        return "GPU/D3D12 Custom";
+    case D3D12_MEMORY_TRACKING_POOL_GPU_UPLOAD:
+        return "GPU/D3D12 GPU Upload";
+    case D3D12_MEMORY_TRACKING_POOL_EXPLICIT_HEAP:
+        return "GPU/D3D12 Explicit Heap";
+    default:
+        return "GPU/D3D12 Unknown";
+    }
+}
+
+static void d3d12_track_gpu_alloc(const void* ptr, uint64_t size, uint32_t pool)
+{
+    if (ptr && size)
+    {
+        TracyCAllocNS(ptr, (size_t)size, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, d3d12_memory_pool_name(pool));
+    }
+}
+
+static void d3d12_track_gpu_free(const void* ptr, uint32_t pool)
+{
+    if (ptr)
+    {
+        TracyCFreeNS(ptr, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, d3d12_memory_pool_name(pool));
+    }
+}
+
+static void d3d12_set_allocation_name(D3D12MA::Allocation* pAllocation, const char* pName)
+{
+    if (!pAllocation || !pName)
+        return;
+
+    wchar_t wName[MAX_DEBUG_NAME_LENGTH] = {};
+    size_t  numConverted = 0;
+    mbstowcs_s(&numConverted, wName, pName, MAX_DEBUG_NAME_LENGTH);
+    pAllocation->SetName(wName);
+}
+
+static void d3d12_track_d3d12ma_alloc(D3D12MA::Allocation* pAllocation, const char* pName, uint32_t pool)
+{
+    if (!pAllocation)
+        return;
+
+    d3d12_set_allocation_name(pAllocation, pName);
+    d3d12_track_gpu_alloc(pAllocation, pAllocation->GetSize(), pool);
+}
+
+static int64_t d3d12_plot_value(uint64_t value) { return value > (uint64_t)INT64_MAX ? INT64_MAX : (int64_t)value; }
+
+void d3d12_plotMemoryStats(Renderer* pRenderer)
+{
+    if (!pRenderer || !pRenderer->mDx.pResourceAllocator)
+        return;
+
+    static bool plotsConfigured = false;
+    if (!plotsConfigured)
+    {
+        TracyCPlotConfig("GPU/D3D12 AllocationBytes", TracyPlotFormatMemory, 0, 1, 0x4E79A7);
+        TracyCPlotConfig("GPU/D3D12 BlockBytes", TracyPlotFormatMemory, 0, 1, 0x59A14F);
+        TracyCPlotConfig("GPU/D3D12 UnusedBytes", TracyPlotFormatMemory, 0, 1, 0xE15759);
+        TracyCPlotConfig("GPU/D3D12 UnusedRanges", TracyPlotFormatNumber, 0, 1, 0xB07AA1);
+        TracyCPlotConfig("GPU/D3D12 LargestUnusedRange", TracyPlotFormatMemory, 0, 1, 0xEDC948);
+        TracyCPlotConfig("GPU/D3D12 Fragmentation %", TracyPlotFormatPercentage, 0, 1, 0xF28E2B);
+        plotsConfigured = true;
+    }
+
+    D3D12MA::TotalStatistics stats = {};
+    pRenderer->mDx.pResourceAllocator->CalculateStatistics(&stats);
+
+    const uint64_t blockBytes = stats.Total.Stats.BlockBytes;
+    const uint64_t allocationBytes = stats.Total.Stats.AllocationBytes;
+    const uint64_t unusedBytes = blockBytes > allocationBytes ? blockBytes - allocationBytes : 0;
+    const float    fragmentationPercent = blockBytes ? ((float)unusedBytes * 100.0f) / (float)blockBytes : 0.0f;
+
+    TracyCPlotI("GPU/D3D12 AllocationBytes", d3d12_plot_value(allocationBytes));
+    TracyCPlotI("GPU/D3D12 BlockBytes", d3d12_plot_value(blockBytes));
+    TracyCPlotI("GPU/D3D12 UnusedBytes", d3d12_plot_value(unusedBytes));
+    TracyCPlotI("GPU/D3D12 UnusedRanges", d3d12_plot_value(stats.Total.UnusedRangeCount));
+    TracyCPlotI("GPU/D3D12 LargestUnusedRange", d3d12_plot_value(stats.Total.UnusedRangeSizeMax));
+    TracyCPlot("GPU/D3D12 Fragmentation %", fragmentationPercent);
+}
+#endif
 
 // clang-format off
 D3D12_BLEND_OP gDx12BlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
@@ -3752,6 +3898,11 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
     pHeap->mDx.pHeap = pDxHeap;
     pHeap->mSize = pDesc->mSize;
 
+#if defined(ENABLE_TRACY_MEMORY)
+    pHeap->mMemoryTrackingPool = D3D12_MEMORY_TRACKING_POOL_EXPLICIT_HEAP;
+    d3d12_track_gpu_alloc(pDxHeap, allocationSize, pHeap->mMemoryTrackingPool);
+#endif
+
 #if defined(XBOX)
     {
         D3D12_RESOURCE_DESC resDesc = {};
@@ -3789,6 +3940,9 @@ void d3d12_removeResourceHeap(Renderer* pRenderer, ResourceHeap* pHeap)
 {
     UNREF_PARAM(pRenderer);
 
+#if defined(ENABLE_TRACY_MEMORY)
+    d3d12_track_gpu_free(pHeap->mDx.pHeap, pHeap->mMemoryTrackingPool);
+#endif
     SAFE_RELEASE(pHeap->mDx.pHeap);
     SAFE_FREE(pHeap);
 }
@@ -3881,6 +4035,14 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, NULL, res_states, pDesc->mFlags, pBuffer)))
     {
         LOGF(LogLevel::eINFO, "Allocated memory in device-specific RAM");
+#if defined(ENABLE_TRACY_MEMORY)
+        if (pBuffer->mDx.pResource)
+        {
+            pBuffer->mMemoryTrackingMode = D3D12_MEMORY_TRACKING_RESOURCE;
+            pBuffer->mMemoryTrackingPool = d3d12_memory_pool_from_usage(memoryUsage);
+            d3d12_track_gpu_alloc(pBuffer->mDx.pResource, desc.Width, pBuffer->mMemoryTrackingPool);
+        }
+#endif
     }
     // #TODO: This is not at all good but seems like virtual textures are using this
     // Remove as soon as possible
@@ -3897,6 +4059,11 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         heapProps.CreationNodeMask = creationNodeMask;
         CHECK_HRESULT(pRenderer->mDx.pDevice->CreateCommittedResource(&heapProps, alloc_desc.ExtraHeapFlags, &desc, res_states, NULL,
                                                                       IID_ARGS(&pBuffer->mDx.pResource)));
+#if defined(ENABLE_TRACY_MEMORY)
+        pBuffer->mMemoryTrackingMode = D3D12_MEMORY_TRACKING_RESOURCE;
+        pBuffer->mMemoryTrackingPool = d3d12_memory_pool_from_heap_type(heapProps.Type);
+        d3d12_track_gpu_alloc(pBuffer->mDx.pResource, desc.Width, pBuffer->mMemoryTrackingPool);
+#endif
     }
     else
     {
@@ -3908,6 +4075,11 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         {
             CHECK_HRESULT(pRenderer->mDx.pResourceAllocator->CreateResource(&alloc_desc, &desc, res_states, NULL, &pBuffer->mDx.pAllocation,
                                                                             IID_ARGS(&pBuffer->mDx.pResource)));
+#if defined(ENABLE_TRACY_MEMORY)
+            pBuffer->mMemoryTrackingMode = D3D12_MEMORY_TRACKING_D3D12MA;
+            pBuffer->mMemoryTrackingPool = d3d12_memory_pool_from_heap_type(alloc_desc.HeapType);
+            d3d12_track_d3d12ma_alloc(pBuffer->mDx.pAllocation, pDesc->pName, pBuffer->mMemoryTrackingPool);
+#endif
         }
     }
 
@@ -3976,6 +4148,10 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
 
     // Set name
     SetObjectName(pBuffer->mDx.pResource, pDesc->pName);
+#if defined(ENABLE_TRACY_MEMORY)
+    if (pBuffer->mMemoryTrackingMode == D3D12_MEMORY_TRACKING_D3D12MA)
+        d3d12_set_allocation_name(pBuffer->mDx.pAllocation, pDesc->pName);
+#endif
 
     pBuffer->mSize = (uint32_t)pDesc->mSize;
     pBuffer->mMemoryUsage = memoryUsage;
@@ -4008,8 +4184,20 @@ void d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
     else
 #endif
     {
+#if defined(ENABLE_TRACY_MEMORY)
+        if (pBuffer->mMemoryTrackingMode == D3D12_MEMORY_TRACKING_D3D12MA)
+        {
+            d3d12_track_gpu_free(pBuffer->mDx.pAllocation, pBuffer->mMemoryTrackingPool);
+        }
+#endif
         SAFE_RELEASE(pBuffer->mDx.pAllocation);
     }
+#if defined(ENABLE_TRACY_MEMORY)
+    if (pBuffer->mMemoryTrackingMode == D3D12_MEMORY_TRACKING_RESOURCE)
+    {
+        d3d12_track_gpu_free(pBuffer->mDx.pResource, pBuffer->mMemoryTrackingPool);
+    }
+#endif
     SAFE_RELEASE(pBuffer->mDx.pResource);
 
     SAFE_FREE(pBuffer);
@@ -4120,6 +4308,16 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
         if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, pClearValue, res_states, pDesc->mFlags, pTexture)))
         {
             LOGF(LogLevel::eINFO, "Allocated memory in special platform-specific RAM");
+#if defined(ENABLE_TRACY_MEMORY)
+            if (pTexture->mDx.pResource)
+            {
+                const UINT                           visibleMask = 1;
+                const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pRenderer->mDx.pDevice->GetResourceAllocationInfo(visibleMask, 1, &desc);
+                pTexture->mMemoryTrackingMode = D3D12_MEMORY_TRACKING_RESOURCE;
+                pTexture->mMemoryTrackingPool = D3D12_MEMORY_TRACKING_POOL_DEFAULT;
+                d3d12_track_gpu_alloc(pTexture->mDx.pResource, allocInfo.SizeInBytes, pTexture->mMemoryTrackingPool);
+            }
+#endif
         }
         else
         {
@@ -4132,6 +4330,11 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
             {
                 CHECK_HRESULT(pRenderer->mDx.pResourceAllocator->CreateResource(
                     &alloc_desc, &desc, res_states, pClearValue, &pTexture->mDx.pAllocation, IID_ARGS(&pTexture->mDx.pResource)));
+#if defined(ENABLE_TRACY_MEMORY)
+                pTexture->mMemoryTrackingMode = D3D12_MEMORY_TRACKING_D3D12MA;
+                pTexture->mMemoryTrackingPool = d3d12_memory_pool_from_heap_type(alloc_desc.HeapType);
+                d3d12_track_d3d12ma_alloc(pTexture->mDx.pAllocation, pDesc->pName, pTexture->mMemoryTrackingPool);
+#endif
             }
         }
     }
@@ -4304,6 +4507,9 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
     }
 
     SetObjectName(pTexture->mDx.pResource, pDesc->pName);
+#if defined(ENABLE_TRACY_MEMORY)
+    d3d12_set_allocation_name(pTexture->mDx.pAllocation, pDesc->pName);
+#endif
 
     pTexture->mDx.mHandleCount = handleCount;
     pTexture->mMipLevels = pDesc->mMipLevels;
@@ -4332,6 +4538,16 @@ void d3d12_removeTexture(Renderer* pRenderer, Texture* pTexture)
 
     if (pTexture->mOwnsImage)
     {
+#if defined(ENABLE_TRACY_MEMORY)
+        if (pTexture->mMemoryTrackingMode == D3D12_MEMORY_TRACKING_D3D12MA)
+        {
+            d3d12_track_gpu_free(pTexture->mDx.pAllocation, pTexture->mMemoryTrackingPool);
+        }
+        else if (pTexture->mMemoryTrackingMode == D3D12_MEMORY_TRACKING_RESOURCE)
+        {
+            d3d12_track_gpu_free(pTexture->mDx.pResource, pTexture->mMemoryTrackingPool);
+        }
+#endif
         SAFE_RELEASE(pTexture->mDx.pAllocation);
         SAFE_RELEASE(pTexture->mDx.pResource);
     }
@@ -7742,10 +7958,26 @@ void d3d12_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t que
 /************************************************************************/
 void d3d12_calculateMemoryStats(Renderer* pRenderer, char** stats)
 {
+    ASSERT(pRenderer);
+    ASSERT(stats);
+
     WCHAR* wstats = NULL;
     pRenderer->mDx.pResourceAllocator->BuildStatsString(&wstats, TRUE);
-    *stats = (char*)tf_malloc(wcslen(wstats) * sizeof(char));
-    wcstombs(*stats, wstats, wcslen(wstats));
+    const int utf8Size = WideCharToMultiByte(CP_UTF8, 0, wstats, -1, NULL, 0, NULL, NULL);
+    if (utf8Size > 0)
+    {
+        *stats = (char*)tf_malloc((size_t)utf8Size);
+        if (*stats)
+        {
+            WideCharToMultiByte(CP_UTF8, 0, wstats, -1, *stats, utf8Size, NULL, NULL);
+        }
+    }
+    else
+    {
+        *stats = (char*)tf_malloc(1);
+        if (*stats)
+            (*stats)[0] = '\0';
+    }
     pRenderer->mDx.pResourceAllocator->FreeStatsString(wstats);
 }
 
@@ -7753,8 +7985,8 @@ void d3d12_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t
 {
     D3D12MA::TotalStatistics stats;
     pRenderer->mDx.pResourceAllocator->CalculateStatistics(&stats);
-    *usedBytes = stats.Total.Stats.BlockBytes;
-    *totalAllocatedBytes = stats.Total.Stats.AllocationBytes;
+    *usedBytes = stats.Total.Stats.AllocationBytes;
+    *totalAllocatedBytes = stats.Total.Stats.BlockBytes;
 }
 
 void d3d12_freeMemoryStats(Renderer* pRenderer, char* stats)
@@ -7840,6 +8072,12 @@ void d3d12_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName
     ASSERT(pName);
     SetObjectName(pBuffer->mDx.pResource, pName);
 #endif
+#if defined(ENABLE_TRACY_MEMORY)
+    if (pBuffer && pName && pBuffer->mMemoryTrackingMode == D3D12_MEMORY_TRACKING_D3D12MA)
+    {
+        d3d12_set_allocation_name(pBuffer->mDx.pAllocation, pName);
+    }
+#endif
 }
 
 void d3d12_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
@@ -7852,6 +8090,12 @@ void d3d12_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pN
     ASSERT(pTexture);
     ASSERT(pName);
     SetObjectName(pTexture->mDx.pResource, pName);
+#endif
+#if defined(ENABLE_TRACY_MEMORY)
+    if (pTexture && pName)
+    {
+        d3d12_set_allocation_name(pTexture->mDx.pAllocation, pName);
+    }
 #endif
 }
 

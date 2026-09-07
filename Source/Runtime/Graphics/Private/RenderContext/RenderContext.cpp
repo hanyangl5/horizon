@@ -77,7 +77,12 @@ bool RenderContext::initDevice()
     ASSERT(pDrawIndirectSignature && pDrawIndexedIndirectSignature && pDispatchIndirectSignature);
 
     gpuProfilerToken = PROFILE_INVALID_TOKEN;
-    if (desc.enableGpuProfiler)
+#if defined(ENABLE_TRACY_MEMORY)
+    const bool initializeProfiler = true;
+#else
+    const bool initializeProfiler = desc.enableGpuProfiler;
+#endif
+    if (initializeProfiler)
     {
         Queue*       queues[] = { pGraphicsQueue };
         const char*  names[] = { appName };
@@ -86,7 +91,7 @@ bool RenderContext::initDevice()
             .ppQueues = queues,
             .ppProfilerNames = names,
             .pProfileTokens = &gpuProfilerToken,
-            .mGpuProfilerCount = 1,
+            .mGpuProfilerCount = desc.enableGpuProfiler ? 1u : 0u,
         };
         initProfiler(&profilerDesc);
         profilerInitialized = true;

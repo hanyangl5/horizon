@@ -145,6 +145,13 @@ if(HORIZON_ENABLE_TRACY)
             ENABLE_PROFILER_VERBOSE
         )
     endif()
+
+    if(HORIZON_ENABLE_TRACY_MEMORY)
+        target_compile_definitions(${ENGINE_RUNTIME} PUBLIC
+            ENABLE_TRACY_MEMORY
+            HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH=${HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH}
+        )
+    endif()
 endif()
 
 # unity build

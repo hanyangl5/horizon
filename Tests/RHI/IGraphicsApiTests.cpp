@@ -1885,12 +1885,14 @@ TEST_F(RHIIGraphicsApiTest, RenderTargetAndMemoryStatsApisReportUsage)
     calculateMemoryUse(harness.pRenderer, &usedBytes, &totalAllocatedBytes);
     EXPECT_GT(usedBytes, 0u);
     EXPECT_GT(totalAllocatedBytes, 0u);
+    EXPECT_LE(usedBytes, totalAllocatedBytes);
 
     char* pStats = nullptr;
     calculateMemoryStats(harness.pRenderer, &pStats);
     EXPECT_NE(pStats, nullptr);
     if (pStats)
     {
+        EXPECT_NE(pStats[0], '\0');
         freeMemoryStats(harness.pRenderer, pStats);
     }
 

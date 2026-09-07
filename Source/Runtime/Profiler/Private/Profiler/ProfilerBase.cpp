@@ -71,10 +71,43 @@ static void formatTracyCpuProfileName(char* pBuffer, size_t bufferSize, const ch
         snprintf(pBuffer, bufferSize, "%s", pName && pName[0] ? pName : (pGroup && pGroup[0] ? pGroup : "CPU"));
     }
 }
+
+#if defined(ENABLE_TRACY_MEMORY)
+#if defined(DIRECT3D12)
+extern void d3d12_plotMemoryStats(Renderer* pRenderer);
+#endif
+
+static Renderer* gMemoryPlotRenderers[8] = {};
+static uint32_t  gMemoryPlotRendererCount = 0;
+
+static void registerMemoryPlotRenderer(Renderer* pRenderer)
+{
+    if (!pRenderer)
+        return;
+
+    for (uint32_t i = 0; i < gMemoryPlotRendererCount; ++i)
+    {
+        if (gMemoryPlotRenderers[i] == pRenderer)
+            return;
+    }
+
+    if (gMemoryPlotRendererCount < TF_ARRAY_COUNT(gMemoryPlotRenderers))
+    {
+        gMemoryPlotRenderers[gMemoryPlotRendererCount++] = pRenderer;
+    }
+}
+#endif
 #endif
 
 void initProfiler(ProfilerDesc* pDesc)
 {
+#if defined(ENABLE_TRACY_MEMORY)
+    if (pDesc)
+    {
+        registerMemoryPlotRenderer(pDesc->pRenderer);
+    }
+#endif
+
 #if defined(ENABLE_GPU_PROFILER)
     initGpuProfilers();
 
@@ -99,12 +132,25 @@ void exitProfiler()
 #if defined(ENABLE_GPU_PROFILER)
     exitGpuProfilers();
 #endif
+#if defined(ENABLE_TRACY_MEMORY)
+    memset(gMemoryPlotRenderers, 0, sizeof(gMemoryPlotRenderers));
+    gMemoryPlotRendererCount = 0;
+#endif
 }
 
 void flipProfiler()
 {
 #if defined(ENABLE_PROFILER)
     FrameMark;
+#if defined(ENABLE_TRACY_MEMORY)
+    memPlotTrackingStats();
+#if defined(DIRECT3D12)
+    for (uint32_t i = 0; i < gMemoryPlotRendererCount; ++i)
+    {
+        d3d12_plotMemoryStats(gMemoryPlotRenderers[i]);
+    }
+#endif
+#endif
 #endif
 }
 
