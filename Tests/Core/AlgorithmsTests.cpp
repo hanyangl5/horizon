@@ -12,8 +12,8 @@ struct SortItem
 
 bool lessByKey(const void* lhs, const void* rhs, void*)
 {
-    const SortItem& left = *static_cast<const SortItem*>(lhs);
-    const SortItem& right = *static_cast<const SortItem*>(rhs);
+    const SortItem& left = *(const SortItem*)lhs;
+    const SortItem& right = *(const SortItem*)rhs;
     return left.key < right.key;
 }
 

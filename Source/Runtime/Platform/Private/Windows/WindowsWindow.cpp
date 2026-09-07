@@ -347,8 +347,8 @@ void collectMonitorInfo()
                 desc.physicalSize[0] = GetDeviceCaps(dc, HORZSIZE);
                 desc.physicalSize[1] = GetDeviceCaps(dc, VERTSIZE);
 
-                desc.dpi[0] = static_cast<UINT>(::GetDeviceCaps(dc, LOGPIXELSX));
-                desc.dpi[1] = static_cast<UINT>(::GetDeviceCaps(dc, LOGPIXELSY));
+                desc.dpi[0] = (UINT)::GetDeviceCaps(dc, LOGPIXELSX);
+                desc.dpi[1] = (UINT)::GetDeviceCaps(dc, LOGPIXELSY);
 
                 gMonitors[found] = (desc);
                 MonitorInfo data = {};
@@ -1024,7 +1024,7 @@ void getDpiScale(float array[2])
     if (hdc)
     {
         array[0] = (UINT)(::GetDeviceCaps(hdc, LOGPIXELSX)) / dpi;
-        array[1] = static_cast<UINT>(::GetDeviceCaps(hdc, LOGPIXELSY)) / dpi;
+        array[1] = (UINT)::GetDeviceCaps(hdc, LOGPIXELSY) / dpi;
         ::ReleaseDC(NULL, hdc);
     }
     else

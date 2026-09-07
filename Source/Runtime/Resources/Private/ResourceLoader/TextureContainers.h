@@ -97,8 +97,8 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, TinyIm
         if (!bpp)
             return false;
 
-        rowBytes = (uint64_t(width) * bpp + 7u) / 8u; // round up to nearest byte
-        numRows = uint64_t(height);
+        rowBytes = ((uint64_t)width * bpp + 7u) / 8u; // round up to nearest byte
+        numRows = (uint64_t)height;
         numBytes = rowBytes * height;
     }
 

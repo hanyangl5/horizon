@@ -162,7 +162,7 @@ void Animation::UpdateBlendParameters()
         // interval that contains mBlendRatio.
         // Uses a maximum value smaller that 1.f (-epsilon) to ensure that
         // (relevantClip + 1) is always valid.
-        const uint32_t relevantClip = static_cast<uint32_t>((mBlendRatio - 1e-3f) * (mNumClips - 1));
+        const uint32_t relevantClip = (uint32_t)((mBlendRatio - 1e-3f) * (mNumClips - 1));
         ASSERT(relevantClip + 1 < mNumClips);
         ClipController* ClipControllerL = mClipControllers[relevantClip];
         ClipController* ClipControllerR = mClipControllers[relevantClip + 1];

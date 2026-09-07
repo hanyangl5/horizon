@@ -104,7 +104,7 @@ void fswThreadFunc(void* data)
         BYTE* p = notifyBuffer;
         for (;;)
         {
-            FILE_NOTIFY_INFORMATION* fni = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(p);
+            FILE_NOTIFY_INFORMATION* fni = (FILE_NOTIFY_INFORMATION*)p;
             uint32_t                 action = 0;
             bool                     ignoreAction = FALSE;
 

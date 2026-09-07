@@ -20,7 +20,7 @@ struct CallOnceWorkerData
 
 void callOnceWorker(void* userData)
 {
-    auto* data = static_cast<CallOnceWorkerData*>(userData);
+    auto* data = (CallOnceWorkerData*)userData;
     callOnce(data->guard, incrementCallOnceCounter);
 }
 
@@ -37,7 +37,7 @@ struct ThreadProbeData
 
 void namedThreadProbe(void* userData)
 {
-    auto* data = static_cast<ThreadProbeData*>(userData);
+    auto* data = (ThreadProbeData*)userData;
     data->observedThreadId = getCurrentThreadID();
     data->observedIsMainThread = isMainThread();
     getCurrentThreadName(data->observedName, TF_ARRAY_COUNT(data->observedName));

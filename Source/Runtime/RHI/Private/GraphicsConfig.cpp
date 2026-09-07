@@ -958,7 +958,7 @@ void printConfigureRules(ConfigurationRule* pRules, uint32_t rulesCount, char* r
         if (currentRule->comparatorValue != INVALID_OPTION)
         {
             snprintf(ruleStr, 128, "%s %s %u", currentRule->pGpuProperty->name, currentRule->comparator,
-                     uint32_t(currentRule->comparatorValue));
+                     (uint32_t)currentRule->comparatorValue);
         }
         else
         {

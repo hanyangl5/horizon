@@ -19,7 +19,7 @@ struct LogCapture
 
 void captureLog(void* userData, const char* message)
 {
-    LogCapture* capture = static_cast<LogCapture*>(userData);
+    LogCapture* capture = (LogCapture*)userData;
     if (capture->messageCount >= LOG_CAPTURE_CAPACITY)
         return;
 
@@ -29,7 +29,7 @@ void captureLog(void* userData, const char* message)
 
 void closeLogCapture(void* userData)
 {
-    ++static_cast<LogCapture*>(userData)->closeCount;
+    ++((LogCapture*)userData)->closeCount;
 }
 
 bool containsMessage(const LogCapture& capture, const char* snippet)

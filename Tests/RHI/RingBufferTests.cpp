@@ -7,7 +7,7 @@ namespace
 template <typename T>
 T* fakeHandle(uintptr_t value)
 {
-    return reinterpret_cast<T*>(value);
+    return (T*)value;
 }
 } // namespace
 

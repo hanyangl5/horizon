@@ -189,7 +189,7 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
         value_changed = ImGui::SliderFloat(label, v, v_min, v_max, text_buf);
 
         int v_i = int(((*v - v_min) / v_step) + 0.5f);
-        *v = v_min + float(v_i) * v_step;
+        *v = v_min + (float)v_i * v_step;
     }
     else
     {
@@ -199,7 +199,7 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
         value_changed = ImGui::SliderInt(label, &v_i, 0, countValues, text_buf);
 
         // Remap from [0,N] to [v_min,v_max]
-        *v = v_min + float(v_i) * v_step;
+        *v = v_min + (float)v_i * v_step;
     }
 
     if (*v < v_min)
@@ -224,7 +224,7 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
         value_changed = ImGui::SliderInt(label, v, v_min, v_max, text_buf);
 
         int32_t v_i = int((*v - v_min) / v_step);
-        *v = v_min + int32_t(v_i) * v_step;
+        *v = v_min + (int32_t)v_i * v_step;
     }
     else
     {
@@ -234,7 +234,7 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
         value_changed = ImGui::SliderInt(label, &v_i, 0, countValues, text_buf);
 
         // Remap from [0,N] to [v_min,v_max]
-        *v = v_min + int32_t(v_i) * v_step;
+        *v = v_min + (int32_t)v_i * v_step;
     }
 
     if (*v < v_min)
