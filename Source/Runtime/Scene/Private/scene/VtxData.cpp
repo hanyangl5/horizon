@@ -4,19 +4,16 @@
 #include <assert.h>
 #include <stdio.h>
 
-bool isMeshDataValid(const char *fileName)
+bool isMeshDataValid(const char* fileName)
 {
-    FILE *f = fopen(fileName, "rb");
+    FILE* f = fopen(fileName, "rb");
 
     if (!f)
     {
         return false;
     }
 
-    SCOPE_EXIT
-    {
-        fclose(f);
-    };
+    SCOPE_EXIT { fclose(f); };
 
     MeshFileHeader header;
 
@@ -68,36 +65,30 @@ bool isMeshDataValid(const char *fileName)
     return true;
 }
 
-bool isMeshHierarchyValid(const char *fileName)
+bool isMeshHierarchyValid(const char* fileName)
 {
-    FILE *f = fopen(fileName, "rb");
+    FILE* f = fopen(fileName, "rb");
 
     if (!f)
     {
         return false;
     }
 
-    SCOPE_EXIT
-    {
-        fclose(f);
-    };
+    SCOPE_EXIT { fclose(f); };
 
     return true;
 }
 
-bool isMeshMaterialsValid(const char *fileName)
+bool isMeshMaterialsValid(const char* fileName)
 {
-    FILE *f = fopen(fileName, "rb");
+    FILE* f = fopen(fileName, "rb");
 
     if (!f)
     {
         return false;
     }
 
-    SCOPE_EXIT
-    {
-        fclose(f);
-    };
+    SCOPE_EXIT { fclose(f); };
 
     uint64_t numMaterials = 0;
     uint64_t materialsSize = 0;
@@ -118,9 +109,9 @@ bool isMeshMaterialsValid(const char *fileName)
     return true;
 }
 
-MeshFileHeader loadMeshData(const char *meshFile, MeshData &out)
+MeshFileHeader loadMeshData(const char* meshFile, MeshData& out)
 {
-    FILE *f = fopen(meshFile, "rb");
+    FILE* f = fopen(meshFile, "rb");
 
     assert(f);
 
@@ -131,10 +122,7 @@ MeshFileHeader loadMeshData(const char *meshFile, MeshData &out)
         exit(EXIT_FAILURE);
     }
 
-    SCOPE_EXIT
-    {
-        fclose(f);
-    };
+    SCOPE_EXIT { fclose(f); };
 
     MeshFileHeader header;
 
@@ -216,9 +204,9 @@ MeshFileHeader loadMeshData(const char *meshFile, MeshData &out)
     return header;
 }
 
-void loadMeshDataMaterials(const char *fileName, MeshData &out)
+void loadMeshDataMaterials(const char* fileName, MeshData& out)
 {
-    FILE *f = fopen(fileName, "rb");
+    FILE* f = fopen(fileName, "rb");
 
     if (!f)
     {
@@ -263,9 +251,9 @@ void loadMeshDataMaterials(const char *fileName, MeshData &out)
     fclose(f);
 }
 
-void saveMeshData(const char *fileName, const MeshData &m)
+void saveMeshData(const char* fileName, const MeshData& m)
 {
-    FILE *f = fopen(fileName, "wb");
+    FILE* f = fopen(fileName, "wb");
 
     if (!f)
     {
@@ -289,9 +277,9 @@ void saveMeshData(const char *fileName, const MeshData &m)
     fclose(f);
 }
 
-void saveMeshDataMaterials(const char *fileName, const MeshData &m)
+void saveMeshDataMaterials(const char* fileName, const MeshData& m)
 {
-    FILE *f = fopen(fileName, "wb");
+    FILE* f = fopen(fileName, "wb");
 
     if (!f)
     {
@@ -312,9 +300,9 @@ void saveMeshDataMaterials(const char *fileName, const MeshData &m)
     fclose(f);
 }
 
-void saveBoundingBoxes(const char *fileName, const std::vector<BoundingBox> &boxes)
+void saveBoundingBoxes(const char* fileName, const std::vector<BoundingBox>& boxes)
 {
-    FILE *f = fopen(fileName, "wb");
+    FILE* f = fopen(fileName, "wb");
 
     if (!f)
     {
@@ -330,9 +318,9 @@ void saveBoundingBoxes(const char *fileName, const std::vector<BoundingBox> &box
     fclose(f);
 }
 
-void loadBoundingBoxes(const char *fileName, std::vector<BoundingBox> &boxes)
+void loadBoundingBoxes(const char* fileName, std::vector<BoundingBox>& boxes)
 {
-    FILE *f = fopen(fileName, "rb");
+    FILE* f = fopen(fileName, "rb");
 
     if (!f)
     {
@@ -352,7 +340,7 @@ void loadBoundingBoxes(const char *fileName, std::vector<BoundingBox> &boxes)
 }
 
 // combine a collection of meshes into a single MeshData container
-MeshFileHeader mergeMeshData(MeshData &m, const std::vector<MeshData *> md)
+MeshFileHeader mergeMeshData(MeshData& m, const std::vector<MeshData*> md)
 {
     uint32_t numTotalVertices = 0;
     uint32_t numTotalIndices = 0;
@@ -368,7 +356,7 @@ MeshFileHeader mergeMeshData(MeshData &m, const std::vector<MeshData *> md)
     uint32_t offset = 0;
     uint32_t mtlOffset = 0;
 
-    for (const MeshData *i : md)
+    for (const MeshData* i : md)
     {
         LVK_ASSERT(memcmp(&m.streams, &i->streams, sizeof(lvk::VertexInput)) == 0);
         LVK_ASSERT(memcmp(&m.positionOnlyStreams, &i->positionOnlyStreams, sizeof(lvk::VertexInput)) == 0);
@@ -410,18 +398,18 @@ MeshFileHeader mergeMeshData(MeshData &m, const std::vector<MeshData *> md)
     };
 }
 
-void recalculateBoundingBoxes(MeshData &m)
+void recalculateBoundingBoxes(MeshData& m)
 {
     LVK_ASSERT(m.positionOnlyStreams.attributes[0].format == lvk::VertexFormat_Float3 ||
                m.positionOnlyStreams.attributes[0].format == lvk::VertexFormat_HalfFloat3);
 
     const uint32_t stride = m.positionOnlyStreams.getVertexSize();
-    const bool halfPositions = m.positionOnlyStreams.attributes[0].format == lvk::VertexFormat_HalfFloat3;
+    const bool     halfPositions = m.positionOnlyStreams.attributes[0].format == lvk::VertexFormat_HalfFloat3;
 
     m.boxes.clear();
     m.boxes.reserve(m.meshes.size());
 
-    for (const Mesh &mesh : m.meshes)
+    for (const Mesh& mesh : m.meshes)
     {
         const uint32_t numIndices = mesh.getLODIndicesCount(0);
 
@@ -431,16 +419,16 @@ void recalculateBoundingBoxes(MeshData &m)
         for (uint32_t i = 0; i != numIndices; i++)
         {
             const uint32_t vtxOffset = m.indexData[mesh.indexOffset + i] + mesh.vertexOffset;
-            const uint8_t *vp = &m.positionData[vtxOffset * stride];
-            vec3 pos;
+            const uint8_t* vp = &m.positionData[vtxOffset * stride];
+            vec3           pos;
             if (halfPositions)
             {
-                const uint16_t *hp = reinterpret_cast<const uint16_t *>(vp);
+                const uint16_t* hp = reinterpret_cast<const uint16_t*>(vp);
                 pos = vec3(glm::unpackHalf1x16(hp[0]), glm::unpackHalf1x16(hp[1]), glm::unpackHalf1x16(hp[2]));
             }
             else
             {
-                const float *fp = reinterpret_cast<const float *>(vp);
+                const float* fp = reinterpret_cast<const float*>(vp);
                 pos = vec3(fp[0], fp[1], fp[2]);
             }
 

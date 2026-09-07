@@ -4639,7 +4639,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, const UpdateRequest& pTextureUpdate)
 {
     const TextureLoadDescInternal* pTextureDesc = &pTextureUpdate.texLoadDesc;
-    uint8_t singleTexelNormal[2] = {};
+    uint8_t                        singleTexelNormal[2] = {};
 
     if (pTextureDesc->mForceReset)
     {
@@ -4745,10 +4745,10 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         {
             // D3D12 requires block-aligned base dimensions for BC textures. Preserve the exact
             // texel of the 1x1 BC5 normal maps emitted by some glTF exporters as an RG8 texture.
-            if (textureDesc.mWidth == 1 && textureDesc.mHeight == 1 && textureDesc.mDepth == 1 &&
-                textureDesc.mArraySize == 1 && textureDesc.mMipLevels == 1 && textureDesc.mFormat == TinyImageFormat_DXBC5_UNORM)
+            if (textureDesc.mWidth == 1 && textureDesc.mHeight == 1 && textureDesc.mDepth == 1 && textureDesc.mArraySize == 1 &&
+                textureDesc.mMipLevels == 1 && textureDesc.mFormat == TinyImageFormat_DXBC5_UNORM)
             {
-                uint8_t block[16] = {};
+                uint8_t    block[16] = {};
                 const bool read = fsReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
                 fsCloseStream(&stream);
                 if (!read)

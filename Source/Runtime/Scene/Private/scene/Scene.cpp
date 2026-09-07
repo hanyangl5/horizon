@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <numeric>
 
-int addNode(Scene &scene, int parent, int level)
+int addNode(Scene& scene, int parent, int level)
 {
     const int node = (int)scene.hierarchy.size();
     {
@@ -12,7 +12,7 @@ int addNode(Scene &scene, int parent, int level)
         scene.localTransform.push_back(glm::mat4(1.0f));
         scene.globalTransform.push_back(glm::mat4(1.0f));
     }
-    scene.hierarchy.push_back({.parent = parent, .lastSibling = -1});
+    scene.hierarchy.push_back({ .parent = parent, .lastSibling = -1 });
     if (parent > -1)
     {
         // find first item (sibling)
@@ -41,7 +41,7 @@ int addNode(Scene &scene, int parent, int level)
     return node;
 }
 
-void markAsChanged(Scene &scene, int node)
+void markAsChanged(Scene& scene, int node)
 {
     const int level = scene.hierarchy[node].level;
     scene.changedAtThisFrame[level].push_back(node);
@@ -53,7 +53,7 @@ void markAsChanged(Scene &scene, int node)
     }
 }
 
-int findNodeByName(const Scene &scene, const std::string &name)
+int findNodeByName(const Scene& scene, const std::string& name)
 {
     // Extremely simple linear search without any hierarchy reference
     // To support DFS/BFS searches separate traversal routines are needed
@@ -76,11 +76,11 @@ int findNodeByName(const Scene &scene, const std::string &name)
     return -1;
 }
 
-bool mat4IsIdentity(const glm::mat4 &m);
-void fprintfMat4(FILE *f, const glm::mat4 &m);
+bool mat4IsIdentity(const glm::mat4& m);
+void fprintfMat4(FILE* f, const glm::mat4& m);
 
 // CPU version of global transform update []
-bool recalculateGlobalTransforms(Scene &scene)
+bool recalculateGlobalTransforms(Scene& scene)
 {
     bool wasUpdated = false;
 
@@ -106,7 +106,7 @@ bool recalculateGlobalTransforms(Scene &scene)
     return wasUpdated;
 }
 
-void loadMap(FILE *f, std::unordered_map<uint32_t, uint32_t> &map)
+void loadMap(FILE* f, std::unordered_map<uint32_t, uint32_t>& map)
 {
     std::vector<uint32_t> ms;
 
@@ -122,14 +122,13 @@ void loadMap(FILE *f, std::unordered_map<uint32_t, uint32_t> &map)
     }
 }
 
-void loadScene(const char *fileName, Scene &scene)
+void loadScene(const char* fileName, Scene& scene)
 {
-    FILE *f = fopen(fileName, "rb");
+    FILE* f = fopen(fileName, "rb");
 
     if (!f)
     {
-        LLOGL("Cannot open scene file '%s'. Please run SceneConverter from Chapter7 and/or MergeMeshes from Chapter 9",
-              fileName);
+        LLOGL("Cannot open scene file '%s'. Please run SceneConverter from Chapter7 and/or MergeMeshes from Chapter 9", fileName);
         return;
     }
 
@@ -162,11 +161,11 @@ void loadScene(const char *fileName, Scene &scene)
     recalculateGlobalTransforms(scene);
 }
 
-void saveMap(FILE *f, const std::unordered_map<uint32_t, uint32_t> &map)
+void saveMap(FILE* f, const std::unordered_map<uint32_t, uint32_t>& map)
 {
     std::vector<uint32_t> ms;
     ms.reserve(map.size() * 2);
-    for (const auto &m : map)
+    for (const auto& m : map)
     {
         ms.push_back(m.first);
         ms.push_back(m.second);
@@ -176,9 +175,9 @@ void saveMap(FILE *f, const std::unordered_map<uint32_t, uint32_t> &map)
     fwrite(ms.data(), sizeof(uint32_t), ms.size(), f);
 }
 
-void saveScene(const char *fileName, const Scene &scene)
+void saveScene(const char* fileName, const Scene& scene)
 {
-    FILE *f = fopen(fileName, "wb");
+    FILE* f = fopen(fileName, "wb");
 
     const uint32_t sz = (uint32_t)scene.hierarchy.size();
     fwrite(&sz, sizeof(sz), 1, f);
@@ -200,14 +199,13 @@ void saveScene(const char *fileName, const Scene &scene)
     fclose(f);
 }
 
-bool mat4IsIdentity(const glm::mat4 &m)
+bool mat4IsIdentity(const glm::mat4& m)
 {
-    return (m[0][0] == 1 && m[0][1] == 0 && m[0][2] == 0 && m[0][3] == 0 && m[1][0] == 0 && m[1][1] == 1 &&
-            m[1][2] == 0 && m[1][3] == 0 && m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 &&
-            m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1);
+    return (m[0][0] == 1 && m[0][1] == 0 && m[0][2] == 0 && m[0][3] == 0 && m[1][0] == 0 && m[1][1] == 1 && m[1][2] == 0 && m[1][3] == 0 &&
+            m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 && m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1);
 }
 
-void fprintfMat4(FILE *f, const glm::mat4 &m)
+void fprintfMat4(FILE* f, const glm::mat4& m)
 {
     if (mat4IsIdentity(m))
     {
@@ -227,9 +225,9 @@ void fprintfMat4(FILE *f, const glm::mat4 &m)
     }
 }
 
-void dumpTransforms(const char *fileName, const Scene &scene)
+void dumpTransforms(const char* fileName, const Scene& scene)
 {
-    FILE *f = fopen(fileName, "a+");
+    FILE* f = fopen(fileName, "a+");
     for (size_t i = 0; i < scene.localTransform.size(); i++)
     {
         fprintf(f, "Node[%d].localTransform: ", (int)i);
@@ -242,13 +240,13 @@ void dumpTransforms(const char *fileName, const Scene &scene)
     fclose(f);
 }
 
-void printChangedNodes(const Scene &scene)
+void printChangedNodes(const Scene& scene)
 {
     for (int i = 0; i < MAX_NODE_LEVEL && (!scene.changedAtThisFrame[i].empty()); i++)
     {
         printf("Changed at level(%d):\n", i);
 
-        for (const int &c : scene.changedAtThisFrame[i])
+        for (const int& c : scene.changedAtThisFrame[i])
         {
             int p = scene.hierarchy[c].parent;
             // scene.globalTransform_[c] = scene.globalTransform_[p] * scene.localTransform_[c];
@@ -264,9 +262,9 @@ void printChangedNodes(const Scene &scene)
 }
 
 // Shift all hierarchy components in the nodes
-void shiftNodes(Scene &scene, int startOffset, int nodeCount, int shiftAmount)
+void shiftNodes(Scene& scene, int startOffset, int nodeCount, int shiftAmount)
 {
-    auto shiftNode = [shiftAmount](Hierarchy &node)
+    auto shiftNode = [shiftAmount](Hierarchy& node)
     {
         if (node.parent > -1)
         {
@@ -304,9 +302,9 @@ void shiftNodes(Scene &scene, int startOffset, int nodeCount, int shiftAmount)
 using ItemMap = std::unordered_map<uint32_t, uint32_t>;
 
 // Add the items from otherMap shifting indices and values along the way
-void mergeMaps(ItemMap &m, const ItemMap &otherMap, int indexOffset, int itemOffset)
+void mergeMaps(ItemMap& m, const ItemMap& otherMap, int indexOffset, int itemOffset)
 {
-    for (const auto &i : otherMap)
+    for (const auto& i : otherMap)
     {
         m[i.first + indexOffset] = i.second + itemOffset;
     }
@@ -319,20 +317,20 @@ void mergeMaps(ItemMap &m, const ItemMap &otherMap, int indexOffset, int itemOff
   with the same material and mesh sets. For the second use case we need two flags: 'mergeMeshes' and 'mergeMaterials' to
   avoid shifting mesh indices
 */
-void mergeScenes(Scene &scene, const std::vector<Scene *> &scenes, const std::vector<glm::mat4> &rootTransforms,
-                 const std::vector<uint32_t> &meshCounts, bool mergeMeshes, bool mergeMaterials)
+void mergeScenes(Scene& scene, const std::vector<Scene*>& scenes, const std::vector<glm::mat4>& rootTransforms,
+                 const std::vector<uint32_t>& meshCounts, bool mergeMeshes, bool mergeMaterials)
 {
     // Create new root node
-    scene.hierarchy = {{
+    scene.hierarchy = { {
         .parent = -1,
         .firstChild = 1,
         .nextSibling = -1,
         .lastSibling = -1,
         .level = 0,
-    }};
+    } };
 
     scene.nameForNode[0] = 0;
-    scene.nodeNames = {"NewRoot"};
+    scene.nodeNames = { "NewRoot" };
 
     scene.localTransform.push_back(glm::mat4(1.f));
     scene.globalTransform.push_back(glm::mat4(1.f));
@@ -342,10 +340,10 @@ void mergeScenes(Scene &scene, const std::vector<Scene *> &scenes, const std::ve
         return;
     }
 
-    int offs = 1;
-    int meshOffs = 0;
-    int nameOffs = (int)scene.nodeNames.size();
-    int materialOfs = 0;
+    int  offs = 1;
+    int  meshOffs = 0;
+    int  nameOffs = (int)scene.nodeNames.size();
+    int  materialOfs = 0;
     auto meshCount = meshCounts.begin();
 
     if (!mergeMaterials)
@@ -355,7 +353,7 @@ void mergeScenes(Scene &scene, const std::vector<Scene *> &scenes, const std::ve
 
     // FIXME: too much logic (for all the components in a scene, though mesh data and materials go separately - they're
     // dedicated data lists)
-    for (const Scene *s : scenes)
+    for (const Scene* s : scenes)
     {
         mergeVectors(scene.localTransform, s->localTransform);
         mergeVectors(scene.globalTransform, s->globalTransform);
@@ -391,12 +389,12 @@ void mergeScenes(Scene &scene, const std::vector<Scene *> &scenes, const std::ve
     // fixing 'nextSibling' fields in the old roots (zero-index in all the scenes)
     offs = 1;
     int idx = 0;
-    for (const Scene *s : scenes)
+    for (const Scene* s : scenes)
     {
-        const int nodeCount = (int)s->hierarchy.size();
+        const int  nodeCount = (int)s->hierarchy.size();
         const bool isLast = (idx == scenes.size() - 1);
         // calculate new next sibling for the old scene roots
-        const int next = isLast ? -1 : offs + nodeCount;
+        const int  next = isLast ? -1 : offs + nodeCount;
 
         scene.hierarchy[offs].nextSibling = next;
         // attach to new root
@@ -419,9 +417,9 @@ void mergeScenes(Scene &scene, const std::vector<Scene *> &scenes, const std::ve
     }
 }
 
-void dumpSceneToDot(const char *fileName, const Scene &scene, int *visited)
+void dumpSceneToDot(const char* fileName, const Scene& scene, int* visited)
 {
-    FILE *f = fopen(fileName, "w");
+    FILE* f = fopen(fileName, "w");
     fprintf(f, "digraph G\n{\n");
     for (size_t i = 0; i < scene.globalTransform.size(); i++)
     {
@@ -456,7 +454,7 @@ void dumpSceneToDot(const char *fileName, const Scene &scene, int *visited)
 // A rather long algorithm (and the auxiliary routines) to delete a number of scene nodes from the hierarchy
 
 // Add an index to a sorted index array
-static void addUniqueIdx(std::vector<uint32_t> &v, uint32_t index)
+static void addUniqueIdx(std::vector<uint32_t>& v, uint32_t index)
 {
     if (!std::binary_search(v.begin(), v.end(), index))
     {
@@ -465,7 +463,7 @@ static void addUniqueIdx(std::vector<uint32_t> &v, uint32_t index)
 }
 
 // Recurse down from a node and collect all nodes which are already marked for deletion
-static void collectNodesToDelete(const Scene &scene, int node, std::vector<uint32_t> &nodes)
+static void collectNodesToDelete(const Scene& scene, int node, std::vector<uint32_t>& nodes)
 {
     for (int n = scene.hierarchy[node].firstChild; n != -1; n = scene.hierarchy[n].nextSibling)
     {
@@ -474,7 +472,7 @@ static void collectNodesToDelete(const Scene &scene, int node, std::vector<uint3
     }
 }
 
-int findLastNonDeletedItem(const Scene &scene, const std::vector<int> &newIndices, int node)
+int findLastNonDeletedItem(const Scene& scene, const std::vector<int>& newIndices, int node)
 {
     // we have to be more subtle:
     //   if the (newIndices[firstChild_] == -1), we should follow the link and extract the last non-removed item
@@ -484,14 +482,13 @@ int findLastNonDeletedItem(const Scene &scene, const std::vector<int> &newIndice
         return -1;
     }
 
-    return (newIndices[node] == -1) ? findLastNonDeletedItem(scene, newIndices, scene.hierarchy[node].nextSibling)
-                                    : newIndices[node];
+    return (newIndices[node] == -1) ? findLastNonDeletedItem(scene, newIndices, scene.hierarchy[node].nextSibling) : newIndices[node];
 }
 
-void shiftMapIndices(std::unordered_map<uint32_t, uint32_t> &items, const std::vector<int> &newIndices)
+void shiftMapIndices(std::unordered_map<uint32_t, uint32_t>& items, const std::vector<int>& newIndices)
 {
     std::unordered_map<uint32_t, uint32_t> newItems;
-    for (const auto &m : items)
+    for (const auto& m : items)
     {
         int newIndex = newIndices[m.first];
         if (newIndex != -1)
@@ -504,7 +501,7 @@ void shiftMapIndices(std::unordered_map<uint32_t, uint32_t> &items, const std::v
 
 // Approximately an O ( N * Log(N) * Log(M)) algorithm (N = scene.size, M = nodesToDelete.size) to delete a collection
 // of nodes from scene graph
-void deleteSceneNodes(Scene &scene, const std::vector<uint32_t> &nodesToDelete)
+void deleteSceneNodes(Scene& scene, const std::vector<uint32_t>& nodesToDelete)
 {
     // 0) Add all the nodes down below in the hierarchy
     auto indicesToDelete = nodesToDelete;
@@ -530,7 +527,7 @@ void deleteSceneNodes(Scene &scene, const std::vector<uint32_t> &nodesToDelete)
     }
 
     // 2) Replace all non-null parent/firstChild/nextSibling pointers in all the nodes by new positions
-    auto nodeMover = [&scene, &newIndices](Hierarchy &h)
+    auto nodeMover = [&scene, &newIndices](Hierarchy& h)
     {
         return Hierarchy{
             .parent = (h.parent != -1) ? newIndices[h.parent] : -1,

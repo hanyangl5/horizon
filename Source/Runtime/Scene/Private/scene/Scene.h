@@ -59,39 +59,39 @@ struct Scene
     std::vector<std::string> materialNames;
 };
 
-int addNode(Scene &scene, int parent, int level);
+int addNode(Scene& scene, int parent, int level);
 
-void markAsChanged(Scene &scene, int node);
+void markAsChanged(Scene& scene, int node);
 
-int findNodeByName(const Scene &scene, const std::string &name);
+int findNodeByName(const Scene& scene, const std::string& name);
 
-inline std::string getNodeName(const Scene &scene, int node)
+inline std::string getNodeName(const Scene& scene, int node)
 {
     int strID = scene.nameForNode.contains(node) ? scene.nameForNode.at(node) : -1;
     return (strID > -1) ? scene.nodeNames[strID] : std::string();
 }
 
-inline void setNodeName(Scene &scene, int node, const std::string &name)
+inline void setNodeName(Scene& scene, int node, const std::string& name)
 {
     uint32_t stringID = (uint32_t)scene.nodeNames.size();
     scene.nodeNames.push_back(name);
     scene.nameForNode[node] = stringID;
 }
 
-int getNodeLevel(const Scene &scene, int n);
+int getNodeLevel(const Scene& scene, int n);
 
-bool recalculateGlobalTransforms(Scene &scene);
+bool recalculateGlobalTransforms(Scene& scene);
 
-void loadScene(const char *fileName, Scene &scene);
-void saveScene(const char *fileName, const Scene &scene);
+void loadScene(const char* fileName, Scene& scene);
+void saveScene(const char* fileName, const Scene& scene);
 
-void dumpTransforms(const char *fileName, const Scene &scene);
-void printChangedNodes(const Scene &scene);
+void dumpTransforms(const char* fileName, const Scene& scene);
+void printChangedNodes(const Scene& scene);
 
-void dumpSceneToDot(const char *fileName, const Scene &scene, int *visited = nullptr);
+void dumpSceneToDot(const char* fileName, const Scene& scene, int* visited = nullptr);
 
-void mergeScenes(Scene &scene, const std::vector<Scene *> &scenes, const std::vector<glm::mat4> &rootTransforms,
-                 const std::vector<uint32_t> &meshCounts, bool mergeMeshes = true, bool mergeMaterials = true);
+void mergeScenes(Scene& scene, const std::vector<Scene*>& scenes, const std::vector<glm::mat4>& rootTransforms,
+                 const std::vector<uint32_t>& meshCounts, bool mergeMeshes = true, bool mergeMaterials = true);
 
 // Delete a collection of nodes from a scenegraph
-void deleteSceneNodes(Scene &scene, const std::vector<uint32_t> &nodesToDelete);
+void deleteSceneNodes(Scene& scene, const std::vector<uint32_t>& nodesToDelete);

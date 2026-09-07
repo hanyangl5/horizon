@@ -40,14 +40,11 @@ struct Mesh final
     uint32_t vertexCount = 0;
 
     // Offsets to LOD indices data. The last offset is used as a marker to calculate the size
-    uint32_t lodOffset[kMaxLODs + 1] = {0};
+    uint32_t lodOffset[kMaxLODs + 1] = { 0 };
 
     uint32_t materialID = 0;
 
-    inline uint32_t getLODIndicesCount(uint32_t lod) const
-    {
-        return lod < lodCount ? lodOffset[lod + 1] - lodOffset[lod] : 0;
-    }
+    inline uint32_t getLODIndicesCount(uint32_t lod) const { return lod < lodCount ? lodOffset[lod + 1] - lodOffset[lod] : 0; }
 
     // Any additional information, such as mesh name, can be added here...
 };
@@ -81,33 +78,33 @@ enum MaterialFlags
 
 struct Material
 {
-    vec4 emissiveFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-    vec4 baseColorFactor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    float roughness = 1.0f;
-    float transparencyFactor = 1.0f;
-    float alphaTest = 0.0f;
-    float metallicFactor = 0.0f;
+    vec4     emissiveFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    vec4     baseColorFactor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    float    roughness = 1.0f;
+    float    transparencyFactor = 1.0f;
+    float    alphaTest = 0.0f;
+    float    metallicFactor = 0.0f;
     // index into MeshData::textureFiles
-    int baseColorTexture = -1;
-    int emissiveTexture = -1;
-    int normalTexture = -1;
-    int opacityTexture = -1;
+    int      baseColorTexture = -1;
+    int      emissiveTexture = -1;
+    int      normalTexture = -1;
+    int      opacityTexture = -1;
     uint32_t flags = sMaterialFlags_CastShadow | sMaterialFlags_ReceiveShadow;
 };
 
 struct MeshData
 {
-    lvk::VertexInput streams = {};
-    lvk::VertexInput positionOnlyStreams = {};
-    std::vector<uint32_t> indexData;
-    std::vector<uint8_t> vertexData;
-    std::vector<uint8_t> positionData;
-    std::vector<uint8_t> attributeData;
-    std::vector<Mesh> meshes;
+    lvk::VertexInput         streams = {};
+    lvk::VertexInput         positionOnlyStreams = {};
+    std::vector<uint32_t>    indexData;
+    std::vector<uint8_t>     vertexData;
+    std::vector<uint8_t>     positionData;
+    std::vector<uint8_t>     attributeData;
+    std::vector<Mesh>        meshes;
     std::vector<BoundingBox> boxes;
-    std::vector<Material> materials;
+    std::vector<Material>    materials;
     std::vector<std::string> textureFiles;
-    MeshFileHeader getMeshFileHeader() const
+    MeshFileHeader           getMeshFileHeader() const
     {
         return {
             .meshCount = (uint32_t)meshes.size(),
@@ -121,21 +118,22 @@ struct MeshData
 
 static_assert(sizeof(BoundingBox) == sizeof(float) * 6);
 
-bool isMeshDataValid(const char *fileName);
-bool isMeshMaterialsValid(const char *fileName);
-bool isMeshHierarchyValid(const char *fileName);
-MeshFileHeader loadMeshData(const char *meshFile, MeshData &out);
-void loadMeshDataMaterials(const char *meshFile, MeshData &out);
-void saveMeshData(const char *fileName, const MeshData &m);
-void saveMeshDataMaterials(const char *fileName, const MeshData &m);
+bool           isMeshDataValid(const char* fileName);
+bool           isMeshMaterialsValid(const char* fileName);
+bool           isMeshHierarchyValid(const char* fileName);
+MeshFileHeader loadMeshData(const char* meshFile, MeshData& out);
+void           loadMeshDataMaterials(const char* meshFile, MeshData& out);
+void           saveMeshData(const char* fileName, const MeshData& m);
+void           saveMeshDataMaterials(const char* fileName, const MeshData& m);
 
-void recalculateBoundingBoxes(MeshData &m);
+void recalculateBoundingBoxes(MeshData& m);
 
 // combine a list of meshes to a single mesh container
-MeshFileHeader mergeMeshData(MeshData &m, const std::vector<MeshData *> md);
+MeshFileHeader mergeMeshData(MeshData& m, const std::vector<MeshData*> md);
 
 // use to write values into MeshData::vertexData
-template <typename T> inline void put(std::vector<uint8_t> &v, const T &value)
+template<typename T>
+inline void put(std::vector<uint8_t>& v, const T& value)
 {
     const size_t pos = v.size();
     v.resize(v.size() + sizeof(value));

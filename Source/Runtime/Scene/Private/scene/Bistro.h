@@ -8,7 +8,7 @@
 
 #if !defined(fileNameCachedMeshes) || !defined(fileNameCachedMaterials) || !defined(fileNameCachedHierarchy)
 // by default, use the precached Bistro scene
-#define fileNameCachedMeshes ".cache/ch08_bistro.meshes"
+#define fileNameCachedMeshes    ".cache/ch08_bistro.meshes"
 #define fileNameCachedMaterials ".cache/ch08_bistro.materials"
 #define fileNameCachedHierarchy ".cache/ch08_bistro.scene"
 #endif
@@ -17,7 +17,7 @@
 #define BISTRO_WITH_INTERIOR 0
 #endif
 
-void loadBistro(MeshData &meshData, Scene &scene)
+void loadBistro(MeshData& meshData, Scene& scene)
 {
     if (!isMeshDataValid(fileNameCachedMeshes) || !isMeshHierarchyValid(fileNameCachedHierarchy) ||
         !isMeshMaterialsValid(fileNameCachedMaterials))
@@ -25,16 +25,18 @@ void loadBistro(MeshData &meshData, Scene &scene)
         LLOGL("No cached mesh data found. Precaching...\n\n");
 
         MeshData meshData_Exterior;
-        Scene ourScene_Exterior;
+        Scene    ourScene_Exterior;
 #if BISTRO_WITH_INTERIOR
         MeshData meshData_Interior;
-        Scene ourScene_Interior;
+        Scene    ourScene_Interior;
 #endif
 
         // don't generate LODs because meshoptimizer fails on the Bistro mesh
-        loadMeshFile("D:/Codes/models/Bistro_v5_2/D:/Codes/models/Bistro_v5_2/BistroExterior.gltf", meshData_Exterior, ourScene_Exterior, false);
+        loadMeshFile("D:/Codes/models/Bistro_v5_2/D:/Codes/models/Bistro_v5_2/BistroExterior.gltf", meshData_Exterior, ourScene_Exterior,
+                     false);
 #if BISTRO_WITH_INTERIOR
-        loadMeshFile("D:/Codes/models/Bistro_v5_2/D:/Codes/models/Bistro_v5_2/Interior/interior.obj", meshData_Interior, ourScene_Interior, false);
+        loadMeshFile("D:/Codes/models/Bistro_v5_2/D:/Codes/models/Bistro_v5_2/Interior/interior.obj", meshData_Interior, ourScene_Interior,
+                     false);
 #endif
 
         // merge some meshes
@@ -48,7 +50,7 @@ void loadBistro(MeshData &meshData, Scene &scene)
 
         // merge everything into one big scene
         MeshData meshData;
-        Scene ourScene;
+        Scene    ourScene;
 
 #if BISTRO_WITH_INTERIOR
         mergeScenes(ourScene,
@@ -61,7 +63,7 @@ void loadBistro(MeshData &meshData, Scene &scene)
                         static_cast<uint32_t>(meshData_Exterior.meshes.size()),
                         static_cast<uint32_t>(meshData_Interior.meshes.size()),
                     });
-        mergeMeshData(meshData, {&meshData_Exterior, &meshData_Interior});
+        mergeMeshData(meshData, { &meshData_Exterior, &meshData_Interior });
         mergeMaterialLists(
             {
                 &meshData_Exterior.materials,
@@ -81,7 +83,7 @@ void loadBistro(MeshData &meshData, Scene &scene)
                     {
                         static_cast<uint32_t>(meshData_Exterior.meshes.size()),
                     });
-        mergeMeshData(meshData, {&meshData_Exterior});
+        mergeMeshData(meshData, { &meshData_Exterior });
         mergeMaterialLists(
             {
                 &meshData_Exterior.materials,

@@ -9,12 +9,12 @@
 #include <ktx.h>
 struct LoadedTextureData
 {
-    uint32_t index = 0;
-    ktxTexture1 *ktxTex = nullptr;
+    uint32_t         index = 0;
+    ktxTexture1*     ktxTex = nullptr;
     lvk::TextureDesc desc;
 };
 
-LoadedTextureData loadTextureData(const char *fileName)
+LoadedTextureData loadTextureData(const char* fileName)
 {
     const bool isKTX = endsWith(fileName, ".ktx") || endsWith(fileName, ".KTX");
 
@@ -24,10 +24,9 @@ LoadedTextureData loadTextureData(const char *fileName)
         return {};
     }
 
-    ktxTexture1 *ktxTex = nullptr;
+    ktxTexture1* ktxTex = nullptr;
 
-    if (!LVK_VERIFY(ktxTexture1_CreateFromNamedFile(fileName, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTex) ==
-                    KTX_SUCCESS))
+    if (!LVK_VERIFY(ktxTexture1_CreateFromNamedFile(fileName, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTex) == KTX_SUCCESS))
     {
         LLOGW("Failed to load %s\n", fileName);
         assert(0);
@@ -70,21 +69,20 @@ LoadedTextureData loadTextureData(const char *fileName)
         return lvk::Format_Invalid;
     }(ktxTex->glInternalformat);
 
-    return LoadedTextureData{.ktxTex = ktxTex,
-                             .desc = {.type = lvk::TextureType_2D,
-                                      .format = format,
-                                      .dimensions = {ktxTex->baseWidth, ktxTex->baseHeight, 1},
-                                      .usage = lvk::TextureUsageBits_Sampled,
-                                      .numMipLevels = ktxTex->numLevels,
-                                      .data = ktxTex->pData,
-                                      .dataNumMipLevels = ktxTex->numLevels,
-                                      .debugName = fileName}};
+    return LoadedTextureData{ .ktxTex = ktxTex,
+                              .desc = { .type = lvk::TextureType_2D,
+                                        .format = format,
+                                        .dimensions = { ktxTex->baseWidth, ktxTex->baseHeight, 1 },
+                                        .usage = lvk::TextureUsageBits_Sampled,
+                                        .numMipLevels = ktxTex->numLevels,
+                                        .data = ktxTex->pData,
+                                        .dataNumMipLevels = ktxTex->numLevels,
+                                        .debugName = fileName } };
 }
 
-GLTFMaterialDataGPU convertToGPUMaterialLazy(const std::unique_ptr<lvk::IContext> &ctx, const Material &mat,
-                                             const TextureFiles &files, TextureCache &cache,
-                                             std::vector<LoadedTextureData> &loadedTextureData,
-                                             std::mutex &loadingMutex)
+GLTFMaterialDataGPU convertToGPUMaterialLazy(const std::unique_ptr<lvk::IContext>& ctx, const Material& mat, const TextureFiles& files,
+                                             TextureCache& cache, std::vector<LoadedTextureData>& loadedTextureData,
+                                             std::mutex& loadingMutex)
 {
     LVK_PROFILER_FUNCTION();
 
@@ -108,11 +106,9 @@ GLTFMaterialDataGPU convertToGPUMaterialLazy(const std::unique_ptr<lvk::IContext
         }
         // not in the cache and not in the queue
         const bool notInCache = cache[textureId].empty();
-        const bool notInQueue = std::find_if(loadedTextureData.cbegin(), loadedTextureData.cend(),
-                                             [textureId](const LoadedTextureData &d)
-                                             {
-                                                 return d.index == textureId;
-                                             }) == loadedTextureData.end();
+        const bool notInQueue =
+            std::find_if(loadedTextureData.cbegin(), loadedTextureData.cend(),
+                         [textureId](const LoadedTextureData& d) { return d.index == textureId; }) == loadedTextureData.end();
         if (notInCache && notInQueue)
         {
             LoadedTextureData textureData = loadTextureData(files[textureId].c_str());
@@ -134,29 +130,27 @@ GLTFMaterialDataGPU convertToGPUMaterialLazy(const std::unique_ptr<lvk::IContext
     return result;
 }
 
-class VKMesh11Lazy final : public VKMesh11
+class VKMesh11Lazy final: public VKMesh11
 {
-  public:
-    VKMesh11Lazy(const std::unique_ptr<lvk::IContext> &ctx, const MeshData &meshData, const Scene &scene,
-                 lvk::StorageType indirectBufferStorage = lvk::StorageType_Device)
-        : VKMesh11(ctx, meshData, scene, indirectBufferStorage, false)
+public:
+    VKMesh11Lazy(const std::unique_ptr<lvk::IContext>& ctx, const MeshData& meshData, const Scene& scene,
+                 lvk::StorageType indirectBufferStorage = lvk::StorageType_Device):
+        VKMesh11(ctx, meshData, scene, indirectBufferStorage, false)
     {
         materialsGPU_.resize(materialsCPU_.size());
 
         // construct Taskflow
         taskflow_.for_each_index(0u, static_cast<uint32_t>(materialsCPU_.size()), 1u,
-                                 [&](int i)
-                                 {
-                                     materialsGPU_[i] =
-                                         convertToGPUMaterialLazy(ctx, materialsCPU_[i], textureFiles_, textureCache_,
-                                                                  loadedTextureData_, loadingMutex_);
+                                 [&](int i) {
+                                     materialsGPU_[i] = convertToGPUMaterialLazy(ctx, materialsCPU_[i], textureFiles_, textureCache_,
+                                                                                 loadedTextureData_, loadingMutex_);
                                  });
 
         // start loading
         executor_.run(taskflow_);
     }
 
-    bool processLoadedTextures(lvk::ICommandBuffer &buf, uint32_t maxTexturesPerFrame = 64)
+    bool processLoadedTextures(lvk::ICommandBuffer& buf, uint32_t maxTexturesPerFrame = 64)
     {
         LVK_PROFILER_FUNCTION();
 
@@ -185,7 +179,7 @@ class VKMesh11Lazy final : public VKMesh11
 
         std::vector<std::pair<uint32_t, lvk::Holder<lvk::TextureHandle>>> uploadedTextures;
         uploadedTextures.reserve(textures.size());
-        for (LoadedTextureData &tex : textures)
+        for (LoadedTextureData& tex : textures)
         {
             uploadedTextures.emplace_back(tex.index, ctx->createTexture(tex.desc));
             ktxTexture_Destroy(ktxTexture(tex.ktxTex));
@@ -197,22 +191,20 @@ class VKMesh11Lazy final : public VKMesh11
         {
             std::lock_guard lock(loadingMutex_);
 
-            for (auto &[textureId, texture] : uploadedTextures)
+            for (auto& [textureId, texture] : uploadedTextures)
             {
                 textureCache_[textureId] = std::move(texture);
             }
 
             auto getTextureFromCache = [this](int textureId) -> uint32_t
-            {
-                return textureCache_.size() > textureId ? textureCache_[textureId].index() : 0;
-            };
+            { return textureCache_.size() > textureId ? textureCache_[textureId].index() : 0; };
 
             LVK_ASSERT(materialsCPU_.size() == materialsGPU_.size());
 
             // go through the texture cache and update materials
             for (size_t i = 0; i != materialsCPU_.size(); i++)
             {
-                const Material &mtl = materialsCPU_[i];
+                const Material& mtl = materialsCPU_[i];
 
                 GLTFMaterialDataGPU m = materialsGPU_[i]; // make a local copy
 
@@ -235,9 +227,9 @@ class VKMesh11Lazy final : public VKMesh11
         }
 
         // update the buffer
-        size_t size = (end - begin) * sizeof(decltype(materialsGPU_)::value_type);
-        size_t offset = begin * sizeof(decltype(materialsGPU_)::value_type);
-        const uint8_t *bytes = reinterpret_cast<const uint8_t *>(materialsGPU_.data());
+        size_t         size = (end - begin) * sizeof(decltype(materialsGPU_)::value_type);
+        size_t         offset = begin * sizeof(decltype(materialsGPU_)::value_type);
+        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(materialsGPU_.data());
 
         while (size)
         {
@@ -250,11 +242,11 @@ class VKMesh11Lazy final : public VKMesh11
         return true;
     }
 
-  public:
+public:
     // multithreading
-    std::mutex loadingMutex_;
+    std::mutex                     loadingMutex_;
     std::vector<LoadedTextureData> loadedTextureData_;
 
     tf::Taskflow taskflow_;
-    tf::Executor executor_{size_t(2)};
+    tf::Executor executor_{ size_t(2) };
 };

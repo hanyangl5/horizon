@@ -446,12 +446,12 @@ struct SceneResourceAccess
         return result;
     }
 };
-}
+} // namespace hz
 
 struct SceneGpuResources
 {
-    SceneGeometry mGeometry;
-    hz::GPUBuffer mMaterials;
+    SceneGeometry    mGeometry;
+    hz::GPUBuffer    mMaterials;
     hz::GPUTexture** ppTextures = nullptr;
 };
 
@@ -623,7 +623,7 @@ void updateSceneManager(SceneManager* pSystem)
             pSystem->mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pSystem->pUserData) && pSlot->pGeometry)
         {
             Geometry* pSource = pSlot->pGeometry;
-            bool valid = !pSource->pGeometryBuffer && pSource->pIndexBuffer && pSource->mVertexBufferCount <= MAX_VERTEX_BINDINGS;
+            bool      valid = !pSource->pGeometryBuffer && pSource->pIndexBuffer && pSource->mVertexBufferCount <= MAX_VERTEX_BINDINGS;
             for (uint32_t binding = 0; valid && binding < pSource->mVertexBufferCount; ++binding)
                 valid = pSource->pVertexBuffers[binding] != nullptr;
             if (valid)
@@ -806,14 +806,13 @@ SceneAssetHandle requestSceneAsset(SceneManager* pSystem, ResourceDirectory reso
 }
 
 SceneAssetHandle requestSceneAssetFromGltf(SceneManager* pSystem, ResourceDirectory sourceDirectory, const char* pSourceFile,
-                                          ResourceDirectory outputDirectory, const GeometryLoadDesc* pGeometryLoadDesc,
-                                          SceneAssetError* pError)
+                                           ResourceDirectory outputDirectory, const GeometryLoadDesc* pGeometryLoadDesc,
+                                           SceneAssetError* pError)
 {
     if (pError)
         *pError = {};
     if (!pSystem || !pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !isSceneAssetRelativePath(pSourceFile) ||
-        strlen(pSourceFile) + sizeof(".scene.json") >= FS_MAX_PATH ||
-        !hasSceneAssetTextureExtension(pSourceFile, ".gltf"))
+        strlen(pSourceFile) + sizeof(".scene.json") >= FS_MAX_PATH || !hasSceneAssetTextureExtension(pSourceFile, ".gltf"))
     {
         failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_ARGUMENT, "glTF scene request");
         return invalidSceneAssetHandle();

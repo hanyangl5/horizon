@@ -20,26 +20,23 @@
 
 // these macros can be redefined externally
 #if !defined(DEMO_TEXTURE_MAX_SIZE) && !defined(DEMO_TEXTURE_CACHE_FOLDER)
-#define DEMO_TEXTURE_MAX_SIZE 512
+#define DEMO_TEXTURE_MAX_SIZE     512
 #define DEMO_TEXTURE_CACHE_FOLDER ".cache/out_textures/"
 #endif
 
 #if defined(DEMO_TEXTURE_COMPRESSION_ASTC)
 #define DEMO_TEXTURE_COMPRESSION_NAME "ASTC"
-#define DEMO_TEXTURE_CACHE_SUFFIX "__rescaled_astc"
+#define DEMO_TEXTURE_CACHE_SUFFIX     "__rescaled_astc"
 #else
-#define DEMO_TEXTURE_COMPRESSION_NAME "BC7"
-#define DEMO_TEXTURE_CACHE_SUFFIX "__rescaled"
+#define DEMO_TEXTURE_COMPRESSION_NAME   "BC7"
+#define DEMO_TEXTURE_CACHE_SUFFIX       "__rescaled"
 #define DEMO_TEXTURE_GL_INTERNAL_FORMAT GL_COMPRESSED_RGBA_BPTC_UNORM
-#define DEMO_TEXTURE_VK_FORMAT VK_FORMAT_BC7_UNORM_BLOCK
+#define DEMO_TEXTURE_VK_FORMAT          VK_FORMAT_BC7_UNORM_BLOCK
 #endif
 
-std::string logPrefix(int ofs)
-{
-    return std::string(ofs, '\t');
-}
+std::string logPrefix(int ofs) { return std::string(ofs, '\t'); }
 
-std::string mat4ToLogString(const aiMatrix4x4 &m)
+std::string mat4ToLogString(const aiMatrix4x4& m)
 {
     if (m.IsIdentity())
     {
@@ -59,7 +56,7 @@ std::string mat4ToLogString(const aiMatrix4x4 &m)
 }
 
 // find a file in directory which "almost" coincides with the origFile (their lowercase versions coincide)
-std::string findSubstitute(const std::string &origFile)
+std::string findSubstitute(const std::string& origFile)
 {
     namespace fs = std::filesystem;
 
@@ -71,7 +68,7 @@ std::string findSubstitute(const std::string &origFile)
     auto dir = fs::path(origFile).remove_filename();
 
     // Iterate each file non-recursively and compare lowercase absolute path with 'afile'
-    for (auto &p : fs::directory_iterator(dir))
+    for (auto& p : fs::directory_iterator(dir))
     {
         if (afile == lowercaseString(p.path().filename().string()))
         {
@@ -82,15 +79,14 @@ std::string findSubstitute(const std::string &origFile)
     return std::string{};
 }
 
-std::string fixTextureFile(const std::string &file)
+std::string fixTextureFile(const std::string& file)
 {
     // TODO: check the findSubstitute() function
     return std::filesystem::exists(file) ? file : findSubstitute(file);
 }
 
-std::string convertTexture(const std::string &file, const std::string &basePath,
-                           std::unordered_map<std::string, uint32_t> &opacityMapIndices,
-                           const std::vector<std::string> &opacityMaps)
+std::string convertTexture(const std::string& file, const std::string& basePath,
+                           std::unordered_map<std::string, uint32_t>& opacityMapIndices, const std::vector<std::string>& opacityMaps)
 {
     LVK_PROFILER_FUNCTION();
 
@@ -105,15 +101,15 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
     }
 
     const std::string srcFile = replaceAll(basePath + file, "\\", "/");
-    const std::string newFile = std::string(DEMO_TEXTURE_CACHE_FOLDER) +
-                                lowercaseString(replaceAll(replaceAll(srcFile, "..", "__"), "/", "__") +
-                                                std::string(DEMO_TEXTURE_CACHE_SUFFIX)) +
-                                std::string(".ktx");
+    const std::string newFile =
+        std::string(DEMO_TEXTURE_CACHE_FOLDER) +
+        lowercaseString(replaceAll(replaceAll(srcFile, "..", "__"), "/", "__") + std::string(DEMO_TEXTURE_CACHE_SUFFIX)) +
+        std::string(".ktx");
 
     // load this image
-    int origWidth, origHeight, texChannels;
-    stbi_uc *pixels = stbi_load(fixTextureFile(srcFile).c_str(), &origWidth, &origHeight, &texChannels, STBI_rgb_alpha);
-    uint8_t *src = pixels;
+    int      origWidth, origHeight, texChannels;
+    stbi_uc* pixels = stbi_load(fixTextureFile(srcFile).c_str(), &origWidth, &origHeight, &texChannels, STBI_rgb_alpha);
+    uint8_t* src = pixels;
     texChannels = STBI_rgb_alpha;
 
     SCOPE_EXIT
@@ -142,9 +138,8 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
     if (opacityMapIndices.count(file) > 0)
     {
         const std::string opacityMapFile = replaceAll(basePath + opacityMaps[opacityMapIndices[file]], "\\", "/");
-        int opacityWidth, opacityHeight;
-        stbi_uc *opacityPixels =
-            stbi_load(fixTextureFile(opacityMapFile).c_str(), &opacityWidth, &opacityHeight, nullptr, 1);
+        int               opacityWidth, opacityHeight;
+        stbi_uc*          opacityPixels = stbi_load(fixTextureFile(opacityMapFile).c_str(), &opacityWidth, &opacityHeight, nullptr, 1);
 
         if (!opacityPixels)
         {
@@ -190,9 +185,8 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
         .numFaces = 1u,
         .generateMipmaps = KTX_FALSE,
     };
-    ktxTexture2 *textureKTX2 = nullptr;
-    (void)LVK_VERIFY(ktxTexture2_Create(&createInfoKTX2, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &textureKTX2) ==
-                     KTX_SUCCESS);
+    ktxTexture2* textureKTX2 = nullptr;
+    (void)LVK_VERIFY(ktxTexture2_Create(&createInfoKTX2, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &textureKTX2) == KTX_SUCCESS);
 
     int w = newW;
     int h = newH;
@@ -203,8 +197,8 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
         size_t offset = 0;
         ktxTexture_GetImageOffset(ktxTexture(textureKTX2), i, 0, 0, &offset);
 
-        stbir_resize_uint8_linear((const unsigned char *)src, origWidth, origHeight, 0,
-                                  ktxTexture_GetData(ktxTexture(textureKTX2)) + offset, w, h, 0, STBIR_RGBA);
+        stbir_resize_uint8_linear((const unsigned char*)src, origWidth, origHeight, 0, ktxTexture_GetData(ktxTexture(textureKTX2)) + offset,
+                                  w, h, 0, STBIR_RGBA);
 
         h = h > 1 ? h >> 1 : 1;
         w = w > 1 ? w >> 1 : 1;
@@ -238,9 +232,8 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
         .numFaces = 1u,
         .generateMipmaps = KTX_FALSE,
     };
-    ktxTexture1 *textureKTX1 = nullptr;
-    (void)LVK_VERIFY(ktxTexture1_Create(&createInfoKTX1, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &textureKTX1) ==
-                     KTX_SUCCESS);
+    ktxTexture1* textureKTX1 = nullptr;
+    (void)LVK_VERIFY(ktxTexture1_Create(&createInfoKTX1, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &textureKTX1) == KTX_SUCCESS);
 
     for (uint32_t i = 0; i != numMipLevels; ++i)
     {
@@ -248,8 +241,7 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
         (void)LVK_VERIFY(ktxTexture_GetImageOffset(ktxTexture(textureKTX1), i, 0, 0, &offset1) == KTX_SUCCESS);
         size_t offset2 = 0;
         (void)LVK_VERIFY(ktxTexture_GetImageOffset(ktxTexture(textureKTX2), i, 0, 0, &offset2) == KTX_SUCCESS);
-        memcpy(ktxTexture_GetData(ktxTexture(textureKTX1)) + offset1,
-               ktxTexture_GetData(ktxTexture(textureKTX2)) + offset2,
+        memcpy(ktxTexture_GetData(ktxTexture(textureKTX1)) + offset1, ktxTexture_GetData(ktxTexture(textureKTX2)) + offset2,
                ktxTexture_GetImageSize(ktxTexture(textureKTX1), i));
     }
 
@@ -260,12 +252,12 @@ std::string convertTexture(const std::string &file, const std::string &basePath,
     return newFile;
 }
 
-void convertAndDownscaleAllTextures(const std::vector<Material> &materials, const std::string &basePath,
-                                    std::vector<std::string> &files, std::vector<std::string> &opacityMaps)
+void convertAndDownscaleAllTextures(const std::vector<Material>& materials, const std::string& basePath, std::vector<std::string>& files,
+                                    std::vector<std::string>& opacityMaps)
 {
     std::unordered_map<std::string, uint32_t> opacityMapIndices(files.size());
 
-    for (const auto &m : materials)
+    for (const auto& m : materials)
     {
         if (m.opacityTexture != -1 && m.baseColorTexture != -1)
         {
@@ -273,10 +265,7 @@ void convertAndDownscaleAllTextures(const std::vector<Material> &materials, cons
         }
     }
 
-    auto converter = [&](const std::string &s) -> std::string
-    {
-        return convertTexture(s, basePath, opacityMapIndices, opacityMaps);
-    };
+    auto converter = [&](const std::string& s) -> std::string { return convertTexture(s, basePath, opacityMapIndices, opacityMaps); };
 
 #if defined(__cpp_lib_execution)
     std::transform(std::execution::par, std::begin(files), std::end(files), std::begin(files), converter);
@@ -285,7 +274,7 @@ void convertAndDownscaleAllTextures(const std::vector<Material> &materials, cons
 #endif
 }
 
-void traverse(const aiScene *sourceScene, Scene &scene, aiNode *N, int parent, int depth)
+void traverse(const aiScene* sourceScene, Scene& scene, aiNode* N, int parent, int depth)
 {
     int newNode = addNode(scene, parent, depth);
 
@@ -313,8 +302,7 @@ void traverse(const aiScene *sourceScene, Scene &scene, aiNode *N, int parent, i
 
         const std::string prefix = logPrefix(depth);
         LLOGL("%sNode[%d].SubNode[%d].mesh     = %d\n", prefix.c_str(), newNode, newSubNode, (int)mesh);
-        LLOGL("%sNode[%d].SubNode[%d].material = %d\n", prefix.c_str(), newNode, newSubNode,
-              sourceScene->mMeshes[mesh]->mMaterialIndex);
+        LLOGL("%sNode[%d].SubNode[%d].material = %d\n", prefix.c_str(), newNode, newSubNode, sourceScene->mMeshes[mesh]->mMaterialIndex);
 
         scene.globalTransform[newSubNode] = glm::mat4(1.0f);
         scene.localTransform[newSubNode] = glm::mat4(1.0f);
@@ -337,16 +325,16 @@ void traverse(const aiScene *sourceScene, Scene &scene, aiNode *N, int parent, i
     }
 }
 
-void loadMeshFile(const char *fileName, MeshData &meshData, Scene &ourScene, bool generateLODs)
+void loadMeshFile(const char* fileName, MeshData& meshData, Scene& ourScene, bool generateLODs)
 {
     LLOGL("Loading '%s'...\n", fileName);
 
-    const unsigned int flags = 0 | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate |
-                               aiProcess_GenSmoothNormals | aiProcess_LimitBoneWeights | aiProcess_SplitLargeMeshes |
-                               aiProcess_ImproveCacheLocality | aiProcess_RemoveRedundantMaterials |
-                               aiProcess_FindDegenerates | aiProcess_FindInvalidData | aiProcess_GenUVCoords;
+    const unsigned int flags = 0 | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                               aiProcess_LimitBoneWeights | aiProcess_SplitLargeMeshes | aiProcess_ImproveCacheLocality |
+                               aiProcess_RemoveRedundantMaterials | aiProcess_FindDegenerates | aiProcess_FindInvalidData |
+                               aiProcess_GenUVCoords;
 
-    const aiScene *scene = aiImportFile(fileName, flags);
+    const aiScene* scene = aiImportFile(fileName, flags);
 
     if (!scene || !scene->HasMeshes())
     {
@@ -368,15 +356,14 @@ void loadMeshFile(const char *fileName, MeshData &meshData, Scene &ourScene, boo
 
     // extract base model path
     const std::size_t pathSeparator = std::string(fileName).find_last_of("/\\");
-    const std::string basePath =
-        (pathSeparator != std::string::npos) ? std::string(fileName).substr(0, pathSeparator + 1) : std::string();
+    const std::string basePath = (pathSeparator != std::string::npos) ? std::string(fileName).substr(0, pathSeparator + 1) : std::string();
 
     std::vector<std::string> opacityMaps;
 
     for (unsigned int i = 0; i != scene->mNumMaterials; i++)
     {
         LLOGL("Converting materials %u/%u...\n", i + 1, scene->mNumMaterials);
-        const aiMaterial *m = scene->mMaterials[i];
+        const aiMaterial* m = scene->mMaterials[i];
         ourScene.materialNames.push_back(m->GetName().C_Str());
         meshData.materials.push_back(convertAIMaterial(m, meshData.textureFiles, opacityMaps));
     }

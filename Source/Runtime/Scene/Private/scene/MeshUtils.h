@@ -13,7 +13,7 @@ struct DrawIndexedIndirectCommand
     uint32_t count;
     uint32_t instanceCount;
     uint32_t firstIndex;
-    int32_t baseVertex;
+    int32_t  baseVertex;
     uint32_t baseInstance;
 };
 
@@ -25,21 +25,19 @@ struct DrawData
 
 inline uint32_t packSnorm10(float value)
 {
-    const int32_t quantized =
-        glm::clamp(static_cast<int32_t>(std::round(glm::clamp(value, -1.0f, 1.0f) * 511.0f)), -512, 511);
+    const int32_t quantized = glm::clamp(static_cast<int32_t>(std::round(glm::clamp(value, -1.0f, 1.0f) * 511.0f)), -512, 511);
     return static_cast<uint32_t>(quantized) & 0x3ffu;
 }
 
-inline uint32_t packSnorm10x3(const vec3 &value)
+inline uint32_t packSnorm10x3(const vec3& value)
 {
     const vec3 v = glm::normalize(glm::dot(value, value) > 0.0f ? value : vec3(0.0f, 1.0f, 0.0f));
     return packSnorm10(v.x) | (packSnorm10(v.y) << 10u) | (packSnorm10(v.z) << 20u);
 }
 
-inline uint32_t packTangent10x3Handedness(const vec4 &value)
+inline uint32_t packTangent10x3Handedness(const vec4& value)
 {
-    const vec3 tangent =
-        glm::normalize(glm::dot(vec3(value), vec3(value)) > 0.0f ? vec3(value) : vec3(1.0f, 0.0f, 0.0f));
+    const vec3 tangent = glm::normalize(glm::dot(vec3(value), vec3(value)) > 0.0f ? vec3(value) : vec3(1.0f, 0.0f, 0.0f));
     return packSnorm10(tangent.x) | (packSnorm10(tangent.y) << 10u) | (packSnorm10(tangent.z) << 20u) |
            ((value.w >= 0.0f ? 1u : 3u) << 30u);
 }
@@ -49,8 +47,8 @@ using TextureCache = std::vector<lvk::Holder<lvk::TextureHandle>>;
 // textureId -> FileName
 using TextureFiles = std::vector<std::string>;
 
-inline GLTFMaterialDataGPU convertToGPUMaterial(const std::unique_ptr<lvk::IContext> &ctx, const Material &mat,
-                                                const TextureFiles &files, TextureCache &cache)
+inline GLTFMaterialDataGPU convertToGPUMaterial(const std::unique_ptr<lvk::IContext>& ctx, const Material& mat, const TextureFiles& files,
+                                                TextureCache& cache)
 {
     GLTFMaterialDataGPU result = {
         .baseColorFactor = mat.baseColorFactor,
@@ -86,8 +84,7 @@ inline GLTFMaterialDataGPU convertToGPUMaterial(const std::unique_ptr<lvk::ICont
 }
 
 // NOTE: this function was manually tweaked to load Bistro materials from .obj - use UtilsGLTF.h for anything else
-inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> &files,
-                                  std::vector<std::string> &opacityMaps)
+inline Material convertAIMaterial(const aiMaterial* M, std::vector<std::string>& files, std::vector<std::string>& opacityMaps)
 {
     Material D;
 
@@ -95,7 +92,7 @@ inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> 
 
     if (aiGetMaterialColor(M, AI_MATKEY_COLOR_AMBIENT, &Color) == AI_SUCCESS)
     {
-        D.emissiveFactor = {Color.r, Color.g, Color.b, Color.a};
+        D.emissiveFactor = { Color.r, Color.g, Color.b, Color.a };
         if (D.emissiveFactor.w > 1.0f)
         {
             D.emissiveFactor.w = 1.0f;
@@ -103,7 +100,7 @@ inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> 
     }
     if (aiGetMaterialColor(M, AI_MATKEY_COLOR_DIFFUSE, &Color) == AI_SUCCESS)
     {
-        D.baseColorFactor = {Color.r, Color.g, Color.b, Color.a};
+        D.baseColorFactor = { Color.r, Color.g, Color.b, Color.a };
         if (D.baseColorFactor.w > 1.0f)
         {
             D.baseColorFactor.w = 1.0f;
@@ -119,7 +116,7 @@ inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> 
     }
 
     const float opaquenessThreshold = 0.05f;
-    float Opacity = 1.0f;
+    float       Opacity = 1.0f;
 
     if (aiGetMaterialFloat(M, AI_MATKEY_OPACITY, &Opacity) == AI_SUCCESS)
     {
@@ -152,22 +149,22 @@ inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> 
         D.roughness = tmp;
     }
 
-    aiString path;
+    aiString         path;
     aiTextureMapping mapping;
-    unsigned int uvIndex = 0;
-    float blend = 1.0f;
-    aiTextureOp textureOp = aiTextureOp_Add;
-    aiTextureMapMode textureMapMode[2] = {aiTextureMapMode_Wrap, aiTextureMapMode_Wrap};
-    unsigned int textureFlags = 0;
+    unsigned int     uvIndex = 0;
+    float            blend = 1.0f;
+    aiTextureOp      textureOp = aiTextureOp_Add;
+    aiTextureMapMode textureMapMode[2] = { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };
+    unsigned int     textureFlags = 0;
 
-    if (aiGetMaterialTexture(M, aiTextureType_EMISSIVE, 0, &path, &mapping, &uvIndex, &blend, &textureOp,
-                             textureMapMode, &textureFlags) == AI_SUCCESS)
+    if (aiGetMaterialTexture(M, aiTextureType_EMISSIVE, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode, &textureFlags) ==
+        AI_SUCCESS)
     {
         D.emissiveTexture = addUnique(files, path.C_Str());
     }
 
-    if (aiGetMaterialTexture(M, aiTextureType_DIFFUSE, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode,
-                             &textureFlags) == AI_SUCCESS)
+    if (aiGetMaterialTexture(M, aiTextureType_DIFFUSE, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode, &textureFlags) ==
+        AI_SUCCESS)
     {
         D.baseColorTexture = addUnique(files, path.C_Str());
         const std::string albedoMap = std::string(path.C_Str());
@@ -178,40 +175,37 @@ inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> 
     }
 
     // first try tangent space normal map
-    if (aiGetMaterialTexture(M, aiTextureType_NORMALS, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode,
-                             &textureFlags) == AI_SUCCESS)
+    if (aiGetMaterialTexture(M, aiTextureType_NORMALS, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode, &textureFlags) ==
+        AI_SUCCESS)
     {
         D.normalTexture = addUnique(files, path.C_Str());
     }
     // then height map
     if (D.normalTexture == -1)
     {
-        if (aiGetMaterialTexture(M, aiTextureType_HEIGHT, 0, &path, &mapping, &uvIndex, &blend, &textureOp,
-                                 textureMapMode, &textureFlags) == AI_SUCCESS)
+        if (aiGetMaterialTexture(M, aiTextureType_HEIGHT, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode,
+                                 &textureFlags) == AI_SUCCESS)
         {
             D.normalTexture = addUnique(files, path.C_Str());
         }
     }
 
-    if (aiGetMaterialTexture(M, aiTextureType_OPACITY, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode,
-                             &textureFlags) == AI_SUCCESS)
+    if (aiGetMaterialTexture(M, aiTextureType_OPACITY, 0, &path, &mapping, &uvIndex, &blend, &textureOp, textureMapMode, &textureFlags) ==
+        AI_SUCCESS)
     {
         D.opacityTexture = addUnique(opacityMaps, path.C_Str());
         D.alphaTest = 0.5f;
     }
 
     // patch materials
-    aiString Name;
+    aiString    Name;
     std::string materialName;
     if (aiGetMaterialString(M, AI_MATKEY_NAME, &Name) == AI_SUCCESS)
     {
         materialName = Name.C_Str();
     }
     // apply heuristics
-    auto name = [&materialName](const char *substr) -> bool
-    {
-        return materialName.find(substr) != std::string::npos;
-    };
+    auto name = [&materialName](const char* substr) -> bool { return materialName.find(substr) != std::string::npos; };
     if (name("MASTER_Glass_Clean") || name("MenuSign_02_Glass") || name("Vespa_Headlight"))
     {
         D.alphaTest = 0.75f;
@@ -273,8 +267,8 @@ inline Material convertAIMaterial(const aiMaterial *M, std::vector<std::string> 
     return D;
 }
 
-inline void processLODs(std::vector<uint32_t> &indices, std::vector<uint8_t> &vertices, size_t vertexStride,
-                        std::vector<std::vector<uint32_t>> &outLods, bool generateLods)
+inline void processLODs(std::vector<uint32_t>& indices, std::vector<uint8_t>& vertices, size_t vertexStride,
+                        std::vector<std::vector<uint32_t>>& outLods, bool generateLods)
 {
     size_t verticesCountIn = vertices.size() / vertexStride;
     size_t targetIndicesCount = indices.size();
@@ -296,9 +290,8 @@ inline void processLODs(std::vector<uint32_t> &indices, std::vector<uint8_t> &ve
 
         bool sloppy = false;
 
-        size_t numOptIndices =
-            meshopt_simplify(indices.data(), indices.data(), (uint32_t)indices.size(), (const float *)vertices.data(),
-                             verticesCountIn, vertexStride, targetIndicesCount, 0.02f, 0, nullptr);
+        size_t numOptIndices = meshopt_simplify(indices.data(), indices.data(), (uint32_t)indices.size(), (const float*)vertices.data(),
+                                                verticesCountIn, vertexStride, targetIndicesCount, 0.02f, 0, nullptr);
 
         // cannot simplify further
         if (static_cast<size_t>(numOptIndices * 1.1f) > indices.size())
@@ -306,9 +299,8 @@ inline void processLODs(std::vector<uint32_t> &indices, std::vector<uint8_t> &ve
             if (LOD > 1)
             {
                 // try harder
-                numOptIndices = meshopt_simplifySloppy(indices.data(), indices.data(), indices.size(),
-                                                       (const float *)vertices.data(), verticesCountIn, vertexStride,
-                                                       targetIndicesCount, 0.02f, nullptr);
+                numOptIndices = meshopt_simplifySloppy(indices.data(), indices.data(), indices.size(), (const float*)vertices.data(),
+                                                       verticesCountIn, vertexStride, targetIndicesCount, 0.02f, nullptr);
                 sloppy = true;
                 if (numOptIndices == indices.size())
                 {
@@ -333,8 +325,7 @@ inline void processLODs(std::vector<uint32_t> &indices, std::vector<uint8_t> &ve
     }
 }
 
-inline Mesh convertAIMesh(const aiMesh *m, MeshData &meshData, uint32_t &indexOffset, uint32_t &vertexOffset,
-                          bool generateLODs)
+inline Mesh convertAIMesh(const aiMesh* m, MeshData& meshData, uint32_t& indexOffset, uint32_t& vertexOffset, bool generateLODs)
 {
     static_assert(sizeof(aiVector3D) == 3 * sizeof(float));
     static_assert(sizeof(PackedVertexAttribs) == 12);
@@ -344,7 +335,7 @@ inline Mesh convertAIMesh(const aiMesh *m, MeshData &meshData, uint32_t &indexOf
 
     struct SourceVertex
     {
-        vec3 pos;
+        vec3     pos;
         uint32_t uv;
         uint32_t normal;
         uint32_t tangent;
@@ -353,15 +344,14 @@ inline Mesh convertAIMesh(const aiMesh *m, MeshData &meshData, uint32_t &indexOf
 
     // Original data for LOD calculation
     std::vector<uint32_t> srcIndices;
-    std::vector<uint8_t> vertices;
+    std::vector<uint8_t>  vertices;
 
     for (size_t i = 0; i != m->mNumVertices; i++)
     {
-        const aiVector3D v = m->mVertices[i];
-        const aiVector3D n = m->mNormals[i];
-        const aiVector2D t =
-            hasTexCoords ? aiVector2D(m->mTextureCoords[0][i].x, m->mTextureCoords[0][i].y) : aiVector2D();
-        const aiVector3D tangent = hasTangents ? m->mTangents[i] : aiVector3D(1.0f, 0.0f, 0.0f);
+        const aiVector3D   v = m->mVertices[i];
+        const aiVector3D   n = m->mNormals[i];
+        const aiVector2D   t = hasTexCoords ? aiVector2D(m->mTextureCoords[0][i].x, m->mTextureCoords[0][i].y) : aiVector2D();
+        const aiVector3D   tangent = hasTangents ? m->mTangents[i] : aiVector3D(1.0f, 0.0f, 0.0f);
         const SourceVertex vertex = {
             .pos = vec3(v.x, v.y, v.z),
             .uv = glm::packHalf2x16(vec2(t.x, t.y)),
@@ -390,8 +380,8 @@ inline Mesh convertAIMesh(const aiMesh *m, MeshData &meshData, uint32_t &indexOf
         .inputBindings = {{.stride = sizeof(vec3)}, {.stride = sizeof(PackedVertexAttribs)}},
     };
     meshData.positionOnlyStreams = {
-        .attributes = {{.location = 0, .binding = 0, .format = lvk::VertexFormat_Float3, .offset = 0}},
-        .inputBindings = {{.stride = sizeof(vec3)}},
+        .attributes = { { .location = 0, .binding = 0, .format = lvk::VertexFormat_Float3, .offset = 0 } },
+        .inputBindings = { { .stride = sizeof(vec3) } },
     };
 
     for (unsigned int i = 0; i != m->mNumFaces; i++)
@@ -410,22 +400,22 @@ inline Mesh convertAIMesh(const aiMesh *m, MeshData &meshData, uint32_t &indexOf
 
     // optimize the entire mesh
     {
-        const uint32_t vertexCountIn = vertices.size() / vertexStride;
+        const uint32_t        vertexCountIn = vertices.size() / vertexStride;
         std::vector<uint32_t> remap(vertexCountIn);
-        const size_t vertexCountOut = meshopt_generateVertexRemap(remap.data(), srcIndices.data(), srcIndices.size(),
-                                                                  vertices.data(), vertexCountIn, vertexStride);
+        const size_t          vertexCountOut =
+            meshopt_generateVertexRemap(remap.data(), srcIndices.data(), srcIndices.size(), vertices.data(), vertexCountIn, vertexStride);
 
         std::vector<uint32_t> remappedIndices(srcIndices.size());
-        std::vector<uint8_t> remappedVertices(vertexCountOut * vertexStride);
+        std::vector<uint8_t>  remappedVertices(vertexCountOut * vertexStride);
 
         meshopt_remapIndexBuffer(remappedIndices.data(), srcIndices.data(), srcIndices.size(), remap.data());
         meshopt_remapVertexBuffer(remappedVertices.data(), vertices.data(), vertexCountIn, vertexStride, remap.data());
 
         meshopt_optimizeVertexCache(remappedIndices.data(), remappedIndices.data(), srcIndices.size(), vertexCountOut);
-        meshopt_optimizeOverdraw(remappedIndices.data(), remappedIndices.data(), srcIndices.size(),
-                                 (const float *)remappedVertices.data(), vertexCountOut, vertexStride, 1.05f);
-        meshopt_optimizeVertexFetch(remappedVertices.data(), remappedIndices.data(), srcIndices.size(),
-                                    remappedVertices.data(), vertexCountOut, vertexStride);
+        meshopt_optimizeOverdraw(remappedIndices.data(), remappedIndices.data(), srcIndices.size(), (const float*)remappedVertices.data(),
+                                 vertexCountOut, vertexStride, 1.05f);
+        meshopt_optimizeVertexFetch(remappedVertices.data(), remappedIndices.data(), srcIndices.size(), remappedVertices.data(),
+                                    vertexCountOut, vertexStride);
 
         srcIndices = remappedIndices;
         vertices = remappedVertices;
@@ -458,7 +448,7 @@ inline Mesh convertAIMesh(const aiMesh *m, MeshData &meshData, uint32_t &indexOf
 
     for (uint32_t i = 0; i != numVertices; i++)
     {
-        const SourceVertex &vertex = reinterpret_cast<const SourceVertex *>(vertices.data())[i];
+        const SourceVertex&       vertex = reinterpret_cast<const SourceVertex*>(vertices.data())[i];
         const PackedVertexAttribs attribs = {
             .normal = vertex.normal,
             .uv = vertex.uv,
