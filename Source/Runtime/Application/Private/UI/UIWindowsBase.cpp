@@ -79,7 +79,6 @@ static UIComponent* pToggleVSyncComponent = NULL;
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
 #endif
-static UIWidget* pSwitchComponentLabelWidget = NULL;
 static UIWidget* pSelectApUIWidget = NULL;
 static UIWidget* pSelectGraphicCardWidget = NULL;
 static uint32_t  gSelectedApiIndex = 0;
@@ -266,8 +265,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     CheckboxWidget checkbox;
     checkbox.pData = &pApp->mSettings.mVSyncEnabled;
-    UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
-    (pCheckbox);
+    uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
 
     // MICROPROFILER UI
     toggleProfilerMenuUI(true);
@@ -302,7 +300,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
         ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH };
         requestReset(&resetDescriptor);
     };
-    (pSelectApUIWidget);
+    UNREF_PARAM(pSelectApUIWidget);
 
     static const char* gpuNames[] = { gPlatformParameters.ppAvailableGpuNames[0], gPlatformParameters.ppAvailableGpuNames[1],
                                       gPlatformParameters.ppAvailableGpuNames[2], gPlatformParameters.ppAvailableGpuNames[3] };
@@ -320,7 +318,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
         ResetDesc resetDescriptor{ RESET_TYPE_GRAPHIC_CARD_SWITCH };
         requestReset(&resetDescriptor);
     };
-    (pSelectGraphicCardWidget);
+    UNREF_PARAM(pSelectGraphicCardWidget);
 
 #if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
     // Tests below are executed last, after tests registered in IApp::Init have executed
@@ -367,6 +365,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 {
     UNREF_PARAM(argc);
     UNREF_PARAM(argv);
+
     if (!initMemAlloc(app->GetName()))
         return EXIT_FAILURE;
 

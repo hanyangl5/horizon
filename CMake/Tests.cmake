@@ -88,5 +88,7 @@ endfunction()
 
 include(${HORIZON_TEST_CMAKE_DIR}/Core.cmake)
 include(${HORIZON_TEST_CMAKE_DIR}/RHI.cmake)
+include(${HORIZON_TEST_CMAKE_DIR}/Resources.cmake)
 include(${HORIZON_TEST_CMAKE_DIR}/Graphics.cmake)
+include(${HORIZON_TEST_CMAKE_DIR}/Scene.cmake)
 include(${HORIZON_TEST_CMAKE_DIR}/Smoke.cmake)

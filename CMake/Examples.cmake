@@ -47,5 +47,18 @@ set(HORIZON_DEFERRED_SHADING_SOURCES
     ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredShading/DeferredShading.cpp
 )
 
+set(HORIZON_RENDERER_SOURCES
+    ${HORIZON_EXAMPLES_SOURCE_DIR}/Renderer/Renderer.cpp
+)
+
 add_example_target(HelloTriangle ${HORIZON_HELLO_TRIANGLE_SOURCES})
 add_example_target(DeferredShading ${HORIZON_DEFERRED_SHADING_SOURCES})
+add_example_target(Renderer ${HORIZON_RENDERER_SOURCES})
+if(TARGET AssetPipeline)
+    target_link_libraries(Renderer PRIVATE AssetPipeline)
+    target_compile_definitions(Renderer PRIVATE HORIZON_RENDERER_ASSET_COOKING)
+endif()
+
+target_compile_definitions(Renderer PRIVATE
+    HORIZON_RENDERER_ASSET_DIR="${CMAKE_BINARY_DIR}/RendererAssets"
+)

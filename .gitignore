@@ -124,6 +124,7 @@ Examples_3/Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/
 # Automatically Generated Files
 **/Renderer/IRendererDLL.h
 **/Renderer/Renderer.cpp
+!/Examples/Renderer/Renderer.cpp
 
 # Obj folders
 /**/obj/

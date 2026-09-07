@@ -1337,4 +1337,6 @@ void exitWindowClass()
         arrfree(gMonitors[i].resolutions);
 
     tf_free(gMonitors);
+    gMonitors = nullptr;
+    gMonitorCount = 0;
 }

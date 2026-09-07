@@ -23,27 +23,30 @@
  */
 
 #include "AssetPipeline.h"
+#include "AssetPipeline/IAssetPipeline.h"
 
 // Math
-#include "../../../Utilities/ThirdParty/OpenSource/ModifiedSonyMath/vectormath.hpp"
+#include <ThirdParty/ModifiedSonyMath1/vectormath.hpp>
 
-#include "../../../Utilities/Math/ShaderUtilities.h"
+#include "Runtime/Core/Private/Math/ShaderUtilities.h"
 
 // OZZ
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/animation_builder.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/animation_optimizer.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/raw_animation.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/raw_skeleton.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/skeleton_builder.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/track_optimizer.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/archive.h"
-#include "../../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
+#include <ozz/animation/offline/animation_builder.h>
+#include <ozz/animation/offline/animation_optimizer.h>
+#include <ozz/animation/offline/raw_animation.h>
+#include <ozz/animation/offline/raw_skeleton.h>
+#include <ozz/animation/offline/skeleton_builder.h>
+#include <ozz/animation/offline/track_optimizer.h>
+#include <ozz/base/io/archive.h>
+#include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 
 // TressFX
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/TressFX/TressFXAsset.h"
+#if defined(HORIZON_ENABLE_TRESSFX_COOKER)
+#include "TressFXAsset.h"
+#endif
 
 // Meshoptimizer
-#include "../../ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"
+#include <ThirdParty/meshoptimizer/src/meshoptimizer.h>
 
 #ifdef ENABLE_ASSET_PIPELINE_CGLTF_WRITE_IMPLEMENTATION
 #define CGLTF_WRITE_IMPLEMENTATION
@@ -53,7 +56,8 @@
 #endif
 // We are using jsmn to parse joints, these functions are static so it doesn't matter if they are defined in other files.
 #define CGLTF_JSMN_IMPLEMENTATION
-#include "../../../Resources/ResourceLoader/ThirdParty/OpenSource/cgltf/cgltf_write.h"
+#include <ThirdParty/cgltf/cgltf_write.h>
+#include <ThirdParty/cJSON/cJSON.h>
 
 #ifdef ENABLE_ASSET_PIPELINE_TINYDDS_IMPLEMENTATION
 #define TINYDDS_IMPLEMENTATION
@@ -61,19 +65,15 @@
 #ifdef ENABLE_ASSET_PIPELINE_TINYKTX_IMPLEMENTATION
 #define TINYKTX_IMPLEMENTATION
 #endif
-#include "../../../OS/Interfaces/IOperatingSystem.h"
-#include "../../../Utilities/Interfaces/IFileSystem.h"
-#include "../../../Utilities/Interfaces/ILog.h"
-#include "../../../Utilities/Interfaces/IToolFileSystem.h"
+#include "Platform/IOperatingSystem.h"
+#include "Core/IFileSystem.h"
+#include "Core/ILog.h"
+#include "Core/IToolFileSystem.h"
+#include "Scene/ISceneManager.h"
 
-#include "../../../Resources/ResourceLoader/TextureContainers.h"
+#include "Runtime/Resources/Private/ResourceLoader/TextureContainers.h"
 
-#include "../../../Utilities/Interfaces/IMemory.h" //NOTE: this should be the last include in a .cpp
-
-extern "C"
-{
-#include "../../BunyArchive/Buny.h"
-}
+#include "Core/IMemory.h" //NOTE: this should be the last include in a .cpp
 
 struct SkeletonNodeInfo
 {
@@ -109,6 +109,301 @@ struct OnDiscoverAnimationsParam
 static void BeginAssetPipelineSection(const char* section) { LOGF(eINFO, "========== %s ==========", section); }
 
 static void EndAssetPipelineSection(const char* section) { LOGF(eINFO, "========== !%s ==========", section); }
+
+static int32_t sceneAssetTextureIndex(const cgltf_data* pData, const cgltf_texture* pTexture)
+{
+    return pTexture ? (int32_t)(pTexture - pData->textures) : -1;
+}
+
+static bool isSceneAssetSrgbTexture(const cgltf_data* pData, const cgltf_texture* pTexture)
+{
+    for (cgltf_size i = 0; i < pData->materials_count; ++i)
+    {
+        const cgltf_material* pMaterial = &pData->materials[i];
+        if ((pMaterial->has_pbr_metallic_roughness && pMaterial->pbr_metallic_roughness.base_color_texture.texture == pTexture) ||
+            pMaterial->emissive_texture.texture == pTexture)
+            return true;
+    }
+    return false;
+}
+
+static bool isSceneAssetCookedTexture(const char* pPath)
+{
+    const char* pExtension = strrchr(pPath, '.');
+    return pExtension && (stricmp(pExtension, ".dds") == 0 || stricmp(pExtension, ".ktx") == 0);
+}
+
+static bool validateSceneAssetCookTextures(const cgltf_data* pData)
+{
+    if (pData->textures_count > SCENE_ASSET_MAX_TEXTURES || pData->materials_count > SCENE_ASSET_MAX_MATERIALS)
+        return false;
+    for (cgltf_size i = 0; i < pData->textures_count; ++i)
+    {
+        const cgltf_image* pImage = pData->textures[i].image;
+        if (!pImage || !pImage->uri || strncmp(pImage->uri, "data:", 5) == 0 || strstr(pImage->uri, "://") ||
+            !isSceneAssetCookedTexture(pImage->uri))
+        {
+            LOGF(eERROR, "Scene textures must reference local pre-cooked DDS or KTX files");
+            return false;
+        }
+    }
+    return true;
+}
+
+static cJSON* createSceneAssetFloatArray(const cgltf_float* pValues, uint32_t count)
+{
+    cJSON* pArray = cJSON_CreateArray();
+    for (uint32_t i = 0; pArray && i < count; ++i)
+        cJSON_AddItemToArray(pArray, cJSON_CreateNumber(pValues[i]));
+    return pArray;
+}
+
+struct SceneAssetCookFingerprint
+{
+    uint64_t mHash;
+    uint32_t mDependencyCount;
+    char     mDependencies[SCENE_ASSET_MAX_DEPENDENCIES][FS_MAX_PATH];
+};
+
+static void updateSceneAssetCookHash(uint64_t* pHash, const void* pData, size_t size)
+{
+    const uint8_t* pBytes = (const uint8_t*)pData;
+    for (size_t i = 0; i < size; ++i)
+    {
+        *pHash ^= pBytes[i];
+        *pHash *= UINT64_C(1099511628211);
+    }
+}
+
+static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint, const char* pPath, const void* pData, size_t size)
+{
+    char normalizedPath[FS_MAX_PATH] = {};
+    fsNormalizePath(pPath, '/', normalizedPath);
+    for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
+    {
+        if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
+            return true;
+    }
+    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH ||
+        pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
+        return false;
+
+    snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
+    updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
+    updateSceneAssetCookHash(&pFingerprint->mHash, pData, size);
+    return true;
+}
+
+static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory, SceneAssetCookFingerprint* pFingerprint,
+                                            const char* pPath)
+{
+    FileStream stream = {};
+    if (!fsOpenStreamFromPath(resourceDirectory, pPath, FM_READ, &stream))
+        return false;
+
+    char normalizedPath[FS_MAX_PATH] = {};
+    fsNormalizePath(pPath, '/', normalizedPath);
+    for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
+    {
+        if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
+        {
+            fsCloseStream(&stream);
+            return true;
+        }
+    }
+    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH ||
+        pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
+    {
+        fsCloseStream(&stream);
+        return false;
+    }
+
+    snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
+    updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
+    uint8_t bytes[64 * 1024];
+    for (;;)
+    {
+        const size_t bytesRead = fsReadFromStream(&stream, bytes, sizeof(bytes));
+        if (!bytesRead)
+            break;
+        updateSceneAssetCookHash(&pFingerprint->mHash, bytes, bytesRead);
+    }
+    return fsCloseStream(&stream);
+}
+
+static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, const char* pSourcePath, const void* pSourceData,
+                                           size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
+                                           time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
+{
+    static const uint32_t kCookerRevision = 3;
+    pFingerprint->mHash = UINT64_C(14695981039346656037);
+    updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
+    updateSceneAssetCookHash(&pFingerprint->mHash, pParams->pVertexLayout, sizeof(*pParams->pVertexLayout));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mIgnoreMissingAttributes, sizeof(pParams->mIgnoreMissingAttributes));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mProcessMeshlets, sizeof(pParams->mProcessMeshlets));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mNumMaxVertices, sizeof(pParams->mNumMaxVertices));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mNumMaxTriangles, sizeof(pParams->mNumMaxTriangles));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mOptimizationFlags, sizeof(pParams->mOptimizationFlags));
+    if (!addSceneAssetCookDependency(pFingerprint, pSourcePath, pSourceData, sourceSize))
+        return false;
+
+    char sourceParent[FS_MAX_PATH] = {};
+    fsGetParentPath(pSourcePath, sourceParent);
+    for (cgltf_size i = 0; i < pData->buffers_count; ++i)
+    {
+        const cgltf_buffer* pBuffer = &pData->buffers[i];
+        if (!pBuffer->uri || strncmp(pBuffer->uri, "data:", 5) == 0 || strstr(pBuffer->uri, "://"))
+            continue;
+        char dependencyPath[FS_MAX_PATH] = {};
+        fsAppendPathComponent(sourceParent, pBuffer->uri, dependencyPath);
+        if (!pBuffer->data || !addSceneAssetCookDependency(pFingerprint, dependencyPath, pBuffer->data, pBuffer->size))
+            return false;
+    }
+    for (cgltf_size i = 0; i < pData->images_count; ++i)
+    {
+        const cgltf_image* pImage = &pData->images[i];
+        if (!pImage->uri || strncmp(pImage->uri, "data:", 5) == 0 || strstr(pImage->uri, "://"))
+            continue;
+        char dependencyPath[FS_MAX_PATH] = {};
+        fsAppendPathComponent(sourceParent, pImage->uri, dependencyPath);
+        if (!addSceneAssetCookFileDependency(resourceDirectory, pFingerprint, dependencyPath))
+            return false;
+    }
+    return true;
+}
+
+static void formatSceneAssetCookHash(const SceneAssetCookFingerprint* pFingerprint,
+                                     char output[SCENE_ASSET_CONTENT_HASH_CAPACITY])
+{
+    snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "fnv1a64:%016llx", (unsigned long long)pFingerprint->mHash);
+}
+
+static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const char* pManifestFileName,
+                                   char output[SCENE_ASSET_CONTENT_HASH_CAPACITY])
+{
+    FileStream stream = {};
+    if (!fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_READ, &stream))
+        return false;
+    const ssize_t fileSize = fsGetStreamFileSize(&stream);
+    if (fileSize <= 0 || fileSize > 1024 * 1024)
+    {
+        fsCloseStream(&stream);
+        return false;
+    }
+    char* pJson = (char*)tf_malloc((size_t)fileSize + 1);
+    if (!pJson)
+    {
+        fsCloseStream(&stream);
+        return false;
+    }
+    const bool read = fsReadFromStream(&stream, pJson, (size_t)fileSize) == (size_t)fileSize;
+    fsCloseStream(&stream);
+    pJson[fileSize] = '\0';
+    cJSON* pRoot = read ? cJSON_ParseWithLength(pJson, (size_t)fileSize) : nullptr;
+    tf_free(pJson);
+    const cJSON* pContentHash = pRoot ? cJSON_GetObjectItemCaseSensitive(pRoot, "contentHash") : nullptr;
+    const bool valid = cJSON_IsString(pContentHash) && pContentHash->valuestring &&
+                       strlen(pContentHash->valuestring) < SCENE_ASSET_CONTENT_HASH_CAPACITY;
+    if (valid)
+        snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "%s", pContentHash->valuestring);
+    cJSON_Delete(pRoot);
+    return valid;
+}
+
+static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pManifestFileName, const char* pSceneName,
+                                    const char* pGeometryFileName, const char* pSourceGltf, const cgltf_data* pData,
+                                    const SceneAssetCookFingerprint* pFingerprint)
+{
+    if (!validateSceneAssetCookTextures(pData))
+        return false;
+
+    cJSON* pRoot = cJSON_CreateObject();
+    cJSON* pScenes = cJSON_CreateObject();
+    cJSON* pScene = cJSON_CreateObject();
+    cJSON* pTextureDirectories = cJSON_CreateArray();
+    cJSON* pConvention = cJSON_CreateObject();
+    if (!pRoot || !pScenes || !pScene || !pTextureDirectories || !pConvention)
+    {
+        cJSON_Delete(pRoot);
+        cJSON_Delete(pScenes);
+        cJSON_Delete(pScene);
+        cJSON_Delete(pTextureDirectories);
+        cJSON_Delete(pConvention);
+        return false;
+    }
+
+    cJSON_AddNumberToObject(pRoot, "version", SCENE_ASSET_MANIFEST_VERSION);
+    char contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
+    formatSceneAssetCookHash(pFingerprint, contentHash);
+    cJSON_AddStringToObject(pRoot, "contentHash", contentHash);
+    cJSON* pDependencies = cJSON_AddArrayToObject(pRoot, "dependencies");
+    for (uint32_t i = 0; pDependencies && i < pFingerprint->mDependencyCount; ++i)
+        cJSON_AddItemToArray(pDependencies, cJSON_CreateString(pFingerprint->mDependencies[i]));
+    cJSON_AddStringToObject(pRoot, "source", pSourceGltf);
+    cJSON_AddStringToObject(pRoot, "defaultScene", pSceneName);
+    cJSON_AddStringToObject(pScene, "geometry", pGeometryFileName);
+    cJSON_AddStringToObject(pScene, "sourceGltf", pSourceGltf);
+    cJSON_AddItemToObject(pScene, "textureDirectories", pTextureDirectories);
+
+    cJSON* pTextures = cJSON_AddArrayToObject(pScene, "textures");
+    char sourceParent[FS_MAX_PATH] = {};
+    fsGetParentPath(pSourceGltf, sourceParent);
+    for (cgltf_size i = 0; pTextures && i < pData->textures_count; ++i)
+    {
+        const cgltf_texture* pTexture = &pData->textures[i];
+        char texturePath[FS_MAX_PATH] = {};
+        fsAppendPathComponent(sourceParent, pTexture->image->uri, texturePath);
+        cJSON* pTextureJson = cJSON_CreateObject();
+        cJSON_AddStringToObject(pTextureJson, "path", texturePath);
+        cJSON_AddBoolToObject(pTextureJson, "srgb", isSceneAssetSrgbTexture(pData, pTexture));
+        cJSON_AddItemToArray(pTextures, pTextureJson);
+    }
+
+    cJSON* pMaterials = cJSON_AddArrayToObject(pScene, "materials");
+    for (cgltf_size i = 0; pMaterials && i < pData->materials_count; ++i)
+    {
+        const cgltf_material* pMaterial = &pData->materials[i];
+        const cgltf_pbr_metallic_roughness* pPbr =
+            pMaterial->has_pbr_metallic_roughness ? &pMaterial->pbr_metallic_roughness : nullptr;
+        cJSON* pMaterialJson = cJSON_CreateObject();
+        cJSON_AddStringToObject(pMaterialJson, "name", pMaterial->name ? pMaterial->name : "material");
+        cJSON_AddNumberToObject(pMaterialJson, "baseColorTexture",
+                                sceneAssetTextureIndex(pData, pPbr ? pPbr->base_color_texture.texture : nullptr));
+        cJSON_AddNumberToObject(pMaterialJson, "normalTexture", sceneAssetTextureIndex(pData, pMaterial->normal_texture.texture));
+        cJSON_AddNumberToObject(pMaterialJson, "metallicRoughnessTexture",
+                                sceneAssetTextureIndex(pData, pPbr ? pPbr->metallic_roughness_texture.texture : nullptr));
+        cJSON_AddNumberToObject(pMaterialJson, "emissiveTexture", sceneAssetTextureIndex(pData, pMaterial->emissive_texture.texture));
+        const cgltf_float defaultBaseColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        cJSON_AddItemToObject(pMaterialJson, "baseColorFactor",
+                              createSceneAssetFloatArray(pPbr ? pPbr->base_color_factor : defaultBaseColor, 4));
+        cJSON_AddNumberToObject(pMaterialJson, "metallicFactor", pPbr ? pPbr->metallic_factor : 1.0f);
+        cJSON_AddNumberToObject(pMaterialJson, "roughnessFactor", pPbr ? pPbr->roughness_factor : 1.0f);
+        cJSON_AddItemToObject(pMaterialJson, "emissiveFactor", createSceneAssetFloatArray(pMaterial->emissive_factor, 3));
+        cJSON_AddItemToArray(pMaterials, pMaterialJson);
+    }
+
+    cJSON_AddStringToObject(pConvention, "baseColor", "RGB base color, A opacity");
+    cJSON_AddStringToObject(pConvention, "specular", "R AO, G roughness, B metalness");
+    cJSON_AddStringToObject(pConvention, "normal", "DirectX normal map");
+    cJSON_AddStringToObject(pConvention, "emissive", "RGB emissive");
+    cJSON_AddItemToObject(pScene, "materialConvention", pConvention);
+    cJSON_AddItemToObject(pScenes, pSceneName, pScene);
+    cJSON_AddItemToObject(pRoot, "scenes", pScenes);
+
+    char* pJson = cJSON_Print(pRoot);
+    cJSON_Delete(pRoot);
+    if (!pJson)
+        return false;
+
+    FileStream stream = {};
+    const bool opened = fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_WRITE, &stream);
+    const size_t jsonSize = strlen(pJson);
+    const bool written = opened && fsWriteToStream(&stream, pJson, jsonSize) == jsonSize;
+    const bool closed = !opened || fsCloseStream(&stream);
+    cJSON_free(pJson);
+    return written && closed;
+}
 
 void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename)
 {
@@ -163,6 +458,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
     }
 }
 
+#if defined(HORIZON_ENABLE_ANIMATION_COOKER)
 void ReleaseSkeletonAndAnimationParams(SkeletonAndAnimations* pArray, uint32_t count)
 {
     for (uint32_t i = 0; i < count; ++i)
@@ -485,7 +781,9 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
     LOGF(LogLevel::eINFO, "ProcessAnimations: checked %u assets, regenerated %u assets.", assetsChecked, assetsProcessed);
     return !success;
 }
+#endif
 
+#if defined(HORIZON_ENABLE_TRESSFX_COOKER)
 bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParams)
 {
     cgltf_result result = cgltf_result_success;
@@ -682,7 +980,15 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 
     return result != cgltf_result_success;
 }
+#else
+bool ProcessTFX(AssetPipelineParams*, ProcessTressFXParams*)
+{
+    LOGF(eERROR, "TressFX cooking is unavailable because TressFX is not vendored in this repository.");
+    return true;
+}
+#endif
 
+#if defined(HORIZON_ENABLE_ANIMATION_COOKER)
 static uint32_t FindJoint(ozz::animation::Skeleton* skeleton, const char* name)
 {
     for (int i = 0; i < skeleton->num_joints(); i++)
@@ -1234,6 +1540,7 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
 
     return error;
 }
+#endif
 
 static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_attribute_type type, uint32_t index)
 {
@@ -1417,10 +1724,6 @@ void buildMeshlets(const uint* indices, size_t indexCount, const float3* vertexP
                    size_t maxVertices, size_t maxTriangles, float coneWeight, uint** meshletVertices, uint8_t** meshletTriangles,
                    Meshlet** meshlets, MeshletData** meshletsData)
 {
-    size_t    optimizerScratchSize = 128 * 1024 * 1024;
-    uint32_t* optimizerScratch = (uint32_t*)tf_malloc(optimizerScratchSize);
-    meshopt_SetScratchMemory(optimizerScratchSize, optimizerScratch);
-
     uint64_t maxMeshlets = meshopt_buildMeshletsBound(indexCount, maxVertices, maxTriangles);
 
     meshopt_Meshlet* meshletsTmp = NULL;
@@ -1472,7 +1775,6 @@ void buildMeshlets(const uint* indices, size_t indexCount, const float3* vertexP
         LOGF(eERROR, "Failed to build meshlets");
     }
 
-    meshopt_FreeScratchMemory();
 }
 
 static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimizationFlags, IndexType indexType, uint32_t indexOffset,
@@ -1481,13 +1783,9 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     if (optimizationFlags == MESH_OPTIMIZATION_FLAG_OFF)
         return;
 
-    size_t optimizerScratchSize = 128 * 1024 * 1024;
     size_t remapSize = (*vertexCount * sizeof(uint32_t));
 
-    uint32_t* optimizerScratch = (uint32_t*)tf_malloc(optimizerScratchSize);
     uint32_t* remap = (uint32_t*)tf_malloc(remapSize);
-
-    meshopt_SetScratchMemory(optimizerScratchSize, optimizerScratch);
 
     meshopt_Stream streams[MAX_SEMANTICS];
     uint32_t       validStreamCount = 0;
@@ -1615,8 +1913,89 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     }
 
     *vertexCount = newVertCount;
-    meshopt_FreeScratchMemory();
     tf_free(remap);
+}
+
+static bool isSceneAssetNodeSelected(const cgltf_data* data, const cgltf_node* node)
+{
+    const cgltf_scene* scene = data->scene ? data->scene : (data->scenes_count ? &data->scenes[0] : nullptr);
+    if (!scene)
+        return true;
+    for (const cgltf_node* ancestor = node; ancestor; ancestor = ancestor->parent)
+        for (cgltf_size i = 0; i < scene->nodes_count; ++i)
+            if (ancestor == scene->nodes[i])
+                return true;
+    return false;
+}
+
+static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
+{
+    SceneAssetGeometryHeader* header = (SceneAssetGeometryHeader*)output;
+    SceneAssetInstance* instances = header ? (SceneAssetInstance*)(header + 1) : nullptr;
+    if (header)
+    {
+        header->mMagic = SCENE_ASSET_GEOMETRY_MAGIC;
+        for (uint32_t axis = 0; axis < 3; ++axis)
+        {
+            header->mBoundsMin[axis] = 1.0e30f;
+            header->mBoundsMax[axis] = -1.0e30f;
+        }
+    }
+    uint32_t count = 0;
+    for (cgltf_size n = 0; n < data->nodes_count; ++n)
+    {
+        const cgltf_node* node = &data->nodes[n];
+        if (!isSceneAssetNodeSelected(data, node))
+            continue;
+        if (header && !header->mHasCamera && node->camera && node->camera->type == cgltf_camera_type_perspective)
+        {
+            cgltf_node_transform_world(node, header->mCameraWorld);
+            header->mCameraYFov = node->camera->data.perspective.yfov;
+            header->mHasCamera = 1;
+        }
+        if (!node->mesh)
+            continue;
+        uint32_t firstDraw = 0;
+        for (const cgltf_mesh* mesh = data->meshes; mesh != node->mesh; ++mesh)
+            firstDraw += (uint32_t)mesh->primitives_count;
+        for (cgltf_size p = 0; p < node->mesh->primitives_count; ++p, ++count)
+        {
+            if (!instances)
+                continue;
+            const cgltf_primitive* primitive = &node->mesh->primitives[p];
+            SceneAssetInstance& instance = instances[count];
+            cgltf_node_transform_world(node, instance.mWorld);
+            instance.mDrawIndex = firstDraw + (uint32_t)p;
+            instance.mMaterialIndex = primitive->material ? (uint32_t)(primitive->material - data->materials) : UINT32_MAX;
+            instance.mAlphaCutoff = primitive->material && primitive->material->alpha_mode != cgltf_alpha_mode_opaque
+                                        ? (primitive->material->alpha_mode == cgltf_alpha_mode_mask ? primitive->material->alpha_cutoff : 0.1f)
+                                        : 0.0f;
+            for (cgltf_size a = 0; a < primitive->attributes_count; ++a)
+            {
+                if (primitive->attributes[a].type != cgltf_attribute_type_position)
+                    continue;
+                const cgltf_accessor* accessor = primitive->attributes[a].data;
+                if (!accessor->has_min || !accessor->has_max)
+                    continue;
+                for (uint32_t corner = 0; corner < 8; ++corner)
+                {
+                    const float x = (corner & 1) ? accessor->max[0] : accessor->min[0];
+                    const float y = (corner & 2) ? accessor->max[1] : accessor->min[1];
+                    const float z = (corner & 4) ? accessor->max[2] : accessor->min[2];
+                    for (uint32_t axis = 0; axis < 3; ++axis)
+                    {
+                        const float value = instance.mWorld[axis] * x + instance.mWorld[4 + axis] * y +
+                                            instance.mWorld[8 + axis] * z + instance.mWorld[12 + axis];
+                        header->mBoundsMin[axis] = TF_MIN(header->mBoundsMin[axis], value);
+                        header->mBoundsMax[axis] = TF_MAX(header->mBoundsMax[axis], value);
+                    }
+                }
+            }
+        }
+    }
+    if (header)
+        header->mInstanceCount = count;
+    return (uint32_t)sizeof(SceneAssetGeometryHeader) + count * (uint32_t)sizeof(SceneAssetInstance);
 }
 
 bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams)
@@ -1658,20 +2037,6 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         else
         {
             fsReplacePathExtension(fileName, "bin", newFileName);
-        }
-
-        if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName))
-        {
-            time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, fileName);
-            if (assetParams->mAdditionalModifiedTime != 0)
-                lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
-            time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, newFileName);
-
-            if (lastModified < lastProcessed)
-            {
-                LOGF(eINFO, "Skipping %s", fileName);
-                continue;
-            }
         }
 
         LOGF(eINFO, "Converting %s to TF custom binary file", fileName);
@@ -1721,6 +2086,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 #endif
 
+        if (!validateSceneAssetCookTextures(data))
+        {
+            data->file_data = fileData;
+            cgltf_free(data);
+            error = true;
+            continue;
+        }
+
         // Load buffers located in separate files (.bin) using our file system
         for (uint32_t j = 0; j < data->buffers_count; ++j)
         {
@@ -1752,8 +2125,42 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (cgltf_result_success != result)
         {
             LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
-            tf_free(fileData);
+            data->file_data = fileData;
+            cgltf_free(data);
+            error = true;
             continue;
+        }
+
+        SceneAssetCookFingerprint* pFingerprint = (SceneAssetCookFingerprint*)tf_calloc(1, sizeof(SceneAssetCookFingerprint));
+        if (!pFingerprint || !buildSceneAssetCookFingerprint(assetParams->mRDInput, fileName, fileData, (size_t)fileSize, data,
+                                                             glTFParams, assetParams->mAdditionalModifiedTime, pFingerprint))
+        {
+            LOGF(eERROR, "Failed to fingerprint glTF dependencies for %s", fileName);
+            tf_free(pFingerprint);
+            data->file_data = fileData;
+            cgltf_free(data);
+            error = true;
+            continue;
+        }
+
+        char manifestFileName[FS_MAX_PATH] = {};
+        fsReplacePathExtension(newFileName, "scene.json", manifestFileName);
+        if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) &&
+            fsFileExist(assetParams->mRDOutput, manifestFileName))
+        {
+            char                contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
+            char                existingContentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
+            formatSceneAssetCookHash(pFingerprint, contentHash);
+            const bool unchanged = readSceneAssetCookHash(assetParams->mRDOutput, manifestFileName, existingContentHash) &&
+                                   strcmp(existingContentHash, contentHash) == 0;
+            if (unchanged)
+            {
+                LOGF(eINFO, "Skipping %s (content hash unchanged)", fileName);
+                tf_free(pFingerprint);
+                data->file_data = fileData;
+                cgltf_free(data);
+                continue;
+            }
         }
 
         cgltf_attribute* vertexAttribs[MAX_SEMANTICS] = {};
@@ -1798,6 +2205,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         uint32_t userDataSize = 0;
         if (glTFParams->pWriteExtrasCallback)
             glTFParams->pWriteExtrasCallback(&userDataSize, NULL, glTFParams->pCallbackUserData);
+        else
+            userDataSize = writeSceneAssetInstances(data, nullptr);
 
         PackingFunction vertexPacking[MAX_SEMANTICS] = {};
         uint32_t        vertexAttrStrides[MAX_SEMANTICS] = {};
@@ -1842,7 +2251,10 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                                                 : (uint8_t*)(geomData + 1);
             geomData->pUserData = pUserData;
             geomData->mUserDataSize = userDataSize;
+            if (glTFParams->pWriteExtrasCallback)
             glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
+            else
+                writeSceneAssetInstances(data, pUserData);
         }
 
         // Determine vertex stride for each binding
@@ -2224,6 +2636,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 
+        bool       geometryWritten = false;
         FileStream fStream = {};
         if (!fsOpenStreamFromPath(assetParams->mRDOutput, newFileName, FM_WRITE_ALLOW_READ, &fStream))
         {
@@ -2273,6 +2686,26 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 LOGF(eERROR, "Failed to close write stream for file '%s'.", newFileName);
                 error = true;
             }
+            else
+            {
+                geometryWritten = true;
+            }
+        }
+
+        if (geometryWritten)
+        {
+            char sceneName[FS_MAX_PATH] = {};
+            char geometryFileName[FS_MAX_PATH] = {};
+            char sourceGltf[FS_MAX_PATH] = {};
+            fsGetPathFileName(newFileName, sceneName);
+            fsNormalizePath(newFileName, '/', geometryFileName);
+            fsNormalizePath(fileName, '/', sourceGltf);
+            if (!writeSceneAssetManifest(assetParams->mRDOutput, manifestFileName, sceneName, geometryFileName, sourceGltf, data,
+                                         pFingerprint))
+            {
+                LOGF(eERROR, "Failed to write scene manifest '%s'.", manifestFileName);
+                error = true;
+            }
         }
 
         tf_free(geomData->pShadow);
@@ -2287,6 +2720,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         tf_free(geom);
+        tf_free(pFingerprint);
 
         data->file_data = fileData;
         cgltf_free(data);
@@ -2304,6 +2738,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
     return error;
 }
 
+#if defined(HORIZON_ENABLE_BUNY_COOKER)
 // TODO AssetPipelineParams.mRDZipWrite ?
 bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
 {
@@ -2413,7 +2848,21 @@ bool ZipAllAssets(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
 
     return !success;
 }
+#else
+bool WriteZip(AssetPipelineParams*, WriteZipParams*)
+{
+    LOGF(eERROR, "Archive cooking is unavailable in this AssetPipeline build.");
+    return true;
+}
 
+bool ZipAllAssets(AssetPipelineParams*, WriteZipParams*)
+{
+    LOGF(eERROR, "Archive cooking is unavailable in this AssetPipeline build.");
+    return true;
+}
+#endif
+
+#if defined(HORIZON_ENABLE_ANIMATION_COOKER)
 void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, void* pUserData)
 {
     // TODO: Find beter way to discover if a .gltf mesh has external animations in other gltf files
@@ -2505,6 +2954,12 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     else
         ReleaseSkeletonAndAnimationParams(&skeletonAndAnims, 1);
 }
+#else
+void OnDiscoverAnimation(ResourceDirectory, const char*, void*)
+{
+    LOGF(eERROR, "Animation cooking is unavailable because the legacy cooker has not been migrated to the current Ozz API.");
+}
+#endif
 
 int AssetPipelineRun(AssetPipelineParams* assetParams)
 {
@@ -2923,4 +3378,38 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
     // if reached, the used processed type wasn't included
     ASSERT(false);
     return 0;
+}
+
+bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourceFile,
+                           ResourceDirectory outputDirectory, SceneAssetError* pError)
+{
+    if (pError)
+        *pError = {};
+    if (!pSourceFile || !pSourceFile[0] || sourceDirectory == outputDirectory ||
+        strcmp(fsGetResourceDirectory(sourceDirectory), fsGetResourceDirectory(outputDirectory)) == 0)
+    {
+        if (pError)
+        {
+            pError->mCode = SCENE_ASSET_ERROR_INVALID_ARGUMENT;
+            snprintf(pError->mMessage, sizeof(pError->mMessage), "glTF cooking requires separate source and output directories");
+        }
+        return false;
+    }
+    AssetPipelineParams params = {};
+    params.mInFilePath = pSourceFile;
+    params.mInExt = "gltf";
+    params.mProcessType = PROCESS_GLTF;
+    params.mPathMode = PROCESS_MODE_FILE;
+    params.mRDInput = sourceDirectory;
+    params.mRDOutput = outputDirectory;
+    if (!fsCreateDirectory(outputDirectory, "", true) || AssetPipelineRun(&params) != 0)
+    {
+        if (pError)
+        {
+            pError->mCode = SCENE_ASSET_ERROR_IO;
+            snprintf(pError->mMessage, sizeof(pError->mMessage), "Failed to cook %s; see AssetPipeline log", pSourceFile);
+        }
+        return false;
+    }
+    return true;
 }

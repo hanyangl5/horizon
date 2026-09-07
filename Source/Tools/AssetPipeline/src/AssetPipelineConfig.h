@@ -43,8 +43,6 @@
 // Don't define them if the AssetPipeline is linked against some other library that already implements these functions (it would generate
 // linker errors).
 #define ENABLE_ASSET_PIPELINE_CGLTF_WRITE_IMPLEMENTATION
-#define ENABLE_ASSET_PIPELINE_CGLTF_IMPLEMENTATION
-#define ENABLE_ASSET_PIPELINE_TINYDDS_IMPLEMENTATION
-#define ENABLE_ASSET_PIPELINE_TINYKTX_IMPLEMENTATION
+// cgltf reading, TinyDDS and TinyKTX are provided by Runtime's ResourceLoader.
 
 #endif

@@ -14,6 +14,7 @@ set(HORIZON_THIRD_PARTY_DEPS
     utils
     imgui
     mimalloc-static
+    HorizonCJSON
 )
 
 add_library(WinPixEventRuntime SHARED IMPORTED)
@@ -184,6 +185,13 @@ add_library(lz4 STATIC ${LZ4_FILES})
 
 file(GLOB_RECURSE IMGUI_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/*.cpp)
 add_library(imgui STATIC ${IMGUI_FILES})
+
+add_library(HorizonCJSON STATIC
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/cJSON/cJSON.c
+)
+target_include_directories(HorizonCJSON PUBLIC
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/cJSON
+)
 add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
 
     # set(CPU_FEATURES_FILES
@@ -335,3 +343,5 @@ foreach(LIB ${THIRD_PARTY_DEPS})
     )
     target_compile_features(${LIB} PRIVATE cxx_std_20)
 endforeach()
+
+set_target_properties(D3D12MemoryAllocator PROPERTIES FOLDER "Horizon/ThirdParty")

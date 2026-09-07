@@ -24,13 +24,14 @@
 
 #pragma once
 
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/animation.h"
-#include "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
-#include "../../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
+#include <ozz/animation/runtime/animation.h>
+#include <ozz/animation/runtime/skeleton.h>
 
-#include "../../../Resources/ResourceLoader/Interfaces/IResourceLoader.h"
-#include "../../../Utilities/Interfaces/IFileSystem.h"
-#include "../../../Utilities/Interfaces/IToolFileSystem.h"
+#include <ThirdParty/bstrlib/bstrlib.h>
+
+#include "Core/IFileSystem.h"
+#include "Core/IToolFileSystem.h"
+#include "Resources/IResourceLoader.h"
 
 #include "AssetPipelineConfig.h"
 

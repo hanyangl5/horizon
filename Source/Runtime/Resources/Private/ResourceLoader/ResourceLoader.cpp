@@ -4639,6 +4639,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, const UpdateRequest& pTextureUpdate)
 {
     const TextureLoadDescInternal* pTextureDesc = &pTextureUpdate.texLoadDesc;
+    uint8_t singleTexelNormal[2] = {};
 
     if (pTextureDesc->mForceReset)
     {
@@ -4742,6 +4743,22 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
         if (success)
         {
+            // D3D12 requires block-aligned base dimensions for BC textures. Preserve the exact
+            // texel of the 1x1 BC5 normal maps emitted by some glTF exporters as an RG8 texture.
+            if (textureDesc.mWidth == 1 && textureDesc.mHeight == 1 && textureDesc.mDepth == 1 &&
+                textureDesc.mArraySize == 1 && textureDesc.mMipLevels == 1 && textureDesc.mFormat == TinyImageFormat_DXBC5_UNORM)
+            {
+                uint8_t block[16] = {};
+                const bool read = fsReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
+                fsCloseStream(&stream);
+                if (!read)
+                    return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+                singleTexelNormal[0] = decodeBC5SingleTexelChannel(block);
+                singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
+                if (!fsOpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FM_READ, false, &stream))
+                    return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+                textureDesc.mFormat = TinyImageFormat_R8G8_UNORM;
+            }
             textureDesc.mStartState = RESOURCE_STATE_COPY_DEST;
 
             if (pTextureDesc->mFlags & TEXTURE_CREATION_FLAG_SRGB)
@@ -6504,11 +6521,14 @@ void removeResource(Geometry* pGeom)
     }
     else
     {
-        removeResource(pGeom->pIndexBuffer);
+        // Buffers may have been transferred to another owner after upload.
+        if (pGeom->pIndexBuffer)
+            removeResource(pGeom->pIndexBuffer);
 
         for (uint32_t i = 0; i < pGeom->mVertexBufferCount; ++i)
         {
-            removeResource(pGeom->pVertexBuffers[i]);
+            if (pGeom->pVertexBuffers[i])
+                removeResource(pGeom->pVertexBuffers[i]);
         }
     }
 

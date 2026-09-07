@@ -339,13 +339,20 @@ CommandList& RenderContext::acquireCommandList()
             FenceStatus status = FENCE_STATUS_NOTSUBMITTED;
             getFenceStatus(pRenderer, slot.pFence, &status);
             if (status == FENCE_STATUS_COMPLETE)
+            {
                 slot.submitId = 0;
+                // Reclaim completed submissions even when a different command slot is selected.
+                // Keeping their descriptor sets for an entire slot rotation can exhaust the sampler heap.
+                for (uint32_t i = 0; i < (uint32_t)arrlen(slot.descriptorSets); ++i)
+                    removeDescriptorSet(pRenderer, slot.descriptorSets[i]);
+                arrsetlen(slot.descriptorSets, 0);
+                for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
+                    removeBuffer(pRenderer, slot.transientBuffers[i]);
+                arrsetlen(slot.transientBuffers, 0);
+            }
         }
-        if (!slot.submitId)
-        {
+        if (!slot.submitId && !available)
             available = &slot;
-            break;
-        }
     }
 
     if (!available)

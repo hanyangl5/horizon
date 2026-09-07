@@ -2,6 +2,7 @@ option(CMAKE_INCLUDE_SHADERS "Enable inclusion of shaders in the project" OFF)
 option(HORIZON_BUILD_TESTS "Build Horizon tests" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_BUILD_DOCS "Configure the Doxygen documentation target" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_BUILD_EXAMPLES "Build Horizon example applications" ${PROJECT_IS_TOP_LEVEL})
+option(HORIZON_BUILD_TOOLS "Build Horizon asset tools" ${PROJECT_IS_TOP_LEVEL})
 option(HORIZON_ENABLE_TRACY "Enable Tracy profiler integration" ON)
 option(HORIZON_ENABLE_TRACY_VERBOSE "Enable verbose Tracy profiler scopes" OFF)
 
@@ -23,6 +24,10 @@ if(${CMAKE_INCLUDE_SHADERS})
     include(Shaders)
 endif()
 include(Runtime)
+
+if(HORIZON_BUILD_TOOLS)
+    include(AssetPipeline)
+endif()
 
 if(HORIZON_BUILD_EXAMPLES)
     include(Examples)

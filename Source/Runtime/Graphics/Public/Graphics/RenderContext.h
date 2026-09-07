@@ -18,6 +18,7 @@ class GPUTexture;
 class GPUSampler;
 class GPUShader;
 class GPUPipeline;
+struct SceneResourceAccess;
 
 struct BufferDesc
 {
@@ -143,6 +144,7 @@ private:
     ResourceMemoryUsage   usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
     DescriptorType        descriptors = DESCRIPTOR_TYPE_UNDEFINED;
     mutable ResourceState state = RESOURCE_STATE_UNDEFINED;
+    friend struct SceneResourceAccess;
     friend class CommandList;
     friend class RenderContext;
 };
@@ -168,6 +170,7 @@ private:
     RenderTarget*         pRenderTarget = nullptr;
     mutable ResourceState state = RESOURCE_STATE_UNDEFINED;
     bool                  owned = false;
+    friend struct SceneResourceAccess;
     friend class CommandList;
     friend class RenderContext;
 };

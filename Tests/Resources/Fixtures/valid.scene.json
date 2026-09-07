@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "contentHash": "fnv1a64:0123456789abcdef",
+  "dependencies": ["fixture.gltf"],
+  "defaultScene": "fixture",
+  "scenes": {
+    "fixture": {
+      "geometry": "Meshes/fixture.bin",
+      "sourceGltf": "fixture.gltf",
+      "textureDirectories": ["Textures"]
+    }
+  }
+}

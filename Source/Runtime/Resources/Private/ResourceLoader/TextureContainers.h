@@ -174,6 +174,19 @@ static inline uint32_t util_get_surface_size(TinyImageFormat format, uint32_t wi
 /************************************************************************/
 // DDS Loading
 /************************************************************************/
+// BC4/BC5 channels use the same endpoint interpolation as a DXT5 alpha block.
+inline uint8_t decodeBC5SingleTexelChannel(const uint8_t* block)
+{
+    const uint32_t index = block[2] & 7u;
+    if (index < 2)
+        return block[index];
+    if (block[0] > block[1])
+        return (uint8_t)(((8u - index) * block[0] + (index - 1u) * block[1]) / 7u);
+    if (index >= 6)
+        return index == 6 ? 0 : 255;
+    return (uint8_t)(((6u - index) * block[0] + (index - 1u) * block[1]) / 5u);
+}
+
 inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
     RETURN_IF_FAILED(pStream);
