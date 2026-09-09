@@ -495,10 +495,7 @@ SceneAssetSlot* SceneManager::findSlot(SceneAssetHandle handle)
     return pSlot->mOccupied && !pSlot->mRetiring && pSlot->mGeneration == handle.mGeneration ? pSlot : nullptr;
 }
 
-const SceneAssetSlot* SceneManager::findSlot(SceneAssetHandle handle) const
-{
-    return const_cast<SceneManager*>(this)->findSlot(handle);
-}
+const SceneAssetSlot* SceneManager::findSlot(SceneAssetHandle handle) const { return const_cast<SceneManager*>(this)->findSlot(handle); }
 
 void SceneManager::destroySlot(SceneAssetSlot* pSlot)
 {
@@ -597,8 +594,8 @@ void SceneManager::update()
         SceneAssetSlot* pSlot = &pSlots[i];
         if (!pSlot->mOccupied || pSlot->mStatus != SCENE_ASSET_STATUS_LOADING)
             continue;
-        if (!pSlot->mGeometryResident && !pSlot->mRetiring &&
-            mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pUserData) && pSlot->pGeometry)
+        if (!pSlot->mGeometryResident && !pSlot->mRetiring && mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pUserData) &&
+            pSlot->pGeometry)
         {
             Geometry* pSource = pSlot->pGeometry;
             bool      valid = !pSource->pGeometryBuffer && pSource->pIndexBuffer && pSource->mVertexBufferCount <= MAX_VERTEX_BINDINGS;
@@ -886,8 +883,8 @@ bool SceneManager::isTextureResident(SceneAssetHandle handle, uint32_t textureIn
     return pSlot && textureIndex < pSlot->pManifest->mTextureCount && pSlot->pTextureResident[textureIndex];
 }
 
-bool SceneManager::updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet,
-                                          const char* pBindingName, SceneAssetHandle handle) const
+bool SceneManager::updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet, const char* pBindingName,
+                                          SceneAssetHandle handle) const
 {
     const SceneAssetSlot* pSlot = findSlot(handle);
     if (!pRenderer || !pDescriptorSet || !pBindingName || !pSlot || pSlot->mStatus != SCENE_ASSET_STATUS_READY)

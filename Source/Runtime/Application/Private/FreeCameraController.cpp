@@ -29,7 +29,7 @@ void FreeCameraController::stop()
 bool FreeCameraController::onInput(InputActionContext* pInput)
 {
     FreeCameraController* pController = (FreeCameraController*)pInput->pUserData;
-    const bool ended = pInput->mPhase == INPUT_ACTION_PHASE_CANCELED || pInput->mPhase == INPUT_ACTION_PHASE_ENDED;
+    const bool            ended = pInput->mPhase == INPUT_ACTION_PHASE_CANCELED || pInput->mPhase == INPUT_ACTION_PHASE_ENDED;
     switch (pInput->mActionId)
     {
     case Move:
@@ -95,15 +95,11 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
           .mNumAxis = 2,
           .mScale = 0.002f,
           .mScaleByDT = true },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_MOUSE,
-          .mActionId = Capture,
-          .mDeviceButtons = { MOUSE_BUTTON_RIGHT } },
+        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_MOUSE, .mActionId = Capture, .mDeviceButtons = { MOUSE_BUTTON_RIGHT } },
         { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
           .mActionId = Boost,
           .mDeviceButtons = { KEYBOARD_BUTTON_SHIFT_L } },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
-          .mActionId = Reset,
-          .mDeviceButtons = { KEYBOARD_BUTTON_R } },
+        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD, .mActionId = Reset, .mDeviceButtons = { KEYBOARD_BUTTON_R } },
         { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
           .mActionId = Release,
           .mDeviceButtons = { KEYBOARD_BUTTON_ESCAPE } },
@@ -149,12 +145,6 @@ void FreeCameraController::update(float deltaTime, uint32_t width, uint32_t heig
     pCamera->setViewRotationXY(rotation);
 }
 
-mat4 FreeCameraController::getViewMatrix() const
-{
-    return pCamera->getViewMatrix();
-}
+mat4 FreeCameraController::getViewMatrix() const { return pCamera->getViewMatrix(); }
 
-vec3 FreeCameraController::getPosition() const
-{
-    return pCamera->getViewPosition();
-}
+vec3 FreeCameraController::getPosition() const { return pCamera->getViewPosition(); }

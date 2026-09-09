@@ -36,8 +36,8 @@ public:
 
     ~unique_ptr() { reset(); }
 
-    T& operator*() const noexcept { return *pPtr; }
-    pointer operator->() const noexcept { return pPtr; }
+    T&       operator*() const noexcept { return *pPtr; }
+    pointer  operator->() const noexcept { return pPtr; }
     explicit operator bool() const noexcept { return pPtr != nullptr; }
 
     pointer get() const noexcept { return pPtr; }

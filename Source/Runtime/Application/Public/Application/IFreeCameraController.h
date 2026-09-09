@@ -6,11 +6,11 @@ struct InputActionContext;
 
 struct FreeCameraControllerDesc
 {
-    WindowDesc*             pWindow = nullptr;
-    vec3                    position = {};
-    vec3                    lookAt = {};
-    CameraMotionParameters  motion = {};
-    float                   boostMultiplier = 4.0f;
+    WindowDesc*            pWindow = nullptr;
+    vec3                   position = {};
+    vec3                   lookAt = {};
+    CameraMotionParameters motion = {};
+    float                  boostMultiplier = 4.0f;
 };
 
 class FORGE_API FreeCameraController
