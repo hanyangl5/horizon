@@ -2,7 +2,7 @@
 
 Loads BistroExterior using SceneManager in the Runtime Scene layer: the asset cooker produces GeometryTF geometry
 and a scene manifest, and the runtime loads geometry, materials and DDS textures
-through `requestSceneAssetFromGltf`. glTF node transforms, primitive material assignments
+through `SceneManager::requestFromGltf`. glTF node transforms, primitive material assignments
 and the selected scene's perspective camera are preserved in cooked geometry metadata.
 
 ```powershell

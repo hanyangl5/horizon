@@ -1010,12 +1010,6 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
     ASSERT(pIO);
     ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
-    if (dir->mPath[0] != 0)
-    {
-        LOGF(eWARNING, "Resource directory {%d} already set on:'%s'", resourceDir, dir->mPath);
-        return;
-    }
-
 #if !defined(FORGE_DEBUG) && !defined(ENABLE_LOGGING)
     // Ignore RM_DEBUG on shipping builds, it's only supposed to be used in testing
     if (mount == RM_DEBUG)
@@ -1027,10 +1021,7 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
 
     dir->mMount = mount;
 
-    if (RM_CONTENT == mount)
-    {
-        dir->mBundled = true;
-    }
+    dir->mBundled = RM_CONTENT == mount;
 
     char resourcePath[FS_MAX_PATH] = { 0 };
     fsMergeDirAndFileName(pIO->GetResourceMount ? pIO->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);

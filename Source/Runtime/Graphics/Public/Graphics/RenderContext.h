@@ -338,13 +338,12 @@ struct SubmitHandle
 class RenderContext
 {
 public:
-    RenderContext() = default;
+    explicit RenderContext(const ContextDesc&);
     ~RenderContext();
     RenderContext(const RenderContext&) = delete;
     RenderContext& operator=(const RenderContext&) = delete;
     explicit       operator bool() const { return ready; }
 
-    bool init(const ContextDesc&);
     void waitIdle();
 
     bool              resize(uint32_t width, uint32_t height);

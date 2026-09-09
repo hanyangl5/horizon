@@ -19,6 +19,33 @@ RenderContext::CommandSlot::~CommandSlot()
     arrfree(transientBuffers);
 }
 
+RenderContext::RenderContext(const ContextDesc& input)
+{
+    const bool valid = input.pAppName && input.pAppName[0] && strlen(input.pAppName) < sizeof(appName) &&
+                       (!input.imageCount || input.imageCount <= MAX_SWAPCHAIN_IMAGES);
+    ASSERT(valid);
+    if (!valid)
+        return;
+
+    desc = input;
+    desc.imageCount = input.imageCount ? input.imageCount : 3;
+    memcpy(appName, input.pAppName, strlen(input.pAppName) + 1);
+
+    const bool deviceInitialized = initDevice();
+    ASSERT(deviceInitialized);
+    if (!deviceInitialized)
+    {
+        destroyDevice(false);
+        return;
+    }
+
+    suspended = !input.width || !input.height;
+    const bool initialized = suspended || createSwapChain();
+    ASSERT(initialized);
+    if (!initialized)
+        cleanup();
+}
+
 RenderContext::~RenderContext() { cleanup(); }
 
 void RenderContext::waitIdle() { waitQueueIdle(pGraphicsQueue); }
@@ -258,33 +285,6 @@ void RenderContext::destroyDevice(bool waitForGpu)
         exitRendererContext(pRendererContext);
         pRendererContext = nullptr;
     }
-}
-
-bool RenderContext::init(const ContextDesc& input)
-{
-    ASSERT(!ready && !pRendererContext && !pRenderer && !pGraphicsQueue && !pSwapChain && !pImageAcquiredSemaphore && !resourceCount);
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
-    ASSERT(input.pAppName && input.pAppName[0] && strlen(input.pAppName) < sizeof(appName));
-    ASSERT(!input.imageCount || input.imageCount <= MAX_SWAPCHAIN_IMAGES);
-    if (!input.pAppName || !input.pAppName[0] || strlen(input.pAppName) >= sizeof(appName) || input.imageCount > MAX_SWAPCHAIN_IMAGES)
-        return false;
-
-    desc = input;
-    desc.imageCount = input.imageCount ? input.imageCount : 3;
-    memcpy(appName, input.pAppName, strlen(input.pAppName) + 1);
-    if (!initDevice())
-    {
-        destroyDevice(false);
-        return false;
-    }
-
-    suspended = !input.width || !input.height;
-    const bool initialized = suspended || createSwapChain();
-    ASSERT(initialized);
-    if (!initialized)
-        cleanup();
-    return initialized;
 }
 
 bool RenderContext::resize(uint32_t width, uint32_t height)

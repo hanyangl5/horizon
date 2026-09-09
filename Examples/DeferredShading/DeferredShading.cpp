@@ -528,8 +528,7 @@ public:
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
-        context = std::make_unique<hz::RenderContext>();
-        context->init(contextDesc);
+        context = std::make_unique<hz::RenderContext>(contextDesc);
         geometryBuildPass = std::make_unique<GeometryBuildPass>(*context);
         gBufferPass = std::make_unique<GBufferPass>(*context);
         lightingPass = std::make_unique<LightingPass>(*context, TinyImageFormat::TinyImageFormat_R8G8B8A8_SRGB);

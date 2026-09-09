@@ -40,8 +40,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .colorFormat = TinyImageFormat_B8G8R8A8_SRGB,
         .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
-    hz::RenderContext context;
-    ASSERT_TRUE(context.init(desc));
+    hz::RenderContext context(desc);
     EXPECT_TRUE(context.isSuspended());
     EXPECT_EQ(context.getWidth(), 0u);
     EXPECT_EQ(context.getHeight(), 0u);
@@ -95,8 +94,7 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         .colorFormat = TinyImageFormat_B8G8R8A8_SRGB,
         .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
-    hz::RenderContext context;
-    ASSERT_TRUE(context.init(desc));
+    hz::RenderContext context(desc);
 
     const uint32_t sizes[][2] = { { 900, 600 }, { 1400, 800 }, { 640, 480 }, { 1280, 720 } };
     for (const auto& size : sizes)

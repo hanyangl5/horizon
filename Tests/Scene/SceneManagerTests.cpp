@@ -4,6 +4,7 @@
 
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
+#include "Core/IUniquePtr.h"
 #include "Scene/ISceneManager.h"
 #include "Scene/SceneGeometry.h"
 
@@ -290,12 +291,12 @@ TEST_F(SceneAssetFileTest, LoadsManifestThroughResourceDirectory)
 class SceneManagerTest: public SceneAssetFileTest
 {
 protected:
-    hz::RenderContext context;
+    hz::unique_ptr<hz::RenderContext> context;
     void SetUp() override
     {
 #if defined(_WINDOWS)
         const hz::ContextDesc desc = { .pAppName = "SceneManagerTest" };
-        ASSERT_TRUE(context.init(desc));
+        context = hz::make_unique<hz::RenderContext>(desc);
 #else
         GTEST_SKIP() << "Scene GPU ownership requires the D3D12 backend";
 #endif
@@ -306,7 +307,7 @@ TEST_F(SceneManagerTest, RequestsSceneDirectlyFromManifestFile)
 {
     FakeSceneAssetBackend backend = {};
     SceneManagerDesc  systemDesc = {
-         .mCapacity = 1, .pContext = &context,
+         .mCapacity = 1, .pContext = context.get(),
          .mCallbacks = {
              .pLoadGeometry = fakeLoadSceneGeometry,
              .pLoadTexture = fakeLoadSceneTexture,
@@ -319,8 +320,7 @@ TEST_F(SceneManagerTest, RequestsSceneDirectlyFromManifestFile)
          },
          .pUserData = &backend,
     };
-    SceneManager* pSystem = nullptr;
-    ASSERT_TRUE(initSceneManager(&systemDesc, &pSystem));
+    auto pSystem = hz::make_unique<SceneManager>(systemDesc);
 
     Geometry*        pGeometry = nullptr;
     VertexLayout     vertexLayout = {};
@@ -329,14 +329,14 @@ TEST_F(SceneManagerTest, RequestsSceneDirectlyFromManifestFile)
         .pVertexLayout = &vertexLayout,
     };
     SceneAssetError  error = {};
-    SceneAssetHandle handle = requestSceneAsset(pSystem, RD_OTHER_FILES, "valid.scene.json", &geometryLoad, &error);
+    SceneAssetHandle handle = pSystem->requestFromManifestFile(RD_OTHER_FILES, "valid.scene.json", &geometryLoad, &error);
     EXPECT_TRUE(isSceneAssetHandleValid(handle)) << error.mMessage;
     EXPECT_EQ(backend.mGeometryLoadCount, 1u);
 
     backend.mCompleted = true;
-    updateSceneManager(pSystem);
-    releaseSceneAsset(pSystem, handle);
-    exitSceneManager(pSystem);
+    pSystem->update();
+    pSystem->release(handle);
+    pSystem = nullptr;
 }
 
 TEST_F(SceneManagerTest, AsyncHandleTransitionsAndRejectsStaleGenerations)
@@ -347,7 +347,7 @@ TEST_F(SceneManagerTest, AsyncHandleTransitionsAndRejectsStaleGenerations)
 
     FakeSceneAssetBackend backend = {};
     SceneManagerDesc  systemDesc = {
-         .mCapacity = 1, .pContext = &context,
+         .mCapacity = 1, .pContext = context.get(),
          .mCallbacks = {
              .pLoadGeometry = fakeLoadSceneGeometry,
              .pLoadTexture = fakeLoadSceneTexture,
@@ -360,8 +360,7 @@ TEST_F(SceneManagerTest, AsyncHandleTransitionsAndRejectsStaleGenerations)
          },
          .pUserData = &backend,
     };
-    SceneManager* pSystem = nullptr;
-    ASSERT_TRUE(initSceneManager(&systemDesc, &pSystem));
+    auto pSystem = hz::make_unique<SceneManager>(systemDesc);
 
     VertexLayout     vertexLayout = {};
     Geometry*        pGeometry = nullptr;
@@ -371,21 +370,21 @@ TEST_F(SceneManagerTest, AsyncHandleTransitionsAndRejectsStaleGenerations)
     };
     GeometryBuffer sharedGeometry = {};
     geometryLoad.pGeometryBuffer = &sharedGeometry;
-    EXPECT_FALSE(isSceneAssetHandleValid(requestSceneAssetFromManifest(pSystem, &manifest, &geometryLoad)));
+    EXPECT_FALSE(isSceneAssetHandleValid(pSystem->requestFromManifest(&manifest, &geometryLoad)));
     EXPECT_EQ(backend.mGeometryLoadCount, 0u);
     geometryLoad.pGeometryBuffer = nullptr;
-    SceneAssetHandle first = requestSceneAssetFromManifest(pSystem, &manifest, &geometryLoad);
+    SceneAssetHandle first = pSystem->requestFromManifest(&manifest, &geometryLoad);
     ASSERT_TRUE(isSceneAssetHandleValid(first));
-    EXPECT_EQ(getSceneAssetStatus(pSystem, first), SCENE_ASSET_STATUS_LOADING);
+    EXPECT_EQ(pSystem->getStatus(first), SCENE_ASSET_STATUS_LOADING);
     EXPECT_EQ(backend.mGeometryLoadCount, 1u);
     EXPECT_EQ(backend.mTextureLoadCount, 2u);
     EXPECT_EQ(backend.mBufferLoadCount, 1u);
-    EXPECT_EQ(getSceneAssetGeometry(pSystem, first), nullptr);
+    EXPECT_EQ(pSystem->getGeometry(first), nullptr);
 
     backend.mCompleted = true;
-    updateSceneManager(pSystem);
-    EXPECT_EQ(getSceneAssetStatus(pSystem, first), SCENE_ASSET_STATUS_READY);
-    const SceneGeometry* geometry = getSceneAssetGeometry(pSystem, first);
+    pSystem->update();
+    EXPECT_EQ(pSystem->getStatus(first), SCENE_ASSET_STATUS_READY);
+    const SceneGeometry* geometry = pSystem->getGeometry(first);
     ASSERT_NE(geometry, nullptr);
     EXPECT_TRUE(geometry->mIndexBuffer);
     EXPECT_TRUE(geometry->mVertexBuffers[0]);
@@ -393,48 +392,48 @@ TEST_F(SceneManagerTest, AsyncHandleTransitionsAndRejectsStaleGenerations)
     EXPECT_EQ(geometry->pDrawArgs[0].mIndexCount, 3u);
     EXPECT_EQ(backend.pGeometry->pIndexBuffer, nullptr);
     EXPECT_EQ(backend.pGeometry->pVertexBuffers[0], nullptr);
-    ASSERT_EQ(getSceneAssetTextureCount(pSystem, first), 2u);
-    ASSERT_NE(getSceneAssetTexture(pSystem, first, 1), nullptr);
-    EXPECT_TRUE(*getSceneAssetTexture(pSystem, first, 1));
-    EXPECT_EQ(getSceneAssetTexture(pSystem, first, 2), nullptr);
-    ASSERT_NE(getSceneAssetMaterialBuffer(pSystem, first), nullptr);
-    EXPECT_TRUE(*getSceneAssetMaterialBuffer(pSystem, first));
-    ASSERT_EQ(getSceneAssetMaterialCount(pSystem, first), 1u);
-    const SceneAssetGpuMaterial* pGpuMaterials = getSceneAssetGpuMaterials(pSystem, first);
+    ASSERT_EQ(pSystem->getTextureCount(first), 2u);
+    ASSERT_NE(pSystem->getTexture(first, 1), nullptr);
+    EXPECT_TRUE(*pSystem->getTexture(first, 1));
+    EXPECT_EQ(pSystem->getTexture(first, 2), nullptr);
+    ASSERT_NE(pSystem->getMaterialBuffer(first), nullptr);
+    EXPECT_TRUE(*pSystem->getMaterialBuffer(first));
+    ASSERT_EQ(pSystem->getMaterialCount(first), 1u);
+    const SceneAssetGpuMaterial* pGpuMaterials = pSystem->getGpuMaterials(first);
     ASSERT_NE(pGpuMaterials, nullptr);
     EXPECT_EQ(pGpuMaterials[0].mBaseColorTexture, 0u);
     EXPECT_EQ(pGpuMaterials[0].mNormalTexture, 1u);
     EXPECT_EQ(pGpuMaterials[0].mMetallicRoughnessTexture, UINT32_MAX);
     EXPECT_FLOAT_EQ(pGpuMaterials[0].mBaseColorFactor[1], 0.5f);
-    ASSERT_NE(getSceneAssetManifest(pSystem, first), nullptr);
-    EXPECT_EQ(getSceneAssetManifest(pSystem, first)->mMaterialCount, 1u);
+    ASSERT_NE(pSystem->getManifest(first), nullptr);
+    EXPECT_EQ(pSystem->getManifest(first)->mMaterialCount, 1u);
 
-    ASSERT_TRUE(releaseSceneAsset(pSystem, first));
-    EXPECT_EQ(getSceneAssetStatus(pSystem, first), SCENE_ASSET_STATUS_INVALID);
+    ASSERT_TRUE(pSystem->release(first));
+    EXPECT_EQ(pSystem->getStatus(first), SCENE_ASSET_STATUS_INVALID);
     EXPECT_EQ(backend.mRemoveCount, 1u); // Only CPU geometry remains on the loader cleanup path.
-    EXPECT_EQ(getSceneAssetTexture(pSystem, first, 0), nullptr);
-    EXPECT_EQ(getSceneAssetMaterialBuffer(pSystem, first), nullptr);
+    EXPECT_EQ(pSystem->getTexture(first, 0), nullptr);
+    EXPECT_EQ(pSystem->getMaterialBuffer(first), nullptr);
 
     backend.mCompleted = false;
-    SceneAssetHandle second = requestSceneAssetFromManifest(pSystem, &manifest, &geometryLoad);
+    SceneAssetHandle second = pSystem->requestFromManifest(&manifest, &geometryLoad);
     ASSERT_TRUE(isSceneAssetHandleValid(second));
     EXPECT_EQ(second.mIndex, first.mIndex);
     EXPECT_NE(second.mGeneration, first.mGeneration);
 
-    ASSERT_TRUE(releaseSceneAsset(pSystem, second));
-    SceneAssetHandle whileRetiring = requestSceneAssetFromManifest(pSystem, &manifest, &geometryLoad);
+    ASSERT_TRUE(pSystem->release(second));
+    SceneAssetHandle whileRetiring = pSystem->requestFromManifest(&manifest, &geometryLoad);
     EXPECT_FALSE(isSceneAssetHandleValid(whileRetiring));
 
     backend.mCompleted = true;
-    updateSceneManager(pSystem);
+    pSystem->update();
     EXPECT_EQ(backend.mRemoveCount, 5u); // Cancelled uploads never transfer ownership.
-    SceneAssetHandle afterRetirement = requestSceneAssetFromManifest(pSystem, &manifest, &geometryLoad);
+    SceneAssetHandle afterRetirement = pSystem->requestFromManifest(&manifest, &geometryLoad);
     EXPECT_TRUE(isSceneAssetHandleValid(afterRetirement));
 
     backend.mCompleted = true;
-    updateSceneManager(pSystem);
-    releaseSceneAsset(pSystem, afterRetirement);
-    exitSceneManager(pSystem);
+    pSystem->update();
+    pSystem->release(afterRetirement);
+    pSystem = nullptr;
 }
 
 namespace
@@ -477,53 +476,52 @@ TEST_F(SceneManagerTest, PublishesGeometryTexturesAndMaterialsIndependently)
     SceneAssetError    error = {};
     ASSERT_TRUE(parseSceneAssetManifest(kValidManifest, strlen(kValidManifest), &manifest, &error));
     ProgressiveBackend   backend = {};
-    SceneManagerDesc sd = { .mCapacity = 1, .pContext = &context,
+    SceneManagerDesc sd = { .mCapacity = 1, .pContext = context.get(),
                                 .mCallbacks = { progressiveGeometry, progressiveTexture, progressiveBuffer, progressiveDone,
                                                 progressiveWait, progressiveRemoveGeometry, progressiveRemoveTexture, progressiveRemoveBuffer },
                                 .pUserData = &backend };
-    SceneManager*    system = nullptr;
-    ASSERT_TRUE(initSceneManager(&sd, &system));
+    auto system = hz::make_unique<SceneManager>(sd);
     VertexLayout     layout = {};
     Geometry*        geometry = nullptr;
     GeometryLoadDesc gd = { .ppGeometry = &geometry, .pVertexLayout = &layout };
-    SceneAssetHandle h = requestSceneAssetFromManifest(system, &manifest, &gd);
+    SceneAssetHandle h = system->requestFromManifest(&manifest, &gd);
     ASSERT_TRUE(isSceneAssetHandleValid(h));
-    EXPECT_FALSE(isSceneAssetGeometryResident(system, h));
-    EXPECT_FALSE(isSceneAssetTextureResident(system, h, 0));
+    EXPECT_FALSE(system->isGeometryResident(h));
+    EXPECT_FALSE(system->isTextureResident(h, 0));
     backend.mCompletedThrough = 1;
-    updateSceneManager(system);
-    EXPECT_TRUE(isSceneAssetGeometryResident(system, h));
-    ASSERT_NE(getSceneAssetGeometry(system, h), nullptr);
-    EXPECT_TRUE(getSceneAssetGeometry(system, h)->mIndexBuffer);
-    EXPECT_FALSE(isSceneAssetTextureResident(system, h, 0));
-    EXPECT_EQ(getSceneAssetStatus(system, h), SCENE_ASSET_STATUS_LOADING);
+    system->update();
+    EXPECT_TRUE(system->isGeometryResident(h));
+    ASSERT_NE(system->getGeometry(h), nullptr);
+    EXPECT_TRUE(system->getGeometry(h)->mIndexBuffer);
+    EXPECT_FALSE(system->isTextureResident(h, 0));
+    EXPECT_EQ(system->getStatus(h), SCENE_ASSET_STATUS_LOADING);
     backend.mCompletedThrough = 2;
-    updateSceneManager(system);
-    EXPECT_TRUE(isSceneAssetTextureResident(system, h, 0));
-    EXPECT_FALSE(isSceneAssetTextureResident(system, h, 1));
-    EXPECT_NE(getSceneAssetTexture(system, h, 0), nullptr);
-    EXPECT_EQ(getSceneAssetTexture(system, h, 1), nullptr);
+    system->update();
+    EXPECT_TRUE(system->isTextureResident(h, 0));
+    EXPECT_FALSE(system->isTextureResident(h, 1));
+    EXPECT_NE(system->getTexture(h, 0), nullptr);
+    EXPECT_EQ(system->getTexture(h, 1), nullptr);
     backend.mCompletedThrough = 4;
-    updateSceneManager(system);
-    EXPECT_TRUE(isSceneAssetMaterialResident(system, h));
-    EXPECT_EQ(getSceneAssetStatus(system, h), SCENE_ASSET_STATUS_READY);
-    releaseSceneAsset(system, h);
+    system->update();
+    EXPECT_TRUE(system->isMaterialResident(h));
+    EXPECT_EQ(system->getStatus(h), SCENE_ASSET_STATUS_READY);
+    system->release(h);
 
     // Retiring a partially adopted scene must free owners and pending native outputs once each.
     backend = {};
-    h = requestSceneAssetFromManifest(system, &manifest, &gd);
+    h = system->requestFromManifest(&manifest, &gd);
     backend.mCompletedThrough = 1;
-    updateSceneManager(system);
-    ASSERT_TRUE(isSceneAssetGeometryResident(system, h));
-    ASSERT_TRUE(releaseSceneAsset(system, h));
-    EXPECT_EQ(getSceneAssetGeometry(system, h), nullptr);
-    EXPECT_FALSE(isSceneAssetHandleValid(requestSceneAssetFromManifest(system, &manifest, &gd)));
+    system->update();
+    ASSERT_TRUE(system->isGeometryResident(h));
+    ASSERT_TRUE(system->release(h));
+    EXPECT_EQ(system->getGeometry(h), nullptr);
+    EXPECT_FALSE(isSceneAssetHandleValid(system->requestFromManifest(&manifest, &gd)));
     backend.mCompletedThrough = 4;
-    updateSceneManager(system);
-    const SceneAssetHandle next = requestSceneAssetFromManifest(system, &manifest, &gd);
+    system->update();
+    const SceneAssetHandle next = system->requestFromManifest(&manifest, &gd);
     EXPECT_TRUE(isSceneAssetHandleValid(next));
     EXPECT_NE(next.mGeneration, h.mGeneration);
-    exitSceneManager(system);
+    system = nullptr;
 }
 
 TEST_F(SceneManagerTest, GltfCookFailureDoesNotEnqueueGpuLoadsOrConsumeSlot)
@@ -532,7 +530,7 @@ TEST_F(SceneManagerTest, GltfCookFailureDoesNotEnqueueGpuLoadsOrConsumeSlot)
     static uint32_t cookCalls = 0;
     cookCalls = 0;
     const SceneManagerDesc desc = {
-        .mCapacity = 1, .pContext = &context,
+        .mCapacity = 1, .pContext = context.get(),
         .mCallbacks = {
             .pLoadGeometry = fakeLoadSceneGeometry,
             .pLoadTexture = fakeLoadSceneTexture,
@@ -555,14 +553,13 @@ TEST_F(SceneManagerTest, GltfCookFailureDoesNotEnqueueGpuLoadsOrConsumeSlot)
             return false;
         },
     };
-    SceneManager* manager = nullptr;
-    ASSERT_TRUE(initSceneManager(&desc, &manager));
+    auto manager = hz::make_unique<SceneManager>(desc);
     VertexLayout layout = {};
     const GeometryLoadDesc geometry = { .pVertexLayout = &layout };
     SceneAssetError error = {};
-    EXPECT_FALSE(isSceneAssetHandleValid(requestSceneAssetFromGltf(manager, RD_TEXTURES, "../bad.gltf", RD_OTHER_FILES, &geometry, &error)));
+    EXPECT_FALSE(isSceneAssetHandleValid(manager->requestFromGltf(RD_TEXTURES, "../bad.gltf", RD_OTHER_FILES, &geometry, &error)));
     EXPECT_EQ(cookCalls, 0u);
-    EXPECT_FALSE(isSceneAssetHandleValid(requestSceneAssetFromGltf(manager, RD_TEXTURES, "courtyard.gltf", RD_OTHER_FILES, &geometry, &error)));
+    EXPECT_FALSE(isSceneAssetHandleValid(manager->requestFromGltf(RD_TEXTURES, "courtyard.gltf", RD_OTHER_FILES, &geometry, &error)));
     EXPECT_EQ(cookCalls, 1u);
     EXPECT_STREQ(error.mMessage, "Cook failed");
     EXPECT_EQ(backend.mGeometryLoadCount, 0u);
@@ -570,8 +567,8 @@ TEST_F(SceneManagerTest, GltfCookFailureDoesNotEnqueueGpuLoadsOrConsumeSlot)
     EXPECT_EQ(backend.mBufferLoadCount, 0u);
     SceneAssetManifest manifest = {};
     EXPECT_TRUE(parseSceneAssetManifest(kValidManifest, strlen(kValidManifest), &manifest, &error));
-    EXPECT_TRUE(isSceneAssetHandleValid(requestSceneAssetFromManifest(manager, &manifest, &geometry)));
-    exitSceneManager(manager);
+    EXPECT_TRUE(isSceneAssetHandleValid(manager->requestFromManifest(&manifest, &geometry)));
+    manager = nullptr;
 }
 
 TEST_F(SceneManagerTest, ReportsFailedWhenAnAsyncResourceDoesNotLoad)
@@ -581,7 +578,7 @@ TEST_F(SceneManagerTest, ReportsFailedWhenAnAsyncResourceDoesNotLoad)
         .mFailTexture = true,
     };
     SceneManagerDesc systemDesc = {
-        .mCapacity = 1, .pContext = &context,
+        .mCapacity = 1, .pContext = context.get(),
         .mCallbacks = {
             .pLoadGeometry = fakeLoadSceneGeometry,
             .pLoadTexture = fakeLoadSceneTexture,
@@ -594,8 +591,7 @@ TEST_F(SceneManagerTest, ReportsFailedWhenAnAsyncResourceDoesNotLoad)
         },
         .pUserData = &backend,
     };
-    SceneManager* pSystem = nullptr;
-    ASSERT_TRUE(initSceneManager(&systemDesc, &pSystem));
+    auto pSystem = hz::make_unique<SceneManager>(systemDesc);
 
     SceneAssetManifest manifest = {};
     SceneAssetError    error = {};
@@ -606,16 +602,16 @@ TEST_F(SceneManagerTest, ReportsFailedWhenAnAsyncResourceDoesNotLoad)
         .ppGeometry = &pGeometry,
         .pVertexLayout = &vertexLayout,
     };
-    const SceneAssetHandle handle = requestSceneAssetFromManifest(pSystem, &manifest, &geometryLoad);
+    const SceneAssetHandle handle = pSystem->requestFromManifest(&manifest, &geometryLoad);
     ASSERT_TRUE(isSceneAssetHandleValid(handle));
 
     backend.mCompleted = true;
-    updateSceneManager(pSystem);
-    EXPECT_EQ(getSceneAssetStatus(pSystem, handle), SCENE_ASSET_STATUS_FAILED);
-    ASSERT_NE(getSceneAssetGeometry(pSystem, handle), nullptr);
-    EXPECT_TRUE(getSceneAssetGeometry(pSystem, handle)->mIndexBuffer);
-    EXPECT_EQ(getSceneAssetTexture(pSystem, handle, 0), nullptr);
-    EXPECT_EQ(getSceneAssetTexture(pSystem, handle, 1), nullptr);
-    EXPECT_TRUE(releaseSceneAsset(pSystem, handle));
-    exitSceneManager(pSystem);
+    pSystem->update();
+    EXPECT_EQ(pSystem->getStatus(handle), SCENE_ASSET_STATUS_FAILED);
+    ASSERT_NE(pSystem->getGeometry(handle), nullptr);
+    EXPECT_TRUE(pSystem->getGeometry(handle)->mIndexBuffer);
+    EXPECT_EQ(pSystem->getTexture(handle, 0), nullptr);
+    EXPECT_EQ(pSystem->getTexture(handle, 1), nullptr);
+    EXPECT_TRUE(pSystem->release(handle));
+    pSystem = nullptr;
 }

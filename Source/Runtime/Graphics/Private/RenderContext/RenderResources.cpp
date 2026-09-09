@@ -3,6 +3,7 @@
 #include "Graphics/RenderContext.h"
 #include "Resources/IResourceLoader.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "Core/ILog.h"
@@ -328,6 +329,7 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
     FileStream    sourceFile = {};
     const void*   pFileSource = nullptr;
     size_t        fileSize = 0;
+    char          sourcePath[FS_MAX_PATH] = {};
     if (input.pFileName && (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
                             !fsStreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
     {
@@ -336,6 +338,8 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
             fsCloseStream(&sourceFile);
         return {};
     }
+    if (pFileSource)
+        snprintf(sourcePath, sizeof(sourcePath), "%s/%s", fsGetResourceDirectory(input.sourceDirectory), input.pFileName);
 
     for (uint32_t i = 0; i < input.stageCount; ++i)
     {
@@ -357,7 +361,7 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
             break;
         }
         source.mStages |= inputStage.stage;
-        stage->pName = inputStage.pName;
+        stage->pName = pFileSource ? sourcePath : inputStage.pName;
         stage->pByteCode = (void*)(pFileSource ? pFileSource : inputStage.pSource);
         stage->mByteCodeSize = pFileSource ? (uint32_t)fileSize : inputStage.sourceSize;
         stage->pEntryPoint = inputStage.pEntryPoint;

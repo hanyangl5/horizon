@@ -4,6 +4,7 @@
 
 #include "Scene/ISceneManager.h"
 #include "Scene/SceneGeometry.h"
+#include "Core/ILog.h"
 #include "Core/IToolFileSystem.h"
 
 #include <ctype.h>
@@ -475,15 +476,6 @@ struct SceneAssetSlot
     bool                   mMaterialResident;
 };
 
-struct SceneManager
-{
-    SceneAssetSlot*             pSlots;
-    hz::RenderContext*          pContext;
-    SceneAssetResourceCallbacks mCallbacks;
-    void*                       pUserData;
-    bool (*pEnsureGltfCooked)(ResourceDirectory, const char*, ResourceDirectory, SceneAssetError*);
-};
-
 static void defaultLoadSceneGeometry(GeometryLoadDesc* pDesc, SyncToken* pToken, void*) { addResource(pDesc, pToken); }
 static void defaultLoadSceneTexture(TextureLoadDesc* pDesc, SyncToken* pToken, void*) { addResource(pDesc, pToken); }
 static void defaultLoadSceneBuffer(BufferLoadDesc* pDesc, SyncToken* pToken, void*) { addResource(pDesc, pToken); }
@@ -495,20 +487,20 @@ static void defaultRemoveSceneBuffer(void*, void* pResource) { removeResource((B
 
 static SceneAssetHandle invalidSceneAssetHandle() { return { UINT32_MAX, 0 }; }
 
-static SceneAssetSlot* findSceneAssetSlot(SceneManager* pSystem, SceneAssetHandle handle)
+SceneAssetSlot* SceneManager::findSlot(SceneAssetHandle handle)
 {
-    if (!pSystem || handle.mIndex >= arrlenu(pSystem->pSlots))
+    if (handle.mIndex >= arrlenu(pSlots))
         return nullptr;
-    SceneAssetSlot* pSlot = &pSystem->pSlots[handle.mIndex];
+    SceneAssetSlot* pSlot = &pSlots[handle.mIndex];
     return pSlot->mOccupied && !pSlot->mRetiring && pSlot->mGeneration == handle.mGeneration ? pSlot : nullptr;
 }
 
-static const SceneAssetSlot* findSceneAssetSlot(const SceneManager* pSystem, SceneAssetHandle handle)
+const SceneAssetSlot* SceneManager::findSlot(SceneAssetHandle handle) const
 {
-    return findSceneAssetSlot((SceneManager*)pSystem, handle);
+    return const_cast<SceneManager*>(this)->findSlot(handle);
 }
 
-static void destroySceneAssetSlot(SceneManager* pSystem, SceneAssetSlot* pSlot)
+void SceneManager::destroySlot(SceneAssetSlot* pSlot)
 {
     if (pSlot->pGpuResources)
     {
@@ -521,15 +513,15 @@ static void destroySceneAssetSlot(SceneManager* pSystem, SceneAssetSlot* pSlot)
         tf_delete(pSlot->pGpuResources);
     }
     if (pSlot->pGeometry)
-        pSystem->mCallbacks.pRemoveGeometry(pSystem->pUserData, pSlot->pGeometry);
+        mCallbacks.pRemoveGeometry(pUserData, pSlot->pGeometry);
     if (pSlot->pMaterialBuffer)
-        pSystem->mCallbacks.pRemoveBuffer(pSystem->pUserData, pSlot->pMaterialBuffer);
+        mCallbacks.pRemoveBuffer(pUserData, pSlot->pMaterialBuffer);
     if (pSlot->pManifest)
     {
         for (uint32_t i = 0; i < pSlot->pManifest->mTextureCount; ++i)
         {
             if (pSlot->ppTextures && pSlot->ppTextures[i])
-                pSystem->mCallbacks.pRemoveTexture(pSystem->pUserData, pSlot->ppTextures[i]);
+                mCallbacks.pRemoveTexture(pUserData, pSlot->ppTextures[i]);
         }
     }
     arrfree(pSlot->ppTextures);
@@ -543,15 +535,12 @@ static void destroySceneAssetSlot(SceneManager* pSystem, SceneAssetSlot* pSlot)
     pSlot->mGeneration = generation;
 }
 
-bool initSceneManager(const SceneManagerDesc* pDesc, SceneManager** ppSystem)
+SceneManager::SceneManager(const SceneManagerDesc& desc)
 {
-    if (!ppSystem)
-        return false;
-    *ppSystem = nullptr;
-    if (!pDesc || !pDesc->mCapacity || !pDesc->pContext)
-        return false;
+    ASSERT(desc.mCapacity);
+    ASSERT(desc.pContext);
 
-    SceneAssetResourceCallbacks callbacks = pDesc->mCallbacks;
+    SceneAssetResourceCallbacks callbacks = desc.mCallbacks;
     const bool                  hasCustomCallbacks = callbacks.pLoadGeometry || callbacks.pLoadTexture || callbacks.pLoadBuffer ||
                                     callbacks.pIsTokenCompleted || callbacks.pWaitForToken || callbacks.pRemoveGeometry ||
                                     callbacks.pRemoveTexture || callbacks.pRemoveBuffer;
@@ -568,59 +557,48 @@ bool initSceneManager(const SceneManagerDesc* pDesc, SceneManager** ppSystem)
             .pRemoveBuffer = defaultRemoveSceneBuffer,
         };
     }
-    if (!callbacks.pLoadGeometry || !callbacks.pLoadTexture || !callbacks.pLoadBuffer || !callbacks.pIsTokenCompleted ||
-        !callbacks.pWaitForToken || !callbacks.pRemoveGeometry || !callbacks.pRemoveTexture || !callbacks.pRemoveBuffer)
-        return false;
+    ASSERT(callbacks.pLoadGeometry && callbacks.pLoadTexture && callbacks.pLoadBuffer && callbacks.pIsTokenCompleted &&
+           callbacks.pWaitForToken && callbacks.pRemoveGeometry && callbacks.pRemoveTexture && callbacks.pRemoveBuffer);
 
-    SceneManager* pSystem = (SceneManager*)tf_calloc(1, sizeof(SceneManager));
-    if (!pSystem)
-        return false;
     // Resource loader callbacks retain addresses inside the slots. Size once and never relocate them.
-    arrsetlen(pSystem->pSlots, pDesc->mCapacity);
-    for (uint32_t i = 0; i < pDesc->mCapacity; ++i)
-        pSystem->pSlots[i] = {};
-    pSystem->mCallbacks = callbacks;
-    pSystem->pContext = pDesc->pContext;
-    pSystem->pUserData = pDesc->pUserData;
-    pSystem->pEnsureGltfCooked = pDesc->pEnsureGltfCooked;
-    *ppSystem = pSystem;
-    return true;
+    arrsetlen(pSlots, desc.mCapacity);
+    for (uint32_t i = 0; i < desc.mCapacity; ++i)
+        pSlots[i] = {};
+    mCallbacks = callbacks;
+    pContext = desc.pContext;
+    pUserData = desc.pUserData;
+    pEnsureGltfCooked = desc.pEnsureGltfCooked;
 }
 
-void exitSceneManager(SceneManager* pSystem)
+SceneManager::~SceneManager()
 {
-    if (!pSystem)
-        return;
-    for (uint32_t i = 0; i < arrlenu(pSystem->pSlots); ++i)
+    for (uint32_t i = 0; i < arrlenu(pSlots); ++i)
     {
-        SceneAssetSlot* pSlot = &pSystem->pSlots[i];
+        SceneAssetSlot* pSlot = &pSlots[i];
         if (!pSlot->mOccupied)
             continue;
         if (pSlot->mStatus == SCENE_ASSET_STATUS_LOADING)
         {
-            pSystem->mCallbacks.pWaitForToken(&pSlot->mGeometryToken, pSystem->pUserData);
+            mCallbacks.pWaitForToken(&pSlot->mGeometryToken, pUserData);
             for (uint32_t textureIndex = 0; textureIndex < pSlot->pManifest->mTextureCount; ++textureIndex)
-                pSystem->mCallbacks.pWaitForToken(&pSlot->pTextureTokens[textureIndex], pSystem->pUserData);
+                mCallbacks.pWaitForToken(&pSlot->pTextureTokens[textureIndex], pUserData);
             if (pSlot->pManifest->mMaterialCount)
-                pSystem->mCallbacks.pWaitForToken(&pSlot->mMaterialToken, pSystem->pUserData);
+                mCallbacks.pWaitForToken(&pSlot->mMaterialToken, pUserData);
         }
-        destroySceneAssetSlot(pSystem, pSlot);
+        destroySlot(pSlot);
     }
-    arrfree(pSystem->pSlots);
-    tf_free(pSystem);
+    arrfree(pSlots);
 }
 
-void updateSceneManager(SceneManager* pSystem)
+void SceneManager::update()
 {
-    if (!pSystem)
-        return;
-    for (uint32_t i = 0; i < arrlenu(pSystem->pSlots); ++i)
+    for (uint32_t i = 0; i < arrlenu(pSlots); ++i)
     {
-        SceneAssetSlot* pSlot = &pSystem->pSlots[i];
+        SceneAssetSlot* pSlot = &pSlots[i];
         if (!pSlot->mOccupied || pSlot->mStatus != SCENE_ASSET_STATUS_LOADING)
             continue;
         if (!pSlot->mGeometryResident && !pSlot->mRetiring &&
-            pSystem->mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pSystem->pUserData) && pSlot->pGeometry)
+            mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pUserData) && pSlot->pGeometry)
         {
             Geometry* pSource = pSlot->pGeometry;
             bool      valid = !pSource->pGeometryBuffer && pSource->pIndexBuffer && pSource->mVertexBufferCount <= MAX_VERTEX_BINDINGS;
@@ -629,11 +607,11 @@ void updateSceneManager(SceneManager* pSystem)
             if (valid)
             {
                 SceneGeometry& geometry = pSlot->pGpuResources->mGeometry;
-                geometry.mIndexBuffer = hz::SceneResourceAccess::take(pSystem->pContext, pSource->pIndexBuffer, gIndexBufferState);
+                geometry.mIndexBuffer = hz::SceneResourceAccess::take(pContext, pSource->pIndexBuffer, gIndexBufferState);
                 for (uint32_t binding = 0; binding < pSource->mVertexBufferCount; ++binding)
                 {
                     geometry.mVertexBuffers[binding] =
-                        hz::SceneResourceAccess::take(pSystem->pContext, pSource->pVertexBuffers[binding], gVertexBufferState);
+                        hz::SceneResourceAccess::take(pContext, pSource->pVertexBuffers[binding], gVertexBufferState);
                 }
                 geometry.pDrawArgs = pSource->pDrawArgs;
                 memcpy(geometry.mVertexStrides, pSource->mVertexStrides, sizeof(geometry.mVertexStrides));
@@ -645,15 +623,15 @@ void updateSceneManager(SceneManager* pSystem)
                 pSlot->mGeometryResident = true;
             }
         }
-        bool allCompleted = pSystem->mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pSystem->pUserData);
+        bool allCompleted = mCallbacks.pIsTokenCompleted(&pSlot->mGeometryToken, pUserData);
         bool loaded = pSlot->mGeometryResident;
         for (uint32_t textureIndex = 0; textureIndex < pSlot->pManifest->mTextureCount; ++textureIndex)
         {
-            const bool completed = pSystem->mCallbacks.pIsTokenCompleted(&pSlot->pTextureTokens[textureIndex], pSystem->pUserData);
+            const bool completed = mCallbacks.pIsTokenCompleted(&pSlot->pTextureTokens[textureIndex], pUserData);
             if (!pSlot->pTextureResident[textureIndex] && !pSlot->mRetiring && completed && pSlot->ppTextures[textureIndex])
             {
                 pSlot->pGpuResources->ppTextures[textureIndex] =
-                    tf_new(hz::GPUTexture, hz::SceneResourceAccess::take(pSystem->pContext, pSlot->ppTextures[textureIndex]));
+                    tf_new(hz::GPUTexture, hz::SceneResourceAccess::take(pContext, pSlot->ppTextures[textureIndex]));
                 pSlot->pTextureResident[textureIndex] = true;
             }
             allCompleted = allCompleted && completed;
@@ -661,11 +639,11 @@ void updateSceneManager(SceneManager* pSystem)
         }
         if (pSlot->pManifest->mMaterialCount)
         {
-            const bool completed = pSystem->mCallbacks.pIsTokenCompleted(&pSlot->mMaterialToken, pSystem->pUserData);
+            const bool completed = mCallbacks.pIsTokenCompleted(&pSlot->mMaterialToken, pUserData);
             if (!pSlot->mMaterialResident && !pSlot->mRetiring && completed && pSlot->pMaterialBuffer)
             {
                 pSlot->pGpuResources->mMaterials =
-                    hz::SceneResourceAccess::take(pSystem->pContext, pSlot->pMaterialBuffer, RESOURCE_STATE_SHADER_RESOURCE);
+                    hz::SceneResourceAccess::take(pContext, pSlot->pMaterialBuffer, RESOURCE_STATE_SHADER_RESOURCE);
                 pSlot->mMaterialResident = true;
             }
             allCompleted = allCompleted && completed;
@@ -676,24 +654,23 @@ void updateSceneManager(SceneManager* pSystem)
         if (!allCompleted)
             continue;
         if (pSlot->mRetiring)
-            destroySceneAssetSlot(pSystem, pSlot);
+            destroySlot(pSlot);
         else
             pSlot->mStatus = loaded ? SCENE_ASSET_STATUS_READY : SCENE_ASSET_STATUS_FAILED;
     }
 }
 
-SceneAssetHandle requestSceneAssetFromManifest(SceneManager* pSystem, const SceneAssetManifest* pManifest,
-                                               const GeometryLoadDesc* pGeometryLoadDesc)
+SceneAssetHandle SceneManager::requestFromManifest(const SceneAssetManifest* pManifest, const GeometryLoadDesc* pGeometryLoadDesc)
 {
-    if (!pSystem || !pManifest || !pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !pManifest->mGeometry[0] ||
+    if (!pManifest || !pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !pManifest->mGeometry[0] ||
         pGeometryLoadDesc->pGeometryBuffer || pManifest->mTextureCount > SCENE_ASSET_MAX_TEXTURES ||
         pManifest->mMaterialCount > SCENE_ASSET_MAX_MATERIALS)
         return invalidSceneAssetHandle();
 
     uint32_t slotIndex = UINT32_MAX;
-    for (uint32_t i = 0; i < arrlenu(pSystem->pSlots); ++i)
+    for (uint32_t i = 0; i < arrlenu(pSlots); ++i)
     {
-        if (!pSystem->pSlots[i].mOccupied)
+        if (!pSlots[i].mOccupied)
         {
             slotIndex = i;
             break;
@@ -702,7 +679,7 @@ SceneAssetHandle requestSceneAssetFromManifest(SceneManager* pSystem, const Scen
     if (slotIndex == UINT32_MAX)
         return invalidSceneAssetHandle();
 
-    SceneAssetSlot* pSlot = &pSystem->pSlots[slotIndex];
+    SceneAssetSlot* pSlot = &pSlots[slotIndex];
     if (!pSlot->mGeneration)
         pSlot->mGeneration = 1;
     pSlot->pManifest = (SceneAssetManifest*)tf_malloc(sizeof(SceneAssetManifest));
@@ -734,7 +711,7 @@ SceneAssetHandle requestSceneAssetFromManifest(SceneManager* pSystem, const Scen
     GeometryLoadDesc geometryLoad = *pGeometryLoadDesc;
     geometryLoad.ppGeometry = &pSlot->pGeometry;
     geometryLoad.pFileName = pSlot->pManifest->mGeometry;
-    pSystem->mCallbacks.pLoadGeometry(&geometryLoad, &pSlot->mGeometryToken, pSystem->pUserData);
+    mCallbacks.pLoadGeometry(&geometryLoad, &pSlot->mGeometryToken, pUserData);
 
     for (uint32_t i = 0; i < pSlot->pManifest->mTextureCount; ++i)
     {
@@ -744,7 +721,7 @@ SceneAssetHandle requestSceneAssetFromManifest(SceneManager* pSystem, const Scen
             .mCreationFlag = pSlot->pManifest->mTextures[i].mSrgb ? TEXTURE_CREATION_FLAG_SRGB : TEXTURE_CREATION_FLAG_NONE,
             .mContainer = getSceneAssetTextureContainer(pSlot->pManifest->mTextures[i].mPath),
         };
-        pSystem->mCallbacks.pLoadTexture(&textureLoad, &pSlot->pTextureTokens[i], pSystem->pUserData);
+        mCallbacks.pLoadTexture(&textureLoad, &pSlot->pTextureTokens[i], pUserData);
     }
 
     for (uint32_t i = 0; i < pSlot->pManifest->mMaterialCount; ++i)
@@ -777,13 +754,13 @@ SceneAssetHandle requestSceneAssetFromManifest(SceneManager* pSystem, const Scen
                 .mDescriptors = DESCRIPTOR_TYPE_BUFFER,
             },
         };
-        pSystem->mCallbacks.pLoadBuffer(&materialBufferLoad, &pSlot->mMaterialToken, pSystem->pUserData);
+        mCallbacks.pLoadBuffer(&materialBufferLoad, &pSlot->mMaterialToken, pUserData);
     }
     return { slotIndex, pSlot->mGeneration };
 }
 
-SceneAssetHandle requestSceneAsset(SceneManager* pSystem, ResourceDirectory resourceDirectory, const char* pManifestFileName,
-                                   const GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError)
+SceneAssetHandle SceneManager::requestFromManifestFile(ResourceDirectory resourceDirectory, const char* pManifestFileName,
+                                                       const GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError)
 {
     if (pError)
         *pError = {};
@@ -798,26 +775,26 @@ SceneAssetHandle requestSceneAsset(SceneManager* pSystem, ResourceDirectory reso
         tf_free(pManifest);
         return invalidSceneAssetHandle();
     }
-    const SceneAssetHandle handle = requestSceneAssetFromManifest(pSystem, pManifest, pGeometryLoadDesc);
+    const SceneAssetHandle handle = requestFromManifest(pManifest, pGeometryLoadDesc);
     tf_free(pManifest);
     if (!isSceneAssetHandleValid(handle))
         failSceneAsset(pError, SCENE_ASSET_ERROR_CAPACITY_EXCEEDED, "scene asset capacity exhausted");
     return handle;
 }
 
-SceneAssetHandle requestSceneAssetFromGltf(SceneManager* pSystem, ResourceDirectory sourceDirectory, const char* pSourceFile,
-                                           ResourceDirectory outputDirectory, const GeometryLoadDesc* pGeometryLoadDesc,
-                                           SceneAssetError* pError)
+SceneAssetHandle SceneManager::requestFromGltf(ResourceDirectory sourceDirectory, const char* pSourceFile,
+                                               ResourceDirectory outputDirectory, const GeometryLoadDesc* pGeometryLoadDesc,
+                                               SceneAssetError* pError)
 {
     if (pError)
         *pError = {};
-    if (!pSystem || !pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !isSceneAssetRelativePath(pSourceFile) ||
+    if (!pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !isSceneAssetRelativePath(pSourceFile) ||
         strlen(pSourceFile) + sizeof(".scene.json") >= FS_MAX_PATH || !hasSceneAssetTextureExtension(pSourceFile, ".gltf"))
     {
         failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_ARGUMENT, "glTF scene request");
         return invalidSceneAssetHandle();
     }
-    if (pSystem->pEnsureGltfCooked && !pSystem->pEnsureGltfCooked(sourceDirectory, pSourceFile, outputDirectory, pError))
+    if (pEnsureGltfCooked && !pEnsureGltfCooked(sourceDirectory, pSourceFile, outputDirectory, pError))
     {
         if (pError && pError->mCode == SCENE_ASSET_ERROR_NONE)
             failSceneAsset(pError, SCENE_ASSET_ERROR_IO, "glTF cooking failed");
@@ -825,12 +802,12 @@ SceneAssetHandle requestSceneAssetFromGltf(SceneManager* pSystem, ResourceDirect
     }
     char manifest[FS_MAX_PATH] = {};
     fsReplacePathExtension(pSourceFile, "scene.json", manifest);
-    return requestSceneAsset(pSystem, outputDirectory, manifest, pGeometryLoadDesc, pError);
+    return requestFromManifestFile(outputDirectory, manifest, pGeometryLoadDesc, pError);
 }
 
-bool releaseSceneAsset(SceneManager* pSystem, SceneAssetHandle handle)
+bool SceneManager::release(SceneAssetHandle handle)
 {
-    SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    SceneAssetSlot* pSlot = findSlot(handle);
     if (!pSlot)
         return false;
     ++pSlot->mGeneration;
@@ -839,80 +816,80 @@ bool releaseSceneAsset(SceneManager* pSystem, SceneAssetHandle handle)
     if (pSlot->mStatus == SCENE_ASSET_STATUS_LOADING)
         pSlot->mRetiring = true;
     else
-        destroySceneAssetSlot(pSystem, pSlot);
+        destroySlot(pSlot);
     return true;
 }
 
 bool isSceneAssetHandleValid(SceneAssetHandle handle) { return handle.mIndex != UINT32_MAX && handle.mGeneration != 0; }
 
-SceneAssetStatus getSceneAssetStatus(const SceneManager* pSystem, SceneAssetHandle handle)
+SceneAssetStatus SceneManager::getStatus(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot ? pSlot->mStatus : SCENE_ASSET_STATUS_INVALID;
 }
 
-const SceneGeometry* getSceneAssetGeometry(const SceneManager* pSystem, SceneAssetHandle handle)
+const SceneGeometry* SceneManager::getGeometry(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && pSlot->mGeometryResident ? &pSlot->pGpuResources->mGeometry : nullptr;
 }
 
-uint32_t getSceneAssetTextureCount(const SceneManager* pSystem, SceneAssetHandle handle)
+uint32_t SceneManager::getTextureCount(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot ? pSlot->pManifest->mTextureCount : 0;
 }
 
-const hz::GPUTexture* getSceneAssetTexture(const SceneManager* pSystem, SceneAssetHandle handle, uint32_t textureIndex)
+const hz::GPUTexture* SceneManager::getTexture(SceneAssetHandle handle, uint32_t textureIndex) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && textureIndex < pSlot->pManifest->mTextureCount ? pSlot->pGpuResources->ppTextures[textureIndex] : nullptr;
 }
 
-const hz::GPUBuffer* getSceneAssetMaterialBuffer(const SceneManager* pSystem, SceneAssetHandle handle)
+const hz::GPUBuffer* SceneManager::getMaterialBuffer(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && pSlot->mMaterialResident && pSlot->pManifest->mMaterialCount ? &pSlot->pGpuResources->mMaterials : nullptr;
 }
 
-uint32_t getSceneAssetMaterialCount(const SceneManager* pSystem, SceneAssetHandle handle)
+uint32_t SceneManager::getMaterialCount(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot ? pSlot->pManifest->mMaterialCount : 0;
 }
 
-const SceneAssetGpuMaterial* getSceneAssetGpuMaterials(const SceneManager* pSystem, SceneAssetHandle handle)
+const SceneAssetGpuMaterial* SceneManager::getGpuMaterials(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot ? pSlot->pGpuMaterials : nullptr;
 }
 
-const SceneAssetManifest* getSceneAssetManifest(const SceneManager* pSystem, SceneAssetHandle handle)
+const SceneAssetManifest* SceneManager::getManifest(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot ? pSlot->pManifest : nullptr;
 }
 
-bool isSceneAssetGeometryResident(const SceneManager* pSystem, SceneAssetHandle handle)
+bool SceneManager::isGeometryResident(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && pSlot->mGeometryResident;
 }
-bool isSceneAssetMaterialResident(const SceneManager* pSystem, SceneAssetHandle handle)
+bool SceneManager::isMaterialResident(SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && pSlot->mMaterialResident;
 }
-bool isSceneAssetTextureResident(const SceneManager* pSystem, SceneAssetHandle handle, uint32_t textureIndex)
+bool SceneManager::isTextureResident(SceneAssetHandle handle, uint32_t textureIndex) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && textureIndex < pSlot->pManifest->mTextureCount && pSlot->pTextureResident[textureIndex];
 }
 
-bool updateSceneAssetBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet, const char* pBindingName,
-                                      const SceneManager* pSystem, SceneAssetHandle handle)
+bool SceneManager::updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet,
+                                          const char* pBindingName, SceneAssetHandle handle) const
 {
-    const SceneAssetSlot* pSlot = findSceneAssetSlot(pSystem, handle);
+    const SceneAssetSlot* pSlot = findSlot(handle);
     if (!pRenderer || !pDescriptorSet || !pBindingName || !pSlot || pSlot->mStatus != SCENE_ASSET_STATUS_READY)
         return false;
     if (!pSlot->pManifest->mTextureCount)

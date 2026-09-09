@@ -374,7 +374,21 @@ int WindowsMain(int argc, char** argv, IApp* app)
     if (!initFileSystem(&fsDesc))
         return EXIT_FAILURE;
 
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+    fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_PIPELINE_CACHE, "PipelineCaches");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_COMPILED_MATERIALS, "CompiledMaterials");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_AUDIO, "Audio");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+    fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_SCREENSHOTS, "Screenshots");
+    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
 #ifdef ENABLE_MTUNER
     rmemInit(0);

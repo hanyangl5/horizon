@@ -4,6 +4,7 @@
 
 #include "Application/IApp.h"
 #include "Core/ILog.h"
+#include "Core/IUniquePtr.h"
 #include "Graphics/RenderContext.h"
 #include "Profiler/IProfiler.h"
 
@@ -80,10 +81,7 @@ public:
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
-        const bool initialized = context.init(contextDesc);
-        ASSERT(initialized);
-        if (!initialized)
-            return false;
+        context = hz::make_unique<hz::RenderContext>(contextDesc);
         vSync = mSettings.mVSyncEnabled;
 
         resources.emplace();
@@ -93,8 +91,9 @@ public:
     void Exit() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Exit", kCpuProfileColor);
-        context.waitIdle();
+        context->waitIdle();
         resources.reset();
+        context = nullptr;
     }
 
     bool Load(ReloadDesc* pReloadDesc) override
@@ -105,7 +104,7 @@ public:
 
         const uint32_t width = (uint32_t)mSettings.mWidth;
         const uint32_t height = (uint32_t)mSettings.mHeight;
-        if (!context.resize(width, height))
+        if (!context->resize(width, height))
             return false;
         return true;
     }
@@ -117,13 +116,13 @@ public:
     void Draw() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Draw", kCpuProfileColor);
-        if (vSync != mSettings.mVSyncEnabled && context.setVSync(mSettings.mVSyncEnabled))
+        if (vSync != mSettings.mVSyncEnabled && context->setVSync(mSettings.mVSyncEnabled))
             vSync = mSettings.mVSyncEnabled;
 
-        if (context.isSuspended())
+        if (context->isSuspended())
             return;
-        hz::CommandList&      commands = context.acquireCommandList();
-        const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
+        hz::CommandList&      commands = context->acquireCommandList();
+        const hz::GPUTexture& backbuffer = context->getCurrentBackbuffer();
 
         hz::RenderPassDesc pass = {
             .colorAttachments = { {
@@ -136,14 +135,14 @@ public:
         };
         commands.beginRendering(pass);
         commands.beginGpuTimestamp("Triangle Pass");
-        commands.setViewport(0.0f, 0.0f, (float)context.getWidth(), (float)context.getHeight());
-        commands.setScissor(0, 0, context.getWidth(), context.getHeight());
+        commands.setViewport(0.0f, 0.0f, (float)context->getWidth(), (float)context->getHeight());
+        commands.setScissor(0, 0, context->getWidth(), context->getHeight());
         commands.setPipeline(resources->pipeline);
         commands.setVertexBuffer(0, resources->vertexBuffer, 0, sizeof(Vertex));
         commands.draw(3);
         commands.endGpuTimestamp();
         commands.endRendering();
-        context.submit(commands, &backbuffer);
+        context->submit(commands, &backbuffer);
     }
 
     const char* GetName() override { return "HelloTriangle"; }
@@ -162,7 +161,7 @@ private:
             .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_VERTEX_BUFFER,
             .flags = BUFFER_CREATION_FLAG_NONE,
         };
-        resources->vertexBuffer = context.createBuffer(bufferDesc);
+        resources->vertexBuffer = context->createBuffer(bufferDesc);
         ASSERT(resources->vertexBuffer);
 
         hz::ShaderDesc shaderDesc = {
@@ -184,7 +183,7 @@ private:
             },
             .stageCount = 2,
         };
-        resources->shader = context.createShader(shaderDesc);
+        resources->shader = context->createShader(shaderDesc);
         ASSERT(resources->shader);
         hz::GraphicsPipelineDesc pipelineDesc = {
             .pShader = &resources->shader,
@@ -217,7 +216,7 @@ private:
             .sampleCount = SAMPLE_COUNT_1,
             .pName = "HelloTriangle.Pipeline",
         };
-        resources->pipeline = context.createGraphicsPipeline(pipelineDesc);
+        resources->pipeline = context->createGraphicsPipeline(pipelineDesc);
         ASSERT(resources->pipeline);
         return true;
     }
@@ -229,7 +228,7 @@ private:
         hz::GPUPipeline pipeline;
     };
 
-    hz::RenderContext        context;
+    hz::unique_ptr<hz::RenderContext> context;
     std::optional<Resources> resources;
     bool                     vSync = true;
 };

@@ -98,7 +98,7 @@ typedef struct SceneAssetManifest
     SceneAssetMaterialConvention mMaterialConvention;
 } SceneAssetManifest;
 
-struct SceneManager;
+struct SceneAssetSlot;
 struct SceneGeometry;
 namespace hz
 {
@@ -179,42 +179,60 @@ typedef struct SceneManagerDesc
                               SceneAssetError* pError);
 } SceneManagerDesc;
 
+class SceneManager final
+{
+public:
+    explicit SceneManager(const SceneManagerDesc& desc);
+    ~SceneManager();
+
+    SceneManager(const SceneManager&) = delete;
+    SceneManager& operator=(const SceneManager&) = delete;
+
+    void update();
+
+    // Standalone geometry only: pGeometryBuffer must be null. Optional ppGeometryData
+    // remains caller-owned CPU data; the manager owns all GPU outputs.
+    SceneAssetHandle requestFromManifest(const SceneAssetManifest* pManifest, const GeometryLoadDesc* pGeometryLoadDesc);
+    SceneAssetHandle requestFromManifestFile(ResourceDirectory resourceDirectory, const char* pManifestFileName,
+                                             const GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError);
+    // Filename is relative to sourceDirectory. Without a cooker, loads existing cooked
+    // manifests only. RD_MESHES/RD_TEXTURES must already point to cooked/source roots.
+    SceneAssetHandle requestFromGltf(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
+                                     const GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError);
+    // Wait for GPU users before release. Pending loader work is retired asynchronously.
+    bool             release(SceneAssetHandle handle);
+
+    SceneAssetStatus             getStatus(SceneAssetHandle handle) const;
+    // Include Scene/SceneGeometry.h to access geometry buffers. The reference expires on release.
+    const SceneGeometry*         getGeometry(SceneAssetHandle handle) const;
+    uint32_t                     getTextureCount(SceneAssetHandle handle) const;
+    const hz::GPUTexture*        getTexture(SceneAssetHandle handle, uint32_t textureIndex) const;
+    const hz::GPUBuffer*         getMaterialBuffer(SceneAssetHandle handle) const;
+    uint32_t                     getMaterialCount(SceneAssetHandle handle) const;
+    const SceneAssetGpuMaterial* getGpuMaterials(SceneAssetHandle handle) const;
+    const SceneAssetManifest*    getManifest(SceneAssetHandle handle) const;
+    bool                         isGeometryResident(SceneAssetHandle handle) const;
+    bool                         isMaterialResident(SceneAssetHandle handle) const;
+    bool                         isTextureResident(SceneAssetHandle handle, uint32_t textureIndex) const;
+    bool updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet, const char* pBindingName,
+                                SceneAssetHandle handle) const;
+
+private:
+    SceneAssetSlot*       findSlot(SceneAssetHandle handle);
+    const SceneAssetSlot* findSlot(SceneAssetHandle handle) const;
+    void                  destroySlot(SceneAssetSlot* pSlot);
+
+    SceneAssetSlot*             pSlots = nullptr;
+    hz::RenderContext*          pContext = nullptr;
+    SceneAssetResourceCallbacks mCallbacks = {};
+    void*                       pUserData = nullptr;
+    bool (*pEnsureGltfCooked)(ResourceDirectory, const char*, ResourceDirectory, SceneAssetError*) = nullptr;
+};
+
 bool parseSceneAssetManifest(const char* pJson, size_t jsonSize, SceneAssetManifest* pManifest, SceneAssetError* pError);
 bool loadSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pFileName, SceneAssetManifest* pManifest,
                             SceneAssetError* pError);
 bool prepareSceneAssetGeometryLoadDesc(const SceneAssetManifest* pManifest, const GeometryLoadDesc* pSource,
                                        GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError);
 
-bool initSceneManager(const SceneManagerDesc* pDesc, SceneManager** ppSystem);
-void exitSceneManager(SceneManager* pSystem);
-void updateSceneManager(SceneManager* pSystem);
-
-// Standalone geometry only: pGeometryBuffer must be null. Optional ppGeometryData
-// remains caller-owned CPU data; the manager owns all GPU outputs.
-SceneAssetHandle             requestSceneAssetFromManifest(SceneManager* pSystem, const SceneAssetManifest* pManifest,
-                                                           const GeometryLoadDesc* pGeometryLoadDesc);
-SceneAssetHandle             requestSceneAsset(SceneManager* pSystem, ResourceDirectory resourceDirectory, const char* pManifestFileName,
-                                               const GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError);
-// Filename is relative to sourceDirectory. Without a cooker, loads existing cooked
-// manifests only. RD_MESHES/RD_TEXTURES must already point to cooked/source roots.
-SceneAssetHandle             requestSceneAssetFromGltf(SceneManager* pSystem, ResourceDirectory sourceDirectory, const char* pSourceFile,
-                                                       ResourceDirectory outputDirectory, const GeometryLoadDesc* pGeometryLoadDesc,
-                                                       SceneAssetError* pError);
-// Wait for GPU users before release. Pending loader work is retired asynchronously.
-bool                         releaseSceneAsset(SceneManager* pSystem, SceneAssetHandle handle);
-bool                         isSceneAssetHandleValid(SceneAssetHandle handle);
-SceneAssetStatus             getSceneAssetStatus(const SceneManager* pSystem, SceneAssetHandle handle);
-// Include Scene/SceneGeometry.h to access geometry buffers. Getters return null until
-// the requested resource is uploaded, or for invalid handles. References expire on release.
-const SceneGeometry*         getSceneAssetGeometry(const SceneManager* pSystem, SceneAssetHandle handle);
-uint32_t                     getSceneAssetTextureCount(const SceneManager* pSystem, SceneAssetHandle handle);
-const hz::GPUTexture*        getSceneAssetTexture(const SceneManager* pSystem, SceneAssetHandle handle, uint32_t textureIndex);
-const hz::GPUBuffer*         getSceneAssetMaterialBuffer(const SceneManager* pSystem, SceneAssetHandle handle);
-uint32_t                     getSceneAssetMaterialCount(const SceneManager* pSystem, SceneAssetHandle handle);
-const SceneAssetGpuMaterial* getSceneAssetGpuMaterials(const SceneManager* pSystem, SceneAssetHandle handle);
-const SceneAssetManifest*    getSceneAssetManifest(const SceneManager* pSystem, SceneAssetHandle handle);
-bool                         isSceneAssetGeometryResident(const SceneManager* pSystem, SceneAssetHandle handle);
-bool                         isSceneAssetMaterialResident(const SceneManager* pSystem, SceneAssetHandle handle);
-bool                         isSceneAssetTextureResident(const SceneManager* pSystem, SceneAssetHandle handle, uint32_t textureIndex);
-bool updateSceneAssetBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet, const char* pBindingName,
-                                      const SceneManager* pSystem, SceneAssetHandle handle);
+bool isSceneAssetHandleValid(SceneAssetHandle handle);

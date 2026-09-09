@@ -449,7 +449,7 @@ extern "C"
     /// The `resourceDir` will making use of the given IFileSystem `pIO` file functions.
     /// When `mount` is set to `RM_CONTENT` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
-    /// NOTE: A `resourceDir` can only be set once.
+    /// Sets or replaces the location associated with a resource directory.
     FORGE_API void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
 
     /************************************************************************/

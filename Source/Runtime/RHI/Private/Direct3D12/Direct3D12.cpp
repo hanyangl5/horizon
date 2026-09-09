@@ -4976,6 +4976,13 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
                 wcscpy_s(entryPointWide, TF_ARRAY_COUNT(entryPointWide), L"main");
             }
 
+            wchar_t sourceNameWide[FS_MAX_PATH] = {};
+            if (pStage->pName)
+            {
+                size_t converted = 0;
+                mbstowcs_s(&converted, sourceNameWide, TF_ARRAY_COUNT(sourceNameWide), pStage->pName, _TRUNCATE);
+            }
+
             wchar_t profile[16] = {};
             d3d12_getShaderProfile(stage_mask, (ShaderTarget)pRenderer->mShaderTarget, profile, TF_ARRAY_COUNT(profile));
 
@@ -4994,7 +5001,8 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
 #endif
 
             IDxcOperationResult* pResult = NULL;
-            HRESULT hr = pCompiler->Compile(pSourceBlob, NULL, entryPointWide, profile, args, argCount, NULL, 0, pIncludeHandler, &pResult);
+            HRESULT hr = pCompiler->Compile(pSourceBlob, sourceNameWide[0] ? sourceNameWide : NULL, entryPointWide, profile, args, argCount,
+                                            NULL, 0, pIncludeHandler, &pResult);
             pSourceBlob->Release();
 
             if (FAILED(hr) || !pResult)

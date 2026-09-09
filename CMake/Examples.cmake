@@ -11,7 +11,9 @@ if(WIN32)
 endif()
 
 function(add_example_target target_name)
-    add_executable(${target_name} ${ARGN})
+    set(example_source_dir ${HORIZON_EXAMPLES_SOURCE_DIR}/${target_name})
+    file(GLOB_RECURSE example_sources CONFIGURE_DEPENDS ${example_source_dir}/*)
+    add_executable(${target_name} ${example_sources})
     target_link_libraries(${target_name} PRIVATE ${ENGINE_RUNTIME})
     target_compile_features(${target_name} PRIVATE cxx_std_20)
 
@@ -35,25 +37,23 @@ function(add_example_target target_name)
         )
     endif()
 
-    source_group(TREE ${HORIZON_EXAMPLES_SOURCE_DIR} PREFIX "Examples" FILES ${ARGN})
+    set(example_code_sources ${example_sources})
+    list(FILTER example_code_sources INCLUDE REGEX "\\.(c|cc|cpp|cxx|h|hh|hpp|hxx|inl)$")
+    set(example_tree_sources ${example_sources})
+    list(REMOVE_ITEM example_tree_sources ${example_code_sources})
+    source_group(TREE ${example_source_dir} FILES ${example_tree_sources})
+    source_group("Source Files" FILES ${example_code_sources})
+    set(example_shader_sources ${example_sources})
+    list(FILTER example_shader_sources INCLUDE REGEX "\\.(hlsl|hlsli)$")
+    if(example_shader_sources)
+        set_source_files_properties(${example_shader_sources} PROPERTIES HEADER_FILE_ONLY TRUE)
+    endif()
     set_target_properties(${target_name} PROPERTIES FOLDER "Horizon/Examples")
 endfunction()
 
-set(HORIZON_HELLO_TRIANGLE_SOURCES
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/HelloTriangle/HelloTriangle.cpp
-)
-
-set(HORIZON_DEFERRED_SHADING_SOURCES
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/DeferredShading/DeferredShading.cpp
-)
-
-set(HORIZON_RENDERER_SOURCES
-    ${HORIZON_EXAMPLES_SOURCE_DIR}/Renderer/Renderer.cpp
-)
-
-add_example_target(HelloTriangle ${HORIZON_HELLO_TRIANGLE_SOURCES})
-add_example_target(DeferredShading ${HORIZON_DEFERRED_SHADING_SOURCES})
-add_example_target(Renderer ${HORIZON_RENDERER_SOURCES})
+add_example_target(HelloTriangle)
+add_example_target(DeferredShading)
+add_example_target(Renderer)
 if(TARGET AssetPipeline)
     target_link_libraries(Renderer PRIVATE AssetPipeline)
     target_compile_definitions(Renderer PRIVATE HORIZON_RENDERER_ASSET_COOKING)
