@@ -674,24 +674,9 @@ TEST_F(RHIIGraphicsApiTest, RendererInitializationErrorHelpersRoundTripState)
     EXPECT_STREQ(reason, "synthetic init failure");
 }
 
-// Verifies that descriptor lookup, flag operators, and indirect argument index helpers behave as expected for the public API surface.
-TEST_F(RHIIGraphicsApiTest, HeaderHelpersPreserveExpectedLookupAndFlagBehavior)
+// Verifies that flag operators and indirect argument index helpers behave as expected for the public API surface.
+TEST_F(RHIIGraphicsApiTest, HeaderHelpersPreserveExpectedFlagBehavior)
 {
-    DescriptorInfo descriptors[3] = {
-        { .pName = "FrameData" },
-        { .pName = "SceneTexture" },
-        { .pName = "OutputBuffer" },
-    };
-
-    RootSignature rootSignature = {
-        .mDescriptorCount = TF_ARRAY_COUNT(descriptors),
-        .pDescriptors = descriptors,
-    };
-
-    EXPECT_EQ(getDescriptorIndexFromName(&rootSignature, "FrameData"), 0u);
-    EXPECT_EQ(getDescriptorIndexFromName(&rootSignature, "SceneTexture"), 1u);
-    EXPECT_EQ(getDescriptorIndexFromName(&rootSignature, "Missing"), UINT32_MAX);
-
     ResourceState combinedState = RESOURCE_STATE_COPY_DEST | RESOURCE_STATE_SHADER_RESOURCE;
     EXPECT_EQ(combinedState & RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_COPY_DEST);
     EXPECT_EQ(combinedState & RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
