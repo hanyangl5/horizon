@@ -624,7 +624,7 @@ void* tf_calloc_(size_t count, size_t size)
         return NULL;
 
 #ifdef _MSC_VER
-    void*  ptr = tf_malloc_(sz);
+    void* ptr = tf_malloc_(sz);
     if (ptr)
         memset(ptr, 0, sz); //-V575
 #else

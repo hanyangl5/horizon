@@ -344,7 +344,7 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
     for (uint32_t i = 0; i < input.stageCount; ++i)
     {
         const ShaderStageDesc& inputStage = input.stages[i];
-        ShaderSrcStageDesc* stage = nullptr;
+        ShaderSrcStageDesc*    stage = nullptr;
         switch (inputStage.stage)
         {
         case SHADER_STAGE_VERT:

@@ -81,8 +81,8 @@ extern "C"
 {
 #endif
     // appName is used to create dump file, pass NULL to avoid it
-    FORGE_API bool initMemAlloc(const char* appName);
-    FORGE_API void exitMemAlloc(void);
+    FORGE_API bool                initMemAlloc(const char* appName);
+    FORGE_API void                exitMemAlloc(void);
     FORGE_API MemoryTrackingStats memGetTrackingStats(void);
     FORGE_API void                memPlotTrackingStats(void);
 
