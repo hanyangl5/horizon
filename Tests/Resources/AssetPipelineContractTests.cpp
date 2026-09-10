@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "Core/ILog.h"
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
 #include "Scene/ISceneManager.h"
@@ -11,10 +12,12 @@ namespace
 {
 struct RuntimeServices
 {
-    bool      mMemoryInitialized = false;
-    bool      mFileSystemInitialized = false;
-    bool      mResourceLoaderInitialized = false;
-    Renderer* pRenderer = nullptr;
+    bool             mMemoryInitialized = false;
+    bool             mFileSystemInitialized = false;
+    bool             mResourceLoaderInitialized = false;
+    bool             mInteractiveModeDisabled = false;
+    RendererContext* pRendererContext = nullptr;
+    Renderer*        pRenderer = nullptr;
 
     ~RuntimeServices()
     {
@@ -22,8 +25,12 @@ struct RuntimeServices
             exitResourceLoaderInterface(pRenderer);
         if (pRenderer)
             exitRenderer(pRenderer);
+        if (pRendererContext)
+            exitRendererContext(pRendererContext);
         if (mFileSystemInitialized)
             exitFileSystem();
+        if (mInteractiveModeDisabled)
+            _EnableInteractiveMode(true);
         if (mMemoryInitialized)
             exitMemAlloc();
     }
@@ -83,9 +90,16 @@ TEST(SceneAssetCookerContractTest, LoadsCookedGeometryThroughResourceLoader)
     RuntimeServices services;
     ASSERT_TRUE(initMemAlloc(nullptr));
     services.mMemoryInitialized = true;
+    _EnableInteractiveMode(false);
+    services.mInteractiveModeDisabled = true;
     ASSERT_TRUE(configureCookedSceneFileSystem(&services, pCookedRoot));
 
-    RendererDesc rendererDesc = {};
+    RendererContextDesc contextDesc = {};
+    initRendererContext("SceneAssetCookerContractTest", &contextDesc, &services.pRendererContext);
+    if (!services.pRendererContext)
+        GTEST_SKIP() << "No supported renderer context is available for the live GeometryTF load";
+
+    RendererDesc rendererDesc = { .pContext = services.pRendererContext };
     initRenderer("SceneAssetCookerContractTest", &rendererDesc, &services.pRenderer);
     if (!services.pRenderer)
         GTEST_SKIP() << "No supported renderer is available for the live GeometryTF load";
