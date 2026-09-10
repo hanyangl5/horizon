@@ -5092,7 +5092,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         ++vertexAttribCount[binding];
 
         // src and dst formats must match because the AssetPipeline converts to the destination formats already
-        ASSERT(dstFormatSize == 0 || dstFormatSize == srcFormatSize);
+        ASSERT(srcFormatSize == 0 || dstFormatSize == 0 || dstFormatSize == srcFormatSize);
     }
 
     uint32_t dstIndexStride = indexStride;
