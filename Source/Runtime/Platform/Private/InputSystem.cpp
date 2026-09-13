@@ -381,8 +381,8 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
         if (gVirtualJoystick->sticks[i].pressed)
         {
             float2 joystickSize = float2(extSide) * gVirtualJoystick->renderScale;
-            float2 joystickCenter = gVirtualJoystick->sticks[i].startPos * gVirtualJoystick->renderScale -
-                                    float2(0.0f, gVirtualJoystick->renderSize.y * 0.1f);
+            float2 joystickCenter =
+                gVirtualJoystick->sticks[i].startPos * gVirtualJoystick->renderScale - float2(0.0f, gVirtualJoystick->renderSize.y * 0.1f);
             float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
             const uint32_t   vertexStride = sizeof(float4);
@@ -398,8 +398,8 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
             bufferOffset += sizeof(TexVertex) * 4;
 
             joystickSize = float2(intSide) * gVirtualJoystick->renderScale;
-            joystickCenter = gVirtualJoystick->sticks[i].currPos * gVirtualJoystick->renderScale -
-                             float2(0.0f, gVirtualJoystick->renderSize.y * 0.1f);
+            joystickCenter =
+                gVirtualJoystick->sticks[i].currPos * gVirtualJoystick->renderScale - float2(0.0f, gVirtualJoystick->renderSize.y * 0.1f);
             joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
             updateDesc = { gVirtualJoystick->pMeshBuffer, bufferOffset };
@@ -2057,8 +2057,7 @@ struct InputSystemImpl: public gainput::InputListener
                         else if (pDesc->pFunction)
                         {
                             ctx.phase = INPUT_ACTION_PHASE_UPDATED;
-                            pControl->value[axis] =
-                                (float)pControl->pressedVal[axis * 2 + 0] - (float)pControl->pressedVal[axis * 2 + 1];
+                            pControl->value[axis] = (float)pControl->pressedVal[axis * 2 + 0] - (float)pControl->pressedVal[axis * 2 + 1];
                             ctx.float2Value = pControl->value;
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                         }
@@ -2692,7 +2691,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 continue;
 
                             ctx.float4Value = { velocity, scale, touch[1]->pos.getX() - touch[0]->pos.getX(),
-                                            touch[1]->pos.getY() - touch[0]->pos.getY() };
+                                                touch[1]->pos.getY() - touch[0]->pos.getY() };
 
                             ctx.pCaptured = &defaultCapture;
 
@@ -2729,7 +2728,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 continue;
 
                             ctx.float4Value = { velocity, rotation, touch[1]->pos.getX() - touch[0]->pos.getX(),
-                                            touch[1]->pos.getY() - touch[0]->pos.getY() };
+                                                touch[1]->pos.getY() - touch[0]->pos.getY() };
 
                             ctx.pCaptured = &defaultCapture;
 
@@ -2760,8 +2759,8 @@ struct InputSystemImpl: public gainput::InputListener
                             touch->pos.setX(touchPositions[touchIndex][0]);
                             touch->pos.setY(touchPositions[touchIndex][1]);
 
-                            ctx.phase = touch->state == GestureRecognizer::Touch::STARTED ? INPUT_ACTION_PHASE_STARTED
-                                                                                            : INPUT_ACTION_PHASE_UPDATED;
+                            ctx.phase =
+                                touch->state == GestureRecognizer::Touch::STARTED ? INPUT_ACTION_PHASE_STARTED : INPUT_ACTION_PHASE_UPDATED;
                             ctx.boolValue = true;
                             ctx.pCaptured = &defaultCapture;
 

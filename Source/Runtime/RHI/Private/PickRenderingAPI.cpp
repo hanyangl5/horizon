@@ -138,10 +138,10 @@ extern void d3d12_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus
 extern void d3d12_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences);
 extern void d3d12_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
 extern hz::Format d3d12_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
-extern uint32_t        d3d12_getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHandle* hwnd);
-extern void            d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc,
-                                                         CommandSignature** ppCommandSignature);
-extern void            d3d12_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
+extern uint32_t   d3d12_getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHandle* hwnd);
+extern void       d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc,
+                                                    CommandSignature** ppCommandSignature);
+extern void       d3d12_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
 extern void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount, Buffer* pIndirectBuffer,
                                      uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset);
 extern void d3d12_getTimestampFrequency(Queue* pQueue, double* pFrequency);
@@ -706,7 +706,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV toggleVSync(Renderer* pRenderer, SwapChai
 }
 
 FORGE_RENDERER_API hz::Format FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc,
-                                                                              ColorSpace colorSpace)
+                                                                         ColorSpace colorSpace)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
     return d3d12_getSupportedSwapchainFormat(pRenderer, pDesc, colorSpace);

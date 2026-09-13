@@ -308,8 +308,7 @@ void platformUpdateWindowSystem()
     bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->forceLowDPI ? "True" : "False");
     bdestroy(&pWindowRef->pWindowModeLabel);
     bformat(&pWindowRef->pWindowModeLabel, "WindowMode: %s",
-            pWindowRef->windowMode == WM_BORDERLESS ? "Borderless"
-                                                     : (pWindowRef->windowMode == WM_FULLSCREEN ? "Fullscreen" : "Windowed"));
+            pWindowRef->windowMode == WM_BORDERLESS ? "Borderless" : (pWindowRef->windowMode == WM_FULLSCREEN ? "Fullscreen" : "Windowed"));
 #endif
 }
 

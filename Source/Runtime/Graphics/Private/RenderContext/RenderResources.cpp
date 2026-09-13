@@ -410,7 +410,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
         .alphaToCoverage = input.alphaToCoverage,
         .independentBlend = true,
     };
-    hz::Format          formats[MAX_RENDER_TARGETS] = {};
+    hz::Format formats[MAX_RENDER_TARGETS] = {};
     for (uint32_t i = 0; i < input.colorTargets.count; ++i)
     {
         const ColorTargetDesc& target = input.colorTargets.pData[i];
@@ -451,7 +451,7 @@ GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& inpu
     ASSERT(ready);
     Shader* shader = this->createShader(input.shaderDesc);
     ASSERT(shader);
-    Shader* shaders[] = { shader };
+    Shader*           shaders[] = { shader };
     RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
     RootSignature*    rootSignature = nullptr;
     addRootSignature(pRenderer, &rootDesc, &rootSignature);

@@ -137,7 +137,7 @@ public:
 private:
     static void relocate(T* pDestination, T& source)
     {
-        if constexpr (__is_constructible(T, T&&))
+        if constexpr (__is_constructible(T, T &&))
             ::new ((void*)pDestination) T(std::move(source));
         else
             ::new ((void*)pDestination) T(source);

@@ -70,7 +70,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
         (UniformSkeletonBlock*)tf_calloc_memalign(maxSkeletonBatches, alignof(UniformSkeletonBlock), sizeof(UniformSkeletonBlock));
 
     batchCounts = (tfrg_atomic32_t*)tf_calloc_memalign(frameCount + frameCount * maxSkeletonBatches, alignof(tfrg_atomic32_t),
-                                                        sizeof(tfrg_atomic32_t));
+                                                       sizeof(tfrg_atomic32_t));
     batchSize = batchCounts + frameCount;
 
     // Initialize all the buffer that will be used for each batch per each frame index
@@ -335,8 +335,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
         numObjects = numActiveAnimatedObjects;
     }
 
-    const uint32_t lastBatchIndex =
-        cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects] / MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
+    const uint32_t lastBatchIndex = cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects] / MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
     const uint32_t lastBatchSize = cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects] % MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
 
     // Will keep track of the number of instances that have their data added

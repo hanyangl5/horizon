@@ -170,7 +170,7 @@ HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* p
                                  const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState, ID3D12Resource** ppOutResource)
 {
     return pRenderer->dx.pDevice->CreatePlacedResource(pPlacement->pHeap->dx.pHeap, pPlacement->offset, pDesc, startState, pClearValue,
-                                                        IID_PPV_ARGS(ppOutResource));
+                                                       IID_PPV_ARGS(ppOutResource));
 }
 
 static inline LONG util_compute_intersection(const RECT rect1, const RECT rect2)
@@ -248,8 +248,7 @@ hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const Swap
 
         IDXGISwapChain1* tmpSwapchain1;
         Queue*           pQueue = pDesc->ppPresentQueues[0];
-        CHECK_HRESULT(
-            pRenderer->pContext->dx.pDXGIFactory->CreateSwapChainForComposition(pQueue->dx.pQueue, &desc, NULL, &tmpSwapchain1));
+        CHECK_HRESULT(pRenderer->pContext->dx.pDXGIFactory->CreateSwapChainForComposition(pQueue->dx.pQueue, &desc, NULL, &tmpSwapchain1));
 
         IDXGISwapChain3* tmpSwapchain3;
         CHECK_HRESULT(tmpSwapchain1->QueryInterface(IID_PPV_ARGS(&tmpSwapchain3)));

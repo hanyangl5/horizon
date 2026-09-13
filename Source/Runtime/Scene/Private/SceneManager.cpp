@@ -434,8 +434,8 @@ struct SceneResourceAccess
 {
     static GPUBuffer take(RenderContext* pContext, Buffer*& pBuffer, ResourceState state)
     {
-        GPUBuffer result(pContext, pBuffer, pBuffer->size, (ResourceMemoryUsage)pBuffer->memoryUsage,
-                         (DescriptorType)pBuffer->descriptors, state);
+        GPUBuffer result(pContext, pBuffer, pBuffer->size, (ResourceMemoryUsage)pBuffer->memoryUsage, (DescriptorType)pBuffer->descriptors,
+                         state);
         pBuffer = nullptr;
         return result;
     }

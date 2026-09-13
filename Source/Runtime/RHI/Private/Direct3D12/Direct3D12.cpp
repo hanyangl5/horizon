@@ -2111,7 +2111,7 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
                             hook_fill_gpu_desc(device, feature_levels[level], pGpuDesc);
                             // get preset for current gpu description
                             pGpuDesc->preset = getGPUPresetLevel(pGpuDesc->vendorId, pGpuDesc->deviceId,
-                                                                  getGPUVendorName(pGpuDesc->vendorId), pGpuDesc->name);
+                                                                 getGPUVendorName(pGpuDesc->vendorId), pGpuDesc->name);
                             SAFE_RELEASE(device);
                         }
                         else
@@ -2207,7 +2207,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
 #if defined(XBOXONE)
     gpuSettings.waveOpsSupported = true;
     gpuSettings.waveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_VOTE_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT |
-                                       WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT;
+                                      WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT;
     gpuSettings.waveOpsSupportedStageFlags |= SHADER_STAGE_ALL_GRAPHICS | SHADER_STAGE_COMP;
 #else
     if (gpuSettings.waveOpsSupported)
@@ -2246,8 +2246,8 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
 #if defined(NVAPI)
         if (NvAPI_Status::NVAPI_OK == gNvStatus)
         {
-            snprintf(gpuSettings.gpuVendorPreset.gpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "%lu.%lu",
-                     gNvGpuInfo.driverVersion / 100, gNvGpuInfo.driverVersion % 100);
+            snprintf(gpuSettings.gpuVendorPreset.gpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "%lu.%lu", gNvGpuInfo.driverVersion / 100,
+                     gNvGpuInfo.driverVersion % 100);
         }
 #endif
     }
@@ -2661,7 +2661,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
             // D3D12_MESSAGE_CALLBACK_IGNORE_FILTERS, will enable all message filtering in the callback function, no need to use Push/Pop,
             // but we stick with FLAG_NONE for failsafe
             HRESULT res = pRenderer->dx.pDebugValidation->RegisterMessageCallback(DebugMessageCallback, D3D12_MESSAGE_CALLBACK_FLAG_NONE,
-                                                                                   pRenderer, &pRenderer->dx.callbackCookie);
+                                                                                  pRenderer, &pRenderer->dx.callbackCookie);
             if (!SUCCEEDED(res))
             {
                 internal_log(eERROR, "RegisterMessageCallback failed - disabling DirectX12 ID3D12InfoQueue1 debug callbacks", "AddDevice");
@@ -2861,8 +2861,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
         pContext->gpus[i].dx.pGpu = gpuDesc[i].pGpu;
         pContext->gpus[i].settings.featureLevel = gpuDesc[i].maxSupportedFeatureLevel;
         pContext->gpus[i].settings.maxBoundTextures =
-            gpuDesc[i].featureDataOptions.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER::D3D12_RESOURCE_BINDING_TIER_1 ? 128
-                                                                                                                             : 1000000;
+            gpuDesc[i].featureDataOptions.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER::D3D12_RESOURCE_BINDING_TIER_1 ? 128 : 1000000;
 
         applyGPUConfigurationRules(&pContext->gpus[i].settings, &pContext->gpus[i].capBits);
 
@@ -2960,13 +2959,13 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_0 };
             D3D12_FEATURE_DATA_D3D12_OPTIONS1 waveIntrinsicsSupport = {};
             if (!SUCCEEDED(pRenderer->dx.pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_SHADER_MODEL, &shaderModelSupport,
-                                                                       sizeof(shaderModelSupport))))
+                                                                      sizeof(shaderModelSupport))))
             {
                 return;
             }
             // Query the level of support of Wave Intrinsics.
             if (!SUCCEEDED(pRenderer->dx.pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1, &waveIntrinsicsSupport,
-                                                                       sizeof(waveIntrinsicsSupport))))
+                                                                      sizeof(waveIntrinsicsSupport))))
             {
                 return;
             }
@@ -3632,7 +3631,7 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     {
         ID3D12PipelineState* initialState = NULL;
         CHECK_HRESULT(pRenderer->dx.pDevice->CreateCommandList(nodeMask, gDx12CmdTypeTranslator[pCmd->dx.type], pDesc->pPool->pCmdAlloc,
-                                                                initialState, __uuidof(pCmd->dx.pCmdList), (void**)&(pCmd->dx.pCmdList)));
+                                                               initialState, __uuidof(pCmd->dx.pCmdList), (void**)&(pCmd->dx.pCmdList)));
     }
 
     // Command lists are addd in the recording state, but there is nothing
@@ -3779,7 +3778,7 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     HWND hwnd = (HWND)pDesc->windowHandle.window;
 
     CHECK_HRESULT(pRenderer->pContext->dx.pDXGIFactory->CreateSwapChainForHwnd(pDesc->ppPresentQueues[0]->dx.pQueue, hwnd, &desc, NULL,
-                                                                                NULL, &swapchain));
+                                                                               NULL, &swapchain));
 
     CHECK_HRESULT(pRenderer->pContext->dx.pDXGIFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
 
@@ -3920,10 +3919,10 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
 
         ID3D12Resource* resource = NULL;
         CHECK_HRESULT(pRenderer->dx.pDevice->CreatePlacedResource(pDxHeap,
-                                                                   0, // AllocationLocalOffset
-                                                                   &resDesc, D3D12_RESOURCE_STATE_COMMON,
-                                                                   NULL, // pOptimizedClearValue
-                                                                   IID_ARGS(&resource)));
+                                                                  0, // AllocationLocalOffset
+                                                                  &resDesc, D3D12_RESOURCE_STATE_COMMON,
+                                                                  NULL, // pOptimizedClearValue
+                                                                  IID_ARGS(&resource)));
 
         ASSERT(resource);
         pHeap->dx.ptr = resource->GetGPUVirtualAddress();
@@ -4058,7 +4057,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         heapProps.VisibleNodeMask = visibleNodeMask;
         heapProps.CreationNodeMask = creationNodeMask;
         CHECK_HRESULT(pRenderer->dx.pDevice->CreateCommittedResource(&heapProps, alloc_desc.ExtraHeapFlags, &desc, res_states, NULL,
-                                                                      IID_ARGS(&pBuffer->dx.pResource)));
+                                                                     IID_ARGS(&pBuffer->dx.pResource)));
 #if defined(ENABLE_TRACY_MEMORY)
         pBuffer->memoryTrackingMode = D3D12_MEMORY_TRACKING_RESOURCE;
         pBuffer->memoryTrackingPool = d3d12_memory_pool_from_heap_type(heapProps.Type);
@@ -4074,7 +4073,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         else
         {
             CHECK_HRESULT(pRenderer->dx.pResourceAllocator->CreateResource(&alloc_desc, &desc, res_states, NULL, &pBuffer->dx.pAllocation,
-                                                                            IID_ARGS(&pBuffer->dx.pResource)));
+                                                                           IID_ARGS(&pBuffer->dx.pResource)));
 #if defined(ENABLE_TRACY_MEMORY)
             pBuffer->memoryTrackingMode = D3D12_MEMORY_TRACKING_D3D12MA;
             pBuffer->memoryTrackingPool = d3d12_memory_pool_from_heap_type(alloc_desc.HeapType);
@@ -4117,8 +4116,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
             pBuffer->dx.uavDescriptorOffset = pBuffer->dx.srvDescriptorOffset + 1;
             if (pDesc->format != hz::Format::UNDEFINED)
             {
-                AddTypedBufferSrv(pRenderer, NULL, pBuffer->dx.pResource, pDesc->firstElement, pDesc->elementCount, pDesc->format,
-                                  &srv);
+                AddTypedBufferSrv(pRenderer, NULL, pBuffer->dx.pResource, pDesc->firstElement, pDesc->elementCount, pDesc->format, &srv);
             }
             else
             {
@@ -4133,8 +4131,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
             DxDescriptorID uav = pBuffer->dx.descriptors + pBuffer->dx.uavDescriptorOffset;
             if (pDesc->format != hz::Format::UNDEFINED)
             {
-                AddTypedBufferUav(pRenderer, NULL, pBuffer->dx.pResource, pDesc->firstElement, pDesc->elementCount, pDesc->format,
-                                  &uav);
+                AddTypedBufferUav(pRenderer, NULL, pBuffer->dx.pResource, pDesc->firstElement, pDesc->elementCount, pDesc->format, &uav);
             }
             else
             {
@@ -4673,10 +4670,10 @@ void d3d12_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
         handleCount *= depthOrArraySize;
     handleCount += 1;
 
-    !isDepth ? return_descriptor_handles(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV],
-                                         pRenderTarget->dx.descriptors, handleCount)
-             : return_descriptor_handles(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV],
-                                         pRenderTarget->dx.descriptors, handleCount);
+    !isDepth ? return_descriptor_handles(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV], pRenderTarget->dx.descriptors,
+                                         handleCount)
+             : return_descriptor_handles(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV], pRenderTarget->dx.descriptors,
+                                         handleCount);
 
     SAFE_FREE(pRenderTarget);
 }
@@ -5831,8 +5828,8 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
 
                 copy_descriptor_handle(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER],
                                        pParam->ppSamplers[arr]->dx.descriptor, pRenderer->dx.pSamplerHeaps[nodeIndex],
-                                       pDescriptorSet->dx.samplerHandle + index * pDescriptorSet->dx.samplerStride +
-                                           pDesc->handleIndex + arrayStart + arr);
+                                       pDescriptorSet->dx.samplerHandle + index * pDescriptorSet->dx.samplerStride + pDesc->handleIndex +
+                                           arrayStart + arr);
             }
         }
         else
@@ -5903,8 +5900,8 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
                         VALIDATE_DESCRIPTOR(range.size > 0, "Descriptor (%s) - pRanges[%u].size is zero", pDesc->pName, arr);
                         if (!raw)
                         {
-                            VALIDATE_DESCRIPTOR(range.structStride > 0, "Descriptor (%s) - pRanges[%u].structStride is zero",
-                                                pDesc->pName, arr);
+                            VALIDATE_DESCRIPTOR(range.structStride > 0, "Descriptor (%s) - pRanges[%u].structStride is zero", pDesc->pName,
+                                                arr);
                         }
                         const uint32_t setStart = index * pDescriptorSet->dx.cbvSrvUavStride;
                         const uint32_t stride = raw ? sizeof(uint32_t) : range.structStride;
@@ -5944,8 +5941,8 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
                         VALIDATE_DESCRIPTOR(range.size > 0, "Descriptor (%s) - pRanges[%u].size is zero", pDesc->pName, arr);
                         if (!raw)
                         {
-                            VALIDATE_DESCRIPTOR(range.structStride > 0, "Descriptor (%s) - pRanges[%u].structStride is zero",
-                                                pDesc->pName, arr);
+                            VALIDATE_DESCRIPTOR(range.structStride > 0, "Descriptor (%s) - pRanges[%u].structStride is zero", pDesc->pName,
+                                                arr);
                         }
                         const uint32_t setStart = index * pDescriptorSet->dx.cbvSrvUavStride;
                         const uint32_t stride = raw ? sizeof(uint32_t) : range.structStride;
@@ -5999,8 +5996,8 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
                     {
                         VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, arr);
                         VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr]->size <= D3D12_REQ_CONSTANT_BUFFER_SIZE,
-                                            "Descriptor (%s) - pParam->ppBuffers[%u]->size is %llu which exceeds max size %u",
-                                            pDesc->pName, arr, pParam->ppBuffers[arr]->size, D3D12_REQ_CONSTANT_BUFFER_SIZE);
+                                            "Descriptor (%s) - pParam->ppBuffers[%u]->size is %llu which exceeds max size %u", pDesc->pName,
+                                            arr, pParam->ppBuffers[arr]->size, D3D12_REQ_CONSTANT_BUFFER_SIZE);
 
                         copy_descriptor_handle(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV],
                                                pParam->ppBuffers[arr]->dx.descriptors, pRenderer->dx.pCbvSrvUavHeaps[nodeIndex],
@@ -6168,8 +6165,7 @@ void d3d12_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, Descripto
         }
 
         VALIDATE_DESCRIPTOR(pDesc->rootDescriptor, "Descriptor (%s) - must be a root cbv", pDesc->pName);
-        VALIDATE_DESCRIPTOR(pParam->count <= 1, "Descriptor (%s) - cmdBindDescriptorSetWithRootCbvs does not support arrays",
-                            pDesc->pName);
+        VALIDATE_DESCRIPTOR(pParam->count <= 1, "Descriptor (%s) - cmdBindDescriptorSetWithRootCbvs does not support arrays", pDesc->pName);
         VALIDATE_DESCRIPTOR(pParam->pRanges, "Descriptor (%s) - pRanges must be provided for cmdBindDescriptorSetWithRootCbvs",
                             pDesc->pName);
 
@@ -6445,7 +6441,8 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
 
     for (uint32_t attrib_index = 0; attrib_index < render_target_count; ++attrib_index)
     {
-        pipeline_state_desc.RTVFormats[attrib_index] = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->pColorFormats[attrib_index]);
+        pipeline_state_desc.RTVFormats[attrib_index] =
+            (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->pColorFormats[attrib_index]);
     }
 
     pipeline_state_desc.NodeMask = 0;
@@ -7042,7 +7039,7 @@ void d3d12_cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firs
     ASSERT(pCmd->dx.pCmdList);
 
     pCmd->dx.pCmdList->DrawIndexedInstanced((UINT)indexCount, (UINT)instanceCount, (UINT)firstIndex, (UINT)firstVertex,
-                                             (UINT)firstInstance);
+                                            (UINT)firstInstance);
 }
 
 void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -7180,10 +7177,10 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
             }
             pBarrier->Transition.pResource = pTexture->dx.pResource;
-            pBarrier->Transition.Subresource = pTrans->subresourceBarrier
-                                                   ? CALC_SUBRESOURCE_INDEX(pTrans->mipLevel, pTrans->arrayLayer, 0, pTexture->mipLevels,
-                                                                            pTexture->arraySizeMinusOne + 1)
-                                                   : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            pBarrier->Transition.Subresource =
+                pTrans->subresourceBarrier
+                    ? CALC_SUBRESOURCE_INDEX(pTrans->mipLevel, pTrans->arrayLayer, 0, pTexture->mipLevels, pTexture->arraySizeMinusOne + 1)
+                    : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             if (pTrans->acquire)
                 pBarrier->Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
             else
@@ -7232,10 +7229,10 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
                 pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
             }
             pBarrier->Transition.pResource = pTexture->dx.pResource;
-            pBarrier->Transition.Subresource = pTrans->subresourceBarrier
-                                                   ? CALC_SUBRESOURCE_INDEX(pTrans->mipLevel, pTrans->arrayLayer, 0, pTexture->mipLevels,
-                                                                            pTexture->arraySizeMinusOne + 1)
-                                                   : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            pBarrier->Transition.Subresource =
+                pTrans->subresourceBarrier
+                    ? CALC_SUBRESOURCE_INDEX(pTrans->mipLevel, pTrans->arrayLayer, 0, pTexture->mipLevels, pTexture->arraySizeMinusOne + 1)
+                    : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             if (pTrans->acquire)
                 pBarrier->Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
             else
@@ -7334,7 +7331,7 @@ void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer
     src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     src.pResource = pSrcBuffer->dx.pResource;
     pCmd->pRenderer->dx.pDevice->GetCopyableFootprints(&resourceDesc, subresource, 1, pDesc->srcOffset, &src.PlacedFootprint, NULL, NULL,
-                                                        NULL);
+                                                       NULL);
     src.PlacedFootprint.Offset = pDesc->srcOffset;
     dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     dst.pResource = pTexture->dx.pResource;
@@ -7370,7 +7367,7 @@ void d3d12_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, 
     dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     dst.pResource = pDstBuffer->dx.pResource;
     pCmd->pRenderer->dx.pDevice->GetCopyableFootprints(&resourceDesc, subresource, 1, pDesc->srcOffset, &dst.PlacedFootprint, NULL, NULL,
-                                                        NULL);
+                                                       NULL);
     dst.PlacedFootprint.Offset = pDesc->srcOffset;
 #if defined(XBOX)
     if (pCmd->dx.dma.pCmdList)
@@ -7726,9 +7723,8 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
         hook_modify_command_signature_desc(&commandSignatureDesc, alignedStride - commandStride);
     }
 
-    CHECK_HRESULT(pRenderer->dx.pDevice->CreateCommandSignature(&commandSignatureDesc,
-                                                                 needRootSignature ? pDesc->pRootSignature->dx.pRootSignature : NULL,
-                                                                 IID_ARGS(&pCommandSignature->pHandle)));
+    CHECK_HRESULT(pRenderer->dx.pDevice->CreateCommandSignature(
+        &commandSignatureDesc, needRootSignature ? pDesc->pRootSignature->dx.pRootSignature : NULL, IID_ARGS(&pCommandSignature->pHandle)));
     pCommandSignature->stride = commandSignatureDesc.ByteStride;
     pCommandSignature->drawType = drawType;
 
@@ -7761,10 +7757,10 @@ void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, ui
 
     if (!pCounterBuffer)
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset, NULL,
-                                            0);
+                                           0);
     else
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset,
-                                            pCounterBuffer->dx.pResource, counterBufferOffset);
+                                           pCounterBuffer->dx.pResource, counterBufferOffset);
 
 #if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
     if (pCmd->pRenderer->dx.pDebugValidation && pCmd->dx.pBoundRootSignature->dx.hasRayQueryAccelerationStructure)
@@ -7907,8 +7903,8 @@ void d3d12_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery
     const uint32_t internalQueryCount = (D3D12_QUERY_TYPE_TIMESTAMP == pQueryPool->dx.type ? 2 : 1);
 
     pCmd->dx.pCmdList->ResolveQueryData(pQueryPool->dx.pQueryHeap, pQueryPool->dx.type, startQuery * internalQueryCount,
-                                         queryCount * internalQueryCount, pQueryPool->dx.pReadbackBuffer->dx.pResource,
-                                         (uint64_t)startQuery * internalQueryCount * pQueryPool->stride);
+                                        queryCount * internalQueryCount, pQueryPool->dx.pReadbackBuffer->dx.pResource,
+                                        (uint64_t)startQuery * internalQueryCount * pQueryPool->stride);
 }
 
 void d3d12_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)

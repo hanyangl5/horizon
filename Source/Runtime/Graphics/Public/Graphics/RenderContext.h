@@ -78,9 +78,9 @@ struct ShaderStageDesc
 
 struct ShaderDesc
 {
-    hz::Span<ShaderStageDesc>   stages = {};
-    ResourceDirectory sourceDirectory = RD_SHADER_SOURCES;
-    const char*       pFileName = nullptr;
+    hz::Span<ShaderStageDesc> stages = {};
+    ResourceDirectory         sourceDirectory = RD_SHADER_SOURCES;
+    const char*               pFileName = nullptr;
 };
 
 struct ColorTargetDesc
@@ -112,7 +112,7 @@ struct GraphicsPipelineDesc
 struct ComputePipelineDesc
 {
     ShaderDesc  shaderDesc = {};
-    const char*      pName = nullptr;
+    const char* pName = nullptr;
 };
 
 struct ColorAttachment
@@ -139,16 +139,16 @@ struct RenderPassDesc
 
 struct ContextDesc
 {
-    const char*     pAppName;
-    WindowHandle    windowHandle;
-    uint32_t        width;
-    uint32_t        height;
-    uint32_t        imageCount;
-    hz::Format colorFormat;
-    ColorSpace      colorSpace;
-    bool            enableVSync;
-    bool            enableGpuValidation;
-    bool            enableGpuProfiler;
+    const char*  pAppName;
+    WindowHandle windowHandle;
+    uint32_t     width;
+    uint32_t     height;
+    uint32_t     imageCount;
+    hz::Format   colorFormat;
+    ColorSpace   colorSpace;
+    bool         enableVSync;
+    bool         enableGpuValidation;
+    bool         enableGpuProfiler;
 };
 
 class GPUBuffer
@@ -406,11 +406,11 @@ private:
         uint64_t        submitId = 0;
     };
 
-    bool initDevice();
-    bool createSwapChain();
-    void destroySwapChain();
-    void destroyDevice(bool waitForGpu);
-    void cleanup();
+    bool    initDevice();
+    bool    createSwapChain();
+    void    destroySwapChain();
+    void    destroyDevice(bool waitForGpu);
+    void    cleanup();
     Shader* createShader(const ShaderDesc&);
 
     ContextDesc               desc = {};

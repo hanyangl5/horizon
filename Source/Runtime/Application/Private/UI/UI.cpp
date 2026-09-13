@@ -1342,7 +1342,7 @@ static void processDebugTexturesWidget(UIWidget* pWidget)
     {
         Texture*  texture = (Texture*)pOriginalWidget->pTextures[i];
         ptrdiff_t id = pUserInterface->maxUIFonts + ((ptrdiff_t)pUserInterface->frameIdx * pUserInterface->maxDynamicUIUpdatesPerBatch +
-                                                      pUserInterface->dynamicTexturesCount++);
+                                                     pUserInterface->dynamicTexturesCount++);
         hmput(pUserInterface->pTextureHashmap, id, texture);
         ImGui::Image((void*)id, pOriginalWidget->textureDisplaySize);
         ImGui::SameLine();
@@ -2302,7 +2302,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
     }
 
     pComponent->initialWindowRect = { pDesc->startPosition.getX(), pDesc->startPosition.getY(), pDesc->startSize.getX(),
-                                       pDesc->startSize.getY() };
+                                      pDesc->startSize.getY() };
 
     pComponent->active = true;
     strcpy(pComponent->title, pTitle);
@@ -2505,8 +2505,8 @@ void uiNewFrame()
             int            width = 0;
             int            height = 0;
             ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pPixelData, &width, &height);
-            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, width, height,
-                                     width * height * 4, pPixelData);
+            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, width, height, width * height * 4,
+                                     pPixelData);
         }
     }
 #endif
@@ -2937,7 +2937,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
         {
             tex = (Texture*)id;
             setIndex = (uint32_t)(pUserInterface->maxUIFonts + (pUserInterface->frameIdx * pUserInterface->maxDynamicUIUpdatesPerBatch +
-                                                                 pUserInterface->dynamicTexturesCount++));
+                                                                pUserInterface->dynamicTexturesCount++));
         }
 #endif // ENABLE_FORGE_REMOTE_UI
 
@@ -3040,13 +3040,15 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     vertexLayout->attribs[1].format = hz::Format::R32G32_SFLOAT;
     vertexLayout->attribs[1].binding = 0;
     vertexLayout->attribs[1].location = 1;
-    vertexLayout->attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[0].format) / 8;
+    vertexLayout->attribs[1].offset =
+        TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[0].format) / 8;
     vertexLayout->attribs[2].semantic = SEMANTIC_COLOR;
     vertexLayout->attribs[2].format = hz::Format::R8G8B8A8_UNORM;
     vertexLayout->attribs[2].binding = 0;
     vertexLayout->attribs[2].location = 2;
     vertexLayout->attribs[2].offset =
-        vertexLayout->attribs[1].offset + TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[1].format) / 8;
+        vertexLayout->attribs[1].offset +
+        TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[1].format) / 8;
 
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = pDesc->settingsFilename;

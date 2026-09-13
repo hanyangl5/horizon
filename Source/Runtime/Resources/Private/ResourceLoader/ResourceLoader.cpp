@@ -3621,7 +3621,7 @@ struct MaterialDesc
     struct ShaderSet
     {
         uint32_t id; // Identifier that can be used across all ShaderSets in all Materials. Two materials with the same stages will share
-                      // the same Id.
+                     // the same Id.
 
         // Indexes into pShaderNames
         // Shader stages are used to create the Pipeline and generate id.
@@ -3666,7 +3666,7 @@ struct MaterialDesc
     MaterialSet* pMaterialSets;
 
     uint32_t  textureCount; // For mTextureIds, pTextureNames
-    uint32_t* pTextureIds;   // Global Ids for the textures. Two materials using the same texture will have the same Id here.
+    uint32_t* pTextureIds;  // Global Ids for the textures. Two materials using the same texture will have the same Id here.
 
     uint32_t shaderCount; // For pShaderNames
     // ShaderIds are stored in ShaderSet::id
@@ -4502,16 +4502,16 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 {
     // When this call comes from updateResource, staging buffer data is already filled
     // All that is left to do is record and execute the Copy commands
-    bool                  dataAlreadyFilled = texUpdateDesc.range.pBuffer ? true : false;
-    Texture*              texture = texUpdateDesc.pTexture;
+    bool             dataAlreadyFilled = texUpdateDesc.range.pBuffer ? true : false;
+    Texture*         texture = texUpdateDesc.pTexture;
     const hz::Format fmt = texture->format;
-    FileStream            stream = texUpdateDesc.stream;
+    FileStream       stream = texUpdateDesc.stream;
 
     const uint32_t sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
     const uint32_t rowAlignment = util_get_texture_row_alignment(pRenderer);
-    const uint64_t requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment,
-                                                        sliceAlignment, texUpdateDesc.baseMipLevel, texUpdateDesc.mipLevels,
-                                                        texUpdateDesc.baseArrayLayer, texUpdateDesc.layerCount);
+    const uint64_t requiredSize =
+        util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment, sliceAlignment,
+                              texUpdateDesc.baseMipLevel, texUpdateDesc.mipLevels, texUpdateDesc.baseArrayLayer, texUpdateDesc.layerCount);
 
     MappedMemoryRange upload = dataAlreadyFilled ? texUpdateDesc.range : allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
     uint64_t          offset = 0;
@@ -4551,10 +4551,10 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 
     uint32_t firstStart = texUpdateDesc.mipsAfterSlice ? texUpdateDesc.baseMipLevel : texUpdateDesc.baseArrayLayer;
     uint32_t firstEnd = texUpdateDesc.mipsAfterSlice ? (texUpdateDesc.baseMipLevel + texUpdateDesc.mipLevels)
-                                                      : (texUpdateDesc.baseArrayLayer + texUpdateDesc.layerCount);
+                                                     : (texUpdateDesc.baseArrayLayer + texUpdateDesc.layerCount);
     uint32_t secondStart = texUpdateDesc.mipsAfterSlice ? texUpdateDesc.baseArrayLayer : texUpdateDesc.baseMipLevel;
     uint32_t secondEnd = texUpdateDesc.mipsAfterSlice ? (texUpdateDesc.baseArrayLayer + texUpdateDesc.layerCount)
-                                                       : (texUpdateDesc.baseMipLevel + texUpdateDesc.mipLevels);
+                                                      : (texUpdateDesc.baseMipLevel + texUpdateDesc.mipLevels);
 
     for (uint32_t p = 0; p < 1; ++p)
     {
@@ -4838,8 +4838,8 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
             DESCRIPTOR_TYPE_INDEX_BUFFER | (structuredBuffers ? (DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER)
                                                               : (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
         loadDesc.flags |= (pDesc->flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
-                               ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
-                               : BUFFER_CREATION_FLAG_NONE;
+                              ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
+                              : BUFFER_CREATION_FLAG_NONE;
         loadDesc.size = indexBufferSize;
         loadDesc.elementCount = (uint32_t)(loadDesc.size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
         loadDesc.structStride = *indexStride;
@@ -4909,7 +4909,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         if (gUma && vertexUpdateDesc[i].pBuffer->pCpuMappedAddress)
         {
             vertexUpdateDesc[i].internal.mappedRange = { (uint8_t*)vertexUpdateDesc[i].pBuffer->pCpuMappedAddress +
-                                                           vertexUpdateDesc[i].dstOffset };
+                                                         vertexUpdateDesc[i].dstOffset };
         }
         else
         {
@@ -5245,7 +5245,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, TextureCopyDesc& pTextureCopy)
 {
     UNREF_PARAM(pRenderer);
-    Texture*              texture = pTextureCopy.pTexture;
+    Texture*         texture = pTextureCopy.pTexture;
     const hz::Format fmt = texture->format;
 
     Cmd* cmd = acquireCmd(pCopyEngine);
@@ -6869,8 +6869,7 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
             pBufferUpdate->internal.mappedRange.pBuffer = pBufferUpdate->pSrcBuffer;
             pBufferUpdate->internal.mappedRange.offset = pBufferUpdate->srcOffset;
             pBufferUpdate->internal.mappedRange.size = size;
-            pBufferUpdate->internal.mappedRange.pData =
-                (uint8_t*)pBufferUpdate->pSrcBuffer->pCpuMappedAddress + pBufferUpdate->srcOffset;
+            pBufferUpdate->internal.mappedRange.pData = (uint8_t*)pBufferUpdate->pSrcBuffer->pCpuMappedAddress + pBufferUpdate->srcOffset;
             pBufferUpdate->pMappedData = pBufferUpdate->internal.mappedRange.pData;
             return;
         }
@@ -6931,8 +6930,8 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
         uint32_t srcSliceStride = 0;
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
-        success = util_get_surface_info(MIP_REDUCE(texture->width, i), MIP_REDUCE(texture->height, i), fmt, &srcSliceStride,
-                                        &srcRowStride, &rowCount);
+        success = util_get_surface_info(MIP_REDUCE(texture->width, i), MIP_REDUCE(texture->height, i), fmt, &srcSliceStride, &srcRowStride,
+                                        &rowCount);
         ASSERT(success);
         uint32_t d = MIP_REDUCE(texture->depth, i);
 
@@ -6946,16 +6945,16 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
 
 void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
 {
-    const Texture*        texture = pTextureUpdate->pTexture;
+    const Texture*   texture = pTextureUpdate->pTexture;
     const hz::Format fmt = texture->format;
-    Renderer*             pRenderer = pResourceLoader->pRenderer;
-    const uint32_t        sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
+    Renderer*        pRenderer = pResourceLoader->pRenderer;
+    const uint32_t   sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
     pTextureUpdate->mipLevels = max(1u, pTextureUpdate->mipLevels);
     pTextureUpdate->layerCount = max(1u, pTextureUpdate->layerCount);
 
     const uint32_t rowAlignment = util_get_texture_row_alignment(pRenderer);
-    const uint64_t requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment,
-                                                        sliceAlignment, pTextureUpdate->baseMipLevel, pTextureUpdate->mipLevels,
+    const uint64_t requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment, sliceAlignment,
+                                                        pTextureUpdate->baseMipLevel, pTextureUpdate->mipLevels,
                                                         pTextureUpdate->baseArrayLayer, pTextureUpdate->layerCount);
 
     // We need to use a staging buffer.

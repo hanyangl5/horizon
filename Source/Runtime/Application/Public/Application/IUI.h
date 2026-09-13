@@ -99,7 +99,7 @@ enum WidgetType
 
 typedef struct UIWidget
 {
-    WidgetType type = {};     // Type of the underlying widget
+    WidgetType type = {};      // Type of the underlying widget
     void*      pWidget = NULL; // Underlying widget
 
     void*          pOnHoverUserData = NULL;
@@ -480,7 +480,7 @@ typedef struct UserInterfaceDesc
 typedef struct UserInterfaceLoadDesc
 {
     PipelineCache* pCache;
-    uint32_t       loadType;    // enum ReloadType
+    uint32_t       loadType; // enum ReloadType
     hz::Format     colorFormat;
     uint32_t       width;
     uint32_t       height;

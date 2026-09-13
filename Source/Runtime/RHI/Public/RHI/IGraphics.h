@@ -899,20 +899,20 @@ struct alignas(64) Texture
         uint32_t             uavStartIndex;
     } dx;
     /// Current state of the buffer
-    uint32_t width : 16;
-    uint32_t height : 16;
-    uint32_t depth : 16;
-    uint32_t mipLevels : 5;
-    uint32_t arraySizeMinusOne : 11;
+    uint32_t   width : 16;
+    uint32_t   height : 16;
+    uint32_t   depth : 16;
+    uint32_t   mipLevels : 5;
+    uint32_t   arraySizeMinusOne : 11;
     hz::Format format : 8;
     /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pImageView
-    uint32_t aspectMask : 4;
-    uint32_t sampleCount : 5;
-    uint32_t uav : 1;
+    uint32_t   aspectMask : 4;
+    uint32_t   sampleCount : 5;
+    uint32_t   uav : 1;
     /// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
-    uint32_t ownsImage : 1;
-    uint32_t memoryTrackingMode : 2;
-    uint32_t memoryTrackingPool : 3;
+    uint32_t   ownsImage : 1;
+    uint32_t   memoryTrackingMode : 2;
+    uint32_t   memoryTrackingPool : 3;
 };
 // One cache line
 static_assert(sizeof(Texture) == 8 * sizeof(uint64_t));
@@ -962,18 +962,18 @@ struct alignas(64) RenderTarget
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
     RenderTarget* pResolveAttachment;
 #endif
-    ClearValue      clearValue;
-    uint32_t        arraySize : 16;
-    uint32_t        depth : 16;
-    uint32_t        width : 16;
-    uint32_t        height : 16;
-    uint32_t        descriptors : 20;
-    uint32_t        mipLevels : 10;
-    uint32_t        sampleQuality : 5;
-    hz::Format format;
-    SampleCount     sampleCount;
-    bool            vrMultiview;
-    bool            vrFoveatedRendering;
+    ClearValue  clearValue;
+    uint32_t    arraySize : 16;
+    uint32_t    depth : 16;
+    uint32_t    width : 16;
+    uint32_t    height : 16;
+    uint32_t    descriptors : 20;
+    uint32_t    mipLevels : 10;
+    uint32_t    sampleQuality : 5;
+    hz::Format  format;
+    SampleCount sampleCount;
+    bool        vrMultiview;
+    bool        vrFoveatedRendering;
 };
 static_assert(sizeof(RenderTarget) <= 32 * sizeof(uint64_t));
 
@@ -1423,13 +1423,13 @@ struct VertexBinding
 
 struct VertexAttrib
 {
-    ShaderSemantic  semantic;
-    uint32_t        semanticNameLength;
-    char            semanticName[MAX_SEMANTIC_NAME_LENGTH];
-    hz::Format format;
-    uint32_t        binding;
-    uint32_t        location;
-    uint32_t        offset;
+    ShaderSemantic semantic;
+    uint32_t       semanticNameLength;
+    char           semanticName[MAX_SEMANTIC_NAME_LENGTH];
+    hz::Format     format;
+    uint32_t       binding;
+    uint32_t       location;
+    uint32_t       offset;
 };
 
 struct VertexLayout
@@ -1591,9 +1591,9 @@ struct SwapChain
         uint32_t         syncInterval : 3;
         uint32_t         flags : 10;
     } dx;
-    uint32_t        imageCount : 8;
-    uint32_t        enableVsync : 1;
-    ColorSpace      colorSpace : 4;
+    uint32_t   imageCount : 8;
+    uint32_t   enableVsync : 1;
+    ColorSpace colorSpace : 4;
     hz::Format format : 8;
 };
 

@@ -132,7 +132,7 @@ public:
 
     // Transform to apply to entire rig
     Matrix4 rootTransform = Matrix4::identity(); // TODO: Do we need this here? Might be better if it's provided in each call to
-                                                  // ComputePose, less duplicated state
+                                                 // ComputePose, less duplicated state
 
     // Buffer of local transforms as sampled from the animation.
     ozz::span<SoaTransform> localTrans;

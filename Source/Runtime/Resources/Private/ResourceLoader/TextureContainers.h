@@ -85,7 +85,8 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
 
         for (uint32_t i = 0; i < numOfPlanes; ++i)
         {
-            numBytes += TinyImageFormat_PlaneWidth((TinyImageFormat)fmt, i, width) * TinyImageFormat_PlaneHeight((TinyImageFormat)fmt, i, height) *
+            numBytes += TinyImageFormat_PlaneWidth((TinyImageFormat)fmt, i, width) *
+                        TinyImageFormat_PlaneHeight((TinyImageFormat)fmt, i, height) *
                         TinyImageFormat_PlaneSizeOfBlock((TinyImageFormat)fmt, i);
         }
 
