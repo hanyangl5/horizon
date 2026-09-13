@@ -6,7 +6,6 @@
 
 #include "Application/IFreeCameraController.h"
 #include "Core/ILog.h"
-#include "Core/IMemory.h"
 
 constexpr hz::Format kDepthFormat = hz::Format::D24_UNORM_S8_UINT;
 constexpr hz::Format kGBufferFormats[] = {
@@ -202,60 +201,54 @@ void Lighting::execute(hz::CommandList& commands, const hz::GPUTexture& renderTa
 }
 
 RenderPasses::RenderPasses(const RenderPassesDesc& desc):
-    pContext(*desc.pContext), pScenes(desc.pScenes), mScene(desc.scene), mInstanceCount(desc.instanceCount),
+    pContext(*desc.pContext), pScenes(desc.pScenes), mScene(desc.scene), instances({ desc.pInstances, desc.instanceCount }),
     mSurfaceFormat(desc.surfaceFormat), mVerticalFov(desc.verticalFov)
 {
     ASSERT(pContext.isValid());
     ASSERT(pScenes);
     ASSERT(isSceneAssetHandleValid(mScene));
     ASSERT(desc.pInstances);
-    ASSERT(mInstanceCount);
+    ASSERT(!instances.empty());
     ASSERT(desc.pVertexLayout);
     ASSERT(mSurfaceFormat != hz::Format::UNDEFINED);
 
-    pInstances = (SceneAssetInstance*)tf_malloc(mInstanceCount * sizeof(SceneAssetInstance));
-    memcpy(pInstances, desc.pInstances, mInstanceCount * sizeof(SceneAssetInstance));
-    qsort(pInstances, mInstanceCount, sizeof(SceneAssetInstance), compareMaterials);
+    qsort(instances.data(), instances.size(), sizeof(SceneAssetInstance), compareMaterials);
     gbuffer = hz::make_unique<GBuffer>(pContext, *desc.pVertexLayout);
     lighting = hz::make_unique<Lighting>(pContext, mSurfaceFormat);
     const bool inited = initRenderResources();
     ASSERT(inited && gbuffer && lighting);
 }
 
-RenderPasses::~RenderPasses() { tf_free(pInstances); }
-
 bool RenderPasses::initRenderResources()
 {
     const SceneGeometry& geometry = getGeometry();
-    DrawData*            draws = (DrawData*)tf_calloc(mInstanceCount, sizeof(DrawData));
-    for (uint32_t i = 0; i < mInstanceCount; ++i)
+    hz::Array<DrawData> draws(instances.size());
+    for (uint32_t i = 0; i < instances.size(); ++i)
     {
-        if (pInstances[i].drawIndex >= geometry.drawArgCount || pInstances[i].materialIndex >= pScenes->getMaterialCount(mScene))
+        if (instances[i].drawIndex >= geometry.drawArgCount || instances[i].materialIndex >= pScenes->getMaterialCount(mScene))
         {
-            tf_free(draws);
             LOGF(eERROR, "Scene instance has an invalid draw or material index");
             return false;
         }
-        const float* world = pInstances[i].world;
+        const float* world = instances[i].world;
         draws[i].world = Matrix4(world[0], world[1], world[2], world[3], world[4], world[5], world[6], world[7], world[8], world[9],
                                  world[10], world[11], world[12], world[13], world[14], world[15]);
         draws[i].normal = transpose(inverse(draws[i].world));
-        draws[i].material = pInstances[i].materialIndex;
-        draws[i].alphaCutoff = pInstances[i].alphaCutoff;
+        draws[i].material = instances[i].materialIndex;
+        draws[i].alphaCutoff = instances[i].alphaCutoff;
     }
 
     mDraws = pContext.createBuffer({
-        .size = mInstanceCount * sizeof(DrawData),
-        .elementCount = mInstanceCount,
+        .size = draws.size() * sizeof(DrawData),
+        .elementCount = draws.size(),
         .structStride = sizeof(DrawData),
         .pName = "Renderer.Instances",
-        .pInitialData = draws,
-        .initialDataSize = mInstanceCount * sizeof(DrawData),
+        .pInitialData = draws.data(),
+        .initialDataSize = draws.size() * sizeof(DrawData),
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .startState = RESOURCE_STATE_SHADER_RESOURCE,
         .descriptors = DESCRIPTOR_TYPE_BUFFER,
     });
-    tf_free(draws);
 
     mFrame = pContext.createBuffer({
         .size = sizeof(FrameData),
@@ -316,7 +309,7 @@ void RenderPasses::execute()
 
     hz::CommandList& commands = pContext.acquireCommandList();
     commands.updateBuffer(mFrame, 0, &mFrameData, sizeof(mFrameData));
-    gbuffer->execute(commands, mFrame, mDraws, *pScenes, mScene, { pInstances, mInstanceCount });
+    gbuffer->execute(commands, mFrame, mDraws, *pScenes, mScene, { instances.data(), instances.size() });
     const hz::GPUTexture& backbuffer = pContext.getCurrentBackbuffer();
     lighting->execute(commands, backbuffer, mFrame, *gbuffer);
 

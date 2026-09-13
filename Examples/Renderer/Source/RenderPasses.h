@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/IContainer.h"
 #include "Core/IMath.h"
 #include "Core/IUniquePtr.h"
 #include "Graphics/RenderContext.h"
@@ -55,7 +56,7 @@ class RenderPasses
 {
 public:
     RenderPasses(const RenderPassesDesc& desc);
-    ~RenderPasses();
+    ~RenderPasses() = default;
 
     bool load(uint32_t width, uint32_t height);
     void unload();
@@ -78,8 +79,7 @@ private:
     hz::RenderContext&  pContext;
     SceneManager*       pScenes = nullptr;
     SceneAssetHandle    mScene = {};
-    SceneAssetInstance* pInstances = nullptr;
-    uint32_t            mInstanceCount = 0;
+    hz::Array<SceneAssetInstance> instances;
     hz::Format          mSurfaceFormat = hz::Format::UNDEFINED;
     float               mVerticalFov = PI / 4.0f;
 
