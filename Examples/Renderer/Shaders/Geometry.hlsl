@@ -7,14 +7,11 @@ Texture2D BaseColor : register(t3);
 Texture2D NormalMap : register(t4);
 Texture2D MetallicRoughness : register(t5);
 Texture2D Emissive : register(t6);
+ByteAddressBuffer Positions : register(t7);
+ByteAddressBuffer Normals : register(t8);
+ByteAddressBuffer Texcoords : register(t9);
 SamplerState SurfaceSampler : register(s0);
 cbuffer RootConstant0 : register(b0) { uint drawId; };
-
-struct VSInput {
-  float3 position : POSITION;
-  uint normal : NORMAL;
-  uint uv : TEXCOORD0;
-};
 
 struct PSInput {
   float4 position : SV_Position;
@@ -32,9 +29,12 @@ struct PSOutput {
   float4 motionMaterialId : SV_Target3;
 };
 
-PSInput VSMain(VSInput input) {
+PSInput VSMain(uint vertexId : SV_VertexID) {
+  float3 position = asfloat(Positions.Load3(vertexId * 12));
+  uint normal = Normals.Load(vertexId * 4);
+  uint uv = Texcoords.Load(vertexId * 4);
   DrawData draw = Draws[drawId];
-  float4 worldPosition = mul(draw.world, float4(input.position, 1.0));
+  float4 worldPosition = mul(draw.world, float4(position, 1.0));
 
   PSInput output;
   output.currentClip = mul(Frame[0].viewProjection, worldPosition);
@@ -42,9 +42,9 @@ PSInput VSMain(VSInput input) {
   output.position = output.currentClip;
   output.worldPosition = worldPosition.xyz;
   output.normal = normalize(mul((float3x3)draw.normal,
-                                decodeVertexNormal(input.normal)));
-  output.uv = float2(f16tof32(input.uv & 0xffffu),
-                     f16tof32(input.uv >> 16));
+                                decodeVertexNormal(normal)));
+  output.uv = float2(f16tof32(uv & 0xffffu),
+                     f16tof32(uv >> 16));
   return output;
 }
 

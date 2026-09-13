@@ -158,7 +158,6 @@ private:
             .scene = mScene,
             .pInstances = pInstances,
             .instanceCount = mInstanceCount,
-            .pVertexLayout = &kSceneVertexLayout,
             .surfaceFormat = kSurfaceFormat,
             .verticalFov = mVerticalFov,
         };

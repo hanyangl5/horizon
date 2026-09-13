@@ -37,26 +37,8 @@ static int compareMaterials(const void* left, const void* right)
     return (a > b) - (a < b);
 }
 
-GBuffer::GBuffer(hz::RenderContext& pContext, const VertexLayout& vertexLayout): pContext(pContext)
+GBuffer::GBuffer(hz::RenderContext& pContext): pContext(pContext)
 {
-    //mGeometryShader = pContext.createShader({
-    //    .stages = {
-    //        { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.GeometryVS" },
-    //        { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
-    //    },
-    //    .stageCount = 2,
-    //    .pFileName = "Geometry.hlsl",
-    //});
-    //mGeometryPipeline = pContext.createGraphicsPipeline({
-    //    .pShader = &mGeometryShader,
-    //    .vertexLayout = vertexLayout,
-    //    .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
-    //    .colorFormats = { kGBufferFormats[0], kGBufferFormats[1], kGBufferFormats[2], kGBufferFormats[3] },
-    //    .renderTargetCount = GBufferCount,
-    //    .depthStencilFormat = kDepthFormat,
-    //    .pName = "Renderer.GeometryPipeline",
-    //});
-
     mGeometryPipeline = pContext.createGraphicsPipeline({
     .shaderDesc = {
         .stages = {
@@ -65,7 +47,6 @@ GBuffer::GBuffer(hz::RenderContext& pContext, const VertexLayout& vertexLayout):
         },
         .pFileName = "Geometry.hlsl",
     },
-    .vertexLayout = vertexLayout,
     .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
     .colorTargets = {
         { .format = kGBufferFormats[0] },
@@ -131,6 +112,8 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
+    }, {
+        .buffers = { &geometry.vertexBuffers[0], &geometry.vertexBuffers[1], &geometry.vertexBuffers[2] },
     });
     commands.setViewport(0, 0, (float)pContext.getWidth(), (float)pContext.getHeight());
     commands.setScissor(0, 0, pContext.getWidth(), pContext.getHeight());
@@ -139,8 +122,9 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.bindBuffer("Draws", draws);
     commands.bindBuffer("Materials", *scenes.getMaterialBuffer(scene));
     commands.bindSampler("SurfaceSampler", mSampler);
-    for (uint32_t i = 0; i < geometry.vertexBufferCount; ++i)
-        commands.setVertexBuffer(i, geometry.vertexBuffers[i], 0, geometry.vertexStrides[i]);
+    commands.bindBuffer("Positions", geometry.vertexBuffers[0]);
+    commands.bindBuffer("Normals", geometry.vertexBuffers[1]);
+    commands.bindBuffer("Texcoords", geometry.vertexBuffers[2]);
     commands.setIndexBuffer(geometry.indexBuffer, 0, geometry.indexType);
 
     const SceneAssetGpuMaterial* gpuMaterials = scenes.getGpuMaterials(scene);
@@ -225,11 +209,10 @@ RenderPasses::RenderPasses(const RenderPassesDesc& desc):
     ASSERT(isSceneAssetHandleValid(mScene));
     ASSERT(desc.pInstances);
     ASSERT(!instances.empty());
-    ASSERT(desc.pVertexLayout);
     ASSERT(mSurfaceFormat != hz::Format::UNDEFINED);
 
     qsort(instances.data(), instances.size(), sizeof(SceneAssetInstance), compareMaterials);
-    gbuffer = hz::make_unique<GBuffer>(pContext, *desc.pVertexLayout);
+    gbuffer = hz::make_unique<GBuffer>(pContext);
     lighting = hz::make_unique<Lighting>(pContext, mSurfaceFormat);
     const bool inited = initRenderResources();
     ASSERT(inited && gbuffer && lighting);

@@ -16,7 +16,6 @@ struct RenderPassesDesc
     SceneAssetHandle          scene = {};
     const SceneAssetInstance* pInstances = nullptr;
     uint32_t                  instanceCount = 0;
-    const VertexLayout*       pVertexLayout = nullptr;
     hz::Format                surfaceFormat = hz::Format::UNDEFINED;
     float                     verticalFov = PI / 4.0f;
 };
@@ -24,7 +23,7 @@ struct RenderPassesDesc
 class GBuffer
 {
 public:
-    GBuffer(hz::RenderContext& pContext, const VertexLayout& vertexLayout);
+    GBuffer(hz::RenderContext& pContext);
     void                      update();
     void                      execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws,
                                       SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
