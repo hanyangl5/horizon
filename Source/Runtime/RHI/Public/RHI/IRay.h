@@ -94,7 +94,7 @@ struct AccelerationStructureGeometryDesc
     uint32_t                           vertexOffset;
     uint32_t                           vertexCount;
     uint32_t                           vertexStride;
-    TinyImageFormat                    vertexFormat;
+    hz::Format                         vertexFormat;
     uint32_t                           indexOffset;
     uint32_t                           indexCount;
     IndexType                          indexType;

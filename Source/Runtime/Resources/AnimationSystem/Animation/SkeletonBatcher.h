@@ -80,8 +80,8 @@ struct SkeletonRenderDesc
 typedef struct SkeletonBatcherLoadDesc
 {
     ReloadType  loadType;
-    uint32_t    colorFormat; // enum TinyImageFormat
-    uint32_t    depthFormat; // enum TinyImageFormat
+    hz::Format  colorFormat;
+    hz::Format  depthFormat;
     SampleCount sampleCount;
     uint32_t    sampleQuality;
 } SkeletonBatcherLoadDesc;

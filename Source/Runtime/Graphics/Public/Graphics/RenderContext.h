@@ -43,7 +43,7 @@ struct TextureDesc
     uint32_t             arraySize = 1;
     uint32_t             mipLevels = 1;
     SampleCount          sampleCount = SAMPLE_COUNT_1;
-    TinyImageFormat      format = TinyImageFormat_UNDEFINED;
+    hz::Format           format = hz::Format::UNDEFINED;
     ResourceState        startState = RESOURCE_STATE_UNDEFINED;
     DescriptorType       descriptors = DESCRIPTOR_TYPE_UNDEFINED;
     TextureCreationFlags flags = TEXTURE_CREATION_FLAG_NONE;
@@ -100,9 +100,9 @@ struct GraphicsPipelineDesc
              .colorWriteMasks = { COLOR_MASK_ALL },
              .renderTargetMask = BLEND_STATE_TARGET_ALL,
     };
-    TinyImageFormat   colorFormats[MAX_RENDER_TARGETS] = {};
+    hz::Format        colorFormats[MAX_RENDER_TARGETS] = {};
     uint32_t          renderTargetCount = 0;
-    TinyImageFormat   depthStencilFormat = TinyImageFormat_UNDEFINED;
+    hz::Format        depthStencilFormat = hz::Format::UNDEFINED;
     PrimitiveTopology topology = PRIMITIVE_TOPO_TRI_LIST;
     SampleCount       sampleCount = SAMPLE_COUNT_1;
     const char*       pName = nullptr;
@@ -144,7 +144,7 @@ struct ContextDesc
     uint32_t        width;
     uint32_t        height;
     uint32_t        imageCount;
-    TinyImageFormat colorFormat;
+    hz::Format colorFormat;
     ColorSpace      colorSpace;
     bool            enableVSync;
     bool            enableGpuValidation;
@@ -378,7 +378,7 @@ public:
     void              wait(SubmitHandle);
     uint32_t          getWidth() const;
     uint32_t          getHeight() const;
-    TinyImageFormat   getColorFormat() const;
+    hz::Format        getColorFormat() const;
     const GPUTexture& getCurrentBackbuffer();
     bool              isSuspended() const;
 

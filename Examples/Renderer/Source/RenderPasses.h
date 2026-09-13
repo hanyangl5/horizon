@@ -16,7 +16,7 @@ struct RenderPassesDesc
     const SceneAssetInstance* pInstances = nullptr;
     uint32_t                  instanceCount = 0;
     const VertexLayout*       pVertexLayout = nullptr;
-    TinyImageFormat           surfaceFormat = TinyImageFormat_UNDEFINED;
+    hz::Format                surfaceFormat = hz::Format::UNDEFINED;
     float                     verticalFov = PI / 4.0f;
 };
 
@@ -41,7 +41,7 @@ public:
 class Lighting
 {
 public:
-    Lighting(hz::RenderContext& pContext, TinyImageFormat format);
+    Lighting(hz::RenderContext& pContext, hz::Format format);
     void update();
     void execute(hz::CommandList& cmd, const hz::GPUTexture& renderTarget, const hz::GPUBuffer& frame, const GBuffer& gbuffer);
     void load(uint32_t width, uint32_t height);
@@ -80,7 +80,7 @@ private:
     SceneAssetHandle    mScene = {};
     SceneAssetInstance* pInstances = nullptr;
     uint32_t            mInstanceCount = 0;
-    TinyImageFormat     mSurfaceFormat = TinyImageFormat_UNDEFINED;
+    hz::Format          mSurfaceFormat = hz::Format::UNDEFINED;
     float               mVerticalFov = PI / 4.0f;
 
     hz::unique_ptr<GBuffer> gbuffer;

@@ -278,7 +278,7 @@ bool initFontSystem(FontSystemDesc* pDesc)
     desc.arraySize = 1;
     desc.depth = 1;
     desc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
-    desc.format = TinyImageFormat_R8_UNORM;
+    desc.format = hz::Format::R8_UNORM;
     desc.height = gFontstash.height;
     desc.mipLevels = 1;
     desc.sampleCount = SAMPLE_COUNT_1;
@@ -368,16 +368,16 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         vertexLayout.bindingCount = 1;
         vertexLayout.attribCount = 2;
         vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-        vertexLayout.attribs[0].format = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.attribs[0].format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[0].binding = 0;
         vertexLayout.attribs[0].location = 0;
         vertexLayout.attribs[0].offset = 0;
 
         vertexLayout.attribs[1].semantic = SEMANTIC_TEXCOORD0;
-        vertexLayout.attribs[1].format = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.attribs[1].format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[1].binding = 0;
         vertexLayout.attribs[1].location = 1;
-        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock(vertexLayout.attribs[0].format) / 8;
+        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)vertexLayout.attribs[0].format) / 8;
 
         BlendStateDesc blendStateDesc = {};
         blendStateDesc.srcFactors[0] = BC_SRC_ALPHA;
@@ -416,12 +416,12 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         pipelineDesc.graphicsDesc.renderTargetCount = 1;
         pipelineDesc.graphicsDesc.sampleCount = SAMPLE_COUNT_1;
         pipelineDesc.graphicsDesc.sampleQuality = 0;
-        pipelineDesc.graphicsDesc.pColorFormats = (TinyImageFormat*)&pDesc->colorFormat;
+        pipelineDesc.graphicsDesc.pColorFormats = (hz::Format*)&pDesc->colorFormat;
 
-        uint32_t count = pDesc->depthFormat == TinyImageFormat_UNDEFINED ? 1 : 2;
+        uint32_t count = pDesc->depthFormat == hz::Format::UNDEFINED ? 1 : 2;
         for (uint32_t i = 0; i < count; ++i)
         {
-            pipelineDesc.graphicsDesc.depthStencilFormat = (i > 0) ? (TinyImageFormat)pDesc->depthFormat : TinyImageFormat_UNDEFINED;
+            pipelineDesc.graphicsDesc.depthStencilFormat = (i > 0) ? pDesc->depthFormat : hz::Format::UNDEFINED;
             pipelineDesc.graphicsDesc.pShaderProgram = gFontstash.pShaders[i];
             pipelineDesc.graphicsDesc.pDepthState = &depthStateDesc[i];
             pipelineDesc.graphicsDesc.pRasterizerState = &rasterizerStateDesc[i];

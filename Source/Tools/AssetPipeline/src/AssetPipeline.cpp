@@ -1565,62 +1565,62 @@ static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_
     }
 }
 
-static inline constexpr TinyImageFormat util_cgltf_type_to_image_format(cgltf_type type, cgltf_component_type compType)
+static inline constexpr hz::Format util_cgltf_type_to_image_format(cgltf_type type, cgltf_component_type compType)
 {
     switch (type)
     {
     case cgltf_type_scalar:
         if (cgltf_component_type_r_8 == compType)
-            return TinyImageFormat_R8_SINT;
+            return hz::Format::R8_SINT;
         else if (cgltf_component_type_r_16 == compType)
-            return TinyImageFormat_R16_SINT;
+            return hz::Format::R16_SINT;
         else if (cgltf_component_type_r_16u == compType)
-            return TinyImageFormat_R16_UINT;
+            return hz::Format::R16_UINT;
         else if (cgltf_component_type_r_32f == compType)
-            return TinyImageFormat_R32_SFLOAT;
+            return hz::Format::R32_SFLOAT;
         else if (cgltf_component_type_r_32u == compType)
-            return TinyImageFormat_R32_UINT;
+            return hz::Format::R32_UINT;
     case cgltf_type_vec2:
         if (cgltf_component_type_r_8 == compType)
-            return TinyImageFormat_R8G8_SINT;
+            return hz::Format::R8G8_SINT;
         else if (cgltf_component_type_r_16 == compType)
-            return TinyImageFormat_R16G16_SINT;
+            return hz::Format::R16G16_SINT;
         else if (cgltf_component_type_r_16u == compType)
-            return TinyImageFormat_R16G16_UINT;
+            return hz::Format::R16G16_UINT;
         else if (cgltf_component_type_r_32f == compType)
-            return TinyImageFormat_R32G32_SFLOAT;
+            return hz::Format::R32G32_SFLOAT;
         else if (cgltf_component_type_r_32u == compType)
-            return TinyImageFormat_R32G32_UINT;
+            return hz::Format::R32G32_UINT;
     case cgltf_type_vec3:
         if (cgltf_component_type_r_8 == compType)
-            return TinyImageFormat_R8G8B8_SINT;
+            return hz::Format::R8G8B8_SINT;
         else if (cgltf_component_type_r_16 == compType)
-            return TinyImageFormat_R16G16B16_SINT;
+            return hz::Format::R16G16B16_SINT;
         else if (cgltf_component_type_r_16u == compType)
-            return TinyImageFormat_R16G16B16_UINT;
+            return hz::Format::R16G16B16_UINT;
         else if (cgltf_component_type_r_32f == compType)
-            return TinyImageFormat_R32G32B32_SFLOAT;
+            return hz::Format::R32G32B32_SFLOAT;
         else if (cgltf_component_type_r_32u == compType)
-            return TinyImageFormat_R32G32B32_UINT;
+            return hz::Format::R32G32B32_UINT;
     case cgltf_type_vec4:
         if (cgltf_component_type_r_8 == compType)
-            return TinyImageFormat_R8G8B8A8_SINT;
+            return hz::Format::R8G8B8A8_SINT;
         else if (cgltf_component_type_r_8u == compType)
-            return TinyImageFormat_R8G8B8A8_UINT;
+            return hz::Format::R8G8B8A8_UINT;
         else if (cgltf_component_type_r_16 == compType)
-            return TinyImageFormat_R16G16B16A16_SINT;
+            return hz::Format::R16G16B16A16_SINT;
         else if (cgltf_component_type_r_16u == compType)
-            return TinyImageFormat_R16G16B16A16_UINT;
+            return hz::Format::R16G16B16A16_UINT;
         else if (cgltf_component_type_r_32f == compType)
-            return TinyImageFormat_R32G32B32A32_SFLOAT;
+            return hz::Format::R32G32B32A32_SFLOAT;
         else if (cgltf_component_type_r_32u == compType)
-            return TinyImageFormat_R32G32B32A32_UINT;
+            return hz::Format::R32G32B32A32_UINT;
         // #NOTE: Not applicable to vertex formats
     case cgltf_type_mat2:
     case cgltf_type_mat3:
     case cgltf_type_mat4:
     default:
-        return TinyImageFormat_UNDEFINED;
+        return hz::Format::UNDEFINED;
     }
 }
 
@@ -2275,7 +2275,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 }
             }
 
-            const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock(attr->format) >> 3;
+            const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)attr->format) >> 3;
             const uint32_t srcFormatSize = (uint32_t)cgltfAttr->data->stride; //-V522
 
             const uint32_t thisAttrStride = dstFormatSize ? dstFormatSize : srcFormatSize;
@@ -2287,8 +2287,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             // Texcoords - Pack float2 to half2
             // Directions - Pack float3 to float2 to unorm2x16 (Normal, Tangent)
             // Position - No packing yet
-            const TinyImageFormat srcFormat = util_cgltf_type_to_image_format(cgltfAttr->data->type, cgltfAttr->data->component_type);
-            const TinyImageFormat dstFormat = attr->format == TinyImageFormat_UNDEFINED ? srcFormat : attr->format;
+            const hz::Format srcFormat = util_cgltf_type_to_image_format(cgltfAttr->data->type, cgltfAttr->data->component_type);
+            const hz::Format dstFormat = attr->format == hz::Format::UNDEFINED ? srcFormat : attr->format;
 
             if (dstFormat != srcFormat)
             {
@@ -3094,32 +3094,32 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         {
             vertexLayout.attribCount = 6;
             vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-            vertexLayout.attribs[0].format = TinyImageFormat_R32G32B32_SFLOAT;
+            vertexLayout.attribs[0].format = hz::Format::R32G32B32_SFLOAT;
             vertexLayout.attribs[0].binding = 0;
             vertexLayout.attribs[0].location = 0;
             vertexLayout.attribs[0].offset = 0;
             vertexLayout.attribs[1].semantic = SEMANTIC_NORMAL;
-            vertexLayout.attribs[1].format = TinyImageFormat_R32_UINT;
+            vertexLayout.attribs[1].format = hz::Format::R32_UINT;
             vertexLayout.attribs[1].binding = 1;
             vertexLayout.attribs[1].location = 1;
             vertexLayout.attribs[1].offset = 0;
             vertexLayout.attribs[2].semantic = SEMANTIC_TANGENT;
-            vertexLayout.attribs[2].format = TinyImageFormat_R32_UINT;
+            vertexLayout.attribs[2].format = hz::Format::R32_UINT;
             vertexLayout.attribs[2].binding = 2;
             vertexLayout.attribs[2].location = 2;
             vertexLayout.attribs[2].offset = 0;
             vertexLayout.attribs[3].semantic = SEMANTIC_TEXCOORD0;
-            vertexLayout.attribs[3].format = TinyImageFormat_R32_UINT;
+            vertexLayout.attribs[3].format = hz::Format::R32_UINT;
             vertexLayout.attribs[3].binding = 3;
             vertexLayout.attribs[3].location = 3;
             vertexLayout.attribs[3].offset = 0;
             vertexLayout.attribs[4].semantic = SEMANTIC_JOINTS;
-            vertexLayout.attribs[4].format = TinyImageFormat_R16G16B16A16_UINT;
+            vertexLayout.attribs[4].format = hz::Format::R16G16B16A16_UINT;
             vertexLayout.attribs[4].binding = 4;
             vertexLayout.attribs[4].location = 4;
             vertexLayout.attribs[4].offset = 0;
             vertexLayout.attribs[5].semantic = SEMANTIC_WEIGHTS;
-            vertexLayout.attribs[5].format = TinyImageFormat_R32G32B32A32_SFLOAT;
+            vertexLayout.attribs[5].format = hz::Format::R32G32B32A32_SFLOAT;
             vertexLayout.attribs[5].binding = 5;
             vertexLayout.attribs[5].location = 5;
             vertexLayout.attribs[5].offset = 0;

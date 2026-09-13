@@ -9,7 +9,7 @@
 #include "Profiler/IProfiler.h"
 
 constexpr uint32_t        kCpuProfileColor = 0x3399FF;
-constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
+constexpr hz::Format kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
 
 struct Vertex
 {
@@ -183,9 +183,9 @@ private:
             .vertexLayout = {
                 .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
                 .attribs = {
-                    { .semantic = SEMANTIC_POSITION, .format = TinyImageFormat_R32G32_SFLOAT, .binding = 0, .location = 0,
+                    { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32_SFLOAT, .binding = 0, .location = 0,
                       .offset = (uint32_t)offsetof(Vertex, position) },
-                    { .semantic = SEMANTIC_COLOR, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 1,
+                    { .semantic = SEMANTIC_COLOR, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 1,
                       .offset = (uint32_t)offsetof(Vertex, color) },
                 },
                 .bindingCount = 1,

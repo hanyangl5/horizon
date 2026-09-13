@@ -487,7 +487,7 @@ DXGI_FORMAT                 util_to_dx12_uav_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT                 util_to_dx12_dsv_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT                 util_to_dx12_srv_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT                 util_to_dx12_stencil_format(DXGI_FORMAT defaultFormat);
-DXGI_FORMAT                 util_to_dx12_swapchain_format(TinyImageFormat format);
+DXGI_FORMAT                 util_to_dx12_swapchain_format(hz::Format format);
 D3D12_SHADER_VISIBILITY     util_to_dx12_shader_visibility(ShaderStage stages);
 D3D12_DESCRIPTOR_RANGE_TYPE util_to_dx12_descriptor_range(DescriptorType type);
 D3D12_RESOURCE_STATES       util_to_dx12_resource_state(ResourceState state);
@@ -935,7 +935,7 @@ static void AddBufferSrv(Renderer* pRenderer, DescriptorHeap* pOptionalHeap, ID3
 }
 
 static void AddTypedBufferSrv(Renderer* pRenderer, DescriptorHeap* pOptionalHeap, ID3D12Resource* pBuffer, uint32_t firstElement,
-                              uint32_t elementCount, TinyImageFormat format, DxDescriptorID* pOutSrv)
+                              uint32_t elementCount, hz::Format format, DxDescriptorID* pOutSrv)
 {
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -944,7 +944,7 @@ static void AddTypedBufferSrv(Renderer* pRenderer, DescriptorHeap* pOptionalHeap
     srvDesc.Buffer.NumElements = elementCount;
     srvDesc.Buffer.StructureByteStride = 0;
     srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-    srvDesc.Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(format);
+    srvDesc.Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)format);
     srvDesc.Buffer.StructureByteStride = 0;
 
     AddSrv(pRenderer, pOptionalHeap, pBuffer, &srvDesc, pOutSrv);
@@ -984,7 +984,7 @@ static void AddBufferUav(Renderer* pRenderer, DescriptorHeap* pOptionalHeap, ID3
 }
 
 static void AddTypedBufferUav(Renderer* pRenderer, DescriptorHeap* pOptionalHeap, ID3D12Resource* pBuffer, uint32_t firstElement,
-                              uint32_t elementCount, TinyImageFormat format, DxDescriptorID* pOutUav)
+                              uint32_t elementCount, hz::Format format, DxDescriptorID* pOutUav)
 {
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -993,7 +993,7 @@ static void AddTypedBufferUav(Renderer* pRenderer, DescriptorHeap* pOptionalHeap
     uavDesc.Buffer.StructureByteStride = 0;
     uavDesc.Buffer.CounterOffsetInBytes = 0;
     uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-    uavDesc.Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(format);
+    uavDesc.Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)format);
     D3D12_FEATURE_DATA_FORMAT_SUPPORT FormatSupport = { uavDesc.Format, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE };
     HRESULT hr = pRenderer->dx.pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &FormatSupport, sizeof(FormatSupport));
     if (!SUCCEEDED(hr) || !(FormatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) ||
@@ -1865,25 +1865,25 @@ DXGI_FORMAT util_to_dx12_stencil_format(DXGI_FORMAT defaultFormat)
     }
 }
 
-DXGI_FORMAT util_to_dx12_swapchain_format(TinyImageFormat const format)
+DXGI_FORMAT util_to_dx12_swapchain_format(hz::Format const format)
 {
     DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 
     // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
     switch (format)
     {
-    case TinyImageFormat_R16G16B16A16_SFLOAT:
+    case hz::Format::R16G16B16A16_SFLOAT:
         result = DXGI_FORMAT_R16G16B16A16_FLOAT;
         break;
-    case TinyImageFormat_B8G8R8A8_UNORM:
-    case TinyImageFormat_B8G8R8A8_SRGB:
+    case hz::Format::B8G8R8A8_UNORM:
+    case hz::Format::B8G8R8A8_SRGB:
         result = DXGI_FORMAT_B8G8R8A8_UNORM;
         break;
-    case TinyImageFormat_R8G8B8A8_UNORM:
-    case TinyImageFormat_R8G8B8A8_SRGB:
+    case hz::Format::R8G8B8A8_UNORM:
+    case hz::Format::R8G8B8A8_SRGB:
         result = DXGI_FORMAT_R8G8B8A8_UNORM;
         break;
-    case TinyImageFormat_R10G10B10A2_UNORM:
+    case hz::Format::R10G10B10A2_UNORM:
         result = DXGI_FORMAT_R10G10B10A2_UNORM;
         break;
     default:
@@ -2356,7 +2356,7 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
             res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
     }
 
-    DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->format);
+    DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->format);
 
     desc->Dimension = res_dim;
     // On PC, If Alignment is set to 0, the runtime will use 4MB for MSAA textures and 64KB for everything else.
@@ -3732,7 +3732,7 @@ void d3d12_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
     pSwapChain->dx.syncInterval = (pSwapChain->dx.syncInterval + 1) % 2;
 }
 
-bool d3d12_getSwapchainFormatSupport(Renderer* pRenderer, Queue* pQueue, TinyImageFormat format, ColorSpace colorspace);
+bool d3d12_getSwapchainFormatSupport(Renderer* pRenderer, Queue* pQueue, hz::Format format, ColorSpace colorspace);
 
 void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
 {
@@ -4115,7 +4115,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         {
             DxDescriptorID srv = pBuffer->dx.descriptors + pBuffer->dx.srvDescriptorOffset;
             pBuffer->dx.uavDescriptorOffset = pBuffer->dx.srvDescriptorOffset + 1;
-            if (pDesc->format != TinyImageFormat_UNDEFINED)
+            if (pDesc->format != hz::Format::UNDEFINED)
             {
                 AddTypedBufferSrv(pRenderer, NULL, pBuffer->dx.pResource, pDesc->firstElement, pDesc->elementCount, pDesc->format,
                                   &srv);
@@ -4131,7 +4131,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         if (pDesc->descriptors & DESCRIPTOR_TYPE_RW_BUFFER)
         {
             DxDescriptorID uav = pBuffer->dx.descriptors + pBuffer->dx.uavDescriptorOffset;
-            if (pDesc->format != TinyImageFormat_UNDEFINED)
+            if (pDesc->format != hz::Format::UNDEFINED)
             {
                 AddTypedBufferUav(pRenderer, NULL, pBuffer->dx.pResource, pDesc->firstElement, pDesc->elementCount, pDesc->format,
                                   &uav);
@@ -4256,7 +4256,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
     // add to gpu
     D3D12_RESOURCE_DESC desc = {};
 
-    DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->format);
+    DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->format);
 
     DescriptorType descriptors = pDesc->descriptors;
 
@@ -4560,7 +4560,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     ASSERT(pRenderer);
     ASSERT(pDesc);
     ASSERT(ppRenderTarget);
-    const bool isDepth = TinyImageFormat_HasDepth(pDesc->format);
+    const bool isDepth = TinyImageFormat_HasDepth((TinyImageFormat)pDesc->format);
     ASSERT(!((isDepth) && (pDesc->descriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
 
     ((RenderTargetDesc*)pDesc)->mipLevels = max(1U, pDesc->mipLevels);
@@ -4569,7 +4569,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     ASSERT(pRenderTarget);
 
     // add to gpu
-    DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->format);
+    DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->format);
     ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
 
     TextureDesc textureDesc = {};
@@ -4662,7 +4662,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
 
 void d3d12_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
-    bool const isDepth = TinyImageFormat_HasDepth(pRenderTarget->format);
+    bool const isDepth = TinyImageFormat_HasDepth((TinyImageFormat)pRenderTarget->format);
 
     removeTexture(pRenderer, pRenderTarget->pTexture);
 
@@ -6373,7 +6373,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
             input_elements[input_elementCount].SemanticName = semantic_names[attrib_index];
             input_elements[input_elementCount].SemanticIndex = semantic_index;
 
-            input_elements[input_elementCount].Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(attrib->format);
+            input_elements[input_elementCount].Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)attrib->format);
             input_elements[input_elementCount].InputSlot = attrib->binding;
             input_elements[input_elementCount].AlignedByteOffset = attrib->offset;
             if (pVertexLayout->bindings[attrib->binding].rate == VERTEX_BINDING_RATE_INSTANCE)
@@ -6391,7 +6391,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
             if (psoCache)
             {
                 psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->semantic, sizeof(ShaderSemantic), psoRenderHash);
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->format, sizeof(TinyImageFormat), psoRenderHash);
+                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->format, sizeof(hz::Format), psoRenderHash);
                 psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->binding, sizeof(uint32_t), psoRenderHash);
                 psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->location, sizeof(uint32_t), psoRenderHash);
                 psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->offset, sizeof(uint32_t), psoRenderHash);
@@ -6437,7 +6437,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     pipeline_state_desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
     pipeline_state_desc.PrimitiveTopologyType = util_to_dx12_primitive_topology_type(pDesc->primitiveTopo);
     pipeline_state_desc.NumRenderTargets = render_target_count;
-    pipeline_state_desc.DSVFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->depthStencilFormat);
+    pipeline_state_desc.DSVFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->depthStencilFormat);
 
     pipeline_state_desc.SampleDesc = sample_desc;
     pipeline_state_desc.CachedPSO = cached_pso_desc;
@@ -6445,7 +6445,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
 
     for (uint32_t attrib_index = 0; attrib_index < render_target_count; ++attrib_index)
     {
-        pipeline_state_desc.RTVFormats[attrib_index] = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->pColorFormats[attrib_index]);
+        pipeline_state_desc.RTVFormats[attrib_index] = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->pColorFormats[attrib_index]);
     }
 
     pipeline_state_desc.NodeMask = 0;
@@ -6874,7 +6874,7 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             if (desc->loadActionStencil == LOAD_ACTION_CLEAR)
             {
                 flags |= D3D12_CLEAR_FLAG_STENCIL;
-                ASSERT(TinyImageFormat_HasStencil(desc->pDepthStencil->format));
+                ASSERT(TinyImageFormat_HasStencil((TinyImageFormat)desc->pDepthStencil->format));
             }
             ASSERT(flags > 0);
             const ClearValue* clearValue = desc->overrideClearValue ? &desc->clearValue : &desc->pDepthStencil->clearValue;
@@ -7591,7 +7591,7 @@ void d3d12_waitQueueIdle(Queue* pQueue)
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat d3d12_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
+hz::Format d3d12_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
     return hook_get_recommended_swapchain_format(pRenderer, pDesc, colorSpace);
 }

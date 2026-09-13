@@ -62,7 +62,7 @@ private:
 class LightingPass
 {
 public:
-    LightingPass(hz::RenderContext& context, TinyImageFormat surfaceFormat);
+    LightingPass(hz::RenderContext& context, hz::Format surfaceFormat);
     void execute(hz::CommandList& commands, const hz::GPUTexture& backbuffer, const hz::GPUTexture& albedo, const hz::GPUTexture& normal,
                  const hz::GPUTexture& depth, uint32_t width, uint32_t height) const;
 
@@ -289,20 +289,20 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
         .vertexLayout = {
             .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
             .attribs = {
-                { .semantic = SEMANTIC_POSITION, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 0,
+                { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 0,
                   .offset = (uint32_t)offsetof(Vertex, position) },
-                { .semantic = SEMANTIC_NORMAL, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 1,
+                { .semantic = SEMANTIC_NORMAL, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 1,
                   .offset = (uint32_t)offsetof(Vertex, normal) },
-                { .semantic = SEMANTIC_COLOR, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 2,
+                { .semantic = SEMANTIC_COLOR, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 2,
                   .offset = (uint32_t)offsetof(Vertex, color) },
             },
             .bindingCount = 1,
             .attribCount = 3,
         },
         .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
-        .colorFormats = { TinyImageFormat_R8G8B8A8_UNORM, TinyImageFormat_R16G16B16A16_SFLOAT },
+        .colorFormats = { hz::Format::R8G8B8A8_UNORM, hz::Format::R16G16B16A16_SFLOAT },
         .renderTargetCount = 2,
-        .depthStencilFormat = TinyImageFormat_D32_SFLOAT,
+        .depthStencilFormat = hz::Format::D32_SFLOAT,
         .pName = "DeferredShading.GBufferPipeline",
     });
     ASSERT(mPipeline.isValid());
@@ -313,17 +313,17 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t he
     hz::TextureDesc albedoDesc = {
         .width = width,
         .height = height,
-        .format = TinyImageFormat_R8G8B8A8_UNORM,
+        .format = hz::Format::R8G8B8A8_UNORM,
         .startState = RESOURCE_STATE_RENDER_TARGET,
         .descriptors = DESCRIPTOR_TYPE_TEXTURE,
         .renderTarget = true,
         .pName = "GBuffer.Albedo",
     };
     hz::TextureDesc normalDesc = albedoDesc;
-    normalDesc.format = TinyImageFormat_R16G16B16A16_SFLOAT;
+    normalDesc.format = hz::Format::R16G16B16A16_SFLOAT;
     normalDesc.pName = "GBuffer.Normal";
     hz::TextureDesc depthDesc = albedoDesc;
-    depthDesc.format = TinyImageFormat_D32_SFLOAT;
+    depthDesc.format = hz::Format::D32_SFLOAT;
     depthDesc.startState = RESOURCE_STATE_DEPTH_WRITE;
     depthDesc.pName = "GBuffer.Depth";
 
@@ -407,7 +407,7 @@ float4 PSMain(VSOutput input) : SV_Target0
 }
 )";
 
-LightingPass::LightingPass(hz::RenderContext& context, TinyImageFormat surfaceFormat)
+LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
 {
     mShader = context.createShader({
         .stages = {
@@ -458,7 +458,7 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
 }
 
 constexpr uint32_t        kCpuProfileColor = 0x88CC44;
-constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
+constexpr hz::Format kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
 
 class DeferredShadingApp final: public IApp
 {
@@ -489,7 +489,7 @@ public:
         context = std::make_unique<hz::RenderContext>(contextDesc);
         geometryBuildPass = std::make_unique<GeometryBuildPass>(*context);
         gBufferPass = std::make_unique<GBufferPass>(*context);
-        lightingPass = std::make_unique<LightingPass>(*context, TinyImageFormat::TinyImageFormat_R8G8B8A8_SRGB);
+        lightingPass = std::make_unique<LightingPass>(*context, hz::Format::R8G8B8A8_SRGB);
 
         createUniformBuffers();
         return true;

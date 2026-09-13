@@ -8,12 +8,12 @@
 #include "Core/ILog.h"
 #include "Core/IMemory.h"
 
-constexpr TinyImageFormat kDepthFormat = TinyImageFormat_D24_UNORM_S8_UINT;
-constexpr TinyImageFormat kGBufferFormats[] = {
-    TinyImageFormat_R10G10B10A2_UNORM,
-    TinyImageFormat_R10G10B10A2_UNORM,
-    TinyImageFormat_R8G8B8A8_UNORM,
-    TinyImageFormat_R8G8B8A8_UNORM,
+constexpr hz::Format kDepthFormat = hz::Format::D24_UNORM_S8_UINT;
+constexpr hz::Format kGBufferFormats[] = {
+    hz::Format::R10G10B10A2_UNORM,
+    hz::Format::R10G10B10A2_UNORM,
+    hz::Format::R8G8B8A8_UNORM,
+    hz::Format::R8G8B8A8_UNORM,
 };
 constexpr const char* kGBufferNames[] = {
     "Renderer.GBuffer.Emissive",
@@ -151,7 +151,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.endGpuTimestamp();
 }
 
-Lighting::Lighting(hz::RenderContext& pContext, TinyImageFormat format): pContext(pContext)
+Lighting::Lighting(hz::RenderContext& pContext, hz::Format format): pContext(pContext)
 {
     mLightingShader = pContext.createShader({
         .stages = {
@@ -211,7 +211,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& desc):
     ASSERT(desc.pInstances);
     ASSERT(mInstanceCount);
     ASSERT(desc.pVertexLayout);
-    ASSERT(mSurfaceFormat != TinyImageFormat_UNDEFINED);
+    ASSERT(mSurfaceFormat != hz::Format::UNDEFINED);
 
     pInstances = (SceneAssetInstance*)tf_malloc(mInstanceCount * sizeof(SceneAssetInstance));
     memcpy(pInstances, desc.pInstances, mInstanceCount * sizeof(SceneAssetInstance));

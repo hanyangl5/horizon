@@ -37,7 +37,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .width = 0,
         .height = 0,
         .imageCount = 2,
-        .colorFormat = TinyImageFormat_B8G8R8A8_SRGB,
+        .colorFormat = hz::Format::B8G8R8A8_SRGB,
         .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
     hz::RenderContext context(desc);
@@ -91,7 +91,7 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         .width = 640,
         .height = 480,
         .imageCount = 2,
-        .colorFormat = TinyImageFormat_B8G8R8A8_SRGB,
+        .colorFormat = hz::Format::B8G8R8A8_SRGB,
         .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
     hz::RenderContext context(desc);

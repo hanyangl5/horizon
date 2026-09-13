@@ -215,7 +215,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
             pGeomD3D12->Triangles.VertexBuffer.StartAddress = pGeom->pVertexBuffer->dx.gpuAddress + pGeom->vertexOffset;
             pGeomD3D12->Triangles.VertexBuffer.StrideInBytes = pGeom->vertexStride;
             pGeomD3D12->Triangles.VertexCount = pGeom->vertexCount;
-            pGeomD3D12->Triangles.VertexFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pGeom->vertexFormat);
+            pGeomD3D12->Triangles.VertexFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pGeom->vertexFormat);
             /*
             Format of the vertices in VertexBuffer. Must be one of the following:
 

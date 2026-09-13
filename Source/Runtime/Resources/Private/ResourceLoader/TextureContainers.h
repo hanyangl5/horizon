@@ -39,23 +39,23 @@
 /************************************************************************/
 // Surface Utils
 /************************************************************************/
-static inline bool util_get_surface_info(uint32_t width, uint32_t height, TinyImageFormat fmt, uint32_t* outNumBytes, uint32_t* outRowBytes,
+static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Format fmt, uint32_t* outNumBytes, uint32_t* outRowBytes,
                                          uint32_t* outNumRows)
 {
     uint64_t numBytes = 0;
     uint64_t rowBytes = 0;
     uint64_t numRows = 0;
 
-    uint32_t bpp = TinyImageFormat_BitSizeOfBlock(fmt);
-    bool     compressed = TinyImageFormat_IsCompressed(fmt);
-    bool     planar = TinyImageFormat_IsPlanar(fmt);
+    uint32_t bpp = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)fmt);
+    bool     compressed = TinyImageFormat_IsCompressed((TinyImageFormat)fmt);
+    bool     planar = TinyImageFormat_IsPlanar((TinyImageFormat)fmt);
     // #TODO
     bool     packed = false;
 
     if (compressed)
     {
-        uint32_t blockWidth = TinyImageFormat_WidthOfBlock(fmt);
-        uint32_t blockHeight = TinyImageFormat_HeightOfBlock(fmt);
+        uint32_t blockWidth = TinyImageFormat_WidthOfBlock((TinyImageFormat)fmt);
+        uint32_t blockHeight = TinyImageFormat_HeightOfBlock((TinyImageFormat)fmt);
         uint32_t numBlocksWide = 0;
         uint32_t numBlocksHigh = 0;
         if (width > 0)
@@ -81,12 +81,12 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, TinyIm
     }
     else if (planar)
     {
-        uint32_t numOfPlanes = TinyImageFormat_NumOfPlanes(fmt);
+        uint32_t numOfPlanes = TinyImageFormat_NumOfPlanes((TinyImageFormat)fmt);
 
         for (uint32_t i = 0; i < numOfPlanes; ++i)
         {
-            numBytes += TinyImageFormat_PlaneWidth(fmt, i, width) * TinyImageFormat_PlaneHeight(fmt, i, height) *
-                        TinyImageFormat_PlaneSizeOfBlock(fmt, i);
+            numBytes += TinyImageFormat_PlaneWidth((TinyImageFormat)fmt, i, width) * TinyImageFormat_PlaneHeight((TinyImageFormat)fmt, i, height) *
+                        TinyImageFormat_PlaneSizeOfBlock((TinyImageFormat)fmt, i);
         }
 
         numRows = 1;
@@ -121,7 +121,7 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, TinyIm
     return true;
 }
 
-static inline uint32_t util_get_surface_size(TinyImageFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t rowStride,
+static inline uint32_t util_get_surface_size(hz::Format format, uint32_t width, uint32_t height, uint32_t depth, uint32_t rowStride,
                                              uint32_t sliceStride, uint32_t baseMipLevel, uint32_t mipLevels, uint32_t baseArrayLayer,
                                              uint32_t arrayLayers)
 {
@@ -229,11 +229,11 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     textureDesc.depth = max(1U, TinyDDS_Depth(ctx));
     textureDesc.arraySize = max(1U, TinyDDS_ArraySlices(ctx));
     textureDesc.mipLevels = max(1U, TinyDDS_NumberOfMipmaps(ctx));
-    textureDesc.format = TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
+    textureDesc.format = (hz::Format)TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
     textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
     textureDesc.sampleCount = SAMPLE_COUNT_1;
 
-    if (textureDesc.format == TinyImageFormat_UNDEFINED)
+    if (textureDesc.format == hz::Format::UNDEFINED)
     {
         TinyDDS_DestroyContext(ctx);
         return false;
@@ -294,11 +294,11 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     textureDesc.depth = max(1U, TinyKtx_Depth(ctx));
     textureDesc.arraySize = max(1U, TinyKtx_ArraySlices(ctx));
     textureDesc.mipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
-    textureDesc.format = TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
+    textureDesc.format = (hz::Format)TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
     textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
     textureDesc.sampleCount = SAMPLE_COUNT_1;
 
-    if (textureDesc.format == TinyImageFormat_UNDEFINED)
+    if (textureDesc.format == hz::Format::UNDEFINED)
     {
         TinyKtx_DestroyContext(ctx);
         return false;

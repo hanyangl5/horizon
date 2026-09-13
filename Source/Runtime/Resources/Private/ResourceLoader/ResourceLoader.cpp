@@ -4089,9 +4089,9 @@ static uint32_t util_get_texture_row_alignment(Renderer* pRenderer)
     return max(1u, pRenderer->pGpu->settings.uploadBufferTextureRowAlignment);
 }
 
-static uint32_t util_get_texture_subresource_alignment(Renderer* pRenderer, TinyImageFormat fmt = TinyImageFormat_UNDEFINED)
+static uint32_t util_get_texture_subresource_alignment(Renderer* pRenderer, hz::Format fmt = hz::Format::UNDEFINED)
 {
-    uint32_t blockSize = max(1u, TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
+    uint32_t blockSize = max(1u, TinyImageFormat_BitSizeOfBlock((TinyImageFormat)fmt) >> 3);
     uint32_t alignment = round_up(pRenderer->pGpu->settings.uploadBufferTextureAlignment, blockSize);
     return round_up(alignment, util_get_texture_row_alignment(pRenderer));
 }
@@ -4504,7 +4504,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     // All that is left to do is record and execute the Copy commands
     bool                  dataAlreadyFilled = texUpdateDesc.range.pBuffer ? true : false;
     Texture*              texture = texUpdateDesc.pTexture;
-    const TinyImageFormat fmt = (TinyImageFormat)texture->format;
+    const hz::Format fmt = texture->format;
     FileStream            stream = texUpdateDesc.stream;
 
     const uint32_t sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
@@ -4652,7 +4652,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
         }
 
-        TinyImageFormat   fmt = (TinyImageFormat)texture->format;
+        hz::Format        fmt = texture->format;
         const uint32_t    sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
         const uint32_t    rowAlignment = util_get_texture_row_alignment(pRenderer);
         const uint64_t    requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment,
@@ -4746,7 +4746,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             // D3D12 requires block-aligned base dimensions for BC textures. Preserve the exact
             // texel of the 1x1 BC5 normal maps emitted by some glTF exporters as an RG8 texture.
             if (textureDesc.width == 1 && textureDesc.height == 1 && textureDesc.depth == 1 && textureDesc.arraySize == 1 &&
-                textureDesc.mipLevels == 1 && textureDesc.format == TinyImageFormat_DXBC5_UNORM)
+                textureDesc.mipLevels == 1 && textureDesc.format == hz::Format::DXBC5_UNORM)
             {
                 uint8_t    block[16] = {};
                 const bool read = fsReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
@@ -4757,21 +4757,21 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
                 if (!fsOpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FM_READ, false, &stream))
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-                textureDesc.format = TinyImageFormat_R8G8_UNORM;
+                textureDesc.format = hz::Format::R8G8_UNORM;
             }
             textureDesc.startState = RESOURCE_STATE_COPY_DEST;
 
             if (pTextureDesc->flags & TEXTURE_CREATION_FLAG_SRGB)
             {
-                TinyImageFormat srgbFormat = TinyImageFormat_ToSRGB(textureDesc.format);
-                if (srgbFormat != TinyImageFormat_UNDEFINED)
+                hz::Format srgbFormat = (hz::Format)TinyImageFormat_ToSRGB((TinyImageFormat)textureDesc.format);
+                if (srgbFormat != hz::Format::UNDEFINED)
                     textureDesc.format = srgbFormat;
                 else
                 {
                     LOGF(eWARNING,
                          "Trying to load '%s' image using SRGB profile. "
                          "But image has '%s' format, which doesn't have SRGB counterpart.",
-                         pTextureDesc->pFileName, TinyImageFormat_Name(textureDesc.format));
+                         pTextureDesc->pFileName, TinyImageFormat_Name((TinyImageFormat)textureDesc.format));
                 }
             }
 
@@ -5069,7 +5069,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     {
         const VertexAttrib* attr = &pDesc->pVertexLayout->attribs[i];
 
-        const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock(attr->format) / 8;
+        const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)attr->format) / 8;
 
         if (defaultTexcoordSemantic == SEMANTIC_UNDEFINED) // #nocheckin Revisit this if statement
         {
@@ -5246,7 +5246,7 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 {
     UNREF_PARAM(pRenderer);
     Texture*              texture = pTextureCopy.pTexture;
-    const TinyImageFormat fmt = (TinyImageFormat)texture->format;
+    const hz::Format fmt = texture->format;
 
     Cmd* cmd = acquireCmd(pCopyEngine);
 
@@ -6913,7 +6913,7 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
 {
     TextureSubresourceUpdate ret = {};
     Texture*                 texture = pTexture;
-    const TinyImageFormat    fmt = (TinyImageFormat)texture->format;
+    const hz::Format         fmt = texture->format;
     Renderer*                pRenderer = pResourceLoader->pRenderer;
     const uint32_t           sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
 
@@ -6947,7 +6947,7 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
 void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
 {
     const Texture*        texture = pTextureUpdate->pTexture;
-    const TinyImageFormat fmt = (TinyImageFormat)texture->format;
+    const hz::Format fmt = texture->format;
     Renderer*             pRenderer = pResourceLoader->pRenderer;
     const uint32_t        sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
     pTextureUpdate->mipLevels = max(1u, pTextureUpdate->mipLevels);

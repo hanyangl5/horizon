@@ -213,7 +213,7 @@ void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
     *ppVirtualJoystick = NULL;
 }
 
-bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
+bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
                          uint32_t displayHeight)
 {
     UNREF_PARAM(loadType);
@@ -265,16 +265,16 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
         vertexLayout.bindingCount = 1;
         vertexLayout.attribCount = 2;
         vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-        vertexLayout.attribs[0].format = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.attribs[0].format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[0].binding = 0;
         vertexLayout.attribs[0].location = 0;
         vertexLayout.attribs[0].offset = 0;
 
         vertexLayout.attribs[1].semantic = SEMANTIC_TEXCOORD0;
-        vertexLayout.attribs[1].format = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.attribs[1].format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[1].binding = 0;
         vertexLayout.attribs[1].location = 1;
-        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
+        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)hz::Format::R32G32_SFLOAT) / 8;
 
         BlendStateDesc blendStateDesc = {};
         blendStateDesc.srcFactors[0] = BC_SRC_ALPHA;
@@ -297,7 +297,7 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
         desc.type = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineDesc = desc.graphicsDesc;
         pipelineDesc.primitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-        pipelineDesc.depthStencilFormat = TinyImageFormat_UNDEFINED;
+        pipelineDesc.depthStencilFormat = hz::Format::UNDEFINED;
         pipelineDesc.renderTargetCount = 1;
         pipelineDesc.sampleCount = SAMPLE_COUNT_1;
         pipelineDesc.sampleQuality = 0;

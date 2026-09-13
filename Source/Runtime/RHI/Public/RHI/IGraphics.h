@@ -28,7 +28,7 @@
 #ifdef ENABLE_NSIGHT_AFTERMATH
 #include "../ThirdParty/PrivateNvidia/NsightAftermath/include/AftermathTracker.h"
 #endif
-#include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
+#include "RHI/Format.h"
 
 #include "Core/ILog.h"
 #include "Core/IThread.h"
@@ -811,7 +811,7 @@ struct BufferDesc
     /// What state will the buffer get created in
     ResourceState       startState;
     /// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
-    TinyImageFormat     format;
+    hz::Format          format;
     /// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
     DescriptorType      descriptors;
 };
@@ -878,7 +878,7 @@ struct TextureDesc
     /// appropriate for sampleCount
     uint32_t             sampleQuality;
     ///  image format
-    TinyImageFormat      format;
+    hz::Format           format;
     /// What state will the texture get created in
     ResourceState        startState;
     /// Descriptor creation
@@ -904,7 +904,7 @@ struct alignas(64) Texture
     uint32_t depth : 16;
     uint32_t mipLevels : 5;
     uint32_t arraySizeMinusOne : 11;
-    uint32_t format : 8;
+    hz::Format format : 8;
     /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pImageView
     uint32_t aspectMask : 4;
     uint32_t sampleCount : 5;
@@ -936,7 +936,7 @@ struct RenderTargetDesc
     /// MSAA
     SampleCount          sampleCount;
     /// Internal image format
-    TinyImageFormat      format;
+    hz::Format           format;
     /// What state will the texture get created in
     ResourceState        startState;
     /// Optimized clear value (recommended to use this same value when clearing the rendertarget)
@@ -970,7 +970,7 @@ struct alignas(64) RenderTarget
     uint32_t        descriptors : 20;
     uint32_t        mipLevels : 10;
     uint32_t        sampleQuality : 5;
-    TinyImageFormat format;
+    hz::Format format;
     SampleCount     sampleCount;
     bool            vrMultiview;
     bool            vrFoveatedRendering;
@@ -1426,7 +1426,7 @@ struct VertexAttrib
     ShaderSemantic  semantic;
     uint32_t        semanticNameLength;
     char            semanticName[MAX_SEMANTIC_NAME_LENGTH];
-    TinyImageFormat format;
+    hz::Format format;
     uint32_t        binding;
     uint32_t        location;
     uint32_t        offset;
@@ -1448,7 +1448,7 @@ struct GraphicsPipelineDesc
     BlendStateDesc*      pBlendState;
     DepthStateDesc*      pDepthState;
     RasterizerStateDesc* pRasterizerState;
-    TinyImageFormat*     pColorFormats;
+    hz::Format*          pColorFormats;
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
     /// Used to specify resolve attachment for render pass
     StoreActionType* pColorResolveActions;
@@ -1456,7 +1456,7 @@ struct GraphicsPipelineDesc
     uint32_t          renderTargetCount;
     SampleCount       sampleCount;
     uint32_t          sampleQuality;
-    TinyImageFormat   depthStencilFormat;
+    hz::Format        depthStencilFormat;
     PrimitiveTopology primitiveTopo;
     bool              supportIndirectCommandBuffer;
     bool              vrFoveatedRendering;
@@ -1565,7 +1565,7 @@ struct SwapChainDesc
     /// Height of the swapchain
     uint32_t               height;
     /// Color format of the swapchain
-    TinyImageFormat        colorFormat;
+    hz::Format             colorFormat;
     /// Clear value
     ClearValue             colorClearValue;
     /// Swapchain creation flags
@@ -1594,7 +1594,7 @@ struct SwapChain
     uint32_t        imageCount : 8;
     uint32_t        enableVsync : 1;
     ColorSpace      colorSpace : 4;
-    TinyImageFormat format : 8;
+    hz::Format format : 8;
 };
 
 enum ShaderTarget : uint32_t
@@ -1679,7 +1679,7 @@ MAKE_ENUM_FLAG(uint32_t, FormatCapability);
 
 struct GPUCapBits
 {
-    FormatCapability formatCaps[TinyImageFormat_Count];
+    FormatCapability formatCaps[hz::FORMAT_COUNT];
 };
 
 enum DefaultResourceAlignment : uint32_t
@@ -2150,7 +2150,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV directStorageSubmit(DirectStorageQueue* p
 //If false is passed or the platform does not support HDR a non HDR format is returned.
 //If true is passed for the hintSrgb parameter, it will return format that is will do gamma correction automatically
 //If false is passed for the hintSrgb parameter the gamma correction should be done as a postprocess step before submitting image to swapchain
-FORGE_RENDERER_API TinyImageFormat FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
+FORGE_RENDERER_API hz::Format FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
 FORGE_RENDERER_API uint32_t FORGE_CALLCONV getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHandle* hwnd);
 
 //indirect Draw functions

@@ -36,7 +36,7 @@ inline void d3d12CapsBuilder(ID3D12Device* pDevice, GPUCapBits* pCapBits)
     // While DirectX-Specs state that any format that reports load support must also report store support
     // I think it's just better to double check for both.
     D3D12_FORMAT_SUPPORT2 loadStore = D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE;
-    for (uint32_t i = 0; i < TinyImageFormat_Count; ++i)
+    for (uint32_t i = 0; i < hz::FORMAT_COUNT; ++i)
     {
         DXGI_FORMAT fmt = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)i);
         if (fmt == DXGI_FORMAT_UNKNOWN)

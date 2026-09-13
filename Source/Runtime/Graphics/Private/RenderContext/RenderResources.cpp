@@ -404,7 +404,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     RasterizerStateDesc raster = input.rasterizer;
     DepthStateDesc      depth = input.depth;
     BlendStateDesc      blend = input.blend;
-    TinyImageFormat     formats[MAX_RENDER_TARGETS] = {};
+    hz::Format          formats[MAX_RENDER_TARGETS] = {};
     memcpy(formats, input.colorFormats, sizeof(formats));
     const PipelineDesc desc = {
         .graphicsDesc = {

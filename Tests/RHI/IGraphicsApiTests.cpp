@@ -995,7 +995,7 @@ bool createRenderTarget(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
         .arraySize = 1,
         .mipLevels = 1,
         .sampleCount = SAMPLE_COUNT_1,
-        .format = TinyImageFormat_R8G8B8A8_UNORM,
+        .format = hz::Format::R8G8B8A8_UNORM,
         .startState = RESOURCE_STATE_RENDER_TARGET,
         .pName = name,
     };
@@ -1165,7 +1165,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
         .attribs = {
             {
                 .semantic = SEMANTIC_POSITION,
-                .format = TinyImageFormat_R32G32_SFLOAT,
+                .format = hz::Format::R32G32_SFLOAT,
                 .binding = 0,
                 .location = 0,
             },

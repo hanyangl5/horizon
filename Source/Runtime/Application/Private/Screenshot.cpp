@@ -209,8 +209,8 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     waitQueueIdle(pCmdPool->pQueue);
 
     // Allocate temp space
-    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->format) / 8;
-    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount(pRenderTarget->format);
+    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->format) / 8;
+    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->format);
     uint32_t size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
     uint8_t* alloc = (uint8_t*)tf_malloc(size);
 
@@ -228,11 +228,11 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     if (COLOR_SPACE_SDR_SRGB < pSwapChain->colorSpace)
     {
         // decode pixels
-        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF(pRenderTarget->format));
+        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format));
         TinyImageFormat_FetchInput fetchInput = { { (void*)alloc } };
         uint32_t                   floatBufferSize = pRenderTarget->width * pRenderTarget->height * sizeof(float4);
         float*                     pDecoded = (float*)tf_malloc(floatBufferSize);
-        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF(pRenderTarget->format, &fetchInput,
+        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format, &fetchInput,
                                                                  pRenderTarget->width * pRenderTarget->height, pDecoded);
         ASSERT(result);
 
@@ -245,8 +245,8 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     else
     {
         // Flip the BGRA to RGBA
-        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->format == TinyImageFormat_R8G8B8A8_UNORM ||
-                                                              pRenderTarget->format == TinyImageFormat_R8G8B8A8_SRGB);
+        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->format == hz::Format::R8G8B8A8_UNORM ||
+                                                              pRenderTarget->format == hz::Format::R8G8B8A8_SRGB);
 
         if (flipRedBlueChannel)
         {

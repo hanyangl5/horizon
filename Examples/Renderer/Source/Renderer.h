@@ -16,14 +16,14 @@
 
 constexpr const char*     kSceneDirectory = "Assets/Bistro";
 constexpr const char*     kSceneSource = "BistroExterior.gltf";
-constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
+constexpr hz::Format kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
 
 const VertexLayout kSceneVertexLayout = {
     .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
     .attribs = {
-        { .semantic = SEMANTIC_POSITION, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 0 },
-        { .semantic = SEMANTIC_NORMAL, .format = TinyImageFormat_R32_UINT, .binding = 1, .location = 1 },
-        { .semantic = SEMANTIC_TEXCOORD0, .format = TinyImageFormat_R32_UINT, .binding = 2, .location = 2 },
+        { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 0 },
+        { .semantic = SEMANTIC_NORMAL, .format = hz::Format::R32_UINT, .binding = 1, .location = 1 },
+        { .semantic = SEMANTIC_TEXCOORD0, .format = hz::Format::R32_UINT, .binding = 2, .location = 2 },
     },
     .bindingCount = 3, .attribCount = 3,
 };

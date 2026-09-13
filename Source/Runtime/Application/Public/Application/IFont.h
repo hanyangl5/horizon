@@ -26,6 +26,7 @@
 #define IFONT_H
 
 #include "Core/IConfig.h"
+#include "RHI/Format.h"
 
 #include "Application/ICameraController.h"
 
@@ -52,8 +53,8 @@ typedef struct FontSystemLoadDesc
 {
     PipelineCache* pCache;
     ReloadType     loadType;
-    uint32_t       colorFormat; // enum TinyImageFormat
-    uint32_t       depthFormat; // enum TinyImageFormat
+    hz::Format     colorFormat;
+    hz::Format     depthFormat;
     uint32_t       width;
     uint32_t       height;
     uint32_t       cullMode;         // enum CullMode

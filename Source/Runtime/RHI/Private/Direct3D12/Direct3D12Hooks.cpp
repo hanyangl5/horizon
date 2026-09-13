@@ -42,7 +42,7 @@
     }
 #endif
 
-extern DXGI_FORMAT           util_to_dx12_swapchain_format(TinyImageFormat format);
+extern DXGI_FORMAT           util_to_dx12_swapchain_format(hz::Format format);
 extern DXGI_COLOR_SPACE_TYPE util_to_dx12_colorspace(ColorSpace colorspace);
 
 HMODULE hook_get_d3d12_module_handle() { return GetModuleHandle(TEXT("d3d12.dll")); }
@@ -181,18 +181,18 @@ static inline LONG util_compute_intersection(const RECT rect1, const RECT rect2)
     return intersection;
 }
 
-TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
+hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
     if (COLOR_SPACE_SDR_LINEAR == colorSpace)
-        return TinyImageFormat_B8G8R8A8_UNORM;
+        return hz::Format::B8G8R8A8_UNORM;
     if (COLOR_SPACE_SDR_SRGB == colorSpace)
-        return TinyImageFormat_B8G8R8A8_SRGB;
+        return hz::Format::B8G8R8A8_SRGB;
 
-    TinyImageFormat format = TinyImageFormat_UNDEFINED;
+    hz::Format format = hz::Format::UNDEFINED;
     if (COLOR_SPACE_P2020 == colorSpace)
-        format = TinyImageFormat_R10G10B10A2_UNORM;
+        format = hz::Format::R10G10B10A2_UNORM;
     if (COLOR_SPACE_EXTENDED_SRGB == colorSpace)
-        format = TinyImageFormat_R16G16B16A16_SFLOAT;
+        format = hz::Format::R16G16B16A16_SFLOAT;
 
     // check adapter
     RECT windowBounds = {};
@@ -263,7 +263,7 @@ TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const
         }
     }
 
-    return TinyImageFormat_UNDEFINED;
+    return hz::Format::UNDEFINED;
 }
 
 uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain) { return pSwapChain->dx.pSwapChain->GetCurrentBackBufferIndex(); }

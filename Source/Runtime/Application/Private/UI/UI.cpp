@@ -145,7 +145,7 @@ extern void remoteAppSendDrawData(UserInterfaceDrawData* pDrawData);
 extern void remoteAppReceiveInputData();
 extern bool remoteAppIsConnected();
 extern bool remoteAppShouldSendFontTexture();
-extern void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
+extern void remoteControlSendTexture(hz::Format format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
                                      unsigned char* ptr);
 #endif
 
@@ -527,7 +527,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     textureDesc.arraySize = 1;
     textureDesc.depth = 1;
     textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
-    textureDesc.format = TinyImageFormat_R8G8B8A8_UNORM;
+    textureDesc.format = hz::Format::R8G8B8A8_UNORM;
     textureDesc.height = height;
     textureDesc.mipLevels = 1;
     textureDesc.sampleCount = SAMPLE_COUNT_1;
@@ -2505,7 +2505,7 @@ void uiNewFrame()
             int            width = 0;
             int            height = 0;
             ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pPixelData, &width, &height);
-            remoteControlSendTexture(TinyImageFormat_R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, width, height,
+            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, width, height,
                                      width * height * 4, pPixelData);
         }
     }
@@ -3032,21 +3032,21 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     vertexLayout->bindingCount = 1;
     vertexLayout->attribCount = 3;
     vertexLayout->attribs[0].semantic = SEMANTIC_POSITION;
-    vertexLayout->attribs[0].format = TinyImageFormat_R32G32_SFLOAT;
+    vertexLayout->attribs[0].format = hz::Format::R32G32_SFLOAT;
     vertexLayout->attribs[0].binding = 0;
     vertexLayout->attribs[0].location = 0;
     vertexLayout->attribs[0].offset = 0;
     vertexLayout->attribs[1].semantic = SEMANTIC_TEXCOORD0;
-    vertexLayout->attribs[1].format = TinyImageFormat_R32G32_SFLOAT;
+    vertexLayout->attribs[1].format = hz::Format::R32G32_SFLOAT;
     vertexLayout->attribs[1].binding = 0;
     vertexLayout->attribs[1].location = 1;
-    vertexLayout->attribs[1].offset = TinyImageFormat_BitSizeOfBlock(pUserInterface->vertexLayoutTextured.attribs[0].format) / 8;
+    vertexLayout->attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[0].format) / 8;
     vertexLayout->attribs[2].semantic = SEMANTIC_COLOR;
-    vertexLayout->attribs[2].format = TinyImageFormat_R8G8B8A8_UNORM;
+    vertexLayout->attribs[2].format = hz::Format::R8G8B8A8_UNORM;
     vertexLayout->attribs[2].binding = 0;
     vertexLayout->attribs[2].location = 2;
     vertexLayout->attribs[2].offset =
-        vertexLayout->attribs[1].offset + TinyImageFormat_BitSizeOfBlock(pUserInterface->vertexLayoutTextured.attribs[1].format) / 8;
+        vertexLayout->attribs[1].offset + TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[1].format) / 8;
 
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = pDesc->settingsFilename;
@@ -3175,12 +3175,12 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         desc.pCache = pUserInterface->pPipelineCache;
         desc.type = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineDesc = desc.graphicsDesc;
-        pipelineDesc.depthStencilFormat = TinyImageFormat_UNDEFINED;
+        pipelineDesc.depthStencilFormat = hz::Format::UNDEFINED;
         pipelineDesc.renderTargetCount = 1;
         pipelineDesc.sampleCount = SAMPLE_COUNT_1;
         pipelineDesc.pBlendState = &blendStateDesc;
         pipelineDesc.sampleQuality = 0;
-        pipelineDesc.pColorFormats = (TinyImageFormat*)&pDesc->colorFormat;
+        pipelineDesc.pColorFormats = (hz::Format*)&pDesc->colorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
         pipelineDesc.pRasterizerState = &rasterizerStateDesc;
         pipelineDesc.pRootSignature = pUserInterface->pRootSignatureTextured;
@@ -3211,9 +3211,9 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
     }
 
 #if TOUCH_INPUT
-    bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
+    bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
                              uint32_t dispayHeight);
-    loadVirtualJoystick((ReloadType)pDesc->loadType, (TinyImageFormat)pDesc->colorFormat, pUserInterface->width, pUserInterface->height,
+    loadVirtualJoystick((ReloadType)pDesc->loadType, pDesc->colorFormat, pUserInterface->width, pUserInterface->height,
                         pUserInterface->displayWidth, pUserInterface->displayHeight);
 #endif
 #endif

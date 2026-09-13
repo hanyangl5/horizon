@@ -71,7 +71,7 @@ extern HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlace
 // swapchain);
 extern void    hook_remove_pipeline(Pipeline* pPipeline);
 
-extern TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
+extern hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
 extern uint32_t        hook_get_swapchain_image_index(SwapChain* pSwapChain);
 extern HRESULT         hook_acquire_next_image(ID3D12Device* pDevice, SwapChain* pSwapChain);
 extern HRESULT         hook_queue_present(Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex);

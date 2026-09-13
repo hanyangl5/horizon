@@ -169,7 +169,7 @@ bool RenderContext::createSwapChain()
         .enableVsync = desc.enableVSync,
         .colorSpace = desc.colorSpace,
     };
-    if (swapDesc.colorFormat == TinyImageFormat_UNDEFINED)
+    if (swapDesc.colorFormat == hz::Format::UNDEFINED)
         swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
     addSwapChain(pRenderer, &swapDesc, &pSwapChain);
     if (pSwapChain)
@@ -443,7 +443,7 @@ void RenderContext::wait(SubmitHandle handle)
 
 uint32_t          RenderContext::getWidth() const { return desc.width; }
 uint32_t          RenderContext::getHeight() const { return desc.height; }
-TinyImageFormat   RenderContext::getColorFormat() const { return desc.colorFormat; }
+hz::Format        RenderContext::getColorFormat() const { return desc.colorFormat; }
 const GPUTexture& RenderContext::getCurrentBackbuffer()
 {
     ASSERT(!suspended && pSwapChain);

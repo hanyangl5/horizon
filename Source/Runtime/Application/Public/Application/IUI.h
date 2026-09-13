@@ -26,6 +26,7 @@
 #define IUI_H
 
 #include "Core/IConfig.h"
+#include "RHI/Format.h"
 
 // SCRIPTED TESTING :
 // For now, if a script file with the name "Test.lua", exist in the script directory, will run once an execution.
@@ -480,7 +481,7 @@ typedef struct UserInterfaceLoadDesc
 {
     PipelineCache* pCache;
     uint32_t       loadType;    // enum ReloadType
-    uint32_t       colorFormat; // enum TinyImageFormat
+    hz::Format     colorFormat;
     uint32_t       width;
     uint32_t       height;
     uint32_t       displayWidth;

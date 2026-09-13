@@ -137,7 +137,7 @@ extern void d3d12_waitQueueIdle(Queue* pQueue);
 extern void d3d12_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus);
 extern void d3d12_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences);
 extern void d3d12_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
-extern TinyImageFormat d3d12_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
+extern hz::Format d3d12_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
 extern uint32_t        d3d12_getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHandle* hwnd);
 extern void            d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc,
                                                          CommandSignature** ppCommandSignature);
@@ -705,7 +705,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV toggleVSync(Renderer* pRenderer, SwapChai
     d3d12_toggleVSync(pRenderer, ppSwapchain);
 }
 
-FORGE_RENDERER_API TinyImageFormat FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc,
+FORGE_RENDERER_API hz::Format FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc,
                                                                               ColorSpace colorSpace)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();

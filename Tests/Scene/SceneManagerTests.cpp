@@ -100,7 +100,7 @@ Texture* loadTestTexture()
     Texture* pTexture = nullptr;
     TextureDesc texture = {
         .width = 1, .height = 1, .depth = 1, .arraySize = 1, .mipLevels = 1,
-        .sampleCount = SAMPLE_COUNT_1, .format = TinyImageFormat_R8G8B8A8_UNORM,
+        .sampleCount = SAMPLE_COUNT_1, .format = hz::Format::R8G8B8A8_UNORM,
         .startState = RESOURCE_STATE_SHADER_RESOURCE, .descriptors = DESCRIPTOR_TYPE_TEXTURE,
     };
     TextureLoadDesc desc = { .ppTexture = &pTexture, .pDesc = &texture };
