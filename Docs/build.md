@@ -1,6 +1,18 @@
 - shared pch
 - batch unitybuild
 
+## Slang shaders
+
+Slang is built from `Source/ThirdParty/slang`; initialize submodules with
+`git submodule update --init --recursive`. Its tests, examples, standalone tools,
+and LLVM backend are disabled. Building the compiler adds to the initial build time.
+
+`ShaderDesc` selects Slang for `.slang` files and DXC for `.hlsl` files. For in-memory
+Slang source, set `.language = hz::ShaderLanguage::Slang`. Both paths currently target
+D3D12. Slang stages are linked together before generating DXIL, so VS/PS in one module
+can share automatically assigned resource bindings. Matrices retain the existing
+column-major layout. Renderer uses Slang for both Geometry and Lighting.
+
 ## Tracy memory tracking
 
 Memory tracking is optional and disabled by default. Enable it with:

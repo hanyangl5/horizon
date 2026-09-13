@@ -45,7 +45,7 @@ GBuffer::GBuffer(hz::RenderContext& pContext): pContext(pContext)
             { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.GeometryVS" },
             { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
         },
-        .pFileName = "Geometry.hlsl",
+        .pFileName = "Geometry.slang",
     },
     .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
     .colorTargets = {
@@ -161,7 +161,7 @@ Lighting::Lighting(hz::RenderContext& pContext, hz::Format format): pContext(pCo
             { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.LightingVS" },
             { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.LightingPS" },
         },
-        .pFileName = "Lighting.hlsl",
+        .pFileName = "Lighting.slang",
     },
         .colorTargets = { { .format = format } },
         .pName = "Renderer.LightingPipeline",

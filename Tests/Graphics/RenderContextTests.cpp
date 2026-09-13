@@ -128,6 +128,74 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
 #endif
 }
 
+TEST(RenderContextLiveTest, CompilesSlangWithAutomaticBindings)
+{
+#if defined(_WINDOWS)
+    hz::RenderContext context({ .pAppName = "SlangComputeTest", .width = 0, .height = 0 });
+    const char        source[] = R"(
+        RWStructuredBuffer<uint> Results;
+        T identity<T>(T value) { return value; }
+        [numthreads(4, 1, 1)]
+        void CSMain(uint3 id : SV_DispatchThreadID) { Results[id.x] = identity<uint>(id.x + 23); }
+    )";
+    hz::GPUPipeline pipeline = context.createComputePipeline({
+        .shaderDesc = {
+            .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1,
+                          .pEntryPoint = "CSMain" } },
+            .language = hz::ShaderLanguage::Slang,
+        },
+    });
+    ASSERT_TRUE(pipeline.isValid());
+    hz::GPUBuffer    output = context.createBuffer({
+           .size = 4 * sizeof(uint32_t),
+           .elementCount = 4,
+           .structStride = sizeof(uint32_t),
+           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+           .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+           .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+    });
+    hz::GPUBuffer    readback = context.createBuffer({
+           .size = 4 * sizeof(uint32_t),
+           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+           .startState = RESOURCE_STATE_COPY_DEST,
+           .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    });
+    hz::CommandList& commands = context.acquireCommandList();
+    commands.setPipeline(pipeline);
+    commands.bindBuffer("Results", output);
+    commands.dispatch(1, 1, 1, { .buffers = { &output } });
+    commands.copyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
+    context.wait(context.submit(commands));
+    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    ASSERT_NE(values, nullptr);
+    for (uint32_t i = 0; i < 4; ++i)
+        EXPECT_EQ(values[i], i + 23);
+
+    const char graphicsSource[] = R"(
+        StructuredBuffer<float4> VertexOnly;
+        StructuredBuffer<float4> Shared;
+        StructuredBuffer<float4> FragmentOnly;
+        float4 VSMain(uint id : SV_VertexID) : SV_Position { return VertexOnly[id] + Shared[0]; }
+        float4 PSMain() : SV_Target0 { return FragmentOnly[0] + Shared[0]; }
+    )";
+    hz::GPUPipeline graphics = context.createGraphicsPipeline({
+        .shaderDesc = {
+            .stages = {
+                { .stage = SHADER_STAGE_VERT, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
+                  .pEntryPoint = "VSMain" },
+                { .stage = SHADER_STAGE_FRAG, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
+                  .pEntryPoint = "PSMain" },
+            },
+            .language = hz::ShaderLanguage::Slang,
+        },
+        .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM } },
+    });
+    EXPECT_TRUE(graphics.isValid());
+#else
+    GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
+#endif
+}
+
 TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
 {
 #if defined(_WINDOWS)

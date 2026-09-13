@@ -202,6 +202,7 @@ void RenderContext::destroySwapChain()
 
 void RenderContext::cleanup()
 {
+    destroyShaderCompiler();
     for (const CommandSlot& slot : commandSlots)
         ASSERT(!slot.commands.pCmd);
     destroySwapChain();

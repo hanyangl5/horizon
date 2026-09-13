@@ -7,6 +7,11 @@
 
 #include <stdint.h>
 
+namespace slang
+{
+struct IGlobalSession;
+}
+
 namespace hz
 {
 constexpr uint32_t MAX_SHADER_STAGES = 6;
@@ -76,11 +81,19 @@ struct ShaderStageDesc
     const char* pName = nullptr;
 };
 
+enum class ShaderLanguage
+{
+    Auto,
+    HLSL,
+    Slang,
+};
+
 struct ShaderDesc
 {
     hz::Span<ShaderStageDesc> stages = {};
     ResourceDirectory         sourceDirectory = RD_SHADER_SOURCES;
     const char*               pFileName = nullptr;
+    ShaderLanguage            language = ShaderLanguage::Auto;
 };
 
 struct ColorTargetDesc
@@ -412,6 +425,10 @@ private:
     void    destroyDevice(bool waitForGpu);
     void    cleanup();
     Shader* createShader(const ShaderDesc&);
+    Shader* createSlangShader(const ShaderSrcDesc&);
+    void    destroyShaderCompiler();
+
+    slang::IGlobalSession* pSlangSession = nullptr;
 
     ContextDesc               desc = {};
     RendererContext*          pRendererContext = nullptr;

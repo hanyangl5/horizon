@@ -50,6 +50,7 @@ function(add_test_target target_name)
         set(HORIZON_TEST_RUNTIME_DLLS
             $<TARGET_FILE:WinPixEventRuntime>
             $<TARGET_FILE:AGS>
+            $<TARGET_FILE:slang>
             ${HORIZON_DIRECTSTORAGE_RUNTIME_DLLS}
             ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxcompiler.dll
             ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxil.dll

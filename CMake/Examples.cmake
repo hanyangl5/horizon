@@ -4,6 +4,7 @@ if(WIN32)
     set(HORIZON_EXAMPLE_RUNTIME_DLLS
         $<TARGET_FILE:WinPixEventRuntime>
         $<TARGET_FILE:AGS>
+        $<TARGET_FILE:slang>
         ${HORIZON_DIRECTSTORAGE_RUNTIME_DLLS}
         ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxcompiler.dll
         ${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXShaderCompiler/bin/x64/dxil.dll
@@ -44,7 +45,7 @@ function(add_example_target target_name)
     source_group(TREE ${example_source_dir} FILES ${example_tree_sources})
     source_group("Source Files" FILES ${example_code_sources})
     set(example_shader_sources ${example_sources})
-    list(FILTER example_shader_sources INCLUDE REGEX "\\.(hlsl|hlsli)$")
+    list(FILTER example_shader_sources INCLUDE REGEX "\\.(hlsl|hlsli|slang)$")
     if(example_shader_sources)
         set_source_files_properties(${example_shader_sources} PROPERTIES HEADER_FILE_ONLY TRUE)
     endif()

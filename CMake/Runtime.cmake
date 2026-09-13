@@ -130,6 +130,7 @@ target_precompile_headers(${ENGINE_RUNTIME} INTERFACE
 )
 
 target_link_libraries(${ENGINE_RUNTIME} PUBLIC ${RHI_LIBRARIES} ${THIRD_PARTY_DEPS})
+target_link_libraries(${ENGINE_RUNTIME} PRIVATE slang)
 
 target_link_directories(${ENGINE_RUNTIME} PUBLIC ${RHI_LIBRARY_PATHS})
 

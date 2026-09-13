@@ -383,8 +383,13 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
         ASSERT(stage->pByteCode && stage->byteCodeSize && stage->pEntryPoint && stage->pEntryPoint[0]);
     }
 
-    Shader* shader = nullptr;
-    addShaderSource(pRenderer, &source, &shader);
+    Shader*     shader = nullptr;
+    const char* extension = input.pFileName ? strrchr(input.pFileName, '.') : nullptr;
+    if (input.language == ShaderLanguage::Slang ||
+        (input.language == ShaderLanguage::Auto && extension && strcmp(extension, ".slang") == 0))
+        shader = createSlangShader(source);
+    else
+        addShaderSource(pRenderer, &source, &shader);
     if (sourceFile.pIO)
         fsCloseStream(&sourceFile);
     ASSERT(shader);

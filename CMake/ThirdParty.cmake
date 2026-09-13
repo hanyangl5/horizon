@@ -1,13 +1,14 @@
 set(ENGINE_THIRD_PARTY_SOURCE_DIR ${ENGINE_SOURCE_DIR}/ThirdParty)
 
 include(${ENGINE_DIR}/CMake/GpuDeps.cmake)
+include(${ENGINE_DIR}/CMake/Slang.cmake)
 
 set(HORIZON_THIRD_PARTY_DEPS
     RMem
     MeshOptimizer
     BString
     zstd
-    lz4
+    HorizonLZ4
     gainputstatic
     Ozz
     cpu_features
@@ -181,7 +182,7 @@ file(GLOB_RECURSE ZSTD_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/zstd/*.c)
 add_library(zstd STATIC ${ZSTD_FILES})
 
 file(GLOB_RECURSE LZ4_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/lz4/*.c)
-add_library(lz4 STATIC ${LZ4_FILES})
+add_library(HorizonLZ4 STATIC ${LZ4_FILES})
 
 file(GLOB_RECURSE IMGUI_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/*.cpp)
 add_library(imgui STATIC ${IMGUI_FILES})
