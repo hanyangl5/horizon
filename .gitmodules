@@ -10,3 +10,6 @@
 [submodule "Source/ThirdParty/nvapi"]
 	path = Source/ThirdParty/nvapi
 	url = https://github.com/NVIDIA/nvapi.git
+[submodule "Source/ThirdParty/slang"]
+	path = Source/ThirdParty/slang
+	url = https://github.com/shader-slang/slang
