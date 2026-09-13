@@ -9,9 +9,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        lfs: true
-        submodules: recursive
     - uses: DoozyX/clang-format-lint-action@v0.13
       with:
         source: './Source/Runtime ./Source/Tools ./Examples'
