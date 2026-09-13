@@ -1056,6 +1056,15 @@ inline Matrix4::Matrix4(const Vector4 & _col0, const Vector4 & _col1, const Vect
     mCol3 = _col3;
 }
 
+inline Matrix4::Matrix4(float m00, float m10, float m20, float m30,
+                        float m01, float m11, float m21, float m31,
+                        float m02, float m12, float m22, float m32,
+                        float m03, float m13, float m23, float m33)
+    : mCol0(m00, m10, m20, m30), mCol1(m01, m11, m21, m31),
+      mCol2(m02, m12, m22, m32), mCol3(m03, m13, m23, m33)
+{
+}
+
 inline Matrix4::Matrix4(const Matrix3 & mat, const Vector3 & translateVec)
 {
     mCol0 = Vector4(mat.getCol0(), 0.0f);

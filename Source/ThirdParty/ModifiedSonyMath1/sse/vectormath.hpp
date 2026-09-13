@@ -2991,6 +2991,13 @@ public:
     //
     inline Matrix4(const Vector4 & col0, const Vector4 & col1, const Vector4 & col2, const Vector4 & col3);
 
+    // Construct a 4x4 matrix from 16 scalars in column-major order.
+    //
+    inline Matrix4(float m00, float m10, float m20, float m30,
+                   float m01, float m11, float m21, float m31,
+                   float m02, float m12, float m22, float m32,
+                   float m03, float m13, float m23, float m33);
+
     // Construct a 4x4 matrix from a 3x4 transformation matrix
     //
     explicit inline Matrix4(const Transform3 & mat);
