@@ -1,8 +1,4 @@
 #pragma once
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "Application/IApp.h"
 #include "Application/IFreeCameraController.h"
 #include "Core/ILog.h"
@@ -15,26 +11,13 @@
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
 #include "AssetPipeline/IAssetPipeline.h"
 #endif
-#include "Core/IMemory.h"
 
+#include "RenderPasses.h"
 
-constexpr const char* kSceneDirectory = "Assets/Bistro";
-constexpr const char* kSceneSource = "BistroExterior.gltf";
+constexpr const char*     kSceneDirectory = "Assets/Bistro";
+constexpr const char*     kSceneSource = "BistroExterior.gltf";
 constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
-constexpr TinyImageFormat kDepthFormat = TinyImageFormat_D24_UNORM_S8_UINT;
-constexpr TinyImageFormat kGBufferFormats[] = {
-    TinyImageFormat_R10G10B10A2_UNORM,
-    TinyImageFormat_R10G10B10A2_UNORM,
-    TinyImageFormat_R8G8B8A8_UNORM,
-    TinyImageFormat_R8G8B8A8_UNORM,
-};
-constexpr const char* kGBufferNames[] = {
-    "Renderer.GBuffer.Emissive",
-    "Renderer.GBuffer.NormalMaterial",
-    "Renderer.GBuffer.BaseColorMetallic",
-    "Renderer.GBuffer.MotionMaterialId",
-};
-constexpr uint32_t kGBufferCount = TF_ARRAY_COUNT(kGBufferFormats);
+
 const VertexLayout kSceneVertexLayout = {
     .mBindings = { { .mStride = 12 }, { .mStride = 4 }, { .mStride = 4 } },
     .mAttribs = {
@@ -44,29 +27,6 @@ const VertexLayout kSceneVertexLayout = {
     },
     .mBindingCount = 3, .mAttribCount = 3,
 };
-
-struct DrawData
-{
-    Matrix4  world;
-    Matrix4  normal;
-    uint32_t material;
-    float    alphaCutoff;
-    uint32_t padding[2];
-};
-struct FrameData
-{
-    Matrix4 viewProjection;
-    Matrix4 previousViewProjection;
-    Matrix4 inverseViewProjection;
-    Vector4 eye;
-};
-
-int compareMaterials(const void* left, const void* right)
-{
-    const uint32_t a = ((const SceneAssetInstance*)left)->mMaterialIndex;
-    const uint32_t b = ((const SceneAssetInstance*)right)->mMaterialIndex;
-    return (a > b) - (a < b);
-}
 
 class RendererApp final: public IApp
 {
@@ -83,7 +43,7 @@ public:
     {
         configureResourceDirectories();
         initRenderContext();
-        if (!(initSceneAsset() && initRenderResources() && initPipelines()))
+        if (!(initSceneAsset() && initRenderPasses()))
         {
             Exit();
             return false;
@@ -169,9 +129,7 @@ private:
         }
 
         mInstanceCount = header->mInstanceCount;
-        pInstances = (SceneAssetInstance*)tf_malloc(mInstanceCount * sizeof(SceneAssetInstance));
-        memcpy(pInstances, header + 1, mInstanceCount * sizeof(SceneAssetInstance));
-        qsort(pInstances, mInstanceCount, sizeof(SceneAssetInstance), compareMaterials);
+        pInstances = (const SceneAssetInstance*)(header + 1);
 
         const float cx = (header->mBoundsMin[0] + header->mBoundsMax[0]) * 0.5f;
         const float cz = (header->mBoundsMin[2] + header->mBoundsMax[2]) * 0.5f;
@@ -192,147 +150,20 @@ private:
         return true;
     }
 
-    bool initRenderResources()
+    bool initRenderPasses()
     {
-        const SceneGeometry& geometry = getGeometry();
-        DrawData* draws = (DrawData*)tf_calloc(mInstanceCount, sizeof(DrawData));
-        for (uint32_t i = 0; i < mInstanceCount; ++i)
-        {
-            if (pInstances[i].mDrawIndex >= geometry.mDrawArgCount ||
-                pInstances[i].mMaterialIndex >= pScenes->getMaterialCount(mScene))
-            {
-                tf_free(draws);
-                LOGF(eERROR, "Scene instance has an invalid draw or material index");
-                return false;
-            }
-            memcpy(&draws[i].world, pInstances[i].mWorld, sizeof(Matrix4));
-            draws[i].normal = transpose(inverse(draws[i].world));
-            draws[i].material = pInstances[i].mMaterialIndex;
-            draws[i].alphaCutoff = pInstances[i].mAlphaCutoff;
-        }
-        const hz::BufferDesc drawDesc = {
-            .size = mInstanceCount * sizeof(DrawData),
-            .elementCount = mInstanceCount,
-            .structStride = sizeof(DrawData),
-            .pName = "Renderer.Instances",
-            .pInitialData = draws,
-            .initialDataSize = mInstanceCount * sizeof(DrawData),
-            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-            .startState = RESOURCE_STATE_SHADER_RESOURCE,
-            .descriptors = DESCRIPTOR_TYPE_BUFFER,
+        const RenderPassesDesc desc = {
+            .pContext = pContext.get(),
+            .pScenes = pScenes.get(),
+            .scene = mScene,
+            .pInstances = pInstances,
+            .instanceCount = mInstanceCount,
+            .pVertexLayout = &kSceneVertexLayout,
+            .surfaceFormat = kSurfaceFormat,
+            .verticalFov = mVerticalFov,
         };
-        mDraws = pContext->createBuffer(drawDesc);
-        tf_free(draws);
-        if (!mDraws.isValid())
-        {
-            LOGF(eERROR, "Failed to create Renderer.Instances");
-            return false;
-        }
-
-        const hz::BufferDesc frameDesc = {
-            .size = sizeof(FrameData),
-            .elementCount = 1,
-            .structStride = sizeof(FrameData),
-            .pName = "Renderer.Frame",
-            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-            .startState = RESOURCE_STATE_SHADER_RESOURCE,
-            .descriptors = DESCRIPTOR_TYPE_BUFFER,
-        };
-        mFrame = pContext->createBuffer(frameDesc);
-        if (!mFrame.isValid())
-        {
-            LOGF(eERROR, "Failed to create Renderer.Frame");
-            return false;
-        }
-
-        const hz::SamplerDesc samplerDesc = {
-            .minFilter = FILTER_LINEAR,
-            .magFilter = FILTER_LINEAR,
-            .mipMapMode = MIPMAP_MODE_LINEAR,
-            .addressU = ADDRESS_MODE_REPEAT,
-            .addressV = ADDRESS_MODE_REPEAT,
-            .addressW = ADDRESS_MODE_REPEAT,
-        };
-        mSampler = pContext->createSampler(samplerDesc);
-        if (!mSampler.isValid())
-        {
-            LOGF(eERROR, "Failed to create Renderer.SurfaceSampler");
-            return false;
-        }
-        return true;
-    }
-
-    bool initPipelines()
-    {
-        const hz::ShaderDesc geometryShaderDesc = {
-            .stages = {
-                { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.GeometryVS" },
-                { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
-            },
-            .stageCount = 2,
-            .sourceDirectory = RD_SHADER_SOURCES,
-            .pFileName = "Geometry.hlsl",
-        };
-        const hz::ShaderDesc lightingShaderDesc = {
-            .stages = {
-                { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.LightingVS" },
-                { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.LightingPS" },
-            },
-            .stageCount = 2,
-            .sourceDirectory = RD_SHADER_SOURCES,
-            .pFileName = "Lighting.hlsl",
-        };
-        mGeometryShader = pContext->createShader(geometryShaderDesc);
-        if (!mGeometryShader.isValid())
-        {
-            LOGF(eERROR, "Failed to create Geometry shader");
-            return false;
-        }
-        mLightingShader = pContext->createShader(lightingShaderDesc);
-        if (!mLightingShader.isValid())
-        {
-            LOGF(eERROR, "Failed to create Lighting shader");
-            return false;
-        }
-
-        const hz::GraphicsPipelineDesc geometryPipelineDesc = {
-            .pShader = &mGeometryShader, .vertexLayout = kSceneVertexLayout,
-            .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
-            .depth = { .mDepthTest = true, .mDepthWrite = true, .mDepthFunc = CMP_LEQUAL },
-            .blend = {
-                .mSrcFactors = { BC_ONE }, .mDstFactors = { BC_ZERO }, .mSrcAlphaFactors = { BC_ONE }, .mDstAlphaFactors = { BC_ZERO },
-                .mBlendModes = { BM_ADD }, .mBlendAlphaModes = { BM_ADD }, .mColorWriteMasks = { COLOR_MASK_ALL },
-                .mRenderTargetMask = (BlendStateTargets)(BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1 |
-                                                         BLEND_STATE_TARGET_2 | BLEND_STATE_TARGET_3),
-            },
-            .colorFormats = { kGBufferFormats[0], kGBufferFormats[1], kGBufferFormats[2], kGBufferFormats[3] },
-            .renderTargetCount = kGBufferCount, .depthStencilFormat = kDepthFormat,
-            .topology = PRIMITIVE_TOPO_TRI_LIST, .sampleCount = SAMPLE_COUNT_1, .pName = "Renderer.GeometryPipeline",
-        };
-        const hz::GraphicsPipelineDesc lightingPipelineDesc = {
-            .pShader = &mLightingShader,
-            .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
-            .depth = { .mDepthFunc = CMP_ALWAYS },
-            .blend = {
-                .mSrcFactors = { BC_ONE }, .mDstFactors = { BC_ZERO }, .mSrcAlphaFactors = { BC_ONE }, .mDstAlphaFactors = { BC_ZERO },
-                .mBlendModes = { BM_ADD }, .mBlendAlphaModes = { BM_ADD }, .mColorWriteMasks = { COLOR_MASK_ALL },
-                .mRenderTargetMask = BLEND_STATE_TARGET_0,
-            },
-            .colorFormats = { kSurfaceFormat }, .renderTargetCount = 1,
-            .topology = PRIMITIVE_TOPO_TRI_LIST, .sampleCount = SAMPLE_COUNT_1, .pName = "Renderer.LightingPipeline",
-        };
-        mGeometryPipeline = pContext->createGraphicsPipeline(geometryPipelineDesc);
-        if (!mGeometryPipeline.isValid())
-        {
-            LOGF(eERROR, "Failed to create Geometry pipeline");
-            return false;
-        }
-        mLightingPipeline = pContext->createGraphicsPipeline(lightingPipelineDesc);
-        if (!mLightingPipeline.isValid())
-        {
-            LOGF(eERROR, "Failed to create Lighting pipeline");
-            return false;
-        }
+        pRenderPasses = hz::make_unique<RenderPasses>(desc);
+        ASSERT(pRenderPasses);
         return true;
     }
 
@@ -342,21 +173,11 @@ public:
         pCamera = nullptr;
         if (pContext && pContext->isValid())
             pContext->waitIdle();
-        mLightingPipeline = {};
-        mGeometryPipeline = {};
-        mLightingShader = {};
-        mGeometryShader = {};
-        mSampler = {};
-        for (hz::GPUTexture& target : mGBuffer)
-            target = {};
-        mDepth = {};
-        mDraws = {};
-        mFrame = {};
+        pRenderPasses = nullptr;
         pScenes = nullptr;
         if (pGeometryData)
             removeResource(pGeometryData);
         pGeometryData = nullptr;
-        tf_free(pInstances);
         pInstances = nullptr;
         pContext = nullptr;
     }
@@ -371,167 +192,19 @@ public:
             LOGF(eERROR, "Failed to resize RenderContext to %ux%u", width, height);
             return false;
         }
-        if (!width || !height)
-            return true;
-        hz::TextureDesc targetDesc = {
-            .width = width,
-            .height = height,
-            .depth = 1,
-            .arraySize = 1,
-            .mipLevels = 1,
-            .sampleCount = SAMPLE_COUNT_1,
-            .startState = RESOURCE_STATE_RENDER_TARGET,
-            .descriptors = DESCRIPTOR_TYPE_TEXTURE,
-            .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
-            .renderTarget = true,
-        };
-        for (uint32_t i = 0; i < kGBufferCount; ++i)
-        {
-            targetDesc.format = kGBufferFormats[i];
-            targetDesc.pName = kGBufferNames[i];
-            mGBuffer[i] = pContext->createTexture(targetDesc);
-            if (!mGBuffer[i].isValid())
-            {
-                LOGF(eERROR, "Failed to create %s", kGBufferNames[i]);
-                return false;
-            }
-        }
-        targetDesc.format = kDepthFormat;
-        targetDesc.startState = RESOURCE_STATE_DEPTH_WRITE;
-        targetDesc.pName = "Renderer.Depth";
-        const hz::TextureDesc depthDesc = targetDesc;
-        mDepth = pContext->createTexture(depthDesc);
-        mHasPreviousViewProjection = false;
-        if (!mDepth.isValid())
-        {
-            LOGF(eERROR, "Failed to create Renderer.Depth");
-            return false;
-        }
-        return true;
+        return pRenderPasses->load(width, height);
     }
-    void Unload(ReloadDesc*) override
-    {
-        for (hz::GPUTexture& target : mGBuffer)
-            target = {};
-        mDepth = {};
-        mHasPreviousViewProjection = false;
-    }
+    void Unload(ReloadDesc*) override { pRenderPasses->unload(); }
     void Update(float deltaTime) override
     {
         pCamera->update(deltaTime, (uint32_t)mSettings.mWidth, (uint32_t)mSettings.mHeight, mSettings.mFocused);
+        pRenderPasses->update(*pCamera);
     }
     const char* GetName() override { return "Renderer"; }
 
-    void Draw() override
-    {
-        if (pContext->isSuspended())
-            return;
-        const SceneGeometry& geometry = getGeometry();
-        hz::CommandList& commands = pContext->acquireCommandList();
-        const float      aspectInverse = (float)pContext->getHeight() / (float)pContext->getWidth();
-        const float      horizontalFov = 2.0f * atanf(tanf(mVerticalFov * 0.5f) / aspectInverse);
-        const Matrix4    viewProjection = Matrix4::perspectiveRH(horizontalFov, aspectInverse, 0.1f, 1000.0f) *
-                                       Matrix4::scale(Vector3(-1.0f, 1.0f, -1.0f)) * pCamera->getViewMatrix();
-        if (!mHasPreviousViewProjection)
-            mPreviousViewProjection = viewProjection;
-        const FrameData  frame = {
-            .viewProjection = viewProjection,
-            .previousViewProjection = mPreviousViewProjection,
-            .inverseViewProjection = inverse(viewProjection),
-            .eye = Vector4(pCamera->getPosition(), 1.0f),
-        };
-        commands.updateBuffer(mFrame, 0, &frame, sizeof(frame));
-
-        const ClearValue black = {};
-        const hz::RenderPassDesc geometryPass = {
-            .colorAttachments = {
-                { .pTexture = &mGBuffer[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-                { .pTexture = &mGBuffer[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-                { .pTexture = &mGBuffer[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-                { .pTexture = &mGBuffer[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-            },
-            .colorAttachmentCount = kGBufferCount,
-            .depthAttachment = { .pTexture = &mDepth,
-                                 .loadAction = LOAD_ACTION_CLEAR,
-                                 .storeAction = STORE_ACTION_STORE,
-                                 .clearValue = { .depth = 1.0f } },
-        };
-        commands.beginGpuTimestamp("Geometry");
-        commands.beginRendering(geometryPass);
-        commands.setViewport(0, 0, (float)pContext->getWidth(), (float)pContext->getHeight());
-        commands.setScissor(0, 0, pContext->getWidth(), pContext->getHeight());
-        commands.setPipeline(mGeometryPipeline);
-        commands.bindBuffer("Frame", mFrame);
-        commands.bindBuffer("Draws", mDraws);
-        commands.bindBuffer("Materials", *pScenes->getMaterialBuffer(mScene));
-        commands.bindSampler("SurfaceSampler", mSampler);
-        for (uint32_t i = 0; i < geometry.mVertexBufferCount; ++i)
-        {
-            commands.setVertexBuffer(i, geometry.mVertexBuffers[i], 0, geometry.mVertexStrides[i]);
-        }
-        commands.setIndexBuffer(geometry.mIndexBuffer, 0, geometry.mIndexType);
-        const SceneAssetGpuMaterial* gpuMaterials = pScenes->getGpuMaterials(mScene);
-        uint32_t                     previousMaterial = UINT32_MAX;
-        for (uint32_t i = 0; i < mInstanceCount; ++i)
-        {
-            const SceneAssetInstance& instance = pInstances[i];
-            if (instance.mMaterialIndex != previousMaterial)
-            {
-                const SceneAssetGpuMaterial& material = gpuMaterials[instance.mMaterialIndex];
-                const uint32_t textureIndices[] = { material.mBaseColorTexture, material.mNormalTexture, material.mMetallicRoughnessTexture,
-                                                    material.mEmissiveTexture };
-                const char*    names[] = { "BaseColor", "NormalMap", "MetallicRoughness", "Emissive" };
-                for (uint32_t t = 0; t < 4; ++t)
-                {
-                    // Missing maps are not sampled by the shader, but still need a valid descriptor.
-                    const uint32_t       textureIndex = textureIndices[t] == UINT32_MAX ? 0 : textureIndices[t];
-                    commands.bindTexture(names[t], *pScenes->getTexture(mScene, textureIndex));
-                }
-                previousMaterial = instance.mMaterialIndex;
-            }
-            commands.setPushConstants(0, &i, sizeof(i));
-            const IndirectDrawIndexArguments& draw = geometry.pDrawArgs[instance.mDrawIndex];
-            commands.drawIndexed(draw.mIndexCount, draw.mStartIndex, draw.mVertexOffset);
-        }
-        commands.endRendering();
-        commands.endGpuTimestamp();
-
-        const hz::GPUTexture& backbuffer = pContext->getCurrentBackbuffer();
-        const hz::RenderPassDesc lightingPass = {
-            .colorAttachments = { { .pTexture = &backbuffer,
-                                    .loadAction = LOAD_ACTION_CLEAR,
-                                    .storeAction = STORE_ACTION_STORE,
-                                    .clearValue = { .r = 0.02f, .g = 0.035f, .b = 0.055f, .a = 1.0f } } },
-            .colorAttachmentCount = 1,
-        };
-        const hz::GPUTexture* sampledTextures[] = { &mGBuffer[0], &mGBuffer[1], &mGBuffer[2], &mDepth };
-        commands.beginGpuTimestamp("Lighting");
-        commands.beginRendering(lightingPass, { .sampledTextures = sampledTextures });
-        commands.setViewport(0, 0, (float)pContext->getWidth(), (float)pContext->getHeight());
-        commands.setScissor(0, 0, pContext->getWidth(), pContext->getHeight());
-        commands.setPipeline(mLightingPipeline);
-        commands.bindTexture("EmissiveBuffer", mGBuffer[0]);
-        commands.bindTexture("NormalMaterialBuffer", mGBuffer[1]);
-        commands.bindTexture("BaseColorMetallicBuffer", mGBuffer[2]);
-        commands.bindTexture("DepthBuffer", mDepth);
-        commands.bindBuffer("Frame", mFrame);
-        commands.draw(3);
-        commands.endRendering();
-        commands.endGpuTimestamp();
-
-        pContext->submit(commands, &backbuffer);
-        mPreviousViewProjection = viewProjection;
-        mHasPreviousViewProjection = true;
-    }
+    void Draw() override { pRenderPasses->execute(); }
 
 private:
-    const SceneGeometry& getGeometry() const
-    {
-        const SceneGeometry* geometry = pScenes->getGeometry(mScene);
-        ASSERT(geometry);
-        return *geometry;
-    }
-
     void initCamera()
     {
         const FreeCameraControllerDesc desc = {
@@ -546,24 +219,14 @@ private:
     }
 
     hz::unique_ptr<FreeCameraController> pCamera;
-    hz::unique_ptr<hz::RenderContext> pContext;
-    hz::unique_ptr<SceneManager> pScenes;
-    SceneAssetHandle    mScene = {};
-    GeometryData*       pGeometryData = nullptr;
-    SceneAssetInstance* pInstances = nullptr;
-    uint32_t            mInstanceCount = 0;
-    hz::GPUBuffer       mFrame;
-    hz::GPUBuffer       mDraws;
-    hz::GPUTexture      mGBuffer[kGBufferCount];
-    hz::GPUTexture      mDepth;
-    hz::GPUSampler      mSampler;
-    hz::GPUShader       mGeometryShader;
-    hz::GPUShader       mLightingShader;
-    hz::GPUPipeline     mGeometryPipeline;
-    hz::GPUPipeline     mLightingPipeline;
-    Matrix4             mPreviousViewProjection;
-    bool                mHasPreviousViewProjection = false;
-    Point3              mEye;
-    Point3              mTarget;
-    float                mVerticalFov = PI / 4.0f;
+    hz::unique_ptr<hz::RenderContext>    pContext;
+    hz::unique_ptr<SceneManager>         pScenes;
+    hz::unique_ptr<RenderPasses>         pRenderPasses;
+    SceneAssetHandle                     mScene = {};
+    GeometryData*                        pGeometryData = nullptr;
+    const SceneAssetInstance*            pInstances = nullptr;
+    uint32_t                             mInstanceCount = 0;
+    Point3                               mEye;
+    Point3                               mTarget;
+    float                                mVerticalFov = PI / 4.0f;
 };

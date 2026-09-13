@@ -1,9 +1,9 @@
 #include "Common.hlsl"
 
-Texture2D<float4> EmissiveBuffer : register(t0);
-Texture2D<float4> NormalMaterialBuffer : register(t1);
-Texture2D<float4> BaseColorMetallicBuffer : register(t2);
-Texture2D<float> DepthBuffer : register(t3);
+Texture2D<float4> GBuffer0 : register(t0);
+Texture2D<float4> GBuffer1 : register(t1);
+Texture2D<float4> GBuffer2 : register(t2);
+Texture2D<float> SceneDepth : register(t3);
 StructuredBuffer<FrameData> Frame : register(t4);
 
 struct PSInput {
@@ -56,14 +56,14 @@ float3 acesFilm(float3 color) {
 
 float4 PSMain(PSInput input) : SV_Target0 {
   int2 pixel = int2(input.position.xy);
-  float depth = DepthBuffer.Load(int3(pixel, 0));
+  float depth = SceneDepth.Load(int3(pixel, 0));
   if (depth >= 1.0)
     return float4(0.02, 0.035, 0.055, 1.0);
 
-  float3 emissive = EmissiveBuffer.Load(int3(pixel, 0)).rgb;
-  float4 normalMaterial = NormalMaterialBuffer.Load(int3(pixel, 0));
+  float3 emissive = GBuffer0.Load(int3(pixel, 0)).rgb;
+  float4 normalMaterial = GBuffer1.Load(int3(pixel, 0));
   float4 baseColorMetallic =
-      BaseColorMetallicBuffer.Load(int3(pixel, 0));
+      GBuffer2.Load(int3(pixel, 0));
   float3 normal = decodeOctNormal(normalMaterial.rg);
   float2 material = unpackMaterialProperties(normalMaterial.ba);
   float roughness = material.x;
