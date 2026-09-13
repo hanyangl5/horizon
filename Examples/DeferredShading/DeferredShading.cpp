@@ -424,7 +424,7 @@ LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
 void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& backbuffer, const hz::GPUTexture& albedo,
                            const hz::GPUTexture& normal, const hz::GPUTexture& depth, uint32_t width, uint32_t height) const
 {
-    const ClearValue   clear = { .r = 0.02f, .g = 0.025f, .b = 0.03f, .a = 1.0f };
+    const ClearValue clear = { .r = 0.02f, .g = 0.025f, .b = 0.03f, .a = 1.0f };
     commands.beginGpuTimestamp("Lighting");
     const hz::GPUTexture* sampledTextures[] = { &albedo, &normal, &depth };
     commands.beginRendering(
@@ -448,7 +448,7 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
     commands.endGpuTimestamp();
 }
 
-constexpr uint32_t        kCpuProfileColor = 0x88CC44;
+constexpr uint32_t   kCpuProfileColor = 0x88CC44;
 constexpr hz::Format kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
 
 class DeferredShadingApp final: public IApp

@@ -93,13 +93,13 @@ void GBuffer::unload()
 
 void GBuffer::update() {}
 
-void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws,
-                      SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances)
+void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, SceneManager& scenes,
+                      SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances)
 {
     const SceneGeometry* pGeometry = scenes.getGeometry(scene);
     ASSERT(pGeometry);
     const SceneGeometry& geometry = *pGeometry;
-    const ClearValue black = {};
+    const ClearValue     black = {};
     commands.beginGpuTimestamp("Geometry");
     commands.beginRendering({
         .colorAttachments =  {
@@ -221,7 +221,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& desc):
 bool RenderPasses::initRenderResources()
 {
     const SceneGeometry& geometry = getGeometry();
-    hz::Array<DrawData> draws(instances.size());
+    hz::Array<DrawData>  draws(instances.size());
     for (uint32_t i = 0; i < instances.size(); ++i)
     {
         if (instances[i].drawIndex >= geometry.drawArgCount || instances[i].materialIndex >= pScenes->getMaterialCount(mScene))

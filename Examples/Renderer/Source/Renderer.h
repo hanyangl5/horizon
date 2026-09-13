@@ -14,9 +14,9 @@
 
 #include "RenderPasses.h"
 
-constexpr const char*     kSceneDirectory = "Assets/Bistro";
-constexpr const char*     kSceneSource = "BistroExterior.gltf";
-constexpr hz::Format kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
+constexpr const char* kSceneDirectory = "Assets/Bistro";
+constexpr const char* kSceneSource = "BistroExterior.gltf";
+constexpr hz::Format  kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
 
 const VertexLayout kSceneVertexLayout = {
     .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },

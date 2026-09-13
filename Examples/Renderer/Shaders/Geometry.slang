@@ -11,7 +11,7 @@ ByteAddressBuffer           Positions;
 ByteAddressBuffer           Normals;
 ByteAddressBuffer           Texcoords;
 SamplerState                SurfaceSampler;
-cbuffer RootConstant0 { uint drawId; };
+cbuffer                     RootConstant0 { uint drawId; };
 
 struct PSInput
 {

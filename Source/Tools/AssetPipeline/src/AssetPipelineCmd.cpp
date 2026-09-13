@@ -50,8 +50,9 @@ void PrintHelp()
     printf("\n\t\t--optimizecache\t\t: Enables vertex cache optimization\n");
     printf("\n\t\t--optimizeoverdraw\t\t: Enables overdraw optimization\n");
     printf("\n\t\t--optimizefetch\t\t: Enables vertex fetch optimization\n");
-    printf("\n\t\t--meshlets\t\t: Enables meshlet generation. By default number of vertices and triangles in each meshlet is limited by 128 "
-           "and 256 respectively\n");
+    printf(
+        "\n\t\t--meshlets\t\t: Enables meshlet generation. By default number of vertices and triangles in each meshlet is limited by 128 "
+        "and 256 respectively\n");
     printf("\n\t\t--meshletnumvertices [num]\t\t: Overrides maximum number of vertices in each meshlet\n");
     printf("\n\t\t--meshletnumtriangles [num]\t\t: Overrides maximum number of triangles in each meshlet\n");
     printf("\n\t%s\t(unavailable: texture compression backends are not vendored)\n",

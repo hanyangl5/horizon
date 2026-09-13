@@ -24,16 +24,16 @@ class GBuffer
 {
 public:
     GBuffer(hz::RenderContext& pContext);
-    void                      update();
-    void                      execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws,
-                                      SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
-    void                      load(uint32_t width, uint32_t height);
-    void                      unload();
+    void update();
+    void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, SceneManager& scenes, SceneAssetHandle scene,
+                 hz::Span<const SceneAssetInstance> instances);
+    void load(uint32_t width, uint32_t height);
+    void unload();
     hz::RenderContext&        pContext;
     static constexpr uint32_t GBufferCount = 4;
     hz::GPUPipeline           mGeometryPipeline;
     hz::GPUSampler            mSampler;
-    hz::GPUTexture mGBuffer[GBufferCount];
+    hz::GPUTexture            mGBuffer[GBufferCount];
     hz::GPUTexture            mDepth;
 };
 
@@ -46,7 +46,7 @@ public:
     void load(uint32_t width, uint32_t height);
     void unload();
     hz::RenderContext& pContext;
-    hz::GPUPipeline mLightingPipeline;
+    hz::GPUPipeline    mLightingPipeline;
 };
 
 class RenderPasses
@@ -61,7 +61,6 @@ public:
     void execute();
 
 private:
-
     struct FrameData
     {
         Matrix4 viewProjection;
@@ -73,18 +72,18 @@ private:
     bool                 initRenderResources();
     const SceneGeometry& getGeometry() const;
 
-    hz::RenderContext&  pContext;
-    SceneManager*       pScenes = nullptr;
-    SceneAssetHandle    mScene = {};
+    hz::RenderContext&            pContext;
+    SceneManager*                 pScenes = nullptr;
+    SceneAssetHandle              mScene = {};
     hz::Array<SceneAssetInstance> instances;
-    hz::Format          mSurfaceFormat = hz::Format::UNDEFINED;
-    float               mVerticalFov = PI / 4.0f;
+    hz::Format                    mSurfaceFormat = hz::Format::UNDEFINED;
+    float                         mVerticalFov = PI / 4.0f;
 
-    hz::unique_ptr<GBuffer> gbuffer;
+    hz::unique_ptr<GBuffer>  gbuffer;
     hz::unique_ptr<Lighting> lighting;
     hz::GPUBuffer            mFrame;
     hz::GPUBuffer            mDraws;
-    FrameData           mFrameData = {};
-    Matrix4             mPreviousViewProjection;
-    bool                mHasPreviousViewProjection = false;
+    FrameData                mFrameData = {};
+    Matrix4                  mPreviousViewProjection;
+    bool                     mHasPreviousViewProjection = false;
 };

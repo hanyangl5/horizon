@@ -184,8 +184,7 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
             return true;
     }
-    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH ||
-        pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
+    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
         return false;
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
@@ -194,8 +193,7 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
     return true;
 }
 
-static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory, SceneAssetCookFingerprint* pFingerprint,
-                                            const char* pPath)
+static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory, SceneAssetCookFingerprint* pFingerprint, const char* pPath)
 {
     FileStream stream = {};
     if (!fsOpenStreamFromPath(resourceDirectory, pPath, FM_READ, &stream))
@@ -211,8 +209,7 @@ static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory,
             return true;
         }
     }
-    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH ||
-        pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
+    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
     {
         fsCloseStream(&stream);
         return false;
@@ -273,8 +270,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
     return true;
 }
 
-static void formatSceneAssetCookHash(const SceneAssetCookFingerprint* pFingerprint,
-                                     char output[SCENE_ASSET_CONTENT_HASH_CAPACITY])
+static void formatSceneAssetCookHash(const SceneAssetCookFingerprint* pFingerprint, char output[SCENE_ASSET_CONTENT_HASH_CAPACITY])
 {
     snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "fnv1a64:%016llx", (unsigned long long)pFingerprint->mHash);
 }
@@ -303,8 +299,8 @@ static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const ch
     cJSON* pRoot = read ? cJSON_ParseWithLength(pJson, (size_t)fileSize) : nullptr;
     tf_free(pJson);
     const cJSON* pContentHash = pRoot ? cJSON_GetObjectItemCaseSensitive(pRoot, "contentHash") : nullptr;
-    const bool valid = cJSON_IsString(pContentHash) && pContentHash->valuestring &&
-                       strlen(pContentHash->valuestring) < SCENE_ASSET_CONTENT_HASH_CAPACITY;
+    const bool   valid =
+        cJSON_IsString(pContentHash) && pContentHash->valuestring && strlen(pContentHash->valuestring) < SCENE_ASSET_CONTENT_HASH_CAPACITY;
     if (valid)
         snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "%s", pContentHash->valuestring);
     cJSON_Delete(pRoot);
@@ -347,12 +343,12 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
     cJSON_AddItemToObject(pScene, "textureDirectories", pTextureDirectories);
 
     cJSON* pTextures = cJSON_AddArrayToObject(pScene, "textures");
-    char sourceParent[FS_MAX_PATH] = {};
+    char   sourceParent[FS_MAX_PATH] = {};
     fsGetParentPath(pSourceGltf, sourceParent);
     for (cgltf_size i = 0; pTextures && i < pData->textures_count; ++i)
     {
         const cgltf_texture* pTexture = &pData->textures[i];
-        char texturePath[FS_MAX_PATH] = {};
+        char                 texturePath[FS_MAX_PATH] = {};
         fsAppendPathComponent(sourceParent, pTexture->image->uri, texturePath);
         cJSON* pTextureJson = cJSON_CreateObject();
         cJSON_AddStringToObject(pTextureJson, "path", texturePath);
@@ -363,10 +359,9 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
     cJSON* pMaterials = cJSON_AddArrayToObject(pScene, "materials");
     for (cgltf_size i = 0; pMaterials && i < pData->materials_count; ++i)
     {
-        const cgltf_material* pMaterial = &pData->materials[i];
-        const cgltf_pbr_metallic_roughness* pPbr =
-            pMaterial->has_pbr_metallic_roughness ? &pMaterial->pbr_metallic_roughness : nullptr;
-        cJSON* pMaterialJson = cJSON_CreateObject();
+        const cgltf_material*               pMaterial = &pData->materials[i];
+        const cgltf_pbr_metallic_roughness* pPbr = pMaterial->has_pbr_metallic_roughness ? &pMaterial->pbr_metallic_roughness : nullptr;
+        cJSON*                              pMaterialJson = cJSON_CreateObject();
         cJSON_AddStringToObject(pMaterialJson, "name", pMaterial->name ? pMaterial->name : "material");
         cJSON_AddNumberToObject(pMaterialJson, "baseColorTexture",
                                 sceneAssetTextureIndex(pData, pPbr ? pPbr->base_color_texture.texture : nullptr));
@@ -396,11 +391,11 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
     if (!pJson)
         return false;
 
-    FileStream stream = {};
-    const bool opened = fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_WRITE, &stream);
+    FileStream   stream = {};
+    const bool   opened = fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_WRITE, &stream);
     const size_t jsonSize = strlen(pJson);
-    const bool written = opened && fsWriteToStream(&stream, pJson, jsonSize) == jsonSize;
-    const bool closed = !opened || fsCloseStream(&stream);
+    const bool   written = opened && fsWriteToStream(&stream, pJson, jsonSize) == jsonSize;
+    const bool   closed = !opened || fsCloseStream(&stream);
     cJSON_free(pJson);
     return written && closed;
 }
@@ -1774,7 +1769,6 @@ void buildMeshlets(const uint* indices, size_t indexCount, const float3* vertexP
     {
         LOGF(eERROR, "Failed to build meshlets");
     }
-
 }
 
 static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimizationFlags, IndexType indexType, uint32_t indexOffset,
@@ -1931,7 +1925,7 @@ static bool isSceneAssetNodeSelected(const cgltf_data* data, const cgltf_node* n
 static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
 {
     SceneAssetGeometryHeader* header = (SceneAssetGeometryHeader*)output;
-    SceneAssetInstance* instances = header ? (SceneAssetInstance*)(header + 1) : nullptr;
+    SceneAssetInstance*       instances = header ? (SceneAssetInstance*)(header + 1) : nullptr;
     if (header)
     {
         header->magic = SCENE_ASSET_GEOMETRY_MAGIC;
@@ -1963,13 +1957,14 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
             if (!instances)
                 continue;
             const cgltf_primitive* primitive = &node->mesh->primitives[p];
-            SceneAssetInstance& instance = instances[count];
+            SceneAssetInstance&    instance = instances[count];
             cgltf_node_transform_world(node, instance.world);
             instance.drawIndex = firstDraw + (uint32_t)p;
             instance.materialIndex = primitive->material ? (uint32_t)(primitive->material - data->materials) : UINT32_MAX;
-            instance.alphaCutoff = primitive->material && primitive->material->alpha_mode != cgltf_alpha_mode_opaque
-                                        ? (primitive->material->alpha_mode == cgltf_alpha_mode_mask ? primitive->material->alpha_cutoff : 0.1f)
-                                        : 0.0f;
+            instance.alphaCutoff =
+                primitive->material && primitive->material->alpha_mode != cgltf_alpha_mode_opaque
+                    ? (primitive->material->alpha_mode == cgltf_alpha_mode_mask ? primitive->material->alpha_cutoff : 0.1f)
+                    : 0.0f;
             for (cgltf_size a = 0; a < primitive->attributes_count; ++a)
             {
                 if (primitive->attributes[a].type != cgltf_attribute_type_position)
@@ -1984,8 +1979,8 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
                     const float z = (corner & 4) ? accessor->max[2] : accessor->min[2];
                     for (uint32_t axis = 0; axis < 3; ++axis)
                     {
-                        const float value = instance.world[axis] * x + instance.world[4 + axis] * y +
-                                            instance.world[8 + axis] * z + instance.world[12 + axis];
+                        const float value = instance.world[axis] * x + instance.world[4 + axis] * y + instance.world[8 + axis] * z +
+                                            instance.world[12 + axis];
                         header->boundsMin[axis] = TF_MIN(header->boundsMin[axis], value);
                         header->boundsMax[axis] = TF_MAX(header->boundsMax[axis], value);
                     }
@@ -2132,8 +2127,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         SceneAssetCookFingerprint* pFingerprint = (SceneAssetCookFingerprint*)tf_calloc(1, sizeof(SceneAssetCookFingerprint));
-        if (!pFingerprint || !buildSceneAssetCookFingerprint(assetParams->mRDInput, fileName, fileData, (size_t)fileSize, data,
-                                                             glTFParams, assetParams->mAdditionalModifiedTime, pFingerprint))
+        if (!pFingerprint || !buildSceneAssetCookFingerprint(assetParams->mRDInput, fileName, fileData, (size_t)fileSize, data, glTFParams,
+                                                             assetParams->mAdditionalModifiedTime, pFingerprint))
         {
             LOGF(eERROR, "Failed to fingerprint glTF dependencies for %s", fileName);
             tf_free(pFingerprint);
@@ -2148,8 +2143,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) &&
             fsFileExist(assetParams->mRDOutput, manifestFileName))
         {
-            char                contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
-            char                existingContentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
+            char contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
+            char existingContentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
             formatSceneAssetCookHash(pFingerprint, contentHash);
             const bool unchanged = readSceneAssetCookHash(assetParams->mRDOutput, manifestFileName, existingContentHash) &&
                                    strcmp(existingContentHash, contentHash) == 0;
@@ -2252,7 +2247,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             geomData->pUserData = pUserData;
             geomData->userDataSize = userDataSize;
             if (glTFParams->pWriteExtrasCallback)
-            glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
+                glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
             else
                 writeSceneAssetInstances(data, pUserData);
         }
@@ -2559,15 +2554,13 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                            arrlenu(subMeshlets) * sizeof *meshletsData);
 
                     arrsetlen(geom->meshlets.meshlets, geom->meshlets.meshletCount + arrlenu(subMeshlets));
-                    memcpy(geom->meshlets.meshlets + geom->meshlets.meshletCount, subMeshlets,
-                           arrlenu(subMeshlets) * sizeof *subMeshlets);
+                    memcpy(geom->meshlets.meshlets + geom->meshlets.meshletCount, subMeshlets, arrlenu(subMeshlets) * sizeof *subMeshlets);
 
                     for (uint64_t meshlet_id = 0; meshlet_id < arrlenu(subMeshlets); ++meshlet_id)
                     {
                         geom->meshlets.meshlets[geom->meshlets.meshletCount + meshlet_id].triangleOffset +=
                             (uint)geom->meshlets.triangleCount;
-                        geom->meshlets.meshlets[geom->meshlets.meshletCount + meshlet_id].vertexOffset +=
-                            (uint)geom->meshlets.vertexCount;
+                        geom->meshlets.meshlets[geom->meshlets.meshletCount + meshlet_id].vertexOffset += (uint)geom->meshlets.vertexCount;
                     }
 
                     geom->meshlets.vertexCount += arrlenu(meshletVertices);
@@ -2672,8 +2665,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount ||
                     fsWriteToStream(&fStream, geom->meshlets.vertices, sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount) !=
                         sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.triangles,
-                                    sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount) !=
+                    fsWriteToStream(&fStream, geom->meshlets.triangles, sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount) !=
                         sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount)
                 {
                     LOGF(eERROR, "Failed to write stream '%s'.", newFileName);
@@ -3380,8 +3372,8 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
     return 0;
 }
 
-bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourceFile,
-                           ResourceDirectory outputDirectory, SceneAssetError* pError)
+bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
+                           SceneAssetError* pError)
 {
     if (pError)
         *pError = {};

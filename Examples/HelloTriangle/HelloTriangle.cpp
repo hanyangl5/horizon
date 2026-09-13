@@ -8,7 +8,7 @@
 #include "Graphics/RenderContext.h"
 #include "Profiler/IProfiler.h"
 
-constexpr uint32_t        kCpuProfileColor = 0x3399FF;
+constexpr uint32_t   kCpuProfileColor = 0x3399FF;
 constexpr hz::Format kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
 
 struct Vertex
@@ -199,8 +199,8 @@ private:
     };
 
     hz::unique_ptr<hz::RenderContext> context;
-    std::optional<Resources> resources;
-    bool                     vSync = true;
+    std::optional<Resources>          resources;
+    bool                              vSync = true;
 };
 
 DEFINE_APPLICATION_MAIN(HelloTriangleApp)

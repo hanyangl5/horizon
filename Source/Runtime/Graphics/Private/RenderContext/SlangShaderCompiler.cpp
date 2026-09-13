@@ -7,7 +7,6 @@
 
 namespace hz
 {
-
 static bool checkSlangResult(SlangResult result, const char* operation, const Slang::ComPtr<ISlangBlob>& diagnostics = {})
 {
     if (diagnostics && diagnostics->getBufferSize())

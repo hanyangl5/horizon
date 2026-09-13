@@ -225,12 +225,12 @@ hz::Format GetBCFormat(DXT dxt, uint32_t channels, bool isSrgb, bool isSigned)
 }
 
 hz::Format GetOutputTextureFormat(ProcessTexturesParams* pTexturesParams, TextureDesc* pDesc,
-                                       CompressImageDescriptor* pOutCompressImageDescriptor)
+                                  CompressImageDescriptor* pOutCompressImageDescriptor)
 {
-    const uint32_t  channels = TinyImageFormat_ChannelCount((TinyImageFormat)pDesc->format);
-    hz::Format outFormat = hz::Format::UNDEFINED;
-    bool            isSigned = TinyImageFormat_IsSigned((TinyImageFormat)pDesc->format);
-    bool            isSrgb = TinyImageFormat_IsSRGB((TinyImageFormat)pDesc->format);
+    const uint32_t channels = TinyImageFormat_ChannelCount((TinyImageFormat)pDesc->format);
+    hz::Format     outFormat = hz::Format::UNDEFINED;
+    bool           isSigned = TinyImageFormat_IsSigned((TinyImageFormat)pDesc->format);
+    bool           isSrgb = TinyImageFormat_IsSRGB((TinyImageFormat)pDesc->format);
 
     ASTC astcCompression = pTexturesParams->mOverrideASTC != ASTC_NONE ? pTexturesParams->mOverrideASTC : ASTC_4x4; // Default to ASTC_4x4
     DXT  dxtCompression = DXT_NONE;
@@ -707,7 +707,8 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
         requiredInputChannels = 4;
         if (bitsPerPixel != 64 && !TinyImageFormat_IsFloat((TinyImageFormat)pTexDesc->format))
         {
-            LOGF(LogLevel::eERROR, "%s is an unsupported format for BC6 compression", TinyImageFormat_Name((TinyImageFormat)pTexDesc->format));
+            LOGF(LogLevel::eERROR, "%s is an unsupported format for BC6 compression",
+                 TinyImageFormat_Name((TinyImageFormat)pTexDesc->format));
             return false;
         }
         break;
@@ -1158,8 +1159,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
             }
         }
 
-        if (copyTextureParams.mGenerateMipmaps == MIPMAP_DEFAULT && inputTextureData.mDesc.mipLevels <= 1 &&
-            !inputTextureData.isCompressed)
+        if (copyTextureParams.mGenerateMipmaps == MIPMAP_DEFAULT && inputTextureData.mDesc.mipLevels <= 1 && !inputTextureData.isCompressed)
         {
             if (inputTextureData.pData[0])
             {
@@ -1263,7 +1263,8 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                     inputTextureData.mDesc.depth, arraySize, inputTextureData.mDesc.mipLevels, outKtxFormat, isCubemap,
                                     compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create ktx file '%s' with format '%s'", outFileName, TinyImageFormat_Name((TinyImageFormat)outFormat));
+                LOGF(eERROR, "Couldn't create ktx file '%s' with format '%s'", outFileName,
+                     TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
         }
@@ -1275,7 +1276,8 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                     inputTextureData.mDesc.depth, arraySize, inputTextureData.mDesc.mipLevels, outDDSFormat, isCubemap,
                                     false, compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create dds file '%s' with format '%s'", outFileName, TinyImageFormat_Name((TinyImageFormat)outFormat));
+                LOGF(eERROR, "Couldn't create dds file '%s' with format '%s'", outFileName,
+                     TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
         }
@@ -1291,7 +1293,8 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                     inputTextureData.mDesc.depth, inputTextureData.mDesc.arraySize, inputTextureData.mDesc.mipLevels,
                                     outDDSFormat, isCubemap, compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create Scarlett dds file '%s' with format '%s'", outFileName, TinyImageFormat_Name((TinyImageFormat)outFormat));
+                LOGF(eERROR, "Couldn't create Scarlett dds file '%s' with format '%s'", outFileName,
+                     TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
         }
@@ -1307,7 +1310,8 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                  inputTextureData.mDesc.arraySize, inputTextureData.mDesc.mipLevels, outFormat, isCubemap,
                                  copyTextureParams.mContainer, 1, compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create gnf file '%s' with format '%s'", outFileName, TinyImageFormat_Name((TinyImageFormat)outFormat));
+                LOGF(eERROR, "Couldn't create gnf file '%s' with format '%s'", outFileName,
+                     TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
         }
