@@ -120,16 +120,14 @@ public:
         hz::CommandList&      commands = context->acquireCommandList();
         const hz::GPUTexture& backbuffer = context->getCurrentBackbuffer();
 
-        hz::RenderPassDesc pass = {
+        commands.beginRendering({
             .colorAttachments = { {
                 .pTexture = &backbuffer,
                 .loadAction = LOAD_ACTION_CLEAR,
                 .storeAction = STORE_ACTION_STORE,
                 .clearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
             } },
-            .colorAttachmentCount = 1,
-        };
-        commands.beginRendering(pass);
+        });
         commands.beginGpuTimestamp("Triangle Pass");
         commands.setViewport(0.0f, 0.0f, (float)context->getWidth(), (float)context->getHeight());
         commands.setScissor(0, 0, context->getWidth(), context->getHeight());
@@ -158,7 +156,8 @@ private:
         });
         ASSERT(resources->vertexBuffer.isValid());
 
-        resources->shader = context->createShader({
+        resources->pipeline = context->createGraphicsPipeline({
+            .shaderDesc = {
             .stages = {
                 {
                     .stage = SHADER_STAGE_VERT,
@@ -173,13 +172,8 @@ private:
                     .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
                     .pEntryPoint = "PSMain",
                     .pName = "HelloTrianglePS",
-                },
+                }},
             },
-            .stageCount = 2,
-        });
-        ASSERT(resources->shader.isValid());
-        resources->pipeline = context->createGraphicsPipeline({
-            .pShader = &resources->shader,
             .vertexLayout = {
                 .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
                 .attribs = {
@@ -191,8 +185,7 @@ private:
                 .bindingCount = 1,
                 .attribCount = 2,
             },
-            .colorFormats = { kSurfaceFormat },
-            .renderTargetCount = 1,
+            .colorTargets = { { .format = kSurfaceFormat } },
             .pName = "HelloTriangle.Pipeline",
         });
         ASSERT(resources->pipeline.isValid());
@@ -202,7 +195,6 @@ private:
     struct Resources
     {
         hz::GPUBuffer   vertexBuffer;
-        hz::GPUShader   shader;
         hz::GPUPipeline pipeline;
     };
 

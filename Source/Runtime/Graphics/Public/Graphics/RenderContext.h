@@ -78,39 +78,40 @@ struct ShaderStageDesc
 
 struct ShaderDesc
 {
-    ShaderStageDesc   stages[MAX_SHADER_STAGES] = {};
-    uint32_t          stageCount = 0;
+    hz::Span<ShaderStageDesc>   stages = {};
     ResourceDirectory sourceDirectory = RD_SHADER_SOURCES;
     const char*       pFileName = nullptr;
 };
 
+struct ColorTargetDesc
+{
+    Format        format = Format::UNDEFINED;
+    BlendConstant srcFactor = BC_ONE;
+    BlendConstant dstFactor = BC_ZERO;
+    BlendConstant srcAlphaFactor = BC_ONE;
+    BlendConstant dstAlphaFactor = BC_ZERO;
+    BlendMode     blendMode = BM_ADD;
+    BlendMode     blendAlphaMode = BM_ADD;
+    ColorMask     colorWriteMask = COLOR_MASK_ALL;
+};
+
 struct GraphicsPipelineDesc
 {
-    const GPUShader*    pShader = nullptr;
-    VertexLayout        vertexLayout = {};
-    RasterizerStateDesc rasterizer = { .cullMode = CULL_MODE_NONE, .fillMode = FILL_MODE_SOLID, .frontFace = FRONT_FACE_CCW };
-    DepthStateDesc      depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
-    BlendStateDesc      blend = {
-             .srcFactors = { BC_ONE },
-             .dstFactors = { BC_ZERO },
-             .srcAlphaFactors = { BC_ONE },
-             .dstAlphaFactors = { BC_ZERO },
-             .blendModes = { BM_ADD },
-             .blendAlphaModes = { BM_ADD },
-             .colorWriteMasks = { COLOR_MASK_ALL },
-             .renderTargetMask = BLEND_STATE_TARGET_ALL,
-    };
-    hz::Format        colorFormats[MAX_RENDER_TARGETS] = {};
-    uint32_t          renderTargetCount = 0;
-    hz::Format        depthStencilFormat = hz::Format::UNDEFINED;
-    PrimitiveTopology topology = PRIMITIVE_TOPO_TRI_LIST;
-    SampleCount       sampleCount = SAMPLE_COUNT_1;
-    const char*       pName = nullptr;
+    ShaderDesc            shaderDesc = {};
+    VertexLayout          vertexLayout = {};
+    RasterizerStateDesc   rasterizer = { .cullMode = CULL_MODE_NONE, .fillMode = FILL_MODE_SOLID, .frontFace = FRONT_FACE_CCW };
+    DepthStateDesc        depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
+    Span<ColorTargetDesc> colorTargets = {};
+    bool                  alphaToCoverage = false;
+    hz::Format            depthStencilFormat = hz::Format::UNDEFINED;
+    PrimitiveTopology     topology = PRIMITIVE_TOPO_TRI_LIST;
+    SampleCount           sampleCount = SAMPLE_COUNT_1;
+    const char*           pName = nullptr;
 };
 
 struct ComputePipelineDesc
 {
-    const GPUShader* pShader = nullptr;
+    ShaderDesc  shaderDesc = {};
     const char*      pName = nullptr;
 };
 
@@ -132,9 +133,8 @@ struct DepthAttachment
 
 struct RenderPassDesc
 {
-    ColorAttachment colorAttachments[MAX_RENDER_TARGETS];
-    uint32_t        colorAttachmentCount;
-    DepthAttachment depthAttachment;
+    Span<ColorAttachment> colorAttachments = {};
+    DepthAttachment       depthAttachment = {};
 };
 
 struct ContextDesc
@@ -258,11 +258,12 @@ public:
     Pipeline*    get() const { return pPipeline; }
 
 private:
-    GPUPipeline(RenderContext*, Pipeline*, RootSignature*);
+    GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&);
     void           destroy();
     RenderContext* pContext = nullptr;
     Pipeline*      pPipeline = nullptr;
     RootSignature* pRootSignature = nullptr;
+    GPUShader      shader;
     friend class CommandList;
     friend class RenderContext;
 };
@@ -385,7 +386,6 @@ public:
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
     GPUSampler  createSampler(const SamplerDesc& = {});
-    GPUShader   createShader(const ShaderDesc&);
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
@@ -411,6 +411,7 @@ private:
     void destroySwapChain();
     void destroyDevice(bool waitForGpu);
     void cleanup();
+    Shader* createShader(const ShaderDesc&);
 
     ContextDesc               desc = {};
     RendererContext*          pRendererContext = nullptr;

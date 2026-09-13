@@ -39,25 +39,46 @@ static int compareMaterials(const void* left, const void* right)
 
 GBuffer::GBuffer(hz::RenderContext& pContext, const VertexLayout& vertexLayout): pContext(pContext)
 {
-    mGeometryShader = pContext.createShader({
+    //mGeometryShader = pContext.createShader({
+    //    .stages = {
+    //        { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.GeometryVS" },
+    //        { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
+    //    },
+    //    .stageCount = 2,
+    //    .pFileName = "Geometry.hlsl",
+    //});
+    //mGeometryPipeline = pContext.createGraphicsPipeline({
+    //    .pShader = &mGeometryShader,
+    //    .vertexLayout = vertexLayout,
+    //    .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
+    //    .colorFormats = { kGBufferFormats[0], kGBufferFormats[1], kGBufferFormats[2], kGBufferFormats[3] },
+    //    .renderTargetCount = GBufferCount,
+    //    .depthStencilFormat = kDepthFormat,
+    //    .pName = "Renderer.GeometryPipeline",
+    //});
+
+    mGeometryPipeline = pContext.createGraphicsPipeline({
+    .shaderDesc = {
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.GeometryVS" },
             { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
         },
-        .stageCount = 2,
         .pFileName = "Geometry.hlsl",
-    });
-    mGeometryPipeline = pContext.createGraphicsPipeline({
-        .pShader = &mGeometryShader,
-        .vertexLayout = vertexLayout,
-        .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
-        .colorFormats = { kGBufferFormats[0], kGBufferFormats[1], kGBufferFormats[2], kGBufferFormats[3] },
-        .renderTargetCount = GBufferCount,
-        .depthStencilFormat = kDepthFormat,
-        .pName = "Renderer.GeometryPipeline",
-    });
+    },
+    .vertexLayout = vertexLayout,
+    .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
+    .colorTargets = {
+        { .format = kGBufferFormats[0] },
+        { .format = kGBufferFormats[1] },
+        { .format = kGBufferFormats[2] },
+        { .format = kGBufferFormats[3] },
+    },
+    .depthStencilFormat = kDepthFormat,
+    .pName = "Renderer.GeometryPipeline",
+});
+
     mSampler = pContext.createSampler();
-    ASSERT(mGeometryShader.isValid() && mGeometryPipeline.isValid() && mSampler.isValid());
+    ASSERT(mGeometryPipeline.isValid() && mSampler.isValid());
 }
 
 void GBuffer::load(uint32_t width, uint32_t height)
@@ -98,21 +119,19 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     ASSERT(pGeometry);
     const SceneGeometry& geometry = *pGeometry;
     const ClearValue black = {};
-    const hz::RenderPassDesc geometryPass = {
-        .colorAttachments = {
+    commands.beginGpuTimestamp("Geometry");
+    commands.beginRendering({
+        .colorAttachments =  {
             { .pTexture = &mGBuffer[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
             { .pTexture = &mGBuffer[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
             { .pTexture = &mGBuffer[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
             { .pTexture = &mGBuffer[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-        },
-        .colorAttachmentCount = GBufferCount,
+        } ,
         .depthAttachment = { .pTexture = &mDepth,
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
-    };
-    commands.beginGpuTimestamp("Geometry");
-    commands.beginRendering(geometryPass);
+    });
     commands.setViewport(0, 0, (float)pContext.getWidth(), (float)pContext.getHeight());
     commands.setScissor(0, 0, pContext.getWidth(), pContext.getHeight());
     commands.setPipeline(mGeometryPipeline);
@@ -152,21 +171,18 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
 
 Lighting::Lighting(hz::RenderContext& pContext, hz::Format format): pContext(pContext)
 {
-    mLightingShader = pContext.createShader({
+    mLightingPipeline = pContext.createGraphicsPipeline({
+        .shaderDesc={
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.LightingVS" },
             { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.LightingPS" },
         },
-        .stageCount = 2,
         .pFileName = "Lighting.hlsl",
-    });
-    mLightingPipeline = pContext.createGraphicsPipeline({
-        .pShader = &mLightingShader,
-        .colorFormats = { format },
-        .renderTargetCount = 1,
+    },
+        .colorTargets = { { .format = format } },
         .pName = "Renderer.LightingPipeline",
     });
-    ASSERT(mLightingShader.isValid() && mLightingPipeline.isValid());
+    ASSERT(mLightingPipeline.isValid());
 }
 
 void Lighting::load(uint32_t width, uint32_t height) {}
@@ -177,16 +193,16 @@ void Lighting::update() {}
 
 void Lighting::execute(hz::CommandList& commands, const hz::GPUTexture& renderTarget, const hz::GPUBuffer& frame, const GBuffer& gbuffer)
 {
-    const hz::RenderPassDesc lightingPass = {
-        .colorAttachments = { { .pTexture = &renderTarget,
-                                .loadAction = LOAD_ACTION_CLEAR,
-                                .storeAction = STORE_ACTION_STORE,
-                                .clearValue = { .r = 0.02f, .g = 0.035f, .b = 0.055f, .a = 1.0f } } },
-        .colorAttachmentCount = 1,
-    };
     const hz::GPUTexture* sampledTextures[] = { &gbuffer.mGBuffer[0], &gbuffer.mGBuffer[1], &gbuffer.mGBuffer[2], &gbuffer.mDepth };
     commands.beginGpuTimestamp("Lighting");
-    commands.beginRendering(lightingPass, { .sampledTextures = sampledTextures });
+    commands.beginRendering(
+        {
+            .colorAttachments = { { .pTexture = &renderTarget,
+                                    .loadAction = LOAD_ACTION_CLEAR,
+                                    .storeAction = STORE_ACTION_STORE,
+                                    .clearValue = { .r = 0.02f, .g = 0.035f, .b = 0.055f, .a = 1.0f } } },
+        },
+        { .sampledTextures = sampledTextures });
     commands.setViewport(0, 0, (float)pContext.getWidth(), (float)pContext.getHeight());
     commands.setScissor(0, 0, pContext.getWidth(), pContext.getHeight());
     commands.setPipeline(mLightingPipeline);

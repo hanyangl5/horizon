@@ -32,7 +32,6 @@ public:
     void                      unload();
     hz::RenderContext&        pContext;
     static constexpr uint32_t GBufferCount = 4;
-    hz::GPUShader             mGeometryShader;
     hz::GPUPipeline           mGeometryPipeline;
     hz::GPUSampler            mSampler;
     hz::GPUTexture mGBuffer[GBufferCount];
@@ -48,7 +47,6 @@ public:
     void load(uint32_t width, uint32_t height);
     void unload();
     hz::RenderContext& pContext;
-    hz::GPUShader mLightingShader;
     hz::GPUPipeline mLightingPipeline;
 };
 

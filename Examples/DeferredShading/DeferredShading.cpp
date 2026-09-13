@@ -36,7 +36,6 @@ public:
 private:
     hz::GPUBuffer   mVertices;
     hz::GPUBuffer   mIndices;
-    hz::GPUShader   mShader;
     hz::GPUPipeline mPipeline;
 };
 
@@ -55,7 +54,6 @@ private:
     hz::GPUTexture  mAlbedo;
     hz::GPUTexture  mNormal;
     hz::GPUTexture  mDepth;
-    hz::GPUShader   mShader;
     hz::GPUPipeline mPipeline;
 };
 
@@ -67,7 +65,6 @@ public:
                  const hz::GPUTexture& depth, uint32_t width, uint32_t height) const;
 
 private:
-    hz::GPUShader   mShader;
     hz::GPUPipeline mPipeline;
 };
 
@@ -171,16 +168,18 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
 GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
 {
-    mShader = context.createShader({
-        .stages = { { .stage = SHADER_STAGE_COMP,
-                      .pSource = kGeometryBuildShader,
-                      .sourceSize = (uint32_t)(sizeof(kGeometryBuildShader) - 1),
-                      .pEntryPoint = "CSMain",
-                      .pName = "DeferredShadingGeometryBuildCS" } },
-        .stageCount = 1,
+    mPipeline = context.createComputePipeline({
+        .shaderDesc = {
+            .stages = {
+                { .stage = SHADER_STAGE_COMP,
+                  .pSource = kGeometryBuildShader,
+                  .sourceSize = (uint32_t)(sizeof(kGeometryBuildShader) - 1),
+                  .pEntryPoint = "CSMain",
+                  .pName = "DeferredShadingGeometryBuildCS" },
+            },
+        },
+        .pName = "DeferredShading.GeometryBuildPipeline",
     });
-    ASSERT(mShader.isValid());
-    mPipeline = context.createComputePipeline({ .pShader = &mShader, .pName = "DeferredShading.GeometryBuildPipeline" });
     ASSERT(mPipeline.isValid());
 
     mVertices = context.createBuffer({
@@ -272,7 +271,8 @@ GBufferOutput PSMain(VSOutput input)
 
 GBufferPass::GBufferPass(hz::RenderContext& context)
 {
-    mShader = context.createShader({
+    mPipeline = context.createGraphicsPipeline({
+        .shaderDesc = {
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pSource = kGBufferShader,
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "VSMain",
@@ -281,11 +281,7 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "PSMain",
               .pName = "DeferredShadingGBufferPS" },
         },
-        .stageCount = 2,
-    });
-    ASSERT(mShader.isValid());
-    mPipeline = context.createGraphicsPipeline({
-        .pShader = &mShader,
+    },
         .vertexLayout = {
             .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
             .attribs = {
@@ -300,8 +296,7 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
             .attribCount = 3,
         },
         .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
-        .colorFormats = { hz::Format::R8G8B8A8_UNORM, hz::Format::R16G16B16A16_SFLOAT },
-        .renderTargetCount = 2,
+        .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM }, { .format = hz::Format::R16G16B16A16_SFLOAT } },
         .depthStencilFormat = hz::Format::D32_SFLOAT,
         .pName = "DeferredShading.GBufferPipeline",
     });
@@ -341,20 +336,20 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     const ClearValue black = { .a = 1.0f };
     const ClearValue normal = { .r = 0.5f, .g = 0.5f, .b = 1.0f, .a = 1.0f };
     const ClearValue depth = { .depth = 1.0f };
-    hz::RenderPassDesc pass = {
-        .colorAttachments = {
-            { .pTexture = &mAlbedo, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE,
-              .clearValue = black },
-            { .pTexture = &mNormal, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE,
-              .clearValue = normal },
-        },
-        .colorAttachmentCount = 2,
-        .depthAttachment = { .pTexture = &mDepth, .loadAction = LOAD_ACTION_CLEAR,
-                              .storeAction = STORE_ACTION_STORE, .clearValue = depth },
-    };
     commands.beginGpuTimestamp("GBuffer");
     const hz::GPUBuffer* buffers[] = { &vertices, &indices };
-    commands.beginRendering(pass, { .buffers = buffers });
+    commands.beginRendering(
+        {
+            .colorAttachments =  {
+                { .pTexture = &mAlbedo, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
+                { .pTexture = &mNormal, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = normal },
+            } ,
+            .depthAttachment = { .pTexture = &mDepth,
+                                 .loadAction = LOAD_ACTION_CLEAR,
+                                 .storeAction = STORE_ACTION_STORE,
+                                 .clearValue = depth },
+        },
+        { .buffers = buffers });
     commands.setViewport(0.0f, 0.0f, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(mPipeline);
@@ -409,7 +404,8 @@ float4 PSMain(VSOutput input) : SV_Target0
 
 LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
 {
-    mShader = context.createShader({
+    mPipeline = context.createGraphicsPipeline({
+        .shaderDesc = {
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pSource = kLightingShader,
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "VSMain",
@@ -418,13 +414,8 @@ LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "PSMain",
               .pName = "DeferredShadingLightingPS" },
         },
-        .stageCount = 2,
-    });
-    ASSERT(mShader.isValid());
-    mPipeline = context.createGraphicsPipeline({
-        .pShader = &mShader,
-        .colorFormats = { surfaceFormat },
-        .renderTargetCount = 1,
+    },
+        .colorTargets = { { .format = surfaceFormat } },
         .pName = "DeferredShading.LightingPipeline",
     });
     ASSERT(mPipeline.isValid());
@@ -434,18 +425,18 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
                            const hz::GPUTexture& normal, const hz::GPUTexture& depth, uint32_t width, uint32_t height) const
 {
     const ClearValue   clear = { .r = 0.02f, .g = 0.025f, .b = 0.03f, .a = 1.0f };
-    hz::RenderPassDesc pass = {
-        .colorAttachments = { {
-            .pTexture = &backbuffer,
-            .loadAction = LOAD_ACTION_CLEAR,
-            .storeAction = STORE_ACTION_STORE,
-            .clearValue = clear,
-        } },
-        .colorAttachmentCount = 1,
-    };
     commands.beginGpuTimestamp("Lighting");
     const hz::GPUTexture* sampledTextures[] = { &albedo, &normal, &depth };
-    commands.beginRendering(pass, { .sampledTextures = sampledTextures });
+    commands.beginRendering(
+        {
+            .colorAttachments = { {
+                .pTexture = &backbuffer,
+                .loadAction = LOAD_ACTION_CLEAR,
+                .storeAction = STORE_ACTION_STORE,
+                .clearValue = clear,
+            } },
+        },
+        { .sampledTextures = sampledTextures });
     commands.setViewport(0.0f, 0.0f, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(mPipeline);

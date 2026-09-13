@@ -196,8 +196,8 @@ void GPUShader::destroy()
     }
 }
 
-GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignature* rootSignature):
-    pContext(context), pPipeline(pipeline), pRootSignature(rootSignature)
+GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignature* rootSignature, GPUShader&& shader):
+    pContext(context), pPipeline(pipeline), pRootSignature(rootSignature), shader(std::move(shader))
 {
     ASSERT(pContext && pPipeline && pRootSignature);
     ++pContext->resourceCount;
@@ -206,7 +206,7 @@ GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignatu
 GPUPipeline::~GPUPipeline() { destroy(); }
 
 GPUPipeline::GPUPipeline(GPUPipeline&& other) noexcept:
-    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature)
+    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature), shader(std::move(other.shader))
 {
     other.pContext = nullptr;
     other.pPipeline = nullptr;
@@ -221,6 +221,7 @@ GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
         pContext = other.pContext;
         pPipeline = other.pPipeline;
         pRootSignature = other.pRootSignature;
+        shader = std::move(other.shader);
         other.pContext = nullptr;
         other.pPipeline = nullptr;
         other.pRootSignature = nullptr;
@@ -336,9 +337,9 @@ GPUSampler RenderContext::createSampler(const SamplerDesc& input)
     return GPUSampler(this, sampler);
 }
 
-GPUShader RenderContext::createShader(const ShaderDesc& input)
+Shader* RenderContext::createShader(const ShaderDesc& input)
 {
-    ASSERT(ready && input.stageCount && input.stageCount <= MAX_SHADER_STAGES);
+    ASSERT(ready);
     ShaderSrcDesc source = {};
     FileStream    sourceFile = {};
     const void*   pFileSource = nullptr;
@@ -354,10 +355,10 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
     }
     if (pFileSource)
         snprintf(sourcePath, sizeof(sourcePath), "%s/%s", fsGetResourceDirectory(input.sourceDirectory), input.pFileName);
-
-    for (uint32_t i = 0; i < input.stageCount; ++i)
+    uint32_t stageCount = input.stages.count;
+    for (uint32_t i = 0; i < stageCount; ++i)
     {
-        const ShaderStageDesc& inputStage = input.stages[i];
+        const ShaderStageDesc& inputStage = *(input.stages.pData + i);
         ShaderSrcStageDesc*    stage = nullptr;
         switch (inputStage.stage)
         {
@@ -387,13 +388,14 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
     if (sourceFile.pIO)
         fsCloseStream(&sourceFile);
     ASSERT(shader);
-    return shader ? GPUShader(this, shader) : GPUShader{};
+    return shader;
 }
 
 GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& input)
 {
-    ASSERT(ready && input.pShader && input.pShader->pShader && input.renderTargetCount <= MAX_RENDER_TARGETS);
-    Shader*           shader = input.pShader->pShader;
+    ASSERT(ready && input.colorTargets.count <= MAX_RENDER_TARGETS && (input.colorTargets.pData || !input.colorTargets.count));
+    Shader* shader = this->createShader(input.shaderDesc);
+    ASSERT(shader);
     Shader*           shaders[] = { shader };
     RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
     RootSignature*    rootSignature = nullptr;
@@ -403,9 +405,24 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     VertexLayout        vertex = input.vertexLayout;
     RasterizerStateDesc raster = input.rasterizer;
     DepthStateDesc      depth = input.depth;
-    BlendStateDesc      blend = input.blend;
+    BlendStateDesc      blend = {
+        .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.count) - 1),
+        .alphaToCoverage = input.alphaToCoverage,
+        .independentBlend = true,
+    };
     hz::Format          formats[MAX_RENDER_TARGETS] = {};
-    memcpy(formats, input.colorFormats, sizeof(formats));
+    for (uint32_t i = 0; i < input.colorTargets.count; ++i)
+    {
+        const ColorTargetDesc& target = input.colorTargets.pData[i];
+        formats[i] = target.format;
+        blend.srcFactors[i] = target.srcFactor;
+        blend.dstFactors[i] = target.dstFactor;
+        blend.srcAlphaFactors[i] = target.srcAlphaFactor;
+        blend.dstAlphaFactors[i] = target.dstAlphaFactor;
+        blend.blendModes[i] = target.blendMode;
+        blend.blendAlphaModes[i] = target.blendAlphaMode;
+        blend.colorWriteMasks[i] = target.colorWriteMask;
+    }
     const PipelineDesc desc = {
         .graphicsDesc = {
             .pShaderProgram = shader,
@@ -415,7 +432,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
             .pDepthState = &depth,
             .pRasterizerState = &raster,
             .pColorFormats = formats,
-            .renderTargetCount = input.renderTargetCount,
+            .renderTargetCount = input.colorTargets.count,
             .sampleCount = input.sampleCount,
             .depthStencilFormat = input.depthStencilFormat,
             .primitiveTopo = input.topology,
@@ -426,14 +443,15 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     Pipeline* pipeline = nullptr;
     addPipeline(pRenderer, &desc, &pipeline);
     ASSERT(pipeline);
-    return GPUPipeline(this, pipeline, rootSignature);
+    return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader));
 }
 
 GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& input)
 {
-    ASSERT(ready && input.pShader && input.pShader->pShader);
-    Shader*           shader = input.pShader->pShader;
-    Shader*           shaders[] = { shader };
+    ASSERT(ready);
+    Shader* shader = this->createShader(input.shaderDesc);
+    ASSERT(shader);
+    Shader* shaders[] = { shader };
     RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
     RootSignature*    rootSignature = nullptr;
     addRootSignature(pRenderer, &rootDesc, &rootSignature);
@@ -447,7 +465,7 @@ GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& inpu
     Pipeline* pipeline = nullptr;
     addPipeline(pRenderer, &desc, &pipeline);
     ASSERT(pipeline);
-    return GPUPipeline(this, pipeline, rootSignature);
+    return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader));
 }
 
 bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) const

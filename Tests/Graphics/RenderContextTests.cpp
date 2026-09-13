@@ -5,6 +5,9 @@
 
 #include <type_traits>
 
+#define IMEMORY_FROM_HEADER
+#include "Core/IMemory.h"
+
 #if defined(_WINDOWS)
 extern void initWindowClass();
 extern void exitWindowClass();
@@ -65,6 +68,61 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         EXPECT_FALSE(first.isValid());
         EXPECT_TRUE(second.isValid());
     }
+
+    const char source[] =
+        "RWStructuredBuffer<uint> output : register(u0);"
+        "[numthreads(1, 1, 1)] void CSMain(uint3 id : SV_DispatchThreadID) { output[id.x] = id.x; }";
+    const hz::ShaderStageDesc stages[] = {
+        { .stage = SHADER_STAGE_COMP,
+          .pSource = source,
+          .sourceSize = sizeof(source) - 1,
+          .pEntryPoint = "CSMain",
+          .pName = "RenderContextTest.Compute" },
+    };
+    const hz::ComputePipelineDesc pipelineDesc = {
+        .shaderDesc = { .stages = stages },
+        .pName = "RenderContextTest.Pipeline",
+    };
+    const MemoryTrackingStats before = memGetTrackingStats();
+    {
+        hz::GPUPipeline first = context.createComputePipeline(pipelineDesc);
+        ASSERT_TRUE(first.isValid());
+        Pipeline* const pPipeline = first.get();
+        hz::GPUPipeline second(std::move(first));
+        EXPECT_FALSE(first.isValid());
+        EXPECT_EQ(second.get(), pPipeline);
+
+        first = context.createComputePipeline(pipelineDesc);
+        first = std::move(second);
+        EXPECT_FALSE(second.isValid());
+        EXPECT_EQ(first.get(), pPipeline);
+        first = hz::GPUPipeline{};
+        EXPECT_FALSE(first.isValid());
+        const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
+        const char fragmentSource[] =
+            "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
+            "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
+        second = context.createGraphicsPipeline({
+            .shaderDesc = {
+                .stages = {
+                    { .stage = SHADER_STAGE_VERT, .pSource = vertexSource, .sourceSize = sizeof(vertexSource) - 1 },
+                    { .stage = SHADER_STAGE_FRAG, .pSource = fragmentSource, .sourceSize = sizeof(fragmentSource) - 1 },
+                },
+            },
+            .colorTargets = {
+                { .format = hz::Format::R8G8B8A8_UNORM },
+                { .format = hz::Format::R16G16B16A16_SFLOAT, .srcFactor = BC_SRC_ALPHA, .dstFactor = BC_ONE_MINUS_SRC_ALPHA },
+            },
+            .pName = "RenderContextTest.MrtPipeline",
+        });
+        EXPECT_TRUE(second.isValid());
+    }
+    const MemoryTrackingStats after = memGetTrackingStats();
+    if (before.trackingEnabled)
+    {
+        EXPECT_EQ(after.liveAllocationCount, before.liveAllocationCount);
+        EXPECT_EQ(after.liveRequestedBytes, before.liveRequestedBytes);
+    }
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
@@ -105,16 +163,14 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
 
         hz::CommandList&      commands = context.acquireCommandList();
         const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-        hz::RenderPassDesc    pass = {
-               .colorAttachments = { {
-                   .pTexture = &backbuffer,
-                   .loadAction = LOAD_ACTION_CLEAR,
-                   .storeAction = STORE_ACTION_STORE,
-                   .clearValue = { .r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f },
+        commands.beginRendering({
+            .colorAttachments = { {
+                .pTexture = &backbuffer,
+                .loadAction = LOAD_ACTION_CLEAR,
+                .storeAction = STORE_ACTION_STORE,
+                .clearValue = { .r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f },
             } },
-               .colorAttachmentCount = 1,
-        };
-        commands.beginRendering(pass);
+        });
         commands.endRendering();
         const hz::SubmitHandle presentSubmit = context.submit(commands, &backbuffer);
         EXPECT_TRUE(prepareSubmit.isValid());

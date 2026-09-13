@@ -109,6 +109,7 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
 
 void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::Dependencies& dependencies)
 {
+    ASSERT(desc.colorAttachments.count <= MAX_RENDER_TARGETS && (desc.colorAttachments.pData || !desc.colorAttachments.count));
     arrsetlen(bufferBarriers, 0);
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
@@ -164,10 +165,10 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         }
     }
 
-    BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachmentCount };
-    for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+    BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachments.count };
+    for (uint32_t i = 0; i < desc.colorAttachments.count; ++i)
     {
-        const hz::ColorAttachment& input = desc.colorAttachments[i];
+        const hz::ColorAttachment& input = desc.colorAttachments.pData[i];
         addTextureBarrier(*input.pTexture, RESOURCE_STATE_RENDER_TARGET);
         bind.renderTargets[i] = {
             .pRenderTarget = input.pTexture->pRenderTarget,
