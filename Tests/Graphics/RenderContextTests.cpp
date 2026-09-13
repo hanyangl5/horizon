@@ -60,10 +60,10 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
     };
     {
         hz::GPUBuffer first = context.createBuffer(bufferDesc);
-        ASSERT_TRUE(first);
+        ASSERT_TRUE(first.isValid());
         hz::GPUBuffer second((hz::GPUBuffer&&)first);
-        EXPECT_FALSE(first);
-        EXPECT_TRUE(second);
+        EXPECT_FALSE(first.isValid());
+        EXPECT_TRUE(second.isValid());
     }
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
@@ -117,8 +117,8 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         commands.beginRendering(pass);
         commands.endRendering();
         const hz::SubmitHandle presentSubmit = context.submit(commands, &backbuffer);
-        EXPECT_TRUE(prepareSubmit);
-        EXPECT_TRUE(presentSubmit);
+        EXPECT_TRUE(prepareSubmit.isValid());
+        EXPECT_TRUE(presentSubmit.isValid());
         context.wait(presentSubmit);
     }
 

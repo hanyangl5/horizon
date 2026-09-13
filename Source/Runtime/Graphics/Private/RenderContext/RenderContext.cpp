@@ -435,7 +435,7 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
 
 void RenderContext::wait(SubmitHandle handle)
 {
-    ASSERT(handle && handle.slot < maxCommandLists);
+    ASSERT(handle.isValid() && handle.slot < maxCommandLists);
     CommandSlot& slot = commandSlots[handle.slot];
     if (slot.submitId == handle.id)
         waitForFences(pRenderer, 1, &slot.pFence);

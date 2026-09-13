@@ -893,7 +893,7 @@ bool SceneManager::updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex
         return true;
     Texture* nativeTextures[SCENE_ASSET_MAX_TEXTURES];
     for (uint32_t i = 0; i < pSlot->pManifest->mTextureCount; ++i)
-        nativeTextures[i] = pSlot->pGpuResources->ppTextures[i]->native();
+        nativeTextures[i] = pSlot->pGpuResources->ppTextures[i]->get();
     DescriptorData textures = {
         .pName = pBindingName,
         .mCount = pSlot->pManifest->mTextureCount,

@@ -179,10 +179,10 @@ typedef struct SceneManagerDesc
                               SceneAssetError* pError);
 } SceneManagerDesc;
 
-class SceneManager final
+class SceneManager
 {
 public:
-    explicit SceneManager(const SceneManagerDesc& desc);
+    SceneManager(const SceneManagerDesc& desc);
     ~SceneManager();
 
     SceneManager(const SceneManager&) = delete;

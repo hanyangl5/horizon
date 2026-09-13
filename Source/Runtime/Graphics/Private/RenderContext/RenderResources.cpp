@@ -316,8 +316,22 @@ GPUTexture RenderContext::createTexture(const TextureDesc& input)
 GPUSampler RenderContext::createSampler(const SamplerDesc& input)
 {
     ASSERT(ready);
+    const ::SamplerDesc samplerDesc = {
+        .mMinFilter = input.minFilter,
+        .mMagFilter = input.magFilter,
+        .mMipMapMode = input.mipMapMode,
+        .mAddressU = input.addressU,
+        .mAddressV = input.addressV,
+        .mAddressW = input.addressW,
+        .mMipLodBias = input.mipLodBias,
+        .mSetLodRange = input.setLodRange,
+        .mMinLod = input.minLod,
+        .mMaxLod = input.maxLod,
+        .mMaxAnisotropy = input.maxAnisotropy,
+        .mCompareFunc = input.compareFunc,
+    };
     Sampler* sampler = nullptr;
-    addSampler(pRenderer, &input, &sampler);
+    addSampler(pRenderer, &samplerDesc, &sampler);
     ASSERT(sampler);
     return GPUSampler(this, sampler);
 }

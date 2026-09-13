@@ -223,7 +223,7 @@ private:
         };
         mDraws = pContext->createBuffer(drawDesc);
         tf_free(draws);
-        if (!mDraws)
+        if (!mDraws.isValid())
         {
             LOGF(eERROR, "Failed to create Renderer.Instances");
             return false;
@@ -239,22 +239,22 @@ private:
             .descriptors = DESCRIPTOR_TYPE_BUFFER,
         };
         mFrame = pContext->createBuffer(frameDesc);
-        if (!mFrame)
+        if (!mFrame.isValid())
         {
             LOGF(eERROR, "Failed to create Renderer.Frame");
             return false;
         }
 
-        const SamplerDesc samplerDesc = {
-            .mMinFilter = FILTER_LINEAR,
-            .mMagFilter = FILTER_LINEAR,
-            .mMipMapMode = MIPMAP_MODE_LINEAR,
-            .mAddressU = ADDRESS_MODE_REPEAT,
-            .mAddressV = ADDRESS_MODE_REPEAT,
-            .mAddressW = ADDRESS_MODE_REPEAT,
+        const hz::SamplerDesc samplerDesc = {
+            .minFilter = FILTER_LINEAR,
+            .magFilter = FILTER_LINEAR,
+            .mipMapMode = MIPMAP_MODE_LINEAR,
+            .addressU = ADDRESS_MODE_REPEAT,
+            .addressV = ADDRESS_MODE_REPEAT,
+            .addressW = ADDRESS_MODE_REPEAT,
         };
         mSampler = pContext->createSampler(samplerDesc);
-        if (!mSampler)
+        if (!mSampler.isValid())
         {
             LOGF(eERROR, "Failed to create Renderer.SurfaceSampler");
             return false;
@@ -283,13 +283,13 @@ private:
             .pFileName = "Lighting.hlsl",
         };
         mGeometryShader = pContext->createShader(geometryShaderDesc);
-        if (!mGeometryShader)
+        if (!mGeometryShader.isValid())
         {
             LOGF(eERROR, "Failed to create Geometry shader");
             return false;
         }
         mLightingShader = pContext->createShader(lightingShaderDesc);
-        if (!mLightingShader)
+        if (!mLightingShader.isValid())
         {
             LOGF(eERROR, "Failed to create Lighting shader");
             return false;
@@ -322,13 +322,13 @@ private:
             .topology = PRIMITIVE_TOPO_TRI_LIST, .sampleCount = SAMPLE_COUNT_1, .pName = "Renderer.LightingPipeline",
         };
         mGeometryPipeline = pContext->createGraphicsPipeline(geometryPipelineDesc);
-        if (!mGeometryPipeline)
+        if (!mGeometryPipeline.isValid())
         {
             LOGF(eERROR, "Failed to create Geometry pipeline");
             return false;
         }
         mLightingPipeline = pContext->createGraphicsPipeline(lightingPipelineDesc);
-        if (!mLightingPipeline)
+        if (!mLightingPipeline.isValid())
         {
             LOGF(eERROR, "Failed to create Lighting pipeline");
             return false;
@@ -340,7 +340,7 @@ public:
     void Exit() override
     {
         pCamera = nullptr;
-        if (pContext && *pContext)
+        if (pContext && pContext->isValid())
             pContext->waitIdle();
         mLightingPipeline = {};
         mGeometryPipeline = {};
@@ -390,7 +390,7 @@ public:
             targetDesc.format = kGBufferFormats[i];
             targetDesc.pName = kGBufferNames[i];
             mGBuffer[i] = pContext->createTexture(targetDesc);
-            if (!mGBuffer[i])
+            if (!mGBuffer[i].isValid())
             {
                 LOGF(eERROR, "Failed to create %s", kGBufferNames[i]);
                 return false;
@@ -402,7 +402,7 @@ public:
         const hz::TextureDesc depthDesc = targetDesc;
         mDepth = pContext->createTexture(depthDesc);
         mHasPreviousViewProjection = false;
-        if (!mDepth)
+        if (!mDepth.isValid())
         {
             LOGF(eERROR, "Failed to create Renderer.Depth");
             return false;

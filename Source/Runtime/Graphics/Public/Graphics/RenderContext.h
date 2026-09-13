@@ -23,70 +23,95 @@ struct SceneResourceAccess;
 
 struct BufferDesc
 {
-    uint64_t            size;
-    uint32_t            elementCount;
-    uint32_t            structStride;
-    const char*         pName;
-    const void*         pInitialData;
-    uint64_t            initialDataSize;
-    ResourceMemoryUsage usage;
-    ResourceState       startState;
-    DescriptorType      descriptors;
-    BufferCreationFlags flags;
+    uint64_t            size = 0;
+    uint32_t            elementCount = 0;
+    uint32_t            structStride = 0;
+    const char*         pName = nullptr;
+    const void*         pInitialData = nullptr;
+    uint64_t            initialDataSize = 0;
+    ResourceMemoryUsage usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
+    ResourceState       startState = RESOURCE_STATE_UNDEFINED;
+    DescriptorType      descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    BufferCreationFlags flags = BUFFER_CREATION_FLAG_NONE;
 };
 
 struct TextureDesc
 {
-    uint32_t             width;
-    uint32_t             height;
-    uint32_t             depth;
-    uint32_t             arraySize;
-    uint32_t             mipLevels;
-    SampleCount          sampleCount;
-    TinyImageFormat      format;
-    ResourceState        startState;
-    DescriptorType       descriptors;
-    TextureCreationFlags flags;
-    bool                 renderTarget;
-    const char*          pName;
+    uint32_t             width = 0;
+    uint32_t             height = 0;
+    uint32_t             depth = 1;
+    uint32_t             arraySize = 1;
+    uint32_t             mipLevels = 1;
+    SampleCount          sampleCount = SAMPLE_COUNT_1;
+    TinyImageFormat      format = TinyImageFormat_UNDEFINED;
+    ResourceState        startState = RESOURCE_STATE_UNDEFINED;
+    DescriptorType       descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    TextureCreationFlags flags = TEXTURE_CREATION_FLAG_NONE;
+    bool                 renderTarget = false;
+    const char*          pName = nullptr;
+};
+
+struct SamplerDesc
+{
+    FilterType  minFilter = FILTER_LINEAR;
+    FilterType  magFilter = FILTER_LINEAR;
+    MipMapMode  mipMapMode = MIPMAP_MODE_LINEAR;
+    AddressMode addressU = ADDRESS_MODE_REPEAT;
+    AddressMode addressV = ADDRESS_MODE_REPEAT;
+    AddressMode addressW = ADDRESS_MODE_REPEAT;
+    float       mipLodBias = 0.0f;
+    bool        setLodRange = false;
+    float       minLod = 0.0f;
+    float       maxLod = 0.0f;
+    float       maxAnisotropy = 0.0f;
+    CompareMode compareFunc = CMP_NEVER;
 };
 
 struct ShaderStageDesc
 {
-    ShaderStage stage;
-    const void* pSource;
-    uint32_t    sourceSize;
-    const char* pEntryPoint;
-    const char* pName;
+    ShaderStage stage = SHADER_STAGE_NONE;
+    const void* pSource = nullptr;
+    uint32_t    sourceSize = 0;
+    const char* pEntryPoint = "main";
+    const char* pName = nullptr;
 };
 
 struct ShaderDesc
 {
-    ShaderStageDesc   stages[MAX_SHADER_STAGES];
-    uint32_t          stageCount;
-    ResourceDirectory sourceDirectory;
-    const char*       pFileName;
+    ShaderStageDesc   stages[MAX_SHADER_STAGES] = {};
+    uint32_t          stageCount = 0;
+    ResourceDirectory sourceDirectory = RD_SHADER_SOURCES;
+    const char*       pFileName = nullptr;
 };
 
 struct GraphicsPipelineDesc
 {
-    const GPUShader*    pShader;
-    VertexLayout        vertexLayout;
-    RasterizerStateDesc rasterizer;
-    DepthStateDesc      depth;
-    BlendStateDesc      blend;
-    TinyImageFormat     colorFormats[MAX_RENDER_TARGETS];
-    uint32_t            renderTargetCount;
-    TinyImageFormat     depthStencilFormat;
-    PrimitiveTopology   topology;
-    SampleCount         sampleCount;
-    const char*         pName;
+    const GPUShader*    pShader = nullptr;
+    VertexLayout        vertexLayout = {};
+    RasterizerStateDesc rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID, .mFrontFace = FRONT_FACE_CCW };
+    DepthStateDesc      depth = { .mDepthTest = false, .mDepthWrite = false, .mDepthFunc = CMP_ALWAYS };
+    BlendStateDesc      blend = {
+             .mSrcFactors = { BC_ONE },
+             .mDstFactors = { BC_ZERO },
+             .mSrcAlphaFactors = { BC_ONE },
+             .mDstAlphaFactors = { BC_ZERO },
+             .mBlendModes = { BM_ADD },
+             .mBlendAlphaModes = { BM_ADD },
+             .mColorWriteMasks = { COLOR_MASK_ALL },
+             .mRenderTargetMask = BLEND_STATE_TARGET_ALL,
+    };
+    TinyImageFormat   colorFormats[MAX_RENDER_TARGETS] = {};
+    uint32_t          renderTargetCount = 0;
+    TinyImageFormat   depthStencilFormat = TinyImageFormat_UNDEFINED;
+    PrimitiveTopology topology = PRIMITIVE_TOPO_TRI_LIST;
+    SampleCount       sampleCount = SAMPLE_COUNT_1;
+    const char*       pName = nullptr;
 };
 
 struct ComputePipelineDesc
 {
-    const GPUShader* pShader;
-    const char*      pName;
+    const GPUShader* pShader = nullptr;
+    const char*      pName = nullptr;
 };
 
 struct ColorAttachment
@@ -126,7 +151,7 @@ struct ContextDesc
     bool            enableGpuProfiler;
 };
 
-class GPUBuffer final
+class GPUBuffer
 {
 public:
     GPUBuffer() = default;
@@ -135,8 +160,8 @@ public:
     GPUBuffer& operator=(GPUBuffer&&) noexcept;
     GPUBuffer(const GPUBuffer&) = delete;
     GPUBuffer& operator=(const GPUBuffer&) = delete;
-    explicit   operator bool() const { return pBuffer != nullptr; }
-    Buffer*    native() const { return pBuffer; }
+    bool       isValid() const { return pBuffer != nullptr; }
+    Buffer*    get() const { return pBuffer; }
 
 private:
     GPUBuffer(RenderContext*, Buffer*, uint64_t, ResourceMemoryUsage, DescriptorType, ResourceState);
@@ -152,7 +177,7 @@ private:
     friend class RenderContext;
 };
 
-class GPUTexture final
+class GPUTexture
 {
 public:
     GPUTexture() = default;
@@ -161,8 +186,8 @@ public:
     GPUTexture& operator=(GPUTexture&&) noexcept;
     GPUTexture(const GPUTexture&) = delete;
     GPUTexture&   operator=(const GPUTexture&) = delete;
-    explicit      operator bool() const { return pTexture != nullptr; }
-    Texture*      native() const { return pTexture; }
+    bool          isValid() const { return pTexture != nullptr; }
+    Texture*      get() const { return pTexture; }
     RenderTarget* renderTarget() const { return pRenderTarget; }
 
 private:
@@ -178,7 +203,7 @@ private:
     friend class RenderContext;
 };
 
-class GPUSampler final
+class GPUSampler
 {
 public:
     GPUSampler() = default;
@@ -187,8 +212,8 @@ public:
     GPUSampler& operator=(GPUSampler&&) noexcept;
     GPUSampler(const GPUSampler&) = delete;
     GPUSampler& operator=(const GPUSampler&) = delete;
-    explicit    operator bool() const { return pSampler != nullptr; }
-    Sampler*    native() const { return pSampler; }
+    bool        isValid() const { return pSampler != nullptr; }
+    Sampler*    get() const { return pSampler; }
 
 private:
     GPUSampler(RenderContext*, Sampler*);
@@ -199,7 +224,7 @@ private:
     friend class RenderContext;
 };
 
-class GPUShader final
+class GPUShader
 {
 public:
     GPUShader() = default;
@@ -208,8 +233,8 @@ public:
     GPUShader& operator=(GPUShader&&) noexcept;
     GPUShader(const GPUShader&) = delete;
     GPUShader& operator=(const GPUShader&) = delete;
-    explicit   operator bool() const { return pShader != nullptr; }
-    Shader*    native() const { return pShader; }
+    bool       isValid() const { return pShader != nullptr; }
+    Shader*    get() const { return pShader; }
 
 private:
     GPUShader(RenderContext*, Shader*);
@@ -220,7 +245,7 @@ private:
     friend class RenderContext;
 };
 
-class GPUPipeline final
+class GPUPipeline
 {
 public:
     GPUPipeline() = default;
@@ -229,8 +254,8 @@ public:
     GPUPipeline& operator=(GPUPipeline&&) noexcept;
     GPUPipeline(const GPUPipeline&) = delete;
     GPUPipeline& operator=(const GPUPipeline&) = delete;
-    explicit     operator bool() const { return pPipeline != nullptr; }
-    Pipeline*    native() const { return pPipeline; }
+    bool         isValid() const { return pPipeline != nullptr; }
+    Pipeline*    get() const { return pPipeline; }
 
 private:
     GPUPipeline(RenderContext*, Pipeline*, RootSignature*);
@@ -332,17 +357,17 @@ struct SubmitHandle
 {
     uint64_t id = 0;
     uint32_t slot = 0;
-    explicit operator bool() const { return id != 0; }
+    bool     isValid() const { return id != 0; }
 };
 
 class RenderContext
 {
 public:
-    explicit RenderContext(const ContextDesc&);
+    RenderContext(const ContextDesc&);
     ~RenderContext();
     RenderContext(const RenderContext&) = delete;
     RenderContext& operator=(const RenderContext&) = delete;
-    explicit       operator bool() const { return ready; }
+    bool           isValid() const { return ready; }
 
     void waitIdle();
 
@@ -359,7 +384,7 @@ public:
 
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
-    GPUSampler  createSampler(const SamplerDesc&);
+    GPUSampler  createSampler(const SamplerDesc& = {});
     GPUShader   createShader(const ShaderDesc&);
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);
@@ -395,6 +420,7 @@ private:
     CommandSignature*         pDrawIndirectSignature = nullptr;
     CommandSignature*         pDrawIndexedIndirectSignature = nullptr;
     CommandSignature*         pDispatchIndirectSignature = nullptr;
+    // TODO: Use a dynamic array for command slots to support more than 32 command lists if needed
     static constexpr uint32_t maxCommandLists = 16;
     CommandSlot               commandSlots[maxCommandLists] = {};
     Semaphore*                pImageAcquiredSemaphore = nullptr;

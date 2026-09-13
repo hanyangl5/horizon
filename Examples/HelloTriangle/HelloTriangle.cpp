@@ -8,8 +8,6 @@
 #include "Graphics/RenderContext.h"
 #include "Profiler/IProfiler.h"
 
-namespace
-{
 constexpr uint32_t        kCpuProfileColor = 0x3399FF;
 constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
 
@@ -51,8 +49,6 @@ float4 PSMain(VSOutput input) : SV_Target0
     return float4(input.Color, 1.0f);
 }
 )";
-
-} // namespace
 
 class HelloTriangleApp final: public IApp
 {
@@ -150,7 +146,7 @@ public:
 private:
     bool createResources()
     {
-        hz::BufferDesc bufferDesc = {
+        resources->vertexBuffer = context->createBuffer({
             .size = sizeof(kTriangleVertices),
             .elementCount = sizeof(kTriangleVertices) / sizeof(uint32_t),
             .pName = "HelloTriangle.VertexBuffer",
@@ -159,12 +155,10 @@ private:
             .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
             .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
             .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_VERTEX_BUFFER,
-            .flags = BUFFER_CREATION_FLAG_NONE,
-        };
-        resources->vertexBuffer = context->createBuffer(bufferDesc);
-        ASSERT(resources->vertexBuffer);
+        });
+        ASSERT(resources->vertexBuffer.isValid());
 
-        hz::ShaderDesc shaderDesc = {
+        resources->shader = context->createShader({
             .stages = {
                 {
                     .stage = SHADER_STAGE_VERT,
@@ -182,10 +176,9 @@ private:
                 },
             },
             .stageCount = 2,
-        };
-        resources->shader = context->createShader(shaderDesc);
-        ASSERT(resources->shader);
-        hz::GraphicsPipelineDesc pipelineDesc = {
+        });
+        ASSERT(resources->shader.isValid());
+        resources->pipeline = context->createGraphicsPipeline({
             .pShader = &resources->shader,
             .vertexLayout = {
                 .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
@@ -198,26 +191,11 @@ private:
                 .mBindingCount = 1,
                 .mAttribCount = 2,
             },
-            .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
-            .depth = { .mDepthFunc = CMP_ALWAYS },
-            .blend = {
-                .mSrcFactors = { BC_ONE },
-                .mDstFactors = { BC_ZERO },
-                .mSrcAlphaFactors = { BC_ONE },
-                .mDstAlphaFactors = { BC_ZERO },
-                .mBlendModes = { BM_ADD },
-                .mBlendAlphaModes = { BM_ADD },
-                .mColorWriteMasks = { COLOR_MASK_ALL },
-                .mRenderTargetMask = BLEND_STATE_TARGET_0,
-            },
             .colorFormats = { kSurfaceFormat },
             .renderTargetCount = 1,
-            .topology = PRIMITIVE_TOPO_TRI_LIST,
-            .sampleCount = SAMPLE_COUNT_1,
             .pName = "HelloTriangle.Pipeline",
-        };
-        resources->pipeline = context->createGraphicsPipeline(pipelineDesc);
-        ASSERT(resources->pipeline);
+        });
+        ASSERT(resources->pipeline.isValid());
         return true;
     }
 

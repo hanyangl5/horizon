@@ -16,7 +16,7 @@ struct FreeCameraControllerDesc
 class FORGE_API FreeCameraController
 {
 public:
-    explicit FreeCameraController(const FreeCameraControllerDesc& desc);
+    FreeCameraController(const FreeCameraControllerDesc& desc);
     ~FreeCameraController();
 
     FreeCameraController(const FreeCameraController&) = delete;

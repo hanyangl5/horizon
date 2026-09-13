@@ -171,21 +171,19 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
 GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
 {
-    hz::ShaderDesc shaderDesc = {
+    mShader = context.createShader({
         .stages = { { .stage = SHADER_STAGE_COMP,
                       .pSource = kGeometryBuildShader,
                       .sourceSize = (uint32_t)(sizeof(kGeometryBuildShader) - 1),
                       .pEntryPoint = "CSMain",
                       .pName = "DeferredShadingGeometryBuildCS" } },
         .stageCount = 1,
-    };
-    mShader = context.createShader(shaderDesc);
-    ASSERT(mShader);
-    hz::ComputePipelineDesc pipelineDesc = { .pShader = &mShader, .pName = "DeferredShading.GeometryBuildPipeline" };
-    mPipeline = context.createComputePipeline(pipelineDesc);
-    ASSERT(mPipeline);
+    });
+    ASSERT(mShader.isValid());
+    mPipeline = context.createComputePipeline({ .pShader = &mShader, .pName = "DeferredShading.GeometryBuildPipeline" });
+    ASSERT(mPipeline.isValid());
 
-    hz::BufferDesc vertexDesc = {
+    mVertices = context.createBuffer({
         .size = sizeof(Vertex) * kGeneratedVertexCount,
         .elementCount = kGeneratedVertexCount,
         .structStride = sizeof(Vertex),
@@ -193,9 +191,8 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .startState = RESOURCE_STATE_UNORDERED_ACCESS,
         .descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER,
-        .flags = BUFFER_CREATION_FLAG_NONE,
-    };
-    hz::BufferDesc indexDesc = {
+    });
+    mIndices = context.createBuffer({
         .size = sizeof(uint32_t) * kGeneratedIndexCount,
         .elementCount = kGeneratedIndexCount,
         .structStride = sizeof(uint32_t),
@@ -203,11 +200,8 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .startState = RESOURCE_STATE_UNORDERED_ACCESS,
         .descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDEX_BUFFER,
-        .flags = BUFFER_CREATION_FLAG_NONE,
-    };
-    mVertices = context.createBuffer(vertexDesc);
-    mIndices = context.createBuffer(indexDesc);
-    ASSERT(mVertices && mIndices);
+    });
+    ASSERT(mVertices.isValid() && mIndices.isValid());
 }
 
 void GeometryBuildPass::execute(hz::CommandList& commands) const
@@ -278,7 +272,7 @@ GBufferOutput PSMain(VSOutput input)
 
 GBufferPass::GBufferPass(hz::RenderContext& context)
 {
-    hz::ShaderDesc shaderDesc = {
+    mShader = context.createShader({
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pSource = kGBufferShader,
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "VSMain",
@@ -288,10 +282,9 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
               .pName = "DeferredShadingGBufferPS" },
         },
         .stageCount = 2,
-    };
-    mShader = context.createShader(shaderDesc);
-    ASSERT(mShader);
-    hz::GraphicsPipelineDesc pipelineDesc = {
+    });
+    ASSERT(mShader.isValid());
+    mPipeline = context.createGraphicsPipeline({
         .pShader = &mShader,
         .vertexLayout = {
             .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
@@ -306,27 +299,13 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
             .mBindingCount = 1,
             .mAttribCount = 3,
         },
-        .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
         .depth = { .mDepthTest = true, .mDepthWrite = true, .mDepthFunc = CMP_LEQUAL },
-        .blend = {
-            .mSrcFactors = { BC_ONE },
-            .mDstFactors = { BC_ZERO },
-            .mSrcAlphaFactors = { BC_ONE },
-            .mDstAlphaFactors = { BC_ZERO },
-            .mBlendModes = { BM_ADD },
-            .mBlendAlphaModes = { BM_ADD },
-            .mColorWriteMasks = { COLOR_MASK_ALL },
-            .mRenderTargetMask = (BlendStateTargets)(BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1),
-        },
         .colorFormats = { TinyImageFormat_R8G8B8A8_UNORM, TinyImageFormat_R16G16B16A16_SFLOAT },
         .renderTargetCount = 2,
         .depthStencilFormat = TinyImageFormat_D32_SFLOAT,
-        .topology = PRIMITIVE_TOPO_TRI_LIST,
-        .sampleCount = SAMPLE_COUNT_1,
         .pName = "DeferredShading.GBufferPipeline",
-    };
-    mPipeline = context.createGraphicsPipeline(pipelineDesc);
-    ASSERT(mPipeline);
+    });
+    ASSERT(mPipeline.isValid());
 }
 
 bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t height)
@@ -334,14 +313,9 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t he
     hz::TextureDesc albedoDesc = {
         .width = width,
         .height = height,
-        .depth = 1,
-        .arraySize = 1,
-        .mipLevels = 1,
-        .sampleCount = SAMPLE_COUNT_1,
         .format = TinyImageFormat_R8G8B8A8_UNORM,
         .startState = RESOURCE_STATE_RENDER_TARGET,
         .descriptors = DESCRIPTOR_TYPE_TEXTURE,
-        .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
         .renderTarget = true,
         .pName = "GBuffer.Albedo",
     };
@@ -356,7 +330,7 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t he
     mAlbedo = context.createTexture(albedoDesc);
     mNormal = context.createTexture(normalDesc);
     mDepth = context.createTexture(depthDesc);
-    if (!mAlbedo || !mNormal || !mDepth)
+    if (!mAlbedo.isValid() || !mNormal.isValid() || !mDepth.isValid())
         return false;
     return true;
 }
@@ -435,7 +409,7 @@ float4 PSMain(VSOutput input) : SV_Target0
 
 LightingPass::LightingPass(hz::RenderContext& context, TinyImageFormat surfaceFormat)
 {
-    hz::ShaderDesc shaderDesc = {
+    mShader = context.createShader({
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pSource = kLightingShader,
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "VSMain",
@@ -445,31 +419,15 @@ LightingPass::LightingPass(hz::RenderContext& context, TinyImageFormat surfaceFo
               .pName = "DeferredShadingLightingPS" },
         },
         .stageCount = 2,
-    };
-    mShader = context.createShader(shaderDesc);
-    ASSERT(mShader);
-    hz::GraphicsPipelineDesc pipelineDesc = {
+    });
+    ASSERT(mShader.isValid());
+    mPipeline = context.createGraphicsPipeline({
         .pShader = &mShader,
-        .rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID },
-        .depth = { .mDepthFunc = CMP_ALWAYS },
-        .blend = {
-            .mSrcFactors = { BC_ONE },
-            .mDstFactors = { BC_ZERO },
-            .mSrcAlphaFactors = { BC_ONE },
-            .mDstAlphaFactors = { BC_ZERO },
-            .mBlendModes = { BM_ADD },
-            .mBlendAlphaModes = { BM_ADD },
-            .mColorWriteMasks = { COLOR_MASK_ALL },
-            .mRenderTargetMask = BLEND_STATE_TARGET_0,
-        },
         .colorFormats = { surfaceFormat },
         .renderTargetCount = 1,
-        .topology = PRIMITIVE_TOPO_TRI_LIST,
-        .sampleCount = SAMPLE_COUNT_1,
         .pName = "DeferredShading.LightingPipeline",
-    };
-    mPipeline = context.createGraphicsPipeline(pipelineDesc);
-    ASSERT(mPipeline);
+    });
+    ASSERT(mPipeline.isValid());
 }
 
 void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& backbuffer, const hz::GPUTexture& albedo,
@@ -600,7 +558,7 @@ private:
     {
         for (uint32_t object = 0; object < kSceneObjectCount; ++object)
         {
-            hz::BufferDesc desc = {
+            sceneUniformBuffers[object] = context->createBuffer({
                 .size = sizeof(SceneUniforms),
                 .elementCount = 1,
                 .structStride = sizeof(SceneUniforms),
@@ -608,9 +566,8 @@ private:
                 .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                 .startState = RESOURCE_STATE_SHADER_RESOURCE,
                 .descriptors = DESCRIPTOR_TYPE_BUFFER,
-            };
-            sceneUniformBuffers[object] = context->createBuffer(desc);
-            ASSERT(sceneUniformBuffers[object]);
+            });
+            ASSERT(sceneUniformBuffers[object].isValid());
         }
     }
 
