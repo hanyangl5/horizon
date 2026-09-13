@@ -141,12 +141,12 @@ extern "C"
 
     typedef struct RTree
     {
-        uint32_t mMaxElementsPerNode;
-        uint32_t mMinElementsPerNode;
-        uint32_t mMaxTreeSize;
+        uint32_t maxElementsPerNode;
+        uint32_t minElementsPerNode;
+        uint32_t maxTreeSize;
 
-        uint32_t mLeafNodes;
-        uint32_t mDataCount;
+        uint32_t leafNodes;
+        uint32_t dataCount;
 
         RTreeNode*   pTree;
         rtree_point* pPoints;
@@ -175,11 +175,11 @@ extern "C"
         RTree* pRTree = (RTree*)tf_malloc(totalSize);
         ASSERT(pRTree);
 
-        pRTree->mMaxElementsPerNode = maxElementsPerNode;
-        pRTree->mMinElementsPerNode = minElementsPerNode;
-        pRTree->mMaxTreeSize = maxTreeSize;
-        pRTree->mDataCount = 0;
-        pRTree->mLeafNodes = 1;
+        pRTree->maxElementsPerNode = maxElementsPerNode;
+        pRTree->minElementsPerNode = minElementsPerNode;
+        pRTree->maxTreeSize = maxTreeSize;
+        pRTree->dataCount = 0;
+        pRTree->leafNodes = 1;
 
         pRTree->pTree = (RTreeNode*)(pRTree + 1);
         pRTree->pPoints = (rtree_point*)(pRTree->pTree + maxTreeSize);
@@ -449,7 +449,7 @@ extern "C"
             else
             {
                 rtree_box_enlarge(outRight, pRTree->pPoints[pRTree->pIndices[index]]);
-                pRTree->pSplitIndices[pRTree->mMaxElementsPerNode + (*outRightCount)++] = pRTree->pIndices[index];
+                pRTree->pSplitIndices[pRTree->maxElementsPerNode + (*outRightCount)++] = pRTree->pIndices[index];
             }
         }
         ASSERT(outLeftCount != 0 && outRightCount != 0);
@@ -458,7 +458,7 @@ extern "C"
     void rtree_split(RTree* pRTree, const uint32_t treeIndex, const float* leftrtree_box, const float* rightrtree_box,
                      const uint32_t leftCount, const uint32_t rightCount)
     {
-        ASSERT(treeIndex + 2 < pRTree->mMaxTreeSize && "Max tree size reached");
+        ASSERT(treeIndex + 2 < pRTree->maxTreeSize && "Max tree size reached");
         RTreeNode* currentLeaf = &pRTree->pTree[treeIndex];
         ASSERT(currentLeaf->countOrNode >= 2 && currentLeaf->countOrNode != INTERNAL_NODE && "Required to be a filled leave node");
 
@@ -470,12 +470,12 @@ extern "C"
         for (uint32_t i = 0; i < rightCount; ++i)
         {
             // Append right indices at end of the list
-            pRTree->pIndices[pRTree->mMaxElementsPerNode * pRTree->mLeafNodes + i] = pRTree->pSplitIndices[pRTree->mMaxElementsPerNode + i];
+            pRTree->pIndices[pRTree->maxElementsPerNode * pRTree->leafNodes + i] = pRTree->pSplitIndices[pRTree->maxElementsPerNode + i];
         }
 
         // Set leaves
-        RTreeNode* left = &pRTree->pTree[pRTree->mLeafNodes * 2 - 1];
-        RTreeNode* right = &pRTree->pTree[pRTree->mLeafNodes * 2];
+        RTreeNode* left = &pRTree->pTree[pRTree->leafNodes * 2 - 1];
+        RTreeNode* right = &pRTree->pTree[pRTree->leafNodes * 2];
 
         rtree_set_box(left->bb, leftrtree_box);
         left->leftOrFirst = currentLeaf->leftOrFirst;
@@ -483,16 +483,16 @@ extern "C"
         left->parentIndex = treeIndex;
 
         rtree_set_box(right->bb, rightrtree_box);
-        right->leftOrFirst = pRTree->mMaxElementsPerNode * pRTree->mLeafNodes;
+        right->leftOrFirst = pRTree->maxElementsPerNode * pRTree->leafNodes;
         right->countOrNode = rightCount;
         right->parentIndex = treeIndex;
 
         // Set current leaf as node
-        currentLeaf->leftOrFirst = pRTree->mLeafNodes * 2 - 1;
+        currentLeaf->leftOrFirst = pRTree->leafNodes * 2 - 1;
         currentLeaf->countOrNode = INTERNAL_NODE;
 
         // Increased amount of leaf nodes by one
-        ++pRTree->mLeafNodes;
+        ++pRTree->leafNodes;
     }
 
     void rtree_split_partition(RTree* pRTree, const uint32_t treeIndex)
@@ -513,11 +513,11 @@ extern "C"
 
         if (node->countOrNode != INTERNAL_NODE) // found leaf node
         {
-            ASSERT(node->countOrNode < pRTree->mMaxElementsPerNode);
+            ASSERT(node->countOrNode < pRTree->maxElementsPerNode);
 
             pRTree->pIndices[node->leftOrFirst + node->countOrNode] = index;
             ++node->countOrNode;
-            if (node->countOrNode == pRTree->mMaxElementsPerNode) // Forced split
+            if (node->countOrNode == pRTree->maxElementsPerNode) // Forced split
             {
                 rtree_split_partition(pRTree, treeIndex);
 
@@ -525,7 +525,7 @@ extern "C"
                 bool isLeftLarger;
                 rtree_rebalance(pRTree, 0, &isLeftLarger);
             }
-            else if (node->countOrNode >= pRTree->mMinElementsPerNode) // Check if splitting results in better heuristic
+            else if (node->countOrNode >= pRTree->minElementsPerNode) // Check if splitting results in better heuristic
             {
                 // Partition
                 rtree_box leftrtree_box, rightrtree_box;
@@ -569,11 +569,11 @@ extern "C"
     void insertRTreePoint(RTree* pRTree, const float point[2], void* pData)
     {
         ASSERT(pRTree);
-        pRTree->pPoints[pRTree->mDataCount][0] = point[0];
-        pRTree->pPoints[pRTree->mDataCount][1] = point[1];
-        pRTree->ppData[pRTree->mDataCount] = pData;
-        rtree_insert_point(pRTree, 0, pRTree->mDataCount);
-        ++pRTree->mDataCount;
+        pRTree->pPoints[pRTree->dataCount][0] = point[0];
+        pRTree->pPoints[pRTree->dataCount][1] = point[1];
+        pRTree->ppData[pRTree->dataCount] = pData;
+        rtree_insert_point(pRTree, 0, pRTree->dataCount);
+        ++pRTree->dataCount;
     }
 
     void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* pUserData)
@@ -646,13 +646,13 @@ extern "C"
 
         // Reduce data count and switch data last data location
         // This ensures usability of dataCount as last index for inserting new points
-        --pRTree->mDataCount;
-        pRTree->ppData[pRTree->pIndices[index]] = pRTree->ppData[pRTree->mDataCount];
-        pRTree->pPoints[pRTree->pIndices[index]][0] = pRTree->pPoints[pRTree->mDataCount][0];
-        pRTree->pPoints[pRTree->pIndices[index]][1] = pRTree->pPoints[pRTree->mDataCount][1];
-        pRTree->ppData[pRTree->mDataCount] = NULL;
-        pRTree->pPoints[pRTree->mDataCount][0] = 0;
-        pRTree->pPoints[pRTree->mDataCount][1] = 0;
+        --pRTree->dataCount;
+        pRTree->ppData[pRTree->pIndices[index]] = pRTree->ppData[pRTree->dataCount];
+        pRTree->pPoints[pRTree->pIndices[index]][0] = pRTree->pPoints[pRTree->dataCount][0];
+        pRTree->pPoints[pRTree->pIndices[index]][1] = pRTree->pPoints[pRTree->dataCount][1];
+        pRTree->ppData[pRTree->dataCount] = NULL;
+        pRTree->pPoints[pRTree->dataCount][0] = 0;
+        pRTree->pPoints[pRTree->dataCount][1] = 0;
 
         // Data index previously located on index dataCount, should be updated with new index pIndices[index]
         // Is there a faster way then walk over the tree?
@@ -668,7 +668,7 @@ extern "C"
             {
                 for (uint32_t i = 0; i < traversedNode->countOrNode; ++i)
                 {
-                    if (pRTree->pIndices[traversedNode->leftOrFirst + i] == pRTree->mDataCount)
+                    if (pRTree->pIndices[traversedNode->leftOrFirst + i] == pRTree->dataCount)
                     {
                         pRTree->pIndices[traversedNode->leftOrFirst + i] = pRTree->pIndices[index];
                         found = true;
@@ -692,11 +692,11 @@ extern "C"
         // Merge with sibling in parent
         if (node->countOrNode == 0 && node->parentIndex != ROOT_NODE)
         {
-            --pRTree->mLeafNodes; // Amount of leave nodes is reduced by one
+            --pRTree->leafNodes; // Amount of leave nodes is reduced by one
             uint8_t  isLeftNode = treeIndex % 2;
             // Replace empty data space with the current outer leave node
             uint32_t outerNodeIndex;
-            bool     succeed = rtree_get_leave_node(pRTree, pRTree->mMaxElementsPerNode * pRTree->mLeafNodes, &outerNodeIndex);
+            bool     succeed = rtree_get_leave_node(pRTree, pRTree->maxElementsPerNode * pRTree->leafNodes, &outerNodeIndex);
             ASSERT(succeed);
             RTreeNode* outerNode = &pTree[outerNodeIndex];
             for (uint32_t i = 0; i < outerNode->countOrNode; ++i)
@@ -722,13 +722,13 @@ extern "C"
 
             // Move outer nodes to free locations if not working on outer nodes
             // pTree[treeIndex] + pTree[siblingIndex] going to be free locations
-            // get "mLeafNodes * 2 (-1)" left and right and move to free space
+            // get "leafNodes * 2 (-1)" left and right and move to free space
             // update parent leftOrFirst location
-            if (pRTree->mLeafNodes * 2 != treeIndex && pRTree->mLeafNodes * 2 != siblingIndex)
+            if (pRTree->leafNodes * 2 != treeIndex && pRTree->leafNodes * 2 != siblingIndex)
             {
-                pTree[pTree[pRTree->mLeafNodes * 2].parentIndex].leftOrFirst = isLeftNode ? treeIndex : treeIndex - 1;
-                pTree[treeIndex] = isLeftNode ? pTree[pRTree->mLeafNodes * 2 - 1] : pTree[pRTree->mLeafNodes * 2];
-                pTree[siblingIndex] = isLeftNode ? pTree[pRTree->mLeafNodes * 2] : pTree[pRTree->mLeafNodes * 2 - 1];
+                pTree[pTree[pRTree->leafNodes * 2].parentIndex].leftOrFirst = isLeftNode ? treeIndex : treeIndex - 1;
+                pTree[treeIndex] = isLeftNode ? pTree[pRTree->leafNodes * 2 - 1] : pTree[pRTree->leafNodes * 2];
+                pTree[siblingIndex] = isLeftNode ? pTree[pRTree->leafNodes * 2] : pTree[pRTree->leafNodes * 2 - 1];
 
                 // update child node parent index
                 if (pTree[treeIndex].countOrNode == INTERNAL_NODE)

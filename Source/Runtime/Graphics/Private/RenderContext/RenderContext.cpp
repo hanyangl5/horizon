@@ -53,52 +53,52 @@ void RenderContext::waitIdle() { waitQueueIdle(pGraphicsQueue); }
 bool RenderContext::initDevice()
 {
     const RendererContextDesc contextDesc = {
-        .mEnableGpuBasedValidation = desc.enableGpuValidation,
+        .enableGpuBasedValidation = desc.enableGpuValidation,
     };
     initRendererContext(appName, &contextDesc, &pRendererContext);
     if (!pRendererContext)
         return false;
 
     const RendererDesc rendererDesc = {
-        .mShaderTarget = SHADER_TARGET_6_6,
+        .shaderTarget = SHADER_TARGET_6_6,
         .pContext = pRendererContext,
-        .mEnableGpuBasedValidation = desc.enableGpuValidation,
+        .enableGpuBasedValidation = desc.enableGpuValidation,
     };
     initRenderer(appName, &rendererDesc, &pRenderer);
     if (!pRenderer)
         return false;
 
     QueueDesc queueDesc = {
-        .mType = QUEUE_TYPE_GRAPHICS,
-        .mFlag = QUEUE_FLAG_NONE,
-        .mPriority = QUEUE_PRIORITY_NORMAL,
+        .type = QUEUE_TYPE_GRAPHICS,
+        .flag = QUEUE_FLAG_NONE,
+        .priority = QUEUE_PRIORITY_NORMAL,
         .pName = "RenderContext Graphics Queue",
     };
     addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
     if (!pGraphicsQueue)
         return false;
 
-    IndirectArgumentDescriptor drawArgument = { .mType = INDIRECT_DRAW };
+    IndirectArgumentDescriptor drawArgument = { .type = INDIRECT_DRAW };
     CommandSignatureDesc       drawSignatureDesc = {
         .pArgDescs = &drawArgument,
-        .mIndirectArgCount = 1,
-        .mPacked = true,
+        .indirectArgCount = 1,
+        .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &drawSignatureDesc, &pDrawIndirectSignature);
 
-    IndirectArgumentDescriptor drawIndexedArgument = { .mType = INDIRECT_DRAW_INDEX };
+    IndirectArgumentDescriptor drawIndexedArgument = { .type = INDIRECT_DRAW_INDEX };
     CommandSignatureDesc       drawIndexedSignatureDesc = {
         .pArgDescs = &drawIndexedArgument,
-        .mIndirectArgCount = 1,
-        .mPacked = true,
+        .indirectArgCount = 1,
+        .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &drawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
 
-    IndirectArgumentDescriptor dispatchArgument = { .mType = INDIRECT_DISPATCH };
+    IndirectArgumentDescriptor dispatchArgument = { .type = INDIRECT_DISPATCH };
     CommandSignatureDesc       dispatchSignatureDesc = {
         .pArgDescs = &dispatchArgument,
-        .mIndirectArgCount = 1,
-        .mPacked = true,
+        .indirectArgCount = 1,
+        .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &dispatchSignatureDesc, &pDispatchIndirectSignature);
     ASSERT(pDrawIndirectSignature && pDrawIndexedIndirectSignature && pDispatchIndirectSignature);
@@ -118,14 +118,14 @@ bool RenderContext::initDevice()
             .ppQueues = queues,
             .ppProfilerNames = names,
             .pProfileTokens = &gpuProfilerToken,
-            .mGpuProfilerCount = desc.enableGpuProfiler ? 1u : 0u,
+            .gpuProfilerCount = desc.enableGpuProfiler ? 1u : 0u,
         };
         initProfiler(&profilerDesc);
         profilerInitialized = true;
     }
 
     ResourceLoaderDesc loaderDesc = gDefaultResourceLoaderDesc;
-    loaderDesc.mBufferSize = 16u * 1024u * 1024u;
+    loaderDesc.bufferSize = 16u * 1024u * 1024u;
     initResourceLoaderInterface(pRenderer, &loaderDesc);
     resourceLoaderInitialized = true;
 
@@ -136,7 +136,7 @@ bool RenderContext::initDevice()
         CommandSlot& slot = commandSlots[i];
         CmdPoolDesc  poolDesc = {
             .pQueue = pGraphicsQueue,
-            .mTransient = false,
+            .transient = false,
         };
         addCmdPool(pRenderer, &poolDesc, &slot.pCmdPool);
         ASSERT(slot.pCmdPool);
@@ -159,22 +159,22 @@ bool RenderContext::createSwapChain()
     ASSERT(ready && !pSwapChain);
     Queue*        queues[] = { pGraphicsQueue };
     SwapChainDesc swapDesc = {
-        .mWindowHandle = desc.windowHandle,
+        .windowHandle = desc.windowHandle,
         .ppPresentQueues = queues,
-        .mPresentQueueCount = 1,
-        .mImageCount = desc.imageCount,
-        .mWidth = desc.width,
-        .mHeight = desc.height,
-        .mColorFormat = desc.colorFormat,
-        .mEnableVsync = desc.enableVSync,
-        .mColorSpace = desc.colorSpace,
+        .presentQueueCount = 1,
+        .imageCount = desc.imageCount,
+        .width = desc.width,
+        .height = desc.height,
+        .colorFormat = desc.colorFormat,
+        .enableVsync = desc.enableVSync,
+        .colorSpace = desc.colorSpace,
     };
-    if (swapDesc.mColorFormat == TinyImageFormat_UNDEFINED)
-        swapDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.mColorSpace);
+    if (swapDesc.colorFormat == TinyImageFormat_UNDEFINED)
+        swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
     addSwapChain(pRenderer, &swapDesc, &pSwapChain);
     if (pSwapChain)
     {
-        for (uint32_t i = 0; i < pSwapChain->mImageCount; ++i)
+        for (uint32_t i = 0; i < pSwapChain->imageCount; ++i)
         {
             RenderTarget* target = pSwapChain->ppRenderTargets[i];
             backbuffers[i] = GPUTexture(nullptr, target->pTexture, target, RESOURCE_STATE_PRESENT, false);
@@ -324,7 +324,7 @@ bool RenderContext::setVSync(bool enabled)
 
     ASSERT(pSwapChain);
     toggleVSync(pRenderer, &pSwapChain);
-    const bool updated = (pSwapChain->mEnableVsync != 0) == enabled;
+    const bool updated = (pSwapChain->enableVsync != 0) == enabled;
     ASSERT(updated);
     return updated;
 }
@@ -391,8 +391,8 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
         ASSERT(imageAcquired && pPresent == &backbuffers[swapchainImageIndex]);
         RenderTargetBarrier presentBarrier = {
             .pRenderTarget = pPresent->pRenderTarget,
-            .mCurrentState = pPresent->state,
-            .mNewState = RESOURCE_STATE_PRESENT,
+            .currentState = pPresent->state,
+            .newState = RESOURCE_STATE_PRESENT,
         };
         commands.barrier(0, nullptr, 0, nullptr, 1, &presentBarrier);
         pPresent->state = RESOURCE_STATE_PRESENT;
@@ -406,9 +406,9 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
         .pSignalFence = slot.pFence,
         .ppWaitSemaphores = imageAcquireWaitPending ? waitSemaphores : nullptr,
         .ppSignalSemaphores = pPresent ? &slot.pSemaphore : nullptr,
-        .mCmdCount = 1,
-        .mWaitSemaphoreCount = imageAcquireWaitPending ? 1u : 0u,
-        .mSignalSemaphoreCount = pPresent ? 1u : 0u,
+        .cmdCount = 1,
+        .waitSemaphoreCount = imageAcquireWaitPending ? 1u : 0u,
+        .signalSemaphoreCount = pPresent ? 1u : 0u,
     };
     queueSubmit(pGraphicsQueue, &submitDesc);
     imageAcquireWaitPending = false;
@@ -418,9 +418,9 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
         QueuePresentDesc presentDesc = {
             .pSwapChain = pSwapChain,
             .ppWaitSemaphores = &slot.pSemaphore,
-            .mWaitSemaphoreCount = 1,
-            .mIndex = (uint8_t)swapchainImageIndex,
-            .mSubmitDone = true,
+            .waitSemaphoreCount = 1,
+            .index = (uint8_t)swapchainImageIndex,
+            .submitDone = true,
         };
         queuePresent(pGraphicsQueue, &presentDesc);
         imageAcquired = false;
@@ -450,7 +450,7 @@ const GPUTexture& RenderContext::getCurrentBackbuffer()
     if (!imageAcquired)
     {
         acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &swapchainImageIndex);
-        ASSERT(swapchainImageIndex < pSwapChain->mImageCount);
+        ASSERT(swapchainImageIndex < pSwapChain->imageCount);
         imageAcquired = true;
         imageAcquireWaitPending = true;
     }

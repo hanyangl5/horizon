@@ -30,10 +30,10 @@
 
 struct WindowsStackTraceLineInfo
 {
-    char  mFunctionName[512];
-    char  mModuleName[512];
-    char  mFileName[512];
-    DWORD mLineNumber;
+    char  functionName[512];
+    char  moduleName[512];
+    char  fileName[512];
+    DWORD lineNumber;
 };
 
 class WindowsStackTrace
@@ -45,11 +45,11 @@ public:
 
 private:
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
-    static bool         mInit;
-    static Mutex        mDbgHelpMutex;
-    static const size_t mPreallocatedMemorySize = 1024LL * 1024LL;
-    static uint8_t      mPreallocatedMemory[mPreallocatedMemorySize];
-    static size_t       mUsedMemorySize;
+    static bool         init;
+    static Mutex        dbgHelpMutex;
+    static const size_t preallocatedMemorySize = 1024LL * 1024LL;
+    static uint8_t      preallocatedMemory[preallocatedMemorySize];
+    static size_t       usedMemorySize;
 
     static void* Alloc(size_t size);
     static void  Log(const char* msg, ...);

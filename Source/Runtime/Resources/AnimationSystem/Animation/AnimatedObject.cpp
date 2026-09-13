@@ -47,64 +47,64 @@ void MultiplySoATransformQuaternion(int32_t _index, const Quat& _quat, ozz::span
 
 void AnimatedObject::Initialize(Rig* rig, Animation* animation)
 {
-    mRig = rig;
-    mAnimation = animation;
+    this->rig = rig;
+    this->animation = animation;
 
     COMPILE_ASSERT(alignof(Matrix4) == alignof(Vector3) && alignof(Matrix4) == alignof(SoaTransform));
-    uint32_t totalSize = sizeof(Matrix4) * 2 * rig->mNumJoints + sizeof(SoaTransform) * rig->mNumSoaJoints;
+    uint32_t totalSize = sizeof(Matrix4) * 2 * rig->numJoints + sizeof(SoaTransform) * rig->numSoaJoints;
 
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    totalSize += (sizeof(Vector3)) * rig->mNumJoints;
+    totalSize += (sizeof(Vector3)) * rig->numJoints;
 #endif
 
     void* alloc = tf_memalign(alignof(Matrix4), totalSize);
 
-    mJointWorldMats = ozz::span<Matrix4>((Matrix4*)alloc, rig->mNumJoints);
-    mJointModelMats = ozz::span<Matrix4>(mJointWorldMats.data() + rig->mNumJoints, rig->mNumJoints);
-    mLocalTrans = ozz::span<SoaTransform>((SoaTransform*)(mJointModelMats.data() + rig->mNumJoints), rig->mNumSoaJoints); //-V1027
+    jointWorldMats = ozz::span<Matrix4>((Matrix4*)alloc, rig->numJoints);
+    jointModelMats = ozz::span<Matrix4>(jointWorldMats.data() + rig->numJoints, rig->numJoints);
+    localTrans = ozz::span<SoaTransform>((SoaTransform*)(jointModelMats.data() + rig->numJoints), rig->numSoaJoints); //-V1027
 
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    mJointScales = ozz::span<Vector3>((Vector3*)(mLocalTrans.data() + rig->mNumSoaJoints), rig->mNumJoints); //-V1027
+    jointScales = ozz::span<Vector3>((Vector3*)(localTrans.data() + rig->numSoaJoints), rig->numJoints); //-V1027
 #endif
 
-    for (uint32_t i = 0; i < rig->mNumJoints; ++i)
+    for (uint32_t i = 0; i < rig->numJoints; ++i)
     {
-        mJointWorldMats[i] = Matrix4::identity();
-        mJointModelMats[i] = Matrix4::identity();
+        jointWorldMats[i] = Matrix4::identity();
+        jointModelMats[i] = Matrix4::identity();
 
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-        mJointScales[i] = Vector3::one();
+        jointScales[i] = Vector3::one();
 #endif
     }
 
-    for (uint32_t i = 0; i < rig->mNumSoaJoints; ++i)
+    for (uint32_t i = 0; i < rig->numSoaJoints; ++i)
     {
-        mLocalTrans[i] = SoaTransform::identity();
+        localTrans[i] = SoaTransform::identity();
     }
 }
 
 void AnimatedObject::Exit()
 {
-    tf_free(mJointWorldMats.data());
+    tf_free(jointWorldMats.data());
 
-    mJointModelMats = {};
-    mJointWorldMats = {};
-    mLocalTrans = {};
+    jointModelMats = {};
+    jointWorldMats = {};
+    localTrans = {};
 
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    mJointScales = {};
+    jointScales = {};
 #endif
 
-    mRig = NULL;
-    mAnimation = NULL;
+    rig = NULL;
+    animation = NULL;
 }
 
 void AnimatedObject::ComputePose(const Matrix4& rootTransform)
 {
     // Set the world matrix of each joint
-    for (uint32_t jointIndex = 0; jointIndex < mRig->mNumJoints; jointIndex++)
+    for (uint32_t jointIndex = 0; jointIndex < rig->numJoints; jointIndex++)
     {
-        mJointWorldMats[jointIndex] = rootTransform * mJointModelMats[jointIndex];
+        jointWorldMats[jointIndex] = rootTransform * jointModelMats[jointIndex];
     }
 }
 
@@ -122,21 +122,21 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
     bool  minBoneLenSet = false;
 
     // For each joint
-    for (uint32_t childIndex = 0; childIndex < mRig->mNumJoints; childIndex++)
+    for (uint32_t childIndex = 0; childIndex < rig->numJoints; childIndex++)
     {
         // Do not make a bone if it is the root
         // Handle the root joint specially after the loop
-        if (childIndex == mRig->mRootIndex)
+        if (childIndex == rig->rootIndex)
         {
             continue;
         }
 
         // Get the index of the parent of childIndex
-        const int32_t parentIndex = mRig->mSkeleton.joint_parents()[childIndex];
+        const int32_t parentIndex = rig->skeleton.joint_parents()[childIndex];
 
         // Selects joint matrices.
-        const mat4 parentMat = mJointModelMats[parentIndex];
-        const mat4 childMat = mJointModelMats[childIndex];
+        const mat4 parentMat = jointModelMats[parentIndex];
+        const mat4 childMat = jointModelMats[childIndex];
 
         vec3  boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
         float boneLen = length(boneDir);
@@ -150,27 +150,27 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
 
         // Sets the scale of the joint equivilant to the boneLen between it and its parent joint
         // Separete from world so outside objects can use a joint's world mat w/o its scale
-        mJointScales[childIndex] = vec3(boneLen / 2.0f);
+        jointScales[childIndex] = vec3(boneLen / 2.0f);
     }
 
     // Set the root joints scale based on the saved min value
-    mJointScales[mRig->mRootIndex] = vec3(minBoneLen / 2.0f);
+    jointScales[rig->rootIndex] = vec3(minBoneLen / 2.0f);
 #endif
 }
 
 bool AnimatedObject::Update(float dt)
 {
-    // sample the current animation to get mLocalTrans
-    if (!mAnimation->Sample(dt, mLocalTrans))
+    // sample the current animation to get localTrans
+    if (!animation->Sample(dt, localTrans))
         return false;
 
     // Local to model job
 
     // Setup local-to-model conversion job.
     ozz::animation::LocalToModelJob ltmJob;
-    ltmJob.skeleton = &mRig->mSkeleton;
-    ltmJob.input = mLocalTrans;
-    ltmJob.output = mJointModelMats;
+    ltmJob.skeleton = &rig->skeleton;
+    ltmJob.input = localTrans;
+    ltmJob.output = jointModelMats;
 
     // Runs ltm job.
     if (!ltmJob.Run())
@@ -181,31 +181,31 @@ bool AnimatedObject::Update(float dt)
 
 bool AnimatedObject::AimIK(AimIKDesc* params, const Point3& target)
 {
-    ozz::span<Matrix4> models = mJointModelMats;
+    ozz::span<Matrix4> models = jointModelMats;
 
     ozz::animation::IKAimJob ikJob;
-    ikJob.pole_vector = params->mPoleVector;
-    ikJob.twist_angle = params->mTwistAngle;
+    ikJob.pole_vector = params->poleVector;
+    ikJob.twist_angle = params->twistAngle;
     ikJob.target = target;
-    ikJob.reached = &params->mReached;
+    ikJob.reached = &params->reached;
 
     Quat correction;
     ikJob.joint_correction = &correction;
 
     int32_t previous_joint = ozz::animation::Skeleton::kNoParent;
-    for (int32_t i = 0, joint = params->mJointChain[0]; i < params->mJointChainLength;
-         ++i, previous_joint = joint, joint = params->mJointChain[i])
+    for (int32_t i = 0, joint = params->jointChain[0]; i < params->jointChainLength;
+         ++i, previous_joint = joint, joint = params->jointChain[i])
     {
         ikJob.joint = &models[joint];
-        ikJob.up = params->mJointUpVectors[i];
+        ikJob.up = params->jointUpVectors[i];
 
-        const bool last = i == params->mJointChainLength - 1;
-        ikJob.weight = last ? 1.f : params->mJointWeight;
+        const bool last = i == params->jointChainLength - 1;
+        ikJob.weight = last ? 1.f : params->jointWeight;
 
         if (i == 0)
         {
-            ikJob.offset = params->mOffset;
-            ikJob.forward = params->mForward;
+            ikJob.offset = params->offset;
+            ikJob.forward = params->forward;
         }
         else
         {
@@ -222,13 +222,13 @@ bool AnimatedObject::AimIK(AimIKDesc* params, const Point3& target)
             return false;
         }
 
-        MultiplySoATransformQuaternion(joint, correction, mLocalTrans);
+        MultiplySoATransformQuaternion(joint, correction, localTrans);
     }
 
     ozz::animation::LocalToModelJob ltmJob;
-    ltmJob.skeleton = &mRig->mSkeleton;
-    ltmJob.input = mLocalTrans;
-    ltmJob.output = mJointModelMats;
+    ltmJob.skeleton = &rig->skeleton;
+    ltmJob.input = localTrans;
+    ltmJob.output = jointModelMats;
 
     if (!ltmJob.Run())
         return false;
@@ -241,38 +241,38 @@ bool AnimatedObject::TwoBonesIK(TwoBonesIKDesc* params, const Point3& target)
     ozz::animation::IKTwoBoneJob ik_job;
 
     ik_job.target = target;
-    ik_job.pole_vector = params->mPoleVector;
-    ik_job.mid_axis = params->mMidAxis;
+    ik_job.pole_vector = params->poleVector;
+    ik_job.mid_axis = params->midAxis;
 
-    ik_job.weight = params->mWeight;
-    ik_job.soften = params->mSoften;
-    ik_job.twist_angle = params->mTwistAngle;
+    ik_job.weight = params->weight;
+    ik_job.soften = params->soften;
+    ik_job.twist_angle = params->twistAngle;
 
-    ozz::span<Matrix4> models = mJointModelMats;
+    ozz::span<Matrix4> models = jointModelMats;
 
-    ik_job.start_joint = &models[params->mJointChain[0]];
-    ik_job.mid_joint = &models[params->mJointChain[1]];
-    ik_job.end_joint = &models[params->mJointChain[2]];
+    ik_job.start_joint = &models[params->jointChain[0]];
+    ik_job.mid_joint = &models[params->jointChain[1]];
+    ik_job.end_joint = &models[params->jointChain[2]];
 
     // Outputs
     Quat start_correction;
     ik_job.start_joint_correction = &start_correction;
     Quat mid_correction;
     ik_job.mid_joint_correction = &mid_correction;
-    ik_job.reached = &params->mReached;
+    ik_job.reached = &params->reached;
 
     if (!ik_job.Run())
     {
         return false;
     }
 
-    MultiplySoATransformQuaternion(params->mJointChain[0], start_correction, mLocalTrans);
-    MultiplySoATransformQuaternion(params->mJointChain[1], mid_correction, mLocalTrans);
+    MultiplySoATransformQuaternion(params->jointChain[0], start_correction, localTrans);
+    MultiplySoATransformQuaternion(params->jointChain[1], mid_correction, localTrans);
 
     ozz::animation::LocalToModelJob ltmJob;
-    ltmJob.skeleton = &mRig->mSkeleton;
-    ltmJob.input = mLocalTrans;
-    ltmJob.output = mJointModelMats;
+    ltmJob.skeleton = &rig->skeleton;
+    ltmJob.input = localTrans;
+    ltmJob.output = jointModelMats;
 
     // Runs ltm job.
     if (!ltmJob.Run())
@@ -285,9 +285,9 @@ void AnimatedObject::ComputeBindPose(const Matrix4& rootTransform)
 {
     // Setup local-to-model conversion job.
     ozz::animation::LocalToModelJob ltmJob;
-    ltmJob.skeleton = &mRig->mSkeleton;
-    ltmJob.input = mRig->mSkeleton.joint_rest_poses(); // Use the skeleton's bind pose
-    ltmJob.output = mJointModelMats;
+    ltmJob.skeleton = &rig->skeleton;
+    ltmJob.input = rig->skeleton.joint_rest_poses(); // Use the skeleton's bind pose
+    ltmJob.output = jointModelMats;
 
     // Runs ltm job.
     if (ltmJob.Run())

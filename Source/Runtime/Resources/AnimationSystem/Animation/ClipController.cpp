@@ -26,23 +26,23 @@
 
 void ClipController::Initialize(float duration, float* externallyUsedTime)
 {
-    mTimeRatio = 0.f;
-    mPreviousTimeRatio = 0.f;
-    mPlaybackSpeed = 1.f;
-    mPlay = true;
-    mLoop = true;
+    timeRatio = 0.f;
+    previousTimeRatio = 0.f;
+    playbackSpeed = 1.f;
+    play = true;
+    loop = true;
 
-    mDuration = duration;
+    this->duration = duration;
     gExternallyUsedTime = externallyUsedTime;
 }
 
 void ClipController::Update(float dt)
 {
-    float newTime = mTimeRatio;
+    float newTime = timeRatio;
 
-    if (mPlay)
+    if (play)
     {
-        newTime = mTimeRatio + dt * (mPlaybackSpeed / mDuration);
+        newTime = timeRatio + dt * (playbackSpeed / duration);
     }
 
     // Must be called even if time doesn't change, in order to update previous
@@ -54,36 +54,36 @@ void ClipController::Update(float dt)
 
 void ClipController::SetTimeRatio(float time)
 {
-    mPreviousTimeRatio = mTimeRatio;
-    if (mLoop)
+    previousTimeRatio = timeRatio;
+    if (loop)
     {
         // Wraps in the unit interval [0:1], even for negative values (the reason
         // for using floorf).
-        mTimeRatio = time - floorf(time); // essentially (time / mDuration) mod 1
+        timeRatio = time - floorf(time); // essentially (time / duration) mod 1
     }
     else
     {
         // Clamps in the unit interval [0:1].
-        mTimeRatio = clamp(time, 0.f, 1.f);
+        timeRatio = clamp(time, 0.f, 1.f);
     }
 
     if (gExternallyUsedTime)
     {
-        *gExternallyUsedTime = mTimeRatio * mDuration;
+        *gExternallyUsedTime = timeRatio * duration;
     }
 }
 
 void ClipController::SetTimeRatioHard(float time)
 {
-    mPlay = false;
-    SetTimeRatio(time / mDuration);
+    play = false;
+    SetTimeRatio(time / duration);
 }
 
 void ClipController::Reset()
 {
-    mPreviousTimeRatio = 0.f;
-    mTimeRatio = 0.f;
-    mPlaybackSpeed = 1.f;
-    mPlay = true;
-    mWeight = 1.0f;
+    previousTimeRatio = 0.f;
+    timeRatio = 0.f;
+    playbackSpeed = 1.f;
+    play = true;
+    weight = 1.0f;
 }

@@ -33,8 +33,8 @@ struct DrawData
 
 static int compareMaterials(const void* left, const void* right)
 {
-    const uint32_t a = ((const SceneAssetInstance*)left)->mMaterialIndex;
-    const uint32_t b = ((const SceneAssetInstance*)right)->mMaterialIndex;
+    const uint32_t a = ((const SceneAssetInstance*)left)->materialIndex;
+    const uint32_t b = ((const SceneAssetInstance*)right)->materialIndex;
     return (a > b) - (a < b);
 }
 
@@ -51,7 +51,7 @@ GBuffer::GBuffer(hz::RenderContext& pContext, const VertexLayout& vertexLayout):
     mGeometryPipeline = pContext.createGraphicsPipeline({
         .pShader = &mGeometryShader,
         .vertexLayout = vertexLayout,
-        .depth = { .mDepthTest = true, .mDepthWrite = true, .mDepthFunc = CMP_LEQUAL },
+        .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
         .colorFormats = { kGBufferFormats[0], kGBufferFormats[1], kGBufferFormats[2], kGBufferFormats[3] },
         .renderTargetCount = GBufferCount,
         .depthStencilFormat = kDepthFormat,
@@ -121,31 +121,31 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.bindBuffer("Draws", draws);
     commands.bindBuffer("Materials", *scenes.getMaterialBuffer(scene));
     commands.bindSampler("SurfaceSampler", mSampler);
-    for (uint32_t i = 0; i < geometry.mVertexBufferCount; ++i)
-        commands.setVertexBuffer(i, geometry.mVertexBuffers[i], 0, geometry.mVertexStrides[i]);
-    commands.setIndexBuffer(geometry.mIndexBuffer, 0, geometry.mIndexType);
+    for (uint32_t i = 0; i < geometry.vertexBufferCount; ++i)
+        commands.setVertexBuffer(i, geometry.vertexBuffers[i], 0, geometry.vertexStrides[i]);
+    commands.setIndexBuffer(geometry.indexBuffer, 0, geometry.indexType);
 
     const SceneAssetGpuMaterial* gpuMaterials = scenes.getGpuMaterials(scene);
     uint32_t                     previousMaterial = UINT32_MAX;
     for (uint32_t i = 0; i < instances.count; ++i)
     {
         const SceneAssetInstance& instance = instances.pData[i];
-        if (instance.mMaterialIndex != previousMaterial)
+        if (instance.materialIndex != previousMaterial)
         {
-            const SceneAssetGpuMaterial& material = gpuMaterials[instance.mMaterialIndex];
-            const uint32_t textureIndices[] = { material.mBaseColorTexture, material.mNormalTexture, material.mMetallicRoughnessTexture,
-                                                material.mEmissiveTexture };
+            const SceneAssetGpuMaterial& material = gpuMaterials[instance.materialIndex];
+            const uint32_t textureIndices[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
+                                                material.emissiveTexture };
             const char*    names[] = { "BaseColor", "NormalMap", "MetallicRoughness", "Emissive" };
             for (uint32_t t = 0; t < TF_ARRAY_COUNT(textureIndices); ++t)
             {
                 const uint32_t textureIndex = textureIndices[t] == UINT32_MAX ? 0 : textureIndices[t];
                 commands.bindTexture(names[t], *scenes.getTexture(scene, textureIndex));
             }
-            previousMaterial = instance.mMaterialIndex;
+            previousMaterial = instance.materialIndex;
         }
         commands.setPushConstants(0, &i, sizeof(i));
-        const IndirectDrawIndexArguments& draw = geometry.pDrawArgs[instance.mDrawIndex];
-        commands.drawIndexed(draw.mIndexCount, draw.mStartIndex, draw.mVertexOffset);
+        const IndirectDrawIndexArguments& draw = geometry.pDrawArgs[instance.drawIndex];
+        commands.drawIndexed(draw.indexCount, draw.startIndex, draw.vertexOffset);
     }
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -230,18 +230,18 @@ bool RenderPasses::initRenderResources()
     DrawData*            draws = (DrawData*)tf_calloc(mInstanceCount, sizeof(DrawData));
     for (uint32_t i = 0; i < mInstanceCount; ++i)
     {
-        if (pInstances[i].mDrawIndex >= geometry.mDrawArgCount || pInstances[i].mMaterialIndex >= pScenes->getMaterialCount(mScene))
+        if (pInstances[i].drawIndex >= geometry.drawArgCount || pInstances[i].materialIndex >= pScenes->getMaterialCount(mScene))
         {
             tf_free(draws);
             LOGF(eERROR, "Scene instance has an invalid draw or material index");
             return false;
         }
-        const float* world = pInstances[i].mWorld;
+        const float* world = pInstances[i].world;
         draws[i].world = Matrix4(world[0], world[1], world[2], world[3], world[4], world[5], world[6], world[7], world[8], world[9],
                                  world[10], world[11], world[12], world[13], world[14], world[15]);
         draws[i].normal = transpose(inverse(draws[i].world));
-        draws[i].material = pInstances[i].mMaterialIndex;
-        draws[i].alphaCutoff = pInstances[i].mAlphaCutoff;
+        draws[i].material = pInstances[i].materialIndex;
+        draws[i].alphaCutoff = pInstances[i].alphaCutoff;
     }
 
     mDraws = pContext.createBuffer({

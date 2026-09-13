@@ -422,44 +422,44 @@ typedef enum InputActionMappingDeviceTarget
 typedef struct ActionMappingDesc
 { //-V802 : Very user-facing struct, and order is highly important to convenience
     // The type of the action mapping
-    InputActionMappingType mActionMappingType = INPUT_ACTION_MAPPING_NORMAL;
+    InputActionMappingType actionMappingType = INPUT_ACTION_MAPPING_NORMAL;
 
     // Type of device this action targets
     // NOTE: cannot be INPUT_ACTION_MAPPING_TARGET_ALL.  This will cause an assertion in addActionMappings(...).
-    InputActionMappingDeviceTarget mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_CONTROLLER;
+    InputActionMappingDeviceTarget actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_CONTROLLER;
 
     // A unique ID associated with the action.
-    uint32_t mActionId = UINT_MAX;
+    uint32_t actionId = UINT_MAX;
 
     // Device buttons that triggers the action (from the GamepadButton/KeyboardButton/MouseButton/TouchGesture enums)
-    // For INPUT_ACTION_MAPPING_NORMAL, only the first element will be used (unless it's targetting touch device.  mDeviceButtons will not
+    // For INPUT_ACTION_MAPPING_NORMAL, only the first element will be used (unless it's targetting touch device.  deviceButtons will not
     // be used but any touch will act as a "button" press). For INPUT_ACTION_MAPPING_COMPOSITE, all four elements will be used to map 2 axes
     // (element 0->+X, 1->-X, 2->+Y, 3->-Y) For INPUT_ACTION_MAPPING_COMBO, the first two elements will be used (element 0 is the button to
     // hold, element 1 causes the action to trigger)
-    int32_t mDeviceButtons[4] = { 0 };
+    int32_t deviceButtons[4] = { 0 };
 
     // Used for axis buttons
     // For example, if targetting the left joystick, and we want to handle both the x and y axes,
-    // then mDeviceButtons[0] should be the start axis (GAMEPAD_BUTTON_LEFT_STICK_X), and mNumAxis should be 2.
-    // mNumAxis should be either 1 or 2 when targetting an axis button.
-    uint8_t mNumAxis = 1;
-    uint8_t mDelta = 1; // always use delta by default for axis (absolute pos is always provided in the ctx anyway)
+    // then deviceButtons[0] should be the start axis (GAMEPAD_BUTTON_LEFT_STICK_X), and numAxis should be 2.
+    // numAxis should be either 1 or 2 when targetting an axis button.
+    uint8_t numAxis = 1;
+    uint8_t delta = 1; // always use delta by default for axis (absolute pos is always provided in the ctx anyway)
 
     // User id associated with the action (relevant for controller and touch inputs to track fingers)
-    uint8_t mUserId = 0;
+    uint8_t userId = 0;
 
     // Used with INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK to tune virtual joystick behavior
-    float mDeadzone = 20.f;
-    float mOutsideRadius = 200.f;
-    float mScale = 1.f; // Scales the values from this action mapping for virtual joysticks and mice.
+    float deadzone = 20.f;
+    float outsideRadius = 200.f;
+    float scale = 1.f; // Scales the values from this action mapping for virtual joysticks and mice.
 
     // Used with INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK and TOUCH_AXIS mappings
-    TouchScreenArea mTouchScreenArea = AREA_LEFT;
+    TouchScreenArea touchScreenArea = AREA_LEFT;
 
-    bool mScaleByDT = false;
+    bool scaleByDT = false;
     // INPUT_ACTION_MAPPING_COMPOSITE normally maps to 4 elements (2 axes) (element 0->+X, 1->-X, 2->+Y, 3->-Y)
     // Set this to `true` to make INPUT_ACTION_MAPPING_COMPOSITE map to only 2 elements (1 axis) (element 0->+X, 1->-X)
-    bool mCompositeUseSingleAxis = false;
+    bool compositeUseSingleAxis = false;
 } ActionMappingDesc;
 
 // UI System reserved input action mapping IDs
@@ -643,32 +643,32 @@ typedef struct InputActionContext
 {
     void*   pUserData = NULL;
     /// Indices of fingers for detected gesture
-    int32_t mFingerIndices[MAX_INPUT_MULTI_TOUCHES] = { 0 };
+    int32_t fingerIndices[MAX_INPUT_MULTI_TOUCHES] = { 0 };
     union
     {
         /// Gesture input
-        float4   mFloat4;
+        float4   float4Value;
         /// 3D input (gyroscope, ...)
-        float3   mFloat3;
+        float3   float3Value;
         /// 2D input (mouse position, delta, composite input (wasd), gamepad stick, joystick, ...)
-        float2   mFloat2;
+        float2   float2Value;
         /// 1D input (composite input (ws), gamepad left trigger, ...)
-        float    mFloat;
+        float    floatValue;
         /// Button input (mouse left button, keyboard keys, ...)
-        bool     mBool;
+        bool     boolValue;
         /// Text input
         wchar_t* pText;
     };
 
     float2*     pPosition = NULL;
     const bool* pCaptured = NULL;
-    int32_t     mScrollValue = 0;
-    uint32_t    mActionId = UINT_MAX;
+    int32_t     scrollValue = 0;
+    uint32_t    actionId = UINT_MAX;
     /// What phase is the action currently in
-    uint8_t     mPhase = INPUT_ACTION_PHASE_ENDED;
-    uint8_t     mDeviceType = INPUT_DEVICE_INVALID;
+    uint8_t     phase = INPUT_ACTION_PHASE_ENDED;
+    uint8_t     deviceType = INPUT_DEVICE_INVALID;
     /// User management (which user does this action apply to)
-    uint8_t     mUserId = 0u;
+    uint8_t     userId = 0u;
 } InputActionContext;
 
 typedef bool (*InputActionCallback)(InputActionContext* pContext);
@@ -676,18 +676,18 @@ typedef bool (*InputActionCallback)(InputActionContext* pContext);
 typedef struct InputActionDesc
 { //-V802 : Very user-facing struct, and order is highly important to convenience
     /// Action ID
-    uint32_t            mActionId = UINT_MAX;
+    uint32_t            actionId = UINT_MAX;
     /// Callback when an action is initiated, performed or canceled
     InputActionCallback pFunction = NULL;
     /// User data which will be assigned to InputActionContext::pUserData when calling pFunction
     void*               pUserData = NULL;
     /// User management (which user does this action apply to)
-    uint8_t             mUserId = 0u;
+    uint8_t             userId = 0u;
 
     bool operator==(InputActionDesc const& rhs) const
     {
         // We only care about action ID and user ID when comparing action descs
-        return (this->mActionId == rhs.mActionId && this->mUserId == rhs.mUserId);
+        return (this->actionId == rhs.actionId && this->userId == rhs.userId);
     }
 } InputActionDesc;
 
@@ -703,7 +703,7 @@ typedef struct GlobalInputActionDesc
         TEXT
     } GlobalInputActionType;
 
-    GlobalInputActionType mGlobalInputActionType = ANY_BUTTON_ACTION;
+    GlobalInputActionType globalInputActionType = ANY_BUTTON_ACTION;
 
     /// Callback when an action is initiated, performed or canceled
     InputActionCallback pFunction = NULL;

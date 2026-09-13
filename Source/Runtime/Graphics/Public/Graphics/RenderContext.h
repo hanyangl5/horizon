@@ -88,17 +88,17 @@ struct GraphicsPipelineDesc
 {
     const GPUShader*    pShader = nullptr;
     VertexLayout        vertexLayout = {};
-    RasterizerStateDesc rasterizer = { .mCullMode = CULL_MODE_NONE, .mFillMode = FILL_MODE_SOLID, .mFrontFace = FRONT_FACE_CCW };
-    DepthStateDesc      depth = { .mDepthTest = false, .mDepthWrite = false, .mDepthFunc = CMP_ALWAYS };
+    RasterizerStateDesc rasterizer = { .cullMode = CULL_MODE_NONE, .fillMode = FILL_MODE_SOLID, .frontFace = FRONT_FACE_CCW };
+    DepthStateDesc      depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
     BlendStateDesc      blend = {
-             .mSrcFactors = { BC_ONE },
-             .mDstFactors = { BC_ZERO },
-             .mSrcAlphaFactors = { BC_ONE },
-             .mDstAlphaFactors = { BC_ZERO },
-             .mBlendModes = { BM_ADD },
-             .mBlendAlphaModes = { BM_ADD },
-             .mColorWriteMasks = { COLOR_MASK_ALL },
-             .mRenderTargetMask = BLEND_STATE_TARGET_ALL,
+             .srcFactors = { BC_ONE },
+             .dstFactors = { BC_ZERO },
+             .srcAlphaFactors = { BC_ONE },
+             .dstAlphaFactors = { BC_ZERO },
+             .blendModes = { BM_ADD },
+             .blendAlphaModes = { BM_ADD },
+             .colorWriteMasks = { COLOR_MASK_ALL },
+             .renderTargetMask = BLEND_STATE_TARGET_ALL,
     };
     TinyImageFormat   colorFormats[MAX_RENDER_TARGETS] = {};
     uint32_t          renderTargetCount = 0;

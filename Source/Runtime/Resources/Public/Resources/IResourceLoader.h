@@ -37,9 +37,9 @@ typedef struct MappedMemoryRange
 {
     uint8_t* pData;
     Buffer*  pBuffer;
-    uint64_t mOffset;
-    uint64_t mSize;
-    uint32_t mFlags;
+    uint64_t offset;
+    uint64_t size;
+    uint32_t flags;
 } MappedMemoryRange;
 
 typedef enum TextureContainerType
@@ -73,13 +73,13 @@ typedef struct BufferLoadDesc
     // This must stay valid until the buffer load is not completed
     // Use waitForToken (if a token was passed to addResource) or waitForAllResourceLoads before freeing pData
     const void* pData;
-    BufferDesc  mDesc;
+    BufferDesc  desc;
     /// MemZero buffer
-    bool        mForceReset;
+    bool        forceReset;
 
     // Optional (if user provides staging buffer memory)
     Buffer*  pSrcBuffer;
-    uint64_t mSrcOffset;
+    uint64_t srcOffset;
 } BufferLoadDesc;
 
 typedef struct TextureLoadDesc
@@ -92,23 +92,23 @@ typedef struct TextureLoadDesc
         {
             TextureDesc* pDesc;
             /// MemZero texture
-            bool         mForceReset;
+            bool         forceReset;
         };
         /// Ycbcr sampler to use when loading ycbcr texture from file
         Sampler* pYcbcrSampler;
     };
-    /// Filename without extension. Extension will be determined based on mContainer
+    /// Filename without extension. Extension will be determined based on container
     const char*          pFileName;
-    /// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
-    TextureCreationFlags mCreationFlag;
+    /// Following is ignored if pDesc != NULL.  pDesc->flags will be considered instead.
+    TextureCreationFlags creationFlag;
     /// The texture file format (dds/ktx/...)
-    TextureContainerType mContainer;
+    TextureContainerType container;
 } TextureLoadDesc;
 
 typedef struct BufferChunk
 {
-    uint32_t mOffset;
-    uint32_t mSize;
+    uint32_t offset;
+    uint32_t size;
 } BufferChunk;
 
 // Structure used to sub-allocate chunks on a buffer, keeps track of free memory to handle new requests.
@@ -116,19 +116,19 @@ typedef struct BufferChunk
 typedef struct BufferChunkAllocator
 {
     Buffer*      pBuffer;
-    uint32_t     mUsedChunkCount;
-    uint32_t     mSize;
-    BufferChunk* mUnusedChunks;
+    uint32_t     usedChunkCount;
+    uint32_t     size;
+    BufferChunk* unusedChunks;
 } BufferChunkAllocator;
 
 // Stores huge buffers that are then used to sub-allocate memory for each of the loaded meshes.
 // GeometryBuffer can be provided to GeometryLoadDesc::pGeometryBuffer when loading a mesh, sub-chunks will be allocated
-// by mIndex and mVertex allocators and return the BufferChunk(s) that where used in Geometry::mIndexBufferChunk and
-// Geometry::mVertexBufferChunks
+// by index and vertex allocators and return the BufferChunk(s) that where used in Geometry::indexBufferChunk and
+// Geometry::vertexBufferChunks
 typedef struct GeometryBuffer
 {
-    BufferChunkAllocator mIndex;
-    BufferChunkAllocator mVertex[MAX_VERTEX_BINDINGS];
+    BufferChunkAllocator index;
+    BufferChunkAllocator vertex[MAX_VERTEX_BINDINGS];
 } GeometryBuffer;
 
 FORGE_CONSTEXPR const char GEOMETRY_FILE_MAGIC_STR[] = { 'G', 'e', 'o', 'm', 'e', 't', 'r', 'y', 'T', 'F' };
@@ -157,15 +157,15 @@ typedef struct MeshletData
 
 typedef struct GeometryMeshlets
 {
-    uint64_t     mMeshletCount;
-    Meshlet*     mMeshlets;
-    MeshletData* mMeshletsData;
+    uint64_t     meshletCount;
+    Meshlet*     meshlets;
+    MeshletData* meshletsData;
 
-    uint64_t  mVertexCount;
-    uint32_t* mVertices;
+    uint64_t  vertexCount;
+    uint32_t* vertices;
 
-    uint64_t mTriangleCount;
-    uint8_t* mTriangles;
+    uint64_t triangleCount;
+    uint8_t* triangles;
 } GeometryMeshlets;
 
 typedef struct Geometry
@@ -182,8 +182,8 @@ typedef struct Geometry
         struct
         {
             /// Used when Geometry is loaded to unified GeometryBuffer object (when GeometryLoadDesc::pGeometryBuffer is valid)
-            BufferChunk mIndexBufferChunk;
-            BufferChunk mVertexBufferChunks[MAX_VERTEX_BINDINGS];
+            BufferChunk indexBufferChunk;
+            BufferChunk vertexBufferChunks[MAX_VERTEX_BINDINGS];
         };
     };
 
@@ -191,25 +191,25 @@ typedef struct Geometry
     IndirectDrawIndexArguments* pDrawArgs;
 
     /// The array of vertex buffer strides to bind when drawing this geometry
-    uint32_t mVertexStrides[MAX_VERTEX_BINDINGS];
+    uint32_t vertexStrides[MAX_VERTEX_BINDINGS];
 
     /// Number of vertex buffers in this geometry
-    uint32_t mVertexBufferCount : 8;
+    uint32_t vertexBufferCount : 8;
     /// Index type (32 or 16 bit)
-    uint32_t mIndexType : 2;
+    uint32_t indexType : 2;
     /// Number of draw args in the geometry
-    uint32_t mDrawArgCount : 22;
+    uint32_t drawArgCount : 22;
     /// Number of indices in the geometry
-    uint32_t mIndexCount;
+    uint32_t indexCount;
     /// Number of vertices in the geometry
-    uint32_t mVertexCount;
+    uint32_t vertexCount;
 
     // If present, data is stored in pGeometryBuffer
     GeometryBuffer* pGeometryBuffer;
 
     GeometryMeshlets meshlets;
 
-    uint32_t mPad[20];
+    uint32_t pad[20];
 } Geometry;
 
 static_assert(sizeof(Geometry) == 352, "If Geometry size changes we need to rebuild all custom binary meshes");
@@ -220,8 +220,8 @@ typedef struct GeometryData
 {
     struct Hair
     {
-        uint32_t mVertexCountPerStrand;
-        uint32_t mGuideCountPerStrand;
+        uint32_t vertexCountPerStrand;
+        uint32_t guideCountPerStrand;
     };
 
     struct ShadowData
@@ -229,20 +229,20 @@ typedef struct GeometryData
         void* pIndices;
         void* pAttributes[MAX_SEMANTICS];
 
-        // Strides for the data in pAttributes, this might not match Geometry::mVertexStrides since those are generated based on
+        // Strides for the data in pAttributes, this might not match Geometry::vertexStrides since those are generated based on
         // GeometryLoadDesc::pVertexLayout, e.g. if the normals are packed on the GPU as half2 then:
-        //         - Geometry::mVertexStrides will be sizeof(half2)
-        //         - ShadowData::mVertexStrides might be sizeof(float3) = 12 (or maybe sizeof(float4) = 16)
-        // If the data readed from the file in pAttributes is already packed then ShadowData::mVertexStrides[i] ==
-        // Geometry::mVertexStrides[i]
-        uint32_t mVertexStrides[MAX_SEMANTICS];
+        //         - Geometry::vertexStrides will be sizeof(half2)
+        //         - ShadowData::vertexStrides might be sizeof(float3) = 12 (or maybe sizeof(float4) = 16)
+        // If the data readed from the file in pAttributes is already packed then ShadowData::vertexStrides[i] ==
+        // Geometry::vertexStrides[i]
+        uint32_t vertexStrides[MAX_SEMANTICS];
 
-        // We might have a different number of attributes than mVertexCount.
+        // We might have a different number of attributes than vertexCount.
         // This happens for example for Hair
-        uint32_t mAttributeCount[MAX_SEMANTICS];
+        uint32_t attributeCount[MAX_SEMANTICS];
 
         // TODO: Consider if we want to store here mIndexStride to access ShadowData::pIndices,
-        //       right now it depends on the number of vertexes in the mesh (uint16_t if mVertexCount < 64k otherwise uint32_t)
+        //       right now it depends on the number of vertexes in the mesh (uint16_t if vertexCount < 64k otherwise uint32_t)
     };
 
     /// Shadow copy of the geometry vertex and index data if requested through the load flags
@@ -254,21 +254,21 @@ typedef struct GeometryData
     uint32_t* pJointRemaps;
 
     /// Number of joints in the skinned geometry
-    uint32_t mJointCount;
+    uint32_t jointCount;
 
     /// Hair data
-    Hair mHair;
+    Hair hair;
 
-    uint32_t mPad0[1];
+    uint32_t pad0[1];
 
     MeshletData* meshlets;
 
     // Custom data imported by the user in custom AssetPipelines, this can be data that was exported from a custom tool/plugin
     // specific to the engine/game. See AssetPipeline: callbacks in ProcessGLTFParams for more information.
     void*    pUserData;
-    uint32_t mUserDataSize;
+    uint32_t userDataSize;
 
-    uint32_t mPad1[5];
+    uint32_t pad1[5];
 } GeometryData;
 
 static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData size must be a multiple of 16");
@@ -287,13 +287,13 @@ MAKE_ENUM_FLAG(uint32_t, GeometryLoadFlags)
 
 typedef struct GeometryBufferLoadDesc
 {
-    ResourceState mStartState;
+    ResourceState startState;
 
     const char* pNameIndexBuffer;
     const char* pNamesVertexBuffers[MAX_VERTEX_BINDINGS];
 
-    uint32_t mIndicesSize;
-    uint32_t mVerticesSizes[MAX_VERTEX_BINDINGS];
+    uint32_t indicesSize;
+    uint32_t verticesSizes[MAX_VERTEX_BINDINGS];
 
     ResourcePlacement* pIndicesPlacement;
     ResourcePlacement* pVerticesPlacements[MAX_VERTEX_BINDINGS];
@@ -303,11 +303,11 @@ typedef struct GeometryBufferLoadDesc
 
 typedef struct GeometryBufferLayoutDesc
 {
-    IndexType mIndexType;
-    uint32_t  mVerticesStrides[MAX_VERTEX_BINDINGS];
+    IndexType indexType;
+    uint32_t  verticesStrides[MAX_VERTEX_BINDINGS];
     // Vertex buffer/binding idx for each semantic.
     // Used to locate attributes inside specific buffers for loaded Geometry.
-    uint32_t  mSemanticBindings[SEMANTIC_TEXCOORD9 + 1];
+    uint32_t  semanticBindings[SEMANTIC_TEXCOORD9 + 1];
 } GeometryBufferLayoutDesc;
 
 typedef struct GeometryLoadDesc
@@ -319,7 +319,7 @@ typedef struct GeometryLoadDesc
     /// Filename of geometry container
     const char*         pFileName;
     /// Loading flags
-    GeometryLoadFlags   mFlags;
+    GeometryLoadFlags   flags;
     /// Specifies how to arrange the vertex data loaded from the file into GPU memory
     const VertexLayout* pVertexLayout;
 
@@ -335,8 +335,8 @@ typedef struct GeometryLoadDesc
 typedef struct BufferUpdateDesc
 {
     Buffer*  pBuffer;
-    uint64_t mDstOffset;
-    uint64_t mSize;
+    uint64_t dstOffset;
+    uint64_t size;
 
     /// To be filled by the caller between beginUpdateResource and endUpdateResource calls
     /// Example:
@@ -350,14 +350,14 @@ typedef struct BufferUpdateDesc
 
     // Optional (if user provides staging buffer memory)
     Buffer*       pSrcBuffer;
-    uint64_t      mSrcOffset;
-    ResourceState mCurrentState;
+    uint64_t      srcOffset;
+    ResourceState currentState;
 
     /// Internal
     struct
     {
-        MappedMemoryRange mMappedRange;
-    } mInternal;
+        MappedMemoryRange mappedRange;
+    } internal;
 } BufferUpdateDesc;
 
 typedef struct TextureSubresourceUpdate
@@ -365,30 +365,30 @@ typedef struct TextureSubresourceUpdate
     /// Filled by ResourceLaoder in beginUpdateResource
     /// Size of each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride
     /// is not the same as src row stride
-    uint32_t mDstRowStride;
+    uint32_t dstRowStride;
     /// Number of rows in this slice of the texture
-    uint32_t mRowCount;
-    /// Src row stride for convenience (mRowCount * width * texture format size)
-    uint32_t mSrcRowStride;
+    uint32_t rowCount;
+    /// Src row stride for convenience (rowCount * width * texture format size)
+    uint32_t srcRowStride;
     /// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
-    uint32_t mDstSliceStride;
+    uint32_t dstSliceStride;
     /// Size of each slice in src - Use for offsetting src data when updating 3D textures
-    uint32_t mSrcSliceStride;
+    uint32_t srcSliceStride;
     /// To be filled by the caller
     /// Example:
     /// BufferUpdateDesc update = { pTexture, 2, 1 };
     /// beginUpdateResource(&update);
-    /// Row by row copy is required if mDstRowStride > mSrcRowStride. Single memcpy will work if mDstRowStride == mSrcRowStride
+    /// Row by row copy is required if dstRowStride > srcRowStride. Single memcpy will work if dstRowStride == srcRowStride
     /// 2D
-    /// for (uint32_t r = 0; r < update.mRowCount; ++r)
-    ///     memcpy(update.pMappedData + r * update.mDstRowStride, srcPixels + r * update.mSrcRowStride, update.mSrcRowStride);
+    /// for (uint32_t r = 0; r < update.rowCount; ++r)
+    ///     memcpy(update.pMappedData + r * update.dstRowStride, srcPixels + r * update.srcRowStride, update.srcRowStride);
     /// 3D
     /// for (uint32_t z = 0; z < depth; ++z)
     /// {
-    ///     uint8_t* dstData = update.pMappedData + update.mDstSliceStride * z;
-    ///     uint8_t* srcData = srcPixels + update.mSrcSliceStride * z;
-    ///     for (uint32_t r = 0; r < update.mRowCount; ++r)
-    ///         memcpy(dstData + r * update.mDstRowStride, srcData + r * update.mSrcRowStride, update.mSrcRowStride);
+    ///     uint8_t* dstData = update.pMappedData + update.dstSliceStride * z;
+    ///     uint8_t* srcData = srcPixels + update.srcSliceStride * z;
+    ///     for (uint32_t r = 0; r < update.rowCount; ++r)
+    ///         memcpy(dstData + r * update.dstRowStride, srcData + r * update.srcRowStride, update.srcRowStride);
     /// }
     /// endUpdateResource(&update, &token);
     uint8_t* pMappedData;
@@ -398,11 +398,11 @@ typedef struct TextureSubresourceUpdate
 typedef struct TextureUpdateDesc
 {
     Texture*      pTexture;
-    uint32_t      mBaseMipLevel;
-    uint32_t      mMipLevels;
-    uint32_t      mBaseArrayLayer;
-    uint32_t      mLayerCount;
-    ResourceState mCurrentState;
+    uint32_t      baseMipLevel;
+    uint32_t      mipLevels;
+    uint32_t      baseArrayLayer;
+    uint32_t      layerCount;
+    ResourceState currentState;
     // Optional - If we want to run the update on user specified command buffer instead
     Cmd*          pCmd;
 
@@ -411,10 +411,10 @@ typedef struct TextureUpdateDesc
     /// Internal
     struct
     {
-        MappedMemoryRange mMappedRange;
-        uint32_t          mDstSliceStride;
-        bool              mSkipBarrier;
-    } mInternal;
+        MappedMemoryRange mappedRange;
+        uint32_t          dstSliceStride;
+        bool              skipBarrier;
+    } internal;
 } TextureUpdateDesc;
 
 typedef struct TextureCopyDesc
@@ -423,13 +423,13 @@ typedef struct TextureCopyDesc
     Buffer*       pBuffer;
     /// Semaphore to synchronize graphics/compute operations that write to the texture with the texture -> buffer copy.
     Semaphore*    pWaitSemaphore;
-    uint32_t      mTextureMipLevel;
-    uint32_t      mTextureArrayLayer;
+    uint32_t      textureMipLevel;
+    uint32_t      textureArrayLayer;
     /// Current texture state.
-    ResourceState mTextureState;
+    ResourceState textureState;
     /// Queue the texture is copied from.
-    QueueType     mQueueType;
-    uint64_t      mBufferOffset;
+    QueueType     queueType;
+    uint64_t      bufferOffset;
 } TextureCopyDesc;
 
 typedef struct ShaderStageLoadDesc
@@ -441,16 +441,16 @@ typedef struct ShaderStageLoadDesc
 
 typedef struct ShaderLoadDesc
 {
-    ShaderStageLoadDesc   mStages[SHADER_STAGE_COUNT];
+    ShaderStageLoadDesc   stages[SHADER_STAGE_COUNT];
     const ShaderConstant* pConstants;
-    uint32_t              mConstantCount;
+    uint32_t              constantCount;
     bool                  bIsSourceCode;
 } ShaderLoadDesc;
 
 typedef struct PipelineCacheLoadDesc
 {
     const char*        pFileName;
-    PipelineCacheFlags mFlags;
+    PipelineCacheFlags flags;
 } PipelineCacheLoadDesc;
 
 typedef struct PipelineCacheSaveDesc
@@ -464,11 +464,11 @@ struct Material;
 
 typedef struct ResourceLoaderDesc
 {
-    uint64_t mBufferSize;
-    uint32_t mBufferCount;
-    bool     mSingleThreaded;
+    uint64_t bufferSize;
+    uint32_t bufferCount;
+    bool     singleThreaded;
 #ifdef ENABLE_FORGE_MATERIALS
-    bool mUseMaterials;
+    bool useMaterials;
 #endif
 } ResourceLoaderDesc;
 
@@ -538,7 +538,7 @@ FORGE_RENDERER_API void removeGeometryBufferPart(BufferChunkAllocator* buffer, B
 typedef struct FlushResourceUpdateDesc
 {
     /// GPU node index. The current resource loader path uses node 0.
-    uint32_t    mWaitSemaphoreCount;
+    uint32_t    waitSemaphoreCount;
     Semaphore** ppWaitSemaphores;
     Fence*      pOutFence;
     Semaphore*  pOutSubmittedSemaphore;

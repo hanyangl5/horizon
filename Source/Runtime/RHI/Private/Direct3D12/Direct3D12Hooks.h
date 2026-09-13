@@ -34,16 +34,16 @@ typedef struct GpuDesc
 #else
     IDXGIAdapter4* pGpu = NULL;
 #endif
-    D3D_FEATURE_LEVEL                  mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
-    D3D12_FEATURE_DATA_D3D12_OPTIONS   mFeatureDataOptions = {};
-    D3D12_FEATURE_DATA_D3D12_OPTIONS1  mFeatureDataOptions1 = {};
-    D3D12_FEATURE_DATA_D3D12_OPTIONS16 mFeatureDataOptions16 = {};
-    SIZE_T                             mDedicatedVideoMemory = 0;
-    uint32_t                           mVendorId = 0;
-    uint32_t                           mDeviceId = 0;
-    uint32_t                           mRevisionId = 0;
-    char                               mName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    GPUPresetLevel                     mPreset = {};
+    D3D_FEATURE_LEVEL                  maxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
+    D3D12_FEATURE_DATA_D3D12_OPTIONS   featureDataOptions = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS1  featureDataOptions1 = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS16 featureDataOptions16 = {};
+    SIZE_T                             dedicatedVideoMemory = 0;
+    uint32_t                           vendorId = 0;
+    uint32_t                           deviceId = 0;
+    uint32_t                           revisionId = 0;
+    char                               name[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    GPUPresetLevel                     preset = {};
 } GpuDesc;
 
 extern HMODULE hook_get_d3d12_module_handle();

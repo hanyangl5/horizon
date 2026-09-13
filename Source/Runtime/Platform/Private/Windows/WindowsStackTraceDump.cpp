@@ -34,16 +34,16 @@
 #pragma comment(lib, "DbgHelp.lib")
 #include <Psapi.h>
 
-bool    WindowsStackTrace::mInit = false;
-Mutex   WindowsStackTrace::mDbgHelpMutex;
-uint8_t WindowsStackTrace::mPreallocatedMemory[mPreallocatedMemorySize];
-size_t  WindowsStackTrace::mUsedMemorySize = 0;
+bool    WindowsStackTrace::init = false;
+Mutex   WindowsStackTrace::dbgHelpMutex;
+uint8_t WindowsStackTrace::preallocatedMemory[preallocatedMemorySize];
+size_t  WindowsStackTrace::usedMemorySize = 0;
 
 static LONG WINAPI dumpStackTrace(EXCEPTION_POINTERS* pExceptionInfo) { return WindowsStackTrace::Dump(pExceptionInfo); }
 
 bool WindowsStackTrace::Init()
 {
-    if (mInit)
+    if (init)
     {
         return false;
     }
@@ -54,24 +54,24 @@ bool WindowsStackTrace::Init()
 
     SetUnhandledExceptionFilter(&dumpStackTrace);
 
-    initMutex(&mDbgHelpMutex);
+    initMutex(&dbgHelpMutex);
 
-    mInit = true;
+    init = true;
     return true;
 }
 
-void WindowsStackTrace::Exit() { mInit = false; }
+void WindowsStackTrace::Exit() { init = false; }
 
 void* WindowsStackTrace::Alloc(size_t size)
 {
-    if ((mUsedMemorySize + size) > mPreallocatedMemorySize)
+    if ((usedMemorySize + size) > preallocatedMemorySize)
     {
         Log("Not enough preallocated memory remaining for allocation of %u bytes", size);
         return NULL;
     }
 
-    void* pMem = ((uint8_t*)mPreallocatedMemory + mUsedMemorySize);
-    mUsedMemorySize += size;
+    void* pMem = ((uint8_t*)preallocatedMemory + usedMemorySize);
+    usedMemorySize += size;
     return pMem;
 }
 
@@ -80,7 +80,7 @@ void WindowsStackTrace::Log(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
 
-    if (mInit)
+    if (init)
     {
         // Use the normal log output if we haven't shutdown the log system yet
         writeLogVaList(LogLevel::eERROR, __FILE__, __LINE__, fmt, args);
@@ -120,7 +120,7 @@ void WindowsStackTrace::Log(const char* fmt, ...)
 
 LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
 {
-    MutexLock dbgHelpLock(mDbgHelpMutex);
+    MutexLock dbgHelpLock(dbgHelpMutex);
 
     Log("APP CRASHED - See the stack trace below. Output might be duplicated if you are capturing both stdout and stderr");
 
@@ -220,7 +220,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
             DWORD64 displacement = 0;
             SymGetSymFromAddr64(process, stackFrame.AddrPC.Offset, &displacement, pSymbol);
             DWORD functionNameLength =
-                UnDecorateSymbolName(pSymbol->Name, lineInfo.mFunctionName, sizeof(lineInfo.mFunctionName), UNDNAME_COMPLETE);
+                UnDecorateSymbolName(pSymbol->Name, lineInfo.functionName, sizeof(lineInfo.functionName), UNDNAME_COMPLETE);
             if (maxFunctionNameLength < functionNameLength)
                 maxFunctionNameLength = functionNameLength;
 
@@ -233,8 +233,8 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
             SymGetLineFromAddr(process, stackFrame.AddrPC.Offset, &offsetFromSymbol, &line);
 #endif
             if (line.FileName)
-                strcpy(lineInfo.mFileName, line.FileName);
-            lineInfo.mLineNumber = line.LineNumber;
+                strcpy(lineInfo.fileName, line.FileName);
+            lineInfo.lineNumber = line.LineNumber;
 
             IMAGEHLP_MODULE64 module = {};
             module.SizeOfStruct = sizeof(module);
@@ -250,7 +250,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
                         lastSlash = i + 1;
                 }
 
-                strncpy(lineInfo.mModuleName, &module.ImageName[lastSlash], sizeof(lineInfo.mModuleName));
+                strncpy(lineInfo.moduleName, &module.ImageName[lastSlash], sizeof(lineInfo.moduleName));
             }
         }
     } while (stackFrame.AddrReturn.Offset != 0);
@@ -259,8 +259,8 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
     {
         DWORD                      padding = 5;
         WindowsStackTraceLineInfo& lineInfo = stackTraceLines[i];
-        Log("%-*s | %s!%s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mModuleName, lineInfo.mFileName,
-            lineInfo.mLineNumber);
+        Log("%-*s | %s!%s(%d)", maxFunctionNameLength + padding, lineInfo.functionName, lineInfo.moduleName, lineInfo.fileName,
+            lineInfo.lineNumber);
     }
 
     SymCleanup(process);

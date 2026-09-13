@@ -39,51 +39,51 @@ enum JointMeshType
 // Uniform data to send
 struct UniformSkeletonBlock
 {
-    CameraMatrix mProjectView;
-    mat4         mViewMatrix;
+    CameraMatrix projectView;
+    mat4         viewMatrix;
 
-    vec4  mColor[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    vec4  color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
     // Point Light Information
-    vec4  mLightPosition;
-    vec4  mLightColor;
-    vec4  mJointColor;
-    uint4 mSkeletonInfo;
-    mat4  mToWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    vec4  lightPosition;
+    vec4  lightColor;
+    vec4  jointColor;
+    uint4 skeletonInfo;
+    mat4  toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
 };
 
 // Description needed to handle buffer updates and draw calls
 struct SkeletonRenderDesc
 {
-    Renderer* mRenderer;
-    Buffer*   mJointVertexBuffer;
-    Buffer*   mBoneVertexBuffer;
+    Renderer* renderer;
+    Buffer*   jointVertexBuffer;
+    Buffer*   boneVertexBuffer;
 
-    uint32_t mFrameCount;
-    uint32_t mMaxSkeletonBatches;
+    uint32_t frameCount;
+    uint32_t maxSkeletonBatches;
 
-    uint32_t mJointVertexStride;
-    uint32_t mNumJointPoints;
+    uint32_t jointVertexStride;
+    uint32_t numJointPoints;
 
-    uint32_t mBoneVertexStride;
-    uint32_t mNumBonePoints;
+    uint32_t boneVertexStride;
+    uint32_t numBonePoints;
 
-    uint32_t mMaxAnimatedObjects;
+    uint32_t maxAnimatedObjects;
 
-    BufferCreationFlags mCreationFlag;
-    bool                mDrawBones;
-    JointMeshType       mJointMeshType;
+    BufferCreationFlags creationFlag;
+    bool                drawBones;
+    JointMeshType       jointMeshType;
 
-    const char* mJointVertShaderName;
-    const char* mJointFragShaderName;
+    const char* jointVertShaderName;
+    const char* jointFragShaderName;
 };
 
 typedef struct SkeletonBatcherLoadDesc
 {
-    ReloadType  mLoadType;
-    uint32_t    mColorFormat; // enum TinyImageFormat
-    uint32_t    mDepthFormat; // enum TinyImageFormat
-    SampleCount mSampleCount;
-    uint32_t    mSampleQuality;
+    ReloadType  loadType;
+    uint32_t    colorFormat; // enum TinyImageFormat
+    uint32_t    depthFormat; // enum TinyImageFormat
+    SampleCount sampleCount;
+    uint32_t    sampleQuality;
 } SkeletonBatcherLoadDesc;
 
 // Allows for efficiently instance rendering all joints and bones of all skeletons in the scene
@@ -124,60 +124,60 @@ public:
     // Instance draw all the skeletons
     void Draw(Cmd* cmd, const uint32_t frameIndex);
 
-    Shader*        mJointShader = NULL;
-    Shader*        mBoneShader = NULL;
-    Pipeline*      mJointPipeline = NULL;
-    Pipeline*      mBonePipeline = NULL;
-    RootSignature* mRootSignature = NULL;
+    Shader*        jointShader = NULL;
+    Shader*        boneShader = NULL;
+    Pipeline*      jointPipeline = NULL;
+    Pipeline*      bonePipeline = NULL;
+    RootSignature* rootSignature = NULL;
 
 private:
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    uint32_t mMaxAnimatedObjects = 0;
+    uint32_t maxAnimatedObjects = 0;
 
     // List of Rigs whose skeletons need to be rendered
-    AnimatedObject** mAnimatedObjects = NULL;
-    uint32_t*        mCumulativeAnimatedObjectInstanceCount = NULL;
+    AnimatedObject** animatedObjects = NULL;
+    uint32_t*        cumulativeAnimatedObjectInstanceCount = NULL;
 
-    uint32_t mFrameCount = 0;
-    uint32_t mMaxSkeletonBatches = 0;
-    uint32_t mNumAnimatedObjects = 0;
-    uint32_t mNumActiveAnimatedObjects = 0;
+    uint32_t frameCount = 0;
+    uint32_t maxSkeletonBatches = 0;
+    uint32_t numAnimatedObjects = 0;
+    uint32_t numActiveAnimatedObjects = 0;
 
     // Application variables used to be able to update buffers
-    Renderer* mRenderer = NULL;
-    Buffer*   mJointVertexBuffer = NULL;
-    Buffer*   mBoneVertexBuffer = NULL;
-    uint32_t  mJointVertexStride = 0;
-    uint32_t  mBoneVertexStride = 0;
-    uint32_t  mNumJointPoints = 0;
-    uint32_t  mNumBonePoints = 0;
+    Renderer* renderer = NULL;
+    Buffer*   jointVertexBuffer = NULL;
+    Buffer*   boneVertexBuffer = NULL;
+    uint32_t  jointVertexStride = 0;
+    uint32_t  boneVertexStride = 0;
+    uint32_t  numJointPoints = 0;
+    uint32_t  numBonePoints = 0;
 
     // Descriptor binder with all required memory allocation space
     DescriptorSet* pDescriptorSet = NULL;
 
     // Buffer pointers that will get updated for each batch to be rendered
-    Buffer** mProjViewUniformBufferJoints = NULL;
-    Buffer** mProjViewUniformBufferBones = NULL;
+    Buffer** projViewUniformBufferJoints = NULL;
+    Buffer** projViewUniformBufferBones = NULL;
 
     // Uniform data for the joints and bones
-    UniformSkeletonBlock* mUniformDataJoints = NULL;
+    UniformSkeletonBlock* uniformDataJoints = NULL;
 
-    const char* mJointVertShaderName = NULL;
-    const char* mJointFragShaderName = NULL;
+    const char* jointVertShaderName = NULL;
+    const char* jointFragShaderName = NULL;
 
-    tfrg_atomic32_t mInstanceCount = 0;
+    tfrg_atomic32_t instanceCount = 0;
 
     // Keeps track of the number of batches we will send for instanced rendering
     // for each frame index
-    tfrg_atomic32_t* mBatchCounts = NULL;
+    tfrg_atomic32_t* batchCounts = NULL;
 
     // Keeps track of the size of the last batch as it can be less than MAX_INSTANCES
-    tfrg_atomic32_t* mBatchSize = NULL;
+    tfrg_atomic32_t* batchSize = NULL;
 
     // Determines if this renderer will need to draw bones between each joint
     // Set in initialize
-    bool mDrawBones = false;
+    bool drawBones = false;
 
-    JointMeshType mJointMeshType = QuadSphere;
+    JointMeshType jointMeshType = QuadSphere;
 #endif
 };

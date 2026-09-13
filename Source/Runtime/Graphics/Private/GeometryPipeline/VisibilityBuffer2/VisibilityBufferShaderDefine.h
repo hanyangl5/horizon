@@ -176,11 +176,11 @@
 /*
 typedef struct IndirectDrawIndexArguments
 {
-    uint32_t mIndexCount;
-    uint32_t mInstanceCount;
-    uint32_t mStartIndex;
-    uint32_t mVertexOffset;
-    uint32_t mStartInstance;
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t startIndex;
+    uint32_t vertexOffset;
+    uint32_t startInstance;
 } IndirectDrawIndexArguments;
 */
 #define INDIRECT_DRAW_ARGUMENTS_INDEX_COUNT_OFFSET     (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 0)

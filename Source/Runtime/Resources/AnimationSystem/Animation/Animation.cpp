@@ -26,85 +26,85 @@
 
 void Animation::Initialize(AnimationDesc animationDesc)
 {
-    mRig = animationDesc.mRig;
-    mBlendType = animationDesc.mBlendType;
-    mNumClips = min(animationDesc.mNumLayers, MAX_NUM_CLIPS);
+    rig = animationDesc.rig;
+    blendType = animationDesc.blendType;
+    numClips = min(animationDesc.numLayers, MAX_NUM_CLIPS);
 
-    mNumAdditiveClips = 0;
+    numAdditiveClips = 0;
 
     ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 
-    for (uint32_t i = 0; i < mNumClips; i++)
+    for (uint32_t i = 0; i < numClips; i++)
     {
         // Save clip structures
-        mClips[i] = animationDesc.mLayerProperties[i].mClip;
-        mClipControllers[i] = animationDesc.mLayerProperties[i].mClipController;
-        mClipMasks[i] = animationDesc.mLayerProperties[i].mClipMask;
+        clips[i] = animationDesc.layerProperties[i].clip;
+        clipControllers[i] = animationDesc.layerProperties[i].clipController;
+        clipMasks[i] = animationDesc.layerProperties[i].clipMask;
 
         // Save additive properties of additive clips
-        mClipControllers[i]->mAdditive = animationDesc.mLayerProperties[i].mAdditive;
-        if (mClipControllers[i]->mAdditive)
-            mNumAdditiveClips++;
+        clipControllers[i]->additive = animationDesc.layerProperties[i].additive;
+        if (clipControllers[i]->additive)
+            numAdditiveClips++;
 
         // Find the index of the longest clip
-        if (mDuration < mClipControllers[i]->mDuration)
+        if (duration < clipControllers[i]->duration)
         {
-            mDuration = mClipControllers[i]->mDuration;
-            mLongestClipIndex = i;
+            duration = clipControllers[i]->duration;
+            longestClipIndex = i;
         }
 
         // Prepare input and output of clip sampling
 
         // Allocates sampler runtime buffers.
-        mClipLocalTrans[i] = allocator->AllocateRange<SoaTransform>(mRig->mNumSoaJoints);
+        clipLocalTrans[i] = allocator->AllocateRange<SoaTransform>(rig->numSoaJoints);
 
         // Allocates a cache that matches animation requirements.
-        mClipSamplingCaches[i] = ozz::New<ozz::animation::SamplingJob::Context>(mRig->mNumJoints);
+        clipSamplingCaches[i] = ozz::New<ozz::animation::SamplingJob::Context>(rig->numJoints);
     }
 
     // Allocate the blend layers that will be set each sampling based on each clip's properties
-    mLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(mNumClips - mNumAdditiveClips);
-    mAdditiveLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(mNumAdditiveClips);
+    layers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(numClips - numAdditiveClips);
+    additiveLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(numAdditiveClips);
 }
 
 void Animation::Exit()
 {
     ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 
-    for (uint32_t i = 0; i < mNumClips; i++)
+    for (uint32_t i = 0; i < numClips; i++)
     {
-        ozz::Delete(mClipSamplingCaches[i]);
-        allocator->Deallocate(mClipLocalTrans[i]);
+        ozz::Delete(clipSamplingCaches[i]);
+        allocator->Deallocate(clipLocalTrans[i]);
     }
-    allocator->Deallocate(mLayers);
-    allocator->Deallocate(mAdditiveLayers);
+    allocator->Deallocate(layers);
+    allocator->Deallocate(additiveLayers);
 }
 
 bool Animation::Sample(float dt, ozz::span<SoaTransform>& localTrans)
 {
     // update blend and sample parameters
-    if (mAutoSetBlendParams)
+    if (autoSetBlendParams)
     {
         UpdateBlendParameters();
     }
 
     // sample each of the clips that make up this animation
-    for (uint32_t i = 0; i < mNumClips; i++)
+    for (uint32_t i = 0; i < numClips; i++)
     {
         // Updates clips time.
-        mClipControllers[i]->Update(dt);
+        clipControllers[i]->Update(dt);
 
         // Early out if this layers weight makes it irrelevant during blending.
-        if (mClipControllers[i]->mWeight != 0.f)
+        if (clipControllers[i]->weight != 0.f)
         {
-            // if (!mClips[i]->Sample(mClipControllers[i]->mTimeRatio))
-            if (!mClips[i]->Sample(mClipSamplingCaches[i], mClipLocalTrans[i], mClipControllers[i]->mTimeRatio))
+            // if (!clips[i]->Sample(clipControllers[i]->timeRatio))
+            if (!clips[i]->Sample(clipSamplingCaches[i], clipLocalTrans[i], clipControllers[i]->timeRatio))
                 return false;
         }
     }
 
     // Update the animations current time ratio
-    mTimeRatio = mClipControllers[mLongestClipIndex]->mTimeRatio;
+    timeRatio = clipControllers[longestClipIndex]->timeRatio;
 
     // blend these samples together
     return Blend(localTrans);
@@ -113,73 +113,73 @@ bool Animation::Sample(float dt, ozz::span<SoaTransform>& localTrans)
 void Animation::UpdateBlendParameters()
 {
     // Set to Ozz's default min value to undo any external changes
-    mThreshold = ozz::animation::BlendingJob().threshold;
+    threshold = ozz::animation::BlendingJob().threshold;
 
     // Each animation will have equal influence
-    if (mBlendType == BlendType::EQUAL)
+    if (blendType == BlendType::EQUAL)
     {
-        for (uint32_t i = 0; i < mNumClips; i++)
+        for (uint32_t i = 0; i < numClips; i++)
         {
-            mClipControllers[i]->mWeight = 1.f / mNumClips;
+            clipControllers[i]->weight = 1.f / numClips;
         }
     }
 
     // The animations will fade into one another in the order they were added
-    // Based on mBlendRatio
-    else if (mBlendType == BlendType::CROSS_DISSOLVE)
+    // Based on blendRatio
+    else if (blendType == BlendType::CROSS_DISSOLVE)
     {
         // Computes weight parameters for all samplers.
-        const float numIntervals = (float)mNumClips - 1;
+        const float numIntervals = (float)numClips - 1;
         const float interval = 1.f / numIntervals;
-        for (uint32_t i = 0; i < mNumClips; ++i)
+        for (uint32_t i = 0; i < numClips; ++i)
         {
             const float med = i * interval; // unique order of animation between [0,1]
-            const float x = mBlendRatio - med;
+            const float x = blendRatio - med;
             const float y = ((x < 0.f ? x : -x) + interval) * numIntervals;
 
-            mClipControllers[i]->mWeight = max(0.f, y);
+            clipControllers[i]->weight = max(0.f, y);
         }
     }
 
     // The animations will fade into one another in the order they were added, syncronizing their speeds as they fade into eachother
-    // Based on mBlendRatio
-    else if (mBlendType == BlendType::CROSS_DISSOLVE_SYNC)
+    // Based on blendRatio
+    else if (blendType == BlendType::CROSS_DISSOLVE_SYNC)
     {
         // Computes weight parameters for all samplers.
-        const float numIntervals = (float)mNumClips - 1;
+        const float numIntervals = (float)numClips - 1;
         const float interval = 1.f / numIntervals;
-        for (uint32_t i = 0; i < mNumClips; ++i)
+        for (uint32_t i = 0; i < numClips; ++i)
         {
             const float med = i * interval; // unique order of animation between [0,1]
-            const float x = mBlendRatio - med;
+            const float x = blendRatio - med;
             const float y = ((x < 0.f ? x : -x) + interval) * numIntervals;
 
-            mClipControllers[i]->mWeight = max(0.f, y);
+            clipControllers[i]->weight = max(0.f, y);
         }
 
         // Synchronizes animations.
         // First computes loop cycle duration. Selects the 2 Clips that define
-        // interval that contains mBlendRatio.
+        // interval that contains blendRatio.
         // Uses a maximum value smaller that 1.f (-epsilon) to ensure that
         // (relevantClip + 1) is always valid.
-        const uint32_t relevantClip = (uint32_t)((mBlendRatio - 1e-3f) * (mNumClips - 1));
-        ASSERT(relevantClip + 1 < mNumClips);
-        ClipController* ClipControllerL = mClipControllers[relevantClip];
-        ClipController* ClipControllerR = mClipControllers[relevantClip + 1];
+        const uint32_t relevantClip = (uint32_t)((blendRatio - 1e-3f) * (numClips - 1));
+        ASSERT(relevantClip + 1 < numClips);
+        ClipController* ClipControllerL = clipControllers[relevantClip];
+        ClipController* ClipControllerR = clipControllers[relevantClip + 1];
 
         // Interpolates animation durations using their respective weights, to
         // find the loop cycle duration that matches blend_ratio_.
         const float loopDuration =
 
-            ClipControllerL->mDuration * ClipControllerL->mWeight + ClipControllerR->mDuration * ClipControllerR->mWeight;
+            ClipControllerL->duration * ClipControllerL->weight + ClipControllerR->duration * ClipControllerR->weight;
 
         // Finally finds the speed coefficient for all Clips.
         const float invLoopDuration = 1.f / loopDuration;
-        for (uint32_t i = 0; i < mNumClips; ++i)
+        for (uint32_t i = 0; i < numClips; ++i)
         {
-            ClipController* ClipController = mClipControllers[i];
-            const float     speed = ClipController->mDuration * invLoopDuration;
-            ClipController->mPlaybackSpeed = speed;
+            ClipController* ClipController = clipControllers[i];
+            const float     speed = ClipController->duration * invLoopDuration;
+            ClipController->playbackSpeed = speed;
         }
     }
 }
@@ -187,39 +187,39 @@ void Animation::UpdateBlendParameters()
 bool Animation::Blend(ozz::span<SoaTransform>& localTrans)
 {
     uint32_t additiveIndex = 0;
-    for (uint32_t i = 0; i < mNumClips; i++)
+    for (uint32_t i = 0; i < numClips; i++)
     {
-        if (mClipControllers[i]->mAdditive)
+        if (clipControllers[i]->additive)
         {
-            mAdditiveLayers[additiveIndex].transform = mClipLocalTrans[i];
-            mAdditiveLayers[additiveIndex].weight = mClipControllers[i]->mWeight;
+            additiveLayers[additiveIndex].transform = clipLocalTrans[i];
+            additiveLayers[additiveIndex].weight = clipControllers[i]->weight;
 
-            if (mClipMasks[i])
-                mAdditiveLayers[additiveIndex].joint_weights = mClipMasks[i]->GetJointWeights();
+            if (clipMasks[i])
+                additiveLayers[additiveIndex].joint_weights = clipMasks[i]->GetJointWeights();
             else
-                mAdditiveLayers[additiveIndex].joint_weights = ozz::span<const Vector4>();
+                additiveLayers[additiveIndex].joint_weights = ozz::span<const Vector4>();
 
             additiveIndex++;
         }
         else
         {
-            mLayers[i].transform = mClipLocalTrans[i];
-            mLayers[i].weight = mClipControllers[i]->mWeight;
+            layers[i].transform = clipLocalTrans[i];
+            layers[i].weight = clipControllers[i]->weight;
 
-            if (mClipMasks[i])
-                mLayers[i].joint_weights = mClipMasks[i]->GetJointWeights();
+            if (clipMasks[i])
+                layers[i].joint_weights = clipMasks[i]->GetJointWeights();
             else
-                mLayers[i].joint_weights = ozz::span<const Vector4>();
+                layers[i].joint_weights = ozz::span<const Vector4>();
         }
     }
 
     // Setups blending job.
     ozz::animation::BlendingJob blendJob;
-    blendJob.threshold = mThreshold;
-    blendJob.layers = mLayers;
-    if (mNumAdditiveClips > 0)
-        blendJob.additive_layers = mAdditiveLayers;
-    blendJob.rest_pose = mRig->mSkeleton.joint_rest_poses();
+    blendJob.threshold = threshold;
+    blendJob.layers = layers;
+    if (numAdditiveClips > 0)
+        blendJob.additive_layers = additiveLayers;
+    blendJob.rest_pose = rig->skeleton.joint_rest_poses();
     blendJob.output = localTrans;
 
     // Blends.
@@ -233,10 +233,10 @@ bool Animation::Blend(ozz::span<SoaTransform>& localTrans)
 
 void Animation::SetTimeRatio(float timeRatio)
 {
-    float time = timeRatio * mDuration;
+    float time = timeRatio * duration;
 
-    for (uint32_t i = 0; i < mNumClips; i++)
+    for (uint32_t i = 0; i < numClips; i++)
     {
-        mClipControllers[i]->SetTimeRatio(time);
+        clipControllers[i]->SetTimeRatio(time);
     }
 }

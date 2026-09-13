@@ -120,23 +120,23 @@ typedef struct VirtualJoystick
     Texture*       pTexture = NULL;
     Sampler*       pSampler = NULL;
     Buffer*        pMeshBuffer = NULL;
-    float2         mRenderSize = float2(0.f, 0.f);
-    float2         mRenderScale = float2(0.f, 0.f);
+    float2         renderSize = float2(0.f, 0.f);
+    float2         renderScale = float2(0.f, 0.f);
 
     // input related
-    float    mInsideRadius = 100.f;
-    float    mOutsideRadius = 200.f;
-    uint32_t mRootConstantIndex;
+    float    insideRadius = 100.f;
+    float    outsideRadius = 200.f;
+    uint32_t rootConstantIndex;
 
     struct StickInput
     {
-        bool   mPressed = false;
-        float2 mStartPos = float2(0.f, 0.f);
-        float2 mCurrPos = float2(0.f, 0.f);
+        bool   pressed = false;
+        float2 startPos = float2(0.f, 0.f);
+        float2 currPos = float2(0.f, 0.f);
     };
     // Left -> Index 0
     // Right -> Index 1
-    StickInput mSticks[2];
+    StickInput sticks[2];
 #endif
 } VirtualJoystick;
 
@@ -159,7 +159,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     loadDesc.pFileName = pDesc->pJoystickTexture;
     loadDesc.ppTexture = &gVirtualJoystick->pTexture;
     // Textures representing color should be stored in SRGB or HDR format
-    loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+    loadDesc.creationFlag = TEXTURE_CREATION_FLAG_SRGB;
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
@@ -184,10 +184,10 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     // Resources
     /************************************************************************/
     BufferLoadDesc vbDesc = {};
-    vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    vbDesc.mDesc.mSize = 128 * 4 * sizeof(float4);
+    vbDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    vbDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    vbDesc.desc.size = 128 * 4 * sizeof(float4);
     vbDesc.ppBuffer = &gVirtualJoystick->pMeshBuffer;
     addResource(&vbDesc, NULL);
 #endif
@@ -238,17 +238,17 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
             // Shader
             /************************************************************************/
             ShaderLoadDesc texturedShaderDesc = {};
-            texturedShaderDesc.mStages[0].pFileName = "textured_mesh.vert";
-            texturedShaderDesc.mStages[1].pFileName = "textured_mesh.frag";
+            texturedShaderDesc.stages[0].pFileName = "textured_mesh.vert";
+            texturedShaderDesc.stages[1].pFileName = "textured_mesh.frag";
             addShader(pRenderer, &texturedShaderDesc, &gVirtualJoystick->pShader);
 
             const char*       pStaticSamplerNames[] = { "uSampler" };
             RootSignatureDesc textureRootDesc = { &gVirtualJoystick->pShader, 1 };
-            textureRootDesc.mStaticSamplerCount = 1;
+            textureRootDesc.staticSamplerCount = 1;
             textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
             textureRootDesc.ppStaticSamplers = &gVirtualJoystick->pSampler;
             addRootSignature(pRenderer, &textureRootDesc, &gVirtualJoystick->pRootSignature);
-            gVirtualJoystick->mRootConstantIndex = getDescriptorIndexFromName(gVirtualJoystick->pRootSignature, "uRootConstants");
+            gVirtualJoystick->rootConstantIndex = getDescriptorIndexFromName(gVirtualJoystick->pRootSignature, "uRootConstants");
 
             DescriptorSetDesc descriptorSetDesc = { gVirtualJoystick->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
             addDescriptorSet(pRenderer, &descriptorSetDesc, &gVirtualJoystick->pDescriptorSet);
@@ -262,45 +262,45 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
         }
 
         VertexLayout vertexLayout = {};
-        vertexLayout.mBindingCount = 1;
-        vertexLayout.mAttribCount = 2;
-        vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
-        vertexLayout.mAttribs[0].mBinding = 0;
-        vertexLayout.mAttribs[0].mLocation = 0;
-        vertexLayout.mAttribs[0].mOffset = 0;
+        vertexLayout.bindingCount = 1;
+        vertexLayout.attribCount = 2;
+        vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
+        vertexLayout.attribs[0].format = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.attribs[0].binding = 0;
+        vertexLayout.attribs[0].location = 0;
+        vertexLayout.attribs[0].offset = 0;
 
-        vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-        vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
-        vertexLayout.mAttribs[1].mBinding = 0;
-        vertexLayout.mAttribs[1].mLocation = 1;
-        vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
+        vertexLayout.attribs[1].semantic = SEMANTIC_TEXCOORD0;
+        vertexLayout.attribs[1].format = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.attribs[1].binding = 0;
+        vertexLayout.attribs[1].location = 1;
+        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
 
         BlendStateDesc blendStateDesc = {};
-        blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-        blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-        blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
-        blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-        blendStateDesc.mColorWriteMasks[0] = COLOR_MASK_ALL;
-        blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
-        blendStateDesc.mIndependentBlend = false;
+        blendStateDesc.srcFactors[0] = BC_SRC_ALPHA;
+        blendStateDesc.dstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+        blendStateDesc.srcAlphaFactors[0] = BC_SRC_ALPHA;
+        blendStateDesc.dstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+        blendStateDesc.colorWriteMasks[0] = COLOR_MASK_ALL;
+        blendStateDesc.renderTargetMask = BLEND_STATE_TARGET_ALL;
+        blendStateDesc.independentBlend = false;
 
         DepthStateDesc depthStateDesc = {};
-        depthStateDesc.mDepthTest = false;
-        depthStateDesc.mDepthWrite = false;
+        depthStateDesc.depthTest = false;
+        depthStateDesc.depthWrite = false;
 
         RasterizerStateDesc rasterizerStateDesc = {};
-        rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-        rasterizerStateDesc.mScissor = true;
+        rasterizerStateDesc.cullMode = CULL_MODE_NONE;
+        rasterizerStateDesc.scissor = true;
 
         PipelineDesc desc = {};
-        desc.mType = PIPELINE_TYPE_GRAPHICS;
-        GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
-        pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-        pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-        pipelineDesc.mRenderTargetCount = 1;
-        pipelineDesc.mSampleCount = SAMPLE_COUNT_1;
-        pipelineDesc.mSampleQuality = 0;
+        desc.type = PIPELINE_TYPE_GRAPHICS;
+        GraphicsPipelineDesc& pipelineDesc = desc.graphicsDesc;
+        pipelineDesc.primitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+        pipelineDesc.depthStencilFormat = TinyImageFormat_UNDEFINED;
+        pipelineDesc.renderTargetCount = 1;
+        pipelineDesc.sampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.sampleQuality = 0;
         pipelineDesc.pBlendState = &blendStateDesc;
         pipelineDesc.pColorFormats = &colorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
@@ -313,10 +313,10 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
 
     if (loadType & RELOAD_TYPE_RESIZE)
     {
-        gVirtualJoystick->mRenderSize[0] = (float)width;
-        gVirtualJoystick->mRenderSize[1] = (float)height;
-        gVirtualJoystick->mRenderScale[0] = (float)width / (float)displayWidth;
-        gVirtualJoystick->mRenderScale[1] = (float)height / (float)displayHeight;
+        gVirtualJoystick->renderSize[0] = (float)width;
+        gVirtualJoystick->renderSize[1] = (float)height;
+        gVirtualJoystick->renderScale[0] = (float)width / (float)displayWidth;
+        gVirtualJoystick->renderScale[1] = (float)height / (float)displayHeight;
     }
 #endif
     return true;
@@ -352,7 +352,7 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
     UNREF_PARAM(pCmd);
     UNREF_PARAM(color);
 #if TOUCH_INPUT
-    if (!gVirtualJoystick || !(gVirtualJoystick->mSticks[0].mPressed || gVirtualJoystick->mSticks[1].mPressed))
+    if (!gVirtualJoystick || !(gVirtualJoystick->sticks[0].pressed || gVirtualJoystick->sticks[1].pressed))
         return;
 
     struct RootConstants
@@ -362,27 +362,27 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
         int    _pad[2];
     } data = {};
 
-    cmdSetViewport(pCmd, 0.0f, 0.0f, gVirtualJoystick->mRenderSize[0], gVirtualJoystick->mRenderSize[1], 0.0f, 1.0f);
-    cmdSetScissor(pCmd, 0u, 0u, (uint32_t)gVirtualJoystick->mRenderSize[0], (uint32_t)gVirtualJoystick->mRenderSize[1]);
+    cmdSetViewport(pCmd, 0.0f, 0.0f, gVirtualJoystick->renderSize[0], gVirtualJoystick->renderSize[1], 0.0f, 1.0f);
+    cmdSetScissor(pCmd, 0u, 0u, (uint32_t)gVirtualJoystick->renderSize[0], (uint32_t)gVirtualJoystick->renderSize[1]);
 
     cmdBindPipeline(pCmd, gVirtualJoystick->pPipeline);
     cmdBindDescriptorSet(pCmd, 0, gVirtualJoystick->pDescriptorSet);
     data.color = *color;
-    data.scaleBias = { 2.0f / (float)gVirtualJoystick->mRenderSize[0], -2.0f / (float)gVirtualJoystick->mRenderSize[1] };
-    cmdBindPushConstants(pCmd, gVirtualJoystick->pRootSignature, gVirtualJoystick->mRootConstantIndex, &data);
+    data.scaleBias = { 2.0f / (float)gVirtualJoystick->renderSize[0], -2.0f / (float)gVirtualJoystick->renderSize[1] };
+    cmdBindPushConstants(pCmd, gVirtualJoystick->pRootSignature, gVirtualJoystick->rootConstantIndex, &data);
 
     // Draw the camera controller's virtual joysticks.
-    float extSide = gVirtualJoystick->mOutsideRadius;
-    float intSide = gVirtualJoystick->mInsideRadius;
+    float extSide = gVirtualJoystick->outsideRadius;
+    float intSide = gVirtualJoystick->insideRadius;
 
     uint64_t bufferOffset = 0;
     for (uint i = 0; i < 2; i++)
     {
-        if (gVirtualJoystick->mSticks[i].mPressed)
+        if (gVirtualJoystick->sticks[i].pressed)
         {
-            float2 joystickSize = float2(extSide) * gVirtualJoystick->mRenderScale;
-            float2 joystickCenter = gVirtualJoystick->mSticks[i].mStartPos * gVirtualJoystick->mRenderScale -
-                                    float2(0.0f, gVirtualJoystick->mRenderSize.y * 0.1f);
+            float2 joystickSize = float2(extSide) * gVirtualJoystick->renderScale;
+            float2 joystickCenter = gVirtualJoystick->sticks[i].startPos * gVirtualJoystick->renderScale -
+                                    float2(0.0f, gVirtualJoystick->renderSize.y * 0.1f);
             float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
             const uint32_t   vertexStride = sizeof(float4);
@@ -397,9 +397,9 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
             cmdDraw(pCmd, 4, 0);
             bufferOffset += sizeof(TexVertex) * 4;
 
-            joystickSize = float2(intSide) * gVirtualJoystick->mRenderScale;
-            joystickCenter = gVirtualJoystick->mSticks[i].mCurrPos * gVirtualJoystick->mRenderScale -
-                             float2(0.0f, gVirtualJoystick->mRenderSize.y * 0.1f);
+            joystickSize = float2(intSide) * gVirtualJoystick->renderScale;
+            joystickCenter = gVirtualJoystick->sticks[i].currPos * gVirtualJoystick->renderScale -
+                             float2(0.0f, gVirtualJoystick->renderSize.y * 0.1f);
             joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
             updateDesc = { gVirtualJoystick->pMeshBuffer, bufferOffset };
@@ -461,16 +461,16 @@ void virtualJoystickOnMove(VirtualJoystick* pVirtualJoystick, uint32_t id, Input
 #endif
     )
     {
-        if (!pVirtualJoystick->mSticks[id].mPressed)
+        if (!pVirtualJoystick->sticks[id].pressed)
         {
-            pVirtualJoystick->mSticks[id].mStartPos = *ctx->pPosition;
-            pVirtualJoystick->mSticks[id].mCurrPos = *ctx->pPosition;
+            pVirtualJoystick->sticks[id].startPos = *ctx->pPosition;
+            pVirtualJoystick->sticks[id].currPos = *ctx->pPosition;
         }
         else
         {
-            pVirtualJoystick->mSticks[id].mCurrPos = *ctx->pPosition;
+            pVirtualJoystick->sticks[id].currPos = *ctx->pPosition;
         }
-        pVirtualJoystick->mSticks[id].mPressed = ctx->mPhase != INPUT_ACTION_PHASE_CANCELED;
+        pVirtualJoystick->sticks[id].pressed = ctx->phase != INPUT_ACTION_PHASE_CANCELED;
     }
 #endif
 }
@@ -498,8 +498,8 @@ struct InputSystemImpl: public gainput::InputListener
 
     struct IControl
     {
-        InputActionDesc  mAction;
-        InputControlType mType;
+        InputActionDesc  action;
+        InputControlType type;
     };
 
     struct CompositeControl: public IControl
@@ -507,16 +507,16 @@ struct InputSystemImpl: public gainput::InputListener
         CompositeControl(const uint32_t controls[4], uint8_t composite)
         {
             memset((void*)this, 0, sizeof(*this));
-            mComposite = composite;
-            memcpy(mControls, controls, sizeof(mControls));
-            mType = CONTROL_COMPOSITE;
+            this->composite = composite;
+            memcpy(this->controls, controls, sizeof(this->controls));
+            type = CONTROL_COMPOSITE;
         }
-        float2   mValue;
-        uint32_t mControls[4];
-        uint8_t  mComposite;
-        uint8_t  mStarted;
-        uint8_t  mPerformed[4];
-        uint8_t  mPressedVal[4];
+        float2   value;
+        uint32_t controls[4];
+        uint8_t  composite;
+        uint8_t  started;
+        uint8_t  performed[4];
+        uint8_t  pressedVal[4];
     };
 
     struct FloatControl: public IControl
@@ -524,22 +524,22 @@ struct InputSystemImpl: public gainput::InputListener
         FloatControl(uint16_t start, uint8_t target, bool raw, bool delta)
         {
             memset((void*)this, 0, sizeof(*this));
-            mStartButton = start;
-            mTarget = target;
-            mType = CONTROL_FLOAT;
-            mDelta = (1 << (uint8_t)raw) | (uint8_t)delta;
-            mScale = 1;
-            mScaleByDT = false;
+            startButton = start;
+            this->target = target;
+            type = CONTROL_FLOAT;
+            this->delta = (1 << (uint8_t)raw) | (uint8_t)delta;
+            scale = 1;
+            scaleByDT = false;
         }
-        float3   mValue;
-        float    mScale;
-        uint16_t mStartButton;
-        uint8_t  mTarget;
-        uint8_t  mStarted;
-        uint8_t  mPerformed;
-        uint8_t  mDelta;
-        uint8_t  mArea;
-        bool     mScaleByDT;
+        float3   value;
+        float    scale;
+        uint16_t startButton;
+        uint8_t  target;
+        uint8_t  started;
+        uint8_t  performed;
+        uint8_t  delta;
+        uint8_t  area;
+        bool     scaleByDT;
     };
 
     struct AxisControl: public IControl
@@ -547,48 +547,48 @@ struct InputSystemImpl: public gainput::InputListener
         AxisControl(uint16_t start, uint8_t target, uint8_t axis)
         {
             memset((void*)this, 0, sizeof(*this));
-            mStartButton = start;
-            mTarget = target;
-            mAxisCount = axis;
-            mType = CONTROL_AXIS;
+            startButton = start;
+            this->target = target;
+            axisCount = axis;
+            type = CONTROL_AXIS;
         }
-        float3   mValue;
-        float3   mNewValue;
-        uint16_t mStartButton;
-        uint8_t  mTarget;
-        uint8_t  mAxisCount;
-        uint8_t  mStarted;
-        uint8_t  mPerformed;
+        float3   value;
+        float3   newValue;
+        uint16_t startButton;
+        uint8_t  target;
+        uint8_t  axisCount;
+        uint8_t  started;
+        uint8_t  performed;
     };
 
     struct VirtualJoystickControl: public IControl
     {
-        float2  mStartPos;
-        float2  mCurrPos;
-        float   mOutsideRadius;
-        float   mDeadzone;
-        float   mScale;
-        uint8_t mTouchIndex;
-        uint8_t mStarted;
-        uint8_t mPerformed;
-        uint8_t mArea;
-        uint8_t mIsPressed;
-        uint8_t mInitialized;
-        uint8_t mActive;
+        float2  startPos;
+        float2  currPos;
+        float   outsideRadius;
+        float   deadzone;
+        float   scale;
+        uint8_t touchIndex;
+        uint8_t started;
+        uint8_t performed;
+        uint8_t area;
+        uint8_t isPressed;
+        uint8_t initialized;
+        uint8_t active;
     };
 
     struct ComboControl: public IControl
     {
-        uint16_t mPressButton;
-        uint16_t mTriggerButton;
-        uint8_t  mPressed;
+        uint16_t pressButton;
+        uint16_t triggerButton;
+        uint8_t  pressed;
     };
 
     struct GestureControl: public IControl
     {
-        TouchGesture mGestureType;
-        uint32_t     mPerformed; // how many fingers were processed
-        uint32_t     mTarget;    // Number of fingers required
+        TouchGesture gestureType;
+        uint32_t     performed; // how many fingers were processed
+        uint32_t     target;    // Number of fingers required
     };
 
     struct FloatControlSet
@@ -609,43 +609,43 @@ struct InputSystemImpl: public gainput::InputListener
             enum State{ STARTED, HOLDING, ENDED };
 
             // Since we're tracking touches ourselves, we must know when to update touch data
-            bool mUpdated;
-            bool mMoved;
+            bool updated;
+            bool moved;
 
-            State mState;
-            float mTime;
-            float mVelocity;
-            vec2  mDistTraveled;
-            vec2  mPos0;
+            State state;
+            float time;
+            float velocity;
+            vec2  distTraveled;
+            vec2  pos0;
 
-            uint32_t mID;
-            vec2     mPos;
+            uint32_t id;
+            vec2     pos;
         };
 
-        Touch    mTouches[MAX_INPUT_MULTI_TOUCHES];
-        uint32_t mActiveTouches;
+        Touch    touches[MAX_INPUT_MULTI_TOUCHES];
+        uint32_t activeTouches;
 
-        uint32_t mPerformingGesturesCount[MAX_INPUT_MULTI_TOUCHES];
+        uint32_t performingGesturesCount[MAX_INPUT_MULTI_TOUCHES];
 
         // Double tap and long press data
-        vec2   mLastTapPos;
-        float  mLastTapTime;
-        Touch* mLongPressTouch;
+        vec2   lastTapPos;
+        float  lastTapTime;
+        Touch* longPressTouch;
 
         // Thresholds
-        float mDoubleTapTimeThreshold;
-        float mSwipeDistThreshold;
-        float mSwipeVelocityThreshold;
-        float mLongPressTimeThreshold;
-        float mMovedDistThreshold;
+        float doubleTapTimeThreshold;
+        float swipeDistThreshold;
+        float swipeVelocityThreshold;
+        float longPressTimeThreshold;
+        float movedDistThreshold;
 
         Touch* FindTouch(uint32_t id)
         {
-            for (uint32_t i = 0; i < TF_ARRAY_COUNT(mTouches); ++i)
+            for (uint32_t i = 0; i < TF_ARRAY_COUNT(touches); ++i)
             {
-                if (mTouches[i].mID == id)
+                if (touches[i].id == id)
                 {
-                    return &mTouches[i];
+                    return &touches[i];
                 }
             }
 
@@ -660,13 +660,13 @@ struct InputSystemImpl: public gainput::InputListener
                 return touch;
             }
 
-            for (uint32_t i = 0; i < TF_ARRAY_COUNT(mTouches); ++i)
+            for (uint32_t i = 0; i < TF_ARRAY_COUNT(touches); ++i)
             {
-                if (mTouches[i].mID == -1)
+                if (touches[i].id == -1)
                 {
-                    mTouches[i].mID = id;
-                    mActiveTouches++;
-                    return &mTouches[i];
+                    touches[i].id = id;
+                    activeTouches++;
+                    return &touches[i];
                 }
             }
 
@@ -675,16 +675,16 @@ struct InputSystemImpl: public gainput::InputListener
 
         void ReleaseTouch(uint32_t id)
         {
-            for (uint32_t i = 0; i < TF_ARRAY_COUNT(mTouches); i++)
+            for (uint32_t i = 0; i < TF_ARRAY_COUNT(touches); i++)
             {
-                if (mTouches[i].mID == id)
+                if (touches[i].id == id)
                 {
-                    mTouches[i].mID = -1;
-                    mTouches[i].mTime = 0.0f;
-                    mTouches[i].mDistTraveled = vec2(0.0f);
-                    mTouches[i].mUpdated = false;
-                    mTouches[i].mMoved = false;
-                    mActiveTouches--;
+                    touches[i].id = -1;
+                    touches[i].time = 0.0f;
+                    touches[i].distTraveled = vec2(0.0f);
+                    touches[i].updated = false;
+                    touches[i].moved = false;
+                    activeTouches--;
                     return;
                 }
             }
@@ -697,27 +697,27 @@ struct InputSystemImpl: public gainput::InputListener
 
     /// Maps the action mapping ID to the ActionMappingDesc
     /// C Array of stb_ds arrays
-    ActionMappingDesc*    mInputActionMappingIdToDesc[MAX_DEVICES] = { NULL };
+    ActionMappingDesc*    inputActionMappingIdToDesc[MAX_DEVICES] = { NULL };
     /// List of all input controls per device
     /// C Array of stb_ds arrays of stb_ds arrays of IControl*
-    IControl***           mControls[MAX_DEVICES] = {};
+    IControl***           controls[MAX_DEVICES] = {};
     /// This global action will be invoked everytime there is a text character typed on a physical / virtual keyboard
-    GlobalInputActionDesc mGlobalTextInputControl = { GlobalInputActionDesc::TEXT, NULL, NULL };
+    GlobalInputActionDesc globalTextInputControl = { GlobalInputActionDesc::TEXT, NULL, NULL };
     /// This global action will be invoked everytime there is a button action mapping triggered
-    GlobalInputActionDesc mGlobalAnyButtonAction = { GlobalInputActionDesc::ANY_BUTTON_ACTION, NULL, NULL };
+    GlobalInputActionDesc globalAnyButtonAction = { GlobalInputActionDesc::ANY_BUTTON_ACTION, NULL, NULL };
     /// List of controls which need to be canceled at the end of the frame
     /// stb_ds array of FloatControl*
-    FloatControlSet*      mFloatDeltaControlCancelQueue = NULL;
-    IControlSet*          mButtonControlPerformQueue = NULL;
+    FloatControlSet*      floatDeltaControlCancelQueue = NULL;
+    IControlSet*          buttonControlPerformQueue = NULL;
 
-    IControl** mControlPool[MAX_DEVICES] = { NULL };
+    IControl** controlPool[MAX_DEVICES] = { NULL };
 
 #if TOUCH_INPUT
-    GestureRecognizer mGestureRecognizer;
-    float2            mTouchPositions[gainput::TouchCount_ >> 2];
-    float             mTouchDownTime[gainput::TouchCount_ >> 2];
+    GestureRecognizer gestureRecognizer;
+    float2            touchPositions[gainput::TouchCount_ >> 2];
+    float             touchDownTime[gainput::TouchCount_ >> 2];
 #else
-    float2 mMousePosition;
+    float2 mousePosition;
 #endif
 
     /// Window pointer passed by the app
@@ -732,16 +732,16 @@ struct InputSystemImpl: public gainput::InputListener
 
     InputDeviceType   pDeviceTypes[4 + MAX_INPUT_GAMEPADS] = {};
     gainput::DeviceId pGamepadDeviceIDs[MAX_INPUT_GAMEPADS] = {};
-    gainput::DeviceId mMouseDeviceID = {};
-    gainput::DeviceId mRawMouseDeviceID = {};
-    gainput::DeviceId mKeyboardDeviceID = {};
-    gainput::DeviceId mTouchDeviceID = {};
+    gainput::DeviceId mouseDeviceID = {};
+    gainput::DeviceId rawMouseDeviceID = {};
+    gainput::DeviceId keyboardDeviceID = {};
+    gainput::DeviceId touchDeviceID = {};
 
-    void (*mOnDeviceChangeCallBack)(const char* name, bool added, int) = NULL;
+    void (*onDeviceChangeCallBack)(const char* name, bool added, int) = NULL;
 
-    bool mVirtualKeyboardActive = false;
-    bool mInputCaptured = false;
-    bool mDefaultCapture = false;
+    bool virtualKeyboardActive = false;
+    bool inputCaptured = false;
+    bool defaultCapture = false;
 
     // **********************************************
     // ***** Functions
@@ -757,21 +757,21 @@ struct InputSystemImpl: public gainput::InputListener
 #endif
 
 #if TOUCH_INPUT
-        memset(mTouchDownTime, 0, sizeof(mTouchDownTime));
+        memset(touchDownTime, 0, sizeof(touchDownTime));
 #endif
 
         // Defaults
-        mVirtualKeyboardActive = false;
-        mDefaultCapture = true;
-        mInputCaptured = false;
+        virtualKeyboardActive = false;
+        defaultCapture = true;
+        inputCaptured = false;
 
         // Default device ids
-        mMouseDeviceID = gainput::InvalidDeviceId;
-        mRawMouseDeviceID = gainput::InvalidDeviceId;
-        mKeyboardDeviceID = gainput::InvalidDeviceId;
+        mouseDeviceID = gainput::InvalidDeviceId;
+        rawMouseDeviceID = gainput::InvalidDeviceId;
+        keyboardDeviceID = gainput::InvalidDeviceId;
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
             pGamepadDeviceIDs[i] = gainput::InvalidDeviceId;
-        mTouchDeviceID = gainput::InvalidDeviceId;
+        touchDeviceID = gainput::InvalidDeviceId;
 
         for (uint32_t i = 0; i < (sizeof pDeviceTypes / sizeof *pDeviceTypes); ++i)
             pDeviceTypes[i] = INPUT_DEVICE_INVALID;
@@ -789,70 +789,70 @@ struct InputSystemImpl: public gainput::InputListener
 #endif
 
 #ifdef TOUCH_INPUT
-        for (uint32_t i = 0; i < TF_ARRAY_COUNT(mGestureRecognizer.mTouches); ++i)
+        for (uint32_t i = 0; i < TF_ARRAY_COUNT(gestureRecognizer.touches); ++i)
         {
-            mGestureRecognizer.mTouches[i].mID = -1;
-            mGestureRecognizer.mTouches[i].mTime = 0.0f;
-            mGestureRecognizer.mTouches[i].mDistTraveled = vec2(0.0f);
-            mGestureRecognizer.mTouches[i].mUpdated = false;
-            mGestureRecognizer.mTouches[i].mMoved = false;
-            mGestureRecognizer.mTouches[i].mState = GestureRecognizer::Touch::ENDED;
-            mGestureRecognizer.mPerformingGesturesCount[i] = 0;
+            gestureRecognizer.touches[i].id = -1;
+            gestureRecognizer.touches[i].time = 0.0f;
+            gestureRecognizer.touches[i].distTraveled = vec2(0.0f);
+            gestureRecognizer.touches[i].updated = false;
+            gestureRecognizer.touches[i].moved = false;
+            gestureRecognizer.touches[i].state = GestureRecognizer::Touch::ENDED;
+            gestureRecognizer.performingGesturesCount[i] = 0;
         }
 
-        mGestureRecognizer.mLastTapPos = vec2(FLT_MAX);
-        mGestureRecognizer.mLastTapTime = FLT_MAX;
-        mGestureRecognizer.mLongPressTouch = nullptr;
+        gestureRecognizer.lastTapPos = vec2(FLT_MAX);
+        gestureRecognizer.lastTapTime = FLT_MAX;
+        gestureRecognizer.longPressTouch = nullptr;
 
-        mGestureRecognizer.mActiveTouches = 0;
-        mGestureRecognizer.mDoubleTapTimeThreshold = 0.5f;
-        mGestureRecognizer.mSwipeDistThreshold = 500.0f;
-        mGestureRecognizer.mSwipeVelocityThreshold = 1000.0f;
-        mGestureRecognizer.mLongPressTimeThreshold = 1.5f;
-        mGestureRecognizer.mMovedDistThreshold = 100.0f;
+        gestureRecognizer.activeTouches = 0;
+        gestureRecognizer.doubleTapTimeThreshold = 0.5f;
+        gestureRecognizer.swipeDistThreshold = 500.0f;
+        gestureRecognizer.swipeVelocityThreshold = 1000.0f;
+        gestureRecognizer.longPressTimeThreshold = 1.5f;
+        gestureRecognizer.movedDistThreshold = 100.0f;
 #endif
 
         // Used to intercept controllers connecting
         pInputManager->SetDeviceListener(this, DeviceChange);
         // create all necessary devices
-        mMouseDeviceID = pInputManager->CreateDevice<gainput::InputDeviceMouse>();
-        mRawMouseDeviceID =
+        mouseDeviceID = pInputManager->CreateDevice<gainput::InputDeviceMouse>();
+        rawMouseDeviceID =
             pInputManager->CreateDevice<gainput::InputDeviceMouse>(gainput::InputDevice::AutoIndex, gainput::InputDeviceMouse::DV_RAW);
-        mKeyboardDeviceID = pInputManager->CreateDevice<gainput::InputDeviceKeyboard>();
-        mTouchDeviceID = pInputManager->CreateDevice<gainput::InputDeviceTouch>();
+        keyboardDeviceID = pInputManager->CreateDevice<gainput::InputDeviceKeyboard>();
+        touchDeviceID = pInputManager->CreateDevice<gainput::InputDeviceTouch>();
         pInputManager->CreateControllers(MAX_INPUT_GAMEPADS);
 
         // Assign device types
-        pDeviceTypes[mMouseDeviceID] = InputDeviceType::INPUT_DEVICE_MOUSE;
-        pDeviceTypes[mRawMouseDeviceID] = InputDeviceType::INPUT_DEVICE_MOUSE;
-        pDeviceTypes[mKeyboardDeviceID] = InputDeviceType::INPUT_DEVICE_KEYBOARD;
-        pDeviceTypes[mTouchDeviceID] = InputDeviceType::INPUT_DEVICE_TOUCH;
+        pDeviceTypes[mouseDeviceID] = InputDeviceType::INPUT_DEVICE_MOUSE;
+        pDeviceTypes[rawMouseDeviceID] = InputDeviceType::INPUT_DEVICE_MOUSE;
+        pDeviceTypes[keyboardDeviceID] = InputDeviceType::INPUT_DEVICE_KEYBOARD;
+        pDeviceTypes[touchDeviceID] = InputDeviceType::INPUT_DEVICE_TOUCH;
 
         // Create control maps
-        arrsetlen(mControls[mKeyboardDeviceID], gainput::KeyCount_);
-        memset(mControls[mKeyboardDeviceID], 0, sizeof(mControls[mKeyboardDeviceID][0]) * gainput::KeyCount_);
-        arrsetlen(mControls[mMouseDeviceID], gainput::MouseButtonCount_);
-        memset(mControls[mMouseDeviceID], 0, sizeof(mControls[mMouseDeviceID][0]) * gainput::MouseButtonCount_);
-        arrsetlen(mControls[mRawMouseDeviceID], gainput::MouseButtonCount_);
-        memset(mControls[mRawMouseDeviceID], 0, sizeof(mControls[mRawMouseDeviceID][0]) * gainput::MouseButtonCount_);
-        arrsetlen(mControls[mTouchDeviceID], gainput::TouchCount_);
-        memset(mControls[mTouchDeviceID], 0, sizeof(mControls[mTouchDeviceID][0]) * gainput::TouchCount_);
+        arrsetlen(controls[keyboardDeviceID], gainput::KeyCount_);
+        memset(controls[keyboardDeviceID], 0, sizeof(controls[keyboardDeviceID][0]) * gainput::KeyCount_);
+        arrsetlen(controls[mouseDeviceID], gainput::MouseButtonCount_);
+        memset(controls[mouseDeviceID], 0, sizeof(controls[mouseDeviceID][0]) * gainput::MouseButtonCount_);
+        arrsetlen(controls[rawMouseDeviceID], gainput::MouseButtonCount_);
+        memset(controls[rawMouseDeviceID], 0, sizeof(controls[rawMouseDeviceID][0]) * gainput::MouseButtonCount_);
+        arrsetlen(controls[touchDeviceID], gainput::TouchCount_);
+        memset(controls[touchDeviceID], 0, sizeof(controls[touchDeviceID][0]) * gainput::TouchCount_);
 
         // Action mappings
-        arrsetlen(mInputActionMappingIdToDesc[mMouseDeviceID], MAX_INPUT_ACTIONS);
-        arrsetlen(mInputActionMappingIdToDesc[mRawMouseDeviceID], MAX_INPUT_ACTIONS);
-        arrsetlen(mInputActionMappingIdToDesc[mKeyboardDeviceID], MAX_INPUT_ACTIONS);
-        arrsetlen(mInputActionMappingIdToDesc[mTouchDeviceID], MAX_INPUT_ACTIONS);
+        arrsetlen(inputActionMappingIdToDesc[mouseDeviceID], MAX_INPUT_ACTIONS);
+        arrsetlen(inputActionMappingIdToDesc[rawMouseDeviceID], MAX_INPUT_ACTIONS);
+        arrsetlen(inputActionMappingIdToDesc[keyboardDeviceID], MAX_INPUT_ACTIONS);
+        arrsetlen(inputActionMappingIdToDesc[touchDeviceID], MAX_INPUT_ACTIONS);
 
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
         {
             unsigned index = DEV_PAD_START + i;
 
             pDeviceTypes[index] = InputDeviceType::INPUT_DEVICE_GAMEPAD;
-            arrsetlen(mControls[index], gainput::PadButtonMax_);
-            memset(mControls[index], 0, sizeof(mControls[index][0]) * gainput::PadButtonMax_);
+            arrsetlen(controls[index], gainput::PadButtonMax_);
+            memset(controls[index], 0, sizeof(controls[index][0]) * gainput::PadButtonMax_);
 
-            arrsetlen(mInputActionMappingIdToDesc[index], MAX_INPUT_ACTIONS);
+            arrsetlen(inputActionMappingIdToDesc[index], MAX_INPUT_ACTIONS);
         }
 
         // Clear all mappings
@@ -875,19 +875,19 @@ struct InputSystemImpl: public gainput::InputListener
 
         for (uint32_t i = 0; i < MAX_DEVICES; ++i)
         {
-            arrfree(mInputActionMappingIdToDesc[i]);
+            arrfree(inputActionMappingIdToDesc[i]);
 
-            for (ptrdiff_t j = 0; j < arrlen(mControls[i]); ++j)
-                arrfree(mControls[i][j]);
-            arrfree(mControls[i]);
+            for (ptrdiff_t j = 0; j < arrlen(controls[i]); ++j)
+                arrfree(controls[i][j]);
+            arrfree(controls[i]);
 
-            for (ptrdiff_t j = 0; j < arrlen(mControlPool[i]); ++j)
-                tf_free(mControlPool[i][j]);
-            arrfree(mControlPool[i]);
+            for (ptrdiff_t j = 0; j < arrlen(controlPool[i]); ++j)
+                tf_free(controlPool[i][j]);
+            arrfree(controlPool[i]);
         }
 
-        hmfree(mButtonControlPerformQueue);
-        hmfree(mFloatDeltaControlCancelQueue);
+        hmfree(buttonControlPerformQueue);
+        hmfree(floatDeltaControlCancelQueue);
     }
 
     // ----- Runtime
@@ -898,134 +898,134 @@ struct InputSystemImpl: public gainput::InputListener
 
 #ifdef TOUCH_INPUT
         // Long press gesture can only be triggered in Update()
-        for (uint32_t i = 0; i < arrlen(mControls[mTouchDeviceID][gainput::Touch0Down]); ++i)
+        for (uint32_t i = 0; i < arrlen(controls[touchDeviceID][gainput::Touch0Down]); ++i)
         {
-            IControl* control = mControls[mTouchDeviceID][gainput::Touch0Down][i];
+            IControl* control = controls[touchDeviceID][gainput::Touch0Down][i];
 
-            if (control->mType != CONTROL_GESTURE)
+            if (control->type != CONTROL_GESTURE)
                 continue;
 
             GestureControl* pControl = (GestureControl*)control;
 
-            if (pControl->mGestureType != TOUCH_GESTURE_LONG_PRESS)
+            if (pControl->gestureType != TOUCH_GESTURE_LONG_PRESS)
                 continue;
 
-            if (mGestureRecognizer.mLongPressTouch && !mGestureRecognizer.mLongPressTouch->mMoved &&
-                mGestureRecognizer.mLongPressTouch->mTime > mGestureRecognizer.mLongPressTimeThreshold &&
-                mGestureRecognizer.mLongPressTouch->mState == GestureRecognizer::Touch::STARTED)
+            if (gestureRecognizer.longPressTouch && !gestureRecognizer.longPressTouch->moved &&
+                gestureRecognizer.longPressTouch->time > gestureRecognizer.longPressTimeThreshold &&
+                gestureRecognizer.longPressTouch->state == GestureRecognizer::Touch::STARTED)
             {
-                if (pControl->mAction.pFunction)
+                if (pControl->action.pFunction)
                 {
                     InputActionContext ctx = {};
-                    ctx.mActionId = pControl->mAction.mActionId;
-                    ctx.pUserData = pControl->mAction.pUserData;
-                    ctx.mDeviceType = pDeviceTypes[mTouchDeviceID];
-                    ctx.pPosition = (float2*)&mGestureRecognizer.mLongPressTouch->mPos;
+                    ctx.actionId = pControl->action.actionId;
+                    ctx.pUserData = pControl->action.pUserData;
+                    ctx.deviceType = pDeviceTypes[touchDeviceID];
+                    ctx.pPosition = (float2*)&gestureRecognizer.longPressTouch->pos;
 
                     for (uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i)
-                        ctx.mFingerIndices[i] = mGestureRecognizer.mTouches[i].mID;
+                        ctx.fingerIndices[i] = gestureRecognizer.touches[i].id;
 
-                    ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-                    ctx.mBool = true;
-                    ctx.pCaptured = &mDefaultCapture;
+                    ctx.phase = INPUT_ACTION_PHASE_STARTED;
+                    ctx.boolValue = true;
+                    ctx.pCaptured = &defaultCapture;
 
-                    pControl->mAction.pFunction(&ctx);
+                    pControl->action.pFunction(&ctx);
                 }
             }
         }
 
-        for (uint32_t i = 0; i < TF_ARRAY_COUNT(mGestureRecognizer.mTouches); ++i)
+        for (uint32_t i = 0; i < TF_ARRAY_COUNT(gestureRecognizer.touches); ++i)
         {
-            mGestureRecognizer.mTouches[i].mUpdated = false;
+            gestureRecognizer.touches[i].updated = false;
 
-            if (mGestureRecognizer.mTouches[i].mID == -1)
+            if (gestureRecognizer.touches[i].id == -1)
                 continue;
 
-            if (mGestureRecognizer.mTouches[i].mState == GestureRecognizer::Touch::ENDED)
+            if (gestureRecognizer.touches[i].state == GestureRecognizer::Touch::ENDED)
             {
-                if (mGestureRecognizer.mPerformingGesturesCount[i] > 0)
+                if (gestureRecognizer.performingGesturesCount[i] > 0)
                     continue;
 
-                mGestureRecognizer.mLastTapPos = mGestureRecognizer.mTouches[i].mPos;
-                mGestureRecognizer.mLastTapTime = mGestureRecognizer.mTouches[i].mTime;
+                gestureRecognizer.lastTapPos = gestureRecognizer.touches[i].pos;
+                gestureRecognizer.lastTapTime = gestureRecognizer.touches[i].time;
 
-                mGestureRecognizer.ReleaseTouch(mGestureRecognizer.mTouches[i].mID);
+                gestureRecognizer.ReleaseTouch(gestureRecognizer.touches[i].id);
                 continue;
             }
 
-            if (mGestureRecognizer.mTouches[i].mTime > mGestureRecognizer.mLongPressTimeThreshold)
+            if (gestureRecognizer.touches[i].time > gestureRecognizer.longPressTimeThreshold)
             {
-                mGestureRecognizer.mTouches[i].mState = GestureRecognizer::Touch::HOLDING;
+                gestureRecognizer.touches[i].state = GestureRecognizer::Touch::HOLDING;
             }
 
-            if (!mGestureRecognizer.mTouches[i].mMoved &&
-                length(mGestureRecognizer.mTouches[i].mDistTraveled) > mGestureRecognizer.mMovedDistThreshold)
+            if (!gestureRecognizer.touches[i].moved &&
+                length(gestureRecognizer.touches[i].distTraveled) > gestureRecognizer.movedDistThreshold)
             {
-                mGestureRecognizer.mTouches[i].mMoved = true;
+                gestureRecognizer.touches[i].moved = true;
             }
 
-            mGestureRecognizer.mTouches[i].mTime += deltaTime;
+            gestureRecognizer.touches[i].time += deltaTime;
         }
 
-        mGestureRecognizer.mLastTapTime += deltaTime;
+        gestureRecognizer.lastTapTime += deltaTime;
 #endif
 
-        for (ptrdiff_t i = 0; i < hmlen(mFloatDeltaControlCancelQueue); ++i)
+        for (ptrdiff_t i = 0; i < hmlen(floatDeltaControlCancelQueue); ++i)
         {
-            FloatControl* pControl = mFloatDeltaControlCancelQueue[i].key;
-            pControl->mStarted = 0;
-            pControl->mPerformed = 0;
-            pControl->mValue = float3(0.0f);
+            FloatControl* pControl = floatDeltaControlCancelQueue[i].key;
+            pControl->started = 0;
+            pControl->performed = 0;
+            pControl->value = float3(0.0f);
 
             InputActionContext ctx = {};
-            ctx.pUserData = pControl->mAction.pUserData;
-            ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-            ctx.pCaptured = &mDefaultCapture;
-            ctx.mActionId = pControl->mAction.mActionId;
+            ctx.pUserData = pControl->action.pUserData;
+            ctx.phase = INPUT_ACTION_PHASE_CANCELED;
+            ctx.pCaptured = &defaultCapture;
+            ctx.actionId = pControl->action.actionId;
 #if TOUCH_INPUT
-            ctx.mDeviceType = INPUT_DEVICE_TOUCH;
-            ctx.pPosition = &mTouchPositions[pControl->mAction.mUserId];
+            ctx.deviceType = INPUT_DEVICE_TOUCH;
+            ctx.pPosition = &touchPositions[pControl->action.userId];
 #else
-            ctx.mDeviceType = INPUT_DEVICE_MOUSE;
-            ctx.pPosition = &mMousePosition;
+            ctx.deviceType = INPUT_DEVICE_MOUSE;
+            ctx.pPosition = &mousePosition;
 #endif
-            if (pControl->mAction.pFunction)
-                pControl->mAction.pFunction(&ctx);
+            if (pControl->action.pFunction)
+                pControl->action.pFunction(&ctx);
 
-            if (mGlobalAnyButtonAction.pFunction)
+            if (globalAnyButtonAction.pFunction)
             {
-                ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                mGlobalAnyButtonAction.pFunction(&ctx);
+                ctx.pUserData = globalAnyButtonAction.pUserData;
+                globalAnyButtonAction.pFunction(&ctx);
             }
         }
 
 #if TOUCH_INPUT
-        for (ptrdiff_t i = 0; i < hmlen(mButtonControlPerformQueue); ++i)
+        for (ptrdiff_t i = 0; i < hmlen(buttonControlPerformQueue); ++i)
         {
-            IControl*          pControl = mButtonControlPerformQueue[i].key;
+            IControl*          pControl = buttonControlPerformQueue[i].key;
             InputActionContext ctx = {};
-            ctx.pUserData = pControl->mAction.pUserData;
-            ctx.mDeviceType = INPUT_DEVICE_TOUCH;
-            ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-            ctx.pCaptured = &mDefaultCapture;
-            ctx.mActionId = pControl->mAction.mActionId;
-            ctx.pPosition = &mTouchPositions[pControl->mAction.mUserId];
-            ctx.mBool = true;
+            ctx.pUserData = pControl->action.pUserData;
+            ctx.deviceType = INPUT_DEVICE_TOUCH;
+            ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+            ctx.pCaptured = &defaultCapture;
+            ctx.actionId = pControl->action.actionId;
+            ctx.pPosition = &touchPositions[pControl->action.userId];
+            ctx.boolValue = true;
 
-            if (pControl->mAction.pFunction)
-                pControl->mAction.pFunction(&ctx);
+            if (pControl->action.pFunction)
+                pControl->action.pFunction(&ctx);
 
-            if (mGlobalAnyButtonAction.pFunction)
+            if (globalAnyButtonAction.pFunction)
             {
-                ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                mGlobalAnyButtonAction.pFunction(&ctx);
+                ctx.pUserData = globalAnyButtonAction.pUserData;
+                globalAnyButtonAction.pFunction(&ctx);
             }
         }
 #endif
-        hmfree(mButtonControlPerformQueue);
-        hmfree(mFloatDeltaControlCancelQueue);
+        hmfree(buttonControlPerformQueue);
+        hmfree(floatDeltaControlCancelQueue);
 
-        gainput::InputDeviceKeyboard* keyboard = (gainput::InputDeviceKeyboard*)pInputManager->GetDevice(mKeyboardDeviceID);
+        gainput::InputDeviceKeyboard* keyboard = (gainput::InputDeviceKeyboard*)pInputManager->GetDevice(keyboardDeviceID);
         if (keyboard)
         {
             uint32_t count = 0;
@@ -1034,12 +1034,12 @@ struct InputSystemImpl: public gainput::InputListener
             {
                 InputActionContext ctx = {};
                 ctx.pText = pText;
-                ctx.mDeviceType = INPUT_DEVICE_KEYBOARD;
-                ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-                ctx.pUserData = mGlobalTextInputControl.pUserData;
-                if (mGlobalTextInputControl.pFunction)
+                ctx.deviceType = INPUT_DEVICE_KEYBOARD;
+                ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+                ctx.pUserData = globalTextInputControl.pUserData;
+                if (globalTextInputControl.pFunction)
                 {
-                    mGlobalTextInputControl.pFunction(&ctx);
+                    globalTextInputControl.pFunction(&ctx);
                 }
             }
         }
@@ -1051,7 +1051,7 @@ struct InputSystemImpl: public gainput::InputListener
 #if defined(__linux__) && !defined(__ANDROID__) && !defined(GAINPUT_PLATFORM_GGP)
         // this needs to be done before updating the events
         // that way current frame data will be delta after resetting mouse position
-        if (mInputCaptured)
+        if (inputCaptured)
         {
             ASSERT(pWindow);
 
@@ -1060,7 +1060,7 @@ struct InputSystemImpl: public gainput::InputListener
             x = (pWindow->windowedRect.right - pWindow->windowedRect.left) / 2;
             y = (pWindow->windowedRect.bottom - pWindow->windowedRect.top) / 2;
             XWarpPointer(pWindow->handle.display, None, pWindow->handle.window, 0, 0, 0, 0, x, y);
-            gainput::InputDevice* device = pInputManager->GetDevice(mRawMouseDeviceID);
+            gainput::InputDevice* device = pInputManager->GetDevice(rawMouseDeviceID);
             device->WarpMouse(x, y);
             XFlush(pWindow->handle.display);
         }
@@ -1073,7 +1073,7 @@ struct InputSystemImpl: public gainput::InputListener
     T* AllocateControl(const gainput::DeviceId deviceId)
     {
         T* pControl = (T*)tf_calloc(1, sizeof(T));
-        arrpush(mControlPool[deviceId], pControl);
+        arrpush(controlPool[deviceId], pControl);
         return pControl;
     }
 
@@ -1081,41 +1081,41 @@ struct InputSystemImpl: public gainput::InputListener
     {
         InputActionDesc action = *pActionDesc;
 
-        switch (pActionMappingDesc->mActionMappingDeviceTarget)
+        switch (pActionMappingDesc->actionMappingDeviceTarget)
         {
         case INPUT_ACTION_MAPPING_TARGET_CONTROLLER:
         {
-            const unsigned index = DEV_PAD_START + pActionMappingDesc->mUserId;
+            const unsigned index = DEV_PAD_START + pActionMappingDesc->userId;
 
-            switch (pActionMappingDesc->mActionMappingType)
+            switch (pActionMappingDesc->actionMappingType)
             {
             case INPUT_ACTION_MAPPING_NORMAL:
             {
-                if (pActionMappingDesc->mDeviceButtons[0] >= GAMEPAD_BUTTON_START)
+                if (pActionMappingDesc->deviceButtons[0] >= GAMEPAD_BUTTON_START)
                 {
                     IControl* pControl = AllocateControl<IControl>(index);
                     ASSERT(pControl);
 
-                    pControl->mType = CONTROL_BUTTON;
-                    pControl->mAction = action;
-                    arrpush(mControls[index][pActionMappingDesc->mDeviceButtons[0]], pControl);
+                    pControl->type = CONTROL_BUTTON;
+                    pControl->action = action;
+                    arrpush(controls[index][pActionMappingDesc->deviceButtons[0]], pControl);
                 }
                 else // it's an axis
                 {
                     // Ensure # axis is correct
-                    ASSERT(pActionMappingDesc->mNumAxis == 1 || pActionMappingDesc->mNumAxis == 2);
+                    ASSERT(pActionMappingDesc->numAxis == 1 || pActionMappingDesc->numAxis == 2);
 
                     AxisControl* pControl = AllocateControl<AxisControl>(index);
                     ASSERT(pControl);
 
                     memset((void*)pControl, 0, sizeof(*pControl));
-                    pControl->mType = CONTROL_AXIS;
-                    pControl->mAction = action;
-                    pControl->mStartButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
-                    pControl->mAxisCount = pActionMappingDesc->mNumAxis;
-                    pControl->mTarget = (pControl->mAxisCount == 2 ? (1 << 1) | 1 : 1);
-                    for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
-                        arrpush(mControls[index][pControl->mStartButton + i], pControl);
+                    pControl->type = CONTROL_AXIS;
+                    pControl->action = action;
+                    pControl->startButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
+                    pControl->axisCount = pActionMappingDesc->numAxis;
+                    pControl->target = (pControl->axisCount == 2 ? (1 << 1) | 1 : 1);
+                    for (uint32_t i = 0; i < pControl->axisCount; ++i)
+                        arrpush(controls[index][pControl->startButton + i], pControl);
                 }
 
                 break;
@@ -1126,15 +1126,15 @@ struct InputSystemImpl: public gainput::InputListener
                 ASSERT(pControl);
 
                 memset((void*)pControl, 0, sizeof(*pControl));
-                pControl->mComposite = pActionMappingDesc->mCompositeUseSingleAxis ? 2 : 4;
-                pControl->mControls[0] = pActionMappingDesc->mDeviceButtons[0];
-                pControl->mControls[1] = pActionMappingDesc->mDeviceButtons[1];
-                pControl->mControls[2] = pActionMappingDesc->mDeviceButtons[2];
-                pControl->mControls[3] = pActionMappingDesc->mDeviceButtons[3];
-                pControl->mType = CONTROL_COMPOSITE;
-                pControl->mAction = action;
-                for (uint32_t i = 0; i < pControl->mComposite; ++i)
-                    arrpush(mControls[index][pControl->mControls[i]], pControl);
+                pControl->composite = pActionMappingDesc->compositeUseSingleAxis ? 2 : 4;
+                pControl->controls[0] = pActionMappingDesc->deviceButtons[0];
+                pControl->controls[1] = pActionMappingDesc->deviceButtons[1];
+                pControl->controls[2] = pActionMappingDesc->deviceButtons[2];
+                pControl->controls[3] = pActionMappingDesc->deviceButtons[3];
+                pControl->type = CONTROL_COMPOSITE;
+                pControl->action = action;
+                for (uint32_t i = 0; i < pControl->composite; ++i)
+                    arrpush(controls[index][pControl->controls[i]], pControl);
 
                 break;
             }
@@ -1143,12 +1143,12 @@ struct InputSystemImpl: public gainput::InputListener
                 ComboControl* pControl = AllocateControl<ComboControl>(index);
                 ASSERT(pControl);
 
-                pControl->mType = CONTROL_COMBO;
-                pControl->mAction = action;
-                pControl->mPressButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
-                pControl->mTriggerButton = (uint16_t)pActionMappingDesc->mDeviceButtons[1];
-                arrpush(mControls[index][pActionMappingDesc->mDeviceButtons[0]], pControl);
-                arrpush(mControls[index][pActionMappingDesc->mDeviceButtons[1]], pControl);
+                pControl->type = CONTROL_COMBO;
+                pControl->action = action;
+                pControl->pressButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
+                pControl->triggerButton = (uint16_t)pActionMappingDesc->deviceButtons[1];
+                arrpush(controls[index][pActionMappingDesc->deviceButtons[0]], pControl);
+                arrpush(controls[index][pActionMappingDesc->deviceButtons[1]], pControl);
                 break;
             }
             default:
@@ -1158,49 +1158,49 @@ struct InputSystemImpl: public gainput::InputListener
         }
         case INPUT_ACTION_MAPPING_TARGET_KEYBOARD:
         {
-            switch (pActionMappingDesc->mActionMappingType)
+            switch (pActionMappingDesc->actionMappingType)
             {
             case INPUT_ACTION_MAPPING_NORMAL:
             {
                 // No axis available for keyboard
-                IControl* pControl = AllocateControl<IControl>(mKeyboardDeviceID);
+                IControl* pControl = AllocateControl<IControl>(keyboardDeviceID);
                 ASSERT(pControl);
 
-                pControl->mType = CONTROL_BUTTON;
-                pControl->mAction = action;
-                arrpush(mControls[mKeyboardDeviceID][pActionMappingDesc->mDeviceButtons[0]], pControl);
+                pControl->type = CONTROL_BUTTON;
+                pControl->action = action;
+                arrpush(controls[keyboardDeviceID][pActionMappingDesc->deviceButtons[0]], pControl);
 
                 break;
             }
             case INPUT_ACTION_MAPPING_COMPOSITE:
             {
-                CompositeControl* pControl = AllocateControl<CompositeControl>(mKeyboardDeviceID);
+                CompositeControl* pControl = AllocateControl<CompositeControl>(keyboardDeviceID);
                 ASSERT(pControl);
 
                 memset((void*)pControl, 0, sizeof(*pControl));
-                pControl->mComposite = pActionMappingDesc->mCompositeUseSingleAxis ? 2 : 4;
-                pControl->mControls[0] = pActionMappingDesc->mDeviceButtons[0];
-                pControl->mControls[1] = pActionMappingDesc->mDeviceButtons[1];
-                pControl->mControls[2] = pActionMappingDesc->mDeviceButtons[2];
-                pControl->mControls[3] = pActionMappingDesc->mDeviceButtons[3];
-                pControl->mType = CONTROL_COMPOSITE;
-                pControl->mAction = action;
-                for (uint32_t i = 0; i < pControl->mComposite; ++i)
-                    arrpush(mControls[mKeyboardDeviceID][pControl->mControls[i]], pControl);
+                pControl->composite = pActionMappingDesc->compositeUseSingleAxis ? 2 : 4;
+                pControl->controls[0] = pActionMappingDesc->deviceButtons[0];
+                pControl->controls[1] = pActionMappingDesc->deviceButtons[1];
+                pControl->controls[2] = pActionMappingDesc->deviceButtons[2];
+                pControl->controls[3] = pActionMappingDesc->deviceButtons[3];
+                pControl->type = CONTROL_COMPOSITE;
+                pControl->action = action;
+                for (uint32_t i = 0; i < pControl->composite; ++i)
+                    arrpush(controls[keyboardDeviceID][pControl->controls[i]], pControl);
 
                 break;
             }
             case INPUT_ACTION_MAPPING_COMBO:
             {
-                ComboControl* pControl = AllocateControl<ComboControl>(mKeyboardDeviceID);
+                ComboControl* pControl = AllocateControl<ComboControl>(keyboardDeviceID);
                 ASSERT(pControl);
 
-                pControl->mType = CONTROL_COMBO;
-                pControl->mAction = action;
-                pControl->mPressButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
-                pControl->mTriggerButton = (uint16_t)pActionMappingDesc->mDeviceButtons[1];
-                arrpush(mControls[mKeyboardDeviceID][pActionMappingDesc->mDeviceButtons[0]], pControl);
-                arrpush(mControls[mKeyboardDeviceID][pActionMappingDesc->mDeviceButtons[1]], pControl);
+                pControl->type = CONTROL_COMBO;
+                pControl->action = action;
+                pControl->pressButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
+                pControl->triggerButton = (uint16_t)pActionMappingDesc->deviceButtons[1];
+                arrpush(controls[keyboardDeviceID][pActionMappingDesc->deviceButtons[0]], pControl);
+                arrpush(controls[keyboardDeviceID][pActionMappingDesc->deviceButtons[1]], pControl);
                 break;
             }
             default:
@@ -1210,74 +1210,74 @@ struct InputSystemImpl: public gainput::InputListener
         }
         case INPUT_ACTION_MAPPING_TARGET_MOUSE:
         {
-            switch (pActionMappingDesc->mActionMappingType)
+            switch (pActionMappingDesc->actionMappingType)
             {
             case INPUT_ACTION_MAPPING_NORMAL:
             {
-                if (pActionMappingDesc->mDeviceButtons[0] < MOUSE_BUTTON_COUNT)
+                if (pActionMappingDesc->deviceButtons[0] < MOUSE_BUTTON_COUNT)
                 {
                     // No axis available for keyboard
-                    IControl* pControl = AllocateControl<IControl>(mMouseDeviceID);
+                    IControl* pControl = AllocateControl<IControl>(mouseDeviceID);
                     ASSERT(pControl);
 
-                    pControl->mType = CONTROL_BUTTON;
-                    pControl->mAction = action;
-                    arrpush(mControls[mMouseDeviceID][pActionMappingDesc->mDeviceButtons[0]], pControl);
+                    pControl->type = CONTROL_BUTTON;
+                    pControl->action = action;
+                    arrpush(controls[mouseDeviceID][pActionMappingDesc->deviceButtons[0]], pControl);
                 }
                 else // it's an axis
                 {
                     // Ensure # axis is correct
-                    ASSERT(pActionMappingDesc->mNumAxis == 1 || pActionMappingDesc->mNumAxis == 2);
+                    ASSERT(pActionMappingDesc->numAxis == 1 || pActionMappingDesc->numAxis == 2);
 
-                    FloatControl* pControl = AllocateControl<FloatControl>(mMouseDeviceID);
+                    FloatControl* pControl = AllocateControl<FloatControl>(mouseDeviceID);
                     ASSERT(pControl);
 
                     memset((void*)pControl, 0, sizeof(*pControl));
-                    pControl->mType = CONTROL_FLOAT;
-                    pControl->mStartButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
-                    pControl->mTarget = (pActionMappingDesc->mNumAxis == 2 ? (1 << 1) | 1 : 1);
-                    pControl->mDelta = pActionMappingDesc->mDelta ? (1 << 1) | 1 : 0;
-                    pControl->mAction = action;
-                    pControl->mScale = pActionMappingDesc->mScale;
-                    pControl->mScaleByDT = pActionMappingDesc->mScaleByDT;
+                    pControl->type = CONTROL_FLOAT;
+                    pControl->startButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
+                    pControl->target = (pActionMappingDesc->numAxis == 2 ? (1 << 1) | 1 : 1);
+                    pControl->delta = pActionMappingDesc->delta ? (1 << 1) | 1 : 0;
+                    pControl->action = action;
+                    pControl->scale = pActionMappingDesc->scale;
+                    pControl->scaleByDT = pActionMappingDesc->scaleByDT;
 
-                    const gainput::DeviceId deviceId = mRawMouseDeviceID; // always use raw mouse for float axis
+                    const gainput::DeviceId deviceId = rawMouseDeviceID; // always use raw mouse for float axis
 
-                    for (uint32_t i = 0; i < pActionMappingDesc->mNumAxis; ++i)
-                        arrpush(mControls[deviceId][pControl->mStartButton + i], pControl);
+                    for (uint32_t i = 0; i < pActionMappingDesc->numAxis; ++i)
+                        arrpush(controls[deviceId][pControl->startButton + i], pControl);
                 }
 
                 break;
             }
             case INPUT_ACTION_MAPPING_COMPOSITE:
             {
-                CompositeControl* pControl = AllocateControl<CompositeControl>(mMouseDeviceID);
+                CompositeControl* pControl = AllocateControl<CompositeControl>(mouseDeviceID);
                 ASSERT(pControl);
 
                 memset((void*)pControl, 0, sizeof(*pControl));
-                pControl->mComposite = 4;
-                pControl->mControls[0] = pActionMappingDesc->mDeviceButtons[0];
-                pControl->mControls[1] = pActionMappingDesc->mDeviceButtons[1];
-                pControl->mControls[2] = pActionMappingDesc->mDeviceButtons[2];
-                pControl->mControls[3] = pActionMappingDesc->mDeviceButtons[3];
-                pControl->mType = CONTROL_COMPOSITE;
-                pControl->mAction = action;
-                for (uint32_t i = 0; i < pControl->mComposite; ++i)
-                    arrpush(mControls[mMouseDeviceID][pControl->mControls[i]], pControl);
+                pControl->composite = 4;
+                pControl->controls[0] = pActionMappingDesc->deviceButtons[0];
+                pControl->controls[1] = pActionMappingDesc->deviceButtons[1];
+                pControl->controls[2] = pActionMappingDesc->deviceButtons[2];
+                pControl->controls[3] = pActionMappingDesc->deviceButtons[3];
+                pControl->type = CONTROL_COMPOSITE;
+                pControl->action = action;
+                for (uint32_t i = 0; i < pControl->composite; ++i)
+                    arrpush(controls[mouseDeviceID][pControl->controls[i]], pControl);
 
                 break;
             }
             case INPUT_ACTION_MAPPING_COMBO:
             {
-                ComboControl* pControl = AllocateControl<ComboControl>(mMouseDeviceID);
+                ComboControl* pControl = AllocateControl<ComboControl>(mouseDeviceID);
                 ASSERT(pControl);
 
-                pControl->mType = CONTROL_COMBO;
-                pControl->mAction = action;
-                pControl->mPressButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
-                pControl->mTriggerButton = (uint16_t)pActionMappingDesc->mDeviceButtons[1];
-                arrpush(mControls[mMouseDeviceID][pActionMappingDesc->mDeviceButtons[0]], pControl);
-                arrpush(mControls[mMouseDeviceID][pActionMappingDesc->mDeviceButtons[1]], pControl);
+                pControl->type = CONTROL_COMBO;
+                pControl->action = action;
+                pControl->pressButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
+                pControl->triggerButton = (uint16_t)pActionMappingDesc->deviceButtons[1];
+                arrpush(controls[mouseDeviceID][pActionMappingDesc->deviceButtons[0]], pControl);
+                arrpush(controls[mouseDeviceID][pActionMappingDesc->deviceButtons[1]], pControl);
                 break;
             }
             default:
@@ -1288,54 +1288,54 @@ struct InputSystemImpl: public gainput::InputListener
         case INPUT_ACTION_MAPPING_TARGET_TOUCH:
         {
 #if TOUCH_INPUT
-            switch (pActionMappingDesc->mActionMappingType)
+            switch (pActionMappingDesc->actionMappingType)
             {
             case INPUT_ACTION_MAPPING_NORMAL:
             {
                 // It's a normal tap button
-                if (pActionMappingDesc->mDeviceButtons[0] == TOUCH_BUTTON_NONE)
+                if (pActionMappingDesc->deviceButtons[0] == TOUCH_BUTTON_NONE)
                 {
-                    IControl* pControl = AllocateControl<IControl>(mTouchDeviceID);
+                    IControl* pControl = AllocateControl<IControl>(touchDeviceID);
                     ASSERT(pControl);
 
-                    pControl->mType = CONTROL_BUTTON;
-                    pControl->mAction = action;
-                    arrpush(mControls[mTouchDeviceID][TOUCH_DOWN(pActionMappingDesc->mUserId)], pControl);
+                    pControl->type = CONTROL_BUTTON;
+                    pControl->action = action;
+                    arrpush(controls[touchDeviceID][TOUCH_DOWN(pActionMappingDesc->userId)], pControl);
                 }
                 else // It's an axis
                 {
                     // Ensure # axis is correct
-                    ASSERT(pActionMappingDesc->mNumAxis == 1 || pActionMappingDesc->mNumAxis == 2);
+                    ASSERT(pActionMappingDesc->numAxis == 1 || pActionMappingDesc->numAxis == 2);
 
-                    FloatControl* pControl = AllocateControl<FloatControl>(mTouchDeviceID);
+                    FloatControl* pControl = AllocateControl<FloatControl>(touchDeviceID);
                     ASSERT(pControl);
 
                     memset((void*)pControl, 0, sizeof(*pControl));
-                    pControl->mType = CONTROL_FLOAT;
-                    pControl->mStartButton = pActionMappingDesc->mDeviceButtons[0];
-                    pControl->mTarget = (pActionMappingDesc->mNumAxis == 2 ? (1 << 1) | 1 : 1);
-                    pControl->mDelta = pActionMappingDesc->mDelta ? (1 << 1) | 1 : 0;
-                    pControl->mAction = action;
-                    pControl->mScale = pActionMappingDesc->mScale;
-                    pControl->mScaleByDT = pActionMappingDesc->mScaleByDT;
-                    pControl->mArea = pActionMappingDesc->mTouchScreenArea;
+                    pControl->type = CONTROL_FLOAT;
+                    pControl->startButton = pActionMappingDesc->deviceButtons[0];
+                    pControl->target = (pActionMappingDesc->numAxis == 2 ? (1 << 1) | 1 : 1);
+                    pControl->delta = pActionMappingDesc->delta ? (1 << 1) | 1 : 0;
+                    pControl->action = action;
+                    pControl->scale = pActionMappingDesc->scale;
+                    pControl->scaleByDT = pActionMappingDesc->scaleByDT;
+                    pControl->area = pActionMappingDesc->touchScreenArea;
 
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch1Down], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch2Down], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch1Down], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch2Down], pControl);
 
-                    if (pActionMappingDesc->mDeviceButtons[0] == TOUCH_AXIS_X)
+                    if (pActionMappingDesc->deviceButtons[0] == TOUCH_AXIS_X)
                     {
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch0X], pControl);
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch1X], pControl);
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch2X], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch0X], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch1X], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch2X], pControl);
                     }
 
-                    if (pActionMappingDesc->mDeviceButtons[0] == TOUCH_AXIS_Y || pActionMappingDesc->mNumAxis > 1)
+                    if (pActionMappingDesc->deviceButtons[0] == TOUCH_AXIS_Y || pActionMappingDesc->numAxis > 1)
                     {
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch0Y], pControl);
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch1Y], pControl);
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch2Y], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch0Y], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch1Y], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch2Y], pControl);
                     }
                 }
 
@@ -1344,53 +1344,53 @@ struct InputSystemImpl: public gainput::InputListener
             case INPUT_ACTION_MAPPING_TOUCH_GESTURE:
             {
 #ifndef NX64
-                GestureControl* pControl = AllocateControl<GestureControl>(mTouchDeviceID);
+                GestureControl* pControl = AllocateControl<GestureControl>(touchDeviceID);
                 ASSERT(pControl);
 
-                pControl->mType = CONTROL_GESTURE;
-                pControl->mAction = action;
-                pControl->mPerformed = 0;
+                pControl->type = CONTROL_GESTURE;
+                pControl->action = action;
+                pControl->performed = 0;
 
-                pControl->mGestureType = (TouchGesture)pActionMappingDesc->mDeviceButtons[0];
+                pControl->gestureType = (TouchGesture)pActionMappingDesc->deviceButtons[0];
 
-                switch (pControl->mGestureType)
+                switch (pControl->gestureType)
                 {
                 case TOUCH_GESTURE_TAP:
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                    pControl->mTarget = 1;
+                    arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                    pControl->target = 1;
                     break;
                 case TOUCH_GESTURE_DOUBLE_TAP:
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                    pControl->mTarget = 1;
+                    arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                    pControl->target = 1;
                     break;
                 case TOUCH_GESTURE_PAN:
                     for (int finger = 0; finger < MAX_INPUT_MULTI_TOUCHES; finger++)
                     {
                         int idxOffset = finger * GAINPUT_TOUCH_BUTTONS_PER_FINGER;
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch0Down + idxOffset], pControl);
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch0X + idxOffset], pControl);
-                        arrpush(mControls[mTouchDeviceID][gainput::Touch0Y + idxOffset], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch0Down + idxOffset], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch0X + idxOffset], pControl);
+                        arrpush(controls[touchDeviceID][gainput::Touch0Y + idxOffset], pControl);
                     }
-                    pControl->mTarget = 1;
+                    pControl->target = 1;
                     break;
                 case TOUCH_GESTURE_SWIPE:
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0X], pControl);
-                    pControl->mTarget = 1;
+                    arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch0X], pControl);
+                    pControl->target = 1;
                     break;
                 case TOUCH_GESTURE_PINCH:
                 case TOUCH_GESTURE_ROTATE:
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0X], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch1X], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch1Down], pControl);
-                    pControl->mTarget = 2;
+                    arrpush(controls[touchDeviceID][gainput::Touch0X], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch1X], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch1Down], pControl);
+                    pControl->target = 2;
                     break;
                 case TOUCH_GESTURE_LONG_PRESS:
                     // This specific array is looped in update()
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                    arrpush(mControls[mTouchDeviceID][gainput::Touch1X], pControl);
-                    pControl->mTarget = 1;
+                    arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                    arrpush(controls[touchDeviceID][gainput::Touch1X], pControl);
+                    pControl->target = 1;
                     break;
                 default:
                     ASSERT(0);
@@ -1401,22 +1401,22 @@ struct InputSystemImpl: public gainput::InputListener
             }
             case INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK:
             {
-                VirtualJoystickControl* pControl = AllocateControl<VirtualJoystickControl>(mTouchDeviceID);
+                VirtualJoystickControl* pControl = AllocateControl<VirtualJoystickControl>(touchDeviceID);
                 ASSERT(pControl);
 
-                pControl->mType = CONTROL_VIRTUAL_JOYSTICK;
-                pControl->mAction = action;
-                pControl->mOutsideRadius = pActionMappingDesc->mOutsideRadius;
-                pControl->mDeadzone = pActionMappingDesc->mDeadzone;
-                pControl->mScale = pActionMappingDesc->mScale;
-                pControl->mTouchIndex = 0xFF;
-                pControl->mArea = pActionMappingDesc->mTouchScreenArea;
-                arrpush(mControls[mTouchDeviceID][gainput::Touch0Down], pControl);
-                arrpush(mControls[mTouchDeviceID][gainput::Touch0X], pControl);
-                arrpush(mControls[mTouchDeviceID][gainput::Touch0Y], pControl);
-                arrpush(mControls[mTouchDeviceID][gainput::Touch1Down], pControl);
-                arrpush(mControls[mTouchDeviceID][gainput::Touch1X], pControl);
-                arrpush(mControls[mTouchDeviceID][gainput::Touch1Y], pControl);
+                pControl->type = CONTROL_VIRTUAL_JOYSTICK;
+                pControl->action = action;
+                pControl->outsideRadius = pActionMappingDesc->outsideRadius;
+                pControl->deadzone = pActionMappingDesc->deadzone;
+                pControl->scale = pActionMappingDesc->scale;
+                pControl->touchIndex = 0xFF;
+                pControl->area = pActionMappingDesc->touchScreenArea;
+                arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
+                arrpush(controls[touchDeviceID][gainput::Touch0X], pControl);
+                arrpush(controls[touchDeviceID][gainput::Touch0Y], pControl);
+                arrpush(controls[touchDeviceID][gainput::Touch1Down], pControl);
+                arrpush(controls[touchDeviceID][gainput::Touch1X], pControl);
+                arrpush(controls[touchDeviceID][gainput::Touch1Y], pControl);
 
                 break;
             }
@@ -1434,82 +1434,82 @@ struct InputSystemImpl: public gainput::InputListener
     void AddInputAction(const InputActionDesc* pDesc, const InputActionMappingDeviceTarget actionMappingTarget)
     {
         ASSERT(pDesc);
-        ASSERT(pDesc->mActionId < MAX_INPUT_ACTIONS);
+        ASSERT(pDesc->actionId < MAX_INPUT_ACTIONS);
 
         if (INPUT_ACTION_MAPPING_TARGET_KEYBOARD == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            ActionMappingDesc* pActionMappingDesc = &mInputActionMappingIdToDesc[mKeyboardDeviceID][pDesc->mActionId];
+            ActionMappingDesc* pActionMappingDesc = &inputActionMappingIdToDesc[keyboardDeviceID][pDesc->actionId];
             if (INPUT_ACTION_MAPPING_TARGET_KEYBOARD == actionMappingTarget)
             {
-                ASSERT(pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
+                ASSERT(pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
             }
 
-            if (pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
+            if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
         }
 
         if (INPUT_ACTION_MAPPING_TARGET_CONTROLLER == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            const unsigned index = DEV_PAD_START + pDesc->mUserId;
+            const unsigned index = DEV_PAD_START + pDesc->userId;
 
-            ActionMappingDesc* pActionMappingDesc = &mInputActionMappingIdToDesc[index][pDesc->mActionId];
+            ActionMappingDesc* pActionMappingDesc = &inputActionMappingIdToDesc[index][pDesc->actionId];
             if (INPUT_ACTION_MAPPING_TARGET_CONTROLLER == actionMappingTarget)
             {
-                ASSERT(pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
+                ASSERT(pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
             }
 
-            if (pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
+            if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
         }
 
         if (INPUT_ACTION_MAPPING_TARGET_MOUSE == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            ActionMappingDesc* pActionMappingDesc = &mInputActionMappingIdToDesc[mMouseDeviceID][pDesc->mActionId];
+            ActionMappingDesc* pActionMappingDesc = &inputActionMappingIdToDesc[mouseDeviceID][pDesc->actionId];
             if (INPUT_ACTION_MAPPING_TARGET_MOUSE == actionMappingTarget)
             {
-                ASSERT(pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
+                ASSERT(pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
             }
 
-            if (pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
+            if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
         }
 
         if (INPUT_ACTION_MAPPING_TARGET_TOUCH == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            ActionMappingDesc* pActionMappingDesc = &mInputActionMappingIdToDesc[mTouchDeviceID][pDesc->mActionId];
+            ActionMappingDesc* pActionMappingDesc = &inputActionMappingIdToDesc[touchDeviceID][pDesc->actionId];
             if (INPUT_ACTION_MAPPING_TARGET_TOUCH == actionMappingTarget)
             {
-                ASSERT(pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
+                ASSERT(pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL);
             }
 
-            if (pActionMappingDesc->mActionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
+            if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
         }
     }
 
     void RemoveInputActionControls(const InputActionDesc* pDesc, const unsigned index)
     {
-        for (ptrdiff_t i = 0; i < arrlen(mControls[index]); ++i)
+        for (ptrdiff_t i = 0; i < arrlen(controls[index]); ++i)
         {
-            if (arrlen(mControls[index][i]) > 0)
+            if (arrlen(controls[index][i]) > 0)
             {
-                for (ptrdiff_t j = arrlen(mControls[index][i]) - 1; j >= 0; --j)
+                for (ptrdiff_t j = arrlen(controls[index][i]) - 1; j >= 0; --j)
                 {
-                    if (mControls[index][i][j]->mAction == *pDesc)
+                    if (controls[index][i][j]->action == *pDesc)
                     {
                         // Free is from the controls pool first and remove the entry
-                        for (ptrdiff_t k = 0; k < arrlen(mControlPool[index]); ++k)
+                        for (ptrdiff_t k = 0; k < arrlen(controlPool[index]); ++k)
                         {
-                            if (mControls[index][i][j] == mControlPool[index][k])
+                            if (controls[index][i][j] == controlPool[index][k])
                             {
-                                tf_free(mControlPool[index][k]);
-                                arrdel(mControlPool[index], k);
+                                tf_free(controlPool[index][k]);
+                                arrdel(controlPool[index], k);
                                 break;
                             }
                         }
 
-                        // Then remove the entry from mControls
-                        arrdel(mControls[index][i], j);
+                        // Then remove the entry from controls
+                        arrdel(controls[index][i], j);
                     }
                 }
             }
@@ -1522,35 +1522,35 @@ struct InputSystemImpl: public gainput::InputListener
 
         if (INPUT_ACTION_MAPPING_TARGET_CONTROLLER == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            RemoveInputActionControls(pDesc, DEV_PAD_START + pDesc->mUserId);
+            RemoveInputActionControls(pDesc, DEV_PAD_START + pDesc->userId);
         }
         if (INPUT_ACTION_MAPPING_TARGET_KEYBOARD == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            RemoveInputActionControls(pDesc, mKeyboardDeviceID);
+            RemoveInputActionControls(pDesc, keyboardDeviceID);
         }
         if (INPUT_ACTION_MAPPING_TARGET_MOUSE == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            RemoveInputActionControls(pDesc, mMouseDeviceID);
-            RemoveInputActionControls(pDesc, mRawMouseDeviceID);
+            RemoveInputActionControls(pDesc, mouseDeviceID);
+            RemoveInputActionControls(pDesc, rawMouseDeviceID);
         }
         if (INPUT_ACTION_MAPPING_TARGET_TOUCH == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            RemoveInputActionControls(pDesc, mTouchDeviceID);
+            RemoveInputActionControls(pDesc, touchDeviceID);
         }
     }
 
     void SetGlobalInputAction(const GlobalInputActionDesc* pDesc)
     {
         ASSERT(pDesc);
-        switch (pDesc->mGlobalInputActionType)
+        switch (pDesc->globalInputActionType)
         {
         case GlobalInputActionDesc::ANY_BUTTON_ACTION:
-            mGlobalAnyButtonAction.pFunction = pDesc->pFunction;
-            mGlobalAnyButtonAction.pUserData = pDesc->pUserData;
+            globalAnyButtonAction.pFunction = pDesc->pFunction;
+            globalAnyButtonAction.pUserData = pDesc->pUserData;
             break;
         case GlobalInputActionDesc::TEXT:
-            mGlobalTextInputControl.pFunction = pDesc->pFunction;
-            mGlobalTextInputControl.pUserData = pDesc->pUserData;
+            globalTextInputControl.pFunction = pDesc->pFunction;
+            globalTextInputControl.pUserData = pDesc->pUserData;
             break;
         default:
             ASSERT(0); // should never get here
@@ -1567,47 +1567,47 @@ struct InputSystemImpl: public gainput::InputListener
         RemoveActionMappings(actionMappingTarget);
 
         // Clear transient data structures
-        hmfree(mButtonControlPerformQueue);
-        hmfree(mFloatDeltaControlCancelQueue);
+        hmfree(buttonControlPerformQueue);
+        hmfree(floatDeltaControlCancelQueue);
 
         for (uint32_t i = 0; i < numActions; ++i)
         {
             ActionMappingDesc* pActionMappingDesc = &actionMappings[i];
             ASSERT(pActionMappingDesc);
             ASSERT(INPUT_ACTION_MAPPING_TARGET_ALL !=
-                   pActionMappingDesc->mActionMappingDeviceTarget); // target cannot be INPUT_ACTION_MAPPING_TARGET_ALL in the desc
+                   pActionMappingDesc->actionMappingDeviceTarget); // target cannot be INPUT_ACTION_MAPPING_TARGET_ALL in the desc
 
             if (pActionMappingDesc != NULL) //-V547
             {
                 // Ensure action mapping ID is within acceptable range
-                ASSERT(pActionMappingDesc->mActionId < MAX_INPUT_ACTIONS);
+                ASSERT(pActionMappingDesc->actionId < MAX_INPUT_ACTIONS);
 
                 unsigned index = ~0u;
 
-                switch (pActionMappingDesc->mActionMappingDeviceTarget)
+                switch (pActionMappingDesc->actionMappingDeviceTarget)
                 {
                 case INPUT_ACTION_MAPPING_TARGET_CONTROLLER:
                 {
-                    index = DEV_PAD_START + pActionMappingDesc->mUserId;
+                    index = DEV_PAD_START + pActionMappingDesc->userId;
                     break;
                 }
                 case INPUT_ACTION_MAPPING_TARGET_KEYBOARD:
                 {
-                    index = mKeyboardDeviceID;
+                    index = keyboardDeviceID;
                     break;
                 }
                 case INPUT_ACTION_MAPPING_TARGET_MOUSE:
                 {
-                    index = mMouseDeviceID;
+                    index = mouseDeviceID;
                     break;
                 }
                 case INPUT_ACTION_MAPPING_TARGET_TOUCH:
                 {
-                    index = mTouchDeviceID;
+                    index = touchDeviceID;
                     // Ensure the proper action mapping type is used
-                    ASSERT(INPUT_ACTION_MAPPING_NORMAL == pActionMappingDesc->mActionMappingType ||
-                           INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK == pActionMappingDesc->mActionMappingType ||
-                           INPUT_ACTION_MAPPING_TOUCH_GESTURE == pActionMappingDesc->mActionMappingType);
+                    ASSERT(INPUT_ACTION_MAPPING_NORMAL == pActionMappingDesc->actionMappingType ||
+                           INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK == pActionMappingDesc->actionMappingType ||
+                           INPUT_ACTION_MAPPING_TOUCH_GESTURE == pActionMappingDesc->actionMappingType);
                     break;
                 }
                 default:
@@ -1615,7 +1615,7 @@ struct InputSystemImpl: public gainput::InputListener
                 }
 
                 ASSERT(index != ~0u);
-                switch (pActionMappingDesc->mActionMappingType)
+                switch (pActionMappingDesc->actionMappingType)
                 {
                 case INPUT_ACTION_MAPPING_NORMAL:
                 case INPUT_ACTION_MAPPING_COMPOSITE:
@@ -1623,21 +1623,21 @@ struct InputSystemImpl: public gainput::InputListener
                 case INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK:
                 case INPUT_ACTION_MAPPING_TOUCH_GESTURE:
                 {
-                    ASSERT(mInputActionMappingIdToDesc[index][pActionMappingDesc->mActionId].mActionMappingDeviceTarget ==
+                    ASSERT(inputActionMappingIdToDesc[index][pActionMappingDesc->actionId].actionMappingDeviceTarget ==
                            INPUT_ACTION_MAPPING_TARGET_ALL);
-                    mInputActionMappingIdToDesc[index][pActionMappingDesc->mActionId] = *pActionMappingDesc;
+                    inputActionMappingIdToDesc[index][pActionMappingDesc->actionId] = *pActionMappingDesc;
 
                     // Register an action for UI action mappings so that the app can intercept them via the global action
                     // (GLOBAL_INPUT_ACTION_ANY_BUTTON_ACTION)
-                    if (pActionMappingDesc->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
+                    if (pActionMappingDesc->actionId > UISystemInputActions::UI_ACTION_START_ID_)
                     {
                         // Ensure the type is INPUT_ACTION_MAPPING_NORMAL
-                        ASSERT(INPUT_ACTION_MAPPING_NORMAL == pActionMappingDesc->mActionMappingType);
+                        ASSERT(INPUT_ACTION_MAPPING_NORMAL == pActionMappingDesc->actionMappingType);
 
                         InputActionDesc actionDesc;
-                        actionDesc.mActionId = pActionMappingDesc->mActionId;
-                        actionDesc.mUserId = pActionMappingDesc->mUserId;
-                        AddInputAction(&actionDesc, pActionMappingDesc->mActionMappingDeviceTarget);
+                        actionDesc.actionId = pActionMappingDesc->actionId;
+                        actionDesc.userId = pActionMappingDesc->userId;
+                        AddInputAction(&actionDesc, pActionMappingDesc->actionMappingDeviceTarget);
                     }
                     break;
                 }
@@ -1650,12 +1650,12 @@ struct InputSystemImpl: public gainput::InputListener
 
     void RemoveActionMappingsControls(const gainput::DeviceId deviceId)
     {
-        for (ptrdiff_t j = 0; j < arrlen(mControlPool[deviceId]); ++j)
-            tf_free(mControlPool[deviceId][j]);
-        arrfree(mControlPool[deviceId]);
+        for (ptrdiff_t j = 0; j < arrlen(controlPool[deviceId]); ++j)
+            tf_free(controlPool[deviceId][j]);
+        arrfree(controlPool[deviceId]);
 
-        for (ptrdiff_t j = 0; j < arrlen(mControls[deviceId]); ++j)
-            arrfree(mControls[deviceId][j]);
+        for (ptrdiff_t j = 0; j < arrlen(controls[deviceId]); ++j)
+            arrfree(controls[deviceId][j]);
     }
 
     void RemoveActionMappings(const InputActionMappingDeviceTarget actionMappingTarget)
@@ -1665,37 +1665,37 @@ struct InputSystemImpl: public gainput::InputListener
             for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
             {
                 const unsigned index = DEV_PAD_START + i;
-                memset((void*)mInputActionMappingIdToDesc[index], 0, sizeof(mInputActionMappingIdToDesc[index][0]) * MAX_INPUT_ACTIONS);
+                memset((void*)inputActionMappingIdToDesc[index], 0, sizeof(inputActionMappingIdToDesc[index][0]) * MAX_INPUT_ACTIONS);
                 RemoveActionMappingsControls(index);
-                memset(mControls[index], 0, sizeof(mControls[index][0]) * gainput::PadButtonMax_);
+                memset(controls[index], 0, sizeof(controls[index][0]) * gainput::PadButtonMax_);
             }
         }
         if (INPUT_ACTION_MAPPING_TARGET_KEYBOARD == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            memset((void*)mInputActionMappingIdToDesc[mKeyboardDeviceID], 0,
-                   sizeof(mInputActionMappingIdToDesc[mKeyboardDeviceID][0]) * MAX_INPUT_ACTIONS);
-            RemoveActionMappingsControls(mKeyboardDeviceID);
-            memset(mControls[mKeyboardDeviceID], 0, sizeof(mControls[mKeyboardDeviceID][0]) * gainput::KeyCount_);
+            memset((void*)inputActionMappingIdToDesc[keyboardDeviceID], 0,
+                   sizeof(inputActionMappingIdToDesc[keyboardDeviceID][0]) * MAX_INPUT_ACTIONS);
+            RemoveActionMappingsControls(keyboardDeviceID);
+            memset(controls[keyboardDeviceID], 0, sizeof(controls[keyboardDeviceID][0]) * gainput::KeyCount_);
         }
         if (INPUT_ACTION_MAPPING_TARGET_MOUSE == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            memset((void*)mInputActionMappingIdToDesc[mMouseDeviceID], 0,
-                   sizeof(mInputActionMappingIdToDesc[mMouseDeviceID][0]) * MAX_INPUT_ACTIONS);
-            RemoveActionMappingsControls(mMouseDeviceID);
-            memset(mControls[mMouseDeviceID], 0, sizeof(mControls[mMouseDeviceID][0]) * gainput::MouseButtonCount_);
+            memset((void*)inputActionMappingIdToDesc[mouseDeviceID], 0,
+                   sizeof(inputActionMappingIdToDesc[mouseDeviceID][0]) * MAX_INPUT_ACTIONS);
+            RemoveActionMappingsControls(mouseDeviceID);
+            memset(controls[mouseDeviceID], 0, sizeof(controls[mouseDeviceID][0]) * gainput::MouseButtonCount_);
 
             // Need to do the same for the raw mouse device
-            memset((void*)mInputActionMappingIdToDesc[mRawMouseDeviceID], 0,
-                   sizeof(mInputActionMappingIdToDesc[mRawMouseDeviceID][0]) * MAX_INPUT_ACTIONS);
-            RemoveActionMappingsControls(mRawMouseDeviceID);
-            memset(mControls[mRawMouseDeviceID], 0, sizeof(mControls[mRawMouseDeviceID][0]) * gainput::MouseButtonCount_);
+            memset((void*)inputActionMappingIdToDesc[rawMouseDeviceID], 0,
+                   sizeof(inputActionMappingIdToDesc[rawMouseDeviceID][0]) * MAX_INPUT_ACTIONS);
+            RemoveActionMappingsControls(rawMouseDeviceID);
+            memset(controls[rawMouseDeviceID], 0, sizeof(controls[rawMouseDeviceID][0]) * gainput::MouseButtonCount_);
         }
         if (INPUT_ACTION_MAPPING_TARGET_TOUCH == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
         {
-            memset((void*)mInputActionMappingIdToDesc[mTouchDeviceID], 0,
-                   sizeof(mInputActionMappingIdToDesc[mTouchDeviceID][0]) * MAX_INPUT_ACTIONS);
-            RemoveActionMappingsControls(mTouchDeviceID);
-            memset(mControls[mTouchDeviceID], 0, sizeof(mControls[mTouchDeviceID][0]) * gainput::TouchCount_);
+            memset((void*)inputActionMappingIdToDesc[touchDeviceID], 0,
+                   sizeof(inputActionMappingIdToDesc[touchDeviceID][0]) * MAX_INPUT_ACTIONS);
+            RemoveActionMappingsControls(touchDeviceID);
+            memset(controls[touchDeviceID], 0, sizeof(controls[touchDeviceID][0]) * gainput::TouchCount_);
         }
     }
 
@@ -1773,10 +1773,10 @@ struct InputSystemImpl: public gainput::InputListener
     {
         ASSERT(pWindow);
 
-        if (enable != mInputCaptured)
+        if (enable != inputCaptured)
         {
             captureCursor(pWindow, enable);
-            mInputCaptured = enable;
+            inputCaptured = enable;
 
 #if !defined(TARGET_IOS) && defined(__APPLE__)
             GainputMacInputView* view = (__bridge GainputMacInputView*)(pGainputView);
@@ -1797,17 +1797,17 @@ struct InputSystemImpl: public gainput::InputListener
         if (!pGainputView)
             return;
 
-        if ((type > 0) != mVirtualKeyboardActive)
-            mVirtualKeyboardActive = (type > 0);
+        if ((type > 0) != virtualKeyboardActive)
+            virtualKeyboardActive = (type > 0);
         else
             return;
 
         GainputView* view = (__bridge GainputView*)(pGainputView);
         [view setVirtualKeyboard:type];
 #elif defined(__ANDROID__)
-        if ((type > 0) != mVirtualKeyboardActive)
+        if ((type > 0) != virtualKeyboardActive)
         {
-            mVirtualKeyboardActive = (type > 0);
+            virtualKeyboardActive = (type > 0);
 
             /* Note: native activity's API for soft input (ANativeActivity_showSoftInput & ANativeActivity_hideSoftInput) do not work.
              *       So we do it manually using JNI.
@@ -1846,7 +1846,7 @@ struct InputSystemImpl: public gainput::InputListener
 #if TOUCH_INPUT
         return false;
 #else
-        return (device == mMouseDeviceID || device == mRawMouseDeviceID);
+        return (device == mouseDeviceID || device == rawMouseDeviceID);
 #endif
     }
 
@@ -1881,32 +1881,32 @@ struct InputSystemImpl: public gainput::InputListener
 
         uint32_t device = IdToIndex(deviceId);
 
-        if (arrlen(mControls[device]))
+        if (arrlen(controls[device]))
         {
             InputActionContext ctx = {};
-            ctx.mDeviceType = (uint8_t)pDeviceTypes[device];
-            ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
+            ctx.deviceType = (uint8_t)pDeviceTypes[device];
+            ctx.pCaptured = IsPointerType(device) ? &inputCaptured : &defaultCapture;
 #if TOUCH_INPUT
             uint32_t touchIndex = 0;
-            if (device == mTouchDeviceID)
+            if (device == touchDeviceID)
             {
                 touchIndex = TOUCH_USER(deviceButton);
-                gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
-                mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
-                mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
-                ctx.pPosition = &mTouchPositions[touchIndex];
+                gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(touchDeviceID);
+                touchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
+                touchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
+                ctx.pPosition = &touchPositions[touchIndex];
 
                 // Reset when starting/ending touch
                 if (oldValue != newValue)
-                    mTouchDownTime[touchIndex] = 0.f;
+                    touchDownTime[touchIndex] = 0.f;
             }
 #else
             if (IsPointerType(device))
             {
-                gainput::InputDeviceMouse* pMouse = (gainput::InputDeviceMouse*)pInputManager->GetDevice(mMouseDeviceID);
-                mMousePosition[0] = pMouse->GetFloat(gainput::MouseAxisX);
-                mMousePosition[1] = pMouse->GetFloat(gainput::MouseAxisY);
-                ctx.pPosition = &mMousePosition;
+                gainput::InputDeviceMouse* pMouse = (gainput::InputDeviceMouse*)pInputManager->GetDevice(mouseDeviceID);
+                mousePosition[0] = pMouse->GetFloat(gainput::MouseAxisX);
+                mousePosition[1] = pMouse->GetFloat(gainput::MouseAxisY);
+                ctx.pPosition = &mousePosition;
 
                 // Scroll wheel position happens over three events
                 // Movement start (delta is 0), movement (delta changes), movement end (delta is 0)
@@ -1928,62 +1928,62 @@ struct InputSystemImpl: public gainput::InputListener
                     previousMovementWheelPosition = mouseWheelCurrentPosition;
                 }
 
-                ctx.mScrollValue = persistentScrollValue;
+                ctx.scrollValue = persistentScrollValue;
             }
 #endif
             bool executeNext = true;
 
-            for (ptrdiff_t i = 0; i < arrlen(mControls[device][deviceButton]); ++i)
+            for (ptrdiff_t i = 0; i < arrlen(controls[device][deviceButton]); ++i)
             {
-                IControl* control = mControls[device][deviceButton][i];
+                IControl* control = controls[device][deviceButton][i];
                 if (!executeNext)
                     return true;
 
-                const InputControlType type = control->mType;
-                const InputActionDesc* pDesc = &control->mAction;
+                const InputControlType type = control->type;
+                const InputActionDesc* pDesc = &control->action;
                 ctx.pUserData = pDesc->pUserData;
-                ctx.mActionId = pDesc->mActionId;
-                ctx.mUserId = pDesc->mUserId;
-                ASSERT(ctx.mActionId != UINT_MAX);
+                ctx.actionId = pDesc->actionId;
+                ctx.userId = pDesc->userId;
+                ASSERT(ctx.actionId != UINT_MAX);
 
                 switch (type)
                 {
                 case CONTROL_BUTTON:
                 {
-                    ctx.mBool = newValue;
+                    ctx.boolValue = newValue;
                     if (newValue && !oldValue)
                     {
-                        ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+                        ctx.phase = INPUT_ACTION_PHASE_STARTED;
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        if (mGlobalAnyButtonAction.pFunction)
+                        if (globalAnyButtonAction.pFunction)
                         {
-                            ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                            mGlobalAnyButtonAction.pFunction(&ctx);
+                            ctx.pUserData = globalAnyButtonAction.pUserData;
+                            globalAnyButtonAction.pFunction(&ctx);
                         }
 #if TOUCH_INPUT
                         IControlSet val = { control };
-                        hmputs(mButtonControlPerformQueue, val);
+                        hmputs(buttonControlPerformQueue, val);
 #else
-                        ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+                        ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        if (mGlobalAnyButtonAction.pFunction)
+                        if (globalAnyButtonAction.pFunction)
                         {
-                            ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                            mGlobalAnyButtonAction.pFunction(&ctx);
+                            ctx.pUserData = globalAnyButtonAction.pUserData;
+                            globalAnyButtonAction.pFunction(&ctx);
                         }
 #endif
                     }
                     else if (oldValue && !newValue)
                     {
-                        ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
+                        ctx.phase = INPUT_ACTION_PHASE_CANCELED;
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        if (mGlobalAnyButtonAction.pFunction)
+                        if (globalAnyButtonAction.pFunction)
                         {
-                            ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                            mGlobalAnyButtonAction.pFunction(&ctx);
+                            ctx.pUserData = globalAnyButtonAction.pUserData;
+                            globalAnyButtonAction.pFunction(&ctx);
                         }
                     }
                     break;
@@ -1992,54 +1992,54 @@ struct InputSystemImpl: public gainput::InputListener
                 {
                     CompositeControl* pControl = (CompositeControl*)control;
                     uint32_t          index = 0;
-                    for (; index < pControl->mComposite; ++index)
-                        if (deviceButton == pControl->mControls[index])
+                    for (; index < pControl->composite; ++index)
+                        if (deviceButton == pControl->controls[index])
                             break;
 
                     const uint32_t axis = (index > 1) ? 1 : 0;
                     if (newValue)
                     {
-                        pControl->mPressedVal[index] = 1;
-                        pControl->mValue[axis] = (float)pControl->mPressedVal[axis * 2 + 0] - (float)pControl->mPressedVal[axis * 2 + 1];
+                        pControl->pressedVal[index] = 1;
+                        pControl->value[axis] = (float)pControl->pressedVal[axis * 2 + 0] - (float)pControl->pressedVal[axis * 2 + 1];
                     }
 
-                    if (pControl->mComposite == 2)
+                    if (pControl->composite == 2)
                     {
-                        ctx.mFloat = pControl->mValue[axis];
+                        ctx.floatValue = pControl->value[axis];
                     }
                     else
                     {
-                        if (!pControl->mValue[0] && !pControl->mValue[1])
-                            ctx.mFloat2 = float2(0.0f);
+                        if (!pControl->value[0] && !pControl->value[1])
+                            ctx.float2Value = float2(0.0f);
                         else
-                            ctx.mFloat2 = pControl->mValue;
+                            ctx.float2Value = pControl->value;
                     }
 
                     // Action Started
-                    if (!pControl->mStarted && !oldValue && newValue)
+                    if (!pControl->started && !oldValue && newValue)
                     {
-                        pControl->mStarted = 1;
-                        ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+                        pControl->started = 1;
+                        ctx.phase = INPUT_ACTION_PHASE_STARTED;
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                     }
                     // Action Performed
-                    if (pControl->mStarted && newValue && !pControl->mPerformed[index])
+                    if (pControl->started && newValue && !pControl->performed[index])
                     {
-                        pControl->mPerformed[index] = 1;
-                        ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+                        pControl->performed[index] = 1;
+                        ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                     }
                     // Action Canceled
                     if (oldValue && !newValue)
                     {
-                        pControl->mPerformed[index] = 0;
-                        pControl->mPressedVal[index] = 0;
+                        pControl->performed[index] = 0;
+                        pControl->pressedVal[index] = 0;
                         bool allReleased = true;
-                        for (uint8_t j = 0; j < pControl->mComposite; ++j)
+                        for (uint8_t j = 0; j < pControl->composite; ++j)
                         {
-                            if (pControl->mPerformed[j])
+                            if (pControl->performed[j])
                             {
                                 allReleased = false;
                                 break;
@@ -2047,19 +2047,19 @@ struct InputSystemImpl: public gainput::InputListener
                         }
                         if (allReleased)
                         {
-                            pControl->mValue = float2(0.0f);
-                            pControl->mStarted = 0;
-                            ctx.mFloat2 = pControl->mValue;
-                            ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
+                            pControl->value = float2(0.0f);
+                            pControl->started = 0;
+                            ctx.float2Value = pControl->value;
+                            ctx.phase = INPUT_ACTION_PHASE_CANCELED;
                             if (pDesc->pFunction)
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
                         }
                         else if (pDesc->pFunction)
                         {
-                            ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-                            pControl->mValue[axis] =
-                                (float)pControl->mPressedVal[axis * 2 + 0] - (float)pControl->mPressedVal[axis * 2 + 1];
-                            ctx.mFloat2 = pControl->mValue;
+                            ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+                            pControl->value[axis] =
+                                (float)pControl->pressedVal[axis * 2 + 0] - (float)pControl->pressedVal[axis * 2 + 1];
+                            ctx.float2Value = pControl->value;
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                         }
                     }
@@ -2072,29 +2072,29 @@ struct InputSystemImpl: public gainput::InputListener
                     FloatControl* pControl = (FloatControl*)control;
 #if TOUCH_INPUT
                     const uint32_t fingerIdx = deviceButton / GAINPUT_TOUCH_BUTTONS_PER_FINGER;
-                    if (mTouchDeviceID == device)
+                    if (touchDeviceID == device)
                     {
                         if (!oldValue && newValue)
                         {
                             ASSERT(ctx.pPosition);
 
-                            mTouchDownTime[touchIndex] = 0.f;
+                            touchDownTime[touchIndex] = 0.f;
 
                             const float2 displaySize{ pInputManager->GetDisplayWidth(), pInputManager->GetDisplayHeight() };
-                            if (!isPositionInsideScreenArea(*ctx.pPosition, (TouchScreenArea)pControl->mArea, displaySize))
+                            if (!isPositionInsideScreenArea(*ctx.pPosition, (TouchScreenArea)pControl->area, displaySize))
                                 break;
 
-                            ctx.mFingerIndices[0] = touchIndex;
+                            ctx.fingerIndices[0] = touchIndex;
 
                             if (pDesc->pFunction)
                             {
-                                ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+                                ctx.phase = INPUT_ACTION_PHASE_STARTED;
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
 
-                                if (mGlobalAnyButtonAction.pFunction)
+                                if (globalAnyButtonAction.pFunction)
                                 {
-                                    ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                                    mGlobalAnyButtonAction.pFunction(&ctx);
+                                    ctx.pUserData = globalAnyButtonAction.pUserData;
+                                    globalAnyButtonAction.pFunction(&ctx);
                                 }
                             }
                         }
@@ -2102,44 +2102,44 @@ struct InputSystemImpl: public gainput::InputListener
                         {
                             if (fingerIdx == touchIndex)
                             {
-                                mTouchDownTime[touchIndex] = 0.f;
-                                ctx.mFingerIndices[0] = touchIndex;
+                                touchDownTime[touchIndex] = 0.f;
+                                ctx.fingerIndices[0] = touchIndex;
 
-                                pControl->mStarted = 0;
-                                pControl->mPerformed = 0;
+                                pControl->started = 0;
+                                pControl->performed = 0;
 
-                                ctx.mFloat2 = float2(0.0f);
-                                ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-                                ctx.mActionId = pControl->mAction.mActionId;
+                                ctx.float2Value = float2(0.0f);
+                                ctx.phase = INPUT_ACTION_PHASE_CANCELED;
+                                ctx.actionId = pControl->action.actionId;
 
                                 if (pDesc->pFunction)
                                     executeNext = pDesc->pFunction(&ctx) && executeNext;
 
-                                if (mGlobalAnyButtonAction.pFunction)
+                                if (globalAnyButtonAction.pFunction)
                                 {
-                                    ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                                    mGlobalAnyButtonAction.pFunction(&ctx);
+                                    ctx.pUserData = globalAnyButtonAction.pUserData;
+                                    globalAnyButtonAction.pFunction(&ctx);
                                 }
                             }
                         }
                     }
 #endif
-                    if (mMouseDeviceID == device)
+                    if (mouseDeviceID == device)
                     {
                         if (!oldValue && newValue)
                         {
                             ASSERT(deviceButton == gainput::MouseButtonWheelUp || deviceButton == gainput::MouseButtonWheelDown);
 
-                            ctx.mFloat2[1] = deviceButton == gainput::MouseButtonWheelUp ? 1.0f : -1.0f;
+                            ctx.float2Value[1] = deviceButton == gainput::MouseButtonWheelUp ? 1.0f : -1.0f;
 
                             if (pDesc->pFunction)
                             {
-                                ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+                                ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
                             }
 
                             FloatControlSet val = { pControl };
-                            hmputs(mFloatDeltaControlCancelQueue, val);
+                            hmputs(floatDeltaControlCancelQueue, val);
                         }
                     }
                     break;
@@ -2147,86 +2147,86 @@ struct InputSystemImpl: public gainput::InputListener
 #if TOUCH_INPUT
                 case CONTROL_GESTURE:
                 {
-                    if (device == mTouchDeviceID)
+                    if (device == touchDeviceID)
                     {
                         if (!oldValue && newValue)
                         {
-                            GestureRecognizer::Touch* touch = mGestureRecognizer.AddTouch(touchIndex);
+                            GestureRecognizer::Touch* touch = gestureRecognizer.AddTouch(touchIndex);
 
-                            mGestureRecognizer.mPerformingGesturesCount[touchIndex]++;
+                            gestureRecognizer.performingGesturesCount[touchIndex]++;
 
-                            if (!touch->mUpdated && touch->mState == GestureRecognizer::Touch::ENDED)
+                            if (!touch->updated && touch->state == GestureRecognizer::Touch::ENDED)
                             {
-                                touch->mUpdated = true;
-                                touch->mState = GestureRecognizer::Touch::STARTED;
+                                touch->updated = true;
+                                touch->state = GestureRecognizer::Touch::STARTED;
 
-                                touch->mPos0 = vec2(ctx.pPosition->getX(), ctx.pPosition->getY());
-                                touch->mPos = touch->mPos0;
+                                touch->pos0 = vec2(ctx.pPosition->getX(), ctx.pPosition->getY());
+                                touch->pos = touch->pos0;
                             }
 
                             GestureControl* pControl = (GestureControl*)control;
 
-                            if (pControl->mGestureType == TOUCH_GESTURE_LONG_PRESS)
+                            if (pControl->gestureType == TOUCH_GESTURE_LONG_PRESS)
                             {
-                                mGestureRecognizer.mLongPressTouch = touch;
+                                gestureRecognizer.longPressTouch = touch;
                             }
                         }
                         else if (oldValue && !newValue)
                         {
-                            GestureRecognizer::Touch* touch = mGestureRecognizer.FindTouch(touchIndex);
+                            GestureRecognizer::Touch* touch = gestureRecognizer.FindTouch(touchIndex);
                             ASSERT(touch);
 
-                            mGestureRecognizer.mPerformingGesturesCount[touchIndex]--;
+                            gestureRecognizer.performingGesturesCount[touchIndex]--;
 
-                            touch->mState = GestureRecognizer::Touch::ENDED;
-                            ctx.mPhase = INPUT_ACTION_PHASE_ENDED;
+                            touch->state = GestureRecognizer::Touch::ENDED;
+                            ctx.phase = INPUT_ACTION_PHASE_ENDED;
 
                             GestureControl* pControl = (GestureControl*)control;
 
                             for (uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i)
-                                ctx.mFingerIndices[i] = mGestureRecognizer.mTouches[i].mID;
+                                ctx.fingerIndices[i] = gestureRecognizer.touches[i].id;
 
                             // Taps
-                            switch (pControl->mGestureType)
+                            switch (pControl->gestureType)
                             {
                             case TOUCH_GESTURE_TAP:
                             {
-                                ctx.mBool = true;
-                                ctx.pCaptured = &mDefaultCapture;
-                                pControl->mAction.pFunction(&ctx);
+                                ctx.boolValue = true;
+                                ctx.pCaptured = &defaultCapture;
+                                pControl->action.pFunction(&ctx);
 
                                 break;
                             }
                             case TOUCH_GESTURE_PAN:
                             {
-                                ctx.mBool = false;
-                                ctx.pCaptured = &mDefaultCapture;
+                                ctx.boolValue = false;
+                                ctx.pCaptured = &defaultCapture;
 
-                                ctx.mFingerIndices[0] = touchIndex;
-                                ctx.mFloat2 = { touch->mPos.getX(), touch->mPos.getY() };
-                                pControl->mAction.pFunction(&ctx);
+                                ctx.fingerIndices[0] = touchIndex;
+                                ctx.float2Value = { touch->pos.getX(), touch->pos.getY() };
+                                pControl->action.pFunction(&ctx);
 
                                 break;
                             }
                             case TOUCH_GESTURE_DOUBLE_TAP:
                             {
-                                if (mGestureRecognizer.mActiveTouches != pControl->mTarget)
+                                if (gestureRecognizer.activeTouches != pControl->target)
                                     break;
 
-                                if (length(touch->mPos - mGestureRecognizer.mLastTapPos) > mGestureRecognizer.mMovedDistThreshold ||
-                                    mGestureRecognizer.mLastTapTime > mGestureRecognizer.mDoubleTapTimeThreshold)
+                                if (length(touch->pos - gestureRecognizer.lastTapPos) > gestureRecognizer.movedDistThreshold ||
+                                    gestureRecognizer.lastTapTime > gestureRecognizer.doubleTapTimeThreshold)
                                     break;
 
-                                ctx.mBool = true;
-                                ctx.pCaptured = &mDefaultCapture;
+                                ctx.boolValue = true;
+                                ctx.pCaptured = &defaultCapture;
 
-                                pControl->mAction.pFunction(&ctx);
+                                pControl->action.pFunction(&ctx);
 
                                 break;
                             }
                             case TOUCH_GESTURE_SWIPE:
                             {
-                                if (mGestureRecognizer.mActiveTouches != pControl->mTarget)
+                                if (gestureRecognizer.activeTouches != pControl->target)
                                     break;
 
                                 // We don't care about other touch indices
@@ -2234,7 +2234,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 if (!touch)
                                     break;
 
-                                vec2 dir = normalize(touch->mDistTraveled);
+                                vec2 dir = normalize(touch->distTraveled);
 
                                 if (isnan(dir.getX()) || isnan(dir.getY()))
                                     break;
@@ -2250,29 +2250,29 @@ struct InputSystemImpl: public gainput::InputListener
                                     dir.setY(sign(dir.getY()));
                                 }
 
-                                ctx.mFloat4 = { touch->mDistTraveled.getX(), touch->mDistTraveled.getY(), dir.getX(), dir.getY() };
+                                ctx.float4Value = { touch->distTraveled.getX(), touch->distTraveled.getY(), dir.getX(), dir.getY() };
 
-                                ctx.pCaptured = &mDefaultCapture;
+                                ctx.pCaptured = &defaultCapture;
 
-                                if (touch->mVelocity > mGestureRecognizer.mSwipeVelocityThreshold ||
-                                    abs(touch->mDistTraveled.getX()) > mGestureRecognizer.mSwipeDistThreshold ||
-                                    abs(touch->mDistTraveled.getY()) > mGestureRecognizer.mSwipeDistThreshold)
+                                if (touch->velocity > gestureRecognizer.swipeVelocityThreshold ||
+                                    abs(touch->distTraveled.getX()) > gestureRecognizer.swipeDistThreshold ||
+                                    abs(touch->distTraveled.getY()) > gestureRecognizer.swipeDistThreshold)
                                 {
-                                    pControl->mAction.pFunction(&ctx);
+                                    pControl->action.pFunction(&ctx);
                                 }
 
                                 break;
                             }
                             case TOUCH_GESTURE_LONG_PRESS:
                             {
-                                if (mGestureRecognizer.mLongPressTouch &&
-                                    mGestureRecognizer.mLongPressTouch->mTime > mGestureRecognizer.mLongPressTimeThreshold)
+                                if (gestureRecognizer.longPressTouch &&
+                                    gestureRecognizer.longPressTouch->time > gestureRecognizer.longPressTimeThreshold)
                                 {
-                                    ctx.mBool = false;
-                                    ctx.pCaptured = &mDefaultCapture;
+                                    ctx.boolValue = false;
+                                    ctx.pCaptured = &defaultCapture;
 
-                                    pControl->mAction.pFunction(&ctx);
-                                    mGestureRecognizer.mLongPressTouch = nullptr;
+                                    pControl->action.pFunction(&ctx);
+                                    gestureRecognizer.longPressTouch = nullptr;
                                 }
                                 break;
                             }
@@ -2288,24 +2288,24 @@ struct InputSystemImpl: public gainput::InputListener
                 {
                     VirtualJoystickControl* pControl = (VirtualJoystickControl*)control;
 
-                    if (!oldValue && newValue && !pControl->mStarted)
+                    if (!oldValue && newValue && !pControl->started)
                     {
                         const float2 displaySize{ pInputManager->GetDisplayWidth(), pInputManager->GetDisplayHeight() };
 
-                        pControl->mStartPos = mTouchPositions[touchIndex];
-                        if (isPositionInsideScreenArea(pControl->mStartPos, (TouchScreenArea)pControl->mArea, displaySize))
+                        pControl->startPos = touchPositions[touchIndex];
+                        if (isPositionInsideScreenArea(pControl->startPos, (TouchScreenArea)pControl->area, displaySize))
                         {
-                            pControl->mStarted = 0x3;
-                            pControl->mTouchIndex = touchIndex;
-                            pControl->mCurrPos = pControl->mStartPos;
+                            pControl->started = 0x3;
+                            pControl->touchIndex = touchIndex;
+                            pControl->currPos = pControl->startPos;
 
-                            ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-                            ctx.mFloat2 = float2(0.0f);
-                            ctx.pPosition = &pControl->mCurrPos;
-                            ctx.mActionId = pControl->mAction.mActionId;
+                            ctx.phase = INPUT_ACTION_PHASE_STARTED;
+                            ctx.float2Value = float2(0.0f);
+                            ctx.pPosition = &pControl->currPos;
+                            ctx.actionId = pControl->action.actionId;
 
                             if (gVirtualJoystick)
-                                virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea),
+                                virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->area),
                                                       &ctx);
 
                             if (pDesc->pFunction)
@@ -2313,26 +2313,26 @@ struct InputSystemImpl: public gainput::InputListener
                         }
                         else
                         {
-                            pControl->mStarted = 0;
-                            pControl->mTouchIndex = 0xFF;
+                            pControl->started = 0;
+                            pControl->touchIndex = 0xFF;
                         }
                     }
                     else if (oldValue && !newValue)
                     {
-                        if (pControl->mTouchIndex == touchIndex)
+                        if (pControl->touchIndex == touchIndex)
                         {
-                            pControl->mIsPressed = 0;
-                            pControl->mTouchIndex = 0xFF;
-                            pControl->mStarted = 0;
-                            pControl->mPerformed = 0;
+                            pControl->isPressed = 0;
+                            pControl->touchIndex = 0xFF;
+                            pControl->started = 0;
+                            pControl->performed = 0;
 
-                            ctx.mFloat2 = float2(0.0f);
-                            ctx.pPosition = &pControl->mCurrPos;
-                            ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-                            ctx.mActionId = pControl->mAction.mActionId;
+                            ctx.float2Value = float2(0.0f);
+                            ctx.pPosition = &pControl->currPos;
+                            ctx.phase = INPUT_ACTION_PHASE_CANCELED;
+                            ctx.actionId = pControl->action.actionId;
 
                             if (gVirtualJoystick)
-                                virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea),
+                                virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->area),
                                                       &ctx);
 
                             if (pDesc->pFunction)
@@ -2345,14 +2345,14 @@ struct InputSystemImpl: public gainput::InputListener
                 case CONTROL_COMBO:
                 {
                     ComboControl* pControl = (ComboControl*)control;
-                    if (deviceButton == pControl->mPressButton)
+                    if (deviceButton == pControl->pressButton)
                     {
-                        pControl->mPressed = (uint8_t)newValue;
+                        pControl->pressed = (uint8_t)newValue;
                     }
-                    else if (pControl->mPressed && oldValue && !newValue && pDesc->pFunction)
+                    else if (pControl->pressed && oldValue && !newValue && pDesc->pFunction)
                     {
-                        ctx.mBool = true;
-                        ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+                        ctx.boolValue = true;
+                        ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                         pDesc->pFunction(&ctx);
                     }
                     break;
@@ -2377,17 +2377,17 @@ struct InputSystemImpl: public gainput::InputListener
         bool touchJustStarted = false;
 
         const uint32_t touchIndex = TOUCH_USER(deviceButton);
-        if (mTouchDeviceID == device)
+        if (touchDeviceID == device)
         {
             // The first frame that a touch starts we get the touch position of the previous touch in oldValue,
             // for controls that use deltas we would get a huge delta. To prevent this we want to ignore the oldValue for a touch
             // that just started.
-            touchJustStarted = (mTouchDownTime[touchIndex] == 0.f);
+            touchJustStarted = (touchDownTime[touchIndex] == 0.f);
 
             const uint32_t fingerIdx = deviceButton / GAINPUT_TOUCH_BUTTONS_PER_FINGER;
             const uint32_t fingerButton = deviceButton - fingerIdx * GAINPUT_TOUCH_BUTTONS_PER_FINGER;
 
-            gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
+            gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(touchDeviceID);
 
             switch ((gainput::TouchButton)fingerButton)
             {
@@ -2397,12 +2397,12 @@ struct InputSystemImpl: public gainput::InputListener
             case gainput::TouchButton::Touch0X:
                 // We recive Touch0X and Touch0Y always, we only want to track one of these as elapsed time
                 if (oldValue && newValue)
-                    mTouchDownTime[touchIndex] += deltaTime;
+                    touchDownTime[touchIndex] += deltaTime;
                 // fallthrough
 
             case gainput::TouchButton::Touch0Y:
-                mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
-                mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
+                touchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
+                touchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
                 break; // We continue to send the axis event data
 
             case gainput::TouchButton::Touch0Pressure:
@@ -2414,7 +2414,7 @@ struct InputSystemImpl: public gainput::InputListener
                 break;
             }
 
-            pPosition = &mTouchPositions[touchIndex];
+            pPosition = &touchPositions[touchIndex];
 
             const uint32_t axisIndex = fingerButton - gainput::TouchButton::Touch0X;
             ASSERT(axisIndex < 2);
@@ -2423,55 +2423,55 @@ struct InputSystemImpl: public gainput::InputListener
         FORGE_CONSTEXPR const bool touchJustStarted = false;
         if (IsPointerType(device))
         {
-            gainput::InputDeviceMouse* pMouse = (gainput::InputDeviceMouse*)pInputManager->GetDevice(mMouseDeviceID);
-            mMousePosition[0] = pMouse->GetFloat(gainput::MouseAxisX);
-            mMousePosition[1] = pMouse->GetFloat(gainput::MouseAxisY);
-            pPosition = &mMousePosition;
+            gainput::InputDeviceMouse* pMouse = (gainput::InputDeviceMouse*)pInputManager->GetDevice(mouseDeviceID);
+            mousePosition[0] = pMouse->GetFloat(gainput::MouseAxisX);
+            mousePosition[1] = pMouse->GetFloat(gainput::MouseAxisY);
+            pPosition = &mousePosition;
         }
 #endif
-        ptrdiff_t deviceButtonCount = arrlen(mControls[device]);
+        ptrdiff_t deviceButtonCount = arrlen(controls[device]);
         if (deviceButtonCount > 0 && deviceButton < deviceButtonCount)
         {
             bool executeNext = true;
 
-            for (ptrdiff_t i = 0; i < arrlen(mControls[device][deviceButton]); ++i)
+            for (ptrdiff_t i = 0; i < arrlen(controls[device][deviceButton]); ++i)
             {
-                IControl* control = mControls[device][deviceButton][i];
+                IControl* control = controls[device][deviceButton][i];
                 if (!executeNext)
                     return true;
 
-                const InputControlType type = control->mType;
-                const InputActionDesc* pDesc = &control->mAction;
+                const InputControlType type = control->type;
+                const InputActionDesc* pDesc = &control->action;
                 InputActionContext     ctx = {};
-                ctx.mDeviceType = (uint8_t)pDeviceTypes[device];
+                ctx.deviceType = (uint8_t)pDeviceTypes[device];
                 ctx.pUserData = pDesc->pUserData;
-                ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
-                ctx.mActionId = pDesc->mActionId;
+                ctx.pCaptured = IsPointerType(device) ? &inputCaptured : &defaultCapture;
+                ctx.actionId = pDesc->actionId;
                 ctx.pPosition = pPosition;
-                ctx.mUserId = pDesc->mUserId;
+                ctx.userId = pDesc->userId;
 
                 switch (type)
                 {
                 case CONTROL_FLOAT:
                 {
                     FloatControl* pControl = (FloatControl*)control;
-                    uint32_t      axis = (deviceButton - pControl->mStartButton);
+                    uint32_t      axis = (deviceButton - pControl->startButton);
 
 #if TOUCH_INPUT
                     // We need to determine touch axis in a custom way, each finger has it's own axis value
-                    if (mTouchDeviceID == device)
+                    if (touchDeviceID == device)
                     {
                         const uint32_t fingerIdx = deviceButton / GAINPUT_TOUCH_BUTTONS_PER_FINGER;
-                        //						if (pControl->mAction.mUserId != fingerIdx)
+                        //						if (pControl->action.userId != fingerIdx)
                         //							break; // This control does not care about this finger
 
                         ASSERT(pPosition);
 
                         const float2 displaySize{ pInputManager->GetDisplayWidth(), pInputManager->GetDisplayHeight() };
-                        if (!isPositionInsideScreenArea(*pPosition, (TouchScreenArea)pControl->mArea, displaySize))
+                        if (!isPositionInsideScreenArea(*pPosition, (TouchScreenArea)pControl->area, displaySize))
                             break;
 
-                        ctx.mFingerIndices[0] = fingerIdx;
+                        ctx.fingerIndices[0] = fingerIdx;
 
                         const uint32_t deviceAxis = deviceButton - fingerIdx * GAINPUT_TOUCH_BUTTONS_PER_FINGER;
                         ASSERT(deviceAxis == TOUCH_AXIS_X || deviceAxis == TOUCH_AXIS_Y && "CONTROL_FLOAT expects an X or Y value");
@@ -2486,65 +2486,65 @@ struct InputSystemImpl: public gainput::InputListener
                     }
 #endif
 
-                    if (pControl->mDelta & 0x1)
+                    if (pControl->delta & 0x1)
                     {
                         const float deltaValue = touchJustStarted ? 0.f : newValue - oldValue;
-                        pControl->mValue[axis] +=
-                            (axis > 0 ? -1.0f : 1.0f) * deltaValue * pControl->mScale / (pControl->mScaleByDT ? deltaTime : 1);
-                        ctx.mFloat3 = pControl->mValue;
+                        pControl->value[axis] +=
+                            (axis > 0 ? -1.0f : 1.0f) * deltaValue * pControl->scale / (pControl->scaleByDT ? deltaTime : 1);
+                        ctx.float3Value = pControl->value;
 
-                        if (((pControl->mStarted >> axis) & 0x1) == 0)
+                        if (((pControl->started >> axis) & 0x1) == 0)
                         {
-                            pControl->mStarted |= (1 << axis);
-                            if (pControl->mStarted == pControl->mTarget)
+                            pControl->started |= (1 << axis);
+                            if (pControl->started == pControl->target)
                             {
-                                ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+                                ctx.phase = INPUT_ACTION_PHASE_STARTED;
 
                                 if (pDesc->pFunction)
                                     executeNext = pDesc->pFunction(&ctx) && executeNext;
 
-                                if (mGlobalAnyButtonAction.pFunction)
+                                if (globalAnyButtonAction.pFunction)
                                 {
-                                    ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                                    mGlobalAnyButtonAction.pFunction(&ctx);
+                                    ctx.pUserData = globalAnyButtonAction.pUserData;
+                                    globalAnyButtonAction.pFunction(&ctx);
                                 }
                             }
 
                             FloatControlSet val = { pControl };
-                            hmputs(mFloatDeltaControlCancelQueue, val);
+                            hmputs(floatDeltaControlCancelQueue, val);
                         }
 
-                        pControl->mPerformed |= (1 << axis);
+                        pControl->performed |= (1 << axis);
 
-                        if (pControl->mPerformed == pControl->mTarget)
+                        if (pControl->performed == pControl->target)
                         {
-                            pControl->mPerformed = 0;
-                            ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+                            pControl->performed = 0;
+                            ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                             if (pDesc->pFunction)
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
 
-                            if (mGlobalAnyButtonAction.pFunction)
+                            if (globalAnyButtonAction.pFunction)
                             {
-                                ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                                mGlobalAnyButtonAction.pFunction(&ctx);
+                                ctx.pUserData = globalAnyButtonAction.pUserData;
+                                globalAnyButtonAction.pFunction(&ctx);
                             }
                         }
                     }
                     else if (pDesc->pFunction)
                     {
-                        pControl->mPerformed |= (1 << axis);
-                        pControl->mValue[axis] = newValue;
-                        if (pControl->mPerformed == pControl->mTarget)
+                        pControl->performed |= (1 << axis);
+                        pControl->value[axis] = newValue;
+                        if (pControl->performed == pControl->target)
                         {
-                            pControl->mPerformed = 0;
-                            ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-                            ctx.mFloat3 = pControl->mValue;
+                            pControl->performed = 0;
+                            ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+                            ctx.float3Value = pControl->value;
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
 
-                            if (mGlobalAnyButtonAction.pFunction)
+                            if (globalAnyButtonAction.pFunction)
                             {
-                                ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                                mGlobalAnyButtonAction.pFunction(&ctx);
+                                ctx.pUserData = globalAnyButtonAction.pUserData;
+                                globalAnyButtonAction.pFunction(&ctx);
                             }
                         }
                     }
@@ -2554,79 +2554,79 @@ struct InputSystemImpl: public gainput::InputListener
                 {
                     AxisControl* pControl = (AxisControl*)control;
 
-                    const uint32_t axis = (deviceButton - pControl->mStartButton);
+                    const uint32_t axis = (deviceButton - pControl->startButton);
 
-                    pControl->mNewValue[axis] = newValue;
-                    pControl->mPerformed |= (1 << axis);
+                    pControl->newValue[axis] = newValue;
+                    pControl->performed |= (1 << axis);
 
-                    if (pControl->mPerformed == pControl->mTarget)
+                    if (pControl->performed == pControl->target)
                     {
                         bool equal = true;
-                        for (uint32_t j = 0; j < pControl->mAxisCount; ++j)
-                            equal = equal && (pControl->mValue[j] == pControl->mNewValue[j]);
+                        for (uint32_t j = 0; j < pControl->axisCount; ++j)
+                            equal = equal && (pControl->value[j] == pControl->newValue[j]);
 
-                        pControl->mValue = pControl->mNewValue;
+                        pControl->value = pControl->newValue;
 
-                        ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-                        ctx.mFloat3 = pControl->mValue;
+                        ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+                        ctx.float3Value = pControl->value;
 
                         if (!equal)
                         {
                             if (pDesc->pFunction)
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
-                            if (mGlobalAnyButtonAction.pFunction)
+                            if (globalAnyButtonAction.pFunction)
                             {
-                                ctx.pUserData = mGlobalAnyButtonAction.pUserData;
-                                mGlobalAnyButtonAction.pFunction(&ctx);
+                                ctx.pUserData = globalAnyButtonAction.pUserData;
+                                globalAnyButtonAction.pFunction(&ctx);
                             }
                         }
                     }
                     else
                         continue;
 
-                    pControl->mPerformed = 0;
+                    pControl->performed = 0;
                     break;
                 }
                 case CONTROL_COMPOSITE:
                 {
                     CompositeControl* pControl = (CompositeControl*)control;
                     uint32_t          index = 0;
-                    for (; index < pControl->mComposite; ++index)
-                        if (deviceButton == pControl->mControls[index])
+                    for (; index < pControl->composite; ++index)
+                        if (deviceButton == pControl->controls[index])
                             break;
 
                     const uint32_t axis = index & 1;
-                    const float    prevValue = pControl->mValue[axis];
-                    pControl->mValue[axis] = newValue;
+                    const float    prevValue = pControl->value[axis];
+                    pControl->value[axis] = newValue;
                     if (newValue == prevValue)
                     {
                         continue;
                     }
                     else if (prevValue == 0.0)
                     {
-                        ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-                        pControl->mPressedVal[index] = 1;
-                        pControl->mStarted = 1;
+                        ctx.phase = INPUT_ACTION_PHASE_STARTED;
+                        pControl->pressedVal[index] = 1;
+                        pControl->started = 1;
                     }
                     else if (newValue == 0.0)
                     {
-                        ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-                        pControl->mPressedVal[index] = 0;
-                        pControl->mPerformed[index] = 0;
+                        ctx.phase = INPUT_ACTION_PHASE_CANCELED;
+                        pControl->pressedVal[index] = 0;
+                        pControl->performed[index] = 0;
                         bool anyPressed = false;
-                        for (uint32_t j = 0; j < pControl->mComposite; ++j)
+                        for (uint32_t j = 0; j < pControl->composite; ++j)
                         {
-                            anyPressed |= pControl->mPressedVal[j] != 0;
+                            anyPressed |= pControl->pressedVal[j] != 0;
                         }
                         if (!anyPressed)
-                            pControl->mStarted = 0;
+                            pControl->started = 0;
                     }
                     else
                     {
-                        ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-                        pControl->mPerformed[index] = 1;
+                        ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+                        pControl->performed[index] = 1;
                     }
-                    ctx.mFloat = pControl->mValue[0] - pControl->mValue[1];
+                    ctx.floatValue = pControl->value[0] - pControl->value[1];
                     executeNext = pDesc->pFunction(&ctx) && executeNext;
                     break;
                 }
@@ -2641,49 +2641,49 @@ struct InputSystemImpl: public gainput::InputListener
                     if (deviceAxis == TOUCH_AXIS_Y) // prevent processing two axes
                         continue;
 
-                    if (pControl->mAction.pFunction)
+                    if (pControl->action.pFunction)
                     {
-                        GestureRecognizer::Touch* touch = mGestureRecognizer.FindTouch(touchIndex);
+                        GestureRecognizer::Touch* touch = gestureRecognizer.FindTouch(touchIndex);
 
                         if (!touch)
                             continue;
 
-                        if (touch->mState == GestureRecognizer::Touch::ENDED)
+                        if (touch->state == GestureRecognizer::Touch::ENDED)
                             continue;
 
                         // save touch positions only while processing the first gesture
-                        if (!touch->mUpdated)
+                        if (!touch->updated)
                         {
-                            touch->mUpdated = true;
+                            touch->updated = true;
 
-                            touch->mPos0 = touch->mPos;
-                            touch->mPos = vec2(pPosition->getX(), pPosition->getY());
-                            touch->mDistTraveled += touch->mPos - touch->mPos0;
-                            touch->mVelocity = length(touch->mPos - touch->mPos0) / deltaTime;
+                            touch->pos0 = touch->pos;
+                            touch->pos = vec2(pPosition->getX(), pPosition->getY());
+                            touch->distTraveled += touch->pos - touch->pos0;
+                            touch->velocity = length(touch->pos - touch->pos0) / deltaTime;
                         }
 
                         for (uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i)
-                            ctx.mFingerIndices[i] = mGestureRecognizer.mTouches[i].mID;
+                            ctx.fingerIndices[i] = gestureRecognizer.touches[i].id;
 
-                        switch (pControl->mGestureType)
+                        switch (pControl->gestureType)
                         {
                         case TOUCH_GESTURE_PINCH:
                         {
-                            if (mGestureRecognizer.mActiveTouches != pControl->mTarget)
+                            if (gestureRecognizer.activeTouches != pControl->target)
                                 continue;
 
                             GestureRecognizer::Touch* touch[2];
-                            touch[0] = mGestureRecognizer.FindTouch(0);
-                            touch[1] = mGestureRecognizer.FindTouch(1);
+                            touch[0] = gestureRecognizer.FindTouch(0);
+                            touch[1] = gestureRecognizer.FindTouch(1);
 
                             if (!touch[0] || !touch[1])
                                 continue;
 
-                            if (!touch[0]->mUpdated || !touch[1]->mUpdated)
+                            if (!touch[0]->updated || !touch[1]->updated)
                                 continue;
 
-                            float dist1 = length(touch[1]->mPos - touch[0]->mPos);
-                            float dist0 = length(touch[1]->mPos0 - touch[0]->mPos0);
+                            float dist1 = length(touch[1]->pos - touch[0]->pos);
+                            float dist0 = length(touch[1]->pos0 - touch[0]->pos0);
 
                             float velocity = abs(dist1 - dist0) / deltaTime;
                             float scale = dist1 / dist0;
@@ -2691,34 +2691,34 @@ struct InputSystemImpl: public gainput::InputListener
                             if (scale < 0.1f)
                                 continue;
 
-                            ctx.mFloat4 = { velocity, scale, touch[1]->mPos.getX() - touch[0]->mPos.getX(),
-                                            touch[1]->mPos.getY() - touch[0]->mPos.getY() };
+                            ctx.float4Value = { velocity, scale, touch[1]->pos.getX() - touch[0]->pos.getX(),
+                                            touch[1]->pos.getY() - touch[0]->pos.getY() };
 
-                            ctx.pCaptured = &mDefaultCapture;
+                            ctx.pCaptured = &defaultCapture;
 
-                            pControl->mAction.pFunction(&ctx);
+                            pControl->action.pFunction(&ctx);
 
                             break;
                         }
                         case TOUCH_GESTURE_ROTATE:
                         {
-                            pControl->mPerformed++;
-                            if (pControl->mPerformed != pControl->mTarget)
+                            pControl->performed++;
+                            if (pControl->performed != pControl->target)
                                 break;
-                            pControl->mPerformed = 0;
+                            pControl->performed = 0;
 
-                            if (mGestureRecognizer.mActiveTouches != pControl->mTarget)
+                            if (gestureRecognizer.activeTouches != pControl->target)
                                 break;
 
                             GestureRecognizer::Touch* touch[2];
-                            touch[0] = mGestureRecognizer.FindTouch(0);
-                            touch[1] = mGestureRecognizer.FindTouch(1);
+                            touch[0] = gestureRecognizer.FindTouch(0);
+                            touch[1] = gestureRecognizer.FindTouch(1);
 
                             if (!touch[0] || !touch[1])
                                 continue;
 
-                            vec2 v1 = touch[1]->mPos - touch[0]->mPos;
-                            vec2 v0 = touch[1]->mPos0 - touch[0]->mPos0;
+                            vec2 v1 = touch[1]->pos - touch[0]->pos;
+                            vec2 v0 = touch[1]->pos0 - touch[0]->pos0;
 
                             float velocity = abs(length(v1) - length(v0)) / deltaTime;
                             float rotation = atan2f(v0.getX() * v1.getY() - v0.getY() * v1.getX(), dot(v0, v1));
@@ -2728,47 +2728,47 @@ struct InputSystemImpl: public gainput::InputListener
                             if (scale < 0.1f)
                                 continue;
 
-                            ctx.mFloat4 = { velocity, rotation, touch[1]->mPos.getX() - touch[0]->mPos.getX(),
-                                            touch[1]->mPos.getY() - touch[0]->mPos.getY() };
+                            ctx.float4Value = { velocity, rotation, touch[1]->pos.getX() - touch[0]->pos.getX(),
+                                            touch[1]->pos.getY() - touch[0]->pos.getY() };
 
-                            ctx.pCaptured = &mDefaultCapture;
+                            ctx.pCaptured = &defaultCapture;
 
-                            pControl->mAction.pFunction(&ctx);
+                            pControl->action.pFunction(&ctx);
 
                             break;
                         }
                         case TOUCH_GESTURE_PAN:
                         {
-                            pControl->mPerformed++;
-                            if (pControl->mPerformed != pControl->mTarget)
+                            pControl->performed++;
+                            if (pControl->performed != pControl->target)
                                 break;
 
-                            pControl->mPerformed = 0;
+                            pControl->performed = 0;
 
                             GestureRecognizer::Touch* touch;
-                            touch = mGestureRecognizer.FindTouch(touchIndex);
+                            touch = gestureRecognizer.FindTouch(touchIndex);
 
                             if (!touch)
                                 continue;
 
-                            ctx.mFingerIndices[0] = touchIndex;
-                            ctx.mFloat2 = {
-                                mTouchPositions[touchIndex][0] - touch->mPos.getX(),
-                                mTouchPositions[touchIndex][1] - touch->mPos.getY(),
+                            ctx.fingerIndices[0] = touchIndex;
+                            ctx.float2Value = {
+                                touchPositions[touchIndex][0] - touch->pos.getX(),
+                                touchPositions[touchIndex][1] - touch->pos.getY(),
                             };
 
-                            touch->mPos.setX(mTouchPositions[touchIndex][0]);
-                            touch->mPos.setY(mTouchPositions[touchIndex][1]);
+                            touch->pos.setX(touchPositions[touchIndex][0]);
+                            touch->pos.setY(touchPositions[touchIndex][1]);
 
-                            ctx.mPhase = touch->mState == GestureRecognizer::Touch::STARTED ? INPUT_ACTION_PHASE_STARTED
+                            ctx.phase = touch->state == GestureRecognizer::Touch::STARTED ? INPUT_ACTION_PHASE_STARTED
                                                                                             : INPUT_ACTION_PHASE_UPDATED;
-                            ctx.mBool = true;
-                            ctx.pCaptured = &mDefaultCapture;
+                            ctx.boolValue = true;
+                            ctx.pCaptured = &defaultCapture;
 
-                            if (touch->mState == GestureRecognizer::Touch::STARTED)
-                                touch->mState = GestureRecognizer::Touch::HOLDING;
+                            if (touch->state == GestureRecognizer::Touch::STARTED)
+                                touch->state = GestureRecognizer::Touch::HOLDING;
 
-                            pControl->mAction.pFunction(&ctx);
+                            pControl->action.pFunction(&ctx);
 
                             break;
                         }
@@ -2785,28 +2785,28 @@ struct InputSystemImpl: public gainput::InputListener
 
                     const uint32_t axis = TOUCH_AXIS(deviceButton);
 
-                    if (!pControl->mStarted || TOUCH_USER(deviceButton) != pControl->mTouchIndex)
+                    if (!pControl->started || TOUCH_USER(deviceButton) != pControl->touchIndex)
                         continue;
 
-                    pControl->mPerformed |= (1 << axis);
-                    pControl->mCurrPos[axis] = newValue;
-                    if (pControl->mPerformed == 0x3)
+                    pControl->performed |= (1 << axis);
+                    pControl->currPos[axis] = newValue;
+                    if (pControl->performed == 0x3)
                     {
                         // Calculate the new joystick positions
-                        vec2  delta = f2Tov2(pControl->mCurrPos - pControl->mStartPos);
-                        float halfRad = (pControl->mOutsideRadius * 0.5f) - pControl->mDeadzone;
+                        vec2  delta = f2Tov2(pControl->currPos - pControl->startPos);
+                        float halfRad = (pControl->outsideRadius * 0.5f) - pControl->deadzone;
                         if (length(delta) > halfRad)
-                            pControl->mCurrPos = pControl->mStartPos + halfRad * v2ToF2(normalize(delta));
+                            pControl->currPos = pControl->startPos + halfRad * v2ToF2(normalize(delta));
 
-                        ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
-                        float2 dir = ((pControl->mCurrPos - pControl->mStartPos) / halfRad) * pControl->mScale;
-                        ctx.mFloat2 = float2(dir[0], -dir[1]);
-                        ctx.pPosition = &pControl->mCurrPos;
-                        ctx.mActionId = pControl->mAction.mActionId;
-                        ctx.mFingerIndices[0] = pControl->mTouchIndex;
+                        ctx.phase = INPUT_ACTION_PHASE_UPDATED;
+                        float2 dir = ((pControl->currPos - pControl->startPos) / halfRad) * pControl->scale;
+                        ctx.float2Value = float2(dir[0], -dir[1]);
+                        ctx.pPosition = &pControl->currPos;
+                        ctx.actionId = pControl->action.actionId;
+                        ctx.fingerIndices[0] = pControl->touchIndex;
 
                         if (gVirtualJoystick)
-                            virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea), &ctx);
+                            virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->area), &ctx);
 
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
@@ -2859,8 +2859,8 @@ struct InputSystemImpl: public gainput::InputListener
             {
                 pGamepadDeviceIDs[i] = deviceId;
 
-                if (mOnDeviceChangeCallBack)
-                    mOnDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), true, i);
+                if (onDeviceChangeCallBack)
+                    onDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), true, i);
 
                 break;
             }
@@ -2876,8 +2876,8 @@ struct InputSystemImpl: public gainput::InputListener
         {
             if (pGamepadDeviceIDs[i] == deviceId)
             {
-                if (mOnDeviceChangeCallBack)
-                    mOnDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), false, i);
+                if (onDeviceChangeCallBack)
+                    onDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), false, i);
 
                 pGamepadDeviceIDs[i] = gainput::InvalidDeviceId;
 
@@ -2939,7 +2939,7 @@ struct InputSystemImpl: public gainput::InputListener
 
     void setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added, int))
     {
-        mOnDeviceChangeCallBack = onDeviceChnageCallBack;
+        onDeviceChangeCallBack = onDeviceChnageCallBack;
 
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
         {
@@ -2947,8 +2947,8 @@ struct InputSystemImpl: public gainput::InputListener
             {
                 gainput::InputDevice* device = pInputManager->GetDevice(pGamepadDeviceIDs[i]);
 
-                if (mOnDeviceChangeCallBack)
-                    mOnDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), true, i);
+                if (onDeviceChangeCallBack)
+                    onDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), true, i);
 
                 break;
             }
@@ -2967,8 +2967,8 @@ static InputSystemImpl* pInputSystem = NULL;
 #if (defined(_WINDOWS) && !defined(XBOX)) || (defined(__APPLE__) && !defined(TARGET_IOS))
 static void ResetInputStates()
 {
-    pInputSystem->pInputManager->ClearAllStates(pInputSystem->mMouseDeviceID);
-    pInputSystem->pInputManager->ClearAllStates(pInputSystem->mKeyboardDeviceID);
+    pInputSystem->pInputManager->ClearAllStates(pInputSystem->mouseDeviceID);
+    pInputSystem->pInputManager->ClearAllStates(pInputSystem->keyboardDeviceID);
     for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
     {
         pInputSystem->pInputManager->ClearAllStates(pInputSystem->pGamepadDeviceIDs[i]);

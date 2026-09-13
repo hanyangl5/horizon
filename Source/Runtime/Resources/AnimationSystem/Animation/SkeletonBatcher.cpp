@@ -30,69 +30,69 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // Set member render variables based on the description
-    mRenderer = skeletonRenderDesc.mRenderer;
-    mJointVertexBuffer = skeletonRenderDesc.mJointVertexBuffer;
-    mNumJointPoints = skeletonRenderDesc.mNumJointPoints;
-    mJointVertexStride = skeletonRenderDesc.mJointVertexStride;
-    mBoneVertexStride = skeletonRenderDesc.mBoneVertexStride;
-    mJointMeshType = skeletonRenderDesc.mJointMeshType;
-    mFrameCount = skeletonRenderDesc.mFrameCount;
-    mMaxSkeletonBatches = skeletonRenderDesc.mMaxSkeletonBatches;
-    mJointVertShaderName = skeletonRenderDesc.mJointVertShaderName;
-    mJointFragShaderName = skeletonRenderDesc.mJointFragShaderName;
+    renderer = skeletonRenderDesc.renderer;
+    jointVertexBuffer = skeletonRenderDesc.jointVertexBuffer;
+    numJointPoints = skeletonRenderDesc.numJointPoints;
+    jointVertexStride = skeletonRenderDesc.jointVertexStride;
+    boneVertexStride = skeletonRenderDesc.boneVertexStride;
+    jointMeshType = skeletonRenderDesc.jointMeshType;
+    frameCount = skeletonRenderDesc.frameCount;
+    maxSkeletonBatches = skeletonRenderDesc.maxSkeletonBatches;
+    jointVertShaderName = skeletonRenderDesc.jointVertShaderName;
+    jointFragShaderName = skeletonRenderDesc.jointFragShaderName;
 
-    ASSERT(mFrameCount > 0);
-    ASSERT(mMaxSkeletonBatches > 0);
+    ASSERT(frameCount > 0);
+    ASSERT(maxSkeletonBatches > 0);
 
-    ASSERT(skeletonRenderDesc.mMaxAnimatedObjects > 0 && "Need to specify the maximum number of animated objects");
-    mMaxAnimatedObjects = skeletonRenderDesc.mMaxAnimatedObjects;
-    arrsetlen(mAnimatedObjects, skeletonRenderDesc.mMaxAnimatedObjects);
-    arrsetlen(mCumulativeAnimatedObjectInstanceCount, skeletonRenderDesc.mMaxAnimatedObjects + 1);
-    memset(mAnimatedObjects, 0, sizeof(*mAnimatedObjects) * skeletonRenderDesc.mMaxAnimatedObjects);
-    memset(mCumulativeAnimatedObjectInstanceCount, 0,
-           sizeof(*mCumulativeAnimatedObjectInstanceCount) * (skeletonRenderDesc.mMaxAnimatedObjects + 1));
+    ASSERT(skeletonRenderDesc.maxAnimatedObjects > 0 && "Need to specify the maximum number of animated objects");
+    maxAnimatedObjects = skeletonRenderDesc.maxAnimatedObjects;
+    arrsetlen(animatedObjects, skeletonRenderDesc.maxAnimatedObjects);
+    arrsetlen(cumulativeAnimatedObjectInstanceCount, skeletonRenderDesc.maxAnimatedObjects + 1);
+    memset(animatedObjects, 0, sizeof(*animatedObjects) * skeletonRenderDesc.maxAnimatedObjects);
+    memset(cumulativeAnimatedObjectInstanceCount, 0,
+           sizeof(*cumulativeAnimatedObjectInstanceCount) * (skeletonRenderDesc.maxAnimatedObjects + 1));
 
     // Determine if we will ever expect to use this renderer to draw bones
-    mDrawBones = skeletonRenderDesc.mDrawBones;
-    if (mDrawBones)
+    drawBones = skeletonRenderDesc.drawBones;
+    if (drawBones)
     {
-        mBoneVertexBuffer = skeletonRenderDesc.mBoneVertexBuffer;
-        mNumBonePoints = skeletonRenderDesc.mNumBonePoints;
+        boneVertexBuffer = skeletonRenderDesc.boneVertexBuffer;
+        numBonePoints = skeletonRenderDesc.numBonePoints;
     }
 
-    mNumAnimatedObjects = 0;
-    mNumActiveAnimatedObjects = 0;
-    mInstanceCount = 0;
+    numAnimatedObjects = 0;
+    numActiveAnimatedObjects = 0;
+    instanceCount = 0;
 
-    mProjViewUniformBufferJoints = (Buffer**)tf_calloc_memalign(mFrameCount * mMaxSkeletonBatches * 2, alignof(Buffer*), sizeof(Buffer*));
-    mProjViewUniformBufferBones = mProjViewUniformBufferJoints + (mFrameCount * mMaxSkeletonBatches);
-    mUniformDataJoints =
-        (UniformSkeletonBlock*)tf_calloc_memalign(mMaxSkeletonBatches, alignof(UniformSkeletonBlock), sizeof(UniformSkeletonBlock));
+    projViewUniformBufferJoints = (Buffer**)tf_calloc_memalign(frameCount * maxSkeletonBatches * 2, alignof(Buffer*), sizeof(Buffer*));
+    projViewUniformBufferBones = projViewUniformBufferJoints + (frameCount * maxSkeletonBatches);
+    uniformDataJoints =
+        (UniformSkeletonBlock*)tf_calloc_memalign(maxSkeletonBatches, alignof(UniformSkeletonBlock), sizeof(UniformSkeletonBlock));
 
-    mBatchCounts = (tfrg_atomic32_t*)tf_calloc_memalign(mFrameCount + mFrameCount * mMaxSkeletonBatches, alignof(tfrg_atomic32_t),
+    batchCounts = (tfrg_atomic32_t*)tf_calloc_memalign(frameCount + frameCount * maxSkeletonBatches, alignof(tfrg_atomic32_t),
                                                         sizeof(tfrg_atomic32_t));
-    mBatchSize = mBatchCounts + mFrameCount;
+    batchSize = batchCounts + frameCount;
 
     // Initialize all the buffer that will be used for each batch per each frame index
     BufferLoadDesc ubDesc = {};
-    ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    ubDesc.mDesc.mSize = sizeof(UniformSkeletonBlock);
-    ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | skeletonRenderDesc.mCreationFlag;
+    ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    ubDesc.desc.size = sizeof(UniformSkeletonBlock);
+    ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | skeletonRenderDesc.creationFlag;
     ubDesc.pData = NULL;
 
-    for (uint32_t i = 0; i < mFrameCount; ++i)
+    for (uint32_t i = 0; i < frameCount; ++i)
     {
-        for (uint32_t j = 0; j < mMaxSkeletonBatches; ++j)
+        for (uint32_t j = 0; j < maxSkeletonBatches; ++j)
         {
-            const uint32_t bufferIndex = i * mMaxSkeletonBatches + j;
+            const uint32_t bufferIndex = i * maxSkeletonBatches + j;
 
-            ubDesc.ppBuffer = &mProjViewUniformBufferJoints[bufferIndex];
+            ubDesc.ppBuffer = &projViewUniformBufferJoints[bufferIndex];
             addResource(&ubDesc, NULL);
 
-            if (mDrawBones)
+            if (drawBones)
             {
-                ubDesc.ppBuffer = &mProjViewUniformBufferBones[bufferIndex];
+                ubDesc.ppBuffer = &projViewUniformBufferBones[bufferIndex];
                 addResource(&ubDesc, NULL);
             }
         }
@@ -105,25 +105,25 @@ void SkeletonBatcher::Exit()
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
 
-    for (uint32_t i = 0; i < mFrameCount; ++i)
+    for (uint32_t i = 0; i < frameCount; ++i)
     {
-        for (uint32_t j = 0; j < mMaxSkeletonBatches; ++j)
+        for (uint32_t j = 0; j < maxSkeletonBatches; ++j)
         {
-            const uint32_t bufferIndex = i * mMaxSkeletonBatches + j;
-            removeResource(mProjViewUniformBufferJoints[bufferIndex]);
-            if (mDrawBones)
+            const uint32_t bufferIndex = i * maxSkeletonBatches + j;
+            removeResource(projViewUniformBufferJoints[bufferIndex]);
+            if (drawBones)
             {
-                removeResource(mProjViewUniformBufferBones[bufferIndex]);
+                removeResource(projViewUniformBufferBones[bufferIndex]);
             }
         }
     }
 
-    arrfree(mAnimatedObjects);
-    arrfree(mCumulativeAnimatedObjectInstanceCount);
+    arrfree(animatedObjects);
+    arrfree(cumulativeAnimatedObjectInstanceCount);
 
-    tf_free((void*)mBatchCounts);
-    tf_free(mUniformDataJoints);
-    tf_free(mProjViewUniformBufferJoints);
+    tf_free((void*)batchCounts);
+    tf_free(uniformDataJoints);
+    tf_free(projViewUniformBufferJoints);
 #endif
 }
 
@@ -131,113 +131,113 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
 
-    if (pDesc->mLoadType & RELOAD_TYPE_SHADER)
+    if (pDesc->loadType & RELOAD_TYPE_SHADER)
     {
         ShaderLoadDesc jointShader = {};
         // if a custom shader is required for joints
-        if (mJointVertShaderName && mJointFragShaderName)
+        if (jointVertShaderName && jointFragShaderName)
         {
-            jointShader.mStages[0].pFileName = mJointVertShaderName;
-            jointShader.mStages[1].pFileName = mJointFragShaderName;
+            jointShader.stages[0].pFileName = jointVertShaderName;
+            jointShader.stages[1].pFileName = jointFragShaderName;
         }
         else
         {
-            jointShader.mStages[0].pFileName = "joint.vert";
-            jointShader.mStages[1].pFileName = "joint.frag";
+            jointShader.stages[0].pFileName = "joint.vert";
+            jointShader.stages[1].pFileName = "joint.frag";
         }
 
         ShaderLoadDesc boneShader = {};
-        boneShader.mStages[0].pFileName = "bone.vert";
-        boneShader.mStages[1].pFileName = "bone.frag";
+        boneShader.stages[0].pFileName = "bone.vert";
+        boneShader.stages[1].pFileName = "bone.frag";
 
-        addShader(mRenderer, &jointShader, &mJointShader);
-        addShader(mRenderer, &boneShader, &mBoneShader);
+        addShader(renderer, &jointShader, &this->jointShader);
+        addShader(renderer, &boneShader, &this->boneShader);
 
-        Shader*           shaders[] = { mJointShader, mBoneShader };
+        Shader*           shaders[] = { this->jointShader, this->boneShader };
         RootSignatureDesc rootDesc = {};
-        rootDesc.mShaderCount = 2;
+        rootDesc.shaderCount = 2;
         rootDesc.ppShaders = shaders;
 
-        addRootSignature(mRenderer, &rootDesc, &mRootSignature);
+        addRootSignature(renderer, &rootDesc, &rootSignature);
 
         // 2 because updates buffer twice per instanced draw call: one for joints and one for bones
-        DescriptorSetDesc setDesc = { mRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, mMaxSkeletonBatches * 2 * mFrameCount };
-        addDescriptorSet(mRenderer, &setDesc, &pDescriptorSet);
+        DescriptorSetDesc setDesc = { rootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, maxSkeletonBatches * 2 * frameCount };
+        addDescriptorSet(renderer, &setDesc, &pDescriptorSet);
     }
 
     PrepareDescriptorSets();
 
-    if (pDesc->mLoadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+    if (pDesc->loadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
     {
         VertexLayout jointLayout = {};
-        jointLayout.mBindingCount = 1;
-        jointLayout.mAttribCount = 2;
-        jointLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        jointLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-        jointLayout.mAttribs[0].mBinding = 0;
-        jointLayout.mAttribs[0].mLocation = 0;
-        jointLayout.mAttribs[0].mOffset = 0;
-        jointLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-        jointLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-        jointLayout.mAttribs[1].mBinding = 0;
-        jointLayout.mAttribs[1].mLocation = 1;
-        jointLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+        jointLayout.bindingCount = 1;
+        jointLayout.attribCount = 2;
+        jointLayout.attribs[0].semantic = SEMANTIC_POSITION;
+        jointLayout.attribs[0].format = TinyImageFormat_R32G32B32_SFLOAT;
+        jointLayout.attribs[0].binding = 0;
+        jointLayout.attribs[0].location = 0;
+        jointLayout.attribs[0].offset = 0;
+        jointLayout.attribs[1].semantic = SEMANTIC_NORMAL;
+        jointLayout.attribs[1].format = TinyImageFormat_R32G32B32_SFLOAT;
+        jointLayout.attribs[1].binding = 0;
+        jointLayout.attribs[1].location = 1;
+        jointLayout.attribs[1].offset = 3 * sizeof(float);
 
         VertexLayout boneVertexLayout = {};
-        boneVertexLayout.mBindingCount = 1;
-        boneVertexLayout.mAttribCount = 3;
-        boneVertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        boneVertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-        boneVertexLayout.mAttribs[0].mBinding = 0;
-        boneVertexLayout.mAttribs[0].mLocation = 0;
-        boneVertexLayout.mAttribs[0].mOffset = 0;
-        boneVertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-        boneVertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-        boneVertexLayout.mAttribs[1].mBinding = 0;
-        boneVertexLayout.mAttribs[1].mLocation = 1;
-        boneVertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-        boneVertexLayout.mAttribs[2].mSemantic = SEMANTIC_JOINTS;
-        boneVertexLayout.mAttribs[2].mFormat = TinyImageFormat_R16G16B16A16_UINT;
-        boneVertexLayout.mAttribs[2].mBinding = 0;
-        boneVertexLayout.mAttribs[2].mLocation = 2;
-        boneVertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
+        boneVertexLayout.bindingCount = 1;
+        boneVertexLayout.attribCount = 3;
+        boneVertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
+        boneVertexLayout.attribs[0].format = TinyImageFormat_R32G32B32_SFLOAT;
+        boneVertexLayout.attribs[0].binding = 0;
+        boneVertexLayout.attribs[0].location = 0;
+        boneVertexLayout.attribs[0].offset = 0;
+        boneVertexLayout.attribs[1].semantic = SEMANTIC_NORMAL;
+        boneVertexLayout.attribs[1].format = TinyImageFormat_R32G32B32_SFLOAT;
+        boneVertexLayout.attribs[1].binding = 0;
+        boneVertexLayout.attribs[1].location = 1;
+        boneVertexLayout.attribs[1].offset = 3 * sizeof(float);
+        boneVertexLayout.attribs[2].semantic = SEMANTIC_JOINTS;
+        boneVertexLayout.attribs[2].format = TinyImageFormat_R16G16B16A16_UINT;
+        boneVertexLayout.attribs[2].binding = 0;
+        boneVertexLayout.attribs[2].location = 2;
+        boneVertexLayout.attribs[2].offset = 6 * sizeof(float);
 
         RasterizerStateDesc skeletonRasterizerStateDesc = {};
-        skeletonRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+        skeletonRasterizerStateDesc.cullMode = CULL_MODE_FRONT;
 
         DepthStateDesc depthStateDesc = {};
-        depthStateDesc.mDepthTest = true;
-        depthStateDesc.mDepthWrite = true;
-        depthStateDesc.mDepthFunc = CMP_GEQUAL;
+        depthStateDesc.depthTest = true;
+        depthStateDesc.depthWrite = true;
+        depthStateDesc.depthFunc = CMP_GEQUAL;
 
         PipelineDesc desc = {};
-        desc.mType = PIPELINE_TYPE_GRAPHICS;
-        GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-        if (mJointMeshType == Cube)
+        desc.type = PIPELINE_TYPE_GRAPHICS;
+        GraphicsPipelineDesc& pipelineSettings = desc.graphicsDesc;
+        if (jointMeshType == Cube)
         {
-            pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+            pipelineSettings.primitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         }
         else
         {
-            pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+            pipelineSettings.primitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
         }
-        pipelineSettings.mRenderTargetCount = 1;
+        pipelineSettings.renderTargetCount = 1;
         pipelineSettings.pDepthState = &depthStateDesc;
-        pipelineSettings.pColorFormats = (TinyImageFormat*)&pDesc->mColorFormat;
-        pipelineSettings.mSampleCount = pDesc->mSampleCount;
-        pipelineSettings.mSampleQuality = pDesc->mSampleQuality;
-        pipelineSettings.mDepthStencilFormat = (TinyImageFormat)pDesc->mDepthFormat;
-        pipelineSettings.pRootSignature = mRootSignature;
+        pipelineSettings.pColorFormats = (TinyImageFormat*)&pDesc->colorFormat;
+        pipelineSettings.sampleCount = pDesc->sampleCount;
+        pipelineSettings.sampleQuality = pDesc->sampleQuality;
+        pipelineSettings.depthStencilFormat = (TinyImageFormat)pDesc->depthFormat;
+        pipelineSettings.pRootSignature = rootSignature;
 
-        pipelineSettings.pShaderProgram = mJointShader;
+        pipelineSettings.pShaderProgram = jointShader;
         pipelineSettings.pVertexLayout = &jointLayout;
         pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
-        addPipeline(mRenderer, &desc, &mJointPipeline);
+        addPipeline(renderer, &desc, &jointPipeline);
 
-        pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipelineSettings.pShaderProgram = mBoneShader;
+        pipelineSettings.primitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+        pipelineSettings.pShaderProgram = boneShader;
         pipelineSettings.pVertexLayout = &boneVertexLayout;
-        addPipeline(mRenderer, &desc, &mBonePipeline);
+        addPipeline(renderer, &desc, &bonePipeline);
     }
 #endif
 }
@@ -247,16 +247,16 @@ void SkeletonBatcher::Unload(ReloadType reloadType)
 
     if (reloadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
     {
-        removePipeline(mRenderer, mBonePipeline);
-        removePipeline(mRenderer, mJointPipeline);
+        removePipeline(renderer, bonePipeline);
+        removePipeline(renderer, jointPipeline);
     }
 
     if (reloadType & RELOAD_TYPE_SHADER)
     {
-        removeDescriptorSet(mRenderer, pDescriptorSet);
-        removeRootSignature(mRenderer, mRootSignature);
-        removeShader(mRenderer, mBoneShader);
-        removeShader(mRenderer, mJointShader);
+        removeDescriptorSet(renderer, pDescriptorSet);
+        removeRootSignature(renderer, rootSignature);
+        removeShader(renderer, boneShader);
+        removeShader(renderer, jointShader);
     }
 #endif
 }
@@ -267,19 +267,19 @@ void SkeletonBatcher::PrepareDescriptorSets()
     DescriptorData params[1] = {};
     params[0].pName = "uniformBlock";
 
-    for (uint32_t i = 0; i < mFrameCount; ++i)
+    for (uint32_t i = 0; i < frameCount; ++i)
     {
-        for (uint32_t j = 0; j < mMaxSkeletonBatches; ++j)
+        for (uint32_t j = 0; j < maxSkeletonBatches; ++j)
         {
-            const uint32_t bufferIndex = i * mMaxSkeletonBatches + j;
+            const uint32_t bufferIndex = i * maxSkeletonBatches + j;
 
-            params[0].ppBuffers = &mProjViewUniformBufferJoints[bufferIndex];
-            updateDescriptorSet(mRenderer, (i * (mMaxSkeletonBatches * 2)) + (j * 2 + 0), pDescriptorSet, 1, params);
+            params[0].ppBuffers = &projViewUniformBufferJoints[bufferIndex];
+            updateDescriptorSet(renderer, (i * (maxSkeletonBatches * 2)) + (j * 2 + 0), pDescriptorSet, 1, params);
 
-            if (mDrawBones)
+            if (drawBones)
             {
-                params[0].ppBuffers = &mProjViewUniformBufferBones[bufferIndex];
-                updateDescriptorSet(mRenderer, (i * (mMaxSkeletonBatches * 2)) + (j * 2 + 1), pDescriptorSet, 1, params);
+                params[0].ppBuffers = &projViewUniformBufferBones[bufferIndex];
+                updateDescriptorSet(renderer, (i * (maxSkeletonBatches * 2)) + (j * 2 + 1), pDescriptorSet, 1, params);
             }
         }
     }
@@ -293,12 +293,12 @@ void SkeletonBatcher::SetSharedUniforms(const CameraMatrix& projViewMat, const m
     // we only need the rotation of view matrix in shaders to calculate billboards and fake lighting
     mat4 viewMatNoTranslation = viewMat;
     viewMatNoTranslation.setCol(3, Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-    for (uint32_t i = 0; i < mMaxSkeletonBatches; ++i)
+    for (uint32_t i = 0; i < maxSkeletonBatches; ++i)
     {
-        mUniformDataJoints[i].mViewMatrix = viewMatNoTranslation;
-        mUniformDataJoints[i].mProjectView = projViewMat;
-        mUniformDataJoints[i].mLightPosition = Vector4(lightPos);
-        mUniformDataJoints[i].mLightColor = Vector4(lightColor);
+        uniformDataJoints[i].viewMatrix = viewMatNoTranslation;
+        uniformDataJoints[i].projectView = projViewMat;
+        uniformDataJoints[i].lightPosition = Vector4(lightPos);
+        uniformDataJoints[i].lightColor = Vector4(lightColor);
     }
 #endif
 }
@@ -306,7 +306,7 @@ void SkeletonBatcher::SetSharedUniforms(const CameraMatrix& projViewMat, const m
 void SkeletonBatcher::SetActiveRigs(uint32_t activeRigs)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    mNumActiveAnimatedObjects = min(activeRigs, mNumAnimatedObjects);
+    numActiveAnimatedObjects = min(activeRigs, numAnimatedObjects);
 #endif
 }
 
@@ -314,10 +314,10 @@ void SkeletonBatcher::PreSetInstanceUniforms(const uint32_t frameIndex)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // Reset batch counts
-    tfrg_atomic32_t* pFrameBatchSize = &mBatchSize[frameIndex * mMaxSkeletonBatches];
+    tfrg_atomic32_t* pFrameBatchSize = &batchSize[frameIndex * maxSkeletonBatches];
 
-    tfrg_atomic32_store_relaxed(&mBatchCounts[frameIndex], 0);
-    for (uint32_t i = 0; i < mMaxSkeletonBatches; ++i)
+    tfrg_atomic32_store_relaxed(&batchCounts[frameIndex], 0);
+    for (uint32_t i = 0; i < maxSkeletonBatches; ++i)
     {
         tfrg_atomic32_store_relaxed(&pFrameBatchSize[i], 0);
     }
@@ -327,50 +327,50 @@ void SkeletonBatcher::PreSetInstanceUniforms(const uint32_t frameIndex)
 void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t numObjects, uint32_t objectsOffset)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    ASSERT(frameIndex < mFrameCount);
+    ASSERT(frameIndex < frameCount);
 
     // If the numObjects parameter was not initialized, used the data from all the active rigs
     if (numObjects == -1)
     {
-        numObjects = mNumActiveAnimatedObjects;
+        numObjects = numActiveAnimatedObjects;
     }
 
     const uint32_t lastBatchIndex =
-        mCumulativeAnimatedObjectInstanceCount[mNumActiveAnimatedObjects] / MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
-    const uint32_t lastBatchSize = mCumulativeAnimatedObjectInstanceCount[mNumActiveAnimatedObjects] % MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
+        cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects] / MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
+    const uint32_t lastBatchSize = cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects] % MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
 
     // Will keep track of the number of instances that have their data added
     const uint32_t totalInstanceCount =
-        mCumulativeAnimatedObjectInstanceCount[objectsOffset + numObjects] - mCumulativeAnimatedObjectInstanceCount[objectsOffset];
-    uint32_t instanceCount = tfrg_atomic32_add_relaxed(&mInstanceCount, totalInstanceCount);
+        cumulativeAnimatedObjectInstanceCount[objectsOffset + numObjects] - cumulativeAnimatedObjectInstanceCount[objectsOffset];
+    uint32_t instanceCount = tfrg_atomic32_add_relaxed(&this->instanceCount, totalInstanceCount);
 
-    // Last resets mInstanceCount
-    if (instanceCount + totalInstanceCount == mCumulativeAnimatedObjectInstanceCount[mNumActiveAnimatedObjects])
-        mInstanceCount = 0;
+    // Last resets instanceCount
+    if (instanceCount + totalInstanceCount == cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects])
+        this->instanceCount = 0;
 
     uint32_t batchInstanceCount = 0;
     uint32_t batchIndex = instanceCount / MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
 
-    tfrg_atomic32_t* pFrameBatchSize = &mBatchSize[frameIndex * mMaxSkeletonBatches];
+    tfrg_atomic32_t* pFrameBatchSize = &batchSize[frameIndex * maxSkeletonBatches];
 
     // For every rig
     for (uint32_t objIndex = objectsOffset; objIndex < numObjects + objectsOffset; ++objIndex)
     {
-        const AnimatedObject* animObj = mAnimatedObjects[objIndex];
+        const AnimatedObject* animObj = animatedObjects[objIndex];
 
         // Get the number of joints in the rig
-        uint32_t numJoints = animObj->mRig->mNumJoints;
+        uint32_t numJoints = animObj->rig->numJoints;
         // For every joint in the rig
         for (uint32_t jointIndex = 0; jointIndex < numJoints; jointIndex++)
         {
             uint32_t              instanceIndex = instanceCount % MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
-            UniformSkeletonBlock& uniformDataJoints = mUniformDataJoints[batchIndex];
+            UniformSkeletonBlock& uniformDataJoints = this->uniformDataJoints[batchIndex];
 
-            mUniformDataJoints[batchIndex].mSkeletonInfo = uint4(numJoints, 1, 0, 0);
-            uniformDataJoints.mToWorldMat[instanceIndex] =
-                animObj->GetJointWorldMatNoScale(jointIndex) * mat4::scale(animObj->mJointScales[jointIndex]);
-            uniformDataJoints.mColor[instanceIndex] = animObj->mBoneColor;
-            uniformDataJoints.mJointColor = animObj->mJointColor;
+            this->uniformDataJoints[batchIndex].skeletonInfo = uint4(numJoints, 1, 0, 0);
+            uniformDataJoints.toWorldMat[instanceIndex] =
+                animObj->GetJointWorldMatNoScale(jointIndex) * mat4::scale(animObj->jointScales[jointIndex]);
+            uniformDataJoints.color[instanceIndex] = animObj->boneColor;
+            uniformDataJoints.jointColor = animObj->jointColor;
 
             // increment the count of uniform data that has been filled for this batch
             ++instanceCount;
@@ -387,10 +387,10 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
                 if (currBatchSize == MAX_SKELETON_BATCHER_BLOCK_INSTANCES ||
                     (lastBatchIndex == batchIndex && currBatchSize == lastBatchSize))
                 {
-                    const uint32_t bufferIndex = frameIndex * mMaxSkeletonBatches + batchIndex;
+                    const uint32_t bufferIndex = frameIndex * maxSkeletonBatches + batchIndex;
 
-                    tfrg_atomic32_add_relaxed(&mBatchCounts[frameIndex], 1);
-                    BufferUpdateDesc viewProjCbvJoints = { mProjViewUniformBufferJoints[bufferIndex] };
+                    tfrg_atomic32_add_relaxed(&batchCounts[frameIndex], 1);
+                    BufferUpdateDesc viewProjCbvJoints = { projViewUniformBufferJoints[bufferIndex] };
                     beginUpdateResource(&viewProjCbvJoints);
                     memcpy(viewProjCbvJoints.pMappedData, &uniformDataJoints, sizeof(uniformDataJoints));
                     endUpdateResource(&viewProjCbvJoints);
@@ -409,20 +409,20 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
 void SkeletonBatcher::AddAnimatedObject(AnimatedObject* animatedObject)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    ASSERT(animatedObject && animatedObject->mRig);
-    for (uint32_t i = 0; i < mNumAnimatedObjects; ++i)
+    ASSERT(animatedObject && animatedObject->rig);
+    for (uint32_t i = 0; i < numAnimatedObjects; ++i)
     {
-        ASSERT(animatedObject != mAnimatedObjects[i] && "Trying to add duplicated animated object");
+        ASSERT(animatedObject != animatedObjects[i] && "Trying to add duplicated animated object");
     }
 
     // Adds the rig so its data can be used and increments the rig count
-    ASSERT(mNumAnimatedObjects < (uint32_t)arrlen(mAnimatedObjects) && "Exceed maximum amount of rigs");
-    mAnimatedObjects[mNumAnimatedObjects] = animatedObject;
-    uint32_t joints = animatedObject->mRig->mNumJoints + mCumulativeAnimatedObjectInstanceCount[mNumAnimatedObjects];
-    ASSERT(joints < MAX_SKELETON_BATCHER_BLOCK_INSTANCES * mMaxSkeletonBatches && "Exceed maximum amount of instances");
-    ++mNumAnimatedObjects;
-    ++mNumActiveAnimatedObjects;
-    mCumulativeAnimatedObjectInstanceCount[mNumAnimatedObjects] = joints;
+    ASSERT(numAnimatedObjects < (uint32_t)arrlen(animatedObjects) && "Exceed maximum amount of rigs");
+    animatedObjects[numAnimatedObjects] = animatedObject;
+    uint32_t joints = animatedObject->rig->numJoints + cumulativeAnimatedObjectInstanceCount[numAnimatedObjects];
+    ASSERT(joints < MAX_SKELETON_BATCHER_BLOCK_INSTANCES * maxSkeletonBatches && "Exceed maximum amount of instances");
+    ++numAnimatedObjects;
+    ++numActiveAnimatedObjects;
+    cumulativeAnimatedObjectInstanceCount[numAnimatedObjects] = joints;
 #endif
 }
 
@@ -431,36 +431,36 @@ void SkeletonBatcher::RemoveAnimatedObject(AnimatedObject* animatedObject)
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     ASSERT(animatedObject);
 
-    uint32_t start = mNumAnimatedObjects;
-    for (uint32_t i = 0; i < mNumAnimatedObjects; ++i)
+    uint32_t start = numAnimatedObjects;
+    for (uint32_t i = 0; i < numAnimatedObjects; ++i)
     {
-        if (animatedObject == mAnimatedObjects[i])
+        if (animatedObject == animatedObjects[i])
         {
             start = i;
             break;
         }
     }
 
-    if (start < mNumAnimatedObjects)
+    if (start < numAnimatedObjects)
     {
-        ASSERT(mAnimatedObjects[start] == animatedObject);
-        for (uint32_t i = start; i < mNumAnimatedObjects - 1; ++i)
+        ASSERT(animatedObjects[start] == animatedObject);
+        for (uint32_t i = start; i < numAnimatedObjects - 1; ++i)
         {
-            ASSERT(mAnimatedObjects[i + 1] != animatedObject && "Animated object was added twice");
-            mAnimatedObjects[i] = mAnimatedObjects[i + 1];
+            ASSERT(animatedObjects[i + 1] != animatedObject && "Animated object was added twice");
+            animatedObjects[i] = animatedObjects[i + 1];
 
-            ASSERT(mAnimatedObjects[i]->mRig);
+            ASSERT(animatedObjects[i]->rig);
 
-            const uint32_t cumulativeJoints = mAnimatedObjects[i]->mRig->mNumJoints + mCumulativeAnimatedObjectInstanceCount[i];
-            mCumulativeAnimatedObjectInstanceCount[i + 1] = cumulativeJoints;
-            ASSERT(cumulativeJoints < MAX_SKELETON_BATCHER_BLOCK_INSTANCES * mMaxSkeletonBatches && "Exceed maximum amount of instances");
+            const uint32_t cumulativeJoints = animatedObjects[i]->rig->numJoints + cumulativeAnimatedObjectInstanceCount[i];
+            cumulativeAnimatedObjectInstanceCount[i + 1] = cumulativeJoints;
+            ASSERT(cumulativeJoints < MAX_SKELETON_BATCHER_BLOCK_INSTANCES * maxSkeletonBatches && "Exceed maximum amount of instances");
         }
 
-        mNumAnimatedObjects--;
-        if (mNumActiveAnimatedObjects > start)
-            mNumActiveAnimatedObjects--;
+        numAnimatedObjects--;
+        if (numActiveAnimatedObjects > start)
+            numActiveAnimatedObjects--;
 
-        ASSERT(mNumActiveAnimatedObjects <= mNumAnimatedObjects);
+        ASSERT(numActiveAnimatedObjects <= numAnimatedObjects);
     }
 
 #endif
@@ -469,10 +469,10 @@ void SkeletonBatcher::RemoveAnimatedObject(AnimatedObject* animatedObject)
 void SkeletonBatcher::RemoveAllAnimatedObjects()
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    memset(mAnimatedObjects, 0, sizeof(AnimatedObject*) * mNumAnimatedObjects);
-    memset(mCumulativeAnimatedObjectInstanceCount, 0, sizeof(mCumulativeAnimatedObjectInstanceCount[0]) * mNumAnimatedObjects);
-    mNumAnimatedObjects = 0;
-    mNumActiveAnimatedObjects = 0;
+    memset(animatedObjects, 0, sizeof(AnimatedObject*) * numAnimatedObjects);
+    memset(cumulativeAnimatedObjectInstanceCount, 0, sizeof(cumulativeAnimatedObjectInstanceCount[0]) * numAnimatedObjects);
+    numAnimatedObjects = 0;
+    numActiveAnimatedObjects = 0;
 #endif
 }
 
@@ -480,47 +480,47 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // Get the number of batches to draw for this frameindex
-    uint32_t numBatches = tfrg_atomic32_store_relaxed(&mBatchCounts[frameIndex], 0);
+    uint32_t numBatches = tfrg_atomic32_store_relaxed(&batchCounts[frameIndex], 0);
     if (numBatches == 0)
     {
         return;
     }
 
-    tfrg_atomic32_t* pFrameBatchSize = &mBatchSize[frameIndex * mMaxSkeletonBatches];
+    tfrg_atomic32_t* pFrameBatchSize = &batchSize[frameIndex * maxSkeletonBatches];
 
-    cmdBindPipeline(cmd, mJointPipeline);
+    cmdBindPipeline(cmd, jointPipeline);
 
     // Joints
     cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Joints");
-    cmdBindVertexBuffer(cmd, 1, &mJointVertexBuffer, &mJointVertexStride, NULL);
+    cmdBindVertexBuffer(cmd, 1, &jointVertexBuffer, &jointVertexStride, NULL);
 
     // for each batch of joints
     for (uint32_t batchIndex = 0; batchIndex < numBatches; batchIndex++)
     {
-        cmdBindDescriptorSet(cmd, (frameIndex * (mMaxSkeletonBatches * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
-        cmdDrawInstanced(cmd, mNumJointPoints / 6, 0, pFrameBatchSize[batchIndex], 0);
-        if (!mDrawBones)
+        cmdBindDescriptorSet(cmd, (frameIndex * (maxSkeletonBatches * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
+        cmdDrawInstanced(cmd, numJointPoints / 6, 0, pFrameBatchSize[batchIndex], 0);
+        if (!drawBones)
             pFrameBatchSize[batchIndex] = 0;
     }
     cmdEndDebugMarker(cmd);
 
     // Bones
-    if (mDrawBones)
+    if (drawBones)
     {
-        cmdBindPipeline(cmd, mBonePipeline);
-        cmdBindVertexBuffer(cmd, 1, &mBoneVertexBuffer, &mBoneVertexStride, NULL);
+        cmdBindPipeline(cmd, bonePipeline);
+        cmdBindVertexBuffer(cmd, 1, &boneVertexBuffer, &boneVertexStride, NULL);
         cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Bones");
 
         // for each batch of bones
 
-        const AnimatedObject* animObj = mAnimatedObjects[0];
-        uint32_t              numJoints = animObj->mRig->mNumJoints;
+        const AnimatedObject* animObj = animatedObjects[0];
+        uint32_t              numJoints = animObj->rig->numJoints;
 
         for (uint32_t batchIndex = 0; batchIndex < numBatches; batchIndex++)
         {
             uint32_t instanceCount = pFrameBatchSize[batchIndex] / numJoints;
-            cmdBindDescriptorSet(cmd, (frameIndex * (mMaxSkeletonBatches * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
-            cmdDrawInstanced(cmd, mNumBonePoints / 8, 0, instanceCount, 0);
+            cmdBindDescriptorSet(cmd, (frameIndex * (maxSkeletonBatches * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
+            cmdDrawInstanced(cmd, numBonePoints / 8, 0, instanceCount, 0);
 
             pFrameBatchSize[batchIndex] = 0;
         }

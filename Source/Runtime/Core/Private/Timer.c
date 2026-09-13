@@ -29,14 +29,14 @@ void initTimer(Timer* pTimer) { resetTimer(pTimer); }
 unsigned getTimerMSec(Timer* pTimer, bool reset)
 {
     unsigned currentTime = getSystemTime();
-    unsigned elapsedTime = currentTime - pTimer->mStartTime;
+    unsigned elapsedTime = currentTime - pTimer->startTime;
     if (reset)
-        pTimer->mStartTime = currentTime;
+        pTimer->startTime = currentTime;
 
     return elapsedTime;
 }
 
-void resetTimer(Timer* pTimer) { pTimer->mStartTime = getSystemTime(); }
+void resetTimer(Timer* pTimer) { pTimer->startTime = getSystemTime(); }
 
 void initHiresTimer(HiresTimer* pTimer)
 {
@@ -47,17 +47,17 @@ void initHiresTimer(HiresTimer* pTimer)
 int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset)
 {
     int64_t currentTime = getUSec(true);
-    int64_t elapsedTime = currentTime - pTimer->mStartTime;
+    int64_t elapsedTime = currentTime - pTimer->startTime;
 
     // Correct for possible weirdness with changing internal frequency
     if (elapsedTime < 0)
         elapsedTime = 0;
 
     if (reset)
-        pTimer->mStartTime = currentTime;
+        pTimer->startTime = currentTime;
 
-    pTimer->mHistory[pTimer->mHistoryIndex] = elapsedTime;
-    pTimer->mHistoryIndex = (pTimer->mHistoryIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
+    pTimer->history[pTimer->historyIndex] = elapsedTime;
+    pTimer->historyIndex = (pTimer->historyIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
 
     return elapsedTime;
 }
@@ -66,7 +66,7 @@ int64_t getHiresTimerUSecAverage(HiresTimer* pTimer)
 {
     int64_t elapsedTime = 0;
     for (uint32_t i = 0; i < HIRES_TIMER_LENGTH_OF_HISTORY; ++i)
-        elapsedTime += pTimer->mHistory[i];
+        elapsedTime += pTimer->history[i];
     elapsedTime /= HIRES_TIMER_LENGTH_OF_HISTORY;
 
     // Correct for overflow
@@ -80,4 +80,4 @@ float getHiresTimerSeconds(HiresTimer* pTimer, bool reset) { return (float)(getH
 
 float getHiresTimerSecondsAverage(HiresTimer* pTimer) { return (float)(getHiresTimerUSecAverage(pTimer) / 1e6); }
 
-void resetHiresTimer(HiresTimer* pTimer) { pTimer->mStartTime = getUSec(true); }
+void resetHiresTimer(HiresTimer* pTimer) { pTimer->startTime = getUSec(true); }

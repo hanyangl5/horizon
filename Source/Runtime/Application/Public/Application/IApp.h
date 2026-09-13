@@ -98,63 +98,63 @@ public:
     struct Settings
     {
         /// Window width
-        int32_t mWidth = -1;
+        int32_t width = -1;
         /// Window height
-        int32_t mHeight = -1;
+        int32_t height = -1;
         /// monitor index
-        int32_t mMonitorIndex = -1;
+        int32_t monitorIndex = -1;
         /// x position for window
-        int32_t mWindowX = 0;
+        int32_t windowX = 0;
         /// y position for window
-        int32_t mWindowY = 0;
+        int32_t windowY = 0;
         /// Set to true if fullscreen mode has been requested
-        bool    mFullScreen = false;
+        bool    fullScreen = false;
         /// Set to true if app wants to use an external window
-        bool    mExternalWindow = false;
+        bool    externalWindow = false;
         /// Drag to resize enabled
-        bool    mDragToResize = true;
+        bool    dragToResize = true;
         /// Border less window
-        bool    mBorderlessWindow = false;
+        bool    borderlessWindow = false;
         /// Set to true if oversize windows requested
-        bool    mAllowedOverSizeWindows = false;
+        bool    allowedOverSizeWindows = false;
         /// if settings is already initiazlied we don't fill when opening window
-        bool    mInitialized = false;
+        bool    initialized = false;
         /// if requested to quit the application
-        bool    mQuit = false;
+        bool    quit = false;
         // Benchmarking is parked while the legacy MicroProfile dump path is replaced.
         // bool    mBenchmarking = false;
         /// if the window is positioned in the center of the screen
-        bool    mCentered = true;
+        bool    centered = true;
         /// if the window is focused or in foreground
-        bool    mFocused = true;
+        bool    focused = true;
         /// Force lowDPI settings for this window
-        bool    mForceLowDPI = false;
+        bool    forceLowDPI = false;
         /// if the platform user interface is visible
-        bool    mShowPlatformUI = true;
+        bool    showPlatformUI = true;
 
 #ifdef __ANDROID__
-        bool mVSyncEnabled = true;
+        bool vSyncEnabled = true;
 #else
-        bool mVSyncEnabled = false;
+        bool vSyncEnabled = false;
 #endif
 
 #if defined(TARGET_IOS)
-        bool    mShowStatusBar = false;
-        float   mContentScaleFactor = 0.f;
+        bool    showStatusBar = false;
+        float   contentScaleFactor = 0.f;
         // Use to set iPhone's/Ipad target display refresh rate.
-        int32_t mMaxDisplayRefreshRate = -1;
+        int32_t maxDisplayRefreshRate = -1;
 #endif
-    } mSettings;
+    } settings;
 
     WindowDesc* pWindow = NULL;
     const char* pCommandLine = NULL;
 
     const char* pUnsupportedReason = NULL;
-    bool        mUnsupported = false;
+    bool        unsupported = false;
 
     void ShowUnsupportedMessage(const char* reason)
     {
-        mUnsupported = true;
+        unsupported = true;
         pUnsupportedReason = reason;
     }
 
@@ -163,7 +163,7 @@ public:
 };
 
 #if defined(TARGET_IOS)
-#define SetContentScaleFactor(F) (mSettings.mContentScaleFactor = (F))
+#define SetContentScaleFactor(F) (settings.contentScaleFactor = (F))
 #else
 #define SetContentScaleFactor(F)
 #endif

@@ -51,14 +51,14 @@ public:
     void SetAllChildrenOf(int32_t jointIndex, float setValue);
 
     // Get the joint weights
-    inline ozz::span<Vector4> GetJointWeights() { return mJointWeights; };
+    inline ozz::span<Vector4> GetJointWeights() { return jointWeights; };
 
 private:
     // Pointer to the rig that this clip mask corresponds to
-    Rig* mRig;
+    Rig* rig;
 
     // Per-joint weights used to define the partial animation mask. Allows to
     // select which joints are considered during blending, and their individual
     // weight_setting.
-    ozz::span<Vector4> mJointWeights;
+    ozz::span<Vector4> jointWeights;
 };

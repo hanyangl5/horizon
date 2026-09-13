@@ -46,7 +46,7 @@ public:
 
     // Gets animation time ratio of last update. Useful when the range between
     // previous and current frame needs to pe processed.
-    inline float GetPreviousTimeRatio() const { return mPreviousTimeRatio; };
+    inline float GetPreviousTimeRatio() const { return previousTimeRatio; };
 
     // Updates animation time if in "play" state, according to playback speed and
     // given frame time dt.
@@ -61,27 +61,27 @@ public:
 
     // Blending weight [0-1] for the clip this is managing.
     // Initialize to max of 1.0f so clip will have full influence
-    float mWeight = 1.0f;
+    float weight = 1.0f;
 
     // Current animation time ratio, in the unit interval [0,1], where 0 is the
     // beginning of the animation, 1 is the end.
-    float mTimeRatio = 0.0f;
+    float timeRatio = 0.0f;
 
     // Time ratio of the previous update.
-    float mPreviousTimeRatio = 0.0f;
+    float previousTimeRatio = 0.0f;
 
     // Length of the clip this is managing
-    float mDuration = 0.0f;
+    float duration = 0.0f;
 
     // Playback speed, can be negative in order to play the animation backward.
-    float mPlaybackSpeed = 0.0f;
+    float playbackSpeed = 0.0f;
 
     // Indicates if the clip is additive or not.
-    bool mAdditive = false;
+    bool additive = false;
 
     // Animation play mode state: play/pause.
-    bool mPlay = false;
+    bool play = false;
 
     // Animation loop mode.
-    bool mLoop = false;
+    bool loop = false;
 };

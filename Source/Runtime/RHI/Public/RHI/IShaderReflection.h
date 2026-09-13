@@ -111,42 +111,42 @@ struct ShaderReflection
     ShaderVariable* pVariables;
     // char*           pEntryPoint;
 
-    ShaderStage mShaderStage;
+    ShaderStage shaderStage;
 
-    uint32_t mNamePoolSize;
-    uint32_t mVertexInputsCount;
-    uint32_t mShaderResourceCount;
-    uint32_t mVariableCount;
+    uint32_t namePoolSize;
+    uint32_t vertexInputsCount;
+    uint32_t shaderResourceCount;
+    uint32_t variableCount;
 
     // Thread group size for compute shader
-    uint32_t mNumThreadsPerGroup[3];
+    uint32_t numThreadsPerGroup[3];
 
-    uint32_t mOutputRenderTargetTypesMask;
+    uint32_t outputRenderTargetTypesMask;
 
     // number of tessellation control point
-    uint32_t mNumControlPoint;
-    bool     mCbvHeapIndexing;
-    bool     mSamplerHeapIndexing;
+    uint32_t numControlPoint;
+    bool     cbvHeapIndexing;
+    bool     samplerHeapIndexing;
 };
 
 struct PipelineReflection
 {
-    ShaderStage      mShaderStages;
+    ShaderStage      shaderStages;
     // the individual stages reflection data.
-    ShaderReflection mStageReflections[MAX_SHADER_STAGE_COUNT];
-    uint32_t         mStageReflectionCount;
+    ShaderReflection stageReflections[MAX_SHADER_STAGE_COUNT];
+    uint32_t         stageReflectionCount;
 
-    uint32_t mVertexStageIndex;
-    uint32_t mHullStageIndex;
-    uint32_t mDomainStageIndex;
-    uint32_t mGeometryStageIndex;
-    uint32_t mPixelStageIndex;
+    uint32_t vertexStageIndex;
+    uint32_t hullStageIndex;
+    uint32_t domainStageIndex;
+    uint32_t geometryStageIndex;
+    uint32_t pixelStageIndex;
 
     ShaderResource* pShaderResources;
-    uint32_t        mShaderResourceCount;
+    uint32_t        shaderResourceCount;
 
     ShaderVariable* pVariables;
-    uint32_t        mVariableCount;
+    uint32_t        variableCount;
 };
 
 FORGE_RENDERER_API void destroyShaderReflection(ShaderReflection* pReflection);

@@ -1030,9 +1030,9 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
     addGPUConfigurationRules(extendedSettings);
 
     // Init requested renderer API
-    if (!apiIsUnsupported(gPlatformParameters.mSelectedRendererApi))
+    if (!apiIsUnsupported(gPlatformParameters.selectedRendererApi))
     {
-        initRendererContextAPI(appName, pSettings, ppContext, gPlatformParameters.mSelectedRendererApi);
+        initRendererContextAPI(appName, pSettings, ppContext, gPlatformParameters.selectedRendererApi);
     }
     else
     {
@@ -1048,28 +1048,28 @@ void exitRendererContext(RendererContext* pContext)
     PROFILER_SET_CPU_SCOPE_AUTO();
     ASSERT(pContext);
 
-    exitRendererContextAPI(pContext, gPlatformParameters.mSelectedRendererApi);
+    exitRendererContextAPI(pContext, gPlatformParameters.selectedRendererApi);
 }
 
 void setupPlatformParameters(Renderer* pRenderer)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    gPlatformParameters.mAvailableGpuCount = 0;
-    gPlatformParameters.mSelectedGpuIndex = 0;
+    gPlatformParameters.availableGpuCount = 0;
+    gPlatformParameters.selectedGpuIndex = 0;
 
     // update available gpus and renderer api
     if (pRenderer != NULL)
     {
-        uint32_t gpuCount = pRenderer->pContext->mGpuCount;
+        uint32_t gpuCount = pRenderer->pContext->gpuCount;
         ASSERT(gpuCount <= MAX_MULTIPLE_GPUS);
-        gPlatformParameters.mSelectedRendererApi = pRenderer->mRendererApi;
-        gPlatformParameters.mAvailableGpuCount = gpuCount;
-        gPlatformParameters.mSelectedGpuIndex = (uint32_t)(pRenderer->pGpu - pRenderer->pContext->mGpus);
+        gPlatformParameters.selectedRendererApi = pRenderer->rendererApi;
+        gPlatformParameters.availableGpuCount = gpuCount;
+        gPlatformParameters.selectedGpuIndex = (uint32_t)(pRenderer->pGpu - pRenderer->pContext->gpus);
         for (uint32_t i = 0; i < gpuCount; ++i)
         {
-            GPUSettings& gpuSettings = pRenderer->pContext->mGpus[i].mSettings;
-            strncpy(gPlatformParameters.ppAvailableGpuNames[i], gpuSettings.mGpuVendorPreset.mGpuName, MAX_GPU_VENDOR_STRING_LENGTH);
-            gPlatformParameters.pAvailableGpuIds[i] = gpuSettings.mGpuVendorPreset.mModelId;
+            GPUSettings& gpuSettings = pRenderer->pContext->gpus[i].settings;
+            strncpy(gPlatformParameters.ppAvailableGpuNames[i], gpuSettings.gpuVendorPreset.gpuName, MAX_GPU_VENDOR_STRING_LENGTH);
+            gPlatformParameters.pAvailableGpuIds[i] = gpuSettings.gpuVendorPreset.modelId;
         }
     }
 }
@@ -1085,9 +1085,9 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     addGPUConfigurationRules(pSettings->pExtendedSettings);
 
     // Init requested renderer API
-    if (!apiIsUnsupported(gPlatformParameters.mSelectedRendererApi))
+    if (!apiIsUnsupported(gPlatformParameters.selectedRendererApi))
     {
-        initRendererAPI(appName, pSettings, ppRenderer, gPlatformParameters.mSelectedRendererApi);
+        initRendererAPI(appName, pSettings, ppRenderer, gPlatformParameters.selectedRendererApi);
     }
     else
     {
@@ -1100,7 +1100,7 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     // configure the user's settings using the newly created device
     if (pSettings->pExtendedSettings && *ppRenderer)
     {
-        setupExtendedSettings(pSettings->pExtendedSettings, &(*ppRenderer)->pGpu->mSettings);
+        setupExtendedSettings(pSettings->pExtendedSettings, &(*ppRenderer)->pGpu->settings);
     }
 
     removeGPUConfigurationRules();
@@ -1111,7 +1111,7 @@ void exitRenderer(Renderer* pRenderer)
     PROFILER_SET_CPU_SCOPE_AUTO();
     ASSERT(pRenderer);
 
-    exitRendererAPI(pRenderer, pRenderer->mRendererApi);
-    gPlatformParameters.mAvailableGpuCount = 0;
-    gPlatformParameters.mSelectedGpuIndex = 0;
+    exitRendererAPI(pRenderer, pRenderer->rendererApi);
+    gPlatformParameters.availableGpuCount = 0;
+    gPlatformParameters.selectedGpuIndex = 0;
 }

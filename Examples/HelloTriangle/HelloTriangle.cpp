@@ -55,10 +55,10 @@ class HelloTriangleApp final: public IApp
 public:
     HelloTriangleApp()
     {
-        mSettings.mWidth = 1280;
-        mSettings.mHeight = 720;
-        mSettings.mVSyncEnabled = true;
-        mSettings.mShowPlatformUI = false;
+        settings.width = 1280;
+        settings.height = 720;
+        settings.vSyncEnabled = true;
+        settings.showPlatformUI = false;
     }
 
     bool Init() override
@@ -73,12 +73,12 @@ public:
             .imageCount = 3,
             .colorFormat = kSurfaceFormat,
             .colorSpace = COLOR_SPACE_SDR_SRGB,
-            .enableVSync = mSettings.mVSyncEnabled,
+            .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
         context = hz::make_unique<hz::RenderContext>(contextDesc);
-        vSync = mSettings.mVSyncEnabled;
+        vSync = settings.vSyncEnabled;
 
         resources.emplace();
         return createResources();
@@ -95,11 +95,11 @@ public:
     bool Load(ReloadDesc* pReloadDesc) override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Load", kCpuProfileColor);
-        if (!(pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        if (!(pReloadDesc->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
             return true;
 
-        const uint32_t width = (uint32_t)mSettings.mWidth;
-        const uint32_t height = (uint32_t)mSettings.mHeight;
+        const uint32_t width = (uint32_t)settings.width;
+        const uint32_t height = (uint32_t)settings.height;
         if (!context->resize(width, height))
             return false;
         return true;
@@ -112,8 +112,8 @@ public:
     void Draw() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Draw", kCpuProfileColor);
-        if (vSync != mSettings.mVSyncEnabled && context->setVSync(mSettings.mVSyncEnabled))
-            vSync = mSettings.mVSyncEnabled;
+        if (vSync != settings.vSyncEnabled && context->setVSync(settings.vSyncEnabled))
+            vSync = settings.vSyncEnabled;
 
         if (context->isSuspended())
             return;
@@ -181,15 +181,15 @@ private:
         resources->pipeline = context->createGraphicsPipeline({
             .pShader = &resources->shader,
             .vertexLayout = {
-                .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
-                .mAttribs = {
-                    { .mSemantic = SEMANTIC_POSITION, .mFormat = TinyImageFormat_R32G32_SFLOAT, .mBinding = 0, .mLocation = 0,
-                      .mOffset = (uint32_t)offsetof(Vertex, position) },
-                    { .mSemantic = SEMANTIC_COLOR, .mFormat = TinyImageFormat_R32G32B32_SFLOAT, .mBinding = 0, .mLocation = 1,
-                      .mOffset = (uint32_t)offsetof(Vertex, color) },
+                .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
+                .attribs = {
+                    { .semantic = SEMANTIC_POSITION, .format = TinyImageFormat_R32G32_SFLOAT, .binding = 0, .location = 0,
+                      .offset = (uint32_t)offsetof(Vertex, position) },
+                    { .semantic = SEMANTIC_COLOR, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 1,
+                      .offset = (uint32_t)offsetof(Vertex, color) },
                 },
-                .mBindingCount = 1,
-                .mAttribCount = 2,
+                .bindingCount = 1,
+                .attribCount = 2,
             },
             .colorFormats = { kSurfaceFormat },
             .renderTargetCount = 1,

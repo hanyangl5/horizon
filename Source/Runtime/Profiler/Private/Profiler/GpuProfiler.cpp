@@ -74,23 +74,23 @@ GpuProfiler* getGpuProfiler(ProfileToken nProfileToken)
     if (nProfileToken == PROFILE_INVALID_TOKEN)
         return NULL;
 
-    return gGpuProfilerContainer->mProfilers[getProfileIndex(nProfileToken)];
+    return gGpuProfilerContainer->profilers[getProfileIndex(nProfileToken)];
 }
 
 static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
 {
     GpuTimer* pRoot = &pGpuProfiler->pGpuTimerPool[index];
-    if (!pRoot || !pRoot->mStarted)
+    if (!pRoot || !pRoot->started)
         return;
 
     uint64_t       elapsedTime = 0;
-    const uint32_t historyIndex = pRoot->mHistoryIndex;
+    const uint32_t historyIndex = pRoot->historyIndex;
 
-    const uint32_t id = pRoot->mIndex;
+    const uint32_t id = pRoot->index;
     QueryData      timestamp = {};
-    getQueryData(pGpuProfiler->pRenderer, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], id, &timestamp);
-    const uint64_t timestamp1 = timestamp.mBeginTimestamp;
-    const uint64_t timestamp2 = timestamp.mEndTimestamp;
+    getQueryData(pGpuProfiler->pRenderer, pGpuProfiler->pQueryPool[pGpuProfiler->bufferIndex], id, &timestamp);
+    const uint64_t timestamp1 = timestamp.beginTimestamp;
+    const uint64_t timestamp2 = timestamp.endTimestamp;
 
     elapsedTime = timestamp2 - timestamp1;
     if (timestamp2 <= timestamp1)
@@ -99,17 +99,17 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
     }
     else
     {
-        pRoot->mStartGpuTime = timestamp1;
-        pRoot->mEndGpuTime = timestamp2;
-        pRoot->mGpuTime = elapsedTime;
-        pRoot->mGpuMinTime = min(pRoot->mGpuMinTime, elapsedTime);
-        pRoot->mGpuMaxTime = max(pRoot->mGpuMaxTime, elapsedTime);
+        pRoot->startGpuTime = timestamp1;
+        pRoot->endGpuTime = timestamp2;
+        pRoot->gpuTime = elapsedTime;
+        pRoot->gpuMinTime = min(pRoot->gpuMinTime, elapsedTime);
+        pRoot->gpuMaxTime = max(pRoot->gpuMaxTime, elapsedTime);
     }
-    pRoot->mGpuHistory[historyIndex] = elapsedTime;
+    pRoot->gpuHistory[historyIndex] = elapsedTime;
 
-    pRoot->mHistoryIndex = (historyIndex + 1) % GpuTimer::LENGTH_OF_HISTORY;
+    pRoot->historyIndex = (historyIndex + 1) % GpuTimer::LENGTH_OF_HISTORY;
 
-    for (uint32_t i = index + 1; i < pGpuProfiler->mCurrentPoolIndex; ++i)
+    for (uint32_t i = index + 1; i < pGpuProfiler->currentPoolIndex; ++i)
     {
         if (pGpuProfiler->pGpuTimerPool[i].pParent == pRoot)
         {
@@ -117,7 +117,7 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
         }
     }
 
-    pRoot->mStarted = false; // Reset
+    pRoot->started = false; // Reset
 }
 
 double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpuTimer)
@@ -126,10 +126,10 @@ double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 
     for (uint32_t i = 0; i < GpuTimer::LENGTH_OF_HISTORY; ++i)
     {
-        elapsedTime += pGpuTimer->mGpuHistory[i];
+        elapsedTime += pGpuTimer->gpuHistory[i];
     }
 
-    return ((double)(elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0;
+    return ((double)(elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / pGpuProfiler->gpuTimeStampFrequency) * 1000.0;
 }
 
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char* pName)
@@ -139,25 +139,25 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
     tf_placement_new<GpuProfiler>(pGpuProfiler);
     pGpuProfiler->pRenderer = pRenderer;
-    strncpy(pGpuProfiler->mGroupName, pName, sizeof pGpuProfiler->mGroupName - 1);
-    pGpuProfiler->mGroupName[sizeof pGpuProfiler->mGroupName - 1] = 0;
+    strncpy(pGpuProfiler->groupName, pName, sizeof pGpuProfiler->groupName - 1);
+    pGpuProfiler->groupName[sizeof pGpuProfiler->groupName - 1] = 0;
 
     QueryPoolDesc queryHeapDesc = {};
-    queryHeapDesc.mQueryCount = GpuProfiler::MAX_TIMERS;
-    queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
+    queryHeapDesc.queryCount = GpuProfiler::MAX_TIMERS;
+    queryHeapDesc.type = QUERY_TYPE_TIMESTAMP;
 
     for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
     {
         addQueryPool(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryPool[i]);
     }
 
-    getTimestampFrequency(pQueue, &pGpuProfiler->mGpuTimeStampFrequency);
+    getTimestampFrequency(pQueue, &pGpuProfiler->gpuTimeStampFrequency);
 
     initGpuProfilerBackend(pRenderer, pQueue, pGpuProfiler);
 
     pGpuProfiler->pGpuTimerPool = (GpuTimer*)tf_calloc(GpuProfiler::MAX_TIMERS, sizeof(*pGpuProfiler->pGpuTimerPool));
     pGpuProfiler->pCurrentNode = &pGpuProfiler->pGpuTimerPool[0];
-    pGpuProfiler->mCurrentPoolIndex = 0;
+    pGpuProfiler->currentPoolIndex = 0;
 
     *ppGpuProfiler = pGpuProfiler;
 }
@@ -183,13 +183,13 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
 
     for (GpuTimer* parent = pGpuProfiler->pCurrentNode; parent; parent = parent->pParent)
     {
-        nameHash = tf_mem_hash<char>(parent->mName, strlen(parent->mName), nameHash);
+        nameHash = tf_mem_hash<char>(parent->name, strlen(parent->name), nameHash);
     }
 
-    for (uint32_t i = 0; i < pGpuProfiler->mCurrentPoolIndex; ++i)
+    for (uint32_t i = 0; i < pGpuProfiler->currentPoolIndex; ++i)
     {
         GpuTimer* tNode = &pGpuProfiler->pGpuTimerPool[i];
-        if (nameHash == tNode->mHash)
+        if (nameHash == tNode->hash)
         {
             node = tNode;
             break;
@@ -199,35 +199,35 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
     if (!node)
     {
         // first time seeing this
-        ASSERT(pGpuProfiler->mCurrentPoolIndex < GpuProfiler::MAX_TIMERS && "Profiler exceeded MAX_TIMERS.");
-        node = &pGpuProfiler->pGpuTimerPool[pGpuProfiler->mCurrentPoolIndex];
-        strncpy(node->mName, pName, sizeof node->mName - 1);
-        node->mName[sizeof node->mName - 1] = 0;
-        node->mHash = nameHash;
-        node->mHistoryIndex = 0;
-        node->mGpuMaxTime = 0;
-        node->mGpuMinTime = (uint64_t)-1;
-        node->mStartGpuTime = isRoot ? 0 : pGpuProfiler->pCurrentNode->mStartGpuTime;
-        node->mEndGpuTime = 0;
-        node->mToken = getProfileToken(pGpuProfiler->mProfilerIndex, pGpuProfiler->mCurrentPoolIndex);
-        memset(node->mGpuHistory, 0, sizeof(node->mGpuHistory));
+        ASSERT(pGpuProfiler->currentPoolIndex < GpuProfiler::MAX_TIMERS && "Profiler exceeded MAX_TIMERS.");
+        node = &pGpuProfiler->pGpuTimerPool[pGpuProfiler->currentPoolIndex];
+        strncpy(node->name, pName, sizeof node->name - 1);
+        node->name[sizeof node->name - 1] = 0;
+        node->hash = nameHash;
+        node->historyIndex = 0;
+        node->gpuMaxTime = 0;
+        node->gpuMinTime = (uint64_t)-1;
+        node->startGpuTime = isRoot ? 0 : pGpuProfiler->pCurrentNode->startGpuTime;
+        node->endGpuTime = 0;
+        node->token = getProfileToken(pGpuProfiler->profilerIndex, pGpuProfiler->currentPoolIndex);
+        memset(node->gpuHistory, 0, sizeof(node->gpuHistory));
 
-        ++pGpuProfiler->mCurrentPoolIndex;
+        ++pGpuProfiler->currentPoolIndex;
     }
 
-    node->mIndex = pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex];
+    node->index = pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex];
     node->pParent = isRoot ? NULL : pGpuProfiler->pCurrentNode;
-    node->mDepth = isRoot ? 0 : node->pParent->mDepth + 1; //-V522
-    node->mStarted = true;
-    node->mDebugMarker = addMarker;
+    node->depth = isRoot ? 0 : node->pParent->depth + 1; //-V522
+    node->started = true;
+    node->debugMarker = addMarker;
 
     if (!isRoot)
     {
         pGpuProfiler->pCurrentNode = node;
     }
 
-    QueryDesc desc = { node->mIndex };
-    cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
+    QueryDesc desc = { node->index };
+    cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->bufferIndex], &desc);
 
     if (addMarker)
     {
@@ -236,10 +236,10 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
 
     beginGpuTimestampQueryBackend(pCmd, pGpuProfiler, node);
 
-    ASSERT(pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex] < pGpuProfiler->mCurrentPoolIndex &&
+    ASSERT(pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex] < pGpuProfiler->currentPoolIndex &&
            "Duplicate timers found in one gpu frame");
-    ++pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex];
-    return node->mToken;
+    ++pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex];
+    return node->token;
 }
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool isRoot = false)
@@ -248,10 +248,10 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool i
 
     endGpuTimestampQueryBackend(pGpuProfiler->pCurrentNode);
 
-    QueryDesc desc = { pGpuProfiler->pCurrentNode->mIndex };
-    cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
+    QueryDesc desc = { pGpuProfiler->pCurrentNode->index };
+    cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->bufferIndex], &desc);
 
-    if (pGpuProfiler->pCurrentNode->mDebugMarker)
+    if (pGpuProfiler->pCurrentNode->debugMarker)
     {
         cmdEndDebugMarker(pCmd);
     }
@@ -273,10 +273,10 @@ void exitGpuProfilers()
 
     for (uint32_t i = 0; i < GpuProfilerContainer::MAX_GPU_PROFILERS; ++i)
     {
-        if (gGpuProfilerContainer->mProfilers[i])
+        if (gGpuProfilerContainer->profilers[i])
         {
-            removeGpuProfiler(gGpuProfilerContainer->mProfilers[i]);
-            gGpuProfilerContainer->mProfilers[i] = NULL;
+            removeGpuProfiler(gGpuProfilerContainer->profilers[i]);
+            gGpuProfilerContainer->profilers[i] = NULL;
         }
     }
 
@@ -286,13 +286,13 @@ void exitGpuProfilers()
 
 ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName)
 {
-    if (!pRenderer->pGpu->mSettings.mTimestampQueries)
+    if (!pRenderer->pGpu->settings.timestampQueries)
     {
         LOGF(LogLevel::eWARNING, "GPU timestamp queries not supported");
         return PROFILE_INVALID_TOKEN;
     }
 
-    if (gGpuProfilerContainer->mSize >= GpuProfilerContainer::MAX_GPU_PROFILERS)
+    if (gGpuProfilerContainer->size >= GpuProfilerContainer::MAX_GPU_PROFILERS)
     {
         LOGF(LogLevel::eWARNING, "Reached maximum amount of Gpu Profilers");
         return PROFILE_INVALID_TOKEN;
@@ -304,16 +304,16 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
 
     for (uint32_t i = 0; i < GpuProfilerContainer::MAX_GPU_PROFILERS; ++i)
     {
-        if (!gGpuProfilerContainer->mProfilers[i])
+        if (!gGpuProfilerContainer->profilers[i])
         {
-            gGpuProfilerContainer->mProfilers[i] = pGpuProfiler;
-            ++gGpuProfilerContainer->mSize;
-            pGpuProfiler->mProfilerIndex = i;
+            gGpuProfilerContainer->profilers[i] = pGpuProfiler;
+            ++gGpuProfilerContainer->size;
+            pGpuProfiler->profilerIndex = i;
             break;
         }
     }
 
-    return getProfileToken(pGpuProfiler->mProfilerIndex, 0);
+    return getProfileToken(pGpuProfiler->profilerIndex, 0);
 }
 
 void removeGpuProfiler(ProfileToken nProfileToken)
@@ -323,8 +323,8 @@ void removeGpuProfiler(ProfileToken nProfileToken)
         return;
 
     removeGpuProfiler(pGpuProfiler);
-    gGpuProfilerContainer->mProfilers[getProfileIndex(nProfileToken)] = NULL;
-    --gGpuProfilerContainer->mSize;
+    gGpuProfilerContainer->profilers[getProfileIndex(nProfileToken)] = NULL;
+    --gGpuProfilerContainer->size;
 }
 
 void cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bool bUseMarker)
@@ -333,22 +333,22 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bool bUseMar
     if (!pGpuProfiler)
         return;
 
-    uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;
-    pGpuProfiler->mBufferIndex = nextIndex;
+    uint32_t nextIndex = (pGpuProfiler->bufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;
+    pGpuProfiler->bufferIndex = nextIndex;
 
     cmdBeginGpuFrameProfileBackend(pGpuProfiler);
 
     calculateTimes(pCmd, pGpuProfiler, 0);
 
-    if (pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex])
+    if (pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex])
     {
-        cmdResetQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], 0,
-                      pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex]);
+        cmdResetQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->bufferIndex], 0,
+                      pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex]);
     }
 
-    pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex] = 0;
+    pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex] = 0;
 
-    cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, pGpuProfiler->mGroupName, bUseMarker, { 1, 1, 0 }, true);
+    cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, pGpuProfiler->groupName, bUseMarker, { 1, 1, 0 }, true);
     pGpuProfiler->pCurrentNode = &pGpuProfiler->pGpuTimerPool[0];
 }
 
@@ -360,8 +360,8 @@ void cmdEndGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken)
 
     cmdEndGpuTimestampQuery(pCmd, pGpuProfiler, true);
 
-    cmdResolveQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], 0,
-                    pGpuProfiler->mCurrentTimerCount[pGpuProfiler->mBufferIndex]);
+    cmdResolveQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->bufferIndex], 0,
+                    pGpuProfiler->currentTimerCount[pGpuProfiler->bufferIndex]);
 }
 
 ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* pName, bool bUseMarker)
@@ -392,7 +392,7 @@ float getGpuProfileTime(ProfileToken nProfileToken)
     if (!pGpuTimer)
         return -1.0f;
 
-    return (float)(pGpuTimer->mGpuTime / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0f;
+    return (float)(pGpuTimer->gpuTime / pGpuProfiler->gpuTimeStampFrequency) * 1000.0f;
 }
 
 float getGpuProfileAvgTime(ProfileToken nProfileToken)
@@ -418,7 +418,7 @@ float getGpuProfileMinTime(ProfileToken nProfileToken)
     if (!pGpuTimer)
         return -1.0f;
 
-    return (float)(pGpuTimer->mGpuMinTime / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0f;
+    return (float)(pGpuTimer->gpuMinTime / pGpuProfiler->gpuTimeStampFrequency) * 1000.0f;
 }
 
 float getGpuProfileMaxTime(ProfileToken nProfileToken)
@@ -431,7 +431,7 @@ float getGpuProfileMaxTime(ProfileToken nProfileToken)
     if (!pGpuTimer)
         return -1.0f;
 
-    return (float)(pGpuTimer->mGpuMaxTime / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0f;
+    return (float)(pGpuTimer->gpuMaxTime / pGpuProfiler->gpuTimeStampFrequency) * 1000.0f;
 }
 
 uint64_t getGpuProfileTicksPerSecond(ProfileToken nProfileToken)
@@ -440,6 +440,6 @@ uint64_t getGpuProfileTicksPerSecond(ProfileToken nProfileToken)
     if (!pGpuProfiler)
         return 0;
 
-    return (uint64_t)pGpuProfiler->mGpuTimeStampFrequency;
+    return (uint64_t)pGpuProfiler->gpuTimeStampFrequency;
 }
 #endif

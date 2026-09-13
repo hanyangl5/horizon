@@ -196,20 +196,20 @@ typedef struct WindowDesc
     bool         centered;
     bool         forceLowDPI;
 
-    int32_t mWindowMode;
+    int32_t windowMode;
 
     int32_t pCurRes[MAX_MONITOR_COUNT];
     int32_t pLastRes[MAX_MONITOR_COUNT];
 
-    int32_t mWndX;
-    int32_t mWndY;
-    int32_t mWndW;
-    int32_t mWndH;
+    int32_t wndX;
+    int32_t wndY;
+    int32_t wndW;
+    int32_t wndH;
 
-    bool    mCursorHidden;
-    int32_t mCursorInsideWindow;
-    bool    mCursorCaptured;
-    bool    mMinimizeRequested;
+    bool    cursorHidden;
+    int32_t cursorInsideWindow;
+    bool    cursorCaptureRequested;
+    bool    minimizeRequested;
 
 #if WINDOW_DETAILS
     bstring pWindowedRectLabel;
@@ -234,8 +234,8 @@ typedef struct WindowDesc
 
 typedef struct Resolution
 {
-    uint32_t mWidth;
-    uint32_t mHeight;
+    uint32_t width;
+    uint32_t height;
 } Resolution;
 
 // Monitor data
@@ -380,7 +380,7 @@ typedef enum ResetType
 
 typedef struct ResetDesc
 {
-    ResetType mType;
+    ResetType type;
 } ResetDesc;
 
 FORGE_API void requestReset(const ResetDesc* pResetDesc);
@@ -399,7 +399,7 @@ COMPILE_ASSERT(RELOAD_TYPE_COUNT == 3);
 
 typedef struct ReloadDesc
 {
-    ReloadType mType;
+    ReloadType type;
 } ReloadDesc;
 
 #if defined(ANDROID)

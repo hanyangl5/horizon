@@ -18,22 +18,22 @@ TEST(RHIRingBufferTest, RingBufferOffsetsHonorAlignmentAndWrap)
 
     GPURingBuffer ring = {
         .pBuffer = &buffer,
-        .mBufferAlignment = 16,
-        .mMaxBufferSize = 64,
+        .bufferAlignment = 16,
+        .maxBufferSize = 64,
     };
 
     const GPURingBufferOffset first = getGPURingBufferOffset(&ring, 1);
     EXPECT_EQ(first.pBuffer, &buffer);
-    EXPECT_EQ(first.mOffset, 0u);
-    EXPECT_EQ(ring.mCurrentBufferOffset, 16u);
+    EXPECT_EQ(first.offset, 0u);
+    EXPECT_EQ(ring.currentBufferOffset, 16u);
 
     const GPURingBufferOffset second = getGPURingBufferOffset(&ring, 17);
-    EXPECT_EQ(second.mOffset, 16u);
-    EXPECT_EQ(ring.mCurrentBufferOffset, 48u);
+    EXPECT_EQ(second.offset, 16u);
+    EXPECT_EQ(ring.currentBufferOffset, 48u);
 
     const GPURingBufferOffset third = getGPURingBufferOffset(&ring, 17, 32);
-    EXPECT_EQ(third.mOffset, 0u);
-    EXPECT_EQ(ring.mCurrentBufferOffset, 32u);
+    EXPECT_EQ(third.offset, 0u);
+    EXPECT_EQ(ring.currentBufferOffset, 32u);
 }
 
 // Verifies that resetting the GPU ring buffer restarts allocations from offset zero.
@@ -43,29 +43,29 @@ TEST(RHIRingBufferTest, ResetClearsCurrentOffset)
 
     GPURingBuffer ring = {
         .pBuffer = &buffer,
-        .mBufferAlignment = 16,
-        .mMaxBufferSize = 128,
-        .mCurrentBufferOffset = 64,
+        .bufferAlignment = 16,
+        .maxBufferSize = 128,
+        .currentBufferOffset = 64,
     };
 
     resetGPURingBuffer(&ring);
 
-    EXPECT_EQ(ring.mCurrentBufferOffset, 0u);
+    EXPECT_EQ(ring.currentBufferOffset, 0u);
 
     const GPURingBufferOffset allocation = getGPURingBufferOffset(&ring, 8);
-    EXPECT_EQ(allocation.mOffset, 0u);
-    EXPECT_EQ(ring.mCurrentBufferOffset, 16u);
+    EXPECT_EQ(allocation.offset, 0u);
+    EXPECT_EQ(ring.currentBufferOffset, 16u);
 }
 
 // Verifies that the GPU command ring advances command and fence indices within a pool and cycles to the next pool on request.
 TEST(RHIRingBufferTest, CommandRingReturnsSequentialElementsAcrossPools)
 {
     GpuCmdRing ring = {
-        .mPoolIndex = UINT32_MAX,
-        .mCmdIndex = UINT32_MAX,
-        .mFenceIndex = UINT32_MAX,
-        .mPoolCount = 2,
-        .mCmdPerPoolCount = 3,
+        .poolIndex = UINT32_MAX,
+        .cmdIndex = UINT32_MAX,
+        .fenceIndex = UINT32_MAX,
+        .poolCount = 2,
+        .cmdPerPoolCount = 3,
     };
 
     ring.pCmdPools[0] = fakeHandle<CmdPool>(0x1000);
@@ -97,24 +97,24 @@ TEST(RHIRingBufferTest, CommandRingReturnsSequentialElementsAcrossPools)
     EXPECT_EQ(first.pCmds, &ring.pCmds[0][0]);
     EXPECT_EQ(first.pFence, ring.pFences[0][0]);
     EXPECT_EQ(first.pSemaphore, ring.pSemaphores[0][0]);
-    EXPECT_EQ(ring.mPoolIndex, 0u);
-    EXPECT_EQ(ring.mCmdIndex, 2u);
-    EXPECT_EQ(ring.mFenceIndex, 1u);
+    EXPECT_EQ(ring.poolIndex, 0u);
+    EXPECT_EQ(ring.cmdIndex, 2u);
+    EXPECT_EQ(ring.fenceIndex, 1u);
 
     const GpuCmdRingElement second = getNextGpuCmdRingElement(&ring, false, 1);
     EXPECT_EQ(second.pCmdPool, ring.pCmdPools[0]);
     EXPECT_EQ(second.pCmds, &ring.pCmds[0][2]);
     EXPECT_EQ(second.pFence, ring.pFences[0][1]);
     EXPECT_EQ(second.pSemaphore, ring.pSemaphores[0][1]);
-    EXPECT_EQ(ring.mCmdIndex, 3u);
-    EXPECT_EQ(ring.mFenceIndex, 2u);
+    EXPECT_EQ(ring.cmdIndex, 3u);
+    EXPECT_EQ(ring.fenceIndex, 2u);
 
     const GpuCmdRingElement third = getNextGpuCmdRingElement(&ring, true, 1);
     EXPECT_EQ(third.pCmdPool, ring.pCmdPools[1]);
     EXPECT_EQ(third.pCmds, &ring.pCmds[1][0]);
     EXPECT_EQ(third.pFence, ring.pFences[1][0]);
     EXPECT_EQ(third.pSemaphore, ring.pSemaphores[1][0]);
-    EXPECT_EQ(ring.mPoolIndex, 1u);
-    EXPECT_EQ(ring.mCmdIndex, 1u);
-    EXPECT_EQ(ring.mFenceIndex, 1u);
+    EXPECT_EQ(ring.poolIndex, 1u);
+    EXPECT_EQ(ring.cmdIndex, 1u);
+    EXPECT_EQ(ring.fenceIndex, 1u);
 }

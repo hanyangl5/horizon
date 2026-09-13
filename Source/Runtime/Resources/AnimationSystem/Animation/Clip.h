@@ -50,12 +50,12 @@ public:
     bool Sample(ozz::animation::SamplingJob::Context* cacheInput, ozz::span<SoaTransform>& localTransOutput, float timeRatio);
 
     // Get the length of the clip
-    inline float GetDuration() { return mAnimation.duration(); };
+    inline float GetDuration() { return animation.duration(); };
 
 private:
     // Load a clip from an ozz animation file
     bool LoadClip(const ResourceDirectory resourceDir, const char* fileName);
 
     // Runtime animation.
-    ozz::animation::Animation mAnimation;
+    ozz::animation::Animation animation;
 };

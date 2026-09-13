@@ -37,15 +37,15 @@ typedef struct GPURingBuffer
     Renderer* pRenderer;
     Buffer*   pBuffer;
 
-    uint32_t mBufferAlignment;
-    uint64_t mMaxBufferSize;
-    uint64_t mCurrentBufferOffset;
+    uint32_t bufferAlignment;
+    uint64_t maxBufferSize;
+    uint64_t currentBufferOffset;
 } GPURingBuffer;
 
 typedef struct GPURingBufferOffset
 {
     Buffer*  pBuffer;
-    uint64_t mOffset;
+    uint64_t offset;
 } GPURingBufferOffset;
 
 #ifndef MAX_GPU_CMD_POOLS_PER_RING
@@ -60,11 +60,11 @@ typedef struct GpuCmdRingDesc
     // Queue used to create the command pools
     Queue*   pQueue;
     // Number of command pools in this ring
-    uint32_t mPoolCount;
+    uint32_t poolCount;
     // Number of command buffers to be created per command pool
-    uint32_t mCmdPerPoolCount;
+    uint32_t cmdPerPoolCount;
     // Whether to add fence, semaphore for this ring
-    bool     mAddSyncPrimitives;
+    bool     addSyncPrimitives;
 } GpuCmdRingDesc;
 
 typedef struct GpuCmdRingElement
@@ -82,11 +82,11 @@ typedef struct GpuCmdRing
     Cmd*       pCmds[MAX_GPU_CMD_POOLS_PER_RING][MAX_GPU_CMDS_PER_POOL];
     Fence*     pFences[MAX_GPU_CMD_POOLS_PER_RING][MAX_GPU_CMDS_PER_POOL];
     Semaphore* pSemaphores[MAX_GPU_CMD_POOLS_PER_RING][MAX_GPU_CMDS_PER_POOL];
-    uint32_t   mPoolIndex;
-    uint32_t   mCmdIndex;
-    uint32_t   mFenceIndex;
-    uint32_t   mPoolCount;
-    uint32_t   mCmdPerPoolCount;
+    uint32_t   poolIndex;
+    uint32_t   cmdIndex;
+    uint32_t   fenceIndex;
+    uint32_t   poolCount;
+    uint32_t   cmdPerPoolCount;
 } GpuCmdRing;
 
 void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURingBuffer* pRingBuffer);

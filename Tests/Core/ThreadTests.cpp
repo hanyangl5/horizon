@@ -104,7 +104,7 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
         .pFunc = namedThreadProbe,
         .pData = &data,
     };
-    memcpy(desc.mThreadName, "CoreThreadUT", sizeof("CoreThreadUT"));
+    memcpy(desc.threadName, "CoreThreadUT", sizeof("CoreThreadUT"));
 
     ThreadHandle handle = nullptr;
     ASSERT_TRUE(initThread(&desc, &handle));

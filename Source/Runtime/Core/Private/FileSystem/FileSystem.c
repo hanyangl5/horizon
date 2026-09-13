@@ -524,15 +524,15 @@ FORGE_API void fsGetPathFileName(const char* path, char* output)
 typedef struct ResourceDirectoryInfo
 {
     IFileSystem*  pIO;
-    ResourceMount mMount;
-    char          mPath[FS_MAX_PATH];
-    bool          mBundled;
+    ResourceMount mount;
+    char          path[FS_MAX_PATH];
+    bool          bundled;
 } ResourceDirectoryInfo;
 
 static ResourceDirectoryInfo gResourceDirectories[RD_COUNT] = { { 0 } };
 
 // required by NXFileSystem.cpp
-FORGE_API bool fsIsBundledResourceDir(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].mBundled; }
+FORGE_API bool fsIsBundledResourceDir(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].bundled; }
 
 /************************************************************************/
 // Memory Stream Functions
@@ -541,18 +541,18 @@ FORGE_API bool fsIsBundledResourceDir(ResourceDirectory resourceDir) { return gR
 struct MemoryStream
 {
     uint8_t*    pBuffer;
-    uintptr_t   mCursor;
-    uintptr_t   mCapacity;
-    intptr_t    mSize;
-    uintptr_t   mIsOwner;
+    uintptr_t   cursor;
+    uintptr_t   capacity;
+    intptr_t    size;
+    uintptr_t   isOwner;
     FileStream* wrappedStream;
 };
 
-#define MEMSD(name, fs) struct MemoryStream* name = (struct MemoryStream*)(fs)->mUser.data
+#define MEMSD(name, fs) struct MemoryStream* name = (struct MemoryStream*)(fs)->user.data
 
 static inline size_t MemoryStreamAvailableSize(struct MemoryStream* stream, size_t requestedSize)
 {
-    ssize_t sizeLeft = (ssize_t)stream->mSize - (ssize_t)stream->mCursor;
+    ssize_t sizeLeft = (ssize_t)stream->size - (ssize_t)stream->cursor;
     if (sizeLeft < 0)
         sizeLeft = 0;
     return (ssize_t)requestedSize > sizeLeft ? (size_t)sizeLeft : requestedSize;
@@ -562,7 +562,7 @@ static bool ioMemoryStreamClose(FileStream* fs)
 {
     MEMSD(stream, fs);
 
-    if (stream->mIsOwner)
+    if (stream->isOwner)
     {
         tf_free(stream->pBuffer);
     }
@@ -578,7 +578,7 @@ static bool ioMemoryStreamClose(FileStream* fs)
 
 static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 {
-    if (!(fs->mMode & FM_READ))
+    if (!(fs->mode & FM_READ))
     {
         LOGF(eWARNING, "Attempting to read from stream that doesn't have FM_READ flag.");
         return 0;
@@ -586,20 +586,20 @@ static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 
     MEMSD(stream, fs);
 
-    if ((intptr_t)stream->mCursor >= stream->mSize)
+    if ((intptr_t)stream->cursor >= stream->size)
     {
         return 0;
     }
 
     size_t bytesToRead = MemoryStreamAvailableSize(stream, size);
-    memcpy(dst, stream->pBuffer + stream->mCursor, bytesToRead);
-    stream->mCursor += bytesToRead;
+    memcpy(dst, stream->pBuffer + stream->cursor, bytesToRead);
+    stream->cursor += bytesToRead;
     return bytesToRead;
 }
 
 static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 {
-    if (!(fs->mMode & FM_WRITE))
+    if (!(fs->mode & FM_WRITE))
     {
         LOGF(eWARNING, "Attempting to write to stream that doesn't have FM_WRITE flag.");
         return 0;
@@ -607,18 +607,18 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 
     MEMSD(stream, fs);
 
-    if (stream->mCursor > (size_t)stream->mSize)
+    if (stream->cursor > (size_t)stream->size)
     {
         LOGF(eWARNING, "Creating discontinuity in initialized memory in memory stream.");
     }
 
     size_t availableCapacity = 0;
-    if (stream->mCapacity >= stream->mCursor)
-        availableCapacity = stream->mCapacity - stream->mCursor;
+    if (stream->capacity >= stream->cursor)
+        availableCapacity = stream->capacity - stream->cursor;
 
     if (size > availableCapacity)
     {
-        size_t newCapacity = stream->mCursor + size;
+        size_t newCapacity = stream->cursor + size;
 
         newCapacity =
             MEMORY_STREAM_GROW_SIZE * (newCapacity / MEMORY_STREAM_GROW_SIZE + (newCapacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
@@ -634,13 +634,13 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
         }
 
         stream->pBuffer = (uint8_t*)newBuffer;
-        stream->mCapacity = newCapacity;
+        stream->capacity = newCapacity;
     }
 
-    memcpy(stream->pBuffer + stream->mCursor, src, size);
-    stream->mCursor += size;
+    memcpy(stream->pBuffer + stream->cursor, src, size);
+    stream->cursor += size;
 
-    stream->mSize = stream->mSize > (ssize_t)stream->mCursor ? stream->mSize : (ssize_t)stream->mCursor;
+    stream->size = stream->size > (ssize_t)stream->cursor ? stream->size : (ssize_t)stream->cursor;
     return size;
 }
 
@@ -652,31 +652,31 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
     {
     case SBO_START_OF_FILE:
     {
-        if (seekOffset < 0 || seekOffset > stream->mSize)
+        if (seekOffset < 0 || seekOffset > stream->size)
         {
             return false;
         }
-        stream->mCursor = (size_t)seekOffset;
+        stream->cursor = (size_t)seekOffset;
     }
     break;
     case SBO_CURRENT_POSITION:
     {
-        ssize_t newPosition = (ssize_t)stream->mCursor + seekOffset;
-        if (newPosition < 0 || newPosition > stream->mSize)
+        ssize_t newPosition = (ssize_t)stream->cursor + seekOffset;
+        if (newPosition < 0 || newPosition > stream->size)
         {
             return false;
         }
-        stream->mCursor = (size_t)newPosition;
+        stream->cursor = (size_t)newPosition;
     }
     break;
     case SBO_END_OF_FILE:
     {
-        ssize_t newPosition = (ssize_t)stream->mSize + seekOffset;
-        if (newPosition < 0 || newPosition > stream->mSize)
+        ssize_t newPosition = (ssize_t)stream->size + seekOffset;
+        if (newPosition < 0 || newPosition > stream->size)
         {
             return false;
         }
-        stream->mCursor = (size_t)newPosition;
+        stream->cursor = (size_t)newPosition;
     }
     break;
     }
@@ -686,13 +686,13 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
 static ssize_t ioMemoryStreamGetPosition(FileStream* fs)
 {
     MEMSD(stream, fs);
-    return (ssize_t)stream->mCursor;
+    return (ssize_t)stream->cursor;
 }
 
 static ssize_t ioMemoryStreamGetSize(FileStream* fs)
 {
     MEMSD(stream, fs);
-    return stream->mSize;
+    return stream->size;
 }
 
 static bool ioMemoryStreamFlush(FileStream* fs)
@@ -705,16 +705,16 @@ static bool ioMemoryStreamFlush(FileStream* fs)
 static bool ioMemoryStreamIsAtEnd(FileStream* fs)
 {
     MEMSD(stream, fs);
-    return (ssize_t)stream->mCursor == stream->mSize;
+    return (ssize_t)stream->cursor == stream->size;
 }
 
 static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
-    if (fs->mMode & FM_WRITE)
+    if (fs->mode & FM_WRITE)
         return false;
 
     MEMSD(stream, fs);
-    *outSize = stream->mCapacity;
+    *outSize = stream->capacity;
     *outData = stream->pBuffer;
     return true;
 }
@@ -768,15 +768,15 @@ bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode
     }
 
     fs->pIO = &gMemoryFileIO;
-    fs->mMode = mode;
+    fs->mode = mode;
 
     MEMSD(stream, fs);
 
     stream->pBuffer = (uint8_t*)buffer;
-    stream->mCursor = cursor;
-    stream->mCapacity = capacity;
-    stream->mIsOwner = owner;
-    stream->mSize = (ssize_t)size;
+    stream->cursor = cursor;
+    stream->capacity = capacity;
+    stream->isOwner = owner;
+    stream->size = (ssize_t)size;
     return true;
 }
 
@@ -969,7 +969,7 @@ FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
     }
 
     MEMSD(stream, &wrapFs);
-    stream->mCursor = (size_t)fsGetStreamSeekPosition(fs);
+    stream->cursor = (size_t)fsGetStreamSeekPosition(fs);
 
     FileStream* wrappedFs = tf_malloc(sizeof *wrappedFs);
     if (!wrappedFs)
@@ -995,15 +995,15 @@ const char* fsGetResourceDirectory(ResourceDirectory resourceDir)
 
     if (!dir->pIO)
     {
-        LOGF_IF(eERROR, !dir->mPath[0],
+        LOGF_IF(eERROR, !dir->path[0],
                 "Trying to get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application",
                 resourceDir);
-        ASSERT(dir->mPath[0] != 0);
+        ASSERT(dir->path[0] != 0);
     }
-    return dir->mPath;
+    return dir->path;
 }
 
-ResourceMount fsGetResourceDirectoryMount(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].mMount; }
+ResourceMount fsGetResourceDirectoryMount(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].mount; }
 
 void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder)
 {
@@ -1019,16 +1019,16 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
     }
 #endif
 
-    dir->mMount = mount;
+    dir->mount = mount;
 
-    dir->mBundled = RM_CONTENT == mount;
+    dir->bundled = RM_CONTENT == mount;
 
     char resourcePath[FS_MAX_PATH] = { 0 };
     fsMergeDirAndFileName(pIO->GetResourceMount ? pIO->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
-    strncpy(dir->mPath, resourcePath, FS_MAX_PATH);
+    strncpy(dir->path, resourcePath, FS_MAX_PATH);
     dir->pIO = pIO;
 
-    if (!dir->mBundled && dir->mPath[0] != 0)
+    if (!dir->bundled && dir->path[0] != 0)
     {
         if (!fsCreateResourceDirectory(resourceDir))
         {
@@ -1377,7 +1377,7 @@ static void initBunyArFsInterface(IFileSystem*, struct BunyArMetadata*);
 
 static inline struct BunyArMetadata* getFsArchive(IFileSystem* fs) { return (struct BunyArMetadata*)fs->pUser; }
 
-static inline struct BunyArFileStream* getFsBunyArStream(FileStream* fs) { return (struct BunyArFileStream*)fs->mUser.data[0]; }
+static inline struct BunyArFileStream* getFsBunyArStream(FileStream* fs) { return (struct BunyArFileStream*)fs->user.data[0]; }
 
 static inline void bunyArMemoryReadPrepare(const struct BunyArMetadata* a,
                                            const struct BunyArPointer64 ptr, //-V801
@@ -1902,9 +1902,9 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     }
 
     pOutStream->pIO = inFs;
-    pOutStream->mMode = mode;
+    pOutStream->mode = mode;
 
-    pOutStream->mUser.data[0] = (uintptr_t)fs;
+    pOutStream->user.data[0] = (uintptr_t)fs;
 
     ++archive->virtualStreamCount;
 
@@ -1924,7 +1924,7 @@ static bool ioArchiveFsClose(FileStream* fs)
     if (!fs->pIO)
         return true;
 
-    ASSERT(fs->mUser.data[0]);
+    ASSERT(fs->user.data[0]);
 
     struct BunyArMetadata* archive = getFsArchive(fs->pIO);
     ASSERT(archive->virtualStreamCount != 0);

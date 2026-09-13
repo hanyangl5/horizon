@@ -224,16 +224,16 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     }
 
     TextureDesc& textureDesc = *pOutDesc;
-    textureDesc.mWidth = TinyDDS_Width(ctx);
-    textureDesc.mHeight = TinyDDS_Height(ctx);
-    textureDesc.mDepth = max(1U, TinyDDS_Depth(ctx));
-    textureDesc.mArraySize = max(1U, TinyDDS_ArraySlices(ctx));
-    textureDesc.mMipLevels = max(1U, TinyDDS_NumberOfMipmaps(ctx));
-    textureDesc.mFormat = TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
-    textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-    textureDesc.mSampleCount = SAMPLE_COUNT_1;
+    textureDesc.width = TinyDDS_Width(ctx);
+    textureDesc.height = TinyDDS_Height(ctx);
+    textureDesc.depth = max(1U, TinyDDS_Depth(ctx));
+    textureDesc.arraySize = max(1U, TinyDDS_ArraySlices(ctx));
+    textureDesc.mipLevels = max(1U, TinyDDS_NumberOfMipmaps(ctx));
+    textureDesc.format = TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
+    textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+    textureDesc.sampleCount = SAMPLE_COUNT_1;
 
-    if (textureDesc.mFormat == TinyImageFormat_UNDEFINED)
+    if (textureDesc.format == TinyImageFormat_UNDEFINED)
     {
         TinyDDS_DestroyContext(ctx);
         return false;
@@ -241,8 +241,8 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 
     if (TinyDDS_IsCubemap(ctx))
     {
-        textureDesc.mArraySize *= 6;
-        textureDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
+        textureDesc.arraySize *= 6;
+        textureDesc.descriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
     }
 
     TinyDDS_DestroyContext(ctx);
@@ -289,16 +289,16 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     }
 
     TextureDesc& textureDesc = *pOutDesc;
-    textureDesc.mWidth = TinyKtx_Width(ctx);
-    textureDesc.mHeight = TinyKtx_Height(ctx);
-    textureDesc.mDepth = max(1U, TinyKtx_Depth(ctx));
-    textureDesc.mArraySize = max(1U, TinyKtx_ArraySlices(ctx));
-    textureDesc.mMipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
-    textureDesc.mFormat = TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
-    textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-    textureDesc.mSampleCount = SAMPLE_COUNT_1;
+    textureDesc.width = TinyKtx_Width(ctx);
+    textureDesc.height = TinyKtx_Height(ctx);
+    textureDesc.depth = max(1U, TinyKtx_Depth(ctx));
+    textureDesc.arraySize = max(1U, TinyKtx_ArraySlices(ctx));
+    textureDesc.mipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
+    textureDesc.format = TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
+    textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+    textureDesc.sampleCount = SAMPLE_COUNT_1;
 
-    if (textureDesc.mFormat == TinyImageFormat_UNDEFINED)
+    if (textureDesc.format == TinyImageFormat_UNDEFINED)
     {
         TinyKtx_DestroyContext(ctx);
         return false;
@@ -306,8 +306,8 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 
     if (TinyKtx_IsCubemap(ctx))
     {
-        textureDesc.mArraySize *= 6;
-        textureDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
+        textureDesc.arraySize *= 6;
+        textureDesc.descriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
     }
 
     TinyKtx_DestroyContext(ctx);

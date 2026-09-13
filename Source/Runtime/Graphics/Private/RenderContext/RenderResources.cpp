@@ -245,19 +245,19 @@ GPUBuffer RenderContext::createBuffer(const BufferDesc& input)
     ASSERT(ready && input.size && input.initialDataSize <= input.size && ((input.pInitialData != nullptr) == (input.initialDataSize != 0)));
 
     ::BufferDesc desc = {};
-    desc.mSize = input.size;
-    desc.mElementCount = input.elementCount;
-    desc.mStructStride = input.structStride;
+    desc.size = input.size;
+    desc.elementCount = input.elementCount;
+    desc.structStride = input.structStride;
     desc.pName = input.pName;
-    desc.mQueueType = QUEUE_TYPE_GRAPHICS;
-    desc.mMemoryUsage = input.usage;
-    desc.mStartState = input.startState;
-    desc.mDescriptors = input.descriptors;
-    desc.mFlags = input.flags;
+    desc.queueType = QUEUE_TYPE_GRAPHICS;
+    desc.memoryUsage = input.usage;
+    desc.startState = input.startState;
+    desc.descriptors = input.descriptors;
+    desc.flags = input.flags;
 
     Buffer*        buffer = nullptr;
     SyncToken      token = 0;
-    BufferLoadDesc load = { .ppBuffer = &buffer, .pData = input.pInitialData, .mDesc = desc };
+    BufferLoadDesc load = { .ppBuffer = &buffer, .pData = input.pInitialData, .desc = desc };
     addResource(&load, &token);
     ASSERT(buffer);
     waitForToken(&token);
@@ -274,16 +274,16 @@ GPUTexture RenderContext::createTexture(const TextureDesc& input)
     if (input.renderTarget)
     {
         const RenderTargetDesc desc = {
-            .mFlags = input.flags,
-            .mWidth = input.width,
-            .mHeight = input.height,
-            .mDepth = input.depth,
-            .mArraySize = input.arraySize,
-            .mMipLevels = input.mipLevels,
-            .mSampleCount = input.sampleCount,
-            .mFormat = input.format,
-            .mStartState = input.startState,
-            .mDescriptors = input.descriptors,
+            .flags = input.flags,
+            .width = input.width,
+            .height = input.height,
+            .depth = input.depth,
+            .arraySize = input.arraySize,
+            .mipLevels = input.mipLevels,
+            .sampleCount = input.sampleCount,
+            .format = input.format,
+            .startState = input.startState,
+            .descriptors = input.descriptors,
             .pName = input.pName,
         };
         addRenderTarget(pRenderer, &desc, &renderTarget);
@@ -293,16 +293,16 @@ GPUTexture RenderContext::createTexture(const TextureDesc& input)
     else
     {
         ::TextureDesc desc = {};
-        desc.mWidth = input.width;
-        desc.mHeight = input.height;
-        desc.mDepth = input.depth;
-        desc.mArraySize = input.arraySize;
-        desc.mMipLevels = input.mipLevels;
-        desc.mSampleCount = input.sampleCount;
-        desc.mFormat = input.format;
-        desc.mStartState = input.startState;
-        desc.mDescriptors = input.descriptors;
-        desc.mFlags = input.flags;
+        desc.width = input.width;
+        desc.height = input.height;
+        desc.depth = input.depth;
+        desc.arraySize = input.arraySize;
+        desc.mipLevels = input.mipLevels;
+        desc.sampleCount = input.sampleCount;
+        desc.format = input.format;
+        desc.startState = input.startState;
+        desc.descriptors = input.descriptors;
+        desc.flags = input.flags;
         desc.pName = input.pName;
         SyncToken       token = 0;
         TextureLoadDesc load = { .ppTexture = &texture, .pDesc = &desc };
@@ -317,18 +317,18 @@ GPUSampler RenderContext::createSampler(const SamplerDesc& input)
 {
     ASSERT(ready);
     const ::SamplerDesc samplerDesc = {
-        .mMinFilter = input.minFilter,
-        .mMagFilter = input.magFilter,
-        .mMipMapMode = input.mipMapMode,
-        .mAddressU = input.addressU,
-        .mAddressV = input.addressV,
-        .mAddressW = input.addressW,
-        .mMipLodBias = input.mipLodBias,
-        .mSetLodRange = input.setLodRange,
-        .mMinLod = input.minLod,
-        .mMaxLod = input.maxLod,
-        .mMaxAnisotropy = input.maxAnisotropy,
-        .mCompareFunc = input.compareFunc,
+        .minFilter = input.minFilter,
+        .magFilter = input.magFilter,
+        .mipMapMode = input.mipMapMode,
+        .addressU = input.addressU,
+        .addressV = input.addressV,
+        .addressW = input.addressW,
+        .mipLodBias = input.mipLodBias,
+        .setLodRange = input.setLodRange,
+        .minLod = input.minLod,
+        .maxLod = input.maxLod,
+        .maxAnisotropy = input.maxAnisotropy,
+        .compareFunc = input.compareFunc,
     };
     Sampler* sampler = nullptr;
     addSampler(pRenderer, &samplerDesc, &sampler);
@@ -362,24 +362,24 @@ GPUShader RenderContext::createShader(const ShaderDesc& input)
         switch (inputStage.stage)
         {
         case SHADER_STAGE_VERT:
-            stage = &source.mVert;
+            stage = &source.vert;
             break;
         case SHADER_STAGE_FRAG:
-            stage = &source.mFrag;
+            stage = &source.frag;
             break;
         case SHADER_STAGE_COMP:
-            stage = &source.mComp;
+            stage = &source.comp;
             break;
         default:
             ASSERT(false);
             break;
         }
-        source.mStages |= inputStage.stage;
+        source.stages |= inputStage.stage;
         stage->pName = pFileSource ? sourcePath : inputStage.pName;
         stage->pByteCode = (void*)(pFileSource ? pFileSource : inputStage.pSource);
-        stage->mByteCodeSize = pFileSource ? (uint32_t)fileSize : inputStage.sourceSize;
+        stage->byteCodeSize = pFileSource ? (uint32_t)fileSize : inputStage.sourceSize;
         stage->pEntryPoint = inputStage.pEntryPoint;
-        ASSERT(stage->pByteCode && stage->mByteCodeSize && stage->pEntryPoint && stage->pEntryPoint[0]);
+        ASSERT(stage->pByteCode && stage->byteCodeSize && stage->pEntryPoint && stage->pEntryPoint[0]);
     }
 
     Shader* shader = nullptr;
@@ -395,7 +395,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     ASSERT(ready && input.pShader && input.pShader->pShader && input.renderTargetCount <= MAX_RENDER_TARGETS);
     Shader*           shader = input.pShader->pShader;
     Shader*           shaders[] = { shader };
-    RootSignatureDesc rootDesc = { .ppShaders = shaders, .mShaderCount = 1 };
+    RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
     RootSignature*    rootSignature = nullptr;
     addRootSignature(pRenderer, &rootDesc, &rootSignature);
     ASSERT(rootSignature);
@@ -407,21 +407,21 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     TinyImageFormat     formats[MAX_RENDER_TARGETS] = {};
     memcpy(formats, input.colorFormats, sizeof(formats));
     const PipelineDesc desc = {
-        .mGraphicsDesc = {
+        .graphicsDesc = {
             .pShaderProgram = shader,
             .pRootSignature = rootSignature,
-            .pVertexLayout = vertex.mBindingCount && vertex.mAttribCount ? &vertex : nullptr,
+            .pVertexLayout = vertex.bindingCount && vertex.attribCount ? &vertex : nullptr,
             .pBlendState = &blend,
             .pDepthState = &depth,
             .pRasterizerState = &raster,
             .pColorFormats = formats,
-            .mRenderTargetCount = input.renderTargetCount,
-            .mSampleCount = input.sampleCount,
-            .mDepthStencilFormat = input.depthStencilFormat,
-            .mPrimitiveTopo = input.topology,
+            .renderTargetCount = input.renderTargetCount,
+            .sampleCount = input.sampleCount,
+            .depthStencilFormat = input.depthStencilFormat,
+            .primitiveTopo = input.topology,
         },
         .pName = input.pName,
-        .mType = PIPELINE_TYPE_GRAPHICS,
+        .type = PIPELINE_TYPE_GRAPHICS,
     };
     Pipeline* pipeline = nullptr;
     addPipeline(pRenderer, &desc, &pipeline);
@@ -434,15 +434,15 @@ GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& inpu
     ASSERT(ready && input.pShader && input.pShader->pShader);
     Shader*           shader = input.pShader->pShader;
     Shader*           shaders[] = { shader };
-    RootSignatureDesc rootDesc = { .ppShaders = shaders, .mShaderCount = 1 };
+    RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
     RootSignature*    rootSignature = nullptr;
     addRootSignature(pRenderer, &rootDesc, &rootSignature);
     ASSERT(rootSignature);
 
     const PipelineDesc desc = {
-        .mComputeDesc = { shader, rootSignature },
+        .computeDesc = { shader, rootSignature },
         .pName = input.pName,
-        .mType = PIPELINE_TYPE_COMPUTE,
+        .type = PIPELINE_TYPE_COMPUTE,
     };
     Pipeline* pipeline = nullptr;
     addPipeline(pRenderer, &desc, &pipeline);
@@ -453,7 +453,7 @@ GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& inpu
 bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) const
 {
     ASSERT(ready && buffer.pBuffer && pAddress);
-    *pAddress = buffer.pBuffer->mDx.mGpuAddress;
+    *pAddress = buffer.pBuffer->dx.gpuAddress;
     return true;
 }
 

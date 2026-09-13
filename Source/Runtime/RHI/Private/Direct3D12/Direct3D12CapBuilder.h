@@ -47,19 +47,19 @@ inline void d3d12CapsBuilder(ID3D12Device* pDevice, GPUCapBits* pCapBits)
         pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
         if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
+            pCapBits->formatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
         }
         if (formatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_WRITE;
+            pCapBits->formatCaps[i] |= FORMAT_CAP_WRITE;
         }
         if (formatSupport.Support2 & loadStore)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_READ_WRITE;
+            pCapBits->formatCaps[i] |= FORMAT_CAP_READ_WRITE;
         }
         if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
+            pCapBits->formatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
         }
     }
 }

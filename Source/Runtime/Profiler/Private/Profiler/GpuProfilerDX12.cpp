@@ -45,10 +45,10 @@ static void freeTracyGpuZones(GpuProfiler* pGpuProfiler)
     if (!pGpuProfiler || !pGpuProfiler->pGpuTimerPool)
         return;
 
-    for (uint32_t i = 0; i < pGpuProfiler->mCurrentPoolIndex; ++i)
+    for (uint32_t i = 0; i < pGpuProfiler->currentPoolIndex; ++i)
     {
         GpuTimer* pGpuTimer = &pGpuProfiler->pGpuTimerPool[i];
-        ASSERT(!pGpuTimer->mBackendGpuZoneActive);
+        ASSERT(!pGpuTimer->backendGpuZoneActive);
         if (pGpuTimer->pBackendGpuZone)
         {
             tf_free(pGpuTimer->pBackendGpuZone);
@@ -59,10 +59,10 @@ static void freeTracyGpuZones(GpuProfiler* pGpuProfiler)
 
 void initGpuProfilerDX12(Renderer* pRenderer, Queue* pQueue, GpuProfiler* pGpuProfiler)
 {
-    pGpuProfiler->pBackendGpuContext = TracyD3D12Context(pRenderer->mDx.pDevice, pQueue->mDx.pQueue);
+    pGpuProfiler->pBackendGpuContext = TracyD3D12Context(pRenderer->dx.pDevice, pQueue->dx.pQueue);
     if (pGpuProfiler->pBackendGpuContext)
     {
-        TracyD3D12ContextName(getTracyGpuContext(pGpuProfiler), pGpuProfiler->mGroupName, (uint16_t)strlen(pGpuProfiler->mGroupName));
+        TracyD3D12ContextName(getTracyGpuContext(pGpuProfiler), pGpuProfiler->groupName, (uint16_t)strlen(pGpuProfiler->groupName));
     }
 }
 
@@ -88,7 +88,7 @@ void cmdBeginGpuFrameProfileDX12(GpuProfiler* pGpuProfiler)
 
 void beginGpuTimestampQueryDX12(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimer* pGpuTimer)
 {
-    if (!pCmd || !pGpuProfiler || !pGpuTimer || !pGpuProfiler->pBackendGpuContext || pGpuTimer->mBackendGpuZoneActive)
+    if (!pCmd || !pGpuProfiler || !pGpuTimer || !pGpuProfiler->pBackendGpuContext || pGpuTimer->backendGpuZoneActive)
         return;
 
     if (!pGpuTimer->pBackendGpuZone)
@@ -99,17 +99,17 @@ void beginGpuTimestampQueryDX12(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimer* 
 
     tf_placement_new<tracy::D3D12ZoneScope>((tracy::D3D12ZoneScope*)pGpuTimer->pBackendGpuZone, getTracyGpuContext(pGpuProfiler),
                                             (uint32_t)TracyLine, TracyFile, strlen(TracyFile), TracyFunction, strlen(TracyFunction),
-                                            pGpuTimer->mName, strlen(pGpuTimer->mName), pCmd->mDx.pCmdList, true);
-    pGpuTimer->mBackendGpuZoneActive = true;
+                                            pGpuTimer->name, strlen(pGpuTimer->name), pCmd->dx.pCmdList, true);
+    pGpuTimer->backendGpuZoneActive = true;
 }
 
 void endGpuTimestampQueryDX12(GpuTimer* pGpuTimer)
 {
-    if (!pGpuTimer || !pGpuTimer->mBackendGpuZoneActive)
+    if (!pGpuTimer || !pGpuTimer->backendGpuZoneActive)
         return;
 
     ((tracy::D3D12ZoneScope*)pGpuTimer->pBackendGpuZone)->~D3D12ZoneScope();
-    pGpuTimer->mBackendGpuZoneActive = false;
+    pGpuTimer->backendGpuZoneActive = false;
 }
 
 #else

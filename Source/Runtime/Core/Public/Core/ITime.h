@@ -56,7 +56,7 @@ extern "C"
     /// Low res OS timer
     typedef struct Timer
     {
-        uint32_t mStartTime;
+        uint32_t startTime;
     } Timer;
 
     FORGE_API void     initTimer(Timer* pTimer);
@@ -68,10 +68,10 @@ extern "C"
 
     typedef struct HiresTimer
     {
-        int64_t mStartTime;
+        int64_t startTime;
 
-        int64_t  mHistory[HIRES_TIMER_LENGTH_OF_HISTORY];
-        uint32_t mHistoryIndex;
+        int64_t  history[HIRES_TIMER_LENGTH_OF_HISTORY];
+        uint32_t historyIndex;
     } HiresTimer;
 
     FORGE_API void    initHiresTimer(HiresTimer* pTimer);

@@ -94,7 +94,7 @@ struct UnixFileStream
     int     descriptor;
 };
 
-#define USD(name, fs) struct UnixFileStream* name = (struct UnixFileStream*)(fs)->mUser.data
+#define USD(name, fs) struct UnixFileStream* name = (struct UnixFileStream*)(fs)->user.data
 
 static const char* getFileName(const struct UnixFileStream* stream, char* buffer, size_t bufferSize)
 {
@@ -185,9 +185,9 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
         LOGF(eERROR, "Failed to get size for file '%s': %s", filePath, strerror(errno));
     }
 
-    fs->mMode = mode;
+    fs->mode = mode;
     fs->pIO = io;
-    fs->mMount = fsGetResourceDirectoryMount(rd);
+    fs->mount = fsGetResourceDirectoryMount(rd);
 
     if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
     {
@@ -206,7 +206,7 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     *outSize = 0;
     *outData = NULL;
 
-    if (fs->mMode & FM_WRITE)
+    if (fs->mode & FM_WRITE)
         return false;
 
     USD(stream, fs);
@@ -339,7 +339,7 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
 
 static bool ioUnixFsFlush(FileStream* fs)
 {
-    if (!(fs->mMode & FM_WRITE))
+    if (!(fs->mode & FM_WRITE))
         return true;
 
     USD(stream, fs);
@@ -389,7 +389,7 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
 static ssize_t ioUnixFsGetSize(FileStream* fs)
 {
     USD(stream, fs);
-    if ((fs->mMode & FM_WRITE) && !unixFsUpdateSize(stream))
+    if ((fs->mode & FM_WRITE) && !unixFsUpdateSize(stream))
         return -1;
     return stream->size;
 }

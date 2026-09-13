@@ -117,10 +117,10 @@ static void UpdateWindowDescWindowedRect(WindowDesc* winDesc)
             winDesc->centered = windowedRect.left == centeredRect.left && windowedRect.right == centeredRect.right &&
                                 windowedRect.top == centeredRect.top && windowedRect.bottom == centeredRect.bottom;
         }
-        winDesc->mWndX = windowedRect.left;
-        winDesc->mWndY = windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-        winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
+        winDesc->wndX = windowedRect.left;
+        winDesc->wndY = windowedRect.top;
+        winDesc->wndW = getRectWidth(&winDesc->windowedRect);
+        winDesc->wndH = getRectHeight(&winDesc->windowedRect);
     }
 }
 
@@ -173,19 +173,19 @@ static void OffsetRectToDisplay(WindowDesc* winDesc, LPRECT rect)
 
 void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool maximized)
 {
-    if (pWindowAppRef == nullptr || !pWindowAppRef->mSettings.mInitialized)
+    if (pWindowAppRef == nullptr || !pWindowAppRef->settings.initialized)
     {
         return;
     }
 
-    pWindowAppRef->mSettings.mFullScreen = wnd->fullScreen;
-    if (pWindowAppRef->mSettings.mWidth == newSizeX && pWindowAppRef->mSettings.mHeight == newSizeY)
+    pWindowAppRef->settings.fullScreen = wnd->fullScreen;
+    if (pWindowAppRef->settings.width == newSizeX && pWindowAppRef->settings.height == newSizeY)
     {
         return;
     }
 
-    pWindowAppRef->mSettings.mWidth = newSizeX;
-    pWindowAppRef->mSettings.mHeight = newSizeY;
+    pWindowAppRef->settings.width = newSizeX;
+    pWindowAppRef->settings.height = newSizeY;
     wnd->maximized = maximized;
     wnd->minimized = false;
 
@@ -198,11 +198,11 @@ void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool maximize
         AdjustWindowRect(&rect, windowStyle, FALSE);
     }
 
-    wnd->mWndW = rect.right - rect.left;
-    wnd->mWndH = rect.bottom - rect.top;
+    wnd->wndW = rect.right - rect.left;
+    wnd->wndH = rect.bottom - rect.top;
 
     ReloadDesc reloadDesc;
-    reloadDesc.mType = RELOAD_TYPE_RESIZE;
+    reloadDesc.type = RELOAD_TYPE_RESIZE;
     requestReload(&reloadDesc);
 }
 
@@ -228,8 +228,8 @@ void adjustWindow(WindowDesc* winDesc)
         bool infoRead = GetMonitorInfo(currentMonitor, &info);
         ASSERT(infoRead);
 
-        pWindowAppRef->mSettings.mWindowX = info.rcMonitor.left;
-        pWindowAppRef->mSettings.mWindowY = info.rcMonitor.top;
+        pWindowAppRef->settings.windowX = info.rcMonitor.left;
+        pWindowAppRef->settings.windowY = info.rcMonitor.top;
 
         SetWindowPos(hwnd, HWND_NOTOPMOST, info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right - info.rcMonitor.left,
                      info.rcMonitor.bottom - info.rcMonitor.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
@@ -408,11 +408,11 @@ void collectMonitorInfo()
         devMode.dmFields = DM_PELSHEIGHT | DM_PELSWIDTH;
 
         EnumDisplaySettingsW(pMonitor->adapterName, ENUM_CURRENT_SETTINGS, &devMode);
-        pMonitor->defaultResolution.mHeight = devMode.dmPelsHeight;
-        pMonitor->defaultResolution.mWidth = devMode.dmPelsWidth;
+        pMonitor->defaultResolution.height = devMode.dmPelsHeight;
+        pMonitor->defaultResolution.width = devMode.dmPelsWidth;
 
-        pMonitor->dpi[0] = (uint32_t)((pMonitor->defaultResolution.mWidth * 25.4) / pMonitor->physicalSize[0]);
-        pMonitor->dpi[1] = (uint32_t)((pMonitor->defaultResolution.mHeight * 25.4) / pMonitor->physicalSize[1]);
+        pMonitor->dpi[0] = (uint32_t)((pMonitor->defaultResolution.width * 25.4) / pMonitor->physicalSize[0]);
+        pMonitor->dpi[1] = (uint32_t)((pMonitor->defaultResolution.height * 25.4) / pMonitor->physicalSize[1]);
 
         Resolution* resolutions = NULL;
         DWORD       current = 0;
@@ -424,7 +424,7 @@ void collectMonitorInfo()
             bool duplicate = false;
             for (ptrdiff_t i = 0; i < arrlen(resolutions); ++i)
             {
-                if (resolutions[i].mWidth == (uint32_t)devMode.dmPelsWidth && resolutions[i].mHeight == (uint32_t)devMode.dmPelsHeight)
+                if (resolutions[i].width == (uint32_t)devMode.dmPelsWidth && resolutions[i].height == (uint32_t)devMode.dmPelsHeight)
                 {
                     duplicate = true;
                     break;
@@ -435,8 +435,8 @@ void collectMonitorInfo()
                 continue;
 
             Resolution videoMode = {};
-            videoMode.mHeight = devMode.dmPelsHeight;
-            videoMode.mWidth = devMode.dmPelsWidth;
+            videoMode.height = devMode.dmPelsHeight;
+            videoMode.width = devMode.dmPelsWidth;
             arrpush(resolutions, videoMode);
         }
         sort(
@@ -446,10 +446,10 @@ void collectMonitorInfo()
                 UNREF_PARAM(pUser);
                 Resolution* pLhs = (Resolution*)lhs;
                 Resolution* pRhs = (Resolution*)rhs;
-                if (pLhs->mHeight == pRhs->mHeight)
-                    return pLhs->mWidth < pRhs->mWidth;
+                if (pLhs->height == pRhs->height)
+                    return pLhs->width < pRhs->width;
 
-                return pLhs->mHeight < pRhs->mHeight;
+                return pLhs->height < pRhs->height;
             },
             NULL);
 
@@ -459,12 +459,12 @@ void collectMonitorInfo()
 
 static void onFocusChanged(bool focused)
 {
-    if (pWindowAppRef == nullptr || !pWindowAppRef->mSettings.mInitialized)
+    if (pWindowAppRef == nullptr || !pWindowAppRef->settings.initialized)
     {
         return;
     }
 
-    pWindowAppRef->mSettings.mFocused = focused;
+    pWindowAppRef->settings.focused = focused;
 }
 
 // Hit test the frame for resizing and moving.
@@ -628,10 +628,10 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
             }
         }
 
-        winDesc->mWndX = winDesc->windowedRect.left;
-        winDesc->mWndY = winDesc->windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-        winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
+        winDesc->wndX = winDesc->windowedRect.left;
+        winDesc->wndY = winDesc->windowedRect.top;
+        winDesc->wndW = getRectWidth(&winDesc->windowedRect);
+        winDesc->wndH = getRectHeight(&winDesc->windowedRect);
 
         LOGF(LogLevel::eINFO, "Created window app %s", app_name);
     }
@@ -730,9 +730,9 @@ void toggleBorderless(WindowDesc* winDesc, unsigned clientWidth, unsigned client
         setWindowSize(winDesc, w, h);
         winDesc->centered = centered;
 
-        winDesc->mWndW = w;
-        winDesc->mWndH = h;
-        winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+        winDesc->wndW = w;
+        winDesc->wndH = h;
+        winDesc->windowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
     }
 }
 
@@ -742,19 +742,19 @@ void toggleFullscreen(WindowDesc* winDesc)
     adjustWindow(winDesc);
     if (winDesc->fullScreen)
     {
-        winDesc->mWndX = 0;
-        winDesc->mWndY = 0;
-        winDesc->mWndW = getRectWidth(&winDesc->fullscreenRect);
-        winDesc->mWndH = getRectHeight(&winDesc->fullscreenRect);
-        winDesc->mWindowMode = WM_FULLSCREEN;
+        winDesc->wndX = 0;
+        winDesc->wndY = 0;
+        winDesc->wndW = getRectWidth(&winDesc->fullscreenRect);
+        winDesc->wndH = getRectHeight(&winDesc->fullscreenRect);
+        winDesc->windowMode = WM_FULLSCREEN;
     }
     else
     {
-        winDesc->mWndX = winDesc->windowedRect.left;
-        winDesc->mWndY = winDesc->windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-        winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
-        winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+        winDesc->wndX = winDesc->windowedRect.left;
+        winDesc->wndY = winDesc->windowedRect.top;
+        winDesc->wndW = getRectWidth(&winDesc->windowedRect);
+        winDesc->wndH = getRectHeight(&winDesc->windowedRect);
+        winDesc->windowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
     }
 }
 
@@ -772,7 +772,7 @@ void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
     {
         toggleBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
     }
-    winDesc->mWindowMode = WindowMode::WM_WINDOWED;
+    winDesc->windowMode = WindowMode::WM_WINDOWED;
 }
 
 void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
@@ -782,14 +782,14 @@ void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
         toggleFullscreen(winDesc);
         if (!winDesc->borderlessWindow)
             toggleBorderless(winDesc, width, height);
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
+        winDesc->windowMode = WindowMode::WM_BORDERLESS;
     }
     else if (!winDesc->borderlessWindow)
     {
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
+        winDesc->windowMode = WindowMode::WM_BORDERLESS;
         toggleBorderless(winDesc, width, height);
         if (!winDesc->borderlessWindow)
-            winDesc->mWindowMode = WindowMode::WM_WINDOWED;
+            winDesc->windowMode = WindowMode::WM_WINDOWED;
     }
 }
 
@@ -798,7 +798,7 @@ void setFullscreen(WindowDesc* winDesc)
     if (!winDesc->fullScreen)
     {
         toggleFullscreen(winDesc);
-        winDesc->mWindowMode = WindowMode::WM_FULLSCREEN;
+        winDesc->windowMode = WindowMode::WM_FULLSCREEN;
     }
 }
 
@@ -1008,8 +1008,8 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {
     DEVMODEW devMode = {};
     devMode.dmSize = sizeof(DEVMODEW);
-    devMode.dmPelsHeight = pMode->mHeight;
-    devMode.dmPelsWidth = pMode->mWidth;
+    devMode.dmPelsHeight = pMode->height;
+    devMode.dmPelsWidth = pMode->width;
     devMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
 
     ChangeDisplaySettingsExW(pMonitor->adapterName, &devMode, NULL, CDS_FULLSCREEN, NULL);
@@ -1077,7 +1077,7 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
     for (ptrdiff_t i = 0; i < arrlen(pMonitor->resolutions); ++i)
     {
-        if (pMonitor->resolutions[i].mWidth == pRes->mWidth && pMonitor->resolutions[i].mHeight == pRes->mHeight)
+        if (pMonitor->resolutions[i].width == pRes->width && pMonitor->resolutions[i].height == pRes->height)
             return true;
     }
 

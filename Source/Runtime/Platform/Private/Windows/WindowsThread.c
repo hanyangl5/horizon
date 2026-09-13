@@ -91,21 +91,21 @@ void callOnce(CallOnceGuard* pGuard, CallOnceFn fn)
 
 bool initMutex(Mutex* mutex)
 {
-    return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->mHandle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
+    return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->handle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
 }
 
 void destroyMutex(Mutex* mutex)
 {
-    CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->mHandle;
+    CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->handle;
     DeleteCriticalSection(cs);
-    memset(&mutex->mHandle, 0, sizeof(mutex->mHandle));
+    memset(&mutex->handle, 0, sizeof(mutex->handle));
 }
 
-void acquireMutex(Mutex* mutex) { EnterCriticalSection((CRITICAL_SECTION*)&mutex->mHandle); }
+void acquireMutex(Mutex* mutex) { EnterCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
 
-bool tryAcquireMutex(Mutex* mutex) { return TryEnterCriticalSection((CRITICAL_SECTION*)&mutex->mHandle); }
+bool tryAcquireMutex(Mutex* mutex) { return TryEnterCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
 
-void releaseMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex->mHandle); }
+void releaseMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
 
 bool initConditionVariable(ConditionVariable* cv)
 {
@@ -118,7 +118,7 @@ void destroyConditionVariable(ConditionVariable* cv) { tf_free(cv->pHandle); }
 
 void waitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
 {
-    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->pHandle, (PCRITICAL_SECTION)&pMutex->mHandle, ms);
+    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->pHandle, (PCRITICAL_SECTION)&pMutex->handle, ms);
 }
 
 void wakeOneConditionVariable(ConditionVariable* cv) { WakeConditionVariable((PCONDITION_VARIABLE)cv->pHandle); }
@@ -163,10 +163,10 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
     ThreadDesc item = *((ThreadDesc*)(data));
     tf_free(data);
 
-    if (item.mThreadName[0] != 0)
+    if (item.threadName[0] != 0)
     {
         // Local TheForge thread name, used for logging
-        setCurrentThreadName(item.mThreadName);
+        setCurrentThreadName(item.threadName);
 
 #ifdef _WINDOWS
         HINSTANCE hinstLib = GetModuleHandle(TEXT("KernelBase.dll"));
@@ -175,8 +175,8 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
             SETTHREADDESCFUNC ProcAdd = (SETTHREADDESCFUNC)GetProcAddress(hinstLib, "SetThreadDescription");
             if (ProcAdd != NULL)
             {
-                WCHAR windowsThreadName[sizeof(item.mThreadName)] = { 0 };
-                mbstowcs(windowsThreadName, item.mThreadName, strlen(item.mThreadName) + 1);
+                WCHAR windowsThreadName[sizeof(item.threadName)] = { 0 };
+                mbstowcs(windowsThreadName, item.threadName, strlen(item.threadName) + 1);
                 HRESULT res = ProcAdd(GetCurrentThread(), windowsThreadName);
                 ASSERT(!FAILED(res));
             }
@@ -198,7 +198,7 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
             BOOL res = SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, NULL);
             if (res != 0)
             {
-                LOGF(eERROR, "Failed to set affinity for thread %s for CPU group %u: 0x%x", item.mThreadName, groupId, res);
+                LOGF(eERROR, "Failed to set affinity for thread %s for CPU group %u: 0x%x", item.threadName, groupId, res);
             }
         }
     }
@@ -361,7 +361,7 @@ PerformanceStats getPerformanceStats()
 {
     PerformanceStats ret = { { 0 } };
     for (uint32_t i = 0; i < getNumCPUCores(); i++)
-        ret.mCoreUsagePercentage[i] = -1;
+        ret.coreUsagePercentage[i] = -1;
 
 #if defined(XBOX)
     FILETIME currTime;
@@ -378,7 +378,7 @@ PerformanceStats getPerformanceStats()
 
         for (uint32_t i = 0; i < getNumCPUCores(); ++i)
         {
-            ret.mCoreUsagePercentage[i] = (100.0f * ((float)gThreadWorkTimes[i] / elapsedTime));
+            ret.coreUsagePercentage[i] = (100.0f * ((float)gThreadWorkTimes[i] / elapsedTime));
             gThreadWorkTimes[i] = 0;
         }
 
@@ -438,7 +438,7 @@ PerformanceStats getPerformanceStats()
         SysFreeString(timeStamp);
         SysFreeString(procTime);
 
-        ret.mCoreUsagePercentage[i] =
+        ret.coreUsagePercentage[i] =
             (float)(1.0 - (((double)newPProcUsage - (double)pOldPprocUsage[i]) / ((double)newTimeStamp - (double)pOldTimeStamp[i]))) *
             100.0f;
 

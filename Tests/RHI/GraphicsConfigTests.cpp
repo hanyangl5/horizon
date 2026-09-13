@@ -6,37 +6,37 @@
 TEST(RHIGraphicsConfigTest, DefaultGpuSettingsInitializeBaselineCapabilities)
 {
     GPUSettings settings = {};
-    settings.mUniformBufferAlignment = 256;
-    settings.mSamplerAnisotropySupported = 0;
-    settings.mGraphicsQueueSupported = 0;
-    settings.mPrimitiveIdSupported = 0;
-    settings.mMaxBoundTextures = 99;
-    settings.mMaxShaderModel = 0x6A;
-    settings.mNative16BitShaderOpsSupported = 1;
-    settings.mInt64ShaderOpsSupported = 1;
-    settings.mShaderExecutionReorderingActuallyReorders = 1;
-    settings.mLinearAlgebraSupported = 1;
-    settings.mLinearAlgebraTier = 0x10;
-    settings.mMax1DDispatchSize = 1024;
-    //settings.mEnhancedBarriersSupported = 1;
-    settings.mExecuteIndirectIncrementingConstantSupported = 1;
+    settings.uniformBufferAlignment = 256;
+    settings.samplerAnisotropySupported = 0;
+    settings.graphicsQueueSupported = 0;
+    settings.primitiveIdSupported = 0;
+    settings.maxBoundTextures = 99;
+    settings.maxShaderModel = 0x6A;
+    settings.native16BitShaderOpsSupported = 1;
+    settings.int64ShaderOpsSupported = 1;
+    settings.shaderExecutionReorderingActuallyReorders = 1;
+    settings.linearAlgebraSupported = 1;
+    settings.linearAlgebraTier = 0x10;
+    settings.max1DDispatchSize = 1024;
+    //settings.enhancedBarriersSupported = 1;
+    settings.executeIndirectIncrementingConstantSupported = 1;
 
     setDefaultGPUSettings(&settings);
 
-    EXPECT_EQ(settings.mUniformBufferAlignment, 0u);
-    EXPECT_EQ(settings.mMaxBoundTextures, 0u);
-    EXPECT_EQ(settings.mMaxShaderModel, 0u);
-    EXPECT_EQ(settings.mNative16BitShaderOpsSupported, 0u);
-    EXPECT_EQ(settings.mInt64ShaderOpsSupported, 0u);
-    EXPECT_EQ(settings.mShaderExecutionReorderingActuallyReorders, 0u);
-    EXPECT_EQ(settings.mLinearAlgebraSupported, 0u);
-    EXPECT_EQ(settings.mLinearAlgebraTier, 0u);
-    EXPECT_EQ(settings.mMax1DDispatchSize, 0u);
-    EXPECT_EQ(settings.mSamplerAnisotropySupported, 1u);
-    EXPECT_EQ(settings.mGraphicsQueueSupported, 1u);
-    EXPECT_EQ(settings.mPrimitiveIdSupported, 1u);
-    //EXPECT_EQ(settings.mEnhancedBarriersSupported, 0u);
-    EXPECT_EQ(settings.mExecuteIndirectIncrementingConstantSupported, 0u);
+    EXPECT_EQ(settings.uniformBufferAlignment, 0u);
+    EXPECT_EQ(settings.maxBoundTextures, 0u);
+    EXPECT_EQ(settings.maxShaderModel, 0u);
+    EXPECT_EQ(settings.native16BitShaderOpsSupported, 0u);
+    EXPECT_EQ(settings.int64ShaderOpsSupported, 0u);
+    EXPECT_EQ(settings.shaderExecutionReorderingActuallyReorders, 0u);
+    EXPECT_EQ(settings.linearAlgebraSupported, 0u);
+    EXPECT_EQ(settings.linearAlgebraTier, 0u);
+    EXPECT_EQ(settings.max1DDispatchSize, 0u);
+    EXPECT_EQ(settings.samplerAnisotropySupported, 1u);
+    EXPECT_EQ(settings.graphicsQueueSupported, 1u);
+    EXPECT_EQ(settings.primitiveIdSupported, 1u);
+    //EXPECT_EQ(settings.enhancedBarriersSupported, 0u);
+    EXPECT_EQ(settings.executeIndirectIncrementingConstantSupported, 0u);
 }
 
 // Verifies that preset-level helpers convert between enum values and case-insensitive strings.

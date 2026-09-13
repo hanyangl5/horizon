@@ -44,20 +44,20 @@ typedef struct PipelineCache PipelineCache;
 typedef struct FontSystemDesc
 {
     Renderer* pRenderer = NULL;
-    uint32_t  mFontstashRingSizeBytes = 1024 * 1024;
+    uint32_t  fontstashRingSizeBytes = 1024 * 1024;
 
 } FontSystemDesc;
 
 typedef struct FontSystemLoadDesc
 {
     PipelineCache* pCache;
-    ReloadType     mLoadType;
-    uint32_t       mColorFormat; // enum TinyImageFormat
-    uint32_t       mDepthFormat; // enum TinyImageFormat
-    uint32_t       mWidth;
-    uint32_t       mHeight;
-    uint32_t       mCullMode;         // enum CullMode
-    uint32_t       mDepthCompareMode; // enum CompareMode
+    ReloadType     loadType;
+    uint32_t       colorFormat; // enum TinyImageFormat
+    uint32_t       depthFormat; // enum TinyImageFormat
+    uint32_t       width;
+    uint32_t       height;
+    uint32_t       cullMode;         // enum CullMode
+    uint32_t       depthCompareMode; // enum CompareMode
 } FontSystemLoadDesc;
 
 /// Creation information for loading a font from a file using The Forge
@@ -73,12 +73,12 @@ typedef struct FontDrawDesc
 {
     const char* pText = NULL;
 
-    uint32_t mFontID = 0;
+    uint32_t fontID = 0;
     // Provided color should be A8B8G8R8_SRGB
-    uint32_t mFontColor = 0xffffffff;
-    float    mFontSize = 16.0f;
-    float    mFontSpacing = 0.0f;
-    float    mFontBlur = 0.0f;
+    uint32_t fontColor = 0xffffffff;
+    float    fontSize = 16.0f;
+    float    fontSpacing = 0.0f;
+    float    fontBlur = 0.0f;
 
 } FontDrawDesc;
 
@@ -94,11 +94,11 @@ FORGE_API bool initFontSystem(FontSystemDesc* pDesc);
 /// To be called at application shutdown time by the App Layer
 FORGE_API void exitFontSystem();
 
-/// Loads Font Rendering resources depending on FontSystemLoadDesc::mLoadType
+/// Loads Font Rendering resources depending on FontSystemLoadDesc::loadType
 /// To be called at application load time by the App Layer
 FORGE_API void loadFontSystem(const FontSystemLoadDesc* pDesc);
 
-/// Unloads Font Rendering resources depending on FontSystemLoadDesc::mLoadType
+/// Unloads Font Rendering resources depending on FontSystemLoadDesc::loadType
 /// To be called at application unload time by the App Layer
 FORGE_API void unloadFontSystem(ReloadType unloadType);
 

@@ -44,7 +44,7 @@ public:
     // Must be called to clean up the object if it was initialized
     void Exit();
 
-    // Updates the skeleton's joint and bone world matricies based on mJointModelMats
+    // Updates the skeleton's joint and bone world matricies based on jointModelMats
     void Pose(const Matrix4& rootTransform);
 
     // Finds the index of the joint with name jointName, if it cannot find it returns -1
@@ -54,17 +54,17 @@ public:
     void FindJointChain(const char* jointNames[], size_t numNames, int32_t jointChain[]);
 
     // Runtime skeleton.
-    ozz::animation::Skeleton mSkeleton;
+    ozz::animation::Skeleton skeleton;
 
     // The number of soa elements matching the number of joints of the
     // skeleton. This value is useful to allocate SoA runtime data structures.
-    uint32_t mNumSoaJoints = 0;
+    uint32_t numSoaJoints = 0;
 
     // The number of joints of the skeleton
-    uint32_t mNumJoints = 0;
+    uint32_t numJoints = 0;
 
     // Location of the root joint
-    uint32_t mRootIndex = 0;
+    uint32_t rootIndex = 0;
 
 private:
     // Load a runtime skeleton from a skeleton.ozz file

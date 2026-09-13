@@ -35,67 +35,67 @@ typedef enum SceneAssetErrorCode
 
 typedef struct SceneAssetError
 {
-    SceneAssetErrorCode mCode;
-    char                mMessage[SCENE_ASSET_ERROR_MESSAGE_CAPACITY];
+    SceneAssetErrorCode code;
+    char                message[SCENE_ASSET_ERROR_MESSAGE_CAPACITY];
 } SceneAssetError;
 
 typedef struct SceneAssetMaterialConvention
 {
-    char mBaseColor[SCENE_ASSET_METADATA_CAPACITY];
-    char mSpecular[SCENE_ASSET_METADATA_CAPACITY];
-    char mNormal[SCENE_ASSET_METADATA_CAPACITY];
-    char mEmissive[SCENE_ASSET_METADATA_CAPACITY];
+    char baseColor[SCENE_ASSET_METADATA_CAPACITY];
+    char specular[SCENE_ASSET_METADATA_CAPACITY];
+    char normal[SCENE_ASSET_METADATA_CAPACITY];
+    char emissive[SCENE_ASSET_METADATA_CAPACITY];
 } SceneAssetMaterialConvention;
 
 typedef struct SceneAssetTextureManifest
 {
-    char mPath[FS_MAX_PATH];
-    bool mSrgb;
+    char path[FS_MAX_PATH];
+    bool srgb;
 } SceneAssetTextureManifest;
 
 typedef struct SceneAssetMaterialManifest
 {
-    char    mName[SCENE_ASSET_NAME_CAPACITY];
-    int32_t mBaseColorTexture;
-    int32_t mNormalTexture;
-    int32_t mMetallicRoughnessTexture;
-    int32_t mEmissiveTexture;
-    float   mBaseColorFactor[4];
-    float   mMetallicFactor;
-    float   mRoughnessFactor;
-    float   mEmissiveFactor[3];
+    char    name[SCENE_ASSET_NAME_CAPACITY];
+    int32_t baseColorTexture;
+    int32_t normalTexture;
+    int32_t metallicRoughnessTexture;
+    int32_t emissiveTexture;
+    float   baseColorFactor[4];
+    float   metallicFactor;
+    float   roughnessFactor;
+    float   emissiveFactor[3];
 } SceneAssetMaterialManifest;
 
 typedef struct SceneAssetGpuMaterial
 {
-    uint32_t mBaseColorTexture;
-    uint32_t mNormalTexture;
-    uint32_t mMetallicRoughnessTexture;
-    uint32_t mEmissiveTexture;
-    float    mBaseColorFactor[4];
-    float    mEmissiveFactor[3];
-    float    mMetallicFactor;
-    float    mRoughnessFactor;
-    float    mPadding[3];
+    uint32_t baseColorTexture;
+    uint32_t normalTexture;
+    uint32_t metallicRoughnessTexture;
+    uint32_t emissiveTexture;
+    float    baseColorFactor[4];
+    float    emissiveFactor[3];
+    float    metallicFactor;
+    float    roughnessFactor;
+    float    padding[3];
 } SceneAssetGpuMaterial;
 
 typedef struct SceneAssetManifest
 {
-    uint32_t                     mVersion;
-    char                         mContentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY];
-    uint32_t                     mDependencyCount;
-    char                         mDependencies[SCENE_ASSET_MAX_DEPENDENCIES][FS_MAX_PATH];
-    char                         mDefaultScene[SCENE_ASSET_NAME_CAPACITY];
-    char                         mGeometry[FS_MAX_PATH];
-    char                         mSourceGltf[FS_MAX_PATH];
-    char                         mEnvironment[FS_MAX_PATH];
-    uint32_t                     mTextureDirectoryCount;
-    char                         mTextureDirectories[SCENE_ASSET_MAX_TEXTURE_DIRECTORIES][FS_MAX_PATH];
-    uint32_t                     mTextureCount;
-    SceneAssetTextureManifest    mTextures[SCENE_ASSET_MAX_TEXTURES];
-    uint32_t                     mMaterialCount;
-    SceneAssetMaterialManifest   mMaterials[SCENE_ASSET_MAX_MATERIALS];
-    SceneAssetMaterialConvention mMaterialConvention;
+    uint32_t                     version;
+    char                         contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY];
+    uint32_t                     dependencyCount;
+    char                         dependencies[SCENE_ASSET_MAX_DEPENDENCIES][FS_MAX_PATH];
+    char                         defaultScene[SCENE_ASSET_NAME_CAPACITY];
+    char                         geometry[FS_MAX_PATH];
+    char                         sourceGltf[FS_MAX_PATH];
+    char                         environment[FS_MAX_PATH];
+    uint32_t                     textureDirectoryCount;
+    char                         textureDirectories[SCENE_ASSET_MAX_TEXTURE_DIRECTORIES][FS_MAX_PATH];
+    uint32_t                     textureCount;
+    SceneAssetTextureManifest    textures[SCENE_ASSET_MAX_TEXTURES];
+    uint32_t                     materialCount;
+    SceneAssetMaterialManifest   materials[SCENE_ASSET_MAX_MATERIALS];
+    SceneAssetMaterialConvention materialConvention;
 } SceneAssetManifest;
 
 struct SceneAssetSlot;
@@ -111,29 +111,29 @@ class GPUTexture;
 #define SCENE_ASSET_GEOMETRY_MAGIC 0x53434E31u
 struct SceneAssetGeometryHeader
 {
-    uint32_t mMagic;
-    uint32_t mInstanceCount;
-    float    mBoundsMin[3];
-    float    mBoundsMax[3];
-    float    mCameraWorld[16];
-    float    mCameraYFov;
-    uint32_t mHasCamera;
-    uint32_t mPadding[2];
+    uint32_t magic;
+    uint32_t instanceCount;
+    float    boundsMin[3];
+    float    boundsMax[3];
+    float    cameraWorld[16];
+    float    cameraYFov;
+    uint32_t hasCamera;
+    uint32_t padding[2];
 };
 
 struct SceneAssetInstance
 {
-    float    mWorld[16]; // Column-major, including all parent node transforms.
-    uint32_t mDrawIndex;
-    uint32_t mMaterialIndex;
-    float    mAlphaCutoff;
-    uint32_t mPadding;
+    float    world[16]; // Column-major, including all parent node transforms.
+    uint32_t drawIndex;
+    uint32_t materialIndex;
+    float    alphaCutoff;
+    uint32_t padding;
 };
 
 typedef struct SceneAssetHandle
 {
-    uint32_t mIndex;
-    uint32_t mGeneration;
+    uint32_t index;
+    uint32_t generation;
 } SceneAssetHandle;
 
 typedef enum SceneAssetStatus
@@ -168,10 +168,10 @@ typedef struct SceneAssetResourceCallbacks
 
 typedef struct SceneManagerDesc
 {
-    uint32_t                    mCapacity;
+    uint32_t                    capacity;
     // Must outlive the manager and all GPU work using its scenes.
     hz::RenderContext*          pContext;
-    SceneAssetResourceCallbacks mCallbacks;
+    SceneAssetResourceCallbacks callbacks;
     void*                       pUserData;
     // Optional tool integration. Validate the cache and cook missing/outdated outputs
     // synchronously before starting GPU loads. Does not initialize global services.
@@ -224,7 +224,7 @@ private:
 
     SceneAssetSlot*             pSlots = nullptr;
     hz::RenderContext*          pContext = nullptr;
-    SceneAssetResourceCallbacks mCallbacks = {};
+    SceneAssetResourceCallbacks callbacks = {};
     void*                       pUserData = nullptr;
     bool (*pEnsureGltfCooked)(ResourceDirectory, const char*, ResourceDirectory, SceneAssetError*) = nullptr;
 };

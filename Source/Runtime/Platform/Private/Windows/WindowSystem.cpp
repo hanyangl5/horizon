@@ -112,7 +112,7 @@ void wndMaximizeWindow(void* pUserData)
 void wndMinimizeWindow(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    pWindowRef->mMinimizeRequested = true;
+    pWindowRef->minimizeRequested = true;
 }
 
 void wndHideWindow()
@@ -154,11 +154,11 @@ void wndMoveWindow(void* pUserData)
     wndSetWindowed(pUserData);
     int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
         clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
-    RectDesc rectDesc{ pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndX + pWindowRef->mWndW, pWindowRef->mWndY + pWindowRef->mWndH };
+    RectDesc rectDesc{ pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndX + pWindowRef->wndW, pWindowRef->wndY + pWindowRef->wndH };
     setWindowRect(pWindow, &rectDesc);
     LOGF(LogLevel::eINFO, "MoveWindow() Position check: %s",
-         wndValidateWindowPos(pWindowRef->mWndX + clientWidthStart, pWindowRef->mWndY + clientHeightStart) ? "SUCCESS" : "FAIL");
-    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->mWndW, pWindowRef->mWndH) ? "SUCCESS" : "FAIL");
+         wndValidateWindowPos(pWindowRef->wndX + clientWidthStart, pWindowRef->wndY + clientHeightStart) ? "SUCCESS" : "FAIL");
+    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->wndW, pWindowRef->wndH) ? "SUCCESS" : "FAIL");
 }
 
 void wndSetRecommendedWindowSize(void* pUserData)
@@ -172,21 +172,21 @@ void wndSetRecommendedWindowSize(void* pUserData)
 
     setWindowRect(pWindow, &rect);
 
-    pWindowRef->mWndX = rect.left;
-    pWindowRef->mWndY = rect.top;
-    pWindowRef->mWndW = rect.right - rect.left;
-    pWindowRef->mWndH = rect.bottom - rect.top;
+    pWindowRef->wndX = rect.left;
+    pWindowRef->wndY = rect.top;
+    pWindowRef->wndW = rect.right - rect.left;
+    pWindowRef->wndH = rect.bottom - rect.top;
 }
 
 void wndHideCursor()
 {
-    pWindowRef->mCursorHidden = true;
+    pWindowRef->cursorHidden = true;
     hideCursor();
 }
 
 void wndShowCursor()
 {
-    pWindowRef->mCursorHidden = false;
+    pWindowRef->cursorHidden = false;
     showCursor();
 }
 
@@ -194,7 +194,7 @@ void wndUpdateCaptureCursor(void* pUserData)
 {
     UNREF_PARAM(pUserData);
 #ifdef ENABLE_FORGE_INPUT
-    setEnableCaptureInput(pWindowRef->mCursorCaptured);
+    setEnableCaptureInput(pWindowRef->cursorCaptureRequested);
 #endif
 }
 
@@ -214,10 +214,10 @@ void platformInitWindowSystem(WindowDesc* pData)
     ASSERT(pWindowRef == NULL);
 
     RectDesc currentRes = pData->fullScreen ? pData->fullscreenRect : pData->windowedRect;
-    pData->mWndX = currentRes.left;
-    pData->mWndY = currentRes.top;
-    pData->mWndW = currentRes.right - currentRes.left;
-    pData->mWndH = currentRes.bottom - currentRes.top;
+    pData->wndX = currentRes.left;
+    pData->wndY = currentRes.top;
+    pData->wndW = currentRes.right - currentRes.left;
+    pData->wndH = currentRes.bottom - currentRes.top;
 
     pWindowRef = pData;
 
@@ -264,12 +264,12 @@ void platformExitWindowSystem()
 
 void platformUpdateWindowSystem()
 {
-    pWindowRef->mCursorInsideWindow = isCursorInsideTrackingArea();
+    pWindowRef->cursorInsideWindow = isCursorInsideTrackingArea();
 
-    if (pWindowRef->mMinimizeRequested)
+    if (pWindowRef->minimizeRequested)
     {
         minimizeWindow(pWindowRef);
-        pWindowRef->mMinimizeRequested = false;
+        pWindowRef->minimizeRequested = false;
     }
 
 #if WINDOW_DETAILS
@@ -283,8 +283,8 @@ void platformUpdateWindowSystem()
     bformat(&pWindowRef->pClientRectLabel, "ClientRect L: %d, T: %d, R: %d, B: %d", pWindowRef->clientRect.left, pWindowRef->clientRect.top,
             pWindowRef->clientRect.right, pWindowRef->clientRect.bottom);
     bdestroy(&pWindowRef->pWndLabel);
-    bformat(&pWindowRef->pWndLabel, "Wnd X: %d, Y: %d, W: %d, H: %d", pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndW,
-            pWindowRef->mWndH);
+    bformat(&pWindowRef->pWndLabel, "Wnd X: %d, Y: %d, W: %d, H: %d", pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndW,
+            pWindowRef->wndH);
     bdestroy(&pWindowRef->pFullscreenLabel);
     bformat(&pWindowRef->pFullscreenLabel, "Fullscreen: %s", pWindowRef->fullScreen ? "True" : "False");
     bdestroy(&pWindowRef->pCursorCapturedLabel);
@@ -308,7 +308,7 @@ void platformUpdateWindowSystem()
     bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->forceLowDPI ? "True" : "False");
     bdestroy(&pWindowRef->pWindowModeLabel);
     bformat(&pWindowRef->pWindowModeLabel, "WindowMode: %s",
-            pWindowRef->mWindowMode == WM_BORDERLESS ? "Borderless"
-                                                     : (pWindowRef->mWindowMode == WM_FULLSCREEN ? "Fullscreen" : "Windowed"));
+            pWindowRef->windowMode == WM_BORDERLESS ? "Borderless"
+                                                     : (pWindowRef->windowMode == WM_FULLSCREEN ? "Fullscreen" : "Windowed"));
 #endif
 }

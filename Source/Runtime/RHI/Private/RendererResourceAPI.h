@@ -243,9 +243,9 @@ struct SubresourceDataDesc;
 //     Buffer*              pBuffer;
 //     ResourceState_2 mUsageBefore;
 //     ResourceState_2 mUsageAfter;
-//     uint64_t             mOffset;
-//     uint64_t             mSize;
-//     BarrierFlags         mFlags = BARRIER_FLAG_NONE;
+//     uint64_t             offset;
+//     uint64_t             size;
+//     BarrierFlags         flags = BARRIER_FLAG_NONE;
 // };
 
 // struct TextureBarrier2
@@ -253,14 +253,14 @@ struct SubresourceDataDesc;
 //     Texture*             pTexture;
 //     ResourceState_2 mUsageBefore;
 //     ResourceState_2 mUsageAfter;
-//     uint8_t              mSubresourceBarrier : 1;
-//     uint8_t              mMipLevel : 7;
+//     uint8_t              subresourceBarrier : 1;
+//     uint8_t              mipLevel : 7;
 //     uint8_t              mMipCount;
-//     uint16_t             mArrayLayer;
+//     uint16_t             arrayLayer;
 //     uint16_t             mArrayLayerCount;
 //     uint8_t              mPlaneSlice;
 //     uint8_t              mPlaneSliceCount;
-//     BarrierFlags         mFlags = BARRIER_FLAG_NONE;
+//     BarrierFlags         flags = BARRIER_FLAG_NONE;
 // };
 
 // struct RenderTargetBarrier2
@@ -268,14 +268,14 @@ struct SubresourceDataDesc;
 //     RenderTarget*        pRenderTarget;
 //     ResourceState_2 mUsageBefore;
 //     ResourceState_2 mUsageAfter;
-//     uint8_t              mSubresourceBarrier : 1;
-//     uint8_t              mMipLevel : 7;
+//     uint8_t              subresourceBarrier : 1;
+//     uint8_t              mipLevel : 7;
 //     uint8_t              mMipCount;
-//     uint16_t             mArrayLayer;
+//     uint16_t             arrayLayer;
 //     uint16_t             mArrayLayerCount;
 //     uint8_t              mPlaneSlice;
 //     uint8_t              mPlaneSliceCount;
-//     BarrierFlags         mFlags = BARRIER_FLAG_NONE;
+//     BarrierFlags         flags = BARRIER_FLAG_NONE;
 // };
 
 // struct BarrierDesc

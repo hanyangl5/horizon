@@ -72,9 +72,9 @@ Minimum API surface:
 ```cpp
 struct JobSystemDesc
 {
-    uint32_t mWorkerCount;
-    bool     mSingleThreaded;
-    bool     mEnableThreadAffinity;
+    uint32_t workerCount;
+    bool     singleThreaded;
+    bool     enableThreadAffinity;
 };
 
 struct JobHandle;
@@ -176,7 +176,7 @@ Recommended direction:
 - Make blocking token waits rare and visible in profiler traces.
 - Let background decode jobs prepare CPU data, then hand upload requests to the
   resource loader.
-- Keep `mSingleThreaded` behavior for deterministic startup and tests.
+- Keep `singleThreaded` behavior for deterministic startup and tests.
 
 The resource loader can later become a job graph node, but it should still own
 its GPU queue synchronization internally.

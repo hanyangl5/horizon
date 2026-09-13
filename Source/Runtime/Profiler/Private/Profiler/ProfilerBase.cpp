@@ -41,8 +41,8 @@ void exitGpuProfilers();
 #if defined(ENABLE_PROFILER)
 struct TracyCpuProfileToken
 {
-    ___tracy_source_location_data mSourceLocation;
-    char                          mName[256];
+    ___tracy_source_location_data sourceLocation;
+    char                          name[256];
 };
 
 static uint64_t packTracyZoneCtx(TracyCZoneCtx ctx)
@@ -111,13 +111,13 @@ void initProfiler(ProfilerDesc* pDesc)
 #if defined(ENABLE_GPU_PROFILER)
     initGpuProfilers();
 
-    if (pDesc && pDesc->mGpuProfilerCount > 0)
+    if (pDesc && pDesc->gpuProfilerCount > 0)
     {
         ASSERT(pDesc->pRenderer != NULL && pDesc->ppQueues != NULL && pDesc->ppProfilerNames != NULL && pDesc->pProfileTokens != NULL);
         if (!pDesc->pRenderer || !pDesc->ppQueues || !pDesc->ppProfilerNames || !pDesc->pProfileTokens)
             return;
 
-        for (uint32_t i = 0; i < pDesc->mGpuProfilerCount; ++i)
+        for (uint32_t i = 0; i < pDesc->gpuProfilerCount; ++i)
         {
             pDesc->pProfileTokens[i] = addGpuProfiler(pDesc->pRenderer, pDesc->ppQueues[i], pDesc->ppProfilerNames[i]);
         }
@@ -196,7 +196,7 @@ uint64_t cpuProfileEnter(ProfileToken nToken)
         return 0;
 
     const TracyCpuProfileToken* pToken = (const TracyCpuProfileToken*)nToken;
-    return packTracyZoneCtx(___tracy_emit_zone_begin_callstack(&pToken->mSourceLocation, TRACY_CALLSTACK, true));
+    return packTracyZoneCtx(___tracy_emit_zone_begin_callstack(&pToken->sourceLocation, TRACY_CALLSTACK, true));
 #else
     UNREF_PARAM(nToken);
     return 0;
@@ -222,13 +222,13 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
     if (!pToken)
         return PROFILE_INVALID_TOKEN;
 
-    formatTracyCpuProfileName(pToken->mName, sizeof(pToken->mName), pGroup, pName);
+    formatTracyCpuProfileName(pToken->name, sizeof(pToken->name), pGroup, pName);
 
-    pToken->mSourceLocation.name = pToken->mName;
-    pToken->mSourceLocation.function = "cpuProfileEnter";
-    pToken->mSourceLocation.file = "Profiler/IProfiler.h";
-    pToken->mSourceLocation.line = 0;
-    pToken->mSourceLocation.color = nColor;
+    pToken->sourceLocation.name = pToken->name;
+    pToken->sourceLocation.function = "cpuProfileEnter";
+    pToken->sourceLocation.file = "Profiler/IProfiler.h";
+    pToken->sourceLocation.line = 0;
+    pToken->sourceLocation.color = nColor;
     return (ProfileToken)pToken;
 #else
     UNREF_PARAM(pGroup);

@@ -67,9 +67,9 @@ typedef struct ProfilerDesc
     const char**  ppProfilerNames = NULL;
     ProfileToken* pProfileTokens = NULL;
 
-    uint32_t mGpuProfilerCount = 0;
-    uint32_t mWidthUI = 0;
-    uint32_t mHeightUI = 0;
+    uint32_t gpuProfilerCount = 0;
+    uint32_t widthUI = 0;
+    uint32_t heightUI = 0;
 
 } ProfilerDesc;
 

@@ -320,7 +320,7 @@
 //
 //    initCpuInfo(&gCpu);
 //
-//    IApp::Settings* pSettings = &pApp->mSettings;
+//    IApp::Settings* pSettings = &pApp->settings;
 //    WindowDesc      window = {};
 //    gWindow = &window;     // WindowsWindow.cpp
 //    gWindowDesc = &window; // WindowsBase.cpp
@@ -329,41 +329,41 @@
 //            .window; // WindowsLog.c, save the address to this handle to avoid having to adding includes to WindowsLog.c to use
 //            WindowDesc*.
 //
-//    if (pSettings->mMonitorIndex < 0 || pSettings->mMonitorIndex >= (int)gMonitorCount)
+//    if (pSettings->monitorIndex < 0 || pSettings->monitorIndex >= (int)gMonitorCount)
 //    {
-//        pSettings->mMonitorIndex = 0;
+//        pSettings->monitorIndex = 0;
 //    }
 //
-//    if (pSettings->mWidth <= 0 || pSettings->mHeight <= 0)
+//    if (pSettings->width <= 0 || pSettings->height <= 0)
 //    {
 //        RectDesc rect = {};
 //
 //        getRecommendedResolution(&rect);
-//        pSettings->mWidth = getRectWidth(&rect);
-//        pSettings->mHeight = getRectHeight(&rect);
+//        pSettings->width = getRectWidth(&rect);
+//        pSettings->height = getRectHeight(&rect);
 //    }
 //
-//    MonitorDesc* monitor = getMonitor(pSettings->mMonitorIndex);
+//    MonitorDesc* monitor = getMonitor(pSettings->monitorIndex);
 //    ASSERT(monitor != nullptr);
 //
-//    gWindow->clientRect = { (int)pSettings->mWindowX + monitor->monitorRect.left, (int)pSettings->mWindowY + monitor->monitorRect.top,
-//                            (int)pSettings->mWidth, (int)pSettings->mHeight };
+//    gWindow->clientRect = { (int)pSettings->windowX + monitor->monitorRect.left, (int)pSettings->windowY + monitor->monitorRect.top,
+//                            (int)pSettings->width, (int)pSettings->height };
 //
 //    gWindow->windowedRect = gWindow->clientRect;
-//    gWindow->fullScreen = pSettings->mFullScreen;
+//    gWindow->fullScreen = pSettings->fullScreen;
 //    gWindow->maximized = false;
-//    gWindow->noresizeFrame = !pSettings->mDragToResize;
-//    gWindow->borderlessWindow = pSettings->mBorderlessWindow;
-//    gWindow->centered = false; // pSettings->mCentered;
-//    gWindow->forceLowDPI = pSettings->mForceLowDPI;
+//    gWindow->noresizeFrame = !pSettings->dragToResize;
+//    gWindow->borderlessWindow = pSettings->borderlessWindow;
+//    gWindow->centered = false; // pSettings->centered;
+//    gWindow->forceLowDPI = pSettings->forceLowDPI;
 //    gWindow->overrideDefaultPosition = true;
 //    gWindow->cursorCaptured = false;
 //
-//    if (!pSettings->mExternalWindow)
+//    if (!pSettings->externalWindow)
 //        openWindow(pApp->GetName(), gWindow);
 //
-//    pSettings->mWidth = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
-//    pSettings->mHeight = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
+//    pSettings->width = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
+//    pSettings->height = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
 //
 //    pApp->pCommandLine = GetCommandLineA();
 //
@@ -406,7 +406,7 @@
 //                ASSERT(false);
 //                return -1;
 //            }
-//            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D11;
+//            gPlatformParameters.selectedRendererApi = RENDERER_API_D3D11;
 //            paramRenderingAPIFound = true;
 //        }
 //#endif
@@ -419,7 +419,7 @@
 //                ASSERT(false);
 //                return -1;
 //            }
-//            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D12;
+//            gPlatformParameters.selectedRendererApi = RENDERER_API_D3D12;
 //            paramRenderingAPIFound = true;
 //        }
 //#endif
@@ -432,7 +432,7 @@
 //                ASSERT(false);
 //                return -1;
 //            }
-//            gPlatformParameters.mSelectedRendererApi = RENDERER_API_VULKAN;
+//            gPlatformParameters.selectedRendererApi = RENDERER_API_VULKAN;
 //            paramRenderingAPIFound = true;
 //        }
 //#endif
@@ -453,7 +453,7 @@
 //                pApp->ShowUnsupportedMessage(pRendererReason);
 //            }
 //
-//            if (pApp->mUnsupported)
+//            if (pApp->unsupported)
 //            {
 //                errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
 //                                  &pApp->pWindow->handle, NULL);
@@ -465,7 +465,7 @@
 //        }
 //
 //        setupPlatformUI(pSettings);
-//        pSettings->mInitialized = true;
+//        pSettings->initialized = true;
 //
 //        if (!pApp->Load(&gReloadDescriptor))
 //            return EXIT_FAILURE;
@@ -501,15 +501,15 @@
 //        bool lastMinimized = gWindow->minimized;
 //
 //        extern bool handleMessages();
-//        quit = handleMessages() || pSettings->mQuit;
+//        quit = handleMessages() || pSettings->quit;
 //
 //        // UPDATE BASE INTERFACES
 //        updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
 //        baseSubsystemAppDrawn = false;
 //
-//        if (gResetDescriptor.mType != RESET_TYPE_NONE)
+//        if (gResetDescriptor.type != RESET_TYPE_NONE)
 //        {
-//            if (gResetDescriptor.mType & RESET_TYPE_DEVICE_LOST)
+//            if (gResetDescriptor.type & RESET_TYPE_DEVICE_LOST)
 //            {
 //                errorMessagePopup(
 //                    "Graphics Device Lost",
@@ -518,18 +518,18 @@
 //                    &pApp->pWindow->handle, NULL);
 //            }
 //
-//            if (gResetDescriptor.mType & RESET_TYPE_GRAPHIC_CARD_SWITCH)
+//            if (gResetDescriptor.type & RESET_TYPE_GRAPHIC_CARD_SWITCH)
 //            {
-//                ASSERT(gPlatformParameters.mSelectedGpuIndex < gPlatformParameters.mAvailableGpuCount);
-//                gPlatformParameters.mPreferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.mSelectedGpuIndex];
+//                ASSERT(gPlatformParameters.selectedGpuIndex < gPlatformParameters.availableGpuCount);
+//                gPlatformParameters.preferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.selectedGpuIndex];
 //            }
 //
-//            gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+//            gReloadDescriptor.type = RELOAD_TYPE_ALL;
 //            pApp->Unload(&gReloadDescriptor);
 //            pApp->Exit();
 //
-//            gPlatformParameters.mSelectedRendererApi = (RendererApi)gSelectedApiIndex;
-//            pSettings->mInitialized = false;
+//            gPlatformParameters.selectedRendererApi = (RendererApi)gSelectedApiIndex;
+//            pSettings->initialized = false;
 //
 //            closeWindow(app->pWindow);
 //            openWindow(app->GetName(), app->pWindow);
@@ -544,7 +544,7 @@
 //                initTimer(&t);
 //                if (!pApp->Init())
 //                {
-//                    if (pApp->mUnsupported)
+//                    if (pApp->unsupported)
 //                    {
 //                        errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
 //                                          &pApp->pWindow->handle, NULL);
@@ -555,7 +555,7 @@
 //                }
 //
 //                setupPlatformUI(pSettings);
-//                pSettings->mInitialized = true;
+//                pSettings->initialized = true;
 //
 //                if (!pApp->Load(&gReloadDescriptor))
 //                    return EXIT_FAILURE;
@@ -563,11 +563,11 @@
 //                LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
 //            }
 //
-//            gResetDescriptor.mType = RESET_TYPE_NONE;
+//            gResetDescriptor.type = RESET_TYPE_NONE;
 //            continue;
 //        }
 //
-//        if (gReloadDescriptor.mType != RELOAD_TYPE_ALL)
+//        if (gReloadDescriptor.type != RELOAD_TYPE_ALL)
 //        {
 //            Timer t;
 //            initTimer(&t);
@@ -577,7 +577,7 @@
 //                return EXIT_FAILURE;
 //
 //            LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
-//            gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+//            gReloadDescriptor.type = RELOAD_TYPE_ALL;
 //            continue;
 //        }
 //
@@ -598,7 +598,7 @@
 //        pApp->Draw();
 //        baseSubsystemAppDrawn = true;
 //
-//        if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
+//        if (gShowPlatformUI != pApp->settings.showPlatformUI)
 //        {
 //            togglePlatformUI();
 //        }
@@ -624,8 +624,8 @@
 //    }
 //#endif
 //
-//    gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-//    pApp->mSettings.mQuit = true;
+//    gReloadDescriptor.type = RELOAD_TYPE_ALL;
+//    pApp->settings.quit = true;
 //    pApp->Unload(&gReloadDescriptor);
 //    pApp->Exit();
 //

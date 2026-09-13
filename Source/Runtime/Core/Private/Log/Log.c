@@ -41,34 +41,34 @@
 
 typedef struct LogCallback
 {
-    char          mID[LOG_CALLBACK_MAX_ID];
-    void*         mUserData;
-    LogCallbackFn mCallback;
-    LogCloseFn    mClose;
-    LogFlushFn    mFlush;
-    uint32_t      mLevel;
+    char          id[LOG_CALLBACK_MAX_ID];
+    void*         userData;
+    LogCallbackFn callback;
+    LogCloseFn    close;
+    LogFlushFn    flush;
+    uint32_t      level;
 } LogCallback;
 
 static void initLogCallback(LogCallback* pLogCallback, const char* id, void* pUserData, LogCallbackFn callback, LogCloseFn close,
                             LogFlushFn flush, uint32_t level)
 {
-    strncpy(pLogCallback->mID, id, sizeof pLogCallback->mID - 1);
-    pLogCallback->mID[sizeof pLogCallback->mID - 1] = 0;
+    strncpy(pLogCallback->id, id, sizeof pLogCallback->id - 1);
+    pLogCallback->id[sizeof pLogCallback->id - 1] = 0;
 
-    pLogCallback->mUserData = pUserData;
-    pLogCallback->mCallback = callback;
-    pLogCallback->mClose = close;
-    pLogCallback->mFlush = flush;
-    pLogCallback->mLevel = level;
+    pLogCallback->userData = pUserData;
+    pLogCallback->callback = callback;
+    pLogCallback->close = close;
+    pLogCallback->flush = flush;
+    pLogCallback->level = level;
 }
 
 typedef struct Log
 {
     LogCallback* pCallbacks;
-    size_t       mCallbacksSize;
-    Mutex        mLogMutex;
-    uint32_t     mLogLevel;
-    uint32_t     mIndentation;
+    size_t       callbacksSize;
+    Mutex        logMutex;
+    uint32_t     logLevel;
+    uint32_t     indentation;
 } Log;
 
 static bool gIsLoggerInitialized = false;
@@ -133,10 +133,10 @@ void initLog(const char* appName, LogLevel level /* = eALL */)
     if (!gIsLoggerInitialized)
     {
         gLogger.pCallbacks = NULL;
-        gLogger.mCallbacksSize = 0;
-        initMutex(&gLogger.mLogMutex);
-        gLogger.mLogLevel = level;
-        gLogger.mIndentation = 0;
+        gLogger.callbacksSize = 0;
+        initMutex(&gLogger.logMutex);
+        gLogger.logLevel = level;
+        gLogger.indentation = 0;
 
         setMainThread();
         setCurrentThreadName("MainThread");
@@ -152,13 +152,13 @@ void exitLog(void)
 {
     LOGF(eINFO, "Shutting down log system.");
 
-    for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.mCallbacksSize; ++pCallback)
+    for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
     {
-        if (pCallback->mClose)
-            pCallback->mClose(pCallback->mUserData);
+        if (pCallback->close)
+            pCallback->close(pCallback->userData);
     }
 
-    destroyMutex(&gLogger.mLogMutex);
+    destroyMutex(&gLogger.logMutex);
     tf_free(gLogger.pCallbacks);
     gIsLoggerInitialized = false;
 }
@@ -179,7 +179,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
         fsMergeDirAndFileName(fsGetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
         addLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
-        acquireMutex(&gLogger.mLogMutex);
+        acquireMutex(&gLogger.logMutex);
         {
             // Header
             static const char header[] = "date       time     "
@@ -190,7 +190,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
             fsWriteToStream(&fh, header, sizeof(header) - 1);
             fsFlushStream(&fh);
         }
-        releaseMutex(&gLogger.mLogMutex);
+        releaseMutex(&gLogger.logMutex);
 
         writeLog(eINFO, __FILE__, __LINE__, "Opened log file %s", filename);
     }
@@ -202,23 +202,23 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 
 void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush)
 {
-    acquireMutex(&gLogger.mLogMutex);
+    acquireMutex(&gLogger.logMutex);
     {
         if (!isLogCallback(id))
         {
             LogCallback logCallback;
             memset(&logCallback, 0, sizeof(LogCallback));
             initLogCallback(&logCallback, id, user_data, callback, close, flush, log_level);
-            LogCallback* pNewArray = (LogCallback*)tf_realloc(gLogger.pCallbacks, sizeof(LogCallback) * (gLogger.mCallbacksSize + 1));
+            LogCallback* pNewArray = (LogCallback*)tf_realloc(gLogger.pCallbacks, sizeof(LogCallback) * (gLogger.callbacksSize + 1));
             ASSERT(pNewArray != NULL);
             gLogger.pCallbacks = pNewArray;
-            gLogger.pCallbacks[gLogger.mCallbacksSize] = logCallback;
-            gLogger.mCallbacksSize = gLogger.mCallbacksSize + 1;
+            gLogger.pCallbacks[gLogger.callbacksSize] = logCallback;
+            gLogger.callbacksSize = gLogger.callbacksSize + 1;
         }
         else
             close(user_data);
     }
-    releaseMutex(&gLogger.mLogMutex);
+    releaseMutex(&gLogger.logMutex);
 }
 
 typedef char LogStr[LOG_LEVEL_SIZE + 1];
@@ -240,7 +240,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
     for (uint32_t i = 0; i < sizeof(logLevelPrefixes) / sizeof(logLevelPrefixes[0]); ++i)
     {
         Prefix* it = &logLevelPrefixes[i];
-        if ((it->first & level) && (gLogger.mLogLevel & level))
+        if ((it->first & level) && (gLogger.logLevel & level))
         {
             log_levels[log_level_count] = i;
             ++log_level_count;
@@ -250,7 +250,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
     uint32_t preable_end = writeLogPreamble(gLogBuffer, LOG_PREAMBLE_SIZE, filename, line_number);
 
     // Prepare indentation
-    uint32_t indentation = gLogger.mIndentation * INDENTATION_SIZE_LOG;
+    uint32_t indentation = gLogger.indentation * INDENTATION_SIZE_LOG;
     memset(gLogBuffer + preable_end, ' ', indentation);
 
     uint32_t offset = preable_end + LOG_LEVEL_SIZE + indentation;
@@ -270,15 +270,15 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
             _PrintUnicode(gLogBuffer, level & eERROR);
         }
 
-        acquireMutex(&gLogger.mLogMutex);
+        acquireMutex(&gLogger.logMutex);
         {
-            for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.mCallbacksSize; ++pCallback)
+            for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
             {
-                if (pCallback->mLevel & logLevelPrefixes[log_levels[i]].first)
-                    pCallback->mCallback(pCallback->mUserData, gLogBuffer);
+                if (pCallback->level & logLevelPrefixes[log_levels[i]].first)
+                    pCallback->callback(pCallback->userData, gLogBuffer);
             }
         }
-        releaseMutex(&gLogger.mLogMutex);
+        releaseMutex(&gLogger.logMutex);
     }
 }
 
@@ -302,15 +302,15 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
         _PrintUnicode(gLogBuffer, error);
     }
 
-    acquireMutex(&gLogger.mLogMutex);
+    acquireMutex(&gLogger.logMutex);
     {
-        for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.mCallbacksSize; ++pCallback)
+        for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
         {
-            if (pCallback->mLevel & level)
-                pCallback->mCallback(pCallback->mUserData, gLogBuffer);
+            if (pCallback->level & level)
+                pCallback->callback(pCallback->userData, gLogBuffer);
         }
     }
-    releaseMutex(&gLogger.mLogMutex);
+    releaseMutex(&gLogger.logMutex);
 }
 
 void _FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...)
@@ -407,11 +407,11 @@ static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char*
 
 static bool isLogCallback(const char* id)
 {
-    if (gLogger.mCallbacksSize)
+    if (gLogger.callbacksSize)
     {
-        for (const LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.mCallbacksSize; ++pCallback)
+        for (const LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
         {
-            if (strcmp(pCallback->mID, id) == 0)
+            if (strcmp(pCallback->id, id) == 0)
                 return true;
         }
     }

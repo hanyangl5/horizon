@@ -98,7 +98,7 @@ enum WidgetType
 
 typedef struct UIWidget
 {
-    WidgetType mType = {};     // Type of the underlying widget
+    WidgetType type = {};     // Type of the underlying widget
     void*      pWidget = NULL; // Underlying widget
 
     void*          pOnHoverUserData = NULL;
@@ -115,39 +115,39 @@ typedef struct UIWidget
     WidgetCallback pOnDeactivatedAfterEdit = NULL; // Widget was just made inactive from an active state and changed its underlying value.
                                                    // This is useful for undo/redo patterns.
 
-    char mLabel[MAX_LABEL_STR_LENGTH]{};
+    char label[MAX_LABEL_STR_LENGTH]{};
 
     // Set this to process deferred callbacks that may cause global program state changes.
-    bool mDeferred = false;
+    bool deferred = false;
 
-    bool mHovered = false;
-    bool mActive = false;
-    bool mFocused = false;
-    bool mEdited = false;
-    bool mDeactivated = false;
-    bool mDeactivatedAfterEdit = false;
-    bool mSameLine = false;
+    bool hovered = false;
+    bool active = false;
+    bool focused = false;
+    bool edited = false;
+    bool deactivated = false;
+    bool deactivatedAfterEdit = false;
+    bool sameLine = false;
 
     // Stores the screen space position of the widget
-    float2 mDisplayPosition;
+    float2 displayPosition;
 } UIWidget;
 
 typedef struct CollapsingHeaderWidget
 {
     // array of UIWidget*
     UIWidget** pGroupedWidgets = NULL;
-    uint32_t   mWidgetsCount = 0;
-    bool       mCollapsed = false;
-    bool       mPreviousCollapsed = false;
-    bool       mDefaultOpen = false;
-    bool       mHeaderIsVisible = true;
+    uint32_t   widgetsCount = 0;
+    bool       collapsed = false;
+    bool       previousCollapsed = false;
+    bool       defaultOpen = false;
+    bool       headerIsVisible = true;
 } CollapsingHeaderWidget;
 
 typedef struct ColumnWidget
 {
     // array of UIWidget*
     UIWidget** pPerColumnWidgets = NULL;
-    uint32_t   mWidgetsCount = 0;
+    uint32_t   widgetsCount = 0;
 } ColumnWidget;
 
 struct Texture;
@@ -156,8 +156,8 @@ typedef struct DebugTexturesWidget
 {
     // C Array of const Texture*
     const struct Texture* const* pTextures = NULL;
-    uint32_t                     mTexturesCount = 0;
-    float2                       mTextureDisplaySize = float2(512.f, 512.f);
+    uint32_t                     texturesCount = 0;
+    float2                       textureDisplaySize = float2(512.f, 512.f);
 
 } DebugTexturesWidget;
 
@@ -167,7 +167,7 @@ typedef struct LabelWidget
 
 typedef struct ColorLabelWidget
 {
-    float4 mColor = float4(0.f, 0.f, 0.f, 0.f);
+    float4 color = float4(0.f, 0.f, 0.f, 0.f);
 } ColorLabelWidget;
 
 typedef struct HorizontalSpaceWidget
@@ -180,7 +180,7 @@ typedef struct SeparatorWidget
 
 typedef struct VerticalSeparatorWidget
 {
-    uint32_t mLineCount = 0;
+    uint32_t lineCount = 0;
 } VerticalSeparatorWidget;
 
 typedef struct ButtonWidget
@@ -189,62 +189,62 @@ typedef struct ButtonWidget
 
 typedef struct SliderFloatWidget
 {
-    char   mFormat[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char   format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float* pData = NULL;
-    float  mMin = 0.f;
-    float  mMax = 0.f;
-    float  mStep = 0.01f;
+    float  min = 0.f;
+    float  max = 0.f;
+    float  step = 0.01f;
 } SliderFloatWidget;
 
 typedef struct SliderFloat2Widget
 {
-    char    mFormat[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float2* pData = NULL;
-    float2  mMin = float2(0.f, 0.f);
-    float2  mMax = float2(0.f, 0.f);
-    float2  mStep = float2(0.01f, 0.01f);
+    float2  min = float2(0.f, 0.f);
+    float2  max = float2(0.f, 0.f);
+    float2  step = float2(0.01f, 0.01f);
 } SliderFloat2Widget;
 
 typedef struct SliderFloat3Widget
 {
-    char    mFormat[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float3* pData = NULL;
-    float3  mMin = float3(0.f, 0.f, 0.f);
-    float3  mMax = float3(0.f, 0.f, 0.f);
-    float3  mStep = float3(0.01f, 0.01f, 0.01f);
+    float3  min = float3(0.f, 0.f, 0.f);
+    float3  max = float3(0.f, 0.f, 0.f);
+    float3  step = float3(0.01f, 0.01f, 0.01f);
 } SliderFloat3Widget;
 
 typedef struct SliderFloat4Widget
 {
-    char    mFormat[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float4* pData = NULL;
-    float4  mMin = float4(0.f, 0.f, 0.f, 0.f);
-    float4  mMax = float4(0.f, 0.f, 0.f, 0.f);
-    float4  mStep = float4(0.01f, 0.01f, 0.01f, 0.01f);
+    float4  min = float4(0.f, 0.f, 0.f, 0.f);
+    float4  max = float4(0.f, 0.f, 0.f, 0.f);
+    float4  step = float4(0.01f, 0.01f, 0.01f, 0.01f);
 } SliderFloat4Widget;
 
 typedef struct SliderIntWidget
 {
-    char     mFormat[MAX_FORMAT_STR_LENGTH] = { "%d" };
+    char     format[MAX_FORMAT_STR_LENGTH] = { "%d" };
     int32_t* pData = NULL;
-    int32_t  mMin = 0;
-    int32_t  mMax = 0;
-    int32_t  mStep = 1;
+    int32_t  min = 0;
+    int32_t  max = 0;
+    int32_t  step = 1;
 } SliderIntWidget;
 
 typedef struct SliderUintWidget
 {
-    char      mFormat[MAX_FORMAT_STR_LENGTH] = { "%u" };
+    char      format[MAX_FORMAT_STR_LENGTH] = { "%u" };
     uint32_t* pData = NULL;
-    uint32_t  mMin = 0;
-    uint32_t  mMax = 0;
-    uint32_t  mStep = 1;
+    uint32_t  min = 0;
+    uint32_t  max = 0;
+    uint32_t  step = 1;
 } SliderUintWidget;
 
 typedef struct RadioButtonWidget
 {
     int32_t* pData = NULL;
-    int32_t  mRadioId = 0;
+    int32_t  radioId = 0;
 } RadioButtonWidget;
 
 typedef struct CheckboxWidget
@@ -255,26 +255,26 @@ typedef struct CheckboxWidget
 typedef struct OneLineCheckboxWidget
 {
     bool*  pData = NULL;
-    float4 mColor = float4(0.f, 0.f, 0.f, 0.f);
+    float4 color = float4(0.f, 0.f, 0.f, 0.f);
 } OneLineCheckboxWidget;
 
 typedef struct CursorLocationWidget
 {
-    float2 mLocation = float2(0.f, 0.f);
+    float2 location = float2(0.f, 0.f);
 } CursorLocationWidget;
 
 typedef struct DropdownWidget
 {
     uint32_t*          pData = NULL;
-    // pNames is a C array of size mCount
+    // pNames is a C array of size count
     const char* const* pNames = NULL;
-    uint32_t           mCount = 0;
+    uint32_t           count = 0;
 } DropdownWidget;
 
 typedef struct ProgressBarWidget
 {
     size_t* pData = NULL;
-    size_t  mMaxProgress = 0;
+    size_t  maxProgress = 0;
 } ProgressBarWidget;
 
 typedef struct ColorSliderWidget
@@ -285,21 +285,21 @@ typedef struct ColorSliderWidget
 typedef struct HistogramWidget
 {
     float*      pValues = NULL;
-    uint32_t    mCount = 0;
-    float*      mMinScale = NULL;
-    float*      mMaxScale = NULL;
-    float2      mHistogramSize = float2(0.f, 0.f);
-    const char* mHistogramTitle = NULL;
+    uint32_t    count = 0;
+    float*      minScale = NULL;
+    float*      maxScale = NULL;
+    float2      histogramSize = float2(0.f, 0.f);
+    const char* histogramTitle = NULL;
 } HistogramWidget;
 
 typedef struct PlotLinesWidget
 {
-    float*      mValues = NULL;
-    uint32_t    mNumValues = 0;
-    float*      mScaleMin = NULL;
-    float*      mScaleMax = NULL;
-    float2*     mPlotScale = NULL;
-    const char* mTitle = NULL;
+    float*      values = NULL;
+    uint32_t    numValues = 0;
+    float*      scaleMin = NULL;
+    float*      scaleMax = NULL;
+    float2*     plotScale = NULL;
+    const char* title = NULL;
 } PlotLinesWidget;
 
 typedef struct ColorPickerWidget
@@ -323,7 +323,7 @@ typedef void (*TextboxCallback)(bool* keysDown);
 typedef struct TextboxWidget
 {
     bstring*        pText = NULL;
-    unsigned char   mFlags = UI_TEXT_AUTOSELECT_ALL;
+    unsigned char   flags = UI_TEXT_AUTOSELECT_ALL;
     TextboxCallback pCallback = NULL;
 } TextboxWidget;
 
@@ -331,42 +331,42 @@ typedef struct DynamicTextWidget
 {
     bstring*      pText = NULL;
     float4*       pColor = NULL;
-    unsigned char mFlags = 0;
+    unsigned char flags = 0;
 } DynamicTextWidget;
 
 typedef struct FilledRectWidget
 {
-    float2 mPos = float2(0.f, 0.f);
-    float2 mScale = float2(0.f, 0.f);
-    float4 mColor = float4(0.f, 0.f, 0.f, 0.f);
+    float2 pos = float2(0.f, 0.f);
+    float2 scale = float2(0.f, 0.f);
+    float4 color = float4(0.f, 0.f, 0.f, 0.f);
 } FilledRectWidget;
 
 typedef struct DrawTextWidget
 {
-    float2 mPos = float2(0.f, 0.f);
-    float4 mColor = float4(0.f, 0.f, 0.f, 0.f);
+    float2 pos = float2(0.f, 0.f);
+    float4 color = float4(0.f, 0.f, 0.f, 0.f);
 } DrawTextWidget;
 
 typedef struct DrawTooltipWidget
 {
-    bool* mShowTooltip = NULL;
-    char* mText = NULL;
+    bool* showTooltip = NULL;
+    char* text = NULL;
 } DrawTooltipWidget;
 
 typedef struct DrawLineWidget
 {
-    float2 mPos1 = float2(0.f, 0.f);
-    float2 mPos2 = float2(0.f, 0.f);
-    float4 mColor = float4(0.f, 0.f, 0.f, 0.f);
-    bool   mAddItem = false;
+    float2 pos1 = float2(0.f, 0.f);
+    float2 pos2 = float2(0.f, 0.f);
+    float4 color = float4(0.f, 0.f, 0.f, 0.f);
+    bool   addItem = false;
 } DrawLineWidget;
 
 typedef struct DrawCurveWidget
 {
-    float2*  mPos = NULL;
-    uint32_t mNumPoints = 0;
-    float    mThickness = 0.f;
-    float4   mColor = float4(0.f, 0.f, 0.f, 0.f);
+    float2*  pos = NULL;
+    uint32_t numPoints = 0;
+    float    thickness = 0.f;
+    float4   color = float4(0.f, 0.f, 0.f, 0.f);
 } DrawCurveWidget;
 
 typedef struct CustomWidget
@@ -408,40 +408,40 @@ enum GuiComponentFlags
 
 typedef struct UIComponentDesc
 {
-    vec2 mStartPosition = vec2{ 0.0f, 150.0f };
-    vec2 mStartSize = vec2{ 600.0f, 550.0f };
+    vec2 startPosition = vec2{ 0.0f, 150.0f };
+    vec2 startSize = vec2{ 600.0f, 550.0f };
 
-    uint32_t mFontID = 0;
-    float    mFontSize = 16.0f;
+    uint32_t fontID = 0;
+    float    fontSize = 16.0f;
 } UIComponentDesc;
 
 typedef struct UIComponent
 {
     //(UIWidget*)[dyn_size]
-    UIWidget** mWidgets = NULL;
+    UIWidget** widgets = NULL;
     //(bool)[dyn_size]
-    bool*      mWidgetsClone = NULL;
+    bool*      widgetsClone = NULL;
     void*      pUserData = NULL;
 
     // Contextual menus when right clicking the title bar
-    char const* const*    mContextualMenuLabels = NULL;
-    WidgetCallback const* mContextualMenuCallbacks = NULL;
-    size_t                mContextualMenuCount = 0;
-    float4                mInitialWindowRect = float4(0.f, 0.f, 0.f, 0.f);
-    float4                mCurrentWindowRect = float4(0.f, 0.f, 0.f, 0.f);
-    char                  mTitle[MAX_TITLE_STR_LENGTH] = { 0 };
+    char const* const*    contextualMenuLabels = NULL;
+    WidgetCallback const* contextualMenuCallbacks = NULL;
+    size_t                contextualMenuCount = 0;
+    float4                initialWindowRect = float4(0.f, 0.f, 0.f, 0.f);
+    float4                currentWindowRect = float4(0.f, 0.f, 0.f, 0.f);
+    char                  title[MAX_TITLE_STR_LENGTH] = { 0 };
     uintptr_t             pFont = 0;
-    uint32_t              mFontTextureIndex = 0;
-    float                 mAlpha = 0.f;
+    uint32_t              fontTextureIndex = 0;
+    float                 alpha = 0.f;
 
     // defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
     // on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also set
-    int32_t mFlags = 0;
+    int32_t flags = 0;
 
-    bool mActive = false;
+    bool active = false;
 
     // UI Component settings that can be modified at runtime by the client.
-    bool mHasCloseButton = false;
+    bool hasCloseButton = false;
 
     // Custom callbacks for raw driver API calls
     WindowCallback pPreProcessCallback = NULL;
@@ -455,7 +455,7 @@ typedef struct UIComponent
 typedef struct DynamicUIWidgets
 {
     // stb_ds array of UIWidget*
-    UIWidget** mDynamicProperties = NULL;
+    UIWidget** dynamicProperties = NULL;
 } DynamicUIWidgets;
 
 /****************************************************************************/
@@ -466,50 +466,50 @@ typedef struct UserInterfaceDesc
 {
     Renderer*      pRenderer = NULL;
     PipelineCache* pCache = NULL;
-    char const*    mSettingsFilename = nullptr;
+    char const*    settingsFilename = nullptr;
 
-    uint32_t mMaxDynamicUIUpdatesPerBatch = 20u;
-    uint32_t mMaxUIFonts = 10u;
+    uint32_t maxDynamicUIUpdatesPerBatch = 20u;
+    uint32_t maxUIFonts = 10u;
 
-    uint32_t mFrameCount = 2u;
-    bool     mEnableDocking = false;
-    bool     mEnableRemoteUI = false;
+    uint32_t frameCount = 2u;
+    bool     enableDocking = false;
+    bool     enableRemoteUI = false;
 } UserInterfaceDesc;
 
 typedef struct UserInterfaceLoadDesc
 {
     PipelineCache* pCache;
-    uint32_t       mLoadType;    // enum ReloadType
-    uint32_t       mColorFormat; // enum TinyImageFormat
-    uint32_t       mWidth;
-    uint32_t       mHeight;
-    uint32_t       mDisplayWidth;
-    uint32_t       mDisplayHeight;
+    uint32_t       loadType;    // enum ReloadType
+    uint32_t       colorFormat; // enum TinyImageFormat
+    uint32_t       width;
+    uint32_t       height;
+    uint32_t       displayWidth;
+    uint32_t       displayHeight;
 } UserInterfaceLoadDesc;
 
 typedef struct UserInterfaceDrawCommand
 {
-    float4   mClipRect;
-    uint64_t mTextureId;
-    uint32_t mVertexOffset;
-    uint32_t mIndexOffset;
-    uint32_t mVertexCount;
-    uint32_t mIndexCount;
-    uint32_t mElemCount;
+    float4   clipRect;
+    uint64_t textureId;
+    uint32_t vertexOffset;
+    uint32_t indexOffset;
+    uint32_t vertexCount;
+    uint32_t indexCount;
+    uint32_t elemCount;
 } UserInterfaceDrawElement;
 
 typedef struct UserInterfaceDrawData
 {
-    uint32_t                  mVertexCount;
-    uint32_t                  mIndexCount;
-    uint32_t                  mVertexSize;
-    uint32_t                  mIndexSize;
-    float2                    mDisplayPos;
-    float2                    mDisplaySize;
-    uint32_t                  mNumDrawCommands;
-    unsigned char*            mVertexBufferData;
-    unsigned char*            mIndexBufferData;
-    UserInterfaceDrawCommand* mDrawCommands;
+    uint32_t                  vertexCount;
+    uint32_t                  indexCount;
+    uint32_t                  vertexSize;
+    uint32_t                  indexSize;
+    float2                    displayPos;
+    float2                    displaySize;
+    uint32_t                  numDrawCommands;
+    unsigned char*            vertexBufferData;
+    unsigned char*            indexBufferData;
+    UserInterfaceDrawCommand* drawCommands;
 } UserInterfaceDrawData;
 
 /****************************************************************************/
@@ -547,8 +547,8 @@ FORGE_API void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawDat
 inline void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget, bool collapsed)
 {
 #ifdef ENABLE_FORGE_UI
-    pWidget->mCollapsed = collapsed;
-    pWidget->mPreviousCollapsed = !collapsed;
+    pWidget->collapsed = collapsed;
+    pWidget->previousCollapsed = !collapsed;
 #endif
 }
 

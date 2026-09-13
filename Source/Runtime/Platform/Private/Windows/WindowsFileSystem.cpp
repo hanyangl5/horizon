@@ -177,7 +177,7 @@ struct WindowsFileStream
     LPVOID mapView;
 };
 
-#define WSD(name, fs) struct WindowsFileStream* name = (struct WindowsFileStream*)(fs)->mUser.data
+#define WSD(name, fs) struct WindowsFileStream* name = (struct WindowsFileStream*)(fs)->user.data
 
 class WindowsErrorString
 {
@@ -288,7 +288,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     if (fp)
     {
         *pOut = {};
-        pOut->mMode = mode;
+        pOut->mode = mode;
         pOut->pIO = pSystemFileIO;
 
         WSD(stream, pOut);
@@ -316,7 +316,7 @@ static bool ioWindowsFsOpen(IFileSystem*, ResourceDirectory rd, const char* file
 {
     if (PlatformOpenFile(rd, fileName, mode, pOut))
     {
-        pOut->mMount = fsGetResourceDirectoryMount(rd);
+        pOut->mount = fsGetResourceDirectoryMount(rd);
         return true;
     }
     return false;
@@ -337,7 +337,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
     *outSize = 0;
     *outData = NULL;
 
-    if (fs->mMode & FM_WRITE)
+    if (fs->mode & FM_WRITE)
         return false;
 
     WSD(stream, fs);
@@ -408,9 +408,9 @@ static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t size)
 
 static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
 {
-    if ((fs->mMode & (FM_WRITE | FM_APPEND)) == 0)
+    if ((fs->mode & (FM_WRITE | FM_APPEND)) == 0)
     {
-        LOGF(LogLevel::eERROR, "Writing to FileStream with mode %i", fs->mMode);
+        LOGF(LogLevel::eERROR, "Writing to FileStream with mode %i", fs->mode);
         return 0;
     }
 

@@ -1792,7 +1792,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     int32_t        posAttributeIdx = -1;
     for (size_t i = 0; i < MAX_SEMANTICS; i++)
     {
-        if (!geomData->pShadow->mVertexStrides[i])
+        if (!geomData->pShadow->vertexStrides[i])
             continue;
 
         if (i == SEMANTIC_POSITION)
@@ -1800,9 +1800,9 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
             posAttributeIdx = (int32_t)i;
         }
 
-        streams[validStreamCount].data = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->mVertexStrides[i];
-        streams[validStreamCount].size = geomData->pShadow->mVertexStrides[i];
-        streams[validStreamCount].stride = geomData->pShadow->mVertexStrides[i];
+        streams[validStreamCount].data = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
+        streams[validStreamCount].size = geomData->pShadow->vertexStrides[i];
+        streams[validStreamCount].stride = geomData->pShadow->vertexStrides[i];
 
         validStreamCount++;
     }
@@ -1828,11 +1828,11 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
 
     for (size_t i = 0; i < MAX_SEMANTICS; i++)
     {
-        if (!geomData->pShadow->mVertexStrides[i])
+        if (!geomData->pShadow->vertexStrides[i])
             continue;
 
-        uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->mVertexStrides[i];
-        meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->mVertexStrides[i], remap);
+        uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
+        meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->vertexStrides[i], remap);
     }
 
     *vertexCount = newVertCount;
@@ -1852,10 +1852,10 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
         {
             uint16_t* src = (uint16_t*)geomData->pShadow->pIndices + indexOffset;
             float*    pos = (float*)((uint8_t*)geomData->pShadow->pAttributes[posAttributeIdx] +
-                                  vertexOffset * geomData->pShadow->mVertexStrides[posAttributeIdx]);
+                                  vertexOffset * geomData->pShadow->vertexStrides[posAttributeIdx]);
 
             const float kThreshold = 1.01f;
-            meshopt_optimizeOverdraw(src, src, indexCount, pos, *vertexCount, geomData->pShadow->mVertexStrides[posAttributeIdx],
+            meshopt_optimizeOverdraw(src, src, indexCount, pos, *vertexCount, geomData->pShadow->vertexStrides[posAttributeIdx],
                                      kThreshold);
         }
 
@@ -1867,11 +1867,11 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
 
             for (size_t i = 0; i < MAX_SEMANTICS; i++)
             {
-                if (!geomData->pShadow->mVertexStrides[i])
+                if (!geomData->pShadow->vertexStrides[i])
                     continue;
 
-                uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->mVertexStrides[i];
-                meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->mVertexStrides[i], remap);
+                uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
+                meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->vertexStrides[i], remap);
             }
         }
     }
@@ -1888,10 +1888,10 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
         {
             uint32_t* src = (uint32_t*)geomData->pShadow->pIndices + indexOffset;
             float*    pos = (float*)((uint8_t*)geomData->pShadow->pAttributes[posAttributeIdx] +
-                                  vertexOffset * geomData->pShadow->mVertexStrides[posAttributeIdx]);
+                                  vertexOffset * geomData->pShadow->vertexStrides[posAttributeIdx]);
 
             const float kThreshold = 1.01f;
-            meshopt_optimizeOverdraw(src, src, indexCount, pos, *vertexCount, geomData->pShadow->mVertexStrides[posAttributeIdx],
+            meshopt_optimizeOverdraw(src, src, indexCount, pos, *vertexCount, geomData->pShadow->vertexStrides[posAttributeIdx],
                                      kThreshold);
         }
 
@@ -1903,11 +1903,11 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
 
             for (size_t i = 0; i < MAX_SEMANTICS; i++)
             {
-                if (!geomData->pShadow->mVertexStrides[i])
+                if (!geomData->pShadow->vertexStrides[i])
                     continue;
 
-                uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->mVertexStrides[i];
-                meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->mVertexStrides[i], remap);
+                uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
+                meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->vertexStrides[i], remap);
             }
         }
     }
@@ -1934,11 +1934,11 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
     SceneAssetInstance* instances = header ? (SceneAssetInstance*)(header + 1) : nullptr;
     if (header)
     {
-        header->mMagic = SCENE_ASSET_GEOMETRY_MAGIC;
+        header->magic = SCENE_ASSET_GEOMETRY_MAGIC;
         for (uint32_t axis = 0; axis < 3; ++axis)
         {
-            header->mBoundsMin[axis] = 1.0e30f;
-            header->mBoundsMax[axis] = -1.0e30f;
+            header->boundsMin[axis] = 1.0e30f;
+            header->boundsMax[axis] = -1.0e30f;
         }
     }
     uint32_t count = 0;
@@ -1947,11 +1947,11 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
         const cgltf_node* node = &data->nodes[n];
         if (!isSceneAssetNodeSelected(data, node))
             continue;
-        if (header && !header->mHasCamera && node->camera && node->camera->type == cgltf_camera_type_perspective)
+        if (header && !header->hasCamera && node->camera && node->camera->type == cgltf_camera_type_perspective)
         {
-            cgltf_node_transform_world(node, header->mCameraWorld);
-            header->mCameraYFov = node->camera->data.perspective.yfov;
-            header->mHasCamera = 1;
+            cgltf_node_transform_world(node, header->cameraWorld);
+            header->cameraYFov = node->camera->data.perspective.yfov;
+            header->hasCamera = 1;
         }
         if (!node->mesh)
             continue;
@@ -1964,10 +1964,10 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
                 continue;
             const cgltf_primitive* primitive = &node->mesh->primitives[p];
             SceneAssetInstance& instance = instances[count];
-            cgltf_node_transform_world(node, instance.mWorld);
-            instance.mDrawIndex = firstDraw + (uint32_t)p;
-            instance.mMaterialIndex = primitive->material ? (uint32_t)(primitive->material - data->materials) : UINT32_MAX;
-            instance.mAlphaCutoff = primitive->material && primitive->material->alpha_mode != cgltf_alpha_mode_opaque
+            cgltf_node_transform_world(node, instance.world);
+            instance.drawIndex = firstDraw + (uint32_t)p;
+            instance.materialIndex = primitive->material ? (uint32_t)(primitive->material - data->materials) : UINT32_MAX;
+            instance.alphaCutoff = primitive->material && primitive->material->alpha_mode != cgltf_alpha_mode_opaque
                                         ? (primitive->material->alpha_mode == cgltf_alpha_mode_mask ? primitive->material->alpha_cutoff : 0.1f)
                                         : 0.0f;
             for (cgltf_size a = 0; a < primitive->attributes_count; ++a)
@@ -1984,17 +1984,17 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
                     const float z = (corner & 4) ? accessor->max[2] : accessor->min[2];
                     for (uint32_t axis = 0; axis < 3; ++axis)
                     {
-                        const float value = instance.mWorld[axis] * x + instance.mWorld[4 + axis] * y +
-                                            instance.mWorld[8 + axis] * z + instance.mWorld[12 + axis];
-                        header->mBoundsMin[axis] = TF_MIN(header->mBoundsMin[axis], value);
-                        header->mBoundsMax[axis] = TF_MAX(header->mBoundsMax[axis], value);
+                        const float value = instance.world[axis] * x + instance.world[4 + axis] * y +
+                                            instance.world[8 + axis] * z + instance.world[12 + axis];
+                        header->boundsMin[axis] = TF_MIN(header->boundsMin[axis], value);
+                        header->boundsMax[axis] = TF_MAX(header->boundsMax[axis], value);
                     }
                 }
             }
         }
     }
     if (header)
-        header->mInstanceCount = count;
+        header->instanceCount = count;
     return (uint32_t)sizeof(SceneAssetGeometryHeader) + count * (uint32_t)sizeof(SceneAssetInstance);
 }
 
@@ -2250,7 +2250,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             uint8_t* pUserData = jointCount > 0 ? ((uint8_t*)geomData->pJointRemaps + round_up(jointCount * sizeof(uint32_t), 16))
                                                 : (uint8_t*)(geomData + 1);
             geomData->pUserData = pUserData;
-            geomData->mUserDataSize = userDataSize;
+            geomData->userDataSize = userDataSize;
             if (glTFParams->pWriteExtrasCallback)
             glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
             else
@@ -2258,10 +2258,10 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         // Determine vertex stride for each binding
-        for (uint32_t attrIdx = 0; attrIdx < pVertexLayout->mAttribCount; ++attrIdx)
+        for (uint32_t attrIdx = 0; attrIdx < pVertexLayout->attribCount; ++attrIdx)
         {
-            const VertexAttrib*    attr = &pVertexLayout->mAttribs[attrIdx];
-            const cgltf_attribute* cgltfAttr = vertexAttribs[attr->mSemantic];
+            const VertexAttrib*    attr = &pVertexLayout->attribs[attrIdx];
+            const cgltf_attribute* cgltfAttr = vertexAttribs[attr->semantic];
 
             if (!cgltfAttr)
             {
@@ -2275,12 +2275,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 }
             }
 
-            const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock(attr->mFormat) >> 3;
+            const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock(attr->format) >> 3;
             const uint32_t srcFormatSize = (uint32_t)cgltfAttr->data->stride; //-V522
 
             const uint32_t thisAttrStride = dstFormatSize ? dstFormatSize : srcFormatSize;
-            ASSERT(vertexAttrStrides[attr->mSemantic] == 0);
-            vertexAttrStrides[attr->mSemantic] = thisAttrStride;
+            ASSERT(vertexAttrStrides[attr->semantic] == 0);
+            vertexAttrStrides[attr->semantic] = thisAttrStride;
 
             // Compare vertex attrib format to the gltf attrib type
             // Select a packing function if dst format is packed version
@@ -2288,7 +2288,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             // Directions - Pack float3 to float2 to unorm2x16 (Normal, Tangent)
             // Position - No packing yet
             const TinyImageFormat srcFormat = util_cgltf_type_to_image_format(cgltfAttr->data->type, cgltfAttr->data->component_type);
-            const TinyImageFormat dstFormat = attr->mFormat == TinyImageFormat_UNDEFINED ? srcFormat : attr->mFormat;
+            const TinyImageFormat dstFormat = attr->format == TinyImageFormat_UNDEFINED ? srcFormat : attr->format;
 
             if (dstFormat != srcFormat)
             {
@@ -2298,7 +2298,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 case cgltf_attribute_type_texcoord:
                 {
                     if (sizeof(uint32_t) == dstFormatSize && sizeof(float[2]) == srcFormatSize)
-                        vertexPacking[attr->mSemantic] = util_pack_float2_to_half2;
+                        vertexPacking[attr->semantic] = util_pack_float2_to_half2;
                     // #TODO: Add more variations if needed
                     break;
                 }
@@ -2306,14 +2306,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 case cgltf_attribute_type_tangent:
                 {
                     if (sizeof(uint32_t) == dstFormatSize && (sizeof(float[3]) == srcFormatSize || sizeof(float[4]) == srcFormatSize))
-                        vertexPacking[attr->mSemantic] = util_pack_float3_direction_to_half2;
+                        vertexPacking[attr->semantic] = util_pack_float3_direction_to_half2;
                     // #TODO: Add more variations if needed
                     break;
                 }
                 case cgltf_attribute_type_joints:
                 {
                     if (srcFormatSize == sizeof(uint8_t) * 4 && dstFormatSize == sizeof(uint16_t) * 4)
-                        vertexPacking[attr->mSemantic] = util_unpack_uint8_to_uint16_joints;
+                        vertexPacking[attr->semantic] = util_unpack_uint8_to_uint16_joints;
                     else
                     {
                         LOGF(eERROR, "Joint size doesn't match");
@@ -2346,31 +2346,31 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         // Same strides as the ones used in the GPU
         for (uint32_t s = 0; s < MAX_SEMANTICS; ++s)
         {
-            geomData->pShadow->mVertexStrides[s] = vertexAttrStrides[s];
-            geomData->pShadow->mAttributeCount[s] = vertexAttribCount[s];
+            geomData->pShadow->vertexStrides[s] = vertexAttrStrides[s];
+            geomData->pShadow->attributeCount[s] = vertexAttribCount[s];
         }
 
         geomData->pShadow->pAttributes[SEMANTIC_POSITION] = (uint8_t*)geomData->pShadow->pIndices + (indexCount * indexStride);
 
         for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
             geomData->pShadow->pAttributes[s] = (uint8_t*)geomData->pShadow->pAttributes[s - 1] +
-                                                geomData->pShadow->mVertexStrides[s - 1] * geomData->pShadow->mAttributeCount[s - 1];
+                                                geomData->pShadow->vertexStrides[s - 1] * geomData->pShadow->attributeCount[s - 1];
 
         ASSERT(((const char*)geomData->pShadow) + shadowSize ==
                ((char*)geomData->pShadow->pAttributes[MAX_SEMANTICS - 1] +
-                geomData->pShadow->mVertexStrides[MAX_SEMANTICS - 1] * geomData->pShadow->mAttributeCount[MAX_SEMANTICS - 1]));
+                geomData->pShadow->vertexStrides[MAX_SEMANTICS - 1] * geomData->pShadow->attributeCount[MAX_SEMANTICS - 1]));
 
-        COMPILE_ASSERT(TF_ARRAY_COUNT(geomData->pShadow->mVertexStrides) == TF_ARRAY_COUNT(geomData->pShadow->pAttributes));
-        for (uint32_t j = 1; j < TF_ARRAY_COUNT(geomData->pShadow->mVertexStrides); ++j)
+        COMPILE_ASSERT(TF_ARRAY_COUNT(geomData->pShadow->vertexStrides) == TF_ARRAY_COUNT(geomData->pShadow->pAttributes));
+        for (uint32_t j = 1; j < TF_ARRAY_COUNT(geomData->pShadow->vertexStrides); ++j)
         {
             // If the attribute is not present in the gltf file we just don't save anything
-            if (geomData->pShadow->mVertexStrides[j] == 0)
+            if (geomData->pShadow->vertexStrides[j] == 0)
                 geomData->pShadow->pAttributes[j] = nullptr;
         }
 
-        geom->mDrawArgCount = drawCount;
-        geom->mIndexType = (sizeof(uint16_t) == indexStride) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32;
-        geomData->mJointCount = jointCount;
+        geom->drawArgCount = drawCount;
+        geom->indexType = (sizeof(uint16_t) == indexStride) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32;
+        geomData->jointCount = jointCount;
 
         indexCount = 0;
         vertexCount = 0;
@@ -2402,21 +2402,21 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         // Load the tressfx specific data generated in the offline process
         if (stricmp(data->asset.generator, "tressfx") == 0)
         {
-            // { "mVertexCountPerStrand" : "16", "mGuideCountPerStrand" : "3456" }
+            // { "vertexCountPerStrand" : "16", "guideCountPerStrand" : "3456" }
             uint32_t    extrasSize = (uint32_t)(data->asset.extras.end_offset - data->asset.extras.start_offset);
             const char* json = data->json + data->asset.extras.start_offset;
             jsmn_parser parser = {};
             jsmntok_t   tokens[5] = {};
             jsmn_parse(&parser, (const char*)json, extrasSize, tokens, TF_ARRAY_COUNT(tokens));
-            geomData->mHair.mVertexCountPerStrand = atoi(json + tokens[2].start);
-            geomData->mHair.mGuideCountPerStrand = atoi(json + tokens[4].start);
+            geomData->hair.vertexCountPerStrand = atoi(json + tokens[2].start);
+            geomData->hair.guideCountPerStrand = atoi(json + tokens[4].start);
         }
 
         if (glTFParams->mOptimizationFlags != MESH_OPTIMIZATION_FLAG_OFF)
         {
             for (uint32_t s = 0; s < MAX_SEMANTICS; ++s)
             {
-                geomData->pShadow->mAttributeCount[s] = 0;
+                geomData->pShadow->attributeCount[s] = 0;
             }
         }
 
@@ -2456,9 +2456,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         pos_attr = attr;
 
                     // TODO: this should probably be an ASSERT, we don't want to loose data when using pShadow
-                    if (geomData->pShadow->mVertexStrides[semanticIdx] != 0)
+                    if (geomData->pShadow->vertexStrides[semanticIdx] != 0)
                     {
-                        const uint32_t stride = geomData->pShadow->mVertexStrides[semanticIdx];
+                        const uint32_t stride = geomData->pShadow->vertexStrides[semanticIdx];
 
                         const uint8_t* src =
                             (uint8_t*)attr->data->buffer_view->buffer->data + attr->data->offset + attr->data->buffer_view->offset;
@@ -2486,14 +2486,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 uint32_t optimizedVertexCount = (uint32_t)prim->attributes[0].data->count;
                 if (glTFParams->mOptimizationFlags != MESH_OPTIMIZATION_FLAG_OFF)
                 {
-                    geomOptimize(geomData, MESH_OPTIMIZATION_FLAG_ALL, (IndexType)geom->mIndexType, indexCount,
+                    geomOptimize(geomData, MESH_OPTIMIZATION_FLAG_ALL, (IndexType)geom->indexType, indexCount,
                                  (uint32_t)(prim->indices->count), vertexCount, &optimizedVertexCount);
 
                     for (uint32_t s = 0; s < MAX_SEMANTICS; ++s)
                     {
-                        if (geomData->pShadow->mVertexStrides[s] > 0)
+                        if (geomData->pShadow->vertexStrides[s] > 0)
                         {
-                            geomData->pShadow->mAttributeCount[s] += optimizedVertexCount;
+                            geomData->pShadow->attributeCount[s] += optimizedVertexCount;
                         }
                     }
                 }
@@ -2501,14 +2501,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 /************************************************************************/
                 // Fill draw arguments for this primitive
                 /************************************************************************/
-                geom->pDrawArgs[drawCount].mIndexCount = (uint32_t)prim->indices->count;
-                geom->pDrawArgs[drawCount].mInstanceCount = 1;
-                geom->pDrawArgs[drawCount].mStartIndex = indexCount;
-                geom->pDrawArgs[drawCount].mStartInstance = 0;
+                geom->pDrawArgs[drawCount].indexCount = (uint32_t)prim->indices->count;
+                geom->pDrawArgs[drawCount].instanceCount = 1;
+                geom->pDrawArgs[drawCount].startIndex = indexCount;
+                geom->pDrawArgs[drawCount].startInstance = 0;
                 // Since we already offset indices when creating the index buffer, vertex offset will be zero
                 // With this approach, we can draw everything in one draw call or use the traditional draw per subset without the
                 // need for changing shader code
-                geom->pDrawArgs[drawCount].mVertexOffset = 0;
+                geom->pDrawArgs[drawCount].vertexOffset = 0;
 
                 if (glTFParams->mProcessMeshlets)
                 {
@@ -2544,35 +2544,35 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                                   pos_attr->data->count, pos_attr->data->stride, maxVertices, maxTriangles, coneWeight, &meshletVertices,
                                   &meshletTriangles, &subMeshlets, &meshletsData);
 
-                    arrsetlen(geom->meshlets.mVertices, geom->meshlets.mVertexCount + arrlenu(meshletVertices));
+                    arrsetlen(geom->meshlets.vertices, geom->meshlets.vertexCount + arrlenu(meshletVertices));
                     for (uint64_t index_id = 0; index_id < arrlenu(meshletVertices); ++index_id)
                     {
-                        geom->meshlets.mVertices[geom->meshlets.mVertexCount + index_id] = meshletVertices[index_id] + vertexCount;
+                        geom->meshlets.vertices[geom->meshlets.vertexCount + index_id] = meshletVertices[index_id] + vertexCount;
                     }
 
-                    arrsetlen(geom->meshlets.mTriangles, geom->meshlets.mTriangleCount + arrlenu(meshletTriangles));
-                    memcpy(geom->meshlets.mTriangles + geom->meshlets.mTriangleCount, meshletTriangles,
+                    arrsetlen(geom->meshlets.triangles, geom->meshlets.triangleCount + arrlenu(meshletTriangles));
+                    memcpy(geom->meshlets.triangles + geom->meshlets.triangleCount, meshletTriangles,
                            arrlenu(meshletTriangles) * sizeof *meshletTriangles);
 
-                    arrsetlen(geom->meshlets.mMeshletsData, geom->meshlets.mMeshletCount + arrlenu(subMeshlets));
-                    memcpy((void*)(geom->meshlets.mMeshletsData + geom->meshlets.mMeshletCount), meshletsData, //-V595
+                    arrsetlen(geom->meshlets.meshletsData, geom->meshlets.meshletCount + arrlenu(subMeshlets));
+                    memcpy((void*)(geom->meshlets.meshletsData + geom->meshlets.meshletCount), meshletsData, //-V595
                            arrlenu(subMeshlets) * sizeof *meshletsData);
 
-                    arrsetlen(geom->meshlets.mMeshlets, geom->meshlets.mMeshletCount + arrlenu(subMeshlets));
-                    memcpy(geom->meshlets.mMeshlets + geom->meshlets.mMeshletCount, subMeshlets,
+                    arrsetlen(geom->meshlets.meshlets, geom->meshlets.meshletCount + arrlenu(subMeshlets));
+                    memcpy(geom->meshlets.meshlets + geom->meshlets.meshletCount, subMeshlets,
                            arrlenu(subMeshlets) * sizeof *subMeshlets);
 
                     for (uint64_t meshlet_id = 0; meshlet_id < arrlenu(subMeshlets); ++meshlet_id)
                     {
-                        geom->meshlets.mMeshlets[geom->meshlets.mMeshletCount + meshlet_id].triangleOffset +=
-                            (uint)geom->meshlets.mTriangleCount;
-                        geom->meshlets.mMeshlets[geom->meshlets.mMeshletCount + meshlet_id].vertexOffset +=
-                            (uint)geom->meshlets.mVertexCount;
+                        geom->meshlets.meshlets[geom->meshlets.meshletCount + meshlet_id].triangleOffset +=
+                            (uint)geom->meshlets.triangleCount;
+                        geom->meshlets.meshlets[geom->meshlets.meshletCount + meshlet_id].vertexOffset +=
+                            (uint)geom->meshlets.vertexCount;
                     }
 
-                    geom->meshlets.mVertexCount += arrlenu(meshletVertices);
-                    geom->meshlets.mTriangleCount += arrlenu(meshletTriangles);
-                    geom->meshlets.mMeshletCount += arrlenu(subMeshlets);
+                    geom->meshlets.vertexCount += arrlenu(meshletVertices);
+                    geom->meshlets.triangleCount += arrlenu(meshletTriangles);
+                    geom->meshlets.meshletCount += arrlenu(subMeshlets);
 
                     arrfree(subMeshlets);
                     arrfree(meshletsData);
@@ -2597,8 +2597,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             }
         }
 
-        geom->mIndexCount = indexCount;
-        geom->mVertexCount = vertexCount;
+        geom->indexCount = indexCount;
+        geom->vertexCount = vertexCount;
 
         // Tighten the vertex attribute buffers
         if (glTFParams->mOptimizationFlags != MESH_OPTIMIZATION_FLAG_OFF)
@@ -2607,20 +2607,20 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
             {
                 largestSizedAttribute =
-                    max(largestSizedAttribute, (size_t)geomData->pShadow->mVertexStrides[s] * geomData->pShadow->mAttributeCount[s]);
+                    max(largestSizedAttribute, (size_t)geomData->pShadow->vertexStrides[s] * geomData->pShadow->attributeCount[s]);
             }
             void* tempStagingBuffer = tf_malloc(largestSizedAttribute);
 
             for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
             {
-                size_t size = (size_t)geomData->pShadow->mVertexStrides[s] * geomData->pShadow->mAttributeCount[s];
+                size_t size = (size_t)geomData->pShadow->vertexStrides[s] * geomData->pShadow->attributeCount[s];
                 if (size > 0)
                 {
                     memcpy(tempStagingBuffer, geomData->pShadow->pAttributes[s], size);
                 }
 
                 geomData->pShadow->pAttributes[s] = (uint8_t*)geomData->pShadow->pAttributes[s - 1] +
-                                                    geomData->pShadow->mVertexStrides[s - 1] * geomData->pShadow->mAttributeCount[s - 1];
+                                                    geomData->pShadow->vertexStrides[s - 1] * geomData->pShadow->attributeCount[s - 1];
 
                 if (size > 0)
                 {
@@ -2631,8 +2631,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             tf_free(tempStagingBuffer);
         }
 
-        for (uint32_t j = 0; j < TF_ARRAY_COUNT(geom->mVertexStrides); ++j)
-            ASSERT(geom->mVertexStrides[j] == 0);
+        for (uint32_t j = 0; j < TF_ARRAY_COUNT(geom->vertexStrides); ++j)
+            ASSERT(geom->vertexStrides[j] == 0);
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 
@@ -2663,18 +2663,18 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             fsWriteToStream(&fStream, &shadowSize, sizeof(uint32_t));
             fsWriteToStream(&fStream, geomData->pShadow, shadowSize);
 
-            if (geom->meshlets.mMeshletCount)
+            if (geom->meshlets.meshletCount)
             {
-                if (fsWriteToStream(&fStream, geom->meshlets.mMeshlets, sizeof(*geom->meshlets.mMeshlets) * geom->meshlets.mMeshletCount) !=
-                        sizeof(*geom->meshlets.mMeshlets) * geom->meshlets.mMeshletCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.mMeshletsData,
-                                    sizeof(*geom->meshlets.mMeshletsData) * geom->meshlets.mMeshletCount) !=
-                        sizeof(*geom->meshlets.mMeshletsData) * geom->meshlets.mMeshletCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.mVertices, sizeof(*geom->meshlets.mVertices) * geom->meshlets.mVertexCount) !=
-                        sizeof(*geom->meshlets.mVertices) * geom->meshlets.mVertexCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.mTriangles,
-                                    sizeof(*geom->meshlets.mTriangles) * geom->meshlets.mTriangleCount) !=
-                        sizeof(*geom->meshlets.mTriangles) * geom->meshlets.mTriangleCount)
+                if (fsWriteToStream(&fStream, geom->meshlets.meshlets, sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount) !=
+                        sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount ||
+                    fsWriteToStream(&fStream, geom->meshlets.meshletsData,
+                                    sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount) !=
+                        sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount ||
+                    fsWriteToStream(&fStream, geom->meshlets.vertices, sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount) !=
+                        sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount ||
+                    fsWriteToStream(&fStream, geom->meshlets.triangles,
+                                    sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount) !=
+                        sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount)
                 {
                     LOGF(eERROR, "Failed to write stream '%s'.", newFileName);
                     error = true;
@@ -2711,12 +2711,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         tf_free(geomData->pShadow);
         tf_free(geomData);
 
-        if (geom->meshlets.mMeshletCount)
+        if (geom->meshlets.meshletCount)
         {
-            arrfree(geom->meshlets.mMeshlets);
-            arrfree(geom->meshlets.mMeshletsData);
-            arrfree(geom->meshlets.mVertices);
-            arrfree(geom->meshlets.mTriangles);
+            arrfree(geom->meshlets.meshlets);
+            arrfree(geom->meshlets.meshletsData);
+            arrfree(geom->meshlets.vertices);
+            arrfree(geom->meshlets.triangles);
         }
 
         tf_free(geom);
@@ -3074,55 +3074,55 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         // Hair mesh for UT06
         if (isHair)
         {
-            vertexLayout.mAttribCount = 7;
-            vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-            vertexLayout.mAttribs[0].mBinding = 0;
-            vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TANGENT;
-            vertexLayout.mAttribs[1].mBinding = 1;
-            vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-            vertexLayout.mAttribs[2].mBinding = 2;
-            vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD2;
-            vertexLayout.mAttribs[3].mBinding = 4;
-            vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
-            vertexLayout.mAttribs[4].mBinding = 5;
-            vertexLayout.mAttribs[5].mSemantic = SEMANTIC_TEXCOORD6;
-            vertexLayout.mAttribs[5].mBinding = 8;
-            vertexLayout.mAttribs[6].mSemantic = SEMANTIC_TEXCOORD7;
-            vertexLayout.mAttribs[6].mBinding = 9;
+            vertexLayout.attribCount = 7;
+            vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
+            vertexLayout.attribs[0].binding = 0;
+            vertexLayout.attribs[1].semantic = SEMANTIC_TANGENT;
+            vertexLayout.attribs[1].binding = 1;
+            vertexLayout.attribs[2].semantic = SEMANTIC_TEXCOORD0;
+            vertexLayout.attribs[2].binding = 2;
+            vertexLayout.attribs[3].semantic = SEMANTIC_TEXCOORD2;
+            vertexLayout.attribs[3].binding = 4;
+            vertexLayout.attribs[4].semantic = SEMANTIC_TEXCOORD3;
+            vertexLayout.attribs[4].binding = 5;
+            vertexLayout.attribs[5].semantic = SEMANTIC_TEXCOORD6;
+            vertexLayout.attribs[5].binding = 8;
+            vertexLayout.attribs[6].semantic = SEMANTIC_TEXCOORD7;
+            vertexLayout.attribs[6].binding = 9;
         }
         else
         {
-            vertexLayout.mAttribCount = 6;
-            vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-            vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-            vertexLayout.mAttribs[0].mBinding = 0;
-            vertexLayout.mAttribs[0].mLocation = 0;
-            vertexLayout.mAttribs[0].mOffset = 0;
-            vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-            vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
-            vertexLayout.mAttribs[1].mBinding = 1;
-            vertexLayout.mAttribs[1].mLocation = 1;
-            vertexLayout.mAttribs[1].mOffset = 0;
-            vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TANGENT;
-            vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32_UINT;
-            vertexLayout.mAttribs[2].mBinding = 2;
-            vertexLayout.mAttribs[2].mLocation = 2;
-            vertexLayout.mAttribs[2].mOffset = 0;
-            vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD0;
-            vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32_UINT;
-            vertexLayout.mAttribs[3].mBinding = 3;
-            vertexLayout.mAttribs[3].mLocation = 3;
-            vertexLayout.mAttribs[3].mOffset = 0;
-            vertexLayout.mAttribs[4].mSemantic = SEMANTIC_JOINTS;
-            vertexLayout.mAttribs[4].mFormat = TinyImageFormat_R16G16B16A16_UINT;
-            vertexLayout.mAttribs[4].mBinding = 4;
-            vertexLayout.mAttribs[4].mLocation = 4;
-            vertexLayout.mAttribs[4].mOffset = 0;
-            vertexLayout.mAttribs[5].mSemantic = SEMANTIC_WEIGHTS;
-            vertexLayout.mAttribs[5].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-            vertexLayout.mAttribs[5].mBinding = 5;
-            vertexLayout.mAttribs[5].mLocation = 5;
-            vertexLayout.mAttribs[5].mOffset = 0;
+            vertexLayout.attribCount = 6;
+            vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
+            vertexLayout.attribs[0].format = TinyImageFormat_R32G32B32_SFLOAT;
+            vertexLayout.attribs[0].binding = 0;
+            vertexLayout.attribs[0].location = 0;
+            vertexLayout.attribs[0].offset = 0;
+            vertexLayout.attribs[1].semantic = SEMANTIC_NORMAL;
+            vertexLayout.attribs[1].format = TinyImageFormat_R32_UINT;
+            vertexLayout.attribs[1].binding = 1;
+            vertexLayout.attribs[1].location = 1;
+            vertexLayout.attribs[1].offset = 0;
+            vertexLayout.attribs[2].semantic = SEMANTIC_TANGENT;
+            vertexLayout.attribs[2].format = TinyImageFormat_R32_UINT;
+            vertexLayout.attribs[2].binding = 2;
+            vertexLayout.attribs[2].location = 2;
+            vertexLayout.attribs[2].offset = 0;
+            vertexLayout.attribs[3].semantic = SEMANTIC_TEXCOORD0;
+            vertexLayout.attribs[3].format = TinyImageFormat_R32_UINT;
+            vertexLayout.attribs[3].binding = 3;
+            vertexLayout.attribs[3].location = 3;
+            vertexLayout.attribs[3].offset = 0;
+            vertexLayout.attribs[4].semantic = SEMANTIC_JOINTS;
+            vertexLayout.attribs[4].format = TinyImageFormat_R16G16B16A16_UINT;
+            vertexLayout.attribs[4].binding = 4;
+            vertexLayout.attribs[4].location = 4;
+            vertexLayout.attribs[4].offset = 0;
+            vertexLayout.attribs[5].semantic = SEMANTIC_WEIGHTS;
+            vertexLayout.attribs[5].format = TinyImageFormat_R32G32B32A32_SFLOAT;
+            vertexLayout.attribs[5].binding = 5;
+            vertexLayout.attribs[5].location = 5;
+            vertexLayout.attribs[5].offset = 0;
         }
 
         ProcessGLTFParams glTFParams = {};
@@ -3390,8 +3390,8 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
     {
         if (pError)
         {
-            pError->mCode = SCENE_ASSET_ERROR_INVALID_ARGUMENT;
-            snprintf(pError->mMessage, sizeof(pError->mMessage), "glTF cooking requires separate source and output directories");
+            pError->code = SCENE_ASSET_ERROR_INVALID_ARGUMENT;
+            snprintf(pError->message, sizeof(pError->message), "glTF cooking requires separate source and output directories");
         }
         return false;
     }
@@ -3406,8 +3406,8 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
     {
         if (pError)
         {
-            pError->mCode = SCENE_ASSET_ERROR_IO;
-            snprintf(pError->mMessage, sizeof(pError->mMessage), "Failed to cook %s; see AssetPipeline log", pSourceFile);
+            pError->code = SCENE_ASSET_ERROR_IO;
+            snprintf(pError->message, sizeof(pError->message), "Failed to cook %s; see AssetPipeline log", pSourceFile);
         }
         return false;
     }

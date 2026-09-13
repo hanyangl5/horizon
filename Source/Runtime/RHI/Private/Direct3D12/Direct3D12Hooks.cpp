@@ -58,12 +58,12 @@ void hook_enable_debug_layer(const RendererContextDesc* pDesc, RendererContext* 
     UNREF_PARAM(pDesc);
     UNREF_PARAM(pContext);
 #if defined(ENABLE_GRAPHICS_DEBUG)
-    pContext->mDx.pDebug->EnableDebugLayer();
+    pContext->dx.pDebug->EnableDebugLayer();
 
     ID3D12Debug1* pDebug1 = NULL;
-    if (SUCCEEDED(pContext->mDx.pDebug->QueryInterface(IID_PPV_ARGS(&pDebug1))))
+    if (SUCCEEDED(pContext->dx.pDebug->QueryInterface(IID_PPV_ARGS(&pDebug1))))
     {
-        pDebug1->SetEnableGPUBasedValidation(pDesc->mEnableGpuBasedValidation);
+        pDebug1->SetEnableGPUBasedValidation(pDesc->enableGpuBasedValidation);
         pDebug1->Release();
     }
 #endif
@@ -83,15 +83,15 @@ HRESULT hook_create_command_queue(ID3D12Device* pDevice, const D3D12_COMMAND_QUE
 
 HRESULT hook_create_copy_cmd(ID3D12Device* pDevice, uint32_t nodeMask, ID3D12CommandAllocator* pAlloc, Cmd* pCmd)
 {
-    return pDevice->CreateCommandList(nodeMask, D3D12_COMMAND_LIST_TYPE_COPY, pAlloc, NULL, IID_PPV_ARGS(&pCmd->mDx.pCmdList));
+    return pDevice->CreateCommandList(nodeMask, D3D12_COMMAND_LIST_TYPE_COPY, pAlloc, NULL, IID_PPV_ARGS(&pCmd->dx.pCmdList));
 }
 
 void hook_remove_copy_cmd(Cmd* pCmd)
 {
-    if (pCmd->mDx.pCmdList)
+    if (pCmd->dx.pCmdList)
     {
-        pCmd->mDx.pCmdList->Release();
-        pCmd->mDx.pCmdList = NULL;
+        pCmd->dx.pCmdList->Release();
+        pCmd->dx.pCmdList = NULL;
     }
 }
 
@@ -107,7 +107,7 @@ HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_CO
     return pDevice->CreateComputePipelineState(pDesc, IID_PPV_ARGS(ppPipeline));
 }
 
-void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->mDx.pPipelineState); }
+void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->dx.pPipelineState); }
 
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE*,
                                   D3D12_RESOURCE_STATES state, uint32_t flags, Buffer* pBuffer)
@@ -132,7 +132,7 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
         memset((uint8_t*)allocatedData + requiredDataSize, 0xCF, bufferSize - requiredDataSize);
     }
     ID3D12Device3* device = NULL;
-    HRESULT        hres = pRenderer->mDx.pDevice->QueryInterface(&device);
+    HRESULT        hres = pRenderer->dx.pDevice->QueryInterface(&device);
     if (!SUCCEEDED(hres))
     {
         VirtualFree(allocatedData, 0, MEM_DECOMMIT);
@@ -146,11 +146,11 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
     desc.Width = bufferSize;
     desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
     ASSERT(D3D12_RESOURCE_STATE_COPY_DEST == state);
-    hres = device->CreatePlacedResource(heap, 0, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&pBuffer->mDx.pResource));
+    hres = device->CreatePlacedResource(heap, 0, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&pBuffer->dx.pResource));
     SAFE_RELEASE(device);
     ASSERT(SUCCEEDED(hres));
-    pBuffer->mDx.pMarkerBufferHeap = heap;
-    pBuffer->mDx.mMarkerBuffer = true;
+    pBuffer->dx.pMarkerBufferHeap = heap;
+    pBuffer->dx.markerBuffer = true;
     return S_OK;
 }
 
@@ -169,7 +169,7 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
 HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
                                  const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState, ID3D12Resource** ppOutResource)
 {
-    return pRenderer->mDx.pDevice->CreatePlacedResource(pPlacement->pHeap->mDx.pHeap, pPlacement->mOffset, pDesc, startState, pClearValue,
+    return pRenderer->dx.pDevice->CreatePlacedResource(pPlacement->pHeap->dx.pHeap, pPlacement->offset, pDesc, startState, pClearValue,
                                                         IID_PPV_ARGS(ppOutResource));
 }
 
@@ -196,9 +196,9 @@ TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const
 
     // check adapter
     RECT windowBounds = {};
-    GetWindowRect((HWND)pDesc->mWindowHandle.window, &windowBounds);
+    GetWindowRect((HWND)pDesc->windowHandle.window, &windowBounds);
     IDXGIAdapter1* dxgiAdapter = NULL;
-    CHECK_HRESULT(pRenderer->pContext->mDx.pDXGIFactory->EnumAdapters1(0, &dxgiAdapter));
+    CHECK_HRESULT(pRenderer->pContext->dx.pDXGIFactory->EnumAdapters1(0, &dxgiAdapter));
     UINT         i = 0;
     IDXGIOutput* currentOutput = NULL;
     IDXGIOutput* bestOutput = NULL;
@@ -249,7 +249,7 @@ TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const
         IDXGISwapChain1* tmpSwapchain1;
         Queue*           pQueue = pDesc->ppPresentQueues[0];
         CHECK_HRESULT(
-            pRenderer->pContext->mDx.pDXGIFactory->CreateSwapChainForComposition(pQueue->mDx.pQueue, &desc, NULL, &tmpSwapchain1));
+            pRenderer->pContext->dx.pDXGIFactory->CreateSwapChainForComposition(pQueue->dx.pQueue, &desc, NULL, &tmpSwapchain1));
 
         IDXGISwapChain3* tmpSwapchain3;
         CHECK_HRESULT(tmpSwapchain1->QueryInterface(IID_PPV_ARGS(&tmpSwapchain3)));
@@ -266,21 +266,21 @@ TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const
     return TinyImageFormat_UNDEFINED;
 }
 
-uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain) { return pSwapChain->mDx.pSwapChain->GetCurrentBackBufferIndex(); }
+uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain) { return pSwapChain->dx.pSwapChain->GetCurrentBackBufferIndex(); }
 
 HRESULT hook_acquire_next_image(ID3D12Device*, SwapChain*) { return S_OK; }
 
 HRESULT hook_queue_present(Queue*, SwapChain* pSwapChain, uint32_t)
 {
-    return pSwapChain->mDx.pSwapChain->Present(pSwapChain->mDx.mSyncInterval, pSwapChain->mDx.mFlags);
+    return pSwapChain->dx.pSwapChain->Present(pSwapChain->dx.syncInterval, pSwapChain->dx.flags);
 }
 
 void hook_dispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
-    pCmd->mDx.pCmdList->Dispatch(groupCountX, groupCountY, groupCountZ);
+    pCmd->dx.pCmdList->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
-HRESULT hook_signal(Queue* pQueue, ID3D12Fence* pFence, uint64_t fenceValue) { return pQueue->mDx.pQueue->Signal(pFence, fenceValue); }
+HRESULT hook_signal(Queue* pQueue, ID3D12Fence* pFence, uint64_t fenceValue) { return pQueue->dx.pQueue->Signal(pFence, fenceValue); }
 
 HRESULT hook_signal_flush(Queue* pQueue, ID3D12Fence* pFence, uint64_t fenceValue) { return hook_signal(pQueue, pFence, fenceValue); }
 
@@ -299,25 +299,25 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     DXGI_ADAPTER_DESC3 desc = {};
     gpuDesc.pGpu->GetDesc3(&desc);
 
-    gpuDesc.mMaxSupportedFeatureLevel = featureLevel;
-    gpuDesc.mDedicatedVideoMemory = desc.DedicatedVideoMemory;
-    gpuDesc.mFeatureDataOptions = featureData;
-    gpuDesc.mFeatureDataOptions1 = featureData1;
-    gpuDesc.mFeatureDataOptions16 = featureData16;
+    gpuDesc.maxSupportedFeatureLevel = featureLevel;
+    gpuDesc.dedicatedVideoMemory = desc.DedicatedVideoMemory;
+    gpuDesc.featureDataOptions = featureData;
+    gpuDesc.featureDataOptions1 = featureData1;
+    gpuDesc.featureDataOptions16 = featureData16;
 
     // save vendor and model Id as string
     // char hexChar[10];
     // convert deviceId and assign it
-    gpuDesc.mDeviceId = desc.DeviceId;
+    gpuDesc.deviceId = desc.DeviceId;
     // convert modelId and assign it
-    gpuDesc.mVendorId = desc.VendorId;
+    gpuDesc.vendorId = desc.VendorId;
     // convert Revision Id
-    gpuDesc.mRevisionId = desc.Revision;
+    gpuDesc.revisionId = desc.Revision;
 
     // save gpu name (Some situtations this can show description instead of name)
     // char sName[MAX_PATH];
     size_t numConverted = 0;
-    wcstombs_s(&numConverted, gpuDesc.mName, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
+    wcstombs_s(&numConverted, gpuDesc.name, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
 }
 
 void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE, uint32_t*) {}

@@ -87,13 +87,13 @@ extern "C"
     typedef struct Mutex
     {
 #if defined(_WINDOWS) || defined(XBOX)
-        CRITICAL_SECTION mHandle;
+        CRITICAL_SECTION handle;
 #elif defined(NX64)
-    MutexTypeNX             mMutexPlatformNX;
-    uint32_t                mSpinCount;
+    MutexTypeNX             mutexPlatformNX;
+    uint32_t                spinCount;
 #else
     pthread_mutex_t pHandle;
-    uint32_t        mSpinCount;
+    uint32_t        spinCount;
 #endif
     } Mutex;
 
@@ -111,7 +111,7 @@ extern "C"
 #if defined(_WINDOWS) || defined(XBOX)
         void* pHandle;
 #elif defined(NX64)
-    ConditionVariableTypeNX mCondPlatformNX;
+    ConditionVariableTypeNX condPlatformNX;
 #else
     pthread_cond_t  pHandle;
 #endif
@@ -132,7 +132,7 @@ extern "C"
         /// Work item description and thread index (Main thread => 0)
         ThreadFunction pFunc;
         void*          pData;
-        char           mThreadName[MAX_THREAD_NAME_LENGTH];
+        char           threadName[MAX_THREAD_NAME_LENGTH];
 
         // Affinity is a bit mask. It tells on which CPU thread can run.
         // Maximum supported number of bits is 1024.
@@ -178,7 +178,7 @@ typedef pthread_t ThreadHandle;
 
     typedef struct PerformanceStats
     {
-        float mCoreUsagePercentage[MAX_PERFORMANCE_STATS_CORES];
+        float coreUsagePercentage[MAX_PERFORMANCE_STATS_CORES];
     } PerformanceStats;
 
     typedef enum PerformanceStatsFlags
@@ -197,15 +197,15 @@ typedef pthread_t ThreadHandle;
 
 struct MutexLock
 {
-    MutexLock(Mutex& rhs): mMutex(rhs) { acquireMutex(&rhs); }
-    ~MutexLock() { releaseMutex(&mMutex); }
+    MutexLock(Mutex& rhs): mutex(rhs) { acquireMutex(&rhs); }
+    ~MutexLock() { releaseMutex(&mutex); }
 
     /// Prevent copy construction.
     MutexLock(const MutexLock& rhs) = delete;
     /// Prevent assignment.
     MutexLock& operator=(const MutexLock& rhs) = delete;
 
-    Mutex& mMutex;
+    Mutex& mutex;
 };
 #endif
 

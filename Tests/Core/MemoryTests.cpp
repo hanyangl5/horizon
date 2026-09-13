@@ -28,23 +28,23 @@ TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
 {
     ASSERT_TRUE(initMemAlloc(nullptr));
     const MemoryTrackingStats initialStats = memGetTrackingStats();
-    if (initialStats.mTrackingEnabled)
+    if (initialStats.trackingEnabled)
     {
-        EXPECT_EQ(initialStats.mLiveRequestedBytes, 0u);
-        EXPECT_EQ(initialStats.mLiveActualBytes, 0u);
-        EXPECT_EQ(initialStats.mLiveAllocationCount, 0u);
+        EXPECT_EQ(initialStats.liveRequestedBytes, 0u);
+        EXPECT_EQ(initialStats.liveActualBytes, 0u);
+        EXPECT_EQ(initialStats.liveAllocationCount, 0u);
     }
 
     void* aligned = tf_memalign(64, 128);
     ASSERT_NE(aligned, nullptr);
     EXPECT_EQ((uintptr_t)aligned % 64u, 0u);
     const MemoryTrackingStats alignedStats = memGetTrackingStats();
-    if (alignedStats.mTrackingEnabled)
+    if (alignedStats.trackingEnabled)
     {
-        EXPECT_EQ(alignedStats.mLiveRequestedBytes, 128u);
-        EXPECT_GE(alignedStats.mLiveActualBytes, alignedStats.mLiveRequestedBytes);
-        EXPECT_EQ(alignedStats.mLiveSlackBytes, alignedStats.mLiveActualBytes - alignedStats.mLiveRequestedBytes);
-        EXPECT_EQ(alignedStats.mLiveAllocationCount, 1u);
+        EXPECT_EQ(alignedStats.liveRequestedBytes, 128u);
+        EXPECT_GE(alignedStats.liveActualBytes, alignedStats.liveRequestedBytes);
+        EXPECT_EQ(alignedStats.liveSlackBytes, alignedStats.liveActualBytes - alignedStats.liveRequestedBytes);
+        EXPECT_EQ(alignedStats.liveAllocationCount, 1u);
     }
     tf_free(aligned);
 
@@ -77,17 +77,17 @@ TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
     EXPECT_EQ(tf_calloc(SIZE_MAX, 2), nullptr);
 
     const MemoryTrackingStats finalStats = memGetTrackingStats();
-    if (finalStats.mTrackingEnabled)
+    if (finalStats.trackingEnabled)
     {
-        EXPECT_EQ(finalStats.mLiveRequestedBytes, 0u);
-        EXPECT_EQ(finalStats.mLiveActualBytes, 0u);
-        EXPECT_EQ(finalStats.mLiveSlackBytes, 0u);
-        EXPECT_EQ(finalStats.mLiveAllocationCount, 0u);
-        EXPECT_GE(finalStats.mPeakRequestedBytes, 128u);
-        EXPECT_GE(finalStats.mPeakActualBytes, finalStats.mPeakRequestedBytes);
-        EXPECT_GE(finalStats.mTotalAllocationCount, 3u);
-        EXPECT_GE(finalStats.mReallocationCount, 1u);
-        EXPECT_EQ(finalStats.mFailedAllocationCount, 1u);
+        EXPECT_EQ(finalStats.liveRequestedBytes, 0u);
+        EXPECT_EQ(finalStats.liveActualBytes, 0u);
+        EXPECT_EQ(finalStats.liveSlackBytes, 0u);
+        EXPECT_EQ(finalStats.liveAllocationCount, 0u);
+        EXPECT_GE(finalStats.peakRequestedBytes, 128u);
+        EXPECT_GE(finalStats.peakActualBytes, finalStats.peakRequestedBytes);
+        EXPECT_GE(finalStats.totalAllocationCount, 3u);
+        EXPECT_GE(finalStats.reallocationCount, 1u);
+        EXPECT_EQ(finalStats.failedAllocationCount, 1u);
     }
 
     exitMemAlloc();
@@ -127,12 +127,12 @@ TEST(CoreMemoryTest, ConcurrentReallocationsLeaveNoLiveAllocations)
         joinThread(threads[i]);
     EXPECT_EQ(started, TF_ARRAY_COUNT(threads));
     const MemoryTrackingStats stats = memGetTrackingStats();
-    if (stats.mTrackingEnabled)
+    if (stats.trackingEnabled)
     {
-        EXPECT_EQ(stats.mLiveAllocationCount, 0u);
-        EXPECT_EQ(stats.mLiveRequestedBytes, 0u);
-        EXPECT_EQ(stats.mLiveActualBytes, 0u);
-        EXPECT_EQ(stats.mReallocationCount, started * 256u);
+        EXPECT_EQ(stats.liveAllocationCount, 0u);
+        EXPECT_EQ(stats.liveRequestedBytes, 0u);
+        EXPECT_EQ(stats.liveActualBytes, 0u);
+        EXPECT_EQ(stats.reallocationCount, started * 256u);
     }
     exitMemAlloc();
 }

@@ -78,7 +78,7 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
     // Allocate a command buffer for the GPU work. We use the app's rendering queue to avoid additional sync.
     CmdPoolDesc cmdPoolDesc = {};
     cmdPoolDesc.pQueue = pGraphicsQueue;
-    cmdPoolDesc.mTransient = true;
+    cmdPoolDesc.transient = true;
     addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
 
     CmdDesc cmdDesc = {};
@@ -100,22 +100,22 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     ASSERT(pRenderer);
 
     // Calculate the size of buffer required for copying the src texture.
-    D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->mDx.pResource->GetDesc();
+    D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->dx.pResource->GetDesc();
     uint64_t                           padded_size = 0;
     uint64_t                           row_size = 0;
     uint32_t                           num_rows = 0;
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT imageLayout = {};
-    pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &imageLayout, &num_rows, &row_size, &padded_size);
+    pRenderer->dx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &imageLayout, &num_rows, &row_size, &padded_size);
 
     // Add a staging buffer.
     Buffer*    buffer = 0;
     BufferDesc bufferDesc = {};
-    bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-    bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-    bufferDesc.mSize = padded_size;
-    bufferDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    bufferDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-    bufferDesc.mFormat = pRenderTarget->mFormat;
+    bufferDesc.descriptors = DESCRIPTOR_TYPE_BUFFER;
+    bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+    bufferDesc.size = padded_size;
+    bufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    bufferDesc.startState = RESOURCE_STATE_COPY_DEST;
+    bufferDesc.format = pRenderTarget->format;
     addBuffer(pRenderer, &bufferDesc, &buffer);
 
     beginCmd(pCmd);
@@ -130,14 +130,14 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     D3D12_TEXTURE_COPY_LOCATION dst = {};
 
     src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    src.pResource = pRenderTarget->pTexture->mDx.pResource;
+    src.pResource = pRenderTarget->pTexture->dx.pResource;
     src.SubresourceIndex = subresource;
 
     dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    dst.pResource = buffer->mDx.pResource;
-    pCmd->pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &dst.PlacedFootprint, nullptr, nullptr, nullptr);
+    dst.pResource = buffer->dx.pResource;
+    pCmd->pRenderer->dx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &dst.PlacedFootprint, nullptr, nullptr, nullptr);
 
-    pCmd->mDx.pCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+    pCmd->dx.pCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 
     // Transition layout to original state.
     srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
@@ -147,7 +147,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 
     // Submit the GPU work.
     QueueSubmitDesc submitDesc = {};
-    submitDesc.mCmdCount = 1;
+    submitDesc.cmdCount = 1;
     submitDesc.ppCmds = &pCmd;
 
     queueSubmit(pQueue, &submitDesc);
@@ -179,14 +179,14 @@ bool prepareScreenshot(SwapChain* pSwapChain)
 struct stbiw_ctx
 {
     uint8_t* pBuffer;
-    int      mOffset;
+    int      offset;
 };
 
 static void stbiw_func(void* context, void* data, int size)
 {
     stbiw_ctx* ctx = (stbiw_ctx*)context;
-    memcpy(ctx->pBuffer + ctx->mOffset, data, size);
-    ctx->mOffset += size;
+    memcpy(ctx->pBuffer + ctx->offset, data, size);
+    ctx->offset += size;
 }
 
 void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool noAlpha, bool forceFlipRedBlue)
@@ -209,9 +209,9 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     waitQueueIdle(pCmdPool->pQueue);
 
     // Allocate temp space
-    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount(pRenderTarget->mFormat);
-    uint32_t size = pRenderTarget->mWidth * pRenderTarget->mHeight * max((uint16_t)4U, byteSize);
+    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->format) / 8;
+    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount(pRenderTarget->format);
+    uint32_t size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
     uint8_t* alloc = (uint8_t*)tf_malloc(size);
 
     resetCmdPool(pRendererRef, pCmdPool);
@@ -221,42 +221,42 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
 
     char screenshotFileName[FS_MAX_PATH] = {};
     strcat(screenshotFileName, gScreenshotName);
-    strcat(screenshotFileName, (COLOR_SPACE_SDR_SRGB < pSwapChain->mColorSpace) ? ".hdr" : ".png");
+    strcat(screenshotFileName, (COLOR_SPACE_SDR_SRGB < pSwapChain->colorSpace) ? ".hdr" : ".png");
     void* pEncoded = nullptr;
     int   encodedSize = 0;
 
-    if (COLOR_SPACE_SDR_SRGB < pSwapChain->mColorSpace)
+    if (COLOR_SPACE_SDR_SRGB < pSwapChain->colorSpace)
     {
         // decode pixels
-        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF(pRenderTarget->mFormat));
+        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF(pRenderTarget->format));
         TinyImageFormat_FetchInput fetchInput = { { (void*)alloc } };
-        uint32_t                   floatBufferSize = pRenderTarget->mWidth * pRenderTarget->mHeight * sizeof(float4);
+        uint32_t                   floatBufferSize = pRenderTarget->width * pRenderTarget->height * sizeof(float4);
         float*                     pDecoded = (float*)tf_malloc(floatBufferSize);
-        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF(pRenderTarget->mFormat, &fetchInput,
-                                                                 pRenderTarget->mWidth * pRenderTarget->mHeight, pDecoded);
+        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF(pRenderTarget->format, &fetchInput,
+                                                                 pRenderTarget->width * pRenderTarget->height, pDecoded);
         ASSERT(result);
 
         pEncoded = tf_malloc(floatBufferSize);
         stbiw_ctx ctx = { (uint8_t*)pEncoded };
-        stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->mWidth, pRenderTarget->mHeight, 4, pDecoded);
+        stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->width, pRenderTarget->height, 4, pDecoded);
         tf_free(pDecoded);
-        encodedSize = ctx.mOffset;
+        encodedSize = ctx.offset;
     }
     else
     {
         // Flip the BGRA to RGBA
-        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->mFormat == TinyImageFormat_R8G8B8A8_UNORM ||
-                                                              pRenderTarget->mFormat == TinyImageFormat_R8G8B8A8_SRGB);
+        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->format == TinyImageFormat_R8G8B8A8_UNORM ||
+                                                              pRenderTarget->format == TinyImageFormat_R8G8B8A8_SRGB);
 
         if (flipRedBlueChannel)
         {
             int8_t* imageData = ((int8_t*)alloc);
 
-            for (uint32_t h = 0; h < pRenderTarget->mHeight; ++h)
+            for (uint32_t h = 0; h < pRenderTarget->height; ++h)
             {
-                for (uint32_t w = 0; w < pRenderTarget->mWidth; ++w)
+                for (uint32_t w = 0; w < pRenderTarget->width; ++w)
                 {
-                    uint32_t pixelIndex = (h * pRenderTarget->mWidth + w) * channelCount;
+                    uint32_t pixelIndex = (h * pRenderTarget->width + w) * channelCount;
                     int8_t*  pixel = imageData + pixelIndex;
 
                     // Swap blue and red.
@@ -271,7 +271,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         {
             uint8_t* imageData = ((uint8_t*)alloc);
 
-            for (uint32_t i = 0; i < pRenderTarget->mWidth * pRenderTarget->mHeight; i++)
+            for (uint32_t i = 0; i < pRenderTarget->width * pRenderTarget->height; i++)
             {
                 void* dst = &imageData[i * 3]; // RGB
                 void* src = &imageData[i * 4]; // RGBA
@@ -284,8 +284,8 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
 
         // Convert image data to png. Use global stbi_write_png_compression_level to configure compression level
         stbi_write_png_compression_level = 4; // Default is 8, which takes longer to process
-        pEncoded = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->mWidth * byteSize, pRenderTarget->mWidth,
-                                         pRenderTarget->mHeight, channelCount, &encodedSize);
+        pEncoded = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->width * byteSize, pRenderTarget->width,
+                                         pRenderTarget->height, channelCount, &encodedSize);
     }
 
     // Save screenshot to disk.

@@ -26,13 +26,13 @@
 
 void ClipMask::Initialize(Rig* rig)
 {
-    mRig = rig;
+    this->rig = rig;
 
     ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 
     // Allocates per-joint weights used to mask the animation. Note that
     // this is a Soa structure.
-    mJointWeights = allocator->AllocateRange<Vector4>(rig->mNumSoaJoints);
+    jointWeights = allocator->AllocateRange<Vector4>(rig->numSoaJoints);
 
     EnableAllJoints();
 }
@@ -40,25 +40,25 @@ void ClipMask::Initialize(Rig* rig)
 void ClipMask::Exit()
 {
     ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-    allocator->Deallocate(mJointWeights.data());
-    mJointWeights = {};
+    allocator->Deallocate(jointWeights.data());
+    jointWeights = {};
 }
 
 void ClipMask::EnableAllJoints()
 {
     // Sets all weights to 1.0f
-    for (uint32_t i = 0; i < mRig->mNumSoaJoints; i++)
+    for (uint32_t i = 0; i < rig->numSoaJoints; i++)
     {
-        mJointWeights[i] = Vector4::one();
+        jointWeights[i] = Vector4::one();
     }
 }
 
 void ClipMask::DisableAllJoints()
 {
     // Sets all weights to 0.0f
-    for (uint32_t i = 0; i < mRig->mNumSoaJoints; i++)
+    for (uint32_t i = 0; i < rig->numSoaJoints; i++)
     {
-        mJointWeights[i] = Vector4::zero();
+        jointWeights[i] = Vector4::zero();
     }
 }
 
@@ -70,9 +70,9 @@ void ClipMask::SetAllChildrenOf(int32_t jointIndex, float setValue)
         // Sets the weight_setting of all the joints children to setValue. Note
         // that weights are stored in SoA format.
         const int32_t jointId = joint;
-        mJointWeights[jointId / 4].setElem(jointId % 4, setValue);
+        jointWeights[jointId / 4].setElem(jointId % 4, setValue);
     };
 
     // Iterate children of the joint at jointIndex.
-    ozz::animation::IterateJointsDF(mRig->mSkeleton, functor, jointIndex);
+    ozz::animation::IterateJointsDF(rig->skeleton, functor, jointIndex);
 }

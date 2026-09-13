@@ -47,18 +47,18 @@
 
 typedef struct MemoryTrackingStats
 {
-    bool     mTrackingEnabled;
-    uint64_t mLiveRequestedBytes;
-    uint64_t mLiveActualBytes;
-    uint64_t mLiveSlackBytes;
-    uint64_t mPeakRequestedBytes;
-    uint64_t mPeakActualBytes;
-    uint64_t mLiveAllocationCount;
-    uint64_t mPeakAllocationCount;
-    uint64_t mTotalAllocationCount;
-    uint64_t mReallocationCount;
-    uint64_t mFailedAllocationCount;
-    float    mFragmentationPercent;
+    bool     trackingEnabled;
+    uint64_t liveRequestedBytes;
+    uint64_t liveActualBytes;
+    uint64_t liveSlackBytes;
+    uint64_t peakRequestedBytes;
+    uint64_t peakActualBytes;
+    uint64_t liveAllocationCount;
+    uint64_t peakAllocationCount;
+    uint64_t totalAllocationCount;
+    uint64_t reallocationCount;
+    uint64_t failedAllocationCount;
+    float    fragmentationPercent;
 } MemoryTrackingStats;
 
 #ifdef ENABLE_MEMORY_TRACKING

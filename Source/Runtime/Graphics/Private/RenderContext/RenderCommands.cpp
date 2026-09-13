@@ -60,8 +60,8 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
             {
                 const RenderTargetBarrier renderTargetBarrier = {
                     .pRenderTarget = texture.pRenderTarget,
-                    .mCurrentState = texture.state,
-                    .mNewState = state,
+                    .currentState = texture.state,
+                    .newState = state,
                 };
                 arrpush(renderTargetBarriers, renderTargetBarrier);
             }
@@ -69,8 +69,8 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
             {
                 const TextureBarrier textureBarrier = {
                     .pTexture = texture.pTexture,
-                    .mCurrentState = texture.state,
-                    .mNewState = state,
+                    .currentState = texture.state,
+                    .newState = state,
                 };
                 arrpush(textureBarriers, textureBarrier);
             }
@@ -86,8 +86,8 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
     {
         const BufferBarrier bufferBarrier = {
             .pBuffer = buffer->pBuffer,
-            .mCurrentState = buffer->state,
-            .mNewState = RESOURCE_STATE_UNORDERED_ACCESS,
+            .currentState = buffer->state,
+            .newState = RESOURCE_STATE_UNORDERED_ACCESS,
         };
         arrpush(bufferBarriers, bufferBarrier);
         buffer->state = RESOURCE_STATE_UNORDERED_ACCESS;
@@ -96,8 +96,8 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
     {
         const BufferBarrier indirectBarrier = {
             .pBuffer = pIndirectBuffer->pBuffer,
-            .mCurrentState = pIndirectBuffer->state,
-            .mNewState = RESOURCE_STATE_INDIRECT_ARGUMENT,
+            .currentState = pIndirectBuffer->state,
+            .newState = RESOURCE_STATE_INDIRECT_ARGUMENT,
         };
         arrpush(bufferBarriers, indirectBarrier);
         pIndirectBuffer->state = RESOURCE_STATE_INDIRECT_ARGUMENT;
@@ -121,8 +121,8 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
             {
                 const RenderTargetBarrier renderTargetBarrier = {
                     .pRenderTarget = texture.pRenderTarget,
-                    .mCurrentState = texture.state,
-                    .mNewState = state,
+                    .currentState = texture.state,
+                    .newState = state,
                 };
                 arrpush(renderTargetBarriers, renderTargetBarrier);
             }
@@ -130,8 +130,8 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
             {
                 const TextureBarrier textureBarrier = {
                     .pTexture = texture.pTexture,
-                    .mCurrentState = texture.state,
-                    .mNewState = state,
+                    .currentState = texture.state,
+                    .newState = state,
                 };
                 arrpush(textureBarriers, textureBarrier);
             }
@@ -156,25 +156,25 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         {
             const BufferBarrier bufferBarrier = {
                 .pBuffer = buffer->pBuffer,
-                .mCurrentState = buffer->state,
-                .mNewState = state,
+                .currentState = buffer->state,
+                .newState = state,
             };
             arrpush(bufferBarriers, bufferBarrier);
             buffer->state = state;
         }
     }
 
-    BindRenderTargetsDesc bind = { .mRenderTargetCount = desc.colorAttachmentCount };
+    BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachmentCount };
     for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
         const hz::ColorAttachment& input = desc.colorAttachments[i];
         addTextureBarrier(*input.pTexture, RESOURCE_STATE_RENDER_TARGET);
-        bind.mRenderTargets[i] = {
+        bind.renderTargets[i] = {
             .pRenderTarget = input.pTexture->pRenderTarget,
-            .mLoadAction = input.loadAction,
-            .mStoreAction = input.storeAction,
-            .mClearValue = input.clearValue,
-            .mOverrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,
+            .loadAction = input.loadAction,
+            .storeAction = input.storeAction,
+            .clearValue = input.clearValue,
+            .overrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,
         };
     }
 
@@ -182,12 +182,12 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
     {
         const hz::DepthAttachment& input = desc.depthAttachment;
         addTextureBarrier(*input.pTexture, RESOURCE_STATE_DEPTH_WRITE);
-        bind.mDepthStencil = {
+        bind.depthStencil = {
             .pDepthStencil = input.pTexture->pRenderTarget,
-            .mLoadAction = input.loadAction,
-            .mStoreAction = input.storeAction,
-            .mClearValue = input.clearValue,
-            .mOverrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,
+            .loadAction = input.loadAction,
+            .storeAction = input.storeAction,
+            .clearValue = input.clearValue,
+            .overrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,
         };
     }
 
@@ -213,7 +213,7 @@ void hz::CommandList::bindBuffer(const char* name, const hz::GPUBuffer& buffer)
     ASSERT(pCurrentRootSignature && name && buffer.pBuffer);
     const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, name);
     ASSERT(descriptorIndex != UINT32_MAX);
-    const DescriptorType type = (DescriptorType)pCurrentRootSignature->pDescriptors[descriptorIndex].mType;
+    const DescriptorType type = (DescriptorType)pCurrentRootSignature->pDescriptors[descriptorIndex].type;
     ASSERT(type == DESCRIPTOR_TYPE_BUFFER || type == DESCRIPTOR_TYPE_BUFFER_RAW || type == DESCRIPTOR_TYPE_RW_BUFFER ||
            type == DESCRIPTOR_TYPE_RW_BUFFER_RAW || type == DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
@@ -242,7 +242,7 @@ void hz::CommandList::bindTexture(const char* name, const hz::GPUTexture& textur
     ASSERT(pCurrentRootSignature && name && texture.pTexture);
     const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, name);
     ASSERT(descriptorIndex != UINT32_MAX);
-    const DescriptorType type = (DescriptorType)pCurrentRootSignature->pDescriptors[descriptorIndex].mType;
+    const DescriptorType type = (DescriptorType)pCurrentRootSignature->pDescriptors[descriptorIndex].type;
     ASSERT(type == DESCRIPTOR_TYPE_TEXTURE || type == DESCRIPTOR_TYPE_RW_TEXTURE);
 
     Binding* binding = nullptr;
@@ -271,7 +271,7 @@ void hz::CommandList::bindSampler(const char* name, const hz::GPUSampler& sample
     const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, name);
     ASSERT(descriptorIndex != UINT32_MAX);
     const DescriptorInfo& descriptor = pCurrentRootSignature->pDescriptors[descriptorIndex];
-    ASSERT(descriptor.mType == DESCRIPTOR_TYPE_SAMPLER && !descriptor.mStaticSampler);
+    ASSERT(descriptor.type == DESCRIPTOR_TYPE_SAMPLER && !descriptor.staticSampler);
 
     Binding* binding = nullptr;
     for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
@@ -305,14 +305,14 @@ void hz::CommandList::bindDescriptors()
     {
         Binding&              binding = bindings[i];
         const DescriptorInfo& descriptor = pCurrentRootSignature->pDescriptors[binding.descriptorIndex];
-        const uint32_t        frequency = descriptor.mUpdateFrequency;
-        ASSERT(frequency < DESCRIPTOR_UPDATE_FREQ_COUNT && !descriptor.mRootDescriptor);
+        const uint32_t        frequency = descriptor.updateFrequency;
+        ASSERT(frequency < DESCRIPTOR_UPDATE_FREQ_COUNT && !descriptor.rootDescriptor);
         if (!sets[frequency])
         {
             const DescriptorSetDesc desc = {
                 .pRootSignature = pCurrentRootSignature,
-                .mUpdateFrequency = (DescriptorUpdateFrequency)frequency,
-                .mMaxSets = 1,
+                .updateFrequency = (DescriptorUpdateFrequency)frequency,
+                .maxSets = 1,
             };
             addDescriptorSet(pContext->pRenderer, &desc, &sets[frequency]);
             ASSERT(sets[frequency]);
@@ -320,9 +320,9 @@ void hz::CommandList::bindDescriptors()
         }
 
         DescriptorData descriptorData = {
-            .mCount = 1,
-            .mIndex = binding.descriptorIndex,
-            .mBindByIndex = true,
+            .count = 1,
+            .index = binding.descriptorIndex,
+            .bindByIndex = true,
         };
         if (binding.type == DESCRIPTOR_TYPE_TEXTURE || binding.type == DESCRIPTOR_TYPE_RW_TEXTURE)
             descriptorData.ppTextures = &binding.pTexture;
@@ -394,8 +394,8 @@ void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset,
     {
         BufferBarrier indirectBarrier = {
             .pBuffer = buffer.pBuffer,
-            .mCurrentState = buffer.state,
-            .mNewState = RESOURCE_STATE_INDIRECT_ARGUMENT,
+            .currentState = buffer.state,
+            .newState = RESOURCE_STATE_INDIRECT_ARGUMENT,
         };
         barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
         buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
@@ -411,8 +411,8 @@ void hz::CommandList::drawIndexedIndirect(const hz::GPUBuffer& buffer, uint64_t 
     {
         BufferBarrier indirectBarrier = {
             .pBuffer = buffer.pBuffer,
-            .mCurrentState = buffer.state,
-            .mNewState = RESOURCE_STATE_INDIRECT_ARGUMENT,
+            .currentState = buffer.state,
+            .newState = RESOURCE_STATE_INDIRECT_ARGUMENT,
         };
         barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
         buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
@@ -441,12 +441,12 @@ void hz::CommandList::dispatchIndirect(const hz::GPUBuffer& buffer, uint64_t off
 Buffer* hz::CommandList::createUploadBuffer(uint64_t size)
 {
     const ::BufferDesc desc = {
-        .mSize = size,
+        .size = size,
         .pName = "CommandList upload buffer",
-        .mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-        .mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-        .mQueueType = QUEUE_TYPE_GRAPHICS,
-        .mStartState = RESOURCE_STATE_GENERIC_READ,
+        .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .queueType = QUEUE_TYPE_GRAPHICS,
+        .startState = RESOURCE_STATE_GENERIC_READ,
     };
     Buffer* buffer = nullptr;
     addBuffer(pContext->pRenderer, &desc, &buffer);
@@ -463,8 +463,8 @@ void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, c
     {
         const BufferBarrier dstBarrier = {
             .pBuffer = dst.pBuffer,
-            .mCurrentState = dst.state,
-            .mNewState = RESOURCE_STATE_COPY_DEST,
+            .currentState = dst.state,
+            .newState = RESOURCE_STATE_COPY_DEST,
         };
         arrpush(bufferBarriers, dstBarrier);
         dst.state = RESOURCE_STATE_COPY_DEST;
@@ -473,8 +473,8 @@ void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, c
     {
         const BufferBarrier srcBarrier = {
             .pBuffer = src.pBuffer,
-            .mCurrentState = src.state,
-            .mNewState = RESOURCE_STATE_COPY_SOURCE,
+            .currentState = src.state,
+            .newState = RESOURCE_STATE_COPY_SOURCE,
         };
         arrpush(bufferBarriers, srcBarrier);
         src.state = RESOURCE_STATE_COPY_SOURCE;
@@ -487,8 +487,8 @@ void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, c
     {
         const BufferBarrier dstBarrier = {
             .pBuffer = dst.pBuffer,
-            .mCurrentState = dst.state,
-            .mNewState = dstState,
+            .currentState = dst.state,
+            .newState = dstState,
         };
         arrpush(bufferBarriers, dstBarrier);
         dst.state = dstState;
@@ -497,8 +497,8 @@ void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, c
     {
         const BufferBarrier srcBarrier = {
             .pBuffer = src.pBuffer,
-            .mCurrentState = src.state,
-            .mNewState = srcState,
+            .currentState = src.state,
+            .newState = srcState,
         };
         arrpush(bufferBarriers, srcBarrier);
         src.state = srcState;
@@ -531,16 +531,16 @@ void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, u
         BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
         if (dst.state != RESOURCE_STATE_COPY_DEST)
         {
-            dstBarrier.mCurrentState = dst.state;
-            dstBarrier.mNewState = RESOURCE_STATE_COPY_DEST;
+            dstBarrier.currentState = dst.state;
+            dstBarrier.newState = RESOURCE_STATE_COPY_DEST;
             barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = RESOURCE_STATE_COPY_DEST;
         }
         cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, size);
         if (dst.state != dstState)
         {
-            dstBarrier.mCurrentState = dst.state;
-            dstBarrier.mNewState = dstState;
+            dstBarrier.currentState = dst.state;
+            dstBarrier.newState = dstState;
             barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = dstState;
         }
@@ -562,16 +562,16 @@ void hz::CommandList::updateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset,
         BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
         if (dst.state != RESOURCE_STATE_COPY_DEST)
         {
-            dstBarrier.mCurrentState = dst.state;
-            dstBarrier.mNewState = RESOURCE_STATE_COPY_DEST;
+            dstBarrier.currentState = dst.state;
+            dstBarrier.newState = RESOURCE_STATE_COPY_DEST;
             barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = RESOURCE_STATE_COPY_DEST;
         }
         cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, size);
         if (dst.state != dstState)
         {
-            dstBarrier.mCurrentState = dst.state;
-            dstBarrier.mNewState = dstState;
+            dstBarrier.currentState = dst.state;
+            dstBarrier.newState = dstState;
             barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = dstState;
         }
@@ -590,8 +590,8 @@ void hz::CommandList::copyTexture(const hz::GPUTexture& dst, const hz::GPUTextur
         {
             const RenderTargetBarrier textureBarrier = {
                 .pRenderTarget = texture.pRenderTarget,
-                .mCurrentState = texture.state,
-                .mNewState = state,
+                .currentState = texture.state,
+                .newState = state,
             };
             arrpush(renderTargetBarriers, textureBarrier);
         }
@@ -599,8 +599,8 @@ void hz::CommandList::copyTexture(const hz::GPUTexture& dst, const hz::GPUTextur
         {
             const TextureBarrier textureBarrier = {
                 .pTexture = texture.pTexture,
-                .mCurrentState = texture.state,
-                .mNewState = state,
+                .currentState = texture.state,
+                .newState = state,
             };
             arrpush(textureBarriers, textureBarrier);
         }

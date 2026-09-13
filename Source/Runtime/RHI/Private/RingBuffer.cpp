@@ -33,11 +33,11 @@ void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURin
 {
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
-    pRingBuffer->mMaxBufferSize = pBufferDesc->mSize;
-    pRingBuffer->mBufferAlignment = sizeof(float[4]);
+    pRingBuffer->maxBufferSize = pBufferDesc->size;
+    pRingBuffer->bufferAlignment = sizeof(float[4]);
     BufferLoadDesc loadDesc = {};
-    loadDesc.mDesc = *pBufferDesc;
-    loadDesc.mDesc.pName = "GPURingBuffer";
+    loadDesc.desc = *pBufferDesc;
+    loadDesc.desc.pName = "GPURingBuffer";
     loadDesc.ppBuffer = &pRingBuffer->pBuffer;
     addResource(&loadDesc, NULL);
 }
@@ -48,71 +48,71 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
 
-    const uint32_t uniformBufferAlignment = (uint32_t)pRenderer->pGpu->mSettings.mUniformBufferAlignment;
+    const uint32_t uniformBufferAlignment = (uint32_t)pRenderer->pGpu->settings.uniformBufferAlignment;
     const uint32_t maxUniformBufferSize = requiredUniformBufferSize;
-    pRingBuffer->mBufferAlignment = uniformBufferAlignment;
-    pRingBuffer->mMaxBufferSize = maxUniformBufferSize;
+    pRingBuffer->bufferAlignment = uniformBufferAlignment;
+    pRingBuffer->maxBufferSize = maxUniformBufferSize;
 
     BufferDesc ubDesc = {};
-    ubDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubDesc.mMemoryUsage = memoryUsage;
-    ubDesc.mFlags =
-        (ubDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
+    ubDesc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.memoryUsage = memoryUsage;
+    ubDesc.flags =
+        (ubDesc.memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
         BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 
     if (ownMemory)
-        ubDesc.mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-    ubDesc.mSize = maxUniformBufferSize;
+        ubDesc.flags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+    ubDesc.size = maxUniformBufferSize;
     ubDesc.pName = "UniformGPURingBuffer";
     BufferLoadDesc loadDesc = {};
-    loadDesc.mDesc = ubDesc;
+    loadDesc.desc = ubDesc;
     loadDesc.ppBuffer = &pRingBuffer->pBuffer;
     addResource(&loadDesc, NULL);
 }
 
 void removeGPURingBuffer(GPURingBuffer* pRingBuffer) { removeResource(pRingBuffer->pBuffer); }
 
-void resetGPURingBuffer(GPURingBuffer* pRingBuffer) { pRingBuffer->mCurrentBufferOffset = 0; }
+void resetGPURingBuffer(GPURingBuffer* pRingBuffer) { pRingBuffer->currentBufferOffset = 0; }
 
 GPURingBufferOffset getGPURingBufferOffset(GPURingBuffer* pRingBuffer, uint32_t memoryRequirement, uint32_t alignment)
 {
-    uint32_t alignedSize = round_up(memoryRequirement, alignment ? alignment : pRingBuffer->mBufferAlignment);
+    uint32_t alignedSize = round_up(memoryRequirement, alignment ? alignment : pRingBuffer->bufferAlignment);
 
-    if (alignedSize > pRingBuffer->mMaxBufferSize)
+    if (alignedSize > pRingBuffer->maxBufferSize)
     {
         ASSERT(false && "Ring Buffer too small for memory requirement");
         return { NULL, 0 };
     }
 
-    if (pRingBuffer->mCurrentBufferOffset + alignedSize >= pRingBuffer->mMaxBufferSize)
+    if (pRingBuffer->currentBufferOffset + alignedSize >= pRingBuffer->maxBufferSize)
     {
-        pRingBuffer->mCurrentBufferOffset = 0;
+        pRingBuffer->currentBufferOffset = 0;
     }
 
-    GPURingBufferOffset ret = { pRingBuffer->pBuffer, pRingBuffer->mCurrentBufferOffset };
-    pRingBuffer->mCurrentBufferOffset += alignedSize;
+    GPURingBufferOffset ret = { pRingBuffer->pBuffer, pRingBuffer->currentBufferOffset };
+    pRingBuffer->currentBufferOffset += alignedSize;
 
     return ret;
 }
 
 void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing* pOut)
 {
-    ASSERT(pDesc->mPoolCount <= MAX_GPU_CMD_POOLS_PER_RING);
-    ASSERT(pDesc->mCmdPerPoolCount <= MAX_GPU_CMDS_PER_POOL);
+    ASSERT(pDesc->poolCount <= MAX_GPU_CMD_POOLS_PER_RING);
+    ASSERT(pDesc->cmdPerPoolCount <= MAX_GPU_CMDS_PER_POOL);
 
-    pOut->mPoolCount = pDesc->mPoolCount;
-    pOut->mCmdPerPoolCount = pDesc->mCmdPerPoolCount;
+    pOut->poolCount = pDesc->poolCount;
+    pOut->cmdPerPoolCount = pDesc->cmdPerPoolCount;
 
     CmdPoolDesc poolDesc = {};
-    poolDesc.mTransient = false;
+    poolDesc.transient = false;
     poolDesc.pQueue = pDesc->pQueue;
 
-    for (uint32_t pool = 0; pool < pDesc->mPoolCount; ++pool)
+    for (uint32_t pool = 0; pool < pDesc->poolCount; ++pool)
     {
         addCmdPool(pRenderer, &poolDesc, &pOut->pCmdPools[pool]);
         CmdDesc cmdDesc = {};
         cmdDesc.pPool = pOut->pCmdPools[pool];
-        for (uint32_t cmd = 0; cmd < pDesc->mCmdPerPoolCount; ++cmd)
+        for (uint32_t cmd = 0; cmd < pDesc->cmdPerPoolCount; ++cmd)
         {
 #ifdef ENABLE_GRAPHICS_DEBUG
             static char buffer[MAX_DEBUG_NAME_LENGTH];
@@ -121,7 +121,7 @@ void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing*
 #endif // ENABLE_GRAPHICS_DEBUG
             addCmd(pRenderer, &cmdDesc, &pOut->pCmds[pool][cmd]);
 
-            if (pDesc->mAddSyncPrimitives)
+            if (pDesc->addSyncPrimitives)
             {
                 addFence(pRenderer, &pOut->pFences[pool][cmd]);
                 addSemaphore(pRenderer, &pOut->pSemaphores[pool][cmd]);
@@ -129,16 +129,16 @@ void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing*
         }
     }
 
-    pOut->mPoolIndex = UINT32_MAX;
-    pOut->mCmdIndex = UINT32_MAX;
-    pOut->mFenceIndex = UINT32_MAX;
+    pOut->poolIndex = UINT32_MAX;
+    pOut->cmdIndex = UINT32_MAX;
+    pOut->fenceIndex = UINT32_MAX;
 }
 
 void removeGpuCmdRing(Renderer* pRenderer, GpuCmdRing* pRing)
 {
-    for (uint32_t pool = 0; pool < pRing->mPoolCount; ++pool)
+    for (uint32_t pool = 0; pool < pRing->poolCount; ++pool)
     {
-        for (uint32_t cmd = 0; cmd < pRing->mCmdPerPoolCount; ++cmd)
+        for (uint32_t cmd = 0; cmd < pRing->cmdPerPoolCount; ++cmd)
         {
             removeCmd(pRenderer, pRing->pCmds[pool][cmd]);
             if (pRing->pSemaphores[pool][cmd])
@@ -159,25 +159,25 @@ GpuCmdRingElement getNextGpuCmdRingElement(GpuCmdRing* pRing, bool cyclePool, ui
 {
     if (cyclePool)
     {
-        pRing->mPoolIndex = (pRing->mPoolIndex + 1) % pRing->mPoolCount;
-        pRing->mCmdIndex = 0;
-        pRing->mFenceIndex = 0;
+        pRing->poolIndex = (pRing->poolIndex + 1) % pRing->poolCount;
+        pRing->cmdIndex = 0;
+        pRing->fenceIndex = 0;
     }
 
-    if (pRing->mCmdIndex + cmdCount > pRing->mCmdPerPoolCount)
+    if (pRing->cmdIndex + cmdCount > pRing->cmdPerPoolCount)
     {
         ASSERT(false && "Out of command buffers for this pool");
         return GpuCmdRingElement{};
     }
 
     GpuCmdRingElement ret = {};
-    ret.pCmdPool = pRing->pCmdPools[pRing->mPoolIndex];
-    ret.pCmds = &pRing->pCmds[pRing->mPoolIndex][pRing->mCmdIndex];
-    ret.pFence = pRing->pFences[pRing->mPoolIndex][pRing->mFenceIndex];
-    ret.pSemaphore = pRing->pSemaphores[pRing->mPoolIndex][pRing->mFenceIndex];
+    ret.pCmdPool = pRing->pCmdPools[pRing->poolIndex];
+    ret.pCmds = &pRing->pCmds[pRing->poolIndex][pRing->cmdIndex];
+    ret.pFence = pRing->pFences[pRing->poolIndex][pRing->fenceIndex];
+    ret.pSemaphore = pRing->pSemaphores[pRing->poolIndex][pRing->fenceIndex];
 
-    pRing->mCmdIndex += cmdCount;
-    ++pRing->mFenceIndex;
+    pRing->cmdIndex += cmdCount;
+    ++pRing->fenceIndex;
 
     return ret;
 }

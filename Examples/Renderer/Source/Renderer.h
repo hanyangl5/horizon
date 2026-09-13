@@ -19,13 +19,13 @@ constexpr const char*     kSceneSource = "BistroExterior.gltf";
 constexpr TinyImageFormat kSurfaceFormat = TinyImageFormat_B8G8R8A8_SRGB;
 
 const VertexLayout kSceneVertexLayout = {
-    .mBindings = { { .mStride = 12 }, { .mStride = 4 }, { .mStride = 4 } },
-    .mAttribs = {
-        { .mSemantic = SEMANTIC_POSITION, .mFormat = TinyImageFormat_R32G32B32_SFLOAT, .mBinding = 0, .mLocation = 0 },
-        { .mSemantic = SEMANTIC_NORMAL, .mFormat = TinyImageFormat_R32_UINT, .mBinding = 1, .mLocation = 1 },
-        { .mSemantic = SEMANTIC_TEXCOORD0, .mFormat = TinyImageFormat_R32_UINT, .mBinding = 2, .mLocation = 2 },
+    .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
+    .attribs = {
+        { .semantic = SEMANTIC_POSITION, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 0 },
+        { .semantic = SEMANTIC_NORMAL, .format = TinyImageFormat_R32_UINT, .binding = 1, .location = 1 },
+        { .semantic = SEMANTIC_TEXCOORD0, .format = TinyImageFormat_R32_UINT, .binding = 2, .location = 2 },
     },
-    .mBindingCount = 3, .mAttribCount = 3,
+    .bindingCount = 3, .attribCount = 3,
 };
 
 class RendererApp final: public IApp
@@ -33,10 +33,10 @@ class RendererApp final: public IApp
 public:
     RendererApp()
     {
-        mSettings.mWidth = 1920;
-        mSettings.mHeight = 1080;
-        mSettings.mVSyncEnabled = true;
-        mSettings.mShowPlatformUI = false;
+        settings.width = 1920;
+        settings.height = 1080;
+        settings.vSyncEnabled = true;
+        settings.showPlatformUI = false;
     }
 
     bool Init() override
@@ -69,7 +69,7 @@ private:
             .imageCount = 2,
             .colorFormat = kSurfaceFormat,
             .colorSpace = COLOR_SPACE_SDR_SRGB,
-            .enableVSync = mSettings.mVSyncEnabled,
+            .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
         };
         pContext = hz::make_unique<hz::RenderContext>(desc);
@@ -78,7 +78,7 @@ private:
     bool initSceneAsset()
     {
         const SceneManagerDesc sceneDesc = {
-            .mCapacity = 1,
+            .capacity = 1,
             .pContext = pContext.get(),
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
             .pEnsureGltfCooked = ensureSceneGltfCooked,
@@ -91,7 +91,7 @@ private:
         mScene = pScenes->requestFromGltf(RD_TEXTURES, kSceneSource, RD_OTHER_FILES, &geometryDesc, &error);
         if (!isSceneAssetHandleValid(mScene))
         {
-            LOGF(eERROR, "Failed to request scene '%s': %s", kSceneSource, error.mMessage);
+            LOGF(eERROR, "Failed to request scene '%s': %s", kSceneSource, error.message);
             return false;
         }
 
@@ -114,39 +114,39 @@ private:
             LOGF(eERROR, "Scene '%s' contains no GPU geometry", kSceneSource);
             return false;
         }
-        if (!pGeometryData->pUserData || pGeometryData->mUserDataSize < sizeof(SceneAssetGeometryHeader))
+        if (!pGeometryData->pUserData || pGeometryData->userDataSize < sizeof(SceneAssetGeometryHeader))
         {
             LOGF(eERROR, "Scene '%s' contains no valid scene metadata", kSceneSource);
             return false;
         }
 
         const SceneAssetGeometryHeader* header = (const SceneAssetGeometryHeader*)pGeometryData->pUserData;
-        if (header->mMagic != SCENE_ASSET_GEOMETRY_MAGIC || !header->mInstanceCount ||
-            sizeof(*header) + (uint64_t)header->mInstanceCount * sizeof(SceneAssetInstance) > pGeometryData->mUserDataSize)
+        if (header->magic != SCENE_ASSET_GEOMETRY_MAGIC || !header->instanceCount ||
+            sizeof(*header) + (uint64_t)header->instanceCount * sizeof(SceneAssetInstance) > pGeometryData->userDataSize)
         {
             LOGF(eERROR, "Scene '%s' contains invalid scene metadata", kSceneSource);
             return false;
         }
 
-        mInstanceCount = header->mInstanceCount;
+        mInstanceCount = header->instanceCount;
         pInstances = (const SceneAssetInstance*)(header + 1);
 
-        const float cx = (header->mBoundsMin[0] + header->mBoundsMax[0]) * 0.5f;
-        const float cz = (header->mBoundsMin[2] + header->mBoundsMax[2]) * 0.5f;
-        mTarget = Point3(cx, header->mBoundsMin[1] + 4.0f, cz);
-        mEye = Point3(cx + 18.0f, header->mBoundsMin[1] + 16.0f, cz - 32.0f);
-        if (header->mHasCamera)
+        const float cx = (header->boundsMin[0] + header->boundsMax[0]) * 0.5f;
+        const float cz = (header->boundsMin[2] + header->boundsMax[2]) * 0.5f;
+        mTarget = Point3(cx, header->boundsMin[1] + 4.0f, cz);
+        mEye = Point3(cx + 18.0f, header->boundsMin[1] + 16.0f, cz - 32.0f);
+        if (header->hasCamera)
         {
-            const float* camera = header->mCameraWorld;
+            const float* camera = header->cameraWorld;
             mEye = Point3(camera[12], camera[13], camera[14]);
             mTarget = mEye - Vector3(camera[8], camera[9], camera[10]);
-            mVerticalFov = header->mCameraYFov;
+            mVerticalFov = header->cameraYFov;
         }
 
         LOGF(eINFO, "SceneAsset ready: %u instances, %u draws, %u triangles, %u materials, %u textures", mInstanceCount,
-             geometry->mDrawArgCount, geometry->mIndexCount / 3, pScenes->getMaterialCount(mScene), pScenes->getTextureCount(mScene));
-        LOGF(eINFO, "Scene bounds: (%f, %f, %f) - (%f, %f, %f)", header->mBoundsMin[0], header->mBoundsMin[1], header->mBoundsMin[2],
-             header->mBoundsMax[0], header->mBoundsMax[1], header->mBoundsMax[2]);
+             geometry->drawArgCount, geometry->indexCount / 3, pScenes->getMaterialCount(mScene), pScenes->getTextureCount(mScene));
+        LOGF(eINFO, "Scene bounds: (%f, %f, %f) - (%f, %f, %f)", header->boundsMin[0], header->boundsMin[1], header->boundsMin[2],
+             header->boundsMax[0], header->boundsMax[1], header->boundsMax[2]);
         return true;
     }
 
@@ -184,9 +184,9 @@ public:
 
     bool Load(ReloadDesc* reload) override
     {
-        if (!(reload->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        if (!(reload->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
             return true;
-        const uint32_t width = (uint32_t)mSettings.mWidth, height = (uint32_t)mSettings.mHeight;
+        const uint32_t width = (uint32_t)settings.width, height = (uint32_t)settings.height;
         if (!pContext->resize(width, height))
         {
             LOGF(eERROR, "Failed to resize RenderContext to %ux%u", width, height);
@@ -197,7 +197,7 @@ public:
     void Unload(ReloadDesc*) override { pRenderPasses->unload(); }
     void Update(float deltaTime) override
     {
-        pCamera->update(deltaTime, (uint32_t)mSettings.mWidth, (uint32_t)mSettings.mHeight, mSettings.mFocused);
+        pCamera->update(deltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
         pRenderPasses->update(*pCamera);
     }
     const char* GetName() override { return "Renderer"; }

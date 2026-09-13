@@ -78,65 +78,65 @@ struct GPUProperty
 
 // should we enable all setter? modifying the model or vendor id for example...
 const GPUProperty availableGpuProperties[] = {
-    GPU_CONFIG_PROPERTY("allowbuffertextureinsameheap", mAllowBufferTextureInSameHeap),
-    GPU_CONFIG_PROPERTY("amdasicfamily", mAmdAsicFamily),
-    GPU_CONFIG_PROPERTY("builtindrawid", mBuiltinDrawID),
-    GPU_CONFIG_PROPERTY_READ_ONLY("deviceid", mGpuVendorPreset.mModelId),
-    GPU_CONFIG_PROPERTY("directxfeaturelevel", mFeatureLevel),
-    GPU_CONFIG_PROPERTY("directstoragesupported", mDirectStorageSupported),
-    GPU_CONFIG_PROPERTY("enhancedbarrierssupported", mEnhancedBarriersSupported),
-    GPU_CONFIG_PROPERTY("executeindirectincrementingconstantsupported", mExecuteIndirectIncrementingConstantSupported),
-    GPU_CONFIG_PROPERTY("suppressinvalidsubresourcestateafterexit", mSuppressInvalidSubresourceStateAfterExit),
-    GPU_CONFIG_PROPERTY("geometryshadersupported", mGeometryShaderSupported),
-    GPU_CONFIG_PROPERTY("gpupresetlevel", mGpuVendorPreset.mPresetLevel),
-    GPU_CONFIG_PROPERTY("graphicqueuesupported", mGraphicsQueueSupported),
-    GPU_CONFIG_PROPERTY("gpuuploadheapsupported", mGpuUploadHeapSupported),
-    GPU_CONFIG_PROPERTY("hdrsupported", mHDRSupported),
-    GPU_CONFIG_PROPERTY("indirectcommandbuffer", mIndirectCommandBuffer),
-    GPU_CONFIG_PROPERTY("indirectrootconstant", mIndirectRootConstant),
-    GPU_CONFIG_PROPERTY("int64shaderopssupported", mInt64ShaderOpsSupported),
-    GPU_CONFIG_PROPERTY("linearalgebrasupported", mLinearAlgebraSupported),
-    GPU_CONFIG_PROPERTY("linearalgebratier", mLinearAlgebraTier),
-    GPU_CONFIG_PROPERTY("native16bitshaderopssupported", mNative16BitShaderOpsSupported),
-    GPU_CONFIG_PROPERTY("maxboundtextures", mMaxBoundTextures),
-    GPU_CONFIG_PROPERTY("max1ddispatchsize", mMax1DDispatchSize),
-    GPU_CONFIG_PROPERTY("max1ddispatchmeshsize", mMax1DDispatchMeshSize),
-    GPU_CONFIG_PROPERTY("maxgroupsharedmemorypergroupcs", mMaxGroupSharedMemoryPerGroupCS),
-    GPU_CONFIG_PROPERTY("maxgroupsharedmemorypergroupas", mMaxGroupSharedMemoryPerGroupAS),
-    GPU_CONFIG_PROPERTY("maxgroupsharedmemorypergroupms", mMaxGroupSharedMemoryPerGroupMS),
-    GPU_CONFIG_PROPERTY("maxrootsignaturedwords", mMaxRootSignatureDWORDS),
-    GPU_CONFIG_PROPERTY("maxshadermodel", mMaxShaderModel),
-    GPU_CONFIG_PROPERTY("maxvertexinputbindings", mMaxVertexInputBindings),
-    GPU_CONFIG_PROPERTY("multidrawindirect", mMultiDrawIndirect),
-    GPU_CONFIG_PROPERTY("occlusionqueries", mOcclusionQueries),
-    GPU_CONFIG_PROPERTY("pipelinestatsqueries", mPipelineStatsQueries),
-    GPU_CONFIG_PROPERTY("primitiveidsupported", mPrimitiveIdSupported),
-    GPU_CONFIG_PROPERTY("rasterorderviewsupport", mROVsSupported),
-    GPU_CONFIG_PROPERTY("raytracingsupported", mRaytracingSupported),
-    GPU_CONFIG_PROPERTY("rayquerysupported", mRayQuerySupported),
-    GPU_CONFIG_PROPERTY("raypipelinesupported", mRayPipelineSupported),
-    GPU_CONFIG_PROPERTY("createbyteoffsetviewssupported", mCreateByteOffsetViewsSupported),
-    GPU_CONFIG_PROPERTY("shaderexecutionreorderingactuallyreorders", mShaderExecutionReorderingActuallyReorders),
-    GPU_CONFIG_PROPERTY("softwarevrssupported", mSoftwareVRSSupported),
-    GPU_CONFIG_PROPERTY("tessellationsupported", mTessellationSupported),
-    GPU_CONFIG_PROPERTY("timestampqueries", mTimestampQueries),
-    GPU_CONFIG_PROPERTY("uniformbufferalignment", mUniformBufferAlignment),
-    GPU_CONFIG_PROPERTY("uploadbuffertexturealignment", mUploadBufferTextureAlignment),
-    GPU_CONFIG_PROPERTY("uploadbuffertexturerowalignment", mUploadBufferTextureRowAlignment),
-    GPU_CONFIG_PROPERTY_READ_ONLY("vendorid", mGpuVendorPreset.mVendorId),
-    GPU_CONFIG_PROPERTY("vram", mVRAM),
-    GPU_CONFIG_PROPERTY("wavelanecount", mWaveLaneCount),
-    GPU_CONFIG_PROPERTY("waveopssupport", mWaveOpsSupportFlags),
-    GPU_CONFIG_PROPERTY("waveopssupported", mWaveOpsSupported),
+    GPU_CONFIG_PROPERTY("allowbuffertextureinsameheap", allowBufferTextureInSameHeap),
+    GPU_CONFIG_PROPERTY("amdasicfamily", amdAsicFamily),
+    GPU_CONFIG_PROPERTY("builtindrawid", builtinDrawID),
+    GPU_CONFIG_PROPERTY_READ_ONLY("deviceid", gpuVendorPreset.modelId),
+    GPU_CONFIG_PROPERTY("directxfeaturelevel", featureLevel),
+    GPU_CONFIG_PROPERTY("directstoragesupported", directStorageSupported),
+    GPU_CONFIG_PROPERTY("enhancedbarrierssupported", enhancedBarriersSupported),
+    GPU_CONFIG_PROPERTY("executeindirectincrementingconstantsupported", executeIndirectIncrementingConstantSupported),
+    GPU_CONFIG_PROPERTY("suppressinvalidsubresourcestateafterexit", suppressInvalidSubresourceStateAfterExit),
+    GPU_CONFIG_PROPERTY("geometryshadersupported", geometryShaderSupported),
+    GPU_CONFIG_PROPERTY("gpupresetlevel", gpuVendorPreset.presetLevel),
+    GPU_CONFIG_PROPERTY("graphicqueuesupported", graphicsQueueSupported),
+    GPU_CONFIG_PROPERTY("gpuuploadheapsupported", gpuUploadHeapSupported),
+    GPU_CONFIG_PROPERTY("hdrsupported", hdrSupported),
+    GPU_CONFIG_PROPERTY("indirectcommandbuffer", indirectCommandBuffer),
+    GPU_CONFIG_PROPERTY("indirectrootconstant", indirectRootConstant),
+    GPU_CONFIG_PROPERTY("int64shaderopssupported", int64ShaderOpsSupported),
+    GPU_CONFIG_PROPERTY("linearalgebrasupported", linearAlgebraSupported),
+    GPU_CONFIG_PROPERTY("linearalgebratier", linearAlgebraTier),
+    GPU_CONFIG_PROPERTY("native16bitshaderopssupported", native16BitShaderOpsSupported),
+    GPU_CONFIG_PROPERTY("maxboundtextures", maxBoundTextures),
+    GPU_CONFIG_PROPERTY("max1ddispatchsize", max1DDispatchSize),
+    GPU_CONFIG_PROPERTY("max1ddispatchmeshsize", max1DDispatchMeshSize),
+    GPU_CONFIG_PROPERTY("maxgroupsharedmemorypergroupcs", maxGroupSharedMemoryPerGroupCS),
+    GPU_CONFIG_PROPERTY("maxgroupsharedmemorypergroupas", maxGroupSharedMemoryPerGroupAS),
+    GPU_CONFIG_PROPERTY("maxgroupsharedmemorypergroupms", maxGroupSharedMemoryPerGroupMS),
+    GPU_CONFIG_PROPERTY("maxrootsignaturedwords", maxRootSignatureDWORDS),
+    GPU_CONFIG_PROPERTY("maxshadermodel", maxShaderModel),
+    GPU_CONFIG_PROPERTY("maxvertexinputbindings", maxVertexInputBindings),
+    GPU_CONFIG_PROPERTY("multidrawindirect", multiDrawIndirect),
+    GPU_CONFIG_PROPERTY("occlusionqueries", occlusionQueries),
+    GPU_CONFIG_PROPERTY("pipelinestatsqueries", pipelineStatsQueries),
+    GPU_CONFIG_PROPERTY("primitiveidsupported", primitiveIdSupported),
+    GPU_CONFIG_PROPERTY("rasterorderviewsupport", rovsSupported),
+    GPU_CONFIG_PROPERTY("raytracingsupported", raytracingSupported),
+    GPU_CONFIG_PROPERTY("rayquerysupported", rayQuerySupported),
+    GPU_CONFIG_PROPERTY("raypipelinesupported", rayPipelineSupported),
+    GPU_CONFIG_PROPERTY("createbyteoffsetviewssupported", createByteOffsetViewsSupported),
+    GPU_CONFIG_PROPERTY("shaderexecutionreorderingactuallyreorders", shaderExecutionReorderingActuallyReorders),
+    GPU_CONFIG_PROPERTY("softwarevrssupported", softwareVRSSupported),
+    GPU_CONFIG_PROPERTY("tessellationsupported", tessellationSupported),
+    GPU_CONFIG_PROPERTY("timestampqueries", timestampQueries),
+    GPU_CONFIG_PROPERTY("uniformbufferalignment", uniformBufferAlignment),
+    GPU_CONFIG_PROPERTY("uploadbuffertexturealignment", uploadBufferTextureAlignment),
+    GPU_CONFIG_PROPERTY("uploadbuffertexturerowalignment", uploadBufferTextureRowAlignment),
+    GPU_CONFIG_PROPERTY_READ_ONLY("vendorid", gpuVendorPreset.vendorId),
+    GPU_CONFIG_PROPERTY("vram", vram),
+    GPU_CONFIG_PROPERTY("wavelanecount", waveLaneCount),
+    GPU_CONFIG_PROPERTY("waveopssupport", waveOpsSupportFlags),
+    GPU_CONFIG_PROPERTY("waveopssupported", waveOpsSupported),
 };
 
 void setDefaultGPUSettings(GPUSettings* pGpuSettings)
 {
     memset(pGpuSettings, 0, sizeof(GPUSettings));
 
-    pGpuSettings->mSamplerAnisotropySupported = 1;
-    pGpuSettings->mGraphicsQueueSupported = 1;
-    pGpuSettings->mPrimitiveIdSupported = 1;
+    pGpuSettings->samplerAnisotropySupported = 1;
+    pGpuSettings->graphicsQueueSupported = 1;
+    pGpuSettings->primitiveIdSupported = 1;
 }
 
 /* ------------------------ legacy gpu data parser ------------------------ */
@@ -153,10 +153,10 @@ struct GPUVendorDefinition
 
 struct GPUModelDefinition
 {
-    uint32_t       mVendorId;
-    uint32_t       mDeviceId;
-    GPUPresetLevel mPreset;
-    char           mModelName[MAX_GPU_VENDOR_STRING_LENGTH];
+    uint32_t       vendorId;
+    uint32_t       deviceId;
+    GPUPresetLevel preset;
+    char           modelName[MAX_GPU_VENDOR_STRING_LENGTH];
 };
 
 static GPUModelDefinition* gGPUModels = nullptr;
@@ -389,14 +389,14 @@ void parseGPUDataFile()
                 char* tokens[] = { vendorIdStr, modelIdStr, presetStr, vendorNameStr, modelNameStr };
                 tokenizeLine(currentLineStr, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
                 GPUModelDefinition model = {};
-                model.mVendorId = (uint32_t)strtoul(vendorIdStr + 2, NULL, 16);
-                model.mDeviceId = (uint32_t)strtoul(modelIdStr + 2, NULL, 16);
-                model.mPreset = stringToPresetLevel(presetStr);
+                model.vendorId = (uint32_t)strtoul(vendorIdStr + 2, NULL, 16);
+                model.deviceId = (uint32_t)strtoul(modelIdStr + 2, NULL, 16);
+                model.preset = stringToPresetLevel(presetStr);
                 if (modelNameStr[0] != '\0')
                 {
-                    strncpy(model.mModelName, modelNameStr, TF_ARRAY_COUNT(modelNameStr));
+                    strncpy(model.modelName, modelNameStr, TF_ARRAY_COUNT(modelNameStr));
                 }
-                if (model.mVendorId && model.mDeviceId)
+                if (model.vendorId && model.deviceId)
                 {
                     arrpush(gGPUModels, model);
                 }
@@ -848,7 +848,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
     char*       tokens[] = { settingName, ruleParameters, assignmentValue };
     tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
 
-    uint32_t settingIndex = getSettingIndex(settingName, pExtendedSettings->mNumSettings, pExtendedSettings->ppSettingNames);
+    uint32_t settingIndex = getSettingIndex(settingName, pExtendedSettings->numSettings, pExtendedSettings->ppSettingNames);
     if (settingIndex != INVALID_OPTION)
     {
         char*        rulesBegin = ruleParameters;
@@ -922,7 +922,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
             // hack for preferred gpu
             if (strstr(stringToLower(parsedValue), "preferredgpu") != 0)
             {
-                currentComparisonRule->comparatorValue = gPlatformParameters.mPreferedGpuId;
+                currentComparisonRule->comparatorValue = gPlatformParameters.preferedGpuId;
             }
             else
             {
@@ -983,8 +983,8 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
 
     for (uint32_t i = 0; i < gpuCount; ++i)
     {
-        if (availableSettings[i].mGraphicsQueueSupported &&
-            availableSettings[i].mGpuVendorPreset.mModelId == gPlatformParameters.mPreferedGpuId)
+        if (availableSettings[i].graphicsQueueSupported &&
+            availableSettings[i].gpuVendorPreset.modelId == gPlatformParameters.preferedGpuId)
         {
             return i;
         }
@@ -994,29 +994,29 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
 
     auto isBetterPlaygroundGpu = [&](const GPUSettings& testSettings, const GPUSettings& refSettings) -> bool
     {
-        if (testSettings.mGraphicsQueueSupported != refSettings.mGraphicsQueueSupported)
+        if (testSettings.graphicsQueueSupported != refSettings.graphicsQueueSupported)
         {
-            return testSettings.mGraphicsQueueSupported;
+            return testSettings.graphicsQueueSupported;
         }
 
-        bool testIntegrated = isIntegratedVendor(testSettings.mGpuVendorPreset.mVendorId);
-        bool refIntegrated = isIntegratedVendor(refSettings.mGpuVendorPreset.mVendorId);
+        bool testIntegrated = isIntegratedVendor(testSettings.gpuVendorPreset.vendorId);
+        bool refIntegrated = isIntegratedVendor(refSettings.gpuVendorPreset.vendorId);
         if (testIntegrated != refIntegrated)
         {
             return !testIntegrated;
         }
 
-        if (testSettings.mGpuVendorPreset.mPresetLevel != refSettings.mGpuVendorPreset.mPresetLevel)
+        if (testSettings.gpuVendorPreset.presetLevel != refSettings.gpuVendorPreset.presetLevel)
         {
-            return testSettings.mGpuVendorPreset.mPresetLevel > refSettings.mGpuVendorPreset.mPresetLevel;
+            return testSettings.gpuVendorPreset.presetLevel > refSettings.gpuVendorPreset.presetLevel;
         }
 
-        if (testSettings.mFeatureLevel != refSettings.mFeatureLevel)
+        if (testSettings.featureLevel != refSettings.featureLevel)
         {
-            return testSettings.mFeatureLevel > refSettings.mFeatureLevel;
+            return testSettings.featureLevel > refSettings.featureLevel;
         }
 
-        return testSettings.mVRAM > refSettings.mVRAM;
+        return testSettings.vram > refSettings.vram;
     };
 
     for (uint32_t i = 1; i < gpuCount; ++i)
@@ -1027,17 +1027,17 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
         }
     }
 
-    return availableSettings[gpuIndex].mGraphicsQueueSupported ? gpuIndex : UINT32_MAX;
+    return availableSettings[gpuIndex].graphicsQueueSupported ? gpuIndex : UINT32_MAX;
 }
 
 void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
 {
     UNREF_PARAM(pCapBits);
 
-    if (gpuVendorEquals(pGpuSettings->mGpuVendorPreset.mVendorId, "nvidia") ||
-        gpuVendorEquals(pGpuSettings->mGpuVendorPreset.mVendorId, "intel"))
+    if (gpuVendorEquals(pGpuSettings->gpuVendorPreset.vendorId, "nvidia") ||
+        gpuVendorEquals(pGpuSettings->gpuVendorPreset.vendorId, "intel"))
     {
-        pGpuSettings->mMaxRootSignatureDWORDS = 64;
+        pGpuSettings->maxRootSignatureDWORDS = 64;
     }
 }
 
@@ -1223,9 +1223,9 @@ uint32_t getGPUModelID(const char* modelName)
     for (uint32_t i = 0; i < arrlenu(gGPUModels); ++i)
     {
         GPUModelDefinition* model = &gGPUModels[i];
-        if (!strncmp(modelName, model->mModelName, TF_ARRAY_COUNT(model->mModelName)))
+        if (!strncmp(modelName, model->modelName, TF_ARRAY_COUNT(model->modelName)))
         {
-            return model->mDeviceId;
+            return model->deviceId;
         }
     }
     return UINT32_MAX;

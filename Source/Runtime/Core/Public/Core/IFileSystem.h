@@ -176,9 +176,9 @@ extern "C"
     typedef struct FileStream
     {
         IFileSystem*              pIO;
-        FileMode                  mMode;
-        ResourceMount             mMount;
-        struct FileStreamUserData mUser; // access to this field is IO exclusive
+        FileMode                  mode;
+        ResourceMount             mount;
+        struct FileStreamUserData user; // access to this field is IO exclusive
     } FileStream;
 
     typedef struct FileSystemInitDesc

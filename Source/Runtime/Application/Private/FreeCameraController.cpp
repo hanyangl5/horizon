@@ -29,35 +29,35 @@ void FreeCameraController::stop()
 bool FreeCameraController::onInput(InputActionContext* pInput)
 {
     FreeCameraController* pController = (FreeCameraController*)pInput->pUserData;
-    const bool            ended = pInput->mPhase == INPUT_ACTION_PHASE_CANCELED || pInput->mPhase == INPUT_ACTION_PHASE_ENDED;
-    switch (pInput->mActionId)
+    const bool            ended = pInput->phase == INPUT_ACTION_PHASE_CANCELED || pInput->phase == INPUT_ACTION_PHASE_ENDED;
+    switch (pInput->actionId)
     {
     case Move:
-        pController->movement = ended ? float2(0.0f) : pInput->mFloat2;
+        pController->movement = ended ? float2(0.0f) : pInput->float2Value;
         break;
     case MoveVertical:
-        pController->vertical = ended ? 0.0f : pInput->mFloat;
+        pController->vertical = ended ? 0.0f : pInput->floatValue;
         break;
     case Look:
         if (pController->captured && !ended)
-            pController->look = pInput->mFloat2;
+            pController->look = pInput->float2Value;
         break;
     case Capture:
-        pController->captured = !ended && pInput->mBool;
+        pController->captured = !ended && pInput->boolValue;
         setEnableCaptureInput(pController->captured);
         break;
     case Boost:
-        pController->boost = !ended && pInput->mBool;
+        pController->boost = !ended && pInput->boolValue;
         break;
     case Reset:
-        if (pInput->mPhase == INPUT_ACTION_PHASE_STARTED)
+        if (pInput->phase == INPUT_ACTION_PHASE_STARTED)
         {
             pController->pCamera->resetView();
             pController->stop();
         }
         break;
     case Release:
-        if (pInput->mBool)
+        if (pInput->boolValue)
         {
             pController->captured = false;
             setEnableCaptureInput(false);
@@ -80,34 +80,34 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
     ASSERT(inputInitialized);
 
     ActionMappingDesc mappings[] = {
-        { .mActionMappingType = INPUT_ACTION_MAPPING_COMPOSITE,
-          .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
-          .mActionId = Move,
-          .mDeviceButtons = { KEYBOARD_BUTTON_D, KEYBOARD_BUTTON_A, KEYBOARD_BUTTON_W, KEYBOARD_BUTTON_S } },
-        { .mActionMappingType = INPUT_ACTION_MAPPING_COMPOSITE,
-          .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
-          .mActionId = MoveVertical,
-          .mDeviceButtons = { KEYBOARD_BUTTON_E, KEYBOARD_BUTTON_Q },
-          .mCompositeUseSingleAxis = true },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_MOUSE,
-          .mActionId = Look,
-          .mDeviceButtons = { MOUSE_BUTTON_AXIS_X },
-          .mNumAxis = 2,
-          .mScale = 0.002f,
-          .mScaleByDT = true },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_MOUSE, .mActionId = Capture, .mDeviceButtons = { MOUSE_BUTTON_RIGHT } },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
-          .mActionId = Boost,
-          .mDeviceButtons = { KEYBOARD_BUTTON_SHIFT_L } },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD, .mActionId = Reset, .mDeviceButtons = { KEYBOARD_BUTTON_R } },
-        { .mActionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
-          .mActionId = Release,
-          .mDeviceButtons = { KEYBOARD_BUTTON_ESCAPE } },
+        { .actionMappingType = INPUT_ACTION_MAPPING_COMPOSITE,
+          .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
+          .actionId = Move,
+          .deviceButtons = { KEYBOARD_BUTTON_D, KEYBOARD_BUTTON_A, KEYBOARD_BUTTON_W, KEYBOARD_BUTTON_S } },
+        { .actionMappingType = INPUT_ACTION_MAPPING_COMPOSITE,
+          .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
+          .actionId = MoveVertical,
+          .deviceButtons = { KEYBOARD_BUTTON_E, KEYBOARD_BUTTON_Q },
+          .compositeUseSingleAxis = true },
+        { .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_MOUSE,
+          .actionId = Look,
+          .deviceButtons = { MOUSE_BUTTON_AXIS_X },
+          .numAxis = 2,
+          .scale = 0.002f,
+          .scaleByDT = true },
+        { .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_MOUSE, .actionId = Capture, .deviceButtons = { MOUSE_BUTTON_RIGHT } },
+        { .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
+          .actionId = Boost,
+          .deviceButtons = { KEYBOARD_BUTTON_SHIFT_L } },
+        { .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD, .actionId = Reset, .deviceButtons = { KEYBOARD_BUTTON_R } },
+        { .actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_KEYBOARD,
+          .actionId = Release,
+          .deviceButtons = { KEYBOARD_BUTTON_ESCAPE } },
     };
     addActionMappings(mappings, TF_ARRAY_COUNT(mappings), INPUT_ACTION_MAPPING_TARGET_ALL);
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(mappings); ++i)
     {
-        const InputActionDesc action = { .mActionId = mappings[i].mActionId, .pFunction = onInput, .pUserData = this };
+        const InputActionDesc action = { .actionId = mappings[i].actionId, .pFunction = onInput, .pUserData = this };
         addInputAction(&action);
     }
 }

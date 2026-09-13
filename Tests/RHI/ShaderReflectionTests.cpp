@@ -10,7 +10,7 @@ namespace
 {
 uint32_t findResourceIndexByName(const PipelineReflection& reflection, const char* name)
 {
-    for (uint32_t i = 0; i < reflection.mShaderResourceCount; ++i)
+    for (uint32_t i = 0; i < reflection.shaderResourceCount; ++i)
     {
         if (strcmp(reflection.pShaderResources[i].name, name) == 0)
         {
@@ -23,7 +23,7 @@ uint32_t findResourceIndexByName(const PipelineReflection& reflection, const cha
 
 uint32_t findVariableIndexByName(const PipelineReflection& reflection, const char* name)
 {
-    for (uint32_t i = 0; i < reflection.mVariableCount; ++i)
+    for (uint32_t i = 0; i < reflection.variableCount; ++i)
     {
         if (strcmp(reflection.pVariables[i].name, name) == 0)
         {
@@ -86,31 +86,31 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
         {
             .pShaderResources = vertexResources,
             .pVariables = vertexVariables,
-            .mShaderStage = SHADER_STAGE_VERT,
-            .mShaderResourceCount = TF_ARRAY_COUNT(vertexResources),
-            .mVariableCount = TF_ARRAY_COUNT(vertexVariables),
+            .shaderStage = SHADER_STAGE_VERT,
+            .shaderResourceCount = TF_ARRAY_COUNT(vertexResources),
+            .variableCount = TF_ARRAY_COUNT(vertexVariables),
         },
         {
             .pShaderResources = fragmentResources,
             .pVariables = fragmentVariables,
-            .mShaderStage = SHADER_STAGE_FRAG,
-            .mShaderResourceCount = TF_ARRAY_COUNT(fragmentResources),
-            .mVariableCount = TF_ARRAY_COUNT(fragmentVariables),
+            .shaderStage = SHADER_STAGE_FRAG,
+            .shaderResourceCount = TF_ARRAY_COUNT(fragmentResources),
+            .variableCount = TF_ARRAY_COUNT(fragmentVariables),
         },
     };
 
     PipelineReflection pipeline = {};
     createPipelineReflection(stages, TF_ARRAY_COUNT(stages), &pipeline);
 
-    ASSERT_EQ(pipeline.mStageReflectionCount, 2u);
-    EXPECT_EQ(pipeline.mShaderStages, SHADER_STAGE_VERT | SHADER_STAGE_FRAG);
-    EXPECT_EQ(pipeline.mVertexStageIndex, 0u);
-    EXPECT_EQ(pipeline.mPixelStageIndex, 1u);
-    EXPECT_EQ(pipeline.mHullStageIndex, UINT32_MAX);
-    EXPECT_EQ(pipeline.mDomainStageIndex, UINT32_MAX);
-    EXPECT_EQ(pipeline.mGeometryStageIndex, UINT32_MAX);
+    ASSERT_EQ(pipeline.stageReflectionCount, 2u);
+    EXPECT_EQ(pipeline.shaderStages, SHADER_STAGE_VERT | SHADER_STAGE_FRAG);
+    EXPECT_EQ(pipeline.vertexStageIndex, 0u);
+    EXPECT_EQ(pipeline.pixelStageIndex, 1u);
+    EXPECT_EQ(pipeline.hullStageIndex, UINT32_MAX);
+    EXPECT_EQ(pipeline.domainStageIndex, UINT32_MAX);
+    EXPECT_EQ(pipeline.geometryStageIndex, UINT32_MAX);
 
-    ASSERT_EQ(pipeline.mShaderResourceCount, 3u);
+    ASSERT_EQ(pipeline.shaderResourceCount, 3u);
     const uint32_t frameDataIndex = findResourceIndexByName(pipeline, "FrameData");
     const uint32_t sceneTextureIndex = findResourceIndexByName(pipeline, "SceneTexture");
     const uint32_t outputBufferIndex = findResourceIndexByName(pipeline, "OutputBuffer");
@@ -122,7 +122,7 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
     EXPECT_EQ(pipeline.pShaderResources[sceneTextureIndex].used_stages, SHADER_STAGE_VERT | SHADER_STAGE_FRAG);
     EXPECT_EQ(pipeline.pShaderResources[outputBufferIndex].used_stages, SHADER_STAGE_FRAG);
 
-    ASSERT_EQ(pipeline.mVariableCount, 3u);
+    ASSERT_EQ(pipeline.variableCount, 3u);
     const uint32_t viewProjIndex = findVariableIndexByName(pipeline, "ViewProj");
     const uint32_t cameraPosIndex = findVariableIndexByName(pipeline, "CameraPos");
     const uint32_t exposureIndex = findVariableIndexByName(pipeline, "Exposure");

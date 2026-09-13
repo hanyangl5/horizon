@@ -117,7 +117,7 @@ struct GPUCapBits;
 
 struct ExtendedSettings
 {
-    uint32_t     mNumSettings;
+    uint32_t     numSettings;
     uint32_t*    pSettings;
     const char** ppSettingNames;
 };

@@ -33,27 +33,27 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
         return; // need error catching
     }
 
-    mNumSoaJoints = mSkeleton.num_soa_joints();
-    mNumJoints = mSkeleton.num_joints();
+    numSoaJoints = skeleton.num_soa_joints();
+    numJoints = skeleton.num_joints();
 
-    if (mNumJoints == 0)
+    if (numJoints == 0)
     {
         LOGF(eERROR, "Couldn't load skeleton %s", fileName);
         return;
     }
 
     // Find the root index
-    for (uint32_t i = 0; i < mNumJoints; i++)
+    for (uint32_t i = 0; i < numJoints; i++)
     {
-        if (mSkeleton.joint_parents()[i] == ozz::animation::Skeleton::kNoParent)
+        if (skeleton.joint_parents()[i] == ozz::animation::Skeleton::kNoParent)
         {
-            mRootIndex = i;
+            rootIndex = i;
             break;
         }
     }
 }
 
-void Rig::Exit() { mSkeleton.Deallocate(); }
+void Rig::Exit() { skeleton.Deallocate(); }
 
 bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName)
 {
@@ -83,7 +83,7 @@ bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName
         return false;
     }
 
-    archive >> mSkeleton;
+    archive >> skeleton;
 
     fsCloseStream(&memStream);
 
@@ -92,9 +92,9 @@ bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName
 
 int32_t Rig::FindJoint(const char* jointName)
 {
-    for (uint32_t i = 0; i < mNumJoints; i++)
+    for (uint32_t i = 0; i < numJoints; i++)
     {
-        if (strcmp(mSkeleton.joint_names()[i], jointName) == 0)
+        if (strcmp(skeleton.joint_names()[i], jointName) == 0)
             return i;
     }
     return -1;
@@ -103,9 +103,9 @@ int32_t Rig::FindJoint(const char* jointName)
 void Rig::FindJointChain(const char* jointNames[], size_t numNames, int32_t jointChain[])
 {
     size_t found = 0;
-    for (int32_t i = 0; i < mSkeleton.num_joints() && found < numNames; ++i)
+    for (int32_t i = 0; i < skeleton.num_joints() && found < numNames; ++i)
     {
-        const char* joint_name = mSkeleton.joint_names()[i];
+        const char* joint_name = skeleton.joint_names()[i];
         if (strcmp(joint_name, jointNames[found]) == 0)
         {
             jointChain[found] = i;

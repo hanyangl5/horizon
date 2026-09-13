@@ -30,7 +30,7 @@
 
 typedef struct BufferAllocatorPlotWidget
 {
-    float2      mSize = float2(0.f, 0.f);
+    float2      size = float2(0.f, 0.f);
     const char* pName = NULL;
     int64_t*    pValues = NULL;
 } BufferAllocatorPlotWidget;
@@ -185,7 +185,7 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
 {
     BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pUserData;
 
-    int            nValues = (int)pPlotWidget->mSize[0];
+    int            nValues = (int)pPlotWidget->size[0];
     const int64_t* values = pPlotWidget->pValues;
 
     if (!values)
@@ -212,7 +212,7 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
         title[tlen++] = ' ';
     }
 
-    ImGui::PlotBufferChunkAllocatorHistogram((const char*)label.data, values + 2, nValues, 0, title, pPlotWidget->mSize);
+    ImGui::PlotBufferChunkAllocatorHistogram((const char*)label.data, values + 2, nValues, 0, title, pPlotWidget->size);
 }
 
 static void internalDestroyBufferAllocatorPlotWidget(void* pUserData)
@@ -243,14 +243,14 @@ static inline uint64_t histogramPointOffsetAproximation(uint32_t point, uint32_t
 static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, float2 size, struct BufferChunkAllocator* data)
 {
     ASSERT(pWidget);
-    ASSERT(pWidget->mType == WIDGET_TYPE_CUSTOM);
-    if (pWidget->mType != WIDGET_TYPE_CUSTOM) //-V547
+    ASSERT(pWidget->type == WIDGET_TYPE_CUSTOM);
+    if (pWidget->type != WIDGET_TYPE_CUSTOM) //-V547
         return;
 
     CustomWidget*              pCustomWidget = (CustomWidget*)pWidget->pWidget;
     BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->pUserData;
 
-    if (pPlotWidget->mSize.x != size.x || pPlotWidget->pValues == NULL)
+    if (pPlotWidget->size.x != size.x || pPlotWidget->pValues == NULL)
     {
         tf_free(pPlotWidget->pValues);
 
@@ -260,14 +260,14 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
         memset(pPlotWidget->pValues, 0, allocSize);
     }
 
-    pPlotWidget->mSize = size;
+    pPlotWidget->size = size;
 
-    uint32_t nValues = (uint32_t)pPlotWidget->mSize[0];
+    uint32_t nValues = (uint32_t)pPlotWidget->size[0];
     int64_t* values = pPlotWidget->pValues;
 
-    uint32_t unusedChunkCount = (uint32_t)arrlenu(data->mUnusedChunks);
+    uint32_t unusedChunkCount = (uint32_t)arrlenu(data->unusedChunks);
 
-    values[0] = (int64_t)data->mSize;
+    values[0] = (int64_t)data->size;
     ++values;
 
     int64_t* fragmentCount = values;
@@ -280,11 +280,11 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
 
     for (uint32_t ci = 0; ci < unusedChunkCount; ++ci)
     {
-        BufferChunk* freeChunk = data->mUnusedChunks + ci;
+        BufferChunk* freeChunk = data->unusedChunks + ci;
 
-        if (ci == 0 && freeChunk->mOffset == 0)
+        if (ci == 0 && freeChunk->offset == 0)
             floatingOccupiedChunks -= 1;
-        if (ci == unusedChunkCount - 1 && freeChunk->mOffset + freeChunk->mSize == data->mSize)
+        if (ci == unusedChunkCount - 1 && freeChunk->offset + freeChunk->size == data->size)
             floatingOccupiedChunks -= 1;
 
         uint64_t point_beg = 0;
@@ -292,9 +292,9 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
         // while we are on occupied zone
         for (; point < nValues; ++point)
         {
-            point_beg = histogramPointOffsetAproximation(point, nValues, data->mSize);
+            point_beg = histogramPointOffsetAproximation(point, nValues, data->size);
 
-            if (point_beg >= freeChunk->mOffset)
+            if (point_beg >= freeChunk->offset)
                 break;
 
             values[2 * point] = (int64_t)point_beg;
@@ -310,9 +310,9 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
         for (uint64_t point_end = point_beg; point < nValues; ++point)
         {
             point_beg = point_end;
-            point_end = histogramPointOffsetAproximation(point + 1, nValues, data->mSize);
+            point_end = histogramPointOffsetAproximation(point + 1, nValues, data->size);
 
-            if (point_end > freeChunk->mOffset + freeChunk->mSize)
+            if (point_end > freeChunk->offset + freeChunk->size)
                 break;
 
             values[2 * point] = -(int64_t)point_beg;
@@ -327,7 +327,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
     // fill remaining space as occupied
     while (point < nValues)
     {
-        values[2 * point] = (int64_t)histogramPointOffsetAproximation(point, nValues, data->mSize);
+        values[2 * point] = (int64_t)histogramPointOffsetAproximation(point, nValues, data->size);
         values[2 * point + 1] = intensity;
         ++point;
         intensity = 0;

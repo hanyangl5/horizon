@@ -36,24 +36,24 @@ typedef struct GpuTimer
 {
     static const uint32_t LENGTH_OF_HISTORY = 60;
 
-    char     mName[64] = "Timer";
-    uint32_t mIndex = 0;
-    uint32_t mHistoryIndex = 0;
-    uint32_t mDepth = 0;
+    char     name[64] = "Timer";
+    uint32_t index = 0;
+    uint32_t historyIndex = 0;
+    uint32_t depth = 0;
 
-    uint64_t     mStartGpuTime = 0;
-    uint64_t     mEndGpuTime = 0;
-    uint64_t     mGpuTime = 0;
-    uint64_t     mGpuMinTime = 0;
-    uint64_t     mGpuMaxTime = 0;
-    uint64_t     mGpuHistory[LENGTH_OF_HISTORY] = {};
-    size_t       mHash = 0;
-    ProfileToken mToken = {};
+    uint64_t     startGpuTime = 0;
+    uint64_t     endGpuTime = 0;
+    uint64_t     gpuTime = 0;
+    uint64_t     gpuMinTime = 0;
+    uint64_t     gpuMaxTime = 0;
+    uint64_t     gpuHistory[LENGTH_OF_HISTORY] = {};
+    size_t       hash = 0;
+    ProfileToken token = {};
     void*        pBackendGpuZone = NULL;
     GpuTimer*    pParent = NULL;
-    bool         mDebugMarker = false;
-    bool         mStarted = false;
-    bool         mBackendGpuZoneActive = false;
+    bool         debugMarker = false;
+    bool         started = false;
+    bool         backendGpuZoneActive = false;
 
 } GpuTimer;
 
@@ -65,23 +65,23 @@ typedef struct GpuProfiler
 
     Renderer*  pRenderer = {};
     QueryPool* pQueryPool[NUM_OF_FRAMES] = {};
-    uint32_t   mCurrentTimerCount[NUM_OF_FRAMES] = {};
-    double     mGpuTimeStampFrequency = 0.0;
+    uint32_t   currentTimerCount[NUM_OF_FRAMES] = {};
+    double     gpuTimeStampFrequency = 0.0;
 
-    uint32_t mProfilerIndex = 0;
-    uint32_t mBufferIndex = 0;
-    uint32_t mCurrentPoolIndex = 0;
+    uint32_t profilerIndex = 0;
+    uint32_t bufferIndex = 0;
+    uint32_t currentPoolIndex = 0;
 
     GpuTimer* pGpuTimerPool = NULL;
     GpuTimer* pCurrentNode = NULL;
     void*     pBackendGpuContext = NULL;
 
-    char mGroupName[256] = "GPU";
+    char groupName[256] = "GPU";
 } GpuProfiler;
 
 struct GpuProfilerContainer
 {
     static const uint32_t MAX_GPU_PROFILERS = 8;
-    GpuProfiler*          mProfilers[MAX_GPU_PROFILERS] = { NULL };
-    uint32_t              mSize = 0;
+    GpuProfiler*          profilers[MAX_GPU_PROFILERS] = { NULL };
+    uint32_t              size = 0;
 };

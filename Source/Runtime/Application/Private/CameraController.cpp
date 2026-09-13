@@ -172,7 +172,7 @@ void FpsCameraController::update(float deltaTime)
     // create rotation matrix
     mat4 vrRotation = mat4::identity();
 #if defined(QUEST_VR)
-    vrRotation.setUpper3x3(inverse(pQuest->mViewMatrix.getUpper3x3()));
+    vrRotation.setUpper3x3(inverse(pQuest->viewMatrix.getUpper3x3()));
     viewRotation.setX(0.0f); // No rotation around the x axis when using vr
 #endif
     mat4 rot = mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) * vrRotation;
@@ -193,7 +193,7 @@ mat4 FpsCameraController::getViewMatrix() const
 {
     mat4 r = mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY());
 #if defined(QUEST_VR)
-    mat4 vrViewMat = pQuest->mViewMatrix;
+    mat4 vrViewMat = pQuest->viewMatrix;
     vrViewMat.setTranslation(vec3(0.0f));
     r = vrViewMat * r;
 #endif
@@ -316,18 +316,18 @@ CameraMatrix::CameraMatrix() {}
 
 CameraMatrix::CameraMatrix(const CameraMatrix& mat)
 {
-    mLeftEye = mat.mLeftEye;
+    leftEye = mat.leftEye;
 #if defined(QUEST_VR)
-    mRightEye = mat.mRightEye;
+    rightEye = mat.rightEye;
 #endif
 }
 
 void CameraMatrix::applyProjectionSampleOffset(float xOffset, float yOffset)
 {
-    mLeftEye[2][0] += xOffset;
-    mLeftEye[2][1] += yOffset;
+    leftEye[2][0] += xOffset;
+    leftEye[2][1] += yOffset;
 #if defined(QUEST_VR)
-    mRightEye[2][0] += xOffset;
-    mRightEye[2][1] += yOffset;
+    rightEye[2][0] += xOffset;
+    rightEye[2][1] += yOffset;
 #endif
 }

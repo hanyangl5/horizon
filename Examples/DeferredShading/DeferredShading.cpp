@@ -287,19 +287,19 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
     mPipeline = context.createGraphicsPipeline({
         .pShader = &mShader,
         .vertexLayout = {
-            .mBindings = { { .mStride = sizeof(Vertex), .mRate = VERTEX_BINDING_RATE_VERTEX } },
-            .mAttribs = {
-                { .mSemantic = SEMANTIC_POSITION, .mFormat = TinyImageFormat_R32G32B32_SFLOAT, .mBinding = 0, .mLocation = 0,
-                  .mOffset = (uint32_t)offsetof(Vertex, position) },
-                { .mSemantic = SEMANTIC_NORMAL, .mFormat = TinyImageFormat_R32G32B32_SFLOAT, .mBinding = 0, .mLocation = 1,
-                  .mOffset = (uint32_t)offsetof(Vertex, normal) },
-                { .mSemantic = SEMANTIC_COLOR, .mFormat = TinyImageFormat_R32G32B32_SFLOAT, .mBinding = 0, .mLocation = 2,
-                  .mOffset = (uint32_t)offsetof(Vertex, color) },
+            .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
+            .attribs = {
+                { .semantic = SEMANTIC_POSITION, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 0,
+                  .offset = (uint32_t)offsetof(Vertex, position) },
+                { .semantic = SEMANTIC_NORMAL, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 1,
+                  .offset = (uint32_t)offsetof(Vertex, normal) },
+                { .semantic = SEMANTIC_COLOR, .format = TinyImageFormat_R32G32B32_SFLOAT, .binding = 0, .location = 2,
+                  .offset = (uint32_t)offsetof(Vertex, color) },
             },
-            .mBindingCount = 1,
-            .mAttribCount = 3,
+            .bindingCount = 1,
+            .attribCount = 3,
         },
-        .depth = { .mDepthTest = true, .mDepthWrite = true, .mDepthFunc = CMP_LEQUAL },
+        .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
         .colorFormats = { TinyImageFormat_R8G8B8A8_UNORM, TinyImageFormat_R16G16B16A16_SFLOAT },
         .renderTargetCount = 2,
         .depthStencilFormat = TinyImageFormat_D32_SFLOAT,
@@ -465,10 +465,10 @@ class DeferredShadingApp final: public IApp
 public:
     DeferredShadingApp()
     {
-        mSettings.mWidth = 1280;
-        mSettings.mHeight = 720;
-        mSettings.mVSyncEnabled = true;
-        mSettings.mShowPlatformUI = false;
+        settings.width = 1280;
+        settings.height = 720;
+        settings.vSyncEnabled = true;
+        settings.showPlatformUI = false;
     }
 
     bool Init() override
@@ -482,7 +482,7 @@ public:
             .imageCount = 2,
             .colorFormat = kSurfaceFormat,
             .colorSpace = COLOR_SPACE_SDR_SRGB,
-            .enableVSync = mSettings.mVSyncEnabled,
+            .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
@@ -510,10 +510,10 @@ public:
     bool Load(ReloadDesc* pReloadDesc) override
     {
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Load", kCpuProfileColor);
-        if (!(pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        if (!(pReloadDesc->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
             return true;
-        const uint32_t width = (uint32_t)mSettings.mWidth;
-        const uint32_t height = (uint32_t)mSettings.mHeight;
+        const uint32_t width = (uint32_t)settings.width;
+        const uint32_t height = (uint32_t)settings.height;
         if (!context->resize(width, height))
             return false;
         if (!gBufferPass->resize(*context, width, height))
@@ -573,7 +573,7 @@ private:
 
     void updateSceneUniforms(hz::CommandList& commands)
     {
-        const float   aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
+        const float   aspectInverse = (float)settings.height / (float)settings.width;
         const Matrix4 view = Matrix4::lookAtLH(Point3(3.5f, 3.0f, -6.0f), Point3(0.0f, 0.7f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
         const float   verticalFov = 60.0f * 3.1415926535f / 180.0f;
         const float   horizontalFov = 2.0f * std::atan(std::tan(verticalFov * 0.5f) / aspectInverse);

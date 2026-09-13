@@ -231,8 +231,8 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
     threadDesc.pData = t;
 
 #if defined(_WINDOWS) // for some reason on Windows thread name won't change after creation
-    strncpy(threadDesc.mThreadName, t->name, sizeof threadDesc.mThreadName);
-    threadDesc.mThreadName[sizeof(threadDesc.mThreadName) - 1] = 0;
+    strncpy(threadDesc.threadName, t->name, sizeof threadDesc.threadName);
+    threadDesc.threadName[sizeof(threadDesc.threadName) - 1] = 0;
 #endif
 
     if (desc->setAffinityMask)

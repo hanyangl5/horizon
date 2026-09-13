@@ -30,13 +30,13 @@ void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName,
     LoadClip(resourceDir, fileName);
 }
 
-void Clip::Exit() { mAnimation.Deallocate(); }
+void Clip::Exit() { animation.Deallocate(); }
 
 bool Clip::Sample(ozz::animation::SamplingJob::Context* cacheInput, ozz::span<SoaTransform>& localTransOutput, float timeRatio)
 {
     // Setup sampling job.
     ozz::animation::SamplingJob samplingJob;
-    samplingJob.animation = &mAnimation;
+    samplingJob.animation = &animation;
     samplingJob.context = cacheInput;
     samplingJob.ratio = timeRatio;
     samplingJob.output = localTransOutput;
@@ -75,7 +75,7 @@ bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
         return false;
     }
 
-    archive >> mAnimation;
+    archive >> animation;
 
     fsCloseStream(&memStream);
 

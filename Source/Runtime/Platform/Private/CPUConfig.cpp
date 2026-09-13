@@ -39,7 +39,7 @@ bool initCpuInfo(CpuInfo* outCpuInfo)
 #endif
 {
     bool result = true;
-    outCpuInfo->mName[0] = '\0';
+    outCpuInfo->name[0] = '\0';
 
 #if defined(ARCH_X86_FAMILY) && !defined(TARGET_IOS_SIMULATOR)
     X86Info info = {};
@@ -66,37 +66,37 @@ bool initCpuInfo(CpuInfo* outCpuInfo)
         // detect simd
         if (info.features.avx2)
         {
-            outCpuInfo->mSimd = SIMD_AVX2;
+            outCpuInfo->simd = SIMD_AVX2;
             simdName = "SIMD: AVX2";
         }
         else if (info.features.avx)
         {
-            outCpuInfo->mSimd = SIMD_AVX;
+            outCpuInfo->simd = SIMD_AVX;
             simdName = "SIMD: AVX";
         }
         else if (info.features.sse4_2)
         {
-            outCpuInfo->mSimd = SIMD_SSE4_2;
+            outCpuInfo->simd = SIMD_SSE4_2;
             simdName = "SIMD: SSE4.2";
         }
         else if (info.features.sse4_1)
         {
-            outCpuInfo->mSimd = SIMD_SSE4_1;
+            outCpuInfo->simd = SIMD_SSE4_1;
             simdName = "SIMD: SSE4.1";
         }
     }
 
-    outCpuInfo->mFeaturesX86 = info.features;
-    outCpuInfo->mArchitectureX86 = GetX86Microarchitecture(&info);
+    outCpuInfo->featuresX86 = info.features;
+    outCpuInfo->architectureX86 = GetX86Microarchitecture(&info);
 
-    snprintf(outCpuInfo->mName, sizeof(outCpuInfo->mName), "%s \t\t\t\t\t %s", info.brand_string, simdName);
+    snprintf(outCpuInfo->name, sizeof(outCpuInfo->name), "%s \t\t\t\t\t %s", info.brand_string, simdName);
 #endif
 
 #if defined(ARCH_ARM64) || defined(TARGET_IOS_SIMULATOR)
     Aarch64Info info = {};
 
     const char* simdName = "SIMD: NEON";
-    outCpuInfo->mSimd = SIMD_NEON;
+    outCpuInfo->simd = SIMD_NEON;
 
     // ARM64 supported platforms by cpu_features
 #if defined(ANDROID) || defined(__LINUX__) || defined(TARGET_APPLE_ARM64)
@@ -135,10 +135,10 @@ bool initCpuInfo(CpuInfo* outCpuInfo)
 
 #endif
 
-    outCpuInfo->mFeaturesAarch64 = info.features;
+    outCpuInfo->featuresAarch64 = info.features;
 
     // no name recorded in aarchinfo
-    snprintf(outCpuInfo->mName, sizeof(outCpuInfo->mName), "%s\t\t\t\t\t %s", "", simdName);
+    snprintf(outCpuInfo->name, sizeof(outCpuInfo->name), "%s\t\t\t\t\t %s", "", simdName);
 #endif
 
     return result;

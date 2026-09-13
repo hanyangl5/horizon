@@ -105,12 +105,12 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     ShaderStage combinedShaderStages = (ShaderStage)0;
     for (uint32_t i = 0; i < stageCount; ++i)
     {
-        if ((combinedShaderStages & pReflection[i].mShaderStage) != 0)
+        if ((combinedShaderStages & pReflection[i].shaderStage) != 0)
         {
             LOGF(LogLevel::eERROR, "Duplicate shader stage was detected in shader reflection array.");
             return;
         }
-        combinedShaderStages = (ShaderStage)(combinedShaderStages | pReflection[i].mShaderStage);
+        combinedShaderStages = (ShaderStage)(combinedShaderStages | pReflection[i].shaderStage);
     }
 
     // Combine all shaders
@@ -131,31 +131,31 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     for (uint32_t i = 0; i < stageCount; ++i)
     {
         ShaderReflection* pSrcRef = pReflection + i;
-        pOutReflection->mStageReflections[i] = *pSrcRef;
+        pOutReflection->stageReflections[i] = *pSrcRef;
 
-        if (pSrcRef->mShaderStage == SHADER_STAGE_VERT)
+        if (pSrcRef->shaderStage == SHADER_STAGE_VERT)
         {
             vertexStageIndex = i;
         }
-        else if (pSrcRef->mShaderStage == SHADER_STAGE_HULL)
+        else if (pSrcRef->shaderStage == SHADER_STAGE_HULL)
         {
             hullStageIndex = i;
         }
-        else if (pSrcRef->mShaderStage == SHADER_STAGE_DOMN)
+        else if (pSrcRef->shaderStage == SHADER_STAGE_DOMN)
         {
             domainStageIndex = i;
         }
-        else if (pSrcRef->mShaderStage == SHADER_STAGE_GEOM)
+        else if (pSrcRef->shaderStage == SHADER_STAGE_GEOM)
         {
             geometryStageIndex = i;
         }
-        else if (pSrcRef->mShaderStage == SHADER_STAGE_FRAG)
+        else if (pSrcRef->shaderStage == SHADER_STAGE_FRAG)
         {
             pixelStageIndex = i;
         }
 
         // Loop through all shader resources
-        for (uint32_t j = 0; j < pSrcRef->mShaderResourceCount; ++j)
+        for (uint32_t j = 0; j < pSrcRef->shaderResourceCount; ++j)
         {
             bool unique = true;
 
@@ -190,7 +190,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         }
 
         // Loop through all shader variables (constant/uniform buffer members)
-        for (uint32_t j = 0; j < pSrcRef->mVariableCount; ++j)
+        for (uint32_t j = 0; j < pSrcRef->variableCount; ++j)
         {
             bool unique = true;
             // Go through all already added shader variables to see if this shader
@@ -246,21 +246,21 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     }
 
     // all refection structs should be built now
-    pOutReflection->mShaderStages = combinedShaderStages;
+    pOutReflection->shaderStages = combinedShaderStages;
 
-    pOutReflection->mStageReflectionCount = stageCount;
+    pOutReflection->stageReflectionCount = stageCount;
 
-    pOutReflection->mVertexStageIndex = vertexStageIndex;
-    pOutReflection->mHullStageIndex = hullStageIndex;
-    pOutReflection->mDomainStageIndex = domainStageIndex;
-    pOutReflection->mGeometryStageIndex = geometryStageIndex;
-    pOutReflection->mPixelStageIndex = pixelStageIndex;
+    pOutReflection->vertexStageIndex = vertexStageIndex;
+    pOutReflection->hullStageIndex = hullStageIndex;
+    pOutReflection->domainStageIndex = domainStageIndex;
+    pOutReflection->geometryStageIndex = geometryStageIndex;
+    pOutReflection->pixelStageIndex = pixelStageIndex;
 
     pOutReflection->pShaderResources = pResources;
-    pOutReflection->mShaderResourceCount = (uint32_t)arrlen(pUniqueResources);
+    pOutReflection->shaderResourceCount = (uint32_t)arrlen(pUniqueResources);
 
     pOutReflection->pVariables = pVariables;
-    pOutReflection->mVariableCount = (uint32_t)arrlen(pUniqueVariable);
+    pOutReflection->variableCount = (uint32_t)arrlen(pUniqueVariable);
 
     arrfree(pUniqueResources);
     arrfree(pShaderUsage);
@@ -273,8 +273,8 @@ void destroyPipelineReflection(PipelineReflection* pReflection)
     if (pReflection == NULL)
         return;
 
-    for (uint32_t i = 0; i < pReflection->mStageReflectionCount; ++i)
-        destroyShaderReflection(&pReflection->mStageReflections[i]);
+    for (uint32_t i = 0; i < pReflection->stageReflectionCount; ++i)
+        destroyShaderReflection(&pReflection->stageReflections[i]);
 
     tf_free(pReflection->pShaderResources);
     tf_free(pReflection->pVariables);

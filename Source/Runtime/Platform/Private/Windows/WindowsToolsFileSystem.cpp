@@ -53,14 +53,14 @@ static inline T withUTF16Path1(const char* path, T (*function)(const wchar_t*))
 #if defined(_WINDOWS) || defined(__APPLE__) || defined(__linux__)
 typedef struct FileWatcher
 {
-    char                 mPath[FS_MAX_PATH];
-    FileWatcherEventMask mEventMask;
-    DWORD                mNotifyFilter;
-    FileWatcherCallback  mCallback;
-    void*                mCallbackUserData;
+    char                 path[FS_MAX_PATH];
+    FileWatcherEventMask eventMask;
+    DWORD                notifyFilter;
+    FileWatcherCallback  callback;
+    void*                callbackUserData;
     HANDLE               hExitEvt;
-    ThreadHandle         mThread;
-    volatile int         mRun;
+    ThreadHandle         thread;
+    volatile int         run;
 } FileWatcher;
 
 void fswThreadFunc(void* data)
@@ -69,7 +69,7 @@ void fswThreadFunc(void* data)
     FileWatcher* fs = (FileWatcher*)data;
 
     HANDLE hDir =
-        withUTF16Path1<HANDLE>(fs->mPath,
+        withUTF16Path1<HANDLE>(fs->path,
                                [](const wchar_t* pathStr)
                                {
                                    return CreateFileW(pathStr, FILE_LIST_DIRECTORY, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -82,11 +82,11 @@ void fswThreadFunc(void* data)
     OVERLAPPED ovl = { 0 };
     ovl.hEvent = hEvt;
 
-    while (fs->mRun)
+    while (fs->run)
     {
         DWORD dwBytesReturned = 0;
         ResetEvent(hEvt);
-        if (ReadDirectoryChangesW(hDir, &notifyBuffer, sizeof(notifyBuffer), TRUE, fs->mNotifyFilter, NULL, &ovl, NULL) == 0)
+        if (ReadDirectoryChangesW(hDir, &notifyBuffer, sizeof(notifyBuffer), TRUE, fs->notifyFilter, NULL, &ovl, NULL) == 0)
         {
             break;
         }
@@ -94,7 +94,7 @@ void fswThreadFunc(void* data)
         HANDLE pHandles[2] = { hEvt, fs->hExitEvt };
         WaitForMultipleObjects(2, pHandles, FALSE, INFINITE);
 
-        if (!fs->mRun)
+        if (!fs->run)
         {
             break;
         }
@@ -113,18 +113,18 @@ void fswThreadFunc(void* data)
             case FILE_ACTION_ADDED:
             case FILE_ACTION_RENAMED_NEW_NAME:
                 action = FWE_CREATED;
-                ignoreAction = !(fs->mEventMask & FWE_CREATED);
+                ignoreAction = !(fs->eventMask & FWE_CREATED);
                 break;
             case FILE_ACTION_MODIFIED:
-                if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
+                if (fs->notifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
                     action = FWE_MODIFIED;
-                if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
+                if (fs->notifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
                     action = FWE_ACCESSED;
                 break;
             case FILE_ACTION_REMOVED:
             case FILE_ACTION_RENAMED_OLD_NAME:
                 action = FWE_DELETED;
-                ignoreAction = !(fs->mEventMask & FWE_DELETED);
+                ignoreAction = !(fs->eventMask & FWE_DELETED);
                 break;
             default:
                 break;
@@ -141,12 +141,12 @@ void fswThreadFunc(void* data)
                 }
 
                 char fullPathToFile[FS_MAX_PATH] = { 0 };
-                strcat(fullPathToFile, fs->mPath);
+                strcat(fullPathToFile, fs->path);
                 strcat(fullPathToFile, "\\");
                 strcat(fullPathToFile, utf8Name);
 
-                LOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %u", fs->mPath, fni->Action);
-                fs->mCallback(fullPathToFile, action, fs->mCallbackUserData);
+                LOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %u", fs->path, fni->Action);
+                fs->callback(fullPathToFile, action, fs->callbackUserData);
             }
 
             if (!fni->NextEntryOffset)
@@ -163,7 +163,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 {
     FileWatcher* watcher = (FileWatcher*)tf_calloc(1, sizeof(FileWatcher));
     // watcher->mWatchDir = fsCopyPath(path);
-    strcpy(watcher->mPath, path);
+    strcpy(watcher->path, path);
 
     uint32_t notifyFilter = 0;
     if (eventMask & FWE_MODIFIED)
@@ -179,27 +179,27 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
         notifyFilter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
     }
 
-    watcher->mEventMask = eventMask;
-    watcher->mNotifyFilter = notifyFilter;
+    watcher->eventMask = eventMask;
+    watcher->notifyFilter = notifyFilter;
     watcher->hExitEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
-    watcher->mCallback = callback;
-    watcher->mCallbackUserData = callbackUserData;
-    watcher->mRun = TRUE;
+    watcher->callback = callback;
+    watcher->callbackUserData = callbackUserData;
+    watcher->run = TRUE;
 
     ThreadDesc threadDesc = {};
     threadDesc.pFunc = fswThreadFunc;
     threadDesc.pData = watcher;
-    strncpy(threadDesc.mThreadName, "FileWatcher", sizeof(threadDesc.mThreadName));
-    initThread(&threadDesc, &watcher->mThread);
+    strncpy(threadDesc.threadName, "FileWatcher", sizeof(threadDesc.threadName));
+    initThread(&threadDesc, &watcher->thread);
 
     return watcher;
 }
 
 void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
-    fileWatcher->mRun = FALSE;
+    fileWatcher->run = FALSE;
     SetEvent(fileWatcher->hExitEvt);
-    joinThread(fileWatcher->mThread);
+    joinThread(fileWatcher->thread);
     CloseHandle(fileWatcher->hExitEvt);
     tf_free(fileWatcher);
 }

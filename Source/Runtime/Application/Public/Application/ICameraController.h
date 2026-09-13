@@ -104,19 +104,19 @@ public:
 public:
     union
     {
-        mat4 mCamera;
-        mat4 mLeftEye;
+        mat4 camera;
+        mat4 leftEye;
     };
 #if defined(QUEST_VR)
-    mat4 mRightEye;
+    mat4 rightEye;
 #endif
 };
 
 inline const CameraMatrix& CameraMatrix::operator=(const CameraMatrix& mat)
 {
-    mLeftEye = mat.mLeftEye;
+    leftEye = mat.leftEye;
 #if defined(QUEST_VR)
-    mRightEye = mat.mRightEye;
+    rightEye = mat.rightEye;
 #endif
     return *this;
 }
@@ -124,9 +124,9 @@ inline const CameraMatrix& CameraMatrix::operator=(const CameraMatrix& mat)
 inline const CameraMatrix CameraMatrix::operator*(const Matrix4& mat) const
 {
     CameraMatrix result;
-    result.mLeftEye = mLeftEye * mat;
+    result.leftEye = leftEye * mat;
 #if defined(QUEST_VR)
-    result.mRightEye = mRightEye * mat;
+    result.rightEye = rightEye * mat;
 #endif
     return result;
 }
@@ -134,9 +134,9 @@ inline const CameraMatrix CameraMatrix::operator*(const Matrix4& mat) const
 inline CameraMatrix operator*(const Matrix4& mat, const CameraMatrix& cMat)
 {
     CameraMatrix result;
-    result.mLeftEye = mat * cMat.mLeftEye;
+    result.leftEye = mat * cMat.leftEye;
 #if defined(QUEST_VR)
-    result.mRightEye = mat * cMat.mRightEye;
+    result.rightEye = mat * cMat.rightEye;
 #endif
     return result;
 }
@@ -144,9 +144,9 @@ inline CameraMatrix operator*(const Matrix4& mat, const CameraMatrix& cMat)
 inline const CameraMatrix CameraMatrix::operator*(const CameraMatrix& mat) const
 {
     CameraMatrix result;
-    result.mLeftEye = mLeftEye * mat.mLeftEye;
+    result.leftEye = leftEye * mat.leftEye;
 #if defined(QUEST_VR)
-    result.mRightEye = mRightEye * mat.mRightEye;
+    result.rightEye = rightEye * mat.rightEye;
 #endif
     return result;
 }
@@ -154,9 +154,9 @@ inline const CameraMatrix CameraMatrix::operator*(const CameraMatrix& mat) const
 inline const CameraMatrix CameraMatrix::inverse(const CameraMatrix& mat)
 {
     CameraMatrix result;
-    result.mLeftEye = ::inverse(mat.mLeftEye);
+    result.leftEye = ::inverse(mat.leftEye);
 #if defined(QUEST_VR)
-    result.mRightEye = ::inverse(mat.mRightEye);
+    result.rightEye = ::inverse(mat.rightEye);
 #endif
     return result;
 }
@@ -164,9 +164,9 @@ inline const CameraMatrix CameraMatrix::inverse(const CameraMatrix& mat)
 inline const CameraMatrix CameraMatrix::transpose(const CameraMatrix& mat)
 {
     CameraMatrix result;
-    result.mLeftEye = ::transpose(mat.mLeftEye);
+    result.leftEye = ::transpose(mat.leftEye);
 #if defined(QUEST_VR)
-    result.mRightEye = ::transpose(mat.mRightEye);
+    result.rightEye = ::transpose(mat.rightEye);
 #endif
     return result;
 }
@@ -177,12 +177,12 @@ inline const CameraMatrix CameraMatrix::perspective(float fovxRadians, float asp
     //#if defined(QUEST_VR)
     //    float4 fov;
     //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.mLeftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    //    result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
     //
     //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.mRightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    //    result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
     //#else
-    //    result.mCamera = mat4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
+    //    result.camera = mat4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
     //#endif
     return result;
 }
@@ -193,14 +193,14 @@ inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, f
     //#if defined(QUEST_VR)
     //    float4 fov;
     //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.mLeftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
+    //    result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
     //
     //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.mRightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
+    //    result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
     //
     //    return result;
     //#else
-    //    result.mCamera = mat4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
+    //    result.camera = mat4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
     //#endif
     return result;
 }
@@ -210,10 +210,10 @@ inline const CameraMatrix CameraMatrix::orthographic(float left, float right, fl
     CameraMatrix result;
     // TODO()
     //#if defined(QUEST_VR)
-    //    result.mLeftEye = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
-    //    result.mRightEye = result.mLeftEye;
+    //    result.leftEye = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
+    //    result.rightEye = result.leftEye;
     //#else
-    //    result.mCamera = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
+    //    result.camera = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
     //#endif
     return result;
 }
@@ -222,10 +222,10 @@ inline const CameraMatrix CameraMatrix::orthographicReverseZ(float left, float r
 {
     CameraMatrix result;
     //#if defined(QUEST_VR)
-    //    result.mLeftEye = mat4::orthographicLH(left, right, bottom, top, zFar, zNear);
-    //    result.mRightEye = result.mLeftEye;
+    //    result.leftEye = mat4::orthographicLH(left, right, bottom, top, zFar, zNear);
+    //    result.rightEye = result.leftEye;
     //#else
-    //    result.mCamera = mat4::orthographicLH_ReverseZ(left, right, bottom, top, zNear, zFar);
+    //    result.camera = mat4::orthographicLH_ReverseZ(left, right, bottom, top, zNear, zFar);
     //#endif
     return result;
 }
@@ -233,9 +233,9 @@ inline const CameraMatrix CameraMatrix::orthographicReverseZ(float left, float r
 inline const CameraMatrix CameraMatrix::identity()
 {
     CameraMatrix result;
-    result.mLeftEye = mat4::identity();
+    result.leftEye = mat4::identity();
 #if defined(QUEST_VR)
-    result.mRightEye = mat4::identity();
+    result.rightEye = mat4::identity();
 #endif
     return result;
 }
@@ -245,22 +245,22 @@ inline void CameraMatrix::extractFrustumClipPlanes(const CameraMatrix& vp, Vecto
 {
 #if defined(QUEST_VR)
     // Left plane
-    lcp = vp.mLeftEye.getRow(3) + vp.mLeftEye.getRow(0);
+    lcp = vp.leftEye.getRow(3) + vp.leftEye.getRow(0);
 
     // Right plane
-    rcp = vp.mRightEye.getRow(3) - vp.mRightEye.getRow(0);
+    rcp = vp.rightEye.getRow(3) - vp.rightEye.getRow(0);
 
     // Bottom plane
-    bcp = vp.mLeftEye.getRow(3) + vp.mLeftEye.getRow(1);
+    bcp = vp.leftEye.getRow(3) + vp.leftEye.getRow(1);
 
     // Top plane
-    tcp = vp.mLeftEye.getRow(3) - vp.mLeftEye.getRow(1);
+    tcp = vp.leftEye.getRow(3) - vp.leftEye.getRow(1);
 
     // Near plane
-    ncp = vp.mLeftEye.getRow(3) + vp.mLeftEye.getRow(2);
+    ncp = vp.leftEye.getRow(3) + vp.leftEye.getRow(2);
 
     // Far plane
-    fcp = vp.mLeftEye.getRow(3) - vp.mLeftEye.getRow(2);
+    fcp = vp.leftEye.getRow(3) - vp.leftEye.getRow(2);
 
     // Normalize if needed
     if (normalizePlanes)
@@ -284,6 +284,6 @@ inline void CameraMatrix::extractFrustumClipPlanes(const CameraMatrix& vp, Vecto
         fcp /= fcp_norm;
     }
 #else
-    mat4::extractFrustumClipPlanes(vp.mCamera, rcp, lcp, tcp, bcp, fcp, ncp, normalizePlanes);
+    mat4::extractFrustumClipPlanes(vp.camera, rcp, lcp, tcp, bcp, fcp, ncp, normalizePlanes);
 #endif
 }

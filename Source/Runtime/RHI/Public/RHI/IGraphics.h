@@ -187,14 +187,14 @@ enum ResourceMemoryUsage : uint32_t
 struct PlatformParameters
 {
     // RendererAPI
-    RendererApi mSelectedRendererApi;
+    RendererApi selectedRendererApi;
     // Available GPU capabilities
     char        ppAvailableGpuNames[MAX_MULTIPLE_GPUS][MAX_GPU_VENDOR_STRING_LENGTH];
     uint32_t    pAvailableGpuIds[MAX_MULTIPLE_GPUS];
-    uint32_t    mAvailableGpuCount;
-    uint32_t    mSelectedGpuIndex;
+    uint32_t    availableGpuCount;
+    uint32_t    selectedGpuIndex;
     // Could add swap chain size, render target format, ...
-    uint32_t    mPreferedGpuId;
+    uint32_t    preferedGpuId;
 };
 
 // Forward declarations
@@ -222,26 +222,26 @@ struct AccelerationStructure;
 
 struct IndirectDrawArguments
 {
-    uint32_t mVertexCount;
-    uint32_t mInstanceCount;
-    uint32_t mStartVertex;
-    uint32_t mStartInstance;
+    uint32_t vertexCount;
+    uint32_t instanceCount;
+    uint32_t startVertex;
+    uint32_t startInstance;
 };
 
 struct IndirectDrawIndexArguments
 {
-    uint32_t mIndexCount;
-    uint32_t mInstanceCount;
-    uint32_t mStartIndex;
-    uint32_t mVertexOffset;
-    uint32_t mStartInstance;
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t startIndex;
+    uint32_t vertexOffset;
+    uint32_t startInstance;
 };
 
 struct IndirectDispatchArguments
 {
-    uint32_t mGroupCountX;
-    uint32_t mGroupCountY;
-    uint32_t mGroupCountZ;
+    uint32_t groupCountX;
+    uint32_t groupCountY;
+    uint32_t groupCountZ;
 };
 
 #define INDIRECT_DRAW_ELEM_INDEX(m)       (offsetof(IndirectDrawArguments, m) / sizeof(uint32_t))
@@ -617,50 +617,50 @@ static_assert(GPU_PRESET_COUNT == 7);
 struct BufferBarrier
 {
     Buffer*       pBuffer;
-    ResourceState mCurrentState;
-    ResourceState mNewState;
-    uint8_t       mBeginOnly : 1;
-    uint8_t       mEndOnly : 1;
+    ResourceState currentState;
+    ResourceState newState;
+    uint8_t       beginOnly : 1;
+    uint8_t       endOnly : 1;
 };
 
 struct TextureBarrier
 {
     Texture*      pTexture;
-    ResourceState mCurrentState;
-    ResourceState mNewState;
-    uint8_t       mBeginOnly : 1;
-    uint8_t       mEndOnly : 1;
-    uint8_t       mAcquire : 1;
-    uint8_t       mRelease : 1;
-    uint8_t       mQueueType : 5;
+    ResourceState currentState;
+    ResourceState newState;
+    uint8_t       beginOnly : 1;
+    uint8_t       endOnly : 1;
+    uint8_t       acquire : 1;
+    uint8_t       release : 1;
+    uint8_t       queueType : 5;
     /// Specifiy whether following barrier targets particular subresource
-    uint8_t       mSubresourceBarrier : 1;
-    /// Following values are ignored if mSubresourceBarrier is false
-    uint8_t       mMipLevel : 7;
-    uint16_t      mArrayLayer;
+    uint8_t       subresourceBarrier : 1;
+    /// Following values are ignored if subresourceBarrier is false
+    uint8_t       mipLevel : 7;
+    uint16_t      arrayLayer;
 };
 
 struct RenderTargetBarrier
 {
     RenderTarget* pRenderTarget;
-    ResourceState mCurrentState;
-    ResourceState mNewState;
-    uint8_t       mBeginOnly : 1;
-    uint8_t       mEndOnly : 1;
-    uint8_t       mAcquire : 1;
-    uint8_t       mRelease : 1;
-    uint8_t       mQueueType : 5;
+    ResourceState currentState;
+    ResourceState newState;
+    uint8_t       beginOnly : 1;
+    uint8_t       endOnly : 1;
+    uint8_t       acquire : 1;
+    uint8_t       release : 1;
+    uint8_t       queueType : 5;
     /// Specifiy whether following barrier targets particular subresource
-    uint8_t       mSubresourceBarrier : 1;
-    /// Following values are ignored if mSubresourceBarrier is false
-    uint8_t       mMipLevel : 7;
-    uint16_t      mArrayLayer;
+    uint8_t       subresourceBarrier : 1;
+    /// Following values are ignored if subresourceBarrier is false
+    uint8_t       mipLevel : 7;
+    uint16_t      arrayLayer;
 };
 
 struct ReadRange
 {
-    uint64_t mOffset;
-    uint64_t mSize;
+    uint64_t offset;
+    uint64_t size;
 };
 
 enum QueryType : uint32_t
@@ -674,13 +674,13 @@ enum QueryType : uint32_t
 struct QueryPoolDesc
 {
     const char* pName;
-    QueryType   mType;
-    uint32_t    mQueryCount;
+    QueryType   type;
+    uint32_t    queryCount;
 };
 
 struct QueryDesc
 {
-    uint32_t mIndex;
+    uint32_t index;
 };
 
 struct QueryPool
@@ -689,25 +689,25 @@ struct QueryPool
     {
         ID3D12QueryHeap* pQueryHeap;
         Buffer*          pReadbackBuffer;
-        D3D12_QUERY_TYPE mType;
-    } mDx;
-    uint32_t mCount;
-    uint32_t mStride;
+        D3D12_QUERY_TYPE type;
+    } dx;
+    uint32_t count;
+    uint32_t stride;
 };
 
 struct PipelineStatisticsQueryData
 {
-    uint64_t mIAVertices;
-    uint64_t mIAPrimitives;
-    uint64_t mVSInvocations;
-    uint64_t mGSInvocations;
-    uint64_t mGSPrimitives;
-    uint64_t mCInvocations;
-    uint64_t mCPrimitives;
-    uint64_t mPSInvocations;
-    uint64_t mHSInvocations;
-    uint64_t mDSInvocations;
-    uint64_t mCSInvocations;
+    uint64_t iaVertices;
+    uint64_t iaPrimitives;
+    uint64_t vsInvocations;
+    uint64_t gsInvocations;
+    uint64_t gsPrimitives;
+    uint64_t cInvocations;
+    uint64_t cPrimitives;
+    uint64_t psInvocations;
+    uint64_t hsInvocations;
+    uint64_t dsInvocations;
+    uint64_t csInvocations;
 };
 
 struct QueryData
@@ -716,16 +716,16 @@ struct QueryData
     {
         struct
         {
-            PipelineStatisticsQueryData mPipelineStats;
+            PipelineStatisticsQueryData pipelineStats;
         };
         struct
         {
-            uint64_t mBeginTimestamp;
-            uint64_t mEndTimestamp;
+            uint64_t beginTimestamp;
+            uint64_t endTimestamp;
         };
-        uint64_t mOcclusionCounts;
+        uint64_t occlusionCounts;
     };
-    bool mValid;
+    bool valid;
 };
 
 enum ResourceHeapCreationFlags : uint32_t
@@ -750,12 +750,12 @@ enum ResourceHeapCreationFlags : uint32_t
 
 struct ResourceHeapDesc
 {
-    uint64_t mSize;
-    uint64_t mAlignment;
+    uint64_t size;
+    uint64_t alignment;
 
-    ResourceMemoryUsage       mMemoryUsage;
-    DescriptorType            mDescriptors;
-    ResourceHeapCreationFlags mFlags;
+    ResourceMemoryUsage       memoryUsage;
+    DescriptorType            descriptors;
+    ResourceHeapCreationFlags flags;
 
     const char* pName;
 };
@@ -765,22 +765,22 @@ struct alignas(64) ResourceHeap
     struct
     {
         ID3D12Heap* pHeap;
-    } mDx;
+    } dx;
 
-    uint64_t mSize;
-    uint32_t mMemoryTrackingPool;
+    uint64_t size;
+    uint32_t memoryTrackingPool;
 };
 
 struct ResourceSizeAlign
 {
-    uint64_t mSize;
-    uint64_t mAlignment;
+    uint64_t size;
+    uint64_t alignment;
 };
 
 struct ResourcePlacement
 {
     ResourceHeap* pHeap;
-    uint64_t      mOffset;
+    uint64_t      offset;
 };
 
 /// Data structure holding necessary info to create a Buffer
@@ -789,31 +789,31 @@ struct BufferDesc
     /// Optional placement (addBuffer will place/bind buffer in this memory instead of allocating space)
     ResourcePlacement*  pPlacement;
     /// Size of the buffer (in bytes)
-    uint64_t            mSize;
+    uint64_t            size;
     /// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
     struct Buffer*      pCounterBuffer;
     /// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    uint32_t            mFirstElement;
+    uint32_t            firstElement;
     /// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    uint32_t            mElementCount;
+    uint32_t            elementCount;
     /// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    uint32_t            mStructStride;
+    uint32_t            structStride;
     /// Alignment
-    uint32_t            mAlignment;
+    uint32_t            alignment;
     /// Debug name used in gpu profile
     const char*         pName;
     /// Decides which memory heap buffer will use (default, upload, readback)
-    ResourceMemoryUsage mMemoryUsage;
+    ResourceMemoryUsage memoryUsage;
     /// Creation flags of the buffer
-    BufferCreationFlags mFlags;
+    BufferCreationFlags flags;
     /// What type of queue the buffer is owned by
-    QueueType           mQueueType;
+    QueueType           queueType;
     /// What state will the buffer get created in
-    ResourceState       mStartState;
+    ResourceState       startState;
     /// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
-    TinyImageFormat     mFormat;
+    TinyImageFormat     format;
     /// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
-    DescriptorType      mDescriptors;
+    DescriptorType      descriptors;
 };
 
 struct alignas(64) Buffer
@@ -823,14 +823,14 @@ struct alignas(64) Buffer
     struct
     {
         /// GPU Address - Cache to avoid calls to ID3D12Resource::GetGpuVirtualAddress
-        D3D12_GPU_VIRTUAL_ADDRESS mGpuAddress;
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;
         /// Descriptor handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
-        DxDescriptorID            mDescriptors;
-        /// Offset from mDescriptors for srv descriptor handle
-        uint8_t                   mSrvDescriptorOffset;
-        /// Offset from mDescriptors for uav descriptor handle
-        uint8_t                   mUavDescriptorOffset;
-        uint8_t                   mMarkerBuffer : 1;
+        DxDescriptorID            descriptors;
+        /// Offset from descriptors for srv descriptor handle
+        uint8_t                   srvDescriptorOffset;
+        /// Offset from descriptors for uav descriptor handle
+        uint8_t                   uavDescriptorOffset;
+        uint8_t                   markerBuffer : 1;
         /// Native handle of the underlying resource
         ID3D12Resource*           pResource;
         union
@@ -839,12 +839,12 @@ struct alignas(64) Buffer
             /// Contains resource allocation info such as parent heap, offset in heap
             D3D12MA::Allocation* pAllocation;
         };
-    } mDx;
-    uint64_t mSize : 32;
-    uint64_t mDescriptors : 20;
-    uint64_t mMemoryUsage : 3;
-    uint64_t mMemoryTrackingMode : 2;
-    uint64_t mMemoryTrackingPool : 3;
+    } dx;
+    uint64_t size : 32;
+    uint64_t descriptors : 20;
+    uint64_t memoryUsage : 3;
+    uint64_t memoryTrackingMode : 2;
+    uint64_t memoryTrackingPool : 3;
 };
 // One cache line
 static_assert(sizeof(Buffer) == 8 * sizeof(uint64_t));
@@ -855,34 +855,34 @@ struct TextureDesc
     /// Optional placement (addTexture will place/bind buffer in this memory instead of allocating space)
     ResourcePlacement*   pPlacement;
     /// Optimized clear value (recommended to use this same value when clearing the rendertarget)
-    ClearValue           mClearValue;
+    ClearValue           clearValue;
     /// Pointer to native texture handle if the texture does not own underlying resource
     const void*          pNativeHandle;
     /// Debug name used in gpu profile
     const char*          pName;
     /// Texture creation flags (decides memory allocation strategy, sharing access,...)
-    TextureCreationFlags mFlags;
+    TextureCreationFlags flags;
     /// Width
-    uint32_t             mWidth;
+    uint32_t             width;
     /// Height
-    uint32_t             mHeight;
-    /// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
-    uint32_t             mDepth;
+    uint32_t             height;
+    /// Depth (Should be 1 if not a type is not TEXTURE_TYPE_3D)
+    uint32_t             depth;
     /// Texture array size (Should be 1 if texture is not a texture array or cubemap)
-    uint32_t             mArraySize;
+    uint32_t             arraySize;
     /// Number of mip levels
-    uint32_t             mMipLevels;
+    uint32_t             mipLevels;
     /// Number of multisamples per pixel (currently Textures created with mUsage TEXTURE_USAGE_SAMPLED_IMAGE only support SAMPLE_COUNT_1)
-    SampleCount          mSampleCount;
+    SampleCount          sampleCount;
     /// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value
-    /// appropriate for mSampleCount
-    uint32_t             mSampleQuality;
+    /// appropriate for sampleCount
+    uint32_t             sampleQuality;
     ///  image format
-    TinyImageFormat      mFormat;
+    TinyImageFormat      format;
     /// What state will the texture get created in
-    ResourceState        mStartState;
+    ResourceState        startState;
     /// Descriptor creation
-    DescriptorType       mDescriptors;
+    DescriptorType       descriptors;
 };
 
 struct alignas(64) Texture
@@ -890,29 +890,29 @@ struct alignas(64) Texture
     struct
     {
         /// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-        DxDescriptorID       mDescriptors;
+        DxDescriptorID       descriptors;
         /// Native handle of the underlying resource
         ID3D12Resource*      pResource;
         /// Contains resource allocation info such as parent heap, offset in heap
         D3D12MA::Allocation* pAllocation;
-        uint32_t             mHandleCount : 24;
-        uint32_t             mUavStartIndex;
-    } mDx;
+        uint32_t             handleCount : 24;
+        uint32_t             uavStartIndex;
+    } dx;
     /// Current state of the buffer
-    uint32_t mWidth : 16;
-    uint32_t mHeight : 16;
-    uint32_t mDepth : 16;
-    uint32_t mMipLevels : 5;
-    uint32_t mArraySizeMinusOne : 11;
-    uint32_t mFormat : 8;
+    uint32_t width : 16;
+    uint32_t height : 16;
+    uint32_t depth : 16;
+    uint32_t mipLevels : 5;
+    uint32_t arraySizeMinusOne : 11;
+    uint32_t format : 8;
     /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pImageView
-    uint32_t mAspectMask : 4;
-    uint32_t mSampleCount : 5;
-    uint32_t mUav : 1;
+    uint32_t aspectMask : 4;
+    uint32_t sampleCount : 5;
+    uint32_t uav : 1;
     /// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
-    uint32_t mOwnsImage : 1;
-    uint32_t mMemoryTrackingMode : 2;
-    uint32_t mMemoryTrackingPool : 3;
+    uint32_t ownsImage : 1;
+    uint32_t memoryTrackingMode : 2;
+    uint32_t memoryTrackingPool : 3;
 };
 // One cache line
 static_assert(sizeof(Texture) == 8 * sizeof(uint64_t));
@@ -922,30 +922,30 @@ struct RenderTargetDesc
     /// Optional placement (addRenderTarget will place/bind buffer in this memory instead of allocating space)
     ResourcePlacement*   pPlacement;
     /// Texture creation flags (decides memory allocation strategy, sharing access,...)
-    TextureCreationFlags mFlags;
+    TextureCreationFlags flags;
     /// Width
-    uint32_t             mWidth;
+    uint32_t             width;
     /// Height
-    uint32_t             mHeight;
-    /// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
-    uint32_t             mDepth;
+    uint32_t             height;
+    /// Depth (Should be 1 if not a type is not TEXTURE_TYPE_3D)
+    uint32_t             depth;
     /// Texture array size (Should be 1 if texture is not a texture array or cubemap)
-    uint32_t             mArraySize;
+    uint32_t             arraySize;
     /// Number of mip levels
-    uint32_t             mMipLevels;
+    uint32_t             mipLevels;
     /// MSAA
-    SampleCount          mSampleCount;
+    SampleCount          sampleCount;
     /// Internal image format
-    TinyImageFormat      mFormat;
+    TinyImageFormat      format;
     /// What state will the texture get created in
-    ResourceState        mStartState;
+    ResourceState        startState;
     /// Optimized clear value (recommended to use this same value when clearing the rendertarget)
-    ClearValue           mClearValue;
+    ClearValue           clearValue;
     /// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value
-    /// appropriate for mSampleCount
-    uint32_t             mSampleQuality;
+    /// appropriate for sampleCount
+    uint32_t             sampleQuality;
     /// Descriptor creation
-    DescriptorType       mDescriptors;
+    DescriptorType       descriptors;
     const void*          pNativeHandle;
     /// Debug name used in gpu profile
     const char*          pName;
@@ -957,46 +957,46 @@ struct alignas(64) RenderTarget
     Texture* pTexture;
     struct
     {
-        DxDescriptorID mDescriptors;
-    } mDx;
+        DxDescriptorID descriptors;
+    } dx;
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
     RenderTarget* pResolveAttachment;
 #endif
-    ClearValue      mClearValue;
-    uint32_t        mArraySize : 16;
-    uint32_t        mDepth : 16;
-    uint32_t        mWidth : 16;
-    uint32_t        mHeight : 16;
-    uint32_t        mDescriptors : 20;
-    uint32_t        mMipLevels : 10;
-    uint32_t        mSampleQuality : 5;
-    TinyImageFormat mFormat;
-    SampleCount     mSampleCount;
-    bool            mVRMultiview;
-    bool            mVRFoveatedRendering;
+    ClearValue      clearValue;
+    uint32_t        arraySize : 16;
+    uint32_t        depth : 16;
+    uint32_t        width : 16;
+    uint32_t        height : 16;
+    uint32_t        descriptors : 20;
+    uint32_t        mipLevels : 10;
+    uint32_t        sampleQuality : 5;
+    TinyImageFormat format;
+    SampleCount     sampleCount;
+    bool            vrMultiview;
+    bool            vrFoveatedRendering;
 };
 static_assert(sizeof(RenderTarget) <= 32 * sizeof(uint64_t));
 
 struct SampleLocations
 {
-    int8_t mX;
-    int8_t mY;
+    int8_t x;
+    int8_t y;
 };
 
 struct SamplerDesc
 {
-    FilterType  mMinFilter;
-    FilterType  mMagFilter;
-    MipMapMode  mMipMapMode;
-    AddressMode mAddressU;
-    AddressMode mAddressV;
-    AddressMode mAddressW;
-    float       mMipLodBias;
-    bool        mSetLodRange;
-    float       mMinLod;
-    float       mMaxLod;
-    float       mMaxAnisotropy;
-    CompareMode mCompareFunc;
+    FilterType  minFilter;
+    FilterType  magFilter;
+    MipMapMode  mipMapMode;
+    AddressMode addressU;
+    AddressMode addressV;
+    AddressMode addressW;
+    float       mipLodBias;
+    bool        setLodRange;
+    float       minLod;
+    float       maxLod;
+    float       maxAnisotropy;
+    CompareMode compareFunc;
 };
 
 struct alignas(16) Sampler
@@ -1004,10 +1004,10 @@ struct alignas(16) Sampler
     struct
     {
         /// Description for creating the Sampler descriptor for this sampler
-        D3D12_SAMPLER_DESC mDesc;
+        D3D12_SAMPLER_DESC desc;
         /// Descriptor handle of the Sampler in a CPU visible descriptor heap
-        DxDescriptorID     mDescriptor;
-    } mDx;
+        DxDescriptorID     descriptor;
+    } dx;
 };
 static_assert(sizeof(Sampler) == 8 * sizeof(uint64_t));
 
@@ -1024,17 +1024,17 @@ enum DescriptorUpdateFrequency : uint32_t
 struct alignas(16) DescriptorInfo
 {
     const char* pName;
-    uint32_t    mType;
-    uint32_t    mDim : 4;
-    uint32_t    mRootDescriptor : 1;
-    uint32_t    mStaticSampler : 1;
-    uint32_t    mUpdateFrequency : 3;
-    uint32_t    mSize;
-    uint32_t    mHandleIndex;
+    uint32_t    type;
+    uint32_t    dim : 4;
+    uint32_t    rootDescriptor : 1;
+    uint32_t    staticSampler : 1;
+    uint32_t    updateFrequency : 3;
+    uint32_t    size;
+    uint32_t    handleIndex;
     struct
     {
-        uint64_t mPadA;
-    } mDx;
+        uint64_t padA;
+    } dx;
 };
 static_assert(sizeof(DescriptorInfo) == 4 * sizeof(uint64_t));
 
@@ -1048,20 +1048,20 @@ MAKE_ENUM_FLAG(uint32_t, RootSignatureFlags)
 struct RootSignatureDesc
 {
     Shader**           ppShaders;
-    uint32_t           mShaderCount;
-    uint32_t           mMaxBindlessTextures;
+    uint32_t           shaderCount;
+    uint32_t           maxBindlessTextures;
     const char**       ppStaticSamplerNames;
     Sampler**          ppStaticSamplers;
-    uint32_t           mStaticSamplerCount;
-    RootSignatureFlags mFlags;
+    uint32_t           staticSamplerCount;
+    RootSignatureFlags flags;
 };
 
 struct alignas(64) RootSignature
 {
     /// Number of descriptors declared in the root signature layout
-    uint32_t            mDescriptorCount;
+    uint32_t            descriptorCount;
     /// Graphics or Compute
-    PipelineType        mPipelineType;
+    PipelineType        pipelineType;
     /// Array of all descriptors declared in the root signature layout
     DescriptorInfo*     pDescriptors;
     /// Translates hash of descriptor name to descriptor index in pDescriptors array
@@ -1069,26 +1069,26 @@ struct alignas(64) RootSignature
     struct
     {
         ID3D12RootSignature* pRootSignature;
-        uint8_t              mViewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint8_t              mSamplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint32_t             mCumulativeViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint32_t             mCumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint16_t             mViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint16_t             mSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint8_t              viewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint8_t              samplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint32_t             cumulativeViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint32_t             cumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint16_t             viewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint16_t             samplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
 #if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
-        bool mHasRayQueryAccelerationStructure;
+        bool hasRayQueryAccelerationStructure;
 #endif
-    } mDx;
+    } dx;
 };
 // 2 cache lines
 static_assert(sizeof(RootSignature) <= 16 * sizeof(uint64_t));
 
 struct DescriptorDataRange
 {
-    uint32_t mOffset;
-    uint32_t mSize;
+    uint32_t offset;
+    uint32_t size;
     // Specify different structured buffer stride (ignored for raw buffer - ByteAddressBuffer)
-    uint32_t mStructStride;
+    uint32_t structStride;
 };
 
 struct DescriptorData
@@ -1097,23 +1097,23 @@ struct DescriptorData
     /// Name of descriptor
     const char* pName;
     /// Number of array entries to update (array size of ppTextures/ppBuffers/...)
-    uint32_t    mCount : 31;
+    uint32_t    count : 31;
     /// Dst offset into the array descriptor (useful for updating few entries in a large array)
-    // Example: to update 6th entry in a bindless texture descriptor, mArrayOffset will be 6 and mCount will be 1)
-    uint32_t    mArrayOffset : 20;
+    // Example: to update 6th entry in a bindless texture descriptor, arrayOffset will be 6 and count will be 1)
+    uint32_t    arrayOffset : 20;
     // Index in pRootSignature->pDescriptors array - Cache index using getDescriptorIndexFromName to avoid using string checks at runtime
-    uint32_t    mIndex : 10;
-    uint32_t    mBindByIndex : 1;
+    uint32_t    index : 10;
+    uint32_t    bindByIndex : 1;
 
     // Range to bind (buffer offset, size)
     DescriptorDataRange* pRanges;
 
     // Binds stencil only descriptor instead of color/depth
-    bool     mBindStencilResource : 1;
+    bool     bindStencilResource : 1;
     // When binding UAV, control the mip slice to to bind for UAV (example - generating mipmaps in a compute shader)
-    uint16_t mUAVMipSlice;
+    uint16_t uavMipSlice;
     // Binds entire mip chain as array of UAV
-    bool     mBindMipChain;
+    bool     bindMipChain;
     /// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one
     /// resource type array
     union
@@ -1134,26 +1134,26 @@ struct alignas(64) DescriptorSet
     struct
     {
         /// Start handle to cbv srv uav descriptor table
-        DxDescriptorID       mCbvSrvUavHandle;
+        DxDescriptorID       cbvSrvUavHandle;
         /// Start handle to sampler descriptor table
-        DxDescriptorID       mSamplerHandle;
+        DxDescriptorID       samplerHandle;
         /// Stride of the cbv srv uav descriptor table (number of descriptors * descriptor size)
-        uint32_t             mCbvSrvUavStride;
+        uint32_t             cbvSrvUavStride;
         /// Stride of the sampler descriptor table (number of descriptors * descriptor size)
-        uint32_t             mSamplerStride;
+        uint32_t             samplerStride;
         const RootSignature* pRootSignature;
-        uint32_t             mMaxSets : 16;
-        uint32_t             mUpdateFrequency : 3;
-        uint32_t             mCbvSrvUavRootIndex : 4;
-        uint32_t             mSamplerRootIndex : 4;
-        uint32_t             mPipelineType : 3;
-    } mDx;
+        uint32_t             maxSets : 16;
+        uint32_t             updateFrequency : 3;
+        uint32_t             cbvSrvUavRootIndex : 4;
+        uint32_t             samplerRootIndex : 4;
+        uint32_t             pipelineType : 3;
+    } dx;
 };
 
 struct CmdPoolDesc
 {
     Queue* pQueue;
-    bool   mTransient;
+    bool   transient;
 };
 
 struct CmdPool
@@ -1166,7 +1166,7 @@ struct CmdPool
 struct CmdDesc
 {
     CmdPool* pPool;
-    bool     mSecondary;
+    bool     secondary;
 #ifdef ENABLE_GRAPHICS_DEBUG
     const char* pName;
 #endif // ENABLE_GRAPHICS_DEBUG
@@ -1183,9 +1183,9 @@ MAKE_ENUM_FLAG(uint8_t, MarkerFlags)
 struct MarkerDesc
 {
     Buffer*     pBuffer;
-    uint32_t    mOffset;
-    uint32_t    mValue;
-    MarkerFlags mFlags;
+    uint32_t    offset;
+    uint32_t    value;
+    MarkerFlags flags;
 };
 
 #if !defined(PROSPERO)
@@ -1212,15 +1212,15 @@ struct alignas(64) Cmd
 #endif
         // Cached in beginCmd to avoid fetching them during rendering
         struct DescriptorHeap*      pBoundHeaps[2];
-        D3D12_GPU_DESCRIPTOR_HANDLE mBoundHeapStartHandles[2];
+        D3D12_GPU_DESCRIPTOR_HANDLE boundHeapStartHandles[2];
 
         // Command buffer state
         const RootSignature* pBoundRootSignature;
         DescriptorSet*       pBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint16_t             mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint32_t             mType : 3;
+        uint16_t             boundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        uint32_t             type : 3;
         CmdPool*             pCmdPool;
-    } mDx;
+    } dx;
     Renderer* pRenderer;
     Queue*    pQueue;
 };
@@ -1239,8 +1239,8 @@ struct Fence
     {
         ID3D12Fence* pFence;
         HANDLE       pWaitIdleFenceEvent;
-        uint64_t     mFenceValue;
-    } mDx;
+        uint64_t     fenceValue;
+    } dx;
 };
 
 struct Semaphore
@@ -1252,15 +1252,15 @@ struct Semaphore
     {
         ID3D12Fence* pFence;
         HANDLE       pWaitIdleFenceEvent;
-        uint64_t     mFenceValue;
-    } mDx;
+        uint64_t     fenceValue;
+    } dx;
 };
 
 struct QueueDesc
 {
-    QueueType     mType;
-    QueueFlag     mFlag;
-    QueuePriority mPriority;
+    QueueType     type;
+    QueueFlag     flag;
+    QueuePriority priority;
     const char*   pName;
 };
 
@@ -1274,15 +1274,15 @@ struct Queue
         // To silence mismatching command list warnings on Windows 11 debug runtimes
         Renderer* pRenderer;
 #endif
-    } mDx;
-    uint32_t mType : 3;
+    } dx;
+    uint32_t type : 3;
 };
 
 struct ShaderConstant
 {
     const void* pValue;
-    uint32_t    mIndex;
-    uint32_t    mSize;
+    uint32_t    index;
+    uint32_t    size;
 };
 
 struct BinaryShaderStageDesc
@@ -1290,25 +1290,25 @@ struct BinaryShaderStageDesc
     const char* pName;
     /// Byte code array
     void*       pByteCode;
-    uint32_t    mByteCodeSize;
+    uint32_t    byteCodeSize;
     const char* pEntryPoint;
 };
 
 struct BinaryShaderDesc
 {
-    ShaderStage           mStages;
+    ShaderStage           stages;
     /// Specify whether shader will own byte code memory
-    uint32_t              mOwnByteCode : 1;
-    BinaryShaderStageDesc mVert;
-    BinaryShaderStageDesc mFrag;
-    BinaryShaderStageDesc mGeom;
-    BinaryShaderStageDesc mHull;
-    BinaryShaderStageDesc mDomain;
-    BinaryShaderStageDesc mComp;
+    uint32_t              ownByteCode : 1;
+    BinaryShaderStageDesc vert;
+    BinaryShaderStageDesc frag;
+    BinaryShaderStageDesc geom;
+    BinaryShaderStageDesc hull;
+    BinaryShaderStageDesc domain;
+    BinaryShaderStageDesc comp;
     const ShaderConstant* pConstants;
-    uint32_t              mConstantCount;
+    uint32_t              constantCount;
 #if defined(QUEST_VR)
-    bool mIsMultiviewVR : 1;
+    bool isMultiviewVR : 1;
 #endif
 };
 
@@ -1317,95 +1317,95 @@ struct ShaderSrcStageDesc
     const char* pName;
     /// Byte code array
     void*       pByteCode;
-    uint32_t    mByteCodeSize;
+    uint32_t    byteCodeSize;
     const char* pEntryPoint;
 };
 
 struct ShaderSrcDesc
 {
-    ShaderStage           mStages;
+    ShaderStage           stages;
     /// Specify whether shader will own byte code memory
-    uint32_t              mOwnByteCode : 1;
-    ShaderSrcStageDesc    mVert;
-    ShaderSrcStageDesc    mFrag;
-    ShaderSrcStageDesc    mGeom;
-    ShaderSrcStageDesc    mHull;
-    ShaderSrcStageDesc    mDomain;
-    ShaderSrcStageDesc    mComp;
+    uint32_t              ownByteCode : 1;
+    ShaderSrcStageDesc    vert;
+    ShaderSrcStageDesc    frag;
+    ShaderSrcStageDesc    geom;
+    ShaderSrcStageDesc    hull;
+    ShaderSrcStageDesc    domain;
+    ShaderSrcStageDesc    comp;
     const ShaderConstant* pConstants;
-    uint32_t              mConstantCount;
+    uint32_t              constantCount;
 #if defined(QUEST_VR)
-    bool mIsMultiviewVR : 1;
+    bool isMultiviewVR : 1;
 #endif
 };
 
 struct Shader
 {
-    ShaderStage mStages : 31;
-    bool        mIsMultiviewVR : 1;
-    uint32_t    mNumThreadsPerGroup[3];
-    uint32_t    mOutputRenderTargetTypesMask;
+    ShaderStage stages : 31;
+    bool        isMultiviewVR : 1;
+    uint32_t    numThreadsPerGroup[3];
+    uint32_t    outputRenderTargetTypesMask;
     struct
     {
         IDxcBlobEncoding** pShaderBlobs;
         LPCWSTR*           pEntryNames;
-    } mDx;
+    } dx;
     PipelineReflection* pReflection;
 };
 
 struct BlendStateDesc
 {
     /// Source blend factor per render target.
-    BlendConstant     mSrcFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+    BlendConstant     srcFactors[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Destination blend factor per render target.
-    BlendConstant     mDstFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+    BlendConstant     dstFactors[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Source alpha blend factor per render target.
-    BlendConstant     mSrcAlphaFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+    BlendConstant     srcAlphaFactors[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Destination alpha blend factor per render target.
-    BlendConstant     mDstAlphaFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+    BlendConstant     dstAlphaFactors[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Blend mode per render target.
-    BlendMode         mBlendModes[MAX_RENDER_TARGET_ATTACHMENTS];
+    BlendMode         blendModes[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Alpha blend mode per render target.
-    BlendMode         mBlendAlphaModes[MAX_RENDER_TARGET_ATTACHMENTS];
+    BlendMode         blendAlphaModes[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Write mask per render target.
-    ColorMask         mColorWriteMasks[MAX_RENDER_TARGET_ATTACHMENTS];
+    ColorMask         colorWriteMasks[MAX_RENDER_TARGET_ATTACHMENTS];
     /// Mask that identifies the render targets affected by the blend state.
-    BlendStateTargets mRenderTargetMask;
+    BlendStateTargets renderTargetMask;
     /// Set whether alpha to coverage should be enabled.
-    bool              mAlphaToCoverage;
+    bool              alphaToCoverage;
     /// Set whether each render target has an unique blend function. When false the blend function in slot 0 will be used for all render
     /// targets.
-    bool              mIndependentBlend;
+    bool              independentBlend;
 };
 
 struct DepthStateDesc
 {
-    bool        mDepthTest;
-    bool        mDepthWrite;
-    CompareMode mDepthFunc;
-    bool        mStencilTest;
-    uint8_t     mStencilReadMask;
-    uint8_t     mStencilWriteMask;
-    CompareMode mStencilFrontFunc;
-    StencilOp   mStencilFrontFail;
-    StencilOp   mDepthFrontFail;
-    StencilOp   mStencilFrontPass;
-    CompareMode mStencilBackFunc;
-    StencilOp   mStencilBackFail;
-    StencilOp   mDepthBackFail;
-    StencilOp   mStencilBackPass;
+    bool        depthTest;
+    bool        depthWrite;
+    CompareMode depthFunc;
+    bool        stencilTest;
+    uint8_t     stencilReadMask;
+    uint8_t     stencilWriteMask;
+    CompareMode stencilFrontFunc;
+    StencilOp   stencilFrontFail;
+    StencilOp   depthFrontFail;
+    StencilOp   stencilFrontPass;
+    CompareMode stencilBackFunc;
+    StencilOp   stencilBackFail;
+    StencilOp   depthBackFail;
+    StencilOp   stencilBackPass;
 };
 
 struct RasterizerStateDesc
 {
-    CullMode  mCullMode;
-    int32_t   mDepthBias;
-    float     mSlopeScaledDepthBias;
-    FillMode  mFillMode;
-    FrontFace mFrontFace;
-    bool      mMultiSample;
-    bool      mScissor;
-    bool      mDepthClampEnable;
+    CullMode  cullMode;
+    int32_t   depthBias;
+    float     slopeScaledDepthBias;
+    FillMode  fillMode;
+    FrontFace frontFace;
+    bool      multiSample;
+    bool      scissor;
+    bool      depthClampEnable;
 };
 
 enum VertexBindingRate : uint32_t
@@ -1417,27 +1417,27 @@ enum VertexBindingRate : uint32_t
 
 struct VertexBinding
 {
-    uint32_t          mStride;
-    VertexBindingRate mRate;
+    uint32_t          stride;
+    VertexBindingRate rate;
 };
 
 struct VertexAttrib
 {
-    ShaderSemantic  mSemantic;
-    uint32_t        mSemanticNameLength;
-    char            mSemanticName[MAX_SEMANTIC_NAME_LENGTH];
-    TinyImageFormat mFormat;
-    uint32_t        mBinding;
-    uint32_t        mLocation;
-    uint32_t        mOffset;
+    ShaderSemantic  semantic;
+    uint32_t        semanticNameLength;
+    char            semanticName[MAX_SEMANTIC_NAME_LENGTH];
+    TinyImageFormat format;
+    uint32_t        binding;
+    uint32_t        location;
+    uint32_t        offset;
 };
 
 struct VertexLayout
 {
-    VertexBinding mBindings[MAX_VERTEX_BINDINGS];
-    VertexAttrib  mAttribs[MAX_VERTEX_ATTRIBS];
-    uint32_t      mBindingCount;
-    uint32_t      mAttribCount;
+    VertexBinding bindings[MAX_VERTEX_BINDINGS];
+    VertexAttrib  attribs[MAX_VERTEX_ATTRIBS];
+    uint32_t      bindingCount;
+    uint32_t      attribCount;
 };
 
 struct GraphicsPipelineDesc
@@ -1453,14 +1453,14 @@ struct GraphicsPipelineDesc
     /// Used to specify resolve attachment for render pass
     StoreActionType* pColorResolveActions;
 #endif
-    uint32_t          mRenderTargetCount;
-    SampleCount       mSampleCount;
-    uint32_t          mSampleQuality;
-    TinyImageFormat   mDepthStencilFormat;
-    PrimitiveTopology mPrimitiveTopo;
-    bool              mSupportIndirectCommandBuffer;
-    bool              mVRFoveatedRendering;
-    bool              mUseCustomSampleLocations;
+    uint32_t          renderTargetCount;
+    SampleCount       sampleCount;
+    uint32_t          sampleQuality;
+    TinyImageFormat   depthStencilFormat;
+    PrimitiveTopology primitiveTopo;
+    bool              supportIndirectCommandBuffer;
+    bool              vrFoveatedRendering;
+    bool              useCustomSampleLocations;
 };
 
 struct ComputePipelineDesc
@@ -1473,14 +1473,14 @@ struct PipelineDesc
 {
     union
     {
-        ComputePipelineDesc  mComputeDesc;
-        GraphicsPipelineDesc mGraphicsDesc;
+        ComputePipelineDesc  computeDesc;
+        GraphicsPipelineDesc graphicsDesc;
     };
     PipelineCache* pCache;
     void*          pPipelineExtensions;
     const char*    pName;
-    PipelineType   mType;
-    uint32_t       mExtensionCount;
+    PipelineType   type;
+    uint32_t       extensionCount;
 };
 
 struct alignas(64) Pipeline
@@ -1489,9 +1489,9 @@ struct alignas(64) Pipeline
     {
         ID3D12PipelineState*   pPipelineState;
         const RootSignature*   pRootSignature;
-        PipelineType           mType;
-        D3D_PRIMITIVE_TOPOLOGY mPrimitiveTopology;
-    } mDx;
+        PipelineType           type;
+        D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
+    } dx;
 };
 // One cache line
 static_assert(sizeof(Pipeline) == 8 * sizeof(uint64_t));
@@ -1508,8 +1508,8 @@ struct PipelineCacheDesc
     /// Initial pipeline cache data (can be NULL which means empty pipeline cache)
     void*              pData;
     /// Initial pipeline cache size
-    size_t             mSize;
-    PipelineCacheFlags mFlags;
+    size_t             size;
+    PipelineCacheFlags flags;
 };
 
 struct PipelineCache
@@ -1518,28 +1518,28 @@ struct PipelineCache
     {
         ID3D12PipelineLibrary* pLibrary;
         void*                  pData;
-    } mDx;
+    } dx;
 };
 
 #if defined(SHADER_STATS_AVAILABLE)
 struct ShaderStats
 {
-    uint32_t mUsedVgprs;
-    uint32_t mUsedSgprs;
-    uint32_t mLdsSizePerLocalWorkGroup;
-    uint32_t mLdsUsageSizeInBytes;
-    uint32_t mScratchMemUsageInBytes;
-    uint32_t mPhysicalVgprs;
-    uint32_t mPhysicalSgprs;
-    uint32_t mAvailableVgprs;
-    uint32_t mAvailableSgprs;
-    uint32_t mComputeWorkGroupSize[3];
-    bool     mValid;
+    uint32_t usedVgprs;
+    uint32_t usedSgprs;
+    uint32_t ldsSizePerLocalWorkGroup;
+    uint32_t ldsUsageSizeInBytes;
+    uint32_t scratchMemUsageInBytes;
+    uint32_t physicalVgprs;
+    uint32_t physicalSgprs;
+    uint32_t availableVgprs;
+    uint32_t availableSgprs;
+    uint32_t computeWorkGroupSize[3];
+    bool     valid;
 };
 
 struct PipelineStats
 {
-    ShaderStats mStats[SHADER_STAGE_COUNT];
+    ShaderStats stats[SHADER_STAGE_COUNT];
 };
 #endif
 
@@ -1553,29 +1553,29 @@ MAKE_ENUM_FLAG(uint32_t, SwapChainCreationFlags);
 struct SwapChainDesc
 {
     /// Window handle
-    WindowHandle           mWindowHandle;
+    WindowHandle           windowHandle;
     /// Queues which should be allowed to present
     Queue**                ppPresentQueues;
     /// Number of present queues
-    uint32_t               mPresentQueueCount;
+    uint32_t               presentQueueCount;
     /// Number of backbuffers in this swapchain
-    uint32_t               mImageCount;
+    uint32_t               imageCount;
     /// Width of the swapchain
-    uint32_t               mWidth;
+    uint32_t               width;
     /// Height of the swapchain
-    uint32_t               mHeight;
+    uint32_t               height;
     /// Color format of the swapchain
-    TinyImageFormat        mColorFormat;
+    TinyImageFormat        colorFormat;
     /// Clear value
-    ClearValue             mColorClearValue;
+    ClearValue             colorClearValue;
     /// Swapchain creation flags
-    SwapChainCreationFlags mFlags;
+    SwapChainCreationFlags flags;
     /// Set whether swap chain will be presented using vsync
-    bool                   mEnableVsync;
+    bool                   enableVsync;
     /// We can toggle to using FLIP model if app desires.
-    bool                   mUseFlipSwapEffect;
+    bool                   useFlipSwapEffect;
     /// Optional colorspace for HDR
-    ColorSpace             mColorSpace;
+    ColorSpace             colorSpace;
 };
 
 struct SwapChain
@@ -1588,13 +1588,13 @@ struct SwapChain
         /// isn't supported by older devices.
         IDXGISwapChain3* pSwapChain;
         /// Sync interval to specify how interval for vsync
-        uint32_t         mSyncInterval : 3;
-        uint32_t         mFlags : 10;
-    } mDx;
-    uint32_t        mImageCount : 8;
-    uint32_t        mEnableVsync : 1;
-    ColorSpace      mColorSpace : 4;
-    TinyImageFormat mFormat : 8;
+        uint32_t         syncInterval : 3;
+        uint32_t         flags : 10;
+    } dx;
+    uint32_t        imageCount : 8;
+    uint32_t        enableVsync : 1;
+    ColorSpace      colorSpace : 4;
+    TinyImageFormat format : 8;
 };
 
 enum ShaderTarget : uint32_t
@@ -1632,38 +1632,38 @@ struct RendererDesc
 {
     struct
     {
-        D3D_FEATURE_LEVEL mFeatureLevel;
-    } mDx;
+        D3D_FEATURE_LEVEL featureLevel;
+    } dx;
 
-    ShaderTarget mShaderTarget = SHADER_TARGET_6_6;
+    ShaderTarget shaderTarget = SHADER_TARGET_6_6;
 
     /// Apps may want to query additional state for their applications. That information is transferred through here.
     ExtendedSettings* pExtendedSettings;
 
     /// Optional renderer context. Can be used to share adapter enumeration/device setup state.
     RendererContext* pContext;
-    uint32_t         mGpuIndex;
+    uint32_t         gpuIndex;
 
     /// This results in new validation not possible during API calls on the CPU, by creating patched shaders that have validation added
     /// directly to the shader. However, it can slow things down a lot, especially for applications with numerous PSOs. Time to see the
     /// first render frame may take several minutes
-    bool mEnableGpuBasedValidation;
+    bool enableGpuBasedValidation;
 #if defined(SHADER_STATS_AVAILABLE)
-    bool mEnableShaderStats;
+    bool enableShaderStats;
 #endif
 };
 
 struct GPUVendorPreset
 {
-    uint32_t       mVendorId;
-    uint32_t       mModelId;
-    uint32_t       mRevisionId; // Optional as not all gpu's have that. Default is : 0x00
-    GPUPresetLevel mPresetLevel;
-    char           mVendorName[MAX_GPU_VENDOR_STRING_LENGTH];
-    char           mGpuName[MAX_GPU_VENDOR_STRING_LENGTH]; // If GPU Name is missing then value will be empty string
-    char           mGpuDriverVersion[MAX_GPU_VENDOR_STRING_LENGTH];
-    char           mGpuDriverDate[MAX_GPU_VENDOR_STRING_LENGTH];
-    uint32_t       mRTCoresCount;
+    uint32_t       vendorId;
+    uint32_t       modelId;
+    uint32_t       revisionId; // Optional as not all gpu's have that. Default is : 0x00
+    GPUPresetLevel presetLevel;
+    char           vendorName[MAX_GPU_VENDOR_STRING_LENGTH];
+    char           gpuName[MAX_GPU_VENDOR_STRING_LENGTH]; // If GPU Name is missing then value will be empty string
+    char           gpuDriverVersion[MAX_GPU_VENDOR_STRING_LENGTH];
+    char           gpuDriverDate[MAX_GPU_VENDOR_STRING_LENGTH];
+    uint32_t       rtCoresCount;
 };
 
 enum FormatCapability : uint32_t
@@ -1679,7 +1679,7 @@ MAKE_ENUM_FLAG(uint32_t, FormatCapability);
 
 struct GPUCapBits
 {
-    FormatCapability mFormatCaps[TinyImageFormat_Count];
+    FormatCapability formatCaps[TinyImageFormat_Count];
 };
 
 enum DefaultResourceAlignment : uint32_t
@@ -1706,61 +1706,61 @@ MAKE_ENUM_FLAG(uint32_t, WaveOpsSupportFlags);
 // update availableGpuProperties in GraphicsConfig.cpp if you made changes to this list
 struct GPUSettings
 {
-    uint64_t            mVRAM;
-    uint32_t            mUniformBufferAlignment;
-    uint32_t            mUploadBufferTextureAlignment;
-    uint32_t            mUploadBufferTextureRowAlignment;
-    uint32_t            mMaxVertexInputBindings;
-    uint32_t            mMaxRootSignatureDWORDS;
-    uint32_t            mMaxShaderModel;
-    uint32_t            mLinearAlgebraTier;
-    uint32_t            mMax1DDispatchSize;
-    uint32_t            mMax1DDispatchMeshSize;
-    uint32_t            mMaxGroupSharedMemoryPerGroupCS;
-    uint32_t            mMaxGroupSharedMemoryPerGroupAS;
-    uint32_t            mMaxGroupSharedMemoryPerGroupMS;
-    uint32_t            mWaveLaneCount;
-    WaveOpsSupportFlags mWaveOpsSupportFlags;
-    GPUVendorPreset     mGpuVendorPreset;
-    ShaderStage         mWaveOpsSupportedStageFlags;
+    uint64_t            vram;
+    uint32_t            uniformBufferAlignment;
+    uint32_t            uploadBufferTextureAlignment;
+    uint32_t            uploadBufferTextureRowAlignment;
+    uint32_t            maxVertexInputBindings;
+    uint32_t            maxRootSignatureDWORDS;
+    uint32_t            maxShaderModel;
+    uint32_t            linearAlgebraTier;
+    uint32_t            max1DDispatchSize;
+    uint32_t            max1DDispatchMeshSize;
+    uint32_t            maxGroupSharedMemoryPerGroupCS;
+    uint32_t            maxGroupSharedMemoryPerGroupAS;
+    uint32_t            maxGroupSharedMemoryPerGroupMS;
+    uint32_t            waveLaneCount;
+    WaveOpsSupportFlags waveOpsSupportFlags;
+    GPUVendorPreset     gpuVendorPreset;
+    ShaderStage         waveOpsSupportedStageFlags;
 
-    uint32_t          mMaxTotalComputeThreads;
-    uint32_t          mMaxComputeThreads[3];
-    uint32_t          mMultiDrawIndirect : 1;
-    uint32_t          mIndirectRootConstant : 1;
-    uint32_t          mBuiltinDrawID : 1;
-    uint32_t          mIndirectCommandBuffer : 1;
-    uint32_t          mROVsSupported : 1;
-    uint32_t          mTessellationSupported : 1;
-    uint32_t          mGeometryShaderSupported : 1;
-    uint32_t          mGpuMarkers : 1;
-    uint32_t          mHDRSupported : 1;
-    uint32_t          mTimestampQueries : 1;
-    uint32_t          mOcclusionQueries : 1;
-    uint32_t          mPipelineStatsQueries : 1;
-    uint32_t          mAllowBufferTextureInSameHeap : 1;
-    uint32_t          mRaytracingSupported : 1;
-    uint32_t          mRayPipelineSupported : 1;
-    uint32_t          mRayQuerySupported : 1;
-    uint32_t          mSoftwareVRSSupported : 1;
-    uint32_t          mPrimitiveIdSupported : 1;
-    uint32_t          mWaveOpsSupported : 1;
-    uint32_t          mNative16BitShaderOpsSupported : 1;
-    uint32_t          mInt64ShaderOpsSupported : 1;
-    uint32_t          mShaderExecutionReorderingActuallyReorders : 1;
-    uint32_t          mCreateByteOffsetViewsSupported : 1;
-    uint32_t          mLinearAlgebraSupported : 1;
+    uint32_t          maxTotalComputeThreads;
+    uint32_t          maxComputeThreads[3];
+    uint32_t          multiDrawIndirect : 1;
+    uint32_t          indirectRootConstant : 1;
+    uint32_t          builtinDrawID : 1;
+    uint32_t          indirectCommandBuffer : 1;
+    uint32_t          rovsSupported : 1;
+    uint32_t          tessellationSupported : 1;
+    uint32_t          geometryShaderSupported : 1;
+    uint32_t          gpuMarkers : 1;
+    uint32_t          hdrSupported : 1;
+    uint32_t          timestampQueries : 1;
+    uint32_t          occlusionQueries : 1;
+    uint32_t          pipelineStatsQueries : 1;
+    uint32_t          allowBufferTextureInSameHeap : 1;
+    uint32_t          raytracingSupported : 1;
+    uint32_t          rayPipelineSupported : 1;
+    uint32_t          rayQuerySupported : 1;
+    uint32_t          softwareVRSSupported : 1;
+    uint32_t          primitiveIdSupported : 1;
+    uint32_t          waveOpsSupported : 1;
+    uint32_t          native16BitShaderOpsSupported : 1;
+    uint32_t          int64ShaderOpsSupported : 1;
+    uint32_t          shaderExecutionReorderingActuallyReorders : 1;
+    uint32_t          createByteOffsetViewsSupported : 1;
+    uint32_t          linearAlgebraSupported : 1;
     uint32_t          m64BitAtomicsSupported : 1;
-    D3D_FEATURE_LEVEL mFeatureLevel;
-    uint32_t          mSuppressInvalidSubresourceStateAfterExit : 1;
-    uint32_t          mMaxBoundTextures;
-    uint32_t          mSamplerAnisotropySupported : 1;
-    uint32_t          mGraphicsQueueSupported : 1;
-    uint32_t          mGpuUploadHeapSupported : 1;
-    uint32_t          mDirectStorageSupported : 1;
-    uint32_t          mEnhancedBarriersSupported : 1;
-    uint32_t          mExecuteIndirectIncrementingConstantSupported : 1;
-    uint32_t          mAmdAsicFamily;
+    D3D_FEATURE_LEVEL featureLevel;
+    uint32_t          suppressInvalidSubresourceStateAfterExit : 1;
+    uint32_t          maxBoundTextures;
+    uint32_t          samplerAnisotropySupported : 1;
+    uint32_t          graphicsQueueSupported : 1;
+    uint32_t          gpuUploadHeapSupported : 1;
+    uint32_t          directStorageSupported : 1;
+    uint32_t          enhancedBarriersSupported : 1;
+    uint32_t          executeIndirectIncrementingConstantSupported : 1;
+    uint32_t          amdAsicFamily;
 };
 
 struct alignas(64) Renderer
@@ -1775,23 +1775,23 @@ struct alignas(64) Renderer
         ID3D12Device*           pDevice;
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
         ID3D12InfoQueue1* pDebugValidation;
-        DWORD             mCallbackCookie;
-        bool              mUseDebugCallback;
-        bool              mSuppressMismatchingCommandListDuringPresent;
+        DWORD             callbackCookie;
+        bool              useDebugCallback;
+        bool              suppressMismatchingCommandListDuringPresent;
 #endif
-    } mDx;
+    } dx;
 
 #if defined(ENABLE_NSIGHT_AFTERMATH)
     // GPU crash dump tracker using Nsight Aftermath instrumentation
-    AftermathTracker mAftermathTracker;
+    AftermathTracker aftermathTracker;
 #endif
     struct NullDescriptors* pNullDescriptors;
     struct RendererContext* pContext;
     const struct GpuInfo*   pGpu;
     const char*             pName;
-    RendererApi             mRendererApi;
-    uint32_t                mShaderTarget : 4;
-    uint32_t                mOwnsContext : 1;
+    RendererApi             rendererApi;
+    uint32_t                shaderTarget : 4;
+    uint32_t                ownsContext : 1;
 };
 // 3 cache lines
 static_assert(sizeof(Renderer) <= 24 * sizeof(uint64_t));
@@ -1800,11 +1800,11 @@ struct RendererContextDesc
 {
     struct
     {
-        D3D_FEATURE_LEVEL mFeatureLevel;
-    } mDx;
-    bool mEnableGpuBasedValidation;
+        D3D_FEATURE_LEVEL featureLevel;
+    } dx;
+    bool enableGpuBasedValidation;
 #if defined(SHADER_STATS_AVAILABLE)
-    bool mEnableShaderStats;
+    bool enableShaderStats;
 #endif
 };
 
@@ -1813,9 +1813,9 @@ struct GpuInfo
     struct
     {
         IDXGIAdapter4* pGpu;
-    } mDx;
-    GPUSettings mSettings;
-    GPUCapBits  mCapBits;
+    } dx;
+    GPUSettings settings;
+    GPUCapBits  capBits;
 };
 
 struct RendererContext
@@ -1827,9 +1827,9 @@ struct RendererContext
 #if defined(_WINDOWS) && defined(DRED)
         ID3D12DeviceRemovedExtendedDataSettings* pDredSettings;
 #endif
-    } mDx;
-    GpuInfo  mGpus[MAX_MULTIPLE_GPUS];
-    uint32_t mGpuCount;
+    } dx;
+    GpuInfo  gpus[MAX_MULTIPLE_GPUS];
+    uint32_t gpuCount;
 };
 
 enum DirectStoragePriority : int8_t
@@ -1863,15 +1863,15 @@ enum DirectStorageCompressionFormat : uint32_t
 
 struct DirectStorageDesc
 {
-    uint32_t                mStagingBufferSize;
-    DirectStorageDebugFlags mDebugFlags;
+    uint32_t                stagingBufferSize;
+    DirectStorageDebugFlags debugFlags;
 };
 
 struct DirectStorageQueueDesc
 {
-    DirectStorageSourceType mSourceType;
-    uint16_t                mCapacity;
-    DirectStoragePriority   mPriority;
+    DirectStorageSourceType sourceType;
+    uint16_t                capacity;
+    DirectStoragePriority   priority;
     const char*             pName;
 };
 
@@ -1879,14 +1879,14 @@ struct DirectStorageBufferRequest
 {
     DirectStorageFile*             pFile;
     const void*                    pMemory;
-    uint64_t                       mSourceOffset;
-    uint32_t                       mSourceSize;
+    uint64_t                       sourceOffset;
+    uint32_t                       sourceSize;
     Buffer*                        pBuffer;
-    uint64_t                       mDestinationOffset;
-    uint32_t                       mDestinationSize;
-    uint32_t                       mUncompressedSize;
-    uint64_t                       mCancellationTag;
-    DirectStorageCompressionFormat mCompressionFormat;
+    uint64_t                       destinationOffset;
+    uint32_t                       destinationSize;
+    uint32_t                       uncompressedSize;
+    uint64_t                       cancellationTag;
+    DirectStorageCompressionFormat compressionFormat;
     const char*                    pName;
 };
 
@@ -1894,44 +1894,44 @@ struct DirectStorageTextureRequest
 {
     DirectStorageFile*             pFile;
     const void*                    pMemory;
-    uint64_t                       mSourceOffset;
-    uint32_t                       mSourceSize;
+    uint64_t                       sourceOffset;
+    uint32_t                       sourceSize;
     Texture*                       pTexture;
-    uint32_t                       mSubresourceIndex;
-    uint32_t                       mX;
-    uint32_t                       mY;
-    uint32_t                       mZ;
-    uint32_t                       mWidth;
-    uint32_t                       mHeight;
-    uint32_t                       mDepth;
-    uint32_t                       mUncompressedSize;
-    uint64_t                       mCancellationTag;
-    DirectStorageCompressionFormat mCompressionFormat;
+    uint32_t                       subresourceIndex;
+    uint32_t                       x;
+    uint32_t                       y;
+    uint32_t                       z;
+    uint32_t                       width;
+    uint32_t                       height;
+    uint32_t                       depth;
+    uint32_t                       uncompressedSize;
+    uint64_t                       cancellationTag;
+    DirectStorageCompressionFormat compressionFormat;
     const char*                    pName;
 };
 
 // Indirect command structure define
 struct IndirectArgument
 {
-    IndirectArgumentType mType;
-    uint32_t             mOffset;
+    IndirectArgumentType type;
+    uint32_t             offset;
 };
 
 struct IndirectArgumentDescriptor
 {
-    IndirectArgumentType mType;
-    uint32_t             mIndex;
-    uint32_t             mByteSize;
-    uint32_t             mRootConstantDestOffsetIn32BitValues;
+    IndirectArgumentType type;
+    uint32_t             index;
+    uint32_t             byteSize;
+    uint32_t             rootConstantDestOffsetIn32BitValues;
 };
 
 struct CommandSignatureDesc
 {
     RootSignature*              pRootSignature;
     IndirectArgumentDescriptor* pArgDescs;
-    uint32_t                    mIndirectArgCount;
+    uint32_t                    indirectArgCount;
     /// Set to true if indirect argument struct should not be aligned to 16 bytes
-    bool                        mPacked;
+    bool                        packed;
 };
 
 struct CommandSignature
@@ -1939,15 +1939,15 @@ struct CommandSignature
 #if defined(DIRECT3D12)
     ID3D12CommandSignature* pHandle;
 #endif
-    IndirectArgumentType mDrawType;
-    uint32_t             mStride;
+    IndirectArgumentType drawType;
+    uint32_t             stride;
 };
 
 struct DescriptorSetDesc
 {
     RootSignature*            pRootSignature;
-    DescriptorUpdateFrequency mUpdateFrequency;
-    uint32_t                  mMaxSets;
+    DescriptorUpdateFrequency updateFrequency;
+    uint32_t                  maxSets;
 };
 
 struct QueueSubmitDesc
@@ -1956,58 +1956,58 @@ struct QueueSubmitDesc
     Fence*      pSignalFence;
     Semaphore** ppWaitSemaphores;
     Semaphore** ppSignalSemaphores;
-    uint32_t    mCmdCount;
-    uint32_t    mWaitSemaphoreCount;
-    uint32_t    mSignalSemaphoreCount;
-    bool        mSubmitDone;
+    uint32_t    cmdCount;
+    uint32_t    waitSemaphoreCount;
+    uint32_t    signalSemaphoreCount;
+    bool        submitDone;
 };
 
 struct QueuePresentDesc
 {
     SwapChain*  pSwapChain;
     Semaphore** ppWaitSemaphores;
-    uint32_t    mWaitSemaphoreCount;
-    uint8_t     mIndex;
-    bool        mSubmitDone;
+    uint32_t    waitSemaphoreCount;
+    uint8_t     index;
+    bool        submitDone;
 };
 
 struct BindRenderTargetDesc
 {
     RenderTarget*   pRenderTarget;
-    LoadActionType  mLoadAction;
-    StoreActionType mStoreAction;
-    ClearValue      mClearValue;
-    LoadActionType  mLoadActionStencil;
-    StoreActionType mStoreActionStencil;
-    uint32_t        mArraySlice;
-    uint32_t        mMipSlice : 10;
-    uint32_t        mOverrideClearValue : 1;
-    uint32_t        mUseArraySlice : 1;
-    uint32_t        mUseMipSlice : 1;
+    LoadActionType  loadAction;
+    StoreActionType storeAction;
+    ClearValue      clearValue;
+    LoadActionType  loadActionStencil;
+    StoreActionType storeActionStencil;
+    uint32_t        arraySlice;
+    uint32_t        mipSlice : 10;
+    uint32_t        overrideClearValue : 1;
+    uint32_t        useArraySlice : 1;
+    uint32_t        useMipSlice : 1;
 };
 
 struct BindDepthTargetDesc
 {
     RenderTarget*   pDepthStencil;
-    LoadActionType  mLoadAction;
-    LoadActionType  mLoadActionStencil;
-    StoreActionType mStoreAction;
-    StoreActionType mStoreActionStencil;
-    ClearValue      mClearValue;
-    uint32_t        mArraySlice;
-    uint32_t        mMipSlice : 10;
-    uint32_t        mOverrideClearValue : 1;
-    uint32_t        mUseArraySlice : 1;
-    uint32_t        mUseMipSlice : 1;
+    LoadActionType  loadAction;
+    LoadActionType  loadActionStencil;
+    StoreActionType storeAction;
+    StoreActionType storeActionStencil;
+    ClearValue      clearValue;
+    uint32_t        arraySlice;
+    uint32_t        mipSlice : 10;
+    uint32_t        overrideClearValue : 1;
+    uint32_t        useArraySlice : 1;
+    uint32_t        useMipSlice : 1;
 };
 
 struct BindRenderTargetsDesc
 {
-    uint32_t             mRenderTargetCount;
-    BindRenderTargetDesc mRenderTargets[MAX_RENDER_TARGET_ATTACHMENTS];
-    BindDepthTargetDesc  mDepthStencil;
+    uint32_t             renderTargetCount;
+    BindRenderTargetDesc renderTargets[MAX_RENDER_TARGET_ATTACHMENTS];
+    BindDepthTargetDesc  depthStencil;
     // Explicit viewport for empty render pass
-    uint32_t             mExtent[2];
+    uint32_t             extent[2];
 };
 
 // clang-format off

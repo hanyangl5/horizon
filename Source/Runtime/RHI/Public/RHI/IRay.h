@@ -79,61 +79,61 @@ struct AccelerationStructureInstanceDesc
 {
     AccelerationStructure*             pBottomAS;
     /// Row major affine transform for transforming the vertices in the geometry stored in pAccelerationStructure
-    float                              mTransform[12];
+    float                              transform[12];
     /// User defined instanced ID which can be queried in the shader
-    uint32_t                           mInstanceID;
-    uint32_t                           mInstanceMask;
-    uint32_t                           mInstanceContributionToHitGroupIndex;
-    AccelerationStructureInstanceFlags mFlags;
+    uint32_t                           instanceID;
+    uint32_t                           instanceMask;
+    uint32_t                           instanceContributionToHitGroupIndex;
+    AccelerationStructureInstanceFlags flags;
 };
 
 struct AccelerationStructureGeometryDesc
 {
     Buffer*                            pVertexBuffer;
     Buffer*                            pIndexBuffer;
-    uint32_t                           mVertexOffset;
-    uint32_t                           mVertexCount;
-    uint32_t                           mVertexStride;
-    TinyImageFormat                    mVertexFormat;
-    uint32_t                           mIndexOffset;
-    uint32_t                           mIndexCount;
-    IndexType                          mIndexType;
-    AccelerationStructureGeometryFlags mFlags;
+    uint32_t                           vertexOffset;
+    uint32_t                           vertexCount;
+    uint32_t                           vertexStride;
+    TinyImageFormat                    vertexFormat;
+    uint32_t                           indexOffset;
+    uint32_t                           indexCount;
+    IndexType                          indexType;
+    AccelerationStructureGeometryFlags flags;
 };
 /************************************************************************/
 //	  Bottom Level Structures define the geometry data such as vertex buffers, index buffers
 //	  Top Level Structures define the instance data for the geometry such as instance matrix, instance ID, ...
-// #mDescCount - Number of geometries or instances in this structure
+// #descCount - Number of geometries or instances in this structure
 /************************************************************************/
 struct AccelerationStructureDescBottom
 {
     /// Number of geometries / instances in thie acceleration structure
-    uint32_t                           mDescCount;
+    uint32_t                           descCount;
     /// Array of geometries in the bottom level acceleration structure
     AccelerationStructureGeometryDesc* pGeometryDescs;
 };
 
 struct AccelerationStructureDescTop
 {
-    uint32_t                           mDescCount;
+    uint32_t                           descCount;
     AccelerationStructureInstanceDesc* pInstanceDescs;
 };
 
 struct AccelerationStructureDesc
 {
-    AccelerationStructureType       mType;
-    AccelerationStructureBuildFlags mFlags;
+    AccelerationStructureType       type;
+    AccelerationStructureBuildFlags flags;
     union
     {
-        AccelerationStructureDescBottom mBottom;
-        AccelerationStructureDescTop    mTop;
+        AccelerationStructureDescBottom bottom;
+        AccelerationStructureDescTop    top;
     };
 };
 
 struct RaytracingBuildASDesc
 {
     AccelerationStructure* pAccelerationStructure;
-    bool                   mIssueRWBarrier;
+    bool                   issueRWBarrier;
 };
 
 FORGE_RENDERER_API bool FORGE_CALLCONV initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);

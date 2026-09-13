@@ -48,16 +48,16 @@ typedef enum
 
 typedef struct
 {
-    char          mName[512];
-    SimdIntrinsic mSimd;
+    char          name[512];
+    SimdIntrinsic simd;
 #if defined(_x86_64) || defined(__x86_64__) || defined(_M_X64) || defined(__x86_64) || defined(__SSE2__) || defined(STBIR_SSE) || \
     defined(_M_IX86_FP) || defined(__i386) || defined(__i386__) || defined(_M_IX86) || defined(_X86_)
     X86FeaturesEnum      s;
-    X86Features          mFeaturesX86;
-    X86Microarchitecture mArchitectureX86;
+    X86Features          featuresX86;
+    X86Microarchitecture architectureX86;
 #endif
 #if defined(_M_ARM64) || defined(__aarch64__) || defined(__arm64__)
-    Aarch64Features mFeaturesAarch64;
+    Aarch64Features featuresAarch64;
 #endif
 } CpuInfo;
 
