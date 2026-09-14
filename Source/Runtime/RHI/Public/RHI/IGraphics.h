@@ -1632,7 +1632,7 @@ struct RendererDesc
         D3D_FEATURE_LEVEL featureLevel;
     } dx;
 
-    ShaderTarget shaderTarget = SHADER_TARGET_6_9;
+    ShaderTarget shaderTarget = SHADER_TARGET_6_6;
 
     /// Apps may want to query additional state for their applications. That information is transferred through here.
     ExtendedSettings* pExtendedSettings;
