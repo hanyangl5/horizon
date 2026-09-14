@@ -166,8 +166,8 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
 
     struct UniformData
     {
-        float4 color;
-        float2 scaleBias;
+        float4   color;
+        float2   scaleBias;
         uint32_t textureIndex;
         uint32_t samplerIndex;
         uint32_t uniformIndex;

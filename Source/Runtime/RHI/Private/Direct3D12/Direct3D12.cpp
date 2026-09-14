@@ -2824,7 +2824,6 @@ void d3d12_exitRenderer(Renderer* pRenderer)
     ASSERT(pRenderer);
     --gRendererCount;
 
-
     // Destroy the Direct3D12 bits
     for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
     {
@@ -5041,7 +5040,6 @@ void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32
         pCmd->dx.pCmdList->SetComputeRoot32BitConstants(pDesc->handleIndex, pDesc->size, pConstants, 0);
 }
 
-
 /************************************************************************/
 // Pipeline State Functions
 /************************************************************************/
@@ -5900,9 +5898,7 @@ void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, ui
     // dispatch given command
     ASSERT(pCmd->dx.pCmdList != NULL);
 
-
     hook_dispatch(pCmd, groupCountX, groupCountY, groupCountZ);
-
 }
 
 // void d3d12_cmdBarrier(Cmd* pCmd, const BarrierDesc* pDesc)
@@ -6576,14 +6572,12 @@ void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, ui
     ASSERT(pCommandSignature);
     ASSERT(pIndirectBuffer);
 
-
     if (!pCounterBuffer)
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset, NULL,
                                            0);
     else
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset,
                                            pCounterBuffer->dx.pResource, counterBufferOffset);
-
 }
 /************************************************************************/
 // Query Heap Implementation

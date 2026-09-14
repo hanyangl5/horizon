@@ -101,7 +101,6 @@ public:
 
     void Unload(ReloadType reloadType);
 
-
     // Add a rig to the list of skeletons to draw
     void AddAnimatedObject(AnimatedObject* animatedObject);
 

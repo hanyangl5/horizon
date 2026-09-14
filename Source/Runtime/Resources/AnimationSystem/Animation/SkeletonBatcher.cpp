@@ -488,7 +488,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
 
         for (uint32_t batchIndex = 0; batchIndex < numBatches; batchIndex++)
         {
-            uint32_t instanceCount = pFrameBatchSize[batchIndex] / numJoints;
+            uint32_t       instanceCount = pFrameBatchSize[batchIndex] / numJoints;
             const uint32_t uniformIndex = getBufferCbvIndex(projViewUniformBufferBones[frameIndex * maxSkeletonBatches + batchIndex]);
             cmdBindPushConstants(cmd, rootSignature, rootConstantIndex, &uniformIndex);
             cmdDrawInstanced(cmd, numBonePoints / 8, 0, instanceCount, 0);

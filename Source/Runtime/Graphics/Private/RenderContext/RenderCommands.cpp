@@ -227,14 +227,8 @@ void hz::CommandList::setPushConstants(uint32_t index, const void* data, uint32_
     memcpy(paddedData, data, size);
     cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, paddedData);
 }
-void hz::CommandList::draw(uint32_t count, uint32_t first)
-{
-    cmdDraw(pCmd, count, first);
-}
-void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t vertex)
-{
-    cmdDrawIndexed(pCmd, count, first, vertex);
-}
+void hz::CommandList::draw(uint32_t count, uint32_t first) { cmdDraw(pCmd, count, first); }
+void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t vertex) { cmdDrawIndexed(pCmd, count, first, vertex); }
 
 void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset, uint32_t drawCount)
 {

@@ -33,15 +33,15 @@ struct PSOutput
 PSInput VSMain(uint vertexId : SV_VertexID)
 {
     StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
-    StructuredBuffer<DrawData> Draws = ResourceDescriptorHeap[drawsIndex];
-    ByteAddressBuffer Positions = ResourceDescriptorHeap[positionsIndex];
-    ByteAddressBuffer Normals = ResourceDescriptorHeap[normalsIndex];
-    ByteAddressBuffer Texcoords = ResourceDescriptorHeap[texcoordsIndex];
-    float3   position = asfloat(Positions.Load3(vertexId * 12));
-    uint     normal = Normals.Load(vertexId * 4);
-    uint     uv = Texcoords.Load(vertexId * 4);
-    DrawData draw = Draws[drawId];
-    float4   worldPosition = mul(draw.world, float4(position, 1.0));
+    StructuredBuffer<DrawData>  Draws = ResourceDescriptorHeap[drawsIndex];
+    ByteAddressBuffer           Positions = ResourceDescriptorHeap[positionsIndex];
+    ByteAddressBuffer           Normals = ResourceDescriptorHeap[normalsIndex];
+    ByteAddressBuffer           Texcoords = ResourceDescriptorHeap[texcoordsIndex];
+    float3                      position = asfloat(Positions.Load3(vertexId * 12));
+    uint                        normal = Normals.Load(vertexId * 4);
+    uint                        uv = Texcoords.Load(vertexId * 4);
+    DrawData                    draw = Draws[drawId];
+    float4                      worldPosition = mul(draw.world, float4(position, 1.0));
 
     PSInput output;
     output.currentClip = mul(Frame[0].viewProjection, worldPosition);
@@ -74,9 +74,9 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
 {
     StructuredBuffer<DrawData> Draws = ResourceDescriptorHeap[drawsIndex];
     StructuredBuffer<Material> Materials = ResourceDescriptorHeap[materialsIndex];
-    SamplerState SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    DrawData draw = Draws[drawId];
-    Material material = Materials[draw.material];
+    SamplerState               SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
+    DrawData                   draw = Draws[drawId];
+    Material                   material = Materials[draw.material];
 
     float4 baseColor = material.baseColor;
     if (material.baseColorTexture != INVALID_TEXTURE)
@@ -98,7 +98,7 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
     if (material.metallicRoughnessTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> MetallicRoughness = ResourceDescriptorHeap[NonUniformResourceIndex(material.metallicRoughnessTexture)];
-        float4 metallicRoughness = MetallicRoughness.Sample(SurfaceSampler, input.uv);
+        float4            metallicRoughness = MetallicRoughness.Sample(SurfaceSampler, input.uv);
         roughness *= metallicRoughness.g;
         metallic *= metallicRoughness.b;
     }

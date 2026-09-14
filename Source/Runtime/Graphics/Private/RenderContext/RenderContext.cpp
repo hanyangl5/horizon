@@ -13,10 +13,7 @@
 
 namespace hz
 {
-RenderContext::CommandSlot::~CommandSlot()
-{
-    arrfree(transientBuffers);
-}
+RenderContext::CommandSlot::~CommandSlot() { arrfree(transientBuffers); }
 
 RenderContext::RenderContext(const ContextDesc& input)
 {

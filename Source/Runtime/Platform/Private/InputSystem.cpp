@@ -341,8 +341,8 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
 
     struct RootConstants
     {
-        float4 color;
-        float2 scaleBias;
+        float4   color;
+        float2   scaleBias;
         uint32_t textureIndex;
         uint32_t samplerIndex;
     } data = {};

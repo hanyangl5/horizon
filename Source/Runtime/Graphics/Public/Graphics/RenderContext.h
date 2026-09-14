@@ -343,19 +343,19 @@ private:
                          RenderTargetBarrier*);
     void         barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
 
-    Cmd*                   pCmd = nullptr;
-    RenderContext*         pContext = nullptr;
-    RootSignature*         pCurrentRootSignature = nullptr;
-    uint64_t               gpuProfilerToken = UINT64_MAX;
-    uint64_t               gpuTimestampToken = 0;
-    Buffer*                pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
-    uint32_t               vertexStrides[MAX_VERTEX_BINDINGS] = {};
-    uint64_t               vertexOffsets[MAX_VERTEX_BINDINGS] = {};
-    uint32_t               vertexBufferCount = 0;
-    uint32_t               slot = UINT32_MAX;
-    BufferBarrier*         bufferBarriers = nullptr;
-    TextureBarrier*        textureBarriers = nullptr;
-    RenderTargetBarrier*   renderTargetBarriers = nullptr;
+    Cmd*                 pCmd = nullptr;
+    RenderContext*       pContext = nullptr;
+    RootSignature*       pCurrentRootSignature = nullptr;
+    uint64_t             gpuProfilerToken = UINT64_MAX;
+    uint64_t             gpuTimestampToken = 0;
+    Buffer*              pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
+    uint32_t             vertexStrides[MAX_VERTEX_BINDINGS] = {};
+    uint64_t             vertexOffsets[MAX_VERTEX_BINDINGS] = {};
+    uint32_t             vertexBufferCount = 0;
+    uint32_t             slot = UINT32_MAX;
+    BufferBarrier*       bufferBarriers = nullptr;
+    TextureBarrier*      textureBarriers = nullptr;
+    RenderTargetBarrier* renderTargetBarriers = nullptr;
     friend class RenderContext;
 };
 
@@ -401,13 +401,13 @@ private:
     {
         ~CommandSlot();
 
-        CmdPool*        pCmdPool = nullptr;
-        Cmd*            pCmd = nullptr;
-        Fence*          pFence = nullptr;
-        Semaphore*      pSemaphore = nullptr;
-        CommandList     commands = {};
-        Buffer**        transientBuffers = nullptr;
-        uint64_t        submitId = 0;
+        CmdPool*    pCmdPool = nullptr;
+        Cmd*        pCmd = nullptr;
+        Fence*      pFence = nullptr;
+        Semaphore*  pSemaphore = nullptr;
+        CommandList commands = {};
+        Buffer**    transientBuffers = nullptr;
+        uint64_t    submitId = 0;
     };
 
     bool    initDevice();

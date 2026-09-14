@@ -24,12 +24,12 @@ class GBuffer
 {
 public:
     GBuffer(hz::RenderContext& context);
-    void update();
-    void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
-                 SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
-    void load(uint32_t width, uint32_t height);
-    void unload();
-    hz::RenderContext&        context;
+    void               update();
+    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
+                               SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
+    void               load(uint32_t width, uint32_t height);
+    void               unload();
+    hz::RenderContext& context;
     static constexpr uint32_t gbufferCount = 4;
     hz::GPUPipeline           pipeline;
     hz::GPUSampler            sampler;
