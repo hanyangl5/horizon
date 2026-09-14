@@ -229,7 +229,7 @@ bool RenderPasses::initRenderResources()
         }
         const float* world = instances[i].world;
         drawData[i].world = Matrix4(world[0], world[1], world[2], world[3], world[4], world[5], world[6], world[7], world[8], world[9],
-                                 world[10], world[11], world[12], world[13], world[14], world[15]);
+                                    world[10], world[11], world[12], world[13], world[14], world[15]);
         drawData[i].normal = transpose(inverse(drawData[i].world));
         drawData[i].material = instances[i].materialIndex;
         drawData[i].alphaCutoff = instances[i].alphaCutoff;
