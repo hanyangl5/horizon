@@ -25,8 +25,8 @@ class GBuffer
 public:
     GBuffer(hz::RenderContext& context);
     void update();
-    void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, SceneManager& scenes, SceneAssetHandle scene,
-                 hz::Span<const SceneAssetInstance> instances);
+    void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
+                 SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
     void load(uint32_t width, uint32_t height);
     void unload();
     hz::RenderContext&        context;
@@ -83,6 +83,7 @@ private:
     hz::unique_ptr<Lighting> lighting;
     hz::GPUBuffer            frame;
     hz::GPUBuffer            draws;
+    hz::GPUBuffer            materials;
     FrameData                frameData = {};
     Matrix4                  previousViewProjection;
     bool                     hasPreviousViewProjection = false;

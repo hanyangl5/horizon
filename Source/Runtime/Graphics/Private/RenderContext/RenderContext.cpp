@@ -15,7 +15,6 @@ namespace hz
 {
 RenderContext::CommandSlot::~CommandSlot()
 {
-    arrfree(descriptorSets);
     arrfree(transientBuffers);
 }
 
@@ -229,9 +228,6 @@ void RenderContext::destroyDevice(bool waitForGpu)
     {
         for (CommandSlot& slot : commandSlots)
         {
-            for (uint32_t i = 0; i < (uint32_t)arrlen(slot.descriptorSets); ++i)
-                removeDescriptorSet(pRenderer, slot.descriptorSets[i]);
-            arrsetlen(slot.descriptorSets, 0);
             for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
                 removeBuffer(pRenderer, slot.transientBuffers[i]);
             arrsetlen(slot.transientBuffers, 0);
@@ -348,10 +344,6 @@ CommandList& RenderContext::acquireCommandList()
             {
                 slot.submitId = 0;
                 // Reclaim completed submissions even when a different command slot is selected.
-                // Keeping their descriptor sets for an entire slot rotation can exhaust the sampler heap.
-                for (uint32_t i = 0; i < (uint32_t)arrlen(slot.descriptorSets); ++i)
-                    removeDescriptorSet(pRenderer, slot.descriptorSets[i]);
-                arrsetlen(slot.descriptorSets, 0);
                 for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
                     removeBuffer(pRenderer, slot.transientBuffers[i]);
                 arrsetlen(slot.transientBuffers, 0);
@@ -368,9 +360,6 @@ CommandList& RenderContext::acquireCommandList()
         available->submitId = 0;
     }
 
-    for (uint32_t i = 0; i < (uint32_t)arrlen(available->descriptorSets); ++i)
-        removeDescriptorSet(pRenderer, available->descriptorSets[i]);
-    arrsetlen(available->descriptorSets, 0);
     for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
         removeBuffer(pRenderer, available->transientBuffers[i]);
     arrsetlen(available->transientBuffers, 0);

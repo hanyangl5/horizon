@@ -22,12 +22,12 @@
 * under the License.
 */
 
-Texture2D<float4> uTex : register(UPDATE_FREQ_NONE, t1);
-SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
-cbuffer uRootConstants : register(b1)
+cbuffer uRootConstants : register(b0)
 {
-	float4 color : None;
-	float2 scaleBias : None;
+    float4 color;
+    float2 scaleBias;
+    uint textureIndex;
+    uint samplerIndex;
 };
 
 struct PsIn
@@ -36,10 +36,11 @@ struct PsIn
 	float2 texcoord : TEXCOORD0;
 };
 
-float4 PS_MAIN( PsIn In )
+float4 PS_MAIN( PsIn In ) : SV_Target0
 {
-	INIT_MAIN;
+    Texture2D<float4> texture = ResourceDescriptorHeap[textureIndex];
+    SamplerState surface = SamplerDescriptorHeap[samplerIndex];
 	float4 Out;
-	Out = SampleTex2D(uTex, uSampler, In.texcoord) * color;
-	return Out
+	Out = texture.Sample(surface, In.texcoord) * color;
+	return Out;
 }

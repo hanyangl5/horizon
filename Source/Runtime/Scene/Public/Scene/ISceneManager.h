@@ -214,8 +214,6 @@ public:
     bool                         isGeometryResident(SceneAssetHandle handle) const;
     bool                         isMaterialResident(SceneAssetHandle handle) const;
     bool                         isTextureResident(SceneAssetHandle handle, uint32_t textureIndex) const;
-    bool updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet, const char* pBindingName,
-                                SceneAssetHandle handle) const;
 
 private:
     SceneAssetSlot*       findSlot(SceneAssetHandle handle);

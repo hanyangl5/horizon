@@ -20,10 +20,10 @@ struct DrawData
 
 struct Material
 {
-    uint   bHasBaseColor;
-    uint   bHasNormalMap;
-    uint   bHasMetallicRoughness;
-    uint   bHasEmissive;
+    uint   baseColorTexture;
+    uint   normalTexture;
+    uint   metallicRoughnessTexture;
+    uint   emissiveTexture;
     float4 baseColor;
     float3 emissive;
     float  metallic;

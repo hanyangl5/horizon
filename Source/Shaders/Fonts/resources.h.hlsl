@@ -22,25 +22,15 @@
  * under the License.
  */
 
-#ifndef RESOURCES_H
-#define RESOURCES_H
-
-cbuffer uniformBlock_rootcbv: register(UPDATE_FREQ_NONE, b1)
-{
-#if FT_MULTIVIEW
-    float4x4 mvp[VR_MULTIVIEW_COUNT]: None;
-#else
-    float4x4 mvp: None;
-#endif
-};
-
-Texture2D<float4> uTex0 : register(UPDATE_FREQ_NONE, t2);
-SamplerState uSampler0 : register(UPDATE_FREQ_NONE, s3);
-
+#ifndef FONT_RESOURCES_H
+#define FONT_RESOURCES_H
 cbuffer uRootConstants : register(b0)
 {
-    float4 color: None;
-    float2 scaleBias: None;
+    float4 color;
+    float2 scaleBias;
+    uint textureIndex;
+    uint samplerIndex;
+    uint uniformIndex;
+    uint uniformOffset;
 };
-
 #endif

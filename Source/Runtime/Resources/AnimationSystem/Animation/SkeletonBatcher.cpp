@@ -160,12 +160,8 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
 
         addRootSignature(renderer, &rootDesc, &rootSignature);
 
-        // 2 because updates buffer twice per instanced draw call: one for joints and one for bones
-        DescriptorSetDesc setDesc = { .pRootSignature = rootSignature, .spaceIndex = 0, .maxSets = maxSkeletonBatches * 2 * frameCount };
-        addDescriptorSet(renderer, &setDesc, &pDescriptorSet);
+        rootConstantIndex = getDescriptorIndexFromName(rootSignature, "RootConstant0");
     }
-
-    PrepareDescriptorSets();
 
     if (pDesc->loadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
     {
@@ -253,35 +249,9 @@ void SkeletonBatcher::Unload(ReloadType reloadType)
 
     if (reloadType & RELOAD_TYPE_SHADER)
     {
-        removeDescriptorSet(renderer, pDescriptorSet);
         removeRootSignature(renderer, rootSignature);
         removeShader(renderer, boneShader);
         removeShader(renderer, jointShader);
-    }
-#endif
-}
-
-void SkeletonBatcher::PrepareDescriptorSets()
-{
-#ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    DescriptorData params[1] = {};
-    params[0].pName = "uniformBlock";
-
-    for (uint32_t i = 0; i < frameCount; ++i)
-    {
-        for (uint32_t j = 0; j < maxSkeletonBatches; ++j)
-        {
-            const uint32_t bufferIndex = i * maxSkeletonBatches + j;
-
-            params[0].ppBuffers = &projViewUniformBufferJoints[bufferIndex];
-            updateDescriptorSet(renderer, (i * (maxSkeletonBatches * 2)) + (j * 2 + 0), pDescriptorSet, 1, params);
-
-            if (drawBones)
-            {
-                params[0].ppBuffers = &projViewUniformBufferBones[bufferIndex];
-                updateDescriptorSet(renderer, (i * (maxSkeletonBatches * 2)) + (j * 2 + 1), pDescriptorSet, 1, params);
-            }
-        }
     }
 #endif
 }
@@ -496,7 +466,8 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
     // for each batch of joints
     for (uint32_t batchIndex = 0; batchIndex < numBatches; batchIndex++)
     {
-        cmdBindDescriptorSet(cmd, (frameIndex * (maxSkeletonBatches * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
+        const uint32_t uniformIndex = getBufferCbvIndex(projViewUniformBufferJoints[frameIndex * maxSkeletonBatches + batchIndex]);
+        cmdBindPushConstants(cmd, rootSignature, rootConstantIndex, &uniformIndex);
         cmdDrawInstanced(cmd, numJointPoints / 6, 0, pFrameBatchSize[batchIndex], 0);
         if (!drawBones)
             pFrameBatchSize[batchIndex] = 0;
@@ -518,7 +489,8 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
         for (uint32_t batchIndex = 0; batchIndex < numBatches; batchIndex++)
         {
             uint32_t instanceCount = pFrameBatchSize[batchIndex] / numJoints;
-            cmdBindDescriptorSet(cmd, (frameIndex * (maxSkeletonBatches * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
+            const uint32_t uniformIndex = getBufferCbvIndex(projViewUniformBufferBones[frameIndex * maxSkeletonBatches + batchIndex]);
+            cmdBindPushConstants(cmd, rootSignature, rootConstantIndex, &uniformIndex);
             cmdDrawInstanced(cmd, numBonePoints / 8, 0, instanceCount, 0);
 
             pFrameBatchSize[batchIndex] = 0;

@@ -22,34 +22,22 @@
 * under the License.
 */
 
-Texture2D<float4> uTex : register(UPDATE_FREQ_PER_BATCH, t1);
-SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
-
-cbuffer uniformBlockVS: register(UPDATE_FREQ_NONE, b0)
+cbuffer RootConstant0 : register(b0)
 {
-	float4x4 ProjectionMatrix : None;
+    uint uniformIndex;
+    uint textureIndex;
+    uint samplerIndex;
 };
 
-struct VS_INPUT
+struct Uniforms { float4x4 projection; };
+struct VS_INPUT { float2 pos : POSITION; float2 uv : TEXCOORD0; float4 col : COLOR0; };
+struct PS_INPUT { float4 pos : SV_Position; float4 col : COLOR0; float2 uv : TEXCOORD0; };
+PS_INPUT VS_MAIN(VS_INPUT input)
 {
-	float2 pos : Position
-	float2 uv : TEXCOORD0;
-	float4 col : COLOR0
-};
-
-struct PS_INPUT
-{
-	float4 pos : SV_Position;
-	float4 col : COLOR0
-	float2 uv : TEXCOORD0;
-};
-
-PS_INPUT VS_MAIN( VS_INPUT In )
-{
-	INIT_MAIN;
-	PS_INPUT Out;
-	Out.pos = mul(ProjectionMatrix, float4(In.pos.xy, 0.f, 1.f));
-	Out.col = In.col;
-	Out.uv = In.uv;
-	return Out
+    ConstantBuffer<Uniforms> uniforms = ResourceDescriptorHeap[uniformIndex];
+    PS_INPUT output;
+    output.pos = mul(uniforms.projection, float4(input.pos, 0, 1));
+    output.col = input.col;
+    output.uv = input.uv;
+    return output;
 }

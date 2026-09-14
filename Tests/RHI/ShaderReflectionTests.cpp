@@ -145,7 +145,4 @@ TEST(RHIShaderReflectionTest, DescriptorNameHelpersRecognizeRootDescriptorsCaseI
     EXPECT_TRUE(isDescriptorRootConstant("material_pushconstant_data"));
     EXPECT_FALSE(isDescriptorRootConstant("SceneBuffer"));
 
-    EXPECT_TRUE(isDescriptorRootCbv("CameraRootCbv"));
-    EXPECT_TRUE(isDescriptorRootCbv("LIGHT_ROOTCBV_SLOT"));
-    EXPECT_FALSE(isDescriptorRootCbv("RootConstantOnly"));
 }

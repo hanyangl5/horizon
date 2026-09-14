@@ -91,8 +91,8 @@ void GBuffer::unload()
 
 void GBuffer::update() {}
 
-void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, SceneManager& scenes,
-                      SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances)
+void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
+                      SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances)
 {
     const SceneGeometry* pGeometry = scenes.getGeometry(scene);
     ASSERT(pGeometry);
@@ -111,39 +111,25 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
     }, {
-        .buffers = { &geometry.vertexBuffers[0], &geometry.vertexBuffers[1], &geometry.vertexBuffers[2] },
+        .buffers = { &geometry.vertexBuffers[0], &geometry.vertexBuffers[1], &geometry.vertexBuffers[2], &frame, &draws, &materials },
     });
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);
-    commands.bindBuffer("Frame", frame);
-    commands.bindBuffer("Draws", draws);
-    commands.bindBuffer("Materials", *scenes.getMaterialBuffer(scene));
-    commands.bindSampler("SurfaceSampler", sampler);
-    commands.bindBuffer("Positions", geometry.vertexBuffers[0]);
-    commands.bindBuffer("Normals", geometry.vertexBuffers[1]);
-    commands.bindBuffer("Texcoords", geometry.vertexBuffers[2]);
+    const uint32_t indices[] = { frame.getSrvIndex(),
+                                 draws.getSrvIndex(),
+                                 materials.getSrvIndex(),
+                                 sampler.getIndex(),
+                                 geometry.vertexBuffers[0].getSrvIndex(),
+                                 geometry.vertexBuffers[1].getSrvIndex(),
+                                 geometry.vertexBuffers[2].getSrvIndex() };
+    commands.setPushConstants(0, indices, sizeof(indices));
     commands.setIndexBuffer(geometry.indexBuffer, 0, geometry.indexType);
 
-    const SceneAssetGpuMaterial* gpuMaterials = scenes.getGpuMaterials(scene);
-    uint32_t                     previousMaterial = UINT32_MAX;
     for (uint32_t i = 0; i < instances.count; ++i)
     {
         const SceneAssetInstance& instance = instances.pData[i];
-        if (instance.materialIndex != previousMaterial)
-        {
-            const SceneAssetGpuMaterial& material = gpuMaterials[instance.materialIndex];
-            const uint32_t textureIndices[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
-                                                material.emissiveTexture };
-            const char*    names[] = { "BaseColor", "NormalMap", "MetallicRoughness", "Emissive" };
-            for (uint32_t t = 0; t < TF_ARRAY_COUNT(textureIndices); ++t)
-            {
-                const uint32_t textureIndex = textureIndices[t] == UINT32_MAX ? 0 : textureIndices[t];
-                commands.bindTexture(names[t], *scenes.getTexture(scene, textureIndex));
-            }
-            previousMaterial = instance.materialIndex;
-        }
-        commands.setPushConstants(0, &i, sizeof(i));
+        commands.setPushConstants(1, &i, sizeof(i));
         const IndirectDrawIndexArguments& draw = geometry.pDrawArgs[instance.drawIndex];
         commands.drawIndexed(draw.indexCount, draw.startIndex, draw.vertexOffset);
     }
@@ -184,15 +170,13 @@ void Lighting::execute(hz::CommandList& commands, const hz::GPUTexture& renderTa
                                     .storeAction = STORE_ACTION_STORE,
                                     .clearValue = { .r = 0.02f, .g = 0.035f, .b = 0.055f, .a = 1.0f } } },
         },
-        { .sampledTextures = sampledTextures });
+        { .sampledTextures = sampledTextures, .buffers = { &frame } });
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);
-    commands.bindTexture("GBuffer0", gbuffer.gbuffer[0]);
-    commands.bindTexture("GBuffer1", gbuffer.gbuffer[1]);
-    commands.bindTexture("GBuffer2", gbuffer.gbuffer[2]);
-    commands.bindTexture("SceneDepth", gbuffer.depth);
-    commands.bindBuffer("Frame", frame);
+    const uint32_t indices[] = { frame.getSrvIndex(), gbuffer.gbuffer[0].getSrvIndex(), gbuffer.gbuffer[1].getSrvIndex(),
+                                 gbuffer.gbuffer[2].getSrvIndex(), gbuffer.depth.getSrvIndex() };
+    commands.setPushConstants(0, indices, sizeof(indices));
     commands.draw(3);
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -246,6 +230,28 @@ bool RenderPasses::initRenderResources()
         .descriptors = DESCRIPTOR_TYPE_BUFFER,
     });
 
+    hz::Array<SceneAssetGpuMaterial> gpuMaterials(pScenes->getMaterialCount(scene));
+    memcpy(gpuMaterials.data(), pScenes->getGpuMaterials(scene), gpuMaterials.size() * sizeof(SceneAssetGpuMaterial));
+    for (SceneAssetGpuMaterial& material : gpuMaterials)
+    {
+        uint32_t* textureIndices[] = { &material.baseColorTexture, &material.normalTexture, &material.metallicRoughnessTexture,
+                                       &material.emissiveTexture };
+        for (uint32_t* pIndex : textureIndices)
+            if (*pIndex != UINT32_MAX)
+                *pIndex = pScenes->getTexture(scene, *pIndex)->getSrvIndex();
+    }
+    materials = pContext.createBuffer({
+        .size = gpuMaterials.size() * sizeof(SceneAssetGpuMaterial),
+        .elementCount = gpuMaterials.size(),
+        .structStride = sizeof(SceneAssetGpuMaterial),
+        .pName = "Renderer.Materials",
+        .pInitialData = gpuMaterials.data(),
+        .initialDataSize = gpuMaterials.size() * sizeof(SceneAssetGpuMaterial),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_SHADER_RESOURCE,
+        .descriptors = DESCRIPTOR_TYPE_BUFFER,
+    });
+
     frame = pContext.createBuffer({
         .size = sizeof(FrameData),
         .elementCount = 1,
@@ -255,8 +261,8 @@ bool RenderPasses::initRenderResources()
         .descriptors = DESCRIPTOR_TYPE_BUFFER,
     });
 
-    ASSERT(draws.isValid() && frame.isValid());
-    return draws.isValid() && frame.isValid();
+    ASSERT(draws.isValid() && frame.isValid() && materials.isValid());
+    return draws.isValid() && frame.isValid() && materials.isValid();
 }
 
 bool RenderPasses::load(uint32_t width, uint32_t height)
@@ -304,7 +310,7 @@ void RenderPasses::execute()
 
     hz::CommandList& commands = pContext.acquireCommandList();
     commands.updateBuffer(frame, 0, &frameData, sizeof(frameData));
-    gbuffer->execute(commands, frame, draws, *pScenes, scene, { instances.data(), instances.size() });
+    gbuffer->execute(commands, frame, draws, materials, *pScenes, scene, { instances.data(), instances.size() });
     const hz::GPUTexture& backbuffer = pContext.getCurrentBackbuffer();
     lighting->execute(commands, backbuffer, frame, *gbuffer);
 

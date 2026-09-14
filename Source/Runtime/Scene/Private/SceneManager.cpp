@@ -882,23 +882,3 @@ bool SceneManager::isTextureResident(SceneAssetHandle handle, uint32_t textureIn
     const SceneAssetSlot* pSlot = findSlot(handle);
     return pSlot && textureIndex < pSlot->pManifest->textureCount && pSlot->pTextureResident[textureIndex];
 }
-
-bool SceneManager::updateBindlessTextures(Renderer* pRenderer, uint32_t setIndex, DescriptorSet* pDescriptorSet, const char* pBindingName,
-                                          SceneAssetHandle handle) const
-{
-    const SceneAssetSlot* pSlot = findSlot(handle);
-    if (!pRenderer || !pDescriptorSet || !pBindingName || !pSlot || pSlot->status != SCENE_ASSET_STATUS_READY)
-        return false;
-    if (!pSlot->pManifest->textureCount)
-        return true;
-    Texture* nativeTextures[SCENE_ASSET_MAX_TEXTURES];
-    for (uint32_t i = 0; i < pSlot->pManifest->textureCount; ++i)
-        nativeTextures[i] = pSlot->pGpuResources->ppTextures[i]->get();
-    DescriptorData textures = {
-        .pName = pBindingName,
-        .count = pSlot->pManifest->textureCount,
-        .ppTextures = nativeTextures,
-    };
-    updateDescriptorSet(pRenderer, setIndex, pDescriptorSet, 1, &textures);
-    return true;
-}

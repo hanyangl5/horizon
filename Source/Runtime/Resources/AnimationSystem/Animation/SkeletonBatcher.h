@@ -101,7 +101,6 @@ public:
 
     void Unload(ReloadType reloadType);
 
-    void PrepareDescriptorSets();
 
     // Add a rig to the list of skeletons to draw
     void AddAnimatedObject(AnimatedObject* animatedObject);
@@ -152,8 +151,7 @@ private:
     uint32_t  numJointPoints = 0;
     uint32_t  numBonePoints = 0;
 
-    // Descriptor binder with all required memory allocation space
-    DescriptorSet* pDescriptorSet = NULL;
+    uint32_t rootConstantIndex = 0;
 
     // Buffer pointers that will get updated for each batch to be rendered
     Buffer** projViewUniformBufferJoints = NULL;

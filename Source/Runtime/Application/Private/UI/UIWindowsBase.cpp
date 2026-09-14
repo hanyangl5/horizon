@@ -374,7 +374,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     if (!initFileSystem(&fsDesc))
         return EXIT_FAILURE;
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
     fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
     fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_PIPELINE_CACHE, "PipelineCaches");
     fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");

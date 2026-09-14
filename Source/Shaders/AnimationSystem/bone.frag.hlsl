@@ -31,7 +31,7 @@ struct VSOutput
     float4 Color : COLOR;
 };
 
-float4 PS_MAIN(VSOutput In)
+float4 PS_MAIN(VSOutput In) : SV_Target0
 {
     float4 Out;
     Out = In.Color;

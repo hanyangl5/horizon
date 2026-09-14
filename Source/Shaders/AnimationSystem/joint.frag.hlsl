@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,22 +26,7 @@
 // Shader for simple shading with a point light
 // for skeletons in Unit Test Animation
 
-cbuffer uniformBlock: register(UPDATE_FREQ_PER_DRAW, b0)
-{
-#if FT_MULTIVIEW
-    float4x4 mvp[VR_MULTIVIEW_COUNT] : None;
-#else
-    float4x4 mvp : None;
-#endif
-    float4x4 viewMatrix : None;
-    float4 color[MAX_INSTANCES] : None;
-    // Point Light Information
-    float4 lightPosition : None;
-    float4 lightColor : None;
-    float4 jointColor : None;
-    uint4 skeletonInfo : None;
-    float4x4 toWorld[MAX_INSTANCES] : None;
-};
+#include "resources.h.hlsl"
 
 struct VSOutput
 {
@@ -50,9 +35,9 @@ struct VSOutput
     float4 LightDirection : TEXCOORD2;
 };
 
-float4 PS_MAIN(VSOutput In)
+float4 PS_MAIN(VSOutput In) : SV_Target0
 {
-    INIT_MAIN;
+    ConstantBuffer<SkeletonUniforms> uniforms = ResourceDescriptorHeap[uniformIndex];
     float4 Out;
     float2 texCoord = In.QuadCoord.xy;
     float radius = length(texCoord);
@@ -63,12 +48,12 @@ float4 PS_MAIN(VSOutput In)
     }
     float4 localNormal = float4(In.QuadCoord.xy,0.0f,0.0f);
     localNormal.xyz = lerp( float3( 0.0f, 0.0f, -1.0f ), float3(In.QuadCoord.xy,0.0f), radius );
-    float4 normal = normalize(mul(viewMatrix, normalize(localNormal))); 
+    float4 normal = normalize(mul(uniforms.viewMatrix, normalize(localNormal)));
     float3 lightDir = In.LightDirection.xyz;
     float lightIntensity = 1.0f;
     float ambientCoeff = 0.4;
-    float3 baseColor = jointColor.xyz;
-    float3 blendedColor = (lightColor.xyz  * baseColor) * lightIntensity;
+    float3 baseColor = uniforms.jointColor.xyz;
+    float3 blendedColor = (uniforms.lightColor.xyz  * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out = float4(diffuse + ambient, 1.0);

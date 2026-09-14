@@ -35,7 +35,6 @@ struct AccelerationStructure;
 struct AccelerationStructureDescBottom;
 struct RootSignature;
 struct ShaderResource;
-struct DescriptorData;
 struct ID3D12Device5;
 
 enum AccelerationStructureType : uint32_t
@@ -142,6 +141,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Ray
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
 FORGE_RENDERER_API void FORGE_CALLCONV addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
                                                                 AccelerationStructure** ppAccelerationStructure);
+FORGE_RENDERER_API uint32_t FORGE_CALLCONV getAccelerationStructureSrvIndex(const AccelerationStructure* pAccelerationStructure);
 FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 /// Free the scratch memory allocated by acceleration structure after it has been built completely
 /// Does not free acceleration structure

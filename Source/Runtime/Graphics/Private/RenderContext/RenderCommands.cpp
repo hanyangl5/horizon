@@ -10,13 +10,9 @@
 
 hz::CommandList::~CommandList()
 {
-    arrfree(bindings);
     arrfree(bufferBarriers);
     arrfree(textureBarriers);
     arrfree(renderTargetBarriers);
-    for (uint32_t i = 0; i < (uint32_t)arrlen(descriptorBatches); ++i)
-        arrfree(descriptorBatches[i].pData);
-    arrfree(descriptorBatches);
 }
 
 void hz::CommandList::reset(Cmd* cmd, uint64_t profilerToken)
@@ -28,16 +24,12 @@ void hz::CommandList::reset(Cmd* cmd, uint64_t profilerToken)
     memset(vertexStrides, 0, sizeof(vertexStrides));
     memset(vertexOffsets, 0, sizeof(vertexOffsets));
     vertexBufferCount = 0;
-    arrsetlen(bindings, 0);
-    bindingsDirty = false;
 }
 
 void hz::CommandList::clear()
 {
     pCmd = nullptr;
     pCurrentRootSignature = nullptr;
-    arrsetlen(bindings, 0);
-    bindingsDirty = false;
 }
 
 void hz::CommandList::barrier(uint32_t bufferCount, BufferBarrier* pBufferBarriers, uint32_t textureCount, TextureBarrier* pTextureBarriers,
@@ -45,6 +37,32 @@ void hz::CommandList::barrier(uint32_t bufferCount, BufferBarrier* pBufferBarrie
 {
     if (bufferCount || textureCount || renderTargetCount)
         cmdResourceBarrier(pCmd, bufferCount, pBufferBarriers, textureCount, pTextureBarriers, renderTargetCount, pRenderTargetBarriers);
+}
+
+void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, bool storage)
+{
+    for (const hz::GPUBuffer* buffer : buffers)
+    {
+        if (buffer->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+            continue;
+        ResourceState state = RESOURCE_STATE_UNORDERED_ACCESS;
+        if (!storage)
+        {
+            state = RESOURCE_STATE_SHADER_RESOURCE;
+            if (buffer->descriptors & (DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER))
+                state |= RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            if (buffer->descriptors & DESCRIPTOR_TYPE_INDEX_BUFFER)
+                state |= RESOURCE_STATE_INDEX_BUFFER;
+            if (buffer->descriptors & DESCRIPTOR_TYPE_INDIRECT_BUFFER)
+                state |= RESOURCE_STATE_INDIRECT_ARGUMENT;
+        }
+        if (buffer->state != state || storage)
+        {
+            const BufferBarrier bufferBarrier = { .pBuffer = buffer->pBuffer, .currentState = buffer->state, .newState = state };
+            arrpush(bufferBarriers, bufferBarrier);
+            buffer->state = state;
+        }
+    }
 }
 
 void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GPUBuffer* pIndirectBuffer)
@@ -83,16 +101,8 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
         addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
-    for (const hz::GPUBuffer* buffer : dependencies.buffers)
-    {
-        const BufferBarrier bufferBarrier = {
-            .pBuffer = buffer->pBuffer,
-            .currentState = buffer->state,
-            .newState = RESOURCE_STATE_UNORDERED_ACCESS,
-        };
-        arrpush(bufferBarriers, bufferBarrier);
-        buffer->state = RESOURCE_STATE_UNORDERED_ACCESS;
-    }
+    addBufferBarriers(dependencies.buffers, false);
+    addBufferBarriers(dependencies.storageBuffers, true);
     if (pIndirectBuffer && pIndirectBuffer->state != RESOURCE_STATE_INDIRECT_ARGUMENT)
     {
         const BufferBarrier indirectBarrier = {
@@ -145,26 +155,8 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
-    for (const hz::GPUBuffer* buffer : dependencies.buffers)
-    {
-        ResourceState state = RESOURCE_STATE_SHADER_RESOURCE;
-        if (buffer->descriptors & DESCRIPTOR_TYPE_VERTEX_BUFFER)
-            state = (ResourceState)(state | RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-        if (buffer->descriptors & DESCRIPTOR_TYPE_INDEX_BUFFER)
-            state = (ResourceState)(state | RESOURCE_STATE_INDEX_BUFFER);
-        if (buffer->descriptors & DESCRIPTOR_TYPE_INDIRECT_BUFFER)
-            state = (ResourceState)(state | RESOURCE_STATE_INDIRECT_ARGUMENT);
-        if (buffer->state != state)
-        {
-            const BufferBarrier bufferBarrier = {
-                .pBuffer = buffer->pBuffer,
-                .currentState = buffer->state,
-                .newState = state,
-            };
-            arrpush(bufferBarriers, bufferBarrier);
-            buffer->state = state;
-        }
-    }
+    addBufferBarriers(dependencies.buffers, false);
+    addBufferBarriers(dependencies.storageBuffers, true);
 
     BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachments.count };
     for (uint32_t i = 0; i < desc.colorAttachments.count; ++i)
@@ -201,158 +193,8 @@ void hz::CommandList::endRendering() { cmdBindRenderTargets(pCmd, nullptr); }
 
 void hz::CommandList::setPipeline(const hz::GPUPipeline& pipeline)
 {
-    if (pCurrentRootSignature != pipeline.pRootSignature)
-    {
-        arrsetlen(bindings, 0);
-        bindingsDirty = false;
-    }
     pCurrentRootSignature = pipeline.pRootSignature;
     cmdBindPipeline(pCmd, pipeline.pPipeline);
-}
-
-void hz::CommandList::bindBuffer(const char* name, const hz::GPUBuffer& buffer)
-{
-    ASSERT(pCurrentRootSignature && name && buffer.pBuffer);
-    const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, name);
-    ASSERT(descriptorIndex != UINT32_MAX);
-    const DescriptorType type = (DescriptorType)pCurrentRootSignature->pDescriptors[descriptorIndex].type;
-    ASSERT(type == DESCRIPTOR_TYPE_BUFFER || type == DESCRIPTOR_TYPE_BUFFER_RAW || type == DESCRIPTOR_TYPE_RW_BUFFER ||
-           type == DESCRIPTOR_TYPE_RW_BUFFER_RAW || type == DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-
-    Binding* binding = nullptr;
-    for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
-    {
-        Binding& item = bindings[i];
-        if (item.descriptorIndex == descriptorIndex)
-            binding = &item;
-    }
-    if (!binding)
-    {
-        const Binding newBinding = { .descriptorIndex = descriptorIndex };
-        arrpush(bindings, newBinding);
-        binding = arrback(bindings);
-    }
-    binding->type = type;
-    binding->pBuffer = buffer.pBuffer;
-    binding->pTexture = nullptr;
-    binding->pSampler = nullptr;
-    bindingsDirty = true;
-}
-
-void hz::CommandList::bindTexture(const char* name, const hz::GPUTexture& texture)
-{
-    ASSERT(pCurrentRootSignature && name && texture.pTexture);
-    const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, name);
-    ASSERT(descriptorIndex != UINT32_MAX);
-    const DescriptorType type = (DescriptorType)pCurrentRootSignature->pDescriptors[descriptorIndex].type;
-    ASSERT(type == DESCRIPTOR_TYPE_TEXTURE || type == DESCRIPTOR_TYPE_RW_TEXTURE);
-
-    Binding* binding = nullptr;
-    for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
-    {
-        Binding& item = bindings[i];
-        if (item.descriptorIndex == descriptorIndex)
-            binding = &item;
-    }
-    if (!binding)
-    {
-        const Binding newBinding = { .descriptorIndex = descriptorIndex };
-        arrpush(bindings, newBinding);
-        binding = arrback(bindings);
-    }
-    binding->type = type;
-    binding->pBuffer = nullptr;
-    binding->pTexture = texture.pTexture;
-    binding->pSampler = nullptr;
-    bindingsDirty = true;
-}
-
-void hz::CommandList::bindSampler(const char* name, const hz::GPUSampler& sampler)
-{
-    ASSERT(pCurrentRootSignature && name && sampler.pSampler);
-    const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, name);
-    ASSERT(descriptorIndex != UINT32_MAX);
-    const DescriptorInfo& descriptor = pCurrentRootSignature->pDescriptors[descriptorIndex];
-    ASSERT(descriptor.type == DESCRIPTOR_TYPE_SAMPLER && !descriptor.staticSampler);
-
-    Binding* binding = nullptr;
-    for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
-    {
-        Binding& item = bindings[i];
-        if (item.descriptorIndex == descriptorIndex)
-            binding = &item;
-    }
-    if (!binding)
-    {
-        const Binding newBinding = { .descriptorIndex = descriptorIndex };
-        arrpush(bindings, newBinding);
-        binding = arrback(bindings);
-    }
-    binding->type = DESCRIPTOR_TYPE_SAMPLER;
-    binding->pBuffer = nullptr;
-    binding->pTexture = nullptr;
-    binding->pSampler = sampler.pSampler;
-    bindingsDirty = true;
-}
-
-void hz::CommandList::bindDescriptors()
-{
-    ASSERT(bindingsDirty);
-
-    const uint32_t groupCount = pCurrentRootSignature->descriptorSetCount;
-    while ((uint32_t)arrlen(descriptorBatches) < groupCount)
-    {
-        const DescriptorUpdateBatch batch = {};
-        arrpush(descriptorBatches, batch);
-    }
-    for (uint32_t i = 0; i < groupCount; ++i)
-    {
-        descriptorBatches[i].pSet = nullptr;
-        arrsetlen(descriptorBatches[i].pData, 0);
-    }
-    RenderContext::CommandSlot& commandSlot = pContext->commandSlots[slot];
-    for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
-    {
-        Binding&               binding = bindings[i];
-        const DescriptorInfo&  descriptor = pCurrentRootSignature->pDescriptors[binding.descriptorIndex];
-        DescriptorUpdateBatch& batch = descriptorBatches[descriptor.groupIndex];
-        ASSERT(!descriptor.rootDescriptor);
-        if (!batch.pSet)
-        {
-            const DescriptorSetDesc desc = {
-                .pRootSignature = pCurrentRootSignature,
-                .spaceIndex = descriptor.spaceIndex,
-                .maxSets = 1,
-            };
-            addDescriptorSet(pContext->pRenderer, &desc, &batch.pSet);
-            ASSERT(batch.pSet);
-            arrpush(commandSlot.descriptorSets, batch.pSet);
-        }
-
-        DescriptorData descriptorData = {
-            .count = 1,
-            .index = binding.descriptorIndex,
-            .bindByIndex = true,
-        };
-        if (binding.type == DESCRIPTOR_TYPE_TEXTURE || binding.type == DESCRIPTOR_TYPE_RW_TEXTURE)
-            descriptorData.ppTextures = &binding.pTexture;
-        else if (binding.type == DESCRIPTOR_TYPE_SAMPLER)
-            descriptorData.ppSamplers = &binding.pSampler;
-        else
-            descriptorData.ppBuffers = &binding.pBuffer;
-        arrpush(batch.pData, descriptorData);
-    }
-
-    for (uint32_t i = 0; i < groupCount; ++i)
-    {
-        const DescriptorUpdateBatch& batch = descriptorBatches[i];
-        if (batch.pSet)
-        {
-            updateDescriptorSet(pContext->pRenderer, 0, batch.pSet, (uint32_t)arrlen(batch.pData), batch.pData);
-            cmdBindDescriptorSet(pCmd, 0, batch.pSet);
-        }
-    }
-    bindingsDirty = false;
 }
 
 void hz::CommandList::setVertexBuffer(uint32_t slot, const hz::GPUBuffer& buffer, uint64_t offset, uint32_t stride)
@@ -387,14 +229,10 @@ void hz::CommandList::setPushConstants(uint32_t index, const void* data, uint32_
 }
 void hz::CommandList::draw(uint32_t count, uint32_t first)
 {
-    if (bindingsDirty)
-        bindDescriptors();
     cmdDraw(pCmd, count, first);
 }
 void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t vertex)
 {
-    if (bindingsDirty)
-        bindDescriptors();
     cmdDrawIndexed(pCmd, count, first, vertex);
 }
 
@@ -410,8 +248,6 @@ void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset,
         barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
         buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
-    if (bindingsDirty)
-        bindDescriptors();
     cmdExecuteIndirect(pCmd, pContext->pDrawIndirectSignature, drawCount, buffer.pBuffer, offset, nullptr, 0);
 }
 
@@ -427,24 +263,18 @@ void hz::CommandList::drawIndexedIndirect(const hz::GPUBuffer& buffer, uint64_t 
         barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
         buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
-    if (bindingsDirty)
-        bindDescriptors();
     cmdExecuteIndirect(pCmd, pContext->pDrawIndexedIndirectSignature, drawCount, buffer.pBuffer, offset, nullptr, 0);
 }
 
 void hz::CommandList::dispatch(uint32_t x, uint32_t y, uint32_t z, const hz::Dependencies& dependencies)
 {
     barrier(dependencies, nullptr);
-    if (bindingsDirty)
-        bindDescriptors();
     cmdDispatch(pCmd, x, y, z);
 }
 
 void hz::CommandList::dispatchIndirect(const hz::GPUBuffer& buffer, uint64_t offset, const hz::Dependencies& dependencies)
 {
     barrier(dependencies, &buffer);
-    if (bindingsDirty)
-        bindDescriptors();
     cmdExecuteIndirect(pCmd, pContext->pDispatchIndirectSignature, 1, buffer.pBuffer, offset, nullptr, 0);
 }
 

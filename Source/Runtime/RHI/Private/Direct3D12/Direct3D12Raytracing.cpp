@@ -348,6 +348,8 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         srvDesc.RaytracingAccelerationStructure.Location = pAS->pASBuffer->dx.gpuAddress;
         DxDescriptorID srv = pAS->pASBuffer->dx.descriptors + pAS->pASBuffer->dx.srvDescriptorOffset;
         AddSrv(pRaytracing->pRenderer, NULL, NULL, &srvDesc, &srv);
+        DxDescriptorID gpuSrv = (DxDescriptorID)getBufferSrvIndex(pAS->pASBuffer);
+        AddSrv(pRaytracing->pRenderer, pRaytracing->pRenderer->dx.pCbvSrvUavHeaps[0], NULL, &srvDesc, &gpuSrv);
 
         scratchBufferSize = (UINT)info.ScratchDataSizeInBytes;
     }
@@ -485,9 +487,9 @@ D3D12_RAYTRACING_INSTANCE_FLAGS util_to_dx_instance_flags(AccelerationStructureI
     return ret;
 }
 
-void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructure, DxDescriptorID* pOutId)
+uint32_t d3d12_getAccelerationStructureSrvIndex(const AccelerationStructure* pAccelerationStructure)
 {
-    *pOutId = pAccelerationStructure->pASBuffer->dx.descriptors + pAccelerationStructure->pASBuffer->dx.srvDescriptorOffset;
+    return getBufferSrvIndex(pAccelerationStructure->pASBuffer);
 }
 
 #endif
