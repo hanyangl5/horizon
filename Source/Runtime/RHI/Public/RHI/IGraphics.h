@@ -1942,9 +1942,9 @@ struct CommandSignature
 
 struct DescriptorSetDesc
 {
-    RootSignature*            pRootSignature;
-    uint32_t                  spaceIndex = 0;
-    uint32_t                  maxSets = 1;
+    RootSignature* pRootSignature;
+    uint32_t       spaceIndex = 0;
+    uint32_t       maxSets = 1;
 };
 
 struct QueueSubmitDesc

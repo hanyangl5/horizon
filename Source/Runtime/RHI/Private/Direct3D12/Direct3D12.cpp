@@ -5105,17 +5105,17 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         Sampler* value;
     };
 
-    DescriptorLayoutInfo*     layouts = nullptr;
-    ShaderResource*           shaderResources = NULL;
-    uint32_t*                 constantSizes = NULL;
-    StaticSampler*            staticSamplers = NULL;
-    ShaderStage               shaderStages = SHADER_STAGE_NONE;
-    bool                      useInputLayout = false;
-    bool                      useViewHeapIndexing = false;
-    bool                      useSamplerHeapIndexing = false;
-    StaticSamplerNode*        staticSamplerMap = NULL;
-    PipelineType              pipelineType = PIPELINE_TYPE_UNDEFINED;
-    DescriptorIndexMap*       indexMap = NULL;
+    DescriptorLayoutInfo* layouts = nullptr;
+    ShaderResource*       shaderResources = NULL;
+    uint32_t*             constantSizes = NULL;
+    StaticSampler*        staticSamplers = NULL;
+    ShaderStage           shaderStages = SHADER_STAGE_NONE;
+    bool                  useInputLayout = false;
+    bool                  useViewHeapIndexing = false;
+    bool                  useSamplerHeapIndexing = false;
+    StaticSamplerNode*    staticSamplerMap = NULL;
+    PipelineType          pipelineType = PIPELINE_TYPE_UNDEFINED;
+    DescriptorIndexMap*   indexMap = NULL;
     sh_new_arena(staticSamplerMap);
     sh_new_arena(indexMap);
 
@@ -5634,8 +5634,8 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
     ASSERT(pDesc);
     ASSERT(ppDescriptorSet);
 
-    const RootSignature*            pRootSignature = pDesc->pRootSignature;
-    uint32_t                        groupIndex = 0;
+    const RootSignature* pRootSignature = pDesc->pRootSignature;
+    uint32_t             groupIndex = 0;
     while (groupIndex < pRootSignature->descriptorSetCount && pRootSignature->dx.pLayouts[groupIndex].spaceIndex != pDesc->spaceIndex)
         ++groupIndex;
     ASSERT(groupIndex < pRootSignature->descriptorSetCount);
@@ -5766,9 +5766,9 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
     ASSERT(pDescriptorSet);
     ASSERT(index < pDescriptorSet->dx.maxSets);
 
-    const RootSignature*            pRootSignature = pDescriptorSet->dx.pRootSignature;
-    const uint32_t                  groupIndex = pDescriptorSet->dx.groupIndex;
-    const uint32_t                  nodeIndex = 0;
+    const RootSignature* pRootSignature = pDescriptorSet->dx.pRootSignature;
+    const uint32_t       groupIndex = pDescriptorSet->dx.groupIndex;
+    const uint32_t       nodeIndex = 0;
 
     for (uint32_t i = 0; i < count; ++i)
     {

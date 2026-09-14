@@ -313,8 +313,8 @@ void hz::CommandList::bindDescriptors()
     RenderContext::CommandSlot& commandSlot = pContext->commandSlots[slot];
     for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
     {
-        Binding&              binding = bindings[i];
-        const DescriptorInfo& descriptor = pCurrentRootSignature->pDescriptors[binding.descriptorIndex];
+        Binding&               binding = bindings[i];
+        const DescriptorInfo&  descriptor = pCurrentRootSignature->pDescriptors[binding.descriptorIndex];
         DescriptorUpdateBatch& batch = descriptorBatches[descriptor.groupIndex];
         ASSERT(!descriptor.rootDescriptor);
         if (!batch.pSet)

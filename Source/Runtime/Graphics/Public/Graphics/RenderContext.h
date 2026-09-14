@@ -354,22 +354,22 @@ private:
         DescriptorData* pData;
     };
 
-    Cmd*                 pCmd = nullptr;
-    RenderContext*       pContext = nullptr;
-    RootSignature*       pCurrentRootSignature = nullptr;
-    uint64_t             gpuProfilerToken = UINT64_MAX;
-    uint64_t             gpuTimestampToken = 0;
-    Buffer*              pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
-    uint32_t             vertexStrides[MAX_VERTEX_BINDINGS] = {};
-    uint64_t             vertexOffsets[MAX_VERTEX_BINDINGS] = {};
-    uint32_t             vertexBufferCount = 0;
-    uint32_t             slot = UINT32_MAX;
-    Binding*             bindings = nullptr;
-    BufferBarrier*       bufferBarriers = nullptr;
-    TextureBarrier*      textureBarriers = nullptr;
-    RenderTargetBarrier* renderTargetBarriers = nullptr;
+    Cmd*                   pCmd = nullptr;
+    RenderContext*         pContext = nullptr;
+    RootSignature*         pCurrentRootSignature = nullptr;
+    uint64_t               gpuProfilerToken = UINT64_MAX;
+    uint64_t               gpuTimestampToken = 0;
+    Buffer*                pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
+    uint32_t               vertexStrides[MAX_VERTEX_BINDINGS] = {};
+    uint64_t               vertexOffsets[MAX_VERTEX_BINDINGS] = {};
+    uint32_t               vertexBufferCount = 0;
+    uint32_t               slot = UINT32_MAX;
+    Binding*               bindings = nullptr;
+    BufferBarrier*         bufferBarriers = nullptr;
+    TextureBarrier*        textureBarriers = nullptr;
+    RenderTargetBarrier*   renderTargetBarriers = nullptr;
     DescriptorUpdateBatch* descriptorBatches = nullptr;
-    bool                 bindingsDirty = false;
+    bool                   bindingsDirty = false;
     friend class RenderContext;
 };
 
