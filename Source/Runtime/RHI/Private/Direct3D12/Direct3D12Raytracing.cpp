@@ -114,18 +114,18 @@ struct AccelerationStructure
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE        type;
 };
 
-struct RaytracingShaderTable
-{
-    Pipeline*                   pPipeline;
-    Buffer*                     pBuffer;
-    D3D12_GPU_DESCRIPTOR_HANDLE viewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    uint32_t                    viewDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    uint32_t                    samplerDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    uint64_t                    maxEntrySize;
-    uint64_t                    missRecordSize;
-    uint64_t                    hitGroupRecordSize;
-};
+// struct RaytracingShaderTable
+// {
+//     Pipeline*                   pPipeline;
+//     Buffer*                     pBuffer;
+//     D3D12_GPU_DESCRIPTOR_HANDLE viewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
+//     D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
+//     uint32_t                    viewDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
+//     uint32_t                    samplerDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
+//     uint64_t                    maxEntrySize;
+//     uint64_t                    missRecordSize;
+//     uint64_t                    hitGroupRecordSize;
+// };
 
 bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {

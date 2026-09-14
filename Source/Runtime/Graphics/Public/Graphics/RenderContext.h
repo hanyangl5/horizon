@@ -348,6 +348,12 @@ private:
                          RenderTargetBarrier*);
     void         barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
 
+    struct DescriptorUpdateBatch
+    {
+        DescriptorSet*  pSet;
+        DescriptorData* pData;
+    };
+
     Cmd*                 pCmd = nullptr;
     RenderContext*       pContext = nullptr;
     RootSignature*       pCurrentRootSignature = nullptr;
@@ -362,7 +368,7 @@ private:
     BufferBarrier*       bufferBarriers = nullptr;
     TextureBarrier*      textureBarriers = nullptr;
     RenderTargetBarrier* renderTargetBarriers = nullptr;
-    DescriptorData*      descriptorData[DESCRIPTOR_UPDATE_FREQ_COUNT] = {};
+    DescriptorUpdateBatch* descriptorBatches = nullptr;
     bool                 bindingsDirty = false;
     friend class RenderContext;
 };

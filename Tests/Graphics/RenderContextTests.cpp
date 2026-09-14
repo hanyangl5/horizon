@@ -196,6 +196,141 @@ TEST(RenderContextLiveTest, CompilesSlangWithAutomaticBindings)
 #endif
 }
 
+TEST(RenderContextLiveTest, BindsSlangParameterBlocksAndSparseSpaces)
+{
+#if defined(_WINDOWS)
+    hz::RenderContext context({ .pAppName = "SlangSpacesTest", .width = 0, .height = 0 });
+    const char        source[] = R"(
+        struct Output { RWStructuredBuffer<uint> values; };
+        ParameterBlock<Output> group0;
+        ParameterBlock<Output> group1;
+        ParameterBlock<Output> group2;
+        ParameterBlock<Output> group3;
+        ParameterBlock<Output> group4;
+        ParameterBlock<Output> group5;
+        ParameterBlock<Output> group6;
+        ParameterBlock<Output> group7;
+        ParameterBlock<Output> group8;
+        ParameterBlock<Output> group9;
+        ParameterBlock<Output> group10;
+        ParameterBlock<Output> group11;
+        ParameterBlock<Output> group12;
+        ParameterBlock<Output> group13;
+        ParameterBlock<Output> group14;
+        ParameterBlock<Output> group15;
+        struct Nested { ParameterBlock<Output> inner; };
+        ParameterBlock<Nested> nested;
+        RWStructuredBuffer<uint> sparse : register(u0, space999);
+        RWStructuredBuffer<uint> large : register(u0, space65536);
+        RWStructuredBuffer<uint> highest : register(u0, space2147483647);
+        [numthreads(1, 1, 1)]
+        void CSMain()
+        {
+            group0.values[0] = 10;
+            group1.values[1] = 11;
+            group2.values[2] = 12;
+            group3.values[3] = 13;
+            group4.values[4] = 14;
+            group5.values[5] = 15;
+            group6.values[6] = 16;
+            group7.values[7] = 17;
+            group8.values[8] = 18;
+            group9.values[9] = 19;
+            group10.values[10] = 20;
+            group11.values[11] = 21;
+            group12.values[12] = 22;
+            group13.values[13] = 23;
+            group14.values[14] = 24;
+            group15.values[15] = 25;
+            nested.inner.values[16] = 26;
+            sparse[17] = 27;
+            large[18] = 28;
+            highest[19] = 29;
+        }
+    )";
+    hz::GPUPipeline pipeline = context.createComputePipeline({
+        .shaderDesc = {
+            .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1,
+                          .pEntryPoint = "CSMain" } },
+            .language = hz::ShaderLanguage::Slang,
+        },
+    });
+    ASSERT_TRUE(pipeline.isValid());
+    const RootSignature* root = pipeline.get()->dx.pRootSignature;
+    EXPECT_EQ(root->descriptorSetCount, 20u);
+    for (uint32_t i = 0; i < root->descriptorCount; ++i)
+    {
+        EXPECT_LT(root->pDescriptors[i].groupIndex, root->descriptorSetCount);
+        EXPECT_EQ(root->dx.pLayouts[root->pDescriptors[i].groupIndex].spaceIndex, root->pDescriptors[i].spaceIndex);
+    }
+    const uint32_t sparseSpaces[] = { 999, 65536, 0x7fffffff };
+    const char*    sparseNames[] = { "sparse", "large", "highest" };
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        const uint32_t index = getDescriptorIndexFromName(root, sparseNames[i]);
+        ASSERT_NE(index, UINT32_MAX);
+        EXPECT_EQ(root->pDescriptors[index].spaceIndex, sparseSpaces[i]);
+    }
+
+    const char      smallSource[] = "RWStructuredBuffer<uint> output : register(u0, space4294967279);"
+                                    "[numthreads(1, 1, 1)] void CSMain() { output[0] = 99; }";
+    hz::GPUPipeline smallPipeline = context.createComputePipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+                                      .pSource = smallSource,
+                                      .sourceSize = sizeof(smallSource) - 1,
+                                      .pEntryPoint = "CSMain" } } },
+    });
+    ASSERT_TRUE(smallPipeline.isValid());
+    ASSERT_EQ(smallPipeline.get()->dx.pRootSignature->descriptorSetCount, 1u);
+    EXPECT_EQ(smallPipeline.get()->dx.pRootSignature->pDescriptors[0].spaceIndex, 0xffffffefu);
+    hz::GPUBuffer outputs[2];
+    for (hz::GPUBuffer& output : outputs)
+    {
+        output = context.createBuffer({
+            .size = 20 * sizeof(uint32_t),
+            .elementCount = 20,
+            .structStride = sizeof(uint32_t),
+            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+            .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+            .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        });
+        ASSERT_TRUE(output.isValid());
+    }
+    hz::GPUBuffer readback = context.createBuffer({
+        .size = 40 * sizeof(uint32_t),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .startState = RESOURCE_STATE_COPY_DEST,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    });
+    ASSERT_TRUE(readback.isValid());
+    for (uint32_t iteration = 0; iteration < 2; ++iteration)
+    {
+        hz::CommandList& commands = context.acquireCommandList();
+        for (uint32_t outputIndex = 0; outputIndex < 2; ++outputIndex)
+        {
+            commands.setPipeline(pipeline);
+            for (uint32_t i = 0; i < root->descriptorCount; ++i)
+                commands.bindBuffer(root->pDescriptors[i].pName, outputs[outputIndex]);
+            commands.dispatch(1, 1, 1, { .buffers = { &outputs[outputIndex] } });
+            if (outputIndex == 0)
+            {
+                commands.setPipeline(smallPipeline);
+                commands.bindBuffer("output", outputs[0]);
+                commands.dispatch(1, 1, 1, { .buffers = { &outputs[0] } });
+            }
+            commands.copyBuffer(readback, outputIndex * 20 * sizeof(uint32_t), outputs[outputIndex], 0, 20 * sizeof(uint32_t));
+        }
+        context.wait(context.submit(commands));
+        const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+        ASSERT_NE(values, nullptr);
+        for (uint32_t i = 0; i < 40; ++i)
+            EXPECT_EQ(values[i], i == 0 ? 99u : 10u + i % 20);
+    }
+#else
+    GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
+#endif
+}
+
 TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
 {
 #if defined(_WINDOWS)

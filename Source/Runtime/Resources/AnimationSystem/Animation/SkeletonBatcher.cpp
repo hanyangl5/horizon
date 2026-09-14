@@ -161,7 +161,7 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         addRootSignature(renderer, &rootDesc, &rootSignature);
 
         // 2 because updates buffer twice per instanced draw call: one for joints and one for bones
-        DescriptorSetDesc setDesc = { rootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, maxSkeletonBatches * 2 * frameCount };
+        DescriptorSetDesc setDesc = { .pRootSignature = rootSignature, .spaceIndex = 0, .maxSets = maxSkeletonBatches * 2 * frameCount };
         addDescriptorSet(renderer, &setDesc, &pDescriptorSet);
     }
 

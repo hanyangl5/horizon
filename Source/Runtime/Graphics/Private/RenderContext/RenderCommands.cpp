@@ -14,8 +14,9 @@ hz::CommandList::~CommandList()
     arrfree(bufferBarriers);
     arrfree(textureBarriers);
     arrfree(renderTargetBarriers);
-    for (uint32_t frequency = 0; frequency < DESCRIPTOR_UPDATE_FREQ_COUNT; ++frequency)
-        arrfree(descriptorData[frequency]);
+    for (uint32_t i = 0; i < (uint32_t)arrlen(descriptorBatches); ++i)
+        arrfree(descriptorBatches[i].pData);
+    arrfree(descriptorBatches);
 }
 
 void hz::CommandList::reset(Cmd* cmd, uint64_t profilerToken)
@@ -298,26 +299,34 @@ void hz::CommandList::bindDescriptors()
 {
     ASSERT(bindingsDirty);
 
-    DescriptorSet* sets[DESCRIPTOR_UPDATE_FREQ_COUNT] = {};
-    for (uint32_t frequency = 0; frequency < DESCRIPTOR_UPDATE_FREQ_COUNT; ++frequency)
-        arrsetlen(descriptorData[frequency], 0);
+    const uint32_t groupCount = pCurrentRootSignature->descriptorSetCount;
+    while ((uint32_t)arrlen(descriptorBatches) < groupCount)
+    {
+        const DescriptorUpdateBatch batch = {};
+        arrpush(descriptorBatches, batch);
+    }
+    for (uint32_t i = 0; i < groupCount; ++i)
+    {
+        descriptorBatches[i].pSet = nullptr;
+        arrsetlen(descriptorBatches[i].pData, 0);
+    }
     RenderContext::CommandSlot& commandSlot = pContext->commandSlots[slot];
     for (uint32_t i = 0; i < (uint32_t)arrlen(bindings); ++i)
     {
         Binding&              binding = bindings[i];
         const DescriptorInfo& descriptor = pCurrentRootSignature->pDescriptors[binding.descriptorIndex];
-        const uint32_t        frequency = descriptor.updateFrequency;
-        ASSERT(frequency < DESCRIPTOR_UPDATE_FREQ_COUNT && !descriptor.rootDescriptor);
-        if (!sets[frequency])
+        DescriptorUpdateBatch& batch = descriptorBatches[descriptor.groupIndex];
+        ASSERT(!descriptor.rootDescriptor);
+        if (!batch.pSet)
         {
             const DescriptorSetDesc desc = {
                 .pRootSignature = pCurrentRootSignature,
-                .updateFrequency = (DescriptorUpdateFrequency)frequency,
+                .spaceIndex = descriptor.spaceIndex,
                 .maxSets = 1,
             };
-            addDescriptorSet(pContext->pRenderer, &desc, &sets[frequency]);
-            ASSERT(sets[frequency]);
-            arrpush(commandSlot.descriptorSets, sets[frequency]);
+            addDescriptorSet(pContext->pRenderer, &desc, &batch.pSet);
+            ASSERT(batch.pSet);
+            arrpush(commandSlot.descriptorSets, batch.pSet);
         }
 
         DescriptorData descriptorData = {
@@ -331,16 +340,16 @@ void hz::CommandList::bindDescriptors()
             descriptorData.ppSamplers = &binding.pSampler;
         else
             descriptorData.ppBuffers = &binding.pBuffer;
-        arrpush(this->descriptorData[frequency], descriptorData);
+        arrpush(batch.pData, descriptorData);
     }
 
-    for (uint32_t frequency = 0; frequency < DESCRIPTOR_UPDATE_FREQ_COUNT; ++frequency)
+    for (uint32_t i = 0; i < groupCount; ++i)
     {
-        if (sets[frequency])
+        const DescriptorUpdateBatch& batch = descriptorBatches[i];
+        if (batch.pSet)
         {
-            updateDescriptorSet(pContext->pRenderer, 0, sets[frequency], (uint32_t)arrlen(descriptorData[frequency]),
-                                descriptorData[frequency]);
-            cmdBindDescriptorSet(pCmd, 0, sets[frequency]);
+            updateDescriptorSet(pContext->pRenderer, 0, batch.pSet, (uint32_t)arrlen(batch.pData), batch.pData);
+            cmdBindDescriptorSet(pCmd, 0, batch.pSet);
         }
     }
     bindingsDirty = false;

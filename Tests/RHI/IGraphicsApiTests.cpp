@@ -909,7 +909,7 @@ bool createDescriptorSetForOutput(LiveRendererHarness& harness, DeferredCleanup&
 {
     DescriptorSetDesc descriptorSetDesc = {
         .pRootSignature = pRootSignature,
-        .updateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
+        .spaceIndex = 0,
         .maxSets = 1,
     };
     addDescriptorSet(harness.pRenderer, &descriptorSetDesc, ppDescriptorSet);
@@ -1343,7 +1343,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
 
     DescriptorSetDesc computeDescriptorSetDesc = {
         .pRootSignature = pOut->pRootSignature,
-        .updateFrequency = DESCRIPTOR_UPDATE_FREQ_NONE,
+        .spaceIndex = 0,
         .maxSets = 1,
     };
     addDescriptorSet(harness.pRenderer, &computeDescriptorSetDesc, &pOut->pDescriptorSet);

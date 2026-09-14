@@ -1011,15 +1011,6 @@ struct alignas(16) Sampler
 };
 static_assert(sizeof(Sampler) == 8 * sizeof(uint64_t));
 
-enum DescriptorUpdateFrequency : uint32_t
-{
-    DESCRIPTOR_UPDATE_FREQ_NONE = 0,
-    DESCRIPTOR_UPDATE_FREQ_PER_FRAME,
-    DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
-    DESCRIPTOR_UPDATE_FREQ_PER_DRAW,
-    DESCRIPTOR_UPDATE_FREQ_COUNT,
-};
-
 /// Data structure holding the layout for a descriptor
 struct alignas(16) DescriptorInfo
 {
@@ -1028,13 +1019,10 @@ struct alignas(16) DescriptorInfo
     uint32_t    dim : 4;
     uint32_t    rootDescriptor : 1;
     uint32_t    staticSampler : 1;
-    uint32_t    updateFrequency : 3;
     uint32_t    size;
     uint32_t    handleIndex;
-    struct
-    {
-        uint64_t padA;
-    } dx;
+    uint32_t    spaceIndex;
+    uint32_t    groupIndex;
 };
 static_assert(sizeof(DescriptorInfo) == 4 * sizeof(uint64_t));
 
@@ -1056,10 +1044,20 @@ struct RootSignatureDesc
     RootSignatureFlags flags;
 };
 
+struct DescriptorSetLayout
+{
+    uint32_t spaceIndex;
+    uint32_t viewDescriptorCount;
+    uint32_t samplerDescriptorCount;
+    uint32_t viewRootIndex;
+    uint32_t samplerRootIndex;
+};
+
 struct alignas(64) RootSignature
 {
     /// Number of descriptors declared in the root signature layout
     uint32_t            descriptorCount;
+    uint32_t            descriptorSetCount;
     /// Graphics or Compute
     PipelineType        pipelineType;
     /// Array of all descriptors declared in the root signature layout
@@ -1069,18 +1067,12 @@ struct alignas(64) RootSignature
     struct
     {
         ID3D12RootSignature* pRootSignature;
-        uint8_t              viewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint8_t              samplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint32_t             cumulativeViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint32_t             cumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint16_t             viewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint16_t             samplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        DescriptorSetLayout* pLayouts;
 #if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
         bool hasRayQueryAccelerationStructure;
 #endif
     } dx;
 };
-// 2 cache lines
 static_assert(sizeof(RootSignature) <= 16 * sizeof(uint64_t));
 
 struct DescriptorDataRange
@@ -1142,10 +1134,10 @@ struct alignas(64) DescriptorSet
         /// Stride of the sampler descriptor table (number of descriptors * descriptor size)
         uint32_t             samplerStride;
         const RootSignature* pRootSignature;
+        uint32_t             groupIndex;
         uint32_t             maxSets : 16;
-        uint32_t             updateFrequency : 3;
-        uint32_t             cbvSrvUavRootIndex : 4;
-        uint32_t             samplerRootIndex : 4;
+        uint32_t             cbvSrvUavRootIndex : 8;
+        uint32_t             samplerRootIndex : 8;
         uint32_t             pipelineType : 3;
     } dx;
 };
@@ -1200,6 +1192,12 @@ struct MarkerDesc
 #define ESRAM_RESET_ALLOCS(...)
 #endif
 
+struct BoundDescriptorSet
+{
+    DescriptorSet* pSet;
+    uint32_t       instanceIndex;
+};
+
 struct alignas(64) Cmd
 {
     struct
@@ -1216,8 +1214,7 @@ struct alignas(64) Cmd
 
         // Command buffer state
         const RootSignature* pBoundRootSignature;
-        DescriptorSet*       pBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-        uint16_t             boundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+        BoundDescriptorSet*  pBoundDescriptorSets;
         uint32_t             type : 3;
         CmdPool*             pCmdPool;
     } dx;
@@ -1946,8 +1943,8 @@ struct CommandSignature
 struct DescriptorSetDesc
 {
     RootSignature*            pRootSignature;
-    DescriptorUpdateFrequency updateFrequency;
-    uint32_t                  maxSets;
+    uint32_t                  spaceIndex = 0;
+    uint32_t                  maxSets = 1;
 };
 
 struct QueueSubmitDesc

@@ -250,7 +250,7 @@ bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t w
             addRootSignature(pRenderer, &textureRootDesc, &gVirtualJoystick->pRootSignature);
             gVirtualJoystick->rootConstantIndex = getDescriptorIndexFromName(gVirtualJoystick->pRootSignature, "uRootConstants");
 
-            DescriptorSetDesc descriptorSetDesc = { gVirtualJoystick->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+            DescriptorSetDesc descriptorSetDesc = { .pRootSignature = gVirtualJoystick->pRootSignature, .spaceIndex = 0, .maxSets = 1 };
             addDescriptorSet(pRenderer, &descriptorSetDesc, &gVirtualJoystick->pDescriptorSet);
             /************************************************************************/
             // Prepare descriptor sets

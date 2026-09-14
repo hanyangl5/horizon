@@ -356,7 +356,7 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
             addRootSignature(gFontstash.pRenderer, &textureRootDesc, &gFontstash.pRootSignature);
             gFontstash.rootConstantIndex = getDescriptorIndexFromName(gFontstash.pRootSignature, "uRootConstants");
 
-            DescriptorSetDesc setDesc = { gFontstash.pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+            DescriptorSetDesc setDesc = { gFontstash.pRootSignature, 0, 1 };
             addDescriptorSet(gFontstash.pRenderer, &setDesc, &gFontstash.pDescriptorSets);
             DescriptorData setParams[1] = {};
             setParams[0].pName = "uTex0";

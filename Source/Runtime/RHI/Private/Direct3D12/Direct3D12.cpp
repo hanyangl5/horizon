@@ -1370,7 +1370,7 @@ struct DescriptorInfoIndexNode
     DescriptorInfo* key;
     uint32_t        value;
 };
-struct UpdateFrequencyLayoutInfo
+struct DescriptorLayoutInfo
 {
     // stb_ds array
     RootParameter*           cbvSrvUavTable;
@@ -1384,8 +1384,21 @@ struct UpdateFrequencyLayoutInfo
     DescriptorInfoIndexNode* descriptorIndexMap;
 };
 
+static void free_descriptor_layouts(DescriptorLayoutInfo* layouts)
+{
+    for (uint32_t i = 0; i < (uint32_t)arrlen(layouts); ++i)
+    {
+        arrfree(layouts[i].cbvSrvUavTable);
+        arrfree(layouts[i].samplerTable);
+        arrfree(layouts[i].rootDescriptorParams);
+        arrfree(layouts[i].rootConstants);
+        hmfree(layouts[i].descriptorIndexMap);
+    }
+    arrfree(layouts);
+}
+
 /// Calculates the total size of the root signature (in DWORDS) from the input layouts
-uint32_t calculate_root_signature_size(UpdateFrequencyLayoutInfo* pLayouts, uint32_t numLayouts)
+uint32_t calculate_root_signature_size(DescriptorLayoutInfo* pLayouts, uint32_t numLayouts)
 {
     uint32_t size = 0;
     for (uint32_t i = 0; i < numLayouts; ++i)
@@ -3671,6 +3684,7 @@ void d3d12_removeCmd(Renderer* pRenderer, Cmd* pCmd)
         SAFE_RELEASE(pCmd->dx.pCmdList);
     }
 
+    arrfree(pCmd->dx.pBoundDescriptorSets);
     SAFE_FREE(pCmd);
 }
 
@@ -5091,8 +5105,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         Sampler* value;
     };
 
-    static constexpr uint32_t kMaxLayoutCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
-    UpdateFrequencyLayoutInfo layouts[kMaxLayoutCount] = {};
+    DescriptorLayoutInfo*     layouts = nullptr;
     ShaderResource*           shaderResources = NULL;
     uint32_t*                 constantSizes = NULL;
     StaticSampler*            staticSamplers = NULL;
@@ -5257,17 +5270,24 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     {
         DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
         ShaderResource* pRes = &shaderResources[i];
-        uint32_t        setIndex = pRes->set;
-        if (pRes->size == 0 || setIndex >= DESCRIPTOR_UPDATE_FREQ_COUNT)
-            setIndex = 0;
-
-        DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
+        uint32_t        groupIndex = 0;
+        while (groupIndex < pRootSignature->descriptorSetCount && pRootSignature->dx.pLayouts[groupIndex].spaceIndex != pRes->set)
+            ++groupIndex;
+        if (groupIndex == pRootSignature->descriptorSetCount)
+        {
+            const DescriptorSetLayout  group = { .spaceIndex = pRes->set };
+            const DescriptorLayoutInfo layout = {};
+            arrpush(pRootSignature->dx.pLayouts, group);
+            arrpush(layouts, layout);
+            ++pRootSignature->descriptorSetCount;
+        }
+        pDesc->spaceIndex = pRes->set;
+        pDesc->groupIndex = groupIndex;
 
         pDesc->size = pRes->size;
         pDesc->type = pRes->type;
         pDesc->dim = pRes->dim;
         pDesc->pName = pRes->name;
-        pDesc->updateFrequency = updateFreq;
 
         if (pDesc->size == 0 && pDesc->type == DESCRIPTOR_TYPE_TEXTURE)
         {
@@ -5292,7 +5312,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             {
                 // In D3D12, sampler descriptors cannot be placed in a table containing view descriptors
                 RootParameter param = { *pRes, pDesc };
-                arrpush(layouts[setIndex].samplerTable, param);
+                arrpush(layouts[groupIndex].samplerTable, param);
             }
         }
         // No support for arrays of constant buffers to be used as root descriptors as this might bloat the root signature size
@@ -5306,7 +5326,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
                 pDesc->rootDescriptor = 1;
                 pDesc->type = DESCRIPTOR_TYPE_ROOT_CONSTANT;
                 RootParameter param = { *pRes, pDesc };
-                arrpush(layouts[setIndex].rootConstants, param);
+                arrpush(layouts[groupIndex].rootConstants, param);
 
                 pDesc->size = constantSizes[i] / sizeof(uint32_t);
             }
@@ -5315,7 +5335,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             else if (isDescriptorRootCbv(pRes->name))
             {
                 RootParameter param = { *pRes, pDesc };
-                arrpush(layouts[setIndex].rootDescriptorParams, param);
+                arrpush(layouts[groupIndex].rootDescriptorParams, param);
                 pDesc->rootDescriptor = 1;
 
                 LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified D3D12_ROOT_PARAMETER_TYPE_CBV", pDesc->pName);
@@ -5323,13 +5343,13 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             else
             {
                 RootParameter param = { *pRes, pDesc };
-                arrpush(layouts[setIndex].cbvSrvUavTable, param);
+                arrpush(layouts[groupIndex].cbvSrvUavTable, param);
             }
         }
         else
         {
             RootParameter param = { *pRes, pDesc };
-            arrpush(layouts[setIndex].cbvSrvUavTable, param);
+            arrpush(layouts[groupIndex].cbvSrvUavTable, param);
 
 #if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
             if (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE == pDesc->type)
@@ -5339,21 +5359,31 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 #endif
         }
 
-        hmput(layouts[setIndex].descriptorIndexMap, pDesc, i);
+        hmput(layouts[groupIndex].descriptorIndexMap, pDesc, i);
     }
 
-    // We should never reach inside this if statement. If we do, something got messed up
-    if (pRenderer->pGpu->settings.maxRootSignatureDWORDS < calculate_root_signature_size(layouts, kMaxLayoutCount))
+    const uint32_t layoutCount = pRootSignature->descriptorSetCount;
+
+    const uint32_t rootSignatureSize = calculate_root_signature_size(layouts, layoutCount);
+    if (rootSignatureSize > D3D12_MAX_ROOT_COST)
     {
-        LOGF(LogLevel::eWARNING, "Root Signature size greater than the specified max size");
-        ASSERT(false);
+        LOGF(LogLevel::eERROR, "Root Signature requires %u DWORDs, exceeding the D3D12 limit of %u", rootSignatureSize,
+             D3D12_MAX_ROOT_COST);
+        free_descriptor_layouts(layouts);
+        arrfree(shaderResources);
+        arrfree(constantSizes);
+        arrfree(staticSamplers);
+        shfree(staticSamplerMap);
+        removeRootSignature(pRenderer, pRootSignature);
+        *ppRootSignature = nullptr;
+        return;
     }
+    if (rootSignatureSize > pRenderer->pGpu->settings.maxRootSignatureDWORDS)
+        LOGF(LogLevel::eWARNING, "Root Signature size greater than the configured DWORD budget");
 
-    // D3D12 currently has two versions of root signatures (1_0, 1_1)
-    // So we fill the structs of both versions and in the end use the structs compatible with the supported version
-    constexpr uint32_t         kMaxResourceTableSize = 32;
-    D3D12_DESCRIPTOR_RANGE1    cbvSrvUavRange[kMaxLayoutCount][kMaxResourceTableSize] = {};
-    D3D12_DESCRIPTOR_RANGE1    samplerRange[kMaxLayoutCount][kMaxResourceTableSize] = {};
+    D3D12_DESCRIPTOR_RANGE1* ranges = nullptr;
+    arrsetlen(ranges, arrlen(shaderResources));
+    uint32_t                   rangeOffset = 0;
     D3D12_ROOT_PARAMETER1      rootParams[D3D12_MAX_ROOT_COST] = {};
     uint32_t                   rootParamCount = 0;
     D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = NULL;
@@ -5384,41 +5414,15 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         }
     }
 
-    for (uint32_t i = 0; i < kMaxLayoutCount; ++i)
-    {
-        if (arrlen(layouts[i].cbvSrvUavTable))
-        {
-            ASSERT(arrlenu(layouts[i].cbvSrvUavTable) <= kMaxResourceTableSize);
-            ++rootParamCount;
-        }
-        if (arrlen(layouts[i].samplerTable))
-        {
-            ASSERT(arrlenu(layouts[i].samplerTable) <= kMaxResourceTableSize);
-            ++rootParamCount;
-        }
-    }
-
-    pRootSignature->descriptorCount = (uint32_t)arrlenu(shaderResources);
-
-    for (uint32_t i = 0; i < kMaxLayoutCount; ++i)
-    {
-        rootParamCount += (uint32_t)arrlenu(layouts[i].rootConstants);
-        rootParamCount += (uint32_t)arrlenu(layouts[i].rootDescriptorParams);
-    }
-
-    rootParamCount = 0;
-
     // Start collecting root parameters
     // Start with root descriptors since they will be the most frequently updated descriptors
     // This also makes sure that if we spill, the root descriptors in the front of the root signature will most likely still remain in the
     // root Collect all root descriptors Put most frequently changed params first
-    for (uint32_t i = kMaxLayoutCount; i-- > 0U;)
+    for (uint32_t i = layoutCount; i-- > 0U;)
     {
-        UpdateFrequencyLayoutInfo& layout = layouts[i];
+        DescriptorLayoutInfo& layout = layouts[i];
         if (arrlen(layout.rootDescriptorParams))
         {
-            ASSERT(1 == arrlen(layout.rootDescriptorParams));
-
             uint32_t rootDescriptorIndex = 0;
 
             for (ptrdiff_t descIndex = 0; descIndex < arrlen(layout.rootDescriptorParams); ++descIndex)
@@ -5439,14 +5443,14 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     uint32_t rootConstantIndex = 0;
 
     // Collect all root constants
-    for (uint32_t setIndex = 0; setIndex < kMaxLayoutCount; ++setIndex)
+    for (uint32_t groupIndex = 0; groupIndex < layoutCount; ++groupIndex)
     {
-        UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
+        DescriptorLayoutInfo& layout = layouts[groupIndex];
 
         if (!arrlen(layout.rootConstants))
             continue;
 
-        for (ptrdiff_t i = 0; i < arrlen(layouts[setIndex].rootConstants); ++i)
+        for (ptrdiff_t i = 0; i < arrlen(layouts[groupIndex].rootConstants); ++i)
         {
             RootParameter* pDesc = &layout.rootConstants[i];
             pDesc->pDescriptorInfo->handleIndex = rootParamCount;
@@ -5477,24 +5481,23 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     (void)func;
 
     // Collect descriptor table parameters
-    // Put most frequently changed descriptor tables in the front of the root signature
-    for (uint32_t i = kMaxLayoutCount; i-- > 0U;)
+    for (uint32_t i = layoutCount; i-- > 0U;)
     {
-        UpdateFrequencyLayoutInfo& layout = layouts[i];
+        DescriptorLayoutInfo& layout = layouts[i];
 
-        // Fill the descriptor table layout for the view descriptor table of this update frequency
+        // Fill the descriptor table layout for the view descriptor table of this group
         if (arrlen(layout.cbvSrvUavTable))
         {
             // sort table by type (CBV/SRV/UAV) by register by space
             sortRootParameter(layout.cbvSrvUavTable, arrlenu(layout.cbvSrvUavTable));
 
             D3D12_ROOT_PARAMETER1 rootParam;
-            create_descriptor_table((uint32_t)arrlenu(layout.cbvSrvUavTable), layout.cbvSrvUavTable, cbvSrvUavRange[i], &rootParam);
+            create_descriptor_table((uint32_t)arrlenu(layout.cbvSrvUavTable), layout.cbvSrvUavTable, ranges + rangeOffset, &rootParam);
+            rangeOffset += (uint32_t)arrlenu(layout.cbvSrvUavTable);
 
             // Store some of the binding info which will be required later when binding the descriptor table
             // We need the root index when calling SetRootDescriptorTable
-            pRootSignature->dx.viewDescriptorTableRootIndices[i] = (uint8_t)rootParamCount;
-            pRootSignature->dx.viewDescriptorCounts[i] = (uint16_t)arrlenu(layout.cbvSrvUavTable);
+            pRootSignature->dx.pLayouts[i].viewRootIndex = (uint8_t)rootParamCount;
 
             for (ptrdiff_t descIndex = 0; descIndex < arrlen(layout.cbvSrvUavTable); ++descIndex)
             {
@@ -5502,27 +5505,27 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
                 // Store the d3d12 related info in the descriptor to avoid constantly calling the util_to_dx mapping functions
                 pDesc->rootDescriptor = 0;
-                pDesc->handleIndex = pRootSignature->dx.cumulativeViewDescriptorCounts[i];
+                pDesc->handleIndex = pRootSignature->dx.pLayouts[i].viewDescriptorCount;
 
                 // Store the cumulative descriptor count so we can just fetch this value later when allocating descriptor handles
                 // This avoids unnecessary loops in the future to find the unfolded number of descriptors (includes shader resource arrays)
                 // in the descriptor table
-                pRootSignature->dx.cumulativeViewDescriptorCounts[i] += pDesc->size;
+                pRootSignature->dx.pLayouts[i].viewDescriptorCount += pDesc->size;
             }
 
             rootParams[rootParamCount++] = rootParam;
         }
 
-        // Fill the descriptor table layout for the sampler descriptor table of this update frequency
+        // Fill the descriptor table layout for the sampler descriptor table of this group
         if (arrlen(layout.samplerTable))
         {
             D3D12_ROOT_PARAMETER1 rootParam;
-            create_descriptor_table((uint32_t)arrlenu(layout.samplerTable), layout.samplerTable, samplerRange[i], &rootParam);
+            create_descriptor_table((uint32_t)arrlenu(layout.samplerTable), layout.samplerTable, ranges + rangeOffset, &rootParam);
+            rangeOffset += (uint32_t)arrlenu(layout.samplerTable);
 
             // Store some of the binding info which will be required later when binding the descriptor table
             // We need the root index when calling SetRootDescriptorTable
-            pRootSignature->dx.samplerDescriptorTableRootIndices[i] = (uint8_t)rootParamCount;
-            pRootSignature->dx.samplerDescriptorCounts[i] = (uint16_t)arrlenu(layout.samplerTable);
+            pRootSignature->dx.pLayouts[i].samplerRootIndex = (uint8_t)rootParamCount;
             // table.pDescriptorIndices = (uint32_t*)tf_calloc(table.descriptorCount, sizeof(uint32_t));
 
             for (ptrdiff_t descIndex = 0; descIndex < arrlen(layout.samplerTable); ++descIndex)
@@ -5531,12 +5534,12 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
                 // Store the d3d12 related info in the descriptor to avoid constantly calling the util_to_dx mapping functions
                 pDesc->rootDescriptor = 0;
-                pDesc->handleIndex = pRootSignature->dx.cumulativeSamplerDescriptorCounts[i];
+                pDesc->handleIndex = pRootSignature->dx.pLayouts[i].samplerDescriptorCount;
 
                 // Store the cumulative descriptor count so we can just fetch this value later when allocating descriptor handles
                 // This avoids unnecessary loops in the future to find the unfolded number of descriptors (includes shader resource arrays)
                 // in the descriptor table
-                pRootSignature->dx.cumulativeSamplerDescriptorCounts[i] += pDesc->size;
+                pRootSignature->dx.pLayouts[i].samplerDescriptorCount += pDesc->size;
             }
 
             rootParams[rootParamCount++] = rootParam;
@@ -5590,16 +5593,8 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
     SAFE_RELEASE(error);
     SAFE_RELEASE(rootSignatureString);
-    for (uint32_t i = 0; i < kMaxLayoutCount; ++i)
-    {
-        UpdateFrequencyLayoutInfo* pLayout = &layouts[i];
-        arrfree(pLayout->cbvSrvUavTable);
-        arrfree(pLayout->samplerTable);
-        arrfree(pLayout->rootDescriptorParams);
-        arrfree(pLayout->rootConstants);
-        hmfree(pLayout->descriptorIndexMap);
-    }
-
+    free_descriptor_layouts(layouts);
+    arrfree(ranges);
     arrfree(shaderResources);
     arrfree(constantSizes);
     arrfree(staticSamplers);
@@ -5611,6 +5606,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 void d3d12_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
     UNREF_PARAM(pRenderer);
+    arrfree(pRootSignature->dx.pLayouts);
     shfree(pRootSignature->pDescriptorNameToIndexMap);
     SAFE_RELEASE(pRootSignature->dx.pRootSignature);
 
@@ -5639,19 +5635,23 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
     ASSERT(ppDescriptorSet);
 
     const RootSignature*            pRootSignature = pDesc->pRootSignature;
-    const DescriptorUpdateFrequency updateFreq = pDesc->updateFrequency;
-    const uint32_t                  nodeIndex = 0;
-    const uint32_t                  cbvSrvUavDescCount = pRootSignature->dx.cumulativeViewDescriptorCounts[updateFreq];
-    const uint32_t                  samplerDescCount = pRootSignature->dx.cumulativeSamplerDescriptorCounts[updateFreq];
+    uint32_t                        groupIndex = 0;
+    while (groupIndex < pRootSignature->descriptorSetCount && pRootSignature->dx.pLayouts[groupIndex].spaceIndex != pDesc->spaceIndex)
+        ++groupIndex;
+    ASSERT(groupIndex < pRootSignature->descriptorSetCount);
+    const DescriptorSetLayout& layout = pRootSignature->dx.pLayouts[groupIndex];
+    const uint32_t             nodeIndex = 0;
+    const uint32_t             cbvSrvUavDescCount = layout.viewDescriptorCount;
+    const uint32_t             samplerDescCount = layout.samplerDescriptorCount;
 
     DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), sizeof(DescriptorSet));
     ASSERT(pDescriptorSet);
 
     pDescriptorSet->dx.pRootSignature = pRootSignature;
-    pDescriptorSet->dx.updateFrequency = updateFreq;
+    pDescriptorSet->dx.groupIndex = groupIndex;
     pDescriptorSet->dx.maxSets = pDesc->maxSets;
-    pDescriptorSet->dx.cbvSrvUavRootIndex = pRootSignature->dx.viewDescriptorTableRootIndices[updateFreq];
-    pDescriptorSet->dx.samplerRootIndex = pRootSignature->dx.samplerDescriptorTableRootIndices[updateFreq];
+    pDescriptorSet->dx.cbvSrvUavRootIndex = layout.viewRootIndex;
+    pDescriptorSet->dx.samplerRootIndex = layout.samplerRootIndex;
     pDescriptorSet->dx.cbvSrvUavHandle = D3D12_DESCRIPTOR_ID_NONE;
     pDescriptorSet->dx.samplerHandle = D3D12_DESCRIPTOR_ID_NONE;
     pDescriptorSet->dx.pipelineType = pRootSignature->pipelineType;
@@ -5668,8 +5668,7 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
             for (uint32_t i = 0; i < pRootSignature->descriptorCount; ++i)
             {
                 const DescriptorInfo* pDescInfo = &pRootSignature->pDescriptors[i];
-                if (!pDescInfo->rootDescriptor && pDescInfo->type != DESCRIPTOR_TYPE_SAMPLER &&
-                    (int)pDescInfo->updateFrequency == updateFreq)
+                if (!pDescInfo->rootDescriptor && pDescInfo->type != DESCRIPTOR_TYPE_SAMPLER && pDescInfo->groupIndex == groupIndex)
                 {
                     DescriptorType type = (DescriptorType)pDescInfo->type;
                     DxDescriptorID srcHandle = D3D12_DESCRIPTOR_ID_NONE;
@@ -5768,7 +5767,7 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
     ASSERT(index < pDescriptorSet->dx.maxSets);
 
     const RootSignature*            pRootSignature = pDescriptorSet->dx.pRootSignature;
-    const DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->dx.updateFrequency;
+    const uint32_t                  groupIndex = pDescriptorSet->dx.groupIndex;
     const uint32_t                  nodeIndex = 0;
 
     for (uint32_t i = 0; i < count; ++i)
@@ -5801,8 +5800,7 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
         const uint32_t       arrayStart = pParam->arrayOffset;
         const uint32_t       arrayCount = max(1U, pParam->count);
 
-        VALIDATE_DESCRIPTOR((int)pDesc->updateFrequency == updateFreq, "Descriptor (%s) - Mismatching update frequency and register space",
-                            pDesc->pName);
+        VALIDATE_DESCRIPTOR(pDesc->groupIndex == groupIndex, "Descriptor (%s) - Mismatching descriptor set space", pDesc->pName);
 
         if (pDesc->rootDescriptor)
         {
@@ -6051,11 +6049,9 @@ static bool ResetRootSignature(Cmd* pCmd, PipelineType type, const RootSignature
     else
         pCmd->dx.pCmdList->SetComputeRootSignature(pRootSignature->dx.pRootSignature);
 
-    for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
-    {
-        pCmd->dx.pBoundDescriptorSets[i] = NULL;
-        pCmd->dx.boundDescriptorSetIndices[i] = (uint16_t)-1;
-    }
+    arrsetlen(pCmd->dx.pBoundDescriptorSets, pRootSignature->descriptorSetCount);
+    for (uint32_t i = 0; i < pRootSignature->descriptorSetCount; ++i)
+        pCmd->dx.pBoundDescriptorSets[i] = {};
 
     return true;
 }
@@ -6066,16 +6062,15 @@ void d3d12_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescr
     ASSERT(pDescriptorSet);
     ASSERT(index < pDescriptorSet->dx.maxSets);
 
-    const DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->dx.updateFrequency;
+    const uint32_t groupIndex = pDescriptorSet->dx.groupIndex;
 
     // Set root signature if the current one differs from pRootSignature
     ResetRootSignature(pCmd, (PipelineType)pDescriptorSet->dx.pipelineType, pDescriptorSet->dx.pRootSignature);
 
-    if (pCmd->dx.boundDescriptorSetIndices[pDescriptorSet->dx.updateFrequency] != index ||
-        pCmd->dx.pBoundDescriptorSets[pDescriptorSet->dx.updateFrequency] != pDescriptorSet)
+    BoundDescriptorSet& bound = pCmd->dx.pBoundDescriptorSets[groupIndex];
+    if (bound.instanceIndex != index || bound.pSet != pDescriptorSet)
     {
-        pCmd->dx.pBoundDescriptorSets[pDescriptorSet->dx.updateFrequency] = pDescriptorSet;
-        pCmd->dx.boundDescriptorSetIndices[pDescriptorSet->dx.updateFrequency] = (uint16_t)index;
+        bound = { .pSet = pDescriptorSet, .instanceIndex = index };
 
         // Bind the descriptor tables associated with this DescriptorSet
         if (pDescriptorSet->dx.pipelineType == PIPELINE_TYPE_GRAPHICS)
@@ -6745,11 +6740,7 @@ void d3d12_beginCmd(Cmd* pCmd)
 
     // Reset CPU side data
     pCmd->dx.pBoundRootSignature = NULL;
-    for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
-    {
-        pCmd->dx.pBoundDescriptorSets[i] = NULL;
-        pCmd->dx.boundDescriptorSetIndices[i] = (uint16_t)-1;
-    }
+    arrsetlen(pCmd->dx.pBoundDescriptorSets, 0);
 
 #if defined(XBOX)
     pCmd->dx.sampleCount = 0;

@@ -3140,11 +3140,11 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
             textureRootDesc.ppStaticSamplers = &pUserInterface->pDefaultSampler;
             addRootSignature(pUserInterface->pRenderer, &textureRootDesc, &pUserInterface->pRootSignatureTextured);
 
-            DescriptorSetDesc setDesc = { pUserInterface->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
+            DescriptorSetDesc setDesc = { pUserInterface->pRootSignatureTextured, 0,
                                           pUserInterface->maxUIFonts +
                                               (pUserInterface->maxDynamicUIUpdatesPerBatch * pUserInterface->frameCount) };
             addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSetTexture);
-            setDesc = { pUserInterface->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_NONE, pUserInterface->frameCount };
+            setDesc = { pUserInterface->pRootSignatureTextured, 0, pUserInterface->frameCount };
             addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSetUniforms);
 
             for (uint32_t i = 0; i < pUserInterface->frameCount; ++i)
