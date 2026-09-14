@@ -135,6 +135,7 @@ target_link_libraries(${ENGINE_RUNTIME} PRIVATE slang)
 target_link_directories(${ENGINE_RUNTIME} PUBLIC ${RHI_LIBRARY_PATHS})
 
 target_compile_definitions(${ENGINE_RUNTIME} PUBLIC ${RHI_DEFINES})
+target_compile_definitions(${ENGINE_RUNTIME} PUBLIC "$<$<CONFIG:RelWithDebInfo>:ENABLE_GRAPHICS_DEBUG>")
 
 if(HORIZON_ENABLE_TRACY)
     target_compile_definitions(${ENGINE_RUNTIME} PUBLIC

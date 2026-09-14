@@ -2433,7 +2433,7 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
         *pStartResourceState = actualStartState;
 }
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
 void DebugMessageCallback(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_SEVERITY severity, D3D12_MESSAGE_ID id, LPCSTR pDescription,
                           void* pContext)
 {
@@ -2603,7 +2603,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     SetAftermathDevice(pRenderer->dx.pDevice);
 #endif
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
     HRESULT hr = pRenderer->dx.pDevice->QueryInterface(IID_ARGS(&pRenderer->dx.pDebugValidation));
     pRenderer->dx.useDebugCallback = true;
     if (!SUCCEEDED(hr))
@@ -2679,7 +2679,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
     if (pRenderer->dx.pDebugValidation && pRenderer->pGpu->settings.suppressInvalidSubresourceStateAfterExit)
     {
         // bypass AMD driver issue with vk and dxgi swapchains resource states
@@ -3171,7 +3171,7 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
     }
 
     pQueue->type = pDesc->type;
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
     pQueue->dx.pRenderer = pRenderer;
 #endif
 
@@ -5331,7 +5331,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             RootParameter param = { *pRes, pDesc };
             arrpush(layouts[setIndex].cbvSrvUavTable, param);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
             if (DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE == pDesc->type)
             {
                 pRootSignature->dx.hasRayQueryAccelerationStructure = true;
@@ -7049,7 +7049,7 @@ void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, ui
     // dispatch given command
     ASSERT(pCmd->dx.pCmdList != NULL);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
     // Bug in validation when using acceleration structure in compute or graphics pipeline
     // D3D12 ERROR: ID3D12CommandList::Dispatch: Static Descriptor SRV resource dimensions (UNKNOWN (11)) differs from that expected by
     // shader (D3D12_SRV_DIMENSION_BUFFER) UNKNOWN (11) is D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE
@@ -7065,7 +7065,7 @@ void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, ui
 
     hook_dispatch(pCmd, groupCountX, groupCountY, groupCountZ);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
     if (pCmd->pRenderer->dx.pDebugValidation && pCmd->dx.pBoundRootSignature->dx.hasRayQueryAccelerationStructure)
     {
         pCmd->pRenderer->dx.pDebugValidation->PopStorageFilter();
@@ -7463,7 +7463,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
         return;
     }
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
     decltype(pQueue->dx.pRenderer->dx)* pRenderer = &pQueue->dx.pRenderer->dx;
     if (pRenderer->pDebugValidation && pRenderer->suppressMismatchingCommandListDuringPresent)
     {
@@ -7483,7 +7483,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
     SwapChain* pSwapChain = pDesc->pSwapChain;
     HRESULT    hr = hook_queue_present(pQueue, pSwapChain, pDesc->index);
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
     if (pRenderer->pDebugValidation && pRenderer->suppressMismatchingCommandListDuringPresent)
     {
         pRenderer->pDebugValidation->PopStorageFilter();
@@ -7744,7 +7744,7 @@ void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, ui
     ASSERT(pCommandSignature);
     ASSERT(pIndirectBuffer);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
     if (pCmd->pRenderer->dx.pDebugValidation && pCmd->dx.pBoundRootSignature->dx.hasRayQueryAccelerationStructure)
     {
         D3D12_MESSAGE_ID        hide[] = { D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH };
@@ -7762,7 +7762,7 @@ void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, ui
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset,
                                            pCounterBuffer->dx.pResource, counterBufferOffset);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
     if (pCmd->pRenderer->dx.pDebugValidation && pCmd->dx.pBoundRootSignature->dx.hasRayQueryAccelerationStructure)
     {
         pCmd->pRenderer->dx.pDebugValidation->PopStorageFilter();

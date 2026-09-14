@@ -1075,7 +1075,7 @@ struct alignas(64) RootSignature
         uint32_t             cumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
         uint16_t             viewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
         uint16_t             samplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
         bool hasRayQueryAccelerationStructure;
 #endif
     } dx;
@@ -1270,7 +1270,7 @@ struct Queue
     {
         ID3D12CommandQueue* pQueue;
         Fence*              pFence;
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
         // To silence mismatching command list warnings on Windows 11 debug runtimes
         Renderer* pRenderer;
 #endif
@@ -1635,7 +1635,7 @@ struct RendererDesc
         D3D_FEATURE_LEVEL featureLevel;
     } dx;
 
-    ShaderTarget shaderTarget = SHADER_TARGET_6_6;
+    ShaderTarget shaderTarget = SHADER_TARGET_6_9;
 
     /// Apps may want to query additional state for their applications. That information is transferred through here.
     ExtendedSettings* pExtendedSettings;
@@ -1773,7 +1773,7 @@ struct alignas(64) Renderer
         struct DescriptorHeap** pSamplerHeaps;
         D3D12MA::Allocator*     pResourceAllocator;
         ID3D12Device*           pDevice;
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
         ID3D12InfoQueue1* pDebugValidation;
         DWORD             callbackCookie;
         bool              useDebugCallback;

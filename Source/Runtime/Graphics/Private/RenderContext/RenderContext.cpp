@@ -60,7 +60,7 @@ bool RenderContext::initDevice()
         return false;
 
     const RendererDesc rendererDesc = {
-        .shaderTarget = SHADER_TARGET_6_6,
+        .shaderTarget = SHADER_TARGET_6_9,
         .pContext = pRendererContext,
         .enableGpuBasedValidation = desc.enableGpuValidation,
     };

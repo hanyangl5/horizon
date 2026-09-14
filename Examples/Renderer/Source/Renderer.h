@@ -88,8 +88,8 @@ private:
 
         const GeometryLoadDesc geometryDesc = { .ppGeometryData = &pGeometryData, .pVertexLayout = &kSceneVertexLayout };
         SceneAssetError        error = {};
-        mScene = pScenes->requestFromGltf(RD_TEXTURES, kSceneSource, RD_OTHER_FILES, &geometryDesc, &error);
-        if (!isSceneAssetHandleValid(mScene))
+        scene = pScenes->requestFromGltf(RD_TEXTURES, kSceneSource, RD_OTHER_FILES, &geometryDesc, &error);
+        if (!isSceneAssetHandleValid(scene))
         {
             LOGF(eERROR, "Failed to request scene '%s': %s", kSceneSource, error.message);
             return false;
@@ -97,7 +97,7 @@ private:
 
         waitForAllResourceLoads();
         pScenes->update();
-        if (pScenes->getStatus(mScene) != SCENE_ASSET_STATUS_READY)
+        if (pScenes->getStatus(scene) != SCENE_ASSET_STATUS_READY)
         {
             LOGF(eERROR, "Scene '%s' did not become ready", kSceneSource);
             return false;
@@ -108,7 +108,7 @@ private:
             return false;
         }
 
-        const SceneGeometry* geometry = pScenes->getGeometry(mScene);
+        const SceneGeometry* geometry = pScenes->getGeometry(scene);
         if (!geometry)
         {
             LOGF(eERROR, "Scene '%s' contains no GPU geometry", kSceneSource);
@@ -128,23 +128,23 @@ private:
             return false;
         }
 
-        mInstanceCount = header->instanceCount;
+        instanceCount = header->instanceCount;
         pInstances = (const SceneAssetInstance*)(header + 1);
 
         const float cx = (header->boundsMin[0] + header->boundsMax[0]) * 0.5f;
         const float cz = (header->boundsMin[2] + header->boundsMax[2]) * 0.5f;
-        mTarget = Point3(cx, header->boundsMin[1] + 4.0f, cz);
-        mEye = Point3(cx + 18.0f, header->boundsMin[1] + 16.0f, cz - 32.0f);
+        target = Point3(cx, header->boundsMin[1] + 4.0f, cz);
+        eye = Point3(cx + 18.0f, header->boundsMin[1] + 16.0f, cz - 32.0f);
         if (header->hasCamera)
         {
             const float* camera = header->cameraWorld;
-            mEye = Point3(camera[12], camera[13], camera[14]);
-            mTarget = mEye - Vector3(camera[8], camera[9], camera[10]);
-            mVerticalFov = header->cameraYFov;
+            eye = Point3(camera[12], camera[13], camera[14]);
+            target = eye - Vector3(camera[8], camera[9], camera[10]);
+            verticalFov = header->cameraYFov;
         }
 
-        LOGF(eINFO, "SceneAsset ready: %u instances, %u draws, %u triangles, %u materials, %u textures", mInstanceCount,
-             geometry->drawArgCount, geometry->indexCount / 3, pScenes->getMaterialCount(mScene), pScenes->getTextureCount(mScene));
+        LOGF(eINFO, "SceneAsset ready: %u instances, %u draws, %u triangles, %u materials, %u textures", instanceCount,
+             geometry->drawArgCount, geometry->indexCount / 3, pScenes->getMaterialCount(scene), pScenes->getTextureCount(scene));
         LOGF(eINFO, "Scene bounds: (%f, %f, %f) - (%f, %f, %f)", header->boundsMin[0], header->boundsMin[1], header->boundsMin[2],
              header->boundsMax[0], header->boundsMax[1], header->boundsMax[2]);
         return true;
@@ -155,11 +155,11 @@ private:
         const RenderPassesDesc desc = {
             .pContext = pContext.get(),
             .pScenes = pScenes.get(),
-            .scene = mScene,
+            .scene = scene,
             .pInstances = pInstances,
-            .instanceCount = mInstanceCount,
+            .instanceCount = instanceCount,
             .surfaceFormat = kSurfaceFormat,
-            .verticalFov = mVerticalFov,
+            .verticalFov = verticalFov,
         };
         pRenderPasses = hz::make_unique<RenderPasses>(desc);
         ASSERT(pRenderPasses);
@@ -208,8 +208,8 @@ private:
     {
         const FreeCameraControllerDesc desc = {
             .pWindow = pWindow,
-            .position = Vector3(mEye),
-            .lookAt = Vector3(mTarget),
+            .position = Vector3(eye),
+            .lookAt = Vector3(target),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
@@ -221,11 +221,11 @@ private:
     hz::unique_ptr<hz::RenderContext>    pContext;
     hz::unique_ptr<SceneManager>         pScenes;
     hz::unique_ptr<RenderPasses>         pRenderPasses;
-    SceneAssetHandle                     mScene = {};
+    SceneAssetHandle                     scene = {};
     GeometryData*                        pGeometryData = nullptr;
     const SceneAssetInstance*            pInstances = nullptr;
-    uint32_t                             mInstanceCount = 0;
-    Point3                               mEye;
-    Point3                               mTarget;
-    float                                mVerticalFov = PI / 4.0f;
+    uint32_t                             instanceCount = 0;
+    Point3                               eye;
+    Point3                               target;
+    float                                verticalFov = PI / 4.0f;
 };

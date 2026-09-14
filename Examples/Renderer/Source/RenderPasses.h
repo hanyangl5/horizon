@@ -23,30 +23,30 @@ struct RenderPassesDesc
 class GBuffer
 {
 public:
-    GBuffer(hz::RenderContext& pContext);
+    GBuffer(hz::RenderContext& context);
     void update();
     void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, SceneManager& scenes, SceneAssetHandle scene,
                  hz::Span<const SceneAssetInstance> instances);
     void load(uint32_t width, uint32_t height);
     void unload();
-    hz::RenderContext&        pContext;
-    static constexpr uint32_t GBufferCount = 4;
-    hz::GPUPipeline           mGeometryPipeline;
-    hz::GPUSampler            mSampler;
-    hz::GPUTexture            mGBuffer[GBufferCount];
-    hz::GPUTexture            mDepth;
+    hz::RenderContext&        context;
+    static constexpr uint32_t gbufferCount = 4;
+    hz::GPUPipeline           pipeline;
+    hz::GPUSampler            sampler;
+    hz::GPUTexture            gbuffer[gbufferCount];
+    hz::GPUTexture            depth;
 };
 
 class Lighting
 {
 public:
-    Lighting(hz::RenderContext& pContext, hz::Format format);
+    Lighting(hz::RenderContext& context, hz::Format format);
     void update();
     void execute(hz::CommandList& cmd, const hz::GPUTexture& renderTarget, const hz::GPUBuffer& frame, const GBuffer& gbuffer);
     void load(uint32_t width, uint32_t height);
     void unload();
-    hz::RenderContext& pContext;
-    hz::GPUPipeline    mLightingPipeline;
+    hz::RenderContext& context;
+    hz::GPUPipeline    pipeline;
 };
 
 class RenderPasses
@@ -74,16 +74,16 @@ private:
 
     hz::RenderContext&            pContext;
     SceneManager*                 pScenes = nullptr;
-    SceneAssetHandle              mScene = {};
+    SceneAssetHandle              scene = {};
     hz::Array<SceneAssetInstance> instances;
-    hz::Format                    mSurfaceFormat = hz::Format::UNDEFINED;
-    float                         mVerticalFov = PI / 4.0f;
+    hz::Format                    surfaceFormat = hz::Format::UNDEFINED;
+    float                         verticalFov = PI / 4.0f;
 
     hz::unique_ptr<GBuffer>  gbuffer;
     hz::unique_ptr<Lighting> lighting;
-    hz::GPUBuffer            mFrame;
-    hz::GPUBuffer            mDraws;
-    FrameData                mFrameData = {};
-    Matrix4                  mPreviousViewProjection;
-    bool                     mHasPreviousViewProjection = false;
+    hz::GPUBuffer            frame;
+    hz::GPUBuffer            draws;
+    FrameData                frameData = {};
+    Matrix4                  previousViewProjection;
+    bool                     hasPreviousViewProjection = false;
 };
