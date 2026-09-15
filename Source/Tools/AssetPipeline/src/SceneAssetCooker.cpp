@@ -305,7 +305,8 @@ static uint64_t primitiveHash(const cgltf_primitive& primitive)
 
 SceneAssetCooker::SceneAssetCooker(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
                                    const char* pGeometryFile):
-    sourceDirectory(sourceDirectory), outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
+    sourceDirectory(sourceDirectory),
+    outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
 {
     fsAppendPathExtension(pSourceFile, "asset.json", metadataFile);
     fsReplacePathExtension(pGeometryFile, "sceneasset.json", assetFile);
@@ -375,7 +376,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const cJSON& legacyManifest
     cJSON*            pOldRecords = cJSON_GetObjectItemCaseSensitive(pPrevious, "assets");
     cJSON*            pRecords = cJSON_AddArrayToObject(pMetadata, "assets");
     const cJSON*      pLegacyScene = cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(&legacyManifest, "scenes"),
-                                                                      text(&legacyManifest, "defaultScene"));
+                                                                 text(&legacyManifest, "defaultScene"));
     const cJSON*      pLegacyMaterials = cJSON_GetObjectItemCaseSensitive(pLegacyScene, "materials");
     const cJSON*      pLegacyTextures = cJSON_GetObjectItemCaseSensitive(pLegacyScene, "textures");
     hz::Array<cJSON*> textures((uint32_t)data.textures_count);
