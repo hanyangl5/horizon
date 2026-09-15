@@ -22,7 +22,6 @@ struct RenderPassesDesc
 class GBuffer
 {
 public:
-
     GBuffer(hz::RenderContext& context);
     void               update();
     void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
