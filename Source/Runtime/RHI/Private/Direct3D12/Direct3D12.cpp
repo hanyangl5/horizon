@@ -94,7 +94,7 @@
 #include "../RendererResourceAPI.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL    ((D3D12_GPU_VIRTUAL_ADDRESS)0)
-#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS) - 1)
 #define D3D12_REQ_CONSTANT_BUFFER_SIZE    (D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16u)
 #define D3D12_DESCRIPTOR_ID_NONE          ((int32_t)-1)
 
@@ -438,11 +438,11 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 	D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME,
 #endif
 };
-    // clang-format on
+// clang-format on
 
-    // =================================================================================================
-    // IMPLEMENTATION
-    // =================================================================================================
+// =================================================================================================
+// IMPLEMENTATION
+// =================================================================================================
 
 #if defined(RENDERER_IMPLEMENTATION)
 
@@ -3919,8 +3919,8 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     {
         DescriptorHeap* pHeap = pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
         uint32_t        handleCount = ((pDesc->descriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? 1 : 0) +
-                               ((pDesc->descriptors & DESCRIPTOR_TYPE_BUFFER) ? 1 : 0) +
-                               ((pDesc->descriptors & DESCRIPTOR_TYPE_RW_BUFFER) ? 1 : 0);
+                                      ((pDesc->descriptors & DESCRIPTOR_TYPE_BUFFER) ? 1 : 0) +
+                                      ((pDesc->descriptors & DESCRIPTOR_TYPE_RW_BUFFER) ? 1 : 0);
         pBuffer->dx.descriptors = consume_descriptor_handles(pHeap, handleCount);
         pBuffer->dx.srvDescriptorOffset = (pDesc->descriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? 1 : 0;
         pBuffer->dx.uavDescriptorOffset = pBuffer->dx.srvDescriptorOffset + ((pDesc->descriptors & DESCRIPTOR_TYPE_BUFFER) ? 1 : 0);
@@ -5065,7 +5065,8 @@ static bool ResetRootSignature(Cmd* pCmd, PipelineType type, const RootSignature
     return true;
 }
 
-void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants,
+                                uint32_t constantCount, uint32_t offsetIn32BitValues)
 {
     ASSERT(pCmd);
     ASSERT(pConstants);
@@ -5078,11 +5079,14 @@ void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32
     const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
     ASSERT(pDesc);
     ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->type);
+    if (!constantCount)
+        constantCount = pDesc->size;
+    ASSERT(offsetIn32BitValues <= pDesc->size && constantCount <= pDesc->size - offsetIn32BitValues);
 
     if (pRootSignature->pipelineType == PIPELINE_TYPE_GRAPHICS)
-        pCmd->dx.pCmdList->SetGraphicsRoot32BitConstants(pDesc->handleIndex, pDesc->size, pConstants, 0);
+        pCmd->dx.pCmdList->SetGraphicsRoot32BitConstants(pDesc->handleIndex, constantCount, pConstants, offsetIn32BitValues);
     else
-        pCmd->dx.pCmdList->SetComputeRoot32BitConstants(pDesc->handleIndex, pDesc->size, pConstants, 0);
+        pCmd->dx.pCmdList->SetComputeRoot32BitConstants(pDesc->handleIndex, constantCount, pConstants, offsetIn32BitValues);
 }
 
 /************************************************************************/

@@ -109,7 +109,8 @@ extern void d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float
 extern void d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 extern void d3d12_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 extern void d3d12_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
-extern void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants);
+extern void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants,
+                                       uint32_t constantCount, uint32_t offsetIn32BitValues);
 extern void d3d12_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset);
 extern void d3d12_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides,
                                       const uint64_t* pOffsets);
@@ -562,10 +563,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPipeline(Cmd* pCmd, Pipeline* pPip
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex,
-                                                            const void* pConstants)
+                                                            const void* pConstants, uint32_t constantCount, uint32_t offsetIn32BitValues)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdBindPushConstants(pCmd, pRootSignature, paramIndex, pConstants);
+    d3d12_cmdBindPushConstants(pCmd, pRootSignature, paramIndex, pConstants, constantCount, offsetIn32BitValues);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)

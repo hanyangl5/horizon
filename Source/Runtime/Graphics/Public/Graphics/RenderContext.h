@@ -316,7 +316,7 @@ public:
     void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
     void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
     void setScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-    void setPushConstants(uint32_t slot, const void* data, uint32_t size);
+    void setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
 
     void draw(uint32_t vertexCount, uint32_t firstVertex = 0);
     void drawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);

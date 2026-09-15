@@ -125,20 +125,16 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);
-    const uint32_t indices[] = { frame.getSrvIndex(),
-                                 draws.getSrvIndex(),
-                                 materials.getSrvIndex(),
-                                 sampler.getIndex(),
-                                 geometry.vertexBuffers[0].getSrvIndex(),
-                                 geometry.vertexBuffers[1].getSrvIndex(),
-                                 geometry.vertexBuffers[2].getSrvIndex() };
-    commands.setPushConstants(0, indices, sizeof(indices));
+    commands.setRootConstant({ frame.getSrvIndex(), draws.getSrvIndex(), materials.getSrvIndex(), sampler.getIndex(),
+                               geometry.vertexBuffers[0].getSrvIndex(), geometry.vertexBuffers[1].getSrvIndex(),
+                               geometry.vertexBuffers[2].getSrvIndex() },
+                             1);
     commands.setIndexBuffer(geometry.indexBuffer, 0, geometry.indexType);
 
     for (uint32_t i = 0; i < instances.count; ++i)
     {
         const SceneAssetInstance& instance = instances.pData[i];
-        commands.setPushConstants(1, &i, sizeof(i));
+        commands.setRootConstant({ i }, 0);
         const IndirectDrawIndexArguments& draw = geometry.pDrawArgs[instance.drawIndex];
         commands.drawIndexed(draw.indexCount, draw.startIndex, draw.vertexOffset);
     }
@@ -198,7 +194,7 @@ void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, co
     commands.setPipeline(pipeline);
     const uint32_t indices[] = { frame.getSrvIndex(), gbuffer.gbuffer[0].getSrvIndex(), gbuffer.gbuffer[1].getSrvIndex(),
                                  gbuffer.gbuffer[2].getSrvIndex(), gbuffer.depth.getSrvIndex() };
-    commands.setPushConstants(0, indices, sizeof(indices));
+    commands.setRootConstant(indices);
     commands.draw(3);
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -248,7 +244,7 @@ void PostProcessing::execute(hz::CommandList& commands, const hz::GPUTexture& re
         .paperWhiteNits = 203.0f,
         .peakNits = context.isHDREnabled() ? hdrMetadata.maxContentLightLevel : 100.0f,
     };
-    commands.setPushConstants(0, &constants, sizeof(constants));
+    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
     commands.draw(3);
     commands.endRendering();
     commands.endGpuTimestamp();

@@ -2,6 +2,7 @@
 
 cbuffer RootConstant0
 {
+    uint drawId;
     uint frameIndex;
     uint drawsIndex;
     uint materialsIndex;
@@ -10,7 +11,6 @@ cbuffer RootConstant0
     uint normalsIndex;
     uint texcoordsIndex;
 };
-cbuffer RootConstant1 { uint drawId; };
 
 struct PSInput
 {

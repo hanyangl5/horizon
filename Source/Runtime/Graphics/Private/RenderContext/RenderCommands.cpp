@@ -217,16 +217,14 @@ void hz::CommandList::setViewport(float x, float y, float w, float h, float minD
     cmdSetViewport(pCmd, x, y, w, h, minD, maxD);
 }
 void hz::CommandList::setScissor(uint32_t x, uint32_t y, uint32_t w, uint32_t h) { cmdSetScissor(pCmd, x, y, w, h); }
-void hz::CommandList::setPushConstants(uint32_t index, const void* data, uint32_t size)
+void hz::CommandList::setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues)
 {
-    char descriptorName[32] = {};
-    snprintf(descriptorName, sizeof(descriptorName), "RootConstant%u", index);
-    const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, descriptorName);
-
-    uint8_t paddedData[256] = {};
-    memcpy(paddedData, data, size);
-    cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, paddedData);
+    ASSERT(pCurrentRootSignature && values.pData && values.count);
+    const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, "RootConstant0");
+    ASSERT(descriptorIndex != UINT32_MAX);
+    cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, values.pData, values.count, offsetIn32BitValues);
 }
+
 void hz::CommandList::draw(uint32_t count, uint32_t first) { cmdDraw(pCmd, count, first); }
 void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t vertex) { cmdDrawIndexed(pCmd, count, first, vertex); }
 

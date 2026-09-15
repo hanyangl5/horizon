@@ -13,9 +13,9 @@ extern void initWindowClass();
 extern void exitWindowClass();
 #endif
 
-template <typename T>
+template<typename T>
 constexpr bool IsMoveOnlyGpuResource = !std::is_copy_constructible_v<T> && !std::is_copy_assignable_v<T> &&
-                                     std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>;
+                                       std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>;
 
 static_assert(IsMoveOnlyGpuResource<hz::GPUBuffer>);
 static_assert(IsMoveOnlyGpuResource<hz::GPUTexture>);
@@ -99,9 +99,8 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         first = hz::GPUPipeline{};
         EXPECT_FALSE(first.isValid());
         const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
-        const char fragmentSource[] =
-            "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
-            "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
+        const char fragmentSource[] = "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
+                                      "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
         second = context.createGraphicsPipeline({
             .shaderDesc = {
                 .stages = {
@@ -147,23 +146,22 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     });
     ASSERT_TRUE(pipeline.isValid());
     hz::GPUBuffer    output = context.createBuffer({
-           .size = 4 * sizeof(uint32_t),
-           .elementCount = 4,
-           .structStride = sizeof(uint32_t),
-           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-           .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-           .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .size = 4 * sizeof(uint32_t),
+        .elementCount = 4,
+        .structStride = sizeof(uint32_t),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer    readback = context.createBuffer({
-           .size = 4 * sizeof(uint32_t),
-           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-           .startState = RESOURCE_STATE_COPY_DEST,
-           .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .size = 4 * sizeof(uint32_t),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .startState = RESOURCE_STATE_COPY_DEST,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     hz::CommandList& commands = context.acquireCommandList();
     commands.setPipeline(pipeline);
-    const uint32_t outputIndex = output.getUavIndex();
-    commands.setPushConstants(0, &outputIndex, sizeof(outputIndex));
+    commands.setRootConstant({ output.getUavIndex() });
     commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
     context.wait(context.submit(commands));
@@ -172,7 +170,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     for (uint32_t i = 0; i < 4; ++i)
         EXPECT_EQ(values[i], i + 23);
 
-    const char      graphicsSource[] = R"(
+    const char graphicsSource[] = R"(
         cbuffer RootConstant0 { uint vertexIndex; uint sharedIndex; uint fragmentIndex; };
         float4 VSMain(uint id : SV_VertexID) : SV_Position
         {
@@ -235,8 +233,8 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     )";
     hz::GPUPipeline   write = context.createComputePipeline(
         { .shaderDesc = {
-                .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
-                .language = hz::ShaderLanguage::Slang,
+              .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
+              .language = hz::ShaderLanguage::Slang,
           } });
     hz::GPUPipeline read = context.createComputePipeline(
         { .shaderDesc = {
@@ -257,37 +255,37 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     const uint32_t configData[64] = { 2 };
     const uint32_t bias = 3;
     hz::GPUBuffer  config = context.createBuffer({
-         .size = 256,
-         .elementCount = 64,
-         .structStride = 4,
-         .pInitialData = configData,
-         .initialDataSize = sizeof(configData),
-         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-         .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-         .descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
+        .size = 256,
+        .elementCount = 64,
+        .structStride = 4,
+        .pInitialData = configData,
+        .initialDataSize = sizeof(configData),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+        .descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer  raw = context.createBuffer({
-         .size = 4,
-         .elementCount = 1,
-         .pInitialData = &bias,
-         .initialDataSize = sizeof(bias),
-         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-         .startState = RESOURCE_STATE_SHADER_RESOURCE,
-         .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+        .size = 4,
+        .elementCount = 1,
+        .pInitialData = &bias,
+        .initialDataSize = sizeof(bias),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_SHADER_RESOURCE,
+        .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
     hz::GPUBuffer  output = context.createBuffer({
-         .size = 32,
-         .elementCount = 2,
-         .structStride = 16,
-         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-         .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-         .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .size = 32,
+        .elementCount = 2,
+        .structStride = 16,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer  readback = context.createBuffer({
-         .size = 32,
-         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-         .startState = RESOURCE_STATE_COPY_DEST,
-         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .size = 32,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .startState = RESOURCE_STATE_COPY_DEST,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     EXPECT_NE(config.getCbvIndex(), config.getUavIndex());
     EXPECT_EQ(textures[0].getUavIndex(1), textures[0].getUavIndex(0) + 1);
@@ -296,10 +294,12 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
                                    config.getCbvIndex(),       raw.getSrvIndex() };
     hz::CommandList& commands = context.acquireCommandList();
     commands.setPipeline(write);
-    commands.setPushConstants(0, indices, sizeof(indices));
+    commands.setRootConstant({ indices, 4 });
+    commands.setRootConstant({ indices + 4, 4 }, 4);
     commands.dispatch(1, 1, 1, { .storageTextures = { &textures[0], &textures[1] } });
     commands.setPipeline(read);
-    commands.setPushConstants(0, indices, sizeof(indices));
+    commands.setRootConstant({ indices, 4 });
+    commands.setRootConstant({ indices + 4, 4 }, 4);
     commands.dispatch(1, 1, 1,
                       { .sampledTextures = { &textures[0], &textures[1] }, .buffers = { &config, &raw }, .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 32);

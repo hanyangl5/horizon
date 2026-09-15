@@ -208,8 +208,7 @@ void GeometryBuildPass::execute(hz::CommandList& commands) const
 {
     commands.beginGpuTimestamp("Build Geometry");
     commands.setPipeline(pipeline);
-    const uint32_t resourceIndices[] = { vertices.getUavIndex(), indices.getUavIndex() };
-    commands.setPushConstants(0, resourceIndices, sizeof(resourceIndices));
+    commands.setRootConstant({ vertices.getUavIndex(), indices.getUavIndex() });
     const hz::GPUBuffer* buffers[] = { &vertices, &indices };
     commands.dispatch(1, 1, 1, { .storageBuffers = buffers });
     commands.endGpuTimestamp();
@@ -357,11 +356,9 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.setPipeline(pipeline);
     commands.setVertexBuffer(0, vertices, 0, sizeof(Vertex));
     commands.setIndexBuffer(indices, 0, INDEX_TYPE_UINT32);
-    const uint32_t sceneIndex0 = sceneUniforms[0]->getSrvIndex();
-    commands.setPushConstants(0, &sceneIndex0, sizeof(sceneIndex0));
+    commands.setRootConstant({ sceneUniforms[0]->getSrvIndex() });
     commands.drawIndexed(kCubeIndexCount);
-    const uint32_t sceneIndex1 = sceneUniforms[1]->getSrvIndex();
-    commands.setPushConstants(0, &sceneIndex1, sizeof(sceneIndex1));
+    commands.setRootConstant({ sceneUniforms[1]->getSrvIndex() });
     commands.drawIndexed(kPlaneIndexCount, kPlaneFirstIndex, kPlaneFirstVertex);
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -445,8 +442,7 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
     commands.setViewport(0.0f, 0.0f, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(pipeline);
-    const uint32_t resourceIndices[] = { albedo.getSrvIndex(), normal.getSrvIndex(), depth.getSrvIndex() };
-    commands.setPushConstants(0, resourceIndices, sizeof(resourceIndices));
+    commands.setRootConstant({ { albedo.getSrvIndex(), normal.getSrvIndex(), depth.getSrvIndex() } });
     commands.draw(3);
     commands.endRendering();
     commands.endGpuTimestamp();

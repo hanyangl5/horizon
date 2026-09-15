@@ -2043,7 +2043,9 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex,
+                                                            const void* pConstants, uint32_t constantCount = 0,
+                                                            uint32_t offsetIn32BitValues = 0);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex);
