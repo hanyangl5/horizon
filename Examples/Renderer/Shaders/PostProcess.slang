@@ -2,9 +2,9 @@
 
 cbuffer RootConstant0
 {
-    uint sceneColorIndex;
-    uint depthIndex;
-    uint outputMode;
+    uint  sceneColorIndex;
+    uint  depthIndex;
+    uint  outputMode;
     float paperWhiteNits;
     float peakNits;
 };
@@ -20,7 +20,7 @@ struct PSInput
 
 PSInput VSMain(uint vertexId : SV_VertexID)
 {
-    float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
+    float2  uv = float2((vertexId << 1) & 2, vertexId & 2);
     PSInput output;
     output.position = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
     output.uv = uv;
@@ -40,10 +40,7 @@ float3 toneMapHDR(float3 color)
 
 float3 rec709ToRec2020(float3 color)
 {
-    const float3x3 conversion = float3x3(
-        0.6274040, 0.3292820, 0.0433136,
-        0.0690970, 0.9195400, 0.0113612,
-        0.0163916, 0.0880132, 0.8955950);
+    const float3x3 conversion = float3x3(0.6274040, 0.3292820, 0.0433136, 0.0690970, 0.9195400, 0.0113612, 0.0163916, 0.0880132, 0.8955950);
     return mul(conversion, color);
 }
 
@@ -54,7 +51,7 @@ float3 linearNitsToPQ(float3 color)
     const float c1 = 0.8359375;
     const float c2 = 18.8515625;
     const float c3 = 18.6875;
-    float3 normalized = pow(saturate(color / 10000.0), m1);
+    float3      normalized = pow(saturate(color / 10000.0), m1);
     return pow((c1 + c2 * normalized) / (1.0 + c3 * normalized), m2);
 }
 
@@ -66,10 +63,10 @@ float3 toneMapSDR(float3 color)
 
 float4 PSMain(PSInput input): SV_Target0
 {
-    Texture2D<float4>           sceneColor = ResourceDescriptorHeap[sceneColorIndex];
-    Texture2D<float>            SceneDepth = ResourceDescriptorHeap[depthIndex];
-    int2                        pixel = int2(input.position.xy);
-    float                       depth = SceneDepth.Load(int3(pixel, 0));
+    Texture2D<float4> sceneColor = ResourceDescriptorHeap[sceneColorIndex];
+    Texture2D<float>  SceneDepth = ResourceDescriptorHeap[depthIndex];
+    int2              pixel = int2(input.position.xy);
+    float             depth = SceneDepth.Load(int3(pixel, 0));
     if (depth >= 1.0)
     {
         if (outputMode == OUTPUT_MODE_SDR)

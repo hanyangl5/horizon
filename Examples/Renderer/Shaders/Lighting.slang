@@ -55,7 +55,6 @@ float3 fresnelSchlick(float VoH, float3 f0)
     return f0 + (1.0 - f0) * factor;
 }
 
-
 float4 PSMain(PSInput input): SV_Target0
 {
     Texture2D<float4>           GBuffer0 = ResourceDescriptorHeap[gbuffer0Index];
