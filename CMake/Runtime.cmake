@@ -201,5 +201,6 @@ endif()
 set_target_properties(${ENGINE_RUNTIME} PROPERTIES FOLDER "Horizon")
 
 if(WIN32)
+    target_link_libraries(${ENGINE_RUNTIME} PRIVATE bcrypt)
     include(RuntimeShaders)
 endif()
