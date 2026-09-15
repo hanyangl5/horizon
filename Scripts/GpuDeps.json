@@ -3,8 +3,8 @@
     "agility_sdk": {
       "kind": "nuget",
       "package": "Microsoft.Direct3D.D3D12",
-      "version": "1.720.0-preview",
-      "sdk_version": 720,
+      "version": "1.721.3-preview",
+      "sdk_version": 721,
       "allow_preview": true,
       "architectures": [
         "x64"
