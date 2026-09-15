@@ -613,6 +613,21 @@ enum ColorSpace : uint32_t
     COLOR_SPACE_EXTENDED_SRGB, // Extended sRGB with linear EOTF
 };
 
+struct HDRMetadata
+{
+    float maxMasteringLuminance = 0.0f;
+    float minMasteringLuminance = 0.0f;
+    float maxContentLightLevel = 0.0f;
+    float maxFrameAverageLightLevel = 0.0f;
+};
+
+struct HDRDisplayInfo
+{
+    float minLuminance = 0.0f;
+    float maxLuminance = 0.0f;
+    float maxFullFrameLuminance = 0.0f;
+};
+
 // Material Unit test use this enum to index a shader table
 static_assert(GPU_PRESET_COUNT == 7);
 
@@ -1517,6 +1532,8 @@ struct SwapChainDesc
     bool                   useFlipSwapEffect;
     /// Optional colorspace for HDR
     ColorSpace             colorSpace;
+    /// Optional HDR10 mastering and content-light metadata
+    HDRMetadata            hdrMetadata;
 };
 
 struct SwapChain
@@ -1532,10 +1549,12 @@ struct SwapChain
         uint32_t         syncInterval : 3;
         uint32_t         flags : 10;
     } dx;
-    uint32_t   imageCount : 8;
-    uint32_t   enableVsync : 1;
-    ColorSpace colorSpace : 4;
-    hz::Format format : 8;
+    uint32_t       imageCount : 8;
+    uint32_t       enableVsync : 1;
+    ColorSpace     colorSpace : 4;
+    hz::Format     format : 8;
+    HDRDisplayInfo hdrDisplayInfo;
+    HDRMetadata    hdrMetadata;
 };
 
 enum ShaderTarget : uint32_t

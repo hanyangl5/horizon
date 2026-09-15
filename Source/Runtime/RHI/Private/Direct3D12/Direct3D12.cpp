@@ -3526,6 +3526,7 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
 
     pSwapChain->colorSpace = pDesc->colorSpace;
     pSwapChain->format = pDesc->colorFormat;
+    pSwapChain->hdrMetadata = pDesc->hdrMetadata;
 
 #if !defined(XBOX)
     pSwapChain->dx.syncInterval = pDesc->enableVsync ? 1 : 0;
@@ -3575,7 +3576,51 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     CHECK_HRESULT(pSwapChain->dx.pSwapChain->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport));
     if ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)
     {
-        pSwapChain->dx.pSwapChain->SetColorSpace1(colorSpace);
+        CHECK_HRESULT(pSwapChain->dx.pSwapChain->SetColorSpace1(colorSpace));
+        const bool hdrOutput = pDesc->colorSpace == COLOR_SPACE_P2020 || pDesc->colorSpace == COLOR_SPACE_EXTENDED_SRGB;
+        if (hdrOutput && pDesc->hdrMetadata.maxMasteringLuminance > 0.0f)
+        {
+            DXGI_OUTPUT_DESC1 outputDesc = {};
+            if (hook_get_output_desc(pRenderer, &pDesc->windowHandle, &outputDesc))
+            {
+                pSwapChain->hdrDisplayInfo = {
+                    .minLuminance = outputDesc.MinLuminance,
+                    .maxLuminance = outputDesc.MaxLuminance,
+                    .maxFullFrameLuminance = outputDesc.MaxFullFrameLuminance,
+                };
+                if (outputDesc.MaxLuminance > 0.0f)
+                {
+                    pSwapChain->hdrMetadata.maxMasteringLuminance = outputDesc.MaxLuminance;
+                    pSwapChain->hdrMetadata.minMasteringLuminance = outputDesc.MinLuminance;
+                    pSwapChain->hdrMetadata.maxContentLightLevel = outputDesc.MaxLuminance;
+                }
+            }
+
+            if (pDesc->colorSpace == COLOR_SPACE_P2020)
+            {
+                const HDRMetadata& hdrMetadata = pSwapChain->hdrMetadata;
+                IDXGISwapChain4*   pSwapChain4 = nullptr;
+                if (SUCCEEDED(pSwapChain->dx.pSwapChain->QueryInterface(IID_PPV_ARGS(&pSwapChain4))))
+                {
+                    DXGI_HDR_METADATA_HDR10 metadata = {
+                        .RedPrimary = { 35400, 14600 },
+                        .GreenPrimary = { 8500, 39850 },
+                        .BluePrimary = { 6550, 2300 },
+                        .WhitePoint = { 15635, 16450 },
+                        .MaxMasteringLuminance = (uint32_t)(hdrMetadata.maxMasteringLuminance + 0.5f),
+                        .MinMasteringLuminance = (uint32_t)(hdrMetadata.minMasteringLuminance * 10000.0f + 0.5f),
+                        .MaxContentLightLevel = (uint16_t)(hdrMetadata.maxContentLightLevel + 0.5f),
+                        .MaxFrameAverageLightLevel = (uint16_t)(hdrMetadata.maxFrameAverageLightLevel + 0.5f),
+                    };
+                    CHECK_HRESULT(pSwapChain4->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(metadata), &metadata));
+                    pSwapChain4->Release();
+                }
+            }
+        }
+    }
+    else
+    {
+        LOGF(LogLevel::eERROR, "Requested swapchain color space does not support presentation");
     }
 #endif
 

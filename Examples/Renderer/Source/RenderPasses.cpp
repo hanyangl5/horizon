@@ -9,7 +9,7 @@
 
 constexpr hz::Format kDepthFormat = hz::Format::D24_UNORM_S8_UINT;
 constexpr hz::Format kGBufferFormats[] = {
-    hz::Format::R10G10B10A2_UNORM,
+    hz::Format::B10G11R11_UFLOAT,
     hz::Format::R10G10B10A2_UNORM,
     hz::Format::R8G8B8A8_UNORM,
     hz::Format::R8G8B8A8_UNORM,
@@ -19,6 +19,15 @@ constexpr const char* kGBufferNames[] = {
     "Renderer.GBuffer.NormalMaterial",
     "Renderer.GBuffer.BaseColorMetallic",
     "Renderer.GBuffer.MotionMaterialId",
+};
+
+struct PostProcessRootConstants
+{
+    uint32_t sceneColorIndex;
+    uint32_t depthIndex;
+    uint32_t outputMode;
+    float    paperWhiteNits;
+    float    peakNits;
 };
 
 struct DrawData
@@ -137,7 +146,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.endGpuTimestamp();
 }
 
-Lighting::Lighting(hz::RenderContext& context, hz::Format format): context(context)
+Lighting::Lighting(hz::RenderContext& context): context(context)
 {
     pipeline = context.createGraphicsPipeline({
         .shaderDesc={
@@ -147,25 +156,38 @@ Lighting::Lighting(hz::RenderContext& context, hz::Format format): context(conte
         },
         .pFileName = "Lighting.slang",
     },
-        .colorTargets = { { .format = format } },
+        .colorTargets = { { .format = hz::Format::B10G11R11_UFLOAT } },
         .pName = "Renderer.LightingPipeline",
     });
+
     ASSERT(pipeline.isValid());
 }
 
-void Lighting::load(uint32_t width, uint32_t height) {}
+void Lighting::load(uint32_t width, uint32_t height)
+{
+    hz::TextureDesc targetDesc = {
+        .width = width,
+        .height = height,
+        .descriptors = DESCRIPTOR_TYPE_TEXTURE,
+        .renderTarget = true,
+    };
 
-void Lighting::unload() {}
+    targetDesc.format = hz::Format::B10G11R11_UFLOAT;
+    targetDesc.pName = "Lighting.SceneColor";
+    sceneColor = context.createTexture(targetDesc);
+}
+
+void Lighting::unload() { sceneColor = {}; }
 
 void Lighting::update() {}
 
-void Lighting::execute(hz::CommandList& commands, const hz::GPUTexture& renderTarget, const hz::GPUBuffer& frame, const GBuffer& gbuffer)
+void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const GBuffer& gbuffer)
 {
     const hz::GPUTexture* sampledTextures[] = { &gbuffer.gbuffer[0], &gbuffer.gbuffer[1], &gbuffer.gbuffer[2], &gbuffer.depth };
     commands.beginGpuTimestamp("Lighting");
     commands.beginRendering(
         {
-            .colorAttachments = { { .pTexture = &renderTarget,
+            .colorAttachments = { { .pTexture = &sceneColor,
                                     .loadAction = LOAD_ACTION_CLEAR,
                                     .storeAction = STORE_ACTION_STORE,
                                     .clearValue = { .r = 0.02f, .g = 0.035f, .b = 0.055f, .a = 1.0f } } },
@@ -182,20 +204,69 @@ void Lighting::execute(hz::CommandList& commands, const hz::GPUTexture& renderTa
     commands.endGpuTimestamp();
 }
 
+PostProcessing::PostProcessing(hz::RenderContext& context): context(context)
+{
+    pipeline = context.createGraphicsPipeline({
+        .shaderDesc={
+        .stages = {
+            { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain", .pName = "Renderer.PostProcessVS" },
+            { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.PostProcessPS" },
+        },
+        .pFileName = "PostProcess.slang",
+    },
+        .colorTargets = { { .format = context.getColorFormat() } },
+        .pName = "Renderer.PostProcessPipeline",
+    });
+
+    ASSERT(pipeline.isValid());
+}
+
+void PostProcessing::load(uint32_t, uint32_t) {}
+
+void PostProcessing::unload() {}
+
+void PostProcessing::update() {}
+
+void PostProcessing::execute(hz::CommandList& commands, const hz::GPUTexture& renderTarget, const hz::GPUTexture& sceneColor,
+                             const hz::GPUTexture& depth)
+{
+    const hz::GPUTexture* sampledTextures[] = { &sceneColor, &depth };
+    commands.beginGpuTimestamp("PostProcess");
+    commands.beginRendering(
+        {
+            .colorAttachments = { { .pTexture = &renderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } },
+        },
+        { .sampledTextures = sampledTextures });
+    commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
+    commands.setScissor(0, 0, context.getWidth(), context.getHeight());
+    commands.setPipeline(pipeline);
+    const HDRMetadata&             hdrMetadata = context.getHDRMetadata();
+    const PostProcessRootConstants constants = {
+        .sceneColorIndex = sceneColor.getSrvIndex(),
+        .depthIndex = depth.getSrvIndex(),
+        .outputMode = (uint32_t)context.getOutputMode(),
+        .paperWhiteNits = 203.0f,
+        .peakNits = context.isHDREnabled() ? hdrMetadata.maxContentLightLevel : 100.0f,
+    };
+    commands.setPushConstants(0, &constants, sizeof(constants));
+    commands.draw(3);
+    commands.endRendering();
+    commands.endGpuTimestamp();
+}
+
 RenderPasses::RenderPasses(const RenderPassesDesc& desc):
     pContext(*desc.pContext), pScenes(desc.pScenes), scene(desc.scene), instances({ desc.pInstances, desc.instanceCount }),
-    surfaceFormat(desc.surfaceFormat), verticalFov(desc.verticalFov)
+    verticalFov(desc.verticalFov)
 {
     ASSERT(pContext.isValid());
     ASSERT(pScenes);
     ASSERT(isSceneAssetHandleValid(scene));
     ASSERT(desc.pInstances);
     ASSERT(!instances.empty());
-    ASSERT(surfaceFormat != hz::Format::UNDEFINED);
 
     qsort(instances.data(), instances.size(), sizeof(SceneAssetInstance), compareMaterials);
     gbuffer = hz::make_unique<GBuffer>(pContext);
-    lighting = hz::make_unique<Lighting>(pContext, surfaceFormat);
+    lighting = hz::make_unique<Lighting>(pContext);
     const bool inited = initRenderResources();
     ASSERT(inited && gbuffer && lighting);
 }
@@ -272,15 +343,22 @@ bool RenderPasses::load(uint32_t width, uint32_t height)
 
     gbuffer->load(width, height);
     lighting->load(width, height);
+    postprocessing = hz::make_unique<PostProcessing>(pContext);
+    postprocessing->load(width, height);
 
     hasPreviousViewProjection = false;
-    return true;
+    return postprocessing && postprocessing->pipeline.isValid();
 }
 
 void RenderPasses::unload()
 {
     gbuffer->unload();
     lighting->unload();
+    if (postprocessing)
+    {
+        postprocessing->unload();
+        postprocessing = nullptr;
+    }
     hasPreviousViewProjection = false;
 }
 
@@ -308,11 +386,13 @@ void RenderPasses::execute()
     if (pContext.isSuspended())
         return;
 
+    ASSERT(postprocessing);
     hz::CommandList& commands = pContext.acquireCommandList();
     commands.updateBuffer(frame, 0, &frameData, sizeof(frameData));
     gbuffer->execute(commands, frame, draws, materials, *pScenes, scene, { instances.data(), instances.size() });
     const hz::GPUTexture& backbuffer = pContext.getCurrentBackbuffer();
-    lighting->execute(commands, backbuffer, frame, *gbuffer);
+    lighting->execute(commands, frame, *gbuffer);
+    postprocessing->execute(commands, backbuffer, lighting->sceneColor, gbuffer->depth);
 
     pContext.submit(commands, &backbuffer);
     previousViewProjection = frameData.viewProjection;

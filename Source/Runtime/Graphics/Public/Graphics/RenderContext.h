@@ -150,6 +150,13 @@ struct RenderPassDesc
     DepthAttachment       depthAttachment = {};
 };
 
+enum OutputMode : uint32_t
+{
+    OUTPUT_MODE_SDR = 0,
+    OUTPUT_MODE_HDR10,
+    OUTPUT_MODE_SCRGB,
+};
+
 struct ContextDesc
 {
     const char*  pAppName;
@@ -159,6 +166,8 @@ struct ContextDesc
     uint32_t     imageCount;
     hz::Format   colorFormat;
     ColorSpace   colorSpace;
+    HDRMetadata  hdrMetadata;
+    bool         enableHDR = false;
     bool         enableVSync;
     bool         enableGpuValidation;
     bool         enableGpuProfiler;
@@ -377,16 +386,20 @@ public:
 
     void waitIdle();
 
-    bool              resize(uint32_t width, uint32_t height);
-    bool              setVSync(bool enabled);
-    CommandList&      acquireCommandList();
-    SubmitHandle      submit(CommandList&, const GPUTexture* pPresent = nullptr);
-    void              wait(SubmitHandle);
-    uint32_t          getWidth() const;
-    uint32_t          getHeight() const;
-    hz::Format        getColorFormat() const;
-    const GPUTexture& getCurrentBackbuffer();
-    bool              isSuspended() const;
+    bool                  resize(uint32_t width, uint32_t height);
+    bool                  setVSync(bool enabled);
+    CommandList&          acquireCommandList();
+    SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
+    void                  wait(SubmitHandle);
+    uint32_t              getWidth() const;
+    uint32_t              getHeight() const;
+    hz::Format            getColorFormat() const;
+    bool                  isHDREnabled() const;
+    OutputMode            getOutputMode() const;
+    const HDRDisplayInfo& getHDRDisplayInfo() const;
+    const HDRMetadata&    getHDRMetadata() const;
+    const GPUTexture&     getCurrentBackbuffer();
+    bool                  isSuspended() const;
 
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
@@ -422,6 +435,9 @@ private:
     slang::IGlobalSession* pSlangSession = nullptr;
 
     ContextDesc               desc = {};
+    HDRDisplayInfo            hdrDisplayInfo = {};
+    HDRMetadata               hdrMetadata = {};
+    OutputMode                outputMode = OUTPUT_MODE_SDR;
     RendererContext*          pRendererContext = nullptr;
     Renderer*                 pRenderer = nullptr;
     Queue*                    pGraphicsQueue = nullptr;
