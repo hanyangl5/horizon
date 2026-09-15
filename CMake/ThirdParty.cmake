@@ -346,3 +346,4 @@ foreach(LIB ${THIRD_PARTY_DEPS})
 endforeach()
 
 set_target_properties(D3D12MemoryAllocator PROPERTIES FOLDER "Horizon/ThirdParty")
+include(Flecs)
