@@ -43,6 +43,13 @@ struct LocalMatrix
     Matrix4 value = Matrix4::identity();
 };
 
+// Derived hierarchy data, not a reflected authoring component.
+struct WorldTransform
+{
+    Matrix4 current = Matrix4::identity();
+    Matrix4 previous = Matrix4::identity();
+};
+
 struct MaterialOverride
 {
     SubmeshID submesh = 0;

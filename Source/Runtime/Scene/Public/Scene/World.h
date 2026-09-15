@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Scene/SceneReflection.h"
+#include "Scene/SceneID.h"
 
 namespace hz
 {
@@ -25,6 +26,8 @@ private:
     uint64_t value = 0;
 };
 
+struct WorldTransform;
+
 class DeferredChanges
 {
 public:
@@ -42,14 +45,32 @@ class World
 {
 public:
     // Registers the types currently in registry; descriptors must outlive the World.
-    explicit World(const TypeRegistry& registry);
+    explicit World(const TypeRegistry& registry, const IDGenerator& objectIDs = {});
     ~World();
     World(const World&) = delete;
     World& operator=(const World&) = delete;
 
-    Entity createEntity();
-    bool   destroyEntity(Entity entity);
-    bool   isAlive(Entity entity) const;
+    Entity   createEntity();
+    // Persistent authoring objects. Explicit IDs must be nonzero and unique within this World.
+    Entity   createObject();
+    Entity   createObject(const ObjectID& id);
+    // Pending creations reserve their IDs immediately but become visible to lookup at defer commit.
+    Entity   getEntity(const ObjectID& id) const;
+    ObjectID getObjectID(Entity entity) const;
+    // Leaf deletion can be deferred; deleting a parent preserves its children and requires a committed World.
+    bool     destroyEntity(Entity entity);
+    bool     isAlive(Entity entity) const;
+    bool     destroySubtree(Entity entity);
+
+    Entity                getParent(Entity entity) const;
+    // Hierarchy edits run outside defer/query scopes. An invalid parent means the root.
+    bool                  setParent(Entity entity, Entity parent = {}, bool keepWorld = true);
+    void                  updateTransforms();
+    // Valid until the next structural update. Call updateTransforms before reading.
+    const WorldTransform* getWorldTransform(Entity entity) const;
+    // Advance history only after a rendered frame is submitted.
+    void                  commitTransforms();
+    void                  resetTransformHistory(Entity root = {});
 
     bool        addComponent(Entity entity, TypeID type);
     bool        removeComponent(Entity entity, TypeID type);

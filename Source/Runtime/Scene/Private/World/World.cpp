@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 
-#include "Scene/World.h"
+#include "WorldInternal.h"
+#include "WorldHierarchy.h"
 
 #include "Core/IContainer.h"
 #include "Core/IThread.h"
@@ -10,43 +11,6 @@
 
 namespace hz
 {
-struct WorldType
-{
-    TypeID          key;
-    ecs_entity_t    component;
-    const TypeDesc* pType;
-};
-
-class WorldImpl
-{
-public:
-    explicit WorldImpl(const TypeRegistry& registry);
-    ~WorldImpl();
-    WorldImpl(const WorldImpl&) = delete;
-    WorldImpl& operator=(const WorldImpl&) = delete;
-
-private:
-    friend class World;
-    friend class WorldQuery;
-    friend class WorldQueryImpl;
-    friend class DeferredChanges;
-
-    const WorldType* findType(TypeID type) { return hmgetp_null(pTypes, type); }
-    void             checkThread() const { ASSERT(thread == getCurrentThreadID()); }
-
-    static void constructComponents(void* pDestination, int32_t count, const ecs_type_info_t* pInfo);
-    static void destroyComponents(void* pValue, int32_t count, const ecs_type_info_t* pInfo);
-    static void copyConstructComponents(void* pDestination, const void* pSource, int32_t count, const ecs_type_info_t* pInfo);
-    static void moveConstructComponents(void* pDestination, void* pSource, int32_t count, const ecs_type_info_t* pInfo);
-    static void copyComponents(void* pDestination, const void* pSource, int32_t count, const ecs_type_info_t* pInfo);
-    static void moveComponents(void* pDestination, void* pSource, int32_t count, const ecs_type_info_t* pInfo);
-
-    ecs_world_t* pWorld = nullptr;
-    WorldType*   pTypes = nullptr;
-    ecs_entity_t entityTag = 0;
-    ThreadID     thread = getCurrentThreadID();
-};
-
 class WorldQueryImpl
 {
 public:
@@ -143,7 +107,7 @@ void WorldImpl::moveComponents(void* pDestination, void* pSource, int32_t count,
     moveConstructComponents(pDestination, pSource, count, pInfo);
 }
 
-WorldImpl::WorldImpl(const TypeRegistry& registry)
+WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs): objectIDs(objectIDs)
 {
     initWorldOS();
     pWorld = ecs_mini();
@@ -165,31 +129,39 @@ WorldImpl::WorldImpl(const TypeRegistry& registry)
                     .move = moveComponents,
                     .copy_ctor = copyConstructComponents,
                     .move_ctor = moveConstructComponents,
+                    .on_remove = pType->id == SceneTypes::objectIdentity ? removeObjectIDs : nullptr,
                     .ctx = (void*)pType,
+                    .binding_ctx = this,
                 },
             },
         };
         const ecs_entity_t component = ecs_component_init(pWorld, &desc);
         ASSERT(component);
+        if (pType->id == SceneTypes::objectIdentity)
+            objectIdentityType = component;
         const WorldType mapping = { .key = pType->id, .component = component, .pType = pType };
         hmputs(pTypes, mapping);
     }
+    pHierarchy = tf_new(WorldHierarchy, *this);
 }
 
 WorldImpl::~WorldImpl()
 {
     checkThread();
     ASSERT(!ecs_is_deferred(pWorld));
+    tf_delete(pHierarchy);
     ecs_fini(pWorld);
+    hmfree(pObjects);
     hmfree(pTypes);
 }
 
-World::World(const TypeRegistry& registry): pImpl(tf_new(WorldImpl, registry)) {}
+World::World(const TypeRegistry& registry, const IDGenerator& objectIDs): pImpl(tf_new(WorldImpl, registry, objectIDs)) {}
 World::~World() { tf_delete(pImpl); }
 
 Entity World::createEntity()
 {
     pImpl->checkThread();
+    pImpl->pHierarchy->invalidateStructure();
     return Entity(ecs_new_w_id(pImpl->pWorld, pImpl->entityTag));
 }
 
@@ -199,20 +171,19 @@ bool World::isAlive(Entity entity) const
     return entity.isValid() && ecs_is_alive(pImpl->pWorld, entity.value);
 }
 
-bool World::destroyEntity(Entity entity)
-{
-    if (!isAlive(entity))
-        return false;
-    ecs_delete(pImpl->pWorld, entity.value);
-    return true;
-}
-
 bool World::addComponent(Entity entity, TypeID type)
 {
+    if (type == SceneTypes::objectIdentity)
+    {
+        LOGF(eERROR, "ObjectIdentity is managed by World::createObject");
+        return false;
+    }
     if (!isAlive(entity))
         return false;
     const WorldType* pType = pImpl->findType(type);
     if (!pType)
+        return false;
+    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
         return false;
     ecs_add_id(pImpl->pWorld, entity.value, pType->component);
     return true;
@@ -220,11 +191,17 @@ bool World::addComponent(Entity entity, TypeID type)
 
 bool World::removeComponent(Entity entity, TypeID type)
 {
+    if (type == SceneTypes::objectIdentity)
+    {
+        LOGF(eERROR, "ObjectIdentity cannot be removed from a live object");
+        return false;
+    }
     if (!isAlive(entity))
         return false;
     const WorldType* pType = pImpl->findType(type);
     if (!pType)
         return false;
+    pImpl->pHierarchy->prepareLocalChange(entity.value, type, false);
     ecs_remove_id(pImpl->pWorld, entity.value, pType->component);
     return true;
 }
@@ -232,10 +209,17 @@ bool World::removeComponent(Entity entity, TypeID type)
 bool World::setComponent(Entity entity, TypeID type, const void* pValue)
 {
     ASSERT(pValue);
+    if (type == SceneTypes::objectIdentity)
+    {
+        LOGF(eERROR, "ObjectIdentity cannot be changed after object creation");
+        return false;
+    }
     if (!isAlive(entity))
         return false;
     const WorldType* pType = pImpl->findType(type);
     if (!pType)
+        return false;
+    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
         return false;
     ecs_set_id(pImpl->pWorld, entity.value, pType->component, pType->pType->size, pValue);
     return true;
@@ -265,7 +249,11 @@ DeferredChanges::DeferredChanges(World& world): world(world)
 DeferredChanges::~DeferredChanges()
 {
     world.pImpl->checkThread();
-    ecs_defer_end(world.pImpl->pWorld);
+    if (ecs_defer_end(world.pImpl->pWorld))
+    {
+        world.pImpl->pHierarchy->finishDeferredChanges();
+        world.pImpl->finishObjectChanges();
+    }
 }
 
 WorldQueryImpl::WorldQueryImpl(World& world, Span<TypeID> types): pOwner(&world)
