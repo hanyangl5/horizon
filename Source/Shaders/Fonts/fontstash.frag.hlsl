@@ -30,9 +30,11 @@ struct PsIn
 	float2 texCoord: TEXCOORD0;
 };
 
-float4 PS_MAIN( PsIn In )
+float4 PS_MAIN( PsIn In ) : SV_Target0
 {
+    Texture2D<float4> atlas = ResourceDescriptorHeap[textureIndex];
+    SamplerState surface = SamplerDescriptorHeap[samplerIndex];
 	float4 Out;
-	Out = float4(1.0, 1.0, 1.0, SampleTex2D(uTex0, uSampler0, In.texCoord).r) * color;
+	Out = float4(1.0, 1.0, 1.0, atlas.Sample(surface, In.texCoord).r) * color;
 	return Out;
 }

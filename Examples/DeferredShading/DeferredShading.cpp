@@ -86,8 +86,7 @@ struct GeneratedVertexData
     float3 Color;
 };
 
-RWStructuredBuffer<GeneratedVertex> GeneratedVertices : register(u0);
-RWStructuredBuffer<uint> GeneratedIndices : register(u1);
+cbuffer RootConstant0 { uint verticesIndex; uint indicesIndex; };
 
 GeneratedVertex PackVertex(GeneratedVertexData source)
 {
@@ -158,6 +157,8 @@ uint MakeIndex(uint id)
 [numthreads(64, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
+    RWStructuredBuffer<GeneratedVertex> GeneratedVertices = ResourceDescriptorHeap[verticesIndex];
+    RWStructuredBuffer<uint> GeneratedIndices = ResourceDescriptorHeap[indicesIndex];
     const uint id = dispatchThreadId.x;
     if (id < 28)
         GeneratedVertices[id] = MakeVertex(id);
@@ -207,10 +208,9 @@ void GeometryBuildPass::execute(hz::CommandList& commands) const
 {
     commands.beginGpuTimestamp("Build Geometry");
     commands.setPipeline(pipeline);
-    commands.bindBuffer("GeneratedVertices", vertices);
-    commands.bindBuffer("GeneratedIndices", indices);
+    commands.setRootConstant({ vertices.getUavIndex(), indices.getUavIndex() });
     const hz::GPUBuffer* buffers[] = { &vertices, &indices };
-    commands.dispatch(1, 1, 1, { .buffers = buffers });
+    commands.dispatch(1, 1, 1, { .storageBuffers = buffers });
     commands.endGpuTimestamp();
 }
 
@@ -228,7 +228,7 @@ struct SceneUniforms
     float4x4 World;
 };
 
-StructuredBuffer<SceneUniforms> SceneUniformBuffer : register(t0);
+cbuffer RootConstant0 { uint sceneIndex; };
 
 struct VSInput
 {
@@ -246,6 +246,7 @@ struct VSOutput
 
 VSOutput VSMain(VSInput input)
 {
+    StructuredBuffer<SceneUniforms> SceneUniformBuffer = ResourceDescriptorHeap[sceneIndex];
     SceneUniforms scene = SceneUniformBuffer[0];
     VSOutput output;
     output.Position = mul(scene.WorldViewProjection, float4(input.Position, 1.0f));
@@ -355,18 +356,16 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.setPipeline(pipeline);
     commands.setVertexBuffer(0, vertices, 0, sizeof(Vertex));
     commands.setIndexBuffer(indices, 0, INDEX_TYPE_UINT32);
-    commands.bindBuffer("SceneUniformBuffer", *sceneUniforms[0]);
+    commands.setRootConstant({ sceneUniforms[0]->getSrvIndex() });
     commands.drawIndexed(kCubeIndexCount);
-    commands.bindBuffer("SceneUniformBuffer", *sceneUniforms[1]);
+    commands.setRootConstant({ sceneUniforms[1]->getSrvIndex() });
     commands.drawIndexed(kPlaneIndexCount, kPlaneFirstIndex, kPlaneFirstVertex);
     commands.endRendering();
     commands.endGpuTimestamp();
 }
 
 constexpr char kLightingShader[] = R"(
-Texture2D<float4> AlbedoTexture : register(t0);
-Texture2D<float4> NormalTexture : register(t1);
-Texture2D<float> DepthTexture : register(t2);
+cbuffer RootConstant0 { uint albedoIndex; uint normalIndex; uint depthIndex; };
 
 struct VSOutput
 {
@@ -387,6 +386,9 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
 
 float4 PSMain(VSOutput input) : SV_Target0
 {
+    Texture2D<float4> AlbedoTexture = ResourceDescriptorHeap[albedoIndex];
+    Texture2D<float4> NormalTexture = ResourceDescriptorHeap[normalIndex];
+    Texture2D<float> DepthTexture = ResourceDescriptorHeap[depthIndex];
     int2 pixel = int2(input.Position.xy);
     float4 albedo = AlbedoTexture.Load(int3(pixel, 0));
     float3 normal = normalize(NormalTexture.Load(int3(pixel, 0)).xyz * 2.0f - 1.0f);
@@ -440,9 +442,7 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
     commands.setViewport(0.0f, 0.0f, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(pipeline);
-    commands.bindTexture("AlbedoTexture", albedo);
-    commands.bindTexture("NormalTexture", normal);
-    commands.bindTexture("DepthTexture", depth);
+    commands.setRootConstant({ { albedo.getSrvIndex(), normal.getSrvIndex(), depth.getSrvIndex() } });
     commands.draw(3);
     commands.endRendering();
     commands.endGpuTimestamp();

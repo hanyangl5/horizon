@@ -1,10 +1,13 @@
 #include "Common.slang"
 
-Texture2D<float4>           GBuffer0;
-Texture2D<float4>           GBuffer1;
-Texture2D<float4>           GBuffer2;
-Texture2D<float>            SceneDepth;
-StructuredBuffer<FrameData> Frame;
+cbuffer RootConstant0
+{
+    uint frameIndex;
+    uint gbuffer0Index;
+    uint gbuffer1Index;
+    uint gbuffer2Index;
+    uint depthIndex;
+};
 
 struct PSInput
 {
@@ -23,8 +26,9 @@ PSInput VSMain(uint vertexId : SV_VertexID)
 
 float3 reconstructWorldPosition(float2 uv, float depth)
 {
-    float4 clip = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), depth, 1.0);
-    float4 world = mul(Frame[0].inverseViewProjection, clip);
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
+    float4                      clip = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), depth, 1.0);
+    float4                      world = mul(Frame[0].inverseViewProjection, clip);
     return world.xyz / world.w;
 }
 
@@ -51,14 +55,17 @@ float3 fresnelSchlick(float VoH, float3 f0)
     return f0 + (1.0 - f0) * factor;
 }
 
-float3 acesFilm(float3 color) { return saturate((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14)); }
-
 float4 PSMain(PSInput input): SV_Target0
 {
-    int2  pixel = int2(input.position.xy);
-    float depth = SceneDepth.Load(int3(pixel, 0));
+    Texture2D<float4>           GBuffer0 = ResourceDescriptorHeap[gbuffer0Index];
+    Texture2D<float4>           GBuffer1 = ResourceDescriptorHeap[gbuffer1Index];
+    Texture2D<float4>           GBuffer2 = ResourceDescriptorHeap[gbuffer2Index];
+    Texture2D<float>            SceneDepth = ResourceDescriptorHeap[depthIndex];
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
+    int2                        pixel = int2(input.position.xy);
+    float                       depth = SceneDepth.Load(int3(pixel, 0));
     if (depth >= 1.0)
-        return float4(0.02, 0.035, 0.055, 1.0);
+        return float4(0.0, 0.0, 0.0, 1.0);
 
     float3 emissive = GBuffer0.Load(int3(pixel, 0)).rgb;
     float4 normalMaterial = GBuffer1.Load(int3(pixel, 0));
@@ -90,5 +97,5 @@ float4 PSMain(PSInput input): SV_Target0
     float3       color = (diffuseBrdf + specularBrdf) * sunColor * NoL;
     color += emissive;
 
-    return float4(acesFilm(color), 1.0);
+    return float4(color, 1.0);
 }

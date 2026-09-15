@@ -21,43 +21,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- 
-#if GLES
-#undef SAMPLE_COUNT
+
+cbuffer RootConstant0 : register(b0)
+{
+    uint uniformIndex;
+    uint textureIndex;
+    uint samplerIndex;
+};
+
+#ifndef SAMPLE_COUNT
 #define SAMPLE_COUNT 1
 #endif
-
+struct PS_INPUT { float4 pos : SV_Position; float4 col : COLOR0; float2 uv : TEXCOORD0; };
+float4 PS_MAIN(PS_INPUT input) : SV_Target0
+{
 #if SAMPLE_COUNT == 1
-Texture2D<float4> uTex : register(UPDATE_FREQ_PER_BATCH, t1);
+    Texture2D<float4> texture = ResourceDescriptorHeap[textureIndex];
+    SamplerState surface = SamplerDescriptorHeap[samplerIndex];
+    return input.col * texture.Sample(surface, input.uv);
 #else
-Tex2DMS(float4, SAMPLE_COUNT) uTex : register(UPDATE_FREQ_PER_BATCH, t1);
+    Texture2DMS<float4, SAMPLE_COUNT> texture = ResourceDescriptorHeap[textureIndex];
+    uint width, height, samples;
+    texture.GetDimensions(width, height, samples);
+    float4 color = 0;
+    for (uint i = 0; i < SAMPLE_COUNT; ++i)
+        color += texture.Load(uint2(input.uv * float2(width, height)), i);
+    return input.col * color / SAMPLE_COUNT;
 #endif
-SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
-
-cbuffer uniformBlockVS: register(UPDATE_FREQ_NONE, b0)
-{
-	float4x4 ProjectionMatrix : None;
-};
-
-struct PS_INPUT
-{
-	float4 pos : SV_Position;
-	float4 col : COLOR0
-	float2 uv : TEXCOORD0;
-};
-
-float4 PS_MAIN( PS_INPUT In )
-{
-	INIT_MAIN;
-	float4 Out = f4(0);
-#if SAMPLE_COUNT == 1
-	Out = In.col * SampleTex2D(uTex, uSampler, In.uv);
-#else
-	GetDimensionsMS(uTex, texSize);
-	uint2 coord = uint2(float2(texSize) * In.uv);
-	for(int s = 0; s < SAMPLE_COUNT; ++s)
-		Out += LoadTex2DMS(uTex, uSampler, coord, s);
-	Out = In.col * (Out / SAMPLE_COUNT);
-#endif
-	return Out
 }

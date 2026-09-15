@@ -13,11 +13,7 @@
 
 namespace hz
 {
-RenderContext::CommandSlot::~CommandSlot()
-{
-    arrfree(descriptorSets);
-    arrfree(transientBuffers);
-}
+RenderContext::CommandSlot::~CommandSlot() { arrfree(transientBuffers); }
 
 RenderContext::RenderContext(const ContextDesc& input)
 {
@@ -168,12 +164,60 @@ bool RenderContext::createSwapChain()
         .colorFormat = desc.colorFormat,
         .enableVsync = desc.enableVSync,
         .colorSpace = desc.colorSpace,
+        .hdrMetadata = desc.hdrMetadata,
     };
+    if (desc.enableHDR)
+    {
+        swapDesc.colorFormat = hz::Format::UNDEFINED;
+        // TODO: Prefer scRGB for windowed presentation and HDR10 for fullscreen presentation.
+        swapDesc.colorSpace = COLOR_SPACE_P2020;
+        if (swapDesc.hdrMetadata.maxMasteringLuminance <= 0.0f)
+            swapDesc.hdrMetadata.maxMasteringLuminance = 1000.0f;
+        if (swapDesc.hdrMetadata.minMasteringLuminance <= 0.0f)
+            swapDesc.hdrMetadata.minMasteringLuminance = 0.001f;
+        if (swapDesc.hdrMetadata.maxContentLightLevel <= 0.0f)
+            swapDesc.hdrMetadata.maxContentLightLevel = 1000.0f;
+        if (swapDesc.hdrMetadata.maxFrameAverageLightLevel <= 0.0f)
+            swapDesc.hdrMetadata.maxFrameAverageLightLevel = 400.0f;
+        swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
+        if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+        {
+            swapDesc.colorSpace = COLOR_SPACE_EXTENDED_SRGB;
+            swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
+        }
+        if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+        {
+            LOGF(LogLevel::eWARNING, "HDR presentation is unavailable; falling back to SDR sRGB");
+            swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
+            swapDesc.hdrMetadata = {};
+        }
+    }
+    else if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+    {
+        swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
+    }
+
     if (swapDesc.colorFormat == hz::Format::UNDEFINED)
         swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
+    if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+    {
+        LOGF(LogLevel::eERROR, "No supported swapchain format is available");
+        return false;
+    }
+
     addSwapChain(pRenderer, &swapDesc, &pSwapChain);
     if (pSwapChain)
     {
+        desc.colorFormat = pSwapChain->format;
+        desc.colorSpace = pSwapChain->colorSpace;
+        hdrDisplayInfo = pSwapChain->hdrDisplayInfo;
+        hdrMetadata = pSwapChain->hdrMetadata;
+        if (pSwapChain->colorSpace == COLOR_SPACE_P2020)
+            outputMode = OUTPUT_MODE_HDR10;
+        else if (pSwapChain->colorSpace == COLOR_SPACE_EXTENDED_SRGB)
+            outputMode = OUTPUT_MODE_SCRGB;
+        else
+            outputMode = OUTPUT_MODE_SDR;
         for (uint32_t i = 0; i < pSwapChain->imageCount; ++i)
         {
             RenderTarget* target = pSwapChain->ppRenderTargets[i];
@@ -229,9 +273,6 @@ void RenderContext::destroyDevice(bool waitForGpu)
     {
         for (CommandSlot& slot : commandSlots)
         {
-            for (uint32_t i = 0; i < (uint32_t)arrlen(slot.descriptorSets); ++i)
-                removeDescriptorSet(pRenderer, slot.descriptorSets[i]);
-            arrsetlen(slot.descriptorSets, 0);
             for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
                 removeBuffer(pRenderer, slot.transientBuffers[i]);
             arrsetlen(slot.transientBuffers, 0);
@@ -348,10 +389,6 @@ CommandList& RenderContext::acquireCommandList()
             {
                 slot.submitId = 0;
                 // Reclaim completed submissions even when a different command slot is selected.
-                // Keeping their descriptor sets for an entire slot rotation can exhaust the sampler heap.
-                for (uint32_t i = 0; i < (uint32_t)arrlen(slot.descriptorSets); ++i)
-                    removeDescriptorSet(pRenderer, slot.descriptorSets[i]);
-                arrsetlen(slot.descriptorSets, 0);
                 for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
                     removeBuffer(pRenderer, slot.transientBuffers[i]);
                 arrsetlen(slot.transientBuffers, 0);
@@ -368,9 +405,6 @@ CommandList& RenderContext::acquireCommandList()
         available->submitId = 0;
     }
 
-    for (uint32_t i = 0; i < (uint32_t)arrlen(available->descriptorSets); ++i)
-        removeDescriptorSet(pRenderer, available->descriptorSets[i]);
-    arrsetlen(available->descriptorSets, 0);
     for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
         removeBuffer(pRenderer, available->transientBuffers[i]);
     arrsetlen(available->transientBuffers, 0);
@@ -442,10 +476,14 @@ void RenderContext::wait(SubmitHandle handle)
         waitForFences(pRenderer, 1, &slot.pFence);
 }
 
-uint32_t          RenderContext::getWidth() const { return desc.width; }
-uint32_t          RenderContext::getHeight() const { return desc.height; }
-hz::Format        RenderContext::getColorFormat() const { return desc.colorFormat; }
-const GPUTexture& RenderContext::getCurrentBackbuffer()
+uint32_t              RenderContext::getWidth() const { return desc.width; }
+uint32_t              RenderContext::getHeight() const { return desc.height; }
+hz::Format            RenderContext::getColorFormat() const { return desc.colorFormat; }
+bool                  RenderContext::isHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
+OutputMode            RenderContext::getOutputMode() const { return outputMode; }
+const HDRDisplayInfo& RenderContext::getHDRDisplayInfo() const { return hdrDisplayInfo; }
+const HDRMetadata&    RenderContext::getHDRMetadata() const { return hdrMetadata; }
+const GPUTexture&     RenderContext::getCurrentBackbuffer()
 {
     ASSERT(!suspended && pSwapChain);
     if (!imageAcquired)

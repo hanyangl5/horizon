@@ -38,11 +38,13 @@ struct PsIn
 
 PsIn VS_MAIN( VsIn In )
 {
+    ByteAddressBuffer uniforms = ResourceDescriptorHeap[uniformIndex];
+    uint offset = uniformOffset;
 #if FT_MULTIVIEW
-	float4x4 modelViewProj = mvp[VR_VIEW_ID];
-#else
-	float4x4 modelViewProj = mvp;
+    offset += VR_VIEW_ID * 64;
 #endif
+    float4x4 modelViewProj = transpose(float4x4(asfloat(uniforms.Load4(offset)), asfloat(uniforms.Load4(offset + 16)),
+                                               asfloat(uniforms.Load4(offset + 32)), asfloat(uniforms.Load4(offset + 48))));
 
 	PsIn Out;
 	Out.position = mul(modelViewProj, float4(In.position * scaleBias.xy, 1.0f, 1.0f));

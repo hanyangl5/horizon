@@ -111,8 +111,7 @@ typedef struct UserInterface
     uint32_t       dynamicTexturesCount = 0;
     Shader*        pShaderTextured[SAMPLE_COUNT_COUNT] = { NULL };
     RootSignature* pRootSignatureTextured = NULL;
-    DescriptorSet* pDescriptorSetUniforms = NULL;
-    DescriptorSet* pDescriptorSetTexture = NULL;
+    uint32_t       rootConstantIndex = 0;
     Pipeline*      pPipelineTextured[SAMPLE_COUNT_COUNT] = { NULL };
     Buffer*        pVertexBuffer = NULL;
     Buffer*        pIndexBuffer = NULL;
@@ -2884,12 +2883,11 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     cmdBindIndexBuffer(pCmd, pUserInterface->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32,
                        iOffset);
     cmdBindVertexBuffer(pCmd, 1, &pUserInterface->pVertexBuffer, &vertexStride, &vOffset);
-    cmdBindDescriptorSet(pCmd, pUserInterface->frameIdx, pUserInterface->pDescriptorSetUniforms);
 }
 
 static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawCmd, const float2& displayPos, const float2& displaySize,
                              Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, int32_t& globalVtxOffsetInOut,
-                             int32_t& globalIdxOffsetInOut, uint32_t& prevSetIndexInOut)
+                             int32_t& globalIdxOffsetInOut, uint32_t& prevTextureIndexInOut)
 {
     // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.size(); i++)
     //{
@@ -2919,51 +2917,26 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
     uint2 ext = { (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y) };
     cmdSetScissor(pCmd, offset.x, offset.y, ext.x, ext.y);
 
-    ptrdiff_t id = (ptrdiff_t)pImDrawCmd->textureId;
-    uint32_t  setIndex = (uint32_t)id;
-    if (id >= pUserInterface->maxUIFonts)
-    {
-        if (pUserInterface->dynamicTexturesCount >= pUserInterface->maxDynamicUIUpdatesPerBatch)
-        {
-            LOGF(eWARNING,
-                 "Too many dynamic UIs.  Consider increasing 'maxDynamicUIUpdatesPerBatch' when initializing the user interface.");
-            return;
-        }
-        Texture* tex = hmgetp(pUserInterface->pTextureHashmap, id)->value;
-
+    const ptrdiff_t id = (ptrdiff_t)pImDrawCmd->textureId;
+    Texture*        pTexture =
+        id < pUserInterface->maxUIFonts ? pUserInterface->pCachedFontsArr[id].pFontTex : hmgetp(pUserInterface->pTextureHashmap, id)->value;
 #if defined(ENABLE_FORGE_REMOTE_UI)
-        // UI Remote Control still receives texture pointers as IDs
-        if (tex == NULL)
-        {
-            tex = (Texture*)id;
-            setIndex = (uint32_t)(pUserInterface->maxUIFonts + (pUserInterface->frameIdx * pUserInterface->maxDynamicUIUpdatesPerBatch +
-                                                                pUserInterface->dynamicTexturesCount++));
-        }
-#endif // ENABLE_FORGE_REMOTE_UI
-
-        DescriptorData params[1] = {};
-        params[0].pName = "uTex";
-        params[0].ppTextures = &tex;
-        updateDescriptorSet(pUserInterface->pRenderer, setIndex, pUserInterface->pDescriptorSetTexture, 1, params);
-
-        uint32_t pipelineIndex = (uint32_t)log2(params[0].ppTextures[0]->sampleCount);
-        *ppPipelineInOut = pUserInterface->pPipelineTextured[pipelineIndex];
-    }
-    else
-    {
-        *ppPipelineInOut = pUserInterface->pPipelineTextured[0];
-    }
-
+    if (!pTexture)
+        pTexture = (Texture*)id;
+#endif
+    const uint32_t textureIndex = getTextureSrvIndex(pTexture);
+    *ppPipelineInOut = pUserInterface->pPipelineTextured[(uint32_t)log2(pTexture->sampleCount)];
     if (*ppPrevPipelineInOut != *ppPipelineInOut)
     {
         cmdBindPipeline(pCmd, *ppPipelineInOut);
         *ppPrevPipelineInOut = *ppPipelineInOut;
     }
-
-    if (setIndex != prevSetIndexInOut)
+    if (textureIndex != prevTextureIndexInOut)
     {
-        cmdBindDescriptorSet(pCmd, setIndex, pUserInterface->pDescriptorSetTexture);
-        prevSetIndexInOut = setIndex;
+        const uint32_t indices[] = { getBufferCbvIndex(pUserInterface->pUniformBuffer[pUserInterface->frameIdx]), textureIndex,
+                                     getSamplerIndex(pUserInterface->pDefaultSampler) };
+        cmdBindPushConstants(pCmd, pUserInterface->pRootSignatureTextured, pUserInterface->rootConstantIndex, indices);
+        prevTextureIndexInOut = textureIndex;
     }
 
     cmdDrawIndexed(pCmd, pImDrawCmd->elemCount, pImDrawCmd->indexOffset + globalIdxOffsetInOut,
@@ -3133,27 +3106,10 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
                 addShader(pUserInterface->pRenderer, &texturedShaderDesc, &pUserInterface->pShaderTextured[s]);
             }
 
-            const char*       pStaticSamplerNames[] = { "uSampler" };
-            RootSignatureDesc textureRootDesc = { pUserInterface->pShaderTextured, TF_ARRAY_COUNT(pUserInterface->pShaderTextured) };
-            textureRootDesc.staticSamplerCount = 1;
-            textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-            textureRootDesc.ppStaticSamplers = &pUserInterface->pDefaultSampler;
+            const RootSignatureDesc textureRootDesc = { .ppShaders = pUserInterface->pShaderTextured,
+                                                        .shaderCount = TF_ARRAY_COUNT(pUserInterface->pShaderTextured) };
             addRootSignature(pUserInterface->pRenderer, &textureRootDesc, &pUserInterface->pRootSignatureTextured);
-
-            DescriptorSetDesc setDesc = { pUserInterface->pRootSignatureTextured, 0,
-                                          pUserInterface->maxUIFonts +
-                                              (pUserInterface->maxDynamicUIUpdatesPerBatch * pUserInterface->frameCount) };
-            addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSetTexture);
-            setDesc = { pUserInterface->pRootSignatureTextured, 0, pUserInterface->frameCount };
-            addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSetUniforms);
-
-            for (uint32_t i = 0; i < pUserInterface->frameCount; ++i)
-            {
-                DescriptorData params[1] = {};
-                params[0].pName = "uniformBlockVS";
-                params[0].ppBuffers = &pUserInterface->pUniformBuffer[i];
-                updateDescriptorSet(pUserInterface->pRenderer, i, pUserInterface->pDescriptorSetUniforms, 1, params);
-            }
+            pUserInterface->rootConstantIndex = getDescriptorIndexFromName(pUserInterface->pRootSignatureTextured, "RootConstant0");
         }
 
         BlendStateDesc blendStateDesc = {};
@@ -3204,14 +3160,6 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         pUserInterface->displayHeight = pDesc->displayHeight == 0 ? pUserInterface->height : (float)pDesc->displayHeight;
     }
 
-    for (ptrdiff_t tex = 0; tex < arrlen(pUserInterface->pCachedFontsArr); ++tex)
-    {
-        DescriptorData params[1] = {};
-        params[0].pName = "uTex";
-        params[0].ppTextures = &pUserInterface->pCachedFontsArr[tex].pFontTex;
-        updateDescriptorSet(pUserInterface->pRenderer, (uint32_t)tex, pUserInterface->pDescriptorSetTexture, 1, params);
-    }
-
 #if TOUCH_INPUT
     bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
                              uint32_t dispayHeight);
@@ -3242,8 +3190,6 @@ void unloadUserInterface(uint32_t unloadType)
             {
                 removeShader(pUserInterface->pRenderer, pUserInterface->pShaderTextured[s]);
             }
-            removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetTexture);
-            removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetUniforms);
             removeRootSignature(pUserInterface->pRenderer, pUserInterface->pRootSignatureTextured);
         }
     }
@@ -3367,7 +3313,7 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
     Pipeline* pPipeline = pUserInterface->pPipelineTextured[0];
     Pipeline* pPreviousPipeline = pPipeline;
-    uint32_t  prevSetIndex = UINT32_MAX;
+    uint32_t  prevTextureIndex = UINT32_MAX;
 
     cmdPrepareRenderingForUI(pCmd, displayPos, displaySize, pPipeline, vOffset, iOffset);
 
@@ -3380,7 +3326,7 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
         for (int32_t i = 0; i < numDrawCommands; i++)
         {
             cmdDrawUICommand(pCmd, &pUIDrawData->drawCommands[i], displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
-                             globalIdxOffset, prevSetIndex);
+                             globalIdxOffset, prevTextureIndex);
         }
     }
     else
@@ -3418,7 +3364,7 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
                 }
                 drawCommand.elemCount = pImDrawCmd->ElemCount;
                 cmdDrawUICommand(pCmd, &drawCommand, displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
-                                 globalIdxOffset, prevSetIndex);
+                                 globalIdxOffset, prevTextureIndex);
             }
         }
     }

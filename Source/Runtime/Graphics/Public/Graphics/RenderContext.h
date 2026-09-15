@@ -150,6 +150,13 @@ struct RenderPassDesc
     DepthAttachment       depthAttachment = {};
 };
 
+enum OutputMode : uint32_t
+{
+    OUTPUT_MODE_SDR = 0,
+    OUTPUT_MODE_HDR10,
+    OUTPUT_MODE_SCRGB,
+};
+
 struct ContextDesc
 {
     const char*  pAppName;
@@ -159,6 +166,8 @@ struct ContextDesc
     uint32_t     imageCount;
     hz::Format   colorFormat;
     ColorSpace   colorSpace;
+    HDRMetadata  hdrMetadata;
+    bool         enableHDR = false;
     bool         enableVSync;
     bool         enableGpuValidation;
     bool         enableGpuProfiler;
@@ -175,6 +184,9 @@ public:
     GPUBuffer& operator=(const GPUBuffer&) = delete;
     bool       isValid() const { return pBuffer != nullptr; }
     Buffer*    get() const { return pBuffer; }
+    uint32_t   getSrvIndex() const { return getBufferSrvIndex(pBuffer); }
+    uint32_t   getUavIndex() const { return getBufferUavIndex(pBuffer); }
+    uint32_t   getCbvIndex() const { return getBufferCbvIndex(pBuffer); }
 
 private:
     GPUBuffer(RenderContext*, Buffer*, uint64_t, ResourceMemoryUsage, DescriptorType, ResourceState);
@@ -201,6 +213,8 @@ public:
     GPUTexture&   operator=(const GPUTexture&) = delete;
     bool          isValid() const { return pTexture != nullptr; }
     Texture*      get() const { return pTexture; }
+    uint32_t      getSrvIndex() const { return getTextureSrvIndex(pTexture); }
+    uint32_t      getUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
     RenderTarget* renderTarget() const { return pRenderTarget; }
 
 private:
@@ -227,6 +241,7 @@ public:
     GPUSampler& operator=(const GPUSampler&) = delete;
     bool        isValid() const { return pSampler != nullptr; }
     Sampler*    get() const { return pSampler; }
+    uint32_t    getIndex() const { return getSamplerIndex(pSampler); }
 
 private:
     GPUSampler(RenderContext*, Sampler*);
@@ -286,6 +301,7 @@ struct Dependencies
     Span<const GPUTexture*> sampledTextures = {};
     Span<const GPUTexture*> storageTextures = {};
     Span<const GPUBuffer*>  buffers = {};
+    Span<const GPUBuffer*>  storageBuffers = {};
 };
 
 class CommandList
@@ -296,14 +312,11 @@ public:
     void beginRendering(const RenderPassDesc&, const Dependencies& = {});
     void endRendering();
     void setPipeline(const GPUPipeline&);
-    void bindBuffer(const char* name, const GPUBuffer&);
-    void bindTexture(const char* name, const GPUTexture&);
-    void bindSampler(const char* name, const GPUSampler&);
     void setVertexBuffer(uint32_t slot, const GPUBuffer&, uint64_t offset, uint32_t stride);
     void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
     void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
     void setScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-    void setPushConstants(uint32_t slot, const void* data, uint32_t size);
+    void setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
 
     void draw(uint32_t vertexCount, uint32_t firstVertex = 0);
     void drawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);
@@ -326,15 +339,6 @@ public:
     void popDebugGroupLabel() const;
 
 private:
-    struct Binding
-    {
-        uint32_t       descriptorIndex = UINT32_MAX;
-        DescriptorType type = DESCRIPTOR_TYPE_UNDEFINED;
-        Buffer*        pBuffer = nullptr;
-        Texture*       pTexture = nullptr;
-        Sampler*       pSampler = nullptr;
-    };
-
     CommandList() = default;
     CommandList(const CommandList&) = delete;
     CommandList& operator=(const CommandList&) = delete;
@@ -342,34 +346,25 @@ private:
     void         clear();
     void         beginGpuFrameProfile();
     void         endGpuFrameProfile();
-    void         bindDescriptors();
+    void         addBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
     Buffer*      createUploadBuffer(uint64_t size);
     void         barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
                          RenderTargetBarrier*);
     void         barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
 
-    struct DescriptorUpdateBatch
-    {
-        DescriptorSet*  pSet;
-        DescriptorData* pData;
-    };
-
-    Cmd*                   pCmd = nullptr;
-    RenderContext*         pContext = nullptr;
-    RootSignature*         pCurrentRootSignature = nullptr;
-    uint64_t               gpuProfilerToken = UINT64_MAX;
-    uint64_t               gpuTimestampToken = 0;
-    Buffer*                pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
-    uint32_t               vertexStrides[MAX_VERTEX_BINDINGS] = {};
-    uint64_t               vertexOffsets[MAX_VERTEX_BINDINGS] = {};
-    uint32_t               vertexBufferCount = 0;
-    uint32_t               slot = UINT32_MAX;
-    Binding*               bindings = nullptr;
-    BufferBarrier*         bufferBarriers = nullptr;
-    TextureBarrier*        textureBarriers = nullptr;
-    RenderTargetBarrier*   renderTargetBarriers = nullptr;
-    DescriptorUpdateBatch* descriptorBatches = nullptr;
-    bool                   bindingsDirty = false;
+    Cmd*                 pCmd = nullptr;
+    RenderContext*       pContext = nullptr;
+    RootSignature*       pCurrentRootSignature = nullptr;
+    uint64_t             gpuProfilerToken = UINT64_MAX;
+    uint64_t             gpuTimestampToken = 0;
+    Buffer*              pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
+    uint32_t             vertexStrides[MAX_VERTEX_BINDINGS] = {};
+    uint64_t             vertexOffsets[MAX_VERTEX_BINDINGS] = {};
+    uint32_t             vertexBufferCount = 0;
+    uint32_t             slot = UINT32_MAX;
+    BufferBarrier*       bufferBarriers = nullptr;
+    TextureBarrier*      textureBarriers = nullptr;
+    RenderTargetBarrier* renderTargetBarriers = nullptr;
     friend class RenderContext;
 };
 
@@ -391,16 +386,20 @@ public:
 
     void waitIdle();
 
-    bool              resize(uint32_t width, uint32_t height);
-    bool              setVSync(bool enabled);
-    CommandList&      acquireCommandList();
-    SubmitHandle      submit(CommandList&, const GPUTexture* pPresent = nullptr);
-    void              wait(SubmitHandle);
-    uint32_t          getWidth() const;
-    uint32_t          getHeight() const;
-    hz::Format        getColorFormat() const;
-    const GPUTexture& getCurrentBackbuffer();
-    bool              isSuspended() const;
+    bool                  resize(uint32_t width, uint32_t height);
+    bool                  setVSync(bool enabled);
+    CommandList&          acquireCommandList();
+    SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
+    void                  wait(SubmitHandle);
+    uint32_t              getWidth() const;
+    uint32_t              getHeight() const;
+    hz::Format            getColorFormat() const;
+    bool                  isHDREnabled() const;
+    OutputMode            getOutputMode() const;
+    const HDRDisplayInfo& getHDRDisplayInfo() const;
+    const HDRMetadata&    getHDRMetadata() const;
+    const GPUTexture&     getCurrentBackbuffer();
+    bool                  isSuspended() const;
 
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
@@ -415,14 +414,13 @@ private:
     {
         ~CommandSlot();
 
-        CmdPool*        pCmdPool = nullptr;
-        Cmd*            pCmd = nullptr;
-        Fence*          pFence = nullptr;
-        Semaphore*      pSemaphore = nullptr;
-        CommandList     commands = {};
-        DescriptorSet** descriptorSets = nullptr;
-        Buffer**        transientBuffers = nullptr;
-        uint64_t        submitId = 0;
+        CmdPool*    pCmdPool = nullptr;
+        Cmd*        pCmd = nullptr;
+        Fence*      pFence = nullptr;
+        Semaphore*  pSemaphore = nullptr;
+        CommandList commands = {};
+        Buffer**    transientBuffers = nullptr;
+        uint64_t    submitId = 0;
     };
 
     bool    initDevice();
@@ -437,6 +435,9 @@ private:
     slang::IGlobalSession* pSlangSession = nullptr;
 
     ContextDesc               desc = {};
+    HDRDisplayInfo            hdrDisplayInfo = {};
+    HDRMetadata               hdrMetadata = {};
+    OutputMode                outputMode = OUTPUT_MODE_SDR;
     RendererContext*          pRendererContext = nullptr;
     Renderer*                 pRenderer = nullptr;
     Queue*                    pGraphicsQueue = nullptr;

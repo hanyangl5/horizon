@@ -7236,7 +7236,8 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 {
     BinaryShaderDesc binaryDesc = {};
 
-    ShaderByteCodeBuffer shaderByteCodeBuffer = {};
+    alignas(256) uint8_t bytecodeStack[ShaderByteCodeBuffer::kStackSize];
+    ShaderByteCodeBuffer shaderByteCodeBuffer = { .pStackMemory = bytecodeStack };
 
     ShaderStage stages = SHADER_STAGE_NONE;
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
@@ -7304,7 +7305,8 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
 {
     BinaryShaderDesc binaryDesc = {};
 
-    ShaderByteCodeBuffer shaderByteCodeBuffer = {};
+    alignas(256) uint8_t bytecodeStack[ShaderByteCodeBuffer::kStackSize];
+    ShaderByteCodeBuffer shaderByteCodeBuffer = { .pStackMemory = bytecodeStack };
 
     ShaderStage stages = SHADER_STAGE_NONE;
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)

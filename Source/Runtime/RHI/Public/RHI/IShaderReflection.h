@@ -165,16 +165,5 @@ inline bool isDescriptorRootConstant(const char* resourceName)
     return strstr(lower, "rootconstant") || strstr(lower, "pushconstant");
 }
 
-inline bool isDescriptorRootCbv(const char* resourceName)
-{
-    char     lower[MAX_RESOURCE_NAME_LENGTH] = {};
-    uint32_t length = (uint32_t)strlen(resourceName);
-    for (uint32_t i = 0; i < length; ++i)
-    {
-        lower[i] = (char)tolower(resourceName[i]);
-    }
-    return strstr(lower, "rootcbv");
-}
-
 // void serializeReflection(File* pInFile, Reflection* pReflection);
 // void deserializeReflection(File* pOutFile, Reflection* pReflection);

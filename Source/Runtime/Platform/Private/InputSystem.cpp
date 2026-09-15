@@ -115,7 +115,6 @@ typedef struct VirtualJoystick
     Renderer*      pRenderer = NULL;
     Shader*        pShader = NULL;
     RootSignature* pRootSignature = NULL;
-    DescriptorSet* pDescriptorSet = NULL;
     Pipeline*      pPipeline = NULL;
     Texture*       pTexture = NULL;
     Sampler*       pSampler = NULL;
@@ -242,23 +241,9 @@ bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t w
             texturedShaderDesc.stages[1].pFileName = "textured_mesh.frag";
             addShader(pRenderer, &texturedShaderDesc, &gVirtualJoystick->pShader);
 
-            const char*       pStaticSamplerNames[] = { "uSampler" };
-            RootSignatureDesc textureRootDesc = { &gVirtualJoystick->pShader, 1 };
-            textureRootDesc.staticSamplerCount = 1;
-            textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-            textureRootDesc.ppStaticSamplers = &gVirtualJoystick->pSampler;
+            const RootSignatureDesc textureRootDesc = { .ppShaders = &gVirtualJoystick->pShader, .shaderCount = 1 };
             addRootSignature(pRenderer, &textureRootDesc, &gVirtualJoystick->pRootSignature);
             gVirtualJoystick->rootConstantIndex = getDescriptorIndexFromName(gVirtualJoystick->pRootSignature, "uRootConstants");
-
-            DescriptorSetDesc descriptorSetDesc = { .pRootSignature = gVirtualJoystick->pRootSignature, .spaceIndex = 0, .maxSets = 1 };
-            addDescriptorSet(pRenderer, &descriptorSetDesc, &gVirtualJoystick->pDescriptorSet);
-            /************************************************************************/
-            // Prepare descriptor sets
-            /************************************************************************/
-            DescriptorData params[1] = {};
-            params[0].pName = "uTex";
-            params[0].ppTextures = &gVirtualJoystick->pTexture;
-            updateDescriptorSet(pRenderer, 0, gVirtualJoystick->pDescriptorSet, 1, params);
         }
 
         VertexLayout vertexLayout = {};
@@ -339,7 +324,6 @@ void unloadVirtualJoystick(ReloadType unloadType)
 
         if (unloadType & RELOAD_TYPE_SHADER)
         {
-            removeDescriptorSet(pRenderer, gVirtualJoystick->pDescriptorSet);
             removeRootSignature(pRenderer, gVirtualJoystick->pRootSignature);
             removeShader(pRenderer, gVirtualJoystick->pShader);
         }
@@ -357,17 +341,19 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
 
     struct RootConstants
     {
-        float4 color;
-        float2 scaleBias;
-        int    _pad[2];
+        float4   color;
+        float2   scaleBias;
+        uint32_t textureIndex;
+        uint32_t samplerIndex;
     } data = {};
 
     cmdSetViewport(pCmd, 0.0f, 0.0f, gVirtualJoystick->renderSize[0], gVirtualJoystick->renderSize[1], 0.0f, 1.0f);
     cmdSetScissor(pCmd, 0u, 0u, (uint32_t)gVirtualJoystick->renderSize[0], (uint32_t)gVirtualJoystick->renderSize[1]);
 
     cmdBindPipeline(pCmd, gVirtualJoystick->pPipeline);
-    cmdBindDescriptorSet(pCmd, 0, gVirtualJoystick->pDescriptorSet);
     data.color = *color;
+    data.textureIndex = getTextureSrvIndex(gVirtualJoystick->pTexture);
+    data.samplerIndex = getSamplerIndex(gVirtualJoystick->pSampler);
     data.scaleBias = { 2.0f / (float)gVirtualJoystick->renderSize[0], -2.0f / (float)gVirtualJoystick->renderSize[1] };
     cmdBindPushConstants(pCmd, gVirtualJoystick->pRootSignature, gVirtualJoystick->rootConstantIndex, &data);
 

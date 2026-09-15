@@ -13,9 +13,9 @@ extern void initWindowClass();
 extern void exitWindowClass();
 #endif
 
-template <typename T>
+template<typename T>
 constexpr bool IsMoveOnlyGpuResource = !std::is_copy_constructible_v<T> && !std::is_copy_assignable_v<T> &&
-                                     std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>;
+                                       std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>;
 
 static_assert(IsMoveOnlyGpuResource<hz::GPUBuffer>);
 static_assert(IsMoveOnlyGpuResource<hz::GPUTexture>);
@@ -69,9 +69,9 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         EXPECT_TRUE(second.isValid());
     }
 
-    const char source[] =
-        "RWStructuredBuffer<uint> output : register(u0);"
-        "[numthreads(1, 1, 1)] void CSMain(uint3 id : SV_DispatchThreadID) { output[id.x] = id.x; }";
+    const char                source[] = "cbuffer RootConstant0 { uint outputIndex; };"
+                                         "[numthreads(1, 1, 1)] void CSMain(uint3 id : SV_DispatchThreadID) {"
+                                         "RWStructuredBuffer<uint> output = ResourceDescriptorHeap[outputIndex]; output[id.x] = id.x; }";
     const hz::ShaderStageDesc stages[] = {
         { .stage = SHADER_STAGE_COMP,
           .pSource = source,
@@ -99,9 +99,8 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         first = hz::GPUPipeline{};
         EXPECT_FALSE(first.isValid());
         const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
-        const char fragmentSource[] =
-            "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
-            "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
+        const char fragmentSource[] = "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
+                                      "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
         second = context.createGraphicsPipeline({
             .shaderDesc = {
                 .stages = {
@@ -128,15 +127,15 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
 #endif
 }
 
-TEST(RenderContextLiveTest, CompilesSlangWithAutomaticBindings)
+TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
 {
 #if defined(_WINDOWS)
     hz::RenderContext context({ .pAppName = "SlangComputeTest", .width = 0, .height = 0 });
     const char        source[] = R"(
-        RWStructuredBuffer<uint> Results;
+        cbuffer RootConstant0 { uint outputIndex; };
         T identity<T>(T value) { return value; }
         [numthreads(4, 1, 1)]
-        void CSMain(uint3 id : SV_DispatchThreadID) { Results[id.x] = identity<uint>(id.x + 23); }
+        void CSMain(uint3 id : SV_DispatchThreadID) { RWStructuredBuffer<uint> Results = ResourceDescriptorHeap[outputIndex]; Results[id.x] = identity<uint>(id.x + 23); }
     )";
     hz::GPUPipeline pipeline = context.createComputePipeline({
         .shaderDesc = {
@@ -147,23 +146,23 @@ TEST(RenderContextLiveTest, CompilesSlangWithAutomaticBindings)
     });
     ASSERT_TRUE(pipeline.isValid());
     hz::GPUBuffer    output = context.createBuffer({
-           .size = 4 * sizeof(uint32_t),
-           .elementCount = 4,
-           .structStride = sizeof(uint32_t),
-           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-           .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-           .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .size = 4 * sizeof(uint32_t),
+        .elementCount = 4,
+        .structStride = sizeof(uint32_t),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer    readback = context.createBuffer({
-           .size = 4 * sizeof(uint32_t),
-           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-           .startState = RESOURCE_STATE_COPY_DEST,
-           .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .size = 4 * sizeof(uint32_t),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .startState = RESOURCE_STATE_COPY_DEST,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     hz::CommandList& commands = context.acquireCommandList();
     commands.setPipeline(pipeline);
-    commands.bindBuffer("Results", output);
-    commands.dispatch(1, 1, 1, { .buffers = { &output } });
+    commands.setRootConstant({ output.getUavIndex() });
+    commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
     context.wait(context.submit(commands));
     const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
@@ -172,11 +171,19 @@ TEST(RenderContextLiveTest, CompilesSlangWithAutomaticBindings)
         EXPECT_EQ(values[i], i + 23);
 
     const char graphicsSource[] = R"(
-        StructuredBuffer<float4> VertexOnly;
-        StructuredBuffer<float4> Shared;
-        StructuredBuffer<float4> FragmentOnly;
-        float4 VSMain(uint id : SV_VertexID) : SV_Position { return VertexOnly[id] + Shared[0]; }
-        float4 PSMain() : SV_Target0 { return FragmentOnly[0] + Shared[0]; }
+        cbuffer RootConstant0 { uint vertexIndex; uint sharedIndex; uint fragmentIndex; };
+        float4 VSMain(uint id : SV_VertexID) : SV_Position
+        {
+            StructuredBuffer<float4> VertexOnly = ResourceDescriptorHeap[vertexIndex];
+            StructuredBuffer<float4> Shared = ResourceDescriptorHeap[sharedIndex];
+            return VertexOnly[id] + Shared[0];
+        }
+        float4 PSMain() : SV_Target0
+        {
+            StructuredBuffer<float4> FragmentOnly = ResourceDescriptorHeap[fragmentIndex];
+            StructuredBuffer<float4> Shared = ResourceDescriptorHeap[sharedIndex];
+            return FragmentOnly[0] + Shared[0];
+        }
     )";
     hz::GPUPipeline graphics = context.createGraphicsPipeline({
         .shaderDesc = {
@@ -196,136 +203,119 @@ TEST(RenderContextLiveTest, CompilesSlangWithAutomaticBindings)
 #endif
 }
 
-TEST(RenderContextLiveTest, BindsSlangParameterBlocksAndSparseSpaces)
+TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
 {
 #if defined(_WINDOWS)
-    hz::RenderContext context({ .pAppName = "SlangSpacesTest", .width = 0, .height = 0 });
+    hz::RenderContext context({ .pAppName = "BindlessViewsTest", .enableGpuValidation = true });
     const char        source[] = R"(
-        struct Output { RWStructuredBuffer<uint> values; };
-        ParameterBlock<Output> group0;
-        ParameterBlock<Output> group1;
-        ParameterBlock<Output> group2;
-        ParameterBlock<Output> group3;
-        ParameterBlock<Output> group4;
-        ParameterBlock<Output> group5;
-        ParameterBlock<Output> group6;
-        ParameterBlock<Output> group7;
-        ParameterBlock<Output> group8;
-        ParameterBlock<Output> group9;
-        ParameterBlock<Output> group10;
-        ParameterBlock<Output> group11;
-        ParameterBlock<Output> group12;
-        ParameterBlock<Output> group13;
-        ParameterBlock<Output> group14;
-        ParameterBlock<Output> group15;
-        struct Nested { ParameterBlock<Output> inner; };
-        ParameterBlock<Nested> nested;
-        RWStructuredBuffer<uint> sparse : register(u0, space999);
-        RWStructuredBuffer<uint> large : register(u0, space65536);
-        RWStructuredBuffer<uint> highest : register(u0, space2147483647);
-        [numthreads(1, 1, 1)]
-        void CSMain()
+        cbuffer RootConstant0
         {
-            group0.values[0] = 10;
-            group1.values[1] = 11;
-            group2.values[2] = 12;
-            group3.values[3] = 13;
-            group4.values[4] = 14;
-            group5.values[5] = 15;
-            group6.values[6] = 16;
-            group7.values[7] = 17;
-            group8.values[8] = 18;
-            group9.values[9] = 19;
-            group10.values[10] = 20;
-            group11.values[11] = 21;
-            group12.values[12] = 22;
-            group13.values[13] = 23;
-            group14.values[14] = 24;
-            group15.values[15] = 25;
-            nested.inner.values[16] = 26;
-            sparse[17] = 27;
-            large[18] = 28;
-            highest[19] = 29;
+            uint firstUav; uint secondUav; uint firstSrv; uint secondSrv;
+            uint samplerIndex; uint outputIndex; uint configIndex; uint rawIndex;
+        };
+        struct Config { uint multiplier; };
+        [numthreads(2, 1, 1)]
+        void Write(uint3 id : SV_DispatchThreadID)
+        {
+            RWTexture2D<float4> target = ResourceDescriptorHeap[NonUniformResourceIndex(id.x == 0 ? firstUav : secondUav)];
+            target[uint2(0, 0)] = id.x == 0 ? float4(1, 0, 0, 1) : float4(0, 1, 0, 1);
+        }
+        [numthreads(2, 1, 1)]
+        void Read(uint3 id : SV_DispatchThreadID)
+        {
+            Texture2D<float4> source = ResourceDescriptorHeap[NonUniformResourceIndex(id.x == 0 ? firstSrv : secondSrv)];
+            SamplerState surface = SamplerDescriptorHeap[samplerIndex];
+            RWStructuredBuffer<uint4> output = ResourceDescriptorHeap[outputIndex];
+            ConstantBuffer<Config> config = ResourceDescriptorHeap[configIndex];
+            ByteAddressBuffer raw = ResourceDescriptorHeap[rawIndex];
+            output[id.x] = uint4(round(source.SampleLevel(surface, float2(0.5, 0.5), 1) * 255)) * config.multiplier + raw.Load(0);
         }
     )";
-    hz::GPUPipeline pipeline = context.createComputePipeline({
-        .shaderDesc = {
-            .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1,
-                          .pEntryPoint = "CSMain" } },
-            .language = hz::ShaderLanguage::Slang,
-        },
+    hz::GPUPipeline   write = context.createComputePipeline(
+        { .shaderDesc = {
+              .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
+              .language = hz::ShaderLanguage::Slang,
+          } });
+    hz::GPUPipeline read = context.createComputePipeline(
+        { .shaderDesc = {
+              .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Read" } },
+              .language = hz::ShaderLanguage::Slang,
+          } });
+    ASSERT_TRUE(write.isValid() && read.isValid());
+    const hz::TextureDesc textureDesc = {
+        .width = 2,
+        .height = 2,
+        .mipLevels = 2,
+        .format = hz::Format::R8G8B8A8_UNORM,
+        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .descriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE,
+    };
+    hz::GPUTexture textures[] = { context.createTexture(textureDesc), context.createTexture(textureDesc) };
+    hz::GPUSampler sampler = context.createSampler({ .minFilter = FILTER_NEAREST, .magFilter = FILTER_NEAREST });
+    const uint32_t configData[64] = { 2 };
+    const uint32_t bias = 3;
+    hz::GPUBuffer  config = context.createBuffer({
+        .size = 256,
+        .elementCount = 64,
+        .structStride = 4,
+        .pInitialData = configData,
+        .initialDataSize = sizeof(configData),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+        .descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
     });
-    ASSERT_TRUE(pipeline.isValid());
-    const RootSignature* root = pipeline.get()->dx.pRootSignature;
-    EXPECT_EQ(root->descriptorSetCount, 20u);
-    for (uint32_t i = 0; i < root->descriptorCount; ++i)
-    {
-        EXPECT_LT(root->pDescriptors[i].groupIndex, root->descriptorSetCount);
-        EXPECT_EQ(root->dx.pLayouts[root->pDescriptors[i].groupIndex].spaceIndex, root->pDescriptors[i].spaceIndex);
-    }
-    const uint32_t sparseSpaces[] = { 999, 65536, 0x7fffffff };
-    const char*    sparseNames[] = { "sparse", "large", "highest" };
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        const uint32_t index = getDescriptorIndexFromName(root, sparseNames[i]);
-        ASSERT_NE(index, UINT32_MAX);
-        EXPECT_EQ(root->pDescriptors[index].spaceIndex, sparseSpaces[i]);
-    }
-
-    const char      smallSource[] = "RWStructuredBuffer<uint> output : register(u0, space4294967279);"
-                                    "[numthreads(1, 1, 1)] void CSMain() { output[0] = 99; }";
-    hz::GPUPipeline smallPipeline = context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
-                                      .pSource = smallSource,
-                                      .sourceSize = sizeof(smallSource) - 1,
-                                      .pEntryPoint = "CSMain" } } },
+    hz::GPUBuffer  raw = context.createBuffer({
+        .size = 4,
+        .elementCount = 1,
+        .pInitialData = &bias,
+        .initialDataSize = sizeof(bias),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_SHADER_RESOURCE,
+        .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
-    ASSERT_TRUE(smallPipeline.isValid());
-    ASSERT_EQ(smallPipeline.get()->dx.pRootSignature->descriptorSetCount, 1u);
-    EXPECT_EQ(smallPipeline.get()->dx.pRootSignature->pDescriptors[0].spaceIndex, 0xffffffefu);
-    hz::GPUBuffer outputs[2];
-    for (hz::GPUBuffer& output : outputs)
-    {
-        output = context.createBuffer({
-            .size = 20 * sizeof(uint32_t),
-            .elementCount = 20,
-            .structStride = sizeof(uint32_t),
-            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-            .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-            .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
-        });
-        ASSERT_TRUE(output.isValid());
-    }
-    hz::GPUBuffer readback = context.createBuffer({
-        .size = 40 * sizeof(uint32_t),
+    hz::GPUBuffer  output = context.createBuffer({
+        .size = 32,
+        .elementCount = 2,
+        .structStride = 16,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+    });
+    hz::GPUBuffer  readback = context.createBuffer({
+        .size = 32,
         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .startState = RESOURCE_STATE_COPY_DEST,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
-    ASSERT_TRUE(readback.isValid());
-    for (uint32_t iteration = 0; iteration < 2; ++iteration)
-    {
-        hz::CommandList& commands = context.acquireCommandList();
-        for (uint32_t outputIndex = 0; outputIndex < 2; ++outputIndex)
-        {
-            commands.setPipeline(pipeline);
-            for (uint32_t i = 0; i < root->descriptorCount; ++i)
-                commands.bindBuffer(root->pDescriptors[i].pName, outputs[outputIndex]);
-            commands.dispatch(1, 1, 1, { .buffers = { &outputs[outputIndex] } });
-            if (outputIndex == 0)
-            {
-                commands.setPipeline(smallPipeline);
-                commands.bindBuffer("output", outputs[0]);
-                commands.dispatch(1, 1, 1, { .buffers = { &outputs[0] } });
-            }
-            commands.copyBuffer(readback, outputIndex * 20 * sizeof(uint32_t), outputs[outputIndex], 0, 20 * sizeof(uint32_t));
-        }
-        context.wait(context.submit(commands));
-        const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
-        ASSERT_NE(values, nullptr);
-        for (uint32_t i = 0; i < 40; ++i)
-            EXPECT_EQ(values[i], i == 0 ? 99u : 10u + i % 20);
-    }
+    EXPECT_NE(config.getCbvIndex(), config.getUavIndex());
+    EXPECT_EQ(textures[0].getUavIndex(1), textures[0].getUavIndex(0) + 1);
+    const uint32_t   indices[] = { textures[0].getUavIndex(1), textures[1].getUavIndex(1), textures[0].getSrvIndex(),
+                                   textures[1].getSrvIndex(),  sampler.getIndex(),         output.getUavIndex(),
+                                   config.getCbvIndex(),       raw.getSrvIndex() };
+    hz::CommandList& commands = context.acquireCommandList();
+    commands.setPipeline(write);
+    commands.setRootConstant({ indices, 4 });
+    commands.setRootConstant({ indices + 4, 4 }, 4);
+    commands.dispatch(1, 1, 1, { .storageTextures = { &textures[0], &textures[1] } });
+    commands.setPipeline(read);
+    commands.setRootConstant({ indices, 4 });
+    commands.setRootConstant({ indices + 4, 4 }, 4);
+    commands.dispatch(1, 1, 1,
+                      { .sampledTextures = { &textures[0], &textures[1] }, .buffers = { &config, &raw }, .storageBuffers = { &output } });
+    commands.copyBuffer(readback, 0, output, 0, 32);
+    context.wait(context.submit(commands));
+    const uint32_t  expected[] = { 513, 3, 3, 513, 3, 513, 3, 513 };
+    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    for (uint32_t i = 0; i < TF_ARRAY_COUNT(expected); ++i)
+        EXPECT_EQ(values[i], expected[i]);
+
+    hz::GPUTexture moved(std::move(textures[0]));
+    EXPECT_FALSE(textures[0].isValid());
+    EXPECT_EQ(moved.getSrvIndex(), indices[2]);
+    moved = {};
+    textures[0] = context.createTexture(textureDesc);
+    EXPECT_EQ(textures[0].getSrvIndex(), indices[2]);
+    EXPECT_EQ(textures[1].getSrvIndex(), indices[3]);
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif

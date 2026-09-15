@@ -173,12 +173,77 @@ HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* p
                                                        IID_PPV_ARGS(ppOutResource));
 }
 
-static inline LONG util_compute_intersection(const RECT rect1, const RECT rect2)
+bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI_OUTPUT_DESC1* pOutDesc)
 {
-    LONG x_intersection = max(0L, min(rect1.right, rect2.right) - max(rect1.left, rect2.left));
-    LONG y_intersection = max(0L, min(rect1.bottom, rect2.bottom) - max(rect1.top, rect2.top));
-    LONG intersection = x_intersection * y_intersection;
-    return intersection;
+    ASSERT(pRenderer);
+    ASSERT(pWindow);
+    ASSERT(pOutDesc);
+
+    const HMONITOR monitor = MonitorFromWindow((HWND)pWindow->window, MONITOR_DEFAULTTONEAREST);
+    if (!monitor)
+    {
+        LOGF(LogLevel::eERROR, "Failed to find a monitor for the swapchain window");
+        return false;
+    }
+
+    for (UINT adapterIndex = 0;; ++adapterIndex)
+    {
+        IDXGIAdapter1* pAdapter = NULL;
+        const HRESULT  adapterResult = pRenderer->pContext->dx.pDXGIFactory->EnumAdapters1(adapterIndex, &pAdapter);
+        if (adapterResult == DXGI_ERROR_NOT_FOUND)
+            break;
+        if (FAILED(adapterResult))
+        {
+            LOGF(LogLevel::eERROR, "Failed to enumerate DXGI adapters (HRESULT: 0x%08x)", (uint32_t)adapterResult);
+            return false;
+        }
+
+        for (UINT outputIndex = 0;; ++outputIndex)
+        {
+            IDXGIOutput*  pOutput = NULL;
+            const HRESULT outputResult = pAdapter->EnumOutputs(outputIndex, &pOutput);
+            if (outputResult == DXGI_ERROR_NOT_FOUND)
+                break;
+            if (FAILED(outputResult))
+            {
+                SAFE_RELEASE(pAdapter);
+                LOGF(LogLevel::eERROR, "Failed to enumerate DXGI outputs (HRESULT: 0x%08x)", (uint32_t)outputResult);
+                return false;
+            }
+
+            DXGI_OUTPUT_DESC outputDesc = {};
+            const HRESULT    descResult = pOutput->GetDesc(&outputDesc);
+            if (FAILED(descResult) || outputDesc.Monitor != monitor)
+            {
+                SAFE_RELEASE(pOutput);
+                continue;
+            }
+
+            IDXGIOutput6* pOutput6 = NULL;
+            const HRESULT queryResult = pOutput->QueryInterface(IID_PPV_ARGS(&pOutput6));
+            SAFE_RELEASE(pOutput);
+            SAFE_RELEASE(pAdapter);
+            if (FAILED(queryResult))
+            {
+                LOGF(LogLevel::eERROR, "IDXGIOutput6 is not available (HRESULT: 0x%08x)", (uint32_t)queryResult);
+                return false;
+            }
+
+            const HRESULT outputDescResult = pOutput6->GetDesc1(pOutDesc);
+            SAFE_RELEASE(pOutput6);
+            if (FAILED(outputDescResult))
+            {
+                LOGF(LogLevel::eERROR, "Failed to query DXGI output capabilities (HRESULT: 0x%08x)", (uint32_t)outputDescResult);
+                return false;
+            }
+            return true;
+        }
+
+        SAFE_RELEASE(pAdapter);
+    }
+
+    LOGF(LogLevel::eERROR, "No DXGI output found for the swapchain window");
+    return false;
 }
 
 hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
@@ -194,40 +259,9 @@ hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const Swap
     if (COLOR_SPACE_EXTENDED_SRGB == colorSpace)
         format = hz::Format::R16G16B16A16_SFLOAT;
 
-    // check adapter
-    RECT windowBounds = {};
-    GetWindowRect((HWND)pDesc->windowHandle.window, &windowBounds);
-    IDXGIAdapter1* dxgiAdapter = NULL;
-    CHECK_HRESULT(pRenderer->pContext->dx.pDXGIFactory->EnumAdapters1(0, &dxgiAdapter));
-    UINT         i = 0;
-    IDXGIOutput* currentOutput = NULL;
-    IDXGIOutput* bestOutput = NULL;
-    LONG         bestIntersection = -1;
-    while (dxgiAdapter->EnumOutputs(i, &currentOutput) != DXGI_ERROR_NOT_FOUND)
-    {
-        DXGI_OUTPUT_DESC desc;
-        currentOutput->GetDesc(&desc);
-        LONG intersection = util_compute_intersection(windowBounds, desc.DesktopCoordinates);
-        if (intersection > bestIntersection)
-        {
-            SAFE_RELEASE(bestOutput);
-            bestIntersection = intersection;
-            bestOutput = currentOutput;
-        }
-        else
-        {
-            SAFE_RELEASE(currentOutput);
-        }
-        ++i;
-    }
-    SAFE_RELEASE(dxgiAdapter);
-
-    IDXGIOutput6* output6;
-    CHECK_HRESULT(bestOutput->QueryInterface(IID_PPV_ARGS(&output6)));
-    DXGI_OUTPUT_DESC1 desc1;
-    CHECK_HRESULT(output6->GetDesc1(&desc1));
-    SAFE_RELEASE(output6);
-    SAFE_RELEASE(bestOutput);
+    DXGI_OUTPUT_DESC1 desc1 = {};
+    if (!hook_get_output_desc(pRenderer, &pDesc->windowHandle, &desc1))
+        return hz::Format::UNDEFINED;
     const bool outputSupportsHDR = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 == desc1.ColorSpace;
     if (outputSupportsHDR)
     {
@@ -258,8 +292,10 @@ hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const Swap
 
         if (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)
         {
+            tmpSwapchain3->Release();
             return format;
         }
+        tmpSwapchain3->Release();
     }
 
     return hz::Format::UNDEFINED;

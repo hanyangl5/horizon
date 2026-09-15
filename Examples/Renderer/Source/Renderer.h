@@ -14,9 +14,9 @@
 
 #include "RenderPasses.h"
 
-constexpr const char* kSceneDirectory = "Assets/Bistro";
-constexpr const char* kSceneSource = "BistroExterior.gltf";
-constexpr hz::Format  kSurfaceFormat = hz::Format::B8G8R8A8_SRGB;
+constexpr const char* kSceneDirectory = "Assets/niagara_bistro";
+constexpr const char* kSceneSource = "bistro2.gltf";
+constexpr bool        kEnableHDR = true;
 
 const VertexLayout kSceneVertexLayout = {
     .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
@@ -67,8 +67,7 @@ private:
             .pAppName = GetName(),
             .windowHandle = pWindow->handle,
             .imageCount = 2,
-            .colorFormat = kSurfaceFormat,
-            .colorSpace = COLOR_SPACE_SDR_SRGB,
+            .enableHDR = kEnableHDR,
             .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
         };
@@ -158,7 +157,6 @@ private:
             .scene = scene,
             .pInstances = pInstances,
             .instanceCount = instanceCount,
-            .surfaceFormat = kSurfaceFormat,
             .verticalFov = verticalFov,
         };
         pRenderPasses = hz::make_unique<RenderPasses>(desc);
@@ -193,7 +191,11 @@ public:
         }
         return pRenderPasses->load(width, height);
     }
-    void Unload(ReloadDesc*) override { pRenderPasses->unload(); }
+    void Unload(ReloadDesc*) override
+    {
+        pContext->waitIdle();
+        pRenderPasses->unload();
+    }
     void Update(float deltaTime) override
     {
         pCamera->update(deltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);

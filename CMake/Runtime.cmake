@@ -199,3 +199,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 set_target_properties(${ENGINE_RUNTIME} PROPERTIES FOLDER "Horizon")
+
+if(WIN32)
+    include(RuntimeShaders)
+endif()

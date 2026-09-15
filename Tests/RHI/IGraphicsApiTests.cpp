@@ -48,11 +48,12 @@ constexpr uint32_t kRenderTargetWidth = 16;
 constexpr uint32_t kRenderTargetHeight = 4;
 
 const char* kLifecycleComputeShader = R"(
-RWStructuredBuffer<uint> OutputBuffer : register(u0);
+cbuffer RootConstantOutput { uint outputHeapIndex; };
 
 [numthreads(1, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
+    RWStructuredBuffer<uint> OutputBuffer = ResourceDescriptorHeap[outputHeapIndex];
     OutputBuffer[0] = 0x1234u + dispatchThreadId.x;
 }
 )";
@@ -87,25 +88,20 @@ float4 PSMain(VSOutput input) : SV_Target0
 )";
 
 const char* kCommandComputeShader = R"(
-RWStructuredBuffer<uint> OutputBuffer : register(u0);
-
 cbuffer RootConstantDispatch : register(b0)
 {
     uint WriteValue;
     uint OutputIndex;
-    uint2 DispatchPadding;
+    uint OutputHeapIndex;
+    uint UniformHeapIndex;
 };
-
-cbuffer ComputeRootCbv : register(b1)
-{
-    uint Multiplier;
-    uint3 RootCbvPadding;
-};
-
+struct ComputeUniforms { uint Multiplier; uint3 padding; };
 [numthreads(1, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    OutputBuffer[OutputIndex] = (WriteValue + dispatchThreadId.x) * Multiplier;
+    RWStructuredBuffer<uint> OutputBuffer = ResourceDescriptorHeap[OutputHeapIndex];
+    ConstantBuffer<ComputeUniforms> uniforms = ResourceDescriptorHeap[UniformHeapIndex];
+    OutputBuffer[OutputIndex] = (WriteValue + dispatchThreadId.x) * uniforms.Multiplier;
 }
 )";
 
@@ -763,9 +759,6 @@ struct ComputeCommandSetup
 {
     Shader*           pShader = nullptr;
     RootSignature*    pRootSignature = nullptr;
-    DescriptorSet*    pDescriptorSet = nullptr;
-    uint32_t          outputIndex = UINT32_MAX;
-    uint32_t          rootCbvIndex = UINT32_MAX;
     uint32_t          rootConstantIndex = UINT32_MAX;
     Buffer*           pOutputBuffer = nullptr;
     Buffer*           pRootCbvBuffer = nullptr;
@@ -833,10 +826,10 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
             }
         });
 
-    pOut->outputIndex = getDescriptorIndexFromName(pOut->pRootSignature, "OutputBuffer");
+    pOut->outputIndex = getDescriptorIndexFromName(pOut->pRootSignature, "RootConstantOutput");
     if (pOut->outputIndex == UINT32_MAX)
     {
-        ADD_FAILURE() << "OutputBuffer binding was not reflected";
+        ADD_FAILURE() << "RootConstantOutput was not reflected";
         return false;
     }
 
@@ -901,39 +894,6 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
             }
         });
 
-    return true;
-}
-
-bool createDescriptorSetForOutput(LiveRendererHarness& harness, DeferredCleanup& cleanup, RootSignature* pRootSignature, Buffer* pBuffer,
-                                  DescriptorSet** ppDescriptorSet)
-{
-    DescriptorSetDesc descriptorSetDesc = {
-        .pRootSignature = pRootSignature,
-        .spaceIndex = 0,
-        .maxSets = 1,
-    };
-    addDescriptorSet(harness.pRenderer, &descriptorSetDesc, ppDescriptorSet);
-    if (!*ppDescriptorSet)
-    {
-        ADD_FAILURE() << "addDescriptorSet returned null";
-        return false;
-    }
-    DescriptorSet* pDescriptorSet = *ppDescriptorSet;
-    cleanup.add(
-        [renderer = harness.pRenderer, pDescriptorSet]
-        {
-            if (pDescriptorSet)
-            {
-                removeDescriptorSet(renderer, pDescriptorSet);
-            }
-        });
-
-    DescriptorData bufferUpdate = {
-        .pName = "OutputBuffer",
-        .count = 1,
-        .ppBuffers = &pBuffer,
-    };
-    updateDescriptorSet(harness.pRenderer, 0, *ppDescriptorSet, 1, &bufferUpdate);
     return true;
 }
 
@@ -1332,35 +1292,12 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
             }
         });
 
-    pOut->outputIndex = getDescriptorIndexFromName(pOut->pRootSignature, "OutputBuffer");
-    pOut->rootCbvIndex = getDescriptorIndexFromName(pOut->pRootSignature, "ComputeRootCbv");
     pOut->rootConstantIndex = getDescriptorIndexFromName(pOut->pRootSignature, "RootConstantDispatch");
-    if (pOut->outputIndex == UINT32_MAX || pOut->rootCbvIndex == UINT32_MAX || pOut->rootConstantIndex == UINT32_MAX)
+    if (pOut->rootConstantIndex == UINT32_MAX)
     {
-        ADD_FAILURE() << "Compute bindings were not fully reflected";
+        ADD_FAILURE() << "Compute root constants were not reflected";
         return false;
     }
-
-    DescriptorSetDesc computeDescriptorSetDesc = {
-        .pRootSignature = pOut->pRootSignature,
-        .spaceIndex = 0,
-        .maxSets = 1,
-    };
-    addDescriptorSet(harness.pRenderer, &computeDescriptorSetDesc, &pOut->pDescriptorSet);
-    if (!pOut->pDescriptorSet)
-    {
-        ADD_FAILURE() << "addDescriptorSet returned null for compute";
-        return false;
-    }
-    DescriptorSet* pComputeDescriptorSet = pOut->pDescriptorSet;
-    cleanup.add(
-        [renderer = harness.pRenderer, pComputeDescriptorSet]
-        {
-            if (pComputeDescriptorSet)
-            {
-                removeDescriptorSet(renderer, pComputeDescriptorSet);
-            }
-        });
 
     BufferDesc computeOutputDesc = {
         .size = sizeof(uint32_t) * 2,
@@ -1386,13 +1323,6 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
                 removeBuffer(renderer, pOutputBuffer);
             }
         });
-
-    DescriptorData computeOutputUpdate = {
-        .pName = "OutputBuffer",
-        .count = 1,
-        .ppBuffers = &pOut->pOutputBuffer,
-    };
-    updateDescriptorSet(harness.pRenderer, 0, pOut->pDescriptorSet, 1, &computeOutputUpdate);
 
     BufferDesc computeRootCbvDesc = {
         .size = 256,
@@ -1532,30 +1462,14 @@ void setComputeMultiplier(ComputeCommandSetup& setup, uint32_t multiplier)
     memcpy(setup.pRootCbvBuffer->pCpuMappedAddress, &setup.rootCbvData, sizeof(setup.rootCbvData));
 }
 
-void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeCommandSetup& setup, bool bindRootCbv, bool useIndirectDispatch,
+void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeCommandSetup& setup, bool useIndirectDispatch,
                                uint32_t writeValue, uint32_t outputIndex, uint32_t* pOutValues)
 {
     resetCmdPool(harness.pRenderer, harness.pCmdPool);
     beginCmd(harness.pCmd);
     cmdBindPipeline(harness.pCmd, setup.pPipeline);
-    cmdBindDescriptorSet(harness.pCmd, 0, setup.pDescriptorSet);
-
-    if (bindRootCbv)
-    {
-        DescriptorDataRange computeRootCbvRange = {
-            .offset = 0,
-            .size = (uint32_t)sizeof(setup.rootCbvData),
-        };
-        DescriptorData computeRootCbvBinding = {
-            .pName = "ComputeRootCbv",
-            .count = 1,
-            .pRanges = &computeRootCbvRange,
-            .ppBuffers = (Buffer**)&setup.pRootCbvBuffer,
-        };
-        cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, setup.pDescriptorSet, 1, &computeRootCbvBinding);
-    }
-
-    uint32_t dispatchConstants[4] = { writeValue, outputIndex, 0u, 0u };
+    uint32_t dispatchConstants[4] = { writeValue, outputIndex, getBufferUavIndex(setup.pOutputBuffer),
+                                      getBufferCbvIndex(setup.pRootCbvBuffer) };
     cmdBindPushConstants(harness.pCmd, setup.pRootSignature, setup.rootConstantIndex, dispatchConstants);
     if (useIndirectDispatch)
     {
@@ -1791,8 +1705,8 @@ TEST_F(RHIIGraphicsApiTest, ShaderApisCreateSourceAndBinaryShaders)
     EXPECT_EQ(shaderBundle.pBinaryShader->stages, SHADER_STAGE_COMP);
 }
 
-// Verifies that root-signature and descriptor-set APIs expose reflected bindings and accept descriptor updates for them.
-TEST_F(RHIIGraphicsApiTest, RootSignatureAndDescriptorSetApisExposeAndUpdateBindings)
+// Bindless shaders retain root constants while resources use persistent heap indices.
+TEST_F(RHIIGraphicsApiTest, RootSignatureEnablesBindlessResources)
 {
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(attachSharedRenderer(harness));
@@ -1804,12 +1718,9 @@ TEST_F(RHIIGraphicsApiTest, RootSignatureAndDescriptorSetApisExposeAndUpdateBind
     LifecyclePlacedBufferBundle placedBufferBundle = {};
     ASSERT_TRUE(createLifecyclePlacedBuffer(harness, cleanup, &placedBufferBundle));
 
-    DescriptorSet* pDescriptorSet = nullptr;
-    ASSERT_TRUE(createDescriptorSetForOutput(harness, cleanup, shaderBundle.pRootSignature, placedBufferBundle.pBuffer, &pDescriptorSet));
-
-    EXPECT_EQ((DescriptorType)shaderBundle.pRootSignature->pDescriptors[shaderBundle.outputIndex].type, DESCRIPTOR_TYPE_RW_BUFFER);
+    EXPECT_NE(getBufferUavIndex(placedBufferBundle.pBuffer), UINT32_MAX);
     EXPECT_EQ(shaderBundle.pRootSignature->descriptorCount, 1u);
-    ASSERT_NE(pDescriptorSet, nullptr);
+    EXPECT_TRUE(shaderBundle.pBinaryShader->pReflection->stageReflections[0].cbvHeapIndexing);
 }
 
 // Verifies that getBufferSizeAlign/addResourceHeap/addBuffer create a valid placed buffer allocation.
@@ -1954,8 +1865,8 @@ TEST_F(RHIIGraphicsApiTest, CmdDrawIndexedInstancedWritesExpectedPixels)
     expectPixelEq(&pixel.r, 255, 255, 0, 255);
 }
 
-// Verifies that cmdBindDescriptorSetWithRootCbvs binds the compute root CBV and affects shader output.
-TEST_F(RHIIGraphicsApiTest, CmdBindDescriptorSetWithRootCbvsBindsComputeRootCbv)
+// Constant-buffer heap indexing reads the current uploaded data.
+TEST_F(RHIIGraphicsApiTest, BindlessConstantBufferAffectsComputeOutput)
 {
     LiveRendererHarness harness;
     ASSERT_RHI_CALL_OR_SKIP_ON_UNSUPPORTED(initSharedRendererHarness(harness, 0));
@@ -1966,7 +1877,7 @@ TEST_F(RHIIGraphicsApiTest, CmdBindDescriptorSetWithRootCbvsBindsComputeRootCbv)
 
     setComputeMultiplier(computeSetup, 7u);
     uint32_t values[2] = {};
-    executeComputeAndReadBack(harness, computeSetup, true, false, 5u, 0u, values);
+    executeComputeAndReadBack(harness, computeSetup, false, 5u, 0u, values);
     EXPECT_EQ(values[0], 35u);
 }
 
@@ -1981,7 +1892,7 @@ TEST_F(RHIIGraphicsApiTest, CmdDispatchWritesExpectedBufferValues)
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
     uint32_t values[2] = {};
-    executeComputeAndReadBack(harness, computeSetup, true, false, 5u, 0u, values);
+    executeComputeAndReadBack(harness, computeSetup, false, 5u, 0u, values);
     EXPECT_EQ(values[0], 15u);
 }
 
@@ -1996,7 +1907,7 @@ TEST_F(RHIIGraphicsApiTest, CmdExecuteIndirectDispatchWritesExpectedBufferValues
     ASSERT_TRUE(createComputeCommandSetup(harness, cleanup, &computeSetup));
 
     uint32_t values[2] = {};
-    executeComputeAndReadBack(harness, computeSetup, true, true, 9u, 1u, values);
+    executeComputeAndReadBack(harness, computeSetup, true, 9u, 1u, values);
     EXPECT_EQ(values[1], 27u);
     EXPECT_EQ(computeSetup.pDispatchSignature->drawType, INDIRECT_DISPATCH);
     EXPECT_EQ(computeSetup.pDispatchSignature->stride, 16u);
@@ -2027,21 +1938,8 @@ TEST_F(RHIIGraphicsApiTest, QueryApisProduceValidTimestamps)
     cmdBeginQuery(harness.pCmd, pQueryPool, &timestampQuery);
     cmdBeginDebugMarker(harness.pCmd, 0.2f, 0.6f, 1.0f, "ComputeQuery");
     cmdBindPipeline(harness.pCmd, computeSetup.pPipeline);
-    cmdBindDescriptorSet(harness.pCmd, 0, computeSetup.pDescriptorSet);
-
-    DescriptorDataRange computeRootCbvRange = {
-        .offset = 0,
-        .size = (uint32_t)sizeof(computeSetup.rootCbvData),
-    };
-    DescriptorData computeRootCbvBinding = {
-        .pName = "ComputeRootCbv",
-        .count = 1,
-        .pRanges = &computeRootCbvRange,
-        .ppBuffers = &computeSetup.pRootCbvBuffer,
-    };
-    cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, computeSetup.pDescriptorSet, 1, &computeRootCbvBinding);
-
-    uint32_t dispatchConstants[4] = { 5u, 0u, 0u, 0u };
+    uint32_t dispatchConstants[4] = { 5u, 0u, getBufferUavIndex(computeSetup.pOutputBuffer),
+                                      getBufferCbvIndex(computeSetup.pRootCbvBuffer) };
     cmdBindPushConstants(harness.pCmd, computeSetup.pRootSignature, computeSetup.rootConstantIndex, dispatchConstants);
     cmdDispatch(harness.pCmd, 1, 1, 1);
     cmdAddDebugMarker(harness.pCmd, 0.8f, 0.3f, 0.1f, "ResolveQuery");
@@ -2080,21 +1978,8 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
     resetCmdPool(harness.pRenderer, harness.pCmdPool);
     beginCmd(harness.pCmd);
     cmdBindPipeline(harness.pCmd, computeSetup.pPipeline);
-    cmdBindDescriptorSet(harness.pCmd, 0, computeSetup.pDescriptorSet);
-
-    DescriptorDataRange computeRootCbvRange = {
-        .offset = 0,
-        .size = (uint32_t)sizeof(computeSetup.rootCbvData),
-    };
-    DescriptorData computeRootCbvBinding = {
-        .pName = "ComputeRootCbv",
-        .count = 1,
-        .pRanges = &computeRootCbvRange,
-        .ppBuffers = &computeSetup.pRootCbvBuffer,
-    };
-    cmdBindDescriptorSetWithRootCbvs(harness.pCmd, 0, computeSetup.pDescriptorSet, 1, &computeRootCbvBinding);
-
-    uint32_t dispatchConstants[4] = { 5u, 0u, 0u, 0u };
+    uint32_t dispatchConstants[4] = { 5u, 0u, getBufferUavIndex(computeSetup.pOutputBuffer),
+                                      getBufferCbvIndex(computeSetup.pRootCbvBuffer) };
     cmdBindPushConstants(harness.pCmd, computeSetup.pRootSignature, computeSetup.rootConstantIndex, dispatchConstants);
     cmdDispatch(harness.pCmd, 1, 1, 1);
 

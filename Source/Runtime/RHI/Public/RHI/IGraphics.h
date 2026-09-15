@@ -24,6 +24,9 @@
 
 #pragma once
 
+// SM 6.6+ descriptor heap indexing.
+#define BINDLESSRENDERING
+
 #include "../Private/GraphicsConfig.h"
 #ifdef ENABLE_NSIGHT_AFTERMATH
 #include "../ThirdParty/PrivateNvidia/NsightAftermath/include/AftermathTracker.h"
@@ -207,7 +210,6 @@ struct Texture;
 struct RenderTarget;
 struct Shader;
 struct RootSignature;
-struct DescriptorSet;
 struct DescriptorIndexMap;
 struct PipelineCache;
 struct DirectStorage;
@@ -611,6 +613,21 @@ enum ColorSpace : uint32_t
     COLOR_SPACE_EXTENDED_SRGB, // Extended sRGB with linear EOTF
 };
 
+struct HDRMetadata
+{
+    float maxMasteringLuminance = 0.0f;
+    float minMasteringLuminance = 0.0f;
+    float maxContentLightLevel = 0.0f;
+    float maxFrameAverageLightLevel = 0.0f;
+};
+
+struct HDRDisplayInfo
+{
+    float minLuminance = 0.0f;
+    float maxLuminance = 0.0f;
+    float maxFullFrameLuminance = 0.0f;
+};
+
 // Material Unit test use this enum to index a shader table
 static_assert(GPU_PRESET_COUNT == 7);
 
@@ -826,6 +843,7 @@ struct alignas(64) Buffer
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;
         /// Descriptor handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
         DxDescriptorID            descriptors;
+        DxDescriptorID            gpuDescriptors;
         /// Offset from descriptors for srv descriptor handle
         uint8_t                   srvDescriptorOffset;
         /// Offset from descriptors for uav descriptor handle
@@ -891,6 +909,7 @@ struct alignas(64) Texture
     {
         /// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
         DxDescriptorID       descriptors;
+        DxDescriptorID       gpuDescriptors;
         /// Native handle of the underlying resource
         ID3D12Resource*      pResource;
         /// Contains resource allocation info such as parent heap, offset in heap
@@ -1007,22 +1026,54 @@ struct alignas(16) Sampler
         D3D12_SAMPLER_DESC desc;
         /// Descriptor handle of the Sampler in a CPU visible descriptor heap
         DxDescriptorID     descriptor;
+        DxDescriptorID     gpuDescriptor;
     } dx;
 };
 static_assert(sizeof(Sampler) == 8 * sizeof(uint64_t));
+
+inline uint32_t getBufferSrvIndex(const Buffer* pBuffer)
+{
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DESCRIPTOR_TYPE_BUFFER));
+    return (uint32_t)pBuffer->dx.gpuDescriptors + pBuffer->dx.srvDescriptorOffset;
+}
+
+inline uint32_t getBufferUavIndex(const Buffer* pBuffer)
+{
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DESCRIPTOR_TYPE_RW_BUFFER));
+    return (uint32_t)pBuffer->dx.gpuDescriptors + pBuffer->dx.uavDescriptorOffset;
+}
+
+inline uint32_t getBufferCbvIndex(const Buffer* pBuffer)
+{
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+    return (uint32_t)pBuffer->dx.gpuDescriptors;
+}
+
+inline uint32_t getTextureSrvIndex(const Texture* pTexture)
+{
+    ASSERT(pTexture && pTexture->dx.gpuDescriptors >= 0 && pTexture->dx.uavStartIndex);
+    return (uint32_t)pTexture->dx.gpuDescriptors;
+}
+
+inline uint32_t getTextureUavIndex(const Texture* pTexture, uint32_t mip = 0)
+{
+    ASSERT(pTexture && pTexture->dx.gpuDescriptors >= 0 && pTexture->uav && mip < pTexture->mipLevels);
+    return (uint32_t)pTexture->dx.gpuDescriptors + pTexture->dx.uavStartIndex + mip;
+}
+
+inline uint32_t getSamplerIndex(const Sampler* pSampler)
+{
+    ASSERT(pSampler && pSampler->dx.gpuDescriptor >= 0);
+    return (uint32_t)pSampler->dx.gpuDescriptor;
+}
 
 /// Data structure holding the layout for a descriptor
 struct alignas(16) DescriptorInfo
 {
     const char* pName;
     uint32_t    type;
-    uint32_t    dim : 4;
-    uint32_t    rootDescriptor : 1;
-    uint32_t    staticSampler : 1;
     uint32_t    size;
     uint32_t    handleIndex;
-    uint32_t    spaceIndex;
-    uint32_t    groupIndex;
 };
 static_assert(sizeof(DescriptorInfo) == 4 * sizeof(uint64_t));
 
@@ -1037,27 +1088,13 @@ struct RootSignatureDesc
 {
     Shader**           ppShaders;
     uint32_t           shaderCount;
-    uint32_t           maxBindlessTextures;
-    const char**       ppStaticSamplerNames;
-    Sampler**          ppStaticSamplers;
-    uint32_t           staticSamplerCount;
     RootSignatureFlags flags;
-};
-
-struct DescriptorSetLayout
-{
-    uint32_t spaceIndex;
-    uint32_t viewDescriptorCount;
-    uint32_t samplerDescriptorCount;
-    uint32_t viewRootIndex;
-    uint32_t samplerRootIndex;
 };
 
 struct alignas(64) RootSignature
 {
     /// Number of descriptors declared in the root signature layout
     uint32_t            descriptorCount;
-    uint32_t            descriptorSetCount;
     /// Graphics or Compute
     PipelineType        pipelineType;
     /// Array of all descriptors declared in the root signature layout
@@ -1067,80 +1104,9 @@ struct alignas(64) RootSignature
     struct
     {
         ID3D12RootSignature* pRootSignature;
-        DescriptorSetLayout* pLayouts;
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_DEBUG)
-        bool hasRayQueryAccelerationStructure;
-#endif
     } dx;
 };
 static_assert(sizeof(RootSignature) <= 16 * sizeof(uint64_t));
-
-struct DescriptorDataRange
-{
-    uint32_t offset;
-    uint32_t size;
-    // Specify different structured buffer stride (ignored for raw buffer - ByteAddressBuffer)
-    uint32_t structStride;
-};
-
-struct DescriptorData
-{
-    /// User can either set name of descriptor or index (index in pRootSignature->pDescriptors array)
-    /// Name of descriptor
-    const char* pName;
-    /// Number of array entries to update (array size of ppTextures/ppBuffers/...)
-    uint32_t    count : 31;
-    /// Dst offset into the array descriptor (useful for updating few entries in a large array)
-    // Example: to update 6th entry in a bindless texture descriptor, arrayOffset will be 6 and count will be 1)
-    uint32_t    arrayOffset : 20;
-    // Index in pRootSignature->pDescriptors array - Cache index using getDescriptorIndexFromName to avoid using string checks at runtime
-    uint32_t    index : 10;
-    uint32_t    bindByIndex : 1;
-
-    // Range to bind (buffer offset, size)
-    DescriptorDataRange* pRanges;
-
-    // Binds stencil only descriptor instead of color/depth
-    bool     bindStencilResource : 1;
-    // When binding UAV, control the mip slice to to bind for UAV (example - generating mipmaps in a compute shader)
-    uint16_t uavMipSlice;
-    // Binds entire mip chain as array of UAV
-    bool     bindMipChain;
-    /// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one
-    /// resource type array
-    union
-    {
-        /// Array of texture descriptors (srv and uav textures)
-        Texture**               ppTextures;
-        /// Array of sampler descriptors
-        Sampler**               ppSamplers;
-        /// Array of buffer descriptors (srv, uav and cbv buffers)
-        Buffer**                ppBuffers;
-        /// Custom binding (raytracing acceleration structure ...)
-        AccelerationStructure** ppAccelerationStructures;
-    };
-};
-
-struct alignas(64) DescriptorSet
-{
-    struct
-    {
-        /// Start handle to cbv srv uav descriptor table
-        DxDescriptorID       cbvSrvUavHandle;
-        /// Start handle to sampler descriptor table
-        DxDescriptorID       samplerHandle;
-        /// Stride of the cbv srv uav descriptor table (number of descriptors * descriptor size)
-        uint32_t             cbvSrvUavStride;
-        /// Stride of the sampler descriptor table (number of descriptors * descriptor size)
-        uint32_t             samplerStride;
-        const RootSignature* pRootSignature;
-        uint32_t             groupIndex;
-        uint32_t             maxSets : 16;
-        uint32_t             cbvSrvUavRootIndex : 8;
-        uint32_t             samplerRootIndex : 8;
-        uint32_t             pipelineType : 3;
-    } dx;
-};
 
 struct CmdPoolDesc
 {
@@ -1192,12 +1158,6 @@ struct MarkerDesc
 #define ESRAM_RESET_ALLOCS(...)
 #endif
 
-struct BoundDescriptorSet
-{
-    DescriptorSet* pSet;
-    uint32_t       instanceIndex;
-};
-
 struct alignas(64) Cmd
 {
     struct
@@ -1214,7 +1174,6 @@ struct alignas(64) Cmd
 
         // Command buffer state
         const RootSignature* pBoundRootSignature;
-        BoundDescriptorSet*  pBoundDescriptorSets;
         uint32_t             type : 3;
         CmdPool*             pCmdPool;
     } dx;
@@ -1573,6 +1532,8 @@ struct SwapChainDesc
     bool                   useFlipSwapEffect;
     /// Optional colorspace for HDR
     ColorSpace             colorSpace;
+    /// Optional HDR10 mastering and content-light metadata
+    HDRMetadata            hdrMetadata;
 };
 
 struct SwapChain
@@ -1588,10 +1549,12 @@ struct SwapChain
         uint32_t         syncInterval : 3;
         uint32_t         flags : 10;
     } dx;
-    uint32_t   imageCount : 8;
-    uint32_t   enableVsync : 1;
-    ColorSpace colorSpace : 4;
-    hz::Format format : 8;
+    uint32_t       imageCount : 8;
+    uint32_t       enableVsync : 1;
+    ColorSpace     colorSpace : 4;
+    hz::Format     format : 8;
+    HDRDisplayInfo hdrDisplayInfo;
+    HDRMetadata    hdrMetadata;
 };
 
 enum ShaderTarget : uint32_t
@@ -1757,6 +1720,7 @@ struct GPUSettings
     uint32_t          directStorageSupported : 1;
     uint32_t          enhancedBarriersSupported : 1;
     uint32_t          executeIndirectIncrementingConstantSupported : 1;
+    uint32_t          dynamicResourceSupported : 1;
     uint32_t          amdAsicFamily;
 };
 
@@ -1782,7 +1746,6 @@ struct alignas(64) Renderer
     // GPU crash dump tracker using Nsight Aftermath instrumentation
     AftermathTracker aftermathTracker;
 #endif
-    struct NullDescriptors* pNullDescriptors;
     struct RendererContext* pContext;
     const struct GpuInfo*   pGpu;
     const char*             pName;
@@ -1940,13 +1903,6 @@ struct CommandSignature
     uint32_t             stride;
 };
 
-struct DescriptorSetDesc
-{
-    RootSignature* pRootSignature;
-    uint32_t       spaceIndex = 0;
-    uint32_t       maxSets = 1;
-};
-
 struct QueueSubmitDesc
 {
     Cmd**       ppCmds;
@@ -2077,11 +2033,6 @@ FORGE_RENDERER_API void FORGE_CALLCONV removePipelineStats(Renderer* pRenderer, 
 #endif
 FORGE_RENDERER_API void FORGE_CALLCONV removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache);
 
-// Descriptor Set functions
-FORGE_RENDERER_API void FORGE_CALLCONV addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet);
-FORGE_RENDERER_API void FORGE_CALLCONV removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet);
-FORGE_RENDERER_API void FORGE_CALLCONV updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams);
-
 // command buffer functions
 FORGE_RENDERER_API void FORGE_CALLCONV resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool);
 FORGE_RENDERER_API void FORGE_CALLCONV beginCmd(Cmd* pCmd);
@@ -2092,9 +2043,9 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex,
+                                                            const void* pConstants, uint32_t constantCount = 0,
+                                                            uint32_t offsetIn32BitValues = 0);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex);

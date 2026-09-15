@@ -60,7 +60,6 @@ struct Fontstash
     Texture*       pAtlasTexture;
     Shader*        pShaders[2];
     RootSignature* pRootSignature;
-    DescriptorSet* pDescriptorSets;
     Pipeline*      pPipelines[2];
     Sampler*       pDefaultSampler;
     GPURingBuffer  uniformRingBuffer;
@@ -167,16 +166,18 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
 
     struct UniformData
     {
-        float4 color;
-        float2 scaleBias;
-#ifdef METAL
-        float _pad0;
-        float _pad1;
-#endif
-    } data;
+        float4   color;
+        float2   scaleBias;
+        uint32_t textureIndex;
+        uint32_t samplerIndex;
+        uint32_t uniformIndex;
+        uint32_t uniformOffset;
+    } data = {};
 
     data.color = color;
     data.scaleBias = gFontstash.scaleBias;
+    data.textureIndex = getTextureSrvIndex(gFontstash.pAtlasTexture);
+    data.samplerIndex = getSamplerIndex(gFontstash.pDefaultSampler);
 
     if (draw->text3D)
     {
@@ -190,15 +191,9 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
         memcpy(updateDesc.pMappedData, &mvp, sizeof(mvp));
         endUpdateResource(&updateDesc);
 
-        const uint32_t size = sizeof(mvp);
         const uint32_t stride = sizeof(float4);
-
-        DescriptorDataRange range = { (uint32_t)uniformBlock.offset, size };
-        DescriptorData      params[1] = {};
-        params[0].pName = "uniformBlock_rootcbv";
-        params[0].ppBuffers = &uniformBlock.pBuffer;
-        params[0].pRanges = &range;
-        cmdBindDescriptorSetWithRootCbvs(pCmd, 0, gFontstash.pDescriptorSets, 1, params);
+        data.uniformIndex = getBufferSrvIndex(uniformBlock.pBuffer);
+        data.uniformOffset = (uint32_t)uniformBlock.offset;
         cmdBindPushConstants(pCmd, gFontstash.pRootSignature, gFontstash.rootConstantIndex, &data);
         cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.offset);
         cmdDraw(pCmd, nverts, 0);
@@ -206,7 +201,6 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     else
     {
         const uint32_t stride = sizeof(float4);
-        cmdBindDescriptorSet(pCmd, 0, gFontstash.pDescriptorSets);
         cmdBindPushConstants(pCmd, gFontstash.pRootSignature, gFontstash.rootConstantIndex, &data);
         cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.offset);
         cmdDraw(pCmd, nverts, 0);
@@ -301,7 +295,12 @@ bool initFontSystem(FontSystemDesc* pDesc)
                                 ADDRESS_MODE_CLAMP_TO_EDGE };
     addSampler(gFontstash.pRenderer, &samplerDesc, &gFontstash.pDefaultSampler);
 
-    addUniformGPURingBuffer(gFontstash.pRenderer, 65536, &gFontstash.uniformRingBuffer, true);
+    const BufferDesc uniformDesc = { .size = 65536,
+                                     .elementCount = 65536 / 4,
+                                     .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+                                     .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW };
+    addGPURingBuffer(gFontstash.pRenderer, &uniformDesc, &gFontstash.uniformRingBuffer);
 
     BufferDesc vbDesc = {};
     vbDesc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -349,19 +348,8 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
             addShader(gFontstash.pRenderer, &text3DShaderDesc, &gFontstash.pShaders[1]);
 
             RootSignatureDesc textureRootDesc = { gFontstash.pShaders, 2 };
-            const char*       pStaticSamplers[] = { "uSampler0" };
-            textureRootDesc.staticSamplerCount = 1;
-            textureRootDesc.ppStaticSamplerNames = pStaticSamplers;
-            textureRootDesc.ppStaticSamplers = &gFontstash.pDefaultSampler;
             addRootSignature(gFontstash.pRenderer, &textureRootDesc, &gFontstash.pRootSignature);
             gFontstash.rootConstantIndex = getDescriptorIndexFromName(gFontstash.pRootSignature, "uRootConstants");
-
-            DescriptorSetDesc setDesc = { gFontstash.pRootSignature, 0, 1 };
-            addDescriptorSet(gFontstash.pRenderer, &setDesc, &gFontstash.pDescriptorSets);
-            DescriptorData setParams[1] = {};
-            setParams[0].pName = "uTex0";
-            setParams[0].ppTextures = &gFontstash.pAtlasTexture;
-            updateDescriptorSet(gFontstash.pRenderer, 0, gFontstash.pDescriptorSets, 1, setParams);
         }
 
         VertexLayout vertexLayout = {};
@@ -453,7 +441,6 @@ void unloadFontSystem(ReloadType unloadType)
 
         if (unloadType & RELOAD_TYPE_SHADER)
         {
-            removeDescriptorSet(gFontstash.pRenderer, gFontstash.pDescriptorSets);
             removeRootSignature(gFontstash.pRenderer, gFontstash.pRootSignature);
 
             for (uint32_t i = 0; i < 2; ++i)

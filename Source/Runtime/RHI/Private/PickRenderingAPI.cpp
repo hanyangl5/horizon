@@ -99,10 +99,6 @@ extern void d3d12_addPipelineStats(Renderer* pRenderer, Pipeline* pPipeline, boo
 extern void d3d12_removePipelineStats(Renderer* pRenderer, PipelineStats* pStats);
 #endif
 extern void d3d12_removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache);
-extern void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet);
-extern void d3d12_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet);
-extern void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count,
-                                      const DescriptorData* pParams);
 extern void d3d12_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool);
 extern void d3d12_beginCmd(Cmd* pCmd);
 extern void d3d12_endCmd(Cmd* pCmd);
@@ -113,10 +109,8 @@ extern void d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float
 extern void d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 extern void d3d12_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 extern void d3d12_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
-extern void d3d12_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet);
-extern void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants);
-extern void d3d12_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count,
-                                                   const DescriptorData* pParams);
+extern void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants,
+                                       uint32_t constantCount, uint32_t offsetIn32BitValues);
 extern void d3d12_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset);
 extern void d3d12_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides,
                                       const uint64_t* pOffsets);
@@ -167,15 +161,16 @@ extern bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 extern void d3d12_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 extern void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
                                            AccelerationStructure** ppAccelerationStructure);
-extern void d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
-extern void d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
-extern void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
-extern void d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
-extern void d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
-extern void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
-extern void d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-extern void d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-extern void d3d12_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+extern uint32_t d3d12_getAccelerationStructureSrvIndex(const AccelerationStructure* pAccelerationStructure);
+extern void     d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+extern void     d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+extern void     d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
+extern void     d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
+extern void     d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
+extern void     d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
+extern void     d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+extern void     d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+extern void     d3d12_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 extern void d3d12_cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture);
 extern void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc);
@@ -511,26 +506,6 @@ FORGE_RENDERER_API void FORGE_CALLCONV removePipelineCache(Renderer* pRenderer, 
     d3d12_removePipelineCache(pRenderer, pPipelineCache);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
-                                                        DescriptorSet** ppDescriptorSet)
-{
-    PROFILER_SET_CPU_SCOPE_AUTO();
-    d3d12_addDescriptorSet(pRenderer, pDesc, ppDescriptorSet);
-}
-
-FORGE_RENDERER_API void FORGE_CALLCONV removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
-{
-    PROFILER_SET_CPU_SCOPE_AUTO();
-    d3d12_removeDescriptorSet(pRenderer, pDescriptorSet);
-}
-
-FORGE_RENDERER_API void FORGE_CALLCONV updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet,
-                                                           uint32_t count, const DescriptorData* pParams)
-{
-    PROFILER_SET_CPU_SCOPE_AUTO();
-    d3d12_updateDescriptorSet(pRenderer, index, pDescriptorSet, count, pParams);
-}
-
 FORGE_RENDERER_API void FORGE_CALLCONV resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
@@ -587,24 +562,11 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPipeline(Cmd* pCmd, Pipeline* pPip
     d3d12_cmdBindPipeline(pCmd, pPipeline);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
-{
-    PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
-}
-
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex,
-                                                            const void* pConstants)
+                                                            const void* pConstants, uint32_t constantCount, uint32_t offsetIn32BitValues)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdBindPushConstants(pCmd, pRootSignature, paramIndex, pConstants);
-}
-
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet,
-                                                                        uint32_t count, const DescriptorData* pParams)
-{
-    PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdBindDescriptorSetWithRootCbvs(pCmd, index, pDescriptorSet, count, pParams);
+    d3d12_cmdBindPushConstants(pCmd, pRootSignature, paramIndex, pConstants, constantCount, offsetIn32BitValues);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
@@ -870,6 +832,11 @@ FORGE_RENDERER_API void FORGE_CALLCONV addAccelerationStructure(Raytracing* pRay
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
     d3d12_addAccelerationStructure(pRaytracing, pDesc, ppAccelerationStructure);
+}
+
+FORGE_RENDERER_API uint32_t FORGE_CALLCONV getAccelerationStructureSrvIndex(const AccelerationStructure* pAccelerationStructure)
+{
+    return d3d12_getAccelerationStructureSrvIndex(pAccelerationStructure);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)

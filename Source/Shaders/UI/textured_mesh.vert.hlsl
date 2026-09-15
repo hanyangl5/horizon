@@ -22,17 +22,17 @@
 * under the License.
 */
 
-Texture2D<float4> uTex : register(UPDATE_FREQ_NONE, t1);
-SamplerState uSampler : register(UPDATE_FREQ_NONE, s2);
-cbuffer uRootConstants : register(b1)
+cbuffer uRootConstants : register(b0)
 {
-	float4 color : None;
-	float2 scaleBias : None;
+    float4 color;
+    float2 scaleBias;
+    uint textureIndex;
+    uint samplerIndex;
 };
 
 struct VsIn
 {
-	float2 position : Position
+	float2 position : POSITION;
 	float2 texcoord : TEXCOORD0;
 };
 
@@ -44,9 +44,8 @@ struct VsOut
 
 VsOut VS_MAIN( VsIn In )
 {
-	INIT_MAIN;
 	VsOut Out;
 	Out.position = float4(In.position.xy * scaleBias.xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
 	Out.texcoord = In.texcoord;
-	return Out
+	return Out;
 }
