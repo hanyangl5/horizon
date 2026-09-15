@@ -35,9 +35,10 @@ The runtime is split into these public modules:
 - [Production-Ready Multithreading](Multithreading.md)
   Roadmap for growing the existing threading primitives into a production job
   system, frame scheduler, and resource-loading synchronization model.
-- [FrameGraph roadmap](FrameGraph.md)
-  Planned architecture and rollout strategy for a production-ready framegraph
-  layered above the current RHI.
+
+- [World Foundation](WorldFoundation.md)
+  Asset identity, ECS World, transform hierarchy, serialization, reflection,
+  and RenderScene extraction roadmap within the Scene runtime module.
 
 ## Building the docs
 
