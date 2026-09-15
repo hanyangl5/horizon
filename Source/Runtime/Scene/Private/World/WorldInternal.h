@@ -40,6 +40,8 @@ private:
     const WorldType* findType(TypeID type) { return hmgetp_null(pTypes, type); }
     void             checkThread() const { ASSERT(thread == getCurrentThreadID()); }
     void             finishObjectChanges();
+    void*            findEditableProperty(ecs_entity_t entity, TypeID type, PropertyID property, const PropertyDesc*& pProperty);
+    void             notifyPropertyChange(ecs_entity_t entity, TypeID type);
     static void      removeObjectIDs(ecs_iter_t* pIterator);
 
     static void constructComponents(void* pDestination, int32_t count, const ecs_type_info_t* pInfo);

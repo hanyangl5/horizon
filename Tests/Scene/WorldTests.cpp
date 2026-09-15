@@ -3,6 +3,8 @@
 #include "Scene/SceneComponents.h"
 #include "Scene/World.h"
 
+#include <string.h>
+
 static_assert(sizeof(hz::Entity) == sizeof(uint64_t));
 
 class SceneWorldTest: public ::testing::Test
@@ -380,4 +382,205 @@ TEST_F(SceneWorldTest, HierarchyDeletionRemovesOnlyDestroyedObjectIdentities)
     ASSERT_TRUE(world.destroySubtree(child));
     EXPECT_FALSE(world.getEntity(childID).isValid());
     EXPECT_FALSE(world.getEntity(leafID).isValid());
+}
+
+TEST_F(SceneWorldTest, PropertyEditsValidateBeforeWriting)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World               world(types);
+    const hz::ObjectID      id = { .low = 1 };
+    const hz::Entity        entity = world.createObject(id);
+    const float             intensity = 5.0f;
+    const hz::PropertyValue value = { .kind = hz::PropertyKind::Float, .pData = &intensity, .size = sizeof(intensity) };
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3, value));
+    ASSERT_TRUE(world.addComponent(entity, hz::SceneTypes::light));
+    EXPECT_FALSE(world.setProperty({}, hz::SceneTypes::light, 3, value));
+    EXPECT_FALSE(world.setProperty(entity, 999, 3, value));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 999, value));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3,
+                                   { .kind = hz::PropertyKind::UnsignedInteger, .pData = &intensity, .size = sizeof(intensity) }));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3, { .kind = hz::PropertyKind::Float, .pData = &intensity, .size = 1 }));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3, {}));
+    const int32_t invalidEnum = 99;
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 1,
+                                   { .kind = hz::PropertyKind::Enum, .pData = &invalidEnum, .size = sizeof(invalidEnum) }));
+    const uint8_t invalidBool = 2;
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 15,
+                                   { .kind = hz::PropertyKind::Boolean, .pData = &invalidBool, .size = sizeof(invalidBool) }));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::objectIdentity, 1,
+                                   { .kind = hz::PropertyKind::ObjectReference, .pData = &id, .size = sizeof(id) }));
+    EXPECT_EQ(world.getObjectID(entity), id);
+    const hz::Light* pLight = (const hz::Light*)world.getComponent(entity, hz::SceneTypes::light);
+    EXPECT_FLOAT_EQ(pLight->intensity, 1.0f);
+    EXPECT_EQ(pLight->type, hz::LightType::Point);
+    EXPECT_FALSE(pLight->enableColorTemperature);
+    ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::light, 3, value));
+    const hz::LightType lightType = hz::LightType::Rect;
+    ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::light, 1,
+                                  { .kind = hz::PropertyKind::Enum, .pData = &lightType, .size = sizeof(lightType) }));
+    EXPECT_EQ(pLight->type, lightType);
+    EXPECT_FLOAT_EQ(pLight->intensity, intensity);
+    EXPECT_FLOAT_EQ(pLight->width, 1.0f);
+    ASSERT_TRUE(world.destroyEntity(entity));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3, value));
+}
+
+TEST_F(SceneWorldTest, StringEditsHandleBoundsAndAliasing)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity entity = world.createEntity();
+    ASSERT_TRUE(world.addComponent(entity, hz::SceneTypes::name));
+    char text[sizeof(hz::Name::value)];
+    memset(text, 'x', sizeof(text));
+    EXPECT_FALSE(
+        world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .pData = text, .size = sizeof(text) }));
+    text[sizeof(text) - 1] = 0;
+    ASSERT_TRUE(
+        world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .pData = text, .size = sizeof(text) }));
+    const hz::Name* pName = (const hz::Name*)world.getComponent(entity, hz::SceneTypes::name);
+    EXPECT_STREQ(pName->value, text);
+    EXPECT_FALSE(
+        world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .pData = text, .size = sizeof(text) + 1 }));
+    ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::name, 1,
+                                  { .kind = hz::PropertyKind::String, .pData = pName->value + sizeof(text) - 3, .size = 3 }));
+    EXPECT_STREQ(pName->value, "xx");
+    for (uint32_t i = 2; i < sizeof(text); ++i)
+        EXPECT_EQ(pName->value[i], 0);
+    ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .pData = "", .size = 1 }));
+    EXPECT_STREQ(pName->value, "");
+}
+
+TEST_F(SceneWorldTest, ArrayEditsPreserveOwnershipAndValidateIndices)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity entity = world.createEntity();
+    ASSERT_TRUE(world.addComponent(entity, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.resizeArray(entity, hz::SceneTypes::meshRenderer, 2, 1));
+    const hz::MeshRenderer* pMesh = (const hz::MeshRenderer*)world.getComponent(entity, hz::SceneTypes::meshRenderer);
+    EXPECT_EQ(pMesh->overrides[0].submesh, 0u);
+    EXPECT_FALSE(pMesh->overrides[0].material.isValid());
+    const hz::AssetID       material = { .low = 7 };
+    const hz::PropertyValue value = { .kind = hz::PropertyKind::AssetReference, .pData = &material, .size = sizeof(material) };
+    EXPECT_FALSE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 1, 2, value));
+    EXPECT_FALSE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 999, value));
+    EXPECT_FALSE(
+        world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2,
+                                      { .kind = hz::PropertyKind::ObjectReference, .pData = &material, .size = sizeof(material) }));
+    ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
+    const hz::MaterialOverride* pStorage = pMesh->overrides.data();
+    const MemoryTrackingStats   before = memGetTrackingStats();
+    ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::meshRenderer, 1, value));
+    ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
+    const MemoryTrackingStats after = memGetTrackingStats();
+    EXPECT_EQ(pMesh->overrides.data(), pStorage);
+    if (before.trackingEnabled)
+    {
+        EXPECT_EQ(after.totalAllocationCount, before.totalAllocationCount);
+        EXPECT_EQ(after.reallocationCount, before.reallocationCount);
+    }
+    const hz::MaterialOverride other = { .submesh = 8, .material = { .low = 9 } };
+    EXPECT_FALSE(world.insertArrayElement(entity, hz::SceneTypes::meshRenderer, 2, 2, &other));
+    EXPECT_FALSE(world.removeArrayElement(entity, hz::SceneTypes::meshRenderer, 2, 1));
+    EXPECT_FALSE(world.resizeArray(entity, hz::SceneTypes::meshRenderer, 1, 2));
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::meshRenderer, 2,
+                                   { .kind = hz::PropertyKind::Array, .pData = &pMesh->overrides, .size = sizeof(pMesh->overrides) }));
+    EXPECT_EQ(pMesh->overrides.size(), 1u);
+    ASSERT_TRUE(world.insertArrayElement(entity, hz::SceneTypes::meshRenderer, 2, 0, &other));
+    // Insert from the array itself across a capacity increase.
+    const uint32_t capacity = pMesh->overrides.capacity();
+    ASSERT_TRUE(world.resizeArray(entity, hz::SceneTypes::meshRenderer, 2, capacity));
+    ASSERT_TRUE(world.insertArrayElement(entity, hz::SceneTypes::meshRenderer, 2, 0, &pMesh->overrides[1]));
+    EXPECT_EQ(pMesh->overrides[0].material, material);
+    EXPECT_EQ(pMesh->overrides[1].submesh, other.submesh);
+    ASSERT_TRUE(world.removeArrayElement(entity, hz::SceneTypes::meshRenderer, 2, 1));
+    EXPECT_EQ(pMesh->overrides[1].material, material);
+    ASSERT_TRUE(world.resizeArray(entity, hz::SceneTypes::meshRenderer, 2, 0));
+    EXPECT_EQ(pMesh->overrides.size(), 0u);
+}
+
+TEST_F(SceneWorldTest, ArrayEditsRespectContainerAndElementReadOnlyFlags)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    const hz::TypeDesc& meshType = *types.getType(hz::SceneTypes::meshRenderer);
+    hz::PropertyDesc    properties[] = { meshType.properties.pData[0], meshType.properties.pData[1] };
+    hz::TypeDesc        elementType = *properties[1].pElementType;
+    hz::PropertyDesc    elementProperties[] = { elementType.properties.pData[0], elementType.properties.pData[1] };
+    elementProperties[1].flags |= hz::PROPERTY_READ_ONLY;
+    elementType.properties = elementProperties;
+    properties[1].pElementType = &elementType;
+    properties[0].flags |= hz::PROPERTY_READ_ONLY;
+    hz::TypeDesc editable = meshType;
+    editable.id = 100;
+    editable.pName = "TestEditableArray";
+    editable.properties = properties;
+    hz::PropertyDesc lockedProperties[] = { properties[0], properties[1] };
+    lockedProperties[1].flags |= hz::PROPERTY_READ_ONLY;
+    hz::TypeDesc locked = editable;
+    locked.id = 101;
+    locked.pName = "TestLockedArray";
+    locked.properties = lockedProperties;
+    const hz::TypeDesc customTypes[] = { editable, locked };
+    ASSERT_TRUE(types.registerTypes(customTypes));
+    hz::World        world(types);
+    const hz::Entity entity = world.createEntity();
+    ASSERT_TRUE(world.addComponent(entity, editable.id));
+    ASSERT_TRUE(world.addComponent(entity, locked.id));
+    const hz::MaterialOverride value = { .submesh = 1, .material = { .low = 2 } };
+    const hz::PropertyValue    material = { .kind = hz::PropertyKind::AssetReference,
+                                            .pData = &value.material,
+                                            .size = sizeof(value.material) };
+    EXPECT_FALSE(world.setProperty(entity, editable.id, 1, material));
+    ASSERT_TRUE(world.insertArrayElement(entity, editable.id, 2, 0, &value));
+    EXPECT_FALSE(world.setArrayElementProperty(entity, editable.id, 2, 0, 2, material));
+    EXPECT_FALSE(world.resizeArray(entity, locked.id, 2, 1));
+    EXPECT_FALSE(world.insertArrayElement(entity, locked.id, 2, 0, &value));
+    EXPECT_FALSE(world.removeArrayElement(entity, locked.id, 2, 0));
+    EXPECT_FALSE(world.setArrayElementProperty(entity, locked.id, 2, 0, 2, material));
+    const hz::MeshRenderer* pMesh = (const hz::MeshRenderer*)world.getComponent(entity, editable.id);
+    EXPECT_FALSE(pMesh->mesh.isValid());
+    EXPECT_EQ(pMesh->overrides[0].material, value.material);
+    EXPECT_EQ(((const hz::MeshRenderer*)world.getComponent(entity, locked.id))->overrides.size(), 0u);
+}
+
+TEST_F(SceneWorldTest, PropertyEditsPropagateTransformsAndRespectDeferredVisibility)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity parent = world.createEntity();
+    const hz::Entity child = world.createEntity();
+    ASSERT_TRUE(world.addComponent(parent, hz::SceneTypes::localTransform));
+    ASSERT_TRUE(world.setParent(child, parent, false));
+    world.updateTransforms();
+    const Vector3           translation(5.0f, 0.0f, 0.0f);
+    const hz::PropertyValue value = { .kind = hz::PropertyKind::Vector3, .pData = &translation, .size = sizeof(translation) };
+    {
+        hz::DeferredChanges changes = world.defer();
+        ASSERT_TRUE(world.setProperty(parent, hz::SceneTypes::localTransform, 1, value));
+        EXPECT_FLOAT_EQ((float)((const hz::LocalTransform*)world.getComponent(parent, hz::SceneTypes::localTransform))->translation.getX(),
+                        5.0f);
+        ASSERT_TRUE(world.addComponent(child, hz::SceneTypes::localTransform));
+        EXPECT_FALSE(world.setProperty(child, hz::SceneTypes::localTransform, 1, value));
+    }
+    world.updateTransforms();
+    EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getTranslation().getX(), 5.0f);
+    EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->previous.getTranslation().getX(), 0.0f);
+    world.commitTransforms();
+    ASSERT_TRUE(world.setProperty(child, hz::SceneTypes::localTransform, 1, value));
+    world.updateTransforms();
+    EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getTranslation().getX(), 10.0f);
+    EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->previous.getTranslation().getX(), 5.0f);
+    ASSERT_TRUE(world.removeComponent(parent, hz::SceneTypes::localTransform));
+    ASSERT_TRUE(world.addComponent(parent, hz::SceneTypes::localMatrix));
+    const Matrix4 matrix = Matrix4::translation(Vector3(2.0f, 0.0f, 0.0f));
+    ASSERT_TRUE(world.setProperty(parent, hz::SceneTypes::localMatrix, 1,
+                                  { .kind = hz::PropertyKind::Matrix4, .pData = &matrix, .size = sizeof(matrix) }));
+    world.updateTransforms();
+    EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getTranslation().getX(), 7.0f);
 }

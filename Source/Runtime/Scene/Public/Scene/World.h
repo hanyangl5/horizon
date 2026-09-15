@@ -28,6 +28,14 @@ private:
 
 struct WorldTransform;
 
+struct PropertyValue
+{
+    PropertyKind kind = PropertyKind::Boolean;
+    const void*  pData = nullptr;
+    // Strings include the terminating null; other values must match the reflected field size.
+    uint32_t     size = 0;
+};
+
 class DeferredChanges
 {
 public:
@@ -78,6 +86,15 @@ public:
     bool        setComponent(Entity entity, TypeID type, const void* pValue);
     // Read-only storage view. References expire on structural changes; owning values can change on setComponent.
     const void* getComponent(Entity entity, TypeID type) const;
+
+    // Edits require an existing component and take effect immediately, including during defer.
+    bool setProperty(Entity entity, TypeID type, PropertyID property, const PropertyValue& value);
+    bool resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t count);
+    // pValue points to an element of the reflected array type, including when inserting from this array.
+    bool insertArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index, const void* pValue);
+    bool removeArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index);
+    bool setArrayElementProperty(Entity entity, TypeID type, PropertyID property, uint32_t index, PropertyID elementProperty,
+                                 const PropertyValue& value);
 
     // Defers structural changes until the outermost scope ends. World must outlive its scopes and queries.
     DeferredChanges defer();
