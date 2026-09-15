@@ -24,6 +24,7 @@
 
 #include "AssetPipeline.h"
 #include "AssetPipeline/IAssetPipeline.h"
+#include "SceneAssetCooker.h"
 
 // Math
 #include <ThirdParty/ModifiedSonyMath1/vectormath.hpp>
@@ -232,7 +233,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 3;
+    static const uint32_t kCookerRevision = 4;
     pFingerprint->mHash = UINT64_C(14695981039346656037);
     updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
     updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
@@ -309,7 +310,7 @@ static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const ch
 
 static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pManifestFileName, const char* pSceneName,
                                     const char* pGeometryFileName, const char* pSourceGltf, const cgltf_data* pData,
-                                    const SceneAssetCookFingerprint* pFingerprint)
+                                    const SceneAssetCookFingerprint* pFingerprint, SceneAssetCooker& sceneCooker)
 {
     if (!validateSceneAssetCookTextures(pData))
         return false;
@@ -385,6 +386,12 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
     cJSON_AddItemToObject(pScene, "materialConvention", pConvention);
     cJSON_AddItemToObject(pScenes, pSceneName, pScene);
     cJSON_AddItemToObject(pRoot, "scenes", pScenes);
+
+    if (!sceneCooker.build(*pData, *pRoot) || !sceneCooker.write())
+    {
+        cJSON_Delete(pRoot);
+        return false;
+    }
 
     char* pJson = cJSON_Print(pRoot);
     cJSON_Delete(pRoot);
@@ -2140,6 +2147,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         char manifestFileName[FS_MAX_PATH] = {};
         fsReplacePathExtension(newFileName, "scene.json", manifestFileName);
+        SceneAssetCooker sceneCooker(assetParams->mRDInput, fileName, assetParams->mRDOutput, newFileName);
         if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) &&
             fsFileExist(assetParams->mRDOutput, manifestFileName))
         {
@@ -2147,7 +2155,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             char existingContentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
             formatSceneAssetCookHash(pFingerprint, contentHash);
             const bool unchanged = readSceneAssetCookHash(assetParams->mRDOutput, manifestFileName, existingContentHash) &&
-                                   strcmp(existingContentHash, contentHash) == 0;
+                                   strcmp(existingContentHash, contentHash) == 0 && sceneCooker.isCurrent(contentHash);
             if (unchanged)
             {
                 LOGF(eINFO, "Skipping %s (content hash unchanged)", fileName);
@@ -2156,6 +2164,15 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 cgltf_free(data);
                 continue;
             }
+        }
+
+        if (!sceneCooker.prepare())
+        {
+            tf_free(pFingerprint);
+            data->file_data = fileData;
+            cgltf_free(data);
+            error = true;
+            continue;
         }
 
         cgltf_attribute* vertexAttribs[MAX_SEMANTICS] = {};
@@ -2395,7 +2412,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         // Load the tressfx specific data generated in the offline process
-        if (stricmp(data->asset.generator, "tressfx") == 0)
+        if (data->asset.generator && stricmp(data->asset.generator, "tressfx") == 0)
         {
             // { "vertexCountPerStrand" : "16", "guideCountPerStrand" : "3456" }
             uint32_t    extrasSize = (uint32_t)(data->asset.extras.end_offset - data->asset.extras.start_offset);
@@ -2693,7 +2710,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             fsNormalizePath(newFileName, '/', geometryFileName);
             fsNormalizePath(fileName, '/', sourceGltf);
             if (!writeSceneAssetManifest(assetParams->mRDOutput, manifestFileName, sceneName, geometryFileName, sourceGltf, data,
-                                         pFingerprint))
+                                         pFingerprint, sceneCooker))
             {
                 LOGF(eERROR, "Failed to write scene manifest '%s'.", manifestFileName);
                 error = true;
