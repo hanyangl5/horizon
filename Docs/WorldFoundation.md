@@ -20,7 +20,7 @@ Horizon 已有以下基础：
 
 ## TODO: OpenUSD alignment
 
-后续资产格式以标准 OpenUSD 为基准，Runtime 保留轻量组件，通过导入层映射 USD 语义。以下为待办，尚未实现；本文现有 Light 单位约定、glTF 导入方案和 `.world.json` 保存方案需据此复核。
+后续资产格式以标准 OpenUSD 为基准，Runtime 保留轻量组件，通过导入层映射 USD 语义。当前先完成 World 的通用能力，暂不接入 USD。以下为待办，尚未实现；本文现有 Light 单位约定、glTF 导入方案和 `.world.json` 保存方案需据此复核。
 
 - [ ] 明确 USD 是否同时承担场景保存，以及自定义 cooked 格式是否仅作为运行时缓存；确定后更新序列化与实施步骤。
 - [ ] 优先修正 Light：按 UsdLux 核对 intensity、normalize、色温、形状坐标轴和默认值；独立表达 ShapingAPI，区分标准属性与引擎扩展。
@@ -91,6 +91,10 @@ Editor -> Commands -> ECS World
 | `RenderDrawID` | RenderObject × Submesh 的 draw 记录 | 不持久化；随 object/submesh 派生 |
 
 `AssetID` 和 `ObjectID` 使用 128-bit 值，采用随机生成（UUIDv4 风格），不由内容或路径派生，因此重命名、移动或重新 cook 都不改变身份。碰撞概率可忽略，注册时仍校验唯一性并在冲突时报错而非静默覆盖。`AssetID` 由 importer 生成并写入 sidecar metadata，移动源文件时保持不变。`ObjectID` 在创建 authoring object 时生成。
+
+`World::createEntity` 创建无持久身份的运行时实体；`createObject()` 自动生成 ObjectID，`createObject(id)` 接受导入或恢复的非空 ID。ID 在每个 World 内唯一，冲突返回失败，不替换已有对象；可通过 World 构造参数注入确定性的 IDGenerator。ObjectIdentity 创建后只读，禁止通过普通组件接口增删或改写。
+
+`getEntity(id)` 和 `getObjectID(entity)` 查询已提交的身份。Defer 中的新 ID 立即保留以拒绝重复创建，但查询在最外层提交后才可见；已有对象的延迟删除也在提交时移除映射。创建后立即取消同样释放保留项。删除父节点保留的子对象继续使用原 ID；显式恢复同一 ObjectID 时会得到新的 runtime Entity generation。
 
 测试和工具需要确定性时，通过显式注入的种子/ID 序列生成，而不是依赖全局随机源；这样 `.world.json` 的连续保存和回归测试可复现。
 
@@ -230,7 +234,7 @@ Flecs 自带 meta（反射）、JSON 序列化、`ChildOf` 关系和 deferred �
 | Dome | 无限远环境，使用实体旋转；平移及缩放不影响它 | 辐亮度，W/(m²·sr) |
 | Mesh | 同一实体的 MeshRenderer 提供全部三角形及 UV，朝向使用几何法线 | 辐亮度，W/(m²·sr) |
 
-几何尺寸为局部米制长度，世界变换决定最终发光表面；所有角度使用弧度。颜色使用场景线性 RGB，曝光乘数为 `2^exposure`；开启色温时，以 Kelvin 定义的黑体颜色乘入 color。正尺寸约束、内锥不大于外锥等输入校验将在属性编辑和加载路径接入；reflection 的范围目前只是编辑提示。
+几何尺寸为局部米制长度，世界变换决定最终发光表面；所有角度使用弧度。颜色使用场景线性 RGB，曝光乘数为 `2^exposure`；开启色温时，以 Kelvin 定义的黑体颜色乘入 color。正尺寸、内锥不大于外锥等跨字段约束尚待专用编辑和加载路径校验；通用属性编辑不会按 reflection 范围自动截断数值，范围目前只是编辑提示。
 
 面积光默认单面 Lambertian 发射；`twoSided` 开启双面发射。`normalize` 只作用于面积光：intensity 改为纹理调制前的总功率 W，基准辐亮度为 `intensity * 2^exposure / (π * A)`，A 为世界空间发光面积，双面时计入两面。颜色和纹理继续调制该基准值，不隐式补偿其平均亮度。非面积光忽略 normalize 和 twoSided。
 
@@ -247,15 +251,19 @@ Hierarchy 必须满足：
   - **可解**：结果可分解则写 `LocalTransform`，否则写 `LocalMatrix`（保留精确仿射结果，绝不有损 TRS 近似）。
 - `setParent(..., keepWorld=false)`：正常 reparent，直接沿用现有 local，不受上面限制。
 - **两种删除操作，语义必须分开**：`destroyEntity(e)` 删单个 Entity，其 children **reparent 到 root 并保持 world transform**（root=单位阵、恒可逆，keepWorld 恒可解，必要时落 `LocalMatrix`）；`destroySubtree(e)` 删 e 及**整棵 transform subtree**。**SceneAsset instance 的删除用 `destroySubtree`**（删 instance root = 删整份 Bistro），否则会把节点遗留在 World。
-- **Flecs `ChildOf` 删除策略必须显式设定**：Flecs 默认 `(OnDeleteTarget, Delete)`（删父连带级联删子），与 `destroyEntity` 的"children reparent 到 root"相反。World API 要显式控制该关系策略，让 `destroyEntity`/`destroySubtree` 的语义盖过 Flecs 自动 cascade，避免二者混用产生歧义或漏删/误删。
+- 当前 Flecs 在初始化时已使用 `ChildOf`，不允许再更改其 `(OnDeleteTarget, Delete)` 策略。`destroyEntity` 先保存并解除直接子节点关系，再删除父节点；`destroySubtree` 按叶到根顺序删除，显式控制删除范围。
 - local 或 parent 变化只标记受影响 subtree。
 - 更新使用迭代式 root-to-leaf 顺序，不依赖递归调用栈。
 - teleport 或 camera cut 可以显式同步 previous transform，避免错误 motion vector。
 - Transform update 在 RenderScene extraction 前完成。
 
-**单一真相 + 派生遍历 cache**：层级的**唯一权威来源是 Flecs `ChildOf`**（`Parent` 只是它的公共视图，不是第二份存储）。Flecs 按 archetype/table 存储，普通 query 迭代**不是**层级顺序，也无法便宜地"只遍历 dirty subtree"。因此从 `ChildOf` **派生**一个层级遍历 cache——parent 恒在 child 之前的拓扑序（DFS）数组，带一个 `structureVersion`。propagation 沿该数组从前往后单次线性扫描；dirty 用 dirty-root 队列表示，重建后每个 subtree 是数组里一段**连续 DFS range**，clean subtree 直接跳过。`WorldTransform`（current/previous）作为派生数据存在这套 dense、hierarchy-ordered 存储里，而不是靠普通 component query 逐个更新；它不进 World 文件。
+**单一真相 + 派生遍历 cache**：层级的**唯一权威来源是 Flecs `ChildOf`**（`Parent` 只是它的公共视图，不是第二份存储）。Flecs 按 archetype/table 存储，普通 query 迭代**不是**层级顺序，也无法便宜地"只遍历 dirty subtree"。因此从 `ChildOf` **派生**一个层级遍历 cache——parent 恒在 child 之前的拓扑序（DFS）数组，结构变化后重建，旧的节点索引和缓存指针随之失效。propagation 沿该数组从前往后单次线性扫描；dirty 用 dirty-root 队列表示，重建后每个 subtree 是数组里一段**连续 DFS range**，clean subtree 直接跳过。`WorldTransform`（current/previous）作为派生数据存在这套 dense、hierarchy-ordered 存储里，而不是靠普通 component query 逐个更新；它不进 World 文件。
 
-**结构变化（create/delete/reparent）时全量 O(N) 重建该 cache 并递增 `structureVersion`**，不追求增量拓扑维护。理由：要同时保住"parent 在前 + subtree 连续可跳过 + reparent 不移动数据"三者，数学上做不到（reparent 必然打乱 DFS 连续性）；而结构变化通常远少于 transform 更新，第一版用重建换正确性和简单性，增量维护留到有 profile 证据再做。
+**结构变化（create/delete/reparent）时全量 O(N) 重建该 cache**，不追求增量拓扑维护。理由：要同时保住"parent 在前 + subtree 连续可跳过 + reparent 不移动数据"三者，数学上做不到（reparent 必然打乱 DFS 连续性）；而结构变化通常远少于 transform 更新，第一版用重建换正确性和简单性，增量维护留到有 profile 证据再做。
+
+当前接口：`setParent` 返回是否成功；`getParent` 提供 ChildOf 的公共视图。Reparent 和删除带子节点的实体必须在 query/defer 作用域外调用，否则返回失败；叶节点增删与局部组件修改仍可 defer，LocalTransform/LocalMatrix 互斥检查同时覆盖待提交操作。删除父节点需要 registry 注册 LocalMatrix，以便保留无法分解的结果。
+
+`updateTransforms` 在结构修改后重建缓存，普通更新只遍历排序、合并后的脏子树；缓存预热后，稳定层级的变换更新不分配内存。读取 `getWorldTransform` 前必须完成更新。`commitTransforms` 只在实际渲染提交后调用，把已更新 current 作为下一帧的 previous；提交前不得再修改该帧的 World。`resetTransformHistory` 可重置指定子树或全部实体。首次出现的实体以 current 初始化 previous。与不可变 RenderScene snapshot 配对的提交将在第 8 步接入。
 
 后续并行化时以独立 root 或预计算的 hierarchy range 为任务单位，结果必须与单线程路径一致。
 
@@ -273,7 +281,9 @@ Reflection 使用显式 type registry，不依赖 C++ RTTI、异常或复杂模�
 - `AssetID` 与 `ObjectID` reference
 - **array-of-struct**：元素是固定 schema、可平凡复制的小结构体，字段仍由上述标量/ID property 描述。第一阶段复用现有 `hz::Array` 及 tf memory，不新增 Scene 容器或 allocator；metadata 提供 element descriptor 和统一的 `ArrayOperations`，完成 count/data 查询及 resize/insert/remove，消费者不依赖数组内存布局。Serializer、Inspector 和 undo/redo 不直接缓存 data pointer，所有 mutation 都经过 World property API，以便产生 dirty/change notification。
 
-`MeshRenderer` 的 override array 元素为 `MaterialOverride { SubmeshID, materialAssetID }`。World mutation API 保持该数组按 `SubmeshID` 排序且 key 唯一；loader 在 staging World 中验证并规范化输入，serializer 直接按存储顺序输出，不在保存热路径复制或排序数组。
+World 属性编辑只修改已有组件，校验属性 kind、字节大小、只读标记、枚举值、字符串终止符和数组索引；失败保留原值。字符串输入长度包含结尾空字符。数组插入接收反射元素类型的完整对象，元素字段编辑遵守自身只读标记。字段赋值不复制整个组件或分配数组存储；扩容可能使数组数据指针失效。defer 中已有组件的属性立即更新，新添组件需等待提交。`setComponent` 仍是可信调用方的整组件替换入口，不提供逐字段校验；`ObjectIdentity` 只能通过对象创建接口设置。
+
+`MeshRenderer` 的 override array 元素为 `MaterialOverride { SubmeshID, materialAssetID }`。后续专用 override mutation API 需保持该数组按 `SubmeshID` 排序且 key 唯一；当前通用数组编辑保留用户指定顺序，不承担该约束。loader 在 staging World 中验证并规范化输入，serializer 直接按存储顺序输出，不在保存热路径复制或排序数组。
 
 Property flags 至少区分 serialized、transient、read-only 和 editor-only。注册时检查重复 ID、名称冲突、越界 offset、不完整的 array element metadata 和不支持的字段类型。
 
@@ -401,7 +411,21 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 
 ## Staged rollout
 
-当前已完成第 1～3 步：独立 ID、显式 reflection、7 个内置组件，以及 World 的 generation Entity、组件增删读写、缓存查询和嵌套 defer。当前创建的是运行时实体；authoring ObjectID 自动分配及查找尚未接入。Parent/WorldTransform 和局部变换互斥随第 4 步实现；属性级编辑、override 排序约束和序列化迁移尚未接入。
+当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring ObjectID 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树；override 排序约束和序列化迁移尚未接入。渲染提交与历史的配对在 RenderScene 阶段完成。
+
+第 5 步已开始：cooker 增加独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据继续供 Renderer 使用。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
+
+源文件旁的 `<source>.asset.json` 保存 Scene/Mesh/Material/Texture 身份及各 Mesh 的 SubmeshID。匹配优先使用可选 `extras.horizonId`，否则只接受无冲突的唯一名称或签名匹配；歧义项获得新 ID，旧记录保留为 missing 且不再参与匹配。源文件移动时需一起保留 sidecar；已有新版输出但 sidecar 丢失或损坏时拒绝重新分配身份。当前沿用本地 DDS/KTX 纹理限制；内嵌纹理、跨源文件复用已注册 Texture ID，以及 Runtime 新格式解码/旧格式 re-cook 检查仍待实现。完整第 5 步尚未完成。
+
+第 5 步剩余工作预估（2026-09-16，不含第 6 步 Asset Registry）：
+
+| 工作 | 预计工作日 |
+| --- | --- |
+| Runtime 解码、格式校验、旧格式提示重新烘焙 | 0.5～1 |
+| 重导入匹配边界、失败恢复及测试收尾 | 0.5～1 |
+| 内嵌纹理支持、跨源文件共享 Texture 身份 | 1～2 |
+
+完整收尾预计 2～4 个工作日。若先验收当前 Bistro 的外部 DDS/KTX 纹理流程，预计 1～2 个工作日，但只能算第 5 步的可用子集。主要不确定性是内嵌 PNG/JPEG 的解码与烘焙路径；USD 仍暂缓。
 
 1. 增加 `AssetID`、`ObjectID`、格式化、解析、hash 和相等比较测试。
 2. 增加显式 type/property registry，并注册第一批内置组件。
@@ -434,7 +458,7 @@ step 6 与 step 8 是长线工程，建议进一步拆成可独立合入的小�
 
 - Cooker tests：node hierarchy/local matrix round trip；Mesh/Material/内嵌 Texture 和 primitive 插入、重排后唯一匹配项保持 AssetID/SubmeshID；歧义项分配新 ID、旧引用保持未解析且不误绑；删除项不复用 ID；旧 cooked schema 返回 re-cook 错误。
 - Asset tests：重复请求、dependency cycle、每个加载阶段的故障注入、cancellation、迟到完成消息、loading 期间 release、长期 lease 随 MeshRenderer 删除而释放，以及三类 GpuID 的 stale handle。
-- World tests：create/destroy、generation、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和 ChildOf 删除策略。
+- World tests：create/destroy、generation、ObjectID 冲突与查询、deferred 创建取消及删除后的身份清理、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和 ChildOf 删除策略。
 - Transform tests：深层 hierarchy、cycle rejection、reparent、parent deletion、**奇异 parent 下 `setParent(keepWorld)` 返回失败且 parent 不变**，以及 `LocalTransform`/`LocalMatrix` 互斥。
 - Serialization tests：round trip、稳定输出、forward reference、非法 hierarchy、多版本 migration、reflected array resize/insert/remove、material override key 唯一且有序、同时带 `LocalTransform`+`LocalMatrix` 的非法文件，以及未知 component blob 保留。
 - RenderScene tests：三层 slot reuse、instanceIndices 正确引用不连续 slot、一个多-submesh Entity 展开成多个 RenderDraw、asset-not-ready、entity removal 和无逐帧分配/逐 draw lease；轮换至少三份 backing storage 时，每次发布前都与目标 revision 一致，包括只修改一次的数据和删除/复用结果，覆盖索引、active list、计数、asset table 和 journal 溢出后的完整同步。
