@@ -266,3 +266,4 @@ build_msvc
 !Source/ThirdParty/DirectStorage/**/*.dll
 !Source/ThirdParty/DirectStorage/**/*.lib
 !Source/ThirdParty/DirectStorage/**/*.winmd
+/Assets/

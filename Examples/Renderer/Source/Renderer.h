@@ -14,8 +14,8 @@
 
 #include "RenderPasses.h"
 
-constexpr const char* kSceneDirectory = "Assets/niagara_bistro";
-constexpr const char* kSceneSource = "bistro2.gltf";
+constexpr const char* kSceneDirectory = "Assets/Bistro";
+constexpr const char* kSceneSource = "BistroExterior.gltf";
 constexpr bool        kEnableHDR = true;
 
 const VertexLayout kSceneVertexLayout = {
