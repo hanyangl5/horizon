@@ -17,11 +17,11 @@ public:
     SceneAssetCooker(const SceneAssetCooker&) = delete;
     SceneAssetCooker& operator=(const SceneAssetCooker&) = delete;
 
-    bool isCurrent(const char* pContentHash) const;
+    bool                      isCurrent(const char* pContentHash) const;
     bool                      prepare(const cgltf_data& data);
     const CookedSceneTexture& getTexture(uint32_t index) const { return textures[index]; }
     bool                      build(const cgltf_data& data, const char* pContentHash);
-    bool write() const;
+    bool                      write() const;
 
 private:
     cJSON*            createMaterial(const cgltf_data& data, uint32_t index, hz::Span<cJSON*> textureRecords, bool signature) const;

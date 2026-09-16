@@ -327,7 +327,7 @@ static cJSON* buildSceneAssetManifest(const char* pSceneName, const char* pGeome
     for (cgltf_size i = 0; pTextures && i < pData->textures_count; ++i)
     {
         const CookedSceneTexture& texture = sceneCooker.getTexture((uint32_t)i);
-        cJSON* pTextureJson = cJSON_CreateObject();
+        cJSON*                    pTextureJson = cJSON_CreateObject();
         cJSON_AddStringToObject(pTextureJson, "path", texture.path);
         cJSON_AddBoolToObject(pTextureJson, "srgb", texture.srgb);
         cJSON_AddBoolToObject(pTextureJson, "cooked", texture.cooked);

@@ -572,7 +572,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     hz::Array<cJSON*> meshes((uint32_t)data.meshes_count);
     for (uint32_t i = 0; i < textures.size(); ++i)
     {
-        const cgltf_texture& texture = data.textures[i];
+        const cgltf_texture&      texture = data.textures[i];
         const CookedSceneTexture& cooked = this->textures[i];
         for (uint32_t j = 0; j < i; ++j)
             if ((data.textures[j].image == texture.image && this->textures[j].srgb == cooked.srgb) ||
@@ -605,7 +605,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         materials[i] = identity("Material", material.name, data, material.extras);
         // Texture array indices are not identity evidence.
         const JsonDocument signature(createMaterial(data, i, { textures.data(), textures.size() }, true));
-        char* pText = cJSON_PrintUnformatted(signature.get());
+        char*              pText = cJSON_PrintUnformatted(signature.get());
         addHash(materials[i], "signature", hashBytes(pText, strlen(pText)));
         cJSON_free(pText);
         cJSON_AddItemToArray(pRecords, materials[i]);
