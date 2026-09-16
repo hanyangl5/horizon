@@ -333,7 +333,8 @@ static uint64_t primitiveHash(const cgltf_primitive& primitive)
 
 SceneAssetCooker::SceneAssetCooker(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
                                    const char* pGeometryFile):
-    sourceDirectory(sourceDirectory), outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
+    sourceDirectory(sourceDirectory),
+    outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
 {
     fsAppendPathExtension(pSourceFile, "asset.json", metadataFile);
     fsReplacePathExtension(pGeometryFile, "sceneasset.json", assetFile);
