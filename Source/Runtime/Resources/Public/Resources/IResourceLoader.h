@@ -28,6 +28,7 @@
 
 #include "RHI/IGraphics.h"
 #include "Core/IMath.h"
+#include "Core/IFileSystem.h"
 #include "Core/IThread.h"
 
 static FORGE_CONSTEXPR const ResourceState gVertexBufferState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;
@@ -103,6 +104,7 @@ typedef struct TextureLoadDesc
     TextureCreationFlags creationFlag;
     /// The texture file format (dds/ktx/...)
     TextureContainerType container;
+    ResourceDirectory    resourceDirectory = RD_TEXTURES;
 } TextureLoadDesc;
 
 typedef struct BufferChunk

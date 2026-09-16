@@ -21,7 +21,7 @@ const char* kValidManifest = R"json({
       "sourceGltf": "courtyard.gltf",
       "textureDirectories": ["objects", "textures"],
       "textures": [
-        { "path": "Textures/albedo.dds", "srgb": true },
+        { "path": "Textures/albedo.dds", "srgb": true, "cooked": true },
         { "path": "Textures/normal.dds", "srgb": false }
       ],
       "materials": [
@@ -54,6 +54,7 @@ struct FakeSceneAssetBackend
     bool     mFailTexture;
     uint32_t mGeometryLoadCount;
     uint32_t mTextureLoadCount;
+    uint32_t  mCookedTextureLoadCount;
     uint32_t mBufferLoadCount;
     uint32_t mRemoveCount;
     Geometry* pGeometry;
@@ -122,6 +123,10 @@ void fakeLoadSceneTexture(TextureLoadDesc* pDesc, SyncToken* pToken, void* pUser
 {
     FakeSceneAssetBackend* pBackend = (FakeSceneAssetBackend*)pUserData;
     ++pBackend->mTextureLoadCount;
+    if (pDesc->resourceDirectory == RD_MESHES)
+        ++pBackend->mCookedTextureLoadCount;
+    else
+        EXPECT_EQ(pDesc->resourceDirectory, RD_TEXTURES);
     if (!pBackend->mFailTexture)
         *pDesc->ppTexture = loadTestTexture();
     *pToken = 7;
@@ -181,8 +186,10 @@ TEST(SceneAssetManifestTest, ParsesSelectedSceneAndMaterialMetadata)
     ASSERT_EQ(manifest.textureCount, 2u);
     EXPECT_STREQ(manifest.textures[0].path, "Textures/albedo.dds");
     EXPECT_TRUE(manifest.textures[0].srgb);
+    EXPECT_TRUE(manifest.textures[0].cooked);
     EXPECT_STREQ(manifest.textures[1].path, "Textures/normal.dds");
     EXPECT_FALSE(manifest.textures[1].srgb);
+    EXPECT_FALSE(manifest.textures[1].cooked);
     ASSERT_EQ(manifest.materialCount, 1u);
     EXPECT_STREQ(manifest.materials[0].name, "stone");
     EXPECT_EQ(manifest.materials[0].baseColorTexture, 0);
@@ -378,6 +385,7 @@ TEST_F(SceneManagerTest, AsyncHandleTransitionsAndRejectsStaleGenerations)
     EXPECT_EQ(pSystem->getStatus(first), SCENE_ASSET_STATUS_LOADING);
     EXPECT_EQ(backend.mGeometryLoadCount, 1u);
     EXPECT_EQ(backend.mTextureLoadCount, 2u);
+    EXPECT_EQ(backend.mCookedTextureLoadCount, 1u);
     EXPECT_EQ(backend.mBufferLoadCount, 1u);
     EXPECT_EQ(pSystem->getGeometry(first), nullptr);
 

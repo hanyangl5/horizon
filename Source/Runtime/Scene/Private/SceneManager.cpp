@@ -298,6 +298,13 @@ bool parseSceneAssetManifest(const char* pJson, size_t jsonSize, SceneAssetManif
                 return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, "textures.srgb");
             }
             pManifest->textures[i].srgb = cJSON_IsTrue(pSrgb);
+            const cJSON* pCooked = cJSON_GetObjectItemCaseSensitive(pTexture, "cooked");
+            if (pCooked && !cJSON_IsBool(pCooked))
+            {
+                cJSON_Delete(pRoot);
+                return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, "textures.cooked");
+            }
+            pManifest->textures[i].cooked = cJSON_IsTrue(pCooked);
         }
     }
 
@@ -717,6 +724,7 @@ SceneAssetHandle SceneManager::requestFromManifest(const SceneAssetManifest* pMa
             .pFileName = pSlot->pManifest->textures[i].path,
             .creationFlag = pSlot->pManifest->textures[i].srgb ? TEXTURE_CREATION_FLAG_SRGB : TEXTURE_CREATION_FLAG_NONE,
             .container = getSceneAssetTextureContainer(pSlot->pManifest->textures[i].path),
+            .resourceDirectory = pSlot->pManifest->textures[i].cooked ? RD_MESHES : RD_TEXTURES,
         };
         callbacks.pLoadTexture(&textureLoad, &pSlot->pTextureTokens[i], pUserData);
     }

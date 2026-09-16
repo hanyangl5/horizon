@@ -116,24 +116,6 @@ static int32_t sceneAssetTextureIndex(const cgltf_data* pData, const cgltf_textu
     return pTexture ? (int32_t)(pTexture - pData->textures) : -1;
 }
 
-static bool isSceneAssetSrgbTexture(const cgltf_data* pData, const cgltf_texture* pTexture)
-{
-    for (cgltf_size i = 0; i < pData->materials_count; ++i)
-    {
-        const cgltf_material* pMaterial = &pData->materials[i];
-        if ((pMaterial->has_pbr_metallic_roughness && pMaterial->pbr_metallic_roughness.base_color_texture.texture == pTexture) ||
-            pMaterial->emissive_texture.texture == pTexture)
-            return true;
-    }
-    return false;
-}
-
-static bool isSceneAssetCookedTexture(const char* pPath)
-{
-    const char* pExtension = strrchr(pPath, '.');
-    return pExtension && (stricmp(pExtension, ".dds") == 0 || stricmp(pExtension, ".ktx") == 0);
-}
-
 static bool validateSceneAssetCookTextures(const cgltf_data* pData)
 {
     if (pData->textures_count > SCENE_ASSET_MAX_TEXTURES || pData->materials_count > SCENE_ASSET_MAX_MATERIALS)
@@ -141,10 +123,9 @@ static bool validateSceneAssetCookTextures(const cgltf_data* pData)
     for (cgltf_size i = 0; i < pData->textures_count; ++i)
     {
         const cgltf_image* pImage = pData->textures[i].image;
-        if (!pImage || !pImage->uri || strncmp(pImage->uri, "data:", 5) == 0 || strstr(pImage->uri, "://") ||
-            !isSceneAssetCookedTexture(pImage->uri))
+        if (!pImage || (!pImage->uri && !pImage->buffer_view) || (pImage->uri && pImage->buffer_view))
         {
-            LOGF(eERROR, "Scene textures must reference local pre-cooked DDS or KTX files");
+            LOGF(eERROR, "Scene texture %u must reference an image URI or buffer view", (uint32_t)i);
             return false;
         }
     }
@@ -233,7 +214,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 4;
+    static const uint32_t kCookerRevision = 7;
     pFingerprint->mHash = UINT64_C(14695981039346656037);
     updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
     updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
@@ -308,12 +289,11 @@ static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const ch
     return valid;
 }
 
-static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pManifestFileName, const char* pSceneName,
-                                    const char* pGeometryFileName, const char* pSourceGltf, const cgltf_data* pData,
-                                    const SceneAssetCookFingerprint* pFingerprint, SceneAssetCooker& sceneCooker)
+static cJSON* buildSceneAssetManifest(const char* pSceneName, const char* pGeometryFileName, const char* pSourceGltf,
+                                      const cgltf_data* pData, const SceneAssetCookFingerprint* pFingerprint, SceneAssetCooker& sceneCooker)
 {
     if (!validateSceneAssetCookTextures(pData))
-        return false;
+        return nullptr;
 
     cJSON* pRoot = cJSON_CreateObject();
     cJSON* pScenes = cJSON_CreateObject();
@@ -327,7 +307,7 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
         cJSON_Delete(pScene);
         cJSON_Delete(pTextureDirectories);
         cJSON_Delete(pConvention);
-        return false;
+        return nullptr;
     }
 
     cJSON_AddNumberToObject(pRoot, "version", SCENE_ASSET_MANIFEST_VERSION);
@@ -344,16 +324,13 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
     cJSON_AddItemToObject(pScene, "textureDirectories", pTextureDirectories);
 
     cJSON* pTextures = cJSON_AddArrayToObject(pScene, "textures");
-    char   sourceParent[FS_MAX_PATH] = {};
-    fsGetParentPath(pSourceGltf, sourceParent);
     for (cgltf_size i = 0; pTextures && i < pData->textures_count; ++i)
     {
-        const cgltf_texture* pTexture = &pData->textures[i];
-        char                 texturePath[FS_MAX_PATH] = {};
-        fsAppendPathComponent(sourceParent, pTexture->image->uri, texturePath);
+        const CookedSceneTexture& texture = sceneCooker.getTexture((uint32_t)i);
         cJSON* pTextureJson = cJSON_CreateObject();
-        cJSON_AddStringToObject(pTextureJson, "path", texturePath);
-        cJSON_AddBoolToObject(pTextureJson, "srgb", isSceneAssetSrgbTexture(pData, pTexture));
+        cJSON_AddStringToObject(pTextureJson, "path", texture.path);
+        cJSON_AddBoolToObject(pTextureJson, "srgb", texture.srgb);
+        cJSON_AddBoolToObject(pTextureJson, "cooked", texture.cooked);
         cJSON_AddItemToArray(pTextures, pTextureJson);
     }
 
@@ -387,14 +364,21 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
     cJSON_AddItemToObject(pScenes, pSceneName, pScene);
     cJSON_AddItemToObject(pRoot, "scenes", pScenes);
 
-    if (!sceneCooker.build(*pData, *pRoot) || !sceneCooker.write())
+    if (!sceneCooker.build(*pData, contentHash))
     {
         cJSON_Delete(pRoot);
-        return false;
+        return nullptr;
     }
 
+    return pRoot;
+}
+
+static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pManifestFileName, const cJSON* pRoot,
+                                    SceneAssetCooker& sceneCooker)
+{
+    if (!sceneCooker.write())
+        return false;
     char* pJson = cJSON_Print(pRoot);
-    cJSON_Delete(pRoot);
     if (!pJson)
         return false;
 
@@ -2080,13 +2064,15 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             continue;
         }
 
-#if defined(FORGE_DEBUG)
         result = cgltf_validate(data);
         if (cgltf_result_success != result)
         {
-            LOGF(eWARNING, "GLTF validation finished with error %u for file %s", (uint32_t)result, fileName);
+            LOGF(eERROR, "Invalid glTF file %s (error %u)", fileName, (uint32_t)result);
+            data->file_data = fileData;
+            cgltf_free(data);
+            error = true;
+            continue;
         }
-#endif
 
         if (!validateSceneAssetCookTextures(data))
         {
@@ -2097,6 +2083,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         // Load buffers located in separate files (.bin) using our file system
+        bool buffersLoaded = true;
         for (uint32_t j = 0; j < data->buffers_count; ++j)
         {
             const char* uri = data->buffers[j].uri;
@@ -2115,15 +2102,22 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 FileStream fs = {};
                 if (fsOpenStreamFromPath(assetParams->mRDInput, path, FM_READ, &fs))
                 {
-                    ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size);
-                    data->buffers[j].data = tf_malloc(data->buffers[j].size);
-                    fsReadFromStream(&fs, data->buffers[j].data, data->buffers[j].size);
+                    buffersLoaded = fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size;
+                    if (buffersLoaded)
+                    {
+                        data->buffers[j].data = tf_malloc(data->buffers[j].size);
+                        buffersLoaded = fsReadFromStream(&fs, data->buffers[j].data, data->buffers[j].size) == data->buffers[j].size;
+                    }
                     fsCloseStream(&fs);
+                    if (!buffersLoaded)
+                        break;
                 }
             }
         }
 
-        result = cgltf_load_buffers(&options, data, fileName);
+        result = buffersLoaded ? cgltf_load_buffers(&options, data, fileName) : cgltf_result_data_too_short;
+        if (result == cgltf_result_success)
+            result = cgltf_validate(data);
         if (cgltf_result_success != result)
         {
             LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
@@ -2166,7 +2160,23 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             }
         }
 
-        if (!sceneCooker.prepare())
+        if (!sceneCooker.prepare(*data))
+        {
+            tf_free(pFingerprint);
+            data->file_data = fileData;
+            cgltf_free(data);
+            error = true;
+            continue;
+        }
+
+        char sceneName[FS_MAX_PATH] = {};
+        char geometryFileName[FS_MAX_PATH] = {};
+        char sourceGltf[FS_MAX_PATH] = {};
+        fsGetPathFileName(newFileName, sceneName);
+        fsNormalizePath(newFileName, '/', geometryFileName);
+        fsNormalizePath(fileName, '/', sourceGltf);
+        cJSON* pSceneManifest = buildSceneAssetManifest(sceneName, geometryFileName, sourceGltf, data, pFingerprint, sceneCooker);
+        if (!pSceneManifest)
         {
             tf_free(pFingerprint);
             data->file_data = fileData;
@@ -2701,21 +2711,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             }
         }
 
-        if (geometryWritten)
+        if (geometryWritten && !writeSceneAssetManifest(assetParams->mRDOutput, manifestFileName, pSceneManifest, sceneCooker))
         {
-            char sceneName[FS_MAX_PATH] = {};
-            char geometryFileName[FS_MAX_PATH] = {};
-            char sourceGltf[FS_MAX_PATH] = {};
-            fsGetPathFileName(newFileName, sceneName);
-            fsNormalizePath(newFileName, '/', geometryFileName);
-            fsNormalizePath(fileName, '/', sourceGltf);
-            if (!writeSceneAssetManifest(assetParams->mRDOutput, manifestFileName, sceneName, geometryFileName, sourceGltf, data,
-                                         pFingerprint, sceneCooker))
-            {
-                LOGF(eERROR, "Failed to write scene manifest '%s'.", manifestFileName);
-                error = true;
-            }
+            LOGF(eERROR, "Failed to write scene manifest '%s'.", manifestFileName);
+            error = true;
         }
+        cJSON_Delete(pSceneManifest);
 
         tf_free(geomData->pShadow);
         tf_free(geomData);

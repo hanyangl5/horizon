@@ -51,6 +51,7 @@ typedef struct SceneAssetTextureManifest
 {
     char path[FS_MAX_PATH];
     bool srgb;
+    bool cooked;
 } SceneAssetTextureManifest;
 
 typedef struct SceneAssetMaterialManifest

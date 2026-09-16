@@ -3940,6 +3940,7 @@ struct TextureLoadDescInternal
             Sampler*             pYcbcrSampler;
             TextureCreationFlags flags;
             TextureContainerType container;
+            ResourceDirectory    resourceDirectory;
         };
         struct
         {
@@ -4711,7 +4712,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         {
         case TEXTURE_CONTAINER_DDS:
         {
-            success = fsOpenStreamFromPath(RD_TEXTURES, pTextureDesc->pFileName, FM_READ, &stream);
+            success = fsOpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
             if (success)
             {
                 success = loadDDSTextureDesc(&stream, &textureDesc);
@@ -4720,7 +4721,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         }
         case TEXTURE_CONTAINER_KTX:
         {
-            success = fsOpenStreamFromPath(RD_TEXTURES, pTextureDesc->pFileName, FM_READ, &stream);
+            success = fsOpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
             if (success)
             {
                 success = loadKTXTextureDesc(&stream, &textureDesc);
@@ -6477,6 +6478,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
         TextureLoadDescInternal loadDesc = {};
         loadDesc.ppTexture = pTextureDesc->ppTexture;
         loadDesc.container = pTextureDesc->container;
+        loadDesc.resourceDirectory = pTextureDesc->resourceDirectory;
         loadDesc.flags = pTextureDesc->creationFlag;
         loadDesc.pFileName = pTextureDesc->pFileName;
         loadDesc.pYcbcrSampler = pTextureDesc->pYcbcrSampler;

@@ -13,3 +13,6 @@
 [submodule "Source/ThirdParty/slang"]
 	path = Source/ThirdParty/slang
 	url = https://github.com/shader-slang/slang
+[submodule "Source/ThirdParty/DirectXTex"]
+	path = Source/ThirdParty/DirectXTex
+	url = https://github.com/microsoft/DirectXTex.git

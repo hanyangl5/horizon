@@ -189,7 +189,7 @@ SceneAsset 与 World 的粒度必须先定死，否则垂直切片无法落地�
 - **子资源身份分两类**：submesh 使用 `MeshAsset` 内部的稳定 `SubmeshID`（不是全局 `AssetID`）；导出的 Mesh、Material 和内嵌 Texture 都是独立资产，各有 `AssetID`。源文件 sidecar 保存 SceneAsset ID 和完整子资产身份表，包括 type、持久 ID、source 匹配信息，以及每个 Mesh 的 SubmeshID 表。引用已独立注册的外部 Texture 时复用其 AssetID。
 - **重导入统一匹配规则**：首次导入分配并持久化上述 ID；重新导入优先使用 exporter/source 提供的持久身份，名称、几何和材质签名仅用于辅助唯一匹配，数组索引和内容 hash 不能作为身份。插入、重排或重命名后，能唯一匹配的资源沿用 ID；歧义项分配新 ID 并报告。被删除或无法匹配的旧条目保留为 missing，不将其 ID 分配给其他资源；已有 World 引用或 material override 保持原 ID 并报告未解析，不能静默改绑。Cooked 引用与 sidecar 身份表必须一致后才能发布 Catalog。
 
-第一阶段先版本化 cooked SceneAsset schema，并让 cooker 输出 node 层级、局部变换、MeshAsset 引用及其 submesh/default-material 表，而不是把现有 `SceneAssetInstance` 那种“每 primitive 一个烘焙 `world[16]`”的扁平数组作为正式模型。World loader 遇到只有旧 flat 数据的 schema 时返回明确的 re-cook 错误，不为它扩展 `MeshRenderer`。迁移期间 cooker 可以在新版资产中额外双写 legacy compatibility chunk 供旧 Renderer 使用；新 World 路径忽略该 chunk，Renderer Example 完成迁移后再移除它。
+Cooked SceneAsset 只支持当前格式和版本，不做旧格式识别、转换或兼容加载。Cooker 输出 node 层级、局部变换、MeshAsset 引用及其 submesh/default-material 表。旧 SceneManager 仍在使用的 flat manifest 和 GeometryTF 附加实例数据随 Renderer 迁移一并删除，不接入新 World 路径。
 
 World 内部使用 Flecs。公共 `Entity` 是轻量的 64-bit value，Flecs world、query 和 component ID 只存在于 `World/Private`，避免第三方接口扩散到 Runtime、Editor 和 Renderer。
 
@@ -413,25 +413,23 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 
 当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring ObjectID 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树；override 排序约束和序列化迁移尚未接入。渲染提交与历史的配对在 RenderScene 阶段完成。
 
-第 5 步已开始：cooker 增加独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据继续供 Renderer 使用。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
+第 5 步已实现当前 glTF 路径：cooker 输出独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据继续供 Renderer 使用。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
 
-源文件旁的 `<source>.asset.json` 保存 Scene/Mesh/Material/Texture 身份及各 Mesh 的 SubmeshID。匹配优先使用可选 `extras.horizonId`，否则只接受无冲突的唯一名称或签名匹配；歧义项获得新 ID，旧记录保留为 missing 且不再参与匹配。源文件移动时需一起保留 sidecar；已有新版输出但 sidecar 丢失或损坏时拒绝重新分配身份。当前沿用本地 DDS/KTX 纹理限制；内嵌纹理、跨源文件复用已注册 Texture ID，以及 Runtime 新格式解码/旧格式 re-cook 检查仍待实现。完整第 5 步尚未完成。
+源文件旁的 `<source>.asset.json` 保存 Scene/Mesh/Material/Texture 身份及各 Mesh 的 SubmeshID。匹配优先使用可选 `extras.horizonId`，否则只接受无冲突的唯一名称或签名匹配；歧义项获得新 ID，旧记录保留为 missing 且不再参与匹配。源文件移动时需一起保留 sidecar；已有新版输出但 sidecar 丢失或损坏时拒绝重新分配身份。
 
-第 5 步剩余工作预估（2026-09-16，不含第 6 步 Asset Registry）：
+Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局部 TRS 或原始仿射矩阵，校验身份唯一性、引用类型、父索引、层级环和数值范围。解析只接受当前格式和版本，返回 `bool`；失败保留原有数据。数据由对象持有，只读视图在该数据被替换或销毁后失效。该入口不依赖旧 SceneManager，也不加载 GPU 资源；文件读取和 typed loader 接入归第 6 步。
 
-| 工作 | 预计工作日 |
-| --- | --- |
-| Runtime 解码、格式校验、旧格式提示重新烘焙 | 0.5～1 |
-| 重导入匹配边界、失败恢复及测试收尾 | 0.5～1 |
-| 内嵌纹理支持、跨源文件共享 Texture 身份 | 1～2 |
+纹理烘焙已接入 DirectXTex（Windows）：外部或内嵌 PNG/JPEG 输出带完整 mip 链的 BC7 DDS，按用途选择线性或 sRGB；现成 DDS/KTX 保持原格式。输出按内容和编码设置寻址，重导入可复用未变化的纹理。同一图片的线性和 sRGB 用途需要独立 glTF texture 条目。
 
-完整收尾预计 2～4 个工作日。若先验收当前 Bistro 的外部 DDS/KTX 纹理流程，预计 1～2 个工作日，但只能算第 5 步的可用子集。主要不确定性是内嵌 PNG/JPEG 的解码与烘焙路径；USD 仍暂缓。
+外部图片旁的 `<image>.asset.json` 注册颜色空间各自的 Texture ID，多个源场景共享这些 ID；内嵌图片由场景 sidecar 管理。已注册 sidecar 丢失、损坏或身份冲突时拒绝静默重建。临时文件替换支持从 `.bak` 恢复中断的重命名，失败后重试保留已发布的身份；多个输出文件不构成原子事务，调用方必须检查 cook 是否成功。
+
+第 5 步已完成当前 glTF 路径：新版 cooker 直接读取 glTF，生成结果在发布前交给 Runtime 解析器验证。源数据的层级、索引和 buffer 校验在各构建配置下均生效，非法输入不会覆盖已发布的场景和身份文件。回归覆盖重排、歧义、删除、内嵌纹理、跨文件 Texture 身份共享及失败恢复；Bistro 实际烘焙、Runtime 解码及强制重导入身份稳定性已验证。AssetPipeline 回归仍只在本地运行。下一步是第 6 步的 Asset Catalog/Registry 与 typed loaders，USD 暂缓。
 
 1. 增加 `AssetID`、`ObjectID`、格式化、解析、hash 和相等比较测试。
 2. 增加显式 type/property registry，并注册第一批内置组件。
 3. 接入 Flecs，提供 World、generation Entity 和 deferred mutation 生命周期。
 4. 实现 transform hierarchy、dirty propagation 和 previous transform。
-5. 版本化 cooked SceneAsset schema，并更新 AssetPipeline 输出 node tree、局部变换、MeshAsset/submesh/default-material 表；sidecar 保存完整子资产 AssetID/SubmeshID 身份表并支持重导入匹配。旧 schema 在新 World 路径中明确要求 re-cook，迁移期按需双写仅供旧 Renderer 使用的 compatibility chunk。
+5. 定义当前 cooked SceneAsset schema，并更新 AssetPipeline 输出 node tree、局部变换、MeshAsset/submesh/default-material 表；sidecar 保存完整子资产 AssetID/SubmeshID 身份表并支持重导入匹配。Runtime 只解析当前格式和版本。
 6. 实现独立 Asset Catalog、Asset Registry 和 Texture、Mesh、Material、SceneAsset typed loaders，完成请求去重、dependency transaction、cancellation 和 retirement。
 7. 实现确定性的 `.world.json` 保存、加载和 component migration。
 8. 实现 RenderScene 三层 slot（RenderObject/RenderInstance/RenderDraw）、instanceIndices 和 resolve/binding 层（解析资产引用并持有长期 lease），完成按提交推进的历史、各 backing storage 的 revision 增量补齐、配对 snapshot publish 和 frame-safe retirement。
@@ -456,7 +454,7 @@ step 6 与 step 8 是长线工程，建议进一步拆成可独立合入的小�
 
 第一阶段测试按层组织；以下 reload 指文件重新加载或离线重导入，在线 hot reload 测试归 phase-1.5：
 
-- Cooker tests：node hierarchy/local matrix round trip；Mesh/Material/内嵌 Texture 和 primitive 插入、重排后唯一匹配项保持 AssetID/SubmeshID；歧义项分配新 ID、旧引用保持未解析且不误绑；删除项不复用 ID；旧 cooked schema 返回 re-cook 错误。
+- Cooker tests：node hierarchy/local matrix round trip；Mesh/Material/内嵌 Texture 和 primitive 插入、重排后唯一匹配项保持 AssetID/SubmeshID；歧义项分配新 ID、旧引用保持未解析且不误绑；删除项不复用 ID；不匹配的格式和版本解析失败。
 - Asset tests：重复请求、dependency cycle、每个加载阶段的故障注入、cancellation、迟到完成消息、loading 期间 release、长期 lease 随 MeshRenderer 删除而释放，以及三类 GpuID 的 stale handle。
 - World tests：create/destroy、generation、ObjectID 冲突与查询、deferred 创建取消及删除后的身份清理、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和 ChildOf 删除策略。
 - Transform tests：深层 hierarchy、cycle rejection、reparent、parent deletion、**奇异 parent 下 `setParent(keepWorld)` 返回失败且 parent 不变**，以及 `LocalTransform`/`LocalMatrix` 互斥。
