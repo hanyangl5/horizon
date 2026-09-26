@@ -9,6 +9,7 @@
 #include "Scene/AssetLoaders.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/MaterialAsset.h"
+#include "Scene/WorldAssetBindings.h"
 #include "Resources/IResourceLoader.h"
 #include "Graphics/RenderContext.h"
 #include "Core/IThread.h"
@@ -726,10 +727,10 @@ static const VertexLayout kAssetTestLayout = {
 class TypedAssetLiveTest: public TextureAssetLiveTest
 {
 protected:
-    void writeScene(const char* text = kTypedScene)
+    void writeScene(const char* text = kTypedScene, const char* path = "scene.sceneasset.json")
     {
         FileStream stream = {};
-        ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "scene.sceneasset.json", FM_WRITE, &stream));
+        ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, path, FM_WRITE, &stream));
         EXPECT_EQ(fsWriteToStream(&stream, text, strlen(text)), strlen(text));
         fsCloseStream(&stream);
     }
@@ -825,6 +826,249 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(pVertices[0], -1);
     EXPECT_FLOAT_EQ(pVertices[4], -5);
     EXPECT_FLOAT_EQ(pVertices[8], -2);
+}
+
+TEST_F(AssetRegistryTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedComponents)
+{
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(
+        catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
+    TestAssetLoader loader;
+    loader.ready = false;
+    hz::AssetRegistry registry(catalog);
+    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    hz::MeshRenderer renderer = { .mesh = assetID(1) };
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    hz::WorldAssetBindings bindings(world, registry);
+    bindings.update();
+    ASSERT_EQ(bindings.getCount(), 2u);
+    const hz::AssetHandle mesh = bindings.get(a)->mesh;
+    EXPECT_EQ(bindings.get(b)->mesh, mesh);
+    registry.update();
+    bindings.update();
+    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
+    EXPECT_EQ(loader.begun, 1u);
+    const MemoryTrackingStats before = memGetTrackingStats();
+    for (uint32_t i = 0; i < 100; ++i)
+        bindings.update();
+    const MemoryTrackingStats after = memGetTrackingStats();
+    if (before.trackingEnabled)
+    {
+        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
+        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+    }
+    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a), nullptr);
+    EXPECT_EQ(bindings.getCount(), 1u);
+    EXPECT_EQ(registry.getState(mesh), hz::AssetState::LoadingCPU);
+    ASSERT_TRUE(world.destroyEntity(b));
+    bindings.update();
+    EXPECT_EQ(bindings.getCount(), 0u);
+    EXPECT_EQ(registry.getState(mesh), hz::AssetState::Retiring);
+    loader.jobs[1]->ready = true;
+    registry.update();
+    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
+}
+
+TEST_F(AssetRegistryTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
+{
+    hz::AssetCatalog catalog;
+    for (uint32_t i = 1; i <= 2; ++i)
+        ASSERT_TRUE(catalog.add(
+            { .id = assetID(i), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
+    TestAssetLoader loader;
+    loader.ready = false;
+    hz::AssetRegistry registry(catalog);
+    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    hz::MeshRenderer first = { .mesh = assetID(1) }, second = { .mesh = assetID(2) };
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &first));
+    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &second));
+    hz::WorldAssetBindings bindings(world, registry);
+    bindings.update();
+    const hz::AssetHandle meshA = bindings.get(a)->mesh, meshB = bindings.get(b)->mesh;
+    registry.update();
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &second));
+    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &first));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a)->mesh, meshB);
+    EXPECT_EQ(bindings.get(b)->mesh, meshA);
+    EXPECT_EQ(registry.getState(meshA), hz::AssetState::LoadingCPU);
+    EXPECT_EQ(registry.getState(meshB), hz::AssetState::LoadingCPU);
+    EXPECT_EQ(loader.begun, 2u);
+
+    ASSERT_TRUE(world.destroyEntity(a));
+    bindings.update();
+    const hz::Entity replacement = world.createEntity();
+    EXPECT_NE(replacement, a);
+    ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &second));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a), nullptr);
+    EXPECT_EQ(bindings.get(replacement)->state, hz::AssetBindingState::Pending);
+    EXPECT_FALSE(bindings.get(replacement)->mesh.isValid());
+    loader.jobs[2]->ready = true;
+    registry.update();
+    bindings.update();
+    EXPECT_TRUE(bindings.get(replacement)->mesh.isValid());
+    EXPECT_NE(bindings.get(replacement)->mesh, meshB);
+    bindings.clear();
+    EXPECT_EQ(bindings.getCount(), 0u);
+    EXPECT_EQ(registry.getState(meshA), hz::AssetState::Retiring);
+}
+
+TEST_F(AssetRegistryTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
+{
+    hz::AssetCatalog catalog;
+    TestAssetLoader  loader;
+    loader.ready = false;
+    hz::AssetRegistry registry(catalog);
+    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World              world(types);
+    const hz::Entity       entity = world.createEntity();
+    const hz::MeshRenderer renderer = { .mesh = assetID(1) };
+    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+    hz::WorldAssetBindings bindings(world, registry);
+    bindings.update();
+    ASSERT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Failed);
+    ASSERT_TRUE(
+        catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
+    const MemoryTrackingStats before = memGetTrackingStats();
+    for (uint32_t i = 0; i < 100; ++i)
+        bindings.update();
+    const MemoryTrackingStats after = memGetTrackingStats();
+    if (before.trackingEnabled)
+    {
+        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
+        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+    }
+    EXPECT_EQ(registry.getCount(), 0u);
+    bindings.clear();
+    bindings.update();
+    EXPECT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Pending);
+    EXPECT_TRUE(bindings.get(entity)->mesh.isValid());
+    EXPECT_EQ(registry.getCount(), 1u);
+}
+
+TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsAlive)
+{
+    const std::string firstSubmesh = R"({"id":"8000000000000001", "draw":0, "material":"00000000-0000-4000-8000-000000000003"})";
+    const std::string secondSubmesh = R"({"id":"8000000000000003", "draw":0, "material":"00000000-0000-4000-8000-000000000003"})";
+    std::string       sceneText = kTypedScene;
+    sceneText.replace(sceneText.find(firstSubmesh), firstSubmesh.size(), firstSubmesh + "," + secondSubmesh);
+    std::string       overrideText = kTypedScene;
+    const std::string originalID = "00000000-0000-4000-8000-000000000003";
+    const std::string overrideID = "00000000-0000-4000-8000-000000000006";
+    for (size_t offset = overrideText.find(originalID); offset != std::string::npos; offset = overrideText.find(originalID))
+        overrideText.replace(offset, originalID.size(), overrideID);
+    writeTexture();
+    writeScene(sceneText.c_str());
+    writeScene(overrideText.c_str(), "override.sceneasset.json");
+    writeGeometry();
+    hz::SceneAsset scene, overrideScene;
+    ASSERT_TRUE(scene.parse({ sceneText.data(), (uint32_t)sceneText.size() }));
+    ASSERT_TRUE(overrideScene.parse({ overrideText.data(), (uint32_t)overrideText.size() }));
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
+    const hz::AssetID alternate = overrideScene.getMaterials().pData[0].id;
+    ASSERT_TRUE(catalog.add({ .id = alternate,
+                              .type = hz::AssetType::Material,
+                              .pSourcePath = "scene.gltf",
+                              .location = { .pPath = "override.sceneasset.json", .elementIndex = 0 },
+                              .dependencies = { scene.getTextures().pData[0].id } }));
+    hz::RenderContext context({ .pAppName = "WorldAssetBindingsTest", .enableGpuValidation = true });
+    hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
+    hz::AssetRegistry registry(catalog);
+    loaders.registerLoaders(registry);
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    hz::MeshRenderer renderer = { .mesh = scene.getMeshes().pData[0].id };
+    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    hz::WorldAssetBindings bindings(world, registry);
+    bindings.update();
+    const hz::AssetHandle mesh = bindings.get(a)->mesh;
+    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
+    wait(registry, mesh);
+    bindings.update();
+    const hz::AssetHandle overrideMaterial = registry.find(alternate);
+    ASSERT_TRUE(overrideMaterial.isValid());
+    wait(registry, overrideMaterial);
+    bindings.update();
+    ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
+    ASSERT_EQ(bindings.get(b)->state, hz::AssetBindingState::Ready);
+    ASSERT_EQ(bindings.get(a)->materials.count, 2u);
+    EXPECT_EQ(bindings.get(a)->materials.pData[0].asset, scene.getMaterials().pData[0].id);
+    EXPECT_EQ(bindings.get(a)->materials.pData[1].asset, alternate);
+    EXPECT_EQ(bindings.get(b)->materials.pData[1].asset, scene.getMaterials().pData[0].id);
+    EXPECT_EQ(bindings.get(a)->materials.pData[1].handle, overrideMaterial);
+
+    const MemoryTrackingStats before = memGetTrackingStats();
+    for (uint32_t i = 0; i < 100; ++i)
+        bindings.update();
+    const MemoryTrackingStats after = memGetTrackingStats();
+    if (before.trackingEnabled)
+    {
+        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
+        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+    }
+
+    hz::AssetSnapshot snapshot = registry.captureSnapshot();
+    // Reverse authoring order; resolution follows stable SubmeshID, not override array position.
+    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    bindings.update();
+    ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
+    EXPECT_EQ(bindings.get(a)->materials.pData[0].handle, overrideMaterial);
+    EXPECT_EQ(bindings.get(a)->materials.pData[1].handle, overrideMaterial);
+
+    const hz::MeshRenderer pendingRenderer = { .mesh = scene.getMeshes().pData[1].id };
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &pendingRenderer));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
+    EXPECT_EQ(bindings.get(a)->materials.count, 0u);
+    EXPECT_EQ(registry.getState(overrideMaterial), hz::AssetState::Retiring);
+    EXPECT_NE(snapshot.getMaterial(overrideMaterial), nullptr);
+
+    renderer.overrides[0].submesh = 99;
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
+    renderer.overrides[0].submesh = renderer.overrides[1].submesh;
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
+    renderer.overrides.clear();
+    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().pData[0].id });
+    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    bindings.update();
+    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
+
+    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.destroyEntity(b));
+    bindings.update();
+    registry.update();
+    EXPECT_EQ(bindings.getCount(), 0u);
+    EXPECT_EQ(registry.getState(mesh), hz::AssetState::Retiring);
+    EXPECT_NE(snapshot.getMesh(mesh), nullptr);
+    EXPECT_NE(snapshot.getMaterial(overrideMaterial), nullptr);
+    snapshot = {};
+    registry.update();
+    EXPECT_EQ(registry.getCount(), 0u);
 }
 
 TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancelsLoads)

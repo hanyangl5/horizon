@@ -441,6 +441,8 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 第 7 步已实现 `WorldDocument` 的确定性保存、文件读写、staging World 加载和相邻版本迁移。回归覆盖所有内置组件往返、前向对象引用、非法输入不改变目标、未知组件原文保留、override 规范化和中断文件替换恢复。5000 层层级加载及销毁不依赖递归；恢复关系前先验证整张图，World 退出按叶子优先销毁 Entity。下一步为第 8 步 RenderScene 和资产 resolve/binding。
 
+第 8 步已完成资产绑定切片：`WorldAssetBindings` 为每个 `MeshRenderer` 持有 Mesh 和解析后材质的长期引用，按稳定 SubmeshID 合并默认材质与 overrides。组件移除或 Entity 销毁后，在下一次绑定更新释放引用；Registry 快照继续保活旧帧资源。未就绪的绑定为 Pending，缺失资产、错误类型或非法 overrides 为 Failed，调用方只消费 Ready 绑定。正常帧不重复请求或分配内存；失败请求保持失败，清空绑定后可重试。Bindings 必须先于 World 和 Registry 销毁。三层 RenderScene slot、GPU 间接表及配对帧快照尚未实现。
+
 1. 增加 `AssetID`、`ObjectID`、格式化、解析、hash 和相等比较测试。
 2. 增加显式 type/property registry，并注册第一批内置组件。
 3. 接入 Flecs，提供 World、generation Entity 和 deferred mutation 生命周期。
