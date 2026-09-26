@@ -1,0 +1,384 @@
+#include <gtest/gtest.h>
+#include <filesystem>
+#include <string>
+#include "Scene/WorldDocument.h"
+#include "Scene/World.h"
+#include "Scene/SceneComponents.h"
+#include "Core/IUniquePtr.h"
+#include "Core/IContainer.h"
+
+class WorldDocumentTest: public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        ASSERT_TRUE(initMemAlloc(nullptr));
+        initial = memGetTrackingStats();
+    }
+    void TearDown() override
+    {
+        const MemoryTrackingStats after = memGetTrackingStats();
+        if (after.trackingEnabled)
+        {
+            EXPECT_EQ(after.liveAllocationCount, initial.liveAllocationCount);
+            EXPECT_EQ(after.liveRequestedBytes, initial.liveRequestedBytes);
+        }
+        exitMemAlloc();
+    }
+    static hz::ObjectID id(uint64_t value) { return { .high = 1, .low = value }; }
+    static std::string  text(const hz::WorldDocument& document)
+    {
+        hz::Array<char> json;
+        EXPECT_TRUE(document.serialize(json));
+        return json.empty() ? "" : std::string(json.data(), json.size() - 1);
+    }
+    static bool parse(hz::WorldDocument& document, const std::string& json)
+    {
+        return document.parse({ json.data(), (uint32_t)json.size() });
+    }
+    static std::string uuid(uint64_t value)
+    {
+        char text[hz::kIDStringCapacity];
+        id(value).toString(text);
+        return text;
+    }
+    static std::string envelope(const std::string& entities)
+    {
+        return "{\"format\":\"Horizon.World\",\"version\":1,\"id\":\"" + uuid(100) + "\",\"entities\":[" + entities + "]}";
+    }
+    static std::string record(uint64_t object, const std::string& components = "", uint64_t parent = 0)
+    {
+        return "{\"id\":\"" + uuid(object) + "\",\"parent\":" + (parent ? "\"" + uuid(parent) + "\"" : "null") +
+               ",\"name\":null,\"components\":[" + components + "]}";
+    }
+    static std::string component(const char* type, const char* name, uint32_t version, const std::string& properties)
+    {
+        return "{\"type\":\"" + std::string(type) + "\",\"name\":\"" + name + "\",\"version\":" + std::to_string(version) +
+               ",\"properties\":" + properties + "}";
+    }
+    MemoryTrackingStats initial = {};
+};
+
+TEST_F(WorldDocumentTest, RoundTripsComponentsHierarchyAndStableOrdering)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity parent = world.createObject(id(20));
+    const hz::Entity child = world.createObject(id(10));
+    const hz::Entity matrixEntity = world.createObject(id(30));
+    world.createEntity();
+    ASSERT_TRUE(world.setParent(child, parent, false));
+    hz::Name name = { "Parent" };
+    ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::name, &name));
+    hz::LocalTransform transform = { .translation = Vector3(1.2345678f, 2, 3), .scale = Vector3(-1, 0, 2) };
+    ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+    hz::LocalMatrix matrix;
+    matrix.value.setElem(1, 0, 0.25f);
+    matrix.value.setElem(3, 2, 4.0f);
+    ASSERT_TRUE(world.setComponent(matrixEntity, hz::SceneTypes::localMatrix, &matrix));
+    hz::MeshRenderer mesh = { .mesh = { .high = 2, .low = 1 } };
+    mesh.overrides.pushBack({ .submesh = UINT64_C(18446744073709551615), .material = { .high = 2, .low = 2 } });
+    ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::meshRenderer, &mesh));
+    hz::Light light = { .type = hz::LightType::Rect, .intensity = 100.125f };
+    ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.addComponent(child, hz::SceneTypes::camera));
+    hz::WorldDocument document;
+    ASSERT_TRUE(document.capture(world, id(100)));
+    const std::string first = text(document);
+    EXPECT_NE(first.find("\"18446744073709551615\""), std::string::npos);
+    EXPECT_LT(first.find(uuid(10)), first.find(uuid(20)));
+    ASSERT_TRUE(document.capture(world));
+    EXPECT_EQ(text(document), first);
+    hz::unique_ptr<hz::World> restored;
+    ASSERT_TRUE(document.instantiate(types, restored));
+    const hz::Entity loadedChild = restored->getEntity(id(10));
+    const hz::Entity loadedParent = restored->getEntity(id(20));
+    EXPECT_EQ(restored->getParent(loadedChild), loadedParent);
+    EXPECT_EQ(((const hz::MeshRenderer*)restored->getComponent(loadedChild, hz::SceneTypes::meshRenderer))->overrides[0].submesh,
+              UINT64_MAX);
+    EXPECT_FLOAT_EQ(((const hz::LocalTransform*)restored->getComponent(loadedParent, hz::SceneTypes::localTransform))->translation.getX(),
+                    transform.translation.getX());
+    EXPECT_FLOAT_EQ((float)restored->getWorldTransform(loadedChild)->current.getElem(3, 0), transform.translation.getX());
+    EXPECT_FLOAT_EQ((float)restored->getWorldTransform(loadedChild)->previous.getElem(3, 0), transform.translation.getX());
+    ASSERT_TRUE(document.capture(*restored));
+    EXPECT_EQ(text(document), first);
+}
+
+TEST_F(WorldDocumentTest, FailedLoadsPreserveExistingWorldAndDocument)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
+    const hz::Entity          original = target->createObject(id(50));
+    hz::World*                pOriginal = target.get();
+    const std::string         transform = component("0000000000000003", "LocalTransform", 1, "{}");
+    const std::string         invalid[] = {
+        envelope(record(1) + "," + record(1)),
+        envelope(record(1, "", 99)),
+        envelope(record(1, "", 2) + "," + record(2, "", 1)),
+        envelope(record(1, transform + "," + component("0000000000000004", "LocalMatrix", 1, "{}"))),
+        envelope(record(1, transform + "," + transform)),
+        envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"rotation\":[0,0,0,0]}"))),
+        envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"scale\":[1e99,1,1]}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"nearPlane\":2}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 2, "{}"))),
+        envelope(record(1, component("0000000000000006", "Light", 1, "{\"type\":\"Invalid\"}"))),
+    };
+    hz::WorldDocument document;
+    for (const std::string& json : invalid)
+    {
+        ASSERT_TRUE(parse(document, json));
+        EXPECT_FALSE(document.instantiate(types, target));
+        EXPECT_EQ(target.get(), pOriginal);
+        EXPECT_TRUE(target->isAlive(original));
+        EXPECT_EQ(text(document), json);
+    }
+    const std::string previous = text(document);
+    EXPECT_FALSE(parse(document, "{}"));
+    EXPECT_FALSE(parse(document, envelope("") + " {}"));
+    EXPECT_EQ(text(document), previous);
+}
+
+struct MigratingComponent
+{
+    int32_t      value;
+    uint64_t     precise;
+    hz::ObjectID reference;
+    char         label[32];
+};
+static const hz::PropertyDesc migratingProperties[] = {
+    { .id = 4,
+      .pName = "label",
+      .kind = hz::PropertyKind::String,
+      .offset = offsetof(MigratingComponent, label),
+      .size = sizeof(MigratingComponent::label) },
+    { .id = 3,
+      .pName = "reference",
+      .kind = hz::PropertyKind::ObjectReference,
+      .offset = offsetof(MigratingComponent, reference),
+      .size = sizeof(hz::ObjectID) },
+    { .id = 2,
+      .pName = "precise",
+      .kind = hz::PropertyKind::UnsignedInteger,
+      .offset = offsetof(MigratingComponent, precise),
+      .size = sizeof(uint64_t) },
+    { .id = 1,
+      .pName = "value",
+      .kind = hz::PropertyKind::SignedInteger,
+      .offset = offsetof(MigratingComponent, value),
+      .size = sizeof(int32_t) },
+};
+static const hz::TypeDesc migratingType = { .id = 99,
+                                            .pName = "Migrating",
+                                            .version = 3,
+                                            .size = sizeof(MigratingComponent),
+                                            .alignment = alignof(MigratingComponent),
+                                            .properties = migratingProperties };
+
+static bool renameMigration(hz::Span<char> input, hz::Array<char>& output, const char* from, const char* to)
+{
+    std::string  json(input.pData, input.count);
+    const size_t offset = json.find(from);
+    if (offset == std::string::npos)
+        return false;
+    json.replace(offset, strlen(from), to);
+    output.resize((uint32_t)json.size());
+    memcpy(output.data(), json.data(), json.size());
+    return true;
+}
+static bool migrateOne(hz::Span<char> input, hz::Array<char>& output) { return renameMigration(input, output, "old", "middle"); }
+static bool migrateTwo(hz::Span<char> input, hz::Array<char>& output) { return renameMigration(input, output, "middle", "value"); }
+
+TEST_F(WorldDocumentTest, MigratesAdjacentVersionsAndResolvesForwardObjectReferences)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
+    const std::string fields = "{\"old\":-2147483648,\"precise\":\"18446744073709551615\",\"reference\":\"" + uuid(2) + "\"}";
+    const std::string json = envelope(record(1, component("0000000000000063", "Migrating", 1, fields)) + "," + record(2));
+    hz::WorldDocument document;
+    ASSERT_TRUE(parse(document, json));
+    hz::unique_ptr<hz::World>    target;
+    const hz::ComponentMigration migrations[] = { { .type = 99, .fromVersion = 1, .pMigrate = migrateOne },
+                                                  { .type = 99, .fromVersion = 2, .pMigrate = migrateTwo } };
+    EXPECT_FALSE(document.instantiate(types, target));
+    EXPECT_FALSE(document.instantiate(types, target, { migrations, 1 }));
+    EXPECT_FALSE(target);
+    ASSERT_TRUE(document.instantiate(types, target, migrations));
+    const MigratingComponent* value = (const MigratingComponent*)target->getComponent(target->getEntity(id(1)), 99);
+    ASSERT_NE(value, nullptr);
+    EXPECT_EQ(value->value, INT32_MIN);
+    EXPECT_EQ(value->precise, UINT64_MAX);
+    EXPECT_EQ(value->reference, id(2));
+    EXPECT_EQ(text(document), json);
+    ASSERT_TRUE(document.capture(*target));
+    const std::string current = text(document);
+    EXPECT_LT(current.find("\"value\""), current.find("\"precise\""));
+    EXPECT_LT(current.find("\"precise\""), current.find("\"reference\""));
+    ASSERT_TRUE(document.instantiate(types, target));
+
+    const std::string missing = envelope(record(1, component("0000000000000063", "Migrating", 3, "{\"reference\":\"" + uuid(9) + "\"}")));
+    ASSERT_TRUE(parse(document, missing));
+    hz::World* pOriginal = target.get();
+    EXPECT_FALSE(document.instantiate(types, target));
+    EXPECT_EQ(target.get(), pOriginal);
+}
+
+TEST_F(WorldDocumentTest, PreservesUnknownComponentBlobWithoutInstantiatingIt)
+{
+    const std::string json =
+        envelope(record(1, component("000000000000ffff", "FuturePlugin", 20,
+                                     "{\"big\":18446744073709551615,\"opaque\":[null,{\"newField\":1.00000000000000001}]}")));
+    hz::WorldDocument document;
+    ASSERT_TRUE(parse(document, json));
+    EXPECT_EQ(text(document), json);
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::unique_ptr<hz::World> target;
+    EXPECT_FALSE(document.instantiate(types, target));
+    EXPECT_FALSE(target);
+    EXPECT_EQ(text(document), json);
+    const std::string opaque = envelope(record(1, component("000000000000ffff", "FuturePlugin", 20,
+                                                           R"({"text":"before\u0000after"})")));
+    ASSERT_TRUE(parse(document, opaque));
+    EXPECT_EQ(text(document), opaque);
+}
+
+TEST_F(WorldDocumentTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingDocument)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
+    hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
+    hz::World*                pOriginal = target.get();
+    const hz::Entity          original = target->createObject(id(50));
+    const std::string         named = "{\"id\":\"" + uuid(1) + "\",\"parent\":null,\"name\":\"before\\u0000after\",\"components\":[]}";
+    const std::string         invalid[] = {
+        envelope(named),
+        envelope(record(1, component("0000000000000063", "Migrating", 3, R"({"label":"before\u0000after"})"))),
+        envelope(record(1, component("0000000000000063", "Migrating", 3, R"({"precise":"42\u0000suffix"})"))),
+        envelope(record(1, component("0000000000000006", "Light", 1, R"({"type":"Point\u0000suffix"})"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, R"({"nearPlane\u0000suffix":1})"))),
+        envelope(record(1, component("0000000000000005", "MeshRenderer", 1, "{\"mesh\":\"" + uuid(2) + "\\u0000suffix\"}"))),
+        envelope(record(1, component("0000000000000063\\u0000suffix", "Migrating", 3, "{}"))),
+    };
+    hz::WorldDocument document;
+    for (const std::string& json : invalid)
+    {
+        ASSERT_TRUE(parse(document, json));
+        EXPECT_FALSE(document.instantiate(types, target));
+        EXPECT_EQ(target.get(), pOriginal);
+        EXPECT_TRUE(target->isAlive(original));
+        EXPECT_EQ(text(document), json);
+    }
+    // Escaped backslashes and quotes must not be confused with a null escape.
+    const std::string escaped = envelope(record(1, component("0000000000000063", "Migrating", 3, R"({"label":"a\"b\\u0000c\\"})")));
+    ASSERT_TRUE(parse(document, escaped));
+    ASSERT_TRUE(document.instantiate(types, target));
+    EXPECT_STREQ(((const MigratingComponent*)target->getComponent(target->getEntity(id(1)), 99))->label, "a\"b\\u0000c\\");
+    ASSERT_TRUE(document.capture(*target));
+    ASSERT_TRUE(document.instantiate(types, target));
+    EXPECT_STREQ(((const MigratingComponent*)target->getComponent(target->getEntity(id(1)), 99))->label, "a\"b\\u0000c\\");
+}
+
+static bool migrateNull(hz::Span<char> input, hz::Array<char>& output)
+{
+    return renameMigration(input, output, "value", "value\\u0000suffix");
+}
+
+TEST_F(WorldDocumentTest, RejectsEmbeddedNullsProducedByMigration)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
+    hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
+    hz::World*                pOriginal = target.get();
+    const hz::Entity          original = target->createObject(id(50));
+    const std::string         json = envelope(record(1, component("0000000000000063", "Migrating", 2, R"({"value":7})")));
+    hz::WorldDocument         document;
+    ASSERT_TRUE(parse(document, json));
+    const hz::ComponentMigration migration = { .type = 99, .fromVersion = 2, .pMigrate = migrateNull };
+    EXPECT_FALSE(document.instantiate(types, target, { &migration, 1 }));
+    EXPECT_EQ(target.get(), pOriginal);
+    EXPECT_TRUE(target->isAlive(original));
+    EXPECT_EQ(text(document), json);
+}
+
+TEST_F(WorldDocumentTest, NormalizesOverridesOnLoadAndRejectsDuplicateKeys)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    const std::string material = uuid(7);
+    const std::string second = "{\"submesh\":\"2\",\"material\":\"" + material + "\"}";
+    const std::string first = "{\"submesh\":\"1\",\"material\":\"" + material + "\"}";
+    hz::WorldDocument document;
+    ASSERT_TRUE(parse(
+        document, envelope(record(1, component("0000000000000005", "MeshRenderer", 1, "{\"overrides\":[" + second + "," + first + "]}")))));
+    hz::unique_ptr<hz::World> target;
+    ASSERT_TRUE(document.instantiate(types, target));
+    const hz::MeshRenderer* mesh = (const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer);
+    ASSERT_NE(mesh, nullptr);
+    ASSERT_EQ(mesh->overrides.size(), 2u);
+    EXPECT_EQ(mesh->overrides[0].submesh, 1u);
+    EXPECT_EQ(mesh->overrides[1].submesh, 2u);
+    ASSERT_TRUE(document.capture(*target));
+    ASSERT_TRUE(parse(
+        document, envelope(record(1, component("0000000000000005", "MeshRenderer", 1, "{\"overrides\":[" + first + "," + first + "]}")))));
+    EXPECT_FALSE(document.instantiate(types, target));
+    EXPECT_EQ(((const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer))->overrides.size(),
+              2u);
+}
+
+TEST_F(WorldDocumentTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
+{
+    std::string        entities;
+    constexpr uint32_t count = 5000;
+    for (uint32_t i = 1; i <= count; ++i)
+    {
+        if (i != 1)
+            entities += ',';
+        entities += record(i, "", i == count ? 0 : i + 1);
+    }
+    hz::WorldDocument document;
+    ASSERT_TRUE(parse(document, envelope(entities)));
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::unique_ptr<hz::World> world;
+    ASSERT_TRUE(document.instantiate(types, world));
+    EXPECT_EQ(world->getParent(world->getEntity(id(1))), world->getEntity(id(2)));
+    EXPECT_FALSE(world->getParent(world->getEntity(id(count))).isValid());
+    ASSERT_NE(world->getWorldTransform(world->getEntity(id(1))), nullptr);
+}
+
+TEST_F(WorldDocumentTest, SavesLoadsAndRecoversInterruptedFileReplacement)
+{
+    FileSystemInitDesc desc = { .pAppName = "WorldDocumentTest" };
+    ASSERT_TRUE(initFileSystem(&desc));
+    {
+        char name[hz::kIDStringCapacity];
+        hz::ObjectID::create().toString(name);
+        const std::filesystem::path directory = std::filesystem::temp_directory_path() / name;
+        std::filesystem::create_directory(directory);
+        IFileSystem io = *pSystemFileIO;
+        io.GetResourceMount = nullptr;
+        fsSetPathForResourceDir(&io, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+        hz::WorldDocument original, loaded;
+        ASSERT_TRUE(parse(original, envelope(record(1))));
+        ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
+        ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
+        EXPECT_EQ(text(loaded), text(original));
+        std::filesystem::create_directory(directory / "test.world.json.tmp");
+        ASSERT_TRUE(parse(original, envelope(record(2))));
+        EXPECT_FALSE(original.save(RD_OTHER_FILES, "test.world.json"));
+        ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
+        EXPECT_EQ(text(loaded), envelope(record(1)));
+        std::filesystem::remove(directory / "test.world.json.tmp");
+        std::filesystem::rename(directory / "test.world.json", directory / "test.world.json.bak");
+        ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
+        ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
+        EXPECT_EQ(text(loaded), envelope(record(2)));
+        std::filesystem::remove_all(directory);
+    }
+    exitFileSystem();
+}

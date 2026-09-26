@@ -271,7 +271,7 @@ Hierarchy 必须满足：
 
 Reflection 使用显式 type registry，不依赖 C++ RTTI、异常或复杂模板实例化。组件在 Runtime 初始化期间显式注册，不能依赖跨模块静态初始化顺序。
 
-每个 component descriptor 包含稳定 type ID、名称、schema version、size、alignment、property span 和可选 migration callback。含 owning collection 的 component 还必须注册显式 init/copy/move/destroy lifecycle operations，并由 World 转接为内部 Flecs hooks，保证 archetype 移动、deferred command 和 World 销毁不会浅拷贝或泄漏 collection storage。每个 property descriptor 包含稳定 property ID、名称、类型、offset、size、flags，以及 Inspector 所需的 range、step 或 widget hint；集合 property 还要引用 element descriptor 和统一的 collection operations。
+每个 component descriptor 包含稳定 type ID、名称、schema version、size、alignment 和 property span。相邻版本的 migration callback 由文档加载入口传入，反射接口不依赖 JSON 库。含 owning collection 的 component 还必须注册显式 init/copy/move/destroy lifecycle operations，并由 World 转接为内部 Flecs hooks，保证 archetype 移动、deferred command 和 World 销毁不会浅拷贝或泄漏 collection storage。每个 property descriptor 包含稳定 property ID、名称、类型、offset、size、flags，以及 Inspector 所需的 range、step 或 widget hint；集合 property 还要引用 element descriptor 和统一的 collection operations。
 
 第一版支持以下 property 类型：
 
@@ -323,6 +323,12 @@ World 文件保存：
 Component 独立维护 schema version，migration 按相邻版本顺序执行，例如 `v1 -> v2 -> v3`。纯 Runtime 加载遇到未知 component 或无法迁移的版本时返回明确错误。但**文件格式从第一版就必须允许保留未知 component 的原始 JSON blob**：否则 Editor 打开由更新版本或新插件创建的 World 会无法恢复、round-trip 丢数据。保留原始 blob 是格式层的硬要求；Editor 侧"读取-透传-回写"未知数据的完整实现可延后，但格式不能事后再加。
 
 Cooked World 将来可以使用分块二进制格式，但不能直接 dump ECS 内存布局。
+
+当前入口为 `WorldDocument`：`capture` 从已提交的 World 提取 authoring objects，`save/load` 处理文件，`instantiate` 在成功后替换调用方持有的 `unique_ptr<World>`。替换前须销毁旧 World 的 query/defer scopes；失败保留旧 World。World ID 由文档持有，可显式指定，后续 capture 默认沿用。无 ObjectID 的运行时 Entity 不保存；authoring object 的父节点必须有 ObjectID。
+
+`Horizon.World` v1 按 ObjectID、TypeID、PropertyID 排序输出；组件记录保留稳定 TypeID、名称、版本及独立 properties 对象。64 位整数使用十进制字符串，float/double 分别使用 9/17 位有效数字的区域无关格式。只保存 serialized properties，数组沿用存储顺序；加载时规范化 material overrides，重复 SubmeshID 拒绝，保存时要求键已唯一且有序。
+
+文档解析保留原始 JSON，因此未知组件及其数值可原样读写；Runtime 实例化仍拒绝未知组件、缺失迁移、悬空对象引用和非法层级。迁移逐版本变换 properties JSON，不改写原文档。文件保存先写临时文件，再通过备份替换，失败可恢复旧文件；这不提供断电后的持久性保证。Editor 对未知组件的编辑合并仍属后续工作。
 
 ## RenderScene extraction
 
@@ -411,7 +417,7 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 
 ## Staged rollout
 
-当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring ObjectID 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树；override 排序约束和序列化迁移尚未接入。渲染提交与历史的配对在 RenderScene 阶段完成。
+当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring ObjectID 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树。渲染提交与历史的配对在 RenderScene 阶段完成。
 
 第 5 步已实现当前 glTF 路径：cooker 输出独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据继续供 Renderer 使用。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
 
@@ -431,7 +437,9 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 `AssetLoaders` 注册独立的 Scene、Texture、Mesh 和 Material loader。Scene/Mesh/Material 核对身份及直接依赖，依赖就绪后才发布；Mesh/Material 共享同一源文档的后台解码结果。Texture 异步上传 DDS/KTX，由 `GPUTexture` 持有。多个 Mesh 引用同一 GeometryTF 时共享一次上传及 `GPUBuffer` 所有权；后台计算局部包围盒后释放 CPU 顶点副本。缺失、损坏或截断文件报告失败并清理部分结果。
 
-第 6 步已完成：Bistro 通过 1 个 Scene、1296 个 Mesh、132 个 Material、274 个 Texture record 加载，1591 个 draw 共享一次 geometry 上传；GPU 使用期间的快照退休及 shutdown 已验证，内存分配回到基线。新模块不依赖 SceneManager。Material 当前提供完整材质参数及 Texture 身份引用；GPU table、材质表编码与 RenderScene 配对发布归第 8 步，Renderer 迁移归第 9 步，hot reload 保持 Phase 1.5 范围。下一步是第 7 步的 World 保存、加载与 component migration。
+第 6 步已完成：Bistro 通过 1 个 Scene、1296 个 Mesh、132 个 Material、274 个 Texture record 加载，1591 个 draw 共享一次 geometry 上传；GPU 使用期间的快照退休及 shutdown 已验证，内存分配回到基线。新模块不依赖 SceneManager。Material 当前提供完整材质参数及 Texture 身份引用；GPU table、材质表编码与 RenderScene 配对发布归第 8 步，Renderer 迁移归第 9 步，hot reload 保持 Phase 1.5 范围。
+
+第 7 步已实现 `WorldDocument` 的确定性保存、文件读写、staging World 加载和相邻版本迁移。回归覆盖所有内置组件往返、前向对象引用、非法输入不改变目标、未知组件原文保留、override 规范化和中断文件替换恢复。5000 层层级加载及销毁不依赖递归；恢复关系前先验证整张图，World 退出按叶子优先销毁 Entity。下一步为第 8 步 RenderScene 和资产 resolve/binding。
 
 1. 增加 `AssetID`、`ObjectID`、格式化、解析、hash 和相等比较测试。
 2. 增加显式 type/property registry，并注册第一批内置组件。

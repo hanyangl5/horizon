@@ -104,6 +104,7 @@ private:
     friend class DeferredChanges;
     friend class WorldQuery;
     friend class WorldQueryImpl;
+    friend class WorldDocument;
     WorldImpl* pImpl = nullptr;
 };
 

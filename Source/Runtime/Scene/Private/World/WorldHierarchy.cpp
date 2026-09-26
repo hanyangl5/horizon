@@ -30,7 +30,12 @@ WorldHierarchy::WorldHierarchy(WorldImpl& world): world(world)
 
 WorldHierarchy::~WorldHierarchy()
 {
+    if (structureDirty)
+        rebuild();
     ecs_query_fini(pEntities);
+    // Avoid Flecs recursively cascading deletion through a deep ChildOf hierarchy at ecs_fini.
+    for (uint32_t i = nodes.size(); i > 0; --i)
+        ecs_delete(world.pWorld, nodes[i - 1].entity);
     hmfree(pIndices);
     hmfree(pBuildIndices);
     hmfree(pPendingLocals);
