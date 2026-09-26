@@ -10,6 +10,7 @@ struct SceneAssetTexture
 {
     AssetID     id;
     const char* pPath = "";
+    const char* pSource = "";
     bool        srgb = false;
     bool        cooked = false; // Path is relative to the cooked output root; otherwise the source root.
 };

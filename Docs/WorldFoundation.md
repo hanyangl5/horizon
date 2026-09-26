@@ -423,7 +423,15 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 外部图片旁的 `<image>.asset.json` 注册颜色空间各自的 Texture ID，多个源场景共享这些 ID；内嵌图片由场景 sidecar 管理。已注册 sidecar 丢失、损坏或身份冲突时拒绝静默重建。临时文件替换支持从 `.bak` 恢复中断的重命名，失败后重试保留已发布的身份；多个输出文件不构成原子事务，调用方必须检查 cook 是否成功。
 
-第 5 步已完成当前 glTF 路径：新版 cooker 直接读取 glTF，生成结果在发布前交给 Runtime 解析器验证。源数据的层级、索引和 buffer 校验在各构建配置下均生效，非法输入不会覆盖已发布的场景和身份文件。回归覆盖重排、歧义、删除、内嵌纹理、跨文件 Texture 身份共享及失败恢复；Bistro 实际烘焙、Runtime 解码及强制重导入身份稳定性已验证。AssetPipeline 回归仍只在本地运行。下一步是第 6 步的 Asset Catalog/Registry 与 typed loaders，USD 暂缓。
+第 5 步已完成当前 glTF 路径：新版 cooker 直接读取 glTF，生成结果在发布前交给 Runtime 解析器验证。源数据的层级、索引和 buffer 校验在各构建配置下均生效，非法输入不会覆盖已发布的场景和身份文件。回归覆盖重排、歧义、删除、内嵌纹理、跨文件 Texture 身份共享及失败恢复；Bistro 实际烘焙、Runtime 解码及强制重导入身份稳定性已验证。AssetPipeline 回归仍只在本地运行，USD 暂缓。
+
+第 6 步的 `hz::AssetCatalog` 保存四种资产的位置和依赖。cooker 输出确定性的 `.assetcatalog.json`，增量 cook 校验索引，缺失或损坏时重建。Catalog 支持索引读取、合并及单条增删改；冲突的合并和非法索引不改变已有数据。旧条目存储保留到 Catalog 清空或析构，替换元数据不会使正在加载的 Registry 记录失效，也不触发驻留资产热重载。
+
+`hz::AssetRegistry` 已实现 generation handle、请求去重、引用计数、依赖图预检及预留、异步 CPU decode/GPU upload、失败清理和逻辑取消。取消任务完成前不复用 slot。`AssetSnapshot` 固定当前 Ready payload 集合，未提交时由 RAII 释放，提交后由 Registry 等待对应 RenderContext fence 再回收；集合未变化时重复捕获快照不分配内存。shutdown 停止请求，drain 加载和上传，等待已提交快照，再按父资源先于依赖的顺序销毁。Registry 在所属线程调用，Catalog、loader 和相关 RenderContext 必须比它活得更久；loader 回调可以查询依赖，不能修改 Registry。
+
+`AssetLoaders` 注册独立的 Scene、Texture、Mesh 和 Material loader。Scene/Mesh/Material 核对身份及直接依赖，依赖就绪后才发布；Mesh/Material 共享同一源文档的后台解码结果。Texture 异步上传 DDS/KTX，由 `GPUTexture` 持有。多个 Mesh 引用同一 GeometryTF 时共享一次上传及 `GPUBuffer` 所有权；后台计算局部包围盒后释放 CPU 顶点副本。缺失、损坏或截断文件报告失败并清理部分结果。
+
+第 6 步已完成：Bistro 通过 1 个 Scene、1296 个 Mesh、132 个 Material、274 个 Texture record 加载，1591 个 draw 共享一次 geometry 上传；GPU 使用期间的快照退休及 shutdown 已验证，内存分配回到基线。新模块不依赖 SceneManager。Material 当前提供完整材质参数及 Texture 身份引用；GPU table、材质表编码与 RenderScene 配对发布归第 8 步，Renderer 迁移归第 9 步，hot reload 保持 Phase 1.5 范围。下一步是第 7 步的 World 保存、加载与 component migration。
 
 1. 增加 `AssetID`、`ObjectID`、格式化、解析、hash 和相等比较测试。
 2. 增加显式 type/property registry，并注册第一批内置组件。

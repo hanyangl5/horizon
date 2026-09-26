@@ -3932,6 +3932,7 @@ struct BufferLoadDescInternal
 struct TextureLoadDescInternal
 {
     Texture** ppTexture;
+    bool*     pSuccess;
     union
     {
         struct
@@ -4547,6 +4548,8 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 
     if (!upload.pData)
     {
+        if (stream.pIO)
+            fsCloseStream(&stream);
         return UPLOAD_FUNCTION_RESULT_STAGING_BUFFER_FULL;
     }
 
@@ -4587,6 +4590,8 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 bool ret = util_get_surface_info(w, h, fmt, &numBytes, &rowBytes, &numRows);
                 if (!ret)
                 {
+                    if (stream.pIO)
+                        fsCloseStream(&stream);
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 }
 
@@ -4606,6 +4611,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                             ssize_t bytesRead = fsReadFromStream(&stream, dstData + r * subRowPitch, rowBytes);
                             if (bytesRead != rowBytes)
                             {
+                                fsCloseStream(&stream);
                                 return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                             }
                         }
@@ -4804,10 +4810,11 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
             return res;
         }
+        if (stream.pIO)
+            fsCloseStream(&stream);
     }
 
     LOGF(eERROR, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
-    ASSERT(false);
     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
 }
 
@@ -4924,80 +4931,97 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     geom->vertexBufferCount = bufferCounter;
 }
 
+class GeometryFileRead
+{
+public:
+    ~GeometryFileRead()
+    {
+        if (file.pIO)
+            fsCloseStream(&file);
+        tf_free(pMeshlets);
+        tf_free(pShadow);
+        tf_free(pData);
+        tf_free(pGeometry);
+    }
+
+    bool read(void* pDestination, size_t size)
+    {
+        return size <= (uint64_t)fsGetStreamFileSize(&file) - (uint64_t)fsGetStreamSeekPosition(&file) &&
+               fsReadFromStream(&file, pDestination, size) == size;
+    }
+
+    bool readBlock(void** ppDestination, size_t minimum, uint32_t* pSize)
+    {
+        if (!read(pSize, sizeof(*pSize)) || *pSize < minimum ||
+            *pSize > (uint64_t)fsGetStreamFileSize(&file) - (uint64_t)fsGetStreamSeekPosition(&file))
+            return false;
+        *ppDestination = tf_calloc(1, *pSize);
+        return read(*ppDestination, *pSize);
+    }
+
+    FileStream                file = {};
+    Geometry*                 pGeometry = nullptr;
+    GeometryData*             pData = nullptr;
+    GeometryData::ShadowData* pShadow = nullptr;
+    void*                     pMeshlets = nullptr;
+};
+
 static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, CopyEngine* pCopyEngine, GeometryLoadDesc* pDesc,
                                                          BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS],
                                                          BufferUpdateDesc indexUpdateDesc[1])
 {
-    FileStream file = {};
-    if (!fsOpenStreamFromPath(RD_MESHES, pDesc->pFileName, FM_READ, &file))
+    GeometryFileRead reader;
+    if (!fsOpenStreamFromPath(pDesc->resourceDirectory, pDesc->pFileName, FM_READ, &reader.file))
     {
         LOGF(eERROR, "Failed to open bin file %s", pDesc->pFileName);
-        ASSERT(false);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
 
     char magic[TF_ARRAY_COUNT(GEOMETRY_FILE_MAGIC_STR)] = { 0 };
     static_assert(sizeof(magic) == sizeof(GEOMETRY_FILE_MAGIC_STR));
-    fsReadFromStream(&file, magic, sizeof(magic));
-
-    if (strncmp(magic, GEOMETRY_FILE_MAGIC_STR, TF_ARRAY_COUNT(magic)) != 0)
+    if (!reader.read(magic, sizeof(magic)) || memcmp(magic, GEOMETRY_FILE_MAGIC_STR, sizeof(magic)))
     {
         LOGF(eERROR, "File '%s' is not a Geometry file.", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
 
-    uint32_t geomSize = 0;
-    fsReadFromStream(&file, &geomSize, sizeof(uint32_t));
-    if (!VERIFYMSG(geomSize >= 352, "File '%s': Geometry object must have a size >= 352.", pDesc->pFileName))
+    uint32_t geomSize = 0, geomDataSize = 0, shadowSize = 0;
+    if (!reader.readBlock((void**)&reader.pGeometry, sizeof(Geometry), &geomSize) ||
+        !reader.readBlock((void**)&reader.pData, sizeof(GeometryData), &geomDataSize) ||
+        !reader.readBlock((void**)&reader.pShadow, sizeof(GeometryData::ShadowData), &shadowSize))
     {
+        LOGF(eERROR, "Truncated Geometry file '%s'", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
-
-    Geometry* geom = (Geometry*)tf_calloc(1, geomSize);
-
-    if (!VERIFYMSG(geom, "File '%s': Geometry object is a nullptr.", pDesc->pFileName))
+    Geometry*     geom = reader.pGeometry;
+    GeometryData* geomData = reader.pData;
+    geomData->pShadow = reader.pShadow;
+    const uint32_t indexStride = geom->vertexCount > UINT16_MAX ? sizeof(uint32_t) : sizeof(uint16_t);
+    uint64_t       requiredShadowSize = sizeof(GeometryData::ShadowData) + (uint64_t)geom->indexCount * indexStride;
+    for (uint32_t i = 0; i < MAX_SEMANTICS; ++i)
     {
+        requiredShadowSize += (uint64_t)reader.pShadow->vertexStrides[i] * reader.pShadow->attributeCount[i];
+        if (reader.pShadow->attributeCount[i] > geom->vertexCount)
+        {
+            LOGF(eERROR, "Invalid Geometry attribute count in '%s'", pDesc->pFileName);
+            return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+        }
+    }
+    const uint64_t jointBytes =
+        round_up((uint64_t)geomData->jointCount * sizeof(mat4), 16) + round_up((uint64_t)geomData->jointCount * sizeof(uint32_t), 16);
+    if (!geom->vertexCount || !geom->indexCount ||
+        geom->indexType != (geom->vertexCount > UINT16_MAX ? INDEX_TYPE_UINT32 : INDEX_TYPE_UINT16) || requiredShadowSize > shadowSize ||
+        sizeof(Geometry) + (uint64_t)geom->drawArgCount * sizeof(IndirectDrawIndexArguments) > geomSize ||
+        sizeof(GeometryData) + jointBytes + geomData->userDataSize > geomDataSize)
+    {
+        LOGF(eERROR, "Invalid Geometry header or data sizes in '%s'", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
-
-    fsReadFromStream(&file, geom, geomSize);
-
-    uint32_t geomDataSize = 0;
-    fsReadFromStream(&file, &geomDataSize, sizeof(uint32_t));
-    if (!VERIFYMSG(geomDataSize > 0, "File '%s': Geometry object must have a size greater than 0.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    GeometryData* geomData = (GeometryData*)tf_calloc(1, geomDataSize);
-    if (!VERIFYMSG(geomData, "File '%s': Geometry object is a nullptr.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    fsReadFromStream(&file, geomData, geomDataSize);
-
-    uint32_t shadowSize = 0;
-    fsReadFromStream(&file, &shadowSize, sizeof(uint32_t));
-    ASSERT(shadowSize > 0);
-    if (shadowSize < sizeof(*geomData->pShadow))
-    {
-        LOGF(eERROR, "File '%s': Geometry object has shadow with size less than %x, got %x", pDesc->pFileName,
-             (int)sizeof(*geomData->pShadow), (int)shadowSize);
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    geomData->pShadow = (GeometryData::ShadowData*)tf_malloc(shadowSize);
-    if (!geomData->pShadow)
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    if (!VERIFYMSG(fsReadFromStream(&file, geomData->pShadow, shadowSize) == shadowSize,
-                   "File '%s': Failed to read Geometry object's shadow.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
+    // Serialized addresses are replaced by allocations owned by this load.
+    memset(geom->pVertexBuffers, 0, sizeof(geom->pVertexBuffers));
+    memset(geom->vertexStrides, 0, sizeof(geom->vertexStrides));
+    geom->pIndexBuffer = nullptr;
+    geom->meshlets.meshlets = nullptr;
 
     if (geom->meshlets.meshletCount)
     {
@@ -5008,21 +5032,20 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
         uint64_t alloc_size = meshlets_size + meshlets_data_size + vertices_size + triangles_size;
 
-        void* mem = tf_malloc(alloc_size);
+        if (alloc_size > (uint64_t)fsGetStreamFileSize(&reader.file) - (uint64_t)fsGetStreamSeekPosition(&reader.file))
+            return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+        void* mem = reader.pMeshlets = tf_malloc(alloc_size);
 
         geom->meshlets.meshlets = (Meshlet*)mem;
         geom->meshlets.meshletsData = (MeshletData*)(geom->meshlets.meshlets + geom->meshlets.meshletCount);
         geom->meshlets.vertices = (uint32_t*)(geom->meshlets.meshletsData + geom->meshlets.meshletCount);
         geom->meshlets.triangles = (uint8_t*)(geom->meshlets.vertices + geom->meshlets.vertexCount);
 
-        size_t read = fsReadFromStream(&file, mem, alloc_size);
-        if (alloc_size != read)
+        if (!reader.read(mem, alloc_size))
         {
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
     }
-
-    fsCloseStream(&file);
 
     geom->pDrawArgs = (IndirectDrawIndexArguments*)(geom + 1); //-V1027
 
@@ -5039,9 +5062,6 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
                                   ? ((uint8_t*)geomData->pJointRemaps + round_up(geomData->jointCount * sizeof(uint32_t), 16))
                                   : (uint8_t*)(geomData + 1);
     }
-
-    // Determine index stride
-    const uint32_t indexStride = geom->vertexCount > UINT16_MAX ? sizeof(uint32_t) : sizeof(uint16_t);
 
     geomData->pShadow->pIndices = geomData->pShadow + 1;
 
@@ -5093,10 +5113,23 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         ++vertexAttribCount[binding];
 
         // src and dst formats must match because the AssetPipeline converts to the destination formats already
-        ASSERT(srcFormatSize == 0 || dstFormatSize == 0 || dstFormatSize == srcFormatSize);
+        if (srcFormatSize && dstFormatSize && dstFormatSize != srcFormatSize)
+        {
+            LOGF(eERROR, "Geometry vertex format differs from the requested layout: '%s'", pDesc->pFileName);
+            return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+        }
     }
 
     uint32_t dstIndexStride = indexStride;
+
+    for (uint32_t stride : geom->vertexStrides)
+    {
+        if ((uint64_t)stride * geom->vertexCount > UINT32_MAX)
+        {
+            LOGF(eERROR, "Geometry vertex buffer is too large: '%s'", pDesc->pFileName);
+            return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+        }
+    }
 
     fillGeometryUpdateDesc(pRenderer, pCopyEngine, pDesc, geom, &dstIndexStride, vertexUpdateDesc, indexUpdateDesc);
 
@@ -5173,7 +5206,10 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         tf_free(geomData);
     }
 
-    tf_free((void*)pDesc->pVertexLayout);
+    reader.pGeometry = nullptr;
+    reader.pData = nullptr;
+    reader.pShadow = nullptr;
+    reader.pMeshlets = nullptr;
 
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
 }
@@ -5186,6 +5222,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS] = {};
 
     UploadFunctionResult res = loadGeometryCustomMeshFormat(pRenderer, pCopyEngine, pDesc, vertexUpdateDesc, &indexUpdateDesc);
+    tf_free((void*)pDesc->pVertexLayout);
     if (res != UPLOAD_FUNCTION_RESULT_COMPLETED)
         return res;
 
@@ -5374,9 +5411,13 @@ static void streamerThreadFunc(void* pThreadData)
                     break;
                 case UPDATE_REQUEST_LOAD_TEXTURE:
                     result = loadTexture(pRenderer, pCopyEngine, updateState);
+                    if (updateState.texLoadDesc.pSuccess)
+                        *updateState.texLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
                     break;
                 case UPDATE_REQUEST_LOAD_GEOMETRY:
                     result = loadGeometry(pRenderer, pCopyEngine, updateState);
+                    if (updateState.geomLoadDesc.pSuccess)
+                        *updateState.geomLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
                     break;
                 case UPDATE_REQUEST_COPY_TEXTURE:
                     result = copyTexture(pRenderer, pCopyEngine, updateState.texCopyDesc);
@@ -6430,6 +6471,8 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 {
     ASSERT(pTextureDesc->ppTexture);
+    if (pTextureDesc->pSuccess)
+        *pTextureDesc->pSuccess = false;
 
     if (token)
     {
@@ -6457,6 +6500,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
             TextureLoadDescInternal loadDesc = {};
             loadDesc.ppTexture = pTextureDesc->ppTexture;
             loadDesc.forceReset = true;
+            loadDesc.pSuccess = pTextureDesc->pSuccess;
             loadDesc.startState = pTextureDesc->pDesc->startState;
             queueTextureLoad(pResourceLoader, &loadDesc, token);
             return;
@@ -6472,12 +6516,15 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
             }
             queueTextureBarrier(pResourceLoader, *pTextureDesc->ppTexture, startState, token);
         }
+        if (pTextureDesc->pSuccess)
+            *pTextureDesc->pSuccess = *pTextureDesc->ppTexture != nullptr;
     }
     else
     {
         TextureLoadDescInternal loadDesc = {};
         loadDesc.ppTexture = pTextureDesc->ppTexture;
         loadDesc.container = pTextureDesc->container;
+        loadDesc.pSuccess = pTextureDesc->pSuccess;
         loadDesc.resourceDirectory = pTextureDesc->resourceDirectory;
         loadDesc.flags = pTextureDesc->creationFlag;
         loadDesc.pFileName = pTextureDesc->pFileName;
@@ -6490,6 +6537,8 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
 {
     ASSERT(pDesc->pVertexLayout);
     ASSERT(pDesc->ppGeometry);
+    if (pDesc->pSuccess)
+        *pDesc->pSuccess = false;
 
     GeometryLoadDesc updateDesc = *pDesc;
     updateDesc.pFileName = pDesc->pFileName;

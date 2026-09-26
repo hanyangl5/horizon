@@ -476,6 +476,17 @@ void RenderContext::wait(SubmitHandle handle)
         waitForFences(pRenderer, 1, &slot.pFence);
 }
 
+bool RenderContext::isComplete(SubmitHandle handle) const
+{
+    ASSERT(handle.isValid() && handle.slot < maxCommandLists);
+    const CommandSlot& slot = commandSlots[handle.slot];
+    if (slot.submitId != handle.id)
+        return true;
+    FenceStatus status = FENCE_STATUS_INCOMPLETE;
+    getFenceStatus(pRenderer, slot.pFence, &status);
+    return status != FENCE_STATUS_INCOMPLETE;
+}
+
 uint32_t              RenderContext::getWidth() const { return desc.width; }
 uint32_t              RenderContext::getHeight() const { return desc.height; }
 hz::Format            RenderContext::getColorFormat() const { return desc.colorFormat; }

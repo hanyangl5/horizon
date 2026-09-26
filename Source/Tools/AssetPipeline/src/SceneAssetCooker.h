@@ -32,6 +32,7 @@ private:
     ResourceDirectory outputDirectory;
     char              metadataFile[FS_MAX_PATH] = {};
     char              assetFile[FS_MAX_PATH] = {};
+    char              catalogFile[FS_MAX_PATH] = {};
     const char*       pSourceFile;
     const char*       pGeometryFile;
     cJSON*            pMetadata = nullptr;

@@ -4,6 +4,7 @@
 
 #include "Scene/ISceneManager.h"
 #include "Scene/SceneGeometry.h"
+#include "Assets/SceneResourceAccess.h"
 #include "Core/ILog.h"
 #include "Core/IToolFileSystem.h"
 
@@ -433,28 +434,6 @@ bool prepareSceneAssetGeometryLoadDesc(const SceneAssetManifest* pManifest, cons
     pGeometryLoadDesc->pFileName = pManifest->geometry;
     return true;
 }
-
-namespace hz
-{
-// Only the scene implementation can adopt loader outputs. Call after token completion.
-struct SceneResourceAccess
-{
-    static GPUBuffer take(RenderContext* pContext, Buffer*& pBuffer, ResourceState state)
-    {
-        GPUBuffer result(pContext, pBuffer, pBuffer->size, (ResourceMemoryUsage)pBuffer->memoryUsage, (DescriptorType)pBuffer->descriptors,
-                         state);
-        pBuffer = nullptr;
-        return result;
-    }
-
-    static GPUTexture take(RenderContext* pContext, Texture*& pTexture)
-    {
-        GPUTexture result(pContext, pTexture, nullptr, RESOURCE_STATE_SHADER_RESOURCE);
-        pTexture = nullptr;
-        return result;
-    }
-};
-} // namespace hz
 
 struct SceneGpuResources
 {

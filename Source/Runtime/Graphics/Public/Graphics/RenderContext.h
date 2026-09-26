@@ -391,6 +391,7 @@ public:
     CommandList&          acquireCommandList();
     SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
     void                  wait(SubmitHandle);
+    bool                  isComplete(SubmitHandle) const;
     uint32_t              getWidth() const;
     uint32_t              getHeight() const;
     hz::Format            getColorFormat() const;

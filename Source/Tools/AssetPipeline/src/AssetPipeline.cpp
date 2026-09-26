@@ -214,7 +214,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 7;
+    static const uint32_t kCookerRevision = 9;
     pFingerprint->mHash = UINT64_C(14695981039346656037);
     updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
     updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
@@ -2355,9 +2355,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         for (uint32_t s = 0; s < MAX_SEMANTICS; ++s)
         {
-            // Only copy attribute count if we care about this attribute
-            if (vertexAttrStrides[s] == 0)
-                vertexAttribCount[s] = 0;
+            // Streams use global vertex offsets, including vertices whose primitive omits this attribute.
+            vertexAttribCount[s] = vertexAttrStrides[s] ? vertexCount : 0;
 
             shadowSize += vertexAttrStrides[s] * vertexAttribCount[s];
         }

@@ -5,6 +5,7 @@
 #include "Core/IToolFileSystem.h"
 #include "Scene/SceneID.h"
 #include "Scene/SceneAsset.h"
+#include "Scene/AssetCatalog.h"
 #include <ThirdParty/cJSON/cJSON.h>
 #include <ThirdParty/cgltf/cgltf.h>
 #include <stdlib.h>
@@ -90,21 +91,16 @@ static bool validTextureIdentity(const cJSON* pDocument)
            (!pSrgb || (cJSON_IsString(pSrgb) && srgb.parse(pSrgb->valuestring) && srgb.isValid())) && (!linear.isValid() || linear != srgb);
 }
 
-static bool writeJson(ResourceDirectory directory, const char* pPath, const cJSON* pValue)
+static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<char> bytes)
 {
     if (!recoverJson(directory, pPath))
         return false;
-    char* pText = cJSON_Print(pValue);
-    if (!pText)
-        return false;
-    char         temporary[FS_MAX_PATH];
-    const bool   validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
-    FileStream   stream = {};
-    const size_t size = strlen(pText);
-    const bool   opened = validPath && fsOpenStreamFromPath(directory, temporary, FM_WRITE, &stream);
-    const bool   written = opened && fsWriteToStream(&stream, pText, size) == size;
-    const bool   closed = !opened || fsCloseStream(&stream);
-    cJSON_free(pText);
+    char       temporary[FS_MAX_PATH];
+    const bool validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
+    FileStream stream = {};
+    const bool opened = validPath && fsOpenStreamFromPath(directory, temporary, FM_WRITE, &stream);
+    const bool written = opened && fsWriteToStream(&stream, bytes.pData, bytes.count) == bytes.count;
+    const bool closed = !opened || fsCloseStream(&stream);
     if (!written || !closed)
     {
         LOGF(eERROR, "Cannot publish scene asset file '%s'", pPath);
@@ -128,6 +124,28 @@ static bool writeJson(ResourceDirectory directory, const char* pPath, const cJSO
     if (exists && !fsRemoveFile(directory, backup))
         LOGF(eWARNING, "Cannot remove completed cook backup '%s'", backup);
     return true;
+}
+
+static bool writeJson(ResourceDirectory directory, const char* pPath, const cJSON* pValue)
+{
+    char* pText = cJSON_Print(pValue);
+    if (!pText)
+        return false;
+    const bool written = writeBytes(directory, pPath, { pText, (uint32_t)strlen(pText) });
+    cJSON_free(pText);
+    return written;
+}
+
+static bool buildCatalog(const cJSON* pAsset, const char* pAssetFile, hz::Array<char>& output)
+{
+    char* pJson = cJSON_PrintUnformatted(pAsset);
+    if (!pJson)
+        return false;
+    hz::SceneAsset asset;
+    const bool     valid = asset.parse({ pJson, (uint32_t)strlen(pJson) });
+    cJSON_free(pJson);
+    hz::AssetCatalog catalog;
+    return valid && catalog.addScene(asset, pAssetFile) && catalog.serialize(output);
 }
 
 static void addFloats(cJSON* pObject, const char* pField, const float* pValues, uint32_t count)
@@ -338,6 +356,7 @@ SceneAssetCooker::SceneAssetCooker(ResourceDirectory sourceDirectory, const char
 {
     fsAppendPathExtension(pSourceFile, "asset.json", metadataFile);
     fsReplacePathExtension(pGeometryFile, "sceneasset.json", assetFile);
+    fsReplacePathExtension(pGeometryFile, "assetcatalog.json", catalogFile);
 }
 
 SceneAssetCooker::~SceneAssetCooker()
@@ -350,7 +369,8 @@ SceneAssetCooker::~SceneAssetCooker()
 
 bool SceneAssetCooker::isCurrent(const char* pContentHash) const
 {
-    if (!fsFileExist(sourceDirectory, metadataFile) || !fsFileExist(outputDirectory, assetFile))
+    if (!fsFileExist(sourceDirectory, metadataFile) || !fsFileExist(outputDirectory, assetFile) ||
+        !fsFileExist(outputDirectory, catalogFile))
         return false;
     uint64_t           hash = 0;
     const JsonDocument metadata(readJson(sourceDirectory, metadataFile, &hash));
@@ -363,6 +383,11 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
                          strcmp(text(asset.get(), "contentHash"), pContentHash) == 0 &&
                          strcmp(text(asset.get(), "identityHash"), value) == 0;
     if (!current)
+        return false;
+    hz::AssetCatalog catalog;
+    hz::Array<char>  expected, actual;
+    if (!buildCatalog(asset.get(), assetFile, expected) || !catalog.load(outputDirectory, catalogFile) || !catalog.serialize(actual) ||
+        expected.size() != actual.size() || memcmp(expected.data(), actual.data(), actual.size()))
         return false;
     const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.get(), "textures");
     for (const cJSON* pTexture = pTextures ? pTextures->child : nullptr; pTexture; pTexture = pTexture->next)
@@ -646,6 +671,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
             continue;
         cJSON* pTexture = cJSON_CreateObject();
         cJSON_AddStringToObject(pTexture, "path", this->textures[i].path);
+        cJSON_AddStringToObject(pTexture, "source", this->textures[i].source[0] ? this->textures[i].source : pSourceFile);
         cJSON_AddBoolToObject(pTexture, "srgb", this->textures[i].srgb);
         cJSON_AddBoolToObject(pTexture, "cooked", this->textures[i].cooked);
         cJSON_AddStringToObject(pTexture, "id", text(textures[i], "id"));
@@ -747,11 +773,15 @@ bool SceneAssetCooker::validate() const
 bool SceneAssetCooker::write() const
 {
     ASSERT(pMetadata && pAsset);
+    hz::Array<char> catalog;
+    if (!buildCatalog(pAsset, assetFile, catalog))
+        return false;
     for (const cJSON* pEntry = pTextureMetadata->child; pEntry; pEntry = pEntry->next)
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pEntry, "dirty")) &&
             !writeJson(sourceDirectory, text(pEntry, "path"), cJSON_GetObjectItemCaseSensitive(pEntry, "document")))
             return false;
     if (!writeJson(sourceDirectory, metadataFile, pMetadata))
         return false;
-    return writeJson(outputDirectory, assetFile, pAsset);
+    return writeJson(outputDirectory, assetFile, pAsset) &&
+           writeBytes(outputDirectory, catalogFile, { catalog.data(), catalog.size() - 1 });
 }

@@ -53,6 +53,7 @@ def run(executable):
     output.mkdir()
     metadata = work / 'scene.gltf.asset.json'
     asset = output / 'scene.sceneasset.json'
+    catalog = output / 'scene.assetcatalog.json'
     document = fixture()
     document['materials'][0].update(alphaMode='MASK', alphaCutoff=0.35, doubleSided=True, emissiveFactor=[0.1, 0.2, 0.3])
     header = [124, 0x100f, 1, 1, 4, 0, 0] + [0] * 11 + [32, 0x41, 0, 32, 0xff, 0xff00, 0xff0000, 0xff000000] + [0x1000, 0, 0, 0, 0]
@@ -69,6 +70,16 @@ def run(executable):
         return json.loads(asset.read_text()) if succeeds else None
 
     first = cook()
+    index = json.loads(catalog.read_text())
+    assert index['format'] == 'Horizon.AssetCatalog' and index['version'] == 1
+    entries = {entry['id']: entry for entry in index['entries']}
+    assert list(entries) == sorted(entries)
+    assert len(entries) == 1 + len(first['meshes']) + len(first['materials']) + len(first['textures'])
+    assert entries[first['id']]['dependencies'] == sorted({node['mesh'] for node in first['nodes'] if 'mesh' in node})
+    for mesh in first['meshes']:
+        assert entries[mesh['id']]['dependencies'] == sorted({submesh['material'] for submesh in mesh['submeshes'] if submesh['material']})
+    for entry in index['entries']:
+        assert all(dependency in entries for dependency in entry['dependencies'])
     assert first['format'] == 'Horizon.SceneAsset' and first['version'] == 1
     assert uuid.UUID(first['id']).version == 4
     assert first['materials'][0]['baseColorTexture'] == first['textures'][0]['id']
@@ -89,13 +100,20 @@ def run(executable):
     assert [s['draw'] for m in first['meshes'] for s in m['submeshes']] == [0, 1, 2]
     assert json.loads((output / 'scene.scene.json').read_text())['version'] == 1
     assert (output / 'scene.bin').read_bytes().startswith(b'GeometryTF')
-    before = [p.stat().st_mtime_ns for p in (metadata, asset, output / 'scene.bin')]
+    before = [p.stat().st_mtime_ns for p in (metadata, asset, catalog, output / 'scene.bin')]
     assert cook() == first
-    assert before == [p.stat().st_mtime_ns for p in (metadata, asset, output / 'scene.bin')]
+    assert before == [p.stat().st_mtime_ns for p in (metadata, asset, catalog, output / 'scene.bin')]
+    original_index = catalog.read_bytes()
+    catalog.unlink()
+    assert cook() == first
+    assert catalog.read_bytes() == original_index
+    catalog.write_text('{"format":"broken"}')
+    assert cook() == first
+    assert catalog.read_bytes() == original_index
     assert cook(force=True) == first
     # Reject invalid source data before replacing any published scene files.
     valid_document = copy.deepcopy(document)
-    published_files = (metadata, asset, output / 'scene.bin', output / 'scene.scene.json')
+    published_files = (metadata, asset, catalog, output / 'scene.bin', output / 'scene.scene.json')
     published_bytes = [p.read_bytes() for p in published_files]
     invalid_sources = []
     document['nodes'][1]['rotation'] = [0, 0, 0, 2]
@@ -188,6 +206,27 @@ def run(executable):
     assert not metadata.exists() and asset.read_bytes() == published
     print('SceneAsset cooker regressions passed:', work)
     texture_regressions(executable, work / 'textures')
+    partial_attribute_regression(executable, work / 'partial', work / 'albedo.dds')
+
+
+def partial_attribute_regression(executable, work, albedo):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    source = work / 'partial.gltf'
+    (work / 'albedo.dds').write_bytes(albedo.read_bytes())
+    document = fixture()
+    sizes = []
+    for missing_uv in (False, True):
+        if missing_uv:
+            document['meshes'][0]['primitives'][0]['attributes'].pop('TEXCOORD_0')
+        source.write_text(json.dumps(document), encoding='utf-8')
+        result = subprocess.run([str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix()],
+                                cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+        assert result.returncode == 0, result.stdout + result.stderr
+        sizes.append((output / 'partial.bin').stat().st_size)
+    assert sizes[0] == sizes[1]  # Missing UVs keep their zero-filled slots in the shared stream.
+    print('Partial vertex attribute regression passed:', work)
 
 
 def png(red=255):
@@ -221,6 +260,7 @@ def texture_regressions(executable, work):
     first = cook()
     texture = first['textures'][0]
     assert texture['cooked'] and texture['srgb']
+    assert texture['source'] == 'one.gltf'
     dds = output / texture['path']
     encoded = dds.read_bytes()
     assert encoded[:4] == b'DDS ' and struct.unpack_from('<II', encoded, 12) == (4, 4)
@@ -291,6 +331,7 @@ def texture_regressions(executable, work):
     shared = cook()
     second = cook('two')
     assert shared['textures'] == second['textures'] and len(shared['textures']) == 2
+    assert all(t['source'] == 'shared.png' for t in shared['textures'])
     assert shared['textures'][0]['id'] != shared['textures'][1]['id']
     external = work / 'shared.png.asset.json'
     identities = json.loads(external.read_text())

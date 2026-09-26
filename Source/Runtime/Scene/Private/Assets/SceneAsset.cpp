@@ -176,7 +176,8 @@ bool SceneAssetReader::readTextures(const cJSON* pArray)
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetTexture texture;
-        if (!readID(pItem, texture.id, AssetKind::Texture) || !readString(pItem, "path", texture.pPath, true))
+        if (!readID(pItem, texture.id, AssetKind::Texture) || !readString(pItem, "path", texture.pPath, true) ||
+            !readString(pItem, "source", texture.pSource, true))
             return false;
         const cJSON* pSrgb = field(pItem, "srgb");
         if (!cJSON_IsBool(pSrgb))
@@ -360,7 +361,8 @@ bool SceneAssetReader::read(Span<char> json)
     const char* tables[] = { "textures", "materials", "meshes", "nodes" };
     for (const char* pTable : tables)
         for (const cJSON* pItem = field(pRoot, pTable) ? field(pRoot, pTable)->child : nullptr; pItem; pItem = pItem->next)
-            stringBytes += stringSize(pItem, "name") + stringSize(pItem, "path") + stringSize(pItem, "geometry");
+            stringBytes +=
+                stringSize(pItem, "name") + stringSize(pItem, "path") + stringSize(pItem, "geometry") + stringSize(pItem, "source");
     data.strings.reserve(stringBytes);
     if (!readID(pRoot, data.id, AssetKind::Scene) || !readString(pRoot, "source", data.pSource, true) ||
         !readString(pRoot, "contentHash", data.pContentHash))
