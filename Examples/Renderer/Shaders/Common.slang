@@ -9,15 +9,6 @@ struct FrameData
     float4   eye;
 };
 
-struct DrawData
-{
-    float4x4 world;
-    float4x4 normal;
-    uint     material;
-    float    alphaCutoff;
-    uint2    padding;
-};
-
 struct Material
 {
     uint   baseColorTexture;
@@ -28,7 +19,9 @@ struct Material
     float3 emissive;
     float  metallic;
     float  roughness;
-    float3 padding;
+    float  alphaCutoff;
+    uint   alphaMode;
+    uint   doubleSided;
 };
 
 float2 signNotZero(float2 value) { return float2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0); }

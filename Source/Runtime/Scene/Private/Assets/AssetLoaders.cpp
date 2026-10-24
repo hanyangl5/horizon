@@ -340,7 +340,7 @@ bool AssetGeometry::buildBounds()
         return false;
     const GeometryData::ShadowData& shadow = *pShadow->pShadow;
     const uint8_t*                  pPositions = (const uint8_t*)shadow.pAttributes[SEMANTIC_POSITION];
-    const bool                      index32 = pUpload->vertexCount > UINT16_MAX;
+    const bool                      index32 = pUpload->indexType == INDEX_TYPE_UINT32;
     draws.resize(pUpload->drawArgCount);
     for (uint32_t i = 0; i < draws.size(); ++i)
     {

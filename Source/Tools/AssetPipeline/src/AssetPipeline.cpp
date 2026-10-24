@@ -74,6 +74,64 @@
 
 #include "Runtime/Resources/Private/ResourceLoader/TextureContainers.h"
 
+class CookedGeometryFile
+{
+public:
+    CookedGeometryFile(ResourceDirectory directory, const char* pPath): directory(directory), pPath(pPath)
+    {
+        if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
+            snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
+            return;
+        if (!fsFileExist(directory, pPath) && fsFileExist(directory, backup) && !fsRenameFile(directory, backup, pPath))
+            return;
+        opened = fsOpenStreamFromPath(directory, temporary, FM_WRITE_ALLOW_READ, &stream);
+        written = opened;
+    }
+    ~CookedGeometryFile()
+    {
+        if (opened)
+            fsCloseStream(&stream);
+    }
+    CookedGeometryFile(const CookedGeometryFile&) = delete;
+    CookedGeometryFile& operator=(const CookedGeometryFile&) = delete;
+
+    void write(const void* pData, size_t size)
+    {
+        if (written)
+            written = fsWriteToStream(&stream, pData, size) == size;
+    }
+    bool publish()
+    {
+        if (!opened)
+            return false;
+        const bool closed = fsCloseStream(&stream);
+        opened = false;
+        if (!written || !closed)
+            return false;
+        const bool exists = fsFileExist(directory, pPath);
+        if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pPath, backup)))
+            return false;
+        if (!fsRenameFile(directory, temporary, pPath))
+        {
+            if (exists && !fsRenameFile(directory, backup, pPath))
+                LOGF(eERROR, "Restore '%s' from '%s' before retrying", pPath, backup);
+            return false;
+        }
+        if (exists && !fsRemoveFile(directory, backup))
+            LOGF(eWARNING, "Cannot remove completed geometry backup '%s'", backup);
+        return true;
+    }
+
+private:
+    ResourceDirectory directory;
+    const char*       pPath;
+    FileStream        stream = {};
+    char              temporary[FS_MAX_PATH] = {};
+    char              backup[FS_MAX_PATH] = {};
+    bool              opened = false;
+    bool              written = false;
+};
+
 #include "Core/IMemory.h" //NOTE: this should be the last include in a .cpp
 
 struct SkeletonNodeInfo
@@ -116,10 +174,17 @@ static int32_t sceneAssetTextureIndex(const cgltf_data* pData, const cgltf_textu
     return pTexture ? (int32_t)(pTexture - pData->textures) : -1;
 }
 
-static bool validateSceneAssetCookTextures(const cgltf_data* pData)
+static bool validateSceneAssetCookInput(const cgltf_data* pData)
 {
     if (pData->textures_count > SCENE_ASSET_MAX_TEXTURES || pData->materials_count > SCENE_ASSET_MAX_MATERIALS)
         return false;
+    for (cgltf_size i = 0; i < pData->meshes_count; ++i)
+        for (cgltf_size j = 0; j < pData->meshes[i].primitives_count; ++j)
+            if (pData->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
+            {
+                LOGF(eERROR, "Scene mesh %u primitive %u requires triangle-list topology", (uint32_t)i, (uint32_t)j);
+                return false;
+            }
     for (cgltf_size i = 0; i < pData->textures_count; ++i)
     {
         const cgltf_image* pImage = pData->textures[i].image;
@@ -214,7 +279,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 9;
+    static const uint32_t kCookerRevision = 10;
     pFingerprint->mHash = UINT64_C(14695981039346656037);
     updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
     updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
@@ -292,7 +357,7 @@ static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const ch
 static cJSON* buildSceneAssetManifest(const char* pSceneName, const char* pGeometryFileName, const char* pSourceGltf,
                                       const cgltf_data* pData, const SceneAssetCookFingerprint* pFingerprint, SceneAssetCooker& sceneCooker)
 {
-    if (!validateSceneAssetCookTextures(pData))
+    if (!validateSceneAssetCookInput(pData))
         return nullptr;
 
     cJSON* pRoot = cJSON_CreateObject();
@@ -2074,7 +2139,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             continue;
         }
 
-        if (!validateSceneAssetCookTextures(data))
+        if (!validateSceneAssetCookInput(data))
         {
             data->file_data = fileData;
             cgltf_free(data);
@@ -2208,7 +2273,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             for (uint32_t p = 0; p < mesh->primitives_count; ++p)
             {
                 const cgltf_primitive* prim = &mesh->primitives[p];
-                indexCount += (uint32_t)(prim->indices->count);
+                indexCount += (uint32_t)(prim->indices ? prim->indices->count : prim->attributes[0].data->count);
                 vertexCount += (uint32_t)(prim->attributes[0].data->count);
                 ++drawCount;
 
@@ -2446,6 +2511,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             for (uint32_t p = 0; p < data->meshes[j].primitives_count; ++p)
             {
                 const cgltf_primitive* prim = &data->meshes[j].primitives[p];
+                const uint32_t primitiveIndexCount = (uint32_t)(prim->indices ? prim->indices->count : prim->attributes[0].data->count);
 
                 /************************************************************************/
                 // Fill index buffer for this primitive
@@ -2453,14 +2519,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 if (sizeof(uint16_t) == indexStride)
                 {
                     uint16_t* dst = (uint16_t*)geomData->pShadow->pIndices;
-                    for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
-                        dst[indexCount + idx] = (uint16_t)cgltf_accessor_read_index(prim->indices, idx);
+                    for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
+                        dst[indexCount + idx] = (uint16_t)(prim->indices ? cgltf_accessor_read_index(prim->indices, idx) : idx);
                 }
                 else
                 {
                     uint32_t* dst = (uint32_t*)geomData->pShadow->pIndices;
-                    for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
-                        dst[indexCount + idx] = (uint32_t)cgltf_accessor_read_index(prim->indices, idx);
+                    for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
+                        dst[indexCount + idx] = (uint32_t)(prim->indices ? cgltf_accessor_read_index(prim->indices, idx) : idx);
                 }
 
                 /************************************************************************/
@@ -2507,8 +2573,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 uint32_t optimizedVertexCount = (uint32_t)prim->attributes[0].data->count;
                 if (glTFParams->mOptimizationFlags != MESH_OPTIMIZATION_FLAG_OFF)
                 {
-                    geomOptimize(geomData, MESH_OPTIMIZATION_FLAG_ALL, (IndexType)geom->indexType, indexCount,
-                                 (uint32_t)(prim->indices->count), vertexCount, &optimizedVertexCount);
+                    geomOptimize(geomData, MESH_OPTIMIZATION_FLAG_ALL, (IndexType)geom->indexType, indexCount, primitiveIndexCount,
+                                 vertexCount, &optimizedVertexCount);
 
                     for (uint32_t s = 0; s < MAX_SEMANTICS; ++s)
                     {
@@ -2522,7 +2588,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 /************************************************************************/
                 // Fill draw arguments for this primitive
                 /************************************************************************/
-                geom->pDrawArgs[drawCount].indexCount = (uint32_t)prim->indices->count;
+                geom->pDrawArgs[drawCount].indexCount = primitiveIndexCount;
                 geom->pDrawArgs[drawCount].instanceCount = 1;
                 geom->pDrawArgs[drawCount].startIndex = indexCount;
                 geom->pDrawArgs[drawCount].startInstance = 0;
@@ -2561,7 +2627,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     uint*        meshletVertices = NULL;
                     uint8_t*     meshletTriangles = NULL;
 
-                    buildMeshlets((uint32_t*)geomData->pShadow->pIndices + indexCount, prim->indices->count, positions,
+                    buildMeshlets((uint32_t*)geomData->pShadow->pIndices + indexCount, primitiveIndexCount, positions,
                                   pos_attr->data->count, pos_attr->data->stride, maxVertices, maxTriangles, coneWeight, &meshletVertices,
                                   &meshletTriangles, &subMeshlets, &meshletsData);
 
@@ -2601,16 +2667,16 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
                 if (sizeof(uint16_t) == indexStride)
                 {
-                    for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
+                    for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
                         ((uint16_t*)geomData->pShadow->pIndices)[indexCount + idx] += (uint16_t)vertexCount;
                 }
                 else
                 {
-                    for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
+                    for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
                         ((uint32_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
                 }
 
-                indexCount += (uint32_t)(prim->indices->count);
+                indexCount += primitiveIndexCount;
                 vertexCount += optimizedVertexCount;
                 ++drawCount;
             }
@@ -2655,59 +2721,34 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 
-        bool       geometryWritten = false;
-        FileStream fStream = {};
-        if (!fsOpenStreamFromPath(assetParams->mRDOutput, newFileName, FM_WRITE_ALLOW_READ, &fStream))
+        CookedGeometryFile geometryFile(assetParams->mRDOutput, newFileName);
+        geometryFile.write(GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
+        geometryFile.write(&totalGeomSize, sizeof(totalGeomSize));
+        geometryFile.write(geom, totalGeomSize);
+
+        // Serialized pointers are restored from the following data blocks during load.
+        GeometryData::ShadowData* pTempShadow = geomData->pShadow;
+        void*                     pTempUserData = geomData->pUserData;
+        geomData->pShadow = nullptr;
+        geomData->pUserData = nullptr;
+        geometryFile.write(&totalGeomDataSize, sizeof(totalGeomDataSize));
+        geometryFile.write(geomData, totalGeomDataSize);
+        geomData->pShadow = pTempShadow;
+        geomData->pUserData = pTempUserData;
+        geometryFile.write(&shadowSize, sizeof(shadowSize));
+        geometryFile.write(geomData->pShadow, shadowSize);
+        if (geom->meshlets.meshletCount)
         {
-            LOGF(eERROR, "Couldn't open file '%s' for write.", newFileName);
-            error = true;
+            geometryFile.write(geom->meshlets.meshlets, sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount);
+            geometryFile.write(geom->meshlets.meshletsData, sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount);
+            geometryFile.write(geom->meshlets.vertices, sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount);
+            geometryFile.write(geom->meshlets.triangles, sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount);
         }
-        else
+        const bool geometryWritten = geometryFile.publish();
+        if (!geometryWritten)
         {
-            fsWriteToStream(&fStream, GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
-
-            fsWriteToStream(&fStream, &totalGeomSize, sizeof(uint32_t));
-            fsWriteToStream(&fStream, geom, totalGeomSize);
-
-            // Write null values to file since the pointers are set afterwars
-            GeometryData::ShadowData* pTempShadow = geomData->pShadow;
-            void*                     pTempUserData = geomData->pUserData;
-            geomData->pShadow = NULL;
-            geomData->pUserData = NULL;
-            fsWriteToStream(&fStream, &totalGeomDataSize, sizeof(uint32_t));
-            fsWriteToStream(&fStream, geomData, totalGeomDataSize);
-            geomData->pShadow = pTempShadow;
-            geomData->pUserData = pTempUserData;
-
-            fsWriteToStream(&fStream, &shadowSize, sizeof(uint32_t));
-            fsWriteToStream(&fStream, geomData->pShadow, shadowSize);
-
-            if (geom->meshlets.meshletCount)
-            {
-                if (fsWriteToStream(&fStream, geom->meshlets.meshlets, sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount) !=
-                        sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.meshletsData,
-                                    sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount) !=
-                        sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.vertices, sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount) !=
-                        sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount ||
-                    fsWriteToStream(&fStream, geom->meshlets.triangles, sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount) !=
-                        sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount)
-                {
-                    LOGF(eERROR, "Failed to write stream '%s'.", newFileName);
-                    error = true;
-                }
-            }
-
-            if (!fsCloseStream(&fStream))
-            {
-                LOGF(eERROR, "Failed to close write stream for file '%s'.", newFileName);
-                error = true;
-            }
-            else
-            {
-                geometryWritten = true;
-            }
+            LOGF(eERROR, "Failed to publish geometry '%s'", newFileName);
+            error = true;
         }
 
         if (geometryWritten && !writeSceneAssetManifest(assetParams->mRDOutput, manifestFileName, pSceneManifest, sceneCooker))

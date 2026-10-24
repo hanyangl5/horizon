@@ -138,6 +138,10 @@ def run(executable):
     (work / 'truncated.bin').write_bytes(buffer[:-1])
     document['buffers'][0]['uri'] = 'truncated.bin'
     invalid_sources.append(document)
+    for mode in (0, 1, 2, 3, 5, 6):
+        document = copy.deepcopy(valid_document)
+        document['meshes'][0]['primitives'][0]['mode'] = mode
+        invalid_sources.append(document)
     for document in invalid_sources:
         cook(succeeds=False)
         assert published_bytes == [p.read_bytes() for p in published_files]
@@ -207,6 +211,168 @@ def run(executable):
     print('SceneAsset cooker regressions passed:', work)
     texture_regressions(executable, work / 'textures')
     partial_attribute_regression(executable, work / 'partial', work / 'albedo.dds')
+    default_material_regression(executable, work / 'default-material')
+    nonindexed_geometry_regression(executable, work / 'nonindexed', work / 'albedo.dds')
+    geometry_publish_regression(executable, work / 'geometry-publish', work / 'albedo.dds')
+
+
+
+def nonindexed_geometry_regression(executable, work, albedo):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    (work / 'albedo.dds').write_bytes(albedo.read_bytes())
+    source = work / 'scene.gltf'
+
+    def geometry():
+        data = (output / 'scene.bin').read_bytes()
+        assert data[:10] == b'GeometryTF'
+        geometry_size = struct.unpack_from('<I', data, 10)[0]
+        header = data[14:14 + geometry_size]
+        flags, index_count, vertex_count = struct.unpack_from('<3I', header, 196)
+        index_type, draw_count = (flags >> 8) & 3, flags >> 10
+        draws = [struct.unpack_from('<5I', header, 352 + i * 20) for i in range(draw_count)]
+        offset = 14 + geometry_size
+        offset += 4 + struct.unpack_from('<I', data, offset)[0]
+        shadow_size = struct.unpack_from('<I', data, offset)[0]
+        shadow = data[offset + 4:offset + 4 + shadow_size]
+        # Current GeometryTF ABI: 19 semantics, followed by stride/count arrays and index data.
+        indices = struct.unpack_from('<' + ('H' if index_type == 1 else 'I') * index_count, shadow, 312)
+        return index_type, index_count, vertex_count, draws, indices, shadow[160:], data[offset + 4 + shadow_size:]
+
+    def cook(document, flags):
+        source.write_text(json.dumps(document), encoding='utf-8')
+        result = subprocess.run([str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix(),
+                                 '--force', *flags], cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+        assert result.returncode == 0, result.stdout + result.stderr
+        return geometry()
+
+    for wide in (False, True):
+        document = fixture()
+        if wide:
+            count = 65538
+            data = bytearray()
+            views, accessors = [], []
+
+            def accessor(values, kind, components, component=5126, fmt='f'):
+                blob = struct.pack('<' + fmt * len(values), *values)
+                views.append(dict(buffer=0, byteOffset=len(data), byteLength=len(blob)))
+                data.extend(blob)
+                accessors.append(dict(bufferView=len(views) - 1, componentType=component, count=len(values) // components, type=kind))
+                return len(accessors) - 1
+
+            position = accessor([v for i in range(count) for v in (float(i // 3), float(i % 3 == 1), float(i % 3 == 2))], 'VEC3', 3)
+            normal = accessor([0, 0, 1] * count, 'VEC3', 3)
+            uv = accessor([0, 0, 1, 0, 0, 1] * (count // 3), 'VEC2', 2)
+            indices = accessor(list(range(count)), 'SCALAR', 1, 5125, 'I')
+            document.update(nodes=[dict(name='Wide', mesh=0)], meshes=[dict(name='Wide', primitives=[dict(
+                attributes=dict(POSITION=position, NORMAL=normal, TEXCOORD_0=uv), indices=indices, material=0)])],
+                buffers=[dict(byteLength=len(data), uri='data:application/octet-stream;base64,' + base64.b64encode(data).decode())],
+                bufferViews=views, accessors=accessors)
+        for flags in ([], ['--optimize'], ['--meshlets']):
+            indexed = cook(document, flags)
+            if not flags:
+                assert indexed[0] == (0 if wide else 1)
+                assert indexed[1] == indexed[2] == (65538 if wide else 9)
+                assert indexed[4] == tuple(range(indexed[2]))
+            mixed = copy.deepcopy(document)
+            mixed['meshes'][0]['primitives'][0].pop('indices')
+            assert cook(mixed, flags) == indexed
+            for mesh in mixed['meshes']:
+                for primitive in mesh['primitives']:
+                    primitive.pop('indices', None)
+            assert cook(mixed, flags) == indexed
+        if wide:
+            # Optimization can cross the 16-bit vertex threshold while retaining the stored 32-bit indices.
+            repeated = copy.deepcopy(document)
+            data = bytearray(base64.b64decode(repeated['buffers'][0]['uri'].split(',')[1]))
+            for i in range(count):
+                struct.pack_into('<f', data, i * 12, 0)
+            repeated['buffers'][0]['uri'] = 'data:application/octet-stream;base64,' + base64.b64encode(data).decode()
+            narrowed = cook(repeated, ['--optimize'])
+            assert narrowed[0] == 0 and narrowed[1] == count and narrowed[2] == 3
+            assert set(narrowed[4]) == {0, 1, 2}
+    print('Nonindexed geometry regression passed:', work)
+
+
+def geometry_publish_regression(executable, work, albedo):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    (work / 'albedo.dds').write_bytes(albedo.read_bytes())
+    source = work / 'scene.gltf'
+    document = fixture()
+
+    def cook(succeeds=True):
+        source.write_text(json.dumps(document), encoding='utf-8')
+        result = subprocess.run([str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix(), '--force'],
+                                cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+        assert result.returncode == (0 if succeeds else 1), result.stdout + result.stderr
+
+    cook()
+    published = [work / 'scene.gltf.asset.json'] + [output / ('scene.' + ext) for ext in ('bin', 'sceneasset.json', 'assetcatalog.json', 'scene.json')]
+    original = [p.read_bytes() for p in published]
+    document['nodes'][0]['translation'][0] += 1
+    temporary = output / 'scene.bin.tmp'
+    temporary.mkdir()
+    cook(succeeds=False)
+    assert [p.read_bytes() for p in published] == original
+    # An interrupted rename is restored before attempting a new write, even when that write fails.
+    published[1].rename(output / 'scene.bin.bak')
+    cook(succeeds=False)
+    assert [p.read_bytes() for p in published] == original
+    temporary.rmdir()
+    cook()
+    assert published[1].read_bytes() != original[1]
+    assert not (output / 'scene.bin.bak').exists()
+    print('Geometry publication regression passed:', work)
+
+
+def default_material_regression(executable, work):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    source = work / 'default.gltf'
+    document = fixture()
+    for field in ('materials', 'textures', 'images'):
+        del document[field]
+    for mesh in document['meshes']:
+        for primitive in mesh['primitives']:
+            primitive.pop('material')
+
+    def cook(force=False):
+        source.write_text(json.dumps(document), encoding='utf-8')
+        command = [str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix()]
+        if force:
+            command.append('--force')
+        result = subprocess.run(command, cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+        assert result.returncode == 0, result.stdout + result.stderr
+        return json.loads((output / 'default.sceneasset.json').read_text())
+
+    cooked = cook()
+    assert len(cooked['materials']) == 1
+    default = cooked['materials'][0]
+    assert default['baseColorFactor'] == [1, 1, 1, 1]
+    assert default['metallicFactor'] == default['roughnessFactor'] == 1
+    assert default['emissiveFactor'] == [0, 0, 0]
+    assert default['alphaMode'] == 0 and default['alphaCutoff'] == 0.5 and not default['doubleSided']
+    assert all(default[field] is None for field in ('baseColorTexture', 'normalTexture', 'metallicRoughnessTexture', 'emissiveTexture'))
+    assert all(s['material'] == default['id'] for m in cooked['meshes'] for s in m['submeshes'])
+    entries = {entry['id']: entry for entry in json.loads((output / 'default.assetcatalog.json').read_text())['entries']}
+    assert entries[default['id']]['dependencies'] == []
+    assert all(entries[m['id']]['dependencies'] == [default['id']] for m in cooked['meshes'])
+    assert cook() == cooked and cook(force=True) == cooked
+
+    # A source material with the same name cannot take the synthetic material's identity.
+    document['materials'] = [dict(name='Default Material')]
+    document['meshes'][0]['primitives'][0]['material'] = 0
+    mixed = cook()
+    assert len(mixed['materials']) == 2 and mixed['materials'][1] == default
+    assert mixed['materials'][0]['id'] != default['id']
+    assert mixed['meshes'][0]['submeshes'][0]['material'] == mixed['materials'][0]['id']
+    assert mixed['meshes'][0]['submeshes'][1]['material'] == default['id']
+    assert cook(force=True) == mixed
+    print('Default material regression passed:', work)
 
 
 def partial_attribute_regression(executable, work, albedo):

@@ -350,11 +350,7 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
     {
         const WorldLoadNode& node = plan.nodes[index];
         if (node.parentIndex != UINT32_MAX)
-        {
-            const ecs_entity_t entity = hmgetp_null(staging->pImpl->pObjects, node.id)->value;
-            const ecs_entity_t parent = hmgetp_null(staging->pImpl->pObjects, node.parent)->value;
-            ecs_add_pair(staging->pImpl->pWorld, entity, EcsChildOf, parent);
-        }
+            staging->attachParent(node.entity, plan.nodes[node.parentIndex].entity);
     }
     staging->updateTransforms();
     target.swap(staging);

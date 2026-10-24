@@ -4,47 +4,46 @@
 #include "Core/IMath.h"
 #include "Core/IUniquePtr.h"
 #include "Graphics/RenderContext.h"
-#include "Scene/ISceneManager.h"
-#include "Scene/SceneGeometry.h"
-
-class FreeCameraController;
+#include "Scene/SceneFrame.h"
 
 struct RenderPassesDesc
 {
-    hz::RenderContext*        pContext = nullptr;
-    SceneManager*             pScenes = nullptr;
-    SceneAssetHandle          scene = {};
-    const SceneAssetInstance* pInstances = nullptr;
-    uint32_t                  instanceCount = 0;
-    float                     verticalFov = PI / 4.0f;
+    hz::RenderContext* pContext = nullptr;
+    hz::RenderScene*   pScene = nullptr;
+    hz::RenderCameraID camera;
 };
 
 class GBuffer
 {
 public:
     GBuffer(hz::RenderContext& context);
-    void               update();
-    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
-                               SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
-    void               load(uint32_t width, uint32_t height);
-    void               unload();
-    hz::RenderContext& context;
+    void                      update();
+    void                      execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::SceneFrameSnapshot& scene);
+    void                      load(uint32_t width, uint32_t height);
+    void                      unload();
+    hz::RenderContext&        context;
     static constexpr uint32_t gbufferCount = 4;
     hz::GPUPipeline           pipeline;
     hz::GPUSampler            sampler;
     hz::GPUTexture            gbuffer[gbufferCount];
     hz::GPUTexture            depth;
+
+private:
+    hz::Array<const hz::GPUBuffer*>  buffers;
+    hz::Array<const hz::GPUTexture*> textures;
+    hz::Array<uint32_t>              materialIds;
+    uint64_t                         materialRevision = 0;
 };
 
 class Lighting
 {
 public:
     Lighting(hz::RenderContext& context);
-    void               update();
-    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const GBuffer& gbuffer);
-    void               load(uint32_t width, uint32_t height);
-    void               unload();
-    hz::GPUTexture     sceneColor;
+    void           update();
+    void           execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::SceneFrameSnapshot& scene);
+    void           load(uint32_t width, uint32_t height);
+    void           unload();
+    hz::GPUTexture sceneColor;
     hz::RenderContext& context;
     hz::GPUPipeline    pipeline;
 };
@@ -69,7 +68,7 @@ public:
 
     bool load(uint32_t width, uint32_t height);
     void unload();
-    void update(const FreeCameraController& camera);
+    void update();
     void execute();
 
 private:
@@ -81,22 +80,13 @@ private:
         Vector4 eye;
     };
 
-    bool                 initRenderResources();
-    const SceneGeometry& getGeometry() const;
+    hz::RenderContext& context;
+    hz::RenderScene&   scene;
+    hz::RenderCameraID camera;
 
-    hz::RenderContext&            pContext;
-    SceneManager*                 pScenes = nullptr;
-    SceneAssetHandle              scene = {};
-    hz::Array<SceneAssetInstance> instances;
-    float                         verticalFov = PI / 4.0f;
-
-    hz::unique_ptr<GBuffer>        gbuffer;
-    hz::unique_ptr<Lighting>       lighting;
-    hz::unique_ptr<PostProcessing> postprocessing;
-    hz::GPUBuffer                  frame;
-    hz::GPUBuffer                  draws;
-    hz::GPUBuffer                  materials;
-    FrameData                      frameData = {};
-    Matrix4                        previousViewProjection;
-    bool                           hasPreviousViewProjection = false;
+    hz::unique_ptr<GBuffer>          gbuffer;
+    hz::unique_ptr<Lighting>         lighting;
+    hz::unique_ptr<PostProcessing>   postprocessing;
+    hz::FixedArray<hz::GPUBuffer, 3> frameBuffers;
+    hz::SceneFramePool               frames;
 };

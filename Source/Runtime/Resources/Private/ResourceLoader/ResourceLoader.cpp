@@ -4766,7 +4766,8 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 textureDesc.format = hz::Format::R8G8_UNORM;
             }
-            textureDesc.startState = RESOURCE_STATE_COPY_DEST;
+            // Copy queues implicitly promote from COMMON and decay back after submission.
+            textureDesc.startState = pCopyEngine->pQueue->type == QUEUE_TYPE_TRANSFER ? RESOURCE_STATE_COMMON : RESOURCE_STATE_COPY_DEST;
 
             if (pTextureDesc->flags & TEXTURE_CREATION_FLAG_SRGB)
             {
@@ -4803,7 +4804,10 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
             if (IssueTextureCopyBarriers() && UPLOAD_FUNCTION_RESULT_COMPLETED == res)
             {
-                TextureBarrier barrier = { *pTextureDesc->ppTexture, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE };
+                TextureBarrier barrier = { *pTextureDesc->ppTexture,
+                                           pCopyEngine->pQueue->type == QUEUE_TYPE_TRANSFER ? RESOURCE_STATE_COMMON
+                                                                                            : RESOURCE_STATE_COPY_DEST,
+                                           RESOURCE_STATE_SHADER_RESOURCE };
                 Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
                 cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
             }
@@ -4996,7 +5000,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     Geometry*     geom = reader.pGeometry;
     GeometryData* geomData = reader.pData;
     geomData->pShadow = reader.pShadow;
-    const uint32_t indexStride = geom->vertexCount > UINT16_MAX ? sizeof(uint32_t) : sizeof(uint16_t);
+    const uint32_t indexStride = geom->indexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t);
     uint64_t       requiredShadowSize = sizeof(GeometryData::ShadowData) + (uint64_t)geom->indexCount * indexStride;
     for (uint32_t i = 0; i < MAX_SEMANTICS; ++i)
     {
@@ -5009,8 +5013,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     }
     const uint64_t jointBytes =
         round_up((uint64_t)geomData->jointCount * sizeof(mat4), 16) + round_up((uint64_t)geomData->jointCount * sizeof(uint32_t), 16);
-    if (!geom->vertexCount || !geom->indexCount ||
-        geom->indexType != (geom->vertexCount > UINT16_MAX ? INDEX_TYPE_UINT32 : INDEX_TYPE_UINT16) || requiredShadowSize > shadowSize ||
+    if (!geom->vertexCount || !geom->indexCount || geom->indexType > INDEX_TYPE_UINT16 || requiredShadowSize > shadowSize ||
         sizeof(Geometry) + (uint64_t)geom->drawArgCount * sizeof(IndirectDrawIndexArguments) > geomSize ||
         sizeof(GeometryData) + jointBytes + geomData->userDataSize > geomDataSize)
     {

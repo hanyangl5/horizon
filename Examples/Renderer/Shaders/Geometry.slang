@@ -2,15 +2,62 @@
 
 cbuffer RootConstant0
 {
-    uint drawId;
+    uint instanceSlot;
+    uint materialSlot;
+    uint materialId;
     uint frameIndex;
-    uint drawsIndex;
+    uint instancesIndex;
     uint materialsIndex;
+    uint texturesIndex;
     uint samplerIndex;
     uint positionsIndex;
     uint normalsIndex;
     uint texcoordsIndex;
 };
+
+float4x4 loadMatrix(ByteAddressBuffer buffer, uint offset)
+{
+    // Runtime matrices store four columns; construct then transpose HLSL's row vectors.
+    return transpose(float4x4(asfloat(buffer.Load4(offset)), asfloat(buffer.Load4(offset + 16)),
+                              asfloat(buffer.Load4(offset + 32)), asfloat(buffer.Load4(offset + 48))));
+}
+
+uint resolveTexture(uint2 id)
+{
+    if (id.x == INVALID_TEXTURE || id.y == 0)
+        return INVALID_TEXTURE;
+    ByteAddressBuffer textures = ResourceDescriptorHeap[texturesIndex];
+    const uint offset = id.x * 12;
+    return all(textures.Load2(offset) == id) ? textures.Load(offset + 8) : INVALID_TEXTURE;
+}
+
+Material loadMaterial()
+{
+    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+    const uint offset = materialSlot * 88;
+    Material material;
+    material.baseColorTexture = resolveTexture(materials.Load2(offset + 8));
+    material.normalTexture = resolveTexture(materials.Load2(offset + 16));
+    material.metallicRoughnessTexture = resolveTexture(materials.Load2(offset + 24));
+    material.emissiveTexture = resolveTexture(materials.Load2(offset + 32));
+    material.baseColor = asfloat(materials.Load4(offset + 40));
+    material.emissive = asfloat(materials.Load3(offset + 56));
+    material.metallic = asfloat(materials.Load(offset + 68));
+    material.roughness = asfloat(materials.Load(offset + 72));
+    material.alphaCutoff = asfloat(materials.Load(offset + 76));
+    material.alphaMode = materials.Load(offset + 80);
+    material.doubleSided = materials.Load(offset + 84);
+    return material;
+}
+
+float3 transformNormal(float4x4 world, float3 normal)
+{
+    const float3 x = float3(world[0][0], world[1][0], world[2][0]);
+    const float3 y = float3(world[0][1], world[1][1], world[2][1]);
+    const float3 z = float3(world[0][2], world[1][2], world[2][2]);
+    const float3 cofactor = cross(y, z) * normal.x + cross(z, x) * normal.y + cross(x, y) * normal.z;
+    return normalize(cofactor * (dot(x, cross(y, z)) < 0.0 ? -1.0 : 1.0));
+}
 
 struct PSInput
 {
@@ -18,8 +65,8 @@ struct PSInput
     float3               worldPosition: TEXCOORD0;
     float3               normal: TEXCOORD1;
     float2               uv: TEXCOORD2;
-    noperspective float4 currentClip: TEXCOORD3;
-    noperspective float4 previousClip: TEXCOORD4;
+    float4               currentClip: TEXCOORD3;
+    float4               previousClip: TEXCOORD4;
 };
 
 struct PSOutput
@@ -33,22 +80,23 @@ struct PSOutput
 PSInput VSMain(uint vertexId : SV_VertexID)
 {
     StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
-    StructuredBuffer<DrawData>  Draws = ResourceDescriptorHeap[drawsIndex];
+    ByteAddressBuffer           Instances = ResourceDescriptorHeap[instancesIndex];
     ByteAddressBuffer           Positions = ResourceDescriptorHeap[positionsIndex];
     ByteAddressBuffer           Normals = ResourceDescriptorHeap[normalsIndex];
     ByteAddressBuffer           Texcoords = ResourceDescriptorHeap[texcoordsIndex];
     float3                      position = asfloat(Positions.Load3(vertexId * 12));
     uint                        normal = Normals.Load(vertexId * 4);
     uint                        uv = Texcoords.Load(vertexId * 4);
-    DrawData                    draw = Draws[drawId];
-    float4                      worldPosition = mul(draw.world, float4(position, 1.0));
+    const float4x4              world = loadMatrix(Instances, instanceSlot * 192 + 32);
+    const float4x4              previousWorld = loadMatrix(Instances, instanceSlot * 192 + 96);
+    float4                      worldPosition = mul(world, float4(position, 1.0));
 
     PSInput output;
     output.currentClip = mul(Frame[0].viewProjection, worldPosition);
-    output.previousClip = mul(Frame[0].previousViewProjection, worldPosition);
+    output.previousClip = mul(Frame[0].previousViewProjection, mul(previousWorld, float4(position, 1.0)));
     output.position = output.currentClip;
     output.worldPosition = worldPosition.xyz;
-    output.normal = normalize(mul((float3x3)draw.normal, decodeVertexNormal(normal)));
+    output.normal = transformNormal(world, decodeVertexNormal(normal));
     output.uv = float2(f16tof32(uv & 0xffffu), f16tof32(uv >> 16));
     return output;
 }
@@ -72,11 +120,8 @@ float3 applyNormalMap(PSInput input, float3 normal, Texture2D<float4> NormalMap,
 
 PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
 {
-    StructuredBuffer<DrawData> Draws = ResourceDescriptorHeap[drawsIndex];
-    StructuredBuffer<Material> Materials = ResourceDescriptorHeap[materialsIndex];
     SamplerState               SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    DrawData                   draw = Draws[drawId];
-    Material                   material = Materials[draw.material];
+    Material                   material = loadMaterial();
 
     float4 baseColor = material.baseColor;
     if (material.baseColorTexture != INVALID_TEXTURE)
@@ -84,7 +129,8 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
         Texture2D<float4> BaseColor = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
         baseColor *= BaseColor.Sample(SurfaceSampler, input.uv);
     }
-    clip(baseColor.a - draw.alphaCutoff);
+    if (material.alphaMode != 0)
+        clip(baseColor.a - (material.alphaMode == 1 ? material.alphaCutoff : 0.1));
 
     float3 normal = normalize(input.normal) * (frontFace ? 1.0 : -1.0);
     if (material.normalTexture != INVALID_TEXTURE)
@@ -123,6 +169,6 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
     output.emissive = float4(emissive, 0.0);
     output.normalMaterial = float4(encodeOctNormal(normal), packedMaterial.x, packedMaterial.y);
     output.baseColorMetallic = float4(baseColor.rgb, metallic);
-    output.motionMaterialId = float4(encodeMotionVector(motion), min(draw.material, 255u) / 255.0);
+    output.motionMaterialId = float4(encodeMotionVector(motion), min(materialId, 255u) / 255.0);
     return output;
 }

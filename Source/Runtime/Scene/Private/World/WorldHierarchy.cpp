@@ -33,7 +33,7 @@ WorldHierarchy::~WorldHierarchy()
     if (structureDirty)
         rebuild();
     ecs_query_fini(pEntities);
-    // Avoid Flecs recursively cascading deletion through a deep ChildOf hierarchy at ecs_fini.
+    // Avoid Flecs recursively cascading deletion through a deep hierarchy at ecs_fini.
     for (uint32_t i = nodes.size(); i > 0; --i)
         ecs_delete(world.pWorld, nodes[i - 1].entity);
     hmfree(pIndices);
@@ -122,7 +122,7 @@ void WorldHierarchy::rebuild()
     for (uint32_t i = 0; i < buildNodes.size(); ++i)
     {
         BuildNode&         node = buildNodes[i];
-        const ecs_entity_t parent = ecs_get_target(world.pWorld, node.entity, EcsChildOf, 0);
+        const ecs_entity_t parent = ecs_get_target(world.pWorld, node.entity, world.parentRelation, 0);
         const Index*       pParent = hmgetp_null(pBuildIndices, parent);
         node.parent = pParent ? pParent->value : UINT32_MAX;
         uint32_t& first = pParent ? buildNodes[node.parent].firstChild : firstRoot;
@@ -299,10 +299,10 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
         LOGF(eERROR, "Reparenting requires a committed World outside query/defer scopes");
         return false;
     }
-    for (ecs_entity_t ancestor = parent; ancestor; ancestor = ecs_get_target(world.pWorld, ancestor, EcsChildOf, 0))
+    for (ecs_entity_t ancestor = parent; ancestor; ancestor = ecs_get_target(world.pWorld, ancestor, world.parentRelation, 0))
         if (ancestor == entity)
             return false;
-    const ecs_entity_t previous = ecs_get_target(world.pWorld, entity, EcsChildOf, 0);
+    const ecs_entity_t previous = ecs_get_target(world.pWorld, entity, world.parentRelation, 0);
     if (previous == parent)
         return true;
     if (keepWorld)
@@ -319,22 +319,25 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
                 return false;
             }
             local = inverse(parentWorld) * local;
+            // Preserve the exact affine row after floating-point inversion.
+            local.setRow(3, Vector4(0, 0, 0, 1));
         }
         if (!writeLocalMatrix(entity, local))
             return false;
     }
     if (parent)
-        ecs_add_pair(world.pWorld, entity, EcsChildOf, parent);
+        ecs_add_pair(world.pWorld, entity, world.parentRelation, parent);
     else if (previous)
-        ecs_remove_pair(world.pWorld, entity, EcsChildOf, previous);
+        ecs_remove_pair(world.pWorld, entity, world.parentRelation, previous);
     invalidateStructure();
     return true;
 }
 
 bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
 {
-    ecs_iter_t children = ecs_children(world.pWorld, entity);
-    const bool hasChildren = ecs_children_next(&children);
+    ecs_term_t term = { .id = ecs_pair(world.parentRelation, entity), .src = { .flags = EcsSelf } };
+    ecs_iter_t children = ecs_term_iter(world.pWorld, &term);
+    const bool hasChildren = ecs_term_next(&children);
     if (hasChildren)
         ecs_iter_fini(&children);
     if (!hasChildren)
@@ -368,7 +371,7 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
         {
             if (!writeLocalMatrix(nodes[i].entity, nodes[i].transform.current))
                 return false;
-            ecs_remove_pair(world.pWorld, nodes[i].entity, EcsChildOf, entity);
+            ecs_remove_pair(world.pWorld, nodes[i].entity, world.parentRelation, entity);
         }
         ecs_delete(world.pWorld, entity);
     }
@@ -378,7 +381,13 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
 
 Entity World::getParent(Entity entity) const
 {
-    return isAlive(entity) ? Entity(ecs_get_target(pImpl->pWorld, entity.value, EcsChildOf, 0)) : Entity{};
+    return isAlive(entity) ? Entity(ecs_get_target(pImpl->pWorld, entity.value, pImpl->parentRelation, 0)) : Entity{};
+}
+void World::attachParent(Entity entity, Entity parent)
+{
+    ASSERT(isAlive(entity) && isAlive(parent) && !isDeferred());
+    ecs_add_pair(pImpl->pWorld, entity.value, pImpl->parentRelation, parent.value);
+    pImpl->pHierarchy->invalidateStructure();
 }
 bool World::setParent(Entity entity, Entity parent, bool keepWorld)
 {

@@ -55,6 +55,7 @@ private:
     ecs_world_t*    pWorld = nullptr;
     WorldType*      pTypes = nullptr;
     ecs_entity_t    entityTag = 0;
+    ecs_entity_t    parentRelation = 0;
     ecs_entity_t    objectIdentityType = 0;
     IDGenerator     objectIDs;
     WorldObject*    pObjects = nullptr;

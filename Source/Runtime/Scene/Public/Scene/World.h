@@ -105,6 +105,8 @@ private:
     friend class WorldQuery;
     friend class WorldQueryImpl;
     friend class WorldDocument;
+    friend class SceneAsset;
+    void       attachParent(Entity entity, Entity parent);
     WorldImpl* pImpl = nullptr;
 };
 

@@ -105,6 +105,36 @@ TEST_F(WorldDocumentTest, RoundTripsComponentsHierarchyAndStableOrdering)
     EXPECT_EQ(text(document), first);
 }
 
+TEST_F(WorldDocumentTest, SavesAffineLocalMatrixAfterReparentingUnderRotatedScaledParent)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World             world(types);
+    const hz::Entity      parent = world.createObject(id(1)), child = world.createObject(id(2));
+    const hz::LocalMatrix parentMatrix = { .value = Matrix4::translation(Vector3(1.3f, -4.7f, 9.8f)) *
+                                                    Matrix4::rotationZYX(Vector3(0.3f, 0.4f, -0.8f)) *
+                                                    Matrix4::scale(Vector3(1.5f, 0.7f, -2.35f)) };
+    const hz::LocalMatrix childMatrix = { .value = Matrix4::translation(Vector3(3.7f, -2.1f, 5.6f)) *
+                                                   Matrix4::rotationZYX(Vector3(0.8f, -0.3f, 0.2f)) };
+    ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
+    ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::localMatrix, &childMatrix));
+    ASSERT_TRUE(world.setParent(child, parent, true));
+    const hz::LocalMatrix* local = (const hz::LocalMatrix*)world.getComponent(child, hz::SceneTypes::localMatrix);
+    ASSERT_NE(local, nullptr);
+    for (uint32_t column = 0; column < 4; ++column)
+        EXPECT_EQ((float)local->value.getElem(column, 3), column == 3 ? 1.0f : 0.0f);
+    hz::WorldDocument document;
+    ASSERT_TRUE(document.capture(world));
+    hz::unique_ptr<hz::World> restored;
+    ASSERT_TRUE(document.instantiate(types, restored));
+    const hz::Entity loaded = restored->getEntity(id(2));
+    EXPECT_EQ(restored->getParent(loaded), restored->getEntity(id(1)));
+    for (uint32_t column = 0; column < 4; ++column)
+        for (uint32_t row = 0; row < 4; ++row)
+            EXPECT_NEAR((float)restored->getWorldTransform(loaded)->current.getElem(column, row),
+                        (float)childMatrix.value.getElem(column, row), 0.00001f);
+}
+
 TEST_F(WorldDocumentTest, FailedLoadsPreserveExistingWorldAndDocument)
 {
     hz::TypeRegistry types;
@@ -122,6 +152,13 @@ TEST_F(WorldDocumentTest, FailedLoadsPreserveExistingWorldAndDocument)
         envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"rotation\":[0,0,0,0]}"))),
         envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"scale\":[1e99,1,1]}"))),
         envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"nearPlane\":2}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":0}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":-1}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":3.141592654}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":0}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":-1}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"farPlane\":1}"))),
+        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":2,\"farPlane\":1}"))),
         envelope(record(1, component("0000000000000007", "Camera", 2, "{}"))),
         envelope(record(1, component("0000000000000006", "Light", 1, "{\"type\":\"Invalid\"}"))),
     };
@@ -137,6 +174,30 @@ TEST_F(WorldDocumentTest, FailedLoadsPreserveExistingWorldAndDocument)
     const std::string previous = text(document);
     EXPECT_FALSE(parse(document, "{}"));
     EXPECT_FALSE(parse(document, envelope("") + " {}"));
+    EXPECT_EQ(text(document), previous);
+}
+
+TEST_F(WorldDocumentTest, CameraValidationAlsoAppliesToCaptureAndPreservesDocument)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    const hz::Entity entity = world.createObject(id(1));
+    const hz::Camera camera = { .verticalFov = 0.001f, .nearPlane = 0.001f, .farPlane = 0.002f };
+    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &camera));
+    hz::WorldDocument document;
+    ASSERT_TRUE(document.capture(world));
+    const std::string         previous = text(document);
+    hz::unique_ptr<hz::World> restored;
+    ASSERT_TRUE(document.instantiate(types, restored));
+    const hz::Camera* pRestored = (const hz::Camera*)restored->getComponent(restored->getEntity(id(1)), hz::SceneTypes::camera);
+    ASSERT_NE(pRestored, nullptr);
+    EXPECT_FLOAT_EQ(pRestored->verticalFov, camera.verticalFov);
+    EXPECT_FLOAT_EQ(pRestored->nearPlane, camera.nearPlane);
+    EXPECT_FLOAT_EQ(pRestored->farPlane, camera.farPlane);
+    const hz::Camera invalid = { .nearPlane = 1.0f, .farPlane = 1.0f };
+    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &invalid));
+    EXPECT_FALSE(document.capture(world));
     EXPECT_EQ(text(document), previous);
 }
 

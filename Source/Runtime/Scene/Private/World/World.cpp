@@ -113,6 +113,10 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs)
     pWorld = ecs_mini();
     ASSERT(pWorld);
     entityTag = ecs_new_id(pWorld);
+    // World owns transform propagation; its parent relation must not trigger recursive Flecs traversal.
+    parentRelation = ecs_new_w_id(pWorld, EcsExclusive);
+    ecs_add_id(pWorld, parentRelation, EcsTag);
+    ecs_add_pair(pWorld, parentRelation, EcsOnDeleteTarget, EcsDelete);
     for (uint32_t i = 0; i < registry.size(); ++i)
     {
         const TypeDesc*         pType = registry.getTypeAt(i);
@@ -221,6 +225,17 @@ bool World::setComponent(Entity entity, TypeID type, const void* pValue)
         return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
         return false;
+    if (!ecs_has_id(pImpl->pWorld, entity.value, pType->component) && !ecs_is_deferred(pImpl->pWorld))
+    {
+        // Adding a component can move the table containing pValue before Flecs copies it.
+        const TypeDesc& description = *pType->pType;
+        void*           pCopy = tf_memalign(description.alignment, description.size);
+        description.copyConstruct(pCopy, pValue);
+        ecs_set_id(pImpl->pWorld, entity.value, pType->component, description.size, pCopy);
+        description.destroy(pCopy);
+        tf_free(pCopy);
+        return true;
+    }
     ecs_set_id(pImpl->pWorld, entity.value, pType->component, pType->pType->size, pValue);
     return true;
 }

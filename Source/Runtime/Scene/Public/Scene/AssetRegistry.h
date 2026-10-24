@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Scene/AssetCatalog.h"
+#include "Scene/GpuAssetTables.h"
 
 namespace hz
 {
@@ -91,11 +92,14 @@ public:
     AssetSnapshot(const AssetSnapshot&) = delete;
     AssetSnapshot& operator=(const AssetSnapshot&) = delete;
 
-    bool                 isValid() const { return pData != nullptr; }
-    const SceneAsset*    getScene(AssetHandle) const;
-    const TextureAsset*  getTexture(AssetHandle) const;
-    const MeshAsset*     getMesh(AssetHandle) const;
-    const MaterialAsset* getMaterial(AssetHandle) const;
+    bool                  isValid() const { return pData != nullptr; }
+    uint64_t              getRevision() const;
+    // Available on snapshots returned by captureRenderSnapshot().
+    GpuAssetTableSnapshot getGpuTables() const;
+    const SceneAsset*     getScene(AssetHandle) const;
+    const TextureAsset*   getTexture(AssetHandle) const;
+    const MeshAsset*      getMesh(AssetHandle) const;
+    const MaterialAsset*  getMaterial(AssetHandle) const;
 
 private:
     AssetSnapshotData* pData = nullptr;
@@ -124,6 +128,8 @@ public:
     // Lookup does not acquire a reference; use request() to retain the asset.
     AssetHandle          find(AssetID id) const;
     AssetSnapshot        captureSnapshot();
+    // Encodes GPU indirection tables once per ready payload set. Requires the typed loaders.
+    AssetSnapshot        captureRenderSnapshot();
     // Transfers the snapshot lease to the submission fence; context must outlive the registry.
     void                 retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission);
     uint32_t             getCount() const;

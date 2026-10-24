@@ -146,5 +146,9 @@ void FreeCameraController::update(float deltaTime, uint32_t width, uint32_t heig
 }
 
 mat4 FreeCameraController::getViewMatrix() const { return pCamera->getViewMatrix(); }
+mat4 FreeCameraController::getWorldMatrix() const
+{
+    return orthoInverse(mat4::scale(vec3(-1.0f, 1.0f, -1.0f)) * pCamera->getViewMatrix());
+}
 
 vec3 FreeCameraController::getPosition() const { return pCamera->getViewPosition(); }

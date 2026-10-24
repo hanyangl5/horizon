@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <ThirdParty/stb/stb_ds.h>
+#include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 
 hz::CommandList::~CommandList()
 {
@@ -179,6 +180,9 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         bind.depthStencil = {
             .pDepthStencil = input.pTexture->pRenderTarget,
             .loadAction = input.loadAction,
+            .loadActionStencil = TinyImageFormat_HasStencil((TinyImageFormat)input.pTexture->pRenderTarget->format)
+                                     ? input.loadAction
+                                     : LOAD_ACTION_DONTCARE,
             .storeAction = input.storeAction,
             .clearValue = input.clearValue,
             .overrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,

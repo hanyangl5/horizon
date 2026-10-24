@@ -3,6 +3,9 @@
 #include "Scene/AssetRegistry.h"
 #include "Core/IContainer.h"
 #include "Graphics/RenderContext.h"
+#include "Scene/MeshAsset.h"
+#include "Scene/MaterialAsset.h"
+#include "Scene/TextureAsset.h"
 
 #include "Core/IMemory.h"
 
@@ -40,8 +43,15 @@ public:
         const SnapshotAsset& asset = assets[handle.index];
         return asset.generation == handle.generation && asset.type == type ? asset.pPayload : nullptr;
     }
-    AssetRegistryData*   pOwner = nullptr;
-    Array<SnapshotAsset> assets;
+    AssetRegistryData*       pOwner = nullptr;
+    Array<SnapshotAsset>     assets;
+    Array<GpuMeshRecord>     meshes;
+    Array<GpuVertexStream>   vertexStreams;
+    Array<GpuSubmeshRecord>  submeshes;
+    Array<GpuMaterialRecord> materials;
+    Array<GpuTextureRecord> textures;
+    uint64_t revision = 0;
+    bool gpuTables = false;
     uint32_t             references = 1;
 };
 
@@ -129,6 +139,7 @@ public:
 
     void invalidateSnapshot()
     {
+        ++snapshotRevision;
         if (pCurrentSnapshot)
         {
             releaseSnapshot(pCurrentSnapshot);
@@ -359,6 +370,7 @@ public:
     bool                      shuttingDown = false;
     AssetSnapshotData*        pCurrentSnapshot = nullptr;
     uint32_t                  snapshotCount = 0;
+    uint64_t                  snapshotRevision = 1;
     Array<SnapshotSubmission> submissions;
 };
 
@@ -452,6 +464,7 @@ AssetSnapshot AssetRegistry::captureSnapshot()
     {
         pData->pCurrentSnapshot = tf_new(AssetSnapshotData);
         pData->pCurrentSnapshot->pOwner = pData;
+        pData->pCurrentSnapshot->revision = pData->snapshotRevision;
         pData->pCurrentSnapshot->assets.resize(pData->slots.size());
         ++pData->snapshotCount;
         for (uint32_t i = 0; i < pData->slots.size(); ++i)
@@ -469,6 +482,83 @@ AssetSnapshot AssetRegistry::captureSnapshot()
     result.pData = pData->pCurrentSnapshot;
     ++result.pData->references;
     return result;
+}
+
+AssetSnapshot AssetRegistry::captureRenderSnapshot()
+{
+    AssetSnapshot result = captureSnapshot();
+    if (!result.isValid() || result.pData->gpuTables)
+        return result;
+    AssetSnapshotData& data = *result.pData;
+    data.meshes.resize(data.assets.size());
+    data.materials.resize(data.assets.size());
+    data.textures.resize(data.assets.size());
+    for (uint32_t i = 0; i < data.assets.size(); ++i)
+    {
+        const SnapshotAsset& asset = data.assets[i];
+        if (!asset.pPayload)
+            continue;
+        if (asset.type == AssetType::Texture)
+            data.textures[i] = { .id = { .index = i, .generation = asset.generation },
+                                 .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
+        else if (asset.type == AssetType::Mesh)
+        {
+            const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
+            data.meshes[i] = { .id = { .index = i, .generation = asset.generation },
+                               .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
+                               .indexStride = mesh.getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
+                               .vertexStreamOffset = data.vertexStreams.size(),
+                               .vertexStreamCount = mesh.getVertexBufferCount(),
+                               .submeshOffset = data.submeshes.size(),
+                               .submeshCount = mesh.getDescription().submeshes.count };
+            for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
+                data.vertexStreams.pushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
+            for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
+            {
+                const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
+                data.submeshes.pushBack(
+                    { .indexCount = args.indexCount, .firstIndex = args.startIndex, .vertexOffset = (int32_t)args.vertexOffset });
+            }
+        }
+        else if (asset.type == AssetType::Material)
+        {
+            const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->getDescription();
+            GpuMaterialRecord&        record = data.materials[i];
+            record.id = { .index = i, .generation = asset.generation };
+            const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
+                                           material.emissiveTexture };
+            GpuTextureID* ppTextures[] = { &record.baseColorTexture, &record.normalTexture, &record.metallicRoughnessTexture,
+                                           &record.emissiveTexture };
+            for (uint32_t texture = 0; texture < 4; ++texture)
+            {
+                if (!textureIDs[texture].isValid())
+                    continue;
+                const AssetHandle handle = find(textureIDs[texture]);
+                ASSERT(data.find(handle, AssetType::Texture));
+                *ppTextures[texture] = { .index = handle.index, .generation = handle.generation };
+            }
+            memcpy(record.baseColorFactor, material.baseColorFactor, sizeof(record.baseColorFactor));
+            memcpy(record.emissiveFactor, material.emissiveFactor, sizeof(record.emissiveFactor));
+            record.metallicFactor = material.metallicFactor;
+            record.roughnessFactor = material.roughnessFactor;
+            record.alphaCutoff = material.alphaCutoff;
+            record.alphaMode = (uint32_t)material.alphaMode;
+            record.doubleSided = material.doubleSided;
+        }
+    }
+    data.gpuTables = true;
+    return result;
+}
+
+uint64_t              AssetSnapshot::getRevision() const { return pData ? pData->revision : 0; }
+GpuAssetTableSnapshot AssetSnapshot::getGpuTables() const
+{
+    ASSERT(pData && pData->gpuTables);
+    return { .meshes = { pData->meshes.data(), pData->meshes.size() },
+             .vertexStreams = { pData->vertexStreams.data(), pData->vertexStreams.size() },
+             .submeshes = { pData->submeshes.data(), pData->submeshes.size() },
+             .materials = { pData->materials.data(), pData->materials.size() },
+             .textures = { pData->textures.data(), pData->textures.size() } };
 }
 
 void AssetRegistry::retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission)

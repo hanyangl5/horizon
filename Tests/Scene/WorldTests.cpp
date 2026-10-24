@@ -105,6 +105,34 @@ TEST_F(SceneWorldTest, OwningComponentsSurviveTableMovesAndRowRemoval)
     }
 }
 
+TEST_F(SceneWorldTest, CopiesOwningComponentFromStorageWhileGrowingItsTable)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World        world(types);
+    hz::Entity       source = world.createEntity();
+    hz::MeshRenderer mesh = { .mesh = { .low = 17 } };
+    mesh.overrides.pushBack({ .submesh = 7, .material = { .low = 42 } });
+    ASSERT_TRUE(world.setComponent(source, hz::SceneTypes::meshRenderer, &mesh));
+    for (uint32_t i = 0; i < 1000; ++i)
+    {
+        SCOPED_TRACE(i);
+        const hz::Entity destination = world.createEntity();
+        const void*      pSource = world.getComponent(source, hz::SceneTypes::meshRenderer);
+        ASSERT_TRUE(world.setComponent(destination, hz::SceneTypes::meshRenderer, pSource));
+        const hz::MeshRenderer* pCopy = (const hz::MeshRenderer*)world.getComponent(destination, hz::SceneTypes::meshRenderer);
+        ASSERT_NE(pCopy, nullptr);
+        EXPECT_EQ(pCopy->mesh, mesh.mesh);
+        ASSERT_EQ(pCopy->overrides.size(), 1u);
+        EXPECT_EQ(pCopy->overrides[0].submesh, 7u);
+        EXPECT_EQ(pCopy->overrides[0].material.low, 42u);
+        const hz::MeshRenderer* pOriginal = (const hz::MeshRenderer*)world.getComponent(source, hz::SceneTypes::meshRenderer);
+        ASSERT_EQ(pOriginal->overrides.size(), 1u);
+        EXPECT_NE(pCopy->overrides.data(), pOriginal->overrides.data());
+        source = destination;
+    }
+}
+
 TEST_F(SceneWorldTest, NestedDeferredScopesDelayStructureAndOwnQueuedValues)
 {
     hz::TypeRegistry types;

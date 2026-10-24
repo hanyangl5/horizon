@@ -230,6 +230,7 @@ typedef struct GeometryData
 
     struct ShadowData
     {
+        // Index elements use Geometry::indexType, including small meshes with 32-bit indices.
         void* pIndices;
         void* pAttributes[MAX_SEMANTICS];
 
@@ -245,8 +246,6 @@ typedef struct GeometryData
         // This happens for example for Hair
         uint32_t attributeCount[MAX_SEMANTICS];
 
-        // TODO: Consider if we want to store here mIndexStride to access ShadowData::pIndices,
-        //       right now it depends on the number of vertexes in the mesh (uint16_t if vertexCount < 64k otherwise uint32_t)
     };
 
     /// Shadow copy of the geometry vertex and index data if requested through the load flags

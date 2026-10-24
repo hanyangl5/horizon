@@ -6,6 +6,7 @@
 #include "SceneTextureCooker.h"
 
 struct cgltf_data;
+struct cgltf_material;
 struct cJSON;
 
 class SceneAssetCooker
@@ -24,7 +25,7 @@ public:
     bool write() const;
 
 private:
-    cJSON*            createMaterial(const cgltf_data& data, uint32_t index, hz::Span<cJSON*> textureRecords, bool signature) const;
+    cJSON* createMaterial(const cgltf_data& data, const cgltf_material& material, hz::Span<cJSON*> textureRecords, bool signature) const;
     bool              validate() const;
     bool              prepareTextures(const cgltf_data& data);
     bool              registerTexture(CookedSceneTexture& texture);

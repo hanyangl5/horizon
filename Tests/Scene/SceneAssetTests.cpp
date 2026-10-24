@@ -2,6 +2,8 @@
 
 #include "Scene/SceneAsset.h"
 #include "Scene/AssetCatalog.h"
+#include "Scene/WorldDocument.h"
+#include "Core/IUniquePtr.h"
 #include "Core/IContainer.h"
 #include <string>
 
@@ -21,7 +23,7 @@ static const char kScene[] = R"json({
     "id": "00000000-0000-4000-8000-000000000004", "name": "Tree", "geometry": "scene.bin",
     "submeshes": [
       {"id": "8000000000000001", "draw": 0, "material": "00000000-0000-4000-8000-000000000003"},
-      {"id": "8000000000000002", "draw": 1, "material": null}
+      {"id": "8000000000000002", "draw": 1, "material": "00000000-0000-4000-8000-000000000003"}
     ]
   }],
   "nodes": [
@@ -91,7 +93,7 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     ASSERT_EQ(mesh.submeshes.count, 2u);
     EXPECT_EQ(mesh.submeshes.pData[0].id, UINT64_C(0x8000000000000001));
     EXPECT_EQ(mesh.submeshes.pData[1].draw, 1u);
-    EXPECT_FALSE(mesh.submeshes.pData[1].material.isValid());
+    EXPECT_EQ(mesh.submeshes.pData[1].material, mesh.submeshes.pData[0].material);
     ASSERT_EQ(asset.getMaterials().count, 1u);
     const hz::SceneAssetMaterial& material = asset.getMaterials().pData[0];
     EXPECT_EQ(mesh.submeshes.pData[0].material, material.id);
@@ -104,6 +106,197 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     EXPECT_TRUE(asset.getTextures().pData[0].srgb);
     EXPECT_TRUE(asset.getTextures().pData[0].cooked);
     EXPECT_STREQ(asset.getTextures().pData[0].pSource, "Textures/albedo.png");
+}
+
+TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldObjectsAndCopiesPayloadData)
+{
+    hz::SceneAsset asset;
+    ASSERT_TRUE(asset.parse(kScene));
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
+    const hz::AssetCatalogEntry* entry = catalog.findScene("scene.sceneasset.json");
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(entry->id, asset.getID());
+    EXPECT_EQ(catalog.findScene("missing.sceneasset.json"), nullptr);
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World                world(types);
+    const hz::Entity         parent = world.createObject();
+    const hz::LocalTransform transform = { .translation = Vector3(100, 0, 0) };
+    ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+    const hz::AssetID mesh = asset.getMeshes().pData[0].id;
+    const hz::Entity  firstRoot = asset.instantiate(world, parent);
+    const hz::Entity  secondRoot = asset.instantiate(world);
+    EXPECT_EQ(world.getParent(firstRoot), parent);
+    EXPECT_FALSE(world.getParent(secondRoot).isValid());
+    EXPECT_NE(world.getObjectID(firstRoot), world.getObjectID(secondRoot));
+    asset = {};
+    world.updateTransforms();
+    struct Instances
+    {
+        hz::World*  world;
+        hz::AssetID mesh;
+        uint32_t    count = 0;
+    } instances = { .world = &world, .mesh = mesh };
+    hz::WorldQuery query(world, { hz::SceneTypes::meshRenderer, hz::SceneTypes::name });
+    query.each(
+        [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
+        {
+            Instances&              data = *(Instances*)pUser;
+            const hz::MeshRenderer& renderer = *(const hz::MeshRenderer*)fields.pData[0];
+            const hz::Name&         name = *(const hz::Name*)fields.pData[1];
+            EXPECT_EQ(renderer.mesh, data.mesh);
+            const hz::Entity nodeParent = data.world->getParent(entity);
+            EXPECT_STREQ(((const hz::Name*)data.world->getComponent(nodeParent, hz::SceneTypes::name))->value, "Root");
+            const hz::Entity sceneRoot = data.world->getParent(nodeParent);
+            const float      x = data.world->getParent(sceneRoot).isValid() ? 110.0f : 10.0f;
+            EXPECT_FLOAT_EQ((float)data.world->getWorldTransform(entity)->current.getElem(3, 0), x);
+            if (!strcmp(name.value, "First"))
+            {
+                const hz::LocalMatrix* matrix = (const hz::LocalMatrix*)data.world->getComponent(entity, hz::SceneTypes::localMatrix);
+                ASSERT(matrix);
+                EXPECT_FLOAT_EQ((float)matrix->value.getElem(1, 0), 0.5f);
+                EXPECT_EQ(data.world->getComponent(entity, hz::SceneTypes::localTransform), nullptr);
+            }
+            else
+                EXPECT_STREQ(name.value, "Second");
+            EXPECT_EQ(data.world->getEntity(data.world->getObjectID(entity)), entity);
+            ++data.count;
+            return true;
+        },
+        &instances);
+    EXPECT_EQ(instances.count, 4u);
+    ASSERT_TRUE(world.destroySubtree(firstRoot));
+    EXPECT_TRUE(world.isAlive(secondRoot));
+    EXPECT_TRUE(world.isAlive(parent));
+}
+
+TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    const char*    codepoints[] = { "\xC2\xA2", "\xE4\xB8\xAD", "\xF0\x9F\x8C\xB3" };
+    const uint32_t limit = sizeof(hz::Name::value) - 1;
+    for (const char* pCodepoint : codepoints)
+    {
+        for (uint32_t prefix = limit - 4; prefix <= limit + 1; ++prefix)
+        {
+            SCOPED_TRACE(strlen(pCodepoint));
+            SCOPED_TRACE(prefix);
+            const std::string input = std::string(prefix, 'a') + pCodepoint + ".gltf";
+            std::string       expected(prefix < limit ? prefix : limit, 'a');
+            if (prefix + strlen(pCodepoint) <= limit)
+            {
+                expected += pCodepoint;
+                expected.append(".gltf", limit - expected.size() < 5 ? limit - expected.size() : 5);
+            }
+            std::string json = replaceText("scene.gltf", input.c_str());
+            json.replace(json.find("\"Root\""), strlen("\"Root\""), "\"" + input + "\"");
+            hz::SceneAsset asset;
+            ASSERT_TRUE(parse(asset, json));
+            hz::World        world(types);
+            const hz::Entity root = asset.instantiate(world);
+            struct Names
+            {
+                hz::World*  pWorld;
+                hz::Entity  root;
+                const char* pExpected;
+                uint32_t    count = 0;
+            } names = { .pWorld = &world, .root = root, .pExpected = expected.c_str() };
+            hz::WorldQuery query(world, { hz::SceneTypes::name });
+            query.each(
+                [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
+                {
+                    Names& names = *(Names*)pUser;
+                    if (entity == names.root || names.pWorld->getParent(entity) == names.root)
+                    {
+                        EXPECT_STREQ(((const hz::Name*)fields.pData[0])->value, names.pExpected);
+                        ++names.count;
+                    }
+                    return true;
+                },
+                &names);
+            EXPECT_EQ(names.count, 2u);
+            hz::WorldDocument document;
+            ASSERT_TRUE(document.capture(world));
+            hz::unique_ptr<hz::World> restored;
+            ASSERT_TRUE(document.instantiate(types, restored));
+            const hz::Entity restoredRoot = restored->getEntity(world.getObjectID(root));
+            const hz::Name*  pName = (const hz::Name*)restored->getComponent(restoredRoot, hz::SceneTypes::name);
+            ASSERT_NE(pName, nullptr);
+            EXPECT_STREQ(pName->value, expected.c_str());
+        }
+    }
+}
+
+TEST_F(SceneAssetReadTest, FailedObjectGenerationRollsBackOnlyTheNewInstance)
+{
+    hz::SceneAsset asset;
+    ASSERT_TRUE(asset.parse(kScene));
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    for (bool collision : { false, true })
+    {
+        for (uint32_t failureAt : { 0u, 2u })
+        {
+            SCOPED_TRACE(collision);
+            SCOPED_TRACE(failureAt);
+            struct Source
+            {
+                uint32_t calls = 0;
+                uint32_t failureAt;
+                bool     collision;
+            } source = { .failureAt = failureAt, .collision = collision };
+            const hz::IDGenerator generator = {
+                .pGenerate =
+                    [](void* pUser, uint8_t (&pBytes)[16])
+                {
+                    Source&        source = *(Source*)pUser;
+                    const uint32_t index = source.calls++;
+                    if (index == source.failureAt && !source.collision)
+                        return false;
+                    memset(pBytes, 0, 16);
+                    pBytes[15] = index == source.failureAt ? 0x10 : (uint8_t)(0x20 + index);
+                    return true;
+                },
+                .pUserData = &source,
+            };
+            hz::World          world(types, generator);
+            const hz::ObjectID parentID = { .high = 0x4000, .low = UINT64_C(0x8000000000000010) };
+            const hz::ObjectID childID = { .high = 0x4000, .low = UINT64_C(0x8000000000000011) };
+            const hz::Entity   parent = world.createObject(parentID);
+            const hz::Entity   child = world.createObject(childID);
+            ASSERT_TRUE(world.setParent(child, parent, false));
+            const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
+            ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+            EXPECT_FALSE(asset.instantiate(world, parent).isValid());
+            EXPECT_EQ(source.calls, failureAt + 1);
+            EXPECT_EQ(world.getEntity(parentID), parent);
+            EXPECT_EQ(world.getEntity(childID), child);
+            EXPECT_EQ(world.getParent(child), parent);
+            for (uint32_t i = 0; i < failureAt; ++i)
+                EXPECT_FALSE(world.getEntity({ .high = 0x4000, .low = UINT64_C(0x8000000000000020) + i }).isValid());
+            uint32_t       count = 0;
+            hz::WorldQuery query(world, {});
+            query.each(
+                [](hz::Entity, hz::Span<const void*>, void* pUser)
+                {
+                    ++*(uint32_t*)pUser;
+                    return true;
+                },
+                &count);
+            EXPECT_EQ(count, 2u);
+            world.updateTransforms();
+            EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getElem(3, 0), 3.0f);
+            source.failureAt = UINT32_MAX;
+            const hz::Entity root = asset.instantiate(world, parent);
+            ASSERT_TRUE(root.isValid());
+            EXPECT_EQ(world.getParent(root), parent);
+            ASSERT_TRUE(world.destroySubtree(root));
+            EXPECT_EQ(world.getEntity(parentID), parent);
+            EXPECT_EQ(world.getParent(child), parent);
+        }
+    }
 }
 
 TEST_F(SceneAssetReadTest, OwnsStringsAndSupportsMoveAndReplacement)
@@ -140,6 +333,7 @@ TEST_F(SceneAssetReadTest, RejectsInvalidIdentityAndReferencesWithoutChangingLoa
         { "\"baseColorTexture\": \"00000000-0000-4000-8000-000000000002\"",
           "\"baseColorTexture\": \"00000000-0000-4000-8000-000000000003\"" },
         { "\"material\": \"00000000-0000-4000-8000-000000000003\"", "\"material\": \"00000000-0000-4000-8000-000000000002\"" },
+        { "\"material\": \"00000000-0000-4000-8000-000000000003\"", "\"material\": null" },
         { "\"mesh\": \"00000000-0000-4000-8000-000000000004\"", "\"mesh\": \"00000000-0000-4000-8000-000000000003\"" },
         { "8000000000000002", "8000000000000001" },
         { "8000000000000002", "0000000000000000" },
@@ -224,22 +418,72 @@ TEST_F(SceneAssetReadTest, RejectsMalformedJsonPathsAndMaterialFields)
 TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
 {
     const uint32_t count = 10000;
-    std::string    json = R"({"format":"Horizon.SceneAsset","version":1,"id":"00000000-0000-4000-8000-000000000001",
-        "source":"deep.gltf","contentHash":"fnv1a64:0123456789abcdef","identityHash":"0123456789abcdef",
-        "textures":[],"materials":[],"meshes":[],"nodes":[)";
-    for (uint32_t i = 0; i < count; ++i)
+    for (bool parentFirst : { true, false })
     {
-        if (i)
-            json += ',';
-        json += "{\"name\":\"Node\",\"parent\":" + std::to_string(i + 1 == count ? -1 : (int)i + 1) +
-                ",\"translation\":[0,0,0],\"rotation\":[0,0,0,1],\"scale\":[1,1,1]}";
+        SCOPED_TRACE(parentFirst);
+        std::string json = R"({"format":"Horizon.SceneAsset","version":1,"id":"00000000-0000-4000-8000-000000000001",
+            "source":"deep.gltf","contentHash":"fnv1a64:0123456789abcdef","identityHash":"0123456789abcdef",
+            "textures":[],"materials":[],"meshes":[],"nodes":[)";
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            if (i)
+                json += ',';
+            const int parent = parentFirst ? (i ? (int)i - 1 : -1) : (i + 1 == count ? -1 : (int)i + 1);
+            json += "{\"name\":\"Node" + std::to_string(i) + "\",\"parent\":" + std::to_string(parent) +
+                    ",\"translation\":[1,0,0],\"rotation\":[0,0,0,1],\"scale\":[1,1,1]}";
+        }
+        json += "]}";
+        hz::SceneAsset asset;
+        ASSERT_TRUE(parse(asset, json));
+        ASSERT_EQ(asset.getNodes().count, count);
+        hz::TypeRegistry types;
+        ASSERT_TRUE(types.registerBuiltins());
+        hz::World                world(types);
+        const hz::Entity         parent = world.createObject();
+        const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
+        ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+        const hz::Entity root = asset.instantiate(world, parent);
+        EXPECT_EQ(world.getParent(root), parent);
+        asset = {};
+        world.updateTransforms();
+        struct Nodes
+        {
+            hz::World* world;
+            hz::Entity root;
+            uint32_t   count;
+            bool       parentFirst;
+            uint32_t   found = 0;
+        } nodes = { .world = &world, .root = root, .count = count, .parentFirst = parentFirst };
+        hz::WorldQuery query(world, { hz::SceneTypes::name, hz::SceneTypes::localTransform });
+        query.each(
+            [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
+            {
+                Nodes&          nodes = *(Nodes*)pUser;
+                const hz::Name& name = *(const hz::Name*)fields.pData[0];
+                uint32_t        index = 0;
+                EXPECT_EQ(sscanf(name.value, "Node%u", &index), 1);
+                EXPECT_LT(index, nodes.count);
+                const uint32_t depth = nodes.parentFirst ? index + 1 : nodes.count - index;
+                EXPECT_FLOAT_EQ((float)nodes.world->getWorldTransform(entity)->current.getElem(3, 0), (float)depth + 3.0f);
+                const hz::Entity parent = nodes.world->getParent(entity);
+                if (depth == 1)
+                    EXPECT_EQ(parent, nodes.root);
+                else
+                {
+                    const hz::Name* pParent = (const hz::Name*)nodes.world->getComponent(parent, hz::SceneTypes::name);
+                    EXPECT_NE(pParent, nullptr);
+                    if (pParent)
+                    {
+                        const std::string expected = "Node" + std::to_string(nodes.parentFirst ? index - 1 : index + 1);
+                        EXPECT_STREQ(pParent->value, expected.c_str());
+                    }
+                }
+                ++nodes.found;
+                return true;
+            },
+            &nodes);
+        EXPECT_EQ(nodes.found, count);
     }
-    json += "]}";
-    hz::SceneAsset asset;
-    ASSERT_TRUE(parse(asset, json));
-    EXPECT_EQ(asset.getNodes().count, count);
-    EXPECT_EQ(asset.getNodes().pData[0].parent, 1u);
-    EXPECT_EQ(asset.getNodes().pData[count - 1].parent, UINT32_MAX);
 }
 
 TEST_F(SceneAssetReadTest, CatalogLocatesSubassetsAndDeduplicatesDependencies)

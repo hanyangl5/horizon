@@ -212,6 +212,73 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
     EXPECT_FALSE(world.isAlive(parent));
 }
 
+TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeletion)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World             world(types);
+    const uint32_t        count = 10000;
+    hz::Array<hz::Entity> entities(count);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        entities[i] = world.createEntity();
+        setTranslation(world, entities[i], 1.0f);
+    }
+    for (uint32_t i = 0; i + 1 < count; ++i)
+        ASSERT_TRUE(world.setParent(entities[i], entities[i + 1], false));
+    const hz::Entity root = entities[count - 1];
+    const hz::Entity leaf = entities[0];
+    world.updateTransforms();
+    world.commitTransforms();
+    const hz::Entity firstParent = world.createEntity();
+    const hz::Entity secondParent = world.createEntity();
+    setTranslation(world, firstParent, 12.0f);
+    setTranslation(world, secondParent, 5.0f);
+    ASSERT_TRUE(world.setParent(root, firstParent, false));
+    world.updateTransforms();
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 12.0f, 0, 0)));
+    ASSERT_TRUE(world.setParent(root, secondParent));
+    world.updateTransforms();
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 12.0f, 0, 0)));
+    EXPECT_FALSE(world.setParent(secondParent, leaf));
+    hz::MeshRenderer renderer;
+    renderer.overrides.pushBack({ .submesh = 1, .material = { .low = 42 } });
+    ASSERT_TRUE(world.setComponent(root, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.addComponent(root, hz::SceneTypes::name));
+    const char name[] = "DeepRoot";
+    ASSERT_TRUE(
+        world.setProperty(root, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .pData = name, .size = sizeof(name) }));
+    const Vector3 translation(4, 0, 0);
+    ASSERT_TRUE(world.setProperty(root, hz::SceneTypes::localTransform, 1,
+                                  { .kind = hz::PropertyKind::Vector3, .pData = &translation, .size = sizeof(translation) }));
+    world.updateTransforms();
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 8.0f, 0, 0)));
+    {
+        hz::DeferredChanges changes = world.defer();
+        ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::name));
+        ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::meshRenderer));
+        ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::localTransform));
+        const hz::LocalMatrix matrix = { .value = Matrix4::translation(Vector3(3, 0, 0)) };
+        ASSERT_TRUE(world.setComponent(root, hz::SceneTypes::localMatrix, &matrix));
+        EXPECT_FALSE(world.destroyEntity(root));
+    }
+    world.updateTransforms();
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 7.0f, 0, 0)));
+    ASSERT_TRUE(world.destroyEntity(secondParent));
+    EXPECT_FALSE(world.getParent(root).isValid());
+    world.updateTransforms();
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 7.0f, 0, 0)));
+    ASSERT_TRUE(world.destroySubtree(root));
+    EXPECT_FALSE(world.isAlive(root));
+    EXPECT_FALSE(world.isAlive(leaf));
+    EXPECT_TRUE(world.isAlive(firstParent));
+    {
+        hz::DeferredChanges changes = world.defer();
+        EXPECT_TRUE(world.destroyEntity(firstParent));
+    }
+    EXPECT_FALSE(world.isAlive(firstParent));
+}
+
 TEST_F(SceneTransformTest, BuildsOneHundredThousandEntitiesAndUpdatesASingleDirtyRoot)
 {
     hz::TypeRegistry types;

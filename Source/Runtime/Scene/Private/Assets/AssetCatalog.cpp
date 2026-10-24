@@ -267,6 +267,19 @@ const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
 }
 
 uint32_t AssetCatalog::getCount() const { return pData ? (uint32_t)hmlen(pData->pRecords) : 0; }
+const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) const
+{
+    if (!pData || !pCookedScenePath)
+        return nullptr;
+    for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
+    {
+        const AssetCatalogEntry* pEntry = pData->pRecords[i].value;
+        if (pEntry->type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
+            !strcmp(pEntry->location.pPath, pCookedScenePath))
+            return pEntry;
+    }
+    return nullptr;
+}
 
 bool AssetCatalog::remove(AssetID id)
 {

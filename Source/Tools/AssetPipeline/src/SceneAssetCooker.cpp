@@ -557,9 +557,9 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
     return true;
 }
 
-cJSON* SceneAssetCooker::createMaterial(const cgltf_data& data, uint32_t index, hz::Span<cJSON*> textureRecords, bool signature) const
+cJSON* SceneAssetCooker::createMaterial(const cgltf_data& data, const cgltf_material& material, hz::Span<cJSON*> textureRecords,
+                                        bool signature) const
 {
-    const cgltf_material&               material = data.materials[index];
     const cgltf_pbr_metallic_roughness* pPbr = material.has_pbr_metallic_roughness ? &material.pbr_metallic_roughness : nullptr;
     cJSON*                              pMaterial = cJSON_CreateObject();
     if (!signature)
@@ -592,8 +592,15 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     ASSERT(pMetadata && !pAsset);
     cJSON*            pOldRecords = cJSON_GetObjectItemCaseSensitive(pPrevious, "assets");
     cJSON*            pRecords = cJSON_AddArrayToObject(pMetadata, "assets");
+    bool              needsDefaultMaterial = false;
+    for (cgltf_size i = 0; i < data.meshes_count; ++i)
+        for (cgltf_size j = 0; j < data.meshes[i].primitives_count; ++j)
+            needsDefaultMaterial |= !data.meshes[i].primitives[j].material;
+    cgltf_material defaultMaterial = {};
+    defaultMaterial.name = (char*)"Default Material";
+    defaultMaterial.alpha_cutoff = 0.5f;
     hz::Array<cJSON*> textures((uint32_t)data.textures_count);
-    hz::Array<cJSON*> materials((uint32_t)data.materials_count);
+    hz::Array<cJSON*> materials((uint32_t)data.materials_count + needsDefaultMaterial);
     hz::Array<cJSON*> meshes((uint32_t)data.meshes_count);
     for (uint32_t i = 0; i < textures.size(); ++i)
     {
@@ -626,10 +633,10 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     }
     for (uint32_t i = 0; i < materials.size(); ++i)
     {
-        const cgltf_material& material = data.materials[i];
-        materials[i] = identity("Material", material.name, data, material.extras);
+        const cgltf_material& material = i < data.materials_count ? data.materials[i] : defaultMaterial;
+        materials[i] = identity(i < data.materials_count ? "Material" : "DefaultMaterial", material.name, data, material.extras);
         // Texture array indices are not identity evidence.
-        const JsonDocument signature(createMaterial(data, i, { textures.data(), textures.size() }, true));
+        const JsonDocument signature(createMaterial(data, material, { textures.data(), textures.size() }, true));
         char* pText = cJSON_PrintUnformatted(signature.get());
         addHash(materials[i], "signature", hashBytes(pText, strlen(pText)));
         cJSON_free(pText);
@@ -680,7 +687,8 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     cJSON* pMaterials = cJSON_AddArrayToObject(pAsset, "materials");
     for (uint32_t i = 0; i < materials.size(); ++i)
     {
-        cJSON* pMaterial = createMaterial(data, i, { textures.data(), textures.size() }, false);
+        const cgltf_material& material = i < data.materials_count ? data.materials[i] : defaultMaterial;
+        cJSON*                pMaterial = createMaterial(data, material, { textures.data(), textures.size() }, false);
         cJSON_AddStringToObject(pMaterial, "id", text(materials[i], "id"));
         cJSON_AddItemToArray(pMaterials, pMaterial);
     }
@@ -700,9 +708,9 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
                                     text(cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(meshes[i], "submeshes"), (int)j), "id"));
             cJSON_AddNumberToObject(pSubmesh, "draw", drawIndex++);
             const cgltf_material* pMaterial = data.meshes[i].primitives[j].material;
-            cJSON_AddItemToObject(pSubmesh, "material",
-                                  pMaterial ? cJSON_CreateString(text(materials[(uint32_t)(pMaterial - data.materials)], "id"))
-                                            : cJSON_CreateNull());
+            cJSON_AddStringToObject(
+                pSubmesh, "material",
+                text(materials[pMaterial ? (uint32_t)(pMaterial - data.materials) : (uint32_t)data.materials_count], "id"));
             cJSON_AddItemToArray(pSubmeshes, pSubmesh);
         }
         cJSON_AddItemToArray(pMeshes, pMesh);

@@ -254,6 +254,8 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
                 return invalidField("submesh id");
             if (!readReference(pSubmesh, "material", submesh.material, AssetKind::Material))
                 return false;
+            if (!submesh.material.isValid())
+                return invalidField("submesh material");
             data.submeshes.pushBack(submesh);
             ids.pushBack(submesh.id);
         }
@@ -423,5 +425,60 @@ Span<SceneAssetMaterial> SceneAsset::getMaterials() const
 Span<SceneAssetTexture> SceneAsset::getTextures() const
 {
     return pData ? Span<SceneAssetTexture>(pData->textures.data(), pData->textures.size()) : Span<SceneAssetTexture>{};
+}
+static void copyName(Name& name, const char* pText)
+{
+    size_t length = 0;
+    while (length < sizeof(name.value) - 1 && pText[length])
+        ++length;
+    while (length && ((uint8_t)pText[length] & 0xc0) == 0x80)
+        --length;
+    memcpy(name.value, pText, length);
+    name.value[length] = 0;
+}
+
+Entity SceneAsset::instantiate(World& world, Entity parent) const
+{
+    ASSERT(pData && !world.isDeferred() && (!parent.isValid() || world.isAlive(parent)));
+    const Entity root = world.createObject();
+    if (!root.isValid())
+        return {};
+    Array<Entity> entities;
+    entities.reserve(pData->nodes.size());
+    {
+        DeferredChanges changes = world.defer();
+        Name            name;
+        copyName(name, pData->pSource);
+        bool copied = world.setComponent(root, SceneTypes::name, &name);
+        for (const SceneAssetNode& node : pData->nodes)
+        {
+            const Entity entity = world.createObject();
+            if (!entity.isValid())
+                break;
+            entities.pushBack(entity);
+            copyName(name, node.pName);
+            copied &= world.setComponent(entity, SceneTypes::name, &name);
+            copied &= node.hasMatrix ? world.setComponent(entity, SceneTypes::localMatrix, &node.matrix)
+                                     : world.setComponent(entity, SceneTypes::localTransform, &node.transform);
+            if (node.mesh.isValid())
+            {
+                const MeshRenderer renderer = { .mesh = node.mesh };
+                copied &= world.setComponent(entity, SceneTypes::meshRenderer, &renderer);
+            }
+        }
+        ASSERT(copied);
+    }
+    if (entities.size() != pData->nodes.size())
+    {
+        for (Entity entity : entities)
+            world.destroyEntity(entity);
+        world.destroyEntity(root);
+        return {};
+    }
+    if (parent.isValid())
+        world.attachParent(root, parent);
+    for (uint32_t i = 0; i < entities.size(); ++i)
+        world.attachParent(entities[i], pData->nodes[i].parent == UINT32_MAX ? root : entities[pData->nodes[i].parent]);
+    return root;
 }
 } // namespace hz

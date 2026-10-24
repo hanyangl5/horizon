@@ -6,8 +6,9 @@
 #include "Core/IToolFileSystem.h"
 #include "Core/IUniquePtr.h"
 #include "Graphics/RenderContext.h"
-#include "Scene/ISceneManager.h"
-#include "Scene/SceneGeometry.h"
+#include "Core/IThread.h"
+#include "Scene/AssetLoaders.h"
+#include "Scene/SceneAsset.h"
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
 #include "AssetPipeline/IAssetPipeline.h"
 #endif
@@ -43,13 +44,13 @@ public:
     {
         configureResourceDirectories();
         initRenderContext();
-        if (!(initSceneAsset() && initRenderPasses()))
+        if (!initSceneAsset())
         {
             Exit();
             return false;
         }
         initCamera();
-        return true;
+        return initRenderPasses();
     }
 
 private:
@@ -76,76 +77,54 @@ private:
 
     bool initSceneAsset()
     {
-        const SceneManagerDesc sceneDesc = {
-            .capacity = 1,
-            .pContext = pContext.get(),
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
-            .pEnsureGltfCooked = ensureSceneGltfCooked,
+        if (!ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES, nullptr))
+            return false;
 #endif
-        };
-        pScenes = hz::make_unique<SceneManager>(sceneDesc);
-
-        const GeometryLoadDesc geometryDesc = { .ppGeometryData = &pGeometryData, .pVertexLayout = &kSceneVertexLayout };
-        SceneAssetError        error = {};
-        scene = pScenes->requestFromGltf(RD_TEXTURES, kSceneSource, RD_OTHER_FILES, &geometryDesc, &error);
-        if (!isSceneAssetHandleValid(scene))
+        char catalogFile[FS_MAX_PATH], sceneFile[FS_MAX_PATH];
+        fsReplacePathExtension(kSceneSource, "assetcatalog.json", catalogFile);
+        fsReplacePathExtension(kSceneSource, "sceneasset.json", sceneFile);
+        if (!catalog.load(RD_OTHER_FILES, catalogFile))
+            return false;
+        const hz::AssetCatalogEntry* entry = catalog.findScene(sceneFile);
+        if (!entry)
         {
-            LOGF(eERROR, "Failed to request scene '%s': %s", kSceneSource, error.message);
+            LOGF(eERROR, "Catalog contains no SceneAsset '%s'", sceneFile);
             return false;
         }
-
-        waitForAllResourceLoads();
-        pScenes->update();
-        if (pScenes->getStatus(scene) != SCENE_ASSET_STATUS_READY)
+        pLoaders = hz::make_unique<hz::AssetLoaders>(
+            *pContext, hz::AssetLoadersDesc{ .vertexLayout = kSceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
+        pRegistry = hz::make_unique<hz::AssetRegistry>(catalog);
+        pLoaders->registerLoaders(*pRegistry);
+        const hz::AssetHandle handle = pRegistry->request(entry->id);
+        if (!handle.isValid())
+            return false;
+        while (pRegistry->getState(handle) != hz::AssetState::Ready && pRegistry->getState(handle) != hz::AssetState::Failed)
         {
-            LOGF(eERROR, "Scene '%s' did not become ready", kSceneSource);
+            pRegistry->update();
+            threadSleep(1);
+        }
+        const hz::SceneAsset* asset = pRegistry->getScene(handle);
+        if (!asset)
+        {
+            LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", sceneFile, (uint32_t)pRegistry->getError(handle));
             return false;
         }
-        if (!pGeometryData)
+        pTypes = hz::make_unique<hz::TypeRegistry>();
+        const bool registered = pTypes->registerBuiltins();
+        ASSERT(registered);
+        pWorld = hz::make_unique<hz::World>(*pTypes);
+        if (!asset->instantiate(*pWorld).isValid())
         {
-            LOGF(eERROR, "Scene '%s' contains no geometry data", kSceneSource);
+            LOGF(eERROR, "Cannot instantiate SceneAsset '%s'", sceneFile);
             return false;
         }
-
-        const SceneGeometry* geometry = pScenes->getGeometry(scene);
-        if (!geometry)
-        {
-            LOGF(eERROR, "Scene '%s' contains no GPU geometry", kSceneSource);
-            return false;
-        }
-        if (!pGeometryData->pUserData || pGeometryData->userDataSize < sizeof(SceneAssetGeometryHeader))
-        {
-            LOGF(eERROR, "Scene '%s' contains no valid scene metadata", kSceneSource);
-            return false;
-        }
-
-        const SceneAssetGeometryHeader* header = (const SceneAssetGeometryHeader*)pGeometryData->pUserData;
-        if (header->magic != SCENE_ASSET_GEOMETRY_MAGIC || !header->instanceCount ||
-            sizeof(*header) + (uint64_t)header->instanceCount * sizeof(SceneAssetInstance) > pGeometryData->userDataSize)
-        {
-            LOGF(eERROR, "Scene '%s' contains invalid scene metadata", kSceneSource);
-            return false;
-        }
-
-        instanceCount = header->instanceCount;
-        pInstances = (const SceneAssetInstance*)(header + 1);
-
-        const float cx = (header->boundsMin[0] + header->boundsMax[0]) * 0.5f;
-        const float cz = (header->boundsMin[2] + header->boundsMax[2]) * 0.5f;
-        target = Point3(cx, header->boundsMin[1] + 4.0f, cz);
-        eye = Point3(cx + 18.0f, header->boundsMin[1] + 16.0f, cz - 32.0f);
-        if (header->hasCamera)
-        {
-            const float* camera = header->cameraWorld;
-            eye = Point3(camera[12], camera[13], camera[14]);
-            target = eye - Vector3(camera[8], camera[9], camera[10]);
-            verticalFov = header->cameraYFov;
-        }
-
-        LOGF(eINFO, "SceneAsset ready: %u instances, %u draws, %u triangles, %u materials, %u textures", instanceCount,
-             geometry->drawArgCount, geometry->indexCount / 3, pScenes->getMaterialCount(scene), pScenes->getTextureCount(scene));
-        LOGF(eINFO, "Scene bounds: (%f, %f, %f) - (%f, %f, %f)", header->boundsMin[0], header->boundsMin[1], header->boundsMin[2],
-             header->boundsMax[0], header->boundsMax[1], header->boundsMax[2]);
+        pScene = hz::make_unique<hz::RenderScene>(*pWorld, *pRegistry);
+        pScene->reserve(asset->getNodes().count, asset->getNodes().count, 1, 1);
+        pScene->update();
+        LOGF(eINFO, "World ready: %u render objects, %u instances, %u draws, %u materials, %u textures", pScene->getActiveObjects().count,
+             pScene->getActiveInstances().count, pScene->getActiveDraws().count, asset->getMaterials().count, asset->getTextures().count);
+        pRegistry->release(handle);
         return true;
     }
 
@@ -153,11 +132,8 @@ private:
     {
         const RenderPassesDesc desc = {
             .pContext = pContext.get(),
-            .pScenes = pScenes.get(),
-            .scene = scene,
-            .pInstances = pInstances,
-            .instanceCount = instanceCount,
-            .verticalFov = verticalFov,
+            .pScene = pScene.get(),
+            .camera = pScene->findCamera(cameraEntity),
         };
         pRenderPasses = hz::make_unique<RenderPasses>(desc);
         ASSERT(pRenderPasses);
@@ -171,11 +147,15 @@ public:
         if (pContext && pContext->isValid())
             pContext->waitIdle();
         pRenderPasses = nullptr;
-        pScenes = nullptr;
-        if (pGeometryData)
-            removeResource(pGeometryData);
-        pGeometryData = nullptr;
-        pInstances = nullptr;
+        pScene = nullptr;
+        pWorld = nullptr;
+        pTypes = nullptr;
+        if (pRegistry)
+            pRegistry->shutdown();
+        pRegistry = nullptr;
+        pLoaders = nullptr;
+        catalog.clear();
+        cameraEntity = {};
         pContext = nullptr;
     }
 
@@ -199,7 +179,11 @@ public:
     void Update(float deltaTime) override
     {
         pCamera->update(deltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
-        pRenderPasses->update(*pCamera);
+        const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
+        const bool            updated = pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose);
+        ASSERT(updated);
+        pRegistry->update();
+        pRenderPasses->update();
     }
     const char* GetName() override { return "Renderer"; }
 
@@ -208,26 +192,58 @@ public:
 private:
     void initCamera()
     {
+        hz::RenderBounds bounds;
+        bool             hasBounds = false;
+        for (uint32_t index : pScene->getActiveInstances())
+        {
+            const hz::RenderInstance& instance = pScene->getInstances().pData[index];
+            if (!pScene->getObject(instance.object)->instanceCount)
+                continue;
+            if (!hasBounds)
+                bounds = instance.bounds;
+            else
+                for (uint32_t axis = 0; axis < 3; ++axis)
+                {
+                    bounds.minimum[axis] = fminf(bounds.minimum[axis], instance.bounds.minimum[axis]);
+                    bounds.maximum[axis] = fmaxf(bounds.maximum[axis], instance.bounds.maximum[axis]);
+                }
+            hasBounds = true;
+        }
+        const float                    cx = (bounds.minimum[0] + bounds.maximum[0]) * 0.5f;
+        const float                    cz = (bounds.minimum[2] + bounds.maximum[2]) * 0.5f;
         const FreeCameraControllerDesc desc = {
             .pWindow = pWindow,
-            .position = Vector3(eye),
-            .lookAt = Vector3(target),
+            .position = Vector3(cx + 18.0f, bounds.minimum[1] + 16.0f, cz - 32.0f),
+            .lookAt = Vector3(cx, bounds.minimum[1] + 4.0f, cz),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
         pCamera = hz::make_unique<FreeCameraController>(desc);
+        cameraEntity = pWorld->createObject();
+        const hz::Camera      camera = { .verticalFov = PI / 4.0f };
+        const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
+        const Vector3         z = normalize(Vector3(-0.4f, 0.8f, 0.3f));
+        const Vector3         x = normalize(cross(Vector3(0, 1, 0), z));
+        const hz::Light       sun = { .type = hz::LightType::Directional, .color = Vector3(1, 0.96f, 0.88f), .intensity = 3 };
+        const hz::LocalMatrix sunPose = { .value = Matrix4(Vector4(x, 0), Vector4(cross(z, x), 0), Vector4(z, 0), Vector4(0, 0, 0, 1)) };
+        const hz::Entity      sunEntity = pWorld->createObject();
+        const bool            created = pWorld->setComponent(cameraEntity, hz::SceneTypes::camera, &camera) &&
+                             pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose) &&
+                             pWorld->setComponent(sunEntity, hz::SceneTypes::light, &sun) &&
+                             pWorld->setComponent(sunEntity, hz::SceneTypes::localMatrix, &sunPose);
+        ASSERT(created);
+        pScene->update();
         LOGF(eINFO, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
     }
 
     hz::unique_ptr<FreeCameraController> pCamera;
     hz::unique_ptr<hz::RenderContext>    pContext;
-    hz::unique_ptr<SceneManager>         pScenes;
+    hz::AssetCatalog                     catalog;
+    hz::unique_ptr<hz::AssetLoaders>     pLoaders;
+    hz::unique_ptr<hz::AssetRegistry>    pRegistry;
+    hz::unique_ptr<hz::TypeRegistry>     pTypes;
+    hz::unique_ptr<hz::World>            pWorld;
+    hz::unique_ptr<hz::RenderScene>      pScene;
     hz::unique_ptr<RenderPasses>         pRenderPasses;
-    SceneAssetHandle                     scene = {};
-    GeometryData*                        pGeometryData = nullptr;
-    const SceneAssetInstance*            pInstances = nullptr;
-    uint32_t                             instanceCount = 0;
-    Point3                               eye;
-    Point3                               target;
-    float                                verticalFov = PI / 4.0f;
+    hz::Entity                           cameraEntity;
 };

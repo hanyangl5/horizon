@@ -395,6 +395,13 @@ static int compareOverrides(const void* pA, const void* pB)
 }
 bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
 {
+    if (type == SceneTypes::camera)
+    {
+        const Camera& camera = *(const Camera*)pValue;
+        if (!isfinite(camera.verticalFov) || camera.verticalFov <= 0.0f || camera.verticalFov >= 3.141592654f ||
+            !isfinite(camera.nearPlane) || !isfinite(camera.farPlane) || camera.nearPlane <= 0.0f || camera.farPlane <= camera.nearPlane)
+            return false;
+    }
     if (type == SceneTypes::meshRenderer)
     {
         Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
