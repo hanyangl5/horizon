@@ -89,23 +89,23 @@ float4 PSMain(PSInput input): SV_Target0
     {
         ByteAddressBuffer lights = ResourceDescriptorHeap[lightsIndex];
         ByteAddressBuffer active = ResourceDescriptorHeap[activeLightsIndex];
-        const uint offset = active.Load(i * 4) * 192;
+        const uint        offset = active.Load(i * 4) * 192;
         // This sample currently shades directional lights; all shapes remain in the scene table.
         if (lights.Load(offset + 184) == 0 || lights.Load(offset + 96) != 0)
             continue;
         // Local +Z points towards a directional source; the light emits along -Z.
         float3 light = normalize(asfloat(lights.Load3(offset + 64)));
         float3 halfVector = normalize(view + light);
-        float NoL = saturate(dot(normal, light));
-        float NoH = saturate(dot(normal, halfVector));
-        float VoH = saturate(dot(view, halfVector));
+        float  NoL = saturate(dot(normal, light));
+        float  NoH = saturate(dot(normal, halfVector));
+        float  VoH = saturate(dot(view, halfVector));
         float3 fresnel = fresnelSchlick(VoH, f0);
-        float distribution = distributionGGX(NoH, roughness);
-        float visibility = visibilitySmithGGX(NoV, NoL, roughness);
+        float  distribution = distributionGGX(NoH, roughness);
+        float  visibility = visibilitySmithGGX(NoV, NoL, roughness);
         float3 specularBrdf = distribution * visibility * fresnel;
         float3 diffuseBrdf = (1.0 - fresnel) * (1.0 - metallic) * baseColor / PI;
-        float3 radiance = asfloat(lights.Load3(offset + 100)) * asfloat(lights.Load(offset + 112)) *
-                          exp2(asfloat(lights.Load(offset + 128)));
+        float3 radiance =
+            asfloat(lights.Load3(offset + 100)) * asfloat(lights.Load(offset + 112)) * exp2(asfloat(lights.Load(offset + 128)));
         color += (diffuseBrdf + specularBrdf) * radiance * NoL;
     }
 

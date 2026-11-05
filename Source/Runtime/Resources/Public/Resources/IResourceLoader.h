@@ -245,7 +245,6 @@ typedef struct GeometryData
         // We might have a different number of attributes than vertexCount.
         // This happens for example for Hair
         uint32_t attributeCount[MAX_SEMANTICS];
-
     };
 
     /// Shadow copy of the geometry vertex and index data if requested through the load flags

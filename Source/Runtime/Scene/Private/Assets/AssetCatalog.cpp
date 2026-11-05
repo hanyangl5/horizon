@@ -266,7 +266,7 @@ const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
     return pRecord ? pRecord->value : nullptr;
 }
 
-uint32_t AssetCatalog::getCount() const { return pData ? (uint32_t)hmlen(pData->pRecords) : 0; }
+uint32_t                 AssetCatalog::getCount() const { return pData ? (uint32_t)hmlen(pData->pRecords) : 0; }
 const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) const
 {
     if (!pData || !pCookedScenePath)

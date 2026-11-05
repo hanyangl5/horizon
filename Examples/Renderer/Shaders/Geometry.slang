@@ -18,8 +18,8 @@ cbuffer RootConstant0
 float4x4 loadMatrix(ByteAddressBuffer buffer, uint offset)
 {
     // Runtime matrices store four columns; construct then transpose HLSL's row vectors.
-    return transpose(float4x4(asfloat(buffer.Load4(offset)), asfloat(buffer.Load4(offset + 16)),
-                              asfloat(buffer.Load4(offset + 32)), asfloat(buffer.Load4(offset + 48))));
+    return transpose(float4x4(asfloat(buffer.Load4(offset)), asfloat(buffer.Load4(offset + 16)), asfloat(buffer.Load4(offset + 32)),
+                              asfloat(buffer.Load4(offset + 48))));
 }
 
 uint resolveTexture(uint2 id)
@@ -27,15 +27,15 @@ uint resolveTexture(uint2 id)
     if (id.x == INVALID_TEXTURE || id.y == 0)
         return INVALID_TEXTURE;
     ByteAddressBuffer textures = ResourceDescriptorHeap[texturesIndex];
-    const uint offset = id.x * 12;
+    const uint        offset = id.x * 12;
     return all(textures.Load2(offset) == id) ? textures.Load(offset + 8) : INVALID_TEXTURE;
 }
 
 Material loadMaterial()
 {
     ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    const uint offset = materialSlot * 88;
-    Material material;
+    const uint        offset = materialSlot * 88;
+    Material          material;
     material.baseColorTexture = resolveTexture(materials.Load2(offset + 8));
     material.normalTexture = resolveTexture(materials.Load2(offset + 16));
     material.metallicRoughnessTexture = resolveTexture(materials.Load2(offset + 24));
@@ -61,12 +61,12 @@ float3 transformNormal(float4x4 world, float3 normal)
 
 struct PSInput
 {
-    float4               position: SV_Position;
-    float3               worldPosition: TEXCOORD0;
-    float3               normal: TEXCOORD1;
-    float2               uv: TEXCOORD2;
-    float4               currentClip: TEXCOORD3;
-    float4               previousClip: TEXCOORD4;
+    float4 position: SV_Position;
+    float3 worldPosition: TEXCOORD0;
+    float3 normal: TEXCOORD1;
+    float2 uv: TEXCOORD2;
+    float4 currentClip: TEXCOORD3;
+    float4 previousClip: TEXCOORD4;
 };
 
 struct PSOutput
@@ -120,8 +120,8 @@ float3 applyNormalMap(PSInput input, float3 normal, Texture2D<float4> NormalMap,
 
 PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
 {
-    SamplerState               SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    Material                   material = loadMaterial();
+    SamplerState SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
+    Material     material = loadMaterial();
 
     float4 baseColor = material.baseColor;
     if (material.baseColorTexture != INVALID_TEXTURE)

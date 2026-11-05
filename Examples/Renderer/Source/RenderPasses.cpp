@@ -377,9 +377,9 @@ void RenderPasses::execute()
     const float             aspectInverse = (float)context.getHeight() / (float)context.getWidth();
     const Matrix4           current = viewProjection(cameraData.current, cameraData.lens, aspectInverse);
     const FrameData         frameData = { .viewProjection = current,
-                                          .previousViewProjection = viewProjection(cameraData.previous, cameraData.previousLens, aspectInverse),
-                                          .inverseViewProjection = inverse(current),
-                                          .eye = cameraData.current.getCol3() };
+                                  .previousViewProjection = viewProjection(cameraData.previous, cameraData.previousLens, aspectInverse),
+                                  .inverseViewProjection = inverse(current),
+                                  .eye = cameraData.current.getCol3() };
     hz::GPUBuffer&          frame = frameBuffers[snapshot.getBackingIndex()];
     const bool              updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
     ASSERT(updated);

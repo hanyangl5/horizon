@@ -49,10 +49,10 @@ public:
     Array<GpuVertexStream>   vertexStreams;
     Array<GpuSubmeshRecord>  submeshes;
     Array<GpuMaterialRecord> materials;
-    Array<GpuTextureRecord> textures;
-    uint64_t revision = 0;
-    bool gpuTables = false;
-    uint32_t             references = 1;
+    Array<GpuTextureRecord>  textures;
+    uint64_t                 revision = 0;
+    bool                     gpuTables = false;
+    uint32_t                 references = 1;
 };
 
 struct SnapshotSubmission

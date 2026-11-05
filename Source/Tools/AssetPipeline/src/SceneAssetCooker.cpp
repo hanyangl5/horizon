@@ -590,9 +590,9 @@ cJSON* SceneAssetCooker::createMaterial(const cgltf_data& data, const cgltf_mate
 bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
 {
     ASSERT(pMetadata && !pAsset);
-    cJSON*            pOldRecords = cJSON_GetObjectItemCaseSensitive(pPrevious, "assets");
-    cJSON*            pRecords = cJSON_AddArrayToObject(pMetadata, "assets");
-    bool              needsDefaultMaterial = false;
+    cJSON* pOldRecords = cJSON_GetObjectItemCaseSensitive(pPrevious, "assets");
+    cJSON* pRecords = cJSON_AddArrayToObject(pMetadata, "assets");
+    bool   needsDefaultMaterial = false;
     for (cgltf_size i = 0; i < data.meshes_count; ++i)
         for (cgltf_size j = 0; j < data.meshes[i].primitives_count; ++j)
             needsDefaultMaterial |= !data.meshes[i].primitives[j].material;
@@ -604,7 +604,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     hz::Array<cJSON*> meshes((uint32_t)data.meshes_count);
     for (uint32_t i = 0; i < textures.size(); ++i)
     {
-        const cgltf_texture& texture = data.textures[i];
+        const cgltf_texture&      texture = data.textures[i];
         const CookedSceneTexture& cooked = this->textures[i];
         for (uint32_t j = 0; j < i; ++j)
             if ((data.textures[j].image == texture.image && this->textures[j].srgb == cooked.srgb) ||
@@ -637,7 +637,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         materials[i] = identity(i < data.materials_count ? "Material" : "DefaultMaterial", material.name, data, material.extras);
         // Texture array indices are not identity evidence.
         const JsonDocument signature(createMaterial(data, material, { textures.data(), textures.size() }, true));
-        char* pText = cJSON_PrintUnformatted(signature.get());
+        char*              pText = cJSON_PrintUnformatted(signature.get());
         addHash(materials[i], "signature", hashBytes(pText, strlen(pText)));
         cJSON_free(pText);
         cJSON_AddItemToArray(pRecords, materials[i]);
