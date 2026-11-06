@@ -258,28 +258,28 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //////////////////////////////////////////////
 //// General options
 //////////////////////////////////////////////
-// #define ENABLE_FORGE_SCRIPTING
+//#define ENABLE_FORGE_SCRIPTING
 #define ENABLE_FORGE_UI
 #define ENABLE_FORGE_FONTS
 #define ENABLE_FORGE_INPUT
-// #define ENABLE_FORGE_ANIMATION_DEBUG
+//#define ENABLE_FORGE_ANIMATION_DEBUG
 #define ENABLE_ZIP_FILESYSTEM
 #define ENABLE_SCREENSHOT
-// #define ENABLE_PROFILER
+//#define ENABLE_PROFILER
 #define ENABLE_MESHOPTIMIZER
 // Uncomment this to enable empty mounts
 // used for absolute paths
-// #define ENABLE_FS_EMPTY_MOUNT
+//#define ENABLE_FS_EMPTY_MOUNT
 
 #ifdef ENABLE_PROFILER
 // Enable this if you want to have the profiler through a web browser, see PROFILE_WEBSERVER_PORT for server location
-// #define ENABLE_PROFILER_WEBSERVER
+//#define ENABLE_PROFILER_WEBSERVER
 #endif
 
 // TODO: Obsolete options?
-// #define ENABLE_MTUNER
-// #define ENABLE_UI_PRECOMPILED_SHADERS
-// #define ENABLE_TEXT_PRECOMPILED_SHADERS
+//#define ENABLE_MTUNER
+//#define ENABLE_UI_PRECOMPILED_SHADERS
+//#define ENABLE_TEXT_PRECOMPILED_SHADERS
 
 //////////////////////////////////////////////
 //// Build related options
@@ -304,7 +304,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_LOGGING
 #define DEFAULT_LOG_LEVEL eALL
 #if !defined(NDEBUG)
-// #define ENABLE_MEMORY_TRACKING
+//#define ENABLE_MEMORY_TRACKING
 #endif
 // #define ENABLE_FORGE_STACKTRACE_DUMP
 

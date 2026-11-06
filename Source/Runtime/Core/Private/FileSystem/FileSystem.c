@@ -57,9 +57,7 @@ FORGE_API bool fsIsNormalizedPath(const char* path, char separator)
 
     // skip drive letter
     if (isDriveLetter(cur))
-    {
         cur += 2;
-    }
 
     // Whenever we found any entry except ".."
     bool realEntryFound = 0;
@@ -72,9 +70,7 @@ FORGE_API bool fsIsNormalizedPath(const char* path, char separator)
     if (cur[0] == '.')
     {
         if (cur[1] == 0)
-        {
             return true;
-        }
 
         dotCounter = 1;
         ++cur;
@@ -90,30 +86,22 @@ FORGE_API bool fsIsNormalizedPath(const char* path, char separator)
             {
             case 0: // double separator "//" detected
                 if (isSep)
-                {
                     goto RETURN_FALSE;
-                }
                 break;
             case 1: // entry "." is detected
                 goto RETURN_FALSE;
             case 2: // entry ".." is detected
                 if (realEntryFound)
-                {
                     goto RETURN_FALSE;
-                }
                 break;
             }
 
             if (!c)
-            {
                 break;
-            }
 
             // wrong separator
             if (c != separator)
-            {
                 goto RETURN_FALSE;
-            }
 
             dotCounter = 0;
         }
@@ -123,9 +111,7 @@ FORGE_API bool fsIsNormalizedPath(const char* path, char separator)
             {
                 ++dotCounter;
                 if (dotCounter > 2)
-                {
                     realEntryFound = true;
-                }
             }
         }
         else
@@ -142,9 +128,7 @@ RETURN_FALSE:
     // Test failure can cause infinite recursion here.
 #if defined(FORGE_DEBUG)
     if (strlen(path) > FS_MAX_PATH - 1)
-    {
         return false;
-    }
     char buffer[FS_MAX_PATH] = { 0 };
     fsNormalizePathContinue(path, separator, buffer, buffer, (char*)UINTPTR_MAX);
     ASSERT(strcmp(buffer, path) != 0);
@@ -158,9 +142,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
     ASSERT(separator);
     ASSERT(beg <= cur && cur <= end && beg < end);
     if (end <= beg)
-    {
         return 0;
-    }
 
     const bool notEmptyAtStart = cur > beg;
 
@@ -179,14 +161,10 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
     if (cur > beg)
     {
         if (isDriveLetter(noback))
-        {
             noback += 2;
-        }
 
         if (separatorFilter(*noback, separator) == separator)
-        {
             ++noback;
-        }
 
         for (; noback <= cur - 3;)
         {
@@ -195,9 +173,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
             char nnc = noback[2];
 
             if (c != '.' || nc != '.' || nnc != separator)
-            {
                 break;
-            }
 
             noback += 3;
         }
@@ -205,9 +181,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
     else
     {
         if (noback == cur && separatorFilter(*nextPath, separator) == separator)
-        {
             ++noback;
-        }
     }
 
     for (const char* src = nextPath; *src; ++src)
@@ -235,9 +209,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
 
             *(cur++) = separator;
             if (cur == end)
-            {
                 break;
-            }
             continue;
         }
 
@@ -247,9 +219,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
         {
             *(cur++) = c;
             if (cur == end)
-            {
                 break;
-            }
             continue;
         }
 
@@ -257,9 +227,7 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
 
         const char nc = separatorFilter(src[1], separator);
         if (!nc)
-        {
             break;
-        }
 
         if (nc == separator)
         {
@@ -277,30 +245,22 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
         bool isNoback = cur == noback;
 
         if (backlink && isNoback)
-        {
             noback += 3; // strlen("../");
-        }
 
         if (!backlink || isNoback)
         {
             // skip unresolvable "../" or whatever characters here
             *(cur++) = c;
             if (cur == end)
-            {
                 break;
-            }
             *(cur++) = nc;
             if (cur == end)
-            {
                 break;
-            }
             if (nnc)
             {
                 *(cur++) = nnc;
                 if (cur == end)
-                {
                     break;
-                }
             }
         }
         else
@@ -372,9 +332,7 @@ FORGE_API bool fsMergeDirAndFileName(const char* prePath, const char* postPath, 
 
     // Delete any trailing directory separator.
     if (outputLength && output[outputLength - 1] == separator)
-    {
         output[outputLength - 1] = 0;
-    }
     return success;
 }
 
@@ -510,9 +468,7 @@ FORGE_API void fsGetParentPath(const char* path, char* output)
     for (const char* cur = path + pathLength - 1; cur >= path; --cur)
     {
         if (!isDirectorySeparator(*cur))
-        {
             continue;
-        }
         dirSeperatorLoc = cur;
         break;
     }
@@ -598,9 +554,7 @@ static inline size_t MemoryStreamAvailableSize(struct MemoryStream* stream, size
 {
     ssize_t sizeLeft = (ssize_t)stream->size - (ssize_t)stream->cursor;
     if (sizeLeft < 0)
-    {
         sizeLeft = 0;
-    }
     return (ssize_t)requestedSize > sizeLeft ? (size_t)sizeLeft : requestedSize;
 }
 
@@ -660,9 +614,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 
     size_t availableCapacity = 0;
     if (stream->capacity >= stream->cursor)
-    {
         availableCapacity = stream->capacity - stream->cursor;
-    }
 
     if (size > availableCapacity)
     {
@@ -759,9 +711,7 @@ static bool ioMemoryStreamIsAtEnd(FileStream* fs)
 static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
     if (fs->mode & FM_WRITE)
-    {
         return false;
-    }
 
     MEMSD(stream, fs);
     *outSize = stream->capacity;
@@ -811,9 +761,7 @@ bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode
         void* newBuffer = tf_malloc(capacity);
         ASSERT(newBuffer);
         if (buffer)
-        {
             memcpy(newBuffer, buffer, size);
-        }
 
         buffer = newBuffer;
         owner = true;
@@ -887,13 +835,9 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
     ASSERT(findSize < STREAM_FIND_BUFFER_SIZE);
     ASSERT(maxSeek >= 0);
     if (findSize > (size_t)maxSeek)
-    {
         return false;
-    }
     if (findSize == 0)
-    {
         return true;
-    }
 
     const uint8_t* pattern = (const uint8_t*)pFind;
     // Fill longest proper prefix which is also suffix(lps) array
@@ -907,9 +851,7 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
             prefixLength = lps[prefixLength - 1];
         }
         if (pattern[i] == pattern[prefixLength])
-        {
             ++prefixLength;
-        }
         lps[i] = prefixLength;
     }
 
@@ -918,9 +860,7 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
     {
         uint8_t byte;
         if (fsReadFromStream(pStream, &byte, sizeof(byte)) != sizeof(byte))
-        {
             return false;
-        }
 
         while (true)
         {
@@ -939,9 +879,7 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
             }
 
             if (patternPos == 0)
-            {
                 break;
-            }
 
             patternPos = lps[patternPos - 1];
         }
@@ -955,13 +893,9 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
     ASSERT(findSize < STREAM_FIND_BUFFER_SIZE);
     ASSERT(maxSeek >= 0);
     if (findSize > (size_t)maxSeek)
-    {
         return false;
-    }
     if (findSize == 0)
-    {
         return true;
-    }
 
     const uint8_t* pattern = (const uint8_t*)pFind;
     // Fill longest proper prefix which is also suffix(lps) array
@@ -980,9 +914,7 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
             prefixPos = (uint32_t)findSize - 1 - prefixLength;
         }
         if (pattern[i] == pattern[prefixPos])
-        {
             ++prefixLength;
-        }
         lps[i] = prefixLength;
     }
 
@@ -991,9 +923,7 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
     {
         uint8_t byte;
         if (!fsSeekStream(pStream, SBO_CURRENT_POSITION, -1))
-        {
             return false;
-        }
 
         size_t readBytes = fsReadFromStream(pStream, &byte, sizeof(byte));
         ASSERT(readBytes == 1);
@@ -1012,13 +942,9 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
                 break;
             }
             else if (patternPos == findSize - 1)
-            {
                 break;
-            }
             else
-            {
                 patternPos = findSize - 1 - lps[patternPos + 1];
-            }
         }
     }
     return false;
@@ -1027,16 +953,12 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
 FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
 {
     if (fsIsMemoryStream(fs))
-    {
         return true;
-    }
 
     size_t      size;
     const void* mem;
     if (!fsStreamMemoryMap(fs, &size, &mem))
-    {
         return false;
-    }
 
     FileStream wrapFs;
     if (!fsOpenStreamFromMemory(mem, size, FM_READ, false, &wrapFs))
@@ -1233,9 +1155,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
             uint32_t nkc = bucket->keyCount + 1;
 
             if (nkc + keysUsed > keysCount)
-            {
                 goto NEXT_SEED;
-            }
 
             if (bucket->keyCount)
             {
@@ -1250,9 +1170,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
             keysUsed += bucket->keyCount;
 
             if (maxCollisions < bucket->keyCount)
-            {
                 maxCollisions = bucket->keyCount;
-            }
         }
 
         uint64_t* saltKeys = keyMem + keysUsed;
@@ -1260,9 +1178,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
         uint64_t* saltKeysCopy = keyMem + keysUsed;
         keysUsed += maxCollisions;
         if (keysUsed > keysCount)
-        {
             goto NEXT_SEED;
-        }
 
         // Process buckets from most collision to fewest.
         for (uint64_t cc = maxCollisions; cc > 1; --cc)
@@ -1272,9 +1188,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
                 struct BucketPointer* bucket = buckets + ti;
 
                 if (bucket->keyCount != cc)
-                {
                     continue;
-                }
 
                 // Find a salt value for bucket such that when all items in
                 // that bucket are hashed, they claim only unclaimed slots.
@@ -1298,9 +1212,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
                             archiveKeySlotIndex(salt, ht->tableSlotCount, nodeNames + node->namePointer.offset, node->namePointer.size);
 
                         if (table[index])
-                        {
                             goto NEXT_SALT; // slot is clamed
-                        }
 
                         saltKeys[ki] = index;
                     }
@@ -1312,9 +1224,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
                         for (uint32_t ki = 0; ki < bucket->keyCount - 1; ++ki)
                         {
                             if (saltKeysCopy[ki] == saltKeysCopy[ki + 1])
-                            {
                                 goto NEXT_SALT;
-                            }
                         }
                     }
 
@@ -1374,9 +1284,7 @@ uint64_t bunyArHashTableLookup(const struct BunyArHashTable* ht, const char* nam
     --index;
 
     if (index >= nodeCount || strcmp(nodeNames + nodes[index].namePointer.offset, name) != 0)
-    {
         return UINT64_MAX;
-    }
     return index;
 }
 
@@ -1478,9 +1386,7 @@ static inline void bunyArMemoryReadPrepare(const struct BunyArMetadata* a,
     *out = a->memoryBeg + ptr.offset;
     *read = (uint64_t)(a->memoryEnd - *out);
     if (*read > ptr.size)
-    {
         *read = ptr.size;
-    }
 }
 
 static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t position, uint64_t size, void* dst)
@@ -1495,9 +1401,7 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
     }
 
     if (a->archiveStreamLocking)
-    {
         acquireMutex(&a->mutex);
-    }
 
     size_t readed = 0;
     if (fsGetStreamSeekPosition(a->archiveStream) != (ssize_t)position &&
@@ -1511,9 +1415,7 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
     }
 
     if (a->archiveStreamLocking)
-    {
         releaseMutex(&a->mutex);
-    }
 
     return readed;
 }
@@ -1534,9 +1436,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     memset(out, 0, sizeof *out);
 
     if (!desc)
-    {
         desc = &BUNYAR_OPEN_DESC_DEFAULT;
-    }
 
     bool streamMode = stream != NULL;
 
@@ -1560,9 +1460,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     if (!headerReaded)
     {
         if (desc->tryMode)
-        {
             return false;
-        }
         LOGF(eERROR, "Failed to open archive: failed to read header");
         return false;
     }
@@ -1570,9 +1468,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     if (memcmp(&header.magic, &BUNYAR_MAGIC, sizeof(header.magic)) != 0) //-V614
     {
         if (desc->tryMode)
-        {
             return false;
-        }
         LOGF(eERROR, "Failed to open archive: wrong magic value %llu, expected %llu", (unsigned long long)header.magic,
              (unsigned long long)(*((const uint64_t*)&BUNYAR_MAGIC)));
         return false;
@@ -1808,9 +1704,7 @@ bool fsArchiveOpen(ResourceDirectory rd, const char* path, const struct ArchiveO
 {
     FileStream stream;
     if (!fsOpenStreamFromPath(rd, path, FM_READ, &stream))
-    {
         return false;
-    }
 
     if (!fsArchiveOpenFromStream(&stream, desc, out))
     {
@@ -1837,9 +1731,7 @@ bool fsArchiveOpenFromStream(FileStream* stream, const struct ArchiveOpenDesc* d
         size_t      msize;
         const void* m;
         if (fsStreamMemoryMap(stream, &msize, &m))
-        {
             return bunyArchiveOpen(NULL, msize, m, desc, out);
-        }
     }
     return bunyArchiveOpen(stream, 0, NULL, desc, out);
 }
@@ -1852,9 +1744,7 @@ FORGE_API bool fsArchiveOpenFromMemory(uint64_t msize, const void* m, const stru
 FORGE_API bool fsArchiveClose(IFileSystem* fs)
 {
     if (!fs || !fs->pUser)
-    {
         return true;
-    }
 
     struct BunyArMetadata* archive = getFsArchive(fs);
 
@@ -1892,9 +1782,7 @@ bool fsArchiveGetNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid)
 
         struct BunyArNode* node = (struct BunyArNode*)bsearch(&ctx, archive->nodes, archive->nodeCount, sizeof(*node), bunyArNameNodeCmp);
         if (!node)
-        {
             return false;
-        }
 
         *outUid = (uint64_t)(node - archive->nodes);
     }
@@ -1907,9 +1795,7 @@ static bool ioArchiveGetFileUid(IFileSystem* fs, ResourceDirectory rd, const cha
     char        path[BUNYAR_FILE_NAME_LENGTH_MAX + 1];
     const char* strrd = fsGetResourceDirectory(rd);
     if (!fsMergeDirAndFileName(strrd, fileName, '/', sizeof path, path))
-    {
         return false;
-    }
     return fsArchiveGetNodeId(fs, path, outUid);
 }
 
@@ -1943,9 +1829,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     case BUNYAR_FILE_FORMAT_RAW:
     {
         if (node->originalFileSize == node->filePointer.size)
-        {
             break;
-        }
 
         LOGF(eERROR, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
              (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.size);
@@ -1961,9 +1845,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         }
 
         if (bunyArStreamRead(archive, node->filePointer.offset, sizeof(blocksHeader), &blocksHeader) != sizeof(blocksHeader))
-        {
             return false;
-        }
 
         if (blocksHeader.blockSize == 0)
         {
@@ -2033,18 +1915,14 @@ static bool ioArchiveFsOpen(IFileSystem* fs, const ResourceDirectory rd, const c
 {
     uint64_t index;
     if (!fs->GetFileUid(fs, rd, fileName, &index))
-    {
         return false;
-    }
     return fs->OpenByUid(fs, index, mode, pOutStream);
 }
 
 static bool ioArchiveFsClose(FileStream* fs)
 {
     if (!fs->pIO)
-    {
         return true;
-    }
 
     ASSERT(fs->user.data[0]);
 
@@ -2086,16 +1964,12 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
         {
             bunyArMemoryReadPrepare(archive, loc, &srcMemory, &srcSize);
             if (srcSize != loc.size)
-            {
                 return false;
-            }
         }
         else
         {
             if (!bunyArReadLocation(archive, loc, fs->compressed.memory))
-            {
                 return false;
-            }
             srcMemory = fs->compressed.memory;
             srcSize = loc.size;
         }
@@ -2137,9 +2011,7 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
     }
 
     if (!error)
-    {
         return true;
-    }
 
     LOGF(eERROR, "Failed to decompress block #%llu: %s", (unsigned long long)(blockToRead - fs->blocks), error);
     return false;
@@ -2148,9 +2020,7 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
 static bool bunyArReadBlockToStagingBuffer(struct BunyArMetadata* archive, struct BunyArFileStream* fs, BunyArBlockPointer* blockToRead)
 {
     if (fs->currentBlock == blockToRead)
-    {
         return true;
-    }
 
     if (bunyArReadBlockToBuffer(archive, fs, blockToRead, &fs->decompressed))
     {
@@ -2175,9 +2045,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
     {
         size_t limit = node->filePointer.size - fs->position;
         if (outputSize > limit)
-        {
             outputSize = limit;
-        }
 
         size_t readSize = bunyArStreamRead(archive, node->filePointer.offset + fs->position, outputSize, outputBuffer);
         fs->position += readSize;
@@ -2194,9 +2062,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
             uint64_t blockIndex = fs->position / fs->blocksHeader.blockSize;
 
             if (blockIndex >= fs->blocksHeader.blockCount)
-            {
                 break;
-            }
 
             uint64_t offsetInBlock = fs->position - blockIndex * fs->blocksHeader.blockSize;
 
@@ -2205,9 +2071,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
 
             // reached end of file
             if (offsetInBlock >= blockSize)
-            {
                 break;
-            }
 
             BunyArBlockPointer* block = fs->blocks + blockIndex;
 
@@ -2254,9 +2118,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
                 // Stream from it by requested pieces.
 
                 if (fs->currentBlock != block && !bunyArReadBlockToStagingBuffer(archive, fs, block))
-                {
                     break;
-                }
 
                 // We can't reach end of last block here, because of test before
                 ASSERT(fs->decompressed.usedSize > offsetInBlock);
@@ -2303,9 +2165,7 @@ static bool ioArchiveFsSeek(FileStream* pFile, SeekBaseOffset baseOffset, ssize_
     }
 
     if (resultPos < 0 || resultPos > (ssize_t)stream->node->originalFileSize)
-    {
         return false;
-    }
 
     stream->position = (size_t)resultPos;
     return true;
@@ -2335,15 +2195,11 @@ static bool ioArchiveMemoryMap(FileStream* fs, size_t* outSize, void const** out
 
     struct BunyArMetadata* archive = getFsArchive(fs->pIO);
     if (!archive->memoryBeg)
-    {
         return false;
-    }
 
     struct BunyArNode* node = stream->node;
     if (node->format != BUNYAR_FILE_FORMAT_RAW)
-    {
         return false;
-    }
 
     *outSize = node->filePointer.size;
     *outData = archive->memoryBeg + node->filePointer.offset;
@@ -2392,9 +2248,7 @@ bool fsArchiveGetNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyAr
     struct BunyArMetadata* archive = getFsArchive(fs);
 
     if (nodeId >= archive->nodeCount)
-    {
         return false;
-    }
 
     struct BunyArNode* node = archive->nodes + nodeId;
 
@@ -2409,9 +2263,7 @@ bool fsArchiveGetNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyAr
 bool fsArchiveGetFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader, const BunyArBlockPointer** outBlockPtrs)
 {
     if (!pFile)
-    {
         return false;
-    }
 
     struct BunyArFileStream* stream = getFsBunyArStream((FileStream*)(uintptr_t)pFile);
 

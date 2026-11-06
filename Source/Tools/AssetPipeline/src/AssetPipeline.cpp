@@ -81,22 +81,16 @@ public:
     {
         if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
             snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
-        {
             return;
-        }
         if (!fsFileExist(directory, pPath) && fsFileExist(directory, backup) && !fsRenameFile(directory, backup, pPath))
-        {
             return;
-        }
         opened = fsOpenStreamFromPath(directory, temporary, FM_WRITE_ALLOW_READ, &stream);
         written = opened;
     }
     ~CookedGeometryFile()
     {
         if (opened)
-        {
             fsCloseStream(&stream);
-        }
     }
     CookedGeometryFile(const CookedGeometryFile&) = delete;
     CookedGeometryFile& operator=(const CookedGeometryFile&) = delete;
@@ -104,39 +98,27 @@ public:
     void write(const void* pData, size_t size)
     {
         if (written)
-        {
             written = fsWriteToStream(&stream, pData, size) == size;
-        }
     }
     bool publish()
     {
         if (!opened)
-        {
             return false;
-        }
         const bool closed = fsCloseStream(&stream);
         opened = false;
         if (!written || !closed)
-        {
             return false;
-        }
         const bool exists = fsFileExist(directory, pPath);
         if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pPath, backup)))
-        {
             return false;
-        }
         if (!fsRenameFile(directory, temporary, pPath))
         {
             if (exists && !fsRenameFile(directory, backup, pPath))
-            {
                 LOGF(eERROR, "Restore '%s' from '%s' before retrying", pPath, backup);
-            }
             return false;
         }
         if (exists && !fsRemoveFile(directory, backup))
-        {
             LOGF(eWARNING, "Cannot remove completed geometry backup '%s'", backup);
-        }
         return true;
     }
 
@@ -195,20 +177,14 @@ static int32_t sceneAssetTextureIndex(const cgltf_data* pData, const cgltf_textu
 static bool validateSceneAssetCookInput(const cgltf_data* pData)
 {
     if (pData->textures_count > SCENE_ASSET_MAX_TEXTURES || pData->materials_count > SCENE_ASSET_MAX_MATERIALS)
-    {
         return false;
-    }
     for (cgltf_size i = 0; i < pData->meshes_count; ++i)
-    {
         for (cgltf_size j = 0; j < pData->meshes[i].primitives_count; ++j)
-        {
             if (pData->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
             {
                 LOGF(eERROR, "Scene mesh %u primitive %u requires triangle-list topology", (uint32_t)i, (uint32_t)j);
                 return false;
             }
-        }
-    }
     for (cgltf_size i = 0; i < pData->textures_count; ++i)
     {
         const cgltf_image* pImage = pData->textures[i].image;
@@ -225,9 +201,7 @@ static cJSON* createSceneAssetFloatArray(const cgltf_float* pValues, uint32_t co
 {
     cJSON* pArray = cJSON_CreateArray();
     for (uint32_t i = 0; pArray && i < count; ++i)
-    {
         cJSON_AddItemToArray(pArray, cJSON_CreateNumber(pValues[i]));
-    }
     return pArray;
 }
 
@@ -255,14 +229,10 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
     for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
     {
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
-        {
             return true;
-        }
     }
     if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
-    {
         return false;
-    }
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
     updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
@@ -274,9 +244,7 @@ static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory,
 {
     FileStream stream = {};
     if (!fsOpenStreamFromPath(resourceDirectory, pPath, FM_READ, &stream))
-    {
         return false;
-    }
 
     char normalizedPath[FS_MAX_PATH] = {};
     fsNormalizePath(pPath, '/', normalizedPath);
@@ -301,9 +269,7 @@ static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory,
     {
         const size_t bytesRead = fsReadFromStream(&stream, bytes, sizeof(bytes));
         if (!bytesRead)
-        {
             break;
-        }
         updateSceneAssetCookHash(&pFingerprint->mHash, bytes, bytesRead);
     }
     return fsCloseStream(&stream);
@@ -324,9 +290,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
     updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mNumMaxTriangles, sizeof(pParams->mNumMaxTriangles));
     updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mOptimizationFlags, sizeof(pParams->mOptimizationFlags));
     if (!addSceneAssetCookDependency(pFingerprint, pSourcePath, pSourceData, sourceSize))
-    {
         return false;
-    }
 
     char sourceParent[FS_MAX_PATH] = {};
     fsGetParentPath(pSourcePath, sourceParent);
@@ -334,29 +298,21 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
     {
         const cgltf_buffer* pBuffer = &pData->buffers[i];
         if (!pBuffer->uri || strncmp(pBuffer->uri, "data:", 5) == 0 || strstr(pBuffer->uri, "://"))
-        {
             continue;
-        }
         char dependencyPath[FS_MAX_PATH] = {};
         fsAppendPathComponent(sourceParent, pBuffer->uri, dependencyPath);
         if (!pBuffer->data || !addSceneAssetCookDependency(pFingerprint, dependencyPath, pBuffer->data, pBuffer->size))
-        {
             return false;
-        }
     }
     for (cgltf_size i = 0; i < pData->images_count; ++i)
     {
         const cgltf_image* pImage = &pData->images[i];
         if (!pImage->uri || strncmp(pImage->uri, "data:", 5) == 0 || strstr(pImage->uri, "://"))
-        {
             continue;
-        }
         char dependencyPath[FS_MAX_PATH] = {};
         fsAppendPathComponent(sourceParent, pImage->uri, dependencyPath);
         if (!addSceneAssetCookFileDependency(resourceDirectory, pFingerprint, dependencyPath))
-        {
             return false;
-        }
     }
     return true;
 }
@@ -371,9 +327,7 @@ static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const ch
 {
     FileStream stream = {};
     if (!fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_READ, &stream))
-    {
         return false;
-    }
     const ssize_t fileSize = fsGetStreamFileSize(&stream);
     if (fileSize <= 0 || fileSize > 1024 * 1024)
     {
@@ -395,9 +349,7 @@ static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const ch
     const bool   valid =
         cJSON_IsString(pContentHash) && pContentHash->valuestring && strlen(pContentHash->valuestring) < SCENE_ASSET_CONTENT_HASH_CAPACITY;
     if (valid)
-    {
         snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "%s", pContentHash->valuestring);
-    }
     cJSON_Delete(pRoot);
     return valid;
 }
@@ -406,9 +358,7 @@ static cJSON* buildSceneAssetManifest(const char* pSceneName, const char* pGeome
                                       const cgltf_data* pData, const SceneAssetCookFingerprint* pFingerprint, SceneAssetCooker& sceneCooker)
 {
     if (!validateSceneAssetCookInput(pData))
-    {
         return nullptr;
-    }
 
     cJSON* pRoot = cJSON_CreateObject();
     cJSON* pScenes = cJSON_CreateObject();
@@ -431,9 +381,7 @@ static cJSON* buildSceneAssetManifest(const char* pSceneName, const char* pGeome
     cJSON_AddStringToObject(pRoot, "contentHash", contentHash);
     cJSON* pDependencies = cJSON_AddArrayToObject(pRoot, "dependencies");
     for (uint32_t i = 0; pDependencies && i < pFingerprint->mDependencyCount; ++i)
-    {
         cJSON_AddItemToArray(pDependencies, cJSON_CreateString(pFingerprint->mDependencies[i]));
-    }
     cJSON_AddStringToObject(pRoot, "source", pSourceGltf);
     cJSON_AddStringToObject(pRoot, "defaultScene", pSceneName);
     cJSON_AddStringToObject(pScene, "geometry", pGeometryFileName);
@@ -494,14 +442,10 @@ static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const c
                                     SceneAssetCooker& sceneCooker)
 {
     if (!sceneCooker.write())
-    {
         return false;
-    }
     char* pJson = cJSON_Print(pRoot);
     if (!pJson)
-    {
         return false;
-    }
 
     FileStream   stream = {};
     const bool   opened = fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_WRITE, &stream);
@@ -767,9 +711,7 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
     for (uint32_t i = 0; i < (uint32_t)arrlen(pSkeletonAndAnims); ++i)
     {
         if (arrlen(pSkeletonAndAnims[i].mAnimations) == 0)
-        {
             LOGF(LogLevel::eWARNING, "Skeleton '%s' has no associated animations.", (char*)pSkeletonAndAnims[i].mSkeletonInFile.data);
-        }
     }
 
     // No assets found. Return.
@@ -801,15 +743,11 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
         {
             time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, skeletonInputFile);
             if (assetParams->mAdditionalModifiedTime != 0)
-            {
                 lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
-            }
             time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, skeletonOutput);
 
             if (lastModified < lastProcessed && lastProcessed != ~0u && lastProcessed > assetParams->mSettings.minLastModifiedTime)
-            {
                 processSkeleton = false;
-            }
         }
 
         ozz::animation::Skeleton skeleton;
@@ -864,15 +802,11 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
             {
                 time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, animInputFile);
                 if (assetParams->mAdditionalModifiedTime != 0)
-                {
                     lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
-                }
                 time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, animOutputPath);
 
                 if (lastModified < lastProcessed && lastProcessed != ~0u && lastModified > assetParams->mSettings.minLastModifiedTime)
-                {
                     processAnimation = false;
-                }
             }
 
             if (processAnimation)
@@ -1111,9 +1045,7 @@ static uint32_t FindJoint(ozz::animation::Skeleton* skeleton, const char* name)
     for (int i = 0; i < skeleton->num_joints(); i++)
     {
         if (strcmp(skeleton->joint_names()[i], name) == 0)
-        {
             return i;
-        }
     }
     return UINT_MAX;
 }
@@ -1167,9 +1099,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     int32_t*       nodeQueue = nullptr; // Simple queue because tinystl doesn't have one
     arrsetlen(nodeQueue, queueSize);
     for (uint32_t i = 0; i < queueSize; ++i)
-    {
         nodeQueue[i] = -1;
-    }
     nodeQueue[0] = 0;
     uint32_t nodeQueueStart = 0;
     uint32_t nodeQueueEnd = 1;
@@ -1227,9 +1157,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                     while (nodeIndex != -1)
                     {
                         if (nodeData[nodeIndex].mUsedInSkeleton)
-                        {
                             break; // Remaining part of the tree is already marked
-                        }
                         nodeData[nodeIndex].mUsedInSkeleton = true;
                         nodeIndex = nodeData[nodeIndex].pParentNodeIndex;
                     }
@@ -1284,24 +1212,16 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
 
                 // and the sign of the scaling
                 if (determinant(mat) < 0)
-                {
                     pScaling = -pScaling;
-                }
                 joint.transform.scale = pScaling; //*(boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
 
                 // and remove all scaling from the matrix
                 if (pScaling.getX())
-                {
                     upperMat.setCol0(upperMat.getCol0() / pScaling.getX());
-                }
                 if (pScaling.getY())
-                {
                     upperMat.setCol1(upperMat.getCol1() / pScaling.getY());
-                }
                 if (pScaling.getZ())
-                {
                     upperMat.setCol2(upperMat.getCol2() / pScaling.getZ());
-                }
 
                 // and generate the rotation quaternion from it
                 joint.transform.rotation = Quat(upperMat);
@@ -1329,9 +1249,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
         {
             SkeletonNodeInfo* childNodeInfo = &nodeData[nodeInfo->mChildNodeIndices[i]];
             if (childNodeInfo->mUsedInSkeleton)
-            {
                 ++requiredChildCount;
-            }
         }
 
         // Add child nodes to the list of nodes to process
@@ -1384,9 +1302,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     // Write skeleton to disk
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDirOzzOutput, skeletonOutputFile, FM_WRITE, &file))
-    {
         return true;
-    }
 
     ozz::io::OArchive archive(&file);
     archive << *pOutSkeleton;
@@ -1423,13 +1339,9 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                     const cgltf_node* jointNode = skin->joints[j];
                     uint32_t          jointIndex = FindJoint(pOutSkeleton, jointNode->name);
                     if (j == 0)
-                    {
                         offset += snprintf(jointRemaps + offset, sizeof(jointRemaps) - offset, "%u", jointIndex);
-                    }
                     else
-                    {
                         offset += snprintf(jointRemaps + offset, sizeof(jointRemaps) - offset, ", %u", jointIndex);
-                    }
                 }
 
                 offset += snprintf(jointRemaps + offset, sizeof(jointRemaps) - offset, " ]");
@@ -1439,9 +1351,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
 
                 const size_t iterCount = strlen(jointRemaps) + 1;
                 for (uint32_t j = 0; j < iterCount; ++j)
-                {
                     arrpush(buffer, jointRemaps[j]);
-                }
             }
         }
 
@@ -1507,9 +1417,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
             cgltf_animation_channel* channel = &animationData->channels[channelIndex];
 
             if (strcmp(channel->target_node->name, jointName) != 0)
-            {
                 continue;
-            }
 
             if (channel->target_path == cgltf_animation_path_type_translation)
             {
@@ -1558,19 +1466,13 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
         }
 
         if (arrlen(track->translations) != 0)
-        {
             rawAnimation.duration = max(rawAnimation.duration, arrlast(track->translations).time);
-        }
 
         if (arrlen(track->rotations) != 0)
-        {
             rawAnimation.duration = max(rawAnimation.duration, arrlast(track->rotations).time);
-        }
 
         if (arrlen(track->scales) != 0)
-        {
             rawAnimation.duration = max(rawAnimation.duration, arrlast(track->scales).time);
-        }
     }
 
     // Validate raw animation
@@ -1681,9 +1583,7 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
 
         const char* animOutFilePath = buffer;
         if (CreateRuntimeAnimation(animationSettings, animationData, animOutFilePath, skeleton, animationInputFile))
-        {
             error = true;
-        }
     }
 
     tf_free(srcFileData);
@@ -1722,92 +1622,50 @@ static inline constexpr hz::Format util_cgltf_type_to_image_format(cgltf_type ty
     {
     case cgltf_type_scalar:
         if (cgltf_component_type_r_8 == compType)
-        {
             return hz::Format::R8_SINT;
-        }
         else if (cgltf_component_type_r_16 == compType)
-        {
             return hz::Format::R16_SINT;
-        }
         else if (cgltf_component_type_r_16u == compType)
-        {
             return hz::Format::R16_UINT;
-        }
         else if (cgltf_component_type_r_32f == compType)
-        {
             return hz::Format::R32_SFLOAT;
-        }
         else if (cgltf_component_type_r_32u == compType)
-        {
             return hz::Format::R32_UINT;
-        }
     case cgltf_type_vec2:
         if (cgltf_component_type_r_8 == compType)
-        {
             return hz::Format::R8G8_SINT;
-        }
         else if (cgltf_component_type_r_16 == compType)
-        {
             return hz::Format::R16G16_SINT;
-        }
         else if (cgltf_component_type_r_16u == compType)
-        {
             return hz::Format::R16G16_UINT;
-        }
         else if (cgltf_component_type_r_32f == compType)
-        {
             return hz::Format::R32G32_SFLOAT;
-        }
         else if (cgltf_component_type_r_32u == compType)
-        {
             return hz::Format::R32G32_UINT;
-        }
     case cgltf_type_vec3:
         if (cgltf_component_type_r_8 == compType)
-        {
             return hz::Format::R8G8B8_SINT;
-        }
         else if (cgltf_component_type_r_16 == compType)
-        {
             return hz::Format::R16G16B16_SINT;
-        }
         else if (cgltf_component_type_r_16u == compType)
-        {
             return hz::Format::R16G16B16_UINT;
-        }
         else if (cgltf_component_type_r_32f == compType)
-        {
             return hz::Format::R32G32B32_SFLOAT;
-        }
         else if (cgltf_component_type_r_32u == compType)
-        {
             return hz::Format::R32G32B32_UINT;
-        }
     case cgltf_type_vec4:
         if (cgltf_component_type_r_8 == compType)
-        {
             return hz::Format::R8G8B8A8_SINT;
-        }
         else if (cgltf_component_type_r_8u == compType)
-        {
             return hz::Format::R8G8B8A8_UINT;
-        }
         else if (cgltf_component_type_r_16 == compType)
-        {
             return hz::Format::R16G16B16A16_SINT;
-        }
         else if (cgltf_component_type_r_16u == compType)
-        {
             return hz::Format::R16G16B16A16_UINT;
-        }
         else if (cgltf_component_type_r_32f == compType)
-        {
             return hz::Format::R32G32B32A32_SFLOAT;
-        }
         else if (cgltf_component_type_r_32u == compType)
-        {
             return hz::Format::R32G32B32A32_UINT;
-        }
         // #NOTE: Not applicable to vertex formats
     case cgltf_type_mat2:
     case cgltf_type_mat3:
@@ -1973,9 +1831,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
                          uint32_t indexCount, uint32_t vertexOffset, uint32_t* vertexCount)
 {
     if (optimizationFlags == MESH_OPTIMIZATION_FLAG_OFF)
-    {
         return;
-    }
 
     size_t remapSize = (*vertexCount * sizeof(uint32_t));
 
@@ -1987,9 +1843,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     for (size_t i = 0; i < MAX_SEMANTICS; i++)
     {
         if (!geomData->pShadow->vertexStrides[i])
-        {
             continue;
-        }
 
         if (i == SEMANTIC_POSITION)
         {
@@ -2025,9 +1879,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     for (size_t i = 0; i < MAX_SEMANTICS; i++)
     {
         if (!geomData->pShadow->vertexStrides[i])
-        {
             continue;
-        }
 
         uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
         meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->vertexStrides[i], remap);
@@ -2066,9 +1918,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
             for (size_t i = 0; i < MAX_SEMANTICS; i++)
             {
                 if (!geomData->pShadow->vertexStrides[i])
-                {
                     continue;
-                }
 
                 uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
                 meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->vertexStrides[i], remap);
@@ -2104,9 +1954,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
             for (size_t i = 0; i < MAX_SEMANTICS; i++)
             {
                 if (!geomData->pShadow->vertexStrides[i])
-                {
                     continue;
-                }
 
                 uint8_t* buffer = (uint8_t*)geomData->pShadow->pAttributes[i] + vertexOffset * geomData->pShadow->vertexStrides[i];
                 meshopt_remapVertexBuffer(buffer, buffer, *vertexCount, geomData->pShadow->vertexStrides[i], remap);
@@ -2122,19 +1970,11 @@ static bool isSceneAssetNodeSelected(const cgltf_data* data, const cgltf_node* n
 {
     const cgltf_scene* scene = data->scene ? data->scene : (data->scenes_count ? &data->scenes[0] : nullptr);
     if (!scene)
-    {
         return true;
-    }
     for (const cgltf_node* ancestor = node; ancestor; ancestor = ancestor->parent)
-    {
         for (cgltf_size i = 0; i < scene->nodes_count; ++i)
-        {
             if (ancestor == scene->nodes[i])
-            {
                 return true;
-            }
-        }
-    }
     return false;
 }
 
@@ -2156,9 +1996,7 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
     {
         const cgltf_node* node = &data->nodes[n];
         if (!isSceneAssetNodeSelected(data, node))
-        {
             continue;
-        }
         if (header && !header->hasCamera && node->camera && node->camera->type == cgltf_camera_type_perspective)
         {
             cgltf_node_transform_world(node, header->cameraWorld);
@@ -2166,20 +2004,14 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
             header->hasCamera = 1;
         }
         if (!node->mesh)
-        {
             continue;
-        }
         uint32_t firstDraw = 0;
         for (const cgltf_mesh* mesh = data->meshes; mesh != node->mesh; ++mesh)
-        {
             firstDraw += (uint32_t)mesh->primitives_count;
-        }
         for (cgltf_size p = 0; p < node->mesh->primitives_count; ++p, ++count)
         {
             if (!instances)
-            {
                 continue;
-            }
             const cgltf_primitive* primitive = &node->mesh->primitives[p];
             SceneAssetInstance&    instance = instances[count];
             cgltf_node_transform_world(node, instance.world);
@@ -2192,14 +2024,10 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
             for (cgltf_size a = 0; a < primitive->attributes_count; ++a)
             {
                 if (primitive->attributes[a].type != cgltf_attribute_type_position)
-                {
                     continue;
-                }
                 const cgltf_accessor* accessor = primitive->attributes[a].data;
                 if (!accessor->has_min || !accessor->has_max)
-                {
                     continue;
-                }
                 for (uint32_t corner = 0; corner < 8; ++corner)
                 {
                     const float x = (corner & 1) ? accessor->max[0] : accessor->min[0];
@@ -2217,9 +2045,7 @@ static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
         }
     }
     if (header)
-    {
         header->instanceCount = count;
-    }
     return (uint32_t)sizeof(SceneAssetGeometryHeader) + count * (uint32_t)sizeof(SceneAssetInstance);
 }
 
@@ -2349,18 +2175,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     }
                     fsCloseStream(&fs);
                     if (!buffersLoaded)
-                    {
                         break;
-                    }
                 }
             }
         }
 
         result = buffersLoaded ? cgltf_load_buffers(&options, data, fileName) : cgltf_result_data_too_short;
         if (result == cgltf_result_success)
-        {
             result = cgltf_validate(data);
-        }
         if (cgltf_result_success != result)
         {
             LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
@@ -2469,21 +2291,15 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         // Request the size that the user will need to load it's custom fields
         uint32_t userDataSize = 0;
         if (glTFParams->pWriteExtrasCallback)
-        {
             glTFParams->pWriteExtrasCallback(&userDataSize, NULL, glTFParams->pCallbackUserData);
-        }
         else
-        {
             userDataSize = writeSceneAssetInstances(data, nullptr);
-        }
 
         PackingFunction vertexPacking[MAX_SEMANTICS] = {};
         uint32_t        vertexAttrStrides[MAX_SEMANTICS] = {};
 
         for (uint32_t j = 0; j < data->skins_count; ++j)
-        {
             jointCount += (uint32_t)data->skins[j].joints_count;
-        }
 
         // Determine index stride
         // This depends on vertex count rather than the stride specified in gltf
@@ -2523,13 +2339,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             geomData->pUserData = pUserData;
             geomData->userDataSize = userDataSize;
             if (glTFParams->pWriteExtrasCallback)
-            {
                 glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
-            }
             else
-            {
                 writeSceneAssetInstances(data, pUserData);
-            }
         }
 
         // Determine vertex stride for each binding
@@ -2541,9 +2353,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             if (!cgltfAttr)
             {
                 if (glTFParams->mIgnoreMissingAttributes)
-                {
                     continue; // This attribute is not in the GLTF file, just ignore it
-                }
                 else
                 {
                     LOGF(eERROR, "Missing attribute at index %u of pVertexLayout", attrIdx);
@@ -2575,9 +2385,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 case cgltf_attribute_type_texcoord:
                 {
                     if (sizeof(uint32_t) == dstFormatSize && sizeof(float[2]) == srcFormatSize)
-                    {
                         vertexPacking[attr->semantic] = util_pack_float2_to_half2;
-                    }
                     // #TODO: Add more variations if needed
                     break;
                 }
@@ -2585,18 +2393,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 case cgltf_attribute_type_tangent:
                 {
                     if (sizeof(uint32_t) == dstFormatSize && (sizeof(float[3]) == srcFormatSize || sizeof(float[4]) == srcFormatSize))
-                    {
                         vertexPacking[attr->semantic] = util_pack_float3_direction_to_half2;
-                    }
                     // #TODO: Add more variations if needed
                     break;
                 }
                 case cgltf_attribute_type_joints:
                 {
                     if (srcFormatSize == sizeof(uint8_t) * 4 && dstFormatSize == sizeof(uint16_t) * 4)
-                    {
                         vertexPacking[attr->semantic] = util_unpack_uint8_to_uint16_joints;
-                    }
                     else
                     {
                         LOGF(eERROR, "Joint size doesn't match");
@@ -2635,10 +2439,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         geomData->pShadow->pAttributes[SEMANTIC_POSITION] = (uint8_t*)geomData->pShadow->pIndices + (indexCount * indexStride);
 
         for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
-        {
             geomData->pShadow->pAttributes[s] = (uint8_t*)geomData->pShadow->pAttributes[s - 1] +
                                                 geomData->pShadow->vertexStrides[s - 1] * geomData->pShadow->attributeCount[s - 1];
-        }
 
         ASSERT(((const char*)geomData->pShadow) + shadowSize ==
                ((char*)geomData->pShadow->pAttributes[MAX_SEMANTICS - 1] +
@@ -2649,9 +2451,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         {
             // If the attribute is not present in the gltf file we just don't save anything
             if (geomData->pShadow->vertexStrides[j] == 0)
-            {
                 geomData->pShadow->pAttributes[j] = nullptr;
-            }
         }
 
         geom->drawArgCount = drawCount;
@@ -2678,9 +2478,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, (cgltf_float*)geomData->pInverseBindPoses,
                                              skin->joints_count * sizeof(float[16]) / sizeof(float));
                 for (uint32_t r = 0; r < skin->joints_count; ++r)
-                {
                     geomData->pJointRemaps[remapCount + r] = atoi(jointRemaps + tokens[1 + r].start);
-                }
                 tf_free(tokens);
             }
 
@@ -2722,17 +2520,13 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 {
                     uint16_t* dst = (uint16_t*)geomData->pShadow->pIndices;
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
-                    {
                         dst[indexCount + idx] = (uint16_t)(prim->indices ? cgltf_accessor_read_index(prim->indices, idx) : idx);
-                    }
                 }
                 else
                 {
                     uint32_t* dst = (uint32_t*)geomData->pShadow->pIndices;
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
-                    {
                         dst[indexCount + idx] = (uint32_t)(prim->indices ? cgltf_accessor_read_index(prim->indices, idx) : idx);
-                    }
                 }
 
                 /************************************************************************/
@@ -2746,9 +2540,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     ASSERT(semanticIdx < TF_ARRAY_COUNT(geomData->pShadow->pAttributes));
 
                     if (semanticIdx == SEMANTIC_POSITION)
-                    {
                         pos_attr = attr;
-                    }
 
                     // TODO: this should probably be an ASSERT, we don't want to loose data when using pShadow
                     if (geomData->pShadow->vertexStrides[semanticIdx] != 0)
@@ -2769,13 +2561,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         //       rather than all of them, that would require more configuration parameters per mesh while running the
                         //       AssetPipeline.
                         if (vertexPacking[semanticIdx])
-                        {
                             vertexPacking[semanticIdx]((uint32_t)attr->data->count, (uint32_t)attr->data->stride, stride, 0, src, dst);
-                        }
                         else
-                        {
                             memcpy(dst, src, attr->data->count * attr->data->stride);
-                        }
                     }
                 }
 
@@ -2880,16 +2668,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 if (sizeof(uint16_t) == indexStride)
                 {
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
-                    {
                         ((uint16_t*)geomData->pShadow->pIndices)[indexCount + idx] += (uint16_t)vertexCount;
-                    }
                 }
                 else
                 {
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
-                    {
                         ((uint32_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
-                    }
                 }
 
                 indexCount += primitiveIndexCount;
@@ -2933,9 +2717,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         for (uint32_t j = 0; j < TF_ARRAY_COUNT(geom->vertexStrides); ++j)
-        {
             ASSERT(geom->vertexStrides[j] == 0);
-        }
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 
@@ -3058,9 +2840,7 @@ bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
     tf_free(filesDesc);
 
     for (size_t i = 0; i < collectibleCount; ++i)
-    {
         tf_free(collectibles[i]);
-    }
     arrfree(collectibles);
 
     return !archiveIsCreated;
@@ -3220,13 +3000,9 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 
     // If we found animations, then push them in the array
     if (arrlen(skeletonAndAnims.mAnimations) > 0)
-    {
         arrpush(discoveredAnims->pSkeletonAndAnimations, skeletonAndAnims);
-    }
     else
-    {
         ReleaseSkeletonAndAnimationParams(&skeletonAndAnims, 1);
-    }
 }
 #else
 void OnDiscoverAnimation(ResourceDirectory, const char*, void*)
@@ -3268,9 +3044,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         for (int32_t i = 0; i < assetParams->mFlagsCount; ++i)
         {
             if (strcmp(assetParams->mFlags[i], "--optimizetracks") == 0)
-            {
                 processAnimationParams.mAnimationSettings.mOptimizeTracks = true;
-            }
         }
 
         BeginAssetPipelineSection("ProcessAnimations");
@@ -3305,29 +3079,17 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         for (int32_t i = 0; i < assetParams->mFlagsCount; ++i)
         {
             if (strcmp(assetParams->mFlags[i], "--hair") == 0)
-            {
                 isHair = true;
-            }
             else if (strcmp(assetParams->mFlags[i], "--optimize") == 0)
-            {
                 meshOptimizerFlags |= MESH_OPTIMIZATION_FLAG_ALL;
-            }
             else if (strcmp(assetParams->mFlags[i], "--optimizecache") == 0)
-            {
                 meshOptimizerFlags |= MESH_OPTIMIZATION_FLAG_VERTEXCACHE;
-            }
             else if (strcmp(assetParams->mFlags[i], "--optimizeoverdraw") == 0)
-            {
                 meshOptimizerFlags |= MESH_OPTIMIZATION_FLAG_OVERDRAW;
-            }
             else if (strcmp(assetParams->mFlags[i], "--optimizefetch") == 0)
-            {
                 meshOptimizerFlags |= MESH_OPTIMIZATION_FLAG_VERTEXFETCH;
-            }
             else if (strcmp(assetParams->mFlags[i], "--meshlets") == 0)
-            {
                 processMeshlets = true;
-            }
             else if (strcmp(assetParams->mFlags[i], "--meshletnumvertices") == 0)
             {
                 i++;
@@ -3355,9 +3117,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         }
 
         if (error)
-        {
             return 1;
-        }
 
         VertexLayout vertexLayout = {};
 
@@ -3606,9 +3366,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         }
 
         if (error)
-        {
             return 1;
-        }
 
         BeginAssetPipelineSection("ProcessTextures");
         bool result = ProcessTextures(assetParams, &texturesParams);
@@ -3639,9 +3397,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 
                     // next argument is a flag, not an extension
                     if (i + 1 == assetParams->mFlagsCount || assetParams->mFlags[i + 1][0] == '-')
-                    {
                         break;
-                    }
                 }
             }
             else if (STRCMP(flag, "--name"))
@@ -3678,9 +3434,7 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
                            SceneAssetError* pError)
 {
     if (pError)
-    {
         *pError = {};
-    }
     if (!pSourceFile || !pSourceFile[0] || sourceDirectory == outputDirectory ||
         strcmp(fsGetResourceDirectory(sourceDirectory), fsGetResourceDirectory(outputDirectory)) == 0)
     {

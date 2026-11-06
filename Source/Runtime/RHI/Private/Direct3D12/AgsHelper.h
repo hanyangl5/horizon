@@ -2,7 +2,7 @@
 
 #if defined(_WINDOWS) && !defined(DURANGO)
 #include <ThirdParty/ags/ags_lib/inc/amd_ags.h>
-// #define AMDAGS
+//#define AMDAGS
 #else
 enum AGSReturnCode
 {

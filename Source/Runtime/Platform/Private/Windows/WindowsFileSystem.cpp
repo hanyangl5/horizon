@@ -57,8 +57,8 @@ static inline T withUTF16Path(const char* path, T (*function)(const wchar_t*))
 
 extern "C"
 {
-bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-void fsGetParentPath(const char* path, char* output);
+    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+    void fsGetParentPath(const char* path, char* output);
 }
 
 #ifndef XBOX
@@ -78,9 +78,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     ASSERT(pDesc);
 
     for (uint32_t i = 0; i < RM_COUNT; ++i)
-    {
         gResourceMounts[i] = "";
-    }
 
     // Get application directory
     wchar_t utf16Path[FS_MAX_PATH];
@@ -105,9 +103,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     for (uint32_t i = 0; i < RM_COUNT; ++i)
     {
         if (pDesc->pResourceMounts[i])
-        {
             gResourceMounts[i] = pDesc->pResourceMounts[i];
-        }
     }
 
     //// Get app data directory
@@ -161,9 +157,7 @@ time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 {
     char filePath[FS_MAX_PATH] = { 0 };
     if (!fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
-    {
         return 0;
-    }
 
     // Fix paths for Windows 7 - needs to be generalized and propagated
     // eastl::string path = eastl::string(filePath);
@@ -207,9 +201,7 @@ public:
     ~WindowsErrorString()
     {
         if (lpMsgBuf)
-        {
             LocalFree(lpMsgBuf);
-        }
     }
 
     const char* c_str() { return utf8; }
@@ -335,9 +327,7 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
     WSD(stream, fs);
     LARGE_INTEGER fileSize = {};
     if (GetFileSizeEx(stream->handle, &fileSize))
-    {
         return (ssize_t)fileSize.QuadPart;
-    }
     LOGF(eERROR, "Failed to get file size: %s", WindowsErrorString().c_str());
     return -1;
 }
@@ -348,9 +338,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
     *outData = NULL;
 
     if (fs->mode & FM_WRITE)
-    {
         return false;
-    }
 
     WSD(stream, fs);
 

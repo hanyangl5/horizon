@@ -162,9 +162,7 @@ bool AnimatedObject::Update(float dt)
 {
     // sample the current animation to get localTrans
     if (!animation->Sample(dt, localTrans))
-    {
         return false;
-    }
 
     // Local to model job
 
@@ -176,9 +174,7 @@ bool AnimatedObject::Update(float dt)
 
     // Runs ltm job.
     if (!ltmJob.Run())
-    {
         return false;
-    }
 
     return true;
 }
@@ -235,9 +231,7 @@ bool AnimatedObject::AimIK(AimIKDesc* params, const Point3& target)
     ltmJob.output = jointModelMats;
 
     if (!ltmJob.Run())
-    {
         return false;
-    }
 
     return true;
 }
@@ -282,9 +276,7 @@ bool AnimatedObject::TwoBonesIK(TwoBonesIKDesc* params, const Point3& target)
 
     // Runs ltm job.
     if (!ltmJob.Run())
-    {
         return false;
-    }
 
     return true;
 }
@@ -299,7 +291,5 @@ void AnimatedObject::ComputeBindPose(const Matrix4& rootTransform)
 
     // Runs ltm job.
     if (ltmJob.Run())
-    {
         ComputePose(rootTransform);
-    }
 }

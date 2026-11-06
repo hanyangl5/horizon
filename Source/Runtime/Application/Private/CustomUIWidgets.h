@@ -46,9 +46,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
     g.CurrentWindow->WriteAccessed = true;
     ImGuiWindow* window = g.CurrentWindow;
     if (window->SkipItems)
-    {
         return -1;
-    }
 
     const int64_t* intData = (const int64_t*)data;
 
@@ -57,22 +55,16 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
     if (frame_size.x == 0.0f)
-    {
         frame_size.x = CalcItemWidth();
-    }
     if (frame_size.y == 0.0f)
-    {
         frame_size.y = label_size.y + (style.FramePadding.y * 2);
-    }
 
     const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + frame_size);
     const ImRect inner_bb(frame_bb.Min + style.FramePadding, frame_bb.Max - style.FramePadding);
     const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
     ItemSize(total_bb, style.FramePadding.y);
     if (!ItemAdd(total_bb, 0, &frame_bb))
-    {
         return -1;
-    }
     const bool hovered = ItemHoverable(frame_bb, id, ImGuiItemFlags_None);
 
     // TheForge: Custom
@@ -103,13 +95,9 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
                 long long rb = intData[v_idx * 2 + 2];
 
                 if (lb < 0)
-                {
                     lb = -lb;
-                }
                 if (rb < 0)
-                {
                     rb = -rb;
-                }
 
                 long long size = rb - lb;
                 SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk count: %lli", lb, rb, size, humanReadableSize(lb).str,
@@ -169,9 +157,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
             {
                 if (pos1.x >= pos0.x + 2.0f)
-                {
                     pos1.x -= 1.0f;
-                }
                 window->DrawList->AddRectFilled(pos0, pos1, idx_hovered == v1_idx ? col_hovered : col_base);
             }
 
@@ -182,15 +168,11 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
     // Text overlay
     if (overlay_text)
-    {
         RenderTextClipped(ImVec2(frame_bb.Min.x, frame_bb.Min.y + style.FramePadding.y), frame_bb.Max, overlay_text, NULL, NULL,
                           ImVec2(0.5f, 0.0f));
-    }
 
     if (label_size.x > 0.0f)
-    {
         RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, inner_bb.Min.y), label);
-    }
 
     // Return hovered index or -1 if none are hovered.
     // This is currently not exposed in the public API because we need a larger redesign of the whole thing, but in the short-term we are
@@ -207,9 +189,7 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
     const int64_t* values = pPlotWidget->pValues;
 
     if (!values)
-    {
         return; // uiSetWidgetAllocatorPlotBufferChunkAllocatorData wasn't called yet
-    }
 
     unsigned char labelBuf[MAX_LABEL_STR_LENGTH];
     bstring       label = bemptyfromarr(labelBuf);
@@ -221,9 +201,7 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
     size_t tlen = strlen(pPlotWidget->pName);
 
     if (tlen > 1023)
-    {
         tlen = 1023;
-    }
     memcpy(title, pPlotWidget->pName, tlen);
     title[tlen] = 0;
 
@@ -267,9 +245,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
     ASSERT(pWidget);
     ASSERT(pWidget->type == WIDGET_TYPE_CUSTOM);
     if (pWidget->type != WIDGET_TYPE_CUSTOM) //-V547
-    {
         return;
-    }
 
     CustomWidget*              pCustomWidget = (CustomWidget*)pWidget->pWidget;
     BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->pUserData;
@@ -307,13 +283,9 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
         BufferChunk* freeChunk = data->unusedChunks + ci;
 
         if (ci == 0 && freeChunk->offset == 0)
-        {
             floatingOccupiedChunks -= 1;
-        }
         if (ci == unusedChunkCount - 1 && freeChunk->offset + freeChunk->size == data->size)
-        {
             floatingOccupiedChunks -= 1;
-        }
 
         uint64_t point_beg = 0;
 
@@ -323,9 +295,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
             point_beg = histogramPointOffsetAproximation(point, nValues, data->size);
 
             if (point_beg >= freeChunk->offset)
-            {
                 break;
-            }
 
             values[2 * point] = (int64_t)point_beg;
             values[2 * point + 1] = intensity;
@@ -343,9 +313,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
             point_end = histogramPointOffsetAproximation(point + 1, nValues, data->size);
 
             if (point_end > freeChunk->offset + freeChunk->size)
-            {
                 break;
-            }
 
             values[2 * point] = -(int64_t)point_beg;
             values[2 * point + 1] = intensity;

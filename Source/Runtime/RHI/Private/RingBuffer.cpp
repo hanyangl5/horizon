@@ -61,9 +61,7 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
         BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 
     if (ownMemory)
-    {
         ubDesc.flags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-    }
     ubDesc.size = maxUniformBufferSize;
     ubDesc.pName = "UniformGPURingBuffer";
     BufferLoadDesc loadDesc = {};

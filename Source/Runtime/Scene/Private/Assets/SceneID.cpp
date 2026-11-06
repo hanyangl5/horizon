@@ -13,9 +13,7 @@ static uint64_t readIDWord(const uint8_t* pBytes)
 {
     uint64_t word = 0;
     for (uint32_t i = 0; i < 8; ++i)
-    {
         word = (word << 8) | pBytes[i];
-    }
     return word;
 }
 
@@ -40,26 +38,18 @@ static bool generateID(const IDGenerator& generator, uint64_t& high, uint64_t& l
 static int hexDigit(char value)
 {
     if (value >= '0' && value <= '9')
-    {
         return value - '0';
-    }
     if (value >= 'a' && value <= 'f')
-    {
         return value - 'a' + 10;
-    }
     if (value >= 'A' && value <= 'F')
-    {
         return value - 'A' + 10;
-    }
     return -1;
 }
 
 static bool parseID(const char* pText, uint64_t& high, uint64_t& low)
 {
     if (!pText || strlen(pText) != kIDStringCapacity - 1)
-    {
         return false;
-    }
 
     uint8_t  bytes[16] = {};
     uint32_t offset = 0;
@@ -68,16 +58,12 @@ static bool parseID(const char* pText, uint64_t& high, uint64_t& low)
         if (i == 4 || i == 6 || i == 8 || i == 10)
         {
             if (pText[offset++] != '-')
-            {
                 return false;
-            }
         }
         const int upper = hexDigit(pText[offset++]);
         const int lower = hexDigit(pText[offset++]);
         if (upper < 0 || lower < 0)
-        {
             return false;
-        }
         bytes[i] = (uint8_t)((upper << 4) | lower);
     }
     high = readIDWord(bytes);
@@ -92,9 +78,7 @@ static void formatIDWords(uint64_t high, uint64_t low, char (&text)[kIDStringCap
     for (uint32_t i = 0; i < 16; ++i)
     {
         if (i == 4 || i == 6 || i == 8 || i == 10)
-        {
             text[offset++] = '-';
-        }
         const uint8_t byte = (uint8_t)((i < 8 ? high : low) >> ((7 - i % 8) * 8));
         text[offset++] = digits[byte >> 4];
         text[offset++] = digits[byte & 0x0f];

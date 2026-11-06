@@ -174,34 +174,34 @@ inline const CameraMatrix CameraMatrix::transpose(const CameraMatrix& mat)
 inline const CameraMatrix CameraMatrix::perspective(float fovxRadians, float aspectInverse, float zNear, float zFar)
 {
     CameraMatrix result;
-    // #if defined(QUEST_VR)
-    //     float4 fov;
-    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //     result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    //#if defined(QUEST_VR)
+    //    float4 fov;
+    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //    result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
     //
-    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //     result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
-    // #else
-    //     result.camera = mat4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
-    // #endif
+    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //    result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    //#else
+    //    result.camera = mat4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
+    //#endif
     return result;
 }
 
 inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar)
 {
     CameraMatrix result;
-    // #if defined(QUEST_VR)
-    //     float4 fov;
-    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //     result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
+    //#if defined(QUEST_VR)
+    //    float4 fov;
+    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //    result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
     //
-    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //     result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
+    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //    result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
     //
-    //     return result;
-    // #else
-    //     result.camera = mat4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
-    // #endif
+    //    return result;
+    //#else
+    //    result.camera = mat4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
+    //#endif
     return result;
 }
 
@@ -209,24 +209,24 @@ inline const CameraMatrix CameraMatrix::orthographic(float left, float right, fl
 {
     CameraMatrix result;
     // TODO()
-    // #if defined(QUEST_VR)
+    //#if defined(QUEST_VR)
     //    result.leftEye = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
     //    result.rightEye = result.leftEye;
-    // #else
+    //#else
     //    result.camera = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
-    // #endif
+    //#endif
     return result;
 }
 
 inline const CameraMatrix CameraMatrix::orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
 {
     CameraMatrix result;
-    // #if defined(QUEST_VR)
-    //     result.leftEye = mat4::orthographicLH(left, right, bottom, top, zFar, zNear);
-    //     result.rightEye = result.leftEye;
-    // #else
-    //     result.camera = mat4::orthographicLH_ReverseZ(left, right, bottom, top, zNear, zFar);
-    // #endif
+    //#if defined(QUEST_VR)
+    //    result.leftEye = mat4::orthographicLH(left, right, bottom, top, zFar, zNear);
+    //    result.rightEye = result.leftEye;
+    //#else
+    //    result.camera = mat4::orthographicLH_ReverseZ(left, right, bottom, top, zNear, zFar);
+    //#endif
     return result;
 }
 

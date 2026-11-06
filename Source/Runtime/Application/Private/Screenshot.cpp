@@ -23,7 +23,7 @@
  */
 
 #include "Profiler/IProfiler.h"
-// #include "Interfaces/IScreenshot.h"
+//#include "Interfaces/IScreenshot.h"
 
 #if defined(ENABLE_SCREENSHOT)
 #include <ThirdParty/tinyimageformat/tinyimageformat_decode.h>
@@ -192,14 +192,10 @@ static void stbiw_func(void* context, void* data, int size)
 void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool noAlpha, bool forceFlipRedBlue)
 {
     if (!gCaptureFlag)
-    {
         return;
-    }
 
     if (!prepareScreenshot(pSwapChain))
-    {
         return;
-    }
 
     ASSERT(pRendererRef);
     ASSERT(pSwapChain);
@@ -237,7 +233,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         uint32_t                   floatBufferSize = pRenderTarget->width * pRenderTarget->height * sizeof(float4);
         float*                     pDecoded = (float*)tf_malloc(floatBufferSize);
         const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format, &fetchInput,
-                                                                                 pRenderTarget->width * pRenderTarget->height, pDecoded);
+                                                                 pRenderTarget->width * pRenderTarget->height, pDecoded);
         ASSERT(result);
 
         pEncoded = tf_malloc(floatBufferSize);

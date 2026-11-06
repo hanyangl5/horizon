@@ -16,9 +16,7 @@ public:
     ~TextureAssetData()
     {
         if (pUpload)
-        {
             removeResource(pUpload);
-        }
     }
 
     const AssetCatalogEntry& entry;
@@ -91,9 +89,7 @@ public:
     {
         TextureAssetData& data = *((TextureAsset*)pPayload)->pData;
         if (!isTokenCompleted(&data.token))
-        {
             return AssetLoadStatus::Pending;
-        }
         if (!data.uploadSucceeded || !data.pUpload)
         {
             LOGF(eERROR, "TextureAsset upload failed: '%s'", data.entry.location.pPath);

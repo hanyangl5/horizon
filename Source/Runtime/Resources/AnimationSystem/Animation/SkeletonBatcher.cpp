@@ -315,9 +315,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
 
     // Last resets instanceCount
     if (instanceCount + totalInstanceCount == cumulativeAnimatedObjectInstanceCount[numActiveAnimatedObjects])
-    {
         this->instanceCount = 0;
-    }
 
     uint32_t batchInstanceCount = 0;
     uint32_t batchIndex = instanceCount / MAX_SKELETON_BATCHER_BLOCK_INSTANCES;
@@ -429,9 +427,7 @@ void SkeletonBatcher::RemoveAnimatedObject(AnimatedObject* animatedObject)
 
         numAnimatedObjects--;
         if (numActiveAnimatedObjects > start)
-        {
             numActiveAnimatedObjects--;
-        }
 
         ASSERT(numActiveAnimatedObjects <= numAnimatedObjects);
     }
@@ -474,9 +470,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
         cmdBindPushConstants(cmd, rootSignature, rootConstantIndex, &uniformIndex);
         cmdDrawInstanced(cmd, numJointPoints / 6, 0, pFrameBatchSize[batchIndex], 0);
         if (!drawBones)
-        {
             pFrameBatchSize[batchIndex] = 0;
-        }
     }
     cmdEndDebugMarker(cmd);
 

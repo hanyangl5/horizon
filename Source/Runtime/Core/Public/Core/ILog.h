@@ -35,15 +35,15 @@ extern "C"
 {
 #endif
 
-FORGE_API void _EnableInteractiveMode(bool isInteractivenMode);
-FORGE_API bool _IsInteractiveMode(void);
+    FORGE_API void _EnableInteractiveMode(bool isInteractivenMode);
+    FORGE_API bool _IsInteractiveMode(void);
 
-FORGE_API void _FailedAssertImpl(const char* file, int line, const char* statement, const char* message);
-//+V576, function:_OutputDebugString, format_arg:1, ellipsis_arg:2
-FORGE_API void _OutputDebugString(const char* str, ...);
-FORGE_API void _OutputDebugStringV(const char* str, va_list args);
+    FORGE_API void _FailedAssertImpl(const char* file, int line, const char* statement, const char* message);
+    //+V576, function:_OutputDebugString, format_arg:1, ellipsis_arg:2
+    FORGE_API void _OutputDebugString(const char* str, ...);
+    FORGE_API void _OutputDebugStringV(const char* str, va_list args);
 
-FORGE_API void _PrintUnicode(const char* str, bool error);
+    FORGE_API void _PrintUnicode(const char* str, bool error);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -36,9 +36,7 @@ static uint64_t hashBytes(const void* pData, size_t size, uint64_t hash = UINT64
 {
     const uint8_t* pBytes = (const uint8_t*)pData;
     for (size_t i = 0; i < size; ++i)
-    {
         hash = (hash ^ pBytes[i]) * UINT64_C(1099511628211);
-    }
     return hash;
 }
 
@@ -53,9 +51,7 @@ static cJSON* readJson(ResourceDirectory directory, const char* pPath, uint64_t*
 {
     FileStream stream = {};
     if (!fsOpenStreamFromPath(directory, pPath, FM_READ, &stream))
-    {
         return nullptr;
-    }
     const ssize_t size = fsGetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
@@ -66,13 +62,9 @@ static cJSON* readJson(ResourceDirectory directory, const char* pPath, uint64_t*
     const bool      read = fsReadFromStream(&stream, bytes.data(), (size_t)size) == (size_t)size;
     fsCloseStream(&stream);
     if (!read)
-    {
         return nullptr;
-    }
     if (pHash)
-    {
         *pHash = hashBytes(bytes.data(), (size_t)size);
-    }
     return cJSON_ParseWithLength(bytes.data(), bytes.size());
 }
 
@@ -80,17 +72,11 @@ static bool recoverJson(ResourceDirectory directory, const char* pPath)
 {
     char backup[FS_MAX_PATH];
     if (snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
-    {
         return false;
-    }
     if (!fsFileExist(directory, backup))
-    {
         return true;
-    }
     if (!fsFileExist(directory, pPath))
-    {
         return fsRenameFile(directory, backup, pPath);
-    }
     return true;
 }
 
@@ -108,9 +94,7 @@ static bool validTextureIdentity(const cJSON* pDocument)
 static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<char> bytes)
 {
     if (!recoverJson(directory, pPath))
-    {
         return false;
-    }
     char       temporary[FS_MAX_PATH];
     const bool validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
     FileStream stream = {};
@@ -124,9 +108,7 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     }
     char backup[FS_MAX_PATH];
     if (snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
-    {
         return false;
-    }
     const bool exists = fsFileExist(directory, pPath);
     if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pPath, backup)))
     {
@@ -136,15 +118,11 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     if (!fsRenameFile(directory, temporary, pPath))
     {
         if (exists && !fsRenameFile(directory, backup, pPath))
-        {
             LOGF(eERROR, "Restore '%s' from '%s' before retrying", pPath, backup);
-        }
         return false;
     }
     if (exists && !fsRemoveFile(directory, backup))
-    {
         LOGF(eWARNING, "Cannot remove completed cook backup '%s'", backup);
-    }
     return true;
 }
 
@@ -152,9 +130,7 @@ static bool writeJson(ResourceDirectory directory, const char* pPath, const cJSO
 {
     char* pText = cJSON_Print(pValue);
     if (!pText)
-    {
         return false;
-    }
     const bool written = writeBytes(directory, pPath, { pText, (uint32_t)strlen(pText) });
     cJSON_free(pText);
     return written;
@@ -164,9 +140,7 @@ static bool buildCatalog(const cJSON* pAsset, const char* pAssetFile, hz::Array<
 {
     char* pJson = cJSON_PrintUnformatted(pAsset);
     if (!pJson)
-    {
         return false;
-    }
     hz::SceneAsset asset;
     const bool     valid = asset.parse({ pJson, (uint32_t)strlen(pJson) });
     cJSON_free(pJson);
@@ -178,23 +152,17 @@ static void addFloats(cJSON* pObject, const char* pField, const float* pValues, 
 {
     cJSON* pArray = cJSON_AddArrayToObject(pObject, pField);
     for (uint32_t i = 0; i < count; ++i)
-    {
         cJSON_AddItemToArray(pArray, cJSON_CreateNumber(pValues[i]));
-    }
 }
 
 static void addSourceKey(cJSON* pObject, const cgltf_data& data, const cgltf_extras& extras)
 {
     if (extras.end_offset <= extras.start_offset)
-    {
         return;
-    }
     const JsonDocument json(cJSON_ParseWithLength(data.json + extras.start_offset, extras.end_offset - extras.start_offset));
     const char*        pKey = text(json.get(), "horizonId");
     if (*pKey)
-    {
         cJSON_AddStringToObject(pObject, "sourceKey", pKey);
-    }
 }
 
 static cJSON* identity(const char* pKind, const char* pName, const cgltf_data& data, const cgltf_extras& extras)
@@ -218,37 +186,25 @@ static cJSON* uniqueMatch(cJSON* pOld, cJSON* pNew, cJSON* pRecord, const char* 
     uint32_t count = 0;
     cJSON*   pCandidate = nullptr;
     for (cJSON* pItem = pOld ? pOld->child : nullptr; pItem; pItem = pItem->next)
-    {
         if (!cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pItem, "missing")) && sameField(pRecord, pItem, pField))
         {
             pCandidate = pItem;
             ++count;
         }
-    }
     if (count != 1)
-    {
         return nullptr;
-    }
     count = 0;
     for (cJSON* pItem = pNew->child; pItem; pItem = pItem->next)
-    {
         if (sameField(pRecord, pItem, pField))
-        {
             ++count;
-        }
-    }
     return count == 1 ? pCandidate : nullptr;
 }
 
 static bool containsID(const cJSON* pRecords, const char* pID)
 {
     for (const cJSON* pItem = pRecords ? pRecords->child : nullptr; pItem; pItem = pItem->next)
-    {
         if (strcmp(text(pItem, "id"), pID) == 0)
-        {
             return true;
-        }
-    }
     return false;
 }
 
@@ -259,22 +215,16 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
     for (cJSON* pRecord = pNew->child; pRecord; pRecord = pRecord->next, ++index)
     {
         if (*text(pRecord, "registeredID"))
-        {
             continue;
-        }
         if (*text(pRecord, "sourceKey"))
-        {
             matches[index] = uniqueMatch(pOld, pNew, pRecord, "sourceKey");
-        }
         else
         {
             cJSON* pName = uniqueMatch(pOld, pNew, pRecord, "name");
             cJSON* pSignature = uniqueMatch(pOld, pNew, pRecord, "signature");
             matches[index] = pName && pSignature && pName != pSignature ? nullptr : (pSignature ? pSignature : pName);
             if (matches[index] && *text(matches[index], "sourceKey"))
-            {
                 matches[index] = nullptr;
-            }
         }
     }
     index = 0;
@@ -282,71 +232,49 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
     {
         cJSON* pMatch = matches[index];
         for (uint32_t i = 0; pMatch && i < matches.size(); ++i)
-        {
             if (i != index && matches[i] == pMatch)
-            {
                 pMatch = nullptr;
-            }
-        }
         char id[hz::kIDStringCapacity];
         if (*text(pRecord, "registeredID"))
-        {
             snprintf(id, sizeof(id), "%s", text(pRecord, "registeredID"));
-        }
         else if (pMatch)
-        {
             snprintf(id, sizeof(id), "%s", text(pMatch, "id"));
-        }
         else
         {
             const hz::AssetID generated = hz::AssetID::create();
             if (!generated.isValid())
-            {
                 return false;
-            }
             if (submeshes)
-            {
                 snprintf(id, sizeof(id), "%016llx", (unsigned long long)generated.low);
-            }
             else
-            {
                 generated.toString(id);
-            }
             if (containsID(pOld, id) || containsID(pNew, id))
             {
                 LOGF(eERROR, "Generated scene asset identity collision");
                 return false;
             }
             if (pOld && pOld->child)
-            {
                 LOGF(eWARNING, "No unique identity match for %s '%s'; assigning a new ID", text(pRecord, "kind"), text(pRecord, "name"));
-            }
         }
         cJSON_AddStringToObject(pRecord, "id", id);
         cJSON* pSubmeshes = cJSON_GetObjectItemCaseSensitive(pRecord, "submeshes");
         if (pSubmeshes && !matchIdentities(cJSON_GetObjectItemCaseSensitive(pMatch, "submeshes"), pSubmeshes, true))
-        {
             return false;
-        }
     }
     for (const cJSON* pRecord = pOld ? pOld->child : nullptr; pRecord; pRecord = pRecord->next)
-    {
         if (!containsID(pNew, text(pRecord, "id")))
         {
             cJSON* pMissing = cJSON_Duplicate(pRecord, true);
             cJSON_ReplaceItemInObjectCaseSensitive(pMissing, "missing", cJSON_CreateBool(true));
             cJSON_AddItemToArray(pNew, pMissing);
         }
-    }
     return true;
 }
 
 static bool validateIdentities(const cJSON* pRecords, bool submeshes = false)
 {
     if (!cJSON_IsArray(pRecords))
-    {
         return false;
-    }
     for (const cJSON* pRecord = pRecords->child; pRecord; pRecord = pRecord->next)
     {
         const char* pID = text(pRecord, "id");
@@ -354,30 +282,18 @@ static bool validateIdentities(const cJSON* pRecords, bool submeshes = false)
         if (submeshes)
         {
             if (strlen(pID) != 16 || strspn(pID, "0123456789abcdef") != 16 || strtoull(pID, nullptr, 16) == 0)
-            {
                 return false;
-            }
         }
         else if (!id.parse(pID) || !id.isValid())
-        {
             return false;
-        }
         if (!*text(pRecord, "kind") || !cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")))
-        {
             return false;
-        }
         for (const cJSON* pOther = pRecord->next; pOther; pOther = pOther->next)
-        {
             if (strcmp(pID, text(pOther, "id")) == 0)
-            {
                 return false;
-            }
-        }
         const cJSON* pSubmeshes = cJSON_GetObjectItemCaseSensitive(pRecord, "submeshes");
         if (pSubmeshes && (submeshes || !validateIdentities(pSubmeshes, true)))
-        {
             return false;
-        }
     }
     return true;
 }
@@ -385,27 +301,21 @@ static bool validateIdentities(const cJSON* pRecords, bool submeshes = false)
 static uint64_t accessorHash(const cgltf_accessor* pAccessor)
 {
     if (!pAccessor)
-    {
         return 0;
-    }
     uint64_t hash = hashBytes(&pAccessor->type, sizeof(pAccessor->type));
     hash = hashBytes(&pAccessor->count, sizeof(pAccessor->count), hash);
     if (pAccessor->is_sparse)
     {
         hz::Array<float> values((uint32_t)(pAccessor->count * cgltf_num_components(pAccessor->type)));
         if (cgltf_accessor_unpack_floats(pAccessor, values.data(), values.size()) != values.size())
-        {
             return 0;
-        }
         return hashBytes(values.data(), values.size() * sizeof(float), hash);
     }
     for (cgltf_size i = 0; i < pAccessor->count; ++i)
     {
         float values[16] = {};
         if (!cgltf_accessor_read_float(pAccessor, i, values, 16))
-        {
             return 0;
-        }
         hash = hashBytes(values, cgltf_num_components(pAccessor->type) * sizeof(float), hash);
     }
     return hash;
@@ -431,19 +341,18 @@ static uint64_t primitiveHash(const cgltf_primitive& primitive)
     uint64_t hash = hashBytes(attributes.data(), attributes.size() * sizeof(uint64_t));
     hash = hashBytes(&primitive.type, sizeof(primitive.type), hash);
     if (primitive.indices)
-    {
         for (cgltf_size i = 0; i < primitive.indices->count; ++i)
         {
             const uint64_t value = cgltf_accessor_read_index(primitive.indices, i);
             hash = hashBytes(&value, sizeof(value), hash);
         }
-    }
     return hash;
 }
 
 SceneAssetCooker::SceneAssetCooker(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
                                    const char* pGeometryFile):
-    sourceDirectory(sourceDirectory), outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
+    sourceDirectory(sourceDirectory),
+    outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
 {
     fsAppendPathExtension(pSourceFile, "asset.json", metadataFile);
     fsReplacePathExtension(pGeometryFile, "sceneasset.json", assetFile);
@@ -462,9 +371,7 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
 {
     if (!fsFileExist(sourceDirectory, metadataFile) || !fsFileExist(outputDirectory, assetFile) ||
         !fsFileExist(outputDirectory, catalogFile))
-    {
         return false;
-    }
     uint64_t           hash = 0;
     const JsonDocument metadata(readJson(sourceDirectory, metadataFile, &hash));
     const JsonDocument asset(readJson(outputDirectory, assetFile));
@@ -476,42 +383,28 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
                          strcmp(text(asset.get(), "contentHash"), pContentHash) == 0 &&
                          strcmp(text(asset.get(), "identityHash"), value) == 0;
     if (!current)
-    {
         return false;
-    }
     hz::AssetCatalog catalog;
     hz::Array<char>  expected, actual;
     if (!buildCatalog(asset.get(), assetFile, expected) || !catalog.load(outputDirectory, catalogFile) || !catalog.serialize(actual) ||
         expected.size() != actual.size() || memcmp(expected.data(), actual.data(), actual.size()))
-    {
         return false;
-    }
     const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.get(), "textures");
     for (const cJSON* pTexture = pTextures ? pTextures->child : nullptr; pTexture; pTexture = pTexture->next)
-    {
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pTexture, "cooked")) && !fsFileExist(outputDirectory, text(pTexture, "path")))
-        {
             return false;
-        }
-    }
     const cJSON* pRecords = cJSON_GetObjectItemCaseSensitive(metadata.get(), "assets");
     for (const cJSON* pRecord = pRecords ? pRecords->child : nullptr; pRecord; pRecord = pRecord->next)
     {
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")) || !*text(pRecord, "source"))
-        {
             continue;
-        }
         char path[FS_MAX_PATH];
         if (snprintf(path, sizeof(path), "%s.asset.json", text(pRecord, "source")) >= (int)sizeof(path))
-        {
             return false;
-        }
         const JsonDocument registered(readJson(sourceDirectory, path));
         const char*        pVariant = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "srgb")) ? "srgb" : "linear";
         if (!validTextureIdentity(registered.get()) || strcmp(text(registered.get(), pVariant), text(pRecord, "id")) != 0)
-        {
             return false;
-        }
     }
     return true;
 }
@@ -520,9 +413,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
 {
     ASSERT(!pMetadata && !pAsset);
     if (!recoverJson(sourceDirectory, metadataFile))
-    {
         return false;
-    }
     const bool exists = fsFileExist(sourceDirectory, metadataFile);
     pPrevious = exists ? readJson(sourceDirectory, metadataFile) : nullptr;
     const cJSON* pVersion = cJSON_GetObjectItemCaseSensitive(pPrevious, "version");
@@ -546,9 +437,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
         }
         sceneID = hz::AssetID::create();
         if (!sceneID.isValid())
-        {
             return false;
-        }
     }
     pMetadata = cJSON_CreateObject();
     cJSON_AddNumberToObject(pMetadata, "version", 1);
@@ -561,28 +450,18 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
 bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
 {
     if (!texture.source[0])
-    {
         return true;
-    }
     char path[FS_MAX_PATH];
     if (snprintf(path, sizeof(path), "%s.asset.json", texture.source) >= (int)sizeof(path))
-    {
         return false;
-    }
     cJSON* pEntry = nullptr;
     for (cJSON* pItem = pTextureMetadata->child; pItem; pItem = pItem->next)
-    {
         if (strcmp(text(pItem, "path"), path) == 0)
-        {
             pEntry = pItem;
-        }
-    }
     if (!pEntry)
     {
         if (!recoverJson(sourceDirectory, path))
-        {
             return false;
-        }
         const bool exists = fsFileExist(sourceDirectory, path);
         cJSON*     pDocument = exists ? readJson(sourceDirectory, path) : cJSON_CreateObject();
         pEntry = cJSON_CreateObject();
@@ -608,30 +487,22 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
     const char*  pID = text(pDocument, pVariant);
     const cJSON* pOldRecords = cJSON_GetObjectItemCaseSensitive(pPrevious, "assets");
     for (const cJSON* pRecord = pOldRecords ? pOldRecords->child : nullptr; pRecord; pRecord = pRecord->next)
-    {
         if (!cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")) && strcmp(text(pRecord, "source"), texture.source) == 0 &&
             (bool)cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "srgb")) == texture.srgb && strcmp(text(pRecord, "id"), pID) != 0)
         {
             LOGF(eERROR, "Missing or changed texture identity in '%s'; restore the sidecar before recooking", path);
             return false;
         }
-    }
     if (*pID)
-    {
         return texture.registeredID.parse(pID);
-    }
     texture.registeredID = hz::AssetID::create();
     if (!texture.registeredID.isValid())
-    {
         return false;
-    }
     char id[hz::kIDStringCapacity];
     texture.registeredID.toString(id);
     cJSON_AddStringToObject(pDocument, pVariant, id);
     if (!cJSON_GetObjectItemCaseSensitive(pEntry, "dirty"))
-    {
         cJSON_AddBoolToObject(pEntry, "dirty", true);
-    }
     return true;
 }
 
@@ -649,14 +520,10 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
         {
             if (data.materials[j].pbr_metallic_roughness.base_color_texture.texture == &texture ||
                 data.materials[j].emissive_texture.texture == &texture)
-            {
                 srgb = true;
-            }
             if (data.materials[j].pbr_metallic_roughness.metallic_roughness_texture.texture == &texture ||
                 data.materials[j].normal_texture.texture == &texture || data.materials[j].occlusion_texture.texture == &texture)
-            {
                 linear = true;
-            }
         }
         if (srgb && linear)
         {
@@ -666,32 +533,26 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
         }
         bool reused = false;
         for (uint32_t j = 0; j < i; ++j)
-        {
             if (data.textures[j].image == texture.image && textures[j].srgb == srgb)
             {
                 textures[i] = textures[j];
                 reused = true;
                 break;
             }
-        }
         if (reused)
-        {
             continue;
-        }
         if (!texture.image || !cooker.cook(*texture.image, srgb, textures[i]) || !registerTexture(textures[i]))
         {
             LOGF(eERROR, "Cannot cook texture %u from '%s'", i, pSourceFile);
             return false;
         }
         for (uint32_t j = 0; j < i; ++j)
-        {
             if (textures[i].registeredID.isValid() && textures[i].registeredID == textures[j].registeredID &&
                 (strcmp(textures[i].source, textures[j].source) != 0 || textures[i].srgb != textures[j].srgb))
             {
                 LOGF(eERROR, "Texture sidecars assign the same ID to different resources in '%s'", pSourceFile);
                 return false;
             }
-        }
     }
     return true;
 }
@@ -702,9 +563,7 @@ cJSON* SceneAssetCooker::createMaterial(const cgltf_data& data, const cgltf_mate
     const cgltf_pbr_metallic_roughness* pPbr = material.has_pbr_metallic_roughness ? &material.pbr_metallic_roughness : nullptr;
     cJSON*                              pMaterial = cJSON_CreateObject();
     if (!signature)
-    {
         cJSON_AddStringToObject(pMaterial, "name", material.name ? material.name : "material");
-    }
     const char*          fields[] = { "baseColorTexture", "normalTexture", "metallicRoughnessTexture", "emissiveTexture" };
     const cgltf_texture* sources[] = {
         pPbr ? pPbr->base_color_texture.texture : nullptr,
@@ -735,12 +594,8 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     cJSON* pRecords = cJSON_AddArrayToObject(pMetadata, "assets");
     bool   needsDefaultMaterial = false;
     for (cgltf_size i = 0; i < data.meshes_count; ++i)
-    {
         for (cgltf_size j = 0; j < data.meshes[i].primitives_count; ++j)
-        {
             needsDefaultMaterial |= !data.meshes[i].primitives[j].material;
-        }
-    }
     cgltf_material defaultMaterial = {};
     defaultMaterial.name = (char*)"Default Material";
     defaultMaterial.alpha_cutoff = 0.5f;
@@ -752,30 +607,22 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         const cgltf_texture&      texture = data.textures[i];
         const CookedSceneTexture& cooked = this->textures[i];
         for (uint32_t j = 0; j < i; ++j)
-        {
             if ((data.textures[j].image == texture.image && this->textures[j].srgb == cooked.srgb) ||
                 (cooked.registeredID.isValid() && this->textures[j].registeredID == cooked.registeredID))
             {
                 textures[i] = textures[j];
                 break;
             }
-        }
         if (textures[i])
-        {
             continue;
-        }
         textures[i] = identity("Texture", texture.name ? texture.name : (texture.image->name ? texture.image->name : cooked.source), data,
                                texture.extras);
         if (!*text(textures[i], "sourceKey"))
-        {
             addSourceKey(textures[i], data, texture.image->extras);
-        }
         addHash(textures[i], "signature", hashBytes(&cooked.srgb, sizeof(cooked.srgb), cooked.signature));
         cJSON_AddBoolToObject(textures[i], "srgb", cooked.srgb);
         if (cooked.source[0])
-        {
             cJSON_AddStringToObject(textures[i], "source", cooked.source);
-        }
         if (cooked.registeredID.isValid())
         {
             char id[hz::kIDStringCapacity];
@@ -828,9 +675,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     for (uint32_t i = 0; i < textures.size(); ++i)
     {
         if (containsID(pTextures, text(textures[i], "id")))
-        {
             continue;
-        }
         cJSON* pTexture = cJSON_CreateObject();
         cJSON_AddStringToObject(pTexture, "path", this->textures[i].path);
         cJSON_AddStringToObject(pTexture, "source", this->textures[i].source[0] ? this->textures[i].source : pSourceFile);
@@ -874,27 +719,17 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     hz::Array<uint32_t> selected((uint32_t)data.nodes_count);
     hz::Array<uint32_t> stack;
     for (uint32_t& index : selected)
-    {
         index = UINT32_MAX;
-    }
     const cgltf_scene* pScene = data.scene ? data.scene : (data.scenes_count ? &data.scenes[0] : nullptr);
     if (pScene)
     {
         for (cgltf_size i = pScene->nodes_count; i > 0; --i)
-        {
             stack.pushBack((uint32_t)(pScene->nodes[i - 1] - data.nodes));
-        }
     }
     else
-    {
         for (uint32_t i = selected.size(); i > 0; --i)
-        {
             if (!data.nodes[i - 1].parent)
-            {
                 stack.pushBack(i - 1);
-            }
-        }
-    }
     uint32_t nodeCount = 0;
     while (!stack.empty())
     {
@@ -911,9 +746,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         cJSON_AddStringToObject(pNode, "name", node.name ? node.name : "");
         cJSON_AddNumberToObject(pNode, "parent", node.parent ? (double)selected[node.parent - data.nodes] : -1.0);
         if (node.has_matrix)
-        {
             addFloats(pNode, "matrix", node.matrix, 16);
-        }
         else
         {
             addFloats(pNode, "translation", node.translation, 3);
@@ -921,14 +754,10 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
             addFloats(pNode, "scale", node.scale, 3);
         }
         if (node.mesh)
-        {
             cJSON_AddStringToObject(pNode, "mesh", text(meshes[(uint32_t)(node.mesh - data.meshes)], "id"));
-        }
         cJSON_AddItemToArray(pNodes, pNode);
         for (cgltf_size i = node.children_count; i > 0; --i)
-        {
             stack.pushBack((uint32_t)(node.children[i - 1] - data.nodes));
-        }
     }
     return validate();
 }
@@ -937,16 +766,12 @@ bool SceneAssetCooker::validate() const
 {
     char* pMetadataJson = cJSON_Print(pMetadata);
     if (!pMetadataJson)
-    {
         return false;
-    }
     addHash(pAsset, "identityHash", hashBytes(pMetadataJson, strlen(pMetadataJson)));
     cJSON_free(pMetadataJson);
     char* pJson = cJSON_PrintUnformatted(pAsset);
     if (!pJson)
-    {
         return false;
-    }
     hz::SceneAsset asset;
     const bool     valid = asset.parse({ pJson, (uint32_t)strlen(pJson) });
     cJSON_free(pJson);
@@ -958,21 +783,13 @@ bool SceneAssetCooker::write() const
     ASSERT(pMetadata && pAsset);
     hz::Array<char> catalog;
     if (!buildCatalog(pAsset, assetFile, catalog))
-    {
         return false;
-    }
     for (const cJSON* pEntry = pTextureMetadata->child; pEntry; pEntry = pEntry->next)
-    {
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pEntry, "dirty")) &&
             !writeJson(sourceDirectory, text(pEntry, "path"), cJSON_GetObjectItemCaseSensitive(pEntry, "document")))
-        {
             return false;
-        }
-    }
     if (!writeJson(sourceDirectory, metadataFile, pMetadata))
-    {
         return false;
-    }
     return writeJson(outputDirectory, assetFile, pAsset) &&
            writeBytes(outputDirectory, catalogFile, { catalog.data(), catalog.size() - 1 });
 }

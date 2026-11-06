@@ -106,8 +106,9 @@ GLTFMaterialDataGPU convertToGPUMaterialLazy(const std::unique_ptr<lvk::IContext
         }
         // not in the cache and not in the queue
         const bool notInCache = cache[textureId].empty();
-        const bool notInQueue = std::find_if(loadedTextureData.cbegin(), loadedTextureData.cend(), [textureId](const LoadedTextureData& d)
-                                             { return d.index == textureId; }) == loadedTextureData.end();
+        const bool notInQueue =
+            std::find_if(loadedTextureData.cbegin(), loadedTextureData.cend(),
+                         [textureId](const LoadedTextureData& d) { return d.index == textureId; }) == loadedTextureData.end();
         if (notInCache && notInQueue)
         {
             LoadedTextureData textureData = loadTextureData(files[textureId].c_str());
@@ -140,8 +141,7 @@ public:
 
         // construct Taskflow
         taskflow_.for_each_index(0u, static_cast<uint32_t>(materialsCPU_.size()), 1u,
-                                 [&](int i)
-                                 {
+                                 [&](int i) {
                                      materialsGPU_[i] = convertToGPUMaterialLazy(ctx, materialsCPU_[i], textureFiles_, textureCache_,
                                                                                  loadedTextureData_, loadingMutex_);
                                  });

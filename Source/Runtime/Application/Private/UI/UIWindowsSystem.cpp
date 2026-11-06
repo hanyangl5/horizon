@@ -64,16 +64,12 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
         int32_t Y = fsHalfHeight - windowHalfHeight;
 
         if ((abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1))
-        {
             return false;
-        }
     }
     else
     {
         if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
-        {
             return false;
-        }
     }
 
     return true;
@@ -83,9 +79,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 {
     RectDesc windowRect = pWindowRef->windowedRect;
     if ((abs(getRectWidth(&windowRect) - width) > 1) || (abs(getRectHeight(&windowRect) - height) > 1))
-    {
         return false;
-    }
     return true;
 }
 
@@ -604,9 +598,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         char publicDisplayName[128];
 #if defined(_WINDOWS) || defined(XBOX) // Win platform uses wide chars
         if (128 == wcstombs(publicDisplayName, monitor->publicDisplayName, sizeof(publicDisplayName)))
-        {
             publicDisplayName[127] = '\0';
-        }
 #elif !defined(TARGET_IOS)
         strcpy(publicDisplayName, monitor->publicDisplayName);
 #endif

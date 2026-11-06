@@ -21,23 +21,23 @@
 // * under the License.
 // */
 //
-// #include "Core/IConfig.h"
+//#include "Core/IConfig.h"
 //
-// #ifdef _WINDOWS
+//#ifdef _WINDOWS
 //
-// #include <ctime>
-// #include <ntverp.h>
+//#include <ctime>
+//#include <ntverp.h>
 //
-// #include "../CPUConfig.h"
+//#include "../CPUConfig.h"
 //
-// #if !defined(XBOX)
-// #include <shlwapi.h>
-// #pragma comment(lib, "shlwapi.lib")
-// #endif
+//#if !defined(XBOX)
+//#include <shlwapi.h>
+//#pragma comment(lib, "shlwapi.lib")
+//#endif
 //
-// #include <ThirdParty/stb/stb_ds.h>
-// #include <ThirdParty/bstrlib/bstrlib.h>
-// #include <ThirdParty/rmem/inc/rmem.h>
+//#include <ThirdParty/stb/stb_ds.h>
+//#include <ThirdParty/bstrlib/bstrlib.h>
+//#include <ThirdParty/rmem/inc/rmem.h>
 //
 ////#include "Application/IApp.h"
 ////#include "Application/IFont.h"
@@ -45,27 +45,27 @@
 ////#include "Application/IUI.h"
 ////#include <Scripting/IScripting.h>
 ////#include "RHI/IGraphics.h"
-// #include "Platform/IOperatingSystem.h"
-// #include "Core/IFileSystem.h"
-// #include "Core/ILog.h"
-// #include "Core/IThread.h"
-// #include "Core/ITime.h"
+//#include "Platform/IOperatingSystem.h"
+//#include "Core/IFileSystem.h"
+//#include "Core/ILog.h"
+//#include "Core/IThread.h"
+//#include "Core/ITime.h"
 //
-// #if defined(ENABLE_FORGE_REMOTE_UI)
-// #include "../../Tools/Network/Network.h"
-// #endif
-// #if defined(ENABLE_FORGE_RELOAD_SHADER)
-// #include "../../Tools/ReloadServer/ReloadClient.h"
-// #endif
-// #include "Core/IMath.h"
+//#if defined(ENABLE_FORGE_REMOTE_UI)
+//#include "../../Tools/Network/Network.h"
+//#endif
+//#if defined(ENABLE_FORGE_RELOAD_SHADER)
+//#include "../../Tools/ReloadServer/ReloadClient.h"
+//#endif
+//#include "Core/IMath.h"
 //
-// #include "Core/IMemory.h"
+//#include "Core/IMemory.h"
 //
-// #ifdef ENABLE_FORGE_STACKTRACE_DUMP
-// #include "WindowsStackTraceDump.h"
-// #endif
+//#ifdef ENABLE_FORGE_STACKTRACE_DUMP
+//#include "WindowsStackTraceDump.h"
+//#endif
 //
-// #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
+//#define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 //
 //// App Data
 // static IApp*       pApp = nullptr;
@@ -80,9 +80,9 @@
 //// UI
 // static UIComponent* pAPISwitchingComponent = NULL;
 // static UIComponent* pToggleVSyncComponent = NULL;
-// #if defined(ENABLE_FORGE_RELOAD_SHADER)
+//#if defined(ENABLE_FORGE_RELOAD_SHADER)
 // static UIComponent* pReloadShaderComponent = NULL;
-// #endif
+//#endif
 // static UIWidget* pSwitchComponentLabelWidget = NULL;
 // static UIWidget* pSelectApUIWidget = NULL;
 // static UIWidget* pSelectGraphicCardWidget = NULL;
@@ -124,12 +124,12 @@
 // void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
 //{
 //    UNREF_PARAM(handle);
-// #if defined(AUTOMATED_TESTING)
+//#if defined(AUTOMATED_TESTING)
 //    LOGF(eERROR, title);
 //    LOGF(eERROR, msg);
-// #else
+//#else
 //    MessageBoxA((HWND)handle->window, msg, title, MB_OK);
-// #endif
+//#endif
 //    if (callback)
 //    {
 //        callback();
@@ -171,20 +171,20 @@
 //    platformInitWindowSystem(gWindowDesc);
 //    pApp->pWindow = gWindowDesc;
 //
-// #ifdef ENABLE_FORGE_FONTS
+//#ifdef ENABLE_FORGE_FONTS
 //    if (!platformInitFontSystem())
 //        return false;
-// #endif
+//#endif
 //
-// #ifdef ENABLE_FORGE_UI
+//#ifdef ENABLE_FORGE_UI
 //    if (!platformInitUserInterface())
 //        return false;
-// #endif
+//#endif
 //
-// #ifdef ENABLE_FORGE_SCRIPTING
+//#ifdef ENABLE_FORGE_SCRIPTING
 //    platformInitLuaScriptingSystem();
 //
-// #if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
+//#if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
 //    // Tests below are executed first, before any tests registered in IApp::Init
 //    const char*    sFirstTestScripts[] = { "Test_Default.lua" };
 //    const uint32_t numScripts = sizeof(sFirstTestScripts) / sizeof(sFirstTestScripts[0]);
@@ -194,12 +194,12 @@
 //        scriptDescs[i].pScriptFileName = sFirstTestScripts[i];
 //    }
 //    luaDefineScripts(scriptDescs, numScripts);
-// #endif
-// #endif
+//#endif
+//#endif
 //
-// #if defined(ENABLE_FORGE_REMOTE_UI)
+//#if defined(ENABLE_FORGE_REMOTE_UI)
 //    initNetwork();
-// #endif
+//#endif
 //
 //    return true;
 //}
@@ -213,13 +213,13 @@
 //
 //    platformUpdateWindowSystem();
 //
-// #ifdef ENABLE_FORGE_SCRIPTING
+//#ifdef ENABLE_FORGE_SCRIPTING
 //    platformUpdateLuaScriptingSystem(appDrawn);
-// #endif
+//#endif
 //
-// #ifdef ENABLE_FORGE_UI
+//#ifdef ENABLE_FORGE_UI
 //    platformUpdateUserInterface(deltaTime);
-// #endif
+//#endif
 //}
 //
 // void exitBaseSubsystems()
@@ -232,21 +232,21 @@
 //
 //    platformExitWindowSystem();
 //
-// #ifdef ENABLE_FORGE_UI
+//#ifdef ENABLE_FORGE_UI
 //    platformExitUserInterface();
-// #endif
+//#endif
 //
-// #ifdef ENABLE_FORGE_FONTS
+//#ifdef ENABLE_FORGE_FONTS
 //    platformExitFontSystem();
-// #endif
+//#endif
 //
-// #ifdef ENABLE_FORGE_SCRIPTING
+//#ifdef ENABLE_FORGE_SCRIPTING
 //    platformExitLuaScriptingSystem();
-// #endif
+//#endif
 //
-// #if defined(ENABLE_FORGE_REMOTE_UI)
+//#if defined(ENABLE_FORGE_REMOTE_UI)
 //    exitNetwork();
-// #endif
+//#endif
 //}
 //
 ////------------------------------------------------------------------------
@@ -281,15 +281,15 @@
 //
 //    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 //
-// #if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
+//#if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
 //    // We are now shipping validation layer in the repo itself to remove dependency on Vulkan SDK to be installed
 //    // Set VK_LAYER_PATH to executable location so it can find the layer files that our application wants to use
 //    SetEnvironmentVariableA("VK_LAYER_PATH", pSystemFileIO->GetResourceMount(RM_DEBUG));
-// #endif
+//#endif
 //
-// #ifdef ENABLE_MTUNER
+//#ifdef ENABLE_MTUNER
 //    rmemInit(0);
-// #endif
+//#endif
 //
 //    initLog(app->GetName(), DEFAULT_LOG_LEVEL);
 //
@@ -302,10 +302,10 @@
 //    snprintf(gOsInfo.osDeviceName, 256, "Unknown");
 //    LOGF(LogLevel::eINFO, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName, gOsInfo.osVersion, gOsInfo.osDeviceName);
 //
-// #ifdef ENABLE_FORGE_STACKTRACE_DUMP
+//#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 //    if (!WindowsStackTrace::Init())
 //        return EXIT_FAILURE;
-// #endif
+//#endif
 //
 //    pApp = app;
 //    pWindowAppRef = app;
@@ -313,10 +313,10 @@
 //    initWindowClass();
 //
 //    // Used for automated testing, if enabled app will exit after DEFAULT_AUTOMATION_FRAME_COUNT (240) frames
-// #if defined(AUTOMATED_TESTING)
+//#if defined(AUTOMATED_TESTING)
 //    uint32_t frameCounter = 0;
 //    uint32_t targetFrameCount = DEFAULT_AUTOMATION_FRAME_COUNT;
-// #endif
+//#endif
 //
 //    initCpuInfo(&gCpu);
 //
@@ -367,7 +367,7 @@
 //
 //    pApp->pCommandLine = GetCommandLineA();
 //
-// #ifdef AUTOMATED_TESTING
+//#ifdef AUTOMATED_TESTING
 //    bool paramRenderingAPIFound = false;
 //    char benchmarkOutput[1024] = { "\0" };
 //    // Check if benchmarking was given through command line
@@ -397,7 +397,7 @@
 //        // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
 //        // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
 //        // but for projects where we compile without our lua interface we cannot do this.
-// #if defined(DIRECT3D11)
+//#if defined(DIRECT3D11)
 //        else if (strcmp(argv[i], "--d3d11") == 0)
 //        {
 //            if (paramRenderingAPIFound)
@@ -409,8 +409,8 @@
 //            gPlatformParameters.selectedRendererApi = RENDERER_API_D3D11;
 //            paramRenderingAPIFound = true;
 //        }
-// #endif
-// #if defined(DIRECT3D12)
+//#endif
+//#if defined(DIRECT3D12)
 //        else if (strcmp(argv[i], "--d3d12") == 0)
 //        {
 //            if (paramRenderingAPIFound)
@@ -422,8 +422,8 @@
 //            gPlatformParameters.selectedRendererApi = RENDERER_API_D3D12;
 //            paramRenderingAPIFound = true;
 //        }
-// #endif
-// #if defined(VULKAN)
+//#endif
+//#if defined(VULKAN)
 //        else if (strcmp(argv[i], "--vulkan") == 0)
 //        {
 //            if (paramRenderingAPIFound)
@@ -435,9 +435,9 @@
 //            gPlatformParameters.selectedRendererApi = RENDERER_API_VULKAN;
 //            paramRenderingAPIFound = true;
 //        }
-// #endif
+//#endif
 //    }
-// #endif
+//#endif
 //
 //    {
 //        if (!initBaseSubsystems())
@@ -473,10 +473,10 @@
 //        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
 //    }
 //
-// #ifdef AUTOMATED_TESTING
+//#ifdef AUTOMATED_TESTING
 //    if (pSettings->mBenchmarking)
 //        setAggregateFrames(targetFrameCount / 2);
-// #endif
+//#endif
 //
 //    bool    baseSubsystemAppDrawn = false;
 //    bool    quit = false;
@@ -487,16 +487,16 @@
 //        float   deltaTime = CounterToSecondsElapsed(lastCounter, counter);
 //        lastCounter = counter;
 //
-// #ifdef FORGE_DEBUG
+//#ifdef FORGE_DEBUG
 //        // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 //        if (deltaTime > 0.15f)
 //            deltaTime = 0.05f;
-// #endif
+//#endif
 //
-// #if defined(AUTOMATED_TESTING)
+//#if defined(AUTOMATED_TESTING)
 //        // Used to keep screenshot results consistent across CI runs
 //        deltaTime = AUTOMATION_FIXED_FRAME_TIME;
-// #endif
+//#endif
 //
 //        bool lastMinimized = gWindow->minimized;
 //
@@ -602,27 +602,27 @@
 //        {
 //            togglePlatformUI();
 //        }
-// #if defined(ENABLE_FORGE_RELOAD_SHADER)
+//#if defined(ENABLE_FORGE_RELOAD_SHADER)
 //        if (platformReloadClientShouldQuit())
 //            quit = true;
-// #endif
+//#endif
 //
-// #ifdef AUTOMATED_TESTING
+//#ifdef AUTOMATED_TESTING
 //        extern bool gAutomatedTestingScriptsFinished;
 //        // wait for the automated testing if it hasn't managed to finish in time
 //        if (gAutomatedTestingScriptsFinished && frameCounter >= targetFrameCount)
 //            quit = true;
 //        frameCounter++;
-// #endif
+//#endif
 //    }
 //
-// #ifdef AUTOMATED_TESTING
+//#ifdef AUTOMATED_TESTING
 //    if (pSettings->mBenchmarking)
 //    {
 //        dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
 //        dumpProfileData(benchmarkOutput, targetFrameCount);
 //    }
-// #endif
+//#endif
 //
 //    gReloadDescriptor.type = RELOAD_TYPE_ALL;
 //    pApp->settings.quit = true;
@@ -631,9 +631,9 @@
 //
 //    exitWindowClass();
 //
-// #ifdef ENABLE_FORGE_STACKTRACE_DUMP
+//#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 //    WindowsStackTrace::Exit();
-// #endif
+//#endif
 //
 //    exitLog();
 //
@@ -641,10 +641,10 @@
 //
 //    exitFileSystem();
 //
-// #ifdef ENABLE_MTUNER
+//#ifdef ENABLE_MTUNER
 //    rmemUnload();
 //    rmemShutDown();
-// #endif
+//#endif
 //
 //    exitMemAlloc();
 //
@@ -653,4 +653,4 @@
 //    gLogWindowHandle = NULL;
 //    return 0;
 //}
-// #endif
+//#endif

@@ -28,9 +28,7 @@ public:
     ~WorldMeshBinding()
     {
         for (const MaterialAssetBinding& material : materials)
-        {
             registry.release(material.handle);
-        }
         registry.release(view.mesh);
     }
 
@@ -39,35 +37,25 @@ public:
         seen = true;
         bool changed = !initialized || meshID != renderer.mesh || overrides.size() != renderer.overrides.size();
         for (uint32_t i = 0; !changed && i < overrides.size(); ++i)
-        {
             changed = overrides[i].submesh != renderer.overrides[i].submesh || overrides[i].material != renderer.overrides[i].material;
-        }
         if (!changed)
-        {
             return;
-        }
 
         view.state = AssetBindingState::Pending;
         view.materials = {};
         needsResolve = true;
         overrides.resize(renderer.overrides.size());
         for (uint32_t i = 0; i < overrides.size(); ++i)
-        {
             overrides[i] = renderer.overrides[i];
-        }
         if (!initialized || meshID != renderer.mesh)
         {
             const AssetHandle previous = view.mesh;
             view.mesh = {};
             meshID = renderer.mesh;
             if (!meshID.isValid() || !acquire(meshID, view.mesh))
-            {
                 fail("Invalid or unavailable mesh asset");
-            }
             if (previous.isValid())
-            {
                 releases.pushBack(previous);
-            }
         }
         initialized = true;
     }
@@ -75,9 +63,7 @@ public:
     void update()
     {
         if (view.state == AssetBindingState::Failed)
-        {
             return;
-        }
         if (!view.mesh.isValid() && !acquire(meshID, view.mesh))
         {
             fail("Cannot acquire mesh asset");
@@ -116,9 +102,7 @@ public:
                 return;
             }
             if (materialState == AssetBindingState::Pending)
-            {
                 view.state = AssetBindingState::Pending;
-            }
         }
     }
 
@@ -130,9 +114,7 @@ private:
     bool acquire(AssetID id, AssetHandle& handle)
     {
         if (registry.getState(registry.find(id)) == AssetState::Retiring)
-        {
             return true;
-        }
         AssetError error;
         handle = registry.request(id, &error);
         return handle.isValid() || error == AssetError::Retiring;
@@ -141,9 +123,7 @@ private:
     AssetBindingState state(AssetHandle handle) const
     {
         if (!handle.isValid())
-        {
             return AssetBindingState::Pending;
-        }
         switch (registry.getState(handle))
         {
         case AssetState::Ready:
@@ -160,12 +140,8 @@ private:
     void releaseMaterials()
     {
         for (const MaterialAssetBinding& material : materials)
-        {
             if (material.handle.isValid())
-            {
                 releases.pushBack(material.handle);
-            }
-        }
         materials.clear();
         view.materials = {};
     }
@@ -183,16 +159,10 @@ private:
     {
         Array<MaterialOverride> sorted({ overrides.data(), overrides.size() });
         if (!sorted.empty())
-        {
             qsort(sorted.data(), sorted.size(), sizeof(MaterialOverride), compareOverrides);
-        }
         for (uint32_t i = 0; i < sorted.size(); ++i)
-        {
             if (!sorted[i].submesh || !sorted[i].material.isValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
-            {
                 return false;
-            }
-        }
 
         Array<MaterialAssetBinding>   next;
         const Span<SceneAssetSubmesh> submeshes = mesh.getDescription().submeshes;
@@ -205,28 +175,20 @@ private:
             {
                 const uint32_t middle = first + (end - first) / 2;
                 if (sorted[middle].submesh < submesh.id)
-                {
                     first = middle + 1;
-                }
                 else
-                {
                     end = middle;
-                }
             }
             const bool overridden = first < sorted.size() && sorted[first].submesh == submesh.id;
             matched += overridden;
             next.pushBack({ .submesh = submesh.id, .asset = overridden ? sorted[first].material : submesh.material });
         }
         if (matched != sorted.size())
-        {
             return false;
-        }
         // Acquire replacements before releasing old leases, including handoffs between entities in this update.
         bool acquired = true;
         for (MaterialAssetBinding& material : next)
-        {
             acquired &= acquire(material.asset, material.handle);
-        }
         releaseMaterials();
         materials = std::move(next);
         view.materials = { materials.data(), materials.size() };
@@ -292,17 +254,11 @@ public:
     {
         ASSERT(!world.isDeferred());
         for (WorldMeshBinding* pBinding : bindings)
-        {
             pBinding->seen = false;
-        }
         query.each(sync, this);
         for (WorldMeshBinding* pBinding : bindings)
-        {
             if (pBinding->seen)
-            {
                 pBinding->update();
-            }
-        }
         for (uint32_t i = 0; i < bindings.size();)
         {
             WorldMeshBinding* pBinding = bindings[i];
@@ -316,14 +272,10 @@ public:
             bindings[i] = bindings[bindings.size() - 1];
             bindings.popBack();
             if (i < bindings.size())
-            {
                 hmgetp_null(pIndices, bindings[i]->entity)->value = i;
-            }
         }
         for (AssetHandle handle : releases)
-        {
             registry.release(handle);
-        }
         releases.clear();
     }
 

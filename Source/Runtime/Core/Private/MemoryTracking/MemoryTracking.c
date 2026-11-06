@@ -20,11 +20,11 @@
 #include <tracy/TracyC.h>
 #endif
 
-// #include "../ThirdParty/OpenSource/ModifiedSonyMath/vectormath_settings.hpp"
-// #include "Core/IMath.h"
+//#include "../ThirdParty/OpenSource/ModifiedSonyMath/vectormath_settings.hpp"
+//#include "Core/IMath.h"
 #define MEM_MAX(a, b)             ((a) > (b) ? (a) : (b))
 
-#define ALIGN_TO(size, alignment) (((size) + (alignment) - 1) & ~((alignment) - 1))
+#define ALIGN_TO(size, alignment) (((size) + (alignment)-1) & ~((alignment)-1))
 
 // Taken from EASTL EA_PLATFORM_MIN_MALLOC_ALIGNMENT
 #ifndef PLATFORM_MIN_MALLOC_ALIGNMENT
@@ -41,7 +41,7 @@
 #endif
 #endif
 
-// #define MIN_ALLOC_ALIGNMENT MEM_MAX(VECTORMATH_MIN_ALIGN, PLATFORM_MIN_MALLOC_ALIGNMENT)
+//#define MIN_ALLOC_ALIGNMENT MEM_MAX(VECTORMATH_MIN_ALIGN, PLATFORM_MIN_MALLOC_ALIGNMENT)
 
 #define MIN_ALLOC_ALIGNMENT MEM_MAX(16, PLATFORM_MIN_MALLOC_ALIGNMENT)
 
@@ -52,9 +52,7 @@
 static bool tf_mul_size(size_t lhs, size_t rhs, size_t* result)
 {
     if (lhs != 0 && rhs > SIZE_MAX / lhs)
-    {
         return false;
-    }
 
     *result = lhs * rhs;
     return true;
@@ -137,9 +135,7 @@ static void memoryTrackingApplyAllocLocked(size_t requestedSize, size_t actualSi
     uint64_t actual = (uint64_t)actualSize;
 
     if (actual < requested)
-    {
         actual = requested;
-    }
 
     gMemoryTrackingStats.liveRequestedBytes += requested;
     gMemoryTrackingStats.liveActualBytes += actual;
@@ -147,17 +143,11 @@ static void memoryTrackingApplyAllocLocked(size_t requestedSize, size_t actualSi
     ++gMemoryTrackingStats.totalAllocationCount;
 
     if (gMemoryTrackingStats.liveRequestedBytes > gMemoryTrackingStats.peakRequestedBytes)
-    {
         gMemoryTrackingStats.peakRequestedBytes = gMemoryTrackingStats.liveRequestedBytes;
-    }
     if (gMemoryTrackingStats.liveActualBytes > gMemoryTrackingStats.peakActualBytes)
-    {
         gMemoryTrackingStats.peakActualBytes = gMemoryTrackingStats.liveActualBytes;
-    }
     if (gMemoryTrackingStats.liveAllocationCount > gMemoryTrackingStats.peakAllocationCount)
-    {
         gMemoryTrackingStats.peakAllocationCount = gMemoryTrackingStats.liveAllocationCount;
-    }
 }
 
 static void memoryTrackingApplyFreeLocked(size_t requestedSize, size_t actualSize)
@@ -166,53 +156,35 @@ static void memoryTrackingApplyFreeLocked(size_t requestedSize, size_t actualSiz
     uint64_t actual = (uint64_t)actualSize;
 
     if (actual < requested)
-    {
         actual = requested;
-    }
 
     if (gMemoryTrackingStats.liveRequestedBytes >= requested)
-    {
         gMemoryTrackingStats.liveRequestedBytes -= requested;
-    }
     else
-    {
         gMemoryTrackingStats.liveRequestedBytes = 0;
-    }
 
     if (gMemoryTrackingStats.liveActualBytes >= actual)
-    {
         gMemoryTrackingStats.liveActualBytes -= actual;
-    }
     else
-    {
         gMemoryTrackingStats.liveActualBytes = 0;
-    }
 
     if (gMemoryTrackingStats.liveAllocationCount > 0)
-    {
         --gMemoryTrackingStats.liveAllocationCount;
-    }
 }
 
 static MemoryTrackingEntry* memoryTrackingFindEntryLocked(void* ptr)
 {
     if (!ptr || !gMemoryTrackingEntries || gMemoryTrackingCapacity == 0)
-    {
         return NULL;
-    }
 
     size_t index = memoryTrackingHashPtr(ptr) & (gMemoryTrackingCapacity - 1);
     for (size_t probe = 0; probe < gMemoryTrackingCapacity; ++probe)
     {
         MemoryTrackingEntry* entry = &gMemoryTrackingEntries[index];
         if (entry->state == MEMORY_TRACKING_ENTRY_EMPTY)
-        {
             return NULL;
-        }
         if (entry->state == MEMORY_TRACKING_ENTRY_OCCUPIED && entry->pPtr == ptr)
-        {
             return entry;
-        }
 
         index = (index + 1) & (gMemoryTrackingCapacity - 1);
     }
@@ -224,15 +196,11 @@ static bool memoryTrackingReserveLocked(size_t minCapacity)
 {
     size_t newCapacity = gMemoryTrackingCapacity ? gMemoryTrackingCapacity : 1024;
     while (newCapacity < minCapacity)
-    {
         newCapacity *= 2;
-    }
 
     MemoryTrackingEntry* newEntries = (MemoryTrackingEntry*)calloc(newCapacity, sizeof(MemoryTrackingEntry));
     if (!newEntries)
-    {
         return false;
-    }
 
     MemoryTrackingEntry* oldEntries = gMemoryTrackingEntries;
     size_t               oldCapacity = gMemoryTrackingCapacity;
@@ -246,15 +214,11 @@ static bool memoryTrackingReserveLocked(size_t minCapacity)
     {
         MemoryTrackingEntry* oldEntry = &oldEntries[i];
         if (oldEntry->state != MEMORY_TRACKING_ENTRY_OCCUPIED)
-        {
             continue;
-        }
 
         size_t index = memoryTrackingHashPtr(oldEntry->pPtr) & (gMemoryTrackingCapacity - 1);
         while (gMemoryTrackingEntries[index].state == MEMORY_TRACKING_ENTRY_OCCUPIED)
-        {
             index = (index + 1) & (gMemoryTrackingCapacity - 1);
-        }
 
         gMemoryTrackingEntries[index] = *oldEntry;
         ++gMemoryTrackingCount;
@@ -267,15 +231,11 @@ static bool memoryTrackingReserveLocked(size_t minCapacity)
 static bool memoryTrackingEnsureInsertCapacityLocked(void)
 {
     if (!gMemoryTrackingEntries)
-    {
         return memoryTrackingReserveLocked(1024);
-    }
 
     if ((gMemoryTrackingCount + gMemoryTrackingTombstoneCount + 1) * 10 >= gMemoryTrackingCapacity * 7)
-    {
         return memoryTrackingReserveLocked((gMemoryTrackingCount + 1) * 10 >= gMemoryTrackingCapacity * 7 ? gMemoryTrackingCapacity * 2
                                                                                                           : gMemoryTrackingCapacity);
-    }
 
     return true;
 }
@@ -283,22 +243,16 @@ static bool memoryTrackingEnsureInsertCapacityLocked(void)
 static bool memoryTrackingInsertLocked(void* ptr, size_t requestedSize, size_t actualSize, size_t alignment, bool* replaced)
 {
     if (replaced)
-    {
         *replaced = false;
-    }
 
     if (!memoryTrackingEnsureInsertCapacityLocked())
-    {
         return false;
-    }
 
     MemoryTrackingEntry* existing = memoryTrackingFindEntryLocked(ptr);
     if (existing)
     {
         if (replaced)
-        {
             *replaced = true;
-        }
         memoryTrackingApplyFreeLocked(existing->requestedSize, existing->actualSize);
         existing->requestedSize = requestedSize;
         existing->actualSize = actualSize;
@@ -316,9 +270,7 @@ static bool memoryTrackingInsertLocked(void* ptr, size_t requestedSize, size_t a
         if (entry->state == MEMORY_TRACKING_ENTRY_EMPTY)
         {
             if (tombstone)
-            {
                 entry = tombstone;
-            }
 
             entry->pPtr = ptr;
             entry->requestedSize = requestedSize;
@@ -327,9 +279,7 @@ static bool memoryTrackingInsertLocked(void* ptr, size_t requestedSize, size_t a
             entry->state = MEMORY_TRACKING_ENTRY_OCCUPIED;
             ++gMemoryTrackingCount;
             if (entry == tombstone && gMemoryTrackingTombstoneCount > 0)
-            {
                 --gMemoryTrackingTombstoneCount;
-            }
             memoryTrackingApplyAllocLocked(requestedSize, actualSize);
             return true;
         }
@@ -346,22 +296,14 @@ static bool memoryTrackingRemoveLocked(void* ptr, size_t* requestedSize, size_t*
 {
     MemoryTrackingEntry* entry = memoryTrackingFindEntryLocked(ptr);
     if (!entry)
-    {
         return false;
-    }
 
     if (requestedSize)
-    {
         *requestedSize = entry->requestedSize;
-    }
     if (actualSize)
-    {
         *actualSize = entry->actualSize;
-    }
     if (alignment)
-    {
         *alignment = entry->alignment;
-    }
 
     memoryTrackingApplyFreeLocked(entry->requestedSize, entry->actualSize);
     entry->pPtr = NULL;
@@ -390,9 +332,7 @@ static void memoryTrackingReset(void)
 static size_t memoryTrackingGetUsableSize(void* ptr, size_t requestedSize, size_t alignment)
 {
     if (!ptr)
-    {
         return requestedSize;
-    }
 
 #if defined(_MSC_VER)
     size_t actualSize = _aligned_msize(ptr, alignment ? alignment : MIN_ALLOC_ALIGNMENT, 0);
@@ -423,9 +363,7 @@ static void memoryTrackingRecordAlloc(void* ptr, size_t requestedSize, size_t ac
     }
 
     if (actualSize < requestedSize)
-    {
         actualSize = requestedSize;
-    }
 
     bool inserted = false;
     bool replaced = false;
@@ -433,17 +371,13 @@ static void memoryTrackingRecordAlloc(void* ptr, size_t requestedSize, size_t ac
     gMemoryTrackingStats.trackingEnabled = true;
     inserted = memoryTrackingInsertLocked(ptr, requestedSize, actualSize, alignment, &replaced);
     if (!inserted)
-    {
         ++gMemoryTrackingStats.failedAllocationCount;
-    }
     memoryTrackingUnlock();
 
     if (inserted)
     {
         if (replaced)
-        {
             TracyCFreeNS(ptr, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, TF_MEMORY_TRACY_POOL);
-        }
         TracyCAllocNS(ptr, requestedSize, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, TF_MEMORY_TRACY_POOL);
     }
 }
@@ -451,9 +385,7 @@ static void memoryTrackingRecordAlloc(void* ptr, size_t requestedSize, size_t ac
 static void memoryTrackingRecordFree(void* ptr)
 {
     if (!ptr)
-    {
         return;
-    }
 
     bool found = false;
     memoryTrackingLock();
@@ -461,9 +393,7 @@ static void memoryTrackingRecordFree(void* ptr)
     memoryTrackingUnlock();
 
     if (found)
-    {
         TracyCFreeNS(ptr, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, TF_MEMORY_TRACY_POOL);
-    }
 }
 
 static void memoryTrackingRecordRealloc(void* oldPtr, void* newPtr, size_t requestedSize, size_t actualSize, size_t alignment)
@@ -485,9 +415,7 @@ static void memoryTrackingRecordRealloc(void* oldPtr, void* newPtr, size_t reque
     bool   replaced = false;
 
     if (actualSize < requestedSize)
-    {
         actualSize = requestedSize;
-    }
 
     removed = memoryTrackingRemoveLocked(oldPtr, &oldRequestedSize, &oldActualSize, &oldAlignment);
     inserted = memoryTrackingInsertLocked(newPtr, requestedSize, actualSize, alignment, &replaced);
@@ -495,9 +423,7 @@ static void memoryTrackingRecordRealloc(void* oldPtr, void* newPtr, size_t reque
     {
         gMemoryTrackingStats.trackingEnabled = true;
         if (oldPtr)
-        {
             ++gMemoryTrackingStats.reallocationCount;
-        }
     }
     else
     {
@@ -508,17 +434,11 @@ static void memoryTrackingRecordRealloc(void* oldPtr, void* newPtr, size_t reque
     UNREF_PARAM(oldAlignment);
 
     if (removed)
-    {
         TracyCFreeNS(oldPtr, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, TF_MEMORY_TRACY_POOL);
-    }
     if (replaced && newPtr != oldPtr)
-    {
         TracyCFreeNS(newPtr, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, TF_MEMORY_TRACY_POOL);
-    }
     if (inserted)
-    {
         TracyCAllocNS(newPtr, requestedSize, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, TF_MEMORY_TRACY_POOL);
-    }
     memoryTrackingUnlock();
 }
 
@@ -701,16 +621,12 @@ void* tf_calloc_(size_t count, size_t size)
 {
     size_t sz = 0;
     if (!tf_mul_size(count, size, &sz))
-    {
         return NULL;
-    }
 
 #ifdef _MSC_VER
     void* ptr = tf_malloc_(sz);
     if (ptr)
-    {
         memset(ptr, 0, sz); //-V575
-    }
 #else
     void* ptr = calloc(count, size);
 #endif
@@ -739,16 +655,12 @@ void* tf_calloc_memalign_(size_t count, size_t alignment, size_t size)
     size_t alignedArrayElementSize = ALIGN_TO(size, alignment);
     size_t totalBytes = 0;
     if (!tf_mul_size(count, alignedArrayElementSize, &totalBytes))
-    {
         return NULL;
-    }
 
     void* ptr = tf_memalign_(alignment, totalBytes);
 
     if (ptr)
-    {
         memset(ptr, 0, totalBytes); //-V575
-    }
     return ptr;
 }
 

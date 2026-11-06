@@ -200,9 +200,7 @@ void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
     ASSERT(ppVirtualJoystick);
     VirtualJoystick* pVirtualJoystick = *ppVirtualJoystick;
     if (!pVirtualJoystick)
-    {
         return;
-    }
 
 #if TOUCH_INPUT
     removeSampler(pVirtualJoystick->pRenderer, pVirtualJoystick->pSampler);
@@ -339,9 +337,7 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
     UNREF_PARAM(color);
 #if TOUCH_INPUT
     if (!gVirtualJoystick || !(gVirtualJoystick->sticks[0].pressed || gVirtualJoystick->sticks[1].pressed))
-    {
         return;
-    }
 
     struct RootConstants
     {
@@ -427,17 +423,11 @@ uint8_t virtualJoystickIndexFromArea(TouchScreenArea area)
 bool isPositionInsideScreenArea(float2 position, TouchScreenArea area, float2 displaySize)
 {
     if (area == AREA_FULL)
-    {
         return true;
-    }
     else if (area == AREA_LEFT)
-    {
         return position.x <= displaySize.x * 0.5f;
-    }
     else if (area == AREA_RIGHT)
-    {
         return position.x > displaySize.x * 0.5f;
-    }
 
     return false;
 }
@@ -449,9 +439,7 @@ void virtualJoystickOnMove(VirtualJoystick* pVirtualJoystick, uint32_t id, Input
     UNREF_PARAM(ctx);
 #if TOUCH_INPUT
     if (!ctx->pPosition)
-    {
         return;
-    }
 
     if (*ctx->pCaptured
 #ifdef ENABLE_FORGE_UI
@@ -604,12 +592,7 @@ struct InputSystemImpl: public gainput::InputListener
     {
         struct Touch
         {
-            enum State
-            {
-                STARTED,
-                HOLDING,
-                ENDED
-            };
+            enum State{ STARTED, HOLDING, ENDED };
 
             // Since we're tracking touches ourselves, we must know when to update touch data
             bool updated;
@@ -773,15 +756,11 @@ struct InputSystemImpl: public gainput::InputListener
         rawMouseDeviceID = gainput::InvalidDeviceId;
         keyboardDeviceID = gainput::InvalidDeviceId;
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
-        {
             pGamepadDeviceIDs[i] = gainput::InvalidDeviceId;
-        }
         touchDeviceID = gainput::InvalidDeviceId;
 
         for (uint32_t i = 0; i < (sizeof pDeviceTypes / sizeof *pDeviceTypes); ++i)
-        {
             pDeviceTypes[i] = INPUT_DEVICE_INVALID;
-        }
 
         // create input manager
         pInputManager = tf_new(gainput::InputManager);
@@ -885,15 +864,11 @@ struct InputSystemImpl: public gainput::InputListener
             arrfree(inputActionMappingIdToDesc[i]);
 
             for (ptrdiff_t j = 0; j < arrlen(controls[i]); ++j)
-            {
                 arrfree(controls[i][j]);
-            }
             arrfree(controls[i]);
 
             for (ptrdiff_t j = 0; j < arrlen(controlPool[i]); ++j)
-            {
                 tf_free(controlPool[i][j]);
-            }
             arrfree(controlPool[i]);
         }
 
@@ -914,16 +889,12 @@ struct InputSystemImpl: public gainput::InputListener
             IControl* control = controls[touchDeviceID][gainput::Touch0Down][i];
 
             if (control->type != CONTROL_GESTURE)
-            {
                 continue;
-            }
 
             GestureControl* pControl = (GestureControl*)control;
 
             if (pControl->gestureType != TOUCH_GESTURE_LONG_PRESS)
-            {
                 continue;
-            }
 
             if (gestureRecognizer.longPressTouch && !gestureRecognizer.longPressTouch->moved &&
                 gestureRecognizer.longPressTouch->time > gestureRecognizer.longPressTimeThreshold &&
@@ -938,9 +909,7 @@ struct InputSystemImpl: public gainput::InputListener
                     ctx.pPosition = (float2*)&gestureRecognizer.longPressTouch->pos;
 
                     for (uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i)
-                    {
                         ctx.fingerIndices[i] = gestureRecognizer.touches[i].id;
-                    }
 
                     ctx.phase = INPUT_ACTION_PHASE_STARTED;
                     ctx.boolValue = true;
@@ -956,16 +925,12 @@ struct InputSystemImpl: public gainput::InputListener
             gestureRecognizer.touches[i].updated = false;
 
             if (gestureRecognizer.touches[i].id == -1)
-            {
                 continue;
-            }
 
             if (gestureRecognizer.touches[i].state == GestureRecognizer::Touch::ENDED)
             {
                 if (gestureRecognizer.performingGesturesCount[i] > 0)
-                {
                     continue;
-                }
 
                 gestureRecognizer.lastTapPos = gestureRecognizer.touches[i].pos;
                 gestureRecognizer.lastTapTime = gestureRecognizer.touches[i].time;
@@ -1011,9 +976,7 @@ struct InputSystemImpl: public gainput::InputListener
             ctx.pPosition = &mousePosition;
 #endif
             if (pControl->action.pFunction)
-            {
                 pControl->action.pFunction(&ctx);
-            }
 
             if (globalAnyButtonAction.pFunction)
             {
@@ -1036,9 +999,7 @@ struct InputSystemImpl: public gainput::InputListener
             ctx.boolValue = true;
 
             if (pControl->action.pFunction)
-            {
                 pControl->action.pFunction(&ctx);
-            }
 
             if (globalAnyButtonAction.pFunction)
             {
@@ -1140,9 +1101,7 @@ struct InputSystemImpl: public gainput::InputListener
                     pControl->axisCount = pActionMappingDesc->numAxis;
                     pControl->target = (pControl->axisCount == 2 ? (1 << 1) | 1 : 1);
                     for (uint32_t i = 0; i < pControl->axisCount; ++i)
-                    {
                         arrpush(controls[index][pControl->startButton + i], pControl);
-                    }
                 }
 
                 break;
@@ -1161,9 +1120,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pControl->type = CONTROL_COMPOSITE;
                 pControl->action = action;
                 for (uint32_t i = 0; i < pControl->composite; ++i)
-                {
                     arrpush(controls[index][pControl->controls[i]], pControl);
-                }
 
                 break;
             }
@@ -1215,9 +1172,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pControl->type = CONTROL_COMPOSITE;
                 pControl->action = action;
                 for (uint32_t i = 0; i < pControl->composite; ++i)
-                {
                     arrpush(controls[keyboardDeviceID][pControl->controls[i]], pControl);
-                }
 
                 break;
             }
@@ -1275,9 +1230,7 @@ struct InputSystemImpl: public gainput::InputListener
                     const gainput::DeviceId deviceId = rawMouseDeviceID; // always use raw mouse for float axis
 
                     for (uint32_t i = 0; i < pActionMappingDesc->numAxis; ++i)
-                    {
                         arrpush(controls[deviceId][pControl->startButton + i], pControl);
-                    }
                 }
 
                 break;
@@ -1296,9 +1249,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pControl->type = CONTROL_COMPOSITE;
                 pControl->action = action;
                 for (uint32_t i = 0; i < pControl->composite; ++i)
-                {
                     arrpush(controls[mouseDeviceID][pControl->controls[i]], pControl);
-                }
 
                 break;
             }
@@ -1480,9 +1431,7 @@ struct InputSystemImpl: public gainput::InputListener
             }
 
             if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
-            {
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
-            }
         }
 
         if (INPUT_ACTION_MAPPING_TARGET_CONTROLLER == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
@@ -1496,9 +1445,7 @@ struct InputSystemImpl: public gainput::InputListener
             }
 
             if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
-            {
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
-            }
         }
 
         if (INPUT_ACTION_MAPPING_TARGET_MOUSE == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
@@ -1510,9 +1457,7 @@ struct InputSystemImpl: public gainput::InputListener
             }
 
             if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
-            {
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
-            }
         }
 
         if (INPUT_ACTION_MAPPING_TARGET_TOUCH == actionMappingTarget || INPUT_ACTION_MAPPING_TARGET_ALL == actionMappingTarget)
@@ -1524,9 +1469,7 @@ struct InputSystemImpl: public gainput::InputListener
             }
 
             if (pActionMappingDesc->actionMappingDeviceTarget != INPUT_ACTION_MAPPING_TARGET_ALL)
-            {
                 CreateActionForActionMapping(pActionMappingDesc, pDesc);
-            }
         }
     }
 
@@ -1694,15 +1637,11 @@ struct InputSystemImpl: public gainput::InputListener
     void RemoveActionMappingsControls(const gainput::DeviceId deviceId)
     {
         for (ptrdiff_t j = 0; j < arrlen(controlPool[deviceId]); ++j)
-        {
             tf_free(controlPool[deviceId][j]);
-        }
         arrfree(controlPool[deviceId]);
 
         for (ptrdiff_t j = 0; j < arrlen(controls[deviceId]); ++j)
-        {
             arrfree(controls[deviceId][j]);
-        }
     }
 
     void RemoveActionMappings(const InputActionMappingDeviceTarget actionMappingTarget)
@@ -1785,9 +1724,7 @@ struct InputSystemImpl: public gainput::InputListener
             NSWindow* window = [newView window];
             BOOL      madeFirstResponder = [window makeFirstResponder:newView];
             if (!madeFirstResponder)
-            {
                 return false;
-            }
 #endif
 
             pGainputView = (__bridge void*)newView;
@@ -1801,9 +1738,7 @@ struct InputSystemImpl: public gainput::InputListener
     {
 #ifdef __APPLE__
         if (!pGainputView)
-        {
             return;
-        }
 
         // automatic reference counting
         // it will get deallocated.
@@ -1846,18 +1781,12 @@ struct InputSystemImpl: public gainput::InputListener
         UNREF_PARAM(type);
 #ifdef TARGET_IOS
         if (!pGainputView)
-        {
             return;
-        }
 
         if ((type > 0) != virtualKeyboardActive)
-        {
             virtualKeyboardActive = (type > 0);
-        }
         else
-        {
             return;
-        }
 
         GainputView* view = (__bridge GainputView*)(pGainputView);
         [view setVirtualKeyboard:type];
@@ -1892,9 +1821,7 @@ struct InputSystemImpl: public gainput::InputListener
             activity->vm->DetachCurrentThread();
         }
         else
-        {
             return;
-        }
 #endif
     }
 
@@ -1936,9 +1863,7 @@ struct InputSystemImpl: public gainput::InputListener
     bool OnDeviceButtonBool(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, bool oldValue, bool newValue)
     {
         if (oldValue == newValue)
-        {
             return false;
-        }
 
         uint32_t device = IdToIndex(deviceId);
 
@@ -1959,9 +1884,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                 // Reset when starting/ending touch
                 if (oldValue != newValue)
-                {
                     touchDownTime[touchIndex] = 0.f;
-                }
             }
 #else
             if (IsPointerType(device))
@@ -1979,13 +1902,9 @@ struct InputSystemImpl: public gainput::InputListener
 
                 int32_t mouseWheelCurrentPosition = 0;
                 if (deviceButton == gainput::MouseButtonWheelUp)
-                {
                     mouseWheelCurrentPosition = (int32_t)pMouse->GetFloat(gainput::MouseButtonWheelUp);
-                }
                 else if (deviceButton == gainput::MouseButtonWheelDown)
-                {
                     mouseWheelCurrentPosition = (int32_t)pMouse->GetFloat(gainput::MouseButtonWheelDown);
-                }
 
                 // Make sure delta value is based on the previous movement event
                 const int32_t mouseWheelPositionDelta = mouseWheelCurrentPosition - previousMovementWheelPosition;
@@ -2004,9 +1923,7 @@ struct InputSystemImpl: public gainput::InputListener
             {
                 IControl* control = controls[device][deviceButton][i];
                 if (!executeNext)
-                {
                     return true;
-                }
 
                 const InputControlType type = control->type;
                 const InputActionDesc* pDesc = &control->action;
@@ -2024,9 +1941,7 @@ struct InputSystemImpl: public gainput::InputListener
                     {
                         ctx.phase = INPUT_ACTION_PHASE_STARTED;
                         if (pDesc->pFunction)
-                        {
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        }
                         if (globalAnyButtonAction.pFunction)
                         {
                             ctx.pUserData = globalAnyButtonAction.pUserData;
@@ -2038,9 +1953,7 @@ struct InputSystemImpl: public gainput::InputListener
 #else
                         ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                         if (pDesc->pFunction)
-                        {
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        }
                         if (globalAnyButtonAction.pFunction)
                         {
                             ctx.pUserData = globalAnyButtonAction.pUserData;
@@ -2052,9 +1965,7 @@ struct InputSystemImpl: public gainput::InputListener
                     {
                         ctx.phase = INPUT_ACTION_PHASE_CANCELED;
                         if (pDesc->pFunction)
-                        {
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        }
                         if (globalAnyButtonAction.pFunction)
                         {
                             ctx.pUserData = globalAnyButtonAction.pUserData;
@@ -2068,12 +1979,8 @@ struct InputSystemImpl: public gainput::InputListener
                     CompositeControl* pControl = (CompositeControl*)control;
                     uint32_t          index = 0;
                     for (; index < pControl->composite; ++index)
-                    {
                         if (deviceButton == pControl->controls[index])
-                        {
                             break;
-                        }
-                    }
 
                     const uint32_t axis = (index > 1) ? 1 : 0;
                     if (newValue)
@@ -2089,13 +1996,9 @@ struct InputSystemImpl: public gainput::InputListener
                     else
                     {
                         if (!pControl->value[0] && !pControl->value[1])
-                        {
                             ctx.float2Value = float2(0.0f);
-                        }
                         else
-                        {
                             ctx.float2Value = pControl->value;
-                        }
                     }
 
                     // Action Started
@@ -2104,9 +2007,7 @@ struct InputSystemImpl: public gainput::InputListener
                         pControl->started = 1;
                         ctx.phase = INPUT_ACTION_PHASE_STARTED;
                         if (pDesc->pFunction)
-                        {
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        }
                     }
                     // Action Performed
                     if (pControl->started && newValue && !pControl->performed[index])
@@ -2114,9 +2015,7 @@ struct InputSystemImpl: public gainput::InputListener
                         pControl->performed[index] = 1;
                         ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                         if (pDesc->pFunction)
-                        {
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        }
                     }
                     // Action Canceled
                     if (oldValue && !newValue)
@@ -2139,9 +2038,7 @@ struct InputSystemImpl: public gainput::InputListener
                             ctx.float2Value = pControl->value;
                             ctx.phase = INPUT_ACTION_PHASE_CANCELED;
                             if (pDesc->pFunction)
-                            {
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
-                            }
                         }
                         else if (pDesc->pFunction)
                         {
@@ -2170,9 +2067,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                             const float2 displaySize{ pInputManager->GetDisplayWidth(), pInputManager->GetDisplayHeight() };
                             if (!isPositionInsideScreenArea(*ctx.pPosition, (TouchScreenArea)pControl->area, displaySize))
-                            {
                                 break;
-                            }
 
                             ctx.fingerIndices[0] = touchIndex;
 
@@ -2203,9 +2098,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 ctx.actionId = pControl->action.actionId;
 
                                 if (pDesc->pFunction)
-                                {
                                     executeNext = pDesc->pFunction(&ctx) && executeNext;
-                                }
 
                                 if (globalAnyButtonAction.pFunction)
                                 {
@@ -2276,9 +2169,7 @@ struct InputSystemImpl: public gainput::InputListener
                             GestureControl* pControl = (GestureControl*)control;
 
                             for (uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i)
-                            {
                                 ctx.fingerIndices[i] = gestureRecognizer.touches[i].id;
-                            }
 
                             // Taps
                             switch (pControl->gestureType)
@@ -2305,15 +2196,11 @@ struct InputSystemImpl: public gainput::InputListener
                             case TOUCH_GESTURE_DOUBLE_TAP:
                             {
                                 if (gestureRecognizer.activeTouches != pControl->target)
-                                {
                                     break;
-                                }
 
                                 if (length(touch->pos - gestureRecognizer.lastTapPos) > gestureRecognizer.movedDistThreshold ||
                                     gestureRecognizer.lastTapTime > gestureRecognizer.doubleTapTimeThreshold)
-                                {
                                     break;
-                                }
 
                                 ctx.boolValue = true;
                                 ctx.pCaptured = &defaultCapture;
@@ -2325,23 +2212,17 @@ struct InputSystemImpl: public gainput::InputListener
                             case TOUCH_GESTURE_SWIPE:
                             {
                                 if (gestureRecognizer.activeTouches != pControl->target)
-                                {
                                     break;
-                                }
 
                                 // We don't care about other touch indices
 
                                 if (!touch)
-                                {
                                     break;
-                                }
 
                                 vec2 dir = normalize(touch->distTraveled);
 
                                 if (isnan(dir.getX()) || isnan(dir.getY()))
-                                {
                                     break;
-                                }
 
                                 if (abs(dir.getX()) > abs(dir.getY()))
                                 {
@@ -2409,15 +2290,11 @@ struct InputSystemImpl: public gainput::InputListener
                             ctx.actionId = pControl->action.actionId;
 
                             if (gVirtualJoystick)
-                            {
                                 virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->area),
                                                       &ctx);
-                            }
 
                             if (pDesc->pFunction)
-                            {
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
-                            }
                         }
                         else
                         {
@@ -2440,15 +2317,11 @@ struct InputSystemImpl: public gainput::InputListener
                             ctx.actionId = pControl->action.actionId;
 
                             if (gVirtualJoystick)
-                            {
                                 virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->area),
                                                       &ctx);
-                            }
 
                             if (pDesc->pFunction)
-                            {
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
-                            }
                         }
                     }
                     break;
@@ -2509,9 +2382,7 @@ struct InputSystemImpl: public gainput::InputListener
             case gainput::TouchButton::Touch0X:
                 // We recive Touch0X and Touch0Y always, we only want to track one of these as elapsed time
                 if (oldValue && newValue)
-                {
                     touchDownTime[touchIndex] += deltaTime;
-                }
                 // fallthrough
 
             case gainput::TouchButton::Touch0Y:
@@ -2552,9 +2423,7 @@ struct InputSystemImpl: public gainput::InputListener
             {
                 IControl* control = controls[device][deviceButton][i];
                 if (!executeNext)
-                {
                     return true;
-                }
 
                 const InputControlType type = control->type;
                 const InputActionDesc* pDesc = &control->action;
@@ -2585,9 +2454,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                         const float2 displaySize{ pInputManager->GetDisplayWidth(), pInputManager->GetDisplayHeight() };
                         if (!isPositionInsideScreenArea(*pPosition, (TouchScreenArea)pControl->area, displaySize))
-                        {
                             break;
-                        }
 
                         ctx.fingerIndices[0] = fingerIdx;
 
@@ -2619,9 +2486,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 ctx.phase = INPUT_ACTION_PHASE_STARTED;
 
                                 if (pDesc->pFunction)
-                                {
                                     executeNext = pDesc->pFunction(&ctx) && executeNext;
-                                }
 
                                 if (globalAnyButtonAction.pFunction)
                                 {
@@ -2641,9 +2506,7 @@ struct InputSystemImpl: public gainput::InputListener
                             pControl->performed = 0;
                             ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                             if (pDesc->pFunction)
-                            {
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
-                            }
 
                             if (globalAnyButtonAction.pFunction)
                             {
@@ -2685,9 +2548,7 @@ struct InputSystemImpl: public gainput::InputListener
                     {
                         bool equal = true;
                         for (uint32_t j = 0; j < pControl->axisCount; ++j)
-                        {
                             equal = equal && (pControl->value[j] == pControl->newValue[j]);
-                        }
 
                         pControl->value = pControl->newValue;
 
@@ -2697,9 +2558,7 @@ struct InputSystemImpl: public gainput::InputListener
                         if (!equal)
                         {
                             if (pDesc->pFunction)
-                            {
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
-                            }
                             if (globalAnyButtonAction.pFunction)
                             {
                                 ctx.pUserData = globalAnyButtonAction.pUserData;
@@ -2708,9 +2567,7 @@ struct InputSystemImpl: public gainput::InputListener
                         }
                     }
                     else
-                    {
                         continue;
-                    }
 
                     pControl->performed = 0;
                     break;
@@ -2720,12 +2577,8 @@ struct InputSystemImpl: public gainput::InputListener
                     CompositeControl* pControl = (CompositeControl*)control;
                     uint32_t          index = 0;
                     for (; index < pControl->composite; ++index)
-                    {
                         if (deviceButton == pControl->controls[index])
-                        {
                             break;
-                        }
-                    }
 
                     const uint32_t axis = index & 1;
                     const float    prevValue = pControl->value[axis];
@@ -2751,9 +2604,7 @@ struct InputSystemImpl: public gainput::InputListener
                             anyPressed |= pControl->pressedVal[j] != 0;
                         }
                         if (!anyPressed)
-                        {
                             pControl->started = 0;
-                        }
                     }
                     else
                     {
@@ -2773,23 +2624,17 @@ struct InputSystemImpl: public gainput::InputListener
                     GestureControl* pControl = (GestureControl*)control;
 
                     if (deviceAxis == TOUCH_AXIS_Y) // prevent processing two axes
-                    {
                         continue;
-                    }
 
                     if (pControl->action.pFunction)
                     {
                         GestureRecognizer::Touch* touch = gestureRecognizer.FindTouch(touchIndex);
 
                         if (!touch)
-                        {
                             continue;
-                        }
 
                         if (touch->state == GestureRecognizer::Touch::ENDED)
-                        {
                             continue;
-                        }
 
                         // save touch positions only while processing the first gesture
                         if (!touch->updated)
@@ -2803,32 +2648,24 @@ struct InputSystemImpl: public gainput::InputListener
                         }
 
                         for (uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i)
-                        {
                             ctx.fingerIndices[i] = gestureRecognizer.touches[i].id;
-                        }
 
                         switch (pControl->gestureType)
                         {
                         case TOUCH_GESTURE_PINCH:
                         {
                             if (gestureRecognizer.activeTouches != pControl->target)
-                            {
                                 continue;
-                            }
 
                             GestureRecognizer::Touch* touch[2];
                             touch[0] = gestureRecognizer.FindTouch(0);
                             touch[1] = gestureRecognizer.FindTouch(1);
 
                             if (!touch[0] || !touch[1])
-                            {
                                 continue;
-                            }
 
                             if (!touch[0]->updated || !touch[1]->updated)
-                            {
                                 continue;
-                            }
 
                             float dist1 = length(touch[1]->pos - touch[0]->pos);
                             float dist0 = length(touch[1]->pos0 - touch[0]->pos0);
@@ -2837,9 +2674,7 @@ struct InputSystemImpl: public gainput::InputListener
                             float scale = dist1 / dist0;
 
                             if (scale < 0.1f)
-                            {
                                 continue;
-                            }
 
                             ctx.float4Value = { velocity, scale, touch[1]->pos.getX() - touch[0]->pos.getX(),
                                                 touch[1]->pos.getY() - touch[0]->pos.getY() };
@@ -2854,24 +2689,18 @@ struct InputSystemImpl: public gainput::InputListener
                         {
                             pControl->performed++;
                             if (pControl->performed != pControl->target)
-                            {
                                 break;
-                            }
                             pControl->performed = 0;
 
                             if (gestureRecognizer.activeTouches != pControl->target)
-                            {
                                 break;
-                            }
 
                             GestureRecognizer::Touch* touch[2];
                             touch[0] = gestureRecognizer.FindTouch(0);
                             touch[1] = gestureRecognizer.FindTouch(1);
 
                             if (!touch[0] || !touch[1])
-                            {
                                 continue;
-                            }
 
                             vec2 v1 = touch[1]->pos - touch[0]->pos;
                             vec2 v0 = touch[1]->pos0 - touch[0]->pos0;
@@ -2882,9 +2711,7 @@ struct InputSystemImpl: public gainput::InputListener
                             float scale = length(v1) / length(v0);
 
                             if (scale < 0.1f)
-                            {
                                 continue;
-                            }
 
                             ctx.float4Value = { velocity, rotation, touch[1]->pos.getX() - touch[0]->pos.getX(),
                                                 touch[1]->pos.getY() - touch[0]->pos.getY() };
@@ -2899,9 +2726,7 @@ struct InputSystemImpl: public gainput::InputListener
                         {
                             pControl->performed++;
                             if (pControl->performed != pControl->target)
-                            {
                                 break;
-                            }
 
                             pControl->performed = 0;
 
@@ -2909,9 +2734,7 @@ struct InputSystemImpl: public gainput::InputListener
                             touch = gestureRecognizer.FindTouch(touchIndex);
 
                             if (!touch)
-                            {
                                 continue;
-                            }
 
                             ctx.fingerIndices[0] = touchIndex;
                             ctx.float2Value = {
@@ -2928,9 +2751,7 @@ struct InputSystemImpl: public gainput::InputListener
                             ctx.pCaptured = &defaultCapture;
 
                             if (touch->state == GestureRecognizer::Touch::STARTED)
-                            {
                                 touch->state = GestureRecognizer::Touch::HOLDING;
-                            }
 
                             pControl->action.pFunction(&ctx);
 
@@ -2950,9 +2771,7 @@ struct InputSystemImpl: public gainput::InputListener
                     const uint32_t axis = TOUCH_AXIS(deviceButton);
 
                     if (!pControl->started || TOUCH_USER(deviceButton) != pControl->touchIndex)
-                    {
                         continue;
-                    }
 
                     pControl->performed |= (1 << axis);
                     pControl->currPos[axis] = newValue;
@@ -2962,9 +2781,7 @@ struct InputSystemImpl: public gainput::InputListener
                         vec2  delta = f2Tov2(pControl->currPos - pControl->startPos);
                         float halfRad = (pControl->outsideRadius * 0.5f) - pControl->deadzone;
                         if (length(delta) > halfRad)
-                        {
                             pControl->currPos = pControl->startPos + halfRad * v2ToF2(normalize(delta));
-                        }
 
                         ctx.phase = INPUT_ACTION_PHASE_UPDATED;
                         float2 dir = ((pControl->currPos - pControl->startPos) / halfRad) * pControl->scale;
@@ -2974,14 +2791,10 @@ struct InputSystemImpl: public gainput::InputListener
                         ctx.fingerIndices[0] = pControl->touchIndex;
 
                         if (gVirtualJoystick)
-                        {
                             virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->area), &ctx);
-                        }
 
                         if (pDesc->pFunction)
-                        {
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
-                        }
                     }
                     break;
                 }
@@ -3015,21 +2828,15 @@ struct InputSystemImpl: public gainput::InputListener
         InputSystemImpl* sys = (InputSystemImpl*)metadata;
 
         if (doAdd)
-        {
             sys->AddGamepad(deviceId, device);
-        }
         else
-        {
             sys->RemoveGamepad(deviceId, device);
-        }
     }
 
     void AddGamepad(gainput::DeviceId deviceId, gainput::InputDevice* device)
     {
         if (device->GetType() != gainput::InputDevice::DeviceType::DT_PAD)
-        {
             return;
-        }
 
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
         {
@@ -3038,9 +2845,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pGamepadDeviceIDs[i] = deviceId;
 
                 if (onDeviceChangeCallBack)
-                {
                     onDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), true, i);
-                }
 
                 break;
             }
@@ -3050,18 +2855,14 @@ struct InputSystemImpl: public gainput::InputListener
     void RemoveGamepad(gainput::DeviceId deviceId, gainput::InputDevice* device)
     {
         if (device->GetType() != gainput::InputDevice::DeviceType::DT_PAD)
-        {
             return;
-        }
 
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
         {
             if (pGamepadDeviceIDs[i] == deviceId)
             {
                 if (onDeviceChangeCallBack)
-                {
                     onDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), false, i);
-                }
 
                 pGamepadDeviceIDs[i] = gainput::InvalidDeviceId;
 
@@ -3073,9 +2874,7 @@ struct InputSystemImpl: public gainput::InputListener
     void SetDeadZone(unsigned gamePadIndex, float deadZoneSize)
     {
         if (gamePadIndex >= MAX_INPUT_GAMEPADS || pGamepadDeviceIDs[gamePadIndex] == gainput::InvalidDeviceId)
-        {
             return;
-        }
         gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
         pDevicePad->SetDeadZone(gainput::PadButton::PadButtonL3, deadZoneSize);
         pDevicePad->SetDeadZone(gainput::PadButton::PadButtonR3, deadZoneSize);
@@ -3092,13 +2891,9 @@ struct InputSystemImpl: public gainput::InputListener
     const char* GetGamePadName(unsigned gamePadIndex)
     {
         if (gamePadIndex >= MAX_INPUT_GAMEPADS)
-        {
             return "Incorrect gamePadIndex";
-        }
         if (pGamepadDeviceIDs[gamePadIndex] == gainput::InvalidDeviceId)
-        {
             return "GamePad Disconnected";
-        }
         gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
         return pDevicePad->GetDeviceName();
     }
@@ -3106,9 +2901,7 @@ struct InputSystemImpl: public gainput::InputListener
     bool GamePadConnected(unsigned gamePadIndex)
     {
         if (gamePadIndex >= MAX_INPUT_GAMEPADS || pGamepadDeviceIDs[gamePadIndex] == gainput::InvalidDeviceId)
-        {
             return false;
-        }
         gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
         return pDevicePad->IsAvailable();
     }
@@ -3116,9 +2909,7 @@ struct InputSystemImpl: public gainput::InputListener
     bool SetRumbleEffect(unsigned gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms, bool vibrateTouchDevice)
     {
         if (gamePadIndex >= MAX_INPUT_GAMEPADS || pGamepadDeviceIDs[gamePadIndex] == gainput::InvalidDeviceId)
-        {
             return false;
-        }
         gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
         return pDevicePad->SetRumbleEffect(left_motor, right_motor, duration_ms, vibrateTouchDevice);
     }
@@ -3126,9 +2917,7 @@ struct InputSystemImpl: public gainput::InputListener
     void SetLEDColor(unsigned gamePadIndex, uint8_t r, uint8_t g, uint8_t b)
     {
         if (gamePadIndex >= MAX_INPUT_GAMEPADS || pGamepadDeviceIDs[gamePadIndex] == gainput::InvalidDeviceId)
-        {
             return;
-        }
         gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
         pDevicePad->SetLEDColor(r, g, b);
     }
@@ -3144,9 +2933,7 @@ struct InputSystemImpl: public gainput::InputListener
                 gainput::InputDevice* device = pInputManager->GetDevice(pGamepadDeviceIDs[i]);
 
                 if (onDeviceChangeCallBack)
-                {
                     onDeviceChangeCallBack(((gainput::InputDevicePad*)device)->GetDeviceName(), true, i);
-                }
 
                 break;
             }

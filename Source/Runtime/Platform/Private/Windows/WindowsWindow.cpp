@@ -113,9 +113,7 @@ static void UpdateWindowDescWindowedRect(WindowDesc* winDesc)
         {
             RECT centeredRect = getCenteredWindowRect(winDesc);
             if (!winDesc->borderlessWindow)
-            {
                 AdjustWindowRect(&centeredRect, PrepareStyleMask(winDesc), false);
-            }
             winDesc->centered = windowedRect.left == centeredRect.left && windowedRect.right == centeredRect.right &&
                                 windowedRect.top == centeredRect.top && windowedRect.bottom == centeredRect.bottom;
         }
@@ -297,14 +295,10 @@ void collectMonitorInfo()
     for (int adapterIndex = 0;; ++adapterIndex)
     {
         if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
-        {
             break;
-        }
 
         if (!(adapter.StateFlags & DISPLAY_DEVICE_ACTIVE))
-        {
             continue;
-        }
 
         for (int displayIndex = 0;; displayIndex++)
         {
@@ -312,9 +306,7 @@ void collectMonitorInfo()
             display.cb = sizeof(display);
 
             if (!EnumDisplayDevicesW(adapter.DeviceName, displayIndex, &display, 0))
-            {
                 break;
-            }
 
             ++monitorCount;
         }
@@ -327,14 +319,10 @@ void collectMonitorInfo()
         for (int adapterIndex = 0;; ++adapterIndex)
         {
             if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
-            {
                 break;
-            }
 
             if (!(adapter.StateFlags & DISPLAY_DEVICE_ACTIVE))
-            {
                 continue;
-            }
 
             for (int displayIndex = 0;; displayIndex++)
             {
@@ -344,9 +332,7 @@ void collectMonitorInfo()
                 display.cb = sizeof(display);
 
                 if (!EnumDisplayDevicesW(adapter.DeviceName, displayIndex, &display, 0))
-                {
                     break;
-                }
 
                 dc = CreateDCW(L"DISPLAY", adapter.DeviceName, NULL, NULL);
 
@@ -446,9 +432,7 @@ void collectMonitorInfo()
             }
 
             if (duplicate)
-            {
                 continue;
-            }
 
             Resolution videoMode = {};
             videoMode.height = devMode.dmPelsHeight;
@@ -463,9 +447,7 @@ void collectMonitorInfo()
                 Resolution* pLhs = (Resolution*)lhs;
                 Resolution* pRhs = (Resolution*)rhs;
                 if (pLhs->height == pRhs->height)
-                {
                     return pLhs->width < pRhs->width;
-                }
 
                 return pLhs->height < pRhs->height;
             },
@@ -560,8 +542,8 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
 
     // Adjust windowed rect for windowed mode rendering.
     RECT  rect = { (LONG)winDesc->clientRect.left, (LONG)winDesc->clientRect.top,
-                   (LONG)winDesc->clientRect.left + (LONG)winDesc->clientRect.right,
-                   (LONG)winDesc->clientRect.top + (LONG)winDesc->clientRect.bottom };
+                  (LONG)winDesc->clientRect.left + (LONG)winDesc->clientRect.right,
+                  (LONG)winDesc->clientRect.top + (LONG)winDesc->clientRect.bottom };
     DWORD windowStyle = PrepareStyleMask(winDesc);
 
     AdjustWindowRect(&rect, windowStyle, FALSE);
@@ -571,9 +553,7 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
     if (rect.left < 0)
     {
         if (rect.left == INT_MIN)
-        {
             rect.left = intMinPlusOne;
-        }
 
         const int32_t offset = abs(rect.left);
         rect.left += offset;
@@ -583,9 +563,7 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
     if (rect.top < 0)
     {
         if (rect.top == INT_MIN)
-        {
             rect.top = intMinPlusOne;
-        }
 
         const int32_t offset = abs(rect.top);
         rect.top += offset;
@@ -676,9 +654,7 @@ bool handleMessages()
         DispatchMessage(&msg);
 
         if (WM_CLOSE == msg.message || WM_QUIT == msg.message)
-        {
             quit = true;
-        }
     }
 
     return quit;
@@ -805,9 +781,7 @@ void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
     {
         toggleFullscreen(winDesc);
         if (!winDesc->borderlessWindow)
-        {
             toggleBorderless(winDesc, width, height);
-        }
         winDesc->windowMode = WindowMode::WM_BORDERLESS;
     }
     else if (!winDesc->borderlessWindow)
@@ -815,9 +789,7 @@ void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
         winDesc->windowMode = WindowMode::WM_BORDERLESS;
         toggleBorderless(winDesc, width, height);
         if (!winDesc->borderlessWindow)
-        {
             winDesc->windowMode = WindowMode::WM_WINDOWED;
-        }
     }
 }
 
@@ -1059,13 +1031,9 @@ void getDpiScale(float array[2])
 
         float dpiScale;
         if (getDpiForSystem)
-        {
             dpiScale = getDpiForSystem() / 96.0f;
-        }
         else
-        {
             dpiScale = 1.0f;
-        }
 
         array[0] = dpiScale;
         array[1] = dpiScale;
@@ -1079,7 +1047,7 @@ void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
 
     HMONITOR currentMonitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
 
-    typedef HRESULT (*GetDpiForMonitorFn)(HMONITOR hmonitor, int32_t dpiType, uint32_t* dpiX, uint32_t* dpiY);
+    typedef HRESULT (*GetDpiForMonitorFn)(HMONITOR hmonitor, int32_t dpiType, uint32_t * dpiX, uint32_t * dpiY);
     static const GetDpiForMonitorFn getDpiForMonitor =
         (GetDpiForMonitorFn)GetProcAddress(GetModuleHandle(TEXT("shcore.dll")), "GetDpiForMonitor");
 
@@ -1106,9 +1074,7 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
     for (ptrdiff_t i = 0; i < arrlen(pMonitor->resolutions); ++i)
     {
         if (pMonitor->resolutions[i].width == pRes->width && pMonitor->resolutions[i].height == pRes->height)
-        {
             return true;
-        }
     }
 
     return false;
@@ -1132,9 +1098,7 @@ uint32_t getActiveMonitorIdx()
     for (uint32_t i = 0; i < gMonitorCount; ++i)
     {
         if (wcscmp(info.szDevice, gMonitors[i].adapterName) == 0)
-        {
             return i;
-        }
     }
 
     return 0;
@@ -1159,9 +1123,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             auto lr = HitTestNCA(hwnd, wParam, lParam);
             if (lr == HTNOWHERE)
-            {
                 return DefWindowProcW(hwnd, message, wParam, lParam);
-            }
 
             return lr;
         }
@@ -1214,9 +1176,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         UpdateWindowDescFullScreenRect(gWindow);
         if (!gWindow->fullScreen)
-        {
             UpdateWindowDescWindowedRect(gWindow);
-        }
         break;
     }
     case WM_STYLECHANGING:
@@ -1370,9 +1330,7 @@ void initWindowClass()
 void exitWindowClass()
 {
     for (uint32_t i = 0; i < gMonitorCount; ++i)
-    {
         arrfree(gMonitors[i].resolutions);
-    }
 
     tf_free(gMonitors);
     gMonitors = nullptr;

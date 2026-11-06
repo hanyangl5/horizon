@@ -40,9 +40,7 @@ static void  worldFree(void* pData) { tf_free(pData); }
 static char* worldStrdup(const char* pText)
 {
     if (!pText)
-    {
         return nullptr;
-    }
     const size_t size = strlen(pText) + 1;
     char*        pCopy = (char*)tf_malloc(size);
     memcpy(pCopy, pText, size);
@@ -53,9 +51,7 @@ static void initWorldOS()
 {
     static bool initialized = false;
     if (initialized)
-    {
         return;
-    }
     ecs_os_set_api_defaults();
     ecs_os_api_t api = ecs_os_get_api();
     api.malloc_ = worldMalloc;
@@ -71,44 +67,34 @@ void WorldImpl::constructComponents(void* pDestination, int32_t count, const ecs
 {
     const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < count; ++i)
-    {
         type.construct((uint8_t*)pDestination + (size_t)i * type.size);
-    }
 }
 
 void WorldImpl::destroyComponents(void* pValue, int32_t count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < count; ++i)
-    {
         type.destroy((uint8_t*)pValue + (size_t)i * type.size);
-    }
 }
 
 void WorldImpl::copyConstructComponents(void* pDestination, const void* pSource, int32_t count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < count; ++i)
-    {
         type.copyConstruct((uint8_t*)pDestination + (size_t)i * type.size, (const uint8_t*)pSource + (size_t)i * type.size);
-    }
 }
 
 void WorldImpl::moveConstructComponents(void* pDestination, void* pSource, int32_t count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < count; ++i)
-    {
         type.moveConstruct((uint8_t*)pDestination + (size_t)i * type.size, (uint8_t*)pSource + (size_t)i * type.size);
-    }
 }
 
 void WorldImpl::copyComponents(void* pDestination, const void* pSource, int32_t count, const ecs_type_info_t* pInfo)
 {
     if (pDestination == pSource)
-    {
         return;
-    }
     destroyComponents(pDestination, count, pInfo);
     copyConstructComponents(pDestination, pSource, count, pInfo);
 }
@@ -116,9 +102,7 @@ void WorldImpl::copyComponents(void* pDestination, const void* pSource, int32_t 
 void WorldImpl::moveComponents(void* pDestination, void* pSource, int32_t count, const ecs_type_info_t* pInfo)
 {
     if (pDestination == pSource)
-    {
         return;
-    }
     destroyComponents(pDestination, count, pInfo);
     moveConstructComponents(pDestination, pSource, count, pInfo);
 }
@@ -158,9 +142,7 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs)
         const ecs_entity_t component = ecs_component_init(pWorld, &desc);
         ASSERT(component);
         if (pType->id == SceneTypes::objectIdentity)
-        {
             objectIdentityType = component;
-        }
         const WorldType mapping = { .key = pType->id, .component = component, .pType = pType };
         hmputs(pTypes, mapping);
     }
@@ -201,18 +183,12 @@ bool World::addComponent(Entity entity, TypeID type)
         return false;
     }
     if (!isAlive(entity))
-    {
         return false;
-    }
     const WorldType* pType = pImpl->findType(type);
     if (!pType)
-    {
         return false;
-    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
-    {
         return false;
-    }
     ecs_add_id(pImpl->pWorld, entity.value, pType->component);
     return true;
 }
@@ -225,14 +201,10 @@ bool World::removeComponent(Entity entity, TypeID type)
         return false;
     }
     if (!isAlive(entity))
-    {
         return false;
-    }
     const WorldType* pType = pImpl->findType(type);
     if (!pType)
-    {
         return false;
-    }
     pImpl->pHierarchy->prepareLocalChange(entity.value, type, false);
     ecs_remove_id(pImpl->pWorld, entity.value, pType->component);
     return true;
@@ -247,18 +219,12 @@ bool World::setComponent(Entity entity, TypeID type, const void* pValue)
         return false;
     }
     if (!isAlive(entity))
-    {
         return false;
-    }
     const WorldType* pType = pImpl->findType(type);
     if (!pType)
-    {
         return false;
-    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
-    {
         return false;
-    }
     if (!ecs_has_id(pImpl->pWorld, entity.value, pType->component) && !ecs_is_deferred(pImpl->pWorld))
     {
         // Adding a component can move the table containing pValue before Flecs copies it.
@@ -277,9 +243,7 @@ bool World::setComponent(Entity entity, TypeID type, const void* pValue)
 const void* World::getComponent(Entity entity, TypeID type) const
 {
     if (!isAlive(entity))
-    {
         return nullptr;
-    }
     const WorldType* pType = pImpl->findType(type);
     return pType ? ecs_get_id(pImpl->pWorld, entity.value, pType->component) : nullptr;
 }
@@ -337,9 +301,7 @@ WorldQueryImpl::~WorldQueryImpl()
     pOwner->pImpl->checkThread();
     ASSERT(!iterating);
     if (pQuery)
-    {
         ecs_query_fini(pQuery);
-    }
 }
 
 WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(tf_new(WorldQueryImpl, world, types)) {}
@@ -358,9 +320,7 @@ void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void*
         for (int32_t row = 0; row < it.count; ++row)
         {
             for (uint32_t field = 0; field < pImpl->fields.size(); ++field)
-            {
                 pImpl->fields[field] = (const uint8_t*)it.ptrs[field + 1] + (size_t)row * it.sizes[field + 1];
-            }
             if (!pCallback(Entity(it.entities[row]), { pImpl->fields.data(), pImpl->fields.size() }, pUserData))
             {
                 ecs_iter_fini(&it);

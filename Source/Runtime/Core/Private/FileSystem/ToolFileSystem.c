@@ -43,24 +43,16 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 
     FsDirectoryIterator iterator = NULL;
     if (!fsDirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
-    {
         return false;
-    }
 
     if (extension)
     {
         if (*extension == '*')
-        {
             ++extension;
-        }
         if (*extension == '.')
-        {
             ++extension;
-        }
         if (!*extension)
-        {
             extension = NULL;
-        }
     }
 
     int filesFound = 0;
@@ -72,14 +64,10 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
         struct FsDirectoryIteratorEntry entry;
         success = fsDirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
-        {
             break;
-        }
 
         if (entry.isDir)
-        {
             continue;
-        }
 
         char fileExt[FS_MAX_PATH] = { 0 };
         fsGetPathExtension(entry.name, fileExt);
@@ -113,14 +101,10 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
         struct FsDirectoryIteratorEntry entry;
         success = fsDirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
-        {
             break;
-        }
 
         if (entry.isDir)
-        {
             continue;
-        }
 
         char fileExt[FS_MAX_PATH] = { 0 };
         fsGetPathExtension(entry.name, fileExt);
@@ -160,9 +144,7 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 
     FsDirectoryIterator iterator = NULL;
     if (!fsDirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
-    {
         return false;
-    }
 
     bool success = true;
 
@@ -173,14 +155,10 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
         struct FsDirectoryIteratorEntry entry;
         success = fsDirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
-        {
             break;
-        }
 
         if (entry.isDir)
-        {
             ++filesFound;
-        }
     }
 
     if (!success || !filesFound)
@@ -206,14 +184,10 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
         struct FsDirectoryIteratorEntry entry;
         success = fsDirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
-        {
             break;
-        }
 
         if (!entry.isDir)
-        {
             continue;
-        }
 
         char result[FS_MAX_PATH] = { 0 };
         fsAppendPathComponent(subDirectory, entry.name, result);
@@ -264,9 +238,7 @@ bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDi
     *isFile = false;
 
     if (errno == ENOENT)
-    {
         return true;
-    }
 
     LOGF(eERROR, "Failed to retreive path '%s' info: '%'", fullPath, strerror(errno));
     return false;
@@ -284,9 +256,7 @@ bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryI
     if (!directory)
     {
         if (errno == ENOENT)
-        {
             return false;
-        }
         LOGF(eERROR, "Failed to open directory '%s': '%'", fullPath, strerror(errno));
         return false;
     }
@@ -357,9 +327,7 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIte
         }
 
         if (!is_dir && !is_file)
-        {
             continue;
-        }
 
         // Avoid ".", ".." directories
         if (is_dir && entry->d_name[0] == '.' && (entry->d_name[1] == 0 || (entry->d_name[1] == '.' && entry->d_name[2] == 0)))

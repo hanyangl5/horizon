@@ -165,9 +165,7 @@ static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t member
     partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     char* pPivot = partitionImpl((char*)pData, (char*)pData + memberSize * memberCount, (char*)pData + pivot * memberSize, memberSize, less,
                                  pUserData);
     return (pPivot - (char*)pData) / memberSize;
@@ -180,9 +178,7 @@ static int8_t* partitionImplInt8(int8_t* pBegin, int8_t* pEnd, int8_t* pPivot){
 } size_t partitionInt8(int8_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     int8_t* pPivot = partitionImplInt8(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -194,9 +190,7 @@ static int16_t* partitionImplInt16(int16_t* pBegin, int16_t* pEnd, int16_t* pPiv
 } size_t partitionInt16(int16_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     int16_t* pPivot = partitionImplInt16(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -207,9 +201,7 @@ static int32_t* partitionImplInt32(int32_t* pBegin, int32_t* pEnd, int32_t* pPiv
 } size_t partitionInt32(int32_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     int32_t* pPivot = partitionImplInt32(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -220,9 +212,7 @@ static int64_t* partitionImplInt64(int64_t* pBegin, int64_t* pEnd, int64_t* pPiv
 } size_t partitionInt64(int64_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     int64_t* pPivot = partitionImplInt64(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -235,9 +225,7 @@ static uint8_t* partitionImplUInt8(uint8_t* pBegin, uint8_t* pEnd,
 size_t partitionUInt8(uint8_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     uint8_t* pPivot = partitionImplUInt8(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -249,9 +237,7 @@ static uint16_t* partitionImplUInt16(uint16_t* pBegin, uint16_t* pEnd, uint16_t*
 size_t partitionUInt16(uint16_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     uint16_t* pPivot = partitionImplUInt16(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -262,9 +248,7 @@ static uint32_t* partitionImplUInt32(uint32_t* pBegin, uint32_t* pEnd, uint32_t*
 } size_t partitionUInt32(uint32_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     uint32_t* pPivot = partitionImplUInt32(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -276,9 +260,7 @@ static uint64_t* partitionImplUInt64(uint64_t* pBegin, uint64_t* pEnd, uint64_t*
 size_t partitionUInt64(uint64_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     uint64_t* pPivot = partitionImplUInt64(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -290,9 +272,7 @@ static float* partitionImplFloat(float* pBegin, float* pEnd, float* pPivot){
 } size_t partitionFloat(float* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     float* pPivot = partitionImplFloat(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }
@@ -303,9 +283,7 @@ static double* partitionImplDouble(double* pBegin, double* pEnd, double* pPivot)
 } size_t partitionDouble(double* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
-    {
         return 0;
-    }
     double* pPivot = partitionImplDouble(pArr, pArr + memberCount, pArr + pivot);
     return pPivot - pArr;
 }

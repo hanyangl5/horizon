@@ -36,21 +36,15 @@ static bool copySceneAssetString(const cJSON* pObject, const char* pName, char* 
     if (!pValue)
     {
         if (!required)
-        {
             return true;
-        }
         return failSceneAsset(pError, SCENE_ASSET_ERROR_MISSING_FIELD, pName);
     }
     if (!cJSON_IsString(pValue) || !pValue->valuestring || !pValue->valuestring[0])
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, pName);
-    }
 
     const size_t length = strlen(pValue->valuestring);
     if (length >= outputCapacity)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_CAPACITY_EXCEEDED, pName);
-    }
 
     memcpy(pOutput, pValue->valuestring, length + 1);
     return true;
@@ -59,31 +53,21 @@ static bool copySceneAssetString(const cJSON* pObject, const char* pName, char* 
 static bool isSceneAssetRelativePath(const char* pPath)
 {
     if (!pPath || !pPath[0] || pPath[0] == '/' || pPath[0] == '\\')
-    {
         return false;
-    }
     if (isalpha((unsigned char)pPath[0]) && pPath[1] == ':')
-    {
         return false;
-    }
 
     const char* pSegment = pPath;
     for (const char* pCursor = pPath;; ++pCursor)
     {
         if (*pCursor == '\\' || *pCursor == ':')
-        {
             return false;
-        }
         if (*pCursor == '/' || *pCursor == '\0')
         {
             if (pCursor - pSegment == 2 && pSegment[0] == '.' && pSegment[1] == '.')
-            {
                 return false;
-            }
             if (*pCursor == '\0')
-            {
                 break;
-            }
             pSegment = pCursor + 1;
         }
     }
@@ -94,15 +78,11 @@ static bool hasSceneAssetTextureExtension(const char* pPath, const char* pExpect
 {
     const char* pExtension = strrchr(pPath, '.');
     if (!pExtension)
-    {
         return false;
-    }
     for (; *pExtension && *pExpectedExtension; ++pExtension, ++pExpectedExtension)
     {
         if (tolower((unsigned char)*pExtension) != tolower((unsigned char)*pExpectedExtension))
-        {
             return false;
-        }
     }
     return !*pExtension && !*pExpectedExtension;
 }
@@ -120,17 +100,11 @@ static TextureContainerType getSceneAssetTextureContainer(const char* pPath)
 static bool copySceneAssetPath(const cJSON* pObject, const char* pName, char* pOutput, bool required, SceneAssetError* pError)
 {
     if (!copySceneAssetString(pObject, pName, pOutput, FS_MAX_PATH, required, pError))
-    {
         return false;
-    }
     if (!pOutput[0])
-    {
         return true;
-    }
     if (!isSceneAssetRelativePath(pOutput))
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_PATH, pName);
-    }
     return true;
 }
 
@@ -138,20 +112,14 @@ static bool copySceneAssetFloatArray(const cJSON* pObject, const char* pName, fl
 {
     const cJSON* pArray = cJSON_GetObjectItemCaseSensitive(pObject, pName);
     if (!pArray)
-    {
         return true;
-    }
     if (!cJSON_IsArray(pArray) || cJSON_GetArraySize(pArray) != (int)count)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, pName);
-    }
     for (uint32_t i = 0; i < count; ++i)
     {
         const cJSON* pValue = cJSON_GetArrayItem(pArray, (int)i);
         if (!cJSON_IsNumber(pValue))
-        {
             return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, pName);
-        }
         pOutput[i] = (float)pValue->valuedouble;
     }
     return true;
@@ -162,14 +130,10 @@ static bool copySceneAssetTextureIndex(const cJSON* pMaterial, const char* pName
 {
     const cJSON* pValue = cJSON_GetObjectItemCaseSensitive(pMaterial, pName);
     if (!pValue)
-    {
         return true;
-    }
     if (!cJSON_IsNumber(pValue) || pValue->valuedouble != (double)pValue->valueint || pValue->valueint < -1 ||
         pValue->valueint >= (int)textureCount)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, pName);
-    }
     *pOutput = pValue->valueint;
     return true;
 }
@@ -178,15 +142,11 @@ static bool isSceneAssetContentHash(const char* pHash)
 {
     static const char prefix[] = "fnv1a64:";
     if (!pHash || strncmp(pHash, prefix, sizeof(prefix) - 1) != 0 || strlen(pHash) != sizeof(prefix) - 1 + 16)
-    {
         return false;
-    }
     for (const char* pDigit = pHash + sizeof(prefix) - 1; *pDigit; ++pDigit)
     {
         if (!isxdigit((unsigned char)*pDigit))
-        {
             return false;
-        }
     }
     return true;
 }
@@ -194,30 +154,20 @@ static bool isSceneAssetContentHash(const char* pHash)
 bool parseSceneAssetManifest(const char* pJson, size_t jsonSize, SceneAssetManifest* pManifest, SceneAssetError* pError)
 {
     if (pError)
-    {
         *pError = {};
-    }
     if (!pManifest)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_ARGUMENT, "pManifest");
-    }
     memset(pManifest, 0, sizeof(*pManifest));
     if (!pJson || !jsonSize)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_ARGUMENT, "pJson");
-    }
 
     const char* pParseEnd = nullptr;
     cJSON*      pRoot = cJSON_ParseWithLengthOpts(pJson, jsonSize, &pParseEnd, false);
     if (!pRoot)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_JSON, "manifest is not valid JSON");
-    }
 
     while (pParseEnd && pParseEnd < pJson + jsonSize && isspace((unsigned char)*pParseEnd))
-    {
         ++pParseEnd;
-    }
     if (!pParseEnd || pParseEnd != pJson + jsonSize || !cJSON_IsObject(pRoot))
     {
         cJSON_Delete(pRoot);
@@ -403,13 +353,9 @@ bool parseSceneAssetManifest(const char* pJson, size_t jsonSize, SceneAssetManif
                 return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_FIELD, "material factor");
             }
             if (pMetallic)
-            {
                 pOutput->metallicFactor = (float)pMetallic->valuedouble;
-            }
             if (pRoughness)
-            {
                 pOutput->roughnessFactor = (float)pRoughness->valuedouble;
-            }
         }
     }
 
@@ -440,19 +386,13 @@ bool loadSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pFi
                             SceneAssetError* pError)
 {
     if (pError)
-    {
         *pError = {};
-    }
     if (!pFileName || !pFileName[0] || !pManifest)
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_ARGUMENT, "manifest file");
-    }
 
     FileStream stream = {};
     if (!fsOpenStreamFromPath(resourceDirectory, pFileName, FM_READ, &stream))
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_IO, "could not open manifest");
-    }
 
     const ssize_t fileSize = fsGetStreamFileSize(&stream);
     if (fileSize <= 0 || (size_t)fileSize > kMaxSceneAssetManifestSize)
@@ -485,14 +425,10 @@ bool prepareSceneAssetGeometryLoadDesc(const SceneAssetManifest* pManifest, cons
                                        GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError)
 {
     if (pError)
-    {
         *pError = {};
-    }
     if (!pManifest || !pSource || !pGeometryLoadDesc || !pManifest->geometry[0] || !pSource->pVertexLayout ||
         (!pSource->ppGeometry && !pSource->ppGeometryData))
-    {
         return failSceneAsset(pError, SCENE_ASSET_ERROR_INVALID_ARGUMENT, "geometry load descriptor");
-    }
 
     *pGeometryLoadDesc = *pSource;
     pGeometryLoadDesc->pFileName = pManifest->geometry;
@@ -540,9 +476,7 @@ static SceneAssetHandle invalidSceneAssetHandle() { return { UINT32_MAX, 0 }; }
 SceneAssetSlot* SceneManager::findSlot(SceneAssetHandle handle)
 {
     if (handle.index >= arrlenu(pSlots))
-    {
         return nullptr;
-    }
     SceneAssetSlot* pSlot = &pSlots[handle.index];
     return pSlot->occupied && !pSlot->retiring && pSlot->generation == handle.generation ? pSlot : nullptr;
 }
@@ -556,29 +490,21 @@ void SceneManager::destroySlot(SceneAssetSlot* pSlot)
         for (uint32_t i = 0; i < arrlenu(pSlot->pGpuResources->ppTextures); ++i)
         {
             if (pSlot->pGpuResources->ppTextures[i])
-            {
                 tf_delete(pSlot->pGpuResources->ppTextures[i]);
-            }
         }
         arrfree(pSlot->pGpuResources->ppTextures);
         tf_delete(pSlot->pGpuResources);
     }
     if (pSlot->pGeometry)
-    {
         callbacks.pRemoveGeometry(pUserData, pSlot->pGeometry);
-    }
     if (pSlot->pMaterialBuffer)
-    {
         callbacks.pRemoveBuffer(pUserData, pSlot->pMaterialBuffer);
-    }
     if (pSlot->pManifest)
     {
         for (uint32_t i = 0; i < pSlot->pManifest->textureCount; ++i)
         {
             if (pSlot->ppTextures && pSlot->ppTextures[i])
-            {
                 callbacks.pRemoveTexture(pUserData, pSlot->ppTextures[i]);
-            }
         }
     }
     arrfree(pSlot->ppTextures);
@@ -620,9 +546,7 @@ SceneManager::SceneManager(const SceneManagerDesc& desc)
     // Resource loader callbacks retain addresses inside the slots. Size once and never relocate them.
     arrsetlen(pSlots, desc.capacity);
     for (uint32_t i = 0; i < desc.capacity; ++i)
-    {
         pSlots[i] = {};
-    }
     this->callbacks = callbacks;
     pContext = desc.pContext;
     pUserData = desc.pUserData;
@@ -635,20 +559,14 @@ SceneManager::~SceneManager()
     {
         SceneAssetSlot* pSlot = &pSlots[i];
         if (!pSlot->occupied)
-        {
             continue;
-        }
         if (pSlot->status == SCENE_ASSET_STATUS_LOADING)
         {
             callbacks.pWaitForToken(&pSlot->geometryToken, pUserData);
             for (uint32_t textureIndex = 0; textureIndex < pSlot->pManifest->textureCount; ++textureIndex)
-            {
                 callbacks.pWaitForToken(&pSlot->pTextureTokens[textureIndex], pUserData);
-            }
             if (pSlot->pManifest->materialCount)
-            {
                 callbacks.pWaitForToken(&pSlot->materialToken, pUserData);
-            }
         }
         destroySlot(pSlot);
     }
@@ -661,18 +579,14 @@ void SceneManager::update()
     {
         SceneAssetSlot* pSlot = &pSlots[i];
         if (!pSlot->occupied || pSlot->status != SCENE_ASSET_STATUS_LOADING)
-        {
             continue;
-        }
         if (!pSlot->geometryResident && !pSlot->retiring && callbacks.pIsTokenCompleted(&pSlot->geometryToken, pUserData) &&
             pSlot->pGeometry)
         {
             Geometry* pSource = pSlot->pGeometry;
             bool      valid = !pSource->pGeometryBuffer && pSource->pIndexBuffer && pSource->vertexBufferCount <= MAX_VERTEX_BINDINGS;
             for (uint32_t binding = 0; valid && binding < pSource->vertexBufferCount; ++binding)
-            {
                 valid = pSource->pVertexBuffers[binding] != nullptr;
-            }
             if (valid)
             {
                 SceneGeometry& geometry = pSlot->pGpuResources->geometry;
@@ -719,21 +633,13 @@ void SceneManager::update()
             loaded = loaded && pSlot->materialResident;
         }
         else
-        {
             pSlot->materialResident = true;
-        }
         if (!allCompleted)
-        {
             continue;
-        }
         if (pSlot->retiring)
-        {
             destroySlot(pSlot);
-        }
         else
-        {
             pSlot->status = loaded ? SCENE_ASSET_STATUS_READY : SCENE_ASSET_STATUS_FAILED;
-        }
     }
 }
 
@@ -742,9 +648,7 @@ SceneAssetHandle SceneManager::requestFromManifest(const SceneAssetManifest* pMa
     if (!pManifest || !pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !pManifest->geometry[0] ||
         pGeometryLoadDesc->pGeometryBuffer || pManifest->textureCount > SCENE_ASSET_MAX_TEXTURES ||
         pManifest->materialCount > SCENE_ASSET_MAX_MATERIALS)
-    {
         return invalidSceneAssetHandle();
-    }
 
     uint32_t slotIndex = UINT32_MAX;
     for (uint32_t i = 0; i < arrlenu(pSlots); ++i)
@@ -756,20 +660,14 @@ SceneAssetHandle SceneManager::requestFromManifest(const SceneAssetManifest* pMa
         }
     }
     if (slotIndex == UINT32_MAX)
-    {
         return invalidSceneAssetHandle();
-    }
 
     SceneAssetSlot* pSlot = &pSlots[slotIndex];
     if (!pSlot->generation)
-    {
         pSlot->generation = 1;
-    }
     pSlot->pManifest = (SceneAssetManifest*)tf_malloc(sizeof(SceneAssetManifest));
     if (!pSlot->pManifest)
-    {
         return invalidSceneAssetHandle();
-    }
     // stb_ds holds pointers only; non-trivial GPU owners have stable storage and real destructors.
     pSlot->pGpuResources = tf_new(SceneGpuResources);
     // Finish sizing before enqueueing loads, which write into these arrays asynchronously.
@@ -788,9 +686,7 @@ SceneAssetHandle SceneManager::requestFromManifest(const SceneAssetManifest* pMa
         }
     }
     if (pManifest->materialCount)
-    {
         arrsetlen(pSlot->pGpuMaterials, pManifest->materialCount);
-    }
     *pSlot->pManifest = *pManifest;
     pSlot->occupied = true;
     pSlot->status = SCENE_ASSET_STATUS_LOADING;
@@ -851,9 +747,7 @@ SceneAssetHandle SceneManager::requestFromManifestFile(ResourceDirectory resourc
                                                        const GeometryLoadDesc* pGeometryLoadDesc, SceneAssetError* pError)
 {
     if (pError)
-    {
         *pError = {};
-    }
     SceneAssetManifest* pManifest = (SceneAssetManifest*)tf_malloc(sizeof(SceneAssetManifest));
     if (!pManifest)
     {
@@ -868,9 +762,7 @@ SceneAssetHandle SceneManager::requestFromManifestFile(ResourceDirectory resourc
     const SceneAssetHandle handle = requestFromManifest(pManifest, pGeometryLoadDesc);
     tf_free(pManifest);
     if (!isSceneAssetHandleValid(handle))
-    {
         failSceneAsset(pError, SCENE_ASSET_ERROR_CAPACITY_EXCEEDED, "scene asset capacity exhausted");
-    }
     return handle;
 }
 
@@ -879,9 +771,7 @@ SceneAssetHandle SceneManager::requestFromGltf(ResourceDirectory sourceDirectory
                                                SceneAssetError* pError)
 {
     if (pError)
-    {
         *pError = {};
-    }
     if (!pGeometryLoadDesc || !pGeometryLoadDesc->pVertexLayout || !isSceneAssetRelativePath(pSourceFile) ||
         strlen(pSourceFile) + sizeof(".scene.json") >= FS_MAX_PATH || !hasSceneAssetTextureExtension(pSourceFile, ".gltf"))
     {
@@ -891,9 +781,7 @@ SceneAssetHandle SceneManager::requestFromGltf(ResourceDirectory sourceDirectory
     if (pEnsureGltfCooked && !pEnsureGltfCooked(sourceDirectory, pSourceFile, outputDirectory, pError))
     {
         if (pError && pError->code == SCENE_ASSET_ERROR_NONE)
-        {
             failSceneAsset(pError, SCENE_ASSET_ERROR_IO, "glTF cooking failed");
-        }
         return invalidSceneAssetHandle();
     }
     char manifest[FS_MAX_PATH] = {};
@@ -905,22 +793,14 @@ bool SceneManager::release(SceneAssetHandle handle)
 {
     SceneAssetSlot* pSlot = findSlot(handle);
     if (!pSlot)
-    {
         return false;
-    }
     ++pSlot->generation;
     if (!pSlot->generation)
-    {
         ++pSlot->generation;
-    }
     if (pSlot->status == SCENE_ASSET_STATUS_LOADING)
-    {
         pSlot->retiring = true;
-    }
     else
-    {
         destroySlot(pSlot);
-    }
     return true;
 }
 

@@ -47,9 +47,7 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
     isSame = isSame && (a->name_size == b->name_size);
     // early exit before string cmp
     if (isSame == false)
-    {
         return isSame;
-    }
 
     isSame = (strcmp(a->name, b->name) == 0);
 #endif
@@ -66,9 +64,7 @@ static bool ShaderVariableCmp(ShaderVariable* a, ShaderVariable* b)
 
     // early exit before string cmp
     if (isSame == false)
-    {
         return isSame;
-    }
 
     isSame = (strcmp(a->name, b->name) == 0);
 
@@ -78,9 +74,7 @@ static bool ShaderVariableCmp(ShaderVariable* a, ShaderVariable* b)
 void destroyShaderReflection(ShaderReflection* pReflection)
 {
     if (pReflection == NULL)
-    {
         return;
-    }
 
     tf_free(pReflection->pNamePool);
     tf_free(pReflection->pVertexInputs);
@@ -206,9 +200,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
             {
                 unique = !ShaderVariableCmp(&pSrcRef->pVariables[j], pUniqueVariable[k]);
                 if (unique == false)
-                {
                     break;
-                }
             }
 
             // If it's unique we add it to the list of shader variables
@@ -279,14 +271,10 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 void destroyPipelineReflection(PipelineReflection* pReflection)
 {
     if (pReflection == NULL)
-    {
         return;
-    }
 
     for (uint32_t i = 0; i < pReflection->stageReflectionCount; ++i)
-    {
         destroyShaderReflection(&pReflection->stageReflections[i]);
-    }
 
     tf_free(pReflection->pShaderResources);
     tf_free(pReflection->pVariables);

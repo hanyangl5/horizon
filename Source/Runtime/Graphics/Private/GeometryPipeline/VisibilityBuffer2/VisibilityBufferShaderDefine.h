@@ -162,7 +162,7 @@
 
 // This function is used to get the offset of the current material base index depending
 // on the type of geometry and on the culling view.
-#define BaseInstanceBuffer(set, viewID)   ((((viewID) * NUM_GEOMETRY_SETS) + (set)) * MAX_DRAWS_INDIRECT)
+#define BaseInstanceBuffer(set, viewID)   ((((viewID)*NUM_GEOMETRY_SETS) + (set)) * MAX_DRAWS_INDIRECT)
 
 // This index means that the draw call doesn't have any instance data associated, can skip doing operations with it
 #ifndef INSTANCE_INDEX_NONE
@@ -190,9 +190,9 @@ typedef struct IndirectDrawIndexArguments
 
 // This function is used to get the offset of the IndirectDrawArgsBuffer index depending
 // on the type of geometry and on the culling view.
-#define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW) * NUM_GEOMETRY_SETS) + (GEOM)) * MAX_DRAWS_INDIRECT_ELEMENTS) + (ELEM))
+#define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW)*NUM_GEOMETRY_SETS) + (GEOM)) * MAX_DRAWS_INDIRECT_ELEMENTS) + (ELEM))
 
-#define GET_UNCOMPACT_DRAW_INDEX(VIEW, DRAW_ID)        (((VIEW) * MAX_DRAWS_INDIRECT) + (DRAW_ID))
+#define GET_UNCOMPACT_DRAW_INDEX(VIEW, DRAW_ID)        (((VIEW)*MAX_DRAWS_INDIRECT) + (DRAW_ID))
 #define GET_COMPACT_DRAW_INDEX(VIEW, DRAW_ID)          (((NUM_CULLING_VIEWPORTS + (VIEW)) * MAX_DRAWS_INDIRECT) + (DRAW_ID))
 
 // Size for the IndirectDrawArgsBuffer

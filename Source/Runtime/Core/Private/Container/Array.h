@@ -19,9 +19,7 @@ public:
         ASSERT(values.pData || !values.count);
         reserve(values.count);
         for (uint32_t i = 0; i < values.count; ++i)
-        {
             ::new ((void*)(pData + i)) T(values.pData[i]);
-        }
         stbds_arrsetlen(pData, values.count);
     }
 
@@ -75,14 +73,10 @@ public:
     void reserve(uint32_t count)
     {
         if (count <= capacity())
-        {
             return;
-        }
         // stb_ds realloc cannot relocate objects or preserve an over-aligned payload's offset.
         if constexpr (__is_trivially_copyable(T) && alignof(T) <= 16)
-        {
             stbds_arrsetcap(pData, count);
-        }
         else
         {
             const uint32_t oldCount = size();
@@ -90,9 +84,7 @@ public:
             T*             pNew = nullptr;
             stbds_arrsetcap(pNew, count > doubledCapacity ? count : doubledCapacity);
             for (uint32_t i = 0; i < oldCount; ++i)
-            {
                 relocate(pNew + i, pData[i]);
-            }
             stbds_arrsetlen(pNew, oldCount);
             reset();
             pData = pNew;
@@ -104,9 +96,7 @@ public:
         destroyFrom(count);
         reserve(count);
         for (uint32_t i = oldCount; i < count; ++i)
-        {
             ::new ((void*)(pData + i)) T{};
-        }
         stbds_arrsetlen(pData, count);
     }
     template<typename... Args>
@@ -121,9 +111,7 @@ public:
             relocate(pData + count, value);
         }
         else
-        {
             ::new ((void*)(pData + count)) T(std::forward<Args>(args)...);
-        }
         stbds_arrsetlen(pData, count + 1);
         return pData[count];
     }
@@ -149,23 +137,17 @@ public:
 private:
     static void relocate(T* pDestination, T& source)
     {
-        if constexpr (__is_constructible(T, T&&))
-        {
+        if constexpr (__is_constructible(T, T &&))
             ::new ((void*)pDestination) T(std::move(source));
-        }
         else
-        {
             ::new ((void*)pDestination) T(source);
-        }
     }
     void destroyFrom(uint32_t first)
     {
         if constexpr (!__is_trivially_destructible(T))
         {
             for (uint32_t i = size(); i > first; --i)
-            {
                 pData[i - 1].~T();
-            }
         }
     }
 

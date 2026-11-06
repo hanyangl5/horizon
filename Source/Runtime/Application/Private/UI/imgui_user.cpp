@@ -37,9 +37,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
-    {
         return 0;
-    }
 
     ImGuiContext&     g = *GImGui;
     const ImGuiStyle& style = g.Style;
@@ -106,10 +104,8 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
             return retValue;
         }
         else
-        {
             // Return value to indicate if text was requested
             using_text_input = true;
-        }
     }
 
     // Create Invisible button and check if its active/hovered
@@ -133,9 +129,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     float  lengthCurr = sqrtf(mouseToKnob.x * mouseToKnob.x + mouseToKnob.y * mouseToKnob.y);
 
     if (lengthCurr > knobRadius && g.ActiveId != id)
-    {
         isActive = false;
-    }
     const float hitRadius = minimumHitRadius * knobRadius;
     if (isActive && g.ActiveIdPreviousFrame == id)
     {
@@ -196,9 +190,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     // Cover the part that can't be dragged
     // i.e: Create hole in center
     if (hitRadius > 0.f)
-    {
         draw_list->AddCircleFilled(center, hitRadius, ImGui::GetColorU32(ImGuiCol_WindowBg), 32);
-    }
 
     // Add line from center of knob to edge of circle along mouse direction
     float x2 = -sinf(currentAngle) * knobRadius + center.x;
@@ -216,9 +208,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     RenderText(textpos, label);
 
     if (using_text_input)
-    {
         return 2;
-    }
     return (int)updatedKnob;
 }
 
@@ -228,9 +218,7 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
-    {
         return false;
-    }
 
     int value_changed = 0;
     // Print label of widget
@@ -263,9 +251,7 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
         PushID(i);
         int currValue = KnobFloat(componentNames[i % 4], value_p, step, minv, maxv, format, minimumHitRadius, doubleTapForText, spawnText);
         if (value_changed == 0)
-        {
             value_changed = currValue > 1 ? currValue + i : currValue;
-        }
         SameLine(0, itemSpacing);
         PopID();
         PopItemWidth();

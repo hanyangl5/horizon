@@ -31,9 +31,7 @@ unsigned getTimerMSec(Timer* pTimer, bool reset)
     unsigned currentTime = getSystemTime();
     unsigned elapsedTime = currentTime - pTimer->startTime;
     if (reset)
-    {
         pTimer->startTime = currentTime;
-    }
 
     return elapsedTime;
 }
@@ -53,14 +51,10 @@ int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset)
 
     // Correct for possible weirdness with changing internal frequency
     if (elapsedTime < 0)
-    {
         elapsedTime = 0;
-    }
 
     if (reset)
-    {
         pTimer->startTime = currentTime;
-    }
 
     pTimer->history[pTimer->historyIndex] = elapsedTime;
     pTimer->historyIndex = (pTimer->historyIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
@@ -72,16 +66,12 @@ int64_t getHiresTimerUSecAverage(HiresTimer* pTimer)
 {
     int64_t elapsedTime = 0;
     for (uint32_t i = 0; i < HIRES_TIMER_LENGTH_OF_HISTORY; ++i)
-    {
         elapsedTime += pTimer->history[i];
-    }
     elapsedTime /= HIRES_TIMER_LENGTH_OF_HISTORY;
 
     // Correct for overflow
     if (elapsedTime < 0)
-    {
         elapsedTime = 0;
-    }
 
     return elapsedTime;
 }

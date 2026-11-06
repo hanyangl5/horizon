@@ -34,52 +34,52 @@ extern "C"
 {
 #endif
 
-/* prevent 64-bit overflow when computing relative timestamp
-    see https://gist.github.com/jspohr/3dc4f00033d79ec5bdaf67bc46c813e3
-*/
-/* TODO: Move this function to the Math Library as soon as it's in C */
-static inline int64_t int64MulDiv(int64_t value, int64_t numer, int64_t denom)
-{
-    int64_t q = value / denom;
-    int64_t r = value % denom;
-    return q * numer + r * numer / denom;
-}
+    /* prevent 64-bit overflow when computing relative timestamp
+        see https://gist.github.com/jspohr/3dc4f00033d79ec5bdaf67bc46c813e3
+    */
+    /* TODO: Move this function to the Math Library as soon as it's in C */
+    static inline int64_t int64MulDiv(int64_t value, int64_t numer, int64_t denom)
+    {
+        int64_t q = value / denom;
+        int64_t r = value % denom;
+        return q * numer + r * numer / denom;
+    }
 
-// High res timer functions
-FORGE_API int64_t getUSec(bool precise);
-FORGE_API int64_t getTimerFrequency(void);
+    // High res timer functions
+    FORGE_API int64_t getUSec(bool precise);
+    FORGE_API int64_t getTimerFrequency(void);
 
-// Time related functions
-FORGE_API uint32_t getSystemTime(void);
-FORGE_API uint32_t getTimeSinceStart(void);
+    // Time related functions
+    FORGE_API uint32_t getSystemTime(void);
+    FORGE_API uint32_t getTimeSinceStart(void);
 
-/// Low res OS timer
-typedef struct Timer
-{
-    uint32_t startTime;
-} Timer;
+    /// Low res OS timer
+    typedef struct Timer
+    {
+        uint32_t startTime;
+    } Timer;
 
-FORGE_API void     initTimer(Timer* pTimer);
-FORGE_API void     resetTimer(Timer* pTimer);
-FORGE_API uint32_t getTimerMSec(Timer* pTimer, bool reset);
+    FORGE_API void     initTimer(Timer* pTimer);
+    FORGE_API void     resetTimer(Timer* pTimer);
+    FORGE_API uint32_t getTimerMSec(Timer* pTimer, bool reset);
 
 /// High-resolution OS timer
 #define HIRES_TIMER_LENGTH_OF_HISTORY 60
 
-typedef struct HiresTimer
-{
-    int64_t startTime;
+    typedef struct HiresTimer
+    {
+        int64_t startTime;
 
-    int64_t  history[HIRES_TIMER_LENGTH_OF_HISTORY];
-    uint32_t historyIndex;
-} HiresTimer;
+        int64_t  history[HIRES_TIMER_LENGTH_OF_HISTORY];
+        uint32_t historyIndex;
+    } HiresTimer;
 
-FORGE_API void    initHiresTimer(HiresTimer* pTimer);
-FORGE_API int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset);
-FORGE_API int64_t getHiresTimerUSecAverage(HiresTimer* pTimer);
-FORGE_API float   getHiresTimerSeconds(HiresTimer* pTimer, bool reset);
-FORGE_API float   getHiresTimerSecondsAverage(HiresTimer* pTimer);
-FORGE_API void    resetHiresTimer(HiresTimer* pTimer);
+    FORGE_API void    initHiresTimer(HiresTimer* pTimer);
+    FORGE_API int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset);
+    FORGE_API int64_t getHiresTimerUSecAverage(HiresTimer* pTimer);
+    FORGE_API float   getHiresTimerSeconds(HiresTimer* pTimer, bool reset);
+    FORGE_API float   getHiresTimerSecondsAverage(HiresTimer* pTimer);
+    FORGE_API void    resetHiresTimer(HiresTimer* pTimer);
 
 #ifdef __cplusplus
 }

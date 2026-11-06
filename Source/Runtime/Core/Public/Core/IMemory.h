@@ -80,22 +80,22 @@ typedef struct MemoryStatistics
 extern "C"
 {
 #endif
-// appName is used to create dump file, pass NULL to avoid it
-FORGE_API bool                initMemAlloc(const char* appName);
-FORGE_API void                exitMemAlloc(void);
-FORGE_API MemoryTrackingStats memGetTrackingStats(void);
-FORGE_API void                memPlotTrackingStats(void);
+    // appName is used to create dump file, pass NULL to avoid it
+    FORGE_API bool                initMemAlloc(const char* appName);
+    FORGE_API void                exitMemAlloc(void);
+    FORGE_API MemoryTrackingStats memGetTrackingStats(void);
+    FORGE_API void                memPlotTrackingStats(void);
 
 #ifdef ENABLE_MEMORY_TRACKING
-FORGE_API MemoryStatistics memGetStatistics(void);
+    FORGE_API MemoryStatistics memGetStatistics(void);
 #endif
 
-FORGE_API void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf);
-FORGE_API void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf);
-FORGE_API void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf);
-FORGE_API void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
-FORGE_API void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf);
-FORGE_API void  tf_free_internal(void* ptr, const char* f, int l, const char* sf);
+    FORGE_API void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void  tf_free_internal(void* ptr, const char* f, int l, const char* sf);
 
 #ifdef __cplusplus
 } // extern "C"

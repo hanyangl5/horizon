@@ -142,9 +142,7 @@ void initLog(const char* appName, LogLevel level /* = eALL */)
         setCurrentThreadName("MainThread");
 
         if (appName)
-        {
             addInitialLogFile(appName);
-        }
 
         gIsLoggerInitialized = true;
     }
@@ -157,9 +155,7 @@ void exitLog(void)
     for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
     {
         if (pCallback->close)
-        {
             pCallback->close(pCallback->userData);
-        }
     }
 
     destroyMutex(&gLogger.logMutex);
@@ -170,9 +166,7 @@ void exitLog(void)
 void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 {
     if (filename == NULL)
-    {
         return;
-    }
 
     FileStream fh;
     memset(&fh, 0, sizeof(FileStream));
@@ -222,9 +216,7 @@ void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCall
             gLogger.callbacksSize = gLogger.callbacksSize + 1;
         }
         else
-        {
             close(user_data);
-        }
     }
     releaseMutex(&gLogger.logMutex);
 }
@@ -283,9 +275,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
             for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
             {
                 if (pCallback->level & logLevelPrefixes[log_levels[i]].first)
-                {
                     pCallback->callback(pCallback->userData, gLogBuffer);
-                }
             }
         }
         releaseMutex(&gLogger.logMutex);
@@ -317,9 +307,7 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
         for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
         {
             if (pCallback->level & level)
-            {
                 pCallback->callback(pCallback->userData, gLogBuffer);
-            }
         }
     }
     releaseMutex(&gLogger.logMutex);
@@ -343,24 +331,16 @@ void _FailedAssert(const char* file, int line, const char* statement, const char
     if (!gIsLoggerInitialized)
     {
         if (usrMsgBuf[0])
-        {
             _OutputDebugString("Assert failed: (%s)\n\nFile: %s\nLine: %d\nMessage: %s\n\n", statement, file, line, usrMsgBuf);
-        }
         else
-        {
             _OutputDebugString("Assert failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
-        }
     }
     else
     {
         if (usrMsgBuf[0])
-        {
             writeLog(eERROR, file, line, "Assert failed: %s\nAssert message: %s", statement, usrMsgBuf);
-        }
         else
-        {
             writeLog(eERROR, file, line, "Assert failed: %s", statement);
-        }
     }
 
     _FailedAssertImpl(file, line, statement, usrMsgBuf[0] ? usrMsgBuf : NULL);
@@ -432,9 +412,7 @@ static bool isLogCallback(const char* id)
         for (const LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
         {
             if (strcmp(pCallback->id, id) == 0)
-            {
                 return true;
-            }
         }
     }
 
@@ -470,21 +448,15 @@ static size_t doubleToShortStr(double d, int precision, char* str)
         if (str[i] == '0')
         {
             if (end == i + 1)
-            {
                 end = i;
-            }
             continue;
         }
 
         if (str[i] != '.')
-        {
             continue;
-        }
 
         if (end == i + 1)
-        {
             end = i;
-        }
         str[end] = 0;
         break;
     }

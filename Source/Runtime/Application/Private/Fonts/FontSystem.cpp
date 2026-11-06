@@ -637,13 +637,9 @@ void* fntGetRawFontData(uint32_t fontID)
 {
 #ifdef ENABLE_FORGE_FONTS
     if (fontID < arrlen(gFontstash.fontBuffers))
-    {
         return gFontstash.fontBuffers[fontID];
-    }
     else
-    {
         return NULL;
-    }
 #else
     return NULL;
 #endif
@@ -653,13 +649,9 @@ uint32_t fntGetRawFontDataSize(uint32_t fontID)
 {
 #ifdef ENABLE_FORGE_FONTS
     if (fontID < arrlen(gFontstash.fontBufferSizes))
-    {
         return gFontstash.fontBufferSizes[fontID];
-    }
     else
-    {
         return UINT_MAX;
-    }
 #else
     return 0;
 #endif

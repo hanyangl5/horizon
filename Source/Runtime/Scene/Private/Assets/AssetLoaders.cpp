@@ -49,9 +49,7 @@ public:
     {
         removeResource(pUpload);
         if (pShadow)
-        {
             removeResource(pShadow);
-        }
         tf_free(pPath);
     }
     void            release();
@@ -62,9 +60,7 @@ public:
         AssetGeometry& geometry = *(AssetGeometry*)pUser;
         const bool     success = geometry.buildBounds();
         if (!success)
-        {
             LOGF(eERROR, "Invalid Mesh positions or draw ranges in '%s'", geometry.pPath);
-        }
         tfrg_atomic32_store_release(&geometry.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
     }
 
@@ -93,9 +89,7 @@ public:
     ~SubassetRequest()
     {
         if (pSource)
-        {
             pSource->release();
-        }
     }
     const AssetCatalogEntry& entry;
     AssetSource*             pSource;
@@ -121,17 +115,13 @@ public:
         ASSERT(desc.vertexLayout.attribCount && desc.vertexLayout.attribCount <= MAX_VERTEX_ATTRIBS);
         const ThreadSystemInitDesc threadDesc = { .threadCount = 1, .threadName = "AssetSource" };
         if (!threadSystemInit(&threads, &threadDesc))
-        {
             LOGF(eERROR, "Cannot start Mesh/Material loader worker");
-        }
     }
     ~AssetLoadersData()
     {
         ASSERT(shlen(pSources) == 0 && shlen(pGeometries) == 0);
         if (threads)
-        {
             threadSystemExit(&threads, &gThreadSystemExitDescDefault);
-        }
         shfree(pSources);
         shfree(pGeometries);
     }
@@ -184,20 +174,14 @@ public:
     static bool matchesDependencies(const AssetCatalogEntry& entry, Array<AssetID>& ids)
     {
         if (!ids.empty())
-        {
             qsort(ids.data(), ids.size(), sizeof(AssetID), compareIDs);
-        }
         uint32_t count = 0;
         for (uint32_t i = 0; i < ids.size(); ++i)
         {
             if (!ids[i].isValid() || (i && ids[i] == ids[i - 1]))
-            {
                 continue;
-            }
             if (count == entry.dependencies.count || ids[i] != entry.dependencies.pData[count++])
-            {
                 return false;
-            }
         }
         return count == entry.dependencies.count;
     }
@@ -206,27 +190,21 @@ public:
         SubassetRequest&      request = *(SubassetRequest*)pJob;
         const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&request.pSource->status);
         if (status != AssetLoadStatus::Succeeded)
-        {
             return { .status = status };
-        }
         const SceneAsset& scene = request.pSource->scene;
         const uint32_t    index = request.entry.location.elementIndex;
         Array<AssetID>    dependencies;
         if (request.entry.type == AssetType::Material)
         {
             if (index >= scene.getMaterials().count || scene.getMaterials().pData[index].id != request.entry.id)
-            {
                 return invalid(request);
-            }
             const SceneAssetMaterial& material = scene.getMaterials().pData[index];
             dependencies.pushBack(material.baseColorTexture);
             dependencies.pushBack(material.normalTexture);
             dependencies.pushBack(material.metallicRoughnessTexture);
             dependencies.pushBack(material.emissiveTexture);
             if (!matchesDependencies(request.entry, dependencies))
-            {
                 return invalid(request);
-            }
             MaterialAsset* pAsset = tf_new(MaterialAsset);
             pAsset->pSource = request.pSource;
             pAsset->index = index;
@@ -234,17 +212,11 @@ public:
             return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
         }
         if (index >= scene.getMeshes().count || scene.getMeshes().pData[index].id != request.entry.id)
-        {
             return invalid(request);
-        }
         for (const SceneAssetSubmesh& submesh : scene.getMeshes().pData[index].submeshes)
-        {
             dependencies.pushBack(submesh.material);
-        }
         if (!matchesDependencies(request.entry, dependencies))
-        {
             return invalid(request);
-        }
         MeshAsset* pAsset = tf_new(MeshAsset);
         pAsset->pSource = request.pSource;
         pAsset->index = index;
@@ -270,9 +242,7 @@ public:
         MeshAsset&            mesh = *(MeshAsset*)pPayload;
         const AssetLoadStatus status = mesh.pGeometry->poll();
         if (status != AssetLoadStatus::Succeeded)
-        {
             return status;
-        }
         for (const SceneAssetSubmesh& submesh : mesh.getDescription().submeshes)
         {
             if (submesh.draw >= mesh.pGeometry->draws.size())
@@ -288,9 +258,7 @@ public:
         AssetGeometry& geometry = *((MeshAsset*)pPayload)->pGeometry;
         waitForToken(&geometry.token);
         if (geometry.boundsQueued && (AssetLoadStatus)tfrg_atomic32_load_acquire(&geometry.status) == AssetLoadStatus::Pending)
-        {
             threadSystemWaitIdle(geometry.owner.threads);
-        }
     }
 
     RenderContext&     context;
@@ -311,13 +279,9 @@ void AssetSource::release()
 {
     ASSERT(references);
     if (--references)
-    {
         return;
-    }
     if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&status) == AssetLoadStatus::Pending)
-    {
         threadSystemWaitIdle(owner.threads);
-    }
     shdel(owner.pSources, pPath);
     tf_delete(this);
 }
@@ -325,9 +289,7 @@ bool AssetSource::read(ResourceDirectory directory)
 {
     FileStream stream = {};
     if (!fsOpenStreamFromPath(directory, pPath, FM_READ, &stream))
-    {
         return false;
-    }
     const ssize_t size = fsGetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
@@ -344,9 +306,7 @@ void AssetSource::decode(void* pUser, uint64_t)
     AssetSource& source = *(AssetSource*)pUser;
     const bool   success = source.read(source.owner.desc.cookedDirectory);
     if (!success)
-    {
         LOGF(eERROR, "Cannot decode Mesh/Material source '%s'", source.pPath);
-    }
     tfrg_atomic32_store_release(&source.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
 }
 
@@ -367,9 +327,7 @@ void AssetGeometry::release()
 {
     ASSERT(references);
     if (--references)
-    {
         return;
-    }
     ASSERT(isTokenCompleted(&token));
     ASSERT(!boundsQueued || (AssetLoadStatus)tfrg_atomic32_load_acquire(&status) != AssetLoadStatus::Pending);
     shdel(owner.pGeometries, pPath);
@@ -379,9 +337,7 @@ bool AssetGeometry::buildBounds()
 {
     if (!pShadow || !pShadow->pShadow || pShadow->pShadow->vertexStrides[SEMANTIC_POSITION] != sizeof(float) * 3 ||
         pShadow->pShadow->attributeCount[SEMANTIC_POSITION] != pUpload->vertexCount)
-    {
         return false;
-    }
     const GeometryData::ShadowData& shadow = *pShadow->pShadow;
     const uint8_t*                  pPositions = (const uint8_t*)shadow.pAttributes[SEMANTIC_POSITION];
     const bool                      index32 = pUpload->indexType == INDEX_TYPE_UINT32;
@@ -392,9 +348,7 @@ bool AssetGeometry::buildBounds()
         draw.arguments = pUpload->pDrawArgs[i];
         if (!draw.arguments.indexCount || draw.arguments.startIndex > pUpload->indexCount ||
             draw.arguments.indexCount > pUpload->indexCount - draw.arguments.startIndex)
-        {
             return false;
-        }
         for (uint32_t axis = 0; axis < 3; ++axis)
         {
             draw.bounds.minimum[axis] = FLT_MAX;
@@ -407,25 +361,17 @@ bool AssetGeometry::buildBounds()
                 (int64_t)(index32 ? ((const uint32_t*)shadow.pIndices)[index] : ((const uint16_t*)shadow.pIndices)[index]) +
                 (int32_t)draw.arguments.vertexOffset;
             if (vertex < 0 || (uint64_t)vertex >= pUpload->vertexCount)
-            {
                 return false;
-            }
             for (uint32_t axis = 0; axis < 3; ++axis)
             {
                 float value;
                 memcpy(&value, pPositions + (vertex * 3 + axis) * sizeof(float), sizeof(value));
                 if (!isfinite(value))
-                {
                     return false;
-                }
                 if (value < draw.bounds.minimum[axis])
-                {
                     draw.bounds.minimum[axis] = value;
-                }
                 if (value > draw.bounds.maximum[axis])
-                {
                     draw.bounds.maximum[axis] = value;
-                }
             }
         }
     }
@@ -434,13 +380,9 @@ bool AssetGeometry::buildBounds()
 AssetLoadStatus AssetGeometry::poll()
 {
     if (adopted)
-    {
         return AssetLoadStatus::Succeeded;
-    }
     if (!isTokenCompleted(&token))
-    {
         return AssetLoadStatus::Pending;
-    }
     if (!uploadSucceeded || !pUpload)
     {
         LOGF(eERROR, "Geometry upload failed: '%s'", pPath);
@@ -453,9 +395,7 @@ AssetLoadStatus AssetGeometry::poll()
     }
     const AssetLoadStatus result = (AssetLoadStatus)tfrg_atomic32_load_acquire(&status);
     if (result != AssetLoadStatus::Succeeded)
-    {
         return result;
-    }
     indexType = (IndexType)pUpload->indexType;
     vertexBufferCount = pUpload->vertexBufferCount;
     indexBuffer = SceneResourceAccess::take(&owner.context, pUpload->pIndexBuffer, gIndexBufferState);
@@ -463,9 +403,7 @@ AssetLoadStatus AssetGeometry::poll()
     for (uint32_t binding = 0; binding < MAX_VERTEX_BINDINGS; ++binding)
     {
         if (!pUpload->vertexStrides[binding])
-        {
             continue;
-        }
         vertexStrides[buffer] = pUpload->vertexStrides[binding];
         vertexBuffers[buffer] = SceneResourceAccess::take(&owner.context, pUpload->pVertexBuffers[buffer], gVertexBufferState);
         ++buffer;
@@ -481,9 +419,7 @@ AssetLoadStatus AssetGeometry::poll()
 MaterialAsset::~MaterialAsset()
 {
     if (pSource)
-    {
         pSource->release();
-    }
 }
 const SceneAssetMaterial& MaterialAsset::getDescription() const
 {
@@ -494,13 +430,9 @@ const SceneAssetMaterial& MaterialAsset::getDescription() const
 MeshAsset::~MeshAsset()
 {
     if (pGeometry)
-    {
         pGeometry->release();
-    }
     if (pSource)
-    {
         pSource->release();
-    }
 }
 const SceneAssetMesh& MeshAsset::getDescription() const
 {

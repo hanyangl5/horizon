@@ -46,9 +46,7 @@ static bool typeID(const cJSON* pComponent, TypeID& type)
 {
     const char* pText = stringField(pComponent, "type");
     if (!pText || strlen(pText) != 16)
-    {
         return false;
-    }
     const std::from_chars_result result = std::from_chars(pText, pText + 16, type, 16);
     return result.ec == std::errc{} && result.ptr == pText + 16 && type != 0;
 }
@@ -82,9 +80,7 @@ bool     WorldDocument::parse(Span<char> json)
     }
     uint32_t count = json.count;
     if (count && !json.pData[count - 1])
-    {
         --count;
-    }
     candidate->text.resize(count + 1);
     memcpy(candidate->text.data(), json.pData, count);
     candidate->text[count] = 0;
@@ -95,9 +91,7 @@ bool     WorldDocument::parse(Span<char> json)
 bool WorldDocument::serialize(Array<char>& json) const
 {
     if (!pData)
-    {
         return false;
-    }
     json = pData->text;
     return true;
 }
@@ -109,34 +103,20 @@ bool WorldDocument::capture(World& world, ObjectID id)
         return false;
     }
     if (!id.isValid())
-    {
         id = pData ? pData->id : ObjectID::create();
-    }
     if (!id.isValid())
-    {
         return false;
-    }
     Array<ObjectID> objects;
     for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pObjects); ++i)
-    {
         objects.pushBack(world.pImpl->pObjects[i].key);
-    }
     if (!objects.empty())
-    {
         qsort(objects.data(), objects.size(), sizeof(ObjectID), compareObjects);
-    }
     Array<const TypeDesc*> types;
     for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pTypes); ++i)
-    {
         if (world.pImpl->pTypes[i].key != SceneTypes::objectIdentity && world.pImpl->pTypes[i].key != SceneTypes::name)
-        {
             types.pushBack(world.pImpl->pTypes[i].pType);
-        }
-    }
     if (!types.empty())
-    {
         qsort(types.data(), types.size(), sizeof(types[0]), compareTypes);
-    }
     JsonValue root(cJSON_CreateObject());
     cJSON_AddStringToObject(root.pValue, "format", "Horizon.World");
     cJSON_AddNumberToObject(root.pValue, "version", 1);
@@ -158,18 +138,14 @@ bool WorldDocument::capture(World& world, ObjectID id)
         addID(pRecord, "parent", parentID);
         const Name* pName = (const Name*)world.getComponent(entity, SceneTypes::name);
         if (pName && !memchr(pName->value, 0, sizeof(pName->value)))
-        {
             return false;
-        }
         cJSON_AddItemToObject(pRecord, "name", pName ? cJSON_CreateString(pName->value) : cJSON_CreateNull());
         cJSON* pComponents = cJSON_AddArrayToObject(pRecord, "components");
         for (const TypeDesc* pType : types)
         {
             const void* pValue = world.getComponent(entity, pType->id);
             if (!pValue)
-            {
                 continue;
-            }
             if (!normalizeWorldComponent(pType->id, (void*)pValue, false) || !validateWorldReferences(*pType, pValue, world))
             {
                 LOGF(eERROR, "Cannot save invalid '%s' component", pType->pName);
@@ -177,9 +153,7 @@ bool WorldDocument::capture(World& world, ObjectID id)
             }
             cJSON* pProperties = writeWorldProperties(*pType, pValue);
             if (!pProperties)
-            {
                 return false;
-            }
             cJSON* pComponent = cJSON_CreateObject();
             cJSON_AddItemToArray(pComponents, pComponent);
             char type[17];
@@ -192,9 +166,7 @@ bool WorldDocument::capture(World& world, ObjectID id)
     }
     char* pText = cJSON_Print(root.pValue);
     if (!pText)
-    {
         return false;
-    }
     const bool result = parse({ pText, (uint32_t)strlen(pText) });
     cJSON_free(pText);
     return result;
@@ -240,22 +212,16 @@ public:
                 !readID(field(pRecord, "parent"), node.parent, true) || hmgetp_null(pIndices, node.id) ||
                 (!cJSON_IsNull(pName) && (!cJSON_IsString(pName) || strlen(pName->valuestring) >= sizeof(Name::value))) ||
                 !cJSON_IsArray(field(pRecord, "components")))
-            {
                 return false;
-            }
             node.entity = world.createObject(node.id);
             if (!node.entity.isValid())
-            {
                 return false;
-            }
             if (cJSON_IsString(pName))
             {
                 Name name;
                 strcpy(name.value, pName->valuestring);
                 if (!world.setComponent(node.entity, SceneTypes::name, &name))
-                {
                     return false;
-                }
             }
             const WorldNodeIndex index = { .key = node.id, .value = nodes.size() };
             hmputs(pIndices, index);
@@ -264,14 +230,10 @@ public:
         for (WorldLoadNode& node : nodes)
         {
             if (!node.parent.isValid())
-            {
                 continue;
-            }
             const WorldNodeIndex* pIndex = hmgetp_null(pIndices, node.parent);
             if (!pIndex)
-            {
                 return false;
-            }
             node.parentIndex = pIndex->value;
         }
         Array<uint32_t> path;
@@ -285,9 +247,7 @@ public:
                 current = nodes[current].parentIndex;
             }
             if (current != UINT32_MAX && nodes[current].visit == 1)
-            {
                 return false;
-            }
             while (!path.empty())
             {
                 nodes[path[path.size() - 1]].visit = 2;
@@ -306,48 +266,32 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
 {
     const cJSON* pProperties = field(pComponent, "properties");
     if (version > type.version)
-    {
         return false;
-    }
     JsonValue migrated;
     while (version < type.version)
     {
         const ComponentMigration* pMigration = nullptr;
         for (const ComponentMigration& migration : migrations)
-        {
             if (migration.type == type.id && migration.fromVersion == version)
-            {
                 pMigration = &migration;
-            }
-        }
         if (!pMigration || !pMigration->pMigrate)
-        {
             return false;
-        }
         char* pInput = cJSON_PrintUnformatted(pProperties);
         if (!pInput)
-        {
             return false;
-        }
         Array<char> output;
         const bool  success = pMigration->pMigrate({ pInput, (uint32_t)strlen(pInput) }, output);
         cJSON_free(pInput);
         if (!success || !validWorldJsonStrings({ output.data(), output.size() }))
-        {
             return false;
-        }
         cJSON* pNext = parseWorldJson({ output.data(), output.size() });
         if (!pNext)
-        {
             return false;
-        }
         cJSON_Delete(migrated.pValue);
         migrated.pValue = pNext;
         pProperties = pNext;
         if (!uniqueWorldFields(pProperties))
-        {
             return false;
-        }
         ++version;
     }
     ComponentValue value(type);
@@ -358,27 +302,17 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
                                 const IDGenerator& objectIDs) const
 {
     if (!pData || (target && target->isDeferred()))
-    {
         return false;
-    }
     if (!validWorldJsonStrings({ pData->text.data(), pData->text.size() }))
-    {
         return false;
-    }
     for (uint32_t i = 0; i < migrations.count; ++i)
     {
         const ComponentMigration& entry = migrations.pData[i];
         if (!entry.type || !entry.fromVersion || !entry.pMigrate)
-        {
             return false;
-        }
         for (uint32_t j = 0; j < i; ++j)
-        {
             if (entry.type == migrations.pData[j].type && entry.fromVersion == migrations.pData[j].fromVersion)
-            {
                 return false;
-            }
-        }
     }
     unique_ptr<World> staging = make_unique<World>(types, objectIDs);
     WorldLoadPlan     plan;
@@ -397,16 +331,10 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
             uint32_t version = 0;
             if (!uniqueWorldFields(pComponent) || !typeID(pComponent, id) || !stringField(pComponent, "name") ||
                 !worldVersion(field(pComponent, "version"), version) || !uniqueWorldFields(field(pComponent, "properties")))
-            {
                 return false;
-            }
             for (TypeID previous : present)
-            {
                 if (previous == id)
-                {
                     return false;
-                }
-            }
             present.pushBack(id);
             const TypeDesc* pType = types.getType(id);
             if (!pType || id == SceneTypes::objectIdentity || id == SceneTypes::name ||
@@ -422,9 +350,7 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
     {
         const WorldLoadNode& node = plan.nodes[index];
         if (node.parentIndex != UINT32_MAX)
-        {
             staging->attachParent(node.entity, plan.nodes[node.parentIndex].entity);
-        }
     }
     staging->updateTransforms();
     target.swap(staging);
@@ -460,50 +386,34 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
     char temporary[FS_MAX_PATH], backup[FS_MAX_PATH];
     if (snprintf(temporary, sizeof(temporary), "%s.tmp", pFileName) >= (int)sizeof(temporary) ||
         snprintf(backup, sizeof(backup), "%s.bak", pFileName) >= (int)sizeof(backup))
-    {
         return false;
-    }
     // Recover an interrupted replacement before starting another write.
     if (!fsFileExist(directory, pFileName) && fsFileExist(directory, backup) && !fsRenameFile(directory, backup, pFileName))
-    {
         return false;
-    }
     FileStream stream = {};
     if (!fsOpenStreamFromPath(directory, temporary, FM_WRITE, &stream))
-    {
         return false;
-    }
     const bool written = fsWriteToStream(&stream, text.pData, text.count) == text.count;
     const bool closed = fsCloseStream(&stream);
     if (!written || !closed)
-    {
         return false;
-    }
     const bool exists = fsFileExist(directory, pFileName);
     if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pFileName, backup)))
-    {
         return false;
-    }
     if (!fsRenameFile(directory, temporary, pFileName))
     {
         if (exists && !fsRenameFile(directory, backup, pFileName))
-        {
             LOGF(eERROR, "Restore World '%s' from '%s'", pFileName, backup);
-        }
         return false;
     }
     if (exists && !fsRemoveFile(directory, backup))
-    {
         LOGF(eWARNING, "Cannot remove World backup '%s'", backup);
-    }
     return true;
 }
 bool WorldDocument::save(ResourceDirectory directory, const char* pFileName) const
 {
     if (pData && writeWorldFile(directory, pFileName, { pData->text.data(), pData->text.size() - 1 }))
-    {
         return true;
-    }
     LOGF(eERROR, "Cannot save World document '%s'", pFileName);
     return false;
 }

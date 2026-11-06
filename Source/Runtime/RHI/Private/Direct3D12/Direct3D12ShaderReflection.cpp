@@ -92,9 +92,7 @@ void calculate_bound_resource_count(ID3D12ReflectionT* d3d12reflection, const D3
 
         // We only care about constant buffers
         if (bufferDesc.Type != D3D_CT_CBUFFER)
-        {
             continue;
-        }
 
         for (UINT v = 0; v < bufferDesc.Variables; ++v)
         {
@@ -172,9 +170,7 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
 
             // We only care about constant buffers
             if (bufferDesc.Type != D3D_CT_CBUFFER)
-            {
                 continue;
-            }
 
             // Find the resource index for the constant buffer
             uint32_t resourceIndex = ~0u;
@@ -264,9 +260,7 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
 
     // Allocate memory for the name pool
     if (reflection.namePoolSize)
-    {
         reflection.pNamePool = (char*)tf_calloc(reflection.namePoolSize, 1);
-    }
     char* pCurrentName = reflection.pNamePool;
 
     reflection.pVertexInputs = NULL;
@@ -322,9 +316,7 @@ void d3d12_createShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, S
 
     // Allocate memory for the name pool
     if (reflection.namePoolSize)
-    {
         reflection.pNamePool = (char*)tf_calloc(reflection.namePoolSize, 1);
-    }
     char* pCurrentName = reflection.pNamePool;
 
     fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);

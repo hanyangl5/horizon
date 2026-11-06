@@ -12,7 +12,8 @@ namespace hz
 {
 GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize, ResourceMemoryUsage memoryUsage,
                      DescriptorType bufferDescriptors, ResourceState initialState):
-    pContext(context), pBuffer(buffer), size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
+    pContext(context),
+    pBuffer(buffer), size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
 {
     ASSERT(pContext && pBuffer);
     ++pContext->resourceCount;
@@ -113,13 +114,9 @@ void GPUTexture::destroy()
         ASSERT(pContext && pContext->resourceCount);
         --pContext->resourceCount;
         if (pRenderTarget)
-        {
             removeRenderTarget(pContext->pRenderer, pRenderTarget);
-        }
         else
-        {
             removeResource(pTexture);
-        }
     }
 }
 
@@ -400,15 +397,11 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     {
         LOGF(eERROR, "Could not map shader source '%s'", input.pFileName);
         if (sourceFile.pIO)
-        {
             fsCloseStream(&sourceFile);
-        }
         return {};
     }
     if (pFileSource)
-    {
         snprintf(sourcePath, sizeof(sourcePath), "%s/%s", fsGetResourceDirectory(input.sourceDirectory), input.pFileName);
-    }
     uint32_t stageCount = input.stages.count;
     for (uint32_t i = 0; i < stageCount; ++i)
     {
@@ -441,17 +434,11 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     const char* extension = input.pFileName ? strrchr(input.pFileName, '.') : nullptr;
     if (input.language == ShaderLanguage::Slang ||
         (input.language == ShaderLanguage::Auto && extension && strcmp(extension, ".slang") == 0))
-    {
         shader = createSlangShader(source);
-    }
     else
-    {
         addShaderSource(pRenderer, &source, &shader);
-    }
     if (sourceFile.pIO)
-    {
         fsCloseStream(&sourceFile);
-    }
     ASSERT(shader);
     return shader;
 }
@@ -471,9 +458,9 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     RasterizerStateDesc raster = input.rasterizer;
     DepthStateDesc      depth = input.depth;
     BlendStateDesc      blend = {
-             .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.count) - 1),
-             .alphaToCoverage = input.alphaToCoverage,
-             .independentBlend = true,
+        .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.count) - 1),
+        .alphaToCoverage = input.alphaToCoverage,
+        .independentBlend = true,
     };
     hz::Format formats[MAX_RENDER_TARGETS] = {};
     for (uint32_t i = 0; i < input.colorTargets.count; ++i)
@@ -563,9 +550,7 @@ bool RenderContext::updateBuffer(const GPUBuffer& buffer, uint64_t offset, const
            buffer.pBuffer->pCpuMappedAddress);
     if (buffer.usage != RESOURCE_MEMORY_USAGE_CPU_TO_GPU || offset > buffer.size || size > buffer.size - offset ||
         !buffer.pBuffer->pCpuMappedAddress)
-    {
         return false;
-    }
     memcpy((uint8_t*)buffer.pBuffer->pCpuMappedAddress + offset, pData, (size_t)size);
     return true;
 }

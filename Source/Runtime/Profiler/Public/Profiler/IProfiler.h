@@ -51,7 +51,7 @@
 #endif
 
 typedef uint64_t ProfileToken;
-#define PROFILE_INVALID_TOKEN (uint64_t)-1
+#define PROFILE_INVALID_TOKEN (uint64_t) - 1
 
 struct Cmd;
 struct Renderer;

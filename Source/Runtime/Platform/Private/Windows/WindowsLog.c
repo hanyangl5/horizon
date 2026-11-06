@@ -127,19 +127,13 @@ void _PrintUnicode(const char* str, bool error)
     // though it means that proper Unicode output will not work
     FILE* out = error ? stderr : stdout;
     if (!_isatty(_fileno(out)))
-    {
         fprintf(out, "%s", str);
-    }
     else
     {
         if (error)
-        {
             printf("%s", str); // use this for now because WriteCosnoleW sometimes cause blocking
-        }
         else
-        {
             printf("%s", str); //-V523
-        }
     }
 
     _OutputDebugString("%s", str);
