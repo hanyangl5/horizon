@@ -158,22 +158,22 @@ AssetID
 
 - Asset Manager 只拥有 **typed payload 生命周期**，不自己管 descriptor 分配；RHI 继续拥有 descriptor allocator。
 - Asset Manager 维护版本化的 GPU 间接表，例如 `GpuMeshTable[GpuMeshID] → 当前 mesh payload（含各 submesh 的 index/vertex descriptor）`；Material 和 Texture 使用各自的 `GpuMaterialTable` 与 `GpuTextureTable`。这些 GpuID 不是裸 descriptor index。
-- `GpuSubmeshRef` 是运行时组合引用 `{GpuMeshID, submeshIndex}`，不是独立 ID。它只在创建它的 mesh layout/table snapshot 内有效；发生 structural reload 后必须重新解析稳定 `SubmeshID`，不能把旧 `submeshIndex` 当成持久身份。
-- RenderMeshBatch 保存 `GpuSubmeshRef`/`GpuMaterialID`，不保存 descriptor index、`SceneManager` slot 或裸指针。resolve 时先由 `GpuMeshID` 得到当前 snapshot 内的 mesh payload，再以 `submeshIndex` 取得 submesh descriptor。
+- `GpuSubmeshRef` 是运行时组合引用 `{GpuMeshID, submeshIndex}`，不是独立 ID。它只在创建它的 mesh layout 和对应上传的表内有效；发生 structural reload 后必须重新解析稳定 `SubmeshID`，不能把旧 `submeshIndex` 当成持久身份。
+- RenderMeshBatch 保存 `GpuSubmeshRef`/`GpuMaterialID`，不保存 descriptor index、`SceneManager` slot 或裸指针。resolve 时先由 `GpuMeshID` 得到本帧上传的表中的 mesh payload，再以 `submeshIndex` 取得 submesh descriptor。
 - **hot reload 分两类，不能一概而论"RenderScene 无 dirty"**：
-  - **PayloadCompatible**（layout 与 bounds 不变，只替换纹理像素、材质常量等）——只更新间接表里该 ID 指向的 payload version，RenderScene 不用 dirty。旧 payload 退休后，在其 snapshot/版本使用者全部释放且相关 GPU fence 完成时销毁，不等待长期 asset lease 清零。
+  - **PayloadCompatible**（layout 与 bounds 不变，只替换纹理像素、材质常量等）——只更新间接表里该 ID 指向的 payload version，RenderScene 不用 dirty。旧 payload 退休后，在其版本使用者全部释放且相关 GPU fence 完成时销毁，不等待长期 asset lease 清零。
   - **StructuralChange**（submesh 数量/稳定映射、bounds、默认材质、vertex/index layout 改变）——Asset Manager 产生失效信息，resolve/binding 层根据稳定 `SubmeshID` 重建受影响的 RenderMeshBatch 和 bounds。这类 reload 无法对 RenderScene 透明。
   - **texture reload** 要求 Material table 存的是 `GpuTextureID`（经间接表解析），不是旧 texture descriptor；否则父 Material 不 reload 就会引用已退休的 descriptor。
-- StructuralChange 的 publish 是一个 frame-boundary transaction：先准备新 payload，根据稳定 `SubmeshID` 重建 binding、RenderMeshBatch 和 bounds，再构造匹配的 RenderScene/GPU table snapshot，最后一起 publish。旧帧继续使用相互匹配的旧 RenderScene、旧 table 和旧 payload，禁止出现“新 table + 旧 RenderMeshBatch”的中间状态。
-- `GpuMeshID`、`GpuMaterialID` 和 `GpuTextureID` 都是运行时 `{index, generation}` handle，在对应 Asset Manager record 驻留期间跨 payload reload 稳定。只有长期 asset leases、所有 snapshot 引用和相关 GPU fences 都结束后才能回收 table slot；复用时递增 generation。CPU 在构造 snapshot 时验证 generation，GPU 只消费该不可变 snapshot 中已经验证过的 table index，因此旧 ID 不会在执行中的帧内别名到另一份资产。
+- StructuralChange 的 publish 是一个 frame-boundary transaction：先准备新 payload，根据稳定 `SubmeshID` 重建 binding、RenderMeshBatch 和 bounds，最后在同一次 GPU 上传中一起 publish。旧帧在队列上先于这次上传执行，继续使用相互匹配的旧场景记录、旧 table 和旧 payload，禁止出现“新 table + 旧 RenderMeshBatch”的中间状态。
+- `GpuMeshID`、`GpuMaterialID` 和 `GpuTextureID` 都是运行时 `{index, generation}` handle，在对应 Asset Manager record 驻留期间跨 payload reload 稳定。只有长期 asset leases 和相关 GPU fences 都结束后才能回收 table slot；复用时递增 generation。CPU 在编码上传的表时验证 generation，GPU 只消费本帧表中已经验证过的 table index，因此旧 ID 不会在执行中的帧内别名到另一份资产。
 
 **三层引用生命周期（必须区分，否则活着的 MeshRenderer 引用的资产会被卸载）**：
 
 1. **SceneAsset 实例化期的 dependency lease**：只在"加载 SceneAsset → spawn entities"这段事务里持有，是**瞬态**的。SceneAsset record 一旦被释放（它的用途只是产出 entity），这些 lease 就释放——**它不能作为运行期常驻引用的持有者**。
 2. **运行期长期 lease（本文新增的关键持有者）**：由 Scene 的 **resolve/binding 层**为**每个活跃的 `MeshRenderer`** 持有一份对已解析 Mesh/Material 的长期 asset lease；component 删除（或 Entity 销毁）时释放。这才是"World 里 MeshRenderer 存活 ⇒ 资产常驻"的保证。因此 `MeshRenderer` **只存 `AssetID`（不存 `AssetHandle`）**——handle 是 Asset Manager slot 生命周期，绝不能泄漏进 ECS 和序列化。
-3. **单帧 snapshot lease**：每帧只取得一次配对的 RenderScene/GPU asset table snapshot lease，由 snapshot 固定其引用的 payload versions；不按 RenderMeshBatch 或 instance 增减引用计数。提交 fence 完成后释放 snapshot（见 Threading）。
+3. **GPU 使用期**：引用归零后，Asset Manager 记下当时可能使用该 payload 的最后一次提交，fence 完成后才销毁；不按 RenderMeshBatch 或 instance 增减引用计数（见 Threading）。
 
-长期 asset lease 保活的是 **record 和当前 payload**，不固定历史 payload version。当前版本通过 record 持有依赖 lease；reload candidate 先取得自身所需依赖，发布后旧版本所需的依赖仍保留到该版本退休清理完成。旧版本的回收只等待其 snapshot/版本使用者和相关 GPU fence；record 与 GpuID slot 的回收才要求长期 lease 清零、后台工作结束且所有版本完成清理。Payload 只保存 `AssetID` 或已解析的稳定 GpuID，不保存依赖 GPU 指针。依赖的 hot reload **不**自动重载父资产，除非父 loader 显式声明"依赖版本会影响自身 payload"。
+长期 asset lease 保活的是 **record 和当前 payload**，不固定历史 payload version。当前版本通过 record 持有依赖 lease；reload candidate 先取得自身所需依赖，发布后旧版本所需的依赖仍保留到该版本退休清理完成。旧版本的回收只等待其版本使用者和相关 GPU fence；record 与 GpuID slot 的回收才要求长期 lease 清零、后台工作结束且所有版本完成清理。Payload 只保存 `AssetID` 或已解析的稳定 GpuID，不保存依赖 GPU 指针。依赖的 hot reload **不**自动重载父资产，除非父 loader 显式声明"依赖版本会影响自身 payload"。
 
 Asset metadata 初期使用 sidecar 文件保存 `AssetID`、type、source URI 和 cooked URI。Cooker 输出继续保存 content hash 和依赖信息。
 
@@ -263,7 +263,7 @@ Hierarchy 必须满足：
 
 当前接口：`setParent` 返回是否成功；`getParent` 提供父子关系的公共视图。Reparent 和删除带子节点的实体必须在 query/defer 作用域外调用，否则返回失败；叶节点增删与局部组件修改仍可 defer，LocalTransform/LocalMatrix 互斥检查同时覆盖待提交操作。删除父节点需要 TypeRegistry 注册 LocalMatrix，以便保留无法分解的结果。
 
-`updateTransforms` 在结构修改后重建缓存，普通更新只遍历排序、合并后的脏子树；缓存预热后，稳定层级的变换更新不分配内存。读取 `getWorldTransform` 前必须完成更新。`commitTransforms` 推进 World 缓存的 previous，调用方须保证 current 对应实际提交的状态；`resetTransformHistory` 可重置指定子树或全部实体。首次出现的实体以 current 初始化 previous。RenderScene 单独保存实际提交快照的历史，不依赖提交时 World 的最新状态；渲染路径通过帧池退休快照推进历史。
+`updateTransforms` 在结构修改后重建缓存，普通更新只遍历排序、合并后的脏子树；缓存预热后，稳定层级的变换更新不分配内存。读取 `getWorldTransform` 前必须完成更新。`commitTransforms` 推进 World 缓存的 previous，调用方须保证 current 对应实际提交的状态；`resetTransformHistory` 可重置指定子树或全部实体。首次出现的实体以 current 初始化 previous。RenderScene 单独保存实际提交的历史，不依赖提交时 World 的最新状态；渲染路径在 `GpuScene::endFrame` 推进历史。
 
 后续并行化时以独立 root 或预计算的 hierarchy range 为任务单位，结果必须与单线程路径一致。
 
@@ -354,7 +354,7 @@ RenderMeshBatch (RenderMeshBatchID)  = RenderPrimitive × Submesh
 - **transform 从第一天就在 per-instance 层（`RenderInstance`），不在 `RenderPrimitive` 上**——这样将来一个 primitive 挂多 instance（ISM/foliage）不改 buffer layout。
 - **RenderPrimitive** 持 mesh 级共享数据（material overrides、instance range），一个 Entity 一份。Range 的 offset/count 指向 `instanceIndices`，不是 RenderInstance sparse slot 的连续范围；索引元素指向 snapshot 内已验证 generation 的 instance slot。实例增删可以迁移索引段并更新 primitive range，不移动存活的 instance slot；旧帧继续使用自身 snapshot 的 range 和索引段。
 - **RenderInstance** 持 transform/bounds/identity。**phase 1 每个 RenderPrimitive 恰好 1 个 RenderInstance**（一 Entity → 1 primitive + 1 instance + N 个 RenderMeshBatch，N=submesh 数）。
-- **RenderMeshBatch** 是 draw 模板（primitive × submesh），持 snapshot 内有效的 `GpuSubmeshRef` 和 resolve 后的 `GpuMaterialID`（descriptor 走 Asset Manager 间接表，不存 descriptor index）；draw 时按 primitive 的 instance range 展开。
+- **RenderMeshBatch** 是 draw 模板（primitive × submesh），持本帧表内有效的 `GpuSubmeshRef` 和 resolve 后的 `GpuMaterialID`（descriptor 走 Asset Manager 间接表，不存 descriptor index）；draw 时按 primitive 的 instance range 展开。
 - lights、cameras 同为 RenderScene 顶层 sparse slot 数组，分别使用 `RenderLightID`、`RenderCameraID` 和 active list。
 - 可见性**不**作为 CPU mask 存储——见下方 GPU-driven 预留；未来 GPU culling 输出的正是可见 (RenderInstance × RenderMeshBatch)（或 meshlet）列表。
 
@@ -364,8 +364,8 @@ RenderMeshBatch (RenderMeshBatchID)  = RenderPrimitive × Submesh
 - extraction 输出 created、updated 和 removed slots，并合并连续 dirty ranges。
 - 数据数组提前 reserve；正常帧的 extraction 和 GPU upload 不分配内存。
 - asset 未 ready 时使用 placeholder 或跳过 instance，不阻塞渲染线程。
-- 删除 Entity 时，CPU slot 可以立即失效，但其 GPU backing storage 必须按 frames-in-flight 延迟回收。
-- **渲染历史按实际提交推进**：hierarchy update 只更新 current；extraction 的 previous 取上一次已提交渲染快照的 current，不取上一次 Update 或 extraction 的结果。提交成功后才推进历史基准，下一次提取把 previous 的变化加入 instance dirty ranges，即使实体未移动也上传 previous=current；未提交的快照不消耗历史。首次出现、teleport、camera cut 和窗口恢复渲染后的首帧使用 previous=current；恢复时同步重置相机历史。只有 Update、连续多次 Update 或丢弃 extraction 都不推进渲染历史，也不修改已提交快照。
+- 删除 Entity 时，CPU slot 可以立即失效并复用；常驻 GPU 表中的旧记录由之后的上传覆盖，被替换的 Buffer 延迟到 GPU 用完后释放。
+- **渲染历史按实际提交推进**：hierarchy update 只更新 current；extraction 的 previous 取上一次已提交帧的 current，不取上一次 Update 或 extraction 的结果。提交成功后才推进历史基准，下一次提取把 previous 的变化加入 instance dirty ranges，即使实体未移动也上传 previous=current；未提交的帧不消耗历史。首次出现、teleport、camera cut 和窗口恢复渲染后的首帧使用 previous=current；恢复时同步重置相机历史。只有 Update、连续多次 Update 或取消的帧都不推进渲染历史。
 - RenderScene 不包含 Flecs 类型、authoring 路径或 Asset Manager 内部 pointer。
 
 **slot 模型（稳定 ≠ 密集，用 sparse + active list 两层）**——`RenderPrimitiveID`、`RenderInstanceID`、`RenderMeshBatchID` 各自的数组套用同一模式：
@@ -405,17 +405,16 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 - 主线程拥有 World mutation、type registration 和 RenderScene extraction。
 - ResourceLoader 与 asset decode 可以异步工作，通过 token 或完成队列交还结果。
 - extraction 只在 World mutation 和 transform update 完成后执行。
-- Renderer 每帧消费一个不可变 `RenderFrame`，其中配对保存 RenderScene snapshot 与 `GpuAssetTableSnapshot`。StructuralChange 只在能同时发布这两部分时提交。
-- Snapshot 从预分配的 frames-in-flight pool 取得；一帧只 acquire/release 一次 snapshot lease，不为每个 RenderMeshBatch、instance 或资产执行引用计数，也不在 extraction 热路径构造动态 lease 集合。提交后把 fence value 记录到 snapshot，fence 完成后才允许复用该 slot 和回收其 payload versions。
-- **每份 backing storage 独立补齐增量**：配对的场景状态使用递增 revision，pool 中每份 RenderScene/GPU table backing storage 记录 `appliedRevision`。Fence 完成后复用时，合并从该版本到目标 revision 的全部变化，再从目标状态写入；不能只上传本帧 dirty。变化覆盖创建、更新、删除、历史变换推进、slot 复用、active list、instanceIndices、计数和 asset table。两侧都同步到目标 revision 后才能发布配对快照。
-- 增量记录使用预分配的有界 journal，保存变更位置而不持有旧 payload 指针；新 backing storage 或版本落后于 journal 保留范围时完整同步。正常帧补齐累计 dirty ranges，首次使用、扩容或 journal 溢出允许完整上传。同步完成前不能重新 acquire 该快照，也不能消费其中已退休的旧 descriptor；fence 完成并释放 lease 后，残留的 backing 内容本身不保活 payload。
-- GPU resource retirement 的所有权明确划分：Asset Manager 独占 Mesh/Texture/Material payload 和 GPU table snapshots；RenderScene 独占自身 primitive/instance/draw/light/camera buffers、instanceIndices 和 snapshots。`RenderFrame` 只持有两侧 snapshot leases，不取得底层资源所有权。退休 payload 按版本使用者和 GPU fence 回收；长期 asset lease 只阻止 record、当前 payload 和 GpuID slot 的回收，不阻止历史版本清理。
+- Renderer 每帧调用 `GpuScene::beginFrame` 提取场景并写入 staging，`recordUpload` 在各 Pass 前记录拷贝，提交后调用 `endFrame`。RenderScene 和 GPU 资产表在 GPU 上各只有一份常驻副本；图形队列按顺序执行，下一帧的拷贝排在上一帧的读取之后，因此不需要配对快照。StructuralChange 发布时，场景记录与资产表在同一次上传中更新。
+- staging 按提交句柄轮换；全部仍在 GPU 使用时 `beginFrame` 返回 false，不等待 fence。`beginFrame` 与 `endFrame` 之间不更新 RenderScene，Pass 直接读取 RenderScene 记录。
+- dirty slot 跨多次 update 累积，直到 `endFrame` 确认上传；取消的帧保留这些变化。新建或扩容的表整表上传，资产 Ready 集合变化时资产表整表上传。
+- GPU resource retirement 的所有权明确划分：Asset Manager 独占 Mesh/Texture/Material payload，引用归零后按提交退休；GpuScene 独占场景与资产表的 GPU Buffer 及 staging，替换或销毁时交给 `RenderContext::deferRelease`。长期 asset lease 只阻止 record、当前 payload 和 GpuID slot 的回收，不阻止历史版本清理。
 
-[GPUScene](GPUScene.md) 提议用单份常驻 GPU 场景取代这里的多份 backing 和配对快照，尚未实现。
+详细设计见 [GPUScene](GPUScene.md)。
 
 该模型与 `Multithreading.md` 的 frame snapshot 和 phase boundary 方向保持一致。后续并行 transform 或 extraction 时，不改变这些所有权边界。
 
-关闭顺序固定为：停止新帧和 asset request；停止 World mutation/extraction 并销毁 World bindings，释放长期 leases；取消或 drain loader 工作；提交队列停止后等待所有 snapshot fences，释放 snapshots；Asset Manager 在 RHI 仍存活时销毁 payload，RHI resource removal 同步释放其 descriptor；最后销毁 Renderer、queue 和 RHI device。任何阶段都不能让持有 GPU resource 的对象晚于 RHI device 析构。
+关闭顺序固定为：停止新帧和 asset request；停止 World mutation/extraction 并销毁 World bindings，释放长期 leases；取消或 drain loader 工作；提交队列停止后等待 GPU 空闲，销毁 GpuScene；Asset Manager 在 RHI 仍存活时销毁 payload，RHI resource removal 同步释放其 descriptor；最后销毁 Renderer、queue 和 RHI device。任何阶段都不能让持有 GPU resource 的对象晚于 RHI device 析构。
 
 ## Staged rollout
 
@@ -437,7 +436,7 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 第 6 步的 `hz::AssetCatalog` 保存四种资产的位置和依赖。cooker 输出确定性的 `.assetcatalog.json`，增量 cook 校验索引，缺失或损坏时重建。Catalog 支持索引读取、合并及单条增删改；冲突的合并和非法索引不改变已有数据。旧条目存储保留到 Catalog 清空或析构，替换元数据不会使正在加载的 Asset Manager 记录失效，也不触发驻留资产热重载。
 
-`hz::AssetManager` 已实现 generation handle、请求去重、引用计数、依赖图预检及预留、异步 CPU decode/GPU upload、失败清理和逻辑取消。取消任务完成前不复用 slot。`AssetSnapshot` 固定当前 Ready payload 集合，未提交时由 RAII 释放，提交后由 Asset Manager 等待对应 RenderContext fence 再回收；集合未变化时重复捕获快照不分配内存。shutdown 停止请求，drain 加载和上传，等待已提交快照，再按父资源先于依赖的顺序销毁。Asset Manager 在所属线程调用，Catalog、loader 和相关 RenderContext 必须比它活得更久；loader 回调可以查询依赖，不能修改 Asset Manager。
+`hz::AssetManager` 已实现 generation handle、请求去重、引用计数、依赖图预检及预留、异步 CPU decode/GPU upload、失败清理和逻辑取消。取消任务完成前不复用 slot。传入 RenderContext 时，引用归零的 payload 等到可能使用它的提交完成后才销毁。shutdown 停止请求，drain 加载和上传，等待 GPU 空闲，再按父资源先于依赖的顺序销毁。Asset Manager 在所属线程调用，Catalog、loader 和相关 RenderContext 必须比它活得更久；loader 回调可以查询依赖，不能修改 Asset Manager。
 
 `AssetLoaders` 注册独立的 Scene、Texture、Mesh 和 Material loader。Scene/Mesh/Material 核对身份及直接依赖，依赖就绪后才发布；Mesh/Material 共享同一源文档的后台解码结果。Texture 异步上传 DDS/KTX，由 `GPUTexture` 持有。多个 Mesh 引用同一 GeometryTF 时共享一次上传及 `GPUBuffer` 所有权；后台计算局部包围盒后释放 CPU 顶点副本。缺失、损坏或截断文件报告失败并清理部分结果。
 
@@ -449,21 +448,21 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 `RenderScene` 已实现 mesh 的 CPU 提取切片：三层 generation slot、free-list、active list 和 `instanceIndices`，提取 Guid、世界变换、包围盒以及每个 submesh 的材质绑定。Pending/Failed 实体保留 Object/Instance 身份，instanceCount 为零；材质等待期间保留已有 MeshBatch 身份，清空借用的材质 handle。删除清空索引，复用递增 generation。更新输出 created/removed slots、合并 dirty ranges 和状态 revision；数组扩容时预留变更记录容量，稳定帧及普通变换更新不分配内存。
 
-Primitive/MeshBatch 已改为强类型 `GpuMeshID`、`GpuSubmeshRef` 和 `GpuMaterialID`。第一阶段 GPU ID 复用 Asset Manager record 的 index/generation 生命周期；三类间接表分别校验类型和 generation。`captureRenderSnapshot` 为 Ready payload 集合编码 mesh 顶点流/submesh、材质常量和纹理 SRV 表；材质只引用 `GpuTextureID`，不保存纹理 descriptor。相同 payload 集合复用编码，集合变化时为新版本构建完整表。热重载仍属 Phase 1.5。
+Primitive/MeshBatch 已改为强类型 `GpuMeshID`、`GpuSubmeshRef` 和 `GpuMaterialID`。第一阶段 GPU ID 复用 Asset Manager record 的 index/generation 生命周期；三类间接表分别校验类型和 generation。`AssetManager::getGpuTables` 为 Ready payload 集合编码 mesh 顶点流/submesh、材质常量和纹理 SRV 表；材质只引用 `GpuTextureID`，不保存纹理 descriptor。集合未变化时复用编码，变化时构建完整表。热重载仍属 Phase 1.5。
 
-`RenderFramePool` 已实现配对 CPU/GPU 帧快照，默认轮换三份 backing。每份场景 backing 按自身 revision 合并固定容量 journal 的累计 ranges，覆盖清空、复用、索引和 active list；超出 journal 保留范围时完整同步。资产表按自身 payload-set revision 完整同步，再与场景一起发布。GPU buffer 使用映射的 CPU_TO_GPU 内存，普通变换更新仅写 dirty ranges；扩容只发生在 fence 已完成的 backing 上。每帧取得一次资产快照 lease，提交 fence 完成后才释放资产和复用 backing；全部 backing 忙时 capture 返回无效，不等待 fence。帧池析构等待未完成提交，须先销毁未提交 lease，再按帧池、RenderScene/World、Asset Manager、loader/context 的顺序关闭。
+`GpuScene` 已取代早期的多份 backing 帧池：每张场景表和资产表在 GPU 上只保留一份 `GPU_ONLY` 副本，每帧把累积的 dirty ranges 写入按提交轮换的 staging，再在各 Pass 前批量拷贝；扩容时创建新 Buffer 并整表上传，旧 Buffer 延迟释放。全部 staging 忙时 `beginFrame` 返回 false，不等待 fence。GpuScene 析构不等待 GPU，Buffer 交给 RenderContext 延迟释放。
 
-渲染 previous 已取实际退休快照的 current，World 在 capture 后继续修改不会改变该帧，也不会把更晚状态提前写入历史。丢弃快照不推进历史；下一次提取记录 previous 的变化。首次可渲染、slot 复用和 `RenderScene::resetHistory` 使用 previous=current；reset 的 epoch 防止旧快照提交覆盖更新的重置。三 backing 补齐、journal 溢出、GPU 读回、资产退休和预热后零分配已有回归。
+渲染 previous 取上一次已提交帧的 current。`endFrame` 只记录本帧有变化的 instance，取消的帧不推进历史；下一次提取记录 previous 的变化。首次可渲染、slot 复用和 `RenderScene::resetHistory` 使用 previous=current。GPU 读回、取消帧、多次 update 累积、slot 复用、资产退休和预热后零分配已有回归。
 
 `RenderLight` 保留九种光源的世界变换、局部形状尺寸、线性颜色、曝光、色温和发射选项，不在提取阶段求值。发光纹理由 RenderScene 持有长期引用，Ready 时编码 `GpuTextureID`；Pending/Failed 保留 light slot，ready 为零。Point/Spot/Directional 忽略纹理。Mesh 光源引用同一实体的 RenderPrimitive，不另取 geometry lease，缺少或未就绪的 MeshRenderer 时跳过发射；后续 Renderer 通过该引用避免重复计算材质自发光。
 
-`RenderCamera` 保存世界位姿和 FOV/near/far，previous 位姿及镜头参数一起按实际提交推进；viewport 和投影矩阵由渲染端决定。Light/Camera 同样进入累计 journal、每份 CPU/GPU backing 和 active list。参数修改、父级变换、删除复用、相机 cut、GPU 读回及纹理帧退休已有集成回归，预热后的稳定帧和普通变换/镜头更新不分配内存。第 8 步已完成。
+`RenderCamera` 保存世界位姿和 FOV/near/far，previous 位姿及镜头参数一起按实际提交推进；viewport 和投影矩阵由渲染端决定。Light/Camera 同样进入累计 dirty ranges、常驻 GPU 表和 active list。参数修改、父级变换、删除复用、相机 cut、GPU 读回及纹理帧退休已有集成回归，预热后的稳定帧和普通变换/镜头更新不分配内存。第 8 步已完成。
 
-第 9 步已完成：Renderer 从 cooked catalog 请求 SceneAsset，通过 `SceneAsset::instantiate` 将节点与局部变换复制进 World，并用 RenderScene 接管资产绑定；实例化后释放 SceneAsset 请求。绘制消费配对帧快照和 active draw，Slang 通过 instance/material/texture GPU 表读取数据，不再复制旧的 flat instance/material 数组。相机和默认太阳为 World 组件，运动矢量同时使用已提交的物体与相机历史；帧常量随 backing 轮换，resize 重置历史，提交 fence 决定快照退休。Lighting 当前求值 Directional，其余光源形状保留在提取表中。
+第 9 步已完成：Renderer 从 cooked catalog 请求 SceneAsset，通过 `SceneAsset::instantiate` 将节点与局部变换复制进 World，并用 RenderScene 接管资产绑定；实例化后释放 SceneAsset 请求。绘制读取常驻 GPU 场景和 active draw，Slang 通过 instance/material/texture GPU 表读取数据，不再复制旧的 flat instance/material 数组。相机和默认太阳为 World 组件，运动矢量同时使用已提交的物体与相机历史；帧常量按提交轮换，resize 重置历史，提交 fence 决定资源退休。Lighting 当前求值 Directional，其余光源形状保留在提取表中。
 
 Bistro 实际加载得到 1296 个 RenderPrimitive、1591 个 MeshBatch、132 个材质和 274 个纹理；连续 8 帧通过 D3D12 GPU validation，GBuffer 读回及正常 shutdown 已验证。实例化的独立身份、父级、矩阵保留和 payload 释放有回归。
 
-第 10 步已完成：Bistro 编辑变换、名称、父级和稳定 SubmeshID 的材质 override 后，保存 `.world.json`；销毁旧帧池、RenderScene、World 及全部资产，再从文件重建 World 和资产绑定。往返 authoring JSON 完全一致，1296 个实体、1591 个 MeshBatch 恢复，旧帧提交在销毁时 drain，GPU validation 为零错误，最终正常关闭。重载前后的 GBuffer 2037120 个像素中有 81 个不同，不要求共面几何在 draw 顺序变化时逐像素一致。
+第 10 步已完成：Bistro 编辑变换、名称、父级和稳定 SubmeshID 的材质 override 后，保存 `.world.json`；销毁旧 GPU 场景、RenderScene、World 及全部资产，再从文件重建 World 和资产绑定。往返 authoring JSON 完全一致，1296 个实体、1591 个 MeshBatch 恢复，旧帧提交完成后才释放资源，GPU validation 为零错误，最终正常关闭。重载前后的 GBuffer 2037120 个像素中有 81 个不同，不要求共面几何在 draw 顺序变化时逐像素一致。
 
 保留一条使用现有小型 fixture 的自动回归，覆盖 instantiate → edit → save → 卸载 → reload → 配对 GPU 表读回和关闭；校验 Guid、层级、矩阵、override、资产重新绑定和 stale handle。Bistro 验证在本地运行，不为 CI 增加外部模型或环境变量。验证同时修复了相机通用求逆和 reparent 浮点误差造成的非规范仿射齐次行，并增加旋转、非均匀及负缩放父级下的保存回归。第一阶段 1–10 步完成；在线 hot reload、USD 和 Editor 保持后续范围。
 
@@ -503,13 +502,13 @@ step 6 与 step 8 是长线工程，建议进一步拆成可独立合入的小�
 - World tests：create/destroy、generation、Guid 冲突与查询、deferred 创建取消及删除后的身份清理、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和显式层级删除策略。
 - Transform tests：深层 hierarchy、cycle rejection、reparent、parent deletion、**奇异 parent 下 `setParent(keepWorld)` 返回失败且 parent 不变**，以及 `LocalTransform`/`LocalMatrix` 互斥。
 - Serialization tests：round trip、稳定输出、forward reference、非法 hierarchy、多版本 migration、reflected array resize/insert/remove、material override key 唯一且有序、同时带 `LocalTransform`+`LocalMatrix` 的非法文件，以及未知 component blob 保留。
-- RenderScene tests：三层 slot reuse、instanceIndices 正确引用不连续 slot、一个多-submesh Entity 展开成多个 RenderMeshBatch、asset-not-ready、entity removal 和无逐帧分配/逐 draw lease；轮换至少三份 backing storage 时，每次发布前都与目标 revision 一致，包括只修改一次的数据和删除/复用结果，覆盖索引、active list、计数、asset table 和 journal 溢出后的完整同步。
-- Render history tests：移动后下一次实际渲染推进 previous；只 Update 不 Draw、多次 Update 后提交、丢弃 extraction 都不提前推进历史；首次出现、teleport、camera cut 和窗口恢复正确重置历史。
+- RenderScene tests：三层 slot reuse、instanceIndices 正确引用不连续 slot、一个多-submesh Entity 展开成多个 RenderMeshBatch、asset-not-ready、entity removal 和无逐帧分配/逐 draw lease；常驻 GPU 表在多次 update、取消帧、删除和复用后与 RenderScene 一致，覆盖索引、active list 和 asset table。
+- Render history tests：移动后下一次实际渲染推进 previous；只 Update 不 Draw、多次 Update 后提交、取消的帧都不提前推进历史；首次出现、teleport、camera cut 和窗口恢复正确重置历史。
 - Live graphics tests：pending GPU work 下释放 World/Asset、严格 shutdown 顺序，以及多次 init/exit。
 
 增加包含至少 100,000 个简单 Entity 的 CPU stress case，用于发现非预期的 O(N squared) 路径和逐实体分配；性能数字作为 telemetry 记录，不作为跨机器固定断言。
 
-Phase-1.5 随 hot reload 实现补充 PayloadCompatible/StructuralChange 测试：配对 snapshots 原子切换、依赖变化，以及 MeshRenderer 持续持有长期 lease 时反复重载，确认旧 payload 在其版本使用者和 GPU fence 结束后回收、当前 payload 与 GpuID 仍有效。这些不是第一阶段的验收前提。
+Phase-1.5 随 hot reload 实现补充 PayloadCompatible/StructuralChange 测试：场景记录与资产表在同一次上传中原子切换、依赖变化，以及 MeshRenderer 持续持有长期 lease 时反复重载，确认旧 payload 在其版本使用者和 GPU fence 结束后回收、当前 payload 与 GpuID 仍有效。这些不是第一阶段的验收前提。
 
 ## Definition of done
 
@@ -522,6 +521,6 @@ World Foundation 达到第一阶段完成标准时：
 - Renderer 只读取 RenderScene，不再依赖 SceneAsset 的 CPU instance 数组。
 - ECS component 不持有裸 GPU resource pointer 或 transient descriptor index。
 - stale asset/entity handle、serialization migration 和 hierarchy failure 有测试覆盖。
-- Render extraction 正常帧无内存分配，各 backing storage 补齐累计 dirty ranges；首次使用、扩容和 journal 溢出可完整同步。配对快照版本一致，渲染历史只随实际提交推进。
+- Render extraction 正常帧无内存分配，GPU 上传只写累积的 dirty ranges；首次使用和扩容整表上传。渲染历史只随实际提交推进。
 - pending loader 和 GPU work 下按规定顺序销毁 World、Asset Manager、Renderer 和 RHI，不发生泄漏或 use-after-free。
 - Reflection metadata 足以驱动后续 Editor 的 hierarchy、Inspector 和 property command。

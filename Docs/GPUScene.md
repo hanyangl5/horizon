@@ -1,10 +1,10 @@
 # GPUScene
 
-状态：方案，尚未实现。目标是用主流引擎的常驻 GPU 场景取代 `RenderFramePool`。World、RenderScene 的提取规则和 `.world.json` 不变。
+状态：已实现，见 [GpuScene.h](../Source/Runtime/Scene/Public/Scene/GpuScene.h)。它用主流引擎的常驻 GPU 场景取代了早期的 `RenderFramePool`；World、RenderScene 的提取规则和 `.world.json` 不变。
 
-## 现状的问题
+## 原设计的问题
 
-`RenderFramePool` 轮换三份 backing，每份都有完整的 CPU 数组和 16 个 GPU buffer：
+早期的 `RenderFramePool` 轮换三份 backing，每份都有完整的 CPU 数组和 16 个 GPU buffer：
 
 - 同一份场景存 6 份（3 份 CPU、3 份 GPU）。Bistro 只有几百 KB，影响很小；100 万 instance 时，仅 `RenderInstance`（192 字节）就超过 1 GB。
 - 场景 buffer 是 `CPU_TO_GPU`，落在 D3D12 UPLOAD 堆，着色器直接从这里读。独显上这通常是走 PCIe 的系统内存，不适合 GPU-driven 反复读取。
@@ -27,24 +27,27 @@
 ## 设计
 
 ```text
-World --extract--> RenderScene --dirty--> staging ring --copy--> GpuScene buffers --> passes
-                   (CPU，唯一一份)        (CPU_TO_GPU)            (GPU_ONLY，唯一一份)
+World --extract--> RenderScene --dirty--> staging --copy--> GpuScene buffers --> passes
+                   (CPU，唯一一份)        (CPU_TO_GPU)       (GPU_ONLY，唯一一份)
 ```
 
 - `RenderScene` 对应 Unreal 的 `FScene`：它是渲染侧唯一的 CPU 副本，只有 `update()` 会修改它。Renderer 录制命令时直接读取，不再复制到每帧数组。
-- `GpuScene` 对应 `FGPUScene`：持有常驻 buffer 和 staging ring，取代 `RenderFramePool` 和 `RenderFrame`。
+- `GpuScene` 对应 `FGPUScene`：持有常驻 buffer 和每帧 staging，取代 `RenderFramePool` 和 `RenderFrame`。
 
 ```cpp
 class GpuScene
 {
 public:
     GpuScene(RenderScene& scene, AssetManager& assetManager, RenderContext& context, const GpuSceneDesc& desc = {});
-    // Extracts World and fills staging. Returns false when too many frames are in flight; never waits.
+    // Extracts World and fills staging. Returns false when every frame is still in GPU use; never waits.
     bool beginFrame();
     void recordUpload(CommandList& commands);
     // Clears uploaded dirty state and advances render history.
     void endFrame(SubmitHandle submission);
+    // Keeps the changes pending for the next frame.
+    void cancelFrame();
     const GpuSceneBuffers& getBuffers() const;
+    const GpuAssetTables&  getAssetTables() const;
 };
 ```
 
@@ -58,31 +61,31 @@ gpuScene.recordUpload(commands);
 gpuScene.endFrame(context.submit(commands, &backbuffer));
 ```
 
-没有调用 `endFrame` 的帧不清除 dirty，也不推进历史，下一帧自动补上，与现在丢弃快照的语义一致。`beginFrame` 与 `endFrame` 之间不能调用 `RenderScene::update` 或 `resetHistory`，用 `ASSERT` 检查。World 在此期间可以继续修改，下一次提取才可见。
+不提交时调用 `cancelFrame`，dirty 不清除、历史不推进，下一帧自动补上。`beginFrame` 与 `endFrame` 之间不能调用 `RenderScene::update` 或 `resetHistory`，用 `ASSERT` 检查。World 在此期间可以继续修改，下一次提取才可见。
 
 ### Dirty 与上传
 
-- 每张表用 1 bit/slot 的位图记录 dirty，提取时置位，`endFrame` 清零。位图容量固定，跨多次 `update` 自然累积，不再需要 journal。
-- `beginFrame` 把位图合并成 range，并把数据写入 staging ring。active list 和 `instanceIndices` 变化时整表上传。
-- staging ring 是一块持久映射的 `CPU_TO_GPU` buffer，按 `SubmitHandle` 回收。空间不足时换更大的一块，旧块延迟释放。
-- 第一版用批量 copy。`CommandList` 需要新增一次 barrier 处理多个 range 的接口，因为现有 `copyBuffer` 每次调用都做两组 barrier，`updateBuffer` 每次调用都新建 buffer，都不能用于每帧路径。
-- 常驻 buffer 用 `GPU_ONLY`，从一开始同时创建 SRV 和 UAV。range 过多时再切换到 compute scatter；阈值由 profile 决定，不影响 buffer layout。
+- 每张表为每个 slot 记一个待上传标记和待上传列表，提取时标记，`endFrame` 清除。标记跨多次 `update` 累积，不再需要 journal。
+- `beginFrame` 把待上传 slot 合并成 range 写入 staging；active list 变化时整表上传，`instanceIndices` 按 range 上传。
+- 每个帧槽有一块持久映射的 `CPU_TO_GPU` staging，按 `SubmitHandle` 回收（默认三份）；空间不足时换更大的一块，旧块延迟释放。
+- `CommandList::copyBufferRegions` 一次拷贝多个 range，每张表只做一对 barrier。
+- 常驻 buffer 用 `GPU_ONLY` 和 raw SRV。range 过多时再切换到 compute scatter，届时再加 UAV；阈值由 profile 决定，不影响 buffer layout。
 
 ### 扩容与资源释放
 
-`RenderContext` 新增延迟释放队列：资源进入队列后，在已经录制或提交、可能引用它的工作完成后才销毁；`waitIdle` 时清空。当前 `GPUBuffer::destroy` 立即释放，现有代码靠 backing 的 fence 保证安全，单份 buffer 后这个队列是必需的。
+`RenderContext::deferRelease` 把 buffer 交给延迟释放队列：正在录制的命令列表和更早的提交都完成后才销毁，`waitIdle` 时回收。`getResourceUseId`/`isResourceUseComplete` 用同一判断供 Asset Manager 使用。
 
-扩容时创建新 buffer，把旧内容 copy 过去，旧 buffer 进入延迟释放队列。Bindless 索引随之变化，Renderer 每帧都从 `getBuffers()` 取索引，因此不受影响。
+扩容时创建新 buffer 并整表重新上传，旧 buffer 交给 `deferRelease`。新 buffer 在提交前被取消时，下一帧仍整表上传。GpuScene 析构不等待 GPU，所有 buffer 交给 `deferRelease`。Bindless 索引随之变化，Renderer 每帧都从 `getBuffers()` 取索引，因此不受影响。
 
 ### 资产表
 
 - Mesh、Submesh、Material、Texture 表也进入 `GpuScene`，只保留一份，和 RenderScene 的表在同一次 `recordUpload` 中更新。两边的配对由队列顺序保证，不再需要配对快照。
-- 第一版沿用现有编码，资产集合变化时整表上传；之后再改为按 slot 更新。
-- `AssetSnapshot` 删除。Payload 从表中移除后，记录当帧的 `SubmitHandle`，fence 完成后销毁。Hot reload 的旧版本走同一路径。
+- `AssetManager::getGpuTables` 按 Ready 集合的版本缓存编码，集合变化时整表上传；之后再改为按 slot 更新。
+- `AssetSnapshot` 已删除。Asset Manager 构造时传入 RenderContext；引用归零时记下 `getResourceUseId()`，对应工作完成后才销毁 payload。Hot reload 的旧版本走同一路径。
 
 ### 运动历史
 
-`RenderInstance` 继续同时保存 current 和 previous。`endFrame` 只处理上一帧有变化的实体：把 previous 更新为 current，并标记 dirty，下一帧上传。静止实体没有开销。因为提交和重置都在主线程的帧边界，`historyEpoch` 可以删除。
+`RenderInstance` 继续同时保存 current 和 previous。`endFrame` 只为本帧有变化的 instance 记录已提交的 current；下一次提取据此计算 previous，有变化时标记 dirty 并上传。静止实体没有开销。`resetHistory` 在下一次提取前阻止记录旧值，因此 `historyEpoch` 已删除。
 
 ### 渲染线程
 
@@ -100,22 +103,14 @@ gpuScene.endFrame(context.submit(commands, &backbuffer));
 - GPU 记录仍直接 memcpy CPU 结构体，包括 `Guid` 这类着色器不读的字段。拆分 GPU 专用 layout 不在本方案范围内。
 - Renderer 目前只读取 instances、materials、textures、lights 和 activeLights，其余的表是为 GPU-driven 预留的，继续保留。
 
-## 实施步骤
+## 实施记录
 
-每一步都可以单独测试和合入：
-
-1. `RenderContext`：延迟释放队列、批量 copy 接口。
-2. `GpuScene`：常驻 buffer、staging ring、dirty 位图；先让 Renderer 和回归测试切换过去，`AssetSnapshot` 暂时保留。
-3. Renderer 自己管理每帧常量 buffer，不再依赖 `getBackingIndex()`。
-4. 资产表并入 `GpuScene`，用按 `SubmitHandle` 退休取代 `AssetSnapshot`。
-5. 删除 `RenderFramePool` 及上面列出的内容，更新 `WorldFoundation.md` 和 `WorldTutorial.md`。
-6. Profile 后决定是否加入 compute scatter 和按 slot 更新资产表。
+第 1 步（`RenderContext` 延迟释放与批量 copy）单独合入。第 2～5 步合并为一次修改：帧快照同时承担上传、资产保活和历史提交，分开实施需要为旧接口写临时适配。第 6 步待 profile 决定。
 
 ## 验证
 
-- GPU 读回：连续多帧修改、删除、复用 slot 后，常驻 buffer 与 RenderScene 一致。
-- 丢帧：`beginFrame` 后不提交，下一帧数据和历史都正确。
-- 并发安全：GPU 仍在读时释放资产、扩容 buffer，D3D12 GPU validation 无错误。
-- 运动矢量：现有 previous 回归继续通过，静止实体只上传一次 previous=current。
-- 预热后的稳定帧和普通变换更新不分配内存；关闭时延迟释放队列为空。
-- 用 10 万 Entity stress case 对比替换前后的 CPU 帧时间和上传字节数。
+- GPU 读回：首帧整表上传、未改动的表跨帧保留、多次 update 累积、取消帧、删除与 slot 复用后，常驻 buffer 与 RenderScene 一致；资产离开 Ready 集合后 GPU 表中的记录失效。
+- 延迟销毁：命令列表仍在录制时释放的纹理、Mesh 和材质，在提交完成前保持存活。去掉该判断或历史提交时，对应测试失败。
+- 运动历史：取消帧不推进历史，teleport、相机 cut 和 slot 复用使用 previous=current。
+- D3D12 GPU validation 下测试和 Bistro 均无错误。
+- 10 万实体、每帧移动 1%（1000 个分散 range）的压力测试：首帧整表上传约 190 ms，稀疏更新每帧约 60 ms，其中约 50 ms 是 `RenderScene::update` 遍历全部实体的提取，与是否有变化无关。下一步优化应针对提取，而不是上传。数值仅作参考，不作为断言；替换前的实现没有可比的测量。

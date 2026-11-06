@@ -14,11 +14,11 @@
 | --- | --- | --- |
 | 可共享的资产 | 椅子网格、木头材质、纹理 | Asset 系统 |
 | 世界中的实体 | 第三把椅子的名称、位置、父节点、材质覆盖 | World |
-| 一帧的渲染输入 | 本帧矩阵、draw、GPU 表及其资源引用 | RenderScene 与 RenderFramePool |
+| 一帧的渲染输入 | 本帧矩阵、draw、GPU 表及其资源引用 | RenderScene 与 GpuScene |
 
 修改第三把椅子的位置，只改变它在 World 中的组件。其他九把继续共享原来的 MeshAsset。生成渲染输入时，系统再把这个修改传播到对应实例和帧数据中。
 
-这个划分决定了后面的接口：资产负责共享与加载，World 负责实体和编辑，帧快照负责一次 GPU 提交使用的数据。
+这个划分决定了后面的接口：资产负责共享与加载，World 负责实体和编辑，RenderScene 与 GpuScene 负责送到 GPU 的数据。
 
 ```mermaid
 flowchart LR
@@ -28,8 +28,8 @@ flowchart LR
     assetManager -->|实例化 SceneAsset| world[World]
     world --> scene[RenderScene]
     assetManager -->|解析与持有资产| scene
-    scene --> frames[RenderFramePool]
-    frames --> renderer[Renderer / GPU]
+    scene --> gpu[GpuScene]
+    gpu --> renderer[Renderer / GPU]
     world <--> document[WorldDocument]
 ```
 
@@ -160,7 +160,7 @@ assetManager.release(sceneHandle);
 ```text
 Scene 请求：加载依赖，支持实例化
     → World 绑定：实体存在期间持有所需资产
-        → 帧快照：提交后继续保护 GPU 使用中的 payload
+        → Asset Manager：引用归零后，等可能使用它的提交完成再销毁 payload
 ```
 
 理解这个交接，就能解释为什么“从 World 删掉实体”与“立即释放 GPU 内存”不是同一个时刻。
@@ -185,35 +185,27 @@ MeshBatch 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。G
 
 Camera 和 Light 也从 World 提取。Camera 提供位姿和镜头参数，窗口宽高比与投影矩阵由渲染端决定。Light 提取保存不同光源形状的参数，当前示例实际求值的是 Directional；数据中存在某种光源，不表示相应采样和着色已经全部实现。
 
-## 8. 绘制时取得一份帧快照
+## 8. 绘制前把变化上传到常驻 GPU 场景
 
-RenderScene 本身仍会继续更新。它返回的 Span 是借用视图，下次更新后就不能继续依赖旧视图。GPU 绘制需要更长、更明确的有效期，因此正式提交使用 `RenderFrame`。
-
-RenderFramePool 把场景记录与相匹配的资产表一起捕获，返回一份只能移动、不能复制的 lease。这里的 lease 表示一份有明确归还点的使用权：持有期间，相关资源不会被回收。调用方通过它读取当前帧数据；提交后把它转交给帧池，直到 GPU 完成才允许回收。
-
-配对很关键。例如旧 MeshBatch 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 MeshBatch 和资产表，不能随手从 Asset Manager 查询另一时刻的表来拼接。
-
-当前快照保护 Asset Manager 当时整个 Ready payload 集合，并非已经实现了逐可见实体的精细资源筛选。这个选择使初版快照边界清楚，后续可以在不改变 World 组件的前提下继续优化。
+RenderScene 是渲染侧唯一的一份 CPU 场景数据，GpuScene 在 GPU 上保持唯一一份常驻副本，分工对应 Unreal 的 FScene 与 FGPUScene。每帧只上传上次提交以来变化的范围。
 
 Renderer 的实际帧流程如下：
 
 ```text
 Update：相机输入 → 修改 World 组件 → assetManager.update()
-Draw：capture → 提取场景与资产 → 记录 Pass → submit → retire
-随后：fence 完成 → collect → 允许复用 backing 和释放引用
+Draw：beginFrame → recordUpload → 记录 Pass → submit → endFrame
 ```
 
-当前 `RenderPasses::update()` 只更新各 Pass；真正的 RenderScene 提取发生在 `frames.capture()` 内部。capture 先收集已完成的提交，找到可用的帧存储（backing），再更新 World 变换、资产绑定和提取记录，补齐本帧数据。
-
-记录完命令后，Renderer 中最关键的一行是：
+`beginFrame` 更新 World 变换、资产绑定和提取记录，把累积的变化及变化后的资产表写入本帧的 staging。`recordUpload` 在 Pass 之前记录拷贝命令。`endFrame` 记下提交句柄，确认这些变化已经上传，并推进运动历史：
 
 ```cpp
-frames.retire(std::move(snapshot), context.submit(commands, &backbuffer));
+pConstants->submission = context.submit(commands, &backbuffer);
+gpuScene.endFrame(pConstants->submission);
 ```
 
-`submit` 产生可追踪的提交句柄；`retire` 接过 lease，记录该帧实际使用的数据。调用方在交接后结束对快照及其借用视图的使用。
+单份 GPU 数据之所以安全，是因为所有工作在同一个图形队列上按顺序执行：下一帧的拷贝排在上一帧的读取之后，切换 Buffer 状态的 barrier 会等之前的读取完成。需要轮换的只有 CPU 写入的 staging，它按提交句柄回收；全部仍在 GPU 使用时 `beginFrame` 返回 false，示例跳过本次绘制而不等待。
 
-快照的不可变性是使用契约，不代表任意线程都能同时修改 World 或捕获帧。目前这些状态按所属线程上的明确阶段顺序操作，每个池同时只允许一个 CPU lease。帧池提供了所有权边界，通用多线程调度仍属于后续工作。
+`beginFrame` 与 `endFrame` 之间不能再更新 RenderScene 或重置历史，Pass 直接读取 RenderScene 的记录和 GpuScene 的 Buffer。不提交时调用 `cancelFrame`，变化保留到下一帧。这些状态目前都在主线程上按阶段顺序操作，通用多线程调度仍属于后续工作。
 
 ## 9. previous 表示上次实际提交的状态
 
@@ -221,35 +213,26 @@ frames.retire(std::move(snapshot), context.submit(commands, &backbuffer));
 
 假设上次已经提交的椅子位置是 A：
 
-| 接下来的操作 | 当前捕获的姿态 | previous |
+| 接下来的操作 | 本帧上传的姿态 | previous |
 | --- | --- | --- |
-| 连续更新到 B、C，捕获 C | C | A |
-| 丢弃这份快照，再更新并捕获 D | D | A |
-| 提交 C 并 retire，之后捕获 D | D | C |
+| 连续更新到 B、C，开始一帧 | C | A |
+| 取消这一帧，再更新到 D 并开始一帧 | D | A |
+| 提交 C，之后更新到 D 并开始一帧 | D | C |
 
-表中后两行是两种不同的后续选择。丢弃快照、窗口暂停期间只 Update，都会保留上次实际提交的历史。首次出现、slot 复用或主动 `resetHistory` 时，使用 previous=current，避免产生无意义的大幅运动。
+表中后两行是两种不同的后续选择。取消的帧、窗口暂停期间只 Update，都会保留上次实际提交的历史。首次出现、slot 复用或主动 `resetHistory` 时，使用 previous=current，避免产生无意义的大幅运动。
 
-历史推进发生在提交后的 `retire` 调用中，GPU fence 完成负责另一件事：允许释放资源和重用 backing。推进历史时使用这份快照保存的 current，而不是再读取已经可能变动的 World。
+历史推进发生在提交后的 `endFrame` 中，只记录本帧有变化的实例。`beginFrame` 之后 RenderScene 不再更新，所以记录的就是本帧实际上传的 current；World 此时被继续修改为 D 也不会影响它。若把 D 写进 previous，下一帧的运动矢量就会使用一份从未绘制过的姿态。
 
-例如捕获 C 后，World 又被修改为 D，本次提交的仍然是 C。若把 D 写进 previous，下一帧的运动矢量就会使用一份从未绘制过的姿态。
+World 自身也有变换历史接口，当前渲染路径由 GpuScene 管理提交历史。应用不应在每次逻辑 Update 后额外调用 `commitTransforms()` 来代替这个流程。相机 cut 和窗口尺寸变化也需要明确重置渲染历史。
 
-World 自身也有变换历史接口，当前渲染路径由帧快照管理提交历史。应用不应在每次逻辑 Update 后额外调用 `commitTransforms()` 来代替这个流程。相机 cut 和窗口尺寸变化也需要明确重置渲染历史。
+## 10. 资源在 GPU 用完后才释放
 
-## 10. 三份 backing，各自补齐自己的变化
+删掉椅子后，上一帧可能仍在 GPU 上读取它的 Mesh。释放分两类处理：
 
-CPU 与 GPU 可以同时处理不同帧。帧池默认轮换三份 backing，避免 CPU 写入 GPU 仍在读取的那份 Buffer。只按帧号轮换还不够：每份 backing 都要知道自己同步到了哪个版本号（revision）。
+- GpuScene 的 Buffer 在扩容或销毁时交给 `RenderContext::deferRelease`，等正在录制的命令列表和更早的提交都完成后才销毁。
+- Asset Manager 构造时传入 RenderContext。资产引用归零时，它记下当时可能使用该资产的最后一次提交，fence 完成后才销毁 payload。资产离开 Ready 集合后，下一帧上传的资产表已经不再包含它。
 
-假设 backing B 上次同步到 revision 7。revision 8 移动了椅子，revision 9 只修改灯光。现在再次使用 B 时，若只复制 revision 9 的 dirty 数据，B 里的椅子还停在旧位置。
-
-因此，RenderScene 的变更日志（journal）累积记录变更范围。B 需要同时补齐 revision 8 和 9。每份 backing 按自己的 revision 追赶，而不是让全部 Buffer 共享一个“本帧已更新”的标记。
-
-删除和 slot 复用也要同步：清空的数据、active list、实例索引都可能发生变化。只补矩阵，会让旧 MeshBatch 或旧 active 项继续出现在某份轮转 Buffer 中。
-
-journal 容量有限。当 backing 太久没有使用，所需历史已经超出保留范围时，系统回退到完整同步。首次使用和容量扩展也可以完整同步，普通场景修改则只写受影响的范围。资产 Ready 集合变化时，资产表当前采用完整更新。
-
-现实现使用 CPU_TO_GPU 映射内存写入这些表。预热后的稳定帧和普通变换修改避免分配；初始化、扩容或资产集合改变仍允许分配。这是明确的热路径约束，不需要把每个罕见变化都塞进固定大小的预分配池。
-
-如果三份 backing 都仍在 GPU 使用中，`capture()` 返回无效，示例跳过本次绘制；它不会在这里等待某个 fence。这只描述帧池捕获行为，整个绘制流程中的命令列表获取或呈现仍可能有等待。
+因此不需要固定一整组 payload 的快照，删除实体时也不用等待 GPU 空闲。稳定帧和普通变换修改不分配内存；表或 staging 扩容、资产集合变化时允许分配，扩容后的表整表重新上传。
 
 ## 11. 保存世界，保留编辑意图
 
@@ -286,13 +269,13 @@ return restored->isAlive(restored->getEntity(chairID));
 
 ## 12. 退出时，按依赖关系结束生命周期
 
-RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确顺序销毁拥有者。帧池借用 RenderScene 和 RenderContext，RenderScene 借用 World 和 Asset Manager；这些依赖需要比使用它们的实体活得更久。
+RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确顺序销毁拥有者。GpuScene 借用 RenderScene、Asset Manager 和 RenderContext，RenderScene 借用 World 和 Asset Manager；这些依赖需要比使用它们的实体活得更久。
 
-正常关闭时，先停止生成新帧，结束未提交的 lease。等待或由帧池 drain 已提交工作后，销毁帧池和渲染 Pass，再销毁 RenderScene，释放长期资产绑定。随后销毁 World 和相关 metadata，shutdown Asset Manager，清理还在加载或上传的任务，最后结束 loaders、catalog 和 RenderContext。
+正常关闭时，先停止生成新帧并取消未提交的帧，销毁渲染 Pass 和 GpuScene（其 Buffer 交给延迟释放），再销毁 RenderScene，释放长期资产绑定。随后销毁 World 和相关 metadata；shutdown Asset Manager 时等待 GPU 空闲，清理还在加载或上传的任务，最后结束 loaders、catalog 和 RenderContext。
 
 实际 Renderer 在退出前先 `waitIdle()`，让这条关闭路径更直接。运行时删除单个实体仍依靠引用与 fence 退休，不需要为每次实体删除等待整个 GPU 空闲。
 
-这也说明 World 这一层的边界：它知道“哪个实体引用什么资产”；绑定层知道“这些引用现在是否可用”；帧池知道“哪次提交还在使用它们”。各自只处理自己能够判断的结束条件。
+这也说明 World 这一层的边界：它知道“哪个实体引用什么资产”；绑定层知道“这些引用现在是否可用”；RenderContext 知道“哪次提交还可能使用它们”。各自只处理自己能够判断的结束条件。
 
 目前这条链路已跑通 Bistro 的加载、实例化、编辑、保存、卸载、重载和渲染。USD 导入、在线 hot reload、完整 Editor、GPU culling 和更多光源的求值仍是后续能力。现有边界为它们提供了接入位置，不等同于这些功能已经完成。
 
@@ -306,7 +289,7 @@ RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确
 | [World.h](../Source/Runtime/Scene/Public/Scene/World.h) 与 [SceneComponents.h](../Source/Runtime/Scene/Public/Scene/SceneComponents.h) | 实体、组件、层级及持久身份 |
 | [WorldAssetBindings.h](../Source/Runtime/Scene/Public/Scene/WorldAssetBindings.h) | 从 AssetID 到持有运行时引用 |
 | [RenderScene.h](../Source/Runtime/Scene/Public/Scene/RenderScene.h) | 提取记录、active list 和变更范围 |
-| [RenderFrame.h](../Source/Runtime/Scene/Public/Scene/RenderFrame.h) 与 [RenderPasses.cpp](../Examples/Renderer/Source/RenderPasses.cpp) | capture、submit、retire 的完整交接 |
+| [GpuScene.h](../Source/Runtime/Scene/Public/Scene/GpuScene.h) 与 [RenderPasses.cpp](../Examples/Renderer/Source/RenderPasses.cpp) | beginFrame、上传、submit、endFrame 的完整交接 |
 | [WorldDocument.h](../Source/Runtime/Scene/Public/Scene/WorldDocument.h) | 持久化、验证和恢复的边界 |
 
 阅读时可以用三个场景检查自己的理解：移动一把椅子，哪些数据需要更新；删除椅子后旧帧仍在执行，谁继续持有资源；重新打开 World，哪些 ID 保持不变，哪些句柄需要重新取得。能够沿代码回答这些问题，就已经掌握了这套设计的主线。
