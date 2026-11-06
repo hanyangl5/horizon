@@ -16,16 +16,16 @@ struct WorldType
     const TypeDesc* pType;
 };
 
-struct WorldObject
+struct EntityGuidEntry
 {
-    ObjectID     key;
+    Guid         key;
     ecs_entity_t value;
 };
 
 class WorldImpl
 {
 public:
-    WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs);
+    WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuids);
     ~WorldImpl();
     WorldImpl(const WorldImpl&) = delete;
     WorldImpl& operator=(const WorldImpl&) = delete;
@@ -40,10 +40,10 @@ private:
 
     const WorldType* findType(TypeID type) { return hmgetp_null(pTypes, type); }
     void             checkThread() const { ASSERT(thread == getCurrentThreadID()); }
-    void             finishObjectChanges();
+    void             finishGuidChanges();
     void*            findEditableProperty(ecs_entity_t entity, TypeID type, PropertyID property, const PropertyDesc*& pProperty);
     void             notifyPropertyChange(ecs_entity_t entity, TypeID type);
-    static void      removeObjectIDs(ecs_iter_t* pIterator);
+    static void      removeEntityGuids(ecs_iter_t* pIterator);
 
     static void constructComponents(void* pDestination, int32_t count, const ecs_type_info_t* pInfo);
     static void destroyComponents(void* pValue, int32_t count, const ecs_type_info_t* pInfo);
@@ -52,16 +52,16 @@ private:
     static void copyComponents(void* pDestination, const void* pSource, int32_t count, const ecs_type_info_t* pInfo);
     static void moveComponents(void* pDestination, void* pSource, int32_t count, const ecs_type_info_t* pInfo);
 
-    ecs_world_t*    pWorld = nullptr;
-    WorldType*      pTypes = nullptr;
-    ecs_entity_t    entityTag = 0;
-    ecs_entity_t    parentRelation = 0;
-    ecs_entity_t    objectIdentityType = 0;
-    IDGenerator     objectIDs;
-    WorldObject*    pObjects = nullptr;
-    Array<ObjectID> pendingObjects;
-    WorldHierarchy* pHierarchy = nullptr;
-    ThreadID        thread = getCurrentThreadID();
+    ecs_world_t*     pWorld = nullptr;
+    WorldType*       pTypes = nullptr;
+    ecs_entity_t     entityTag = 0;
+    ecs_entity_t     parentRelation = 0;
+    ecs_entity_t     entityIdentityType = 0;
+    IDGenerator      entityGuids;
+    EntityGuidEntry* pEntityGuids = nullptr;
+    Array<Guid>      pendingGuids;
+    WorldHierarchy*  pHierarchy = nullptr;
+    ThreadID         thread = getCurrentThreadID();
 };
 
 } // namespace hz

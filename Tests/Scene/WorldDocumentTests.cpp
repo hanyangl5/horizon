@@ -25,8 +25,8 @@ protected:
         }
         exitMemAlloc();
     }
-    static hz::ObjectID id(uint64_t value) { return { .high = 1, .low = value }; }
-    static std::string  text(const hz::WorldDocument& document)
+    static hz::Guid    id(uint64_t value) { return { .high = 1, .low = value }; }
+    static std::string text(const hz::WorldDocument& document)
     {
         hz::Array<char> json;
         EXPECT_TRUE(document.serialize(json));
@@ -64,9 +64,9 @@ TEST_F(WorldDocumentTest, RoundTripsComponentsHierarchyAndStableOrdering)
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
-    const hz::Entity parent = world.createObject(id(20));
-    const hz::Entity child = world.createObject(id(10));
-    const hz::Entity matrixEntity = world.createObject(id(30));
+    const hz::Entity parent = world.createPersistentEntity(id(20));
+    const hz::Entity child = world.createPersistentEntity(id(10));
+    const hz::Entity matrixEntity = world.createPersistentEntity(id(30));
     world.createEntity();
     ASSERT_TRUE(world.setParent(child, parent, false));
     hz::Name name = { "Parent" };
@@ -110,7 +110,7 @@ TEST_F(WorldDocumentTest, SavesAffineLocalMatrixAfterReparentingUnderRotatedScal
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World             world(types);
-    const hz::Entity      parent = world.createObject(id(1)), child = world.createObject(id(2));
+    const hz::Entity      parent = world.createPersistentEntity(id(1)), child = world.createPersistentEntity(id(2));
     const hz::LocalMatrix parentMatrix = { .value = Matrix4::translation(Vector3(1.3f, -4.7f, 9.8f)) *
                                                     Matrix4::rotationZYX(Vector3(0.3f, 0.4f, -0.8f)) *
                                                     Matrix4::scale(Vector3(1.5f, 0.7f, -2.35f)) };
@@ -140,7 +140,7 @@ TEST_F(WorldDocumentTest, FailedLoadsPreserveExistingWorldAndDocument)
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
-    const hz::Entity          original = target->createObject(id(50));
+    const hz::Entity          original = target->createPersistentEntity(id(50));
     hz::World*                pOriginal = target.get();
     const std::string         transform = component("0000000000000003", "LocalTransform", 1, "{}");
     const std::string         invalid[] = {
@@ -182,7 +182,7 @@ TEST_F(WorldDocumentTest, CameraValidationAlsoAppliesToCaptureAndPreservesDocume
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
-    const hz::Entity entity = world.createObject(id(1));
+    const hz::Entity entity = world.createPersistentEntity(id(1));
     const hz::Camera camera = { .verticalFov = 0.001f, .nearPlane = 0.001f, .farPlane = 0.002f };
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &camera));
     hz::WorldDocument document;
@@ -203,10 +203,10 @@ TEST_F(WorldDocumentTest, CameraValidationAlsoAppliesToCaptureAndPreservesDocume
 
 struct MigratingComponent
 {
-    int32_t      value;
-    uint64_t     precise;
-    hz::ObjectID reference;
-    char         label[32];
+    int32_t  value;
+    uint64_t precise;
+    hz::Guid reference;
+    char     label[32];
 };
 static const hz::PropertyDesc migratingProperties[] = {
     { .id = 4,
@@ -216,9 +216,9 @@ static const hz::PropertyDesc migratingProperties[] = {
       .size = sizeof(MigratingComponent::label) },
     { .id = 3,
       .pName = "reference",
-      .kind = hz::PropertyKind::ObjectReference,
+      .kind = hz::PropertyKind::EntityReference,
       .offset = offsetof(MigratingComponent, reference),
-      .size = sizeof(hz::ObjectID) },
+      .size = sizeof(hz::Guid) },
     { .id = 2,
       .pName = "precise",
       .kind = hz::PropertyKind::UnsignedInteger,
@@ -251,7 +251,7 @@ static bool renameMigration(hz::Span<char> input, hz::Array<char>& output, const
 static bool migrateOne(hz::Span<char> input, hz::Array<char>& output) { return renameMigration(input, output, "old", "middle"); }
 static bool migrateTwo(hz::Span<char> input, hz::Array<char>& output) { return renameMigration(input, output, "middle", "value"); }
 
-TEST_F(WorldDocumentTest, MigratesAdjacentVersionsAndResolvesForwardObjectReferences)
+TEST_F(WorldDocumentTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferences)
 {
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
@@ -300,8 +300,7 @@ TEST_F(WorldDocumentTest, PreservesUnknownComponentBlobWithoutInstantiatingIt)
     EXPECT_FALSE(document.instantiate(types, target));
     EXPECT_FALSE(target);
     EXPECT_EQ(text(document), json);
-    const std::string opaque = envelope(record(1, component("000000000000ffff", "FuturePlugin", 20,
-                                                           R"({"text":"before\u0000after"})")));
+    const std::string opaque = envelope(record(1, component("000000000000ffff", "FuturePlugin", 20, R"({"text":"before\u0000after"})")));
     ASSERT_TRUE(parse(document, opaque));
     EXPECT_EQ(text(document), opaque);
 }
@@ -313,7 +312,7 @@ TEST_F(WorldDocumentTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingD
     ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
     hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
     hz::World*                pOriginal = target.get();
-    const hz::Entity          original = target->createObject(id(50));
+    const hz::Entity          original = target->createPersistentEntity(id(50));
     const std::string         named = "{\"id\":\"" + uuid(1) + "\",\"parent\":null,\"name\":\"before\\u0000after\",\"components\":[]}";
     const std::string         invalid[] = {
         envelope(named),
@@ -355,7 +354,7 @@ TEST_F(WorldDocumentTest, RejectsEmbeddedNullsProducedByMigration)
     ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
     hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
     hz::World*                pOriginal = target.get();
-    const hz::Entity          original = target->createObject(id(50));
+    const hz::Entity          original = target->createPersistentEntity(id(50));
     const std::string         json = envelope(record(1, component("0000000000000063", "Migrating", 2, R"({"value":7})")));
     hz::WorldDocument         document;
     ASSERT_TRUE(parse(document, json));
@@ -418,7 +417,7 @@ TEST_F(WorldDocumentTest, SavesLoadsAndRecoversInterruptedFileReplacement)
     ASSERT_TRUE(initFileSystem(&desc));
     {
         char name[hz::kIDStringCapacity];
-        hz::ObjectID::create().toString(name);
+        hz::Guid::create().toString(name);
         const std::filesystem::path directory = std::filesystem::temp_directory_path() / name;
         std::filesystem::create_directory(directory);
         IFileSystem io = *pSystemFileIO;

@@ -56,7 +56,7 @@ void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID type, Property
         return nullptr;
     }
     pProperty = pType->pType->getProperty(property);
-    if (!pProperty || (pProperty->flags & PROPERTY_READ_ONLY) || type == SceneTypes::objectIdentity)
+    if (!pProperty || (pProperty->flags & PROPERTY_READ_ONLY) || type == SceneTypes::entityIdentity)
     {
         LOGF(eERROR, "Property edit references an unknown or read-only property");
         return nullptr;

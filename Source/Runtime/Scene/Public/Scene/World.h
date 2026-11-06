@@ -53,22 +53,22 @@ class World
 {
 public:
     // Registers the types currently in registry; descriptors must outlive the World.
-    explicit World(const TypeRegistry& registry, const IDGenerator& objectIDs = {});
+    explicit World(const TypeRegistry& registry, const IDGenerator& entityGuids = {});
     ~World();
     World(const World&) = delete;
     World& operator=(const World&) = delete;
 
-    Entity   createEntity();
-    // Persistent authoring objects. Explicit IDs must be nonzero and unique within this World.
-    Entity   createObject();
-    Entity   createObject(const ObjectID& id);
+    Entity createEntity();
+    // Persistent persistent entities. Explicit IDs must be nonzero and unique within this World.
+    Entity createPersistentEntity();
+    Entity createPersistentEntity(const Guid& id);
     // Pending creations reserve their IDs immediately but become visible to lookup at defer commit.
-    Entity   getEntity(const ObjectID& id) const;
-    ObjectID getObjectID(Entity entity) const;
+    Entity getEntity(const Guid& id) const;
+    Guid   getEntityGuid(Entity entity) const;
     // Leaf deletion can be deferred; deleting a parent preserves its children and requires a committed World.
-    bool     destroyEntity(Entity entity);
-    bool     isAlive(Entity entity) const;
-    bool     destroySubtree(Entity entity);
+    bool   destroyEntity(Entity entity);
+    bool   isAlive(Entity entity) const;
+    bool   destroySubtree(Entity entity);
 
     Entity                getParent(Entity entity) const;
     // Hierarchy edits run outside defer/query scopes. An invalid parent means the root.

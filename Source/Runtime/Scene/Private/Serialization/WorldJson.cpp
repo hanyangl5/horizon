@@ -161,10 +161,10 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
         id.toString(text);
         return id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
     }
-    case PropertyKind::ObjectReference:
+    case PropertyKind::EntityReference:
     {
-        const ObjectID& id = *(const ObjectID*)pValue;
-        char            text[kIDStringCapacity];
+        const Guid& id = *(const Guid*)pValue;
+        char        text[kIDStringCapacity];
         id.toString(text);
         return id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
     }
@@ -303,13 +303,13 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
             return true;
         }
         return cJSON_IsString(pJson) && ((AssetID*)pValue)->parse(pJson->valuestring);
-    case PropertyKind::ObjectReference:
+    case PropertyKind::EntityReference:
         if (cJSON_IsNull(pJson))
         {
-            *(ObjectID*)pValue = {};
+            *(Guid*)pValue = {};
             return true;
         }
-        return cJSON_IsString(pJson) && ((ObjectID*)pValue)->parse(pJson->valuestring);
+        return cJSON_IsString(pJson) && ((Guid*)pValue)->parse(pJson->valuestring);
     case PropertyKind::Array:
     {
         if (!cJSON_IsArray(pJson))
@@ -371,9 +371,9 @@ bool validateWorldReferences(const TypeDesc& type, const void* pValue, const Wor
         if (!serialized(property))
             continue;
         const void* pField = (const uint8_t*)pValue + property.offset;
-        if (property.kind == PropertyKind::ObjectReference)
+        if (property.kind == PropertyKind::EntityReference)
         {
-            const ObjectID& id = *(const ObjectID*)pField;
+            const Guid& id = *(const Guid*)pField;
             if (id.isValid() && !world.getEntity(id).isValid())
                 return false;
         }

@@ -85,9 +85,9 @@ static const TypeDesc overrideType = {
 static const PropertyDesc identityProperties[] = {
     { .id = 1,
       .pName = "value",
-      .kind = PropertyKind::ObjectReference,
-      .offset = offsetof(ObjectIdentity, value),
-      .size = sizeof(ObjectID),
+      .kind = PropertyKind::EntityReference,
+      .offset = offsetof(EntityIdentity, value),
+      .size = sizeof(Guid),
       .flags = PROPERTY_SERIALIZED | PROPERTY_READ_ONLY },
 };
 static const PropertyDesc nameProperties[] = {
@@ -205,13 +205,13 @@ static const PropertyDesc cameraProperties[] = {
 bool TypeRegistry::registerBuiltins()
 {
     static const TypeDesc types[] = {
-        { .id = SceneTypes::objectIdentity,
-          .pName = "ObjectIdentity",
-          .size = sizeof(ObjectIdentity),
-          .alignment = alignof(ObjectIdentity),
+        { .id = SceneTypes::entityIdentity,
+          .pName = "EntityIdentity",
+          .size = sizeof(EntityIdentity),
+          .alignment = alignof(EntityIdentity),
           .properties = identityProperties,
-          .triviallyCopyable = __is_trivially_copyable(ObjectIdentity),
-          .lifecycle = ComponentLifecycle<ObjectIdentity>::get() },
+          .triviallyCopyable = __is_trivially_copyable(EntityIdentity),
+          .lifecycle = ComponentLifecycle<EntityIdentity>::get() },
         { .id = SceneTypes::name,
           .pName = "Name",
           .size = sizeof(Name),

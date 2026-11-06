@@ -89,9 +89,9 @@ public:
     Span<SceneAssetMesh>     getMeshes() const;
     Span<SceneAssetMaterial> getMaterials() const;
     Span<SceneAssetTexture>  getTextures() const;
-    // Creates independent authoring objects beneath a new root, owned by World.
+    // Creates independent persistent entities beneath a new root, owned by World.
     // Requires builtin types and a committed World; the payload can be released afterwards.
-    // ObjectID generation failure returns an invalid Entity and rolls back the new objects.
+    // Guid generation failure returns an invalid Entity and rolls back the new entities.
     Entity                   instantiate(World& world, Entity parent = {}) const;
 
 private:

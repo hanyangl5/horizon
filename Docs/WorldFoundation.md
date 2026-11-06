@@ -30,13 +30,13 @@ Horizon 已有以下基础：
 - [ ] 完善 MeshRenderer 材质映射：解析整 mesh、面子集、继承和 collection 绑定；拓扑、primvars、细分参数归 MeshAsset，材质网络归 MaterialAsset。
 - [ ] 增加实例表达：区分原生场景实例与 PointInstancer，支持 prototype 引用、实例 ID、变换数组和隐藏状态。
 - [ ] 后续补充骨骼、蒙皮、BlendShape、动画与几何缓存。
-- [ ] 在 Stage／导入层统一场景单位、坐标轴、颜色空间和时间基准；明确 USD prim 与 AssetID/ObjectID 的身份映射及回写边界。
+- [ ] 在 Stage／导入层统一场景单位、坐标轴、颜色空间和时间基准；明确 USD prim 与 AssetID/Guid 的身份映射及回写边界。
 
 ## Goals
 
 - 资产具有独立于路径和运行时 slot 的持久身份。
 - Asset Manager 使用独立 typed loader pipeline，不依赖 `SceneManager` 的 manifest、固定容量或 callback 模型。
-- Entity、持久化对象和 GPU instance 使用不同的 ID 与生命周期。
+- Entity、持久化实体和 GPU instance 使用不同的 ID 与生命周期。
 - World 使用 data-oriented ECS 存储组件，Flecs 类型不暴露在 Runtime 公共接口中。
 - Transform hierarchy 支持动态创建、删除和 reparent，并只更新 dirty subtree。
 - World 文件可确定性保存、加载和逐版本迁移。
@@ -84,17 +84,17 @@ Editor -> Commands -> ECS World
 | --- | --- | --- |
 | `AssetID` | 标识 Mesh、Texture、Material、SceneAsset 等磁盘资产 | 跨路径移动、进程和 World 保存稳定 |
 | `AssetHandle` | 定位 Asset Manager 中的一次运行时实例 | Asset Manager slot 生命周期，包含 generation |
-| `ObjectID` | World 文件、Editor selection 和跨实体引用 | 跨 World 保存稳定 |
+| `Guid` | World 文件、Editor selection 和跨实体引用 | 跨 World 保存稳定 |
 | `Entity` | ECS 中的运行时实体 | 当前 World 生命周期，包含 generation |
 | `RenderObjectID` | RenderScene 中一个 MeshRenderer 的 mesh 级记录（material overrides + instance range） | 不持久化；sparse slot + generation，回收后可变 |
 | `RenderInstanceID` | 一个可渲染实例的 transform/bounds/identity | 不持久化；同上 |
 | `RenderDrawID` | RenderObject × Submesh 的 draw 记录 | 不持久化；随 object/submesh 派生 |
 
-`AssetID` 和 `ObjectID` 使用 128-bit 值，采用随机生成（UUIDv4 风格），不由内容或路径派生，因此重命名、移动或重新 cook 都不改变身份。碰撞概率可忽略，注册时仍校验唯一性并在冲突时报错而非静默覆盖。`AssetID` 由 importer 生成并写入 sidecar metadata，移动源文件时保持不变。`ObjectID` 在创建 authoring object 时生成。
+`AssetID` 和 `Guid` 使用 128-bit 值，采用随机生成（UUIDv4 风格），不由内容或路径派生，因此重命名、移动或重新 cook 都不改变身份。碰撞概率可忽略，注册时仍校验唯一性并在冲突时报错而非静默覆盖。`AssetID` 由 importer 生成并写入 sidecar metadata，移动源文件时保持不变。`Guid` 在创建 persistent entity 时生成。
 
-`World::createEntity` 创建无持久身份的运行时实体；`createObject()` 自动生成 ObjectID，`createObject(id)` 接受导入或恢复的非空 ID。ID 在每个 World 内唯一，冲突返回失败，不替换已有对象；可通过 World 构造参数注入确定性的 IDGenerator。ObjectIdentity 创建后只读，禁止通过普通组件接口增删或改写。
+`World::createEntity` 创建无持久身份的运行时实体；`createPersistentEntity()` 自动生成 Guid，`createPersistentEntity(id)` 接受导入或恢复的非空 ID。ID 在每个 World 内唯一，冲突返回失败，不替换已有实体；可通过 World 构造参数注入确定性的 IDGenerator。EntityIdentity 创建后只读，禁止通过普通组件接口增删或改写。
 
-`getEntity(id)` 和 `getObjectID(entity)` 查询已提交的身份。Defer 中的新 ID 立即保留以拒绝重复创建，但查询在最外层提交后才可见；已有对象的延迟删除也在提交时移除映射。创建后立即取消同样释放保留项。删除父节点保留的子对象继续使用原 ID；显式恢复同一 ObjectID 时会得到新的 runtime Entity generation。
+`getEntity(id)` 和 `getEntityGuid(entity)` 查询已提交的身份。Defer 中的新 ID 立即保留以拒绝重复创建，但查询在最外层提交后才可见；已有实体的延迟删除也在提交时移除映射。创建后立即取消同样释放保留项。删除父节点保留的子实体继续使用原 ID；显式恢复同一 Guid 时会得到新的 runtime Entity generation。
 
 测试和工具需要确定性时，通过显式注入的种子/ID 序列生成，而不是依赖全局随机源；这样 `.world.json` 的连续保存和回归测试可复现。
 
@@ -195,7 +195,7 @@ World 内部使用 Flecs。公共 `Entity` 是轻量的 64-bit value，Flecs wor
 
 第一批组件为：
 
-- `ObjectIdentity`
+- `EntityIdentity`
 - `Name`
 - `LocalTransform`（TRS）
 - `LocalMatrix`（可选，见 Transform hierarchy；import 用它承载不可分解的仿射变换）
@@ -278,10 +278,10 @@ Reflection 使用显式 type registry，不依赖 C++ RTTI、异常或复杂模�
 - boolean、signed/unsigned integer 和 float
 - vector、quaternion 和 color
 - bounded string 和 enum
-- `AssetID` 与 `ObjectID` reference
+- `AssetID` 与 `Guid` reference
 - **array-of-struct**：元素是固定 schema、可平凡复制的小结构体，字段仍由上述标量/ID property 描述。第一阶段复用现有 `hz::Array` 及 tf memory，不新增 Scene 容器或 allocator；metadata 提供 element descriptor 和统一的 `ArrayOperations`，完成 count/data 查询及 resize/insert/remove，消费者不依赖数组内存布局。Serializer、Inspector 和 undo/redo 不直接缓存 data pointer，所有 mutation 都经过 World property API，以便产生 dirty/change notification。
 
-World 属性编辑只修改已有组件，校验属性 kind、字节大小、只读标记、枚举值、字符串终止符和数组索引；失败保留原值。字符串输入长度包含结尾空字符。数组插入接收反射元素类型的完整对象，元素字段编辑遵守自身只读标记。字段赋值不复制整个组件或分配数组存储；扩容可能使数组数据指针失效。defer 中已有组件的属性立即更新，新添组件需等待提交。`setComponent` 仍是可信调用方的整组件替换入口，不提供逐字段校验；`ObjectIdentity` 只能通过对象创建接口设置。
+World 属性编辑只修改已有组件，校验属性 kind、字节大小、只读标记、枚举值、字符串终止符和数组索引；失败保留原值。字符串输入长度包含结尾空字符。数组插入接收反射元素类型的完整实体，元素字段编辑遵守自身只读标记。字段赋值不复制整个组件或分配数组存储；扩容可能使数组数据指针失效。defer 中已有组件的属性立即更新，新添组件需等待提交。`setComponent` 仍是可信调用方的整组件替换入口，不提供逐字段校验；`EntityIdentity` 只能通过实体创建接口设置。
 
 `MeshRenderer` 的 override array 元素为 `MaterialOverride { SubmeshID, materialAssetID }`。后续专用 override mutation API 需保持该数组按 `SubmeshID` 排序且 key 唯一；当前通用数组编辑保留用户指定顺序，不承担该约束。loader 在 staging World 中验证并规范化输入，serializer 直接按存储顺序输出，不在保存热路径复制或排序数组。
 
@@ -304,17 +304,17 @@ Property flags 至少区分 serialized、transient、read-only 和 editor-only�
 World 文件保存：
 
 - file schema version 和 World ID
-- 按 `ObjectID` 稳定排序的 entity records
-- entity name 和 parent `ObjectID`
+- 按 `Guid` 稳定排序的 entity records
+- entity name 和 parent `Guid`
 - component name、component version 和 serialized properties
 - `AssetID` reference，不保存 runtime handle、pointer 或 GPU index
 
 加载使用分阶段提交：
 
 1. 验证顶层 schema，并创建 staging World。
-2. 创建全部 Entity，建立 `ObjectID` 映射。
+2. 创建全部 Entity，建立 `Guid` 映射。
 3. 添加和迁移 Components。
-4. 解析 parent 与其他对象引用。
+4. 解析 parent 与其他实体引用。
 5. 验证 hierarchy 并更新 transforms。
 6. 全部成功后原子替换目标 World。
 
@@ -324,11 +324,11 @@ Component 独立维护 schema version，migration 按相邻版本顺序执行，
 
 Cooked World 将来可以使用分块二进制格式，但不能直接 dump ECS 内存布局。
 
-当前入口为 `WorldDocument`：`capture` 从已提交的 World 提取 authoring objects，`save/load` 处理文件，`instantiate` 在成功后替换调用方持有的 `unique_ptr<World>`。替换前须销毁旧 World 的 query/defer scopes；失败保留旧 World。World ID 由文档持有，可显式指定，后续 capture 默认沿用。无 ObjectID 的运行时 Entity 不保存；authoring object 的父节点必须有 ObjectID。
+当前入口为 `WorldDocument`：`capture` 从已提交的 World 提取 persistent entities，`save/load` 处理文件，`instantiate` 在成功后替换调用方持有的 `unique_ptr<World>`。替换前须销毁旧 World 的 query/defer scopes；失败保留旧 World。World ID 由文档持有，可显式指定，后续 capture 默认沿用。无 Guid 的运行时 Entity 不保存；persistent entity 的父节点必须有 Guid。
 
-`Horizon.World` v1 按 ObjectID、TypeID、PropertyID 排序输出；组件记录保留稳定 TypeID、名称、版本及独立 properties 对象。64 位整数使用十进制字符串，float/double 分别使用 9/17 位有效数字的区域无关格式。只保存 serialized properties，数组沿用存储顺序；加载时规范化 material overrides，重复 SubmeshID 拒绝，保存时要求键已唯一且有序。
+`Horizon.World` v1 按 Guid、TypeID、PropertyID 排序输出；组件记录保留稳定 TypeID、名称、版本及独立 properties 对象。64 位整数使用十进制字符串，float/double 分别使用 9/17 位有效数字的区域无关格式。只保存 serialized properties，数组沿用存储顺序；加载时规范化 material overrides，重复 SubmeshID 拒绝，保存时要求键已唯一且有序。
 
-文档解析保留原始 JSON，因此未知组件及其数值可原样读写；Runtime 实例化仍拒绝未知组件、缺失迁移、悬空对象引用和非法层级。迁移逐版本变换 properties JSON，不改写原文档。文件保存先写临时文件，再通过备份替换，失败可恢复旧文件；这不提供断电后的持久性保证。Editor 对未知组件的编辑合并仍属后续工作。
+文档解析保留原始 JSON，因此未知组件及其数值可原样读写；Runtime 实例化仍拒绝未知组件、缺失迁移、悬空实体引用和非法层级。迁移逐版本变换 properties JSON，不改写原文档。文件保存先写临时文件，再通过备份替换，失败可恢复旧文件；这不提供断电后的持久性保证。Editor 对未知组件的编辑合并仍属后续工作。
 
 ## RenderScene extraction
 
@@ -345,7 +345,7 @@ RenderObject (RenderObjectID)  = 一个 MeshRenderer Entity
   └─ instance range → instanceIndices[] → RenderInstance sparse slots
 
 RenderInstance (RenderInstanceID)
-  └─ current/previous world transform + world bounds + ObjectID(picking)
+  └─ current/previous world transform + world bounds + Guid(picking)
 
 RenderDraw (RenderDrawID)  = RenderObject × Submesh
   └─ RenderObjectID + GpuSubmeshRef + GpuMaterialID
@@ -365,7 +365,7 @@ RenderDraw (RenderDrawID)  = RenderObject × Submesh
 - 数据数组提前 reserve；正常帧的 extraction 和 GPU upload 不分配内存。
 - asset 未 ready 时使用 placeholder 或跳过 instance，不阻塞渲染线程。
 - 删除 Entity 时，CPU slot 可以立即失效，但其 GPU backing storage 必须按 frames-in-flight 延迟回收。
-- **渲染历史按实际提交推进**：hierarchy update 只更新 current；extraction 的 previous 取上一次已提交渲染快照的 current，不取上一次 Update 或 extraction 的结果。提交成功后才推进历史基准，下一次提取把 previous 的变化加入 instance dirty ranges，即使对象未移动也上传 previous=current；未提交的快照不消耗历史。首次出现、teleport、camera cut 和窗口恢复渲染后的首帧使用 previous=current；恢复时同步重置相机历史。只有 Update、连续多次 Update 或丢弃 extraction 都不推进渲染历史，也不修改已提交快照。
+- **渲染历史按实际提交推进**：hierarchy update 只更新 current；extraction 的 previous 取上一次已提交渲染快照的 current，不取上一次 Update 或 extraction 的结果。提交成功后才推进历史基准，下一次提取把 previous 的变化加入 instance dirty ranges，即使实体未移动也上传 previous=current；未提交的快照不消耗历史。首次出现、teleport、camera cut 和窗口恢复渲染后的首帧使用 previous=current；恢复时同步重置相机历史。只有 Update、连续多次 Update 或丢弃 extraction 都不推进渲染历史，也不修改已提交快照。
 - RenderScene 不包含 Flecs 类型、authoring 路径或 Asset Manager 内部 pointer。
 
 **slot 模型（稳定 ≠ 密集，用 sparse + active list 两层）**——`RenderObjectID`、`RenderInstanceID`、`RenderDrawID` 各自的数组套用同一模式：
@@ -373,7 +373,7 @@ RenderDraw (RenderDrawID)  = RenderObject × Submesh
 - **dense active-index list**：每层另存一个当前活跃 slot 的紧凑列表。CPU 遍历、以及未来 GPU culling，都遍历 active list，而不是稀疏数组。
 - **dirty upload**：按被创建/更新的 sparse slot 的 index range 上传（稀疏 dirty 见下方 scatter 预留）。
 - `instanceIndices`、object range 和 active list 的修改、计数变化也进入 dirty 更新，与对应 sparse slot 在同一 snapshot 内生效。空洞和 slot 复用不能让旧索引段引用另一个实例。
-- 这三个 ID 都**不持久化**（回收后 generation 递增即可能变化），可保持私有；跨帧/跨存档的稳定引用一律用 `ObjectID`/`AssetID`。
+- 这三个 ID 都**不持久化**（回收后 generation 递增即可能变化），可保持私有；跨帧/跨存档的稳定引用一律用 `Guid`/`AssetID`。
 - **第一阶段不做显式 compaction**：有 active list 后通常无需压紧稳定 slot；真要消除长期空洞时，compaction 是显式非热路径操作，需重建 + 广播 remap。
 
 第一阶段仍允许 CPU 遍历 RenderScene 提交 draw。下一阶段的 GPU-driven geometry 直接复用相同 buffer layout 和 dirty update，不再重新定义场景输入。
@@ -391,7 +391,7 @@ RenderDraw (RenderDrawID)  = RenderObject × Submesh
 完整 Editor 不属于第一阶段，但 World Foundation 必须满足：
 
 - Inspector 可以通过 reflection 枚举和编辑组件属性。
-- selection 和跨对象引用使用 `ObjectID`，不缓存 component pointer。
+- selection 和跨实体引用使用 `Guid`，不缓存 component pointer。
 - 所有 mutation 都能表示为 create、destroy、add/remove component、set property 和 reparent 等 command。
 - Edit World 与未来 Play World 可以独立存在。
 - editor-only component 不进入 cooked World 和 RenderScene。
@@ -417,7 +417,7 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 
 ## Staged rollout
 
-当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring ObjectID 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树。渲染提交与历史的配对在 RenderScene 阶段完成。
+当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring Guid 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树。渲染提交与历史的配对在 RenderScene 阶段完成。
 
 第 5 步已实现当前 glTF 路径：cooker 输出独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据当时继续供 Renderer 使用，现已删除；cook 是否过期由 `.sceneasset.json` 的 contentHash 判断。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
 
@@ -441,11 +441,11 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 第 6 步已完成：Bistro 通过 1 个 Scene、1296 个 Mesh、132 个 Material、274 个 Texture record 加载，1591 个 draw 共享一次 geometry 上传；GPU 使用期间的快照退休及 shutdown 已验证，内存分配回到基线。新模块不依赖 SceneManager。Material 当前提供完整材质参数及 Texture 身份引用；GPU table、材质表编码与 RenderScene 配对发布归第 8 步，Renderer 迁移归第 9 步，hot reload 保持 Phase 1.5 范围。
 
-第 7 步已实现 `WorldDocument` 的确定性保存、文件读写、staging World 加载和相邻版本迁移。回归覆盖所有内置组件往返、前向对象引用、非法输入不改变目标、未知组件原文保留、override 规范化和中断文件替换恢复。5000 层层级加载及销毁不依赖递归；恢复关系前先验证整张图，World 退出按叶子优先销毁 Entity。
+第 7 步已实现 `WorldDocument` 的确定性保存、文件读写、staging World 加载和相邻版本迁移。回归覆盖所有内置组件往返、前向实体引用、非法输入不改变目标、未知组件原文保留、override 规范化和中断文件替换恢复。5000 层层级加载及销毁不依赖递归；恢复关系前先验证整张图，World 退出按叶子优先销毁 Entity。
 
 第 8 步已完成资产绑定切片：`WorldAssetBindings` 为每个 `MeshRenderer` 持有 Mesh 和解析后材质的长期引用，按稳定 SubmeshID 合并默认材质与 overrides。组件移除或 Entity 销毁后，在下一次绑定更新释放引用；Asset Manager 快照继续保活旧帧资源。未就绪的绑定为 Pending，缺失资产、错误类型或非法 overrides 为 Failed，调用方只消费 Ready 绑定。正常帧不重复请求或分配内存；失败请求保持失败，清空绑定后可重试。Bindings 必须先于 World 和 Asset Manager 销毁。
 
-`RenderScene` 已实现 mesh 的 CPU 提取切片：三层 generation slot、free-list、active list 和 `instanceIndices`，提取 ObjectID、世界变换、包围盒以及每个 submesh 的材质绑定。Pending/Failed 对象保留 Object/Instance 身份，instanceCount 为零；材质等待期间保留已有 Draw 身份，清空借用的材质 handle。删除清空索引，复用递增 generation。更新输出 created/removed slots、合并 dirty ranges 和状态 revision；数组扩容时预留变更记录容量，稳定帧及普通变换更新不分配内存。
+`RenderScene` 已实现 mesh 的 CPU 提取切片：三层 generation slot、free-list、active list 和 `instanceIndices`，提取 Guid、世界变换、包围盒以及每个 submesh 的材质绑定。Pending/Failed 实体保留 Object/Instance 身份，instanceCount 为零；材质等待期间保留已有 Draw 身份，清空借用的材质 handle。删除清空索引，复用递增 generation。更新输出 created/removed slots、合并 dirty ranges 和状态 revision；数组扩容时预留变更记录容量，稳定帧及普通变换更新不分配内存。
 
 Object/Draw 已改为强类型 `GpuMeshID`、`GpuSubmeshRef` 和 `GpuMaterialID`。第一阶段 GPU ID 复用 Asset Manager record 的 index/generation 生命周期；三类间接表分别校验类型和 generation。`captureRenderSnapshot` 为 Ready payload 集合编码 mesh 顶点流/submesh、材质常量和纹理 SRV 表；材质只引用 `GpuTextureID`，不保存纹理 descriptor。相同 payload 集合复用编码，集合变化时为新版本构建完整表。热重载仍属 Phase 1.5。
 
@@ -461,13 +461,13 @@ Object/Draw 已改为强类型 `GpuMeshID`、`GpuSubmeshRef` 和 `GpuMaterialID`
 
 Bistro 实际加载得到 1296 个 RenderObject、1591 个 Draw、132 个材质和 274 个纹理；连续 8 帧通过 D3D12 GPU validation，GBuffer 读回及正常 shutdown 已验证。实例化的独立身份、父级、矩阵保留和 payload 释放有回归。
 
-第 10 步已完成：Bistro 编辑变换、名称、父级和稳定 SubmeshID 的材质 override 后，保存 `.world.json`；销毁旧帧池、RenderScene、World 及全部资产，再从文件重建 World 和资产绑定。往返 authoring JSON 完全一致，1296 个对象、1591 个 Draw 恢复，旧帧提交在销毁时 drain，GPU validation 为零错误，最终正常关闭。重载前后的 GBuffer 2037120 个像素中有 81 个不同，不要求共面几何在 draw 顺序变化时逐像素一致。
+第 10 步已完成：Bistro 编辑变换、名称、父级和稳定 SubmeshID 的材质 override 后，保存 `.world.json`；销毁旧帧池、RenderScene、World 及全部资产，再从文件重建 World 和资产绑定。往返 authoring JSON 完全一致，1296 个实体、1591 个 Draw 恢复，旧帧提交在销毁时 drain，GPU validation 为零错误，最终正常关闭。重载前后的 GBuffer 2037120 个像素中有 81 个不同，不要求共面几何在 draw 顺序变化时逐像素一致。
 
-保留一条使用现有小型 fixture 的自动回归，覆盖 instantiate → edit → save → 卸载 → reload → 配对 GPU 表读回和关闭；校验 ObjectID、层级、矩阵、override、资产重新绑定和 stale handle。Bistro 验证在本地运行，不为 CI 增加外部模型或环境变量。验证同时修复了相机通用求逆和 reparent 浮点误差造成的非规范仿射齐次行，并增加旋转、非均匀及负缩放父级下的保存回归。第一阶段 1–10 步完成；在线 hot reload、USD 和 Editor 保持后续范围。
+保留一条使用现有小型 fixture 的自动回归，覆盖 instantiate → edit → save → 卸载 → reload → 配对 GPU 表读回和关闭；校验 Guid、层级、矩阵、override、资产重新绑定和 stale handle。Bistro 验证在本地运行，不为 CI 增加外部模型或环境变量。验证同时修复了相机通用求逆和 reparent 浮点误差造成的非规范仿射齐次行，并增加旋转、非均匀及负缩放父级下的保存回归。第一阶段 1–10 步完成；在线 hot reload、USD 和 Editor 保持后续范围。
 
-生产加固回归已覆盖 10000 层父先／子先节点实例化、深子树重挂与删除、ObjectID 生成失败回滚和 UTF-8 名称边界；cook 支持无索引三角形，并在短写或关闭失败时保留已发布 geometry。32 位索引读取以文件声明的 indexType 为准，运动矢量通过实际 Geometry shader 的 GPU 读回验证透视插值。
+生产加固回归已覆盖 10000 层父先／子先节点实例化、深子树重挂与删除、Guid 生成失败回滚和 UTF-8 名称边界；cook 支持无索引三角形，并在短写或关闭失败时保留已发布 geometry。32 位索引读取以文件声明的 indexType 为准，运动矢量通过实际 Geometry shader 的 GPU 读回验证透视插值。
 
-1. 增加 `AssetID`、`ObjectID`、格式化、解析、hash 和相等比较测试。
+1. 增加 `AssetID`、`Guid`、格式化、解析、hash 和相等比较测试。
 2. 增加显式 type/property registry，并注册第一批内置组件。
 3. 接入 Flecs，提供 World、generation Entity 和 deferred mutation 生命周期。
 4. 实现 transform hierarchy、dirty propagation 和 previous transform。
@@ -498,14 +498,14 @@ step 6 与 step 8 是长线工程，建议进一步拆成可独立合入的小�
 
 - Cooker tests：node hierarchy/local matrix round trip；Mesh/Material/内嵌 Texture 和 primitive 插入、重排后唯一匹配项保持 AssetID/SubmeshID；歧义项分配新 ID、旧引用保持未解析且不误绑；删除项不复用 ID；不匹配的格式和版本解析失败。
 - Asset tests：重复请求、dependency cycle、每个加载阶段的故障注入、cancellation、迟到完成消息、loading 期间 release、长期 lease 随 MeshRenderer 删除而释放，以及三类 GpuID 的 stale handle。
-- World tests：create/destroy、generation、ObjectID 冲突与查询、deferred 创建取消及删除后的身份清理、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和显式层级删除策略。
+- World tests：create/destroy、generation、Guid 冲突与查询、deferred 创建取消及删除后的身份清理、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和显式层级删除策略。
 - Transform tests：深层 hierarchy、cycle rejection、reparent、parent deletion、**奇异 parent 下 `setParent(keepWorld)` 返回失败且 parent 不变**，以及 `LocalTransform`/`LocalMatrix` 互斥。
 - Serialization tests：round trip、稳定输出、forward reference、非法 hierarchy、多版本 migration、reflected array resize/insert/remove、material override key 唯一且有序、同时带 `LocalTransform`+`LocalMatrix` 的非法文件，以及未知 component blob 保留。
 - RenderScene tests：三层 slot reuse、instanceIndices 正确引用不连续 slot、一个多-submesh Entity 展开成多个 RenderDraw、asset-not-ready、entity removal 和无逐帧分配/逐 draw lease；轮换至少三份 backing storage 时，每次发布前都与目标 revision 一致，包括只修改一次的数据和删除/复用结果，覆盖索引、active list、计数、asset table 和 journal 溢出后的完整同步。
 - Render history tests：移动后下一次实际渲染推进 previous；只 Update 不 Draw、多次 Update 后提交、丢弃 extraction 都不提前推进历史；首次出现、teleport、camera cut 和窗口恢复正确重置历史。
 - Live graphics tests：pending GPU work 下释放 World/Asset、严格 shutdown 顺序，以及多次 init/exit。
 
-增加包含至少 100,000 个简单 Entity 的 CPU stress case，用于发现非预期的 O(N squared) 路径和逐对象分配；性能数字作为 telemetry 记录，不作为跨机器固定断言。
+增加包含至少 100,000 个简单 Entity 的 CPU stress case，用于发现非预期的 O(N squared) 路径和逐实体分配；性能数字作为 telemetry 记录，不作为跨机器固定断言。
 
 Phase-1.5 随 hot reload 实现补充 PayloadCompatible/StructuralChange 测试：配对 snapshots 原子切换、依赖变化，以及 MeshRenderer 持续持有长期 lease 时反复重载，确认旧 payload 在其版本使用者和 GPU fence 结束后回收、当前 payload 与 GpuID 仍有效。这些不是第一阶段的验收前提。
 
@@ -515,7 +515,7 @@ World Foundation 达到第一阶段完成标准时：
 
 - Bistro 通过**一个 SceneAsset record + 各自去重的 Mesh/Material/Texture dependency record** 加载；这些资产 record 可被多个 Entity 共享（重复请求同一 `AssetID` 复用 record）。
 - Asset Catalog、Asset Manager 和 typed loaders 不依赖 `SceneManager`，旧 SceneManager 路径已从 Renderer Example 移除。
-- Entity hierarchy 的编辑、保存和重新加载保持 ObjectID、asset reference 和 transform 结果。
+- Entity hierarchy 的编辑、保存和重新加载保持 Guid、asset reference 和 transform 结果。
 - Cooked SceneAsset 保存可编辑 node hierarchy，sidecar 保存完整子资产身份表，离线重导入不会静默改绑已有引用；正式 World 路径不依赖旧的 flat `SceneAssetInstance` 适配。
 - Renderer 只读取 RenderScene，不再依赖 SceneAsset 的 CPU instance 数组。
 - ECS component 不持有裸 GPU resource pointer 或 transient descriptor index。

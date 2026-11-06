@@ -61,7 +61,7 @@ struct RenderInstance
 {
     RenderInstanceID id;
     RenderObjectID   object;
-    ObjectID         objectID;
+    Guid             entityGuid;
     Matrix4          current = Matrix4::identity();
     Matrix4          previous = Matrix4::identity();
     RenderBounds     bounds;
@@ -77,7 +77,7 @@ struct RenderDraw
 struct RenderLight
 {
     RenderLightID  id;
-    ObjectID       objectID;
+    Guid           entityGuid;
     // Preserve scale/shear; emitting dimensions remain in local space.
     Matrix4        transform = Matrix4::identity();
     LightType      type = LightType::Point;
@@ -103,7 +103,7 @@ struct RenderLight
 struct RenderCamera
 {
     RenderCameraID id;
-    ObjectID       objectID;
+    Guid           entityGuid;
     Matrix4        current = Matrix4::identity();
     Matrix4        previous = Matrix4::identity();
     // World-space poses and lens data; viewport/projection policy belongs to the renderer.

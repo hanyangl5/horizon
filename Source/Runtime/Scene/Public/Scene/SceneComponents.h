@@ -10,7 +10,7 @@ namespace hz
 namespace SceneTypes
 {
 // Persistent schema IDs; renaming a type must not change its ID.
-constexpr uint64_t objectIdentity = 1;
+constexpr uint64_t entityIdentity = 1;
 constexpr uint64_t name = 2;
 constexpr uint64_t localTransform = 3;
 constexpr uint64_t localMatrix = 4;
@@ -21,9 +21,9 @@ constexpr uint64_t camera = 7;
 
 using SubmeshID = uint64_t;
 
-struct ObjectIdentity
+struct EntityIdentity
 {
-    ObjectID value;
+    Guid value;
 };
 
 struct Name

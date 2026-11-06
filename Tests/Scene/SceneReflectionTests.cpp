@@ -60,7 +60,7 @@ TEST_F(SceneReflectionTest, BuiltinsExposeStableTypedProperties)
     EXPECT_EQ(emissionTexture->kind, hz::PropertyKind::AssetReference);
     EXPECT_EQ(emissionTexture->offset, offsetof(hz::Light, texture));
     EXPECT_EQ(registry.getType(hz::SceneTypes::name)->getProperty("value")->size, 128u);
-    EXPECT_TRUE(registry.getType(hz::SceneTypes::objectIdentity)->getProperty("value")->flags & hz::PROPERTY_READ_ONLY);
+    EXPECT_TRUE(registry.getType(hz::SceneTypes::entityIdentity)->getProperty("value")->flags & hz::PROPERTY_READ_ONLY);
 }
 
 TEST_F(SceneReflectionTest, RegistrationRejectsDuplicatesWithoutPublishingPartialBatches)

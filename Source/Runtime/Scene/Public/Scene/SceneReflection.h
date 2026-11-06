@@ -23,7 +23,7 @@ enum class PropertyKind : uint8_t
     String,
     Enum,
     AssetReference,
-    ObjectReference,
+    EntityReference,
     Array,
 };
 

@@ -6,16 +6,16 @@
 #include <type_traits>
 
 static_assert(sizeof(hz::AssetID) == 16);
-static_assert(sizeof(hz::ObjectID) == 16);
+static_assert(sizeof(hz::Guid) == 16);
 static_assert(std::is_trivially_copyable_v<hz::AssetID>);
-static_assert(std::is_trivially_copyable_v<hz::ObjectID>);
-static_assert(!std::is_convertible_v<hz::AssetID, hz::ObjectID>);
-static_assert(!std::is_convertible_v<hz::ObjectID, hz::AssetID>);
+static_assert(std::is_trivially_copyable_v<hz::Guid>);
+static_assert(!std::is_convertible_v<hz::AssetID, hz::Guid>);
+static_assert(!std::is_convertible_v<hz::Guid, hz::AssetID>);
 
 TEST(SceneIDTest, NilAndValueComparison)
 {
     EXPECT_FALSE(hz::AssetID{}.isValid());
-    EXPECT_FALSE(hz::ObjectID{}.isValid());
+    EXPECT_FALSE(hz::Guid{}.isValid());
     const hz::AssetID first = { .high = 1, .low = 2 };
     const hz::AssetID same = { .high = 1, .low = 2 };
     const hz::AssetID nextLow = { .high = 1, .low = 3 };
@@ -26,13 +26,13 @@ TEST(SceneIDTest, NilAndValueComparison)
     EXPECT_LT(first, nextLow);
     EXPECT_LT(nextLow, nextHigh);
     EXPECT_FALSE(first < same);
-    EXPECT_LT((hz::ObjectID{ .low = UINT64_MAX }), (hz::ObjectID{ .high = 1 }));
+    EXPECT_LT((hz::Guid{ .low = UINT64_MAX }), (hz::Guid{ .high = 1 }));
 }
 
 TEST(SceneIDTest, ParsesCanonicalTextAndFormatsLowercase)
 {
-    hz::AssetID  asset;
-    hz::ObjectID object;
+    hz::AssetID asset;
+    hz::Guid    object;
     ASSERT_TRUE(asset.parse("00112233-4455-4677-8899-AABBCCDDEEFF"));
     ASSERT_TRUE(object.parse("00112233-4455-4677-8899-aabbccddeeff"));
     EXPECT_EQ(asset.high, UINT64_C(0x0011223344554677));
@@ -51,8 +51,8 @@ TEST(SceneIDTest, PreservesNilAndAllBits)
     const char* values[] = { "00000000-0000-0000-0000-000000000000", "ffffffff-ffff-ffff-ffff-ffffffffffff" };
     for (const char* value : values)
     {
-        hz::AssetID  asset;
-        hz::ObjectID object;
+        hz::AssetID asset;
+        hz::Guid    object;
         ASSERT_TRUE(asset.parse(value));
         ASSERT_TRUE(object.parse(value));
         char text[hz::kIDStringCapacity];
@@ -79,12 +79,12 @@ TEST(SceneIDTest, RejectsMalformedInputWithoutChangingOutput)
         "00112233-4455-4677-8899-aabbccddeefg",
         " 0112233-4455-4677-8899-aabbccddeeff",
     };
-    const hz::AssetID  originalAsset = { .high = 12, .low = 34 };
-    const hz::ObjectID originalObject = { .high = 56, .low = 78 };
+    const hz::AssetID originalAsset = { .high = 12, .low = 34 };
+    const hz::Guid    originalObject = { .high = 56, .low = 78 };
     for (const char* value : invalid)
     {
-        hz::AssetID  asset = originalAsset;
-        hz::ObjectID object = originalObject;
+        hz::AssetID asset = originalAsset;
+        hz::Guid    object = originalObject;
         EXPECT_FALSE(asset.parse(value));
         EXPECT_FALSE(object.parse(value));
         EXPECT_EQ(asset, originalAsset);
@@ -111,7 +111,7 @@ TEST(SceneIDTest, InjectedSequenceIsDeterministicAndSetsUuidBits)
     uint8_t               next = 0;
     const hz::IDGenerator generator = { .pGenerate = generateSequence, .pUserData = &next };
     const hz::AssetID     asset = hz::AssetID::create(generator);
-    const hz::ObjectID    object = hz::ObjectID::create(generator);
+    const hz::Guid        object = hz::Guid::create(generator);
     char                  text[hz::kIDStringCapacity];
     asset.toString(text);
     EXPECT_STREQ(text, "00010203-0405-4607-8809-0a0b0c0d0e0f");
@@ -119,9 +119,9 @@ TEST(SceneIDTest, InjectedSequenceIsDeterministicAndSetsUuidBits)
     EXPECT_STREQ(text, "10111213-1415-4617-9819-1a1b1c1d1e1f");
     next = 0;
     EXPECT_EQ(hz::AssetID::create(generator), asset);
-    EXPECT_EQ(hz::ObjectID::create(generator), object);
+    EXPECT_EQ(hz::Guid::create(generator), object);
     EXPECT_FALSE(hz::AssetID::create({ .pGenerate = failGeneration }).isValid());
-    EXPECT_FALSE(hz::ObjectID::create({ .pGenerate = failGeneration }).isValid());
+    EXPECT_FALSE(hz::Guid::create({ .pGenerate = failGeneration }).isValid());
 }
 
 TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
@@ -136,7 +136,7 @@ TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
         for (uint32_t j = 0; j < i; ++j)
             EXPECT_NE(assets[i], assets[j]);
     }
-    const hz::ObjectID object = hz::ObjectID::create();
+    const hz::Guid object = hz::Guid::create();
     ASSERT_TRUE(object.isValid());
     EXPECT_EQ((object.high >> 12) & 0xf, 4u);
     EXPECT_EQ(object.low >> 62, 2u);
@@ -144,9 +144,9 @@ TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
 
 TEST(SceneIDTest, HashUsesCanonicalBytes)
 {
-    hz::AssetID  lowercase;
-    hz::AssetID  uppercase;
-    hz::ObjectID object;
+    hz::AssetID lowercase;
+    hz::AssetID uppercase;
+    hz::Guid    object;
     ASSERT_TRUE(lowercase.parse("00112233-4455-4677-8899-aabbccddeeff"));
     ASSERT_TRUE(uppercase.parse("00112233-4455-4677-8899-AABBCCDDEEFF"));
     ASSERT_TRUE(object.parse("00112233-4455-4677-8899-aabbccddeeff"));

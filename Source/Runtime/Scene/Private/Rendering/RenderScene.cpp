@@ -30,7 +30,7 @@ static bool equalLens(const Camera& a, const Camera& b)
 }
 static bool equalLight(const RenderLight& a, const RenderLight& b)
 {
-    return a.objectID == b.objectID && equalMatrix(a.transform, b.transform) && a.type == b.type && a.color[0] == b.color[0] &&
+    return a.entityGuid == b.entityGuid && equalMatrix(a.transform, b.transform) && a.type == b.type && a.color[0] == b.color[0] &&
            a.color[1] == b.color[1] && a.color[2] == b.color[2] && a.intensity == b.intensity && a.range == b.range &&
            a.innerConeAngle == b.innerConeAngle && a.outerConeAngle == b.outerConeAngle && a.exposure == b.exposure &&
            a.angularDiameter == b.angularDiameter && a.width == b.width && a.height == b.height && a.radius == b.radius &&
@@ -221,7 +221,7 @@ public:
             }
             RenderLight next = {
                 .id = entity.id,
-                .objectID = world.getObjectID(entity.entity),
+                .entityGuid = world.getEntityGuid(entity.entity),
                 .transform = world.getWorldTransform(entity.entity)->current,
                 .type = source.type,
                 .color = { (float)source.color.getX(), (float)source.color.getY(), (float)source.color.getZ() },
@@ -282,12 +282,12 @@ public:
         const Camera&  lens = *(const Camera*)fields.pData[0];
         const Matrix4& previous = record.historyValid ? record.submitted : current;
         const Camera&  previousLens = record.historyValid ? record.submittedLens : lens;
-        const ObjectID objectID = data.world.getObjectID(entity);
+        const Guid     entityGuid = data.world.getEntityGuid(entity);
         RenderCamera&  camera = data.cameras.values[record.id.index];
-        if (camera.objectID != objectID || !equalMatrix(camera.current, current) || !equalMatrix(camera.previous, previous) ||
+        if (camera.entityGuid != entityGuid || !equalMatrix(camera.current, current) || !equalMatrix(camera.previous, previous) ||
             !equalLens(camera.lens, lens) || !equalLens(camera.previousLens, previousLens))
         {
-            camera.objectID = objectID;
+            camera.entityGuid = entityGuid;
             camera.current = current;
             camera.previous = previous;
             camera.lens = lens;
@@ -431,13 +431,13 @@ public:
             }
         const WorldTransform& transform = *world.getWorldTransform(entity.entity);
         RenderInstance&       instance = instances.values[entity.instance.index];
-        const ObjectID        objectID = world.getObjectID(entity.entity);
+        const Guid            entityGuid = world.getEntityGuid(entity.entity);
         const RenderBounds    bounds = ready ? transformBounds(entity.localBounds, transform.current) : RenderBounds{};
         const Matrix4&        previous = entity.historyValid ? entity.submitted : transform.current;
-        if (instance.objectID != objectID || !equalMatrix(instance.current, transform.current) ||
+        if (instance.entityGuid != entityGuid || !equalMatrix(instance.current, transform.current) ||
             !equalMatrix(instance.previous, previous) || !equalBounds(instance.bounds, bounds))
         {
-            instance.objectID = objectID;
+            instance.entityGuid = entityGuid;
             instance.current = transform.current;
             instance.previous = previous;
             instance.bounds = bounds;

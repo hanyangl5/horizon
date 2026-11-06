@@ -34,20 +34,20 @@ struct AssetID
     constexpr bool operator<(const AssetID& other) const { return high < other.high || (high == other.high && low < other.low); }
 };
 
-struct ObjectID
+struct Guid
 {
     uint64_t high = 0;
     uint64_t low = 0;
 
     // Generation and text conversion follow the same contract as AssetID.
-    static ObjectID create(const IDGenerator& generator = {});
-    bool            parse(const char* pText);
-    void            toString(char (&text)[kIDStringCapacity]) const;
-    uint64_t        hash() const;
+    static Guid create(const IDGenerator& generator = {});
+    bool        parse(const char* pText);
+    void        toString(char (&text)[kIDStringCapacity]) const;
+    uint64_t    hash() const;
 
     constexpr bool isValid() const { return high != 0 || low != 0; }
-    constexpr bool operator==(const ObjectID&) const = default;
-    constexpr bool operator<(const ObjectID& other) const { return high < other.high || (high == other.high && low < other.low); }
+    constexpr bool operator==(const Guid&) const = default;
+    constexpr bool operator<(const Guid& other) const { return high < other.high || (high == other.high && low < other.low); }
 };
 
 } // namespace hz

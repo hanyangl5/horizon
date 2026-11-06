@@ -31,17 +31,17 @@ public:
     WorldDocument& operator=(const WorldDocument&) = delete;
 
     // Parsing retains original JSON, including unknown component blobs. Failure preserves this document.
-    bool     parse(Span<char> json);
-    bool     load(ResourceDirectory directory, const char* pFileName);
-    bool     save(ResourceDirectory directory, const char* pFileName) const;
+    bool parse(Span<char> json);
+    bool load(ResourceDirectory directory, const char* pFileName);
+    bool save(ResourceDirectory directory, const char* pFileName) const;
     // Output includes a terminating null. Parsed documents retain their original text exactly.
-    bool     serialize(Array<char>& json) const;
-    ObjectID getID() const;
-    // Captures authoring objects only; an existing document ID is retained unless explicitly replaced.
-    bool     capture(World& world, ObjectID id = {});
+    bool serialize(Array<char>& json) const;
+    Guid getID() const;
+    // Captures persistent entities only; an existing document ID is retained unless explicitly replaced.
+    bool capture(World& world, Guid id = {});
     // Replaces target only after complete validation. Destroy its queries/scopes before calling.
-    bool     instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations = {},
-                         const IDGenerator& objectIDs = {}) const;
+    bool instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations = {},
+                     const IDGenerator& entityGuids = {}) const;
 
 private:
     WorldDocumentData* pData = nullptr;

@@ -107,7 +107,7 @@ void WorldImpl::moveComponents(void* pDestination, void* pSource, int32_t count,
     moveConstructComponents(pDestination, pSource, count, pInfo);
 }
 
-WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs): objectIDs(objectIDs)
+WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuids): entityGuids(entityGuids)
 {
     initWorldOS();
     pWorld = ecs_mini();
@@ -133,7 +133,7 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs)
                     .move = moveComponents,
                     .copy_ctor = copyConstructComponents,
                     .move_ctor = moveConstructComponents,
-                    .on_remove = pType->id == SceneTypes::objectIdentity ? removeObjectIDs : nullptr,
+                    .on_remove = pType->id == SceneTypes::entityIdentity ? removeEntityGuids : nullptr,
                     .ctx = (void*)pType,
                     .binding_ctx = this,
                 },
@@ -141,8 +141,8 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& objectIDs)
         };
         const ecs_entity_t component = ecs_component_init(pWorld, &desc);
         ASSERT(component);
-        if (pType->id == SceneTypes::objectIdentity)
-            objectIdentityType = component;
+        if (pType->id == SceneTypes::entityIdentity)
+            entityIdentityType = component;
         const WorldType mapping = { .key = pType->id, .component = component, .pType = pType };
         hmputs(pTypes, mapping);
     }
@@ -155,11 +155,11 @@ WorldImpl::~WorldImpl()
     ASSERT(!ecs_is_deferred(pWorld));
     tf_delete(pHierarchy);
     ecs_fini(pWorld);
-    hmfree(pObjects);
+    hmfree(pEntityGuids);
     hmfree(pTypes);
 }
 
-World::World(const TypeRegistry& registry, const IDGenerator& objectIDs): pImpl(tf_new(WorldImpl, registry, objectIDs)) {}
+World::World(const TypeRegistry& registry, const IDGenerator& entityGuids): pImpl(tf_new(WorldImpl, registry, entityGuids)) {}
 World::~World() { tf_delete(pImpl); }
 
 Entity World::createEntity()
@@ -177,9 +177,9 @@ bool World::isAlive(Entity entity) const
 
 bool World::addComponent(Entity entity, TypeID type)
 {
-    if (type == SceneTypes::objectIdentity)
+    if (type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "ObjectIdentity is managed by World::createObject");
+        LOGF(eERROR, "EntityIdentity is managed by World::createPersistentEntity");
         return false;
     }
     if (!isAlive(entity))
@@ -195,9 +195,9 @@ bool World::addComponent(Entity entity, TypeID type)
 
 bool World::removeComponent(Entity entity, TypeID type)
 {
-    if (type == SceneTypes::objectIdentity)
+    if (type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "ObjectIdentity cannot be removed from a live object");
+        LOGF(eERROR, "EntityIdentity cannot be removed from a live entity");
         return false;
     }
     if (!isAlive(entity))
@@ -213,9 +213,9 @@ bool World::removeComponent(Entity entity, TypeID type)
 bool World::setComponent(Entity entity, TypeID type, const void* pValue)
 {
     ASSERT(pValue);
-    if (type == SceneTypes::objectIdentity)
+    if (type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "ObjectIdentity cannot be changed after object creation");
+        LOGF(eERROR, "EntityIdentity cannot be changed after entity creation");
         return false;
     }
     if (!isAlive(entity))
@@ -267,7 +267,7 @@ DeferredChanges::~DeferredChanges()
     if (ecs_defer_end(world.pImpl->pWorld))
     {
         world.pImpl->pHierarchy->finishDeferredChanges();
-        world.pImpl->finishObjectChanges();
+        world.pImpl->finishGuidChanges();
     }
 }
 

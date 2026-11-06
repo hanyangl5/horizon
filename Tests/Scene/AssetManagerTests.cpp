@@ -1305,7 +1305,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
     hz::LocalTransform            transform = { .translation = Vector3(1, 2, 3) };
     for (uint32_t i = 0; i < 9; ++i)
     {
-        entities[i] = world.createObject({ .high = 2, .low = i + 1 });
+        entities[i] = world.createPersistentEntity({ .high = 2, .low = i + 1 });
         light.type = (hz::LightType)i;
         ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::light, &light));
         ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::camera, &lens));
@@ -1319,7 +1319,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
     {
         const hz::RenderLight* extracted = scene.getLight(scene.findLight(entities[i]));
         ASSERT_NE(extracted, nullptr);
-        EXPECT_EQ(extracted->objectID, world.getObjectID(entities[i]));
+        EXPECT_EQ(extracted->entityGuid, world.getEntityGuid(entities[i]));
         EXPECT_EQ(extracted->type, (hz::LightType)i);
         EXPECT_EQ(extracted->ready, i == 8 ? 0u : 1u);
         EXPECT_FLOAT_EQ(extracted->color[2], 0.3f);
@@ -1341,7 +1341,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
         EXPECT_FLOAT_EQ((float)extracted->transform.getElem(3, 0), 13);
         const hz::RenderCamera* camera = scene.getCamera(scene.findCamera(entities[i]));
         ASSERT_NE(camera, nullptr);
-        EXPECT_EQ(camera->objectID, extracted->objectID);
+        EXPECT_EQ(camera->entityGuid, extracted->entityGuid);
         EXPECT_FLOAT_EQ((float)camera->current.getElem(3, 2), 42);
         EXPECT_FLOAT_EQ((float)camera->previous.getElem(3, 2), 42);
         EXPECT_FLOAT_EQ(camera->lens.verticalFov, 0.8f);
@@ -1651,11 +1651,11 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::World          world(types);
-    hz::RenderScene    scene(world, assetManager);
-    const hz::ObjectID identity = { .high = 2, .low = 1 };
-    const hz::Entity   a = world.createObject(identity), b = world.createEntity();
-    hz::MeshRenderer   renderer = { .mesh = assets.getMeshes().pData[0].id };
+    hz::World        world(types);
+    hz::RenderScene  scene(world, assetManager);
+    const hz::Guid   identity = { .high = 2, .low = 1 };
+    const hz::Entity a = world.createPersistentEntity(identity), b = world.createEntity();
+    hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     hz::LocalMatrix local;
@@ -1675,7 +1675,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     const hz::RenderInstanceID instanceID = scene.getInstances().pData[instanceIndex].id;
     const hz::RenderInstance*  instance = scene.getInstance(instanceID);
     ASSERT_NE(instance, nullptr);
-    EXPECT_EQ(instance->objectID, identity);
+    EXPECT_EQ(instance->entityGuid, identity);
     EXPECT_EQ(instance->object, object);
     EXPECT_FLOAT_EQ(instance->bounds.minimum[0], -3);
     EXPECT_FLOAT_EQ(instance->bounds.maximum[0], 14);
@@ -1758,7 +1758,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     const hz::RenderObjectID survivor = scene.findObject(b);
     const uint32_t           survivingInstance = scene.getInstanceIndices().pData[scene.getObject(survivor)->instanceOffset];
     EXPECT_EQ(scene.getInstances().pData[survivingInstance].object, survivor);
-    const hz::Entity replacement = world.createObject(identity);
+    const hz::Entity replacement = world.createPersistentEntity(identity);
     ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::RenderObjectID reused = scene.findObject(replacement);
@@ -2019,9 +2019,9 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     scene.update();
     wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
-    const hz::RenderObjectID objectID = scene.findObject(entity);
+    const hz::RenderObjectID renderObjectID = scene.findObject(entity);
     ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
-    EXPECT_EQ(scene.getLight(lightID)->object, objectID);
+    EXPECT_EQ(scene.getLight(lightID)->object, renderObjectID);
     hz::SceneFramePool pool(scene, context);
     pool.reserve(1, 1, 1, 1);
     for (uint32_t i = 0; i < 3; ++i)
@@ -2225,8 +2225,8 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     renderer.overrides.pushBack(
         { .submesh = assets.getMeshes().pData[0].submeshes.pData[0].id, .material = assets.getMaterials().pData[0].id });
     ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::meshRenderer, &renderer));
-    const hz::ObjectID rootID = world->getObjectID(root), firstID = world->getObjectID(first), secondID = world->getObjectID(second);
-    hz::WorldDocument  saved;
+    const hz::Guid    rootID = world->getEntityGuid(root), firstID = world->getEntityGuid(first), secondID = world->getEntityGuid(second);
+    hz::WorldDocument saved;
     ASSERT_TRUE(saved.capture(*world));
     ASSERT_TRUE(saved.save(RD_OTHER_FILES, "edited.world.json"));
     hz::Array<char> original;
@@ -2257,12 +2257,12 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         hz::SceneFrameSnapshot frame = pool->capture();
         ASSERT_TRUE(frame.isValid());
         ASSERT_EQ(frame.getActiveDraws().count, 2u);
-        const hz::RenderObjectID objectID = scene->findObject(entity);
-        const hz::RenderObject&  object = frame.getObjects().pData[objectID.index];
+        const hz::RenderObjectID renderObjectID = scene->findObject(entity);
+        const hz::RenderObject&  object = frame.getObjects().pData[renderObjectID.index];
         const uint32_t           instance = frame.getInstanceIndices().pData[object.instanceOffset];
         const hz::RenderDraw*    draw = nullptr;
         for (uint32_t index : frame.getActiveDraws())
-            if (frame.getDraws().pData[index].object == objectID)
+            if (frame.getDraws().pData[index].object == renderObjectID)
                 draw = &frame.getDraws().pData[index];
         ASSERT_NE(draw, nullptr);
         EXPECT_EQ(draw->submesh, renderer.overrides[0].submesh);
@@ -2287,7 +2287,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_EQ(assetManager.getCount(), 0u);
         EXPECT_EQ(assetManager.getMesh(oldMesh), nullptr);
         const hz::RenderInstance* copied = (const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
-        EXPECT_EQ(copied->objectID, firstID);
+        EXPECT_EQ(copied->entityGuid, firstID);
         EXPECT_FLOAT_EQ((float)copied->current.getElem(3, 0), 6);
         EXPECT_FLOAT_EQ((float)copied->previous.getElem(3, 0), 6);
         EXPECT_FLOAT_EQ((float)copied->current.getElem(1, 0), 0.25f);

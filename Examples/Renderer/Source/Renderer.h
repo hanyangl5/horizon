@@ -219,14 +219,14 @@ private:
             .boostMultiplier = 4.0f,
         };
         pCamera = hz::make_unique<FreeCameraController>(desc);
-        cameraEntity = pWorld->createObject();
+        cameraEntity = pWorld->createPersistentEntity();
         const hz::Camera      camera = { .verticalFov = PI / 4.0f };
         const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
         const Vector3         z = normalize(Vector3(-0.4f, 0.8f, 0.3f));
         const Vector3         x = normalize(cross(Vector3(0, 1, 0), z));
         const hz::Light       sun = { .type = hz::LightType::Directional, .color = Vector3(1, 0.96f, 0.88f), .intensity = 3 };
         const hz::LocalMatrix sunPose = { .value = Matrix4(Vector4(x, 0), Vector4(cross(z, x), 0), Vector4(z, 0), Vector4(0, 0, 0, 1)) };
-        const hz::Entity      sunEntity = pWorld->createObject();
+        const hz::Entity      sunEntity = pWorld->createPersistentEntity();
         const bool            created = pWorld->setComponent(cameraEntity, hz::SceneTypes::camera, &camera) &&
                                         pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose) &&
                                         pWorld->setComponent(sunEntity, hz::SceneTypes::light, &sun) &&

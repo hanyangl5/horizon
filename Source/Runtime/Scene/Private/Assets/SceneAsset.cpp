@@ -440,7 +440,7 @@ static void copyName(Name& name, const char* pText)
 Entity SceneAsset::instantiate(World& world, Entity parent) const
 {
     ASSERT(pData && !world.isDeferred() && (!parent.isValid() || world.isAlive(parent)));
-    const Entity root = world.createObject();
+    const Entity root = world.createPersistentEntity();
     if (!root.isValid())
         return {};
     Array<Entity> entities;
@@ -452,7 +452,7 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
         bool copied = world.setComponent(root, SceneTypes::name, &name);
         for (const SceneAssetNode& node : pData->nodes)
         {
-            const Entity entity = world.createObject();
+            const Entity entity = world.createPersistentEntity();
             if (!entity.isValid())
                 break;
             entities.pushBack(entity);

@@ -104,17 +104,17 @@ AssetID AssetID::create(const IDGenerator& generator)
     return id;
 }
 
-ObjectID ObjectID::create(const IDGenerator& generator)
+Guid Guid::create(const IDGenerator& generator)
 {
-    ObjectID id;
+    Guid id;
     generateID(generator, id.high, id.low);
     return id;
 }
 
 bool     AssetID::parse(const char* pText) { return parseID(pText, high, low); }
-bool     ObjectID::parse(const char* pText) { return parseID(pText, high, low); }
+bool     Guid::parse(const char* pText) { return parseID(pText, high, low); }
 void     AssetID::toString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
-void     ObjectID::toString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
+void     Guid::toString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
 uint64_t AssetID::hash() const { return hashIDWords(high, low); }
-uint64_t ObjectID::hash() const { return hashIDWords(high, low); }
+uint64_t Guid::hash() const { return hashIDWords(high, low); }
 } // namespace hz

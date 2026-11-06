@@ -108,7 +108,7 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     EXPECT_STREQ(asset.getTextures().pData[0].pSource, "Textures/albedo.png");
 }
 
-TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldObjectsAndCopiesPayloadData)
+TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadData)
 {
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse(kScene));
@@ -121,7 +121,7 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldObjectsAndCopiesPayloadDa
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World                world(types);
-    const hz::Entity         parent = world.createObject();
+    const hz::Entity         parent = world.createPersistentEntity();
     const hz::LocalTransform transform = { .translation = Vector3(100, 0, 0) };
     ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
     const hz::AssetID mesh = asset.getMeshes().pData[0].id;
@@ -129,7 +129,7 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldObjectsAndCopiesPayloadDa
     const hz::Entity  secondRoot = asset.instantiate(world);
     EXPECT_EQ(world.getParent(firstRoot), parent);
     EXPECT_FALSE(world.getParent(secondRoot).isValid());
-    EXPECT_NE(world.getObjectID(firstRoot), world.getObjectID(secondRoot));
+    EXPECT_NE(world.getEntityGuid(firstRoot), world.getEntityGuid(secondRoot));
     asset = {};
     world.updateTransforms();
     struct Instances
@@ -160,7 +160,7 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldObjectsAndCopiesPayloadDa
             }
             else
                 EXPECT_STREQ(name.value, "Second");
-            EXPECT_EQ(data.world->getEntity(data.world->getObjectID(entity)), entity);
+            EXPECT_EQ(data.world->getEntity(data.world->getEntityGuid(entity)), entity);
             ++data.count;
             return true;
         },
@@ -221,7 +221,7 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
             ASSERT_TRUE(document.capture(world));
             hz::unique_ptr<hz::World> restored;
             ASSERT_TRUE(document.instantiate(types, restored));
-            const hz::Entity restoredRoot = restored->getEntity(world.getObjectID(root));
+            const hz::Entity restoredRoot = restored->getEntity(world.getEntityGuid(root));
             const hz::Name*  pName = (const hz::Name*)restored->getComponent(restoredRoot, hz::SceneTypes::name);
             ASSERT_NE(pName, nullptr);
             EXPECT_STREQ(pName->value, expected.c_str());
@@ -229,7 +229,7 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
     }
 }
 
-TEST_F(SceneAssetReadTest, FailedObjectGenerationRollsBackOnlyTheNewInstance)
+TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
 {
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse(kScene));
@@ -261,11 +261,11 @@ TEST_F(SceneAssetReadTest, FailedObjectGenerationRollsBackOnlyTheNewInstance)
                 },
                 .pUserData = &source,
             };
-            hz::World          world(types, generator);
-            const hz::ObjectID parentID = { .high = 0x4000, .low = UINT64_C(0x8000000000000010) };
-            const hz::ObjectID childID = { .high = 0x4000, .low = UINT64_C(0x8000000000000011) };
-            const hz::Entity   parent = world.createObject(parentID);
-            const hz::Entity   child = world.createObject(childID);
+            hz::World        world(types, generator);
+            const hz::Guid   parentID = { .high = 0x4000, .low = UINT64_C(0x8000000000000010) };
+            const hz::Guid   childID = { .high = 0x4000, .low = UINT64_C(0x8000000000000011) };
+            const hz::Entity parent = world.createPersistentEntity(parentID);
+            const hz::Entity child = world.createPersistentEntity(childID);
             ASSERT_TRUE(world.setParent(child, parent, false));
             const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
             ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
@@ -439,7 +439,7 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
         hz::TypeRegistry types;
         ASSERT_TRUE(types.registerBuiltins());
         hz::World                world(types);
-        const hz::Entity         parent = world.createObject();
+        const hz::Entity         parent = world.createPersistentEntity();
         const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
         ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
         const hz::Entity root = asset.instantiate(world, parent);

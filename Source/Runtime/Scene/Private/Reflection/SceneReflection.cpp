@@ -70,7 +70,7 @@ static bool validProperties(const TypeDesc& type, bool arrayElement)
         case PropertyKind::Vector4:
         case PropertyKind::Quaternion:
         case PropertyKind::AssetReference:
-        case PropertyKind::ObjectReference:
+        case PropertyKind::EntityReference:
             if (property.size != 16)
                 return false;
             break;

@@ -18,7 +18,7 @@ class WorldDocumentData
 public:
     ~WorldDocumentData() { cJSON_Delete(pRoot); }
     cJSON*      pRoot = nullptr;
-    ObjectID    id;
+    Guid        id;
     Array<char> text;
 };
 static const cJSON* field(const cJSON* pObject, const char* pName) { return cJSON_GetObjectItemCaseSensitive(pObject, pName); }
@@ -27,7 +27,7 @@ static const char*  stringField(const cJSON* pObject, const char* pName)
     const cJSON* pValue = field(pObject, pName);
     return cJSON_IsString(pValue) ? pValue->valuestring : nullptr;
 }
-static bool readID(const cJSON* pValue, ObjectID& id, bool nullable = false)
+static bool readID(const cJSON* pValue, Guid& id, bool nullable = false)
 {
     if (nullable && cJSON_IsNull(pValue))
     {
@@ -36,7 +36,7 @@ static bool readID(const cJSON* pValue, ObjectID& id, bool nullable = false)
     }
     return cJSON_IsString(pValue) && id.parse(pValue->valuestring) && id.isValid();
 }
-static void addID(cJSON* pObject, const char* pName, ObjectID id)
+static void addID(cJSON* pObject, const char* pName, Guid id)
 {
     char text[kIDStringCapacity];
     id.toString(text);
@@ -50,10 +50,10 @@ static bool typeID(const cJSON* pComponent, TypeID& type)
     const std::from_chars_result result = std::from_chars(pText, pText + 16, type, 16);
     return result.ec == std::errc{} && result.ptr == pText + 16 && type != 0;
 }
-static int compareObjects(const void* pA, const void* pB)
+static int compareGuids(const void* pA, const void* pB)
 {
-    const ObjectID& a = *(const ObjectID*)pA;
-    const ObjectID& b = *(const ObjectID*)pB;
+    const Guid& a = *(const Guid*)pA;
+    const Guid& b = *(const Guid*)pB;
     return (b < a) - (a < b);
 }
 static int compareTypes(const void* pA, const void* pB)
@@ -64,8 +64,8 @@ static int compareTypes(const void* pA, const void* pB)
 }
 
 WorldDocument::~WorldDocument() { tf_delete(pData); }
-ObjectID WorldDocument::getID() const { return pData ? pData->id : ObjectID{}; }
-bool     WorldDocument::parse(Span<char> json)
+Guid WorldDocument::getID() const { return pData ? pData->id : Guid{}; }
+bool WorldDocument::parse(Span<char> json)
 {
     unique_ptr<WorldDocumentData> candidate = make_unique<WorldDocumentData>();
     candidate->pRoot = parseWorldJson(json);
@@ -95,7 +95,7 @@ bool WorldDocument::serialize(Array<char>& json) const
     json = pData->text;
     return true;
 }
-bool WorldDocument::capture(World& world, ObjectID id)
+bool WorldDocument::capture(World& world, Guid id)
 {
     if (world.isDeferred())
     {
@@ -103,17 +103,17 @@ bool WorldDocument::capture(World& world, ObjectID id)
         return false;
     }
     if (!id.isValid())
-        id = pData ? pData->id : ObjectID::create();
+        id = pData ? pData->id : Guid::create();
     if (!id.isValid())
         return false;
-    Array<ObjectID> objects;
-    for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pObjects); ++i)
-        objects.pushBack(world.pImpl->pObjects[i].key);
-    if (!objects.empty())
-        qsort(objects.data(), objects.size(), sizeof(ObjectID), compareObjects);
+    Array<Guid> guids;
+    for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pEntityGuids); ++i)
+        guids.pushBack(world.pImpl->pEntityGuids[i].key);
+    if (!guids.empty())
+        qsort(guids.data(), guids.size(), sizeof(Guid), compareGuids);
     Array<const TypeDesc*> types;
     for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pTypes); ++i)
-        if (world.pImpl->pTypes[i].key != SceneTypes::objectIdentity && world.pImpl->pTypes[i].key != SceneTypes::name)
+        if (world.pImpl->pTypes[i].key != SceneTypes::entityIdentity && world.pImpl->pTypes[i].key != SceneTypes::name)
             types.pushBack(world.pImpl->pTypes[i].pType);
     if (!types.empty())
         qsort(types.data(), types.size(), sizeof(types[0]), compareTypes);
@@ -122,19 +122,19 @@ bool WorldDocument::capture(World& world, ObjectID id)
     cJSON_AddNumberToObject(root.pValue, "version", 1);
     addID(root.pValue, "id", id);
     cJSON* pEntities = cJSON_AddArrayToObject(root.pValue, "entities");
-    for (ObjectID object : objects)
+    for (Guid guid : guids)
     {
-        const Entity   entity = world.getEntity(object);
-        const Entity   parent = world.getParent(entity);
-        const ObjectID parentID = world.getObjectID(parent);
+        const Entity entity = world.getEntity(guid);
+        const Entity parent = world.getParent(entity);
+        const Guid   parentID = world.getEntityGuid(parent);
         if (parent.isValid() && !parentID.isValid())
         {
-            LOGF(eERROR, "An authoring object's parent must have an ObjectID");
+            LOGF(eERROR, "A persistent entity's parent must have a Guid");
             return false;
         }
         cJSON* pRecord = cJSON_CreateObject();
         cJSON_AddItemToArray(pEntities, pRecord);
-        addID(pRecord, "id", object);
+        addID(pRecord, "id", guid);
         addID(pRecord, "parent", parentID);
         const Name* pName = (const Name*)world.getComponent(entity, SceneTypes::name);
         if (pName && !memchr(pName->value, 0, sizeof(pName->value)))
@@ -186,8 +186,8 @@ public:
 };
 struct WorldLoadNode
 {
-    ObjectID     id;
-    ObjectID     parent;
+    Guid         id;
+    Guid         parent;
     const cJSON* pRecord;
     Entity       entity;
     uint32_t     parentIndex = UINT32_MAX;
@@ -195,7 +195,7 @@ struct WorldLoadNode
 };
 struct WorldNodeIndex
 {
-    ObjectID key;
+    Guid     key;
     uint32_t value;
 };
 class WorldLoadPlan
@@ -213,7 +213,7 @@ public:
                 (!cJSON_IsNull(pName) && (!cJSON_IsString(pName) || strlen(pName->valuestring) >= sizeof(Name::value))) ||
                 !cJSON_IsArray(field(pRecord, "components")))
                 return false;
-            node.entity = world.createObject(node.id);
+            node.entity = world.createPersistentEntity(node.id);
             if (!node.entity.isValid())
                 return false;
             if (cJSON_IsString(pName))
@@ -299,7 +299,7 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
            validateWorldReferences(type, value.pValue, world) && world.setComponent(entity, type.id, value.pValue);
 }
 bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations,
-                                const IDGenerator& objectIDs) const
+                                const IDGenerator& entityGuids) const
 {
     if (!pData || (target && target->isDeferred()))
         return false;
@@ -314,11 +314,11 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
             if (entry.type == migrations.pData[j].type && entry.fromVersion == migrations.pData[j].fromVersion)
                 return false;
     }
-    unique_ptr<World> staging = make_unique<World>(types, objectIDs);
+    unique_ptr<World> staging = make_unique<World>(types, entityGuids);
     WorldLoadPlan     plan;
     if (!plan.prepare(field(pData->pRoot, "entities"), *staging))
     {
-        LOGF(eERROR, "Invalid World objects, parent references or hierarchy cycle");
+        LOGF(eERROR, "Invalid World entities, parent references or hierarchy cycle");
         return false;
     }
     Array<TypeID> present;
@@ -337,7 +337,7 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
                     return false;
             present.pushBack(id);
             const TypeDesc* pType = types.getType(id);
-            if (!pType || id == SceneTypes::objectIdentity || id == SceneTypes::name ||
+            if (!pType || id == SceneTypes::entityIdentity || id == SceneTypes::name ||
                 !loadComponent(pComponent, *pType, version, migrations, *staging, node.entity))
             {
                 LOGF(eERROR, "Cannot instantiate World component '%s' version %u", stringField(pComponent, "name"), version);

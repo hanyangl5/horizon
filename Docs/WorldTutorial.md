@@ -13,12 +13,12 @@
 | 数据 | 椅子的例子 | 负责的模块 |
 | --- | --- | --- |
 | 可共享的资产 | 椅子网格、木头材质、纹理 | Asset 系统 |
-| 世界中的对象 | 第三把椅子的名称、位置、父节点、材质覆盖 | World |
+| 世界中的实体 | 第三把椅子的名称、位置、父节点、材质覆盖 | World |
 | 一帧的渲染输入 | 本帧矩阵、draw、GPU 表及其资源引用 | RenderScene 与 SceneFramePool |
 
 修改第三把椅子的位置，只改变它在 World 中的组件。其他九把继续共享原来的 MeshAsset。生成渲染输入时，系统再把这个修改传播到对应实例和帧数据中。
 
-这个划分决定了后面的接口：资产负责共享与加载，World 负责对象和编辑，帧快照负责一次 GPU 提交使用的数据。
+这个划分决定了后面的接口：资产负责共享与加载，World 负责实体和编辑，帧快照负责一次 GPU 提交使用的数据。
 
 ```mermaid
 flowchart LR
@@ -44,13 +44,13 @@ flowchart LR
 | 类型 | 表达什么 | 是否保存到场景 |
 | --- | --- | --- |
 | `AssetID` | 某份 Mesh、Material、Texture 或 SceneAsset | 保存资产引用时使用 |
-| `ObjectID` | 世界中的某个可编辑对象 | 保存 |
+| `Guid` | 世界中的某个可编辑实体 | 保存 |
 | `AssetHandle` | Asset Manager 中的一次运行时资产记录 | 不保存 |
 | `Entity` | 某个 World 中的运行时实体 | 不保存 |
 
-十把椅子可以拥有相同的 Mesh `AssetID`，但每把都有不同的 `ObjectID`。重新打开场景时，这些 `ObjectID` 保持不变；对应的 `Entity` 则需要在新 World 中重新查找。
+十把椅子可以拥有相同的 Mesh `AssetID`，但每把都有不同的 `Guid`。重新打开场景时，这些 `Guid` 保持不变；对应的 `Entity` 则需要在新 World 中重新查找。
 
-`AssetID` 和 `ObjectID` 都采用 128 位值，但它们属于不同的语义域。前者由导入过程及随源文件维护的身份文件（sidecar）维护，后者标识对象的摆放和编辑结果。源文件移动时需要一起维护身份元数据；单纯对文件内容取 hash 无法代替这份身份。
+`AssetID` 和 `Guid` 都采用 128 位值，但它们属于不同的语义域。前者由导入过程及随源文件维护的身份文件（sidecar）维护，后者标识实体的摆放和编辑结果。源文件移动时需要一起维护身份元数据；单纯对文件内容取 hash 无法代替这份身份。
 
 内容指纹用于判断是否需要重新烘焙，AssetID 用于识别同一份资产。同一份资产重新烘焙后，内容指纹可以变化，AssetID 仍应保持稳定。
 
@@ -58,13 +58,13 @@ flowchart LR
 
 稍后看到的 RenderObjectID 和 GpuMeshID 等类型，属于渲染期身份。它们帮助定位和校验运行时记录，也不进入 World 文件。
 
-## 3. World 封装对象生命周期，组件保存数据
+## 3. World 封装实体生命周期，组件保存数据
 
-World 是一个管理对象的 C++ 类，内部借助 Flecs 存储组件和执行查询。公共接口隐藏 Flecs 类型，业务代码通过 `createObject`、`setComponent`、`setParent` 等方法修改世界。
+World 是一个管理对象的 C++ 类，内部借助 Flecs 存储组件和执行查询。公共接口隐藏 Flecs 类型，业务代码通过 `createPersistentEntity`、`setComponent`、`setParent` 等方法修改世界。
 
-组件保持为简单数据。例如 `LocalTransform` 保存平移、旋转和缩放，`MeshRenderer` 保存 Mesh 的 AssetID 及材质覆盖。它们可以被编辑、序列化和提取，不需要各自继承一个带虚函数的对象基类。
+组件保持为简单数据。例如 `LocalTransform` 保存平移、旋转和缩放，`MeshRenderer` 保存 Mesh 的 AssetID 及材质覆盖。它们可以被编辑、序列化和提取，不需要各自继承一个带虚函数的实体基类。
 
-这让 OOP 和 ECS 各有位置：World、Asset Manager、RenderScene 封装状态与生命周期；大量对象的属性按组件存储。对象上有什么能力，由它实际拥有的组件决定。
+这让 OOP 和 ECS 各有位置：World、Asset Manager、RenderScene 封装状态与生命周期；大量实体的属性按组件存储。实体上有什么能力，由它实际拥有的组件决定。
 
 下面的片段可放入一个返回 `bool` 的示例函数。需要包含 `Scene/World.h` 和 `Scene/SceneComponents.h`：
 
@@ -74,8 +74,8 @@ if (!types.registerBuiltins())
     return false;
 hz::World world(types);
 
-const hz::Entity group = world.createObject();
-const hz::Entity chair = world.createObject();
+const hz::Entity group = world.createPersistentEntity();
+const hz::Entity chair = world.createPersistentEntity();
 if (!group.isValid() || !chair.isValid())
     return false;
 
@@ -91,7 +91,7 @@ world.updateTransforms();
 
 这里椅子的世界坐标 X 为 12。`setComponent` 会复制输入值，局部变量离开作用域后，组件仍由 World 管理。对于 MeshRenderer 内拥有的数组，注册的生命周期操作负责复制和销毁。
 
-`createObject()` 会分配可持久化的 ObjectID；`createEntity()` 可用于临时运行时实体。WorldDocument 只捕获带持久身份的对象。需要保存的对象，其父对象也应当具有 ObjectID。
+`createPersistentEntity()` 会分配可持久化的 Guid；`createEntity()` 可用于临时运行时实体。WorldDocument 只捕获带持久身份的实体。需要保存的实体，其父实体也应当具有 Guid。
 
 `getComponent()` 返回只读借用视图。结构变化可能搬迁组件存储，不能把返回指针长期保存在 Renderer 或其他缓存中。需要长期定位时保存合适的 ID，需要修改时重新查询或调用 World 的编辑接口。
 
@@ -109,11 +109,11 @@ childWorld = parentWorld × childLocal
 
 重新设置父节点时，需要明确想保留什么。`setParent(chair, group, false)` 保留局部变换，适合按已有局部坐标组装层级。默认的 `keepWorld=true` 则保留当前世界姿态，并重新计算局部矩阵；新父变换无法求逆时返回失败。形成环的父子关系同样会被拒绝。
 
-删除也有两个明确操作：`destroyEntity(parent)` 保留子对象，解除其父关系并保持世界姿态；`destroySubtree(parent)` 删除整棵子树。编辑器可以据此表达“删除分组”和“删除分组及内容”的不同意图。
+删除也有两个明确操作：`destroyEntity(parent)` 保留子实体，解除其父关系并保持世界姿态；`destroySubtree(parent)` 删除整棵子树。编辑器可以据此表达“删除分组”和“删除分组及内容”的不同意图。
 
 遍历组件时，立即改变存储结构会影响正在使用的视图。WorldQuery 在遍历期间推迟结构修改，也可以用 `world.defer()` 主动包住一批结构变化。最外层作用域结束时再提交这些操作。
 
-这里的 defer 只推迟结构变化。给已有组件设置新值、修改已有属性仍立即生效；给实体添加一个新组件才等到提交。它不提供回滚或快照隔离。重挂父节点和删除带子节点的对象，应放到 query/defer 作用域之外。
+这里的 defer 只推迟结构变化。给已有组件设置新值、修改已有属性仍立即生效；给实体添加一个新组件才等到提交。它不提供回滚或快照隔离。重挂父节点和删除带子节点的实体，应放到 query/defer 作用域之外。
 
 ## 5. 加载一份资产，需要三个角色
 
@@ -127,21 +127,21 @@ childWorld = parentWorld × childLocal
 
 一次请求大致经历排队、CPU 加载、等待依赖、GPU 上传，最后到达 Ready 或 Failed。请求返回后，调用方可以通过 `assetManager.update()` 推进加载并查询结果。Renderer 的初始化允许等待场景就绪，普通帧则继续按帧推进。
 
-SceneAsset 依赖节点实际引用的 Mesh，Mesh 继续依赖默认材质，材质再引用纹理。Scene 请求 Ready 时，其必要依赖也已经就绪。多个 Mesh 可以共享同一次底层 geometry 上传；多个对象引用相同 Mesh，也不会各自复制顶点数据。
+SceneAsset 依赖节点实际引用的 Mesh，Mesh 继续依赖默认材质，材质再引用纹理。Scene 请求 Ready 时，其必要依赖也已经就绪。多个 Mesh 可以共享同一次底层 geometry 上传；多个实体引用相同 Mesh，也不会各自复制顶点数据。
 
 Mesh 和 Material 当前可以作为同一 SceneAsset 文档中的子资产记录，仍拥有独立 AssetID。它们在文档数组中的位置只是定位信息。材质替换同样使用 Mesh 内稳定的 `SubmeshID`，避免重新导入导致数组重排后把覆盖材质绑到另一块几何上。
 
 加载失败和取消也属于生命周期。最后一份引用在加载中释放后，后台任务可能仍在执行；完成结果需要进入清理路径，相关 slot 在安全清理前不会被拿去承载另一份请求。
 
-## 6. 从 SceneAsset 到 World：复制对象，交接资产引用
+## 6. 从 SceneAsset 到 World：复制实体，交接资产引用
 
-SceneAsset 保存一个可实例化的节点模板：名称、父索引、局部变换、Mesh 引用等。调用 `instantiate(world)` 后，World 得到一组独立对象和一个实例根节点。
+SceneAsset 保存一个可实例化的节点模板：名称、父索引、局部变换、Mesh 引用等。调用 `instantiate(world)` 后，World 得到一组独立实体和一个实例根节点。
 
-把同一份 Bistro 模板实例化两次，两组对象会生成不同的 ObjectID。它们仍引用相同的 Mesh、Material 和 Texture 资产。之后移动第一组的根节点，只影响这组对象的层级结果。
+把同一份 Bistro 模板实例化两次，两组实体会生成不同的 Guid。它们仍引用相同的 Mesh、Material 和 Texture 资产。之后移动第一组的根节点，只影响这组实体的层级结果。
 
 不过，组件中的 AssetID 只是一个值。往 World 写入 MeshRenderer，不会自动产生资源引用；World 也不直接拥有那份 GPUBuffer。
 
-当前由 `WorldAssetBindings` 解析这些资产引用，取得 Mesh 和覆盖后材质的长期引用。RenderScene 拥有这层绑定，因此 Renderer 通常直接创建 RenderScene。绑定状态为 Pending 或 Failed 时，对象不会作为正常可绘制内容提交。
+当前由 `WorldAssetBindings` 解析这些资产引用，取得 Mesh 和覆盖后材质的长期引用。RenderScene 拥有这层绑定，因此 Renderer 通常直接创建 RenderScene。绑定状态为 Pending 或 Failed 时，实体不会作为正常可绘制内容提交。
 
 实际初始化顺序需要保留引用的交接。以下省略错误检查，`world` 和 `assetManager` 已经存在，`sceneHandle` 对应的资产已经 Ready：
 
@@ -153,35 +153,35 @@ scene.update();
 assetManager.release(sceneHandle);
 ```
 
-先让 RenderScene 建立长期绑定，再释放 Scene 请求持有的引用。SceneAsset 模板完成实例化后可以卸载；活着的对象仍通过绑定保留所需资源。实例化失败则回滚本次创建的新对象，不留下半个场景。
+先让 RenderScene 建立长期绑定，再释放 Scene 请求持有的引用。SceneAsset 模板完成实例化后可以卸载；活着的实体仍通过绑定保留所需资源。实例化失败则回滚本次创建的新实体，不留下半个场景。
 
 还有第三段时间需要覆盖：GPU 正在执行旧帧。即使椅子已从 World 删除，绑定在下一次更新释放了长期引用，旧帧使用的资产也必须继续存活。因此资源保护形成三个相接的阶段：
 
 ```text
 Scene 请求：加载依赖，支持实例化
-    → World 绑定：对象存在期间持有所需资产
+    → World 绑定：实体存在期间持有所需资产
         → 帧快照：提交后继续保护 GPU 使用中的 payload
 ```
 
-理解这个交接，就能解释为什么“从 World 删掉对象”与“立即释放 GPU 内存”不是同一个时刻。
+理解这个交接，就能解释为什么“从 World 删掉实体”与“立即释放 GPU 内存”不是同一个时刻。
 
-## 7. RenderScene 把对象展开为绘制数据
+## 7. RenderScene 把实体展开为绘制数据
 
-World 的组织方式适合编辑和查询。渲染还需要更明确的数据：哪些对象已就绪、每个对象有多少次实例化、每个 submesh 使用什么材质，以及哪些 GPU 表可以解析这些引用。
+World 的组织方式适合编辑和查询。渲染还需要更明确的数据：哪些实体已就绪、每个实体有多少次实例化、每个 submesh 使用什么材质，以及哪些 GPU 表可以解析这些引用。
 
 RenderScene 从 World 和资产绑定中提取这些结果，当前主要分为三层：
 
 | 层 | 关注的数据 | 椅子的例子 |
 | --- | --- | --- |
 | RenderObject | Mesh 以及它对应的实例范围 | 一把使用某 Mesh 的椅子 |
-| RenderInstance | 变换、包围盒、ObjectID | 这把椅子的当前与上一提交姿态 |
+| RenderInstance | 变换、包围盒、Guid | 这把椅子的当前与上一提交姿态 |
 | RenderDraw | submesh 和材质引用 | 木头、坐垫分别产生 draw |
 
-当前阶段，一个就绪的 MeshRenderer 对象对应一个可渲染实例。若 Mesh 有三个 submesh，它会展开为三个 Draw。十把这样的椅子可共享 Mesh，却分别拥有十份变换和三十个 Draw。
+当前阶段，一个就绪的 MeshRenderer 实体对应一个可渲染实例。若 Mesh 有三个 submesh，它会展开为三个 Draw。十把这样的椅子可共享 Mesh，却分别拥有十份变换和三十个 Draw。
 
-这些记录使用可以复用的稀疏槽位（sparse slot）。删除中间的椅子会留下空洞，其他记录不必全部搬家；复用 slot 时递增 generation。遍历时使用有效项列表（active list），不能把整个底层数组都当作有效对象。
+这些记录使用可以复用的稀疏槽位（sparse slot）。删除中间的椅子会留下空洞，其他记录不必全部搬家；复用 slot 时递增 generation。遍历时使用有效项列表（active list），不能把整个底层数组都当作有效实体。
 
-Draw 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。GPU 间接表再把这些身份解析到实际数据和资源描述符（descriptor）。资产 ID、GPU ID、descriptor index 各承担不同定位职责；一个 descriptor 数字不能表达整份 Mesh 或场景对象的生命周期。
+Draw 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。GPU 间接表再把这些身份解析到实际数据和资源描述符（descriptor）。资产 ID、GPU ID、descriptor index 各承担不同定位职责；一个 descriptor 数字不能表达整份 Mesh 或场景实体的生命周期。
 
 Camera 和 Light 也从 World 提取。Camera 提供位姿和镜头参数，窗口宽高比与投影矩阵由渲染端决定。Light 提取保存不同光源形状的参数，当前示例实际求值的是 Directional；数据中存在某种光源，不表示相应采样和着色已经全部实现。
 
@@ -193,7 +193,7 @@ SceneFramePool 把场景记录与相匹配的资产表一起捕获，返回一�
 
 配对很关键。例如旧 Draw 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 Draw 和资产表，不能随手从 Asset Manager 查询另一时刻的表来拼接。
 
-当前快照保护 Asset Manager 当时整个 Ready payload 集合，并非已经实现了逐可见对象的精细资源筛选。这个选择使初版快照边界清楚，后续可以在不改变 World 组件的前提下继续优化。
+当前快照保护 Asset Manager 当时整个 Ready payload 集合，并非已经实现了逐可见实体的精细资源筛选。这个选择使初版快照边界清楚，后续可以在不改变 World 组件的前提下继续优化。
 
 Renderer 的实际帧流程如下：
 
@@ -255,7 +255,7 @@ journal 容量有限。当 backing 太久没有使用，所需历史已经超出
 
 我们希望关闭应用后，第三把椅子仍叫原来的名字，位于原来的分组，并继续引用指定的网格和坐垫材质。
 
-WorldDocument 因此保存 ObjectID、父 ObjectID、名称、组件类型和版本，以及声明为可序列化的属性。AssetID 和稳定 SubmeshID 也随组件一起保存。Entity、AssetHandle、GPU 对象、descriptor 和派生的 WorldTransform 则在加载后重新建立。
+WorldDocument 因此保存 Guid、父 Guid、名称、组件类型和版本，以及声明为可序列化的属性。AssetID 和稳定 SubmeshID 也随组件一起保存。Entity、AssetHandle、GPU 实体、descriptor 和派生的 WorldTransform 则在加载后重新建立。
 
 这些属性来自显式注册的 reflection metadata。TypeRegistry 描述类型、属性、生命周期及序列化行为，World 在构造时接入已经注册的类型，因此 metadata 必须比 World 活得更久。TypeID 和 PropertyID 在代码中保持稳定。当前文件用 TypeID 定位组件、用属性名读写字段；属性重命名需要提升组件版本，并显式迁移旧字段名。
 
@@ -264,7 +264,7 @@ WorldDocument 因此保存 ObjectID、父 ObjectID、名称、组件类型和版
 接着第 3 节的示例，可以保存并重新加载椅子。另需包含 `Scene/WorldDocument.h`、`Core/IUniquePtr.h`，并假设文件系统已初始化、`RD_OTHER_FILES` 已映射到可写目录：
 
 ```cpp
-const hz::ObjectID chairID = world.getObjectID(chair);
+const hz::Guid chairID = world.getEntityGuid(chair);
 hz::WorldDocument document;
 if (!document.capture(world) || !document.save(RD_OTHER_FILES, "demo.world.json"))
     return false;
@@ -278,21 +278,21 @@ if (!loaded.instantiate(types, restored))
 return restored->isAlive(restored->getEntity(chairID));
 ```
 
-这里通过持久的 chairID 找回新 World 中的 Entity。恢复对象后，还需要建立新的 RenderScene 和资产绑定，才能重新绘制；加载 WorldDocument 不会顺便加载全部 GPU 资产。
+这里通过持久的 chairID 找回新 World 中的 Entity。恢复实体后，还需要建立新的 RenderScene 和资产绑定，才能重新绘制；加载 WorldDocument 不会顺便加载全部 GPU 资产。
 
-加载先构建 staging World，完成组件、引用和层级验证后才替换目标。失败时，原目标保留。若要替换一个已有 World，必须先处理引用旧 World 的查询、defer 作用域、RenderScene 和未完成帧，不能让它们继续指向已销毁的对象。
+加载先构建 staging World，完成组件、引用和层级验证后才替换目标。失败时，原目标保留。若要替换一个已有 World，必须先处理引用旧 World 的查询、defer 作用域、RenderScene 和未完成帧，不能让它们继续指向已销毁的实体。
 
 文档支持显式的相邻版本迁移。`parse` 可以保留未知组件的原始 JSON，便于文档读写不破坏内容；真正 `instantiate` 时，无法识别的组件或缺少迁移步骤会导致失败。保留文本与成功恢复可运行世界，是两个分别校验的能力。
 
 ## 12. 退出时，按依赖关系结束生命周期
 
-RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确顺序销毁拥有者。帧池借用 RenderScene 和 RenderContext，RenderScene 借用 World 和 Asset Manager；这些依赖需要比使用它们的对象活得更久。
+RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确顺序销毁拥有者。帧池借用 RenderScene 和 RenderContext，RenderScene 借用 World 和 Asset Manager；这些依赖需要比使用它们的实体活得更久。
 
 正常关闭时，先停止生成新帧，结束未提交的 lease。等待或由帧池 drain 已提交工作后，销毁帧池和渲染 Pass，再销毁 RenderScene，释放长期资产绑定。随后销毁 World 和相关 metadata，shutdown Asset Manager，清理还在加载或上传的任务，最后结束 loaders、catalog 和 RenderContext。
 
-实际 Renderer 在退出前先 `waitIdle()`，让这条关闭路径更直接。运行时删除单个对象仍依靠引用与 fence 退休，不需要为每次对象删除等待整个 GPU 空闲。
+实际 Renderer 在退出前先 `waitIdle()`，让这条关闭路径更直接。运行时删除单个实体仍依靠引用与 fence 退休，不需要为每次实体删除等待整个 GPU 空闲。
 
-这也说明 World 这一层的边界：它知道“哪个对象引用什么资产”；绑定层知道“这些引用现在是否可用”；帧池知道“哪次提交还在使用它们”。各自只处理自己能够判断的结束条件。
+这也说明 World 这一层的边界：它知道“哪个实体引用什么资产”；绑定层知道“这些引用现在是否可用”；帧池知道“哪次提交还在使用它们”。各自只处理自己能够判断的结束条件。
 
 目前这条链路已跑通 Bistro 的加载、实例化、编辑、保存、卸载、重载和渲染。USD 导入、在线 hot reload、完整 Editor、GPU culling 和更多光源的求值仍是后续能力。现有边界为它们提供了接入位置，不等同于这些功能已经完成。
 
@@ -303,7 +303,7 @@ RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确
 | 入口 | 建议关注的内容 |
 | --- | --- |
 | [Renderer.h](../Examples/Renderer/Source/Renderer.h) | initSceneAsset、Update、Exit：组装系统和引用交接 |
-| [World.h](../Source/Runtime/Scene/Public/Scene/World.h) 与 [SceneComponents.h](../Source/Runtime/Scene/Public/Scene/SceneComponents.h) | 对象、组件、层级及持久身份 |
+| [World.h](../Source/Runtime/Scene/Public/Scene/World.h) 与 [SceneComponents.h](../Source/Runtime/Scene/Public/Scene/SceneComponents.h) | 实体、组件、层级及持久身份 |
 | [WorldAssetBindings.h](../Source/Runtime/Scene/Public/Scene/WorldAssetBindings.h) | 从 AssetID 到持有运行时引用 |
 | [RenderScene.h](../Source/Runtime/Scene/Public/Scene/RenderScene.h) | 提取记录、active list 和变更范围 |
 | [SceneFrame.h](../Source/Runtime/Scene/Public/Scene/SceneFrame.h) 与 [RenderPasses.cpp](../Examples/Renderer/Source/RenderPasses.cpp) | capture、submit、retire 的完整交接 |

@@ -272,46 +272,46 @@ TEST_F(SceneWorldTest, DeferredDeleteDiscardsOwningValuesAndWorldsStayIndependen
     EXPECT_TRUE(second.isAlive(other));
 }
 
-TEST_F(SceneWorldTest, PersistentObjectsKeepIdentityAcrossComponentMovesAndRejectDuplicates)
+TEST_F(SceneWorldTest, PersistentEntitiesKeepIdentityAcrossComponentMovesAndRejectDuplicates)
 {
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::World          world(types);
-    const hz::ObjectID id = { .high = 3, .low = 41 };
-    const hz::Entity   object = world.createObject(id);
+    hz::World        world(types);
+    const hz::Guid   id = { .high = 3, .low = 41 };
+    const hz::Entity object = world.createPersistentEntity(id);
     ASSERT_TRUE(world.isAlive(object));
-    EXPECT_EQ(world.getObjectID(object), id);
+    EXPECT_EQ(world.getEntityGuid(object), id);
     EXPECT_EQ(world.getEntity(id), object);
-    EXPECT_FALSE(world.createObject(id).isValid());
-    EXPECT_FALSE(world.createObject({}).isValid());
+    EXPECT_FALSE(world.createPersistentEntity(id).isValid());
+    EXPECT_FALSE(world.createPersistentEntity({}).isValid());
     EXPECT_FALSE(world.getEntity({}).isValid());
     EXPECT_FALSE(world.getEntity({ .low = 42 }).isValid());
     for (hz::TypeID component : { hz::SceneTypes::camera, hz::SceneTypes::name, hz::SceneTypes::meshRenderer })
     {
         ASSERT_TRUE(world.addComponent(object, component));
-        EXPECT_EQ(world.getObjectID(object), id);
+        EXPECT_EQ(world.getEntityGuid(object), id);
         EXPECT_EQ(world.getEntity(id), object);
         ASSERT_TRUE(world.removeComponent(object, component));
     }
-    const hz::ObjectIdentity replacement = { .value = { .low = 99 } };
-    EXPECT_FALSE(world.setComponent(object, hz::SceneTypes::objectIdentity, &replacement));
-    EXPECT_FALSE(world.removeComponent(object, hz::SceneTypes::objectIdentity));
+    const hz::EntityIdentity replacement = { .value = { .low = 99 } };
+    EXPECT_FALSE(world.setComponent(object, hz::SceneTypes::entityIdentity, &replacement));
+    EXPECT_FALSE(world.removeComponent(object, hz::SceneTypes::entityIdentity));
     const hz::Entity runtimeOnly = world.createEntity();
-    EXPECT_FALSE(world.addComponent(runtimeOnly, hz::SceneTypes::objectIdentity));
-    EXPECT_FALSE(world.getObjectID(runtimeOnly).isValid());
+    EXPECT_FALSE(world.addComponent(runtimeOnly, hz::SceneTypes::entityIdentity));
+    EXPECT_FALSE(world.getEntityGuid(runtimeOnly).isValid());
     EXPECT_EQ(world.getEntity(id), object);
     EXPECT_FALSE(world.getEntity(replacement.value).isValid());
 }
 
-struct ObjectIDSource
+struct GuidSource
 {
     uint8_t next = 0;
     bool    fail = false;
 };
 
-static bool generateObjectID(void* pContext, uint8_t (&bytes)[16])
+static bool generateGuid(void* pContext, uint8_t (&bytes)[16])
 {
-    ObjectIDSource& source = *(ObjectIDSource*)pContext;
+    GuidSource& source = *(GuidSource*)pContext;
     if (source.fail)
         return false;
     for (uint8_t& value : bytes)
@@ -320,87 +320,87 @@ static bool generateObjectID(void* pContext, uint8_t (&bytes)[16])
     return true;
 }
 
-TEST_F(SceneWorldTest, ObjectGenerationIsInjectableAndIdentitiesAreScopedToEachWorld)
+TEST_F(SceneWorldTest, GuidGenerationIsInjectableAndIdentitiesAreScopedToEachWorld)
 {
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    ObjectIDSource   firstSource;
-    ObjectIDSource   secondSource;
-    hz::World        first(types, { .pGenerate = generateObjectID, .pUserData = &firstSource });
-    hz::World        second(types, { .pGenerate = generateObjectID, .pUserData = &secondSource });
-    const hz::Entity a = first.createObject();
-    const hz::Entity b = second.createObject();
+    GuidSource       firstSource;
+    GuidSource       secondSource;
+    hz::World        first(types, { .pGenerate = generateGuid, .pUserData = &firstSource });
+    hz::World        second(types, { .pGenerate = generateGuid, .pUserData = &secondSource });
+    const hz::Entity a = first.createPersistentEntity();
+    const hz::Entity b = second.createPersistentEntity();
     ASSERT_TRUE(first.isAlive(a));
     ASSERT_TRUE(second.isAlive(b));
-    const hz::ObjectID id = first.getObjectID(a);
+    const hz::Guid id = first.getEntityGuid(a);
     ASSERT_TRUE(id.isValid());
-    EXPECT_EQ(second.getObjectID(b), id);
-    const hz::Entity other = first.createObject();
-    EXPECT_NE(first.getObjectID(other), id);
+    EXPECT_EQ(second.getEntityGuid(b), id);
+    const hz::Entity other = first.createPersistentEntity();
+    EXPECT_NE(first.getEntityGuid(other), id);
     firstSource.next = 0;
-    EXPECT_FALSE(first.createObject().isValid());
+    EXPECT_FALSE(first.createPersistentEntity().isValid());
     firstSource.fail = true;
-    EXPECT_FALSE(first.createObject().isValid());
+    EXPECT_FALSE(first.createPersistentEntity().isValid());
     ASSERT_TRUE(first.destroyEntity(a));
     EXPECT_FALSE(first.getEntity(id).isValid());
     EXPECT_EQ(second.getEntity(id), b);
 
     hz::TypeRegistry emptyTypes;
     hz::World        empty(emptyTypes);
-    EXPECT_FALSE(empty.createObject(id).isValid());
+    EXPECT_FALSE(empty.createPersistentEntity(id).isValid());
 }
 
-TEST_F(SceneWorldTest, DeferredObjectsReserveIDsAndReleaseCancelledCreations)
+TEST_F(SceneWorldTest, DeferredPersistentEntitiesReserveGuidsAndReleaseCancelledCreations)
 {
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::World          world(types);
-    const hz::ObjectID existingID = { .low = 1 };
-    const hz::ObjectID cancelledID = { .low = 2 };
-    const hz::ObjectID newID = { .low = 3 };
-    const hz::Entity   existing = world.createObject(existingID);
-    hz::Entity         created;
+    hz::World        world(types);
+    const hz::Guid   existingID = { .low = 1 };
+    const hz::Guid   cancelledID = { .low = 2 };
+    const hz::Guid   newID = { .low = 3 };
+    const hz::Entity existing = world.createPersistentEntity(existingID);
+    hz::Entity       created;
     {
         hz::DeferredChanges changes = world.defer();
-        const hz::Entity    cancelled = world.createObject(cancelledID);
+        const hz::Entity    cancelled = world.createPersistentEntity(cancelledID);
         ASSERT_TRUE(world.isAlive(cancelled));
         EXPECT_FALSE(world.getEntity(cancelledID).isValid());
-        EXPECT_FALSE(world.getObjectID(cancelled).isValid());
+        EXPECT_FALSE(world.getEntityGuid(cancelled).isValid());
         {
             hz::DeferredChanges nested = world.defer();
-            EXPECT_FALSE(world.createObject(cancelledID).isValid());
+            EXPECT_FALSE(world.createPersistentEntity(cancelledID).isValid());
             ASSERT_TRUE(world.destroyEntity(cancelled));
-            created = world.createObject(newID);
+            created = world.createPersistentEntity(newID);
             ASSERT_TRUE(world.isAlive(created));
         }
         EXPECT_FALSE(world.getEntity(newID).isValid());
         ASSERT_TRUE(world.destroyEntity(existing));
         EXPECT_EQ(world.getEntity(existingID), existing);
-        EXPECT_FALSE(world.createObject(existingID).isValid());
+        EXPECT_FALSE(world.createPersistentEntity(existingID).isValid());
     }
     EXPECT_FALSE(world.getEntity(cancelledID).isValid());
     EXPECT_FALSE(world.getEntity(existingID).isValid());
     EXPECT_EQ(world.getEntity(newID), created);
-    EXPECT_EQ(world.getObjectID(created), newID);
-    ASSERT_TRUE(world.createObject(cancelledID).isValid());
-    const hz::Entity restored = world.createObject(existingID);
+    EXPECT_EQ(world.getEntityGuid(created), newID);
+    ASSERT_TRUE(world.createPersistentEntity(cancelledID).isValid());
+    const hz::Entity restored = world.createPersistentEntity(existingID);
     ASSERT_TRUE(world.isAlive(restored));
     EXPECT_NE(restored, existing);
     EXPECT_FALSE(world.isAlive(existing));
     EXPECT_EQ(world.getEntity(existingID), restored);
 }
 
-TEST_F(SceneWorldTest, HierarchyDeletionRemovesOnlyDestroyedObjectIdentities)
+TEST_F(SceneWorldTest, HierarchyDeletionRemovesOnlyDestroyedEntityIdentities)
 {
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::World          world(types);
-    const hz::ObjectID parentID = { .low = 1 };
-    const hz::ObjectID childID = { .low = 2 };
-    const hz::ObjectID leafID = { .low = 3 };
-    const hz::Entity   parent = world.createObject(parentID);
-    const hz::Entity   child = world.createObject(childID);
-    const hz::Entity   leaf = world.createObject(leafID);
+    hz::World        world(types);
+    const hz::Guid   parentID = { .low = 1 };
+    const hz::Guid   childID = { .low = 2 };
+    const hz::Guid   leafID = { .low = 3 };
+    const hz::Entity parent = world.createPersistentEntity(parentID);
+    const hz::Entity child = world.createPersistentEntity(childID);
+    const hz::Entity leaf = world.createPersistentEntity(leafID);
     ASSERT_TRUE(world.setParent(child, parent, false));
     ASSERT_TRUE(world.setParent(leaf, child, false));
     ASSERT_TRUE(world.destroyEntity(parent));
@@ -417,8 +417,8 @@ TEST_F(SceneWorldTest, PropertyEditsValidateBeforeWriting)
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World               world(types);
-    const hz::ObjectID      id = { .low = 1 };
-    const hz::Entity        entity = world.createObject(id);
+    const hz::Guid          id = { .low = 1 };
+    const hz::Entity        entity = world.createPersistentEntity(id);
     const float             intensity = 5.0f;
     const hz::PropertyValue value = { .kind = hz::PropertyKind::Float, .pData = &intensity, .size = sizeof(intensity) };
     EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3, value));
@@ -436,9 +436,9 @@ TEST_F(SceneWorldTest, PropertyEditsValidateBeforeWriting)
     const uint8_t invalidBool = 2;
     EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 15,
                                    { .kind = hz::PropertyKind::Boolean, .pData = &invalidBool, .size = sizeof(invalidBool) }));
-    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::objectIdentity, 1,
-                                   { .kind = hz::PropertyKind::ObjectReference, .pData = &id, .size = sizeof(id) }));
-    EXPECT_EQ(world.getObjectID(entity), id);
+    EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::entityIdentity, 1,
+                                   { .kind = hz::PropertyKind::EntityReference, .pData = &id, .size = sizeof(id) }));
+    EXPECT_EQ(world.getEntityGuid(entity), id);
     const hz::Light* pLight = (const hz::Light*)world.getComponent(entity, hz::SceneTypes::light);
     EXPECT_FLOAT_EQ(pLight->intensity, 1.0f);
     EXPECT_EQ(pLight->type, hz::LightType::Point);
@@ -498,7 +498,7 @@ TEST_F(SceneWorldTest, ArrayEditsPreserveOwnershipAndValidateIndices)
     EXPECT_FALSE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 999, value));
     EXPECT_FALSE(
         world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2,
-                                      { .kind = hz::PropertyKind::ObjectReference, .pData = &material, .size = sizeof(material) }));
+                                      { .kind = hz::PropertyKind::EntityReference, .pData = &material, .size = sizeof(material) }));
     ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
     const hz::MaterialOverride* pStorage = pMesh->overrides.data();
     const MemoryTrackingStats   before = memGetTrackingStats();
