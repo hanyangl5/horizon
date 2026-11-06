@@ -4,7 +4,7 @@
 #include "Core/IMath.h"
 #include "Core/IUniquePtr.h"
 #include "Graphics/RenderContext.h"
-#include "Scene/SceneFrame.h"
+#include "Scene/RenderFrame.h"
 
 struct RenderPassesDesc
 {
@@ -18,7 +18,7 @@ class GBuffer
 public:
     GBuffer(hz::RenderContext& context);
     void                      update();
-    void                      execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::SceneFrameSnapshot& scene);
+    void                      execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::RenderFrame& scene);
     void                      load(uint32_t width, uint32_t height);
     void                      unload();
     hz::RenderContext&        context;
@@ -39,11 +39,11 @@ class Lighting
 {
 public:
     Lighting(hz::RenderContext& context);
-    void           update();
-    void           execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::SceneFrameSnapshot& scene);
-    void           load(uint32_t width, uint32_t height);
-    void           unload();
-    hz::GPUTexture sceneColor;
+    void               update();
+    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::RenderFrame& scene);
+    void               load(uint32_t width, uint32_t height);
+    void               unload();
+    hz::GPUTexture     sceneColor;
     hz::RenderContext& context;
     hz::GPUPipeline    pipeline;
 };
@@ -88,5 +88,5 @@ private:
     hz::unique_ptr<Lighting>         lighting;
     hz::unique_ptr<PostProcessing>   postprocessing;
     hz::FixedArray<hz::GPUBuffer, 3> frameBuffers;
-    hz::SceneFramePool               frames;
+    hz::RenderFramePool              frames;
 };

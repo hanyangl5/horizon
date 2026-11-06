@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | 可共享的资产 | 椅子网格、木头材质、纹理 | Asset 系统 |
 | 世界中的实体 | 第三把椅子的名称、位置、父节点、材质覆盖 | World |
-| 一帧的渲染输入 | 本帧矩阵、draw、GPU 表及其资源引用 | RenderScene 与 SceneFramePool |
+| 一帧的渲染输入 | 本帧矩阵、draw、GPU 表及其资源引用 | RenderScene 与 RenderFramePool |
 
 修改第三把椅子的位置，只改变它在 World 中的组件。其他九把继续共享原来的 MeshAsset。生成渲染输入时，系统再把这个修改传播到对应实例和帧数据中。
 
@@ -28,7 +28,7 @@ flowchart LR
     assetManager -->|实例化 SceneAsset| world[World]
     world --> scene[RenderScene]
     assetManager -->|解析与持有资产| scene
-    scene --> frames[SceneFramePool]
+    scene --> frames[RenderFramePool]
     frames --> renderer[Renderer / GPU]
     world <--> document[WorldDocument]
 ```
@@ -187,9 +187,9 @@ Camera 和 Light 也从 World 提取。Camera 提供位姿和镜头参数，窗�
 
 ## 8. 绘制时取得一份帧快照
 
-RenderScene 本身仍会继续更新。它返回的 Span 是借用视图，下次更新后就不能继续依赖旧视图。GPU 绘制需要更长、更明确的有效期，因此正式提交使用 `SceneFrameSnapshot`。
+RenderScene 本身仍会继续更新。它返回的 Span 是借用视图，下次更新后就不能继续依赖旧视图。GPU 绘制需要更长、更明确的有效期，因此正式提交使用 `RenderFrame`。
 
-SceneFramePool 把场景记录与相匹配的资产表一起捕获，返回一份只能移动、不能复制的 lease。这里的 lease 表示一份有明确归还点的使用权：持有期间，相关资源不会被回收。调用方通过它读取当前帧数据；提交后把它转交给帧池，直到 GPU 完成才允许回收。
+RenderFramePool 把场景记录与相匹配的资产表一起捕获，返回一份只能移动、不能复制的 lease。这里的 lease 表示一份有明确归还点的使用权：持有期间，相关资源不会被回收。调用方通过它读取当前帧数据；提交后把它转交给帧池，直到 GPU 完成才允许回收。
 
 配对很关键。例如旧 Draw 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 Draw 和资产表，不能随手从 Asset Manager 查询另一时刻的表来拼接。
 
@@ -306,7 +306,7 @@ RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确
 | [World.h](../Source/Runtime/Scene/Public/Scene/World.h) 与 [SceneComponents.h](../Source/Runtime/Scene/Public/Scene/SceneComponents.h) | 实体、组件、层级及持久身份 |
 | [WorldAssetBindings.h](../Source/Runtime/Scene/Public/Scene/WorldAssetBindings.h) | 从 AssetID 到持有运行时引用 |
 | [RenderScene.h](../Source/Runtime/Scene/Public/Scene/RenderScene.h) | 提取记录、active list 和变更范围 |
-| [SceneFrame.h](../Source/Runtime/Scene/Public/Scene/SceneFrame.h) 与 [RenderPasses.cpp](../Examples/Renderer/Source/RenderPasses.cpp) | capture、submit、retire 的完整交接 |
+| [RenderFrame.h](../Source/Runtime/Scene/Public/Scene/RenderFrame.h) 与 [RenderPasses.cpp](../Examples/Renderer/Source/RenderPasses.cpp) | capture、submit、retire 的完整交接 |
 | [WorldDocument.h](../Source/Runtime/Scene/Public/Scene/WorldDocument.h) | 持久化、验证和恢复的边界 |
 
 阅读时可以用三个场景检查自己的理解：移动一把椅子，哪些数据需要更新；删除椅子后旧帧仍在执行，谁继续持有资源；重新打开 World，哪些 ID 保持不变，哪些句柄需要重新取得。能够沿代码回答这些问题，就已经掌握了这套设计的主线。

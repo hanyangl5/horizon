@@ -405,11 +405,11 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 - 主线程拥有 World mutation、type registration 和 RenderScene extraction。
 - ResourceLoader 与 asset decode 可以异步工作，通过 token 或完成队列交还结果。
 - extraction 只在 World mutation 和 transform update 完成后执行。
-- Renderer 每帧消费一个不可变 `SceneFrameSnapshot`，其中配对保存 RenderScene snapshot 与 `GpuAssetTableSnapshot`。StructuralChange 只在能同时发布这两部分时提交。
+- Renderer 每帧消费一个不可变 `RenderFrame`，其中配对保存 RenderScene snapshot 与 `GpuAssetTableSnapshot`。StructuralChange 只在能同时发布这两部分时提交。
 - Snapshot 从预分配的 frames-in-flight pool 取得；一帧只 acquire/release 一次 snapshot lease，不为每个 RenderDraw、instance 或资产执行引用计数，也不在 extraction 热路径构造动态 lease 集合。提交后把 fence value 记录到 snapshot，fence 完成后才允许复用该 slot 和回收其 payload versions。
 - **每份 backing storage 独立补齐增量**：配对的场景状态使用递增 revision，pool 中每份 RenderScene/GPU table backing storage 记录 `appliedRevision`。Fence 完成后复用时，合并从该版本到目标 revision 的全部变化，再从目标状态写入；不能只上传本帧 dirty。变化覆盖创建、更新、删除、历史变换推进、slot 复用、active list、instanceIndices、计数和 asset table。两侧都同步到目标 revision 后才能发布配对快照。
 - 增量记录使用预分配的有界 journal，保存变更位置而不持有旧 payload 指针；新 backing storage 或版本落后于 journal 保留范围时完整同步。正常帧补齐累计 dirty ranges，首次使用、扩容或 journal 溢出允许完整上传。同步完成前不能重新 acquire 该快照，也不能消费其中已退休的旧 descriptor；fence 完成并释放 lease 后，残留的 backing 内容本身不保活 payload。
-- GPU resource retirement 的所有权明确划分：Asset Manager 独占 Mesh/Texture/Material payload 和 GPU table snapshots；RenderScene 独占自身 object/instance/draw/light/camera buffers、instanceIndices 和 snapshots。`SceneFrameSnapshot` 只持有两侧 snapshot leases，不取得底层资源所有权。退休 payload 按版本使用者和 GPU fence 回收；长期 asset lease 只阻止 record、当前 payload 和 GpuID slot 的回收，不阻止历史版本清理。
+- GPU resource retirement 的所有权明确划分：Asset Manager 独占 Mesh/Texture/Material payload 和 GPU table snapshots；RenderScene 独占自身 object/instance/draw/light/camera buffers、instanceIndices 和 snapshots。`RenderFrame` 只持有两侧 snapshot leases，不取得底层资源所有权。退休 payload 按版本使用者和 GPU fence 回收；长期 asset lease 只阻止 record、当前 payload 和 GpuID slot 的回收，不阻止历史版本清理。
 
 该模型与 `Multithreading.md` 的 frame snapshot 和 phase boundary 方向保持一致。后续并行 transform 或 extraction 时，不改变这些所有权边界。
 
@@ -449,7 +449,7 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 Object/Draw 已改为强类型 `GpuMeshID`、`GpuSubmeshRef` 和 `GpuMaterialID`。第一阶段 GPU ID 复用 Asset Manager record 的 index/generation 生命周期；三类间接表分别校验类型和 generation。`captureRenderSnapshot` 为 Ready payload 集合编码 mesh 顶点流/submesh、材质常量和纹理 SRV 表；材质只引用 `GpuTextureID`，不保存纹理 descriptor。相同 payload 集合复用编码，集合变化时为新版本构建完整表。热重载仍属 Phase 1.5。
 
-`SceneFramePool` 已实现配对 CPU/GPU 帧快照，默认轮换三份 backing。每份场景 backing 按自身 revision 合并固定容量 journal 的累计 ranges，覆盖清空、复用、索引和 active list；超出 journal 保留范围时完整同步。资产表按自身 payload-set revision 完整同步，再与场景一起发布。GPU buffer 使用映射的 CPU_TO_GPU 内存，普通变换更新仅写 dirty ranges；扩容只发生在 fence 已完成的 backing 上。每帧取得一次资产快照 lease，提交 fence 完成后才释放资产和复用 backing；全部 backing 忙时 capture 返回无效，不等待 fence。帧池析构等待未完成提交，须先销毁未提交 lease，再按帧池、RenderScene/World、Asset Manager、loader/context 的顺序关闭。
+`RenderFramePool` 已实现配对 CPU/GPU 帧快照，默认轮换三份 backing。每份场景 backing 按自身 revision 合并固定容量 journal 的累计 ranges，覆盖清空、复用、索引和 active list；超出 journal 保留范围时完整同步。资产表按自身 payload-set revision 完整同步，再与场景一起发布。GPU buffer 使用映射的 CPU_TO_GPU 内存，普通变换更新仅写 dirty ranges；扩容只发生在 fence 已完成的 backing 上。每帧取得一次资产快照 lease，提交 fence 完成后才释放资产和复用 backing；全部 backing 忙时 capture 返回无效，不等待 fence。帧池析构等待未完成提交，须先销毁未提交 lease，再按帧池、RenderScene/World、Asset Manager、loader/context 的顺序关闭。
 
 渲染 previous 已取实际退休快照的 current，World 在 capture 后继续修改不会改变该帧，也不会把更晚状态提前写入历史。丢弃快照不推进历史；下一次提取记录 previous 的变化。首次可渲染、slot 复用和 `RenderScene::resetHistory` 使用 previous=current；reset 的 epoch 防止旧快照提交覆盖更新的重置。三 backing 补齐、journal 溢出、GPU 读回、资产退休和预热后零分配已有回归。
 

@@ -135,8 +135,8 @@ struct RenderSceneChanges
 };
 
 class RenderSceneData;
-class SceneFramePool;
-class SceneFramePoolData;
+class RenderFramePool;
+class RenderFramePoolData;
 
 struct RenderSceneDesc
 {
@@ -202,8 +202,8 @@ public:
     Span<uint32_t>       getInstanceIndices() const;
 
 private:
-    friend class SceneFramePool;
-    friend class SceneFramePoolData;
+    friend class RenderFramePool;
+    friend class RenderFramePoolData;
     AssetSnapshot captureAssets();
     uint64_t      getHistoryEpoch() const;
     void commitSnapshot(Span<RenderObject> objects, Span<RenderInstance> instances, Span<RenderCamera> cameras, uint64_t historyEpoch);

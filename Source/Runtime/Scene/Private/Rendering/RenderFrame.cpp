@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 Horizon */
 
-#include "Scene/SceneFrame.h"
+#include "Scene/RenderFrame.h"
 #include "Core/IContainer.h"
 #include "Core/IMemory.h"
 
@@ -65,7 +65,7 @@ static void upload(RenderContext& context, GPUBuffer& buffer, uint64_t& capacity
             }
 }
 
-struct SceneFrameData
+struct RenderFrameData
 {
     Array<RenderObject>   objects;
     Array<RenderInstance> instances;
@@ -78,7 +78,7 @@ struct SceneFrameData
     Array<RenderCamera>   cameras;
     Array<uint32_t>       activeLights;
     Array<uint32_t>       activeCameras;
-    SceneFrameBuffers     buffers;
+    RenderFrameBuffers    buffers;
     uint64_t              capacities[16] = {};
     AssetSnapshot         assets;
     SubmitHandle          submission;
@@ -89,18 +89,18 @@ struct SceneFrameData
     bool                  leased = false;
 };
 
-class SceneFramePoolData
+class RenderFramePoolData
 {
 public:
-    SceneFramePoolData(RenderScene& scene, RenderContext& context, const SceneFramePoolDesc& desc): scene(scene), context(context)
+    RenderFramePoolData(RenderScene& scene, RenderContext& context, const RenderFramePoolDesc& desc): scene(scene), context(context)
     {
         ASSERT(desc.frameCount);
         frames.resize(desc.frameCount);
     }
-    ~SceneFramePoolData()
+    ~RenderFramePoolData()
     {
         ASSERT(!cpuLease);
-        for (SceneFrameData& frame : frames)
+        for (RenderFrameData& frame : frames)
         {
             if (frame.submission.isValid())
                 context.wait(frame.submission);
@@ -109,7 +109,7 @@ public:
     }
     void collect()
     {
-        for (SceneFrameData& frame : frames)
+        for (RenderFrameData& frame : frames)
             if (frame.submission.isValid() && context.isComplete(frame.submission))
             {
                 frame.submission = {};
@@ -140,7 +140,7 @@ public:
         if (index == UINT32_MAX)
             return index;
         scene.update();
-        SceneFrameData& frame = frames[index];
+        RenderFrameData& frame = frames[index];
         frame.assets = scene.captureAssets();
         ASSERT(frame.assets.isValid());
         const RenderSceneSync changes = scene.getChangesSince(frame.sceneRevision);
@@ -199,26 +199,26 @@ public:
         return index;
     }
 
-    RenderScene&          scene;
-    RenderContext&        context;
-    Array<SceneFrameData> frames;
-    uint32_t              next = 0;
-    uint64_t              revision = 0;
-    uint64_t              lastSceneRevision = 0;
-    uint64_t              lastAssetRevision = 0;
-    bool                  cpuLease = false;
+    RenderScene&           scene;
+    RenderContext&         context;
+    Array<RenderFrameData> frames;
+    uint32_t               next = 0;
+    uint64_t               revision = 0;
+    uint64_t               lastSceneRevision = 0;
+    uint64_t               lastAssetRevision = 0;
+    bool                   cpuLease = false;
 };
 
-SceneFramePool::SceneFramePool(RenderScene& scene, RenderContext& context, const SceneFramePoolDesc& desc):
-    pData(tf_new(SceneFramePoolData, scene, context, desc))
+RenderFramePool::RenderFramePool(RenderScene& scene, RenderContext& context, const RenderFramePoolDesc& desc):
+    pData(tf_new(RenderFramePoolData, scene, context, desc))
 {
 }
-SceneFramePool::~SceneFramePool() { tf_delete(pData); }
-void SceneFramePool::reserve(uint32_t objectCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
+RenderFramePool::~RenderFramePool() { tf_delete(pData); }
+void RenderFramePool::reserve(uint32_t objectCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
 {
     ASSERT(!pData->cpuLease);
     pData->scene.reserve(objectCount, drawCount, lightCount, cameraCount);
-    for (SceneFrameData& frame : pData->frames)
+    for (RenderFrameData& frame : pData->frames)
     {
         frame.objects.reserve(objectCount);
         frame.instances.reserve(objectCount);
@@ -233,9 +233,9 @@ void SceneFramePool::reserve(uint32_t objectCount, uint32_t drawCount, uint32_t 
         frame.activeCameras.reserve(cameraCount);
     }
 }
-SceneFrameSnapshot SceneFramePool::capture()
+RenderFrame RenderFramePool::capture()
 {
-    SceneFrameSnapshot result;
+    RenderFrame result;
     result.index = pData->capture();
     if (result.index != UINT32_MAX)
     {
@@ -244,10 +244,10 @@ SceneFrameSnapshot SceneFramePool::capture()
     }
     return result;
 }
-void SceneFramePool::retire(SceneFrameSnapshot&& snapshot, SubmitHandle submission)
+void RenderFramePool::retire(RenderFrame&& snapshot, SubmitHandle submission)
 {
     ASSERT(snapshot.pData == pData && snapshot.isValid() && submission.isValid());
-    SceneFrameData& frame = pData->frames[snapshot.index];
+    RenderFrameData& frame = pData->frames[snapshot.index];
     pData->scene.commitSnapshot({ frame.objects.data(), frame.objects.size() }, { frame.instances.data(), frame.instances.size() },
                                 { frame.cameras.data(), frame.cameras.size() }, frame.historyEpoch);
     frame.submission = submission;
@@ -256,19 +256,19 @@ void SceneFramePool::retire(SceneFrameSnapshot&& snapshot, SubmitHandle submissi
     snapshot.pData = nullptr;
     snapshot.index = UINT32_MAX;
 }
-void SceneFramePool::collect() { pData->collect(); }
+void RenderFramePool::collect() { pData->collect(); }
 
-SceneFrameSnapshot::~SceneFrameSnapshot()
+RenderFrame::~RenderFrame()
 {
     if (pData)
         pData->discard(index);
 }
-SceneFrameSnapshot::SceneFrameSnapshot(SceneFrameSnapshot&& other) noexcept: pData(other.pData), index(other.index)
+RenderFrame::RenderFrame(RenderFrame&& other) noexcept: pData(other.pData), index(other.index)
 {
     other.pData = nullptr;
     other.index = UINT32_MAX;
 }
-SceneFrameSnapshot& SceneFrameSnapshot::operator=(SceneFrameSnapshot&& other) noexcept
+RenderFrame& RenderFrame::operator=(RenderFrame&& other) noexcept
 {
     if (this != &other)
     {
@@ -281,85 +281,85 @@ SceneFrameSnapshot& SceneFrameSnapshot::operator=(SceneFrameSnapshot&& other) no
     }
     return *this;
 }
-uint64_t SceneFrameSnapshot::getRevision() const
+uint64_t RenderFrame::getRevision() const
 {
     ASSERT(pData);
     return pData->frames[index].revision;
 }
-const AssetSnapshot& SceneFrameSnapshot::getAssets() const
+const AssetSnapshot& RenderFrame::getAssets() const
 {
     ASSERT(pData);
     return pData->frames[index].assets;
 }
-const SceneFrameBuffers& SceneFrameSnapshot::getBuffers() const
+const RenderFrameBuffers& RenderFrame::getBuffers() const
 {
     ASSERT(pData);
     return pData->frames[index].buffers;
 }
-Span<RenderObject> SceneFrameSnapshot::getObjects() const
+Span<RenderObject> RenderFrame::getObjects() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.objects.data(), frame.objects.size() };
 }
-Span<RenderInstance> SceneFrameSnapshot::getInstances() const
+Span<RenderInstance> RenderFrame::getInstances() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.instances.data(), frame.instances.size() };
 }
-Span<RenderDraw> SceneFrameSnapshot::getDraws() const
+Span<RenderDraw> RenderFrame::getDraws() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.draws.data(), frame.draws.size() };
 }
-Span<RenderLight> SceneFrameSnapshot::getLights() const
+Span<RenderLight> RenderFrame::getLights() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.lights.data(), frame.lights.size() };
 }
-Span<RenderCamera> SceneFrameSnapshot::getCameras() const
+Span<RenderCamera> RenderFrame::getCameras() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.cameras.data(), frame.cameras.size() };
 }
-Span<uint32_t> SceneFrameSnapshot::getInstanceIndices() const
+Span<uint32_t> RenderFrame::getInstanceIndices() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.instanceIndices.data(), frame.instanceIndices.size() };
 }
-Span<uint32_t> SceneFrameSnapshot::getActiveObjects() const
+Span<uint32_t> RenderFrame::getActiveObjects() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.activeObjects.data(), frame.activeObjects.size() };
 }
-Span<uint32_t> SceneFrameSnapshot::getActiveInstances() const
+Span<uint32_t> RenderFrame::getActiveInstances() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.activeInstances.data(), frame.activeInstances.size() };
 }
-Span<uint32_t> SceneFrameSnapshot::getActiveDraws() const
+Span<uint32_t> RenderFrame::getActiveDraws() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.activeDraws.data(), frame.activeDraws.size() };
 }
-Span<uint32_t> SceneFrameSnapshot::getActiveLights() const
+Span<uint32_t> RenderFrame::getActiveLights() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.activeLights.data(), frame.activeLights.size() };
 }
-Span<uint32_t> SceneFrameSnapshot::getActiveCameras() const
+Span<uint32_t> RenderFrame::getActiveCameras() const
 {
     ASSERT(pData);
-    const SceneFrameData& frame = pData->frames[index];
+    const RenderFrameData& frame = pData->frames[index];
     return { frame.activeCameras.data(), frame.activeCameras.size() };
 }
 } // namespace hz

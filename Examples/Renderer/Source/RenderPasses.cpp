@@ -96,9 +96,9 @@ void GBuffer::unload()
 
 void GBuffer::update() {}
 
-void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::SceneFrameSnapshot& scene)
+void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::RenderFrame& scene)
 {
-    const hz::SceneFrameBuffers&    gpu = scene.getBuffers();
+    const hz::RenderFrameBuffers&   gpu = scene.getBuffers();
     const hz::GpuAssetTableSnapshot tables = scene.getAssets().getGpuTables();
     if (materialRevision != scene.getAssets().getRevision())
     {
@@ -227,7 +227,7 @@ void Lighting::unload() { sceneColor = {}; }
 
 void Lighting::update() {}
 
-void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::SceneFrameSnapshot& scene)
+void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::RenderFrame& scene)
 {
     const hz::GPUTexture* sampledTextures[] = { &gbuffer.gbuffer[0], &gbuffer.gbuffer[1], &gbuffer.gbuffer[2], &gbuffer.depth };
     commands.beginGpuTimestamp("Lighting");
@@ -369,19 +369,19 @@ void RenderPasses::execute()
         return;
 
     ASSERT(postprocessing);
-    hz::SceneFrameSnapshot snapshot = frames.capture();
+    hz::RenderFrame snapshot = frames.capture();
     if (!snapshot.isValid())
         return;
     ASSERT(camera.index < snapshot.getCameras().count && snapshot.getCameras().pData[camera.index].id == camera);
     const hz::RenderCamera& cameraData = snapshot.getCameras().pData[camera.index];
     const float             aspectInverse = (float)context.getHeight() / (float)context.getWidth();
     const Matrix4           current = viewProjection(cameraData.current, cameraData.lens, aspectInverse);
-    const FrameData         frameData = { .viewProjection = current,
+    const FrameData frameData = { .viewProjection = current,
                                   .previousViewProjection = viewProjection(cameraData.previous, cameraData.previousLens, aspectInverse),
                                   .inverseViewProjection = inverse(current),
                                   .eye = cameraData.current.getCol3() };
-    hz::GPUBuffer&          frame = frameBuffers[snapshot.getBackingIndex()];
-    const bool              updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
+    hz::GPUBuffer&  frame = frameBuffers[snapshot.getBackingIndex()];
+    const bool      updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
     ASSERT(updated);
     hz::CommandList& commands = context.acquireCommandList();
     gbuffer->execute(commands, frame, snapshot);

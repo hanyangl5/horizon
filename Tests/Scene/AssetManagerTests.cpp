@@ -11,7 +11,7 @@
 #include "Scene/MaterialAsset.h"
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/RenderScene.h"
-#include "Scene/SceneFrame.h"
+#include "Scene/RenderFrame.h"
 #include "Scene/WorldDocument.h"
 #include "Core/IUniquePtr.h"
 #include "Resources/IResourceLoader.h"
@@ -1772,7 +1772,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     }
 }
 
-TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStorage)
+TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingStorage)
 {
     writeTexture();
     writeScene();
@@ -1781,7 +1781,7 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
     ASSERT_TRUE(assets.parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
-    hz::RenderContext context({ .pAppName = "SceneFrameTest", .enableGpuValidation = true });
+    hz::RenderContext context({ .pAppName = "RenderFrameTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
     hz::AssetManager  assetManager(catalog);
     loaders.registerLoaders(assetManager);
@@ -1808,10 +1808,10 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
             drawID = scene.getDraws().pData[index].id;
     ASSERT_TRUE(drawID.isValid());
     const hz::GpuMaterialID materialID = scene.getDraw(drawID)->material;
-    hz::SceneFramePool      pool(scene, context);
+    hz::RenderFramePool     pool(scene, context);
     for (uint32_t i = 0; i < 3; ++i)
     {
-        hz::SceneFrameSnapshot warm = pool.capture();
+        hz::RenderFrame warm = pool.capture();
         ASSERT_TRUE(warm.isValid());
         EXPECT_EQ(warm.getBackingIndex(), i);
         const hz::GpuAssetTableSnapshot tables = warm.getAssets().getGpuTables();
@@ -1832,13 +1832,13 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
         EXPECT_TRUE(warm.getBuffers().instances.isValid());
         EXPECT_TRUE(warm.getBuffers().meshes.isValid());
     }
-    hz::GPUBuffer          readback = context.createBuffer({ .size = sizeof(hz::RenderInstance),
-                                                             .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                             .startState = RESOURCE_STATE_COPY_DEST,
-                                                             .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    hz::SceneFrameSnapshot frame = pool.capture();
-    const uint64_t         initialRevision = frame.getRevision();
-    const uint64_t         initialAssetRevision = frame.getAssets().getRevision();
+    hz::GPUBuffer   readback = context.createBuffer({ .size = sizeof(hz::RenderInstance),
+                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                      .startState = RESOURCE_STATE_COPY_DEST,
+                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    hz::RenderFrame frame = pool.capture();
+    const uint64_t  initialRevision = frame.getRevision();
+    const uint64_t  initialAssetRevision = frame.getAssets().getRevision();
     transform.translation = Vector3(2, 0, 0);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
     scene.update();
@@ -1981,7 +1981,7 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
     EXPECT_EQ(frame.getActiveDraws().count, 1u);
 }
 
-TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmissionTextures)
+TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmissionTextures)
 {
     writeTexture();
     writeScene();
@@ -2022,11 +2022,11 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     const hz::RenderObjectID renderObjectID = scene.findObject(entity);
     ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
     EXPECT_EQ(scene.getLight(lightID)->object, renderObjectID);
-    hz::SceneFramePool pool(scene, context);
+    hz::RenderFramePool pool(scene, context);
     pool.reserve(1, 1, 1, 1);
     for (uint32_t i = 0; i < 3; ++i)
     {
-        hz::SceneFrameSnapshot warm = pool.capture();
+        hz::RenderFrame warm = pool.capture();
         EXPECT_EQ(warm.getActiveLights().count, 1u);
         EXPECT_EQ(warm.getActiveCameras().count, 1u);
         EXPECT_TRUE(warm.getBuffers().lights.isValid());
@@ -2036,11 +2036,11 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
         const hz::RenderLight& frozen = warm.getLights().pData[lightID.index];
         EXPECT_NE(warm.getAssets().getGpuTables().getTexture(frozen.texture), nullptr);
     }
-    hz::GPUBuffer          readback = context.createBuffer({ .size = sizeof(hz::RenderCamera) + sizeof(hz::RenderLight),
-                                                             .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                             .startState = RESOURCE_STATE_COPY_DEST,
-                                                             .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    hz::SceneFrameSnapshot frame = pool.capture();
+    hz::GPUBuffer   readback = context.createBuffer({ .size = sizeof(hz::RenderCamera) + sizeof(hz::RenderLight),
+                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                      .startState = RESOURCE_STATE_COPY_DEST,
+                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    hz::RenderFrame frame = pool.capture();
     transform.translation = Vector3(2, 0, 0);
     lens.verticalFov = 0.6f;
     light.intensity = 8;
@@ -2235,7 +2235,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     scene->update();
     ASSERT_EQ(scene->getActiveDraws().count, 2u);
     ASSERT_TRUE(assetManager.release(source));
-    hz::unique_ptr<hz::SceneFramePool> pool = hz::make_unique<hz::SceneFramePool>(*scene, context);
+    hz::unique_ptr<hz::RenderFramePool> pool = hz::make_unique<hz::RenderFramePool>(*scene, context);
     hz::GPUBuffer         readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord) + 36,
                                                             .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                             .startState = RESOURCE_STATE_COPY_DEST,
@@ -2254,7 +2254,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_EQ(meshRenderer->mesh, renderer.mesh);
         EXPECT_EQ(meshRenderer->overrides[0].submesh, renderer.overrides[0].submesh);
         EXPECT_EQ(meshRenderer->overrides[0].material, renderer.overrides[0].material);
-        hz::SceneFrameSnapshot frame = pool->capture();
+        hz::RenderFrame frame = pool->capture();
         ASSERT_TRUE(frame.isValid());
         ASSERT_EQ(frame.getActiveDraws().count, 2u);
         const hz::RenderObjectID renderObjectID = scene->findObject(entity);
@@ -2316,7 +2316,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         wait(assetManager, reloadedMesh);
         wait(assetManager, assetManager.find(assets.getMeshes().pData[1].id));
         scene->update();
-        pool = hz::make_unique<hz::SceneFramePool>(*scene, context);
+        pool = hz::make_unique<hz::RenderFramePool>(*scene, context);
     }
     assetManager.shutdown();
 }
