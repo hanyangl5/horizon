@@ -12,7 +12,7 @@ class Array;
 template<typename T>
 class unique_ptr;
 class World;
-class WorldDocumentData;
+class WorldArchiveData;
 
 struct ComponentMigration
 {
@@ -22,28 +22,28 @@ struct ComponentMigration
     bool (*pMigrate)(Span<char> properties, Array<char>& output) = nullptr;
 };
 
-class WorldDocument
+class WorldArchive
 {
 public:
-    WorldDocument() = default;
-    ~WorldDocument();
-    WorldDocument(const WorldDocument&) = delete;
-    WorldDocument& operator=(const WorldDocument&) = delete;
+    WorldArchive() = default;
+    ~WorldArchive();
+    WorldArchive(const WorldArchive&) = delete;
+    WorldArchive& operator=(const WorldArchive&) = delete;
 
-    // Parsing retains original JSON, including unknown component blobs. Failure preserves this document.
+    // Parsing retains original JSON, including unknown component blobs. Failure preserves this archive.
     bool parse(Span<char> json);
     bool load(ResourceDirectory directory, const char* pFileName);
     bool save(ResourceDirectory directory, const char* pFileName) const;
-    // Output includes a terminating null. Parsed documents retain their original text exactly.
+    // Output includes a terminating null. Parsed archives retain their original text exactly.
     bool serialize(Array<char>& json) const;
     Guid getID() const;
-    // Captures persistent entities only; an existing document ID is retained unless explicitly replaced.
+    // Captures persistent entities only; an existing archive ID is retained unless explicitly replaced.
     bool capture(World& world, Guid id = {});
     // Replaces target only after complete validation. Destroy its queries/scopes before calling.
     bool instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations = {},
                      const IDGenerator& entityGuids = {}) const;
 
 private:
-    WorldDocumentData* pData = nullptr;
+    WorldArchiveData* pData = nullptr;
 };
 } // namespace hz

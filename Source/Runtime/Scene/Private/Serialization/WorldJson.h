@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 Horizon */
 #pragma once
-#include "Scene/WorldDocument.h"
+#include "Scene/WorldArchive.h"
 #include "Scene/World.h"
 #include "Core/IContainer.h"
 #include <ThirdParty/cJSON/cJSON.h>

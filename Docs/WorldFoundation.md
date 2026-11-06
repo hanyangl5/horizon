@@ -26,7 +26,7 @@ World Foundation 是 GPU-driven geometry、light culling、path tracing 和 Edit
 | `WorldTransform` | 派生的世界矩阵（current/previous），不保存 | ComponentToWorld |
 | `MeshRenderer` | 组件：Mesh 的 AssetID + 按 SubmeshID 的材质覆盖 | `UStaticMeshComponent` |
 | `Light` / `Camera` | 光源、相机组件 | `ULightComponent` / `UCameraComponent` |
-| `WorldDocument` | `.world.json` 的读写、capture 和 instantiate | `.umap` 包；Bevy `DynamicScene` |
+| `WorldArchive` | `.world.json` 的读写、capture 和 instantiate | `.umap` 包；Bevy `DynamicScene` |
 | `TypeRegistry` | 组件和属性的反射 metadata | `UClass` / `FProperty` |
 | `WorldAssetBindings` | 把 MeshRenderer 的 AssetID 解析为长期持有的资产引用 | 组件创建 SceneProxy 时的资源解析 |
 | `RenderScene` | 渲染侧唯一的 CPU 场景数据，从 World 提取 | `FScene` |
@@ -318,7 +318,7 @@ Hierarchy 必须满足：
 
 Reflection 使用显式 type registry，不依赖 C++ RTTI、异常或复杂模板实例化。组件在 Runtime 初始化期间显式注册，不能依赖跨模块静态初始化顺序。
 
-每个 component descriptor 包含稳定 type ID、名称、schema version、size、alignment 和 property span。相邻版本的 migration callback 由文档加载入口传入，反射接口不依赖 JSON 库。含 owning collection 的 component 还必须注册显式 init/copy/move/destroy lifecycle operations，并由 World 转接为内部 Flecs hooks，保证 archetype 移动、deferred command 和 World 销毁不会浅拷贝或泄漏 collection storage。每个 property descriptor 包含稳定 property ID、名称、类型、offset、size、flags，以及 Inspector 所需的 range、step 或 widget hint；集合 property 还要引用 element descriptor 和统一的 collection operations。
+每个 component descriptor 包含稳定 type ID、名称、schema version、size、alignment 和 property span。相邻版本的 migration callback 由存档加载入口传入，反射接口不依赖 JSON 库。含 owning collection 的 component 还必须注册显式 init/copy/move/destroy lifecycle operations，并由 World 转接为内部 Flecs hooks，保证 archetype 移动、deferred command 和 World 销毁不会浅拷贝或泄漏 collection storage。每个 property descriptor 包含稳定 property ID、名称、类型、offset、size、flags，以及 Inspector 所需的 range、step 或 widget hint；集合 property 还要引用 element descriptor 和统一的 collection operations。
 
 第一版支持以下 property 类型：
 
@@ -371,11 +371,11 @@ Component 独立维护 schema version，migration 按相邻版本顺序执行，
 
 Cooked World 将来可以使用分块二进制格式，但不能直接 dump ECS 内存布局。
 
-当前入口为 `WorldDocument`：`capture` 从已提交的 World 提取 persistent entities，`save/load` 处理文件，`instantiate` 在成功后替换调用方持有的 `unique_ptr<World>`。替换前须销毁旧 World 的 query/defer scopes；失败保留旧 World。World ID 由文档持有，可显式指定，后续 capture 默认沿用。无 Guid 的运行时 Entity 不保存；persistent entity 的父节点必须有 Guid。
+当前入口为 `WorldArchive`：`capture` 从已提交的 World 提取 persistent entities，`save/load` 处理文件，`instantiate` 在成功后替换调用方持有的 `unique_ptr<World>`。替换前须销毁旧 World 的 query/defer scopes；失败保留旧 World。World ID 由存档持有，可显式指定，后续 capture 默认沿用。无 Guid 的运行时 Entity 不保存；persistent entity 的父节点必须有 Guid。
 
 `Horizon.World` v1 按 Guid、TypeID、PropertyID 排序输出；组件记录保留稳定 TypeID、名称、版本及独立 properties 对象。64 位整数使用十进制字符串，float/double 分别使用 9/17 位有效数字的区域无关格式。只保存 serialized properties，数组沿用存储顺序；加载时规范化 material overrides，重复 SubmeshID 拒绝，保存时要求键已唯一且有序。
 
-文档解析保留原始 JSON，因此未知组件及其数值可原样读写；Runtime 实例化仍拒绝未知组件、缺失迁移、悬空实体引用和非法层级。迁移逐版本变换 properties JSON，不改写原文档。文件保存先写临时文件，再通过备份替换，失败可恢复旧文件；这不提供断电后的持久性保证。Editor 对未知组件的编辑合并仍属后续工作。
+存档解析保留原始 JSON，因此未知组件及其数值可原样读写；Runtime 实例化仍拒绝未知组件、缺失迁移、悬空实体引用和非法层级。迁移逐版本变换 properties JSON，不改写原文档。文件保存先写临时文件，再通过备份替换，失败可恢复旧文件；这不提供断电后的持久性保证。Editor 对未知组件的编辑合并仍属后续工作。
 
 ## RenderScene extraction
 
@@ -489,7 +489,7 @@ Runtime 的独立 `hz::SceneAsset` 已支持新版 CPU 数据解码，保留局�
 
 第 6 步已完成：Bistro 通过 1 个 Scene、1296 个 Mesh、132 个 Material、274 个 Texture record 加载，1591 个 draw 共享一次 geometry 上传；GPU 使用期间的快照退休及 shutdown 已验证，内存分配回到基线。新模块不依赖 SceneManager。Material 当前提供完整材质参数及 Texture 身份引用；GPU table、材质表编码与 RenderScene 配对发布归第 8 步，Renderer 迁移归第 9 步，hot reload 保持 Phase 1.5 范围。
 
-第 7 步已实现 `WorldDocument` 的确定性保存、文件读写、staging World 加载和相邻版本迁移。回归覆盖所有内置组件往返、前向实体引用、非法输入不改变目标、未知组件原文保留、override 规范化和中断文件替换恢复。5000 层层级加载及销毁不依赖递归；恢复关系前先验证整张图，World 退出按叶子优先销毁 Entity。
+第 7 步已实现 `WorldArchive` 的确定性保存、文件读写、staging World 加载和相邻版本迁移。回归覆盖所有内置组件往返、前向实体引用、非法输入不改变目标、未知组件原文保留、override 规范化和中断文件替换恢复。5000 层层级加载及销毁不依赖递归；恢复关系前先验证整张图，World 退出按叶子优先销毁 Entity。
 
 第 8 步已完成资产绑定切片：`WorldAssetBindings` 为每个 `MeshRenderer` 持有 Mesh 和解析后材质的长期引用，按稳定 SubmeshID 合并默认材质与 overrides。组件移除或 Entity 销毁后，在下一次绑定更新释放引用；Asset Manager 快照继续保活旧帧资源。未就绪的绑定为 Pending，缺失资产、错误类型或非法 overrides 为 Failed，调用方只消费 Ready 绑定。正常帧不重复请求或分配内存；失败请求保持失败，清空绑定后可重试。Bindings 必须先于 World 和 Asset Manager 销毁。
 

@@ -36,7 +36,7 @@ private:
     friend class WorldQueryImpl;
     friend class DeferredChanges;
     friend class WorldHierarchy;
-    friend class WorldDocument;
+    friend class WorldArchive;
 
     const WorldType* findType(TypeID type) { return hmgetp_null(pTypes, type); }
     void             checkThread() const { ASSERT(thread == getCurrentThreadID()); }

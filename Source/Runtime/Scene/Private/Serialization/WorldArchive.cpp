@@ -13,10 +13,10 @@
 
 namespace hz
 {
-class WorldDocumentData
+class WorldArchiveData
 {
 public:
-    ~WorldDocumentData() { cJSON_Delete(pRoot); }
+    ~WorldArchiveData() { cJSON_Delete(pRoot); }
     cJSON*      pRoot = nullptr;
     Guid        id;
     Array<char> text;
@@ -63,11 +63,11 @@ static int compareTypes(const void* pA, const void* pB)
     return (a > b) - (a < b);
 }
 
-WorldDocument::~WorldDocument() { tf_delete(pData); }
-Guid WorldDocument::getID() const { return pData ? pData->id : Guid{}; }
-bool WorldDocument::parse(Span<char> json)
+WorldArchive::~WorldArchive() { tf_delete(pData); }
+Guid WorldArchive::getID() const { return pData ? pData->id : Guid{}; }
+bool WorldArchive::parse(Span<char> json)
 {
-    unique_ptr<WorldDocumentData> candidate = make_unique<WorldDocumentData>();
+    unique_ptr<WorldArchiveData> candidate = make_unique<WorldArchiveData>();
     candidate->pRoot = parseWorldJson(json);
     const cJSON* pRoot = candidate->pRoot;
     const char*  pFormat = stringField(pRoot, "format");
@@ -75,7 +75,7 @@ bool WorldDocument::parse(Span<char> json)
     if (!uniqueWorldFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.World") || !worldVersion(field(pRoot, "version"), version) ||
         version != 1 || !readID(field(pRoot, "id"), candidate->id) || !cJSON_IsArray(field(pRoot, "entities")))
     {
-        LOGF(eERROR, "Invalid World document schema");
+        LOGF(eERROR, "Invalid World archive schema");
         return false;
     }
     uint32_t count = json.count;
@@ -88,14 +88,14 @@ bool WorldDocument::parse(Span<char> json)
     pData = candidate.release();
     return true;
 }
-bool WorldDocument::serialize(Array<char>& json) const
+bool WorldArchive::serialize(Array<char>& json) const
 {
     if (!pData)
         return false;
     json = pData->text;
     return true;
 }
-bool WorldDocument::capture(World& world, Guid id)
+bool WorldArchive::capture(World& world, Guid id)
 {
     if (world.isDeferred())
     {
@@ -298,8 +298,8 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
     return readWorldProperties(type, pProperties, value.pValue) && normalizeWorldComponent(type.id, value.pValue, true) &&
            validateWorldReferences(type, value.pValue, world) && world.setComponent(entity, type.id, value.pValue);
 }
-bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations,
-                                const IDGenerator& entityGuids) const
+bool WorldArchive::instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations,
+                               const IDGenerator& entityGuids) const
 {
     if (!pData || (target && target->isDeferred()))
         return false;
@@ -356,19 +356,19 @@ bool WorldDocument::instantiate(const TypeRegistry& types, unique_ptr<World>& ta
     target.swap(staging);
     return true;
 }
-bool WorldDocument::load(ResourceDirectory directory, const char* pFileName)
+bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
 {
     FileStream stream = {};
     if (!fsOpenStreamFromPath(directory, pFileName, FM_READ, &stream))
     {
-        LOGF(eERROR, "Cannot open World document '%s'", pFileName);
+        LOGF(eERROR, "Cannot open World archive '%s'", pFileName);
         return false;
     }
     const ssize_t size = fsGetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
         fsCloseStream(&stream);
-        LOGF(eERROR, "Invalid World document size: '%s'", pFileName);
+        LOGF(eERROR, "Invalid World archive size: '%s'", pFileName);
         return false;
     }
     Array<char>  bytes((uint32_t)size);
@@ -376,7 +376,7 @@ bool WorldDocument::load(ResourceDirectory directory, const char* pFileName)
     fsCloseStream(&stream);
     if (read != (size_t)size)
     {
-        LOGF(eERROR, "Cannot read World document '%s'", pFileName);
+        LOGF(eERROR, "Cannot read World archive '%s'", pFileName);
         return false;
     }
     return parse({ bytes.data(), bytes.size() });
@@ -410,11 +410,11 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
         LOGF(eWARNING, "Cannot remove World backup '%s'", backup);
     return true;
 }
-bool WorldDocument::save(ResourceDirectory directory, const char* pFileName) const
+bool WorldArchive::save(ResourceDirectory directory, const char* pFileName) const
 {
     if (pData && writeWorldFile(directory, pFileName, { pData->text.data(), pData->text.size() - 1 }))
         return true;
-    LOGF(eERROR, "Cannot save World document '%s'", pFileName);
+    LOGF(eERROR, "Cannot save World archive '%s'", pFileName);
     return false;
 }
 } // namespace hz

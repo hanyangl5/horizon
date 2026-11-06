@@ -2,7 +2,7 @@
 
 #include "Scene/SceneAsset.h"
 #include "Scene/AssetCatalog.h"
-#include "Scene/WorldDocument.h"
+#include "Scene/WorldArchive.h"
 #include "Core/IUniquePtr.h"
 #include "Core/IContainer.h"
 #include <string>
@@ -217,10 +217,10 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
                 },
                 &names);
             EXPECT_EQ(names.count, 2u);
-            hz::WorldDocument document;
-            ASSERT_TRUE(document.capture(world));
+            hz::WorldArchive archive;
+            ASSERT_TRUE(archive.capture(world));
             hz::unique_ptr<hz::World> restored;
-            ASSERT_TRUE(document.instantiate(types, restored));
+            ASSERT_TRUE(archive.instantiate(types, restored));
             const hz::Entity restoredRoot = restored->getEntity(world.getEntityGuid(root));
             const hz::Name*  pName = (const hz::Name*)restored->getComponent(restoredRoot, hz::SceneTypes::name);
             ASSERT_NE(pName, nullptr);

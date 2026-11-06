@@ -12,7 +12,7 @@
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/RenderScene.h"
 #include "Scene/GpuScene.h"
-#include "Scene/WorldDocument.h"
+#include "Scene/WorldArchive.h"
 #include "Core/IUniquePtr.h"
 #include "Resources/IResourceLoader.h"
 #include "Graphics/RenderContext.h"
@@ -2245,8 +2245,8 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     renderer.overrides.pushBack(
         { .submesh = assets.getMeshes().pData[0].submeshes.pData[0].id, .material = assets.getMaterials().pData[0].id });
     ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::meshRenderer, &renderer));
-    const hz::Guid    rootID = world->getEntityGuid(root), firstID = world->getEntityGuid(first), secondID = world->getEntityGuid(second);
-    hz::WorldDocument saved;
+    const hz::Guid   rootID = world->getEntityGuid(root), firstID = world->getEntityGuid(first), secondID = world->getEntityGuid(second);
+    hz::WorldArchive saved;
     ASSERT_TRUE(saved.capture(*world));
     ASSERT_TRUE(saved.save(RD_OTHER_FILES, "edited.world.json"));
     hz::Array<char> original;
@@ -2319,7 +2319,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_FLOAT_EQ(vertices[4], -5);
         if (pass == 1)
             break;
-        hz::WorldDocument loaded;
+        hz::WorldArchive loaded;
         ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "edited.world.json"));
         ASSERT_TRUE(loaded.instantiate(types, world));
         EXPECT_EQ(loaded.getID(), saved.getID());

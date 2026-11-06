@@ -30,7 +30,7 @@ flowchart LR
     assetManager -->|解析与持有资产| scene
     scene --> gpu[GpuScene]
     gpu --> renderer[Renderer / GPU]
-    world <--> document[WorldDocument]
+    world <--> archive[WorldArchive]
 ```
 
 现在的源格式导入实现是 glTF。Runtime 读取的是烘焙后的资产；将来接入 USD，主要工作位于导入和语义映射层，World 与帧生命周期的基本分工可以继续沿用。
@@ -91,7 +91,7 @@ world.updateTransforms();
 
 这里椅子的世界坐标 X 为 12。`setComponent` 会复制输入值，局部变量离开作用域后，组件仍由 World 管理。对于 MeshRenderer 内拥有的数组，注册的生命周期操作负责复制和销毁。
 
-`createPersistentEntity()` 会分配可持久化的 Guid；`createEntity()` 可用于临时运行时实体。WorldDocument 只捕获带持久身份的实体。需要保存的实体，其父实体也应当具有 Guid。
+`createPersistentEntity()` 会分配可持久化的 Guid；`createEntity()` 可用于临时运行时实体。WorldArchive 只捕获带持久身份的实体。需要保存的实体，其父实体也应当具有 Guid。
 
 `getComponent()` 返回只读借用视图。结构变化可能搬迁组件存储，不能把返回指针长期保存在 Renderer 或其他缓存中。需要长期定位时保存合适的 ID，需要修改时重新查询或调用 World 的编辑接口。
 
@@ -238,21 +238,21 @@ World 自身也有变换历史接口，当前渲染路径由 GpuScene 管理提�
 
 我们希望关闭应用后，第三把椅子仍叫原来的名字，位于原来的分组，并继续引用指定的网格和坐垫材质。
 
-WorldDocument 因此保存 Guid、父 Guid、名称、组件类型和版本，以及声明为可序列化的属性。AssetID 和稳定 SubmeshID 也随组件一起保存。Entity、AssetHandle、GPU 实体、descriptor 和派生的 WorldTransform 则在加载后重新建立。
+WorldArchive 因此保存 Guid、父 Guid、名称、组件类型和版本，以及声明为可序列化的属性。AssetID 和稳定 SubmeshID 也随组件一起保存。Entity、AssetHandle、GPU 实体、descriptor 和派生的 WorldTransform 则在加载后重新建立。
 
 这些属性来自显式注册的 reflection metadata。TypeRegistry 描述类型、属性、生命周期及序列化行为，World 在构造时接入已经注册的类型，因此 metadata 必须比 World 活得更久。TypeID 和 PropertyID 在代码中保持稳定。当前文件用 TypeID 定位组件、用属性名读写字段；属性重命名需要提升组件版本，并显式迁移旧字段名。
 
 同一份 metadata 还可以供后续 Inspector 使用。当前反射接口已经支持属性和数组编辑，但它不会自动生成完整编辑器，也不会把所有业务规则都推导出来；例如属性范围是编辑提示，不会自动把数值 clamp 进范围。
 
-接着第 3 节的示例，可以保存并重新加载椅子。另需包含 `Scene/WorldDocument.h`、`Core/IUniquePtr.h`，并假设文件系统已初始化、`RD_OTHER_FILES` 已映射到可写目录：
+接着第 3 节的示例，可以保存并重新加载椅子。另需包含 `Scene/WorldArchive.h`、`Core/IUniquePtr.h`，并假设文件系统已初始化、`RD_OTHER_FILES` 已映射到可写目录：
 
 ```cpp
 const hz::Guid chairID = world.getEntityGuid(chair);
-hz::WorldDocument document;
-if (!document.capture(world) || !document.save(RD_OTHER_FILES, "demo.world.json"))
+hz::WorldArchive archive;
+if (!archive.capture(world) || !archive.save(RD_OTHER_FILES, "demo.world.json"))
     return false;
 
-hz::WorldDocument loaded;
+hz::WorldArchive loaded;
 if (!loaded.load(RD_OTHER_FILES, "demo.world.json"))
     return false;
 hz::unique_ptr<hz::World> restored;
@@ -261,11 +261,11 @@ if (!loaded.instantiate(types, restored))
 return restored->isAlive(restored->getEntity(chairID));
 ```
 
-这里通过持久的 chairID 找回新 World 中的 Entity。恢复实体后，还需要建立新的 RenderScene 和资产绑定，才能重新绘制；加载 WorldDocument 不会顺便加载全部 GPU 资产。
+这里通过持久的 chairID 找回新 World 中的 Entity。恢复实体后，还需要建立新的 RenderScene 和资产绑定，才能重新绘制；加载 WorldArchive 不会顺便加载全部 GPU 资产。
 
 加载先构建 staging World，完成组件、引用和层级验证后才替换目标。失败时，原目标保留。若要替换一个已有 World，必须先处理引用旧 World 的查询、defer 作用域、RenderScene 和未完成帧，不能让它们继续指向已销毁的实体。
 
-文档支持显式的相邻版本迁移。`parse` 可以保留未知组件的原始 JSON，便于文档读写不破坏内容；真正 `instantiate` 时，无法识别的组件或缺少迁移步骤会导致失败。保留文本与成功恢复可运行世界，是两个分别校验的能力。
+存档支持显式的相邻版本迁移。`parse` 可以保留未知组件的原始 JSON，便于存档读写不破坏内容；真正 `instantiate` 时，无法识别的组件或缺少迁移步骤会导致失败。保留文本与成功恢复可运行世界，是两个分别校验的能力。
 
 ## 12. 退出时，按依赖关系结束生命周期
 
@@ -290,6 +290,6 @@ RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确
 | [WorldAssetBindings.h](../Source/Runtime/Scene/Public/Scene/WorldAssetBindings.h) | 从 AssetID 到持有运行时引用 |
 | [RenderScene.h](../Source/Runtime/Scene/Public/Scene/RenderScene.h) | 提取记录、active list 和变更范围 |
 | [GpuScene.h](../Source/Runtime/Scene/Public/Scene/GpuScene.h) 与 [RenderPasses.cpp](../Examples/Renderer/Source/RenderPasses.cpp) | beginFrame、上传、submit、endFrame 的完整交接 |
-| [WorldDocument.h](../Source/Runtime/Scene/Public/Scene/WorldDocument.h) | 持久化、验证和恢复的边界 |
+| [WorldArchive.h](../Source/Runtime/Scene/Public/Scene/WorldArchive.h) | 持久化、验证和恢复的边界 |
 
 阅读时可以用三个场景检查自己的理解：移动一把椅子，哪些数据需要更新；删除椅子后旧帧仍在执行，谁继续持有资源；重新打开 World，哪些 ID 保持不变，哪些句柄需要重新取得。能够沿代码回答这些问题，就已经掌握了这套设计的主线。

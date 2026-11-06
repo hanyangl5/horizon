@@ -104,7 +104,7 @@ private:
     friend class DeferredChanges;
     friend class WorldQuery;
     friend class WorldQueryImpl;
-    friend class WorldDocument;
+    friend class WorldArchive;
     friend class SceneAsset;
     void       attachParent(Entity entity, Entity parent);
     WorldImpl* pImpl = nullptr;
