@@ -56,7 +56,7 @@
 
 #include "../../../Utilities/Interfaces/IMemory.h" //NOTE: this should be the last include in a .cpp
 
-#define IS_POWER_OF_TWO(x) ((x) != 0 && ((x) & ((x)-1)) == 0)
+#define IS_POWER_OF_TWO(x) ((x) != 0 && ((x) & ((x) - 1)) == 0)
 
 const char* gExtensions[] = { "dds", "ktx"
 #ifdef PROSPERO_GNF
@@ -1080,7 +1080,9 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         {
             time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, inFileName);
             if (assetParams->mAdditionalModifiedTime != 0)
+            {
                 lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
+            }
 
             time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, outFileName);
 

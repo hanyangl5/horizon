@@ -39,7 +39,9 @@ void hz::CommandList::barrier(uint32_t bufferCount, BufferBarrier* pBufferBarrie
                               uint32_t renderTargetCount, RenderTargetBarrier* pRenderTargetBarriers)
 {
     if (bufferCount || textureCount || renderTargetCount)
+    {
         cmdResourceBarrier(pCmd, bufferCount, pBufferBarriers, textureCount, pTextureBarriers, renderTargetCount, pRenderTargetBarriers);
+    }
 }
 
 void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, bool storage)
@@ -47,17 +49,25 @@ void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, 
     for (const hz::GPUBuffer* buffer : buffers)
     {
         if (buffer->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+        {
             continue;
+        }
         ResourceState state = RESOURCE_STATE_UNORDERED_ACCESS;
         if (!storage)
         {
             state = RESOURCE_STATE_SHADER_RESOURCE;
             if (buffer->descriptors & (DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER))
+            {
                 state |= RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            }
             if (buffer->descriptors & DESCRIPTOR_TYPE_INDEX_BUFFER)
+            {
                 state |= RESOURCE_STATE_INDEX_BUFFER;
+            }
             if (buffer->descriptors & DESCRIPTOR_TYPE_INDIRECT_BUFFER)
+            {
                 state |= RESOURCE_STATE_INDIRECT_ARGUMENT;
+            }
         }
         if (buffer->state != state || storage)
         {
@@ -118,9 +128,13 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
     };
 
     for (const hz::GPUTexture* texture : dependencies.sampledTextures)
+    {
         addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
+    }
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
+    {
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
+    }
     addBufferBarriers(dependencies.buffers, false);
     addBufferBarriers(dependencies.storageBuffers, true);
     addIndirectBarriers(dependencies.indirectBuffers);
@@ -173,9 +187,13 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
     };
 
     for (const hz::GPUTexture* texture : dependencies.sampledTextures)
+    {
         addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
+    }
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
+    {
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
+    }
     addBufferBarriers(dependencies.buffers, false);
     addBufferBarriers(dependencies.storageBuffers, true);
     addIndirectBarriers(dependencies.indirectBuffers);
@@ -228,7 +246,9 @@ void hz::CommandList::setVertexBuffer(uint32_t slot, const hz::GPUBuffer& buffer
     vertexOffsets[slot] = offset;
     vertexStrides[slot] = stride;
     if (slot == vertexBufferCount)
+    {
         ++vertexBufferCount;
+    }
     cmdBindVertexBuffer(pCmd, vertexBufferCount, pVertexBuffers, vertexStrides, vertexOffsets);
 }
 
@@ -498,12 +518,16 @@ void hz::CommandList::popDebugGroupLabel() const { cmdEndDebugMarker(pCmd); }
 void hz::CommandList::beginGpuFrameProfile()
 {
     if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
+    {
         cmdBeginGpuFrameProfile(pCmd, gpuProfilerToken);
+    }
 }
 void hz::CommandList::endGpuFrameProfile()
 {
     if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
+    {
         cmdEndGpuFrameProfile(pCmd, gpuProfilerToken);
+    }
 }
 void hz::CommandList::beginGpuTimestamp(const char* name)
 {

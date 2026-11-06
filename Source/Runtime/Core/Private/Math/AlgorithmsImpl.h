@@ -99,7 +99,7 @@
         if (memberCount == 0)                                                   \
             return 0;                                                           \
         type* pPivot = partitionImplFn(pArr, pArr + memberCount, pArr + pivot); \
-        ASSERT(pPivot&& pArr);                                                  \
+        ASSERT(pPivot && pArr);                                                 \
         return pPivot && pArr ? pPivot - pArr : 0;                              \
     }
 
@@ -142,8 +142,8 @@
 
 #define PTR_INC_GENERIC(ptr)       ((ptr) += memberSize)
 #define PTR_DEC_GENERIC(ptr)       ((ptr) -= memberSize)
-#define PTR_ADD_GENERIC(ptr, val)  ((ptr) + (val)*memberSize)
-#define PTR_SUB_GENERIC(ptr, val)  ((ptr) - (val)*memberSize)
+#define PTR_ADD_GENERIC(ptr, val)  ((ptr) + (val) * memberSize)
+#define PTR_SUB_GENERIC(ptr, val)  ((ptr) - (val) * memberSize)
 #define PTR_DIFF_GENERIC(p0, p1)   (((p0) - (p1)) / memberSize)
 
 #define PTR_INC_NUMERIC(ptr)       (++(ptr))

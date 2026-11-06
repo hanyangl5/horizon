@@ -43,7 +43,9 @@ static TracyD3D12Ctx getTracyGpuContext(GpuProfiler* pGpuProfiler) { return (Tra
 static void freeTracyGpuZones(GpuProfiler* pGpuProfiler)
 {
     if (!pGpuProfiler || !pGpuProfiler->pGpuTimerPool)
+    {
         return;
+    }
 
     for (uint32_t i = 0; i < pGpuProfiler->currentPoolIndex; ++i)
     {
@@ -89,7 +91,9 @@ void cmdBeginGpuFrameProfileDX12(GpuProfiler* pGpuProfiler)
 void beginGpuTimestampQueryDX12(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimer* pGpuTimer)
 {
     if (!pCmd || !pGpuProfiler || !pGpuTimer || !pGpuProfiler->pBackendGpuContext || pGpuTimer->backendGpuZoneActive)
+    {
         return;
+    }
 
     if (!pGpuTimer->pBackendGpuZone)
     {
@@ -106,7 +110,9 @@ void beginGpuTimestampQueryDX12(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimer* 
 void endGpuTimestampQueryDX12(GpuTimer* pGpuTimer)
 {
     if (!pGpuTimer || !pGpuTimer->backendGpuZoneActive)
+    {
         return;
+    }
 
     ((tracy::D3D12ZoneScope*)pGpuTimer->pBackendGpuZone)->~D3D12ZoneScope();
     pGpuTimer->backendGpuZoneActive = false;

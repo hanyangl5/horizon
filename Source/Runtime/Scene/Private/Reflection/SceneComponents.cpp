@@ -31,11 +31,15 @@ static bool insertOverride(void* pArray, uint32_t index, const void* pValue)
     Array<MaterialOverride>& values = *(Array<MaterialOverride>*)pArray;
     ASSERT(pValue);
     if (index > values.size())
+    {
         return false;
+    }
     const MaterialOverride value = *(const MaterialOverride*)pValue;
     values.resize(values.size() + 1);
     for (uint32_t i = values.size() - 1; i > index; --i)
+    {
         values[i] = values[i - 1];
+    }
     values[index] = value;
     return true;
 }
@@ -44,9 +48,13 @@ static bool removeOverride(void* pArray, uint32_t index)
 {
     Array<MaterialOverride>& values = *(Array<MaterialOverride>*)pArray;
     if (index >= values.size())
+    {
         return false;
+    }
     for (uint32_t i = index; i + 1 < values.size(); ++i)
+    {
         values[i] = values[i + 1];
+    }
     values.popBack();
     return true;
 }

@@ -21,7 +21,9 @@ RenderContext::RenderContext(const ContextDesc& input)
                        (!input.imageCount || input.imageCount <= MAX_SWAPCHAIN_IMAGES);
     ASSERT(valid);
     if (!valid)
+    {
         return;
+    }
 
     desc = input;
     desc.imageCount = input.imageCount ? input.imageCount : 3;
@@ -39,7 +41,9 @@ RenderContext::RenderContext(const ContextDesc& input)
     const bool initialized = suspended || createSwapChain();
     ASSERT(initialized);
     if (!initialized)
+    {
         cleanup();
+    }
 }
 
 RenderContext::~RenderContext() { cleanup(); }
@@ -53,7 +57,9 @@ bool RenderContext::initDevice()
     };
     initRendererContext(appName, &contextDesc, &pRendererContext);
     if (!pRendererContext)
+    {
         return false;
+    }
 
     const RendererDesc rendererDesc = {
         .shaderTarget = SHADER_TARGET_6_6,
@@ -62,7 +68,9 @@ bool RenderContext::initDevice()
     };
     initRenderer(appName, &rendererDesc, &pRenderer);
     if (!pRenderer)
+    {
         return false;
+    }
 
     QueueDesc queueDesc = {
         .type = QUEUE_TYPE_GRAPHICS,
@@ -72,29 +80,31 @@ bool RenderContext::initDevice()
     };
     addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
     if (!pGraphicsQueue)
+    {
         return false;
+    }
 
     IndirectArgumentDescriptor drawArgument = { .type = INDIRECT_DRAW };
     CommandSignatureDesc       drawSignatureDesc = {
-        .pArgDescs = &drawArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+              .pArgDescs = &drawArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &drawSignatureDesc, &pDrawIndirectSignature);
 
     IndirectArgumentDescriptor drawIndexedArgument = { .type = INDIRECT_DRAW_INDEX };
     CommandSignatureDesc       drawIndexedSignatureDesc = {
-        .pArgDescs = &drawIndexedArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+              .pArgDescs = &drawIndexedArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &drawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
 
     IndirectArgumentDescriptor dispatchArgument = { .type = INDIRECT_DISPATCH };
     CommandSignatureDesc       dispatchSignatureDesc = {
-        .pArgDescs = &dispatchArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+              .pArgDescs = &dispatchArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &dispatchSignatureDesc, &pDispatchIndirectSignature);
     ASSERT(pDrawIndirectSignature && pDrawIndexedIndirectSignature && pDispatchIndirectSignature);
@@ -131,8 +141,8 @@ bool RenderContext::initDevice()
     {
         CommandSlot& slot = commandSlots[i];
         CmdPoolDesc  poolDesc = {
-            .pQueue = pGraphicsQueue,
-            .transient = false,
+             .pQueue = pGraphicsQueue,
+             .transient = false,
         };
         addCmdPool(pRenderer, &poolDesc, &slot.pCmdPool);
         ASSERT(slot.pCmdPool);
@@ -172,13 +182,21 @@ bool RenderContext::createSwapChain()
         // TODO: Prefer scRGB for windowed presentation and HDR10 for fullscreen presentation.
         swapDesc.colorSpace = COLOR_SPACE_P2020;
         if (swapDesc.hdrMetadata.maxMasteringLuminance <= 0.0f)
+        {
             swapDesc.hdrMetadata.maxMasteringLuminance = 1000.0f;
+        }
         if (swapDesc.hdrMetadata.minMasteringLuminance <= 0.0f)
+        {
             swapDesc.hdrMetadata.minMasteringLuminance = 0.001f;
+        }
         if (swapDesc.hdrMetadata.maxContentLightLevel <= 0.0f)
+        {
             swapDesc.hdrMetadata.maxContentLightLevel = 1000.0f;
+        }
         if (swapDesc.hdrMetadata.maxFrameAverageLightLevel <= 0.0f)
+        {
             swapDesc.hdrMetadata.maxFrameAverageLightLevel = 400.0f;
+        }
         swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
         if (swapDesc.colorFormat == hz::Format::UNDEFINED)
         {
@@ -198,7 +216,9 @@ bool RenderContext::createSwapChain()
     }
 
     if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+    {
         swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
+    }
     if (swapDesc.colorFormat == hz::Format::UNDEFINED)
     {
         LOGF(LogLevel::eERROR, "No supported swapchain format is available");
@@ -213,11 +233,17 @@ bool RenderContext::createSwapChain()
         hdrDisplayInfo = pSwapChain->hdrDisplayInfo;
         hdrMetadata = pSwapChain->hdrMetadata;
         if (pSwapChain->colorSpace == COLOR_SPACE_P2020)
+        {
             outputMode = OUTPUT_MODE_HDR10;
+        }
         else if (pSwapChain->colorSpace == COLOR_SPACE_EXTENDED_SRGB)
+        {
             outputMode = OUTPUT_MODE_SCRGB;
+        }
         else
+        {
             outputMode = OUTPUT_MODE_SDR;
+        }
         for (uint32_t i = 0; i < pSwapChain->imageCount; ++i)
         {
             RenderTarget* target = pSwapChain->ppRenderTargets[i];
@@ -230,13 +256,17 @@ bool RenderContext::createSwapChain()
 void RenderContext::destroySwapChain()
 {
     for (const CommandSlot& slot : commandSlots)
+    {
         ASSERT(!slot.commands.pCmd);
+    }
     ASSERT(!imageAcquired);
     if (pSwapChain)
     {
         waitQueueIdle(pGraphicsQueue);
         for (GPUTexture& backbuffer : backbuffers)
+        {
             backbuffer = GPUTexture{};
+        }
         removeSwapChain(pRenderer, pSwapChain);
         pSwapChain = nullptr;
     }
@@ -248,7 +278,9 @@ void RenderContext::cleanup()
 {
     destroyShaderCompiler();
     for (const CommandSlot& slot : commandSlots)
+    {
         ASSERT(!slot.commands.pCmd);
+    }
     destroySwapChain();
     destroyDevice(true);
 }
@@ -257,7 +289,9 @@ void RenderContext::destroyDevice(bool waitForGpu)
 {
     ready = false;
     if (waitForGpu && pGraphicsQueue)
+    {
         waitQueueIdle(pGraphicsQueue);
+    }
     if (profilerInitialized)
     {
         exitProfiler();
@@ -274,16 +308,26 @@ void RenderContext::destroyDevice(bool waitForGpu)
         for (CommandSlot& slot : commandSlots)
         {
             for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
+            {
                 removeBuffer(pRenderer, slot.transientBuffers[i]);
+            }
             arrsetlen(slot.transientBuffers, 0);
             if (slot.pSemaphore)
+            {
                 removeSemaphore(pRenderer, slot.pSemaphore);
+            }
             if (slot.pFence)
+            {
                 removeFence(pRenderer, slot.pFence);
+            }
             if (slot.pCmd)
+            {
                 removeCmd(pRenderer, slot.pCmd);
+            }
             if (slot.pCmdPool)
+            {
                 removeCmdPool(pRenderer, slot.pCmdPool);
+            }
             slot.pSemaphore = nullptr;
             slot.pFence = nullptr;
             slot.pCmd = nullptr;
@@ -337,17 +381,23 @@ void RenderContext::destroyDevice(bool waitForGpu)
 bool RenderContext::resize(uint32_t width, uint32_t height)
 {
     for (const CommandSlot& slot : commandSlots)
+    {
         ASSERT(!slot.commands.pCmd);
+    }
     ASSERT(!imageAcquired);
     if (!suspended && desc.width == width && desc.height == height)
+    {
         return true;
+    }
 
     destroySwapChain();
     desc.width = width;
     desc.height = height;
     suspended = !width || !height;
     if (suspended)
+    {
         return true;
+    }
 
     const bool created = createSwapChain();
     ASSERT(created);
@@ -362,12 +412,18 @@ bool RenderContext::resize(uint32_t width, uint32_t height)
 bool RenderContext::setVSync(bool enabled)
 {
     for (const CommandSlot& slot : commandSlots)
+    {
         ASSERT(!slot.commands.pCmd);
+    }
     if (desc.enableVSync == enabled)
+    {
         return true;
+    }
     desc.enableVSync = enabled;
     if (suspended)
+    {
         return true;
+    }
 
     ASSERT(pSwapChain);
     toggleVSync(pRenderer, &pSwapChain);
@@ -380,7 +436,9 @@ CommandList& RenderContext::acquireCommandList()
 {
     ASSERT(ready);
     for (const CommandSlot& slot : commandSlots)
+    {
         ASSERT(!slot.commands.pCmd);
+    }
 
     CommandSlot* available = nullptr;
     for (uint32_t offset = 0; offset < maxCommandLists; ++offset)
@@ -395,12 +453,16 @@ CommandList& RenderContext::acquireCommandList()
                 slot.submitId = 0;
                 // Reclaim completed submissions even when a different command slot is selected.
                 for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
+                {
                     removeBuffer(pRenderer, slot.transientBuffers[i]);
+                }
                 arrsetlen(slot.transientBuffers, 0);
             }
         }
         if (!slot.submitId && !available)
+        {
             available = &slot;
+        }
     }
 
     if (!available)
@@ -411,7 +473,9 @@ CommandList& RenderContext::acquireCommandList()
     }
 
     for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
+    {
         removeBuffer(pRenderer, available->transientBuffers[i]);
+    }
     arrsetlen(available->transientBuffers, 0);
     resetCmdPool(pRenderer, available->pCmdPool);
     beginCmd(available->pCmd);
@@ -478,7 +542,9 @@ void RenderContext::wait(SubmitHandle handle)
     ASSERT(handle.isValid() && handle.slot < maxCommandLists);
     CommandSlot& slot = commandSlots[handle.slot];
     if (slot.submitId == handle.id)
+    {
         waitForFences(pRenderer, 1, &slot.pFence);
+    }
 }
 
 bool RenderContext::isComplete(SubmitHandle handle) const
@@ -486,7 +552,9 @@ bool RenderContext::isComplete(SubmitHandle handle) const
     ASSERT(handle.isValid() && handle.slot < maxCommandLists);
     const CommandSlot& slot = commandSlots[handle.slot];
     if (slot.submitId != handle.id)
+    {
         return true;
+    }
     FenceStatus status = FENCE_STATUS_INCOMPLETE;
     getFenceStatus(pRenderer, slot.pFence, &status);
     return status != FENCE_STATUS_INCOMPLETE;

@@ -86,7 +86,9 @@ static inline void releaseThreadSystemHandle(struct ThreadSystemData* t)
 {
     uint64_t threadCount = tfrg_atomic32_add_relaxed(&t->references_Atomic, -1);
     if (threadCount == 1)
+    {
         threadSystemCleanup(t);
+    }
 }
 
 static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
@@ -94,7 +96,9 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
     struct ThreadSystemTask task = { 0 };
 
     if (t->stopAbandon)
+    {
         return task;
+    }
 
     acquireMutex(&t->mutex);
 
@@ -109,7 +113,9 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
         }
 
         if (t->stop)
+        {
             break;
+        }
 
         if (!idleSet && tid != UINT64_MAX)
         {
@@ -121,7 +127,9 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
     }
 
     if (idleSet)
+    {
         --t->idleThreadCount;
+    }
 
     uint64_t scheduledCount = t->tasksQueued - t->tasksTaken;
     if (t->tasksTaken > scheduledCount * 3)
@@ -137,7 +145,9 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
 
     size_t arrayLimit = arrlenu(t->tasks); //-V595
     if (arrayLimit > OPTIMAL_TASK_SLOTS_COUNT * 2)
+    {
         arrsetlen(t->tasks, OPTIMAL_TASK_SLOTS_COUNT);
+    }
 
     releaseMutex(&t->mutex);
 
@@ -167,7 +177,9 @@ static void taskThreadFunc(void* threadUserData)
 
         task = getTask(t, tid);
         if (t->stop && !task.func)
+        {
             break;
+        }
     }
 
     releaseThreadSystemHandle(t);
@@ -177,20 +189,28 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
 {
     *out = NULL;
     if (desc->threadCount == 0) // dummy run
+    {
         return true;
+    }
 
     uint64_t cpuCount = getNumCPUCores();
     uint64_t count = desc->threadCount;
 
     if (count > cpuCount)
+    {
         count = cpuCount;
+    }
 
     if (count == 0) // something went wrong (maybe getNumCPUCores returned 0)
+    {
         return false;
+    }
 
     struct ThreadSystemData* t = tf_calloc(1, sizeof(*t) + sizeof(ThreadHandle) * count);
     if (!t)
+    {
         return false;
+    }
 
     t->threads = (ThreadHandle*)(t + 1);
     t->name = desc->threadName ? desc->threadName : "ThreadSystem";
@@ -250,7 +270,9 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
         acquireThreadSystemHandle(t);
 
         if (initThread(&threadDesc, t->threads + ti))
+        {
             continue;
+        }
 
         t->stop = true;
         t->stopAbandon = true;
@@ -268,25 +290,33 @@ void threadSystemExit(ThreadSystem* thandle, const struct ThreadSystemExitDesc* 
 {
     struct ThreadSystemData* t = *thandle;
     if (!t)
+    {
         return;
+    }
     *thandle = NULL;
 
     acquireMutex(&t->mutex);
     t->stop = true;
     if (desc->abandonTasks)
+    {
         t->stopAbandon = true;
+    }
     wakeAllConditionVariable(&t->conditionTasks);
     releaseMutex(&t->mutex);
 
     if (!desc->detachThreads)
     {
         for (uint64_t ti = 0; ti < t->threadCount; ++ti)
+        {
             joinThread(t->threads[ti]);
+        }
     }
     else
     {
         for (uint64_t ti = 0; ti < t->threadCount; ++ti)
+        {
             detachThread(t->threads[ti]);
+        }
     }
 
     releaseThreadSystemHandle(t);
@@ -295,16 +325,22 @@ void threadSystemExit(ThreadSystem* thandle, const struct ThreadSystemExitDesc* 
 void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, uint64_t userSize, void* users)
 {
     if (count == 0)
+    {
         return;
+    }
     if (!VERIFY(func))
+    {
         return;
+    }
 
     struct ThreadSystemData* t = thandle;
 
     if (!t) // dummy run
     {
         for (uint64_t ti = 0; ti < count; ++ti)
+        {
             func((uint8_t*)users + ti * userSize, 0);
+        }
         return;
     }
 
@@ -334,9 +370,13 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
     }
 
     if (count == 1)
+    {
         wakeOneConditionVariable(&t->conditionTasks);
+    }
     else
+    {
         wakeAllConditionVariable(&t->conditionTasks);
+    }
 
     releaseMutex(&t->mutex);
     return;
@@ -346,11 +386,15 @@ bool threadSystemAssist(ThreadSystem thandle)
 {
     struct ThreadSystemData* t = thandle;
     if (!t)
+    {
         return false;
+    }
 
     struct ThreadSystemTask task = getTask(t, UINT64_MAX);
     if (task.func)
+    {
         task.func(task.user, UINT64_MAX);
+    }
     return task.func;
 }
 
@@ -358,7 +402,9 @@ bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)
 {
     struct ThreadSystemData* t = thandle;
     if (!t)
+    {
         return true;
+    }
 
     Timer timer;
     initTimer(&timer);
@@ -369,13 +415,17 @@ bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)
     {
         idle = (t->tasksTaken >= t->tasksQueued) && (t->idleThreadCount >= tfrg_atomic32_load_relaxed(&t->references_Atomic) - 1);
         if (idle || timeout_ms == 0)
+        {
             break;
+        }
 
         if (timeout_ms != UINT32_MAX)
         {
             uint32_t ms = getTimerMSec(&timer, false);
             if (ms > timeout_ms)
+            {
                 break;
+            }
             waitConditionVariable(&t->conditionIsIdle, &t->mutex, timeout_ms - ms);
         }
         else
@@ -393,7 +443,9 @@ void threadSystemGetInfo(ThreadSystem thandle, struct ThreadSystemInfo* outInfo)
 
     struct ThreadSystemData* t = thandle;
     if (!t)
+    {
         return;
+    }
 
     outInfo->threadCount = t->threadCount;
     outInfo->executedThreadCount = tfrg_atomic32_load_relaxed(&t->activatedThreadCount_Atomic);

@@ -117,9 +117,13 @@ void fswThreadFunc(void* data)
                 break;
             case FILE_ACTION_MODIFIED:
                 if (fs->notifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
+                {
                     action = FWE_MODIFIED;
+                }
                 if (fs->notifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
+                {
                     action = FWE_ACCESSED;
+                }
                 break;
             case FILE_ACTION_REMOVED:
             case FILE_ACTION_RENAMED_OLD_NAME:
@@ -150,7 +154,9 @@ void fswThreadFunc(void* data)
             }
 
             if (!fni->NextEntryOffset)
+            {
                 break;
+            }
             p += fni->NextEntryOffset;
         }
     }
@@ -288,7 +294,9 @@ bool file_exist(const char* filePath)
     struct _stat s = {};
     int          res = _wstat(pathStr, &s);
     if (res != 0)
+    {
         return false;
+    }
     return true;
 }
 
@@ -304,7 +312,9 @@ bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName)
 bool create_directories(const char* path, bool recursive)
 {
     if (file_exist(path))
+    {
         return true;
+    }
 
     char directoryPath[FS_MAX_PATH] = {};
     strncpy(directoryPath, path, FS_MAX_PATH - 1);
@@ -326,7 +336,9 @@ bool create_directories(const char* path, bool recursive)
             strncpy(parentPath, directoryPath, loc - directoryPath);
             // Recurse parent directories
             if (!create_directories(parentPath, recursive))
+            {
                 return false;
+            }
         }
     }
 
@@ -359,7 +371,9 @@ bool fsCreateDirectory(const ResourceDirectory resourceDir, const char* path, bo
     char        directoryPath[FS_MAX_PATH] = {};
     fsAppendPathComponent(resourcePath, path, directoryPath);
     if (!*directoryPath)
+    {
         return true;
+    }
 
     return create_directories(directoryPath, recursive);
 }
@@ -411,7 +425,9 @@ static bool windowsFsDirectoryIteratorReopen(struct WindowsFsDirectoryIterator* 
     wchar_t buffer[FS_MAX_PATH] = {};
     size_t  utf16Len;
     if (mbstowcs_s(&utf16Len, buffer, iterator->openedPath, FS_MAX_PATH - 2))
+    {
         return false;
+    }
 
     buffer[utf16Len - 1] = '\\';
     buffer[utf16Len + 0] = '*';
@@ -450,12 +466,16 @@ bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryI
 void fsDirectoryIteratorClose(FsDirectoryIterator data)
 {
     if (!data)
+    {
         return;
+    }
 
     struct WindowsFsDirectoryIterator* iterator = (struct WindowsFsDirectoryIterator*)data;
 
     if (iterator->hFind)
+    {
         FindClose(iterator->hFind);
+    }
     tf_free(iterator);
 }
 
@@ -466,14 +486,18 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIterato
     if (iterator->finished)
     {
         if (!windowsFsDirectoryIteratorReopen(iterator))
+        {
             return false;
+        }
     }
 
     for (;;)
     {
         // to use first entry from fsDirectoryIteratorOpen
         if (iterator->entryUsed)
+        {
             iterator->success = FindNextFileW(iterator->hFind, &iterator->fd);
+        }
         iterator->entryUsed = true;
 
         if (!iterator->success)
@@ -489,7 +513,9 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIterato
         }
 
         if (iterator->fd.dwFileAttributes & FILE_ATTRIBUTE_OFFLINE)
+        {
             continue;
+        }
 
         // To check if symlink we can use this
         // if (iterator->fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
@@ -497,7 +523,9 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIterato
         bool isDir = iterator->fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
 
         if (!WideCharToMultiByte(CP_UTF8, 0, iterator->fd.cFileName, -1, iterator->buffer, sizeof iterator->buffer, NULL, NULL))
+        {
             continue;
+        }
 
         // Avoid ".", ".." directories
         if (isDir && iterator->buffer[0] == '.' && (iterator->buffer[1] == 0 || (iterator->buffer[1] == '.' && iterator->buffer[2] == 0)))

@@ -148,7 +148,7 @@ typedef struct WindowHandle
     ANativeActivity* activity;
     AConfiguration*  configuration;
 #elif defined(__APPLE__) || defined(NX64) || defined(ORBIS) || defined(PROSPERO)
-    void*   window;
+    void* window;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
     xcb_connection_t*        connection;
     xcb_window_t             window;
@@ -266,10 +266,10 @@ typedef struct
     char    publicAdapterName[64];
     char    publicDisplayName[64];
 #else
-    char                     adapterName[32];
-    char                     displayName[32];
-    char                     publicAdapterName[64];
-    char                     publicDisplayName[64];
+    char adapterName[32];
+    char displayName[32];
+    char publicAdapterName[64];
+    char publicDisplayName[64];
 #endif
     // stb_ds array of Resolutions
     Resolution* resolutions;
@@ -462,8 +462,8 @@ FORGE_API void setCustomMessageProcessor(CustomMessageProcessor proc);
 extern "C"
 {
 #endif
-    /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-    FORGE_API int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
+/// @param stdOutFile The file to which the output of the command should be written. May be NULL.
+FORGE_API int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
 #ifdef __cplusplus
 }
 #endif

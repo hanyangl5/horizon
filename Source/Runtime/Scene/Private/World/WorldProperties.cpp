@@ -30,8 +30,12 @@ static bool validatePropertyValue(const PropertyDesc& property, const PropertyVa
         int32_t enumValue;
         memcpy(&enumValue, value.pData, sizeof(enumValue));
         for (const EnumValue& entry : property.enumValues)
+        {
             if (entry.value == enumValue)
+            {
                 return true;
+            }
+        }
         LOGF(eERROR, "Property '%s': unknown enum value", property.pName);
         return false;
     }
@@ -43,7 +47,9 @@ static void writeProperty(void* pDestination, const PropertyDesc& property, cons
     const size_t size = value.kind == PropertyKind::String ? strlen((const char*)value.pData) + 1 : value.size;
     memmove(pDestination, value.pData, size);
     if (size < property.size)
+    {
         memset((uint8_t*)pDestination + size, 0, property.size - size);
+    }
 }
 
 void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID type, PropertyID property, const PropertyDesc*& pProperty)
@@ -77,9 +83,13 @@ bool World::setProperty(Entity entity, TypeID type, PropertyID property, const P
     const PropertyDesc* pProperty = nullptr;
     void*               pDestination = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pDestination || !validatePropertyValue(*pProperty, value))
+    {
         return false;
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    {
         return false;
+    }
     writeProperty(pDestination, *pProperty, value);
     pImpl->notifyPropertyChange(entity.value, type);
     return true;
@@ -88,7 +98,9 @@ bool World::setProperty(Entity entity, TypeID type, PropertyID property, const P
 static bool validateArray(const PropertyDesc& property)
 {
     if (property.kind == PropertyKind::Array)
+    {
         return true;
+    }
     LOGF(eERROR, "Property '%s' is not an array", property.pName);
     return false;
 }
@@ -98,11 +110,17 @@ bool World::resizeArray(Entity entity, TypeID type, PropertyID property, uint32_
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
+    {
         return false;
+    }
     if (count == pProperty->pArrayOperations->pCount(pArray))
+    {
         return true;
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    {
         return false;
+    }
     pProperty->pArrayOperations->pResize(pArray, count);
     pImpl->notifyPropertyChange(entity.value, type);
     return true;
@@ -114,19 +132,29 @@ bool World::insertArrayElement(Entity entity, TypeID type, PropertyID property, 
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
+    {
         return false;
+    }
     if (index > pProperty->pArrayOperations->pCount(pArray))
     {
         LOGF(eERROR, "Property '%s': insertion index is out of range", pProperty->pName);
         return false;
     }
     for (const PropertyDesc& field : pProperty->pElementType->properties)
+    {
         if (!validatePropertyValue(field, { .kind = field.kind, .pData = (const uint8_t*)pValue + field.offset, .size = field.size }))
+        {
             return false;
+        }
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    {
         return false;
+    }
     if (!pProperty->pArrayOperations->pInsert(pArray, index, pValue))
+    {
         return false;
+    }
     pImpl->notifyPropertyChange(entity.value, type);
     return true;
 }
@@ -136,16 +164,22 @@ bool World::removeArrayElement(Entity entity, TypeID type, PropertyID property, 
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
+    {
         return false;
+    }
     if (index >= pProperty->pArrayOperations->pCount(pArray))
     {
         LOGF(eERROR, "Property '%s': removal index is out of range", pProperty->pName);
         return false;
     }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    {
         return false;
+    }
     if (!pProperty->pArrayOperations->pRemove(pArray, index))
+    {
         return false;
+    }
     pImpl->notifyPropertyChange(entity.value, type);
     return true;
 }
@@ -156,7 +190,9 @@ bool World::setArrayElementProperty(Entity entity, TypeID type, PropertyID prope
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
+    {
         return false;
+    }
     if (index >= pProperty->pArrayOperations->pCount(pArray))
     {
         LOGF(eERROR, "Property '%s': element index is out of range", pProperty->pName);
@@ -169,9 +205,13 @@ bool World::setArrayElementProperty(Entity entity, TypeID type, PropertyID prope
         return false;
     }
     if (!validatePropertyValue(*pField, value))
+    {
         return false;
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    {
         return false;
+    }
     void* pData = const_cast<void*>(pProperty->pArrayOperations->pData(pArray));
     writeProperty((uint8_t*)pData + (size_t)index * pProperty->pElementType->size + pField->offset, *pField, value);
     pImpl->notifyPropertyChange(entity.value, type);

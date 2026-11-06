@@ -10,10 +10,16 @@ template<typename T>
 static void copyValues(T* pTarget, const T* pSource, uint32_t count)
 {
     if constexpr (__is_trivially_copyable(T))
+    {
         memcpy(pTarget, pSource, sizeof(T) * count);
+    }
     else
+    {
         for (uint32_t i = 0; i < count; ++i)
+        {
             pTarget[i] = pSource[i];
+        }
+    }
 }
 
 template<typename T>
@@ -21,14 +27,20 @@ static void syncArray(Array<T>& target, Span<T> source, Span<RenderRange> ranges
 {
     target.resize(source.count);
     if (full && source.count)
+    {
         copyValues(target.data(), source.pData, source.count);
+    }
     else
+    {
         for (RenderRange range : ranges)
         {
             ASSERT(range.first <= source.count && range.count <= source.count - range.first);
             if (range.count)
+            {
                 copyValues(target.data() + range.first, source.pData + range.first, range.count);
+            }
         }
+    }
 }
 
 template<typename T>
@@ -36,7 +48,9 @@ static void upload(RenderContext& context, GPUBuffer& buffer, uint64_t& capacity
 {
     const uint64_t size = sizeof(T) * (uint64_t)source.count;
     if (!size)
+    {
         return;
+    }
     if (size > capacity)
     {
         capacity = size > capacity * 2 ? size : capacity * 2;
@@ -56,13 +70,17 @@ static void upload(RenderContext& context, GPUBuffer& buffer, uint64_t& capacity
         ASSERT(updated);
     }
     else
+    {
         for (RenderRange range : ranges)
+        {
             if (range.count)
             {
                 const bool updated = context.updateBuffer(buffer, sizeof(T) * (uint64_t)range.first, source.pData + range.first,
                                                           sizeof(T) * (uint64_t)range.count);
                 ASSERT(updated);
             }
+        }
+    }
 }
 
 struct SceneFrameData
@@ -103,18 +121,22 @@ public:
         for (SceneFrameData& frame : frames)
         {
             if (frame.submission.isValid())
+            {
                 context.wait(frame.submission);
+            }
             frame.assets = {};
         }
     }
     void collect()
     {
         for (SceneFrameData& frame : frames)
+        {
             if (frame.submission.isValid() && context.isComplete(frame.submission))
             {
                 frame.submission = {};
                 frame.assets = {};
             }
+        }
     }
     void discard(uint32_t index)
     {
@@ -138,7 +160,9 @@ public:
             }
         }
         if (index == UINT32_MAX)
+        {
             return index;
+        }
         scene.update();
         SceneFrameData& frame = frames[index];
         frame.assets = scene.captureAssets();
@@ -261,7 +285,9 @@ void SceneFramePool::collect() { pData->collect(); }
 SceneFrameSnapshot::~SceneFrameSnapshot()
 {
     if (pData)
+    {
         pData->discard(index);
+    }
 }
 SceneFrameSnapshot::SceneFrameSnapshot(SceneFrameSnapshot&& other) noexcept: pData(other.pData), index(other.index)
 {
@@ -273,7 +299,9 @@ SceneFrameSnapshot& SceneFrameSnapshot::operator=(SceneFrameSnapshot&& other) no
     if (this != &other)
     {
         if (pData)
+        {
             pData->discard(index);
+        }
         pData = other.pData;
         index = other.index;
         other.pData = nullptr;

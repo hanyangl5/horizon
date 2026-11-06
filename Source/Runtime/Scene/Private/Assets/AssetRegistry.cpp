@@ -39,7 +39,9 @@ public:
     const void* find(AssetHandle handle, AssetType type) const
     {
         if (handle.index >= assets.size())
+        {
             return nullptr;
+        }
         const SnapshotAsset& asset = assets[handle.index];
         return asset.generation == handle.generation && asset.type == type ? asset.pPayload : nullptr;
     }
@@ -101,7 +103,9 @@ public:
     AssetSlot* find(AssetHandle handle)
     {
         if (handle.index >= slots.size())
+        {
             return nullptr;
+        }
         AssetSlot& slot = slots[handle.index];
         return slot.pEntry && slot.generation == handle.generation ? &slot : nullptr;
     }
@@ -125,14 +129,18 @@ public:
     void releaseSnapshot(AssetSnapshotData* pSnapshot)
     {
         if (--pSnapshot->references)
+        {
             return;
+        }
         for (uint32_t i = 0; i < pSnapshot->assets.size(); ++i)
+        {
             if (pSnapshot->assets[i].pPayload)
             {
                 ASSERT(slots[i].snapshotReferences);
                 --slots[i].snapshotReferences;
                 queueRetirement(i);
             }
+        }
         tf_delete(pSnapshot);
         --snapshotCount;
     }
@@ -153,7 +161,9 @@ public:
         {
             SnapshotSubmission& pending = submissions[i];
             if (wait)
+            {
                 pending.pContext->wait(pending.submission);
+            }
             if (wait || pending.pContext->isComplete(pending.submission))
             {
                 releaseSnapshot(pending.pSnapshot);
@@ -161,7 +171,9 @@ public:
                 submissions.popBack();
             }
             else
+            {
                 ++i;
+            }
         }
     }
 
@@ -169,15 +181,23 @@ public:
     {
         const AssetRecord* pRecord = hmgetp_null(pRecords, id);
         if (pRecord)
+        {
             return slots[pRecord->value.index].state == AssetState::Retiring ? AssetError::Retiring : AssetError::None;
+        }
         const AssetVisit* pVisit = hmgetp_null(plan.pVisits, id);
         if (pVisit)
+        {
             return pVisit->complete ? AssetError::None : AssetError::DependencyCycle;
+        }
         const AssetCatalogEntry* pEntry = catalog.find(id);
         if (!pEntry)
+        {
             return AssetError::UnknownAsset;
+        }
         if (!loaders[(uint32_t)pEntry->type].pBegin)
+        {
             return AssetError::MissingLoader;
+        }
         const AssetVisit visit = { .key = id };
         hmputs(plan.pVisits, visit);
         plan.stack.pushBack({ .pEntry = pEntry });
@@ -191,7 +211,9 @@ public:
         {
             AssetTraversal& traversal = plan.stack[plan.stack.size() - 1];
             if (traversal.nextDependency < traversal.pEntry->dependencies.count)
+            {
                 error = visit(traversal.pEntry->dependencies.pData[traversal.nextDependency++], plan);
+            }
             else
             {
                 hmgetp_null(plan.pVisits, traversal.pEntry->id)->complete = true;
@@ -211,7 +233,9 @@ public:
             freeSlots.popBack();
         }
         else
+        {
             slots.pushBack({});
+        }
         AssetSlot& slot = slots[index];
         slot.pEntry = &entry;
         slot.state = AssetState::Queued;
@@ -233,7 +257,9 @@ public:
     {
         AssetSlot* pSlot = find(handle);
         if (!pSlot || !pSlot->references)
+        {
             return false;
+        }
         if (--pSlot->references == 0)
         {
             pSlot->state = AssetState::Retiring;
@@ -255,9 +281,13 @@ public:
     void releaseDependencies(AssetSlot& slot)
     {
         if (!slot.pDependencies)
+        {
             return;
+        }
         for (uint32_t i = 0; i < slot.pEntry->dependencies.count; ++i)
+        {
             release(slot.pDependencies[i]);
+        }
         tf_free(slot.pDependencies);
         slot.pDependencies = nullptr;
     }
@@ -282,9 +312,12 @@ public:
     void update(AssetSlot& slot)
     {
         if (!slot.pEntry || slot.state == AssetState::Ready)
+        {
             return;
+        }
         bool dependenciesReady = true;
         if (slot.state != AssetState::Retiring && slot.state != AssetState::Failed && slot.pDependencies)
+        {
             for (uint32_t i = 0; i < slot.pEntry->dependencies.count; ++i)
             {
                 const AssetState state = slots[slot.pDependencies[i].index].state;
@@ -295,6 +328,7 @@ public:
                     slot.error = AssetError::DependencyFailed;
                 }
             }
+        }
         const AssetLoader& loader = loaders[(uint32_t)slot.pEntry->type];
         if (slot.state == AssetState::Queued)
         {
@@ -302,7 +336,9 @@ public:
                 loader.pBegin(*slot.pEntry, { .index = (uint32_t)(&slot - slots.data()), .generation = slot.generation }, loader.pUserData);
             slot.state = slot.pRequest ? AssetState::LoadingCPU : AssetState::Failed;
             if (!slot.pRequest)
+            {
                 slot.error = AssetError::LoadFailed;
+            }
         }
         if (slot.pRequest)
         {
@@ -316,13 +352,17 @@ public:
             slot.pRequest = nullptr;
             slot.pPayload = result.pPayload;
             if (slot.state == AssetState::Retiring)
+            {
                 queueRetirement((uint32_t)(&slot - slots.data()));
+            }
             else if (slot.state != AssetState::Failed)
             {
                 slot.state =
                     result.status == AssetLoadStatus::Succeeded && result.pPayload ? AssetState::WaitingDependencies : AssetState::Failed;
                 if (slot.state == AssetState::Failed)
+                {
                     slot.error = AssetError::LoadFailed;
+                }
             }
         }
         if (slot.state == AssetState::WaitingDependencies && dependenciesReady)
@@ -334,25 +374,35 @@ public:
                 loader.pUpload(slot.pPayload, registry, { slot.pDependencies, slot.pEntry->dependencies.count }, loader.pUserData);
             }
             else
+            {
                 slot.state = AssetState::Ready;
+            }
         }
         if (slot.uploading)
         {
             const AssetLoadStatus status = loader.pPollUpload(slot.pPayload, loader.pUserData);
             if (status == AssetLoadStatus::Pending)
+            {
                 return;
+            }
             slot.uploading = false;
             if (slot.state == AssetState::Retiring)
+            {
                 queueRetirement((uint32_t)(&slot - slots.data()));
+            }
             else if (slot.state != AssetState::Failed)
             {
                 slot.state = status == AssetLoadStatus::Succeeded ? AssetState::Ready : AssetState::Failed;
                 if (slot.state == AssetState::Failed)
+                {
                     slot.error = AssetError::UploadFailed;
+                }
             }
         }
         if (slot.state == AssetState::Ready)
+        {
             invalidateSnapshot();
+        }
         if (slot.state == AssetState::Failed)
         {
             destroyPayload(slot);
@@ -394,7 +444,9 @@ AssetHandle AssetRegistry::request(AssetID id, AssetError* pError)
     AssetRequestPlan plan;
     const AssetError error = pData->shuttingDown ? AssetError::ShuttingDown : pData->prepare(id, plan);
     if (pError)
+    {
         *pError = error;
+    }
     if (error != AssetError::None)
     {
         char text[kIDStringCapacity];
@@ -405,7 +457,9 @@ AssetHandle AssetRegistry::request(AssetID id, AssetError* pError)
     pData->freeSlots.reserve(pData->slots.size() + plan.entries.size());
     pData->retirements.reserve(pData->slots.size() + plan.entries.size());
     for (const AssetCatalogEntry* pEntry : plan.entries)
+    {
         pData->create(*pEntry);
+    }
     const AssetHandle handle = hmgetp_null(pData->pRecords, id)->value;
     ++pData->slots[handle.index].references;
     return handle;
@@ -418,7 +472,9 @@ void AssetRegistry::update()
     pData->updateSubmissions(false);
     pData->retire();
     for (AssetSlot& slot : pData->slots)
+    {
         pData->update(slot);
+    }
     pData->retire();
 }
 
@@ -459,7 +515,9 @@ AssetSnapshot AssetRegistry::captureSnapshot()
 {
     AssetSnapshot result;
     if (pData->shuttingDown)
+    {
         return result;
+    }
     if (!pData->pCurrentSnapshot)
     {
         pData->pCurrentSnapshot = tf_new(AssetSnapshotData);
@@ -488,7 +546,9 @@ AssetSnapshot AssetRegistry::captureRenderSnapshot()
 {
     AssetSnapshot result = captureSnapshot();
     if (!result.isValid() || result.pData->gpuTables)
+    {
         return result;
+    }
     AssetSnapshotData& data = *result.pData;
     data.meshes.resize(data.assets.size());
     data.materials.resize(data.assets.size());
@@ -497,10 +557,14 @@ AssetSnapshot AssetRegistry::captureRenderSnapshot()
     {
         const SnapshotAsset& asset = data.assets[i];
         if (!asset.pPayload)
+        {
             continue;
+        }
         if (asset.type == AssetType::Texture)
+        {
             data.textures[i] = { .id = { .index = i, .generation = asset.generation },
                                  .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
+        }
         else if (asset.type == AssetType::Mesh)
         {
             const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
@@ -512,7 +576,9 @@ AssetSnapshot AssetRegistry::captureRenderSnapshot()
                                .submeshOffset = data.submeshes.size(),
                                .submeshCount = mesh.getDescription().submeshes.count };
             for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
+            {
                 data.vertexStreams.pushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
+            }
             for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
             {
                 const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
@@ -532,7 +598,9 @@ AssetSnapshot AssetRegistry::captureRenderSnapshot()
             for (uint32_t texture = 0; texture < 4; ++texture)
             {
                 if (!textureIDs[texture].isValid())
+                {
                     continue;
+                }
                 const AssetHandle handle = find(textureIDs[texture]);
                 ASSERT(data.find(handle, AssetType::Texture));
                 *ppTextures[texture] = { .index = handle.index, .generation = handle.generation };
@@ -571,7 +639,9 @@ void AssetRegistry::retireSnapshot(AssetSnapshot&& snapshot, RenderContext& cont
 AssetSnapshot::~AssetSnapshot()
 {
     if (pData)
+    {
         pData->pOwner->releaseSnapshot(pData);
+    }
 }
 AssetSnapshot::AssetSnapshot(AssetSnapshot&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
 AssetSnapshot& AssetSnapshot::operator=(AssetSnapshot&& other) noexcept
@@ -579,7 +649,9 @@ AssetSnapshot& AssetSnapshot::operator=(AssetSnapshot&& other) noexcept
     if (this != &other)
     {
         if (pData)
+        {
             pData->pOwner->releaseSnapshot(pData);
+        }
         pData = other.pData;
         other.pData = nullptr;
     }
@@ -607,12 +679,16 @@ uint32_t AssetRegistry::getCount() const { return (uint32_t)hmlen(pData->pRecord
 void AssetRegistry::shutdown()
 {
     if (pData->shuttingDown)
+    {
         return;
+    }
     pData->shuttingDown = true;
     for (AssetSlot& slot : pData->slots)
     {
         if (!slot.pEntry)
+        {
             continue;
+        }
         if (slot.pRequest)
         {
             const AssetLoader& loader = pData->loaders[(uint32_t)slot.pEntry->type];
@@ -633,19 +709,31 @@ void AssetRegistry::shutdown()
     for (AssetSlot& slot : pData->slots)
     {
         if (!slot.pEntry)
+        {
             continue;
+        }
         slot.references = 0;
         slot.state = AssetState::Retiring;
         slot.retirementQueued = false;
     }
     // Discard external references, retaining dependency edges so parents retire first.
     for (const AssetSlot& slot : pData->slots)
+    {
         if (slot.pDependencies)
+        {
             for (uint32_t i = 0; i < slot.pEntry->dependencies.count; ++i)
+            {
                 ++pData->slots[slot.pDependencies[i].index].references;
+            }
+        }
+    }
     for (uint32_t i = 0; i < pData->slots.size(); ++i)
+    {
         if (pData->slots[i].pEntry && !pData->slots[i].references)
+        {
             pData->queueRetirement(i);
+        }
+    }
     pData->retire();
     ASSERT(!getCount());
 }

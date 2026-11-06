@@ -95,7 +95,9 @@ int32_t Rig::FindJoint(const char* jointName)
     for (uint32_t i = 0; i < numJoints; i++)
     {
         if (strcmp(skeleton.joint_names()[i], jointName) == 0)
+        {
             return i;
+        }
     }
     return -1;
 }

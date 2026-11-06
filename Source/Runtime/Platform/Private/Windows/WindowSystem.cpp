@@ -24,12 +24,12 @@
 
 #include "Core/IConfig.h"
 
-//#include "Application/IApp.h"
+// #include "Application/IApp.h"
 #include "Platform/IInput.h"
 #include "Core/ILog.h"
-//#include "Application/IScreenshot.h"
-//#include "Application/IUI.h"
-//#include <Scripting/IScripting.h>
+// #include "Application/IScreenshot.h"
+// #include "Application/IUI.h"
+// #include <Scripting/IScripting.h>
 #include "Platform/IOperatingSystem.h"
 #include "Core/ITime.h"
 #include <ThirdParty/bstrlib/bstrlib.h>
@@ -64,12 +64,16 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
         int32_t Y = fsHalfHeight - windowHalfHeight;
 
         if ((abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1))
+        {
             return false;
+        }
     }
     else
     {
         if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
+        {
             return false;
+        }
     }
 
     return true;
@@ -79,7 +83,9 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 {
     RectDesc windowRect = pWindowRef->windowedRect;
     if ((abs(getRectWidth(&windowRect) - width) > 1) || (abs(getRectHeight(&windowRect) - height) > 1))
+    {
         return false;
+    }
     return true;
 }
 

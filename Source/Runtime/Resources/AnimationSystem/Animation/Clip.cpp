@@ -43,7 +43,9 @@ bool Clip::Sample(ozz::animation::SamplingJob::Context* cacheInput, ozz::span<So
 
     // Samples animation.
     if (!samplingJob.Run())
+    {
         return false;
+    }
 
     return true;
 }

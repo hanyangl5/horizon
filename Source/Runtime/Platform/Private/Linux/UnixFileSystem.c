@@ -207,7 +207,9 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     *outData = NULL;
 
     if (fs->mode & FM_WRITE)
+    {
         return false;
+    }
 
     USD(stream, fs);
 
@@ -215,9 +217,13 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     if (!stream->mapping)
     {
         if (stream->size < 0)
+        {
             return false;
+        }
         if (stream->size == 0)
+        {
             return true;
+        }
 
         void* mem = mmap(NULL, (size_t)stream->size, PROT_READ, MAP_PRIVATE, stream->descriptor, 0);
 
@@ -276,7 +282,9 @@ static size_t ioUnixFsRead(FileStream* fs, void* dst, size_t size)
     USD(stream, fs);
     ssize_t res = read(stream->descriptor, dst, size);
     if (res >= 0)
+    {
         return (size_t)res;
+    }
 
     char buffer[1024];
     LOGF(eERROR, "Error reading %s from file '%s': %s", humanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
@@ -290,7 +298,9 @@ static ssize_t ioUnixFsGetPosition(FileStream* fs)
 
     off_t res = lseek(stream->descriptor, 0, SEEK_CUR);
     if (res >= 0)
+    {
         return res;
+    }
 
     char buffer[1024];
     LOGF(eERROR, "Error getting file position '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
@@ -302,7 +312,9 @@ static size_t ioUnixFsWrite(FileStream* fs, const void* src, size_t size)
     USD(stream, fs);
     ssize_t res = write(stream->descriptor, src, size);
     if (res >= 0)
+    {
         return (size_t)res;
+    }
 
     char buffer[1024];
     LOGF(eERROR, "Error writing %s from file '%s': %s", humanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
@@ -330,7 +342,9 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
 
     off_t res = lseek(stream->descriptor, offset, whence);
     if (res >= 0)
+    {
         return true;
+    }
 
     char buffer[1024];
     LOGF(eERROR, "Error seeking file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
@@ -340,7 +354,9 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
 static bool ioUnixFsFlush(FileStream* fs)
 {
     if (!(fs->mode & FM_WRITE))
+    {
         return true;
+    }
 
     USD(stream, fs);
 
@@ -348,10 +364,14 @@ static bool ioUnixFsFlush(FileStream* fs)
     // datasync is a bit faster, because it can skip flush of modified metadata,
     // e.g. file access time
     if (!fdatasync(stream->descriptor))
+    {
         return true;
+    }
 #else
     if (!fsync(stream->descriptor))
+    {
         return true;
+    }
 #endif
 
     char buffer[1024];
@@ -363,10 +383,14 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
 {
     off_t offset = lseek(stream->descriptor, 0, SEEK_CUR);
     if (offset < 0)
+    {
         return false;
+    }
     off_t size = lseek(stream->descriptor, 0, SEEK_END);
     if (size < 0)
+    {
         return false;
+    }
 
     if (offset == size)
     {
@@ -390,7 +414,9 @@ static ssize_t ioUnixFsGetSize(FileStream* fs)
 {
     USD(stream, fs);
     if ((fs->mode & FM_WRITE) && !unixFsUpdateSize(stream))
+    {
         return -1;
+    }
     return stream->size;
 }
 

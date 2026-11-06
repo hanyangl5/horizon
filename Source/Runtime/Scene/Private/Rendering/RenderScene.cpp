@@ -12,16 +12,26 @@ namespace hz
 static bool equalMatrix(const Matrix4& a, const Matrix4& b)
 {
     for (uint32_t column = 0; column < 4; ++column)
+    {
         for (uint32_t row = 0; row < 4; ++row)
+        {
             if ((float)a.getElem(column, row) != (float)b.getElem(column, row))
+            {
                 return false;
+            }
+        }
+    }
     return true;
 }
 static bool equalBounds(const RenderBounds& a, const RenderBounds& b)
 {
     for (uint32_t i = 0; i < 3; ++i)
+    {
         if (a.minimum[i] != b.minimum[i] || a.maximum[i] != b.maximum[i])
+        {
             return false;
+        }
+    }
     return true;
 }
 static bool equalLens(const Camera& a, const Camera& b)
@@ -121,7 +131,9 @@ static int compareRenderRanges(const void* pA, const void* pB)
 static void mergeRanges(Array<RenderRange>& ranges)
 {
     if (ranges.empty())
+    {
         return;
+    }
     qsort(ranges.data(), ranges.size(), sizeof(RenderRange), compareRenderRanges);
     uint32_t count = 1;
     for (uint32_t i = 1; i < ranges.size(); ++i)
@@ -132,10 +144,14 @@ static void mergeRanges(Array<RenderRange>& ranges)
         {
             const uint32_t end = range.first + range.count;
             if (end > previous.first + previous.count)
+            {
                 previous.count = end - previous.first;
+            }
         }
         else
+        {
             ranges[count++] = range;
+        }
     }
     ranges.resize(count);
 }
@@ -151,13 +167,19 @@ public:
         ASSERT(desc.journalCapacity);
         journal.resize(desc.journalCapacity);
         for (Array<RenderRange>& ranges : syncRanges)
+        {
             ranges.reserve(desc.journalCapacity);
+        }
     }
     ~RenderSceneData()
     {
         for (const RenderLightEntity& light : lightEntities)
+        {
             if (light.texture.isValid())
+            {
                 registry.release(light.texture);
+            }
+        }
         hmfree(pIndices);
         hmfree(pLightIndices);
         hmfree(pCameraIndices);
@@ -184,7 +206,9 @@ public:
         if (record.textureID != textureID)
         {
             if (record.texture.isValid())
+            {
                 data.textureReleases.pushBack(record.texture);
+            }
             record.textureID = textureID;
             record.texture = {};
             record.error = AssetError::None;
@@ -203,13 +227,17 @@ public:
             if (!entity.seen)
             {
                 if (entity.texture.isValid())
+                {
                     textureReleases.pushBack(entity.texture);
+                }
                 lights.remove(entity.id);
                 hmdel(pLightIndices, entity.entity);
                 lightEntities[i] = lightEntities[lightEntities.size() - 1];
                 lightEntities.popBack();
                 if (i < lightEntities.size())
+                {
                     hmgetp_null(pLightIndices, lightEntities[i].entity)->value = i;
+                }
                 continue;
             }
             const Light& source = *(const Light*)world.getComponent(entity.entity, SceneTypes::light);
@@ -242,12 +270,16 @@ public:
                 .ready = !entity.textureID.isValid() || registry.getTexture(entity.texture) ? 1u : 0u,
             };
             if (entity.textureID.isValid() && next.ready)
+            {
                 next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
+            }
             if (source.type == LightType::Mesh)
             {
                 const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity.entity);
                 if (pIndex)
+                {
                     next.object = entities[pIndex->value].object;
+                }
                 const RenderObject* pObject = objects.get(next.object);
                 next.ready = next.ready && pObject && pObject->instanceCount ? 1u : 0u;
             }
@@ -260,7 +292,9 @@ public:
             ++i;
         }
         for (AssetHandle handle : textureReleases)
+        {
             registry.release(handle);
+        }
         textureReleases.clear();
     }
     static bool extractCamera(Entity entity, Span<const void*> fields, void* pUser)
@@ -311,14 +345,18 @@ public:
             cameraEntities[i] = cameraEntities[cameraEntities.size() - 1];
             cameraEntities.popBack();
             if (i < cameraEntities.size())
+            {
                 hmgetp_null(pCameraIndices, cameraEntities[i].entity)->value = i;
+            }
         }
     }
 
     void removeDraws(RenderEntity& entity)
     {
         for (RenderDrawID draw : entity.draws)
+        {
             draws.remove(draw);
+        }
         entity.draws.clear();
     }
     void setInstanceIndex(uint32_t index, uint32_t value)
@@ -403,7 +441,9 @@ public:
             setInstanceIndex(entity.object.index, ready ? entity.instance.index : UINT32_MAX);
         }
         if (ready && entity.draws.empty())
+        {
             buildDraws(entity, *pBinding, *pMesh);
+        }
         if (ready)
         {
             ASSERT(entity.draws.size() == pBinding->materials.count);
@@ -420,6 +460,7 @@ public:
             }
         }
         else
+        {
             for (RenderDrawID id : entity.draws)
             {
                 RenderDraw& draw = draws.values[id.index];
@@ -429,6 +470,7 @@ public:
                     draws.markDirty(id.index);
                 }
             }
+        }
         const WorldTransform& transform = *world.getWorldTransform(entity.entity);
         RenderInstance&       instance = instances.values[entity.instance.index];
         const ObjectID        objectID = world.getObjectID(entity.entity);
@@ -463,11 +505,17 @@ public:
         cameras.beginUpdate();
         indicesDirty.clear();
         for (RenderEntity& entity : entities)
+        {
             entity.seen = false;
+        }
         for (RenderLightEntity& entity : lightEntities)
+        {
             entity.seen = false;
+        }
         for (RenderCameraEntity& entity : cameraEntities)
+        {
             entity.seen = false;
+        }
         // Retain new emission maps before mesh/material bindings release old dependencies.
         lightQuery.each(syncLight, this);
         bindings.update();
@@ -486,10 +534,14 @@ public:
             instances.remove(entity.instance);
             hmdel(pIndices, entity.entity);
             if (i + 1 < entities.size())
+            {
                 entities[i] = std::move(entities[entities.size() - 1]);
+            }
             entities.popBack();
             if (i < entities.size())
+            {
                 hmgetp_null(pIndices, entities[i].entity)->value = i;
+            }
         }
         extractLights();
         cameraQuery.each(extractCamera, this);
@@ -502,7 +554,9 @@ public:
         mergeRenderRanges(indicesDirty, indicesRanges);
         if (!objects.getChanges().ranges.count && !instances.getChanges().ranges.count && !draws.getChanges().ranges.count &&
             !lights.getChanges().ranges.count && !cameras.getChanges().ranges.count && indicesRanges.empty())
+        {
             return;
+        }
         ++revision;
         record(RenderTable::Objects, objects.getChanges().ranges);
         record(RenderTable::Instances, instances.getChanges().ranges);
@@ -511,21 +565,33 @@ public:
         record(RenderTable::Lights, lights.getChanges().ranges);
         record(RenderTable::Cameras, cameras.getChanges().ranges);
         if (objects.getChanges().activeList)
+        {
             record(RenderTable::ActiveObjects, {});
+        }
         if (instances.getChanges().activeList)
+        {
             record(RenderTable::ActiveInstances, {});
+        }
         if (draws.getChanges().activeList)
+        {
             record(RenderTable::ActiveDraws, {});
+        }
         if (lights.getChanges().activeList)
+        {
             record(RenderTable::ActiveLights, {});
+        }
         if (cameras.getChanges().activeList)
+        {
             record(RenderTable::ActiveCameras, {});
+        }
     }
 
     void record(RenderTable table, Span<RenderRange> ranges)
     {
         if (!ranges.count && table <= RenderTable::Cameras)
+        {
             return;
+        }
         // Active-list changes have no sparse range, but must still occupy a journal entry.
         const uint32_t count = ranges.count ? ranges.count : 1;
         for (uint32_t i = 0; i < count; ++i)
@@ -545,30 +611,50 @@ public:
     {
         ASSERT(appliedRevision <= revision);
         for (Array<RenderRange>& ranges : syncRanges)
+        {
             ranges.clear();
+        }
         if (!appliedRevision || appliedRevision < journalFloor)
+        {
             return { .full = true };
+        }
         RenderSceneSync result;
         for (uint32_t i = 0; i < journalCount; ++i)
         {
             const RenderChange& change = journal[(journalFirst + i) % journal.size()];
             if (change.revision <= appliedRevision)
+            {
                 continue;
+            }
             if (change.table <= RenderTable::Cameras)
+            {
                 syncRanges[(uint32_t)change.table].pushBack(change.range);
+            }
             else if (change.table == RenderTable::ActiveObjects)
+            {
                 result.activeObjects = true;
+            }
             else if (change.table == RenderTable::ActiveInstances)
+            {
                 result.activeInstances = true;
+            }
             else if (change.table == RenderTable::ActiveDraws)
+            {
                 result.activeDraws = true;
+            }
             else if (change.table == RenderTable::ActiveLights)
+            {
                 result.activeLights = true;
+            }
             else if (change.table == RenderTable::ActiveCameras)
+            {
                 result.activeCameras = true;
+            }
         }
         for (Array<RenderRange>& ranges : syncRanges)
+        {
             mergeRanges(ranges);
+        }
         result.objects = { syncRanges[0].data(), syncRanges[0].size() };
         result.instances = { syncRanges[1].data(), syncRanges[1].size() };
         result.draws = { syncRanges[2].data(), syncRanges[2].size() };
@@ -583,21 +669,29 @@ public:
         for (RenderEntity& entity : entities)
         {
             if (entity.historyEpoch > epoch || entity.object.index >= frameObjects.count || entity.instance.index >= frameInstances.count)
+            {
                 continue;
+            }
             const RenderObject&   object = frameObjects.pData[entity.object.index];
             const RenderInstance& instance = frameInstances.pData[entity.instance.index];
             if (object.id != entity.object || !object.instanceCount || instance.id != entity.instance)
+            {
                 continue;
+            }
             entity.submitted = instance.current;
             entity.historyValid = true;
         }
         for (RenderCameraEntity& entity : cameraEntities)
         {
             if (entity.historyEpoch > epoch || entity.id.index >= frameCameras.count)
+            {
                 continue;
+            }
             const RenderCamera& camera = frameCameras.pData[entity.id.index];
             if (camera.id != entity.id)
+            {
                 continue;
+            }
             entity.submitted = camera.current;
             entity.submittedLens = camera.lens;
             entity.historyValid = true;
@@ -607,17 +701,21 @@ public:
     {
         ++historyEpoch;
         for (RenderEntity& entity : entities)
+        {
             if (!target.isValid() || entity.entity == target)
             {
                 entity.historyValid = false;
                 entity.historyEpoch = historyEpoch;
             }
+        }
         for (RenderCameraEntity& entity : cameraEntities)
+        {
             if (!target.isValid() || entity.entity == target)
             {
                 entity.historyValid = false;
                 entity.historyEpoch = historyEpoch;
             }
+        }
     }
 
     World&                                        world;

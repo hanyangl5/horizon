@@ -167,12 +167,16 @@ bool initBaseSubsystems()
 
 #ifdef ENABLE_FORGE_FONTS
     if (!platformInitFontSystem())
+    {
         return false;
+    }
 #endif
 
 #ifdef ENABLE_FORGE_UI
     if (!platformInitUserInterface())
+    {
         return false;
+    }
 #endif
 
 #ifdef ENABLE_FORGE_SCRIPTING
@@ -367,12 +371,16 @@ int WindowsMain(int argc, char** argv, IApp* app)
     UNREF_PARAM(argv);
 
     if (!initMemAlloc(app->GetName()))
+    {
         return EXIT_FAILURE;
+    }
 
     FileSystemInitDesc fsDesc = {};
     fsDesc.pAppName = app->GetName();
     if (!initFileSystem(&fsDesc))
+    {
         return EXIT_FAILURE;
+    }
 
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
     fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
@@ -407,7 +415,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
     if (!WindowsStackTrace::Init())
+    {
         return EXIT_FAILURE;
+    }
 #endif
 
     pApp = app;
@@ -462,7 +472,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
     gWindow->cursorCaptured = false;
 
     if (!pSettings->externalWindow)
+    {
         openWindow(pApp->GetName(), gWindow);
+    }
 
     pSettings->width = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
     pSettings->height = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
@@ -479,13 +491,17 @@ int WindowsMain(int argc, char** argv, IApp* app)
         {
             // pSettings->mBenchmarking = true;
             if (i + 1 < argc && isdigit(*argv[i + 1]))
+            {
                 targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
+            }
         }
         else if (strcmp(argv[i], "--request-recompile-after") == 0)
         {
             extern uint32_t gReloadServerRequestRecompileAfter;
             if (i + 1 < argc && isdigit(*argv[i + 1]))
+            {
                 gReloadServerRequestRecompileAfter = atoi(argv[i + 1]);
+            }
         }
         // Run forever, this is useful when the app will control when the automated tests are over
         else if (strcmp(argv[i], "--no-auto-exit") == 0)
@@ -515,7 +531,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
     {
         if (!initBaseSubsystems())
+        {
             return EXIT_FAILURE;
+        }
 
         Timer t;
         initTimer(&t);
@@ -542,7 +560,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
         pSettings->initialized = true;
 
         if (!pApp->Load(&gReloadDescriptor))
+        {
             return EXIT_FAILURE;
+        }
 
         LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
     }
@@ -564,7 +584,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 #ifdef FORGE_DEBUG
         // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
         if (deltaTime > 0.15f)
+        {
             deltaTime = 0.05f;
+        }
 #endif
 
 #if defined(AUTOMATED_TESTING)
@@ -612,7 +634,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
             {
                 if (!initBaseSubsystems())
+                {
                     return EXIT_FAILURE;
+                }
 
                 Timer t;
                 initTimer(&t);
@@ -632,7 +656,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 pSettings->initialized = true;
 
                 if (!pApp->Load(&gReloadDescriptor))
+                {
                     return EXIT_FAILURE;
+                }
 
                 LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
             }
@@ -648,7 +674,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
             pApp->Unload(&gReloadDescriptor);
             if (!pApp->Load(&gReloadDescriptor))
+            {
                 return EXIT_FAILURE;
+            }
 
             LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
             gReloadDescriptor.type = RELOAD_TYPE_ALL;
@@ -678,14 +706,18 @@ int WindowsMain(int argc, char** argv, IApp* app)
         }
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
         if (platformReloadClientShouldQuit())
+        {
             quit = true;
+        }
 #endif
 
 #ifdef AUTOMATED_TESTING
         extern bool gAutomatedTestingScriptsFinished;
         // wait for the automated testing if it hasn't managed to finish in time
         if (gAutomatedTestingScriptsFinished && frameCounter >= targetFrameCount)
+        {
             quit = true;
+        }
         frameCounter++;
 #endif
     }

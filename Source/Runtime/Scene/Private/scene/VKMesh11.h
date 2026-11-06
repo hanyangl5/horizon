@@ -9,9 +9,7 @@ class VKIndirectBuffer11 final
 {
 public:
     VKIndirectBuffer11(const std::unique_ptr<lvk::IContext>& ctx, size_t maxDrawCommands,
-                       lvk::StorageType indirectBufferStorage = lvk::StorageType_Device):
-        ctx_(ctx),
-        drawCommands_(maxDrawCommands)
+                       lvk::StorageType indirectBufferStorage = lvk::StorageType_Device): ctx_(ctx), drawCommands_(maxDrawCommands)
     {
         // Indirect buffer layout: | uint32_t: numCommands | DrawIndexedIndirectCommand | DrawIndexedIndirectCommand |
         // ... indirect draw buffer, constructed by
@@ -103,8 +101,7 @@ public:
 
     VKPipeline(const std::unique_ptr<lvk::IContext>& ctx, const lvk::VertexInput& streams, lvk::Format colorFormat, lvk::Format depthFormat,
                uint32_t numSamples = 1, lvk ::Holder<lvk::ShaderModuleHandle>&& vert = {}, lvk::Holder<lvk::ShaderModuleHandle>&& frag = {},
-               bool positionOnly = false):
-        positionOnly_(positionOnly)
+               bool positionOnly = false): positionOnly_(positionOnly)
     {
         vert_ = vert.valid() ? std::move(vert) : loadShaderModule(ctx, "PTRenderer/shaders/main.vert");
         LVK_ASSERT(frag.valid());
@@ -166,8 +163,7 @@ class VKMesh11
 public:
     VKMesh11(const std::unique_ptr<lvk::IContext>& ctx, const MeshData& meshData, const Scene& scene,
              lvk::StorageType indirectBufferStorage = lvk::StorageType_Device, bool preloadMaterials = true):
-        ctx(ctx),
-        numIndices_((uint32_t)meshData.indexData.size()), numMeshes_((uint32_t)meshData.meshes.size()),
+        ctx(ctx), numIndices_((uint32_t)meshData.indexData.size()), numMeshes_((uint32_t)meshData.meshes.size()),
         indirectBuffer_(ctx, meshData.getMeshFileHeader().meshCount, indirectBufferStorage), textureFiles_(meshData.textureFiles)
     {
         const MeshFileHeader header = meshData.getMeshFileHeader();

@@ -40,7 +40,9 @@ inline void d3d12CapsBuilder(ID3D12Device* pDevice, GPUCapBits* pCapBits)
     {
         DXGI_FORMAT fmt = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)i);
         if (fmt == DXGI_FORMAT_UNKNOWN)
+        {
             continue;
+        }
 
         D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { fmt };
 

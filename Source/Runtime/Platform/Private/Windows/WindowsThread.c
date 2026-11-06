@@ -78,7 +78,9 @@ static BOOL callOnceImpl(MAYBE_UNUSED PINIT_ONCE initOnce, PVOID pWrapper, MAYBE
     // UNREF_PARAM(ppContext);
     CallOnceFn fn = ((CallOnceFnWrapper*)pWrapper)->fn;
     if (fn)
+    {
         fn();
+    }
 
     return TRUE;
 }
@@ -141,9 +143,13 @@ void getCurrentThreadName(char* buffer, int size)
 {
     const char* name = thread_name();
     if (name[0])
+    {
         snprintf(buffer, (size_t)size, "%s", name);
+    }
     else
+    {
         buffer[0] = 0;
+    }
 }
 
 void setCurrentThreadName(const char* name)
@@ -225,7 +231,9 @@ bool initThread(ThreadDesc* pDesc, ThreadHandle* pHandle)
 void joinThread(ThreadHandle handle)
 {
     if (!handle)
+    {
         return;
+    }
     WaitForSingleObject((HANDLE)handle, INFINITE);
     CloseHandle((HANDLE)handle);
 }
@@ -233,7 +241,9 @@ void joinThread(ThreadHandle handle)
 void detachThread(ThreadHandle handle)
 {
     if (!handle)
+    {
         return;
+    }
     CloseHandle((HANDLE)handle);
 }
 
@@ -361,7 +371,9 @@ PerformanceStats getPerformanceStats()
 {
     PerformanceStats ret = { { 0 } };
     for (uint32_t i = 0; i < getNumCPUCores(); i++)
+    {
         ret.coreUsagePercentage[i] = -1;
+    }
 
 #if defined(XBOX)
     FILETIME currTime;

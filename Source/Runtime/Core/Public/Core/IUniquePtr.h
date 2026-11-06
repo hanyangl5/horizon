@@ -24,7 +24,9 @@ public:
     unique_ptr& operator=(unique_ptr&& other) noexcept
     {
         if (this != &other)
+        {
             reset(other.release());
+        }
         return *this;
     }
 

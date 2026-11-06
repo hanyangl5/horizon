@@ -83,12 +83,16 @@ static uint32_t  gMemoryPlotRendererCount = 0;
 static void registerMemoryPlotRenderer(Renderer* pRenderer)
 {
     if (!pRenderer)
+    {
         return;
+    }
 
     for (uint32_t i = 0; i < gMemoryPlotRendererCount; ++i)
     {
         if (gMemoryPlotRenderers[i] == pRenderer)
+        {
             return;
+        }
     }
 
     if (gMemoryPlotRendererCount < TF_ARRAY_COUNT(gMemoryPlotRenderers))
@@ -115,7 +119,9 @@ void initProfiler(ProfilerDesc* pDesc)
     {
         ASSERT(pDesc->pRenderer != NULL && pDesc->ppQueues != NULL && pDesc->ppProfilerNames != NULL && pDesc->pProfileTokens != NULL);
         if (!pDesc->pRenderer || !pDesc->ppQueues || !pDesc->ppProfilerNames || !pDesc->pProfileTokens)
+        {
             return;
+        }
 
         for (uint32_t i = 0; i < pDesc->gpuProfilerCount; ++i)
         {
@@ -193,7 +199,9 @@ uint64_t cpuProfileEnter(ProfileToken nToken)
 {
 #if defined(ENABLE_PROFILER)
     if (nToken == PROFILE_INVALID_TOKEN)
+    {
         return 0;
+    }
 
     const TracyCpuProfileToken* pToken = (const TracyCpuProfileToken*)nToken;
     return packTracyZoneCtx(___tracy_emit_zone_begin_callstack(&pToken->sourceLocation, TRACY_CALLSTACK, true));
@@ -220,7 +228,9 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
     TracyCpuProfileToken* pToken = (TracyCpuProfileToken*)tf_malloc(sizeof(*pToken));
     ASSERT(pToken);
     if (!pToken)
+    {
         return PROFILE_INVALID_TOKEN;
+    }
 
     formatTracyCpuProfileName(pToken->name, sizeof(pToken->name), pGroup, pName);
 
@@ -242,7 +252,9 @@ void removeCpuProfileToken(ProfileToken nToken)
 {
 #if defined(ENABLE_PROFILER)
     if (nToken == PROFILE_INVALID_TOKEN)
+    {
         return;
+    }
 
     tf_free((void*)nToken);
 #else

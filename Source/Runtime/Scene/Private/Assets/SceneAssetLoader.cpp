@@ -21,17 +21,27 @@ public:
         Array<AssetID> dependencies;
         dependencies.reserve(pScene->getNodes().count);
         for (const SceneAssetNode& node : pScene->getNodes())
+        {
             if (node.mesh.isValid())
+            {
                 dependencies.pushBack(node.mesh);
+            }
+        }
         if (!dependencies.empty())
+        {
             qsort(dependencies.data(), dependencies.size(), sizeof(AssetID), compareIDs);
+        }
         uint32_t count = 0;
         for (uint32_t i = 0; i < dependencies.size(); ++i)
         {
             if (i && dependencies[i] == dependencies[i - 1])
+            {
                 continue;
+            }
             if (count == entry.dependencies.count || dependencies[i] != entry.dependencies.pData[count++])
+            {
                 return false;
+            }
         }
         return count == entry.dependencies.count;
     }
@@ -101,12 +111,16 @@ public:
     {
         const ThreadSystemInitDesc desc = { .threadCount = 1, .threadName = "SceneAsset" };
         if (!threadSystemInit(&threads, &desc))
+        {
             LOGF(eERROR, "Cannot start SceneAsset loader worker");
+        }
     }
     ~SceneAssetLoaderData()
     {
         if (threads)
+        {
             threadSystemExit(&threads, &gThreadSystemExitDescDefault);
+        }
     }
 
     static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* pUser)
@@ -128,7 +142,9 @@ public:
         SceneLoadRequest*     pRequest = (SceneLoadRequest*)pJob;
         const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&pRequest->status);
         if (status == AssetLoadStatus::Pending)
+        {
             return {};
+        }
         SceneAsset* pScene = pRequest->pScene;
         pRequest->pScene = nullptr;
         return { .status = status, .pPayload = pScene };
@@ -138,7 +154,9 @@ public:
     {
         SceneLoadRequest* pRequest = (SceneLoadRequest*)pJob;
         if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&pRequest->status) == AssetLoadStatus::Pending)
+        {
             threadSystemWaitIdle(((SceneAssetLoaderData*)pUser)->threads);
+        }
         tf_delete(pRequest);
     }
 

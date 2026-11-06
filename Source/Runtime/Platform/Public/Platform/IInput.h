@@ -26,7 +26,7 @@
 
 #include "Core/IConfig.h"
 
-//#include "Platform/IOperatingSystem.h"
+// #include "Platform/IOperatingSystem.h"
 
 #include "Core/IMath.h"
 

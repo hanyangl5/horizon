@@ -95,7 +95,9 @@ int AssetPipelineCmd(int argc, char** argv)
     }
 
     if (!initMemAlloc(gApplicationName))
+    {
         return EXIT_FAILURE;
+    }
 
     const char* input = "";
     const char* output = "";

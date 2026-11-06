@@ -96,7 +96,9 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
     else
     {
         if (!bpp)
+        {
             return false;
+        }
 
         rowBytes = ((uint64_t)width * bpp + 7u) / 8u; // round up to nearest byte
         numRows = (uint64_t)height;
@@ -104,7 +106,9 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
     }
 
     if (numBytes > UINT32_MAX || rowBytes > UINT32_MAX || numRows > UINT32_MAX) //-V560
+    {
         return false;
+    }
 
     if (outNumBytes)
     {
@@ -180,11 +184,17 @@ inline uint8_t decodeBC5SingleTexelChannel(const uint8_t* block)
 {
     const uint32_t index = block[2] & 7u;
     if (index < 2)
+    {
         return block[index];
+    }
     if (block[0] > block[1])
+    {
         return (uint8_t)(((8u - index) * block[0] + (index - 1u) * block[1]) / 7u);
+    }
     if (index >= 6)
+    {
         return index == 6 ? 0 : 255;
+    }
     return (uint8_t)(((6u - index) * block[0] + (index - 1u) * block[1]) / 5u);
 }
 

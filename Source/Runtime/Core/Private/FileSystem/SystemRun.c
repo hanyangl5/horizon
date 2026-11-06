@@ -49,7 +49,9 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
     bstring commandLine = bemptyfromarr(commandBuf);
     bformat(&commandLine, "\"%s\"", command);
     for (size_t i = 0; i < argumentCount; ++i)
+    {
         bformata(&commandLine, " %s", arguments[i]);
+    }
 
     ASSERT(bisvalid(&commandLine) && biscstr(&commandLine));
 
@@ -135,7 +137,9 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
     arrsetcap(argPtrs, argumentCount + 2);
     arrpush(argPtrs, command);
     for (size_t i = 0; i < argumentCount; ++i)
+    {
         arrpush(argPtrs, arguments[i]);
+    }
 
     arrpush(argPtrs, NULL);
 
@@ -172,6 +176,8 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
         return -1; // Failed to execute
     }
     else
+    {
         return -1;
+    }
 #endif
 }

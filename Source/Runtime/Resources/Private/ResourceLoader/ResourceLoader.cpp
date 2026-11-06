@@ -3513,7 +3513,7 @@
 #include "Core/ILog.h"
 #include "Core/IThread.h"
 
-//#include "../../Utilities/Math/ShaderUtilities.h" // Packing functions
+// #include "../../Utilities/Math/ShaderUtilities.h" // Packing functions
 
 #include "TextureContainers.h"
 
@@ -3526,7 +3526,7 @@
 #define CGLTF_IMPLEMENTATION
 #include <ThirdParty/cgltf/cgltf.h>
 
-//#include "../../Tools/ReloadServer/ReloadClient.h"
+// #include "../../Tools/ReloadServer/ReloadClient.h"
 
 // If facing strange gfx issues, corruption, GPU hangs, enable this for verbose logging of resource loading
 #define RESOURCE_LOADER_VERBOSE 0
@@ -3538,9 +3538,9 @@
 
 extern "C"
 {
-    void fsGetParentPath(const char* path, char* output);
-    void fsGetPathExtension(const char* path, char* output);
-    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+void fsGetParentPath(const char* path, char* output);
+void fsGetPathExtension(const char* path, char* output);
+bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 }
 
 #define MIP_REDUCE(s, mip) (max(1u, (uint32_t)((s) >> (mip))))
@@ -3746,7 +3746,9 @@ static uint32_t materialNextFileLine(const char* pFile, uint64_t fileSize, uint6
     while (newLineOffset < fileSize && *pStart != '\n')
     {
         if (*pStart == '\0')
+        {
             break;
+        }
 
         ++newLineOffset;
         ++pStart;
@@ -3865,9 +3867,13 @@ ResourceLoaderDesc          gDefaultResourceLoaderDesc = { 8ull * TF_MB, 2, fals
 static inline ResourceState ResourceStartState(bool uav)
 {
     if (uav)
+    {
         return RESOURCE_STATE_UNORDERED_ACCESS;
+    }
     else
+    {
         return RESOURCE_STATE_SHADER_RESOURCE;
+    }
 }
 
 static inline ResourceState ResourceStartState(const BufferDesc* pDesc)
@@ -4102,7 +4108,9 @@ static void* alignMemory(void* ptr, uint64_t alignment)
 {
     uintptr_t offset = alignment - ((uintptr_t)ptr % alignment);
     if (offset != 0)
+    {
         ptr = (char*)ptr + offset;
+    }
     return ptr;
 }
 
@@ -4549,7 +4557,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     if (!upload.pData)
     {
         if (stream.pIO)
+        {
             fsCloseStream(&stream);
+        }
         return UPLOAD_FUNCTION_RESULT_STAGING_BUFFER_FULL;
     }
 
@@ -4591,7 +4601,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 if (!ret)
                 {
                     if (stream.pIO)
+                    {
                         fsCloseStream(&stream);
+                    }
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 }
 
@@ -4663,7 +4675,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         const uint32_t    sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
         const uint32_t    rowAlignment = util_get_texture_row_alignment(pRenderer);
         const uint64_t    requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment,
-                                                            sliceAlignment, 0, texture->mipLevels, 0, texture->arraySizeMinusOne + 1u);
+                                                               sliceAlignment, 0, texture->mipLevels, 0, texture->arraySizeMinusOne + 1u);
         MappedMemoryRange range = allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
         memset(range.pData, 0, range.size);
 
@@ -4759,11 +4771,15 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 const bool read = fsReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
                 fsCloseStream(&stream);
                 if (!read)
+                {
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+                }
                 singleTexelNormal[0] = decodeBC5SingleTexelChannel(block);
                 singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
                 if (!fsOpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FM_READ, false, &stream))
+                {
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+                }
                 textureDesc.format = hz::Format::R8G8_UNORM;
             }
             // Copy queues implicitly promote from COMMON and decay back after submission.
@@ -4773,7 +4789,9 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             {
                 hz::Format srgbFormat = (hz::Format)TinyImageFormat_ToSRGB((TinyImageFormat)textureDesc.format);
                 if (srgbFormat != hz::Format::UNDEFINED)
+                {
                     textureDesc.format = srgbFormat;
+                }
                 else
                 {
                     LOGF(eWARNING,
@@ -4815,7 +4833,9 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             return res;
         }
         if (stream.pIO)
+        {
             fsCloseStream(&stream);
+        }
     }
 
     LOGF(eERROR, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
@@ -4882,7 +4902,9 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
     {
         if (!geom->vertexStrides[i])
+        {
             continue;
+        }
 
         uint32_t size = geom->vertexStrides[i] * geom->vertexCount;
 
@@ -4942,7 +4964,9 @@ public:
     ~GeometryFileRead()
     {
         if (file.pIO)
+        {
             fsCloseStream(&file);
+        }
         tf_free(pMeshlets);
         tf_free(pShadow);
         tf_free(pData);
@@ -4959,7 +4983,9 @@ public:
     {
         if (!read(pSize, sizeof(*pSize)) || *pSize < minimum ||
             *pSize > (uint64_t)fsGetStreamFileSize(&file) - (uint64_t)fsGetStreamSeekPosition(&file))
+        {
             return false;
+        }
         *ppDestination = tf_calloc(1, *pSize);
         return read(*ppDestination, *pSize);
     }
@@ -5037,7 +5063,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         uint64_t alloc_size = meshlets_size + meshlets_data_size + vertices_size + triangles_size;
 
         if (alloc_size > (uint64_t)fsGetStreamFileSize(&reader.file) - (uint64_t)fsGetStreamSeekPosition(&reader.file))
+        {
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+        }
         void* mem = reader.pMeshlets = tf_malloc(alloc_size);
 
         geom->meshlets.meshlets = (Meshlet*)mem;
@@ -5072,20 +5100,26 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     geomData->pShadow->pAttributes[SEMANTIC_POSITION] = (uint8_t*)geomData->pShadow->pIndices + (geom->indexCount * indexStride);
 
     for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
+    {
         geomData->pShadow->pAttributes[s] = (uint8_t*)geomData->pShadow->pAttributes[s - 1] +
                                             geomData->pShadow->vertexStrides[s - 1] * geomData->pShadow->attributeCount[s - 1];
+    }
 
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(geomData->pShadow->vertexStrides); ++i)
     {
         if (geomData->pShadow->vertexStrides[i] == 0)
+        {
             geomData->pShadow->pAttributes[i] = nullptr;
+        }
     }
 
     uint32_t vertexAttribCount[MAX_SEMANTICS] = {};
     uint32_t vertexOffsets[MAX_SEMANTICS] = {}; // offset in the GPU layout
     uint32_t vertexBindings[MAX_SEMANTICS] = {};
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(vertexOffsets); ++i)
+    {
         vertexOffsets[i] = UINT_MAX;
+    }
 
     uint32_t defaultTexcoordSemantic = SEMANTIC_UNDEFINED;
 
@@ -5138,7 +5172,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     fillGeometryUpdateDesc(pRenderer, pCopyEngine, pDesc, geom, &dstIndexStride, vertexUpdateDesc, indexUpdateDesc);
 
     if (indexStride == dstIndexStride)
+    {
         memcpy(indexUpdateDesc->pMappedData, geomData->pShadow->pIndices, indexStride * geom->indexCount);
+    }
     else
     {
         if (sizeof(uint16_t) == indexStride)
@@ -5146,7 +5182,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
             uint32_t*       dst = (uint32_t*)indexUpdateDesc->pMappedData;
             const uint16_t* src = (uint16_t*)geomData->pShadow->pIndices;
             for (uint32_t idx = 0; idx < geom->indexCount; ++idx)
+            {
                 dst[idx] = src[idx];
+            }
         }
         else
         {
@@ -5158,10 +5196,14 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     for (uint32_t i = 0; i < MAX_SEMANTICS; ++i)
     {
         if (!geomData->pShadow->pAttributes[i])
+        {
             continue;
+        }
         // Invalid vertexOffset means pVertexLayout doesn't use this attribute, no need to copy it
         if (vertexOffsets[i] == UINT_MAX)
+        {
             continue;
+        }
 
         const uint32_t binding = vertexBindings[i];
         const uint32_t offset = vertexOffsets[i];
@@ -5183,7 +5225,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
             // Example:
             // [ POSITION | NORMAL | TEXCOORD ] => [ 0 | 12 | 24 ], [ 32 | 44 | 52 ], ... (vertex stride of 32 => 12 + 12 + 8)
             for (uint32_t e = 0; e < geomData->pShadow->attributeCount[i]; ++e)
+            {
                 memcpy(dst + e * stride + offset, src + e * geomData->pShadow->vertexStrides[i], geomData->pShadow->vertexStrides[i]);
+            }
         }
     }
 
@@ -5203,7 +5247,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     *pDesc->ppGeometry = geom;
 
     if (pDesc->ppGeometryData)
+    {
         *pDesc->ppGeometryData = geomData;
+    }
     else
     {
         tf_free(geomData->pShadow);
@@ -5228,7 +5274,9 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     UploadFunctionResult res = loadGeometryCustomMeshFormat(pRenderer, pCopyEngine, pDesc, vertexUpdateDesc, &indexUpdateDesc);
     tf_free((void*)pDesc->pVertexLayout);
     if (res != UPLOAD_FUNCTION_RESULT_COMPLETED)
+    {
         return res;
+    }
 
     // Upload mesh
     UploadFunctionResult uploadResult = UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -5293,7 +5341,9 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     Cmd* cmd = acquireCmd(pCopyEngine);
 
     if (pTextureCopy.pWaitSemaphore)
+    {
         arrpush(pCopyEngine->waitSemaphores, pTextureCopy.pWaitSemaphore);
+    }
 
     TextureBarrier barrier = { texture, pTextureCopy.textureState, RESOURCE_STATE_COPY_SOURCE };
     barrier.acquire = 1;
@@ -5416,12 +5466,16 @@ static void streamerThreadFunc(void* pThreadData)
                 case UPDATE_REQUEST_LOAD_TEXTURE:
                     result = loadTexture(pRenderer, pCopyEngine, updateState);
                     if (updateState.texLoadDesc.pSuccess)
+                    {
                         *updateState.texLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
+                    }
                     break;
                 case UPDATE_REQUEST_LOAD_GEOMETRY:
                     result = loadGeometry(pRenderer, pCopyEngine, updateState);
                     if (updateState.geomLoadDesc.pSuccess)
+                    {
                         *updateState.geomLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
+                    }
                     break;
                 case UPDATE_REQUEST_COPY_TEXTURE:
                     result = copyTexture(pRenderer, pCopyEngine, updateState.texCopyDesc);
@@ -5496,7 +5550,9 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
     ASSERT(rendererCount == 1);
 
     if (!pDesc)
+    {
         pDesc = &gDefaultResourceLoaderDesc;
+    }
 
     ResourceLoader* pLoader = tf_new(ResourceLoader);
 
@@ -5611,12 +5667,16 @@ static void queueBufferLoad(ResourceLoader* pLoader, BufferLoadDescInternal* pBu
     arrpush(pLoader->requestQueue, UpdateRequest(*pBufferLoad));
     UpdateRequest* pLastRequest = arrback(pLoader->requestQueue);
     if (pLastRequest)
+    {
         pLastRequest->waitIndex = t;
+    }
 
     releaseMutex(&pLoader->queueMutex);
     wakeOneConditionVariable(&pLoader->queueCond);
     if (token)
+    {
         *token = max(t, *token);
+    }
 
     if (pResourceLoader->desc.singleThreaded)
     {
@@ -5633,12 +5693,16 @@ static void queueTextureLoad(ResourceLoader* pLoader, TextureLoadDescInternal* p
     arrpush(pLoader->requestQueue, UpdateRequest(*pTextureLoad));
     UpdateRequest* pLastRequest = arrback(pLoader->requestQueue);
     if (pLastRequest)
+    {
         pLastRequest->waitIndex = t;
+    }
 
     releaseMutex(&pLoader->queueMutex);
     wakeOneConditionVariable(&pLoader->queueCond);
     if (token)
+    {
         *token = max(t, *token);
+    }
 
     if (pResourceLoader->desc.singleThreaded)
     {
@@ -5655,12 +5719,16 @@ static void queueGeometryLoad(ResourceLoader* pLoader, GeometryLoadDesc* pGeomet
     arrpush(pLoader->requestQueue, UpdateRequest(*pGeometryLoad));
     UpdateRequest* pLastRequest = arrback(pLoader->requestQueue);
     if (pLastRequest)
+    {
         pLastRequest->waitIndex = t;
+    }
 
     releaseMutex(&pLoader->queueMutex);
     wakeOneConditionVariable(&pLoader->queueCond);
     if (token)
+    {
         *token = max(t, *token);
+    }
 
     if (pResourceLoader->desc.singleThreaded)
     {
@@ -5677,12 +5745,16 @@ static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, Reso
     arrpush(pLoader->requestQueue, UpdateRequest(TextureBarrier{ pTexture, RESOURCE_STATE_UNDEFINED, state }));
     UpdateRequest* pLastRequest = arrback(pLoader->requestQueue);
     if (pLastRequest)
+    {
         pLastRequest->waitIndex = t;
+    }
 
     releaseMutex(&pLoader->queueMutex);
     wakeOneConditionVariable(&pLoader->queueCond);
     if (token)
+    {
         *token = max(t, *token);
+    }
 
     if (pResourceLoader->desc.singleThreaded)
     {
@@ -5699,12 +5771,16 @@ static void queueTextureCopy(ResourceLoader* pLoader, TextureCopyDesc* pTextureC
     arrpush(pLoader->requestQueue, UpdateRequest(*pTextureCopy));
     UpdateRequest* pLastRequest = arrback(pLoader->requestQueue);
     if (pLastRequest)
+    {
         pLastRequest->waitIndex = t;
+    }
 
     releaseMutex(&pLoader->queueMutex);
     wakeOneConditionVariable(&pLoader->queueCond);
     if (token)
+    {
         *token = max(t, *token);
+    }
 
     if (pResourceLoader->desc.singleThreaded)
     {
@@ -6019,7 +6095,9 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
                 char        prefix = pLine[0];
 
                 if (prefix >= 'A' && prefix <= 'Z')
+                {
                     break;
+                }
 
                 switch (prefix)
                 {
@@ -6067,7 +6145,9 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
                         pMaterialSet->shaderSetIdx = atoi(pLine + 2); // Skip "s "
                     }
                     else
+                    {
                         ASSERT(false);
+                    }
 
                     break;
                 }
@@ -6124,7 +6204,9 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
                         pMaterialSet->textureSetIdx = atoi(pLine + 2); // Skip "t "
                     }
                     else
+                    {
                         ASSERT(false);
+                    }
 
                     break;
                 }
@@ -6138,7 +6220,9 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
             }
         }
         else
+        {
             offset = nextLineOffset + 1;
+        }
     }
 
     ASSERT(pMaterialDesc->shaderCount == numShaders);
@@ -6165,9 +6249,13 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
         fileSize = fsGetStreamFileSize(&stream);
 
         if (fileSize < sizeof(materialFileStackBuffer))
+        {
             materialFileBuffer = materialFileStackBuffer;
+        }
         else
+        {
             materialFileBuffer = (char*)tf_malloc(fileSize + 1);
+        }
 
         const uint64_t readSize = fsReadFromStream(&stream, materialFileBuffer, fileSize);
         ASSERT(readSize <= fileSize);
@@ -6184,7 +6272,9 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     parseMaterial(materialFileBuffer, fileSize, &pMaterial);
 
     if (materialFileBuffer != materialFileStackBuffer)
+    {
         tf_free(materialFileBuffer);
+    }
 
     materialFileBuffer = nullptr;
 
@@ -6255,7 +6345,9 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
                 desc.pFileName = pMaterialDesc->pTextureNames[pTextureSet->pTextureIdxs[j]];
                 desc.ppTexture = &pLib->ppMaterialTextures[textureIndex];
                 if (pMaterialDesc->pTextureFlags[j] & MaterialDesc::TextureFlags::SRGB)
+                {
                     desc.creationFlag |= TEXTURE_CREATION_FLAG_SRGB;
+                }
                 addResource(&desc, &token);
 #ifdef TARGET_IOS
                 // Wait here to prevent overloading the staging buffer on iOS.
@@ -6273,7 +6365,9 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     ++pLib->loadedMaterialCount;
 
     if (pSyncToken)
+    {
         *pSyncToken = max(*pSyncToken, token);
+    }
 
     pLib->syncToken = max(pLib->syncToken, token);
 
@@ -6354,7 +6448,9 @@ uint32_t getMaterialSetIndex(Material* pMaterial, const char* name)
     for (uint32_t i = 0; i < pMaterial->pDesc->materialCount; ++i)
     {
         if (strcmp(name, pMaterial->pDesc->pMaterialSetNames[i]) == 0)
+        {
             return i;
+        }
     }
 
     return INVALID_MATERIAL_ID;
@@ -6476,7 +6572,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 {
     ASSERT(pTextureDesc->ppTexture);
     if (pTextureDesc->pSuccess)
+    {
         *pTextureDesc->pSuccess = false;
+    }
 
     if (token)
     {
@@ -6521,7 +6619,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
             queueTextureBarrier(pResourceLoader, *pTextureDesc->ppTexture, startState, token);
         }
         if (pTextureDesc->pSuccess)
+        {
             *pTextureDesc->pSuccess = *pTextureDesc->ppTexture != nullptr;
+        }
     }
     else
     {
@@ -6542,7 +6642,9 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
     ASSERT(pDesc->pVertexLayout);
     ASSERT(pDesc->ppGeometry);
     if (pDesc->pSuccess)
+    {
         *pDesc->pSuccess = false;
+    }
 
     GeometryLoadDesc updateDesc = *pDesc;
     updateDesc.pFileName = pDesc->pFileName;
@@ -6563,7 +6665,9 @@ void removeResource(Texture* pTexture) { removeTexture(pResourceLoader->pRendere
 void removeResource(Geometry* pGeom)
 {
     if (!pGeom)
+    {
         return;
+    }
 
     if (pGeom->pGeometryBuffer)
     {
@@ -6578,12 +6682,16 @@ void removeResource(Geometry* pGeom)
     {
         // Buffers may have been transferred to another owner after upload.
         if (pGeom->pIndexBuffer)
+        {
             removeResource(pGeom->pIndexBuffer);
+        }
 
         for (uint32_t i = 0; i < pGeom->vertexBufferCount; ++i)
         {
             if (pGeom->pVertexBuffers[i])
+            {
                 removeResource(pGeom->pVertexBuffers[i]);
+            }
         }
     }
 
@@ -6691,7 +6799,9 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
     for (size_t i = 0; i < TF_ARRAY_COUNT(pDesc->verticesSizes); ++i)
     {
         if (!pDesc->verticesSizes[i])
+        {
             continue;
+        }
 
         loadDesc.desc.size = pDesc->verticesSizes[i];
         loadDesc.ppBuffer = &pVertexBuffer;
@@ -6711,17 +6821,23 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
 void removeGeometryBuffer(GeometryBuffer* pGeomBuffer)
 {
     if (!pGeomBuffer)
+    {
         return;
+    }
 
     removeBufferChunkAllocator(&pGeomBuffer->index);
     if (pGeomBuffer->index.pBuffer)
+    {
         removeResource(pGeomBuffer->index.pBuffer);
+    }
 
     for (size_t i = 0; i < TF_ARRAY_COUNT(pGeomBuffer->vertex); ++i)
     {
         removeBufferChunkAllocator(&pGeomBuffer->vertex[i]);
         if (pGeomBuffer->vertex[i].pBuffer)
+        {
             removeResource(pGeomBuffer->vertex[i].pBuffer);
+        }
     }
 
     tf_free(pGeomBuffer);
@@ -6731,7 +6847,9 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
                            BufferChunk* pRequestedChunk)
 {
     if (size == 0)
+    {
         return;
+    }
     if (size > pBuffer->size)
     {
         *pOut = {};
@@ -6799,16 +6917,22 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
         BufferChunk* chunk = &pBuffer->unusedChunks[i];
 
         if (chunk->size < size)
+        {
             continue;
+        }
 
         if (alignment > 0)
         {
             uint32_t padding = chunk->offset % alignment;
             if (padding > 0)
+            {
                 padding = alignment - padding;
+            }
 
             if (chunk->size - padding < size)
+            {
                 continue;
+            }
 
             if (padding > 0)
             {
@@ -6849,7 +6973,9 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
 {
     ASSERT(pChunk->size ? pBuffer != NULL : true);
     if (!pBuffer || pChunk->size == 0)
+    {
         return;
+    }
 
     ASSERT(pBuffer->usedChunkCount);
 
@@ -6863,7 +6989,9 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
     {
         BufferChunk* chunk = &pBuffer->unusedChunks[i];
         if (partEnd < chunk->offset)
+        {
             break;
+        }
 
         auto chunkEnd = chunk->offset + chunk->size;
         if (chunkEnd == pChunk->offset) // if pChunk goes after chunk, merge both
@@ -7032,7 +7160,7 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
         bool     success = util_get_surface_info(MIP_REDUCE(texture->width, mip), MIP_REDUCE(texture->height, mip), fmt, &srcSliceStride,
-                                             &srcRowStride, &rowCount);
+                                                 &srcRowStride, &rowCount);
         ASSERT(success);
         uint32_t d = MIP_REDUCE(texture->depth, mip);
 
@@ -7164,14 +7292,18 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     const bool result = fsOpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
     ASSERT(result);
     if (!result)
+    {
         return result;
+    }
 
     ssize_t size = fsGetStreamFileSize(&binaryFileStream);
     ASSERT(size > 0);
 
     FSLHeader header = {};
     if (sizeof(FSLHeader) != fsReadFromStream(&binaryFileStream, (void*)&header, sizeof(FSLHeader)))
+    {
         ASSERT(false);
+    }
 
     if (strncmp("@FSL", header.magic, 4) != 0)
     {
@@ -7187,10 +7319,14 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
         const size_t   derivativesSize = sizeof(FSLDerivative) * header.derivativeCount;
         FSLDerivative* pDerivatives = (FSLDerivative*)alloca(derivativesSize);
         if (derivativesSize != fsReadFromStream(&binaryFileStream, (void*)pDerivatives, derivativesSize))
+        {
             ASSERT(false);
+        }
 
         if (pOutMetadata)
+        {
             *pOutMetadata = header.metadata;
+        }
 
         for (uint32_t i = 0; i < header.derivativeCount; ++i)
         {
@@ -7304,14 +7440,18 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
             char                   ext[FS_MAX_PATH] = { 0 };
             fsGetPathExtension(pDesc->stages[i].pFileName, ext);
             if (find_shader_stage(ext, &binaryDesc, &pStage, &stage))
+            {
                 stages |= stage;
+            }
         }
     }
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         const char* fileName = pDesc->stages[i].pFileName;
         if (!fileName || !*fileName)
+        {
             continue;
+        }
 
         ShaderStage            stage;
         BinaryShaderStageDesc* pStage = nullptr;
@@ -7319,7 +7459,9 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
             char ext[FS_MAX_PATH];
             fsGetPathExtension(fileName, ext);
             if (!find_shader_stage(ext, &binaryDesc, &pStage, &stage))
+            {
                 continue;
+            }
         }
 
         FSLMetadata metadata = {};
@@ -7335,9 +7477,13 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
         binaryDesc.isMultiviewVR |= metadata.useMultiView;
 #endif
         if (pDesc->stages[i].pEntryPointName)
+        {
             pStage->pEntryPoint = pDesc->stages[i].pEntryPointName;
+        }
         else
+        {
             pStage->pEntryPoint = "main";
+        }
     }
 
     binaryDesc.constantCount = pDesc->constantCount;
@@ -7380,13 +7526,17 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
     {
         const char* fileName = pDesc->stages[i].pFileName;
         if (!fileName || !*fileName)
+        {
             continue;
+        }
 
         ShaderStage            stage = pDesc->stages[i].stage;
         BinaryShaderStageDesc* pStage = get_shader_stage_desc(&binaryDesc, stage);
 
         if (stage == ShaderStage::SHADER_STAGE_NONE || !pStage)
+        {
             continue;
+        }
 
         FSLMetadata metadata = {};
         if (!load_shader_stage_byte_code(pRenderer, fileName, stage, pStage, &shaderByteCodeBuffer, &metadata))
@@ -7398,9 +7548,13 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
         binaryDesc.stages |= stage;
         pStage->pName = fileName;
         if (pDesc->stages[i].pEntryPointName)
+        {
             pStage->pEntryPoint = pDesc->stages[i].pEntryPointName;
+        }
         else
+        {
             pStage->pEntryPoint = "main";
+        }
     }
 
     binaryDesc.constantCount = pDesc->constantCount;

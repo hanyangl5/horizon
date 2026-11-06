@@ -96,12 +96,16 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Load", kCpuProfileColor);
         if (!(pReloadDesc->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        {
             return true;
+        }
 
         const uint32_t width = (uint32_t)settings.width;
         const uint32_t height = (uint32_t)settings.height;
         if (!context->resize(width, height))
+        {
             return false;
+        }
         return true;
     }
 
@@ -113,10 +117,14 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Draw", kCpuProfileColor);
         if (vSync != settings.vSyncEnabled && context->setVSync(settings.vSyncEnabled))
+        {
             vSync = settings.vSyncEnabled;
+        }
 
         if (context->isSuspended())
+        {
             return;
+        }
         hz::CommandList&      commands = context->acquireCommandList();
         const hz::GPUTexture& backbuffer = context->getCurrentBackbuffer();
 

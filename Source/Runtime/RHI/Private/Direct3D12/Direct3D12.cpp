@@ -94,7 +94,7 @@
 #include "../RendererResourceAPI.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL    ((D3D12_GPU_VIRTUAL_ADDRESS)0)
-#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS) - 1)
 #define D3D12_REQ_CONSTANT_BUFFER_SIZE    (D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16u)
 #define D3D12_DESCRIPTOR_ID_NONE          ((int32_t)-1)
 
@@ -306,7 +306,9 @@ static void d3d12_track_gpu_free(const void* ptr, uint32_t pool)
 static void d3d12_set_allocation_name(D3D12MA::Allocation* pAllocation, const char* pName)
 {
     if (!pAllocation || !pName)
+    {
         return;
+    }
 
     wchar_t wName[MAX_DEBUG_NAME_LENGTH] = {};
     size_t  numConverted = 0;
@@ -317,7 +319,9 @@ static void d3d12_set_allocation_name(D3D12MA::Allocation* pAllocation, const ch
 static void d3d12_track_d3d12ma_alloc(D3D12MA::Allocation* pAllocation, const char* pName, uint32_t pool)
 {
     if (!pAllocation)
+    {
         return;
+    }
 
     d3d12_set_allocation_name(pAllocation, pName);
     d3d12_track_gpu_alloc(pAllocation, pAllocation->GetSize(), pool);
@@ -328,7 +332,9 @@ static int64_t d3d12_plot_value(uint64_t value) { return value > (uint64_t)INT64
 void d3d12_plotMemoryStats(Renderer* pRenderer)
 {
     if (!pRenderer || !pRenderer->dx.pResourceAllocator)
+    {
         return;
+    }
 
     static bool plotsConfigured = false;
     if (!plotsConfigured)
@@ -438,11 +444,11 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 	D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME,
 #endif
 };
-    // clang-format on
+// clang-format on
 
-    // =================================================================================================
-    // IMPLEMENTATION
-    // =================================================================================================
+// =================================================================================================
+// IMPLEMENTATION
+// =================================================================================================
 
 #if defined(RENDERER_IMPLEMENTATION)
 
@@ -724,14 +730,18 @@ static inline FORGE_CONSTEXPR D3D12_CPU_DESCRIPTOR_HANDLE descriptor_id_to_cpu_h
 static DxDescriptorID add_bindless_descriptors(Renderer* pRenderer, D3D12_DESCRIPTOR_HEAP_TYPE type, DxDescriptorID source, uint32_t count)
 {
     if (!count)
+    {
         return D3D12_DESCRIPTOR_ID_NONE;
+    }
     DescriptorHeap* pSource = pRenderer->dx.pCPUDescriptorHeaps[type];
     DescriptorHeap* pDestination =
         type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER ? pRenderer->dx.pSamplerHeaps[0] : pRenderer->dx.pCbvSrvUavHeaps[0];
     const DxDescriptorID index = consume_descriptor_handles(pDestination, count);
     if (index != D3D12_DESCRIPTOR_ID_NONE)
+    {
         pRenderer->dx.pDevice->CopyDescriptorsSimple(count, descriptor_id_to_cpu_handle(pDestination, index),
                                                      descriptor_id_to_cpu_handle(pSource, source), type);
+    }
     return index;
 }
 
@@ -807,7 +817,9 @@ constexpr D3D12_BLEND_DESC util_to_blend_desc(const BlendStateDesc* pDesc)
         }
 
         if (pDesc->independentBlend)
+        {
             ++blendDescIndex;
+        }
     }
 
     blendDescIndex = 0;
@@ -836,7 +848,9 @@ constexpr D3D12_BLEND_DESC util_to_blend_desc(const BlendStateDesc* pDesc)
         }
 
         if (pDesc->independentBlend)
+        {
             ++blendDescIndex;
+        }
     }
 
     return ret;
@@ -1294,7 +1308,9 @@ bool d3d12dll_init()
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
 
     if (gD3D12dllInited)
+    {
         return true;
+    }
 
     LOGF(LogLevel::eINFO, "Loading d3d12.dll");
     gD3D12dll = LoadLibraryExA("d3d12.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -1318,7 +1334,9 @@ bool d3d12dll_init()
 
     gD3D12dllInited = gDXGIdll && gD3D12dll;
     if (!gD3D12dllInited)
+    {
         d3d12dll_exit();
+    }
     return gD3D12dllInited;
 #else
     return true;
@@ -1328,7 +1346,9 @@ HRESULT WINAPI d3d12dll_CreateDevice(void* pAdapter, D3D_FEATURE_LEVEL MinimumFe
 {                                                                                                                         //-V835
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnCreateDevice)
+    {
         return gPfnCreateDevice(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+    }
     return D3D12_ERROR_ADAPTER_NOT_FOUND;
 #else
     return ((PFN_D3D12_CREATE_DEVICE_FIXED)D3D12CreateDevice)(pAdapter, MinimumFeatureLevel, riid, ppDevice);
@@ -1339,7 +1359,9 @@ HRESULT WINAPI d3d12dll_GetDebugInterface(REFIID riid, void** ppvDebug) //-V835
 {                                                                       //-V835
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnGetDebugInterface)
+    {
         return gPfnGetDebugInterface(riid, ppvDebug);
+    }
     return E_FAIL;
 #else
     return D3D12GetDebugInterface(riid, ppvDebug);
@@ -1352,7 +1374,9 @@ static HRESULT WINAPI d3d12dll_EnableExperimentalFeatures(UINT NumFeatures, cons
 {
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnEnableExperimentalFeatures)
+    {
         return gPfnEnableExperimentalFeatures(NumFeatures, pIIDs, pConfigurationStructs, pConfigurationStructSizes);
+    }
     return E_NOTIMPL;
 #else
     return D3D12EnableExperimentalFeatures(NumFeatures, pIIDs, pConfigurationStructs, pConfigurationStructSizes);
@@ -1365,7 +1389,9 @@ static HRESULT d3d12dll_SerializeVersionedRootSignature(const D3D12_VERSIONED_RO
 {
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnSerializeVersionedRootSignature)
+    {
         return gPfnSerializeVersionedRootSignature(pRootSignature, ppBlob, ppErrorBlob);
+    }
     return E_NOTIMPL;
 #else
     return D3D12SerializeVersionedRootSignature(pRootSignature, ppBlob, ppErrorBlob);
@@ -1377,7 +1403,9 @@ static HRESULT WINAPI d3d12dll_CreateDXGIFactory2(UINT Flags, REFIID riid, void*
 {                                                                                            //-V835
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnCreateDXGIFactory2)
+    {
         return gPfnCreateDXGIFactory2(Flags, riid, ppFactory);
+    }
     return DXGI_ERROR_UNSUPPORTED;
 #else
     return CreateDXGIFactory2(Flags, riid, ppFactory);
@@ -1388,7 +1416,9 @@ HRESULT WINAPI d3d12dll_DXGIGetDebugInterface1(UINT Flags, REFIID riid, void** p
 {                                                                                         //-V835
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnDXGIGetDebugInterface1)
+    {
         return gPfnDXGIGetDebugInterface1(Flags, riid, ppFactory);
+    }
     return DXGI_ERROR_UNSUPPORTED;
 #else
     return DXGIGetDebugInterface1(Flags, riid, ppFactory);
@@ -1403,7 +1433,9 @@ D3D12_FILTER
 util_to_dx12_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled)
 {
     if (aniso)
+    {
         return (comparisonFilterEnabled ? D3D12_FILTER_COMPARISON_ANISOTROPIC : D3D12_FILTER_ANISOTROPIC);
+    }
 
     // control bit : minFilter  magFilter   mipMapMode
     //   point   :   00	  00	   00
@@ -1440,29 +1472,49 @@ D3D12_HEAP_FLAGS util_to_heap_flags(ResourceHeapCreationFlags flags)
     D3D12_HEAP_FLAGS outFlags = D3D12_HEAP_FLAG_NONE;
 
     if (flags & RESOURCE_HEAP_FLAG_SHARED)
+    {
         outFlags |= D3D12_HEAP_FLAG_SHARED;
+    }
     if (flags & RESOURCE_HEAP_FLAG_DENY_BUFFERS)
+    {
         outFlags |= D3D12_HEAP_FLAG_DENY_BUFFERS;
+    }
     if (flags & RESOURCE_HEAP_FLAG_ALLOW_DISPLAY)
+    {
         outFlags |= D3D12_HEAP_FLAG_ALLOW_DISPLAY;
+    }
     if (flags & RESOURCE_HEAP_FLAG_SHARED_CROSS_ADAPTER)
+    {
         outFlags |= D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER;
+    }
     if (flags & RESOURCE_HEAP_FLAG_DENY_RT_DS_TEXTURES)
+    {
         outFlags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+    }
     if (flags & RESOURCE_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)
+    {
         outFlags |= D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES;
+    }
     if (flags & RESOURCE_HEAP_FLAG_HARDWARE_PROTECTED)
+    {
         outFlags |= D3D12_HEAP_FLAG_HARDWARE_PROTECTED;
+    }
     if (flags & RESOURCE_HEAP_FLAG_ALLOW_WRITE_WATCH)
+    {
         outFlags |= D3D12_HEAP_FLAG_ALLOW_WRITE_WATCH;
+    }
 
 #if !defined(XBOX)
     if (flags & RESOURCE_HEAP_FLAG_ALLOW_SHADER_ATOMICS)
+    {
         outFlags |= D3D12_HEAP_FLAG_ALLOW_SHADER_ATOMICS;
+    }
 #endif
 
     if (flags == RESOURCE_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES)
+    {
         outFlags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
+    }
 
     return outFlags;
 }
@@ -1770,39 +1822,71 @@ D3D12_RESOURCE_STATES util_to_dx12_resource_state(ResourceState state)
 
     // These states cannot be combined with other states so we just do an == check
     if (state == RESOURCE_STATE_GENERIC_READ)
+    {
         return D3D12_RESOURCE_STATE_GENERIC_READ;
+    }
     if (state == RESOURCE_STATE_COMMON)
+    {
         return D3D12_RESOURCE_STATE_COMMON;
+    }
     if (state == RESOURCE_STATE_PRESENT)
+    {
         return D3D12_RESOURCE_STATE_PRESENT;
+    }
 
     if (state & RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+    {
         ret |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+    }
     if (state & RESOURCE_STATE_INDEX_BUFFER)
+    {
         ret |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+    }
     if (state & RESOURCE_STATE_RENDER_TARGET)
+    {
         ret |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+    }
     if (state & RESOURCE_STATE_UNORDERED_ACCESS)
+    {
         ret |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    }
     if (state & RESOURCE_STATE_DEPTH_WRITE)
+    {
         ret |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
+    }
     else if (state & RESOURCE_STATE_DEPTH_READ)
+    {
         ret |= D3D12_RESOURCE_STATE_DEPTH_READ;
+    }
     if (state & RESOURCE_STATE_STREAM_OUT)
+    {
         ret |= D3D12_RESOURCE_STATE_STREAM_OUT;
+    }
     if (state & RESOURCE_STATE_INDIRECT_ARGUMENT)
+    {
         ret |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+    }
     if (state & RESOURCE_STATE_COPY_DEST)
+    {
         ret |= D3D12_RESOURCE_STATE_COPY_DEST;
+    }
     if (state & RESOURCE_STATE_COPY_SOURCE)
+    {
         ret |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+    }
     if (state & RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+    {
         ret |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    }
     if (state & RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+    {
         ret |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    }
 #ifdef D3D12_RAYTRACING_AVAILABLE
     if (state & (RESOURCE_STATE_ACCELERATION_STRUCTURE_READ | RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE))
+    {
         ret |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+    }
 #endif
 
     return ret;
@@ -1916,10 +2000,14 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
     }
 
     if (pGpuCount)
+    {
         *pGpuCount = gpuCount;
+    }
 
     if (pFoundSoftwareAdapter)
+    {
         *pFoundSoftwareAdapter = foundSoftwareAdapter;
+    }
 }
 #endif
 
@@ -2132,11 +2220,17 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
     else
     {
         if (pDesc->depth > 1)
+        {
             res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+        }
         else if (pDesc->height > 1)
+        {
             res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        }
         else
+        {
             res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+        }
     }
 
     DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->format);
@@ -2213,7 +2307,9 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
     }
 
     if (pStartResourceState)
+    {
         *pStartResourceState = actualStartState;
+    }
 }
 
 #if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_DEBUG)
@@ -2240,8 +2336,12 @@ void DebugMessageCallback(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_SEVERIT
     };
 
     for (uint32_t m = 0; m < TF_ARRAY_COUNT(ignoreMessageIDs); ++m)
+    {
         if (ignoreMessageIDs[m] == id)
+        {
             return;
+        }
+    }
 
     if (severity == D3D12_MESSAGE_SEVERITY_CORRUPTION)
     {
@@ -2473,7 +2573,9 @@ static void RemoveDevice(Renderer* pRenderer)
         pRenderer->dx.pDebugValidation->PushStorageFilter(&filter);
     }
     if (pRenderer->dx.useDebugCallback)
+    {
         pRenderer->dx.pDebugValidation->UnregisterMessageCallback(pRenderer->dx.callbackCookie);
+    }
     SAFE_RELEASE(pRenderer->dx.pDebugValidation);
 #endif
 
@@ -2768,7 +2870,9 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
                  pRenderer->pGpu->settings.gpuVendorPreset.gpuName, (uint32_t)shaderModelResult, (uint32_t)shaderModel.HighestShaderModel);
             RemoveDevice(pRenderer);
             if (pRenderer->ownsContext)
+            {
                 d3d12_exitRendererContext(pRenderer->pContext);
+            }
             tf_free(pRenderer);
             *ppRenderer = NULL;
             return;
@@ -2935,7 +3039,9 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     if (pDesc->flag & QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
+    {
         queueDesc.Flags |= D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT;
+    }
     queueDesc.Type = gDx12CmdTypeTranslator[pDesc->type];
     queueDesc.Priority = gDx12QueuePriorityTranslator[pDesc->priority];
     queueDesc.NodeMask = 0;
@@ -3432,7 +3538,9 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 
 #ifdef ENABLE_GRAPHICS_DEBUG
     if (pDesc->pName)
+    {
         SetObjectName(pCmd->dx.pCmdList, pDesc->pName);
+    }
 #endif // ENABLE_GRAPHICS_DEBUG
 
 #if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
@@ -3985,7 +4093,9 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     SetObjectName(pBuffer->dx.pResource, pDesc->pName);
 #if defined(ENABLE_TRACY_MEMORY)
     if (pBuffer->memoryTrackingMode == D3D12_MEMORY_TRACKING_D3D12MA)
+    {
         d3d12_set_allocation_name(pBuffer->dx.pAllocation, pDesc->pName);
+    }
 #endif
 
     pBuffer->size = (uint32_t)pDesc->size;
@@ -4132,7 +4242,9 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
         D3D12MA::ALLOCATION_DESC alloc_desc = {};
         alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
         if (pDesc->flags & TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT)
+        {
             alloc_desc.Flags |= D3D12MA::ALLOCATION_FLAG_COMMITTED;
+        }
 
 #if defined(XBOX)
         if (pDesc->flags & TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET)
@@ -4338,7 +4450,9 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
 
             uavDesc.Texture1DArray.MipSlice = i;
             if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+            {
                 uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2.0, int(i));
+            }
             AddUav(pRenderer, NULL, pTexture->dx.pResource, NULL, &uavDesc, &handle);
         }
     }
@@ -4425,9 +4539,13 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     textureDesc.startState = pDesc->startState;
 
     if (!isDepth)
+    {
         textureDesc.startState |= RESOURCE_STATE_RENDER_TARGET;
+    }
     else
+    {
         textureDesc.startState |= RESOURCE_STATE_DEPTH_WRITE;
+    }
 
     textureDesc.width = pDesc->width;
     textureDesc.pNativeHandle = pDesc->pNativeHandle;
@@ -4448,7 +4566,9 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     uint32_t handleCount = desc.MipLevels;
     if ((pDesc->descriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
         (pDesc->descriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
+    {
         handleCount *= desc.DepthOrArraySize;
+    }
     handleCount += 1;
 
     DescriptorHeap* pHeap = isDepth ? pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]
@@ -4456,9 +4576,13 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     pRenderTarget->dx.descriptors = consume_descriptor_handles(pHeap, handleCount);
 
     if (isDepth)
+    {
         AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, 0, (uint32_t)-1, &pRenderTarget->dx.descriptors);
+    }
     else
+    {
         AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, 0, (uint32_t)-1, &pRenderTarget->dx.descriptors);
+    }
 
     for (uint32_t i = 0; i < desc.MipLevels; ++i)
     {
@@ -4470,9 +4594,13 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
                 DxDescriptorID handle = pRenderTarget->dx.descriptors + (1 + i * desc.DepthOrArraySize + j);
 
                 if (isDepth)
+                {
                     AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, j, &handle);
+                }
                 else
+                {
                     AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, j, &handle);
+                }
             }
         }
         else
@@ -4480,9 +4608,13 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
             DxDescriptorID handle = pRenderTarget->dx.descriptors + 1 + i;
 
             if (isDepth)
+            {
                 AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, (uint32_t)-1, &handle);
+            }
             else
+            {
                 AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, (uint32_t)-1, &handle);
+            }
         }
     }
 
@@ -4510,7 +4642,9 @@ void d3d12_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
     uint32_t       handleCount = pRenderTarget->mipLevels;
     if ((pRenderTarget->descriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
         (pRenderTarget->descriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
+    {
         handleCount *= depthOrArraySize;
+    }
     handleCount += 1;
 
     !isDepth ? return_descriptor_handles(pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV], pRenderTarget->dx.descriptors,
@@ -4893,13 +5027,21 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
     *ppShaderProgram = pShaderProgram;
 
     if (pIncludeHandler)
+    {
         pIncludeHandler->Release();
+    }
     if (pCompiler)
+    {
         pCompiler->Release();
+    }
     if (pLibrary)
+    {
         pLibrary->Release();
+    }
     if (pUtils)
+    {
         pUtils->Release();
+    }
 }
 
 void d3d12_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
@@ -4924,7 +5066,9 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     *ppRootSignature = nullptr;
     uint32_t resourceCount = 0;
     for (uint32_t i = 0; i < pRootSignatureDesc->shaderCount; ++i)
+    {
         resourceCount += pRootSignatureDesc->ppShaders[i]->pReflection->shaderResourceCount;
+    }
     RootSignature* pRootSignature =
         (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), sizeof(RootSignature) + resourceCount * sizeof(DescriptorInfo));
     pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
@@ -4958,8 +5102,12 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             }
             uint32_t size = 0;
             for (uint32_t v = 0; v < pReflection->variableCount; ++v)
+            {
                 if (pReflection->pVariables[v].parent_index == i)
+                {
                     size = max(size, pReflection->pVariables[v].offset + pReflection->pVariables[v].size);
+                }
+            }
             size = (size + 3) / sizeof(uint32_t);
             const DescriptorIndexMap* pExisting = shgetp_null(pRootSignature->pDescriptorNameToIndexMap, resource.name);
             if (pExisting)
@@ -5000,21 +5148,37 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     pRootSignature->pipelineType = shaderStages & SHADER_STAGE_COMP ? PIPELINE_TYPE_COMPUTE : PIPELINE_TYPE_GRAPHICS;
     D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
     if (useInputLayout)
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    }
     if (!(shaderStages & SHADER_STAGE_VERT))
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
+    }
     if (!(shaderStages & SHADER_STAGE_HULL))
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+    }
     if (!(shaderStages & SHADER_STAGE_DOMN))
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+    }
     if (!(shaderStages & SHADER_STAGE_GEOM))
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+    }
     if (!(shaderStages & SHADER_STAGE_FRAG))
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+    }
     if (useViewHeapIndexing)
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+    }
     if (useSamplerHeapIndexing)
+    {
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+    }
 
     hook_modify_rootsignature_flags(shaderStages, &rootSignatureFlags);
 
@@ -5027,17 +5191,25 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     ID3DBlob* serialized = nullptr;
     HRESULT   result = d3d12dll_SerializeVersionedRootSignature(&desc, &serialized, &error);
     if (SUCCEEDED(result))
+    {
         result = pRenderer->dx.pDevice->CreateRootSignature(0, serialized->GetBufferPointer(), serialized->GetBufferSize(),
                                                             IID_ARGS(&pRootSignature->dx.pRootSignature));
+    }
     if (FAILED(result))
+    {
         LOGF(eERROR, "Failed to create bindless root signature (%#x): %s", (uint32_t)result,
              error ? (const char*)error->GetBufferPointer() : "D3D12 device error");
+    }
     SAFE_RELEASE(error);
     SAFE_RELEASE(serialized);
     if (FAILED(result))
+    {
         removeRootSignature(pRenderer, pRootSignature);
+    }
     else
+    {
         *ppRootSignature = pRootSignature;
+    }
 }
 
 void d3d12_addRaytracingRootSignature(Renderer* renderer, uint32_t size, RootSignature** output)
@@ -5117,9 +5289,13 @@ static bool ResetRootSignature(Cmd* pCmd, PipelineType type, const RootSignature
     pCmd->dx.pBoundRootSignature = pRootSignature;
 
     if (type == PIPELINE_TYPE_GRAPHICS)
+    {
         pCmd->dx.pCmdList->SetGraphicsRootSignature(pRootSignature->dx.pRootSignature);
+    }
     else
+    {
         pCmd->dx.pCmdList->SetComputeRootSignature(pRootSignature->dx.pRootSignature);
+    }
 
     return true;
 }
@@ -5139,13 +5315,19 @@ void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32
     ASSERT(pDesc);
     ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->type);
     if (!constantCount)
+    {
         constantCount = pDesc->size;
+    }
     ASSERT(offsetIn32BitValues <= pDesc->size && constantCount <= pDesc->size - offsetIn32BitValues);
 
     if (pRootSignature->pipelineType == PIPELINE_TYPE_GRAPHICS)
+    {
         pCmd->dx.pCmdList->SetGraphicsRoot32BitConstants(pDesc->handleIndex, constantCount, pConstants, offsetIn32BitValues);
+    }
     else
+    {
         pCmd->dx.pCmdList->SetComputeRoot32BitConstants(pDesc->handleIndex, constantCount, pConstants, offsetIn32BitValues);
+    }
 }
 
 /************************************************************************/
@@ -5936,7 +6118,9 @@ void d3d12_cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t 
 
     D3D12_SAMPLE_POSITION samplePositions[16] = {};
     for (uint32_t i = 0; i < sampleLocationsCount; ++i)
+    {
         samplePositions[i] = { locations[i].x, locations[i].y };
+    }
 
     pCmd->dx.pCmdList->SetSamplePositions(samples_count, grid_size_x * grid_size_y, samplePositions);
 }
@@ -6162,14 +6346,22 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
                     ? CALC_SUBRESOURCE_INDEX(pTrans->mipLevel, pTrans->arrayLayer, 0, pTexture->mipLevels, pTexture->arraySizeMinusOne + 1)
                     : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             if (pTrans->acquire)
+            {
                 pBarrier->Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+            }
             else
+            {
                 pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->currentState);
+            }
 
             if (pTrans->release)
+            {
                 pBarrier->Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+            }
             else
+            {
                 pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->newState);
+            }
 
             ++transitionCount;
 
@@ -6214,14 +6406,22 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
                     ? CALC_SUBRESOURCE_INDEX(pTrans->mipLevel, pTrans->arrayLayer, 0, pTexture->mipLevels, pTexture->arraySizeMinusOne + 1)
                     : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             if (pTrans->acquire)
+            {
                 pBarrier->Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+            }
             else
+            {
                 pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->currentState);
+            }
 
             if (pTrans->release)
+            {
                 pBarrier->Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+            }
             else
+            {
                 pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->newState);
+            }
 
             ++transitionCount;
 
@@ -6770,11 +6970,15 @@ void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, ui
     ASSERT(pIndirectBuffer);
 
     if (!pCounterBuffer)
+    {
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset, NULL,
                                            0);
+    }
     else
+    {
         pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset,
                                            pCounterBuffer->dx.pResource, counterBufferOffset);
+    }
 }
 /************************************************************************/
 // Query Heap Implementation
@@ -6987,7 +7191,9 @@ void d3d12_calculateMemoryStats(Renderer* pRenderer, char** stats)
     {
         *stats = (char*)tf_malloc(1);
         if (*stats)
+        {
             (*stats)[0] = '\0';
+        }
     }
     pRenderer->dx.pResourceAllocator->FreeStatsString(wstats);
 }

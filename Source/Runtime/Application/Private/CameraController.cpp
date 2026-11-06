@@ -134,20 +134,26 @@ void FpsCameraController::update(float deltaTime)
     // one reason the check with > 1.0 instead of 0.0 is to avoid
     // normalizing when joystick is not fully down.
     if (lenS > 1.0f)
+    {
         moveVec /= sqrtf(lenS);
+    }
 
     vec3 accelVec = vec4(moveVec).getXYZ();
     // divide by length to normalize if necessary
     // this determines the directional of acceleration, should be normalized.
     lenS = lengthSqr(accelVec);
     if (lenS > 1.0f)
+    {
         accelVec /= sqrtf(lenS);
+    }
 
     // the acceleration vector should still be unit length.
     // assert(fabs(1.0f - lengthSqr(accelVec)) < 0.001f);
     float currentInAccelDir = dot(accelVec, currentVelocity);
     if (currentInAccelDir < 0)
+    {
         currentInAccelDir = 0;
+    }
 
     vec3  braking = (accelVec * currentInAccelDir) - currentVelocity;
     float brakingLen = length(braking);

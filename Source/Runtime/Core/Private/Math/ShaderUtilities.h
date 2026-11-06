@@ -85,7 +85,9 @@ inline float2 encodeDir(float3 n)
 
     float2 result = float2(n.x, n.y);
     if (n.z < 0.f)
+    {
         result = octWrap_float2(result);
+    }
     result = result * 0.5f + float2(0.5f, 0.5f);
     return result;
 }
@@ -221,7 +223,7 @@ inline float3 unpack3PNFromFP32(float fFloatFromFP32)
 
     // unpack a
     // mask out all the stuff above 8-bit with 0xFF == 255
-    a = ((uInputFloat)&0xFFFF) / 65535.0f;
+    a = ((uInputFloat) & 0xFFFF) / 65535.0f;
 
     b = ((uInputFloat >> 16) & 0xFF) / 255.0f;
 
@@ -322,7 +324,9 @@ inline uint16_t floatToHalf(float val)
     { /* Infinity or NaN */
         f16 = (uint16_t)(sign | F16_MAX_EXPONENT);
         if (mantissa)
+        {
             f16 |= (mantissa & F16_MANTISSA_BITS);
+        }
     }
     else if (exponent > 15)
     { /* Overflow - flush to Infinity */

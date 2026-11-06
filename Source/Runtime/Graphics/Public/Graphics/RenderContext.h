@@ -295,12 +295,12 @@ public:
 
 private:
     GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&, CommandSignature* = nullptr);
-    void           destroy();
-    RenderContext* pContext = nullptr;
-    Pipeline*      pPipeline = nullptr;
-    RootSignature* pRootSignature = nullptr;
+    void              destroy();
+    RenderContext*    pContext = nullptr;
+    Pipeline*         pPipeline = nullptr;
+    RootSignature*    pRootSignature = nullptr;
     CommandSignature* pDrawIndirectSignature = nullptr;
-    GPUShader      shader;
+    GPUShader         shader;
     friend class CommandList;
     friend class RenderContext;
 };
@@ -419,14 +419,14 @@ public:
     bool                     supportsRayTracing() const;
     GPUAccelerationStructure createAccelerationStructure(const AccelerationStructureDesc&);
     GPURayTracingPipeline    createRayTracingPipeline(const RayTracingPipelineDesc&);
-    GPUBuffer   createBuffer(const BufferDesc&);
-    GPUTexture  createTexture(const TextureDesc&);
+    GPUBuffer                createBuffer(const BufferDesc&);
+    GPUTexture               createTexture(const TextureDesc&);
     GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
-    GPUSampler  createSampler(const SamplerDesc& = {});
-    GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
-    GPUPipeline createComputePipeline(const ComputePipelineDesc&);
-    bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
-    bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
+    GPUSampler               createSampler(const SamplerDesc& = {});
+    GPUPipeline              createGraphicsPipeline(const GraphicsPipelineDesc&);
+    GPUPipeline              createComputePipeline(const ComputePipelineDesc&);
+    bool                     getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
+    bool                     updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
 
 private:
     struct CommandSlot

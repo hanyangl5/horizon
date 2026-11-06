@@ -50,7 +50,9 @@ bool WindowsStackTrace::Init()
 
     ULONG stackSize = 20000;
     if (!SetThreadStackGuarantee(&stackSize))
+    {
         return false;
+    }
 
     SetUnhandledExceptionFilter(&dumpStackTrace);
 
@@ -100,7 +102,9 @@ void WindowsStackTrace::Log(const char* fmt, ...)
         {
             charsWritten += 2; // "\n\0"
             if (charsWritten > sizeof(fmtBuf))
+            {
                 charsWritten = sizeof(fmtBuf);
+            }
 
             // Ensure there's a newline and null terminator
             fmtBuf[charsWritten - 2] = '\n';
@@ -201,7 +205,9 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
     do
     {
         if (!StackWalk64(imageType, process, thread, &stackFrame, &context, NULL, &SymFunctionTableAccess64, &SymGetModuleBase64, NULL))
+        {
             break;
+        }
 
         if (stackFrame.AddrPC.Offset != 0)
         {
@@ -222,7 +228,9 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
             DWORD functionNameLength =
                 UnDecorateSymbolName(pSymbol->Name, lineInfo.functionName, sizeof(lineInfo.functionName), UNDNAME_COMPLETE);
             if (maxFunctionNameLength < functionNameLength)
+            {
                 maxFunctionNameLength = functionNameLength;
+            }
 
             IMAGEHLP_LINE64 line = {};
             line.SizeOfStruct = sizeof(line);
@@ -233,7 +241,9 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
             SymGetLineFromAddr(process, stackFrame.AddrPC.Offset, &offsetFromSymbol, &line);
 #endif
             if (line.FileName)
+            {
                 strcpy(lineInfo.fileName, line.FileName);
+            }
             lineInfo.lineNumber = line.LineNumber;
 
             IMAGEHLP_MODULE64 module = {};
@@ -244,10 +254,14 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
                 for (size_t i = 0; i < sizeof(module.ImageName); i++)
                 {
                     if (module.ImageName[i] == '\0')
+                    {
                         break;
+                    }
 
                     if (module.ImageName[i] == '/' || module.ImageName[i] == '\\')
+                    {
                         lastSlash = i + 1;
+                    }
                 }
 
                 strncpy(lineInfo.moduleName, &module.ImageName[lastSlash], sizeof(lineInfo.moduleName));

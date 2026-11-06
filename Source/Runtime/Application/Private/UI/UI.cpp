@@ -98,7 +98,7 @@ typedef struct UserInterface
         uint32_t  fontId = 0;
         float     fontSize = 0.f;
         uintptr_t pFont = 0;
-    }* pCachedFontsArr = NULL;
+    }*        pCachedFontsArr = NULL;
     uintptr_t pDefaultFallbackFont = 0;
     float     dpiScale[2] = { 0.0f };
     uint32_t  frameIdx = 0;
@@ -107,7 +107,7 @@ typedef struct UserInterface
     {
         uint64_t key = ~0ull;
         Texture* value = NULL;
-    }* pTextureHashmap = NULL;
+    }*             pTextureHashmap = NULL;
     uint32_t       dynamicTexturesCount = 0;
     Shader*        pShaderTextured[SAMPLE_COUNT_COUNT] = { NULL };
     RootSignature* pRootSignatureTextured = NULL;
@@ -180,7 +180,9 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
     bool value_changed = false;
 
     if (!display_format)
+    {
         display_format = "%.1f";
+    }
     snprintf(text_buf, MAX_FORMAT_STR_LENGTH, display_format, *v);
 
     if (ImGui::GetIO().WantTextInput)
@@ -202,9 +204,13 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
     }
 
     if (*v < v_min)
+    {
         *v = v_min;
+    }
     if (*v > v_max)
+    {
         *v = v_max;
+    }
 
     return value_changed;
 }
@@ -215,7 +221,9 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
     bool value_changed = false;
 
     if (!display_format)
+    {
         display_format = "%d";
+    }
     snprintf(text_buf, MAX_FORMAT_STR_LENGTH, display_format, *v);
 
     if (ImGui::GetIO().WantTextInput)
@@ -237,9 +245,13 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
     }
 
     if (*v < v_min)
+    {
         *v = v_min;
+    }
     if (*v > v_max)
+    {
         *v = v_max;
+    }
 
     return value_changed;
 }
@@ -372,7 +384,9 @@ void DrawDriverMemoryTrackingUI(void*)
                 DriverMemoryEntry* pLhs = (DriverMemoryEntry*)lhs;
                 DriverMemoryEntry* pRhs = (DriverMemoryEntry*)rhs;
                 if (pLhs->memAmount == pRhs->memAmount)
+                {
                     return (pLhs->memAllocs > pRhs->memAllocs) ? -1 : 1;
+                }
 
                 return pLhs->memAmount > pRhs->memAmount ? -1 : 1;
             });
@@ -447,7 +461,9 @@ void DrawDeviceMemoryReportUI(void*)
                 DeviceMemoryEntry* pLhs = (DeviceMemoryEntry*)lhs;
                 DeviceMemoryEntry* pRhs = (DeviceMemoryEntry*)rhs;
                 if (pLhs->memAmount == pRhs->memAmount)
+                {
                     return (pLhs->memAllocs > pRhs->memAllocs) ? -1 : 1;
+                }
 
                 return pLhs->memAmount > pRhs->memAmount ? -1 : 1;
             });
@@ -830,7 +846,9 @@ static ColumnWidget* cloneColumnWidget(const void* pWidget)
     pClonedWidget->widgetsCount = pOriginalWidget->widgetsCount;
 
     for (uint32_t i = 0; i < pOriginalWidget->widgetsCount; ++i)
+    {
         pClonedWidget->pPerColumnWidgets[i] = cloneWidget(pOriginalWidget->pPerColumnWidgets[i]);
+    }
 
     return pClonedWidget;
 }
@@ -1270,7 +1288,9 @@ static void processWidgetCallbacks(UIWidget* pWidget, bool deferred)
         // ImGui::Button doesn't set the IsItemEdited flag, we assing ourselves:
         // pWidget->edited = ImGui::Button(...);
         if (pWidget->type != WIDGET_TYPE_BUTTON)
+        {
             pWidget->edited = ImGui::IsItemEdited();
+        }
 
         pWidget->deactivated = ImGui::IsItemDeactivated();
         pWidget->deactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
@@ -1282,22 +1302,34 @@ static void processWidgetCallbacks(UIWidget* pWidget, bool deferred)
     }
 
     if (pWidget->pOnHover && pWidget->hovered)
+    {
         pWidget->pOnHover(pWidget->pOnHoverUserData);
+    }
 
     if (pWidget->pOnActive && pWidget->active)
+    {
         pWidget->pOnActive(pWidget->pOnActiveUserData);
+    }
 
     if (pWidget->pOnFocus && pWidget->focused)
+    {
         pWidget->pOnFocus(pWidget->pOnFocusUserData);
+    }
 
     if (pWidget->pOnEdited && pWidget->edited)
+    {
         pWidget->pOnEdited(pWidget->pOnEditedUserData);
+    }
 
     if (pWidget->pOnDeactivated && pWidget->deactivated)
+    {
         pWidget->pOnDeactivated(pWidget->pOnDeactivatedUserData);
+    }
 
     if (pWidget->pOnDeactivatedAfterEdit && pWidget->deactivatedAfterEdit)
+    {
         pWidget->pOnDeactivatedAfterEdit(pWidget->pOnDeactivatedAfterEditUserData);
+    }
 }
 
 // CollapsingHeaderWidget private functions
@@ -1313,7 +1345,9 @@ static void processCollapsingHeaderWidget(UIWidget* pWidget)
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_CollapsingHeader;
     if (pOriginalWidget->defaultOpen)
+    {
         flags |= ImGuiTreeNodeFlags_DefaultOpen;
+    }
 
     unsigned char labelBuf[MAX_LABEL_STR_LENGTH];
     bstring       label = bemptyfromarr(labelBuf);
@@ -1557,7 +1591,9 @@ static void processDropdownWidget(UIWidget* pWidget)
     DropdownWidget* pOriginalWidget = (DropdownWidget*)(pWidget->pWidget);
 
     if (pOriginalWidget->count == 0)
+    {
         return;
+    }
 
     char label[MAX_LABEL_LENGTH];
     LABELID1(pOriginalWidget->pData, label);
@@ -1579,12 +1615,16 @@ static void processDropdownWidget(UIWidget* pWidget)
 
                 // Note that callbacks are sketchy with BeginCombo/EndCombo, so we manually process them here
                 if (pWidget->pOnEdited)
+                {
                     pWidget->pOnEdited(pWidget->pOnEditedUserData);
+                }
 
                 if (*pCurrent != prevValue)
                 {
                     if (pWidget->pOnDeactivatedAfterEdit)
+                    {
                         pWidget->pOnDeactivatedAfterEdit(pWidget->pOnDeactivatedAfterEditUserData);
+                    }
                 }
             }
 
@@ -1743,7 +1783,9 @@ static int TextboxCallbackFunc(ImGuiInputTextCallbackData* data)
         }
 
         if (pWidget->pCallback)
+        {
             pWidget->pCallback(ImGui::GetIO().KeysDown);
+        }
     }
 
     return 0;
@@ -1761,9 +1803,13 @@ void processTextboxWidget(UIWidget* pWidget)
 
     uint32_t flags = 0;
     if (pOriginalWidget->flags & UI_TEXT_AUTOSELECT_ALL)
+    {
         flags |= ImGuiInputTextFlags_AutoSelectAll;
+    }
     if (pOriginalWidget->pCallback)
+    {
         flags |= ImGuiInputTextFlags_CallbackAlways;
+    }
 
     ImGui::Text("%s", pWidget->label);
     ImGui::InputText(label, (char*)pText->data, bmlen(pText), flags, TextboxCallbackFunc, pOriginalWidget);
@@ -1874,7 +1920,9 @@ void processCustomWidget(UIWidget* pWidget)
     CustomWidget* pOriginalWidget = (CustomWidget*)(pWidget->pWidget);
 
     if (pOriginalWidget->pCallback)
+    {
         pOriginalWidget->pCallback(pOriginalWidget->pUserData);
+    }
 
     // Note that we do not process widget callbacks for custom widgets
 }
@@ -2104,14 +2152,18 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
         {
             CollapsingHeaderWidget* pOriginalWidget = (CollapsingHeaderWidget*)(pWidget->pWidget);
             for (uint32_t i = 0; i < pOriginalWidget->widgetsCount; ++i)
+            {
                 destroyWidget(pOriginalWidget->pGroupedWidgets[i], true);
+            }
             break;
         }
         case WIDGET_TYPE_COLUMN:
         {
             ColumnWidget* pOriginalWidget = (ColumnWidget*)(pWidget->pWidget);
             for (ptrdiff_t i = 0; i < pOriginalWidget->widgetsCount; ++i)
+            {
                 destroyWidget(pOriginalWidget->pPerColumnWidgets[i], true);
+            }
             break;
         }
 
@@ -2154,7 +2206,9 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
         {
             CustomWidget* pOriginalWidget = (CustomWidget*)(pWidget->pWidget);
             if (pOriginalWidget->pDestroyCallback)
+            {
                 pOriginalWidget->pDestroyCallback(pOriginalWidget->pUserData);
+            }
             break;
         }
 
@@ -2324,7 +2378,9 @@ void uiDestroyComponent(UIComponent* pGui)
     {
         UIComponent* pComponent = pUserInterface->components[i];
         if (pComponent == pGui)
+        {
             componentIndex = i;
+        }
     }
 
     if (componentIndex < arrlen(pUserInterface->components))
@@ -2362,7 +2418,9 @@ UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const v
     arrpush(pGui->widgetsClone, clone);
 
     if (clone)
+    {
         tf_free(pBaseWidget);
+    }
 
     return pGui->widgets[arrlen(pGui->widgets) - 1];
 #else
@@ -2377,7 +2435,9 @@ void uiDestroyComponentWidget(UIComponent* pGui, UIWidget* pWidget)
     for (i = 0; i < arrlen(pGui->widgets); ++i)
     {
         if (pGui->widgets[i]->pWidget == pWidget->pWidget)
+        {
             break;
+        }
     }
     if (i < arrlen(pGui->widgets))
     {
@@ -2599,20 +2659,28 @@ void platformUpdateUserInterface(float deltaTime)
     // Render can me nullptr when initUserInterface wasn't called, this can happen when the build compiled using
     // ENABLED_FORGE_UI but then in runtime the App decided not to use the UI
     if (pUserInterface->pRenderer == nullptr)
+    {
         return;
+    }
 
     // (UIComponent*)[dyn_size]
     UIComponent** activeComponents = NULL;
     arrsetcap(activeComponents, arrlen(pUserInterface->components));
 
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->components); ++i)
+    {
         if (pUserInterface->components[i]->active)
+        {
             arrpush(activeComponents, pUserInterface->components[i]);
+        }
+    }
 
     if (arrlen(activeComponents) == 0)
     {
         if (arrcap(activeComponents) > 0)
+        {
             arrfree(activeComponents);
+        }
     }
 
     GUIDriverUpdate guiUpdate = {};
@@ -2633,18 +2701,26 @@ void platformUpdateUserInterface(float deltaTime)
     io.FontGlobalScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
     io.DeltaTime = guiUpdate.deltaTime;
     if (pUserInterface->pMovePosition)
+    {
         io.MousePos = *pUserInterface->pMovePosition * io.DisplayFramebufferScale;
+    }
 
     // Gamepad connected
     {
         bool anyGamepadConnected = false;
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
+        {
             anyGamepadConnected |= gamePadConnected(i);
+        }
 
         if (anyGamepadConnected)
+        {
             io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+        }
         else
+        {
             io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
+        }
     }
 
     memcpy(io.NavInputs, pUserInterface->navInputs, sizeof(pUserInterface->navInputs));
@@ -2654,14 +2730,18 @@ void platformUpdateUserInterface(float deltaTime)
     if (pUserInterface->active)
     {
         if (guiUpdate.showDemoWindow)
+        {
             ImGui::ShowDemoWindow();
+        }
 
         pUserInterface->lastUpdateCount = guiUpdate.componentCount;
 
         for (uint32_t compIndex = 0; compIndex < guiUpdate.componentCount; ++compIndex)
         {
             if (!guiUpdate.pUIComponents)
+            {
                 continue;
+            }
 
             UIComponent*          pComponent = guiUpdate.pUIComponents[compIndex];
             char                  title[MAX_TITLE_STR_LENGTH] = { 0 };
@@ -2678,49 +2758,87 @@ void platformUpdateUserInterface(float deltaTime)
             strcpy(title, pComponent->title);
 
             if (title[0] == '\0')
+            {
                 snprintf(title, MAX_TITLE_STR_LENGTH, "##%llu", (unsigned long long)pComponent);
+            }
             // Setup the ImGuiWindowFlags
             ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoTitleBar;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoResize;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoMove;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_SCROLLBAR)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoScrollbar;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_COLLAPSE)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoCollapse;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE)
+            {
                 guiWinFlags |= ImGuiWindowFlags_AlwaysAutoResize;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_INPUTS)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoInputs;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_MEMU_BAR)
+            {
                 guiWinFlags |= ImGuiWindowFlags_MenuBar;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_HORIZONTAL_SCROLLBAR)
+            {
                 guiWinFlags |= ImGuiWindowFlags_HorizontalScrollbar;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoFocusOnAppearing;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR)
+            {
                 guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
+            {
                 guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
+            {
                 guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoNavFocus;
+            }
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_DOCKING)
+            {
                 guiWinFlags |= ImGuiWindowFlags_NoDocking;
+            }
 
             ImGui::PushFont((ImFont*)pComponent->pFont);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, pComponent->alpha);
 
             if (pComponent->pPreProcessCallback)
+            {
                 pComponent->pPreProcessCallback(pComponent->pUserData);
+            }
 
             bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
             if (result)
@@ -2733,7 +2851,9 @@ void platformUpdateUserInterface(float deltaTime)
                         if (ImGui::MenuItem(contextualMenuLabels[i]))
                         {
                             if (contextualMenuCallbacks && contextualMenuCallbacks[i])
+                            {
                                 contextualMenuCallbacks[i](pComponent->pUserData);
+                            }
                         }
                     }
                     ImGui::EndPopup();
@@ -2743,16 +2863,22 @@ void platformUpdateUserInterface(float deltaTime)
                 bool overridePos = false;
 
                 if ((UIComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) && !(UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
+                {
                     overrideSize = true;
+                }
 
                 if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+                {
                     overridePos = true;
+                }
 
                 ImGui::SetWindowSize(float2(pWindowRect->z, pWindowRect->w), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
                 ImGui::SetWindowPos(float2(pWindowRect->x, pWindowRect->y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
 
                 if (UIComponentFlags & GUI_COMPONENT_FLAGS_START_COLLAPSED)
+                {
                     ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
+                }
 
                 for (ptrdiff_t i = 0; i < propCount; ++i)
                 {
@@ -2776,7 +2902,9 @@ void platformUpdateUserInterface(float deltaTime)
             ImGui::End();
 
             if (pComponent->pPostProcessCallback)
+            {
                 pComponent->pPostProcessCallback(pComponent->pUserData);
+            }
 
             ImGui::PopStyleVar();
             ImGui::PopFont();
@@ -2790,7 +2918,9 @@ void platformUpdateUserInterface(float deltaTime)
         for (uint32_t compIndex = 0; compIndex < guiUpdate.componentCount; ++compIndex)
         {
             if (!guiUpdate.pUIComponents)
+            {
                 continue;
+            }
 
             UIComponent* pComponent = guiUpdate.pUIComponents[compIndex];
             UIWidget**   pProps = pComponent->widgets;
@@ -2922,7 +3052,9 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
         id < pUserInterface->maxUIFonts ? pUserInterface->pCachedFontsArr[id].pFontTex : hmgetp(pUserInterface->pTextureHashmap, id)->value;
 #if defined(ENABLE_FORGE_REMOTE_UI)
     if (!pTexture)
+    {
         pTexture = (Texture*)id;
+    }
 #endif
     const uint32_t textureIndex = getTextureSrvIndex(pTexture);
     *ppPipelineInOut = pUserInterface->pPipelineTextured[(uint32_t)log2(pTexture->sampleCount)];
@@ -3027,7 +3159,9 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     io.IniFilename = pDesc->settingsFilename;
 
     if (pDesc->enableDocking)
+    {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    }
 
     // Add a default fallback font (at index 0)
     uint32_t fallbackFontTexId = addImguiFont(NULL, 0, NULL, UINT_MAX, 0.f, &pUserInterface->pDefaultFallbackFont);
@@ -3063,7 +3197,9 @@ void exitUserInterface()
     }
 
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->pCachedFontsArr); ++i)
+    {
         removeResource(pUserInterface->pCachedFontsArr[i].pFontTex);
+    }
 
     arrfree(pUserInterface->pCachedFontsArr);
     hmfree(pUserInterface->pTextureHashmap);
@@ -3393,7 +3529,9 @@ void uiOnText(const wchar_t* pText)
     ImGuiIO& io = ImGui::GetIO();
     uint32_t len = (uint32_t)wcslen(pText);
     for (uint32_t i = 0; i < len; ++i)
+    {
         io.AddInputCharacter(pText[i]);
+    }
 #endif
 }
 
@@ -3403,7 +3541,9 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
     ImGui::SetCurrentContext(pUserInterface->context);
     ImGuiIO& io = ImGui::GetIO();
     if (pVec)
+    {
         pUserInterface->pMovePosition = pVec;
+    }
 
     switch (actionId)
     {
@@ -3485,15 +3625,25 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
         if (pVec)
         {
             if (UISystemInputActions::UI_ACTION_MOUSE_LEFT == actionId)
+            {
                 io.MouseDown[0] = press;
+            }
             else if (UISystemInputActions::UI_ACTION_MOUSE_RIGHT == actionId)
+            {
                 io.MouseDown[1] = press;
+            }
             else if (UISystemInputActions::UI_ACTION_MOUSE_MIDDLE == actionId)
+            {
                 io.MouseDown[2] = press;
+            }
             else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP == actionId)
+            {
                 io.MouseWheel = 1.f * scrollScale;
+            }
             else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN == actionId)
+            {
                 io.MouseWheel = -1.f * scrollScale;
+            }
         }
         if (io.MousePos.x != -FLT_MAX && io.MousePos.y != -FLT_MAX)
         {
@@ -3522,107 +3672,149 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
     // This scenario occurs with mobile soft (on-screen) keyboards.
     case UISystemInputActions::UI_ACTION_KEY_TAB:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_TAB] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_TAB] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_UP_ARROW:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_PAGE_UP:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_HOME:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_HOME] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_HOME] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_END:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_END] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_END] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_INSERT:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_INSERT] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_INSERT] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_DELETE:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DELETE] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DELETE] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_BACK_SPACE:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_SPACE:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_SPACE] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_SPACE] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_ENTER:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ENTER] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ENTER] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_ESCAPE:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_A:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_A] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_A] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_C:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_C] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_C] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_V:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_V] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_V] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_X:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_X] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_X] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_Y:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Y] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Y] = press;
         break;
     case UISystemInputActions::UI_ACTION_KEY_Z:
         if (press)
+        {
             io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Z] = true;
+        }
         pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Z] = press;
         break;
 
@@ -3644,9 +3836,13 @@ void uiOnStick(uint32_t actionId, const float2* pStick)
         ASSERT(pStick);
         const float2 vec = *pStick;
         if (vec.x < 0.f)
+        {
             pUserInterface->navInputs[ImGuiNavInput_LStickLeft] = abs(vec.x);
+        }
         else if (vec.x > 0.f)
+        {
             pUserInterface->navInputs[ImGuiNavInput_LStickRight] = vec.x;
+        }
         else
         {
             pUserInterface->navInputs[ImGuiNavInput_LStickLeft] = 0.f;
@@ -3654,9 +3850,13 @@ void uiOnStick(uint32_t actionId, const float2* pStick)
         }
 
         if (vec.y < 0.f)
+        {
             pUserInterface->navInputs[ImGuiNavInput_LStickDown] = abs(vec.y);
+        }
         else if (vec.y > 0.f)
+        {
             pUserInterface->navInputs[ImGuiNavInput_LStickUp] = vec.y;
+        }
         else
         {
             pUserInterface->navInputs[ImGuiNavInput_LStickDown] = 0.f;
@@ -3673,9 +3873,13 @@ void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, con
 {
 #ifdef ENABLE_FORGE_UI
     if (actionId == UISystemInputActions::UI_ACTION_NAV_SCROLL_MOVE_WINDOW)
+    {
         uiOnStick(actionId, pStick);
+    }
     else
+    {
         uiOnButton(actionId, buttonPress, pMousePos);
+    }
 #endif
 }
 

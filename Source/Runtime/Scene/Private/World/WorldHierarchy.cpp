@@ -31,11 +31,15 @@ WorldHierarchy::WorldHierarchy(WorldImpl& world): world(world)
 WorldHierarchy::~WorldHierarchy()
 {
     if (structureDirty)
+    {
         rebuild();
+    }
     ecs_query_fini(pEntities);
     // Avoid Flecs recursively cascading deletion through a deep hierarchy at ecs_fini.
     for (uint32_t i = nodes.size(); i > 0; --i)
+    {
         ecs_delete(world.pWorld, nodes[i - 1].entity);
+    }
     hmfree(pIndices);
     hmfree(pBuildIndices);
     hmfree(pPendingLocals);
@@ -52,7 +56,9 @@ uint32_t WorldHierarchy::find(ecs_entity_t entity) const
 void WorldHierarchy::markDirty(ecs_entity_t entity)
 {
     if (structureDirty)
+    {
         return;
+    }
     const uint32_t index = find(entity);
     if (index != UINT32_MAX && !nodes[index].dirty)
     {
@@ -64,7 +70,9 @@ void WorldHierarchy::markDirty(ecs_entity_t entity)
 bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool adding)
 {
     if (type != SceneTypes::localTransform && type != SceneTypes::localMatrix)
+    {
         return true;
+    }
     const uint32_t    bit = type == SceneTypes::localTransform ? 1u : 2u;
     const LocalState* pPending = hmgetp_null(pPendingLocals, entity);
     const uint32_t    mask = pPending ? pPending->value
@@ -79,7 +87,9 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool a
     if (ecs_is_deferred(world.pWorld) && next != mask)
     {
         if (!pPending)
+        {
             pendingLocals.pushBack(entity);
+        }
         const LocalState state = { .key = entity, .value = next };
         hmputs(pPendingLocals, state);
     }
@@ -90,7 +100,9 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool a
 void WorldHierarchy::finishDeferredChanges()
 {
     for (ecs_entity_t entity : pendingLocals)
+    {
         hmdel(pPendingLocals, entity);
+    }
     pendingLocals.clear();
 }
 
@@ -98,7 +110,9 @@ Matrix4 WorldHierarchy::localMatrix(ecs_entity_t entity) const
 {
     const LocalMatrix* pMatrix = matrixType ? (const LocalMatrix*)ecs_get_id(world.pWorld, entity, matrixType) : nullptr;
     if (pMatrix)
+    {
         return pMatrix->value;
+    }
     const LocalTransform* pTransform = transformType ? (const LocalTransform*)ecs_get_id(world.pWorld, entity, transformType) : nullptr;
     return pTransform ? Matrix4(pTransform->rotation, pTransform->translation) * Matrix4::scale(pTransform->scale) : Matrix4::identity();
 }
@@ -107,7 +121,9 @@ void WorldHierarchy::rebuild()
 {
     buildNodes.clear();
     for (const Node& node : nodes)
+    {
         hmdel(pBuildIndices, node.entity);
+    }
     ecs_iter_t it = ecs_query_iter(world.pWorld, pEntities);
     while (ecs_query_next(&it))
     {
@@ -166,7 +182,9 @@ void WorldHierarchy::rebuild()
     }
     ASSERT(scratch.size() == buildNodes.size());
     for (const Node& node : nodes)
+    {
         hmdel(pIndices, node.entity);
+    }
     Array<Node> old = std::move(nodes);
     nodes = std::move(scratch);
     scratch = std::move(old);
@@ -179,7 +197,9 @@ void WorldHierarchy::rebuild()
     dirtyRoots.reserve(nodes.size());
     historyDirty.clear();
     for (uint32_t i = 0; i < nodes.size(); i = nodes[i].subtreeEnd)
+    {
         dirtyRoots.pushBack(i);
+    }
     structureDirty = false;
 }
 
@@ -188,15 +208,21 @@ void WorldHierarchy::update()
     world.checkThread();
     ASSERT(!ecs_is_deferred(world.pWorld));
     if (structureDirty)
+    {
         rebuild();
+    }
     if (dirtyRoots.empty())
+    {
         return;
+    }
     qsort(dirtyRoots.data(), dirtyRoots.size(), sizeof(uint32_t), compareIndices);
     uint32_t processedEnd = 0;
     for (uint32_t root : dirtyRoots)
     {
         if (root < processedEnd)
+        {
             continue;
+        }
         processedEnd = nodes[root].subtreeEnd;
         for (uint32_t i = root; i < processedEnd; ++i)
         {
@@ -243,43 +269,59 @@ void WorldHierarchy::resetHistory(ecs_entity_t root)
     update();
     const uint32_t first = root ? find(root) : 0;
     if (first == UINT32_MAX)
+    {
         return;
+    }
     const uint32_t end = root ? nodes[first].subtreeEnd : nodes.size();
     for (uint32_t i = first; i < end; ++i)
+    {
         nodes[i].transform.previous = nodes[i].transform.current;
+    }
 }
 
 bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix)
 {
     for (uint32_t column = 0; column < 4; ++column)
+    {
         for (uint32_t row = 0; row < 4; ++row)
+        {
             if (!isfinite((float)matrix.getElem(column, row)))
             {
                 LOGF(eERROR, "Cannot preserve a non-finite world transform");
                 return false;
             }
+        }
+    }
     LocalTransform transform;
     decompose(matrix, &transform.translation, &transform.rotation, &transform.scale);
     const Matrix4 reconstructed = Matrix4(transform.rotation, transform.translation) * Matrix4::scale(transform.scale);
     bool          representable = true;
     for (uint32_t column = 0; column < 4; ++column)
+    {
         for (uint32_t row = 0; row < 4; ++row)
         {
             const float expected = (float)matrix.getElem(column, row);
             const float actual = (float)reconstructed.getElem(column, row);
             if (!isfinite(actual) || fabsf(actual - expected) > 1e-5f * fmaxf(1.0f, fabsf(expected)))
+            {
                 representable = false;
+            }
         }
+    }
     if (representable && transformType)
     {
         if (matrixType)
+        {
             ecs_remove_id(world.pWorld, entity, matrixType);
+        }
         ecs_set_id(world.pWorld, entity, transformType, sizeof(transform), &transform);
     }
     else if (matrixType)
     {
         if (transformType)
+        {
             ecs_remove_id(world.pWorld, entity, transformType);
+        }
         const LocalMatrix local = { .value = matrix };
         ecs_set_id(world.pWorld, entity, matrixType, sizeof(local), &local);
     }
@@ -300,11 +342,17 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
         return false;
     }
     for (ecs_entity_t ancestor = parent; ancestor; ancestor = ecs_get_target(world.pWorld, ancestor, world.parentRelation, 0))
+    {
         if (ancestor == entity)
+        {
             return false;
+        }
+    }
     const ecs_entity_t previous = ecs_get_target(world.pWorld, entity, world.parentRelation, 0);
     if (previous == parent)
+    {
         return true;
+    }
     if (keepWorld)
     {
         update();
@@ -323,12 +371,18 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
             local.setRow(3, Vector4(0, 0, 0, 1));
         }
         if (!writeLocalMatrix(entity, local))
+        {
             return false;
+        }
     }
     if (parent)
+    {
         ecs_add_pair(world.pWorld, entity, world.parentRelation, parent);
+    }
     else if (previous)
+    {
         ecs_remove_pair(world.pWorld, entity, world.parentRelation, previous);
+    }
     invalidateStructure();
     return true;
 }
@@ -339,7 +393,9 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
     ecs_iter_t children = ecs_term_iter(world.pWorld, &term);
     const bool hasChildren = ecs_term_next(&children);
     if (hasChildren)
+    {
         ecs_iter_fini(&children);
+    }
     if (!hasChildren)
     {
         ecs_delete(world.pWorld, entity);
@@ -362,7 +418,9 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
     if (subtree)
     {
         for (uint32_t i = end; i > root; --i)
+        {
             ecs_delete(world.pWorld, nodes[i - 1].entity);
+        }
     }
     else
     {
@@ -370,7 +428,9 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
         for (uint32_t i = root + 1; i < end; i = nodes[i].subtreeEnd)
         {
             if (!writeLocalMatrix(nodes[i].entity, nodes[i].transform.current))
+            {
                 return false;
+            }
             ecs_remove_pair(world.pWorld, nodes[i].entity, world.parentRelation, entity);
         }
         ecs_delete(world.pWorld, entity);
@@ -392,7 +452,9 @@ void World::attachParent(Entity entity, Entity parent)
 bool World::setParent(Entity entity, Entity parent, bool keepWorld)
 {
     if (!isAlive(entity) || (parent.isValid() && !isAlive(parent)))
+    {
         return false;
+    }
     return pImpl->pHierarchy->setParent(entity.value, parent.value, keepWorld);
 }
 bool                  World::destroyEntity(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->destroy(entity.value, false); }
@@ -406,6 +468,8 @@ void World::commitTransforms() { pImpl->pHierarchy->commit(); }
 void World::resetTransformHistory(Entity root)
 {
     if (!root.isValid() || isAlive(root))
+    {
         pImpl->pHierarchy->resetHistory(root.value);
+    }
 }
 } // namespace hz

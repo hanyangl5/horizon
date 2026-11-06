@@ -30,7 +30,9 @@ public:
         *pEntry = entry;
         AssetID* pDependencies = (AssetID*)(pEntry + 1);
         if (dependencyBytes)
+        {
             memcpy(pDependencies, entry.dependencies.pData, dependencyBytes);
+        }
         char* pSource = (char*)pDependencies + dependencyBytes;
         memcpy(pSource, entry.pSourcePath, sourceBytes);
         memcpy(pSource + sourceBytes, entry.location.pPath, pathBytes);
@@ -44,10 +46,14 @@ public:
     ~AssetCatalogData()
     {
         for (ptrdiff_t i = 0; i < hmlen(pRecords); ++i)
+        {
             tf_free(pRecords[i].value);
+        }
         hmfree(pRecords);
         for (AssetCatalogEntry* pEntry : retiredEntries)
+        {
             tf_free(pEntry);
+        }
     }
 
     CatalogRecord*            pRecords = nullptr;
@@ -68,7 +74,9 @@ public:
     {
         dependencies.reserve(entry.dependencies.count);
         for (AssetID id : entry.dependencies)
+        {
             dependencies.pushBack(id);
+        }
         entries.pushBack(entry);
         entries[0].dependencies = finishDependencies(0);
     }
@@ -77,16 +85,20 @@ public:
     {
         uint32_t dependencyCount = scene.getNodes().count + scene.getMaterials().count * 4;
         for (const SceneAssetMesh& mesh : scene.getMeshes())
+        {
             dependencyCount += mesh.submeshes.count;
+        }
         dependencies.reserve(dependencyCount);
         entries.reserve(1 + scene.getTextures().count + scene.getMaterials().count + scene.getMeshes().count);
         for (const SceneAssetTexture& texture : scene.getTextures())
+        {
             entries.pushBack(
                 { .id = texture.id,
                   .type = AssetType::Texture,
                   .pSourcePath = texture.pSource,
                   .location = { .pPath = texture.pPath, .root = texture.cooked ? AssetPathRoot::Cooked : AssetPathRoot::Source },
                   .srgb = texture.srgb });
+        }
         uint32_t index = 0;
         for (const SceneAssetMaterial& material : scene.getMaterials())
         {
@@ -106,7 +118,9 @@ public:
         {
             const uint32_t start = dependencies.size();
             for (const SceneAssetSubmesh& submesh : mesh.submeshes)
+            {
                 addDependency(submesh.material);
+            }
             entries.pushBack({ .id = mesh.id,
                                .type = AssetType::Mesh,
                                .pSourcePath = scene.getSource(),
@@ -115,7 +129,9 @@ public:
         }
         const uint32_t start = dependencies.size();
         for (const SceneAssetNode& node : scene.getNodes())
+        {
             addDependency(node.mesh);
+        }
         entries.pushBack({ .id = scene.getID(),
                            .type = AssetType::Scene,
                            .pSourcePath = scene.getSource(),
@@ -129,18 +145,26 @@ private:
     void addDependency(AssetID id)
     {
         if (id.isValid())
+        {
             dependencies.pushBack(id);
+        }
     }
 
     Span<AssetID> finishDependencies(uint32_t start)
     {
         if (start == dependencies.size())
+        {
             return {};
+        }
         qsort(dependencies.data() + start, dependencies.size() - start, sizeof(AssetID), compareIDs);
         uint32_t end = start + 1;
         for (uint32_t i = end; i < dependencies.size(); ++i)
+        {
             if (dependencies[i] != dependencies[end - 1])
+            {
                 dependencies[end++] = dependencies[i];
+            }
+        }
         dependencies.resize(end);
         return { dependencies.data() + start, end - start };
     }
@@ -153,28 +177,42 @@ static bool sameEntry(const AssetCatalogEntry& a, const AssetCatalogEntry& b)
 {
     if (a.type != b.type || a.location.root != b.location.root || a.location.elementIndex != b.location.elementIndex || a.srgb != b.srgb ||
         strcmp(a.pSourcePath, b.pSourcePath) || strcmp(a.location.pPath, b.location.pPath) || a.dependencies.count != b.dependencies.count)
+    {
         return false;
+    }
     for (uint32_t i = 0; i < a.dependencies.count; ++i)
+    {
         if (a.dependencies.pData[i] != b.dependencies.pData[i])
+        {
             return false;
+        }
+    }
     return true;
 }
 
 static bool validPath(const char* pPath)
 {
     if (!pPath || !*pPath || *pPath == '/' || strchr(pPath, '\\') || strchr(pPath, ':'))
+    {
         return false;
+    }
     const char* pSegment = pPath;
     for (const char* pCursor = pPath;; ++pCursor)
+    {
         if (*pCursor == '/' || !*pCursor)
         {
             if (pCursor == pSegment || (pCursor - pSegment == 1 && *pSegment == '.') ||
                 (pCursor - pSegment == 2 && pSegment[0] == '.' && pSegment[1] == '.'))
+            {
                 return false;
+            }
             if (!*pCursor)
+            {
                 return true;
+            }
             pSegment = pCursor + 1;
         }
+    }
 }
 
 AssetCatalog::~AssetCatalog() { clear(); }
@@ -203,18 +241,22 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
         return false;
     }
     for (AssetID id : entry.dependencies)
+    {
         if (!id.isValid())
         {
             LOGF(eERROR, "Invalid AssetCatalog dependency");
             return false;
         }
+    }
     const CatalogBatch       batch(entry);
     const AssetCatalogEntry& normalized = batch.getEntries().pData[0];
     const AssetCatalogEntry* pExisting = find(entry.id);
     if (pExisting)
     {
         if (sameEntry(*pExisting, normalized))
+        {
             return true;
+        }
         if (!replaceExisting || pExisting->type != entry.type)
         {
             LOGF(eERROR, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
@@ -223,7 +265,9 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
         pData->retiredEntries.pushBack((AssetCatalogEntry*)pExisting);
     }
     if (!pData)
+    {
         pData = tf_new(AssetCatalogData);
+    }
     pData->insert(normalized);
     return true;
 }
@@ -248,11 +292,15 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
         }
     }
     if (!pData)
+    {
         pData = tf_new(AssetCatalogData);
+    }
     for (const AssetCatalogEntry& entry : batch.getEntries())
     {
         if (find(entry.id))
+        {
             continue;
+        }
         pData->insert(entry);
     }
     return true;
@@ -261,7 +309,9 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
 const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
 {
     if (!pData || !id.isValid())
+    {
         return nullptr;
+    }
     const CatalogRecord* pRecord = hmgetp_null(pData->pRecords, id);
     return pRecord ? pRecord->value : nullptr;
 }
@@ -270,13 +320,17 @@ uint32_t                 AssetCatalog::getCount() const { return pData ? (uint32
 const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) const
 {
     if (!pData || !pCookedScenePath)
+    {
         return nullptr;
+    }
     for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
     {
         const AssetCatalogEntry* pEntry = pData->pRecords[i].value;
         if (pEntry->type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
             !strcmp(pEntry->location.pPath, pCookedScenePath))
+        {
             return pEntry;
+        }
     }
     return nullptr;
 }
@@ -284,10 +338,14 @@ const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) c
 bool AssetCatalog::remove(AssetID id)
 {
     if (!pData)
+    {
         return false;
+    }
     const CatalogRecord* pRecord = hmgetp_null(pData->pRecords, id);
     if (!pRecord)
+    {
         return false;
+    }
     pData->retiredEntries.pushBack(pRecord->value);
     hmdel(pData->pRecords, id);
     return true;
@@ -296,7 +354,9 @@ bool AssetCatalog::remove(AssetID id)
 bool AssetCatalog::merge(const AssetCatalog& other)
 {
     if (!other.pData)
+    {
         return true;
+    }
     for (ptrdiff_t i = 0; i < hmlen(other.pData->pRecords); ++i)
     {
         const AssetCatalogEntry& entry = *other.pData->pRecords[i].value;
@@ -308,12 +368,16 @@ bool AssetCatalog::merge(const AssetCatalog& other)
         }
     }
     if (!pData)
+    {
         pData = tf_new(AssetCatalogData);
+    }
     for (ptrdiff_t i = 0; i < hmlen(other.pData->pRecords); ++i)
     {
         const AssetCatalogEntry& entry = *other.pData->pRecords[i].value;
         if (!find(entry.id))
+        {
             pData->insert(entry);
+        }
     }
     return true;
 }
@@ -335,7 +399,9 @@ static bool catalogNumber(const cJSON* pValue, uint32_t& value)
 {
     if (!cJSON_IsNumber(pValue) || !(pValue->valuedouble >= 0 && pValue->valuedouble <= UINT32_MAX) ||
         pValue->valuedouble != (uint32_t)pValue->valuedouble)
+    {
         return false;
+    }
     value = (uint32_t)pValue->valuedouble;
     return true;
 }
@@ -343,11 +409,19 @@ static bool catalogNumber(const cJSON* pValue, uint32_t& value)
 static bool uniqueFields(const cJSON* pObject)
 {
     if (!cJSON_IsObject(pObject))
+    {
         return false;
+    }
     for (const cJSON* pA = pObject->child; pA; pA = pA->next)
+    {
         for (const cJSON* pB = pA->next; pB; pB = pB->next)
+        {
             if (!strcmp(pA->string, pB->string))
+            {
                 return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -356,20 +430,30 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
     CatalogJson document;
     const char* pEnd = nullptr;
     if (json.pData && json.count && json.count <= 64 * 1024 * 1024)
+    {
         document.pRoot = cJSON_ParseWithLengthOpts(json.pData, json.count, &pEnd, false);
+    }
     if (!document.pRoot)
+    {
         return false;
+    }
     while (pEnd < json.pData + json.count && isspace((unsigned char)*pEnd))
+    {
         ++pEnd;
+    }
     if (pEnd < json.pData + json.count && !*pEnd && pEnd + 1 == json.pData + json.count)
+    {
         ++pEnd;
+    }
     const cJSON* pRoot = document.pRoot;
     const char*  pFormat = catalogString(pRoot, "format");
     uint32_t     version = 0;
     const cJSON* pEntries = cJSON_GetObjectItemCaseSensitive(pRoot, "entries");
     if (pEnd != json.pData + json.count || !uniqueFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.AssetCatalog") ||
         !catalogNumber(cJSON_GetObjectItemCaseSensitive(pRoot, "version"), version) || version != 1 || !cJSON_IsArray(pEntries))
+    {
         return false;
+    }
     Array<AssetID> dependencies;
     for (const cJSON* pEntry = pEntries->child; pEntry; pEntry = pEntry->next)
     {
@@ -386,7 +470,9 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "root"), root) || root > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(pIndex) && !catalogNumber(pIndex, entry.location.elementIndex)) || !cJSON_IsBool(pSrgb) ||
             !cJSON_IsArray(pDependencies))
+        {
             return false;
+        }
         entry.type = (AssetType)type;
         entry.location.root = (AssetPathRoot)root;
         entry.srgb = cJSON_IsTrue(pSrgb);
@@ -395,12 +481,16 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         {
             AssetID id;
             if (!cJSON_IsString(pDependency) || !id.parse(pDependency->valuestring) || !id.isValid())
+            {
                 return false;
+            }
             dependencies.pushBack(id);
         }
         entry.dependencies = { dependencies.data(), dependencies.size() };
         if (!catalog.add(entry))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -414,6 +504,7 @@ bool AssetCatalog::parse(Span<char> json)
         return false;
     }
     if (candidate.pData)
+    {
         for (ptrdiff_t i = 0; i < hmlen(candidate.pData->pRecords); ++i)
         {
             const AssetCatalogEntry& entry = *candidate.pData->pRecords[i].value;
@@ -424,10 +515,15 @@ bool AssetCatalog::parse(Span<char> json)
                 return false;
             }
         }
+    }
     if (!pData)
+    {
         pData = tf_new(AssetCatalogData);
+    }
     for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
+    {
         pData->retiredEntries.pushBack(pData->pRecords[i].value);
+    }
     hmfree(pData->pRecords);
     if (candidate.pData)
     {
@@ -446,7 +542,9 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
     }
     FileStream stream = {};
     if (!fsOpenStreamFromPath(directory, pFileName, FM_READ, &stream))
+    {
         return false;
+    }
     const ssize_t size = fsGetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
@@ -475,10 +573,16 @@ bool AssetCatalog::serialize(Array<char>& json) const
     Array<const AssetCatalogEntry*> entries;
     entries.reserve(getCount());
     if (pData)
+    {
         for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
+        {
             entries.pushBack(pData->pRecords[i].value);
+        }
+    }
     if (!entries.empty())
+    {
         qsort(entries.data(), entries.size(), sizeof(entries[0]), compareEntries);
+    }
     CatalogJson document;
     document.pRoot = cJSON_CreateObject();
     cJSON_AddStringToObject(document.pRoot, "format", "Horizon.AssetCatalog");
@@ -496,9 +600,13 @@ bool AssetCatalog::serialize(Array<char>& json) const
         cJSON_AddStringToObject(pValue, "path", pEntry->location.pPath);
         cJSON_AddNumberToObject(pValue, "root", (uint32_t)pEntry->location.root);
         if (pEntry->location.elementIndex == UINT32_MAX)
+        {
             cJSON_AddNullToObject(pValue, "elementIndex");
+        }
         else
+        {
             cJSON_AddNumberToObject(pValue, "elementIndex", pEntry->location.elementIndex);
+        }
         cJSON_AddBoolToObject(pValue, "srgb", pEntry->srgb);
         cJSON* pDependencies = cJSON_AddArrayToObject(pValue, "dependencies");
         for (AssetID dependency : pEntry->dependencies)
@@ -509,7 +617,9 @@ bool AssetCatalog::serialize(Array<char>& json) const
     }
     char* pText = cJSON_PrintUnformatted(document.pRoot);
     if (!pText)
+    {
         return false;
+    }
     json.resize((uint32_t)strlen(pText) + 1);
     memcpy(json.data(), pText, json.size());
     cJSON_free(pText);

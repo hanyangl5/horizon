@@ -327,7 +327,9 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t he
     normal = context.createTexture(normalDesc);
     depth = context.createTexture(depthDesc);
     if (!albedo.isValid() || !normal.isValid() || !depth.isValid())
+    {
         return false;
+    }
     return true;
 }
 
@@ -494,7 +496,9 @@ public:
         gBufferPass.reset();
         geometryBuildPass.reset();
         for (hz::GPUBuffer& buffer : sceneUniformBuffers)
+        {
             buffer = {};
+        }
         context.reset();
     }
 
@@ -502,13 +506,19 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Load", kCpuProfileColor);
         if (!(pReloadDesc->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        {
             return true;
+        }
         const uint32_t width = (uint32_t)settings.width;
         const uint32_t height = (uint32_t)settings.height;
         if (!context->resize(width, height))
+        {
             return false;
+        }
         if (!gBufferPass->resize(*context, width, height))
+        {
             return false;
+        }
         return true;
     }
 
@@ -525,7 +535,9 @@ public:
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Draw", kCpuProfileColor);
 
         if (context->isSuspended())
+        {
             return;
+        }
         hz::CommandList& commands = context->acquireCommandList();
         updateSceneUniforms(commands);
 

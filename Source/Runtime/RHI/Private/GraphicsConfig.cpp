@@ -47,27 +47,23 @@ GPUPresetLevel            gDefaultPresetLevel;
 typedef uint64_t (*PropertyGetter)(const GPUSettings* pSetting);
 typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
 
-#define GPU_CONFIG_PROPERTY(name, prop)                                             \
-    {                                                                               \
-        name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
-            [](GPUSettings* pSetting, uint64_t value)                               \
-        {                                                                           \
-            static_assert(sizeof(decltype(pSetting->prop)) <= sizeof(value));       \
-            pSetting->prop = (decltype(pSetting->prop))value;                       \
-        }                                                                           \
-    }
+#define GPU_CONFIG_PROPERTY(name, prop)                                           \
+    { name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
+      [](GPUSettings* pSetting, uint64_t value)                                   \
+      {                                                                           \
+          static_assert(sizeof(decltype(pSetting->prop)) <= sizeof(value));       \
+          pSetting->prop = (decltype(pSetting->prop))value;                       \
+      } }
 
-#define GPU_CONFIG_PROPERTY_READ_ONLY(name, prop)                                   \
-    {                                                                               \
-        name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
-            [](GPUSettings* pSetting, uint64_t value)                               \
-        {                                                                           \
-            UNREF_PARAM(value);                                                     \
-            UNREF_PARAM(pSetting);                                                  \
-            LOGF(eDEBUG, "GPUConfig: Unsupported setting %s", name);                \
-            ASSERT(false);                                                          \
-        }                                                                           \
-    }
+#define GPU_CONFIG_PROPERTY_READ_ONLY(name, prop)                                 \
+    { name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
+      [](GPUSettings* pSetting, uint64_t value)                                   \
+      {                                                                           \
+          UNREF_PARAM(value);                                                     \
+          UNREF_PARAM(pSetting);                                                  \
+          LOGF(eDEBUG, "GPUConfig: Unsupported setting %s", name);                \
+          ASSERT(false);                                                          \
+      } }
 
 struct GPUProperty
 {
@@ -481,9 +477,13 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         size_t      ruleLength = strcspn(lineCursor, "#");
         const char* pLineEnd = lineCursor + ruleLength;
         while (currentLineStr != pLineEnd && isspace(*lineCursor))
+        {
             ++lineCursor;
+        }
         if (lineCursor == pLineEnd)
+        {
             continue;
+        }
 
         // parse configuration rules and settings
         switch (parsingStatus)
@@ -504,7 +504,9 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
             else if (strcmp(currentLineStr, "BEGIN_USER_SETTINGS;") == 0)
             {
                 if (pExtendedSettings != NULL)
+                {
                     parsingStatus = ConfigParsingStatus::CONFIG_PARSE_USER_EXTENDED_SETTINGS;
+                }
             }
             break;
         case ConfigParsingStatus::CONFIG_PARSE_SELECTION_RULE:
@@ -1097,17 +1099,29 @@ const char* presetLevelToString(GPUPresetLevel preset)
 GPUPresetLevel stringToPresetLevel(const char* presetLevel)
 {
     if (!stricmp(presetLevel, "office"))
+    {
         return GPU_PRESET_OFFICE;
+    }
     if (!stricmp(presetLevel, "verylow"))
+    {
         return GPU_PRESET_VERYLOW;
+    }
     if (!stricmp(presetLevel, "low"))
+    {
         return GPU_PRESET_LOW;
+    }
     if (!stricmp(presetLevel, "medium"))
+    {
         return GPU_PRESET_MEDIUM;
+    }
     if (!stricmp(presetLevel, "high"))
+    {
         return GPU_PRESET_HIGH;
+    }
     if (!stricmp(presetLevel, "ultra"))
+    {
         return GPU_PRESET_ULTRA;
+    }
 
     return GPU_PRESET_NONE;
 }
@@ -1141,10 +1155,12 @@ bool isValidGPUVendorId(uint32_t vendorId)
     {
         GPUVendorDefinition* currentGPUVendorDefinition = &gGPUVendorDefinitions[i];
         for (uint32_t j = 0; j < currentGPUVendorDefinition->identifierCount; j++)
+        {
             if (currentGPUVendorDefinition->identifierArray[j] == vendorId)
             {
                 return true;
             }
+        }
     }
     return false;
 }
@@ -1171,10 +1187,12 @@ const char* getGPUVendorName(uint32_t vendorId)
     {
         GPUVendorDefinition* currentGPUVendorDefinition = &gGPUVendorDefinitions[i];
         for (uint32_t j = 0; j < currentGPUVendorDefinition->identifierCount; j++)
+        {
             if (currentGPUVendorDefinition->identifierArray[j] == vendorId)
             {
                 return currentGPUVendorDefinition->vendorName;
             }
+        }
     }
     return "UNKNOWN_GPU_VENDOR";
 }
@@ -1183,13 +1201,21 @@ uint32_t getGPUVendorID(const char* vendorName)
 {
     // FIXME: Preserve Intel vendor aliases from the removed gpu.data/gpu.cfg path (0x8087 and 0x163C).
     if (!stricmp(vendorName, "intel"))
+    {
         return 0x8086;
+    }
     if (!stricmp(vendorName, "amd"))
+    {
         return 0x1002;
+    }
     if (!stricmp(vendorName, "nvidia"))
+    {
         return 0x10DE;
+    }
     if (!stricmp(vendorName, "qualcomm"))
+    {
         return 0x5143;
+    }
 
     for (uint32_t i = 0; i < gGPUVendorCount; ++i)
     {
@@ -1279,8 +1305,12 @@ bool compare(const char* cmp, const char* a, const char* b)
 uint32_t getSettingIndex(const char* settingName, uint32_t numSettings, const char** gameSettingNames)
 {
     for (uint32_t i = 0; i < numSettings; ++i)
+    {
         if (strcmp(settingName, gameSettingNames[i]) == 0)
+        {
             return i;
+        }
+    }
 
     return INVALID_OPTION;
 }
@@ -1380,7 +1410,9 @@ void tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, c
 {
     //  initialize all tokens to empty string
     for (uint32_t i = 0; i < numTokens; ++i)
+    {
         pTokens[i][0] = '\0';
+    }
 
     for (uint32_t i = 0; pLine < pLineEnd && i < numTokens; ++i)
     {
@@ -1388,15 +1420,21 @@ void tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, c
         const char* end = pLine + strcspn(pLine, ";");
 
         if (end > pLineEnd)
+        {
             end = pLineEnd;
+        }
 
         pLine = end + 1;
 
         //  Remove whitespace from the front and end
         while (begin != end && isspace(*begin))
+        {
             ++begin;
+        }
         while (begin != end && isspace(end[-1]))
+        {
             --end;
+        }
 
         ptrdiff_t length = end - begin;
         //  NOTE: the last character must be NULL, this assert makes sure the string isnt a
@@ -1420,7 +1458,9 @@ GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorName, 
 
     // check if current vendor line is one of the selected gpu's
     if (!parseConfigLine(line, inVendorName, inModelName, inModelId, inRevId, vendorName, deviceName, deviceId, revisionId, &presetLevel))
+    {
         return GPU_PRESET_NONE;
+    }
 
     return presetLevel;
 }
@@ -1443,10 +1483,14 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
 
     // Exclude whitespace in the beginning (for early exit)
     while (pLine != pLineEnd && isspace(*pLine))
+    {
         ++pLine;
+    }
 
     if (pLine == pLineEnd)
+    {
         return false;
+    }
 
     char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH];
 

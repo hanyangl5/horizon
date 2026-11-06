@@ -40,7 +40,9 @@ bool FreeCameraController::onInput(InputActionContext* pInput)
         break;
     case Look:
         if (pController->captured && !ended)
+        {
             pController->look = pInput->float2Value;
+        }
         break;
     case Capture:
         pController->captured = !ended && pInput->boolValue;
@@ -133,7 +135,9 @@ void FreeCameraController::update(float deltaTime, uint32_t width, uint32_t heig
 
     CameraMotionParameters currentMotion = motion;
     if (boost)
+    {
         currentMotion.movementSpeed *= boostMultiplier;
+    }
     pCamera->setMotionParameters(currentMotion);
     pCamera->onMove(float2(-movement.x, movement.y));
     pCamera->onMoveY(vertical);

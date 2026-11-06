@@ -44,7 +44,9 @@ void Animation::Initialize(AnimationDesc animationDesc)
         // Save additive properties of additive clips
         clipControllers[i]->additive = animationDesc.layerProperties[i].additive;
         if (clipControllers[i]->additive)
+        {
             numAdditiveClips++;
+        }
 
         // Find the index of the longest clip
         if (duration < clipControllers[i]->duration)
@@ -99,7 +101,9 @@ bool Animation::Sample(float dt, ozz::span<SoaTransform>& localTrans)
         {
             // if (!clips[i]->Sample(clipControllers[i]->timeRatio))
             if (!clips[i]->Sample(clipSamplingCaches[i], clipLocalTrans[i], clipControllers[i]->timeRatio))
+            {
                 return false;
+            }
         }
     }
 
@@ -195,9 +199,13 @@ bool Animation::Blend(ozz::span<SoaTransform>& localTrans)
             additiveLayers[additiveIndex].weight = clipControllers[i]->weight;
 
             if (clipMasks[i])
+            {
                 additiveLayers[additiveIndex].joint_weights = clipMasks[i]->GetJointWeights();
+            }
             else
+            {
                 additiveLayers[additiveIndex].joint_weights = ozz::span<const Vector4>();
+            }
 
             additiveIndex++;
         }
@@ -207,9 +215,13 @@ bool Animation::Blend(ozz::span<SoaTransform>& localTrans)
             layers[i].weight = clipControllers[i]->weight;
 
             if (clipMasks[i])
+            {
                 layers[i].joint_weights = clipMasks[i]->GetJointWeights();
+            }
             else
+            {
                 layers[i].joint_weights = ozz::span<const Vector4>();
+            }
         }
     }
 
@@ -218,7 +230,9 @@ bool Animation::Blend(ozz::span<SoaTransform>& localTrans)
     blendJob.threshold = threshold;
     blendJob.layers = layers;
     if (numAdditiveClips > 0)
+    {
         blendJob.additive_layers = additiveLayers;
+    }
     blendJob.rest_pose = rig->skeleton.joint_rest_poses();
     blendJob.output = localTrans;
 

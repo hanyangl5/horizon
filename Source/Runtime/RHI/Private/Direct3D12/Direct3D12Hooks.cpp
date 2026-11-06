@@ -191,7 +191,9 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
         IDXGIAdapter1* pAdapter = NULL;
         const HRESULT  adapterResult = pRenderer->pContext->dx.pDXGIFactory->EnumAdapters1(adapterIndex, &pAdapter);
         if (adapterResult == DXGI_ERROR_NOT_FOUND)
+        {
             break;
+        }
         if (FAILED(adapterResult))
         {
             LOGF(LogLevel::eERROR, "Failed to enumerate DXGI adapters (HRESULT: 0x%08x)", (uint32_t)adapterResult);
@@ -203,7 +205,9 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
             IDXGIOutput*  pOutput = NULL;
             const HRESULT outputResult = pAdapter->EnumOutputs(outputIndex, &pOutput);
             if (outputResult == DXGI_ERROR_NOT_FOUND)
+            {
                 break;
+            }
             if (FAILED(outputResult))
             {
                 SAFE_RELEASE(pAdapter);
@@ -249,19 +253,29 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
 hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
     if (COLOR_SPACE_SDR_LINEAR == colorSpace)
+    {
         return hz::Format::B8G8R8A8_UNORM;
+    }
     if (COLOR_SPACE_SDR_SRGB == colorSpace)
+    {
         return hz::Format::B8G8R8A8_SRGB;
+    }
 
     hz::Format format = hz::Format::UNDEFINED;
     if (COLOR_SPACE_P2020 == colorSpace)
+    {
         format = hz::Format::R10G10B10A2_UNORM;
+    }
     if (COLOR_SPACE_EXTENDED_SRGB == colorSpace)
+    {
         format = hz::Format::R16G16B16A16_SFLOAT;
+    }
 
     DXGI_OUTPUT_DESC1 desc1 = {};
     if (!hook_get_output_desc(pRenderer, &pDesc->windowHandle, &desc1))
+    {
         return hz::Format::UNDEFINED;
+    }
     const bool outputSupportsHDR = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 == desc1.ColorSpace;
     if (outputSupportsHDR)
     {
