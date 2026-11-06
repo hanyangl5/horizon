@@ -575,10 +575,16 @@ int WindowsMain(int argc, char** argv, IApp* app)
         bool lastMinimized = gWindow->minimized;
 
         extern bool handleMessages();
-        quit = handleMessages() || pSettings->quit;
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("App::handleMessages");
+            quit = handleMessages() || pSettings->quit;
+        }
 
         // UPDATE BASE INTERFACES
-        updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("App::updateBaseSubsystems");
+            updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        }
         baseSubsystemAppDrawn = false;
 
         if (gResetDescriptor.type != RESET_TYPE_NONE)

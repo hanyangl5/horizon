@@ -100,6 +100,7 @@ void GBuffer::update() {}
 void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::RenderScene& scene, const hz::GpuScene& gpu,
                       const hz::AssetManager& assets)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
     const hz::GpuSceneBuffers& sceneBuffers = gpu.getBuffers();
     const hz::GpuAssetTables&  tables = gpu.getAssetTables();
     if (materialRevision != tables.revision)
@@ -162,30 +163,34 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              3);
 
     const hz::MeshAsset* previousMesh = nullptr;
-    for (uint32_t index : scene.getActiveMeshBatches())
     {
-        const hz::RenderMeshBatch& meshBatch = scene.getMeshBatches().pData[index];
-        const hz::RenderPrimitive& primitive = scene.getPrimitives().pData[meshBatch.primitive.index];
-        ASSERT(primitive.id == meshBatch.primitive);
-        if (!primitive.instanceCount)
-            continue;
-        const hz::GpuMeshRecord* record = tables.getMesh(meshBatch.mesh.mesh);
-        ASSERT(record && tables.getMaterial(meshBatch.material));
-        const hz::MeshAsset* mesh = assets.getMesh({ .index = meshBatch.mesh.mesh.index, .generation = meshBatch.mesh.mesh.generation });
-        if (mesh != previousMesh)
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::draws");
+        for (uint32_t index : scene.getActiveMeshBatches())
         {
-            commands.setIndexBuffer(mesh->getIndexBuffer(), 0, mesh->getIndexType());
-            commands.setRootConstant(
-                { mesh->getVertexBuffer(0).getSrvIndex(), mesh->getVertexBuffer(1).getSrvIndex(), mesh->getVertexBuffer(2).getSrvIndex() },
-                8);
-            previousMesh = mesh;
-        }
-        const hz::GpuSubmeshRecord& submesh = tables.submeshes.pData[record->submeshOffset + meshBatch.mesh.submeshIndex];
-        for (uint32_t i = 0; i < primitive.instanceCount; ++i)
-        {
-            const uint32_t instance = scene.getInstanceIndices().pData[primitive.instanceOffset + i];
-            commands.setRootConstant({ instance, meshBatch.material.index, materialIds[meshBatch.material.index] });
-            commands.drawIndexed(submesh.indexCount, submesh.firstIndex, submesh.vertexOffset);
+            const hz::RenderMeshBatch& meshBatch = scene.getMeshBatches().pData[index];
+            const hz::RenderPrimitive& primitive = scene.getPrimitives().pData[meshBatch.primitive.index];
+            ASSERT(primitive.id == meshBatch.primitive);
+            if (!primitive.instanceCount)
+                continue;
+            const hz::GpuMeshRecord* record = tables.getMesh(meshBatch.mesh.mesh);
+            ASSERT(record && tables.getMaterial(meshBatch.material));
+            const hz::MeshAsset* mesh =
+                assets.getMesh({ .index = meshBatch.mesh.mesh.index, .generation = meshBatch.mesh.mesh.generation });
+            if (mesh != previousMesh)
+            {
+                commands.setIndexBuffer(mesh->getIndexBuffer(), 0, mesh->getIndexType());
+                commands.setRootConstant({ mesh->getVertexBuffer(0).getSrvIndex(), mesh->getVertexBuffer(1).getSrvIndex(),
+                                           mesh->getVertexBuffer(2).getSrvIndex() },
+                                         8);
+                previousMesh = mesh;
+            }
+            const hz::GpuSubmeshRecord& submesh = tables.submeshes.pData[record->submeshOffset + meshBatch.mesh.submeshIndex];
+            for (uint32_t i = 0; i < primitive.instanceCount; ++i)
+            {
+                const uint32_t instance = scene.getInstanceIndices().pData[primitive.instanceOffset + i];
+                commands.setRootConstant({ instance, meshBatch.material.index, materialIds[meshBatch.material.index] });
+                commands.drawIndexed(submesh.indexCount, submesh.firstIndex, submesh.vertexOffset);
+            }
         }
     }
     commands.endRendering();
@@ -231,6 +236,7 @@ void Lighting::update() {}
 void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::RenderScene& scene,
                        const hz::GpuScene& gpu)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Lighting::execute");
     const hz::GPUTexture* sampledTextures[] = { &gbuffer.gbuffer[0], &gbuffer.gbuffer[1], &gbuffer.gbuffer[2], &gbuffer.depth };
     commands.beginGpuTimestamp("Lighting");
     commands.beginRendering(
@@ -284,6 +290,7 @@ void PostProcessing::update() {}
 void PostProcessing::execute(hz::CommandList& commands, const hz::GPUTexture& renderTarget, const hz::GPUTexture& sceneColor,
                              const hz::GPUTexture& depth)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostProcessing::execute");
     const hz::GPUTexture* sampledTextures[] = { &sceneColor, &depth };
     commands.beginGpuTimestamp("PostProcess");
     commands.beginRendering(
@@ -374,15 +381,16 @@ void RenderPasses::execute()
         return;
 
     ASSERT(postprocessing);
-    FrameConstants* pConstants = nullptr;
-    for (FrameConstants& candidate : frameConstants)
-        if (!candidate.submission.isValid() || context.isComplete(candidate.submission))
-        {
-            pConstants = &candidate;
-            break;
-        }
-    if (!pConstants || !gpuScene.beginFrame())
+    // Block on the oldest frame like Unreal's frame sync; returning would spin Update/Draw while every frame is in flight.
+    FrameConstants& constants = frameConstants[nextFrame];
+    if (constants.submission.isValid())
+    {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
+        context.wait(constants.submission);
+    }
+    if (!gpuScene.beginFrame())
         return;
+    nextFrame = (nextFrame + 1) % frameConstants.size();
     const hz::RenderCamera* pCamera = scene.getCamera(camera);
     ASSERT(pCamera);
     const hz::RenderCamera& cameraData = *pCamera;
@@ -392,7 +400,7 @@ void RenderPasses::execute()
                                   .previousViewProjection = viewProjection(cameraData.previous, cameraData.previousLens, aspectInverse),
                                   .inverseViewProjection = inverse(current),
                                   .eye = cameraData.current.getCol3() };
-    const hz::GPUBuffer& frame = pConstants->buffer;
+    const hz::GPUBuffer& frame = constants.buffer;
     const bool           updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
     ASSERT(updated);
     hz::CommandList& commands = context.acquireCommandList();
@@ -402,6 +410,6 @@ void RenderPasses::execute()
     lighting->execute(commands, frame, *gbuffer, scene, gpuScene);
     postprocessing->execute(commands, backbuffer, lighting->sceneColor, gbuffer->depth);
 
-    pConstants->submission = context.submit(commands, &backbuffer);
-    gpuScene.endFrame(pConstants->submission);
+    constants.submission = context.submit(commands, &backbuffer);
+    gpuScene.endFrame(constants.submission);
 }

@@ -442,6 +442,7 @@ bool RenderContext::setVSync(bool enabled)
 
 CommandList& RenderContext::acquireCommandList()
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::acquireCommandList");
     ASSERT(ready);
     for (const CommandSlot& slot : commandSlots)
         ASSERT(!slot.commands.pCmd);
@@ -488,6 +489,7 @@ CommandList& RenderContext::acquireCommandList()
 
 SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPresent)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::submit");
     ASSERT(commands.slot < maxCommandLists);
     CommandSlot& slot = commandSlots[commands.slot];
     ASSERT(&commands == &slot.commands && commands.pCmd == slot.pCmd && !slot.submitId);
@@ -527,7 +529,10 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
             .index = (uint8_t)swapchainImageIndex,
             .submitDone = true,
         };
-        queuePresent(pGraphicsQueue, &presentDesc);
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::present");
+            queuePresent(pGraphicsQueue, &presentDesc);
+        }
         imageAcquired = false;
         flipProfiler();
     }
@@ -540,6 +545,7 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
 
 void RenderContext::wait(SubmitHandle handle)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::wait");
     ASSERT(handle.isValid() && handle.slot < maxCommandLists);
     CommandSlot& slot = commandSlots[handle.slot];
     if (slot.submitId == handle.id)
@@ -569,6 +575,7 @@ const GPUTexture&     RenderContext::getCurrentBackbuffer()
     ASSERT(!suspended && pSwapChain);
     if (!imageAcquired)
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::acquireNextImage");
         acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &swapchainImageIndex);
         ASSERT(swapchainImageIndex < pSwapChain->imageCount);
         imageAcquired = true;

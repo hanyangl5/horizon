@@ -98,5 +98,6 @@ private:
     hz::unique_ptr<Lighting>          lighting;
     hz::unique_ptr<PostProcessing>    postprocessing;
     hz::FixedArray<FrameConstants, 3> frameConstants;
+    uint32_t                          nextFrame = 0;
     hz::GpuScene                      gpuScene;
 };

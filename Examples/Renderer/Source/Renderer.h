@@ -74,7 +74,7 @@ private:
         const hz::ContextDesc desc = {
             .pAppName = GetName(),
             .windowHandle = pWindow->handle,
-            .imageCount = 2,
+            .imageCount = 3,
             .enableHDR = kEnableHDR,
             .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = kEnableGpuValidation,
