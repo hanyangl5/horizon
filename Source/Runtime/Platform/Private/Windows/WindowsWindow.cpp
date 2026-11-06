@@ -958,12 +958,8 @@ void setMousePositionAbsolute(int32_t x, int32_t y) { SetCursorPos(x, y); }
 
 void getRecommendedResolution(RectDesc* rect)
 {
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-
-    int desiredWidth = (int)(1920 * dpiScale[0]);
-    int desiredHeight = (int)(1080 * dpiScale[1]);
+    const int desiredWidth = 1920;
+    const int desiredHeight = 1080;
 
     int maxWidth = (int)(GetSystemMetrics(SM_CXSCREEN) * 0.75);
     int maxHeight = (int)(GetSystemMetrics(SM_CYSCREEN) * 0.75);
