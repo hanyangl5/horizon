@@ -109,6 +109,7 @@ struct AccelerationStructure
             Buffer* pInstanceDescBuffer;
         };
     };
+    bool                                                built;
     uint32_t                                            descCount;
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags;
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE        type;
@@ -188,7 +189,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
     pAS->flags = util_to_dx_acceleration_structure_build_flags(pDesc->flags);
     pAS->type = ToDXRASType(pDesc->type);
 
-    uint32_t scratchBufferSize = 0;
+    uint64_t scratchBufferSize = 0;
 
     if (ACCELERATION_STRUCTURE_TYPE_BOTTOM == pDesc->type)
     {
@@ -277,7 +278,8 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         /************************************************************************/
         // Store the scratch buffer size so user can create the scratch buffer accordingly
         /************************************************************************/
-        scratchBufferSize = (UINT)info.ScratchDataSizeInBytes > scratchBufferSize ? (UINT)info.ScratchDataSizeInBytes : scratchBufferSize;
+        scratchBufferSize = info.ScratchDataSizeInBytes > info.UpdateScratchDataSizeInBytes ? info.ScratchDataSizeInBytes
+                                                                                            : info.UpdateScratchDataSizeInBytes;
     }
     else
     {
@@ -351,14 +353,15 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         DxDescriptorID gpuSrv = (DxDescriptorID)getBufferSrvIndex(pAS->pASBuffer);
         AddSrv(pRaytracing->pRenderer, pRaytracing->pRenderer->dx.pCbvSrvUavHeaps[0], NULL, &srvDesc, &gpuSrv);
 
-        scratchBufferSize = (UINT)info.ScratchDataSizeInBytes;
+        scratchBufferSize = info.ScratchDataSizeInBytes > info.UpdateScratchDataSizeInBytes ? info.ScratchDataSizeInBytes
+                                                                                            : info.UpdateScratchDataSizeInBytes;
     }
 
     // Create scratch buffer
     BufferDesc scratchBufferDesc = {};
     scratchBufferDesc.descriptors = DESCRIPTOR_TYPE_RW_BUFFER;
     scratchBufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    scratchBufferDesc.startState = RESOURCE_STATE_COMMON;
+    scratchBufferDesc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
     scratchBufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
     scratchBufferDesc.size = scratchBufferSize;
     addBuffer(pRaytracing->pRenderer, &scratchBufferDesc, &pAS->pScratchBuffer);
@@ -416,6 +419,20 @@ void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Ray
     buildDesc.Inputs.Type = type;
     buildDesc.DestAccelerationStructureData = as->pASBuffer->dx.pResource->GetGPUVirtualAddress();
     buildDesc.Inputs.Flags = as->flags;
+    if (pDesc->update)
+    {
+        ASSERT(as->built && (as->flags & D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE));
+        buildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+        buildDesc.SourceAccelerationStructureData = buildDesc.DestAccelerationStructureData;
+    }
+    if (as->built)
+    {
+        D3D12_RESOURCE_BARRIER barriers[2] = {};
+        barriers[0].Type = barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+        barriers[0].UAV.pResource = as->pASBuffer->dx.pResource;
+        barriers[1].UAV.pResource = as->pScratchBuffer->dx.pResource;
+        dxrCmd->ResourceBarrier(2, barriers);
+    }
     buildDesc.Inputs.pGeometryDescs = NULL;
 
     if (type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL)
@@ -424,13 +441,16 @@ void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Ray
     }
     else if (type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
     {
-        buildDesc.Inputs.InstanceDescs = as->pInstanceDescBuffer->dx.pResource->GetGPUVirtualAddress();
+        buildDesc.Inputs.InstanceDescs =
+            pDesc->pInstanceBuffer ? pDesc->pInstanceBuffer->dx.gpuAddress : as->pInstanceDescBuffer->dx.gpuAddress;
     }
 
-    buildDesc.Inputs.NumDescs = as->descCount;
+    buildDesc.Inputs.NumDescs = pDesc->instanceCount == UINT32_MAX ? as->descCount : pDesc->instanceCount;
+    ASSERT(buildDesc.Inputs.NumDescs <= as->descCount);
     buildDesc.ScratchAccelerationStructureData = as->pScratchBuffer->dx.pResource->GetGPUVirtualAddress();
 
     dxrCmd->BuildRaytracingAccelerationStructure(&buildDesc, 0, NULL);
+    as->built = true;
 
     if (pDesc->issueRWBarrier)
     {
@@ -484,12 +504,206 @@ D3D12_RAYTRACING_INSTANCE_FLAGS util_to_dx_instance_flags(AccelerationStructureI
     if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE)
         ret |= D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
 
+    if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_NON_OPAQUE)
+    {
+        ret |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_NON_OPAQUE;
+    }
     return ret;
 }
 
 uint32_t d3d12_getAccelerationStructureSrvIndex(const AccelerationStructure* pAccelerationStructure)
 {
     return getBufferSrvIndex(pAccelerationStructure->pASBuffer);
+}
+
+uint64_t d3d12_getAccelerationStructureGpuAddress(const AccelerationStructure* structure) { return structure->pASBuffer->dx.gpuAddress; }
+
+struct RaytracingPipeline
+{
+    ID3D12StateObject*       pState = nullptr;
+    RootSignature*           pRoot = nullptr;
+    Buffer*                  pShaderTable = nullptr;
+    D3D12_DISPATCH_RAYS_DESC rays = {};
+};
+extern void d3d12_addRaytracingRootSignature(Renderer*, uint32_t rootConstantSize, RootSignature**);
+
+void d3d12_removeRaytracingPipeline(Raytracing* raytracing, RaytracingPipeline* pipeline)
+{
+    if (pipeline->pShaderTable)
+    {
+        removeBuffer(raytracing->pRenderer, pipeline->pShaderTable);
+    }
+    if (pipeline->pState)
+    {
+        pipeline->pState->Release();
+    }
+    if (pipeline->pRoot)
+    {
+        removeRootSignature(raytracing->pRenderer, pipeline->pRoot);
+    }
+    tf_delete(pipeline);
+}
+static const wchar_t* rayExportName(const char* name, wchar_t*** names)
+{
+    if (!name)
+    {
+        return nullptr;
+    }
+    const int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, nullptr, 0);
+    ASSERT(count);
+    wchar_t* value = (wchar_t*)tf_malloc((size_t)count * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, value, count);
+    arrpush(*names, value);
+    return value;
+}
+static bool fillRayRecord(ID3D12StateObjectProperties* properties, const wchar_t* name, void* destination)
+{
+    const void* identifier = properties->GetShaderIdentifier(name);
+    if (!identifier)
+    {
+        LOGF(eERROR, "DXR shader export '%ls' is missing", name);
+        return false;
+    }
+    memcpy(destination, identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    return true;
+}
+static bool createRayShaderTable(Raytracing* raytracing, RaytracingPipeline* pipeline, const wchar_t* rayGeneration,
+                                 const wchar_t* const* misses, uint32_t missCount, const D3D12_HIT_GROUP_DESC* groups, uint32_t groupCount)
+{
+    ID3D12StateObjectProperties* properties = nullptr;
+    if (FAILED(pipeline->pState->QueryInterface(IID_ARGS(&properties))))
+    {
+        return false;
+    }
+    const uint64_t   stride = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    const uint64_t   missOffset = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
+    const uint64_t   hitOffset = (missOffset + missCount * stride + 63) & ~UINT64_C(63);
+    const BufferDesc desc = { .size = (hitOffset + groupCount * stride + 63) & ~UINT64_C(63),
+                              .pName = "Ray tracing shader table",
+                              .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                              .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT };
+    addBuffer(raytracing->pRenderer, &desc, &pipeline->pShaderTable);
+    ASSERT(pipeline->pShaderTable);
+    uint8_t* bytes = (uint8_t*)pipeline->pShaderTable->pCpuMappedAddress;
+    memset(bytes, 0, (size_t)desc.size);
+    bool valid = fillRayRecord(properties, rayGeneration, bytes);
+    for (uint32_t i = 0; i < missCount; ++i)
+    {
+        valid &= fillRayRecord(properties, misses[i], bytes + missOffset + i * stride);
+    }
+    for (uint32_t i = 0; i < groupCount; ++i)
+    {
+        valid &= fillRayRecord(properties, groups[i].HitGroupExport, bytes + hitOffset + i * stride);
+    }
+    properties->Release();
+    const uint64_t address = pipeline->pShaderTable->dx.gpuAddress;
+    pipeline->rays.RayGenerationShaderRecord = { address, stride };
+    if (missCount)
+    {
+        pipeline->rays.MissShaderTable = { address + missOffset, missCount * stride, stride };
+    }
+    if (groupCount)
+    {
+        pipeline->rays.HitGroupTable = { address + hitOffset, groupCount * stride, stride };
+    }
+    return valid;
+}
+void d3d12_addRaytracingPipeline(Raytracing* raytracing, const RaytracingPipelineDesc* desc, RaytracingPipeline** output)
+{
+    *output = nullptr;
+    ASSERT(desc->pLibrary && desc->librarySize && desc->pRayGeneration && desc->maxRecursionDepth);
+    RaytracingPipeline* pipeline = tf_new(RaytracingPipeline);
+    d3d12_addRaytracingRootSignature(raytracing->pRenderer, desc->rootConstantSize, &pipeline->pRoot);
+    if (!pipeline->pRoot)
+    {
+        tf_delete(pipeline);
+        return;
+    }
+    wchar_t**              names = nullptr;
+    const wchar_t*         rayGeneration = rayExportName(desc->pRayGeneration, &names);
+    const wchar_t**        misses = nullptr;
+    D3D12_HIT_GROUP_DESC*  groups = nullptr;
+    D3D12_STATE_SUBOBJECT* objects = nullptr;
+    arrsetlen(misses, desc->missShaderCount);
+    arrsetlen(groups, desc->hitGroupCount);
+    arrsetlen(objects, desc->hitGroupCount + 4);
+    for (uint32_t i = 0; i < desc->missShaderCount; ++i)
+    {
+        misses[i] = rayExportName(desc->ppMissShaders[i], &names);
+    }
+    const D3D12_DXIL_LIBRARY_DESC          library = { { desc->pLibrary, (SIZE_T)desc->librarySize }, 0, nullptr };
+    const D3D12_GLOBAL_ROOT_SIGNATURE      root = { pipeline->pRoot->dx.pRootSignature };
+    const D3D12_RAYTRACING_SHADER_CONFIG   shaders = { desc->payloadSize, desc->attributeSize };
+    const D3D12_RAYTRACING_PIPELINE_CONFIG config = { desc->maxRecursionDepth };
+    objects[0] = { D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &library };
+    objects[1] = { D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, &root };
+    objects[2] = { D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &shaders };
+    objects[3] = { D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &config };
+    for (uint32_t i = 0; i < desc->hitGroupCount; ++i)
+    {
+        const RaytracingHitGroupDesc& group = desc->pHitGroups[i];
+        groups[i] = { .HitGroupExport = rayExportName(group.pName, &names),
+                      .Type = group.pIntersection ? D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE : D3D12_HIT_GROUP_TYPE_TRIANGLES,
+                      .AnyHitShaderImport = rayExportName(group.pAnyHit, &names),
+                      .ClosestHitShaderImport = rayExportName(group.pClosestHit, &names),
+                      .IntersectionShaderImport = rayExportName(group.pIntersection, &names) };
+        objects[i + 4] = { D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, &groups[i] };
+    }
+    const D3D12_STATE_OBJECT_DESC state = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE, (UINT)arrlenu(objects), objects };
+    const HRESULT                 result = raytracing->prDevice->CreateStateObject(&state, IID_ARGS(&pipeline->pState));
+    const bool valid = SUCCEEDED(result) && createRayShaderTable(raytracing, pipeline, rayGeneration, misses, desc->missShaderCount, groups,
+                                                                 desc->hitGroupCount);
+    if (FAILED(result))
+    {
+        LOGF(eERROR, "Creating DXR pipeline failed (0x%08x)", (uint32_t)result);
+    }
+    for (ptrdiff_t i = 0; i < arrlen(names); ++i)
+    {
+        tf_free(names[i]);
+    }
+    arrfree(names);
+    arrfree(misses);
+    arrfree(groups);
+    arrfree(objects);
+    if (!valid)
+    {
+        d3d12_removeRaytracingPipeline(raytracing, pipeline);
+    }
+    else
+    {
+        *output = pipeline;
+    }
+}
+RootSignature* d3d12_getRaytracingPipelineRootSignature(RaytracingPipeline* pipeline) { return pipeline->pRoot; }
+void           d3d12_cmdBindRaytracingPipeline(Cmd* cmd, RaytracingPipeline* pipeline)
+{
+    ID3D12GraphicsCommandList4* dxr = nullptr;
+    const HRESULT               result = cmd->dx.pCmdList->QueryInterface(IID_ARGS(&dxr));
+    ASSERT(SUCCEEDED(result) && dxr);
+    if (!dxr)
+    {
+        return;
+    }
+    cmd->dx.pCmdList->SetComputeRootSignature(pipeline->pRoot->dx.pRootSignature);
+    cmd->dx.pBoundRootSignature = pipeline->pRoot;
+    dxr->SetPipelineState1(pipeline->pState);
+    dxr->Release();
+}
+void d3d12_cmdTraceRays(Cmd* cmd, RaytracingPipeline* pipeline, uint32_t width, uint32_t height, uint32_t depth)
+{
+    ID3D12GraphicsCommandList4* dxr = nullptr;
+    const HRESULT               result = cmd->dx.pCmdList->QueryInterface(IID_ARGS(&dxr));
+    ASSERT(SUCCEEDED(result) && dxr);
+    if (!dxr)
+    {
+        return;
+    }
+    D3D12_DISPATCH_RAYS_DESC rays = pipeline->rays;
+    rays.Width = width;
+    rays.Height = height;
+    rays.Depth = depth;
+    dxr->DispatchRays(&rays);
+    dxr->Release();
 }
 
 #endif

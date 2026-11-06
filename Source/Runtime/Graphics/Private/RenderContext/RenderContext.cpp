@@ -312,6 +312,11 @@ void RenderContext::destroyDevice(bool waitForGpu)
             pDispatchIndirectSignature = nullptr;
         }
     }
+    if (pRaytracing)
+    {
+        removeRaytracing(pRenderer, pRaytracing);
+        pRaytracing = nullptr;
+    }
     if (pGraphicsQueue)
     {
         removeQueue(pRenderer, pGraphicsQueue);

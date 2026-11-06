@@ -165,6 +165,12 @@ extern uint32_t d3d12_getAccelerationStructureSrvIndex(const AccelerationStructu
 extern void     d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 extern void     d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 extern void     d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
+extern uint64_t   d3d12_getAccelerationStructureGpuAddress(const AccelerationStructure*);
+extern void       d3d12_addRaytracingPipeline(Raytracing*, const RaytracingPipelineDesc*, RaytracingPipeline**);
+extern void       d3d12_removeRaytracingPipeline(Raytracing*, RaytracingPipeline*);
+extern RootSignature* d3d12_getRaytracingPipelineRootSignature(RaytracingPipeline*);
+extern void           d3d12_cmdBindRaytracingPipeline(Cmd*, RaytracingPipeline*);
+extern void           d3d12_cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t, uint32_t, uint32_t);
 extern void     d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
 extern void     d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
 extern void     d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
@@ -1081,4 +1087,30 @@ void exitRenderer(Renderer* pRenderer)
     exitRendererAPI(pRenderer, pRenderer->rendererApi);
     gPlatformParameters.availableGpuCount = 0;
     gPlatformParameters.selectedGpuIndex = 0;
+}
+
+FORGE_RENDERER_API uint64_t FORGE_CALLCONV getAccelerationStructureGpuAddress(const AccelerationStructure* structure)
+{
+    return d3d12_getAccelerationStructureGpuAddress(structure);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV addRaytracingPipeline(Raytracing* rt, const RaytracingPipelineDesc* desc,
+                                                             RaytracingPipeline** pipeline)
+{
+    d3d12_addRaytracingPipeline(rt, desc, pipeline);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV removeRaytracingPipeline(Raytracing* rt, RaytracingPipeline* pipeline)
+{
+    d3d12_removeRaytracingPipeline(rt, pipeline);
+}
+FORGE_RENDERER_API RootSignature* FORGE_CALLCONV getRaytracingPipelineRootSignature(RaytracingPipeline* pipeline)
+{
+    return d3d12_getRaytracingPipelineRootSignature(pipeline);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBindRaytracingPipeline(Cmd* cmd, RaytracingPipeline* pipeline)
+{
+    d3d12_cmdBindRaytracingPipeline(cmd, pipeline);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV cmdTraceRays(Cmd* cmd, RaytracingPipeline* pipeline, uint32_t width, uint32_t height, uint32_t depth)
+{
+    d3d12_cmdTraceRays(cmd, pipeline, width, height, depth);
 }
