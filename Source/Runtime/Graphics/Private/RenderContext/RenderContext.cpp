@@ -55,16 +55,21 @@ void RenderContext::deferRelease(GPUBuffer&& buffer)
     if (!buffer.pBuffer)
         return;
     ASSERT(ready && buffer.pContext == this);
-    bool recording = false;
-    for (const CommandSlot& slot : commandSlots)
-        recording |= slot.commands.pCmd != nullptr;
-    const DeferredBuffer deferred = { .pBuffer = buffer.pBuffer, .submitId = recording ? nextSubmitId : nextSubmitId - 1 };
+    const DeferredBuffer deferred = { .pBuffer = buffer.pBuffer, .useId = getResourceUseId() };
     arrpush(deferredBuffers, deferred);
     buffer.pBuffer = nullptr;
     buffer.pContext = nullptr;
 }
 
-void RenderContext::collectDeferredBuffers()
+uint64_t RenderContext::getResourceUseId() const
+{
+    for (const CommandSlot& slot : commandSlots)
+        if (slot.commands.pCmd)
+            return nextSubmitId;
+    return nextSubmitId - 1;
+}
+
+uint64_t RenderContext::getPendingUseId() const
 {
     // Submissions complete in order on the single graphics queue.
     uint64_t pending = UINT64_MAX;
@@ -80,10 +85,18 @@ void RenderContext::collectDeferredBuffers()
                 pending = slot.submitId;
         }
     }
-    uint32_t kept = 0;
+    return pending;
+}
+
+bool RenderContext::isResourceUseComplete(uint64_t useId) const { return useId < getPendingUseId(); }
+
+void RenderContext::collectDeferredBuffers()
+{
+    const uint64_t pending = getPendingUseId();
+    uint32_t       kept = 0;
     for (uint32_t i = 0; i < (uint32_t)arrlen(deferredBuffers); ++i)
     {
-        if (deferredBuffers[i].submitId < pending)
+        if (deferredBuffers[i].useId < pending)
         {
             ASSERT(resourceCount);
             --resourceCount;

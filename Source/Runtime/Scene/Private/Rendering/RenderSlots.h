@@ -42,6 +42,8 @@ public:
         free.reserve(count);
         dirty.reserve(count);
         dirtyFlags.reserve(count);
+        pending.reserve(count);
+        pendingFlags.reserve(count);
         created.reserve(count);
         removed.reserve(count);
         ranges.reserve(count);
@@ -69,12 +71,14 @@ public:
             values.pushBack({});
             positions.pushBack(0);
             dirtyFlags.pushBack(false);
+            pendingFlags.pushBack(false);
         }
         T& value = values[index];
         value.id = { .index = index, .generation = value.id.generation ? value.id.generation : 1 };
         positions[index] = active.size();
         active.pushBack(index);
         created.pushBack(index);
+        pendingActive = true;
         markDirty(index);
         return value.id;
     }
@@ -91,6 +95,7 @@ public:
         values[id.index].id.generation = generation ? generation : 1;
         free.pushBack(id.index);
         removed.pushBack(id.index);
+        pendingActive = true;
         markDirty(id.index);
     }
     const T* get(ID id) const
@@ -104,6 +109,21 @@ public:
             dirtyFlags[index] = true;
             dirty.pushBack(index);
         }
+        if (!pendingFlags[index])
+        {
+            pendingFlags[index] = true;
+            pending.pushBack(index);
+        }
+    }
+    // Slots changed since the last clearPending(), accumulated across updates for GPU upload.
+    void getPending(Array<RenderRange>& output) { mergeRenderRanges(pending, output); }
+    bool isActivePending() const { return pendingActive; }
+    void clearPending()
+    {
+        for (uint32_t index : pending)
+            pendingFlags[index] = false;
+        pending.clear();
+        pendingActive = false;
     }
     void              finishUpdate() { mergeRenderRanges(dirty, ranges); }
     RenderSlotChanges getChanges() const
@@ -122,8 +142,11 @@ private:
     Array<uint32_t>    free;
     Array<uint32_t>    dirty;
     Array<bool>        dirtyFlags;
+    Array<uint32_t>    pending;
+    Array<bool>        pendingFlags;
     Array<uint32_t>    created;
     Array<uint32_t>    removed;
     Array<RenderRange> ranges;
+    bool               pendingActive = false;
 };
 } // namespace hz

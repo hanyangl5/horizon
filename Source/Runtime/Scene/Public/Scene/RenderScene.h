@@ -135,14 +135,10 @@ struct RenderSceneChanges
 };
 
 class RenderSceneData;
-class RenderFramePool;
-class RenderFramePoolData;
+class GpuScene;
 
-struct RenderSceneDesc
-{
-    uint32_t journalCapacity = 1024;
-};
-struct RenderSceneSync
+// Changes accumulated across updates since the GPU scene last acknowledged an upload.
+struct RenderSceneUploads
 {
     Span<RenderRange> primitives;
     Span<RenderRange> instances;
@@ -155,14 +151,13 @@ struct RenderSceneSync
     bool              activeMeshBatches = false;
     bool              activeLights = false;
     bool              activeCameras = false;
-    bool              full = false;
 };
 
 class RenderScene
 {
 public:
     // Owns World asset bindings. World and asset manager must outlive this scene.
-    RenderScene(World& world, AssetManager& assetManager, const RenderSceneDesc& desc = {});
+    RenderScene(World& world, AssetManager& assetManager);
     ~RenderScene();
     RenderScene(const RenderScene&) = delete;
     RenderScene& operator=(const RenderScene&) = delete;
@@ -171,11 +166,11 @@ public:
     // Runs after asset manager loading/mutation. Updates World transforms and bindings without advancing history.
     void               update();
     uint64_t           getRevision() const;
-    // Only the latest update; not a journal for rotating GPU backing storage.
+    // Only the latest update.
     RenderSceneChanges getChanges() const;
-    // Accumulated ranges since a backing's revision, or full=true after journal overflow.
     // Returned spans expire on the next call or update.
-    RenderSceneSync    getChangesSince(uint64_t revision);
+    RenderSceneUploads getPendingUploads();
+    // The next submitted frame renders previous == current for the entity, or for every entity when invalid.
     void               resetHistory(Entity entity = {});
 
     RenderPrimitiveID      findPrimitive(Entity entity) const;
@@ -202,12 +197,12 @@ public:
     Span<uint32_t>        getInstanceIndices() const;
 
 private:
-    friend class RenderFramePool;
-    friend class RenderFramePoolData;
-    AssetSnapshot    captureAssets();
-    uint64_t         getHistoryEpoch() const;
-    void             commitSnapshot(Span<RenderPrimitive> primitives, Span<RenderInstance> instances, Span<RenderCamera> cameras,
-                                    uint64_t historyEpoch);
+    friend class GpuScene;
+    // Set while a GpuScene frame is open; update() and resetHistory() must not run then.
+    void             setFrameLocked(bool locked);
+    void             acknowledgeUploads();
+    // Records the current transforms and lenses as submitted, so the next update renders them as previous.
+    void             commitHistory();
     RenderSceneData* pData = nullptr;
 };
 } // namespace hz

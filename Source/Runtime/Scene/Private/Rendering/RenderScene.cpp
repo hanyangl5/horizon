@@ -64,10 +64,15 @@ struct RenderEntity
     RenderInstanceID         instance;
     Array<RenderMeshBatchID> meshBatches;
     MeshBounds               localBounds;
-    Matrix4                  submitted = Matrix4::identity();
-    uint64_t                 historyEpoch = 0;
-    bool                     historyValid = false;
     bool                     seen = false;
+};
+// Indexed by instance slot. Pending marks slots whose submitted transform may need recording.
+struct RenderHistory
+{
+    Matrix4 submitted = Matrix4::identity();
+    bool    valid = false;
+    bool    reset = false;
+    bool    pending = false;
 };
 struct RenderEntityIndex
 {
@@ -89,70 +94,19 @@ struct RenderCameraEntity
     RenderCameraID id;
     Matrix4        submitted = Matrix4::identity();
     Camera         submittedLens;
-    uint64_t       historyEpoch = 0;
     bool           historyValid = false;
+    bool           historyReset = false;
     bool           seen = false;
 };
-
-enum class RenderTable : uint32_t
-{
-    Primitives,
-    Instances,
-    MeshBatches,
-    InstanceIndices,
-    Lights,
-    Cameras,
-    ActivePrimitives,
-    ActiveInstances,
-    ActiveMeshBatches,
-    ActiveLights,
-    ActiveCameras
-};
-struct RenderChange
-{
-    uint64_t    revision = 0;
-    RenderTable table = RenderTable::Primitives;
-    RenderRange range;
-};
-static int compareRenderRanges(const void* pA, const void* pB)
-{
-    const uint32_t a = ((const RenderRange*)pA)->first, b = ((const RenderRange*)pB)->first;
-    return (a > b) - (a < b);
-}
-static void mergeRanges(Array<RenderRange>& ranges)
-{
-    if (ranges.empty())
-        return;
-    qsort(ranges.data(), ranges.size(), sizeof(RenderRange), compareRenderRanges);
-    uint32_t count = 1;
-    for (uint32_t i = 1; i < ranges.size(); ++i)
-    {
-        RenderRange&      previous = ranges[count - 1];
-        const RenderRange range = ranges[i];
-        if (range.first <= previous.first + previous.count)
-        {
-            const uint32_t end = range.first + range.count;
-            if (end > previous.first + previous.count)
-                previous.count = end - previous.first;
-        }
-        else
-            ranges[count++] = range;
-    }
-    ranges.resize(count);
-}
 
 class RenderSceneData
 {
 public:
-    RenderSceneData(World& world, AssetManager& assetManager, const RenderSceneDesc& desc):
+    RenderSceneData(World& world, AssetManager& assetManager):
         world(world), assetManager(assetManager), bindings(world, assetManager), query(world, { SceneTypes::meshRenderer }),
         lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
     {
         ASSERT(query.isValid() && lightQuery.isValid() && cameraQuery.isValid());
-        ASSERT(desc.journalCapacity);
-        journal.resize(desc.journalCapacity);
-        for (Array<RenderRange>& ranges : syncRanges)
-            ranges.reserve(desc.journalCapacity);
     }
     ~RenderSceneData()
     {
@@ -295,6 +249,7 @@ public:
             camera.previousLens = previousLens;
             data.cameras.markDirty(record.id.index);
         }
+        record.historyReset = false;
         return true;
     }
     void removeCameras()
@@ -328,16 +283,37 @@ public:
         {
             indicesDirty.reserve(index + 1);
             indicesRanges.reserve(index + 1);
+            indicesPending.reserve(index + 1);
         }
         while (instanceIndices.size() <= index)
         {
-            indicesDirty.pushBack(instanceIndices.size());
+            markIndex(instanceIndices.size());
             instanceIndices.pushBack(UINT32_MAX);
+            indicesPendingFlags.pushBack(true);
         }
         if (instanceIndices[index] != value)
         {
             instanceIndices[index] = value;
-            indicesDirty.pushBack(index);
+            markIndex(index);
+        }
+    }
+    void markIndex(uint32_t index)
+    {
+        indicesDirty.pushBack(index);
+        if (index >= indicesPendingFlags.size() || !indicesPendingFlags[index])
+        {
+            if (index < indicesPendingFlags.size())
+                indicesPendingFlags[index] = true;
+            indicesPending.pushBack(index);
+        }
+    }
+    void markHistory(uint32_t instance)
+    {
+        RenderHistory& history = instanceHistory[instance];
+        if (!history.pending)
+        {
+            history.pending = true;
+            historyPending.pushBack(instance);
         }
     }
     RenderEntity& add(Entity entity)
@@ -348,6 +324,13 @@ public:
         record.instance = instances.add();
         primitives.values[record.primitive.index].instanceOffset = record.primitive.index;
         instances.values[record.instance.index].primitive = record.primitive;
+        if (instanceHistory.size() <= record.instance.index)
+        {
+            historyPending.reserve(record.instance.index + 1);
+            instanceHistory.resize(record.instance.index + 1);
+        }
+        instanceHistory[record.instance.index].valid = false;
+        instanceHistory[record.instance.index].reset = false;
         setInstanceIndex(record.primitive.index, UINT32_MAX);
         const RenderEntityIndex index = { .key = entity, .value = entities.size() - 1 };
         hmputs(pIndices, index);
@@ -395,8 +378,8 @@ public:
         {
             if (ready && (primitive.mesh != mesh || !primitive.instanceCount))
             {
-                entity.historyValid = false;
-                entity.historyEpoch = ++historyEpoch;
+                instanceHistory[entity.instance.index].valid = false;
+                markHistory(entity.instance.index);
             }
             primitive.mesh = mesh;
             primitive.instanceCount = count;
@@ -434,7 +417,8 @@ public:
         RenderInstance&       instance = instances.values[entity.instance.index];
         const Guid            entityGuid = world.getEntityGuid(entity.entity);
         const RenderBounds    bounds = ready ? transformBounds(entity.localBounds, transform.current) : RenderBounds{};
-        const Matrix4&        previous = entity.historyValid ? entity.submitted : transform.current;
+        RenderHistory&        history = instanceHistory[entity.instance.index];
+        const Matrix4&        previous = history.valid ? history.submitted : transform.current;
         if (instance.entityGuid != entityGuid || !equalMatrix(instance.current, transform.current) ||
             !equalMatrix(instance.previous, previous) || !equalBounds(instance.bounds, bounds))
         {
@@ -443,6 +427,12 @@ public:
             instance.previous = previous;
             instance.bounds = bounds;
             instances.markDirty(instance.id.index);
+            markHistory(entity.instance.index);
+        }
+        if (history.reset)
+        {
+            history.reset = false;
+            markHistory(entity.instance.index);
         }
     }
     static bool extractEntity(Entity entity, Span<const void*>, void* pUser)
@@ -455,7 +445,7 @@ public:
     }
     void update()
     {
-        ASSERT(!world.isDeferred());
+        ASSERT(!world.isDeferred() && !frameLocked);
         world.updateTransforms();
         primitives.beginUpdate();
         instances.beginUpdate();
@@ -501,105 +491,61 @@ public:
         lights.finishUpdate();
         cameras.finishUpdate();
         mergeRenderRanges(indicesDirty, indicesRanges);
-        if (!primitives.getChanges().ranges.count && !instances.getChanges().ranges.count && !meshBatches.getChanges().ranges.count &&
-            !lights.getChanges().ranges.count && !cameras.getChanges().ranges.count && indicesRanges.empty())
-            return;
-        ++revision;
-        record(RenderTable::Primitives, primitives.getChanges().ranges);
-        record(RenderTable::Instances, instances.getChanges().ranges);
-        record(RenderTable::MeshBatches, meshBatches.getChanges().ranges);
-        record(RenderTable::InstanceIndices, { indicesRanges.data(), indicesRanges.size() });
-        record(RenderTable::Lights, lights.getChanges().ranges);
-        record(RenderTable::Cameras, cameras.getChanges().ranges);
-        if (primitives.getChanges().activeList)
-            record(RenderTable::ActivePrimitives, {});
-        if (instances.getChanges().activeList)
-            record(RenderTable::ActiveInstances, {});
-        if (meshBatches.getChanges().activeList)
-            record(RenderTable::ActiveMeshBatches, {});
-        if (lights.getChanges().activeList)
-            record(RenderTable::ActiveLights, {});
-        if (cameras.getChanges().activeList)
-            record(RenderTable::ActiveCameras, {});
+        if (primitives.getChanges().ranges.count || instances.getChanges().ranges.count || meshBatches.getChanges().ranges.count ||
+            lights.getChanges().ranges.count || cameras.getChanges().ranges.count || !indicesRanges.empty())
+            ++revision;
     }
-
-    void record(RenderTable table, Span<RenderRange> ranges)
+    RenderSceneUploads getPendingUploads()
     {
-        if (!ranges.count && table <= RenderTable::Cameras)
-            return;
-        // Active-list changes have no sparse range, but must still occupy a journal entry.
-        const uint32_t count = ranges.count ? ranges.count : 1;
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            if (journalCount == journal.size())
-            {
-                journalFloor = journal[journalFirst].revision;
-                journalFirst = (journalFirst + 1) % journal.size();
-                --journalCount;
-            }
-            journal[(journalFirst + journalCount++) % journal.size()] = { .revision = revision,
-                                                                          .table = table,
-                                                                          .range = ranges.count ? ranges.pData[i] : RenderRange{} };
-        }
+        primitives.getPending(uploadRanges[0]);
+        instances.getPending(uploadRanges[1]);
+        meshBatches.getPending(uploadRanges[2]);
+        mergeRenderRanges(indicesPending, uploadRanges[3]);
+        lights.getPending(uploadRanges[4]);
+        cameras.getPending(uploadRanges[5]);
+        return { .primitives = { uploadRanges[0].data(), uploadRanges[0].size() },
+                 .instances = { uploadRanges[1].data(), uploadRanges[1].size() },
+                 .meshBatches = { uploadRanges[2].data(), uploadRanges[2].size() },
+                 .instanceIndices = { uploadRanges[3].data(), uploadRanges[3].size() },
+                 .lights = { uploadRanges[4].data(), uploadRanges[4].size() },
+                 .cameras = { uploadRanges[5].data(), uploadRanges[5].size() },
+                 .activePrimitives = primitives.isActivePending(),
+                 .activeInstances = instances.isActivePending(),
+                 .activeMeshBatches = meshBatches.isActivePending(),
+                 .activeLights = lights.isActivePending(),
+                 .activeCameras = cameras.isActivePending() };
     }
-    RenderSceneSync getChangesSince(uint64_t appliedRevision)
+    void acknowledgeUploads()
     {
-        ASSERT(appliedRevision <= revision);
-        for (Array<RenderRange>& ranges : syncRanges)
-            ranges.clear();
-        if (!appliedRevision || appliedRevision < journalFloor)
-            return { .full = true };
-        RenderSceneSync result;
-        for (uint32_t i = 0; i < journalCount; ++i)
-        {
-            const RenderChange& change = journal[(journalFirst + i) % journal.size()];
-            if (change.revision <= appliedRevision)
-                continue;
-            if (change.table <= RenderTable::Cameras)
-                syncRanges[(uint32_t)change.table].pushBack(change.range);
-            else if (change.table == RenderTable::ActivePrimitives)
-                result.activePrimitives = true;
-            else if (change.table == RenderTable::ActiveInstances)
-                result.activeInstances = true;
-            else if (change.table == RenderTable::ActiveMeshBatches)
-                result.activeMeshBatches = true;
-            else if (change.table == RenderTable::ActiveLights)
-                result.activeLights = true;
-            else if (change.table == RenderTable::ActiveCameras)
-                result.activeCameras = true;
-        }
-        for (Array<RenderRange>& ranges : syncRanges)
-            mergeRanges(ranges);
-        result.primitives = { syncRanges[0].data(), syncRanges[0].size() };
-        result.instances = { syncRanges[1].data(), syncRanges[1].size() };
-        result.meshBatches = { syncRanges[2].data(), syncRanges[2].size() };
-        result.instanceIndices = { syncRanges[3].data(), syncRanges[3].size() };
-        result.lights = { syncRanges[4].data(), syncRanges[4].size() };
-        result.cameras = { syncRanges[5].data(), syncRanges[5].size() };
-        return result;
+        primitives.clearPending();
+        instances.clearPending();
+        meshBatches.clearPending();
+        lights.clearPending();
+        cameras.clearPending();
+        for (uint32_t index : indicesPending)
+            indicesPendingFlags[index] = false;
+        indicesPending.clear();
     }
-    void commitSnapshot(Span<RenderPrimitive> framePrimitives, Span<RenderInstance> frameInstances, Span<RenderCamera> frameCameras,
-                        uint64_t epoch)
+    void commitHistory()
     {
-        for (RenderEntity& entity : entities)
+        for (uint32_t index : historyPending)
         {
-            if (entity.historyEpoch > epoch || entity.primitive.index >= framePrimitives.count ||
-                entity.instance.index >= frameInstances.count)
+            RenderHistory& history = instanceHistory[index];
+            history.pending = false;
+            const RenderInstance&  instance = instances.values[index];
+            const RenderPrimitive* pPrimitive = primitives.get(instance.primitive);
+            // A reset since the last update renders previous == current first.
+            if (history.reset || !instance.id.isValid() || !pPrimitive || !pPrimitive->instanceCount)
                 continue;
-            const RenderPrimitive& primitive = framePrimitives.pData[entity.primitive.index];
-            const RenderInstance&  instance = frameInstances.pData[entity.instance.index];
-            if (primitive.id != entity.primitive || !primitive.instanceCount || instance.id != entity.instance)
-                continue;
-            entity.submitted = instance.current;
-            entity.historyValid = true;
+            history.submitted = instance.current;
+            history.valid = true;
         }
+        historyPending.clear();
         for (RenderCameraEntity& entity : cameraEntities)
         {
-            if (entity.historyEpoch > epoch || entity.id.index >= frameCameras.count)
+            if (entity.historyReset)
                 continue;
-            const RenderCamera& camera = frameCameras.pData[entity.id.index];
-            if (camera.id != entity.id)
-                continue;
+            const RenderCamera& camera = cameras.values[entity.id.index];
             entity.submitted = camera.current;
             entity.submittedLens = camera.lens;
             entity.historyValid = true;
@@ -607,18 +553,18 @@ public:
     }
     void resetHistory(Entity target)
     {
-        ++historyEpoch;
+        ASSERT(!frameLocked);
         for (RenderEntity& entity : entities)
             if (!target.isValid() || entity.entity == target)
             {
-                entity.historyValid = false;
-                entity.historyEpoch = historyEpoch;
+                instanceHistory[entity.instance.index].valid = false;
+                instanceHistory[entity.instance.index].reset = true;
             }
         for (RenderCameraEntity& entity : cameraEntities)
             if (!target.isValid() || entity.entity == target)
             {
                 entity.historyValid = false;
-                entity.historyEpoch = historyEpoch;
+                entity.historyReset = true;
             }
     }
 
@@ -643,19 +589,16 @@ public:
     Array<uint32_t>                                 instanceIndices;
     Array<uint32_t>                                 indicesDirty;
     Array<RenderRange>                              indicesRanges;
+    Array<uint32_t>                                 indicesPending;
+    Array<bool>                                     indicesPendingFlags;
+    Array<RenderHistory>                            instanceHistory;
+    Array<uint32_t>                                 historyPending;
+    Array<RenderRange>                              uploadRanges[6];
     uint64_t                                        revision = 0;
-    uint64_t                                        historyEpoch = 0;
-    Array<RenderChange>                             journal;
-    Array<RenderRange>                              syncRanges[6];
-    uint32_t                                        journalFirst = 0;
-    uint32_t                                        journalCount = 0;
-    uint64_t                                        journalFloor = 0;
+    bool                                            frameLocked = false;
 };
 
-RenderScene::RenderScene(World& world, AssetManager& assetManager, const RenderSceneDesc& desc):
-    pData(tf_new(RenderSceneData, world, assetManager, desc))
-{
-}
+RenderScene::RenderScene(World& world, AssetManager& assetManager): pData(tf_new(RenderSceneData, world, assetManager)) {}
 RenderScene::~RenderScene() { tf_delete(pData); }
 void RenderScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
@@ -666,23 +609,25 @@ void RenderScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint
     pData->instanceIndices.reserve(primitiveCount);
     pData->indicesDirty.reserve(primitiveCount);
     pData->indicesRanges.reserve(primitiveCount);
+    pData->indicesPending.reserve(primitiveCount);
+    pData->indicesPendingFlags.reserve(primitiveCount);
+    pData->instanceHistory.reserve(primitiveCount);
+    pData->historyPending.reserve(primitiveCount);
+    for (Array<RenderRange>& ranges : pData->uploadRanges)
+        ranges.reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
     pData->lights.reserve(lightCount);
     pData->cameras.reserve(cameraCount);
     pData->lightEntities.reserve(lightCount);
     pData->cameraEntities.reserve(cameraCount);
     pData->textureReleases.reserve(lightCount);
 }
-void            RenderScene::update() { pData->update(); }
-uint64_t        RenderScene::getRevision() const { return pData->revision; }
-RenderSceneSync RenderScene::getChangesSince(uint64_t revision) { return pData->getChangesSince(revision); }
-void            RenderScene::resetHistory(Entity entity) { pData->resetHistory(entity); }
-uint64_t        RenderScene::getHistoryEpoch() const { return pData->historyEpoch; }
-AssetSnapshot   RenderScene::captureAssets() { return pData->assetManager.captureRenderSnapshot(); }
-void            RenderScene::commitSnapshot(Span<RenderPrimitive> primitives, Span<RenderInstance> instances, Span<RenderCamera> cameras,
-                                            uint64_t epoch)
-{
-    pData->commitSnapshot(primitives, instances, cameras, epoch);
-}
+void               RenderScene::update() { pData->update(); }
+uint64_t           RenderScene::getRevision() const { return pData->revision; }
+RenderSceneUploads RenderScene::getPendingUploads() { return pData->getPendingUploads(); }
+void               RenderScene::acknowledgeUploads() { pData->acknowledgeUploads(); }
+void               RenderScene::commitHistory() { pData->commitHistory(); }
+void               RenderScene::setFrameLocked(bool locked) { pData->frameLocked = locked; }
+void               RenderScene::resetHistory(Entity entity) { pData->resetHistory(entity); }
 RenderSceneChanges RenderScene::getChanges() const
 {
     return { .primitives = pData->primitives.getChanges(),

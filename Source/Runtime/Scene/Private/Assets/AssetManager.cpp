@@ -21,45 +21,9 @@ struct AssetSlot
     void*                    pRequest = nullptr;
     void*                    pPayload = nullptr;
     AssetHandle*             pDependencies = nullptr;
-    uint32_t                 snapshotReferences = 0;
+    uint64_t                 gpuUse = 0;
     bool                     uploading = false;
     bool                     retirementQueued = false;
-};
-
-struct SnapshotAsset
-{
-    const void* pPayload = nullptr;
-    uint32_t    generation = 0;
-    AssetType   type = AssetType::Scene;
-};
-
-class AssetSnapshotData
-{
-public:
-    const void* find(AssetHandle handle, AssetType type) const
-    {
-        if (handle.index >= assets.size())
-            return nullptr;
-        const SnapshotAsset& asset = assets[handle.index];
-        return asset.generation == handle.generation && asset.type == type ? asset.pPayload : nullptr;
-    }
-    AssetManagerData*        pOwner = nullptr;
-    Array<SnapshotAsset>     assets;
-    Array<GpuMeshRecord>     meshes;
-    Array<GpuVertexStream>   vertexStreams;
-    Array<GpuSubmeshRecord>  submeshes;
-    Array<GpuMaterialRecord> materials;
-    Array<GpuTextureRecord>  textures;
-    uint64_t                 revision = 0;
-    bool                     gpuTables = false;
-    uint32_t                 references = 1;
-};
-
-struct SnapshotSubmission
-{
-    AssetSnapshotData* pSnapshot;
-    RenderContext*     pContext;
-    SubmitHandle       submission;
 };
 
 struct AssetRecord
@@ -92,9 +56,9 @@ public:
 class AssetManagerData
 {
 public:
-    AssetManagerData(const AssetCatalog& catalog, const AssetManager& assetManager): catalog(catalog), assetManager(assetManager)
+    AssetManagerData(const AssetCatalog& catalog, const AssetManager& assetManager, RenderContext* pContext):
+        catalog(catalog), assetManager(assetManager), pContext(pContext)
     {
-        submissions.reserve(16);
     }
     ~AssetManagerData() { hmfree(pRecords); }
 
@@ -115,53 +79,10 @@ public:
     void queueRetirement(uint32_t index)
     {
         AssetSlot& slot = slots[index];
-        if (slot.state == AssetState::Retiring && !slot.pRequest && !slot.uploading && !slot.snapshotReferences && !slot.retirementQueued)
+        if (slot.state == AssetState::Retiring && !slot.pRequest && !slot.uploading && !slot.retirementQueued)
         {
             slot.retirementQueued = true;
             retirements.pushBack(index);
-        }
-    }
-
-    void releaseSnapshot(AssetSnapshotData* pSnapshot)
-    {
-        if (--pSnapshot->references)
-            return;
-        for (uint32_t i = 0; i < pSnapshot->assets.size(); ++i)
-            if (pSnapshot->assets[i].pPayload)
-            {
-                ASSERT(slots[i].snapshotReferences);
-                --slots[i].snapshotReferences;
-                queueRetirement(i);
-            }
-        tf_delete(pSnapshot);
-        --snapshotCount;
-    }
-
-    void invalidateSnapshot()
-    {
-        ++snapshotRevision;
-        if (pCurrentSnapshot)
-        {
-            releaseSnapshot(pCurrentSnapshot);
-            pCurrentSnapshot = nullptr;
-        }
-    }
-
-    void updateSubmissions(bool wait)
-    {
-        for (uint32_t i = 0; i < submissions.size();)
-        {
-            SnapshotSubmission& pending = submissions[i];
-            if (wait)
-                pending.pContext->wait(pending.submission);
-            if (wait || pending.pContext->isComplete(pending.submission))
-            {
-                releaseSnapshot(pending.pSnapshot);
-                pending = submissions[submissions.size() - 1];
-                submissions.popBack();
-            }
-            else
-                ++i;
         }
     }
 
@@ -237,7 +158,9 @@ public:
         if (--pSlot->references == 0)
         {
             pSlot->state = AssetState::Retiring;
-            invalidateSnapshot();
+            // The payload left the ready set; work recorded until now may still reference it.
+            pSlot->gpuUse = pContext ? pContext->getResourceUseId() : 0;
+            ++tableRevision;
             queueRetirement(handle.index);
         }
         return true;
@@ -264,12 +187,18 @@ public:
 
     void retire()
     {
-        while (!retirements.empty())
+        for (uint32_t i = 0; i < retirements.size();)
         {
-            const uint32_t index = retirements[retirements.size() - 1];
+            const uint32_t index = retirements[i];
+            AssetSlot&     slot = slots[index];
+            if (pContext && !pContext->isResourceUseComplete(slot.gpuUse))
+            {
+                ++i;
+                continue;
+            }
+            retirements[i] = retirements[retirements.size() - 1];
             retirements.popBack();
-            AssetSlot& slot = slots[index];
-            ASSERT(slot.state == AssetState::Retiring && !slot.references && !slot.pRequest && !slot.uploading && !slot.snapshotReferences);
+            ASSERT(slot.state == AssetState::Retiring && !slot.references && !slot.pRequest && !slot.uploading);
             destroyPayload(slot);
             releaseDependencies(slot);
             hmdel(pRecords, slot.pEntry->id);
@@ -352,7 +281,7 @@ public:
             }
         }
         if (slot.state == AssetState::Ready)
-            invalidateSnapshot();
+            ++tableRevision;
         if (slot.state == AssetState::Failed)
         {
             destroyPayload(slot);
@@ -360,21 +289,27 @@ public:
         }
     }
 
-    const AssetCatalog&       catalog;
-    const AssetManager&       assetManager;
-    AssetLoader               loaders[4] = {};
-    Array<AssetSlot>          slots;
-    Array<uint32_t>           freeSlots;
-    Array<uint32_t>           retirements;
-    AssetRecord*              pRecords = nullptr;
-    bool                      shuttingDown = false;
-    AssetSnapshotData*        pCurrentSnapshot = nullptr;
-    uint32_t                  snapshotCount = 0;
-    uint64_t                  snapshotRevision = 1;
-    Array<SnapshotSubmission> submissions;
+    const AssetCatalog&      catalog;
+    const AssetManager&      assetManager;
+    AssetLoader              loaders[4] = {};
+    Array<AssetSlot>         slots;
+    Array<uint32_t>          freeSlots;
+    Array<uint32_t>          retirements;
+    AssetRecord*             pRecords = nullptr;
+    RenderContext*           pContext = nullptr;
+    bool                     shuttingDown = false;
+    uint64_t                 tableRevision = 1;
+    uint64_t                 builtRevision = 0;
+    Array<GpuMeshRecord>     meshes;
+    Array<GpuVertexStream>   vertexStreams;
+    Array<GpuSubmeshRecord>  submeshes;
+    Array<GpuMaterialRecord> materials;
+    Array<GpuTextureRecord>  textures;
 };
 
-AssetManager::AssetManager(const AssetCatalog& catalog): pData(tf_new(AssetManagerData, catalog, *this)) {}
+AssetManager::AssetManager(const AssetCatalog& catalog, RenderContext* pContext): pData(tf_new(AssetManagerData, catalog, *this, pContext))
+{
+}
 AssetManager::~AssetManager()
 {
     shutdown();
@@ -415,7 +350,6 @@ bool AssetManager::release(AssetHandle handle) { return pData->release(handle); 
 
 void AssetManager::update()
 {
-    pData->updateSubmissions(false);
     pData->retire();
     for (AssetSlot& slot : pData->slots)
         pData->update(slot);
@@ -455,151 +389,81 @@ AssetHandle AssetManager::find(AssetID id) const
     return pRecord ? pRecord->value : AssetHandle{};
 }
 
-AssetSnapshot AssetManager::captureSnapshot()
+GpuAssetTables AssetManager::getGpuTables()
 {
-    AssetSnapshot result;
-    if (pData->shuttingDown)
-        return result;
-    if (!pData->pCurrentSnapshot)
+    AssetManagerData& data = *pData;
+    if (data.builtRevision != data.tableRevision)
     {
-        pData->pCurrentSnapshot = tf_new(AssetSnapshotData);
-        pData->pCurrentSnapshot->pOwner = pData;
-        pData->pCurrentSnapshot->revision = pData->snapshotRevision;
-        pData->pCurrentSnapshot->assets.resize(pData->slots.size());
-        ++pData->snapshotCount;
-        for (uint32_t i = 0; i < pData->slots.size(); ++i)
+        data.meshes.clear();
+        data.vertexStreams.clear();
+        data.submeshes.clear();
+        data.materials.clear();
+        data.textures.clear();
+        data.meshes.resize(data.slots.size());
+        data.materials.resize(data.slots.size());
+        data.textures.resize(data.slots.size());
+        for (uint32_t i = 0; i < data.slots.size(); ++i)
         {
-            AssetSlot& slot = pData->slots[i];
-            if (slot.state == AssetState::Ready)
+            const AssetSlot& slot = data.slots[i];
+            if (slot.state != AssetState::Ready)
+                continue;
+            if (slot.pEntry->type == AssetType::Texture)
+                data.textures[i] = { .id = { .index = i, .generation = slot.generation },
+                                     .srv = ((const TextureAsset*)slot.pPayload)->getTexture().getSrvIndex() };
+            else if (slot.pEntry->type == AssetType::Mesh)
             {
-                pData->pCurrentSnapshot->assets[i] = { .pPayload = slot.pPayload,
-                                                       .generation = slot.generation,
-                                                       .type = slot.pEntry->type };
-                ++slot.snapshotReferences;
+                const MeshAsset& mesh = *(const MeshAsset*)slot.pPayload;
+                data.meshes[i] = { .id = { .index = i, .generation = slot.generation },
+                                   .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
+                                   .indexStride = mesh.getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
+                                   .vertexStreamOffset = data.vertexStreams.size(),
+                                   .vertexStreamCount = mesh.getVertexBufferCount(),
+                                   .submeshOffset = data.submeshes.size(),
+                                   .submeshCount = mesh.getDescription().submeshes.count };
+                for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
+                    data.vertexStreams.pushBack(
+                        { .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
+                for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
+                {
+                    const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
+                    data.submeshes.pushBack(
+                        { .indexCount = args.indexCount, .firstIndex = args.startIndex, .vertexOffset = (int32_t)args.vertexOffset });
+                }
+            }
+            else if (slot.pEntry->type == AssetType::Material)
+            {
+                const SceneAssetMaterial& material = ((const MaterialAsset*)slot.pPayload)->getDescription();
+                GpuMaterialRecord&        record = data.materials[i];
+                record.id = { .index = i, .generation = slot.generation };
+                const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
+                                               material.emissiveTexture };
+                GpuTextureID* ppTextures[] = { &record.baseColorTexture, &record.normalTexture, &record.metallicRoughnessTexture,
+                                               &record.emissiveTexture };
+                for (uint32_t texture = 0; texture < 4; ++texture)
+                {
+                    if (!textureIDs[texture].isValid())
+                        continue;
+                    const AssetHandle handle = find(textureIDs[texture]);
+                    ASSERT(getTexture(handle));
+                    *ppTextures[texture] = { .index = handle.index, .generation = handle.generation };
+                }
+                memcpy(record.baseColorFactor, material.baseColorFactor, sizeof(record.baseColorFactor));
+                memcpy(record.emissiveFactor, material.emissiveFactor, sizeof(record.emissiveFactor));
+                record.metallicFactor = material.metallicFactor;
+                record.roughnessFactor = material.roughnessFactor;
+                record.alphaCutoff = material.alphaCutoff;
+                record.alphaMode = (uint32_t)material.alphaMode;
+                record.doubleSided = material.doubleSided;
             }
         }
+        data.builtRevision = data.tableRevision;
     }
-    result.pData = pData->pCurrentSnapshot;
-    ++result.pData->references;
-    return result;
-}
-
-AssetSnapshot AssetManager::captureRenderSnapshot()
-{
-    AssetSnapshot result = captureSnapshot();
-    if (!result.isValid() || result.pData->gpuTables)
-        return result;
-    AssetSnapshotData& data = *result.pData;
-    data.meshes.resize(data.assets.size());
-    data.materials.resize(data.assets.size());
-    data.textures.resize(data.assets.size());
-    for (uint32_t i = 0; i < data.assets.size(); ++i)
-    {
-        const SnapshotAsset& asset = data.assets[i];
-        if (!asset.pPayload)
-            continue;
-        if (asset.type == AssetType::Texture)
-            data.textures[i] = { .id = { .index = i, .generation = asset.generation },
-                                 .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
-        else if (asset.type == AssetType::Mesh)
-        {
-            const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
-            data.meshes[i] = { .id = { .index = i, .generation = asset.generation },
-                               .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
-                               .indexStride = mesh.getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
-                               .vertexStreamOffset = data.vertexStreams.size(),
-                               .vertexStreamCount = mesh.getVertexBufferCount(),
-                               .submeshOffset = data.submeshes.size(),
-                               .submeshCount = mesh.getDescription().submeshes.count };
-            for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
-                data.vertexStreams.pushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
-            for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
-            {
-                const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
-                data.submeshes.pushBack(
-                    { .indexCount = args.indexCount, .firstIndex = args.startIndex, .vertexOffset = (int32_t)args.vertexOffset });
-            }
-        }
-        else if (asset.type == AssetType::Material)
-        {
-            const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->getDescription();
-            GpuMaterialRecord&        record = data.materials[i];
-            record.id = { .index = i, .generation = asset.generation };
-            const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
-                                           material.emissiveTexture };
-            GpuTextureID* ppTextures[] = { &record.baseColorTexture, &record.normalTexture, &record.metallicRoughnessTexture,
-                                           &record.emissiveTexture };
-            for (uint32_t texture = 0; texture < 4; ++texture)
-            {
-                if (!textureIDs[texture].isValid())
-                    continue;
-                const AssetHandle handle = find(textureIDs[texture]);
-                ASSERT(data.find(handle, AssetType::Texture));
-                *ppTextures[texture] = { .index = handle.index, .generation = handle.generation };
-            }
-            memcpy(record.baseColorFactor, material.baseColorFactor, sizeof(record.baseColorFactor));
-            memcpy(record.emissiveFactor, material.emissiveFactor, sizeof(record.emissiveFactor));
-            record.metallicFactor = material.metallicFactor;
-            record.roughnessFactor = material.roughnessFactor;
-            record.alphaCutoff = material.alphaCutoff;
-            record.alphaMode = (uint32_t)material.alphaMode;
-            record.doubleSided = material.doubleSided;
-        }
-    }
-    data.gpuTables = true;
-    return result;
-}
-
-uint64_t              AssetSnapshot::getRevision() const { return pData ? pData->revision : 0; }
-GpuAssetTableSnapshot AssetSnapshot::getGpuTables() const
-{
-    ASSERT(pData && pData->gpuTables);
-    return { .meshes = { pData->meshes.data(), pData->meshes.size() },
-             .vertexStreams = { pData->vertexStreams.data(), pData->vertexStreams.size() },
-             .submeshes = { pData->submeshes.data(), pData->submeshes.size() },
-             .materials = { pData->materials.data(), pData->materials.size() },
-             .textures = { pData->textures.data(), pData->textures.size() } };
-}
-
-void AssetManager::retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission)
-{
-    ASSERT(snapshot.pData && snapshot.pData->pOwner == pData && submission.isValid() && !pData->shuttingDown);
-    pData->submissions.pushBack({ .pSnapshot = snapshot.pData, .pContext = &context, .submission = submission });
-    snapshot.pData = nullptr;
-}
-
-AssetSnapshot::~AssetSnapshot()
-{
-    if (pData)
-        pData->pOwner->releaseSnapshot(pData);
-}
-AssetSnapshot::AssetSnapshot(AssetSnapshot&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
-AssetSnapshot& AssetSnapshot::operator=(AssetSnapshot&& other) noexcept
-{
-    if (this != &other)
-    {
-        if (pData)
-            pData->pOwner->releaseSnapshot(pData);
-        pData = other.pData;
-        other.pData = nullptr;
-    }
-    return *this;
-}
-const SceneAsset* AssetSnapshot::getScene(AssetHandle handle) const
-{
-    return pData ? (const SceneAsset*)pData->find(handle, AssetType::Scene) : nullptr;
-}
-const TextureAsset* AssetSnapshot::getTexture(AssetHandle handle) const
-{
-    return pData ? (const TextureAsset*)pData->find(handle, AssetType::Texture) : nullptr;
-}
-const MeshAsset* AssetSnapshot::getMesh(AssetHandle handle) const
-{
-    return pData ? (const MeshAsset*)pData->find(handle, AssetType::Mesh) : nullptr;
-}
-const MaterialAsset* AssetSnapshot::getMaterial(AssetHandle handle) const
-{
-    return pData ? (const MaterialAsset*)pData->find(handle, AssetType::Material) : nullptr;
+    return { .meshes = { data.meshes.data(), data.meshes.size() },
+             .vertexStreams = { data.vertexStreams.data(), data.vertexStreams.size() },
+             .submeshes = { data.submeshes.data(), data.submeshes.size() },
+             .materials = { data.materials.data(), data.materials.size() },
+             .textures = { data.textures.data(), data.textures.size() },
+             .revision = data.builtRevision };
 }
 
 uint32_t AssetManager::getCount() const { return (uint32_t)hmlen(pData->pRecords); }
@@ -626,9 +490,9 @@ void AssetManager::shutdown()
             slot.uploading = false;
         }
     }
-    pData->updateSubmissions(true);
-    pData->invalidateSnapshot();
-    ASSERT(!pData->snapshotCount);
+    // Shutdown happens between frames, so idling covers every submission that could reference a payload.
+    if (pData->pContext)
+        pData->pContext->waitIdle();
     pData->retirements.clear();
     for (AssetSlot& slot : pData->slots)
     {
@@ -636,6 +500,7 @@ void AssetManager::shutdown()
             continue;
         slot.references = 0;
         slot.state = AssetState::Retiring;
+        slot.gpuUse = 0;
         slot.retirementQueued = false;
     }
     // Discard external references, retaining dependency edges so parents retire first.

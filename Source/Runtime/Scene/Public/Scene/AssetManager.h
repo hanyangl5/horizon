@@ -77,40 +77,14 @@ class TextureAsset;
 class MeshAsset;
 class MaterialAsset;
 class AssetManagerData;
-class AssetSnapshotData;
 class RenderContext;
-struct SubmitHandle;
 
-// Pins one immutable set of ready payloads. Destroy unsubmitted snapshots before asset manager shutdown.
-class AssetSnapshot
-{
-public:
-    AssetSnapshot() = default;
-    ~AssetSnapshot();
-    AssetSnapshot(AssetSnapshot&& other) noexcept;
-    AssetSnapshot& operator=(AssetSnapshot&& other) noexcept;
-    AssetSnapshot(const AssetSnapshot&) = delete;
-    AssetSnapshot& operator=(const AssetSnapshot&) = delete;
-
-    bool                  isValid() const { return pData != nullptr; }
-    uint64_t              getRevision() const;
-    // Available on snapshots returned by captureRenderSnapshot().
-    GpuAssetTableSnapshot getGpuTables() const;
-    const SceneAsset*     getScene(AssetHandle) const;
-    const TextureAsset*   getTexture(AssetHandle) const;
-    const MeshAsset*      getMesh(AssetHandle) const;
-    const MaterialAsset*  getMaterial(AssetHandle) const;
-
-private:
-    AssetSnapshotData* pData = nullptr;
-    friend class AssetManager;
-};
-
-// Single-threaded mutation. Catalog entries and loader contexts must outlive the asset manager.
+// Single-threaded mutation. Catalog entries, loader contexts and the render context must outlive the asset manager.
 class AssetManager
 {
 public:
-    explicit AssetManager(const AssetCatalog& catalog);
+    // With a render context, released payloads are destroyed only after GPU work that could reference them completes.
+    explicit AssetManager(const AssetCatalog& catalog, RenderContext* pContext = nullptr);
     ~AssetManager();
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;
@@ -127,11 +101,8 @@ public:
     const MaterialAsset* getMaterial(AssetHandle handle) const;
     // Lookup does not acquire a reference; use request() to retain the asset.
     AssetHandle          find(AssetID id) const;
-    AssetSnapshot        captureSnapshot();
-    // Encodes GPU indirection tables once per ready payload set. Requires the typed loaders.
-    AssetSnapshot        captureRenderSnapshot();
-    // Transfers the snapshot lease to the submission fence; context must outlive the asset manager.
-    void                 retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission);
+    // Encodes the ready payload set once per revision. Views expire when the ready set changes.
+    GpuAssetTables       getGpuTables();
     uint32_t             getCount() const;
     void                 shutdown();
 

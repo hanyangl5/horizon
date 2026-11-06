@@ -11,12 +11,13 @@
 #include "Scene/MaterialAsset.h"
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/RenderScene.h"
-#include "Scene/RenderFrame.h"
+#include "Scene/GpuScene.h"
 #include "Scene/WorldDocument.h"
 #include "Core/IUniquePtr.h"
 #include "Resources/IResourceLoader.h"
 #include "Graphics/RenderContext.h"
 #include "Core/IThread.h"
+#include "Core/ITime.h"
 #include "Core/IContainer.h"
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
@@ -402,7 +403,7 @@ TEST_F(AssetManagerTest, UploadFailureAndShutdownUseTheSamePayloadCleanup)
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1, 1 }));
 }
 
-TEST_F(AssetManagerTest, SnapshotsPinPayloadsAndKeepTheirOriginalMembership)
+TEST_F(AssetManagerTest, GpuTablesRebuildOnlyWhenTheReadySetChanges)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
@@ -412,13 +413,11 @@ TEST_F(AssetManagerTest, SnapshotsPinPayloadsAndKeepTheirOriginalMembership)
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     const hz::AssetHandle first = assetManager.request(assetID(1));
     assetManager.update();
-    hz::AssetSnapshot     old = assetManager.captureSnapshot();
-    const hz::SceneAsset* pFirst = old.getScene(first);
-    ASSERT_NE(pFirst, nullptr);
+    const uint64_t            revision = assetManager.getGpuTables().revision;
     const MemoryTrackingStats before = memGetTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
     {
-        hz::AssetSnapshot frame = assetManager.captureSnapshot();
+        EXPECT_EQ(assetManager.getGpuTables().revision, revision);
         assetManager.update();
     }
     const MemoryTrackingStats after = memGetTrackingStats();
@@ -428,21 +427,17 @@ TEST_F(AssetManagerTest, SnapshotsPinPayloadsAndKeepTheirOriginalMembership)
         EXPECT_EQ(after.reallocationCount, before.reallocationCount);
     }
     assetManager.release(first);
-    assetManager.update();
-    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Retiring);
-    EXPECT_EQ(assetManager.getScene(first), nullptr);
-    EXPECT_EQ(old.getScene(first), pFirst);
-    const hz::AssetHandle second = assetManager.request(assetID(2));
-    assetManager.update();
-    hz::AssetSnapshot current = assetManager.captureSnapshot();
-    EXPECT_EQ(current.getScene(first), nullptr);
-    EXPECT_EQ(old.getScene(second), nullptr);
-    EXPECT_NE(current.getScene(second), nullptr);
-    old = {};
+    const uint64_t released = assetManager.getGpuTables().revision;
+    EXPECT_NE(released, revision);
+    // Without a render context nothing can still be using the payload.
     assetManager.update();
     EXPECT_EQ(assetManager.getState(first), hz::AssetState::Invalid);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
-    current = {};
+    const hz::AssetHandle second = assetManager.request(assetID(2));
+    EXPECT_EQ(assetManager.getGpuTables().revision, released);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(second), hz::AssetState::Ready);
+    EXPECT_NE(assetManager.getGpuTables().revision, released);
     assetManager.shutdown();
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1, 2 }));
 }
@@ -605,15 +600,14 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     ASSERT_TRUE(catalog.add(
         { .id = assetID(1), .type = hz::AssetType::Texture, .pSourcePath = "pixel.png", .location = { .pPath = "pixel.dds" } }));
     hz::TextureAssetLoader loader(context, RD_OTHER_FILES);
-    hz::AssetManager       assetManager(catalog);
+    hz::AssetManager       assetManager(catalog, &context);
     assetManager.setLoader(hz::AssetType::Texture, loader.getLoader());
     const hz::AssetHandle handle = assetManager.request(assetID(1));
     EXPECT_EQ(assetManager.request(assetID(1)), handle);
     assetManager.release(handle);
     wait(assetManager, handle);
     ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
-    hz::AssetSnapshot     snapshot = assetManager.captureSnapshot();
-    const hz::GPUTexture& texture = snapshot.getTexture(handle)->getTexture();
+    const hz::GPUTexture& texture = assetManager.getTexture(handle)->getTexture();
     ASSERT_TRUE(texture.isValid());
     const char      shader[] = R"hlsl(
         cbuffer RootConstant0 { uint textureIndex; uint outputIndex; };
@@ -644,11 +638,12 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     commands.setRootConstant({ texture.getSrvIndex(), output.getUavIndex() });
     commands.dispatch(1, 1, 1, { .sampledTextures = { &texture }, .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 16);
-    const hz::SubmitHandle submission = context.submit(commands);
+    // The open command list references the texture, so its release waits for that work.
     assetManager.release(handle);
-    assetManager.retireSnapshot(std::move(snapshot), context, submission);
-    EXPECT_FALSE(snapshot.isValid());
+    assetManager.update();
     EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getCount(), 1u);
+    const hz::SubmitHandle submission = context.submit(commands);
     assetManager.shutdown();
     EXPECT_TRUE(context.isComplete(submission));
     EXPECT_EQ(assetManager.getCount(), 0u);
@@ -902,7 +897,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAssetTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetManager  assetManager(catalog);
+    hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle root = assetManager.request(scene.getID());
     const hz::AssetHandle second = assetManager.request(scene.getMeshes().pData[1].id);
@@ -931,18 +926,17 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     ASSERT_NE(pMaterial, nullptr);
     EXPECT_FLOAT_EQ(pMaterial->getDescription().roughnessFactor, 0.8f);
     ASSERT_NE(assetManager.getTexture(assetManager.find(pMaterial->getDescription().baseColorTexture)), nullptr);
-    hz::AssetSnapshot snapshot = assetManager.captureSnapshot();
-    hz::GPUBuffer     readback = context.createBuffer({ .size = 36,
-                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                        .startState = RESOURCE_STATE_COPY_DEST,
-                                                        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    hz::CommandList&  commands = context.acquireCommandList();
+    hz::GPUBuffer    readback = context.createBuffer({ .size = 36,
+                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                       .startState = RESOURCE_STATE_COPY_DEST,
+                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    hz::CommandList& commands = context.acquireCommandList();
     commands.copyBuffer(readback, 0, pFirst->getVertexBuffer(0), 0, 36);
-    const hz::SubmitHandle submission = context.submit(commands);
     assetManager.release(root);
     assetManager.release(second);
-    EXPECT_EQ(snapshot.getMesh(first), pFirst);
-    assetManager.retireSnapshot(std::move(snapshot), context, submission);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 5u);
+    const hz::SubmitHandle submission = context.submit(commands);
     assetManager.shutdown();
     EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_TRUE(context.isComplete(submission));
@@ -963,7 +957,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAsset32BitIndexTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetManager  assetManager(catalog);
+    hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle handle = assetManager.request(asset.getMeshes().pData[0].id);
     wait(assetManager, handle);
@@ -978,8 +972,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
         EXPECT_FLOAT_EQ(bounds.minimum[axis], minimum[axis]);
         EXPECT_FLOAT_EQ(bounds.maximum[axis], maximum[axis]);
     }
-    hz::AssetSnapshot        snapshot = assetManager.captureRenderSnapshot();
-    const hz::GpuMeshRecord* gpuMesh = snapshot.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
+    const hz::GpuMeshRecord* gpuMesh = assetManager.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
     hz::GPUBuffer    readback = context.createBuffer({ .size = 48,
@@ -989,10 +982,10 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     hz::CommandList& commands = context.acquireCommandList();
     commands.copyBuffer(readback, 0, mesh->getIndexBuffer(), 0, 12);
     commands.copyBuffer(readback, 12, mesh->getVertexBuffer(0), 0, 36);
-    const hz::SubmitHandle submission = context.submit(commands);
     assetManager.release(handle);
-    assetManager.retireSnapshot(std::move(snapshot), context, submission);
+    const hz::SubmitHandle submission = context.submit(commands);
     assetManager.shutdown();
+    EXPECT_TRUE(context.isComplete(submission));
     const uint32_t expectedIndices[] = { 0, 1, 2 };
     const float    expectedPositions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
     const uint8_t* bytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
@@ -1217,7 +1210,7 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     EXPECT_EQ(scene.getChanges().instanceIndices.count, 0u);
 }
 
-TEST_F(AssetManagerTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
+TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(
@@ -1229,47 +1222,44 @@ TEST_F(AssetManagerTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, assetManager, { .journalCapacity = 8 });
+    hz::RenderScene        scene(world, assetManager);
     const hz::Entity       entity = world.createEntity();
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     hz::LocalTransform     transform;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.update();
-    const uint64_t first = scene.getRevision();
-    EXPECT_TRUE(scene.getChangesSince(0).full);
+    const hz::RenderSceneUploads initial = scene.getPendingUploads();
+    EXPECT_EQ(initial.primitives.count, 1u);
+    EXPECT_EQ(initial.instances.count, 1u);
+    EXPECT_EQ(initial.instanceIndices.count, 1u);
+    EXPECT_TRUE(initial.activePrimitives);
+    EXPECT_TRUE(initial.activeInstances);
+    EXPECT_FALSE(initial.activeMeshBatches);
     for (uint32_t i = 1; i <= 4; ++i)
     {
         transform.translation = Vector3((float)i, 0, 0);
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
         scene.update();
     }
-    const hz::RenderSceneSync delta = scene.getChangesSince(first);
-    EXPECT_FALSE(delta.full);
-    ASSERT_EQ(delta.instances.count, 1u);
-    EXPECT_EQ(delta.instances.pData[0].first, 0u);
-    EXPECT_EQ(delta.instances.pData[0].count, 1u);
-    EXPECT_EQ(delta.primitives.count, 0u);
-    const uint64_t intermediate = scene.getRevision();
-    for (uint32_t i = 5; i <= 12; ++i)
-    {
-        transform.translation = Vector3((float)i, 0, 0);
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-        scene.update();
-    }
-    EXPECT_TRUE(scene.getChangesSince(first).full);
-    EXPECT_FALSE(scene.getChangesSince(intermediate).full);
-    EXPECT_EQ(scene.getChangesSince(scene.getRevision()).instances.count, 0u);
-    const uint64_t beforeRemove = scene.getRevision();
+    // getChanges() covers only the latest update; pending uploads keep everything not yet acknowledged.
+    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
+    EXPECT_FALSE(scene.getChanges().primitives.activeList);
+    const hz::RenderSceneUploads moved = scene.getPendingUploads();
+    ASSERT_EQ(moved.instances.count, 1u);
+    EXPECT_EQ(moved.instances.pData[0].first, 0u);
+    EXPECT_EQ(moved.instances.pData[0].count, 1u);
+    EXPECT_EQ(moved.primitives.count, 1u);
+    EXPECT_TRUE(moved.activePrimitives);
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::meshRenderer));
     scene.update();
-    const hz::RenderSceneSync removal = scene.getChangesSince(beforeRemove);
-    EXPECT_FALSE(removal.full);
+    const hz::RenderSceneUploads removal = scene.getPendingUploads();
     EXPECT_TRUE(removal.activePrimitives);
     EXPECT_TRUE(removal.activeInstances);
     EXPECT_FALSE(removal.activeMeshBatches);
     EXPECT_EQ(removal.primitives.count, 1u);
     EXPECT_EQ(removal.instances.count, 1u);
+    EXPECT_EQ(removal.instanceIndices.count, 1u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNoFrameAllocation)
@@ -1279,7 +1269,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World       world(types);
-    hz::RenderScene scene(world, assetManager, { .journalCapacity = 32 });
+    hz::RenderScene scene(world, assetManager);
     scene.reserve(0, 0, 9, 9);
     const hz::Entity parent = world.createEntity();
     hz::LocalMatrix  parentMatrix = { .value = Matrix4::translation(Vector3(10, 20, 30)) * Matrix4::scale(Vector3(2, 3, 4)) };
@@ -1353,7 +1343,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
     for (uint32_t i = 0; i < 100; ++i)
         scene.update();
     EXPECT_EQ(scene.getRevision(), initial);
-    // Change every other entity, then merge nonadjacent camera/light ranges in the journal.
+    // Change every other entity, then keep nonadjacent camera/light ranges separate.
     transform.translation = Vector3(2, 3, 4);
     lens.verticalFov = 0.6f;
     for (uint32_t i = 0; i < 9; i += 2)
@@ -1362,12 +1352,12 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
         ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::camera, &lens));
     }
     scene.update();
-    const hz::RenderSceneSync changes = scene.getChangesSince(initial);
-    EXPECT_FALSE(changes.full);
-    EXPECT_EQ(changes.lights.count, 5u);
-    EXPECT_EQ(changes.cameras.count, 5u);
-    EXPECT_FALSE(changes.activeLights);
-    EXPECT_FALSE(changes.activeCameras);
+    const hz::RenderSceneChanges changes = scene.getChanges();
+    EXPECT_GT(scene.getRevision(), initial);
+    EXPECT_EQ(changes.lights.ranges.count, 5u);
+    EXPECT_EQ(changes.cameras.ranges.count, 5u);
+    EXPECT_FALSE(changes.lights.activeList);
+    EXPECT_FALSE(changes.cameras.activeList);
     const MemoryTrackingStats after = memGetTrackingStats();
     if (before.trackingEnabled)
     {
@@ -1509,7 +1499,7 @@ TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
     EXPECT_EQ(assetManager.getCount(), 1u);
 }
 
-TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsAlive)
+TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedPayloads)
 {
     const std::string firstSubmesh = R"({"id":"8000000000000001", "draw":0, "material":"00000000-0000-4000-8000-000000000003"})";
     const std::string secondSubmesh = R"({"id":"8000000000000003", "draw":0, "material":"00000000-0000-4000-8000-000000000003"})";
@@ -1537,7 +1527,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
                               .dependencies = { scene.getTextures().pData[0].id } }));
     hz::RenderContext context({ .pAppName = "WorldAssetBindingsTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetManager  assetManager(catalog);
+    hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
@@ -1575,7 +1565,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
         EXPECT_EQ(before.reallocationCount, after.reallocationCount);
     }
 
-    hz::AssetSnapshot snapshot = assetManager.captureSnapshot();
+    // An open command list may reference any ready payload, so released payloads stay alive until it completes.
+    hz::CommandList& pending = context.acquireCommandList();
     // Reverse authoring order; resolution follows stable SubmeshID, not override array position.
     renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -1589,8 +1580,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
     EXPECT_EQ(bindings.get(a)->materials.count, 0u);
+    assetManager.update();
     EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
-    EXPECT_NE(snapshot.getMaterial(overrideMaterial), nullptr);
 
     renderer.overrides[0].submesh = 99;
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -1612,9 +1603,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
     assetManager.update();
     EXPECT_EQ(bindings.getCount(), 0u);
     EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::Retiring);
-    EXPECT_NE(snapshot.getMesh(mesh), nullptr);
-    EXPECT_NE(snapshot.getMaterial(overrideMaterial), nullptr);
-    snapshot = {};
+    EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
+    context.wait(context.submit(pending));
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
 }
@@ -1772,7 +1762,30 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     }
 }
 
-TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingStorage)
+struct GpuSceneCopy
+{
+    hz::GPUBuffer hz::GpuSceneBuffers::* table = nullptr;
+    uint64_t                             srcOffset = 0;
+    uint64_t                             dstOffset = 0;
+    uint64_t                             size = 0;
+};
+
+// Uploads one GpuScene frame, copies table bytes into the readback buffer and waits for the GPU.
+static void renderGpuSceneFrame(hz::RenderContext& context, hz::GpuScene& gpu, const hz::GPUBuffer& readback, hz::Span<GpuSceneCopy> copies)
+{
+    ASSERT_TRUE(gpu.beginFrame());
+    hz::CommandList& commands = context.acquireCommandList();
+    gpu.recordUpload(commands);
+    for (const GpuSceneCopy& copy : copies)
+        commands.copyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.size);
+    const hz::SubmitHandle submission = context.submit(commands);
+    gpu.endFrame(submission);
+    context.wait(submission);
+}
+
+static float translationX(const Matrix4& matrix) { return (float)matrix.getElem(3, 0); }
+
+TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmittedFrames)
 {
     writeTexture();
     writeScene();
@@ -1781,14 +1794,14 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
     ASSERT_TRUE(assets.parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
-    hz::RenderContext context({ .pAppName = "RenderFrameTest", .enableGpuValidation = true });
+    hz::RenderContext context({ .pAppName = "GpuSceneTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetManager  assetManager(catalog);
+    hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, assetManager, { .journalCapacity = 8 });
+    hz::RenderScene        scene(world, assetManager);
     const hz::Entity       a = world.createEntity(), b = world.createEntity();
     const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
@@ -1808,86 +1821,97 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
             meshBatchID = scene.getMeshBatches().pData[index].id;
     ASSERT_TRUE(meshBatchID.isValid());
     const hz::GpuMaterialID materialID = scene.getMeshBatch(meshBatchID)->material;
-    hz::RenderFramePool     pool(scene, context);
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        hz::RenderFrame warm = pool.capture();
-        ASSERT_TRUE(warm.isValid());
-        EXPECT_EQ(warm.getBackingIndex(), i);
-        const hz::GpuAssetTableSnapshot tables = warm.getAssets().getGpuTables();
-        const hz::GpuMeshRecord*        mesh = tables.getMesh(meshID);
-        ASSERT_NE(mesh, nullptr);
-        EXPECT_EQ(mesh->indexStride, 2u);
-        EXPECT_EQ(mesh->submeshCount, 1u);
-        EXPECT_EQ(tables.vertexStreams.pData[mesh->vertexStreamOffset].stride, 12u);
-        EXPECT_EQ(tables.submeshes.pData[mesh->submeshOffset].indexCount, 3u);
-        EXPECT_EQ(mesh->indexSrv, assetManager.getMesh(meshHandle)->getIndexBuffer().getSrvIndex());
-        const hz::GpuMaterialRecord* material = tables.getMaterial(materialID);
-        ASSERT_NE(material, nullptr);
-        EXPECT_FLOAT_EQ(material->roughnessFactor, 0.8f);
-        const hz::GpuTextureRecord* texture = tables.getTexture(material->baseColorTexture);
-        ASSERT_NE(texture, nullptr);
-        EXPECT_EQ(texture->srv, assetManager.getTexture(assetManager.find(assets.getTextures().pData[0].id))->getTexture().getSrvIndex());
-        EXPECT_EQ(tables.getTexture({ .index = meshID.index, .generation = meshID.generation }), nullptr);
-        EXPECT_TRUE(warm.getBuffers().instances.isValid());
-        EXPECT_TRUE(warm.getBuffers().meshes.isValid());
-    }
-    hz::GPUBuffer   readback = context.createBuffer({ .size = sizeof(hz::RenderInstance),
-                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                      .startState = RESOURCE_STATE_COPY_DEST,
-                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    hz::RenderFrame frame = pool.capture();
-    const uint64_t  initialRevision = frame.getRevision();
-    const uint64_t  initialAssetRevision = frame.getAssets().getRevision();
+    const uint32_t textureSrv = assetManager.getTexture(assetManager.find(assets.getTextures().pData[0].id))->getTexture().getSrvIndex();
+
+    hz::GpuScene              gpu(scene, assetManager, context);
+    hz::GPUBuffer             readback = context.createBuffer({ .size = 1024,
+                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                                .startState = RESOURCE_STATE_COPY_DEST,
+                                                                .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    const uint8_t*            pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
+    const hz::RenderInstance& copiedInstance = *(const hz::RenderInstance*)pBytes;
+    const hz::GpuMeshRecord&  copiedMesh = *(const hz::GpuMeshRecord*)(pBytes + 256);
+    const GpuSceneCopy        instanceCopy = { .table = &hz::GpuSceneBuffers::instances,
+                                               .srcOffset = sizeof(hz::RenderInstance) * instanceIndex,
+                                               .size = sizeof(hz::RenderInstance) };
+    const GpuSceneCopy        meshCopy = { .table = &hz::GpuSceneBuffers::meshes,
+                                           .srcOffset = sizeof(hz::GpuMeshRecord) * meshID.index,
+                                           .dstOffset = 256,
+                                           .size = sizeof(hz::GpuMeshRecord) };
+    const GpuSceneCopy        firstCopies[] = {
+        instanceCopy,
+        meshCopy,
+        { .table = &hz::GpuSceneBuffers::materials,
+          .srcOffset = sizeof(hz::GpuMaterialRecord) * materialID.index,
+          .dstOffset = 512,
+          .size = sizeof(hz::GpuMaterialRecord) },
+    };
+    renderGpuSceneFrame(context, gpu, readback, firstCopies);
+    EXPECT_EQ(copiedInstance.id, scene.getInstances().pData[instanceIndex].id);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 1);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
+    EXPECT_EQ(copiedMesh.id, meshID);
+    EXPECT_EQ(copiedMesh.indexStride, 2u);
+    EXPECT_EQ(copiedMesh.submeshCount, 1u);
+    EXPECT_EQ(copiedMesh.indexSrv, assetManager.getMesh(meshHandle)->getIndexBuffer().getSrvIndex());
+    const hz::GpuMaterialRecord& copiedMaterial = *(const hz::GpuMaterialRecord*)(pBytes + 512);
+    EXPECT_EQ(copiedMaterial.id, materialID);
+    EXPECT_FLOAT_EQ(copiedMaterial.roughnessFactor, 0.8f);
+    ASSERT_TRUE(copiedMaterial.baseColorTexture.isValid());
+    const hz::RenderSceneUploads acknowledged = scene.getPendingUploads();
+    EXPECT_EQ(acknowledged.primitives.count + acknowledged.instances.count + acknowledged.meshBatches.count +
+                  acknowledged.instanceIndices.count,
+              0u);
+    EXPECT_FALSE(acknowledged.activePrimitives || acknowledged.activeInstances || acknowledged.activeMeshBatches);
+
+    // Unchanged tables persist on the GPU without another upload.
     transform.translation = Vector3(2, 0, 0);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
-    scene.update();
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].current.getElem(3, 0), 1);
-    hz::CommandList& firstCommands = context.acquireCommandList();
-    firstCommands.copyBuffer(readback, 0, frame.getBuffers().instances, sizeof(hz::RenderInstance) * instanceIndex,
-                             sizeof(hz::RenderInstance));
-    const hz::SubmitHandle firstSubmission = context.submit(firstCommands);
-    pool.retire(std::move(frame), firstSubmission);
-    EXPECT_FALSE(frame.isValid());
-    frame = pool.capture();
-    EXPECT_GT(frame.getRevision(), initialRevision);
-    EXPECT_EQ(frame.getAssets().getRevision(), initialAssetRevision);
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].current.getElem(3, 0), 2);
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 1);
-    frame = {};
+    const GpuSceneCopy movedCopies[] = {
+        instanceCopy,
+        { .table = &hz::GpuSceneBuffers::textures,
+          .srcOffset = sizeof(hz::GpuTextureRecord) * copiedMaterial.baseColorTexture.index,
+          .dstOffset = 768,
+          .size = sizeof(hz::GpuTextureRecord) },
+    };
+    renderGpuSceneFrame(context, gpu, readback, movedCopies);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 2);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
+    const hz::GpuTextureRecord& copiedTexture = *(const hz::GpuTextureRecord*)(pBytes + 768);
+    EXPECT_EQ(copiedTexture.id, copiedMaterial.baseColorTexture);
+    EXPECT_EQ(copiedTexture.srv, textureSrv);
+
+    // A cancelled frame keeps its changes pending and does not advance history.
     transform.translation = Vector3(3, 0, 0);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
-    frame = pool.capture();
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 1);
-    frame = {};
-    context.wait(firstSubmission);
-    const hz::RenderInstance* copied = (const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
-    EXPECT_FLOAT_EQ((float)copied->current.getElem(3, 0), 1);
-    frame = pool.capture();
-    hz::CommandList& movingCommands = context.acquireCommandList();
-    movingCommands.copyBuffer(readback, 0, frame.getBuffers().instances, sizeof(hz::RenderInstance) * instanceIndex,
-                              sizeof(hz::RenderInstance));
-    const hz::SubmitHandle movingSubmission = context.submit(movingCommands);
-    pool.retire(std::move(frame), movingSubmission);
-    context.wait(movingSubmission);
-    pool.collect();
-    // History must update even when current stays unchanged, including on every backing.
-    for (uint32_t i = 0; i < 3; ++i)
+    ASSERT_TRUE(gpu.beginFrame());
+    gpu.cancelFrame();
+    renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 3);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 2);
+    renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 3);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 3);
+
+    // Changes accumulate across updates until the next submitted frame.
+    for (uint32_t i = 0; i < 12; ++i)
     {
-        frame = pool.capture();
-        EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].current.getElem(3, 0), 3);
-        EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 3);
-        frame = {};
+        transform.translation = Vector3((float)i + 100, 0, 0);
+        ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+        scene.update();
     }
+    renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 111);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 3);
+
     const MemoryTrackingStats before = memGetTrackingStats();
     for (uint32_t i = 0; i < 30; ++i)
     {
-        transform.translation = Vector3((float)i + 4, 0, 0);
+        transform.translation = Vector3((float)i + 200, 0, 0);
         ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
-        frame = pool.capture();
-        EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].current.getElem(3, 0), (float)i + 4);
-        EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 3);
-        frame = {};
+        renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
+        EXPECT_FLOAT_EQ(translationX(copiedInstance.current), (float)i + 200);
+        EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), i ? (float)i + 199 : 111.0f);
     }
     const MemoryTrackingStats after = memGetTrackingStats();
     if (before.trackingEnabled)
@@ -1895,93 +1919,59 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
         EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
         EXPECT_EQ(before.reallocationCount, after.reallocationCount);
     }
-    const uint64_t backingRevision = scene.getRevision();
-    for (uint32_t i = 0; i < 12; ++i)
-    {
-        transform.translation = Vector3((float)i + 100, 0, 0);
-        ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
-        scene.update();
-    }
-    EXPECT_TRUE(scene.getChangesSince(backingRevision).full);
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        frame = pool.capture();
-        EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].current.getElem(3, 0), 111);
-        EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 3);
-        frame = {};
-    }
-    scene.resetHistory(a);
-    frame = pool.capture();
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 111);
-    // A reset after capture must survive retiring an older frame.
-    transform.translation = Vector3(200, 0, 0);
+
+    // A teleport resets history for the next submitted frame.
+    transform.translation = Vector3(300, 0, 0);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
     scene.resetHistory(a);
-    hz::CommandList&       resetCommands = context.acquireCommandList();
-    const hz::SubmitHandle resetSubmission = context.submit(resetCommands);
-    pool.retire(std::move(frame), resetSubmission);
-    context.wait(resetSubmission);
-    frame = pool.capture();
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[instanceIndex].previous.getElem(3, 0), 200);
-    frame = {};
+    renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 300);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
 
+    // Removal frees the slots; re-adding reuses them with new generations and fresh history.
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        frame = pool.capture();
-        EXPECT_EQ(frame.getActivePrimitives().count, 1u);
-        EXPECT_EQ(frame.getActiveInstances().count, 1u);
-        EXPECT_EQ(frame.getActiveMeshBatches().count, 1u);
-        EXPECT_FALSE(frame.getPrimitives().pData[primitive.index].id.isValid());
-        EXPECT_FALSE(frame.getMeshBatches().pData[meshBatchID.index].id.isValid());
-        EXPECT_EQ(frame.getInstanceIndices().pData[primitive.index], UINT32_MAX);
-        frame = {};
-    }
+    const GpuSceneCopy activeCopies[] = {
+        { .table = &hz::GpuSceneBuffers::activePrimitives, .size = sizeof(uint32_t) },
+        { .table = &hz::GpuSceneBuffers::instanceIndices,
+          .srcOffset = sizeof(uint32_t) * primitive.index,
+          .dstOffset = sizeof(uint32_t),
+          .size = sizeof(uint32_t) },
+    };
+    renderGpuSceneFrame(context, gpu, readback, activeCopies);
+    EXPECT_EQ(scene.getActivePrimitives().count, 1u);
+    EXPECT_EQ(((const uint32_t*)pBytes)[0], scene.findPrimitive(b).index);
+    EXPECT_EQ(((const uint32_t*)pBytes)[1], UINT32_MAX);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
-    frame = pool.capture();
+    renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
     const hz::RenderPrimitiveID reused = scene.findPrimitive(a);
     EXPECT_EQ(reused.index, primitive.index);
     EXPECT_NE(reused.generation, primitive.generation);
-    EXPECT_NE(frame.getMeshBatches().pData[meshBatchID.index].id.generation, meshBatchID.generation);
-    const uint32_t reusedInstance = frame.getInstanceIndices().pData[frame.getPrimitives().pData[reused.index].instanceOffset];
-    EXPECT_FLOAT_EQ((float)frame.getInstances().pData[reusedInstance].previous.getElem(3, 0), 200);
+    ASSERT_EQ(scene.getInstanceIndices().pData[reused.index], instanceIndex);
+    EXPECT_EQ(copiedInstance.id, scene.getInstances().pData[instanceIndex].id);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 300);
+    EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
+
+    // Released meshes leave the uploaded tables and retire once the GPU no longer uses them.
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.removeComponent(b, hz::SceneTypes::meshRenderer));
-    scene.update();
-    assetManager.update();
-    EXPECT_NE(frame.getAssets().getMesh(meshHandle), nullptr);
-    EXPECT_NE(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
-    hz::GPUBuffer    meshReadback = context.createBuffer({ .size = sizeof(hz::GpuMeshRecord),
-                                                           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                           .startState = RESOURCE_STATE_COPY_DEST,
-                                                           .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    hz::CommandList& assetCommands = context.acquireCommandList();
-    assetCommands.copyBuffer(meshReadback, 0, frame.getBuffers().meshes, sizeof(hz::GpuMeshRecord) * meshID.index,
-                             sizeof(hz::GpuMeshRecord));
-    const hz::SubmitHandle assetSubmission = context.submit(assetCommands);
-    pool.retire(std::move(frame), assetSubmission);
-    frame = pool.capture();
-    EXPECT_EQ(frame.getActivePrimitives().count, 0u);
-    EXPECT_EQ(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
-    frame = {};
-    context.wait(assetSubmission);
-    const hz::GpuMeshRecord* copiedMesh = (const hz::GpuMeshRecord*)meshReadback.get()->pCpuMappedAddress;
-    EXPECT_EQ(copiedMesh->id, meshID);
-    EXPECT_EQ(copiedMesh->submeshCount, 1u);
-    pool.collect();
+    renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
+    EXPECT_EQ(scene.getActivePrimitives().count, 0u);
+    EXPECT_FALSE(copiedMesh.id.isValid());
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
+
+    // Reloading uses a new slot generation; the old GPU mesh ID stays invalid.
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::AssetHandle reloaded = assetManager.find(renderer.mesh);
     wait(assetManager, reloaded);
-    frame = pool.capture();
-    EXPECT_NE(frame.getPrimitives().pData[scene.findPrimitive(a).index].mesh, meshID);
-    EXPECT_EQ(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
-    EXPECT_EQ(frame.getActiveMeshBatches().count, 1u);
+    renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
+    EXPECT_NE(scene.getPrimitive(scene.findPrimitive(a))->mesh, meshID);
+    EXPECT_NE(copiedMesh.id, meshID);
+    EXPECT_EQ(scene.getActiveMeshBatches().count, 1u);
 }
 
-TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmissionTextures)
+TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissionTextures)
 {
     writeTexture();
     writeScene();
@@ -1990,14 +1980,14 @@ TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmis
     ASSERT_TRUE(assets.parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
-    hz::RenderContext context({ .pAppName = "LightCameraFrameTest", .enableGpuValidation = true });
+    hz::RenderContext context({ .pAppName = "GpuSceneLightTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetManager  assetManager(catalog);
+    hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, assetManager, { .journalCapacity = 8 });
+    hz::RenderScene        scene(world, assetManager);
     const hz::Entity       entity = world.createEntity();
     hz::Light              light = { .type = hz::LightType::Mesh, .intensity = 4, .texture = assets.getTextures().pData[0].id };
     hz::Camera             lens = { .verticalFov = 0.8f };
@@ -2019,80 +2009,60 @@ TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmis
     scene.update();
     wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
-    const hz::RenderPrimitiveID primitiveID = scene.findPrimitive(entity);
     ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
-    EXPECT_EQ(scene.getLight(lightID)->primitive, primitiveID);
-    hz::RenderFramePool pool(scene, context);
-    pool.reserve(1, 1, 1, 1);
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        hz::RenderFrame warm = pool.capture();
-        EXPECT_EQ(warm.getActiveLights().count, 1u);
-        EXPECT_EQ(warm.getActiveCameras().count, 1u);
-        EXPECT_TRUE(warm.getBuffers().lights.isValid());
-        EXPECT_TRUE(warm.getBuffers().cameras.isValid());
-        EXPECT_TRUE(warm.getBuffers().activeLights.isValid());
-        EXPECT_TRUE(warm.getBuffers().activeCameras.isValid());
-        const hz::RenderLight& frozen = warm.getLights().pData[lightID.index];
-        EXPECT_NE(warm.getAssets().getGpuTables().getTexture(frozen.texture), nullptr);
-    }
-    hz::GPUBuffer   readback = context.createBuffer({ .size = sizeof(hz::RenderCamera) + sizeof(hz::RenderLight),
-                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                      .startState = RESOURCE_STATE_COPY_DEST,
-                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    hz::RenderFrame frame = pool.capture();
+    EXPECT_EQ(scene.getLight(lightID)->primitive, scene.findPrimitive(entity));
+
+    hz::GpuScene gpu(scene, assetManager, context);
+    gpu.reserve(1, 1, 1, 1);
+    hz::GPUBuffer           readback = context.createBuffer({ .size = 1024,
+                                                              .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                              .startState = RESOURCE_STATE_COPY_DEST,
+                                                              .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    const uint8_t*          pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
+    const hz::RenderCamera& copiedCamera = *(const hz::RenderCamera*)pBytes;
+    const hz::RenderLight&  copiedLight = *(const hz::RenderLight*)(pBytes + 512);
+    const uint32_t*         pActive = (const uint32_t*)(pBytes + 1000);
+    static_assert(sizeof(hz::RenderCamera) <= 512 && sizeof(hz::RenderLight) <= 256);
+    const GpuSceneCopy copies[] = {
+        { .table = &hz::GpuSceneBuffers::cameras,
+          .srcOffset = sizeof(hz::RenderCamera) * cameraID.index,
+          .size = sizeof(hz::RenderCamera) },
+        { .table = &hz::GpuSceneBuffers::lights,
+          .srcOffset = sizeof(hz::RenderLight) * lightID.index,
+          .dstOffset = 512,
+          .size = sizeof(hz::RenderLight) },
+        { .table = &hz::GpuSceneBuffers::activeLights, .dstOffset = 1000, .size = sizeof(uint32_t) },
+        { .table = &hz::GpuSceneBuffers::activeCameras, .dstOffset = 1004, .size = sizeof(uint32_t) },
+    };
+    renderGpuSceneFrame(context, gpu, readback, copies);
+    EXPECT_EQ(copiedCamera.id, cameraID);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.current), 1);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 1);
+    EXPECT_FLOAT_EQ(copiedCamera.lens.verticalFov, 0.8f);
+    EXPECT_EQ(copiedLight.id, lightID);
+    EXPECT_FLOAT_EQ(copiedLight.intensity, 4);
+    EXPECT_EQ(copiedLight.ready, 1u);
+    EXPECT_EQ(copiedLight.texture, scene.getLight(lightID)->texture);
+    EXPECT_EQ(pActive[0], lightID.index);
+    EXPECT_EQ(pActive[1], cameraID.index);
+
     transform.translation = Vector3(2, 0, 0);
     lens.verticalFov = 0.6f;
     light.intensity = 8;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
-    scene.update();
-    EXPECT_FLOAT_EQ(frame.getCameras().pData[cameraID.index].lens.verticalFov, 0.8f);
-    EXPECT_FLOAT_EQ(frame.getLights().pData[lightID.index].intensity, 4);
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.copyBuffer(readback, 0, frame.getBuffers().cameras, sizeof(hz::RenderCamera) * cameraID.index, sizeof(hz::RenderCamera));
-    commands.copyBuffer(readback, sizeof(hz::RenderCamera), frame.getBuffers().lights, sizeof(hz::RenderLight) * lightID.index,
-                        sizeof(hz::RenderLight));
-    const hz::SubmitHandle submission = context.submit(commands);
-    pool.retire(std::move(frame), submission);
-    frame = pool.capture();
-    EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].current.getElem(3, 0), 2);
-    EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].previous.getElem(3, 0), 1);
-    EXPECT_FLOAT_EQ(frame.getCameras().pData[cameraID.index].previousLens.verticalFov, 0.8f);
-    EXPECT_FLOAT_EQ(frame.getLights().pData[lightID.index].intensity, 8);
-    frame = {};
-    transform.translation = Vector3(3, 0, 0);
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        frame = pool.capture();
-        EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].current.getElem(3, 0), 3);
-        EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].previous.getElem(3, 0), 1);
-        EXPECT_FLOAT_EQ(frame.getCameras().pData[cameraID.index].previousLens.verticalFov, 0.8f);
-        frame = {};
-    }
-    context.wait(submission);
-    const hz::RenderCamera* copiedCamera = (const hz::RenderCamera*)readback.get()->pCpuMappedAddress;
-    const hz::RenderLight*  copiedLight =
-        (const hz::RenderLight*)((const uint8_t*)readback.get()->pCpuMappedAddress + sizeof(hz::RenderCamera));
-    EXPECT_EQ(copiedCamera->id, cameraID);
-    EXPECT_FLOAT_EQ(copiedCamera->lens.verticalFov, 0.8f);
-    EXPECT_FLOAT_EQ((float)copiedCamera->current.getElem(3, 0), 1);
-    EXPECT_EQ(copiedLight->id, lightID);
-    EXPECT_FLOAT_EQ(copiedLight->intensity, 4);
-    frame = pool.capture();
-    hz::CommandList&       moving = context.acquireCommandList();
-    const hz::SubmitHandle movingSubmission = context.submit(moving);
-    pool.retire(std::move(frame), movingSubmission);
-    context.wait(movingSubmission);
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        frame = pool.capture();
-        EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].previous.getElem(3, 0), 3);
-        EXPECT_FLOAT_EQ(frame.getCameras().pData[cameraID.index].previousLens.verticalFov, 0.6f);
-        frame = {};
-    }
+    renderGpuSceneFrame(context, gpu, readback, copies);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.current), 2);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 1);
+    EXPECT_FLOAT_EQ(copiedCamera.lens.verticalFov, 0.6f);
+    EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 0.8f);
+    EXPECT_FLOAT_EQ(copiedLight.intensity, 8);
+    EXPECT_FLOAT_EQ(translationX(copiedLight.transform), 2);
+    renderGpuSceneFrame(context, gpu, readback, copies);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 2);
+    EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 0.6f);
+
     const MemoryTrackingStats before = memGetTrackingStats();
     for (uint32_t i = 0; i < 30; ++i)
     {
@@ -2100,11 +2070,10 @@ TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmis
         lens.verticalFov = 0.6f + 0.001f * i;
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
-        frame = pool.capture();
-        EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].current.getElem(3, 0), (float)i + 4);
-        EXPECT_FLOAT_EQ((float)frame.getLights().pData[lightID.index].transform.getElem(3, 0), (float)i + 4);
-        EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].previous.getElem(3, 0), 3);
-        frame = {};
+        renderGpuSceneFrame(context, gpu, readback, copies);
+        EXPECT_FLOAT_EQ(translationX(copiedCamera.current), (float)i + 4);
+        EXPECT_FLOAT_EQ(translationX(copiedLight.transform), (float)i + 4);
+        EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), i ? (float)i + 3 : 2.0f);
     }
     const MemoryTrackingStats after = memGetTrackingStats();
     if (before.trackingEnabled)
@@ -2112,68 +2081,119 @@ TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmis
         EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
         EXPECT_EQ(before.reallocationCount, after.reallocationCount);
     }
-    frame = pool.capture();
+
+    // A camera cut resets history for the next submitted frame.
     transform.translation = Vector3(100, 0, 0);
     lens.verticalFov = 1;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
     scene.resetHistory(entity);
-    hz::CommandList&       cut = context.acquireCommandList();
-    const hz::SubmitHandle cutSubmission = context.submit(cut);
-    pool.retire(std::move(frame), cutSubmission);
-    context.wait(cutSubmission);
-    frame = pool.capture();
-    EXPECT_FLOAT_EQ((float)frame.getCameras().pData[cameraID.index].previous.getElem(3, 0), 100);
-    EXPECT_FLOAT_EQ(frame.getCameras().pData[cameraID.index].previousLens.verticalFov, 1);
-    frame = {};
+    renderGpuSceneFrame(context, gpu, readback, copies);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
+    EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 1);
+
     // Removing only the mesh disables its emitter, keeping the light slot and texture lease.
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::meshRenderer));
-    scene.update();
+    renderGpuSceneFrame(context, gpu, readback, copies);
     assetManager.update();
     EXPECT_EQ(scene.findLight(entity), lightID);
-    EXPECT_EQ(scene.getLight(lightID)->ready, 0u);
+    EXPECT_EQ(copiedLight.ready, 0u);
     EXPECT_FALSE(scene.getLight(lightID)->primitive.isValid());
     EXPECT_EQ(assetManager.getState(textureHandle), hz::AssetState::Ready);
+
     light.type = hz::LightType::Dome;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
-    frame = pool.capture();
-    const hz::GpuTextureID textureID = frame.getLights().pData[lightID.index].texture;
+    renderGpuSceneFrame(context, gpu, readback, copies);
+    const hz::GpuTextureID textureID = copiedLight.texture;
+    ASSERT_TRUE(textureID.isValid());
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::light));
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::camera));
-    scene.update();
-    assetManager.update();
-    EXPECT_NE(frame.getAssets().getTexture(textureHandle), nullptr);
-    EXPECT_NE(frame.getAssets().getGpuTables().getTexture(textureID), nullptr);
-    hz::CommandList& retired = context.acquireCommandList();
-    retired.copyBuffer(readback, sizeof(hz::RenderCamera), frame.getBuffers().lights, sizeof(hz::RenderLight) * lightID.index,
-                       sizeof(hz::RenderLight));
-    const hz::SubmitHandle retiredSubmission = context.submit(retired);
-    pool.retire(std::move(frame), retiredSubmission);
-    context.wait(retiredSubmission);
-    EXPECT_EQ(copiedLight->texture, textureID);
-    pool.collect();
+    const GpuSceneCopy textureCopy = { .table = &hz::GpuSceneBuffers::textures,
+                                       .srcOffset = sizeof(hz::GpuTextureRecord) * textureID.index,
+                                       .dstOffset = 768,
+                                       .size = sizeof(hz::GpuTextureRecord) };
+    renderGpuSceneFrame(context, gpu, readback, { &textureCopy, 1 });
+    EXPECT_EQ(scene.getActiveLights().count, 0u);
+    EXPECT_EQ(scene.getActiveCameras().count, 0u);
+    EXPECT_FALSE(((const hz::GpuTextureRecord*)(pBytes + 768))->id.isValid());
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
-    for (uint32_t i = 0; i < 3; ++i)
-    {
-        frame = pool.capture();
-        EXPECT_EQ(frame.getActiveLights().count, 0u);
-        EXPECT_EQ(frame.getActiveCameras().count, 0u);
-        EXPECT_FALSE(frame.getLights().pData[lightID.index].id.isValid());
-        EXPECT_FALSE(frame.getCameras().pData[cameraID.index].id.isValid());
-        EXPECT_EQ(frame.getAssets().getGpuTables().getTexture(textureID), nullptr);
-        frame = {};
-    }
+
     light.texture = {};
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
-    frame = pool.capture();
+    renderGpuSceneFrame(context, gpu, readback, copies);
     const hz::RenderCameraID reusedCamera = scene.findCamera(entity);
     EXPECT_EQ(reusedCamera.index, cameraID.index);
     EXPECT_NE(reusedCamera.generation, cameraID.generation);
     EXPECT_EQ(scene.findLight(entity).index, lightID.index);
     EXPECT_NE(scene.findLight(entity).generation, lightID.generation);
-    EXPECT_FLOAT_EQ((float)frame.getCameras().pData[reusedCamera.index].previous.getElem(3, 0), 100);
+    EXPECT_EQ(copiedCamera.id, reusedCamera);
+    EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
+}
+
+TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntities)
+{
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(
+        catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
+    TestAssetLoader loader;
+    loader.ready = false;
+    hz::RenderContext context({ .pAppName = "GpuSceneStressTest" });
+    hz::AssetManager  assetManager(catalog, &context);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World              world(types);
+    hz::RenderScene        scene(world, assetManager);
+    constexpr uint32_t     kEntityCount = 100000;
+    constexpr uint32_t     kStride = 100;
+    const hz::MeshRenderer renderer = { .mesh = assetID(1) };
+    hz::Array<hz::Entity>  entities;
+    entities.reserve(kEntityCount);
+    for (uint32_t i = 0; i < kEntityCount; ++i)
+    {
+        const hz::Entity         entity = world.createEntity();
+        const hz::LocalTransform transform = { .translation = Vector3((float)i, 0, 0) };
+        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+        entities.pushBack(entity);
+    }
+    hz::GpuScene gpu(scene, assetManager, context);
+    gpu.reserve(kEntityCount, kEntityCount);
+    hz::GPUBuffer             readback = context.createBuffer({ .size = sizeof(hz::RenderInstance),
+                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                                .startState = RESOURCE_STATE_COPY_DEST,
+                                                                .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    const hz::RenderInstance& copied = *(const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
+    const int64_t             fullStart = getUSec(true);
+    renderGpuSceneFrame(context, gpu, readback, {});
+    const int64_t fullUSec = getUSec(true) - fullStart;
+
+    // Move every hundredth entity per frame: 1000 separate instance ranges.
+    int64_t sparseUSec = 0;
+    for (uint32_t frame = 0; frame < 10; ++frame)
+    {
+        for (uint32_t i = frame; i < kEntityCount; i += kStride)
+        {
+            const hz::LocalTransform transform = { .translation = Vector3((float)i, (float)frame + 1, 0) };
+            ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::localTransform, &transform));
+        }
+        // Primitive and instance slots are allocated together, so their indices match.
+        const uint32_t     instance = scene.findPrimitive(entities[frame]).index;
+        const GpuSceneCopy copy = { .table = &hz::GpuSceneBuffers::instances,
+                                    .srcOffset = sizeof(hz::RenderInstance) * instance,
+                                    .size = sizeof(hz::RenderInstance) };
+        const int64_t      start = getUSec(true);
+        renderGpuSceneFrame(context, gpu, readback, { &copy, 1 });
+        sparseUSec += getUSec(true) - start;
+        ASSERT_EQ(scene.getInstances().pData[instance].primitive, scene.findPrimitive(entities[frame]));
+        EXPECT_FLOAT_EQ((float)copied.current.getElem(3, 1), (float)frame + 1);
+        EXPECT_EQ(scene.getChanges().instances.ranges.count, kEntityCount / kStride);
+    }
+    // Telemetry only; timings vary across machines.
+    printf("GpuScene %u entities: full upload frame %.2f ms, 1%% sparse frame %.2f ms\n", kEntityCount, fullUSec / 1000.0,
+           sparseUSec / 10000.0);
 }
 
 TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebinding)
@@ -2187,7 +2207,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "WorldWorkflowTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetManager  assetManager(catalog);
+    hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle source = assetManager.request(assets.getID());
     wait(assetManager, source);
@@ -2235,12 +2255,12 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     scene->update();
     ASSERT_EQ(scene->getActiveMeshBatches().count, 2u);
     ASSERT_TRUE(assetManager.release(source));
-    hz::unique_ptr<hz::RenderFramePool> pool = hz::make_unique<hz::RenderFramePool>(*scene, context);
-    hz::GPUBuffer         readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord) + 36,
-                                                            .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                            .startState = RESOURCE_STATE_COPY_DEST,
-                                                            .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    const hz::AssetHandle oldMesh = assetManager.find(renderer.mesh);
+    hz::unique_ptr<hz::GpuScene> gpu = hz::make_unique<hz::GpuScene>(*scene, assetManager, context);
+    hz::GPUBuffer                readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord) + 36,
+                                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                                   .startState = RESOURCE_STATE_COPY_DEST,
+                                                                   .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    const hz::AssetHandle        oldMesh = assetManager.find(renderer.mesh);
     for (uint32_t pass = 0; pass < 2; ++pass)
     {
         const hz::Entity entity = world->getEntity(firstID);
@@ -2254,35 +2274,35 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_EQ(meshRenderer->mesh, renderer.mesh);
         EXPECT_EQ(meshRenderer->overrides[0].submesh, renderer.overrides[0].submesh);
         EXPECT_EQ(meshRenderer->overrides[0].material, renderer.overrides[0].material);
-        hz::RenderFrame frame = pool->capture();
-        ASSERT_TRUE(frame.isValid());
-        ASSERT_EQ(frame.getActiveMeshBatches().count, 2u);
+        ASSERT_TRUE(gpu->beginFrame());
+        ASSERT_EQ(scene->getActiveMeshBatches().count, 2u);
         const hz::RenderPrimitiveID primitiveID = scene->findPrimitive(entity);
-        const hz::RenderPrimitive&  primitive = frame.getPrimitives().pData[primitiveID.index];
-        const uint32_t              instance = frame.getInstanceIndices().pData[primitive.instanceOffset];
+        const hz::RenderPrimitive&  primitive = *scene->getPrimitive(primitiveID);
+        const uint32_t              instance = scene->getInstanceIndices().pData[primitive.instanceOffset];
         const hz::RenderMeshBatch*  meshBatch = nullptr;
-        for (uint32_t index : frame.getActiveMeshBatches())
-            if (frame.getMeshBatches().pData[index].primitive == primitiveID)
-                meshBatch = &frame.getMeshBatches().pData[index];
+        for (uint32_t index : scene->getActiveMeshBatches())
+            if (scene->getMeshBatches().pData[index].primitive == primitiveID)
+                meshBatch = &scene->getMeshBatches().pData[index];
         ASSERT_NE(meshBatch, nullptr);
         EXPECT_EQ(meshBatch->submesh, renderer.overrides[0].submesh);
-        const hz::GpuMaterialRecord* material = frame.getAssets().getGpuTables().getMaterial(meshBatch->material);
+        const hz::GpuMaterialRecord* material = gpu->getAssetTables().getMaterial(meshBatch->material);
         ASSERT_NE(material, nullptr);
-        EXPECT_NE(frame.getAssets().getGpuTables().getTexture(material->baseColorTexture), nullptr);
-        const hz::MeshAsset* mesh = frame.getAssets().getMesh(assetManager.find(renderer.mesh));
+        EXPECT_NE(gpu->getAssetTables().getTexture(material->baseColorTexture), nullptr);
+        const hz::MeshAsset* mesh = assetManager.getMesh(assetManager.find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
         hz::CommandList& commands = context.acquireCommandList();
-        commands.copyBuffer(readback, 0, frame.getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
-        commands.copyBuffer(readback, sizeof(hz::RenderInstance), frame.getBuffers().materials,
+        gpu->recordUpload(commands);
+        commands.copyBuffer(readback, 0, gpu->getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
+        commands.copyBuffer(readback, sizeof(hz::RenderInstance), gpu->getBuffers().materials,
                             meshBatch->material.index * sizeof(hz::GpuMaterialRecord), sizeof(hz::GpuMaterialRecord));
         commands.copyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord), mesh->getVertexBuffer(0), 0, 36);
         const hz::SubmitHandle submission = context.submit(commands);
-        pool->retire(std::move(frame), submission);
-        // Destroying the pool drains its submitted frame before releasing World bindings and assets.
-        pool = nullptr;
-        EXPECT_TRUE(context.isComplete(submission));
+        gpu->endFrame(submission);
+        // Destroying the GPU scene, bindings and World does not wait; buffers and payloads retire after the frame.
+        gpu = nullptr;
         scene = nullptr;
         world = nullptr;
+        context.wait(submission);
         assetManager.update();
         EXPECT_EQ(assetManager.getCount(), 0u);
         EXPECT_EQ(assetManager.getMesh(oldMesh), nullptr);
@@ -2316,7 +2336,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         wait(assetManager, reloadedMesh);
         wait(assetManager, assetManager.find(assets.getMeshes().pData[1].id));
         scene->update();
-        pool = hz::make_unique<hz::RenderFramePool>(*scene, context);
+        gpu = hz::make_unique<hz::GpuScene>(*scene, assetManager, context);
     }
     assetManager.shutdown();
 }

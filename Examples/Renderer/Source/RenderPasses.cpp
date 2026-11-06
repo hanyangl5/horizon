@@ -96,33 +96,34 @@ void GBuffer::unload()
 
 void GBuffer::update() {}
 
-void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::RenderFrame& scene)
+void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::RenderScene& scene, const hz::GpuScene& gpu,
+                      const hz::AssetManager& assets)
 {
-    const hz::RenderFrameBuffers&   gpu = scene.getBuffers();
-    const hz::GpuAssetTableSnapshot tables = scene.getAssets().getGpuTables();
-    if (materialRevision != scene.getAssets().getRevision())
+    const hz::GpuSceneBuffers& sceneBuffers = gpu.getBuffers();
+    const hz::GpuAssetTables&  tables = gpu.getAssetTables();
+    if (materialRevision != tables.revision)
     {
         materialIds.resize(tables.materials.count);
         uint32_t id = 0;
         for (uint32_t i = 0; i < tables.materials.count; ++i)
             materialIds[i] = tables.materials.pData[i].id.isValid() ? id++ : UINT32_MAX;
-        materialRevision = scene.getAssets().getRevision();
+        materialRevision = tables.revision;
     }
     buffers.clear();
     textures.clear();
     buffers.pushBack(&frame);
-    if (gpu.instances.isValid())
-        buffers.pushBack(&gpu.instances);
-    if (gpu.materials.isValid())
-        buffers.pushBack(&gpu.materials);
-    if (gpu.textures.isValid())
-        buffers.pushBack(&gpu.textures);
+    if (sceneBuffers.instances.isValid())
+        buffers.pushBack(&sceneBuffers.instances);
+    if (sceneBuffers.materials.isValid())
+        buffers.pushBack(&sceneBuffers.materials);
+    if (sceneBuffers.textures.isValid())
+        buffers.pushBack(&sceneBuffers.textures);
     const hz::GPUBuffer* previousIndex = nullptr;
     for (const hz::GpuMeshRecord& record : tables.meshes)
     {
         if (!record.id.isValid())
             continue;
-        const hz::MeshAsset* mesh = scene.getAssets().getMesh({ .index = record.id.index, .generation = record.id.generation });
+        const hz::MeshAsset* mesh = assets.getMesh({ .index = record.id.index, .generation = record.id.generation });
         ASSERT(mesh && mesh->getVertexBufferCount() == 3);
         if (&mesh->getIndexBuffer() == previousIndex)
             continue;
@@ -133,8 +134,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     }
     for (const hz::GpuTextureRecord& record : tables.textures)
         if (record.id.isValid())
-            textures.pushBack(
-                &scene.getAssets().getTexture({ .index = record.id.index, .generation = record.id.generation })->getTexture());
+            textures.pushBack(&assets.getTexture({ .index = record.id.index, .generation = record.id.generation })->getTexture());
     const ClearValue black = {};
     commands.beginGpuTimestamp("Geometry");
     commands.beginRendering({
@@ -155,9 +155,9 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ frame.getSrvIndex(), gpu.instances.isValid() ? gpu.instances.getSrvIndex() : UINT32_MAX,
-                               gpu.materials.isValid() ? gpu.materials.getSrvIndex() : UINT32_MAX,
-                               gpu.textures.isValid() ? gpu.textures.getSrvIndex() : UINT32_MAX, sampler.getIndex() },
+    commands.setRootConstant({ frame.getSrvIndex(), sceneBuffers.instances.isValid() ? sceneBuffers.instances.getSrvIndex() : UINT32_MAX,
+                               sceneBuffers.materials.isValid() ? sceneBuffers.materials.getSrvIndex() : UINT32_MAX,
+                               sceneBuffers.textures.isValid() ? sceneBuffers.textures.getSrvIndex() : UINT32_MAX, sampler.getIndex() },
                              3);
 
     const hz::MeshAsset* previousMesh = nullptr;
@@ -170,8 +170,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
             continue;
         const hz::GpuMeshRecord* record = tables.getMesh(meshBatch.mesh.mesh);
         ASSERT(record && tables.getMaterial(meshBatch.material));
-        const hz::MeshAsset* mesh =
-            scene.getAssets().getMesh({ .index = meshBatch.mesh.mesh.index, .generation = meshBatch.mesh.mesh.generation });
+        const hz::MeshAsset* mesh = assets.getMesh({ .index = meshBatch.mesh.mesh.index, .generation = meshBatch.mesh.mesh.generation });
         if (mesh != previousMesh)
         {
             commands.setIndexBuffer(mesh->getIndexBuffer(), 0, mesh->getIndexType());
@@ -228,7 +227,8 @@ void Lighting::unload() { sceneColor = {}; }
 
 void Lighting::update() {}
 
-void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::RenderFrame& scene)
+void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::RenderScene& scene,
+                       const hz::GpuScene& gpu)
 {
     const hz::GPUTexture* sampledTextures[] = { &gbuffer.gbuffer[0], &gbuffer.gbuffer[1], &gbuffer.gbuffer[2], &gbuffer.depth };
     commands.beginGpuTimestamp("Lighting");
@@ -248,8 +248,8 @@ void Lighting::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, co
                                  gbuffer.gbuffer[1].getSrvIndex(),
                                  gbuffer.gbuffer[2].getSrvIndex(),
                                  gbuffer.depth.getSrvIndex(),
-                                 scene.getBuffers().lights.isValid() ? scene.getBuffers().lights.getSrvIndex() : UINT32_MAX,
-                                 scene.getBuffers().activeLights.isValid() ? scene.getBuffers().activeLights.getSrvIndex() : UINT32_MAX,
+                                 gpu.getBuffers().lights.isValid() ? gpu.getBuffers().lights.getSrvIndex() : UINT32_MAX,
+                                 gpu.getBuffers().activeLights.isValid() ? gpu.getBuffers().activeLights.getSrvIndex() : UINT32_MAX,
                                  scene.getActiveLights().count };
     commands.setRootConstant(indices);
     commands.draw(3);
@@ -308,13 +308,15 @@ void PostProcessing::execute(hz::CommandList& commands, const hz::GPUTexture& re
 }
 
 RenderPasses::RenderPasses(const RenderPassesDesc& desc):
-    context(*desc.pContext), scene(*desc.pScene), camera(desc.camera), frames(scene, context, { .frameCount = frameBuffers.size() })
+    context(*desc.pContext), scene(*desc.pScene), assets(*desc.pAssetManager), camera(desc.camera),
+    gpuScene(scene, assets, context, { .frameCount = frameConstants.size() })
 {
     ASSERT(context.isValid() && camera.isValid());
     gbuffer = hz::make_unique<GBuffer>(context);
     lighting = hz::make_unique<Lighting>(context);
-    for (hz::GPUBuffer& buffer : frameBuffers)
+    for (FrameConstants& constants : frameConstants)
     {
+        hz::GPUBuffer& buffer = constants.buffer;
         buffer = context.createBuffer({ .size = sizeof(FrameData),
                                         .elementCount = 1,
                                         .structStride = sizeof(FrameData),
@@ -370,25 +372,34 @@ void RenderPasses::execute()
         return;
 
     ASSERT(postprocessing);
-    hz::RenderFrame snapshot = frames.capture();
-    if (!snapshot.isValid())
+    FrameConstants* pConstants = nullptr;
+    for (FrameConstants& candidate : frameConstants)
+        if (!candidate.submission.isValid() || context.isComplete(candidate.submission))
+        {
+            pConstants = &candidate;
+            break;
+        }
+    if (!pConstants || !gpuScene.beginFrame())
         return;
-    ASSERT(camera.index < snapshot.getCameras().count && snapshot.getCameras().pData[camera.index].id == camera);
-    const hz::RenderCamera& cameraData = snapshot.getCameras().pData[camera.index];
+    const hz::RenderCamera* pCamera = scene.getCamera(camera);
+    ASSERT(pCamera);
+    const hz::RenderCamera& cameraData = *pCamera;
     const float             aspectInverse = (float)context.getHeight() / (float)context.getWidth();
     const Matrix4           current = viewProjection(cameraData.current, cameraData.lens, aspectInverse);
     const FrameData frameData = { .viewProjection = current,
                                   .previousViewProjection = viewProjection(cameraData.previous, cameraData.previousLens, aspectInverse),
                                   .inverseViewProjection = inverse(current),
                                   .eye = cameraData.current.getCol3() };
-    hz::GPUBuffer&  frame = frameBuffers[snapshot.getBackingIndex()];
-    const bool      updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
+    const hz::GPUBuffer& frame = pConstants->buffer;
+    const bool           updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
     ASSERT(updated);
     hz::CommandList& commands = context.acquireCommandList();
-    gbuffer->execute(commands, frame, snapshot);
+    gpuScene.recordUpload(commands);
+    gbuffer->execute(commands, frame, scene, gpuScene, assets);
     const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-    lighting->execute(commands, frame, *gbuffer, snapshot);
+    lighting->execute(commands, frame, *gbuffer, scene, gpuScene);
     postprocessing->execute(commands, backbuffer, lighting->sceneColor, gbuffer->depth);
 
-    frames.retire(std::move(snapshot), context.submit(commands, &backbuffer));
+    pConstants->submission = context.submit(commands, &backbuffer);
+    gpuScene.endFrame(pConstants->submission);
 }

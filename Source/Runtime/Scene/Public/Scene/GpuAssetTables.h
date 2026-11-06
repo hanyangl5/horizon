@@ -75,14 +75,15 @@ struct GpuTextureRecord
     uint32_t     srv = UINT32_MAX;
 };
 
-// Immutable CPU encoding of one pinned payload set; unused asset manager slots have invalid IDs.
-struct GpuAssetTableSnapshot
+// CPU encoding of the ready payload set; unused asset manager slots have invalid IDs.
+struct GpuAssetTables
 {
     Span<GpuMeshRecord>     meshes;
     Span<GpuVertexStream>   vertexStreams;
     Span<GpuSubmeshRecord>  submeshes;
     Span<GpuMaterialRecord> materials;
     Span<GpuTextureRecord>  textures;
+    uint64_t                revision = 0;
 
     const GpuMeshRecord* getMesh(GpuMeshID id) const
     {

@@ -94,7 +94,7 @@ private:
         }
         pLoaders = hz::make_unique<hz::AssetLoaders>(
             *pContext, hz::AssetLoadersDesc{ .vertexLayout = kSceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
-        pAssetManager = hz::make_unique<hz::AssetManager>(catalog);
+        pAssetManager = hz::make_unique<hz::AssetManager>(catalog, pContext.get());
         pLoaders->registerLoaders(*pAssetManager);
         const hz::AssetHandle handle = pAssetManager->request(entry->id);
         if (!handle.isValid())
@@ -134,6 +134,7 @@ private:
         const RenderPassesDesc desc = {
             .pContext = pContext.get(),
             .pScene = pScene.get(),
+            .pAssetManager = pAssetManager.get(),
             .camera = pScene->findCamera(cameraEntity),
         };
         pRenderPasses = hz::make_unique<RenderPasses>(desc);

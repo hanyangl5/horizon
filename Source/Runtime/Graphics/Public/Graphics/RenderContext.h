@@ -420,12 +420,15 @@ public:
     bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
     void        deferRelease(GPUBuffer&& buffer);
+    // Identifies the open command list, or the latest submission when none is open.
+    uint64_t    getResourceUseId() const;
+    bool        isResourceUseComplete(uint64_t useId) const;
 
 private:
     struct DeferredBuffer
     {
         Buffer*  pBuffer = nullptr;
-        uint64_t submitId = 0;
+        uint64_t useId = 0;
     };
 
     struct CommandSlot
@@ -441,15 +444,16 @@ private:
         uint64_t    submitId = 0;
     };
 
-    bool    initDevice();
-    bool    createSwapChain();
-    void    destroySwapChain();
-    void    destroyDevice(bool waitForGpu);
-    void    cleanup();
-    void    collectDeferredBuffers();
-    Shader* createShader(const ShaderDesc&);
-    Shader* createSlangShader(const ShaderSrcDesc&);
-    void    destroyShaderCompiler();
+    bool     initDevice();
+    bool     createSwapChain();
+    void     destroySwapChain();
+    void     destroyDevice(bool waitForGpu);
+    void     cleanup();
+    void     collectDeferredBuffers();
+    uint64_t getPendingUseId() const;
+    Shader*  createShader(const ShaderDesc&);
+    Shader*  createSlangShader(const ShaderSrcDesc&);
+    void     destroyShaderCompiler();
 
     slang::IGlobalSession* pSlangSession = nullptr;
 

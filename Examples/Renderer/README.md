@@ -1,9 +1,10 @@
 # Renderer
 
 Loads Bistro through AssetCatalog and AssetManager, instantiates its node hierarchy
-in World, and renders paired RenderScene/asset frame snapshots. Meshes, materials and
-textures are shared through typed asset records; submitted snapshots retain their
-resources until the GPU fence completes.
+in World, and renders it through GpuScene, which keeps one persistent GPU copy of the
+scene and asset tables and uploads only changes each frame. Meshes, materials and
+textures are shared through typed asset records; released assets and replaced buffers
+are destroyed only after the GPU work that may use them completes.
 
 ```powershell
 cmake -S . -B build
@@ -19,7 +20,7 @@ uses DirectXTex to produce DDS textures. With tools disabled, the cooked catalog
 its assets must already exist.
 
 Geometry uses manual vertex pulling and Slang shaders. Materials resolve texture
-IDs through the snapshot's GPU tables. Lighting reads directional lights from
+IDs through the GPU asset tables. Lighting reads directional lights from
 World; the sample creates a sun and a controllable camera positioned from scene
 bounds. Motion vectors use the previously submitted object and camera transforms.
 The preview supports normal, metallic/roughness and emissive maps. MASK uses the
@@ -33,4 +34,4 @@ lighting and other light shapes are not shaded yet.
 
 Losing window focus releases the mouse and stops movement. Resize rebuilds render
 targets and resets render history. Shutdown waits for GPU work, then releases the
-frame pool, RenderScene, World, asset manager/loaders and render context in order.
+render passes and GpuScene, RenderScene, World, asset manager/loaders and render context in order.
