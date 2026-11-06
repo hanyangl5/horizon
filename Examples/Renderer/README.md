@@ -32,6 +32,10 @@ lighting and other light shapes are not shaded yet.
 - Hold left Shift: move four times faster.
 - R: reset the camera; Escape: release the mouse.
 
+Tracy shows CPU zones for Update, frame recording, scene extraction and GpuScene
+uploads, plus GPU timings for each pass. Only Debug builds enable GPU-based
+validation, which slows GPU work enough to distort those timings.
+
 Losing window focus releases the mouse and stops movement. Resize rebuilds render
 targets and resets render history. Shutdown waits for GPU work, then releases the
 render passes and GpuScene, RenderScene, World, asset manager/loaders and render context in order.

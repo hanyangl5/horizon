@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "Core/ILog.h"
+#include "Profiler/IProfiler.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/TextureAsset.h"
 
@@ -368,6 +369,7 @@ static Matrix4 viewProjection(const Matrix4& pose, const hz::Camera& lens, float
 }
 void RenderPasses::execute()
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::execute");
     if (context.isSuspended())
         return;
 

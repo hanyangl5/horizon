@@ -5,6 +5,7 @@
 #include "Core/IMath.h"
 #include "Core/IToolFileSystem.h"
 #include "Core/IUniquePtr.h"
+#include "Profiler/IProfiler.h"
 #include "Graphics/RenderContext.h"
 #include "Core/IThread.h"
 #include "Scene/AssetLoaders.h"
@@ -18,6 +19,12 @@
 constexpr const char* kSceneDirectory = "Assets/Bistro";
 constexpr const char* kSceneSource = "BistroExterior.gltf";
 constexpr bool        kEnableHDR = true;
+// GPU-based validation slows GPU work several times over, so only Debug builds enable it by default.
+#if defined(_DEBUG)
+constexpr bool kEnableGpuValidation = true;
+#else
+constexpr bool kEnableGpuValidation = false;
+#endif
 
 const VertexLayout kSceneVertexLayout = {
     .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
@@ -70,7 +77,8 @@ private:
             .imageCount = 2,
             .enableHDR = kEnableHDR,
             .enableVSync = settings.vSyncEnabled,
-            .enableGpuValidation = true,
+            .enableGpuValidation = kEnableGpuValidation,
+            .enableGpuProfiler = true,
         };
         pContext = hz::make_unique<hz::RenderContext>(desc);
     }
@@ -180,6 +188,7 @@ public:
     }
     void Update(float deltaTime) override
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
         pCamera->update(deltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
         const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
         const bool            updated = pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose);

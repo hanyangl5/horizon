@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include "Core/IMemory.h"
+#include "Profiler/IProfiler.h"
 
 namespace hz
 {
@@ -445,8 +446,12 @@ public:
     }
     void update()
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::update");
         ASSERT(!world.isDeferred() && !frameLocked);
-        world.updateTransforms();
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::updateTransforms");
+            world.updateTransforms();
+        }
         primitives.beginUpdate();
         instances.beginUpdate();
         meshBatches.beginUpdate();
@@ -461,8 +466,14 @@ public:
             entity.seen = false;
         // Retain new emission maps before mesh/material bindings release old dependencies.
         lightQuery.each(syncLight, this);
-        bindings.update();
-        query.each(extractEntity, this);
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::bindings");
+            bindings.update();
+        }
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::extract");
+            query.each(extractEntity, this);
+        }
         for (uint32_t i = 0; i < entities.size();)
         {
             RenderEntity& entity = entities[i];
@@ -528,6 +539,7 @@ public:
     }
     void commitHistory()
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::commitHistory");
         for (uint32_t index : historyPending)
         {
             RenderHistory& history = instanceHistory[index];

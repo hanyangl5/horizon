@@ -8,6 +8,7 @@
 #include "Scene/TextureAsset.h"
 
 #include "Core/IMemory.h"
+#include "Profiler/IProfiler.h"
 
 namespace hz
 {
@@ -350,6 +351,7 @@ bool AssetManager::release(AssetHandle handle) { return pData->release(handle); 
 
 void AssetManager::update()
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::update");
     pData->retire();
     for (AssetSlot& slot : pData->slots)
         pData->update(slot);
@@ -394,6 +396,7 @@ GpuAssetTables AssetManager::getGpuTables()
     AssetManagerData& data = *pData;
     if (data.builtRevision != data.tableRevision)
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::encodeGpuTables");
         data.meshes.clear();
         data.vertexStreams.clear();
         data.submeshes.clear();

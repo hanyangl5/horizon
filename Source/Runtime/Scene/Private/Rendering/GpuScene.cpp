@@ -3,6 +3,7 @@
 #include "Scene/GpuScene.h"
 #include "Core/IContainer.h"
 #include "Core/IMemory.h"
+#include "Profiler/IProfiler.h"
 
 namespace hz
 {
@@ -96,6 +97,7 @@ public:
 
     bool beginFrame()
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::beginFrame");
         ASSERT(!open);
         current = UINT32_MAX;
         for (uint32_t i = 0; i < frames.size() && current == UINT32_MAX; ++i)
@@ -165,24 +167,27 @@ public:
             }
         }
         GpuSceneFrame& frame = frames[current];
-        if (staged > frame.capacity)
         {
-            frame.capacity = growCapacity(frame.capacity, staged);
-            context.deferRelease(std::move(frame.staging));
-            frame.staging = context.createBuffer({ .size = frame.capacity,
-                                                   .pName = "GpuScene.Staging",
-                                                   .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                   .startState = RESOURCE_STATE_GENERIC_READ,
-                                                   .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-            ASSERT(frame.staging.isValid());
-        }
-        for (uint32_t i = 0; i < kGpuTableCount; ++i)
-            for (const BufferCopyRegion& region : tables[i].regions)
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::stage");
+            if (staged > frame.capacity)
             {
-                const bool written =
-                    context.updateBuffer(frame.staging, region.srcOffset, (const uint8_t*)sources[i].pData + region.dstOffset, region.size);
-                ASSERT(written);
+                frame.capacity = growCapacity(frame.capacity, staged);
+                context.deferRelease(std::move(frame.staging));
+                frame.staging = context.createBuffer({ .size = frame.capacity,
+                                                       .pName = "GpuScene.Staging",
+                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                       .startState = RESOURCE_STATE_GENERIC_READ,
+                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                ASSERT(frame.staging.isValid());
             }
+            for (uint32_t i = 0; i < kGpuTableCount; ++i)
+                for (const BufferCopyRegion& region : tables[i].regions)
+                {
+                    const bool written = context.updateBuffer(frame.staging, region.srcOffset,
+                                                              (const uint8_t*)sources[i].pData + region.dstOffset, region.size);
+                    ASSERT(written);
+                }
+        }
         open = true;
         recorded = false;
         return true;
@@ -226,6 +231,7 @@ bool GpuScene::beginFrame()
 
 void GpuScene::recordUpload(CommandList& commands)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::recordUpload");
     ASSERT(pData->open && !pData->recorded);
     const GpuSceneFrame& frame = pData->frames[pData->current];
     for (const GpuTable& table : pData->tables)
@@ -236,6 +242,7 @@ void GpuScene::recordUpload(CommandList& commands)
 
 void GpuScene::endFrame(SubmitHandle submission)
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::endFrame");
     ASSERT(pData->open && pData->recorded && submission.isValid());
     pData->frames[pData->current].submission = submission;
     pData->scene.setFrameLocked(false);
