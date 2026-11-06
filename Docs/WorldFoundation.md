@@ -411,6 +411,8 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 - 增量记录使用预分配的有界 journal，保存变更位置而不持有旧 payload 指针；新 backing storage 或版本落后于 journal 保留范围时完整同步。正常帧补齐累计 dirty ranges，首次使用、扩容或 journal 溢出允许完整上传。同步完成前不能重新 acquire 该快照，也不能消费其中已退休的旧 descriptor；fence 完成并释放 lease 后，残留的 backing 内容本身不保活 payload。
 - GPU resource retirement 的所有权明确划分：Asset Manager 独占 Mesh/Texture/Material payload 和 GPU table snapshots；RenderScene 独占自身 primitive/instance/draw/light/camera buffers、instanceIndices 和 snapshots。`RenderFrame` 只持有两侧 snapshot leases，不取得底层资源所有权。退休 payload 按版本使用者和 GPU fence 回收；长期 asset lease 只阻止 record、当前 payload 和 GpuID slot 的回收，不阻止历史版本清理。
 
+[GPUScene](GPUScene.md) 提议用单份常驻 GPU 场景取代这里的多份 backing 和配对快照，尚未实现。
+
 该模型与 `Multithreading.md` 的 frame snapshot 和 phase boundary 方向保持一致。后续并行 transform 或 extraction 时，不改变这些所有权边界。
 
 关闭顺序固定为：停止新帧和 asset request；停止 World mutation/extraction 并销毁 World bindings，释放长期 leases；取消或 drain loader 工作；提交队列停止后等待所有 snapshot fences，释放 snapshots；Asset Manager 在 RHI 仍存活时销毁 payload，RHI resource removal 同步释放其 descriptor；最后销毁 Renderer、queue 和 RHI device。任何阶段都不能让持有 GPU resource 的对象晚于 RHI device 析构。

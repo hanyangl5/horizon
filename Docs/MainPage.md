@@ -41,6 +41,7 @@ The runtime is split into these public modules:
   ownership, and persistence.
 
 - [World Foundation](WorldFoundation.md)
+- [GPUScene](GPUScene.md)
   Asset identity, ECS World, transform hierarchy, serialization, reflection,
   and RenderScene extraction roadmap within the Scene runtime module.
 
