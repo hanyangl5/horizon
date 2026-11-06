@@ -30,7 +30,9 @@ float2 encodeOctNormal(float3 normal)
 {
     normal /= dot(abs(normal), 1.0.xxx);
     if (normal.z < 0.0)
+    {
         normal.xy = (1.0 - abs(normal.yx)) * signNotZero(normal.xy);
+    }
     return normal.xy * 0.5 + 0.5;
 }
 
@@ -39,7 +41,9 @@ float3 decodeOctNormal(float2 encoded)
     float2 oct = encoded * 2.0 - 1.0;
     float3 normal = float3(oct, 1.0 - abs(oct.x) - abs(oct.y));
     if (normal.z < 0.0)
+    {
         normal.xy = (1.0 - abs(normal.yx)) * signNotZero(normal.xy);
+    }
     return normalize(normal);
 }
 

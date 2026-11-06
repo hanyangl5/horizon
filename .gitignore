@@ -267,3 +267,6 @@ build_msvc
 !Source/ThirdParty/DirectStorage/**/*.lib
 !Source/ThirdParty/DirectStorage/**/*.winmd
 /Assets/
+
+# Local Renderer textures and generated preview assets
+/Examples/Renderer/Assets/
