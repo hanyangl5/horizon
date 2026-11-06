@@ -241,10 +241,10 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #endif
 
 #ifdef _WINDOWS
-// Restrict compilation to Windows 7 APIs
-#define NTDDI_VERSION NTDDI_WIN7
-#define WINVER        _WIN32_WINNT_WIN7
-#define _WIN32_WINNT  _WIN32_WINNT_WIN7
+// Per-Monitor DPI Aware V2 requires Windows 10 version 1703.
+#define NTDDI_VERSION NTDDI_WIN10_RS2
+#define WINVER        _WIN32_WINNT_WIN10
+#define _WIN32_WINNT  _WIN32_WINNT_WIN10
 #endif
 
 #else

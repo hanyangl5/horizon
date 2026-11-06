@@ -113,7 +113,9 @@ static void UpdateWindowDescWindowedRect(WindowDesc* winDesc)
         {
             RECT centeredRect = getCenteredWindowRect(winDesc);
             if (!winDesc->borderlessWindow)
-                AdjustWindowRect(&centeredRect, PrepareStyleMask(winDesc), false);
+            {
+                AdjustWindowRectExForDpi(&centeredRect, PrepareStyleMask(winDesc), false, 0, GetDpiForWindow((HWND)winDesc->handle.window));
+            }
             winDesc->centered = windowedRect.left == centeredRect.left && windowedRect.right == centeredRect.right &&
                                 windowedRect.top == centeredRect.top && windowedRect.bottom == centeredRect.bottom;
         }
@@ -195,7 +197,7 @@ void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool maximize
     if (!wnd->borderlessWindow)
     {
         DWORD windowStyle = PrepareStyleMask(wnd);
-        AdjustWindowRect(&rect, windowStyle, FALSE);
+        AdjustWindowRectExForDpi(&rect, windowStyle, FALSE, 0, GetDpiForWindow((HWND)wnd->handle.window));
     }
 
     wnd->wndW = rect.right - rect.left;
@@ -546,7 +548,9 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
                   (LONG)winDesc->clientRect.top + (LONG)winDesc->clientRect.bottom };
     DWORD windowStyle = PrepareStyleMask(winDesc);
 
-    AdjustWindowRect(&rect, windowStyle, FALSE);
+    float dpiScale[2] = { 1.0f, 1.0f };
+    getMonitorDpiScale(pWindowAppRef ? (uint32_t)pWindowAppRef->settings.monitorIndex : 0, dpiScale);
+    AdjustWindowRectExForDpi(&rect, windowStyle, FALSE, 0, (UINT)(dpiScale[0] * USER_DEFAULT_SCREEN_DPI));
 
     // Due to windows style and border, the rect can end up with negative values
     const int intMinPlusOne = INT_MIN + 1;
@@ -719,7 +723,7 @@ void toggleBorderless(WindowDesc* winDesc, unsigned clientWidth, unsigned client
         if (!winDesc->borderlessWindow)
         {
             DWORD windowStyle = PrepareStyleMask(winDesc);
-            AdjustWindowRect(&newWindowRect, windowStyle, FALSE);
+            AdjustWindowRectExForDpi(&newWindowRect, windowStyle, FALSE, 0, GetDpiForWindow((HWND)winDesc->handle.window));
         }
 
         unsigned w = newWindowRect.right - newWindowRect.left;
@@ -850,7 +854,7 @@ void centerWindow(WindowDesc* winDesc)
 
     DWORD windowStyle = PrepareStyleMask(winDesc);
 
-    AdjustWindowRect(&rect, windowStyle, FALSE);
+    AdjustWindowRectExForDpi(&rect, windowStyle, FALSE, 0, GetDpiForWindow((HWND)winDesc->handle.window));
 
     OffsetRectToDisplay(winDesc, &rect);
 
@@ -980,7 +984,7 @@ void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect)
         winRect.right = rect->right;
 
         DWORD windowStyle = PrepareStyleMask(winDesc);
-        AdjustWindowRect(&winRect, windowStyle, FALSE);
+        AdjustWindowRectExForDpi(&winRect, windowStyle, FALSE, 0, GetDpiForWindow((HWND)winDesc->handle.window));
 
         if (winRect.top < 0)
         {
@@ -1142,6 +1146,15 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_STYLECHANGED:
     {
         return DefWindowProcW(hwnd, message, wParam, lParam);
+    }
+    case WM_DPICHANGED:
+    {
+        if (!gWindow->fullScreen)
+        {
+            const RECT& rect = *(const RECT*)lParam;
+            SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        return 0;
     }
     case WM_DISPLAYCHANGE:
     {

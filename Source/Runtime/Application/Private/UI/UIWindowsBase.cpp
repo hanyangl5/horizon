@@ -366,6 +366,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
     UNREF_PARAM(argc);
     UNREF_PARAM(argv);
 
+    if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) &&
+        !AreDpiAwarenessContextsEqual(GetThreadDpiAwarenessContext(), DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+    {
+        OutputDebugStringA("Horizon could not enable Per-Monitor DPI Aware V2.\n");
+        return EXIT_FAILURE;
+    }
+
     if (!initMemAlloc(app->GetName()))
         return EXIT_FAILURE;
 
@@ -412,7 +419,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
     pApp = app;
     pWindowAppRef = app;
-
     initWindowClass();
 
     // Used for automated testing, if enabled app will exit after DEFAULT_AUTOMATION_FRAME_COUNT (240) frames
