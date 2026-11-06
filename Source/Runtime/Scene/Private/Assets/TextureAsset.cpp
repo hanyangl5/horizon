@@ -64,7 +64,7 @@ public:
     static void destroyRequest(void* pJob, void*) { tf_delete((TextureRequest*)pJob); }
     static void destroyPayload(void* pPayload, void*) { tf_delete((TextureAsset*)pPayload); }
 
-    static void upload(void* pPayload, const AssetRegistry&, Span<AssetHandle>, void* pUser)
+    static void upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
     {
         TextureAssetLoaderData& loader = *(TextureAssetLoaderData*)pUser;
         TextureAssetData&       data = *((TextureAsset*)pPayload)->pData;

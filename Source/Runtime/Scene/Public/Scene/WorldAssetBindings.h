@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 #pragma once
 
-#include "Scene/AssetRegistry.h"
+#include "Scene/AssetManager.h"
 #include "Scene/World.h"
 
 namespace hz
@@ -33,13 +33,13 @@ class WorldAssetBindingsData;
 class WorldAssetBindings
 {
 public:
-    // World and registry must outlive bindings. Destroy bindings before registry shutdown or World replacement.
-    WorldAssetBindings(World& world, AssetRegistry& registry);
+    // World and asset manager must outlive bindings. Destroy bindings before asset manager shutdown or World replacement.
+    WorldAssetBindings(World& world, AssetManager& assetManager);
     ~WorldAssetBindings();
     WorldAssetBindings(const WorldAssetBindings&) = delete;
     WorldAssetBindings& operator=(const WorldAssetBindings&) = delete;
 
-    // Call outside World query/defer scopes. The caller advances registry loading with AssetRegistry::update().
+    // Call outside World query/defer scopes. The caller advances asset manager loading with AssetManager::update().
     void                    update();
     // Views expire at the next update/clear. Pending and failed bindings must not be rendered.
     const MeshAssetBinding* get(Entity entity) const;

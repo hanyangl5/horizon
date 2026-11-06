@@ -1,6 +1,6 @@
 # Renderer
 
-Loads Bistro through AssetCatalog and AssetRegistry, instantiates its node hierarchy
+Loads Bistro through AssetCatalog and AssetManager, instantiates its node hierarchy
 in World, and renders paired RenderScene/asset frame snapshots. Meshes, materials and
 textures are shared through typed asset records; submitted snapshots retain their
 resources until the GPU fence completes.
@@ -33,4 +33,4 @@ lighting and other light shapes are not shaded yet.
 
 Losing window focus releases the mouse and stops movement. Resize rebuilds render
 targets and resets render history. Shutdown waits for GPU work, then releases the
-frame pool, RenderScene, World, asset registry/loaders and render context in order.
+frame pool, RenderScene, World, asset manager/loaders and render context in order.

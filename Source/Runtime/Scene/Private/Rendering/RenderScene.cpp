@@ -143,8 +143,8 @@ static void mergeRanges(Array<RenderRange>& ranges)
 class RenderSceneData
 {
 public:
-    RenderSceneData(World& world, AssetRegistry& registry, const RenderSceneDesc& desc):
-        world(world), registry(registry), bindings(world, registry), query(world, { SceneTypes::meshRenderer }),
+    RenderSceneData(World& world, AssetManager& assetManager, const RenderSceneDesc& desc):
+        world(world), assetManager(assetManager), bindings(world, assetManager), query(world, { SceneTypes::meshRenderer }),
         lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
     {
         ASSERT(query.isValid() && lightQuery.isValid() && cameraQuery.isValid());
@@ -157,7 +157,7 @@ public:
     {
         for (const RenderLightEntity& light : lightEntities)
             if (light.texture.isValid())
-                registry.release(light.texture);
+                assetManager.release(light.texture);
         hmfree(pIndices);
         hmfree(pLightIndices);
         hmfree(pCameraIndices);
@@ -191,7 +191,7 @@ public:
         }
         if (textureID.isValid() && !record.texture.isValid() && (record.error == AssetError::None || record.error == AssetError::Retiring))
         {
-            record.texture = data.registry.request(textureID, &record.error);
+            record.texture = data.assetManager.request(textureID, &record.error);
         }
         return true;
     }
@@ -213,7 +213,7 @@ public:
                 continue;
             }
             const Light& source = *(const Light*)world.getComponent(entity.entity, SceneTypes::light);
-            if (registry.getState(entity.texture) == AssetState::Ready && !registry.getTexture(entity.texture) &&
+            if (assetManager.getState(entity.texture) == AssetState::Ready && !assetManager.getTexture(entity.texture) &&
                 entity.error != AssetError::LoadFailed)
             {
                 entity.error = AssetError::LoadFailed;
@@ -239,7 +239,7 @@ public:
                 .enableColorTemperature = source.enableColorTemperature ? 1u : 0u,
                 .normalize = source.normalize ? 1u : 0u,
                 .twoSided = source.twoSided ? 1u : 0u,
-                .ready = !entity.textureID.isValid() || registry.getTexture(entity.texture) ? 1u : 0u,
+                .ready = !entity.textureID.isValid() || assetManager.getTexture(entity.texture) ? 1u : 0u,
             };
             if (entity.textureID.isValid() && next.ready)
                 next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
@@ -260,7 +260,7 @@ public:
             ++i;
         }
         for (AssetHandle handle : textureReleases)
-            registry.release(handle);
+            assetManager.release(handle);
         textureReleases.clear();
     }
     static bool extractCamera(Entity entity, Span<const void*> fields, void* pUser)
@@ -382,7 +382,7 @@ public:
         const MeshAssetBinding* pBinding = bindings.get(entity.entity);
         ASSERT(pBinding);
         const bool       ready = pBinding->state == AssetBindingState::Ready;
-        const MeshAsset* pMesh = registry.getMesh(pBinding->mesh);
+        const MeshAsset* pMesh = assetManager.getMesh(pBinding->mesh);
         const GpuMeshID  mesh = pMesh ? GpuMeshID{ .index = pBinding->mesh.index, .generation = pBinding->mesh.generation } : GpuMeshID{};
         const uint32_t   count = ready ? 1u : 0u;
         if (object.mesh != mesh)
@@ -621,7 +621,7 @@ public:
     }
 
     World&                                        world;
-    AssetRegistry&                                registry;
+    AssetManager&                                 assetManager;
     WorldAssetBindings                            bindings;
     WorldQuery                                    query;
     WorldQuery                                    lightQuery;
@@ -650,8 +650,8 @@ public:
     uint64_t                                      journalFloor = 0;
 };
 
-RenderScene::RenderScene(World& world, AssetRegistry& registry, const RenderSceneDesc& desc):
-    pData(tf_new(RenderSceneData, world, registry, desc))
+RenderScene::RenderScene(World& world, AssetManager& assetManager, const RenderSceneDesc& desc):
+    pData(tf_new(RenderSceneData, world, assetManager, desc))
 {
 }
 RenderScene::~RenderScene() { tf_delete(pData); }
@@ -675,7 +675,7 @@ uint64_t        RenderScene::getRevision() const { return pData->revision; }
 RenderSceneSync RenderScene::getChangesSince(uint64_t revision) { return pData->getChangesSince(revision); }
 void            RenderScene::resetHistory(Entity entity) { pData->resetHistory(entity); }
 uint64_t        RenderScene::getHistoryEpoch() const { return pData->historyEpoch; }
-AssetSnapshot   RenderScene::captureAssets() { return pData->registry.captureRenderSnapshot(); }
+AssetSnapshot   RenderScene::captureAssets() { return pData->assetManager.captureRenderSnapshot(); }
 void RenderScene::commitSnapshot(Span<RenderObject> objects, Span<RenderInstance> instances, Span<RenderCamera> cameras, uint64_t epoch)
 {
     pData->commitSnapshot(objects, instances, cameras, epoch);

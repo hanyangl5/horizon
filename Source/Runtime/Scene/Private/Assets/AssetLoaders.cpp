@@ -232,7 +232,7 @@ public:
     static void destroyMesh(void* pPayload, void*) { tf_delete((MeshAsset*)pPayload); }
     static void destroyMaterial(void* pPayload, void*) { tf_delete((MaterialAsset*)pPayload); }
 
-    static void uploadMesh(void* pPayload, const AssetRegistry&, Span<AssetHandle>, void* pUser)
+    static void uploadMesh(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
     {
         MeshAsset& mesh = *(MeshAsset*)pPayload;
         mesh.pGeometry = ((AssetLoadersData*)pUser)->acquireGeometry(mesh.getDescription().pGeometry);
@@ -465,22 +465,22 @@ const MeshBounds& MeshAsset::getBounds(uint32_t submesh) const
 
 AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): pData(tf_new(AssetLoadersData, context, desc)) {}
 AssetLoaders::~AssetLoaders() { tf_delete(pData); }
-void AssetLoaders::registerLoaders(AssetRegistry& registry)
+void AssetLoaders::registerLoaders(AssetManager& assetManager)
 {
-    registry.setLoader(AssetType::Scene, pData->sceneLoader.getLoader());
-    registry.setLoader(AssetType::Texture, pData->textureLoader.getLoader());
-    registry.setLoader(AssetType::Material, { .pUserData = pData,
+    assetManager.setLoader(AssetType::Scene, pData->sceneLoader.getLoader());
+    assetManager.setLoader(AssetType::Texture, pData->textureLoader.getLoader());
+    assetManager.setLoader(AssetType::Material, { .pUserData = pData,
+                                                  .pBegin = AssetLoadersData::begin,
+                                                  .pPoll = AssetLoadersData::poll,
+                                                  .pDestroyRequest = AssetLoadersData::destroyRequest,
+                                                  .pDestroyPayload = AssetLoadersData::destroyMaterial });
+    assetManager.setLoader(AssetType::Mesh, { .pUserData = pData,
                                               .pBegin = AssetLoadersData::begin,
                                               .pPoll = AssetLoadersData::poll,
                                               .pDestroyRequest = AssetLoadersData::destroyRequest,
-                                              .pDestroyPayload = AssetLoadersData::destroyMaterial });
-    registry.setLoader(AssetType::Mesh, { .pUserData = pData,
-                                          .pBegin = AssetLoadersData::begin,
-                                          .pPoll = AssetLoadersData::poll,
-                                          .pDestroyRequest = AssetLoadersData::destroyRequest,
-                                          .pDestroyPayload = AssetLoadersData::destroyMesh,
-                                          .pUpload = AssetLoadersData::uploadMesh,
-                                          .pPollUpload = AssetLoadersData::pollMesh,
-                                          .pWaitUpload = AssetLoadersData::waitMesh });
+                                              .pDestroyPayload = AssetLoadersData::destroyMesh,
+                                              .pUpload = AssetLoadersData::uploadMesh,
+                                              .pPollUpload = AssetLoadersData::pollMesh,
+                                              .pWaitUpload = AssetLoadersData::waitMesh });
 }
 } // namespace hz

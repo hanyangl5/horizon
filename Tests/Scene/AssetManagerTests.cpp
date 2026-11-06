@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "Scene/AssetRegistry.h"
+#include "Scene/AssetManager.h"
 #include "Scene/SceneAssetLoader.h"
 #include "Scene/SceneAsset.h"
 #include "Scene/TextureAsset.h"
@@ -50,11 +50,11 @@ public:
         loader.pWaitUpload = waitUpload;
         return loader;
     }
-    static void upload(void*, const hz::AssetRegistry& registry, hz::Span<hz::AssetHandle> dependencies, void* pUser)
+    static void upload(void*, const hz::AssetManager& assetManager, hz::Span<hz::AssetHandle> dependencies, void* pUser)
     {
         ++((TestAssetLoader*)pUser)->uploads;
         for (hz::AssetHandle dependency : dependencies)
-            EXPECT_EQ(registry.getState(dependency), hz::AssetState::Ready);
+            EXPECT_EQ(assetManager.getState(dependency), hz::AssetState::Ready);
     }
     static hz::AssetLoadStatus pollUpload(void*, void* pUser)
     {
@@ -121,7 +121,7 @@ public:
     bool                  uploadFailed = false;
 };
 
-class AssetRegistryTest: public ::testing::Test
+class AssetManagerTest: public ::testing::Test
 {
 protected:
     void SetUp() override
@@ -149,60 +149,60 @@ protected:
     MemoryTrackingStats initialStats = {};
 };
 
-TEST_F(AssetRegistryTest, DeduplicatesRequestsAndRejectsStaleHandlesAfterReuse)
+TEST_F(AssetManagerTest, DeduplicatesRequestsAndRejectsStaleHandlesAfterReuse)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle first = registry.request(assetID(1));
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle first = assetManager.request(assetID(1));
     ASSERT_TRUE(first.isValid());
-    EXPECT_EQ(registry.request(assetID(1)), first);
-    EXPECT_EQ(registry.getState(first), hz::AssetState::Queued);
-    registry.update();
-    EXPECT_EQ(registry.getState(first), hz::AssetState::Ready);
+    EXPECT_EQ(assetManager.request(assetID(1)), first);
+    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Queued);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Ready);
     EXPECT_EQ(loader.begun, 1u);
-    EXPECT_TRUE(registry.release(first));
-    registry.update();
-    EXPECT_EQ(registry.getState(first), hz::AssetState::Ready);
-    EXPECT_TRUE(registry.release(first));
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
-    const hz::AssetHandle second = registry.request(assetID(1));
+    EXPECT_TRUE(assetManager.release(first));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Ready);
+    EXPECT_TRUE(assetManager.release(first));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
+    const hz::AssetHandle second = assetManager.request(assetID(1));
     EXPECT_EQ(second.index, first.index);
     EXPECT_NE(second.generation, first.generation);
-    EXPECT_FALSE(registry.release(first));
-    EXPECT_EQ(registry.getState(first), hz::AssetState::Invalid);
-    registry.update();
-    registry.shutdown();
+    EXPECT_FALSE(assetManager.release(first));
+    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Invalid);
+    assetManager.update();
+    assetManager.shutdown();
     EXPECT_EQ(loader.destroyed.size(), 2u);
 }
 
-TEST_F(AssetRegistryTest, SharesDependenciesAndDestroysParentsBeforeChildren)
+TEST_F(AssetManagerTest, SharesDependenciesAndDestroysParentsBeforeChildren)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     add(catalog, 2, { assetID(1), assetID(1) });
     add(catalog, 3, { assetID(1) });
     EXPECT_EQ(catalog.find(assetID(2))->dependencies.count, 1u);
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle a = registry.request(assetID(2));
-    const hz::AssetHandle b = registry.request(assetID(3));
-    registry.update();
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle a = assetManager.request(assetID(2));
+    const hz::AssetHandle b = assetManager.request(assetID(3));
+    assetManager.update();
     EXPECT_EQ(loader.begun, 3u);
-    EXPECT_TRUE(registry.release(a));
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 2u);
-    EXPECT_EQ(registry.getState(b), hz::AssetState::Ready);
+    EXPECT_TRUE(assetManager.release(a));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 2u);
+    EXPECT_EQ(assetManager.getState(b), hz::AssetState::Ready);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 2 }));
-    registry.shutdown();
+    assetManager.shutdown();
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 2, 3, 1 }));
 }
 
-TEST_F(AssetRegistryTest, RejectsInvalidDependencyGraphsWithoutChangingExistingReferences)
+TEST_F(AssetManagerTest, RejectsInvalidDependencyGraphsWithoutChangingExistingReferences)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
@@ -211,215 +211,215 @@ TEST_F(AssetRegistryTest, RejectsInvalidDependencyGraphsWithoutChangingExistingR
     add(catalog, 4, { assetID(3) });
     ASSERT_TRUE(
         catalog.add({ .id = assetID(5), .type = hz::AssetType::Texture, .pSourcePath = "test.png", .location = { .pPath = "test.dds" } }));
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle existing = registry.request(assetID(1));
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle existing = assetManager.request(assetID(1));
     hz::AssetError        error = hz::AssetError::None;
-    EXPECT_FALSE(registry.request(assetID(2), &error).isValid());
+    EXPECT_FALSE(assetManager.request(assetID(2), &error).isValid());
     EXPECT_EQ(error, hz::AssetError::UnknownAsset);
-    EXPECT_FALSE(registry.request(assetID(3), &error).isValid());
+    EXPECT_FALSE(assetManager.request(assetID(3), &error).isValid());
     EXPECT_EQ(error, hz::AssetError::DependencyCycle);
-    EXPECT_FALSE(registry.request(assetID(5), &error).isValid());
+    EXPECT_FALSE(assetManager.request(assetID(5), &error).isValid());
     EXPECT_EQ(error, hz::AssetError::MissingLoader);
-    EXPECT_EQ(registry.getCount(), 1u);
-    EXPECT_TRUE(registry.release(existing));
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_EQ(assetManager.getCount(), 1u);
+    EXPECT_TRUE(assetManager.release(existing));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_EQ(loader.begun, 0u);
 }
 
-TEST_F(AssetRegistryTest, CancellationDrainsLateResultsWithoutPublishingOrReusingTheSlot)
+TEST_F(AssetManagerTest, CancellationDrainsLateResultsWithoutPublishingOrReusingTheSlot)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = registry.request(assetID(1));
-    registry.update();
-    ASSERT_EQ(registry.getState(handle), hz::AssetState::LoadingCPU);
-    EXPECT_TRUE(registry.release(handle));
-    registry.update();
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Retiring);
-    EXPECT_EQ(registry.getScene(handle), nullptr);
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle handle = assetManager.request(assetID(1));
+    assetManager.update();
+    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::LoadingCPU);
+    EXPECT_TRUE(assetManager.release(handle));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getScene(handle), nullptr);
     hz::AssetError error;
-    EXPECT_FALSE(registry.request(assetID(1), &error).isValid());
+    EXPECT_FALSE(assetManager.request(assetID(1), &error).isValid());
     EXPECT_EQ(error, hz::AssetError::Retiring);
     EXPECT_EQ(loader.requestsDestroyed, 0u);
     loader.jobs[1]->ready = true;
-    registry.update();
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Invalid);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Invalid);
     EXPECT_EQ(loader.requestsDestroyed, 1u);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
 }
 
-TEST_F(AssetRegistryTest, WaitsForDependenciesBeforePublishingDecodedPayload)
+TEST_F(AssetManagerTest, WaitsForDependenciesBeforePublishingDecodedPayload)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     add(catalog, 2, { assetID(1) });
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = registry.request(assetID(2));
-    registry.update();
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle handle = assetManager.request(assetID(2));
+    assetManager.update();
     loader.jobs[2]->ready = true;
-    registry.update();
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::WaitingDependencies);
-    EXPECT_EQ(registry.getScene(handle), nullptr);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::WaitingDependencies);
+    EXPECT_EQ(assetManager.getScene(handle), nullptr);
     loader.jobs[1]->ready = true;
-    registry.update();
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Ready);
-    registry.shutdown();
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
+    assetManager.shutdown();
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 2, 1 }));
 }
 
-TEST_F(AssetRegistryTest, DependencyFailureDrainsPendingParentAndReleasesPartialPayloads)
+TEST_F(AssetManagerTest, DependencyFailureDrainsPendingParentAndReleasesPartialPayloads)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     add(catalog, 2, { assetID(1) });
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle parent = registry.request(assetID(2));
-    registry.update();
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle parent = assetManager.request(assetID(2));
+    assetManager.update();
     loader.jobs[1]->failed = true;
     loader.jobs[1]->ready = true;
-    registry.update();
-    EXPECT_EQ(registry.getState(parent), hz::AssetState::Failed);
-    EXPECT_EQ(registry.getError(parent), hz::AssetError::DependencyFailed);
-    EXPECT_EQ(registry.getScene(parent), nullptr);
-    EXPECT_EQ(registry.getCount(), 2u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(parent), hz::AssetState::Failed);
+    EXPECT_EQ(assetManager.getError(parent), hz::AssetError::DependencyFailed);
+    EXPECT_EQ(assetManager.getScene(parent), nullptr);
+    EXPECT_EQ(assetManager.getCount(), 2u);
     loader.jobs[2]->ready = true;
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 1u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 1u);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1, 2 }));
-    EXPECT_TRUE(registry.release(parent));
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_TRUE(assetManager.release(parent));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     loader.failBegin = 1;
-    const hz::AssetHandle failed = registry.request(assetID(1));
-    registry.update();
-    EXPECT_EQ(registry.getState(failed), hz::AssetState::Failed);
-    EXPECT_EQ(registry.getError(failed), hz::AssetError::LoadFailed);
+    const hz::AssetHandle failed = assetManager.request(assetID(1));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(failed), hz::AssetState::Failed);
+    EXPECT_EQ(assetManager.getError(failed), hz::AssetError::LoadFailed);
 }
 
-TEST_F(AssetRegistryTest, ShutdownDrainsPendingJobsAndIsIdempotent)
+TEST_F(AssetManagerTest, ShutdownDrainsPendingJobsAndIsIdempotent)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     add(catalog, 2, { assetID(1) });
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    registry.request(assetID(2));
-    registry.update();
-    registry.shutdown();
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    assetManager.request(assetID(2));
+    assetManager.update();
+    assetManager.shutdown();
     EXPECT_EQ(loader.requestsDestroyed, 2u);
     EXPECT_EQ(loader.destroyed.size(), 2u);
-    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_EQ(assetManager.getCount(), 0u);
     hz::AssetError error;
-    EXPECT_FALSE(registry.request(assetID(1), &error).isValid());
+    EXPECT_FALSE(assetManager.request(assetID(1), &error).isValid());
     EXPECT_EQ(error, hz::AssetError::ShuttingDown);
-    registry.shutdown();
+    assetManager.shutdown();
     EXPECT_EQ(loader.requestsDestroyed, 2u);
 }
 
-TEST_F(AssetRegistryTest, TraversesAndRetiresDeepDependenciesIteratively)
+TEST_F(AssetManagerTest, TraversesAndRetiresDeepDependenciesIteratively)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     for (uint32_t i = 2; i <= 1024; ++i)
         add(catalog, i, { assetID(i - 1) });
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = registry.request(assetID(1024));
-    registry.update();
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Ready);
-    EXPECT_TRUE(registry.release(handle));
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle handle = assetManager.request(assetID(1024));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
+    EXPECT_TRUE(assetManager.release(handle));
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     ASSERT_EQ(loader.destroyed.size(), 1024u);
     EXPECT_EQ(loader.destroyed.front(), 1024u);
     EXPECT_EQ(loader.destroyed.back(), 1u);
 }
 
-TEST_F(AssetRegistryTest, UploadWaitsForDependenciesAndCancellationDrainsBeforeDestruction)
+TEST_F(AssetManagerTest, UploadWaitsForDependenciesAndCancellationDrainsBeforeDestruction)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     add(catalog, 2, { assetID(1) });
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getGpuLoader());
-    const hz::AssetHandle parent = registry.request(assetID(2));
-    registry.update();
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getGpuLoader());
+    const hz::AssetHandle parent = assetManager.request(assetID(2));
+    assetManager.update();
     EXPECT_EQ(loader.uploads, 1u);
-    EXPECT_EQ(registry.getState(parent), hz::AssetState::WaitingDependencies);
-    const hz::AssetHandle child = registry.find(assetID(1));
-    EXPECT_EQ(registry.getState(child), hz::AssetState::UploadingGPU);
-    registry.release(parent);
-    registry.update();
-    EXPECT_EQ(registry.getState(parent), hz::AssetState::Invalid);
-    EXPECT_EQ(registry.getState(child), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getState(parent), hz::AssetState::WaitingDependencies);
+    const hz::AssetHandle child = assetManager.find(assetID(1));
+    EXPECT_EQ(assetManager.getState(child), hz::AssetState::UploadingGPU);
+    assetManager.release(parent);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(parent), hz::AssetState::Invalid);
+    EXPECT_EQ(assetManager.getState(child), hz::AssetState::Retiring);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 2 }));
     loader.uploadReady = true;
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 2, 1 }));
     EXPECT_EQ(loader.uploadWaits, 0u);
 }
 
-TEST_F(AssetRegistryTest, UploadFailureAndShutdownUseTheSamePayloadCleanup)
+TEST_F(AssetManagerTest, UploadFailureAndShutdownUseTheSamePayloadCleanup)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getGpuLoader());
-    const hz::AssetHandle handle = registry.request(assetID(1));
-    registry.update();
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getGpuLoader());
+    const hz::AssetHandle handle = assetManager.request(assetID(1));
+    assetManager.update();
     loader.uploadReady = true;
     loader.uploadFailed = true;
-    registry.update();
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Failed);
-    EXPECT_EQ(registry.getError(handle), hz::AssetError::UploadFailed);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Failed);
+    EXPECT_EQ(assetManager.getError(handle), hz::AssetError::UploadFailed);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
-    registry.release(handle);
-    registry.update();
+    assetManager.release(handle);
+    assetManager.update();
     loader.uploadReady = false;
-    registry.request(assetID(1));
-    registry.update();
-    registry.shutdown();
+    assetManager.request(assetID(1));
+    assetManager.update();
+    assetManager.shutdown();
     EXPECT_EQ(loader.uploadWaits, 1u);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1, 1 }));
 }
 
-TEST_F(AssetRegistryTest, SnapshotsPinPayloadsAndKeepTheirOriginalMembership)
+TEST_F(AssetManagerTest, SnapshotsPinPayloadsAndKeepTheirOriginalMembership)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
     add(catalog, 2);
-    TestAssetLoader   loader;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle first = registry.request(assetID(1));
-    registry.update();
-    hz::AssetSnapshot     old = registry.captureSnapshot();
+    TestAssetLoader  loader;
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle first = assetManager.request(assetID(1));
+    assetManager.update();
+    hz::AssetSnapshot     old = assetManager.captureSnapshot();
     const hz::SceneAsset* pFirst = old.getScene(first);
     ASSERT_NE(pFirst, nullptr);
     const MemoryTrackingStats before = memGetTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
     {
-        hz::AssetSnapshot frame = registry.captureSnapshot();
-        registry.update();
+        hz::AssetSnapshot frame = assetManager.captureSnapshot();
+        assetManager.update();
     }
     const MemoryTrackingStats after = memGetTrackingStats();
     if (after.trackingEnabled)
@@ -427,23 +427,23 @@ TEST_F(AssetRegistryTest, SnapshotsPinPayloadsAndKeepTheirOriginalMembership)
         EXPECT_EQ(after.totalAllocationCount, before.totalAllocationCount);
         EXPECT_EQ(after.reallocationCount, before.reallocationCount);
     }
-    registry.release(first);
-    registry.update();
-    EXPECT_EQ(registry.getState(first), hz::AssetState::Retiring);
-    EXPECT_EQ(registry.getScene(first), nullptr);
+    assetManager.release(first);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getScene(first), nullptr);
     EXPECT_EQ(old.getScene(first), pFirst);
-    const hz::AssetHandle second = registry.request(assetID(2));
-    registry.update();
-    hz::AssetSnapshot current = registry.captureSnapshot();
+    const hz::AssetHandle second = assetManager.request(assetID(2));
+    assetManager.update();
+    hz::AssetSnapshot current = assetManager.captureSnapshot();
     EXPECT_EQ(current.getScene(first), nullptr);
     EXPECT_EQ(old.getScene(second), nullptr);
     EXPECT_NE(current.getScene(second), nullptr);
     old = {};
-    registry.update();
-    EXPECT_EQ(registry.getState(first), hz::AssetState::Invalid);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getState(first), hz::AssetState::Invalid);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
     current = {};
-    registry.shutdown();
+    assetManager.shutdown();
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1, 2 }));
 }
 
@@ -454,12 +454,12 @@ static const char kEmptyScene[] = R"json({
     "nodes":[], "meshes":[], "materials":[], "textures":[]
 })json";
 
-class SceneAssetLoaderTest: public AssetRegistryTest
+class SceneAssetLoaderTest: public AssetManagerTest
 {
 protected:
     void SetUp() override
     {
-        AssetRegistryTest::SetUp();
+        AssetManagerTest::SetUp();
         FileSystemInitDesc desc = { .pAppName = "SceneAssetLoaderTest" };
         ASSERT_TRUE(initFileSystem(&desc));
         char id[hz::kIDStringCapacity];
@@ -478,14 +478,14 @@ protected:
     {
         exitFileSystem();
         std::filesystem::remove_all(directory);
-        AssetRegistryTest::TearDown();
+        AssetManagerTest::TearDown();
     }
-    static void wait(hz::AssetRegistry& registry, hz::AssetHandle handle)
+    static void wait(hz::AssetManager& assetManager, hz::AssetHandle handle)
     {
         for (uint32_t i = 0; i < 5000; ++i)
         {
-            registry.update();
-            if (registry.getState(handle) == hz::AssetState::Ready || registry.getState(handle) == hz::AssetState::Failed)
+            assetManager.update();
+            if (assetManager.getState(handle) == hz::AssetState::Ready || assetManager.getState(handle) == hz::AssetState::Failed)
                 return;
             threadSleep(1);
         }
@@ -510,17 +510,17 @@ TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
     catalog.clear();
     ASSERT_TRUE(catalog.load(RD_OTHER_FILES, "scene.assetcatalog.json"));
     hz::SceneAssetLoader loader(RD_OTHER_FILES);
-    hz::AssetRegistry    registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = registry.request(scene.getID());
-    EXPECT_EQ(registry.getScene(handle), nullptr);
-    wait(registry, handle);
-    ASSERT_EQ(registry.getState(handle), hz::AssetState::Ready);
-    ASSERT_NE(registry.getScene(handle), nullptr);
-    EXPECT_EQ(registry.getScene(handle)->getID(), scene.getID());
-    registry.release(handle);
-    registry.update();
-    EXPECT_EQ(registry.getScene(handle), nullptr);
+    hz::AssetManager     assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle handle = assetManager.request(scene.getID());
+    EXPECT_EQ(assetManager.getScene(handle), nullptr);
+    wait(assetManager, handle);
+    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
+    ASSERT_NE(assetManager.getScene(handle), nullptr);
+    EXPECT_EQ(assetManager.getScene(handle)->getID(), scene.getID());
+    assetManager.release(handle);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getScene(handle), nullptr);
 }
 
 TEST_F(SceneAssetLoaderTest, RejectsMissingFileAndMismatchedIdentityAndDrainsOnShutdown)
@@ -529,20 +529,20 @@ TEST_F(SceneAssetLoaderTest, RejectsMissingFileAndMismatchedIdentityAndDrainsOnS
     ASSERT_TRUE(catalog.add({ .id = assetID(1), .pSourcePath = "scene.gltf", .location = { .pPath = "missing.sceneasset.json" } }));
     ASSERT_TRUE(catalog.add({ .id = assetID(2), .pSourcePath = "scene.gltf", .location = { .pPath = "scene.sceneasset.json" } }));
     hz::SceneAssetLoader loader(RD_OTHER_FILES);
-    hz::AssetRegistry    registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle missing = registry.request(assetID(1));
-    const hz::AssetHandle mismatched = registry.request(assetID(2));
-    wait(registry, missing);
-    wait(registry, mismatched);
-    EXPECT_EQ(registry.getError(missing), hz::AssetError::LoadFailed);
-    EXPECT_EQ(registry.getError(mismatched), hz::AssetError::LoadFailed);
-    registry.release(mismatched);
-    registry.update();
-    registry.request(assetID(2));
-    registry.update();
-    registry.shutdown();
-    EXPECT_EQ(registry.getCount(), 0u);
+    hz::AssetManager     assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    const hz::AssetHandle missing = assetManager.request(assetID(1));
+    const hz::AssetHandle mismatched = assetManager.request(assetID(2));
+    wait(assetManager, missing);
+    wait(assetManager, mismatched);
+    EXPECT_EQ(assetManager.getError(missing), hz::AssetError::LoadFailed);
+    EXPECT_EQ(assetManager.getError(mismatched), hz::AssetError::LoadFailed);
+    assetManager.release(mismatched);
+    assetManager.update();
+    assetManager.request(assetID(2));
+    assetManager.update();
+    assetManager.shutdown();
+    EXPECT_EQ(assetManager.getCount(), 0u);
 }
 
 TEST_F(SceneAssetLoaderTest, RejectsPayloadWithDifferentDependenciesFromCatalog)
@@ -560,13 +560,13 @@ TEST_F(SceneAssetLoaderTest, RejectsPayloadWithDifferentDependenciesFromCatalog)
                               .location = { .pPath = "scene.sceneasset.json", .elementIndex = 0 } }));
     hz::SceneAssetLoader loader(RD_OTHER_FILES);
     TestAssetLoader      meshLoader;
-    hz::AssetRegistry    registry(catalog);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
-    registry.setLoader(hz::AssetType::Mesh, meshLoader.getLoader());
-    const hz::AssetHandle handle = registry.request(scene.getID());
-    wait(registry, handle);
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Failed);
-    EXPECT_EQ(registry.getScene(handle), nullptr);
+    hz::AssetManager     assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
+    assetManager.setLoader(hz::AssetType::Mesh, meshLoader.getLoader());
+    const hz::AssetHandle handle = assetManager.request(scene.getID());
+    wait(assetManager, handle);
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Failed);
+    EXPECT_EQ(assetManager.getScene(handle), nullptr);
     EXPECT_EQ(meshLoader.destroyed, (std::vector<uint32_t>{ 1 }));
 }
 
@@ -605,14 +605,14 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     ASSERT_TRUE(catalog.add(
         { .id = assetID(1), .type = hz::AssetType::Texture, .pSourcePath = "pixel.png", .location = { .pPath = "pixel.dds" } }));
     hz::TextureAssetLoader loader(context, RD_OTHER_FILES);
-    hz::AssetRegistry      registry(catalog);
-    registry.setLoader(hz::AssetType::Texture, loader.getLoader());
-    const hz::AssetHandle handle = registry.request(assetID(1));
-    EXPECT_EQ(registry.request(assetID(1)), handle);
-    registry.release(handle);
-    wait(registry, handle);
-    ASSERT_EQ(registry.getState(handle), hz::AssetState::Ready);
-    hz::AssetSnapshot     snapshot = registry.captureSnapshot();
+    hz::AssetManager       assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Texture, loader.getLoader());
+    const hz::AssetHandle handle = assetManager.request(assetID(1));
+    EXPECT_EQ(assetManager.request(assetID(1)), handle);
+    assetManager.release(handle);
+    wait(assetManager, handle);
+    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
+    hz::AssetSnapshot     snapshot = assetManager.captureSnapshot();
     const hz::GPUTexture& texture = snapshot.getTexture(handle)->getTexture();
     ASSERT_TRUE(texture.isValid());
     const char      shader[] = R"hlsl(
@@ -645,13 +645,13 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     commands.dispatch(1, 1, 1, { .sampledTextures = { &texture }, .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 16);
     const hz::SubmitHandle submission = context.submit(commands);
-    registry.release(handle);
-    registry.retireSnapshot(std::move(snapshot), context, submission);
+    assetManager.release(handle);
+    assetManager.retireSnapshot(std::move(snapshot), context, submission);
     EXPECT_FALSE(snapshot.isValid());
-    EXPECT_EQ(registry.getState(handle), hz::AssetState::Retiring);
-    registry.shutdown();
+    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Retiring);
+    assetManager.shutdown();
     EXPECT_TRUE(context.isComplete(submission));
-    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_EQ(assetManager.getCount(), 0u);
     const uint32_t* pPixel = (const uint32_t*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(pPixel, nullptr);
     EXPECT_EQ(pPixel[0], 255u);
@@ -667,14 +667,14 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererMotionTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline = context.createGraphicsPipeline({
-          .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                      { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
-                          .sourceDirectory = RD_OTHER_FILES,
-                          .pFileName = "Geometry.slang" },
-          .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM },
-                            { .format = hz::Format::R8G8B8A8_UNORM },
-                            { .format = hz::Format::R8G8B8A8_UNORM },
-                            { .format = hz::Format::R8G8B8A8_UNORM } },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+                        .sourceDirectory = RD_OTHER_FILES,
+                        .pFileName = "Geometry.slang" },
+        .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM },
+                          { .format = hz::Format::R8G8B8A8_UNORM },
+                          { .format = hz::Format::R8G8B8A8_UNORM },
+                          { .format = hz::Format::R8G8B8A8_UNORM } },
     });
     fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     ASSERT_TRUE(pipeline.isValid());
@@ -800,20 +800,20 @@ TEST_F(TextureAssetLiveTest, CancelsUploadsAndReportsInvalidFiles)
     ASSERT_TRUE(catalog.add(
         { .id = assetID(5), .type = hz::AssetType::Texture, .pSourcePath = "pixel.png", .location = { .pPath = "broken.dds" } }));
     hz::TextureAssetLoader loader(context, RD_OTHER_FILES);
-    hz::AssetRegistry      registry(catalog);
-    registry.setLoader(hz::AssetType::Texture, loader.getLoader());
-    const hz::AssetHandle canceled = registry.request(assetID(1));
-    registry.update();
-    registry.release(canceled);
+    hz::AssetManager       assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Texture, loader.getLoader());
+    const hz::AssetHandle canceled = assetManager.request(assetID(1));
+    assetManager.update();
+    assetManager.release(canceled);
     for (uint32_t i = 2; i <= 5; ++i)
     {
-        const hz::AssetHandle invalid = registry.request(assetID(i));
-        wait(registry, invalid);
-        EXPECT_EQ(registry.getError(invalid), hz::AssetError::UploadFailed);
-        EXPECT_EQ(registry.getTexture(invalid), nullptr);
+        const hz::AssetHandle invalid = assetManager.request(assetID(i));
+        wait(assetManager, invalid);
+        EXPECT_EQ(assetManager.getError(invalid), hz::AssetError::UploadFailed);
+        EXPECT_EQ(assetManager.getTexture(invalid), nullptr);
     }
-    registry.shutdown();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.shutdown();
+    EXPECT_EQ(assetManager.getCount(), 0u);
 }
 
 static const char kTypedScene[] = R"json({
@@ -902,16 +902,16 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAssetTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
-    const hz::AssetHandle root = registry.request(scene.getID());
-    const hz::AssetHandle second = registry.request(scene.getMeshes().pData[1].id);
-    wait(registry, root);
-    ASSERT_EQ(registry.getState(root), hz::AssetState::Ready);
-    EXPECT_EQ(registry.getCount(), 5u);
-    const hz::AssetHandle first = registry.find(scene.getMeshes().pData[0].id);
-    const hz::MeshAsset*  pFirst = registry.getMesh(first);
-    const hz::MeshAsset*  pSecond = registry.getMesh(second);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
+    const hz::AssetHandle root = assetManager.request(scene.getID());
+    const hz::AssetHandle second = assetManager.request(scene.getMeshes().pData[1].id);
+    wait(assetManager, root);
+    ASSERT_EQ(assetManager.getState(root), hz::AssetState::Ready);
+    EXPECT_EQ(assetManager.getCount(), 5u);
+    const hz::AssetHandle first = assetManager.find(scene.getMeshes().pData[0].id);
+    const hz::MeshAsset*  pFirst = assetManager.getMesh(first);
+    const hz::MeshAsset*  pSecond = assetManager.getMesh(second);
     ASSERT_NE(pFirst, nullptr);
     ASSERT_NE(pSecond, nullptr);
     EXPECT_EQ(&pFirst->getIndexBuffer(), &pSecond->getIndexBuffer());
@@ -927,11 +927,11 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(bounds.maximum[0], 4);
     EXPECT_FLOAT_EQ(bounds.maximum[1], 2);
     EXPECT_FLOAT_EQ(bounds.maximum[2], 6);
-    const hz::MaterialAsset* pMaterial = registry.getMaterial(registry.find(scene.getMaterials().pData[0].id));
+    const hz::MaterialAsset* pMaterial = assetManager.getMaterial(assetManager.find(scene.getMaterials().pData[0].id));
     ASSERT_NE(pMaterial, nullptr);
     EXPECT_FLOAT_EQ(pMaterial->getDescription().roughnessFactor, 0.8f);
-    ASSERT_NE(registry.getTexture(registry.find(pMaterial->getDescription().baseColorTexture)), nullptr);
-    hz::AssetSnapshot snapshot = registry.captureSnapshot();
+    ASSERT_NE(assetManager.getTexture(assetManager.find(pMaterial->getDescription().baseColorTexture)), nullptr);
+    hz::AssetSnapshot snapshot = assetManager.captureSnapshot();
     hz::GPUBuffer     readback = context.createBuffer({ .size = 36,
                                                         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                         .startState = RESOURCE_STATE_COPY_DEST,
@@ -939,12 +939,12 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     hz::CommandList&  commands = context.acquireCommandList();
     commands.copyBuffer(readback, 0, pFirst->getVertexBuffer(0), 0, 36);
     const hz::SubmitHandle submission = context.submit(commands);
-    registry.release(root);
-    registry.release(second);
+    assetManager.release(root);
+    assetManager.release(second);
     EXPECT_EQ(snapshot.getMesh(first), pFirst);
-    registry.retireSnapshot(std::move(snapshot), context, submission);
-    registry.shutdown();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.retireSnapshot(std::move(snapshot), context, submission);
+    assetManager.shutdown();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_TRUE(context.isComplete(submission));
     const float* pVertices = (const float*)readback.get()->pCpuMappedAddress;
     EXPECT_FLOAT_EQ(pVertices[0], -1);
@@ -963,12 +963,12 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAsset32BitIndexTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
-    const hz::AssetHandle handle = registry.request(asset.getMeshes().pData[0].id);
-    wait(registry, handle);
-    ASSERT_EQ(registry.getState(handle), hz::AssetState::Ready);
-    const hz::MeshAsset* mesh = registry.getMesh(handle);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
+    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().pData[0].id);
+    wait(assetManager, handle);
+    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
+    const hz::MeshAsset* mesh = assetManager.getMesh(handle);
     ASSERT_NE(mesh, nullptr);
     EXPECT_EQ(mesh->getIndexType(), INDEX_TYPE_UINT32);
     const hz::MeshBounds& bounds = mesh->getBounds(0);
@@ -978,7 +978,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
         EXPECT_FLOAT_EQ(bounds.minimum[axis], minimum[axis]);
         EXPECT_FLOAT_EQ(bounds.maximum[axis], maximum[axis]);
     }
-    hz::AssetSnapshot        snapshot = registry.captureRenderSnapshot();
+    hz::AssetSnapshot        snapshot = assetManager.captureRenderSnapshot();
     const hz::GpuMeshRecord* gpuMesh = snapshot.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
@@ -990,9 +990,9 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     commands.copyBuffer(readback, 0, mesh->getIndexBuffer(), 0, 12);
     commands.copyBuffer(readback, 12, mesh->getVertexBuffer(0), 0, 36);
     const hz::SubmitHandle submission = context.submit(commands);
-    registry.release(handle);
-    registry.retireSnapshot(std::move(snapshot), context, submission);
-    registry.shutdown();
+    assetManager.release(handle);
+    assetManager.retireSnapshot(std::move(snapshot), context, submission);
+    assetManager.shutdown();
     const uint32_t expectedIndices[] = { 0, 1, 2 };
     const float    expectedPositions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
     const uint8_t* bytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
@@ -1000,15 +1000,15 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     EXPECT_EQ(memcmp(bytes + sizeof(expectedIndices), expectedPositions, sizeof(expectedPositions)), 0);
 }
 
-TEST_F(AssetRegistryTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedComponents)
+TEST_F(AssetManagerTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedComponents)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(
         catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
@@ -1016,12 +1016,12 @@ TEST_F(AssetRegistryTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompon
     hz::MeshRenderer renderer = { .mesh = assetID(1) };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
-    hz::WorldAssetBindings bindings(world, registry);
+    hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     ASSERT_EQ(bindings.getCount(), 2u);
     const hz::AssetHandle mesh = bindings.get(a)->mesh;
     EXPECT_EQ(bindings.get(b)->mesh, mesh);
-    registry.update();
+    assetManager.update();
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
     EXPECT_EQ(loader.begun, 1u);
@@ -1038,18 +1038,18 @@ TEST_F(AssetRegistryTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompon
     bindings.update();
     EXPECT_EQ(bindings.get(a), nullptr);
     EXPECT_EQ(bindings.getCount(), 1u);
-    EXPECT_EQ(registry.getState(mesh), hz::AssetState::LoadingCPU);
+    EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::LoadingCPU);
     ASSERT_TRUE(world.destroyEntity(b));
     bindings.update();
     EXPECT_EQ(bindings.getCount(), 0u);
-    EXPECT_EQ(registry.getState(mesh), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::Retiring);
     loader.jobs[1]->ready = true;
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
 }
 
-TEST_F(AssetRegistryTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
+TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
 {
     hz::AssetCatalog catalog;
     for (uint32_t i = 1; i <= 2; ++i)
@@ -1057,8 +1057,8 @@ TEST_F(AssetRegistryTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
             { .id = assetID(i), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
@@ -1066,17 +1066,17 @@ TEST_F(AssetRegistryTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     hz::MeshRenderer first = { .mesh = assetID(1) }, second = { .mesh = assetID(2) };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &first));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &second));
-    hz::WorldAssetBindings bindings(world, registry);
+    hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     const hz::AssetHandle meshA = bindings.get(a)->mesh, meshB = bindings.get(b)->mesh;
-    registry.update();
+    assetManager.update();
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &second));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &first));
     bindings.update();
     EXPECT_EQ(bindings.get(a)->mesh, meshB);
     EXPECT_EQ(bindings.get(b)->mesh, meshA);
-    EXPECT_EQ(registry.getState(meshA), hz::AssetState::LoadingCPU);
-    EXPECT_EQ(registry.getState(meshB), hz::AssetState::LoadingCPU);
+    EXPECT_EQ(assetManager.getState(meshA), hz::AssetState::LoadingCPU);
+    EXPECT_EQ(assetManager.getState(meshB), hz::AssetState::LoadingCPU);
     EXPECT_EQ(loader.begun, 2u);
 
     ASSERT_TRUE(world.destroyEntity(a));
@@ -1089,34 +1089,34 @@ TEST_F(AssetRegistryTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     EXPECT_EQ(bindings.get(replacement)->state, hz::AssetBindingState::Pending);
     EXPECT_FALSE(bindings.get(replacement)->mesh.isValid());
     loader.jobs[2]->ready = true;
-    registry.update();
+    assetManager.update();
     bindings.update();
     EXPECT_TRUE(bindings.get(replacement)->mesh.isValid());
     EXPECT_NE(bindings.get(replacement)->mesh, meshB);
     bindings.clear();
     EXPECT_EQ(bindings.getCount(), 0u);
-    EXPECT_EQ(registry.getState(meshA), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getState(meshA), hz::AssetState::Retiring);
 }
 
-TEST_F(AssetRegistryTest, RenderSceneKeepsPendingSlotsAndRejectsReusedGenerations)
+TEST_F(AssetManagerTest, RenderSceneKeepsPendingSlotsAndRejectsReusedGenerations)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(
         catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, registry);
+    hz::RenderScene        scene(world, assetManager);
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     const hz::Entity       a = world.createEntity(), b = world.createEntity();
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    registry.update();
+    assetManager.update();
     const hz::RenderObjectID first = scene.findObject(a), second = scene.findObject(b);
     ASSERT_TRUE(first.isValid());
     ASSERT_TRUE(second.isValid());
@@ -1165,19 +1165,19 @@ TEST_F(AssetRegistryTest, RenderSceneKeepsPendingSlotsAndRejectsReusedGeneration
     EXPECT_EQ(scene.getObjects().count, 2u);
 }
 
-TEST_F(AssetRegistryTest, RenderSceneMergesSparseTransformChangesWithoutAllocating)
+TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocating)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(
         catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, registry);
+    hz::RenderScene        scene(world, assetManager);
     hz::Array<hz::Entity>  entities;
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     for (uint32_t i = 0; i < 40; ++i)
@@ -1189,7 +1189,7 @@ TEST_F(AssetRegistryTest, RenderSceneMergesSparseTransformChangesWithoutAllocati
         entities.pushBack(entity);
     }
     scene.update();
-    registry.update();
+    assetManager.update();
     world.commitTransforms();
     scene.update();
     const MemoryTrackingStats before = memGetTrackingStats();
@@ -1217,19 +1217,19 @@ TEST_F(AssetRegistryTest, RenderSceneMergesSparseTransformChangesWithoutAllocati
     EXPECT_EQ(scene.getChanges().instanceIndices.count, 0u);
 }
 
-TEST_F(AssetRegistryTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
+TEST_F(AssetManagerTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(
         catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, registry, { .journalCapacity = 8 });
+    hz::RenderScene        scene(world, assetManager, { .journalCapacity = 8 });
     const hz::Entity       entity = world.createEntity();
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     hz::LocalTransform     transform;
@@ -1272,14 +1272,14 @@ TEST_F(AssetRegistryTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
     EXPECT_EQ(removal.instances.count, 1u);
 }
 
-TEST_F(AssetRegistryTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNoFrameAllocation)
+TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNoFrameAllocation)
 {
-    hz::AssetCatalog  catalog;
-    hz::AssetRegistry registry(catalog);
-    hz::TypeRegistry  types;
+    hz::AssetCatalog catalog;
+    hz::AssetManager assetManager(catalog);
+    hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World       world(types);
-    hz::RenderScene scene(world, registry, { .journalCapacity = 32 });
+    hz::RenderScene scene(world, assetManager, { .journalCapacity = 32 });
     scene.reserve(0, 0, 9, 9);
     const hz::Entity parent = world.createEntity();
     hz::LocalMatrix  parentMatrix = { .value = Matrix4::translation(Vector3(10, 20, 30)) * Matrix4::scale(Vector3(2, 3, 4)) };
@@ -1401,29 +1401,29 @@ TEST_F(AssetRegistryTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndN
     EXPECT_EQ(scene.getActiveCameras().count, 0u);
 }
 
-TEST_F(AssetRegistryTest, RenderSceneEmissionBindingsHandlePendingFailureAndLeaseHandoffs)
+TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLeaseHandoffs)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.add(
         { .id = assetID(1), .type = hz::AssetType::Texture, .pSourcePath = "light.png", .location = { .pPath = "light.dds" } }));
     TestAssetLoader loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Texture, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Texture, loader.getLoader());
     add(catalog, 2);
-    registry.setLoader(hz::AssetType::Scene, loader.getLoader());
+    assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
-    hz::RenderScene  scene(world, registry);
+    hz::RenderScene  scene(world, assetManager);
     const hz::Entity a = world.createEntity(), b = world.createEntity();
     hz::Light        light = { .type = hz::LightType::Dome, .texture = assetID(1) };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::light, &light));
     scene.update();
     const hz::RenderLightID id = scene.findLight(a);
-    const hz::AssetHandle   handle = registry.find(light.texture);
+    const hz::AssetHandle   handle = assetManager.find(light.texture);
     ASSERT_TRUE(handle.isValid());
-    registry.update();
+    assetManager.update();
     EXPECT_EQ(scene.getLight(id)->ready, 0u);
     EXPECT_FALSE(scene.getLight(id)->texture.isValid());
     light.type = hz::LightType::Point;
@@ -1436,58 +1436,58 @@ TEST_F(AssetRegistryTest, RenderSceneEmissionBindingsHandlePendingFailureAndLeas
     light.type = hz::LightType::Rect;
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
     scene.update();
-    registry.update();
-    EXPECT_EQ(registry.find(light.texture), handle);
+    assetManager.update();
+    EXPECT_EQ(assetManager.find(light.texture), handle);
     EXPECT_EQ(loader.begun, 1u);
     loader.jobs[1]->failed = true;
     loader.jobs[1]->ready = true;
-    registry.update();
+    assetManager.update();
     scene.update();
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
     for (uint32_t i = 0; i < 20; ++i)
     {
-        registry.update();
+        assetManager.update();
         scene.update();
     }
     EXPECT_EQ(loader.begun, 1u);
     light.texture = assetID(999);
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
     scene.update();
-    registry.update();
-    EXPECT_FALSE(registry.find(assetID(1)).isValid());
+    assetManager.update();
+    EXPECT_FALSE(assetManager.find(assetID(1)).isValid());
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
     scene.update();
     light.texture = {};
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 1u);
-    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_EQ(assetManager.getCount(), 0u);
     // A Ready payload of another type must never become a GPU texture reference.
     loader.ready = true;
     light.texture = assetID(2);
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
     scene.update();
-    registry.update();
+    assetManager.update();
     scene.update();
-    EXPECT_EQ(registry.getState(registry.find(light.texture)), hz::AssetState::Ready);
+    EXPECT_EQ(assetManager.getState(assetManager.find(light.texture)), hz::AssetState::Ready);
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
     EXPECT_FALSE(scene.getLight(scene.findLight(b))->texture.isValid());
 }
 
-TEST_F(AssetRegistryTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
+TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
 {
     hz::AssetCatalog catalog;
     TestAssetLoader  loader;
     loader.ready = false;
-    hz::AssetRegistry registry(catalog);
-    registry.setLoader(hz::AssetType::Mesh, loader.getLoader());
+    hz::AssetManager assetManager(catalog);
+    assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
     const hz::Entity       entity = world.createEntity();
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
-    hz::WorldAssetBindings bindings(world, registry);
+    hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     ASSERT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Failed);
     ASSERT_TRUE(
@@ -1501,12 +1501,12 @@ TEST_F(AssetRegistryTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
         EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
         EXPECT_EQ(before.reallocationCount, after.reallocationCount);
     }
-    EXPECT_EQ(registry.getCount(), 0u);
+    EXPECT_EQ(assetManager.getCount(), 0u);
     bindings.clear();
     bindings.update();
     EXPECT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Pending);
     EXPECT_TRUE(bindings.get(entity)->mesh.isValid());
-    EXPECT_EQ(registry.getCount(), 1u);
+    EXPECT_EQ(assetManager.getCount(), 1u);
 }
 
 TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsAlive)
@@ -1537,8 +1537,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
                               .dependencies = { scene.getTextures().pData[0].id } }));
     hz::RenderContext context({ .pAppName = "WorldAssetBindingsTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
@@ -1547,15 +1547,15 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
-    hz::WorldAssetBindings bindings(world, registry);
+    hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     const hz::AssetHandle mesh = bindings.get(a)->mesh;
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
-    wait(registry, mesh);
+    wait(assetManager, mesh);
     bindings.update();
-    const hz::AssetHandle overrideMaterial = registry.find(alternate);
+    const hz::AssetHandle overrideMaterial = assetManager.find(alternate);
     ASSERT_TRUE(overrideMaterial.isValid());
-    wait(registry, overrideMaterial);
+    wait(assetManager, overrideMaterial);
     bindings.update();
     ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
     ASSERT_EQ(bindings.get(b)->state, hz::AssetBindingState::Ready);
@@ -1575,7 +1575,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
         EXPECT_EQ(before.reallocationCount, after.reallocationCount);
     }
 
-    hz::AssetSnapshot snapshot = registry.captureSnapshot();
+    hz::AssetSnapshot snapshot = assetManager.captureSnapshot();
     // Reverse authoring order; resolution follows stable SubmeshID, not override array position.
     renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -1589,7 +1589,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
     EXPECT_EQ(bindings.get(a)->materials.count, 0u);
-    EXPECT_EQ(registry.getState(overrideMaterial), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
     EXPECT_NE(snapshot.getMaterial(overrideMaterial), nullptr);
 
     renderer.overrides[0].submesh = 99;
@@ -1609,14 +1609,14 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndKeepSnapshotsA
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.destroyEntity(b));
     bindings.update();
-    registry.update();
+    assetManager.update();
     EXPECT_EQ(bindings.getCount(), 0u);
-    EXPECT_EQ(registry.getState(mesh), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::Retiring);
     EXPECT_NE(snapshot.getMesh(mesh), nullptr);
     EXPECT_NE(snapshot.getMaterial(overrideMaterial), nullptr);
     snapshot = {};
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
 }
 
 TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialChanges)
@@ -1647,12 +1647,12 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
                               .dependencies = { assets.getTextures().pData[0].id } }));
     hz::RenderContext context({ .pAppName = "RenderSceneTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World          world(types);
-    hz::RenderScene    scene(world, registry);
+    hz::RenderScene    scene(world, assetManager);
     const hz::ObjectID identity = { .high = 2, .low = 1 };
     const hz::Entity   a = world.createObject(identity), b = world.createEntity();
     hz::MeshRenderer   renderer = { .mesh = assets.getMeshes().pData[0].id };
@@ -1665,7 +1665,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     const hz::RenderObjectID object = scene.findObject(a);
-    wait(registry, registry.find(renderer.mesh));
+    wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
     ASSERT_EQ(scene.getObject(object)->instanceCount, 1u);
     EXPECT_EQ(scene.findObject(a), object);
@@ -1730,11 +1730,11 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_NE(scene.getDraw(drawIDs[0]), nullptr);
     EXPECT_NE(scene.getDraw(drawIDs[1]), nullptr);
     EXPECT_FALSE(scene.getDraw(drawIDs[1])->material.isValid());
-    wait(registry, registry.find(alternate));
+    wait(assetManager, assetManager.find(alternate));
     scene.update();
     EXPECT_EQ(scene.getObject(object)->instanceCount, 1u);
     EXPECT_EQ(scene.getDraw(drawIDs[0])->material, original);
-    const hz::AssetHandle alternateHandle = registry.find(alternate);
+    const hz::AssetHandle alternateHandle = assetManager.find(alternate);
     EXPECT_EQ(scene.getDraw(drawIDs[1])->material,
               (hz::GpuMaterialID{ .index = alternateHandle.index, .generation = alternateHandle.generation }));
     EXPECT_EQ(scene.getChanges().draws.created.count, 0u);
@@ -1783,12 +1783,12 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "SceneFrameTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, registry, { .journalCapacity = 8 });
+    hz::RenderScene        scene(world, assetManager, { .journalCapacity = 8 });
     const hz::Entity       a = world.createEntity(), b = world.createEntity();
     const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
@@ -1796,8 +1796,8 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
     scene.update();
-    const hz::AssetHandle meshHandle = registry.find(renderer.mesh);
-    wait(registry, meshHandle);
+    const hz::AssetHandle meshHandle = assetManager.find(renderer.mesh);
+    wait(assetManager, meshHandle);
     scene.update();
     const hz::RenderObjectID object = scene.findObject(a);
     const hz::GpuMeshID      meshID = scene.getObject(object)->mesh;
@@ -1821,13 +1821,13 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
         EXPECT_EQ(mesh->submeshCount, 1u);
         EXPECT_EQ(tables.vertexStreams.pData[mesh->vertexStreamOffset].stride, 12u);
         EXPECT_EQ(tables.submeshes.pData[mesh->submeshOffset].indexCount, 3u);
-        EXPECT_EQ(mesh->indexSrv, registry.getMesh(meshHandle)->getIndexBuffer().getSrvIndex());
+        EXPECT_EQ(mesh->indexSrv, assetManager.getMesh(meshHandle)->getIndexBuffer().getSrvIndex());
         const hz::GpuMaterialRecord* material = tables.getMaterial(materialID);
         ASSERT_NE(material, nullptr);
         EXPECT_FLOAT_EQ(material->roughnessFactor, 0.8f);
         const hz::GpuTextureRecord* texture = tables.getTexture(material->baseColorTexture);
         ASSERT_NE(texture, nullptr);
-        EXPECT_EQ(texture->srv, registry.getTexture(registry.find(assets.getTextures().pData[0].id))->getTexture().getSrvIndex());
+        EXPECT_EQ(texture->srv, assetManager.getTexture(assetManager.find(assets.getTextures().pData[0].id))->getTexture().getSrvIndex());
         EXPECT_EQ(tables.getTexture({ .index = meshID.index, .generation = meshID.generation }), nullptr);
         EXPECT_TRUE(warm.getBuffers().instances.isValid());
         EXPECT_TRUE(warm.getBuffers().meshes.isValid());
@@ -1948,7 +1948,7 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.removeComponent(b, hz::SceneTypes::meshRenderer));
     scene.update();
-    registry.update();
+    assetManager.update();
     EXPECT_NE(frame.getAssets().getMesh(meshHandle), nullptr);
     EXPECT_NE(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
     hz::GPUBuffer    meshReadback = context.createBuffer({ .size = sizeof(hz::GpuMeshRecord),
@@ -1969,12 +1969,12 @@ TEST_F(TypedAssetLiveTest, SceneFramesPairGpuTablesHistoryAndRotatingBackingStor
     EXPECT_EQ(copiedMesh->id, meshID);
     EXPECT_EQ(copiedMesh->submeshCount, 1u);
     pool.collect();
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    const hz::AssetHandle reloaded = registry.find(renderer.mesh);
-    wait(registry, reloaded);
+    const hz::AssetHandle reloaded = assetManager.find(renderer.mesh);
+    wait(assetManager, reloaded);
     frame = pool.capture();
     EXPECT_NE(frame.getObjects().pData[scene.findObject(a).index].mesh, meshID);
     EXPECT_EQ(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
@@ -1992,12 +1992,12 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "LightCameraFrameTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World              world(types);
-    hz::RenderScene        scene(world, registry, { .journalCapacity = 8 });
+    hz::RenderScene        scene(world, assetManager, { .journalCapacity = 8 });
     const hz::Entity       entity = world.createEntity();
     hz::Light              light = { .type = hz::LightType::Mesh, .intensity = 4, .texture = assets.getTextures().pData[0].id };
     hz::Camera             lens = { .verticalFov = 0.8f };
@@ -2009,15 +2009,15 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     scene.update();
     const hz::RenderLightID  lightID = scene.findLight(entity);
     const hz::RenderCameraID cameraID = scene.findCamera(entity);
-    const hz::AssetHandle    textureHandle = registry.find(light.texture);
+    const hz::AssetHandle    textureHandle = assetManager.find(light.texture);
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u);
-    wait(registry, textureHandle);
+    wait(assetManager, textureHandle);
     scene.update();
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u); // Mesh emitter still has no mesh.
     EXPECT_TRUE(scene.getLight(lightID)->texture.isValid());
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    wait(registry, registry.find(renderer.mesh));
+    wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
     const hz::RenderObjectID objectID = scene.findObject(entity);
     ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
@@ -2129,11 +2129,11 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     // Removing only the mesh disables its emitter, keeping the light slot and texture lease.
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::meshRenderer));
     scene.update();
-    registry.update();
+    assetManager.update();
     EXPECT_EQ(scene.findLight(entity), lightID);
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u);
     EXPECT_FALSE(scene.getLight(lightID)->object.isValid());
-    EXPECT_EQ(registry.getState(textureHandle), hz::AssetState::Ready);
+    EXPECT_EQ(assetManager.getState(textureHandle), hz::AssetState::Ready);
     light.type = hz::LightType::Dome;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
     frame = pool.capture();
@@ -2141,7 +2141,7 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::light));
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::camera));
     scene.update();
-    registry.update();
+    assetManager.update();
     EXPECT_NE(frame.getAssets().getTexture(textureHandle), nullptr);
     EXPECT_NE(frame.getAssets().getGpuTables().getTexture(textureID), nullptr);
     hz::CommandList& retired = context.acquireCommandList();
@@ -2152,8 +2152,8 @@ TEST_F(TypedAssetLiveTest, SceneFramesFreezeLightsAndCameraHistoryAndRetireEmiss
     context.wait(retiredSubmission);
     EXPECT_EQ(copiedLight->texture, textureID);
     pool.collect();
-    registry.update();
-    EXPECT_EQ(registry.getCount(), 0u);
+    assetManager.update();
+    EXPECT_EQ(assetManager.getCount(), 0u);
     for (uint32_t i = 0; i < 3; ++i)
     {
         frame = pool.capture();
@@ -2187,15 +2187,15 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "WorldWorkflowTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
-    hz::AssetRegistry registry(catalog);
-    loaders.registerLoaders(registry);
-    const hz::AssetHandle source = registry.request(assets.getID());
-    wait(registry, source);
-    ASSERT_EQ(registry.getState(source), hz::AssetState::Ready);
+    hz::AssetManager  assetManager(catalog);
+    loaders.registerLoaders(assetManager);
+    const hz::AssetHandle source = assetManager.request(assets.getID());
+    wait(assetManager, source);
+    ASSERT_EQ(assetManager.getState(source), hz::AssetState::Ready);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::unique_ptr<hz::World> world = hz::make_unique<hz::World>(types);
-    const hz::Entity          root = registry.getScene(source)->instantiate(*world);
+    const hz::Entity          root = assetManager.getScene(source)->instantiate(*world);
     hz::Entity                first, second;
     {
         hz::WorldQuery query(*world, { hz::SceneTypes::meshRenderer });
@@ -2231,16 +2231,16 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(saved.save(RD_OTHER_FILES, "edited.world.json"));
     hz::Array<char> original;
     ASSERT_TRUE(saved.serialize(original));
-    hz::unique_ptr<hz::RenderScene> scene = hz::make_unique<hz::RenderScene>(*world, registry);
+    hz::unique_ptr<hz::RenderScene> scene = hz::make_unique<hz::RenderScene>(*world, assetManager);
     scene->update();
     ASSERT_EQ(scene->getActiveDraws().count, 2u);
-    ASSERT_TRUE(registry.release(source));
+    ASSERT_TRUE(assetManager.release(source));
     hz::unique_ptr<hz::SceneFramePool> pool = hz::make_unique<hz::SceneFramePool>(*scene, context);
     hz::GPUBuffer         readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord) + 36,
                                                             .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                             .startState = RESOURCE_STATE_COPY_DEST,
                                                             .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    const hz::AssetHandle oldMesh = registry.find(renderer.mesh);
+    const hz::AssetHandle oldMesh = assetManager.find(renderer.mesh);
     for (uint32_t pass = 0; pass < 2; ++pass)
     {
         const hz::Entity entity = world->getEntity(firstID);
@@ -2269,7 +2269,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         const hz::GpuMaterialRecord* material = frame.getAssets().getGpuTables().getMaterial(draw->material);
         ASSERT_NE(material, nullptr);
         EXPECT_NE(frame.getAssets().getGpuTables().getTexture(material->baseColorTexture), nullptr);
-        const hz::MeshAsset* mesh = frame.getAssets().getMesh(registry.find(renderer.mesh));
+        const hz::MeshAsset* mesh = frame.getAssets().getMesh(assetManager.find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
         hz::CommandList& commands = context.acquireCommandList();
         commands.copyBuffer(readback, 0, frame.getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
@@ -2283,9 +2283,9 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_TRUE(context.isComplete(submission));
         scene = nullptr;
         world = nullptr;
-        registry.update();
-        EXPECT_EQ(registry.getCount(), 0u);
-        EXPECT_EQ(registry.getMesh(oldMesh), nullptr);
+        assetManager.update();
+        EXPECT_EQ(assetManager.getCount(), 0u);
+        EXPECT_EQ(assetManager.getMesh(oldMesh), nullptr);
         const hz::RenderInstance* copied = (const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
         EXPECT_EQ(copied->objectID, firstID);
         EXPECT_FLOAT_EQ((float)copied->current.getElem(3, 0), 6);
@@ -2308,17 +2308,17 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         ASSERT_TRUE(loaded.serialize(restored));
         ASSERT_EQ(restored.size(), original.size());
         EXPECT_EQ(memcmp(restored.data(), original.data(), original.size()), 0);
-        scene = hz::make_unique<hz::RenderScene>(*world, registry);
+        scene = hz::make_unique<hz::RenderScene>(*world, assetManager);
         scene->update();
-        const hz::AssetHandle reloadedMesh = registry.find(renderer.mesh);
+        const hz::AssetHandle reloadedMesh = assetManager.find(renderer.mesh);
         ASSERT_TRUE(reloadedMesh.isValid());
         EXPECT_NE(reloadedMesh, oldMesh);
-        wait(registry, reloadedMesh);
-        wait(registry, registry.find(assets.getMeshes().pData[1].id));
+        wait(assetManager, reloadedMesh);
+        wait(assetManager, assetManager.find(assets.getMeshes().pData[1].id));
         scene->update();
         pool = hz::make_unique<hz::SceneFramePool>(*scene, context);
     }
-    registry.shutdown();
+    assetManager.shutdown();
 }
 
 TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancelsLoads)
@@ -2340,65 +2340,65 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
     {
         writeGeometry();
         std::filesystem::resize_file(directory / "scene.bin", prefix);
-        hz::AssetRegistry registry(catalog);
-        loaders.registerLoaders(registry);
-        const hz::AssetHandle mesh = registry.request(scene.getMeshes().pData[0].id);
-        wait(registry, mesh);
-        EXPECT_EQ(registry.getError(mesh), hz::AssetError::UploadFailed) << prefix;
-        EXPECT_EQ(registry.getMesh(mesh), nullptr);
+        hz::AssetManager assetManager(catalog);
+        loaders.registerLoaders(assetManager);
+        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().pData[0].id);
+        wait(assetManager, mesh);
+        EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed) << prefix;
+        EXPECT_EQ(assetManager.getMesh(mesh), nullptr);
     }
     writeGeometry((IndexType)2);
     {
-        hz::AssetRegistry registry(catalog);
-        loaders.registerLoaders(registry);
-        const hz::AssetHandle mesh = registry.request(scene.getMeshes().pData[0].id);
-        wait(registry, mesh);
-        EXPECT_EQ(registry.getError(mesh), hz::AssetError::UploadFailed);
-        EXPECT_EQ(registry.getMesh(mesh), nullptr);
+        hz::AssetManager assetManager(catalog);
+        loaders.registerLoaders(assetManager);
+        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().pData[0].id);
+        wait(assetManager, mesh);
+        EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed);
+        EXPECT_EQ(assetManager.getMesh(mesh), nullptr);
     }
     std::filesystem::remove(directory / "scene.bin");
     {
-        hz::AssetRegistry registry(catalog);
-        loaders.registerLoaders(registry);
-        const hz::AssetHandle mesh = registry.request(scene.getMeshes().pData[0].id);
-        wait(registry, mesh);
-        EXPECT_EQ(registry.getError(mesh), hz::AssetError::UploadFailed);
+        hz::AssetManager assetManager(catalog);
+        loaders.registerLoaders(assetManager);
+        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().pData[0].id);
+        wait(assetManager, mesh);
+        EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed);
     }
     writeGeometry();
     hz::AssetCatalogEntry wrong = *catalog.find(scene.getMeshes().pData[0].id);
     wrong.location.elementIndex = 1;
     ASSERT_TRUE(catalog.replace(wrong));
     {
-        hz::AssetRegistry registry(catalog);
-        loaders.registerLoaders(registry);
-        const hz::AssetHandle mismatched = registry.request(wrong.id);
-        const hz::AssetHandle root = registry.request(scene.getID());
-        wait(registry, root);
-        EXPECT_EQ(registry.getError(root), hz::AssetError::DependencyFailed);
-        EXPECT_EQ(registry.getError(mismatched), hz::AssetError::LoadFailed);
+        hz::AssetManager assetManager(catalog);
+        loaders.registerLoaders(assetManager);
+        const hz::AssetHandle mismatched = assetManager.request(wrong.id);
+        const hz::AssetHandle root = assetManager.request(scene.getID());
+        wait(assetManager, root);
+        EXPECT_EQ(assetManager.getError(root), hz::AssetError::DependencyFailed);
+        EXPECT_EQ(assetManager.getError(mismatched), hz::AssetError::LoadFailed);
     }
     wrong.location.elementIndex = 0;
     ASSERT_TRUE(catalog.replace(wrong));
     for (uint32_t phase = 0; phase < 2; ++phase)
     {
-        hz::AssetRegistry registry(catalog);
-        loaders.registerLoaders(registry);
-        const hz::AssetHandle root = registry.request(scene.getID());
+        hz::AssetManager assetManager(catalog);
+        loaders.registerLoaders(assetManager);
+        const hz::AssetHandle root = assetManager.request(scene.getID());
         if (phase)
         {
             for (uint32_t i = 0; i < 5000; ++i)
             {
-                registry.update();
-                if (registry.getState(registry.find(wrong.id)) == hz::AssetState::UploadingGPU)
+                assetManager.update();
+                if (assetManager.getState(assetManager.find(wrong.id)) == hz::AssetState::UploadingGPU)
                     break;
                 threadSleep(1);
             }
-            EXPECT_EQ(registry.getState(registry.find(wrong.id)), hz::AssetState::UploadingGPU);
+            EXPECT_EQ(assetManager.getState(assetManager.find(wrong.id)), hz::AssetState::UploadingGPU);
         }
         else
-            registry.update();
-        registry.release(root);
-        registry.shutdown();
-        EXPECT_EQ(registry.getCount(), 0u);
+            assetManager.update();
+        assetManager.release(root);
+        assetManager.shutdown();
+        EXPECT_EQ(assetManager.getCount(), 0u);
     }
 }

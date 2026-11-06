@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 #pragma once
 
-#include "Scene/AssetRegistry.h"
+#include "Scene/AssetManager.h"
 #include "Scene/World.h"
 #include "Scene/SceneComponents.h"
 #include "Core/IMath.h"
@@ -161,14 +161,14 @@ struct RenderSceneSync
 class RenderScene
 {
 public:
-    // Owns World asset bindings. World and registry must outlive this scene.
-    RenderScene(World& world, AssetRegistry& registry, const RenderSceneDesc& desc = {});
+    // Owns World asset bindings. World and asset manager must outlive this scene.
+    RenderScene(World& world, AssetManager& assetManager, const RenderSceneDesc& desc = {});
     ~RenderScene();
     RenderScene(const RenderScene&) = delete;
     RenderScene& operator=(const RenderScene&) = delete;
 
     void               reserve(uint32_t objectCount, uint32_t drawCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
-    // Runs after registry loading/mutation. Updates World transforms and bindings without advancing history.
+    // Runs after asset manager loading/mutation. Updates World transforms and bindings without advancing history.
     void               update();
     uint64_t           getRevision() const;
     // Only the latest update; not a journal for rotating GPU backing storage.

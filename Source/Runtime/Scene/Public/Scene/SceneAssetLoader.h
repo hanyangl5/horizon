@@ -2,7 +2,7 @@
 #pragma once
 
 #include "Core/IFileSystem.h"
-#include "Scene/AssetRegistry.h"
+#include "Scene/AssetManager.h"
 
 namespace hz
 {

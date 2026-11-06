@@ -2,7 +2,7 @@ struct LoadedScene
 {
     MeshData                 meshData;
     Scene                    scene;
-    std::vector<BoundingBox> worldBoxes;
+    hz::Array<BoundingBox> worldBoxes;
     BoundingBox              worldBounds;
 };
 

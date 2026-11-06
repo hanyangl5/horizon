@@ -94,20 +94,20 @@ private:
         }
         pLoaders = hz::make_unique<hz::AssetLoaders>(
             *pContext, hz::AssetLoadersDesc{ .vertexLayout = kSceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
-        pRegistry = hz::make_unique<hz::AssetRegistry>(catalog);
-        pLoaders->registerLoaders(*pRegistry);
-        const hz::AssetHandle handle = pRegistry->request(entry->id);
+        pAssetManager = hz::make_unique<hz::AssetManager>(catalog);
+        pLoaders->registerLoaders(*pAssetManager);
+        const hz::AssetHandle handle = pAssetManager->request(entry->id);
         if (!handle.isValid())
             return false;
-        while (pRegistry->getState(handle) != hz::AssetState::Ready && pRegistry->getState(handle) != hz::AssetState::Failed)
+        while (pAssetManager->getState(handle) != hz::AssetState::Ready && pAssetManager->getState(handle) != hz::AssetState::Failed)
         {
-            pRegistry->update();
+            pAssetManager->update();
             threadSleep(1);
         }
-        const hz::SceneAsset* asset = pRegistry->getScene(handle);
+        const hz::SceneAsset* asset = pAssetManager->getScene(handle);
         if (!asset)
         {
-            LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", sceneFile, (uint32_t)pRegistry->getError(handle));
+            LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", sceneFile, (uint32_t)pAssetManager->getError(handle));
             return false;
         }
         pTypes = hz::make_unique<hz::TypeRegistry>();
@@ -119,12 +119,12 @@ private:
             LOGF(eERROR, "Cannot instantiate SceneAsset '%s'", sceneFile);
             return false;
         }
-        pScene = hz::make_unique<hz::RenderScene>(*pWorld, *pRegistry);
+        pScene = hz::make_unique<hz::RenderScene>(*pWorld, *pAssetManager);
         pScene->reserve(asset->getNodes().count, asset->getNodes().count, 1, 1);
         pScene->update();
         LOGF(eINFO, "World ready: %u render objects, %u instances, %u draws, %u materials, %u textures", pScene->getActiveObjects().count,
              pScene->getActiveInstances().count, pScene->getActiveDraws().count, asset->getMaterials().count, asset->getTextures().count);
-        pRegistry->release(handle);
+        pAssetManager->release(handle);
         return true;
     }
 
@@ -150,9 +150,9 @@ public:
         pScene = nullptr;
         pWorld = nullptr;
         pTypes = nullptr;
-        if (pRegistry)
-            pRegistry->shutdown();
-        pRegistry = nullptr;
+        if (pAssetManager)
+            pAssetManager->shutdown();
+        pAssetManager = nullptr;
         pLoaders = nullptr;
         catalog.clear();
         cameraEntity = {};
@@ -182,7 +182,7 @@ public:
         const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
         const bool            updated = pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose);
         ASSERT(updated);
-        pRegistry->update();
+        pAssetManager->update();
         pRenderPasses->update();
     }
     const char* GetName() override { return "Renderer"; }
@@ -228,9 +228,9 @@ private:
         const hz::LocalMatrix sunPose = { .value = Matrix4(Vector4(x, 0), Vector4(cross(z, x), 0), Vector4(z, 0), Vector4(0, 0, 0, 1)) };
         const hz::Entity      sunEntity = pWorld->createObject();
         const bool            created = pWorld->setComponent(cameraEntity, hz::SceneTypes::camera, &camera) &&
-                             pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose) &&
-                             pWorld->setComponent(sunEntity, hz::SceneTypes::light, &sun) &&
-                             pWorld->setComponent(sunEntity, hz::SceneTypes::localMatrix, &sunPose);
+                                        pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose) &&
+                                        pWorld->setComponent(sunEntity, hz::SceneTypes::light, &sun) &&
+                                        pWorld->setComponent(sunEntity, hz::SceneTypes::localMatrix, &sunPose);
         ASSERT(created);
         pScene->update();
         LOGF(eINFO, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
@@ -240,7 +240,7 @@ private:
     hz::unique_ptr<hz::RenderContext>    pContext;
     hz::AssetCatalog                     catalog;
     hz::unique_ptr<hz::AssetLoaders>     pLoaders;
-    hz::unique_ptr<hz::AssetRegistry>    pRegistry;
+    hz::unique_ptr<hz::AssetManager>     pAssetManager;
     hz::unique_ptr<hz::TypeRegistry>     pTypes;
     hz::unique_ptr<hz::World>            pWorld;
     hz::unique_ptr<hz::RenderScene>      pScene;

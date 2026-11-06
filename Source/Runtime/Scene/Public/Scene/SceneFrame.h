@@ -69,7 +69,7 @@ private:
 class SceneFramePool
 {
 public:
-    // Scene, registry and context outlive the pool; destroy unsubmitted leases before the pool.
+    // Scene, asset manager and context outlive the pool; destroy unsubmitted leases before the pool.
     SceneFramePool(RenderScene& scene, RenderContext& context, const SceneFramePoolDesc& desc = {});
     ~SceneFramePool();
     SceneFramePool(const SceneFramePool&) = delete;

@@ -53,11 +53,11 @@ struct AssetLoadResult
     void*           pPayload = nullptr;
 };
 
-class AssetRegistry;
+class AssetManager;
 
-// Loader callbacks run on the registry's owning thread. begin/poll/upload must not wait for IO or GPU work.
-// A terminal poll transfers its payload to the registry, including partial failure results.
-// Callbacks may query dependencies, but must not mutate the registry. Payload type matches the registered AssetType.
+// Loader callbacks run on the asset manager's owning thread. begin/poll/upload must not wait for IO or GPU work.
+// A terminal poll transfers its payload to the asset manager, including partial failure results.
+// Callbacks may query dependencies, but must not mutate the asset manager. Payload type matches the registered AssetType.
 struct AssetLoader
 {
     void* pUserData = nullptr;
@@ -67,7 +67,7 @@ struct AssetLoader
     void (*pDestroyRequest)(void* pRequest, void* pUserData) = nullptr;
     void (*pDestroyPayload)(void* pPayload, void* pUserData) = nullptr;
     // Optional GPU phase, called after all dependencies are ready. pollUpload owns failure detection and drains partial uploads.
-    void (*pUpload)(void* pPayload, const AssetRegistry&, Span<AssetHandle> dependencies, void* pUserData) = nullptr;
+    void (*pUpload)(void* pPayload, const AssetManager&, Span<AssetHandle> dependencies, void* pUserData) = nullptr;
     AssetLoadStatus (*pPollUpload)(void* pPayload, void* pUserData) = nullptr;
     void (*pWaitUpload)(void* pPayload, void* pUserData) = nullptr;
 };
@@ -76,12 +76,12 @@ class SceneAsset;
 class TextureAsset;
 class MeshAsset;
 class MaterialAsset;
-class AssetRegistryData;
+class AssetManagerData;
 class AssetSnapshotData;
 class RenderContext;
 struct SubmitHandle;
 
-// Pins one immutable set of ready payloads. Destroy unsubmitted snapshots before registry shutdown.
+// Pins one immutable set of ready payloads. Destroy unsubmitted snapshots before asset manager shutdown.
 class AssetSnapshot
 {
 public:
@@ -103,17 +103,17 @@ public:
 
 private:
     AssetSnapshotData* pData = nullptr;
-    friend class AssetRegistry;
+    friend class AssetManager;
 };
 
-// Single-threaded mutation. Catalog entries and loader contexts must outlive the registry.
-class AssetRegistry
+// Single-threaded mutation. Catalog entries and loader contexts must outlive the asset manager.
+class AssetManager
 {
 public:
-    explicit AssetRegistry(const AssetCatalog& catalog);
-    ~AssetRegistry();
-    AssetRegistry(const AssetRegistry&) = delete;
-    AssetRegistry& operator=(const AssetRegistry&) = delete;
+    explicit AssetManager(const AssetCatalog& catalog);
+    ~AssetManager();
+    AssetManager(const AssetManager&) = delete;
+    AssetManager& operator=(const AssetManager&) = delete;
 
     void                 setLoader(AssetType type, const AssetLoader& loader);
     AssetHandle          request(AssetID id, AssetError* pError = nullptr);
@@ -130,12 +130,12 @@ public:
     AssetSnapshot        captureSnapshot();
     // Encodes GPU indirection tables once per ready payload set. Requires the typed loaders.
     AssetSnapshot        captureRenderSnapshot();
-    // Transfers the snapshot lease to the submission fence; context must outlive the registry.
+    // Transfers the snapshot lease to the submission fence; context must outlive the asset manager.
     void                 retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission);
     uint32_t             getCount() const;
     void                 shutdown();
 
 private:
-    AssetRegistryData* pData = nullptr;
+    AssetManagerData* pData = nullptr;
 };
 } // namespace hz

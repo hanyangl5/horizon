@@ -20,16 +20,16 @@ static int compareOverrides(const void* pA, const void* pB)
 class WorldMeshBinding
 {
 public:
-    WorldMeshBinding(Entity entity, AssetRegistry& registry, Array<AssetHandle>& releases):
-        entity(entity), registry(registry), releases(releases)
+    WorldMeshBinding(Entity entity, AssetManager& assetManager, Array<AssetHandle>& releases):
+        entity(entity), assetManager(assetManager), releases(releases)
     {
     }
 
     ~WorldMeshBinding()
     {
         for (const MaterialAssetBinding& material : materials)
-            registry.release(material.handle);
-        registry.release(view.mesh);
+            assetManager.release(material.handle);
+        assetManager.release(view.mesh);
     }
 
     void sync(const MeshRenderer& renderer)
@@ -75,7 +75,7 @@ public:
             releaseMaterials();
             return;
         }
-        const MeshAsset* pMesh = registry.getMesh(view.mesh);
+        const MeshAsset* pMesh = assetManager.getMesh(view.mesh);
         if (meshState == AssetBindingState::Failed || !pMesh)
         {
             fail("Mesh asset failed to load or has the wrong type");
@@ -96,7 +96,7 @@ public:
             }
             const AssetBindingState materialState = state(material.handle);
             if (materialState == AssetBindingState::Failed ||
-                (materialState == AssetBindingState::Ready && !registry.getMaterial(material.handle)))
+                (materialState == AssetBindingState::Ready && !assetManager.getMaterial(material.handle)))
             {
                 fail("Material asset failed to load or has the wrong type");
                 return;
@@ -113,10 +113,10 @@ public:
 private:
     bool acquire(AssetID id, AssetHandle& handle)
     {
-        if (registry.getState(registry.find(id)) == AssetState::Retiring)
+        if (assetManager.getState(assetManager.find(id)) == AssetState::Retiring)
             return true;
         AssetError error;
-        handle = registry.request(id, &error);
+        handle = assetManager.request(id, &error);
         return handle.isValid() || error == AssetError::Retiring;
     }
 
@@ -124,7 +124,7 @@ private:
     {
         if (!handle.isValid())
             return AssetBindingState::Pending;
-        switch (registry.getState(handle))
+        switch (assetManager.getState(handle))
         {
         case AssetState::Ready:
             return AssetBindingState::Ready;
@@ -196,7 +196,7 @@ private:
         return acquired;
     }
 
-    AssetRegistry&              registry;
+    AssetManager&               assetManager;
     Array<AssetHandle>&         releases;
     AssetID                     meshID;
     Array<MaterialOverride>     overrides;
@@ -214,8 +214,8 @@ struct WorldBindingIndex
 class WorldAssetBindingsData
 {
 public:
-    WorldAssetBindingsData(World& world, AssetRegistry& registry):
-        world(world), registry(registry), query(world, { SceneTypes::meshRenderer })
+    WorldAssetBindingsData(World& world, AssetManager& assetManager):
+        world(world), assetManager(assetManager), query(world, { SceneTypes::meshRenderer })
     {
         ASSERT(query.isValid());
     }
@@ -242,7 +242,7 @@ public:
         const uint32_t           index = pIndex ? pIndex->value : data.bindings.size();
         if (!pIndex)
         {
-            data.bindings.pushBack(tf_new(WorldMeshBinding, entity, data.registry, data.releases));
+            data.bindings.pushBack(tf_new(WorldMeshBinding, entity, data.assetManager, data.releases));
             const WorldBindingIndex entry = { .key = entity, .value = index };
             hmputs(data.pIndices, entry);
         }
@@ -275,19 +275,21 @@ public:
                 hmgetp_null(pIndices, bindings[i]->entity)->value = i;
         }
         for (AssetHandle handle : releases)
-            registry.release(handle);
+            assetManager.release(handle);
         releases.clear();
     }
 
     World&                   world;
-    AssetRegistry&           registry;
+    AssetManager&            assetManager;
     WorldQuery               query;
     Array<WorldMeshBinding*> bindings;
     Array<AssetHandle>       releases;
     WorldBindingIndex*       pIndices = nullptr;
 };
 
-WorldAssetBindings::WorldAssetBindings(World& world, AssetRegistry& registry): pData(tf_new(WorldAssetBindingsData, world, registry)) {}
+WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager): pData(tf_new(WorldAssetBindingsData, world, assetManager))
+{
+}
 WorldAssetBindings::~WorldAssetBindings() { tf_delete(pData); }
 void                    WorldAssetBindings::update() { pData->update(); }
 void                    WorldAssetBindings::clear() { pData->clear(); }

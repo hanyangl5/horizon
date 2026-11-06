@@ -24,10 +24,10 @@
 flowchart LR
     source[glTF 源资产] --> cook[AssetPipeline]
     cook --> cooked[Cooked 资产与 Catalog]
-    cooked --> registry[AssetRegistry 与 Loaders]
-    registry -->|实例化 SceneAsset| world[World]
+    cooked --> assetManager[AssetManager 与 Loaders]
+    assetManager -->|实例化 SceneAsset| world[World]
     world --> scene[RenderScene]
-    registry -->|解析与持有资产| scene
+    assetManager -->|解析与持有资产| scene
     scene --> frames[SceneFramePool]
     frames --> renderer[Renderer / GPU]
     world <--> document[WorldDocument]
@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | `AssetID` | 某份 Mesh、Material、Texture 或 SceneAsset | 保存资产引用时使用 |
 | `ObjectID` | 世界中的某个可编辑对象 | 保存 |
-| `AssetHandle` | Registry 中的一次运行时资产记录 | 不保存 |
+| `AssetHandle` | Asset Manager 中的一次运行时资产记录 | 不保存 |
 | `Entity` | 某个 World 中的运行时实体 | 不保存 |
 
 十把椅子可以拥有相同的 Mesh `AssetID`，但每把都有不同的 `ObjectID`。重新打开场景时，这些 `ObjectID` 保持不变；对应的 `Entity` 则需要在新 World 中重新查找。
@@ -64,7 +64,7 @@ World 是一个管理对象的 C++ 类，内部借助 Flecs 存储组件和执�
 
 组件保持为简单数据。例如 `LocalTransform` 保存平移、旋转和缩放，`MeshRenderer` 保存 Mesh 的 AssetID 及材质覆盖。它们可以被编辑、序列化和提取，不需要各自继承一个带虚函数的对象基类。
 
-这让 OOP 和 ECS 各有位置：World、Registry、RenderScene 封装状态与生命周期；大量对象的属性按组件存储。对象上有什么能力，由它实际拥有的组件决定。
+这让 OOP 和 ECS 各有位置：World、Asset Manager、RenderScene 封装状态与生命周期；大量对象的属性按组件存储。对象上有什么能力，由它实际拥有的组件决定。
 
 下面的片段可放入一个返回 `bool` 的示例函数。需要包含 `Scene/World.h` 和 `Scene/SceneComponents.h`：
 
@@ -121,11 +121,11 @@ childWorld = parentWorld × childLocal
 
 **AssetCatalog 保存资产目录。** 它将 AssetID 对应到类型、文件位置和依赖关系。读取 Catalog 只获得元数据，不等于把里面所有网格和纹理都加载进内存。
 
-**AssetRegistry 管理运行时记录。** `request(id)` 会查找或创建记录，取得一份引用，并安排依赖加载。重复请求同一 ID 可以复用记录；每次取得的引用都需要对应释放。`find(id)` 只查询已有记录，不取得引用。
+**AssetManager 管理运行时记录。** `request(id)` 会查找或创建记录，取得一份引用，并安排依赖加载。重复请求同一 ID 可以复用记录；每次取得的引用都需要对应释放。`find(id)` 只查询已有记录，不取得引用。
 
-**AssetLoaders 完成具体工作。** 它负责读取、解码、上传和销毁不同类型的已加载数据（payload）。Registry 通过统一协议推进状态，Mesh、Texture 等 loader 处理各自的数据细节。底层 ResourceLoader 仍可参与 GPU 上传。
+**AssetLoaders 完成具体工作。** 它负责读取、解码、上传和销毁不同类型的已加载数据（payload）。Asset Manager 通过统一协议推进状态，Mesh、Texture 等 loader 处理各自的数据细节。底层 ResourceLoader 仍可参与 GPU 上传。
 
-一次请求大致经历排队、CPU 加载、等待依赖、GPU 上传，最后到达 Ready 或 Failed。请求返回后，调用方可以通过 `registry.update()` 推进加载并查询结果。Renderer 的初始化允许等待场景就绪，普通帧则继续按帧推进。
+一次请求大致经历排队、CPU 加载、等待依赖、GPU 上传，最后到达 Ready 或 Failed。请求返回后，调用方可以通过 `assetManager.update()` 推进加载并查询结果。Renderer 的初始化允许等待场景就绪，普通帧则继续按帧推进。
 
 SceneAsset 依赖节点实际引用的 Mesh，Mesh 继续依赖默认材质，材质再引用纹理。Scene 请求 Ready 时，其必要依赖也已经就绪。多个 Mesh 可以共享同一次底层 geometry 上传；多个对象引用相同 Mesh，也不会各自复制顶点数据。
 
@@ -143,14 +143,14 @@ SceneAsset 保存一个可实例化的节点模板：名称、父索引、局部
 
 当前由 `WorldAssetBindings` 解析这些资产引用，取得 Mesh 和覆盖后材质的长期引用。RenderScene 拥有这层绑定，因此 Renderer 通常直接创建 RenderScene。绑定状态为 Pending 或 Failed 时，对象不会作为正常可绘制内容提交。
 
-实际初始化顺序需要保留引用的交接。以下省略错误检查，`world` 和 `registry` 已经存在，`sceneHandle` 对应的资产已经 Ready：
+实际初始化顺序需要保留引用的交接。以下省略错误检查，`world` 和 `assetManager` 已经存在，`sceneHandle` 对应的资产已经 Ready：
 
 ```cpp
-const hz::SceneAsset* asset = registry.getScene(sceneHandle);
+const hz::SceneAsset* asset = assetManager.getScene(sceneHandle);
 const hz::Entity root = asset->instantiate(world);
-hz::RenderScene scene(world, registry);
+hz::RenderScene scene(world, assetManager);
 scene.update();
-registry.release(sceneHandle);
+assetManager.release(sceneHandle);
 ```
 
 先让 RenderScene 建立长期绑定，再释放 Scene 请求持有的引用。SceneAsset 模板完成实例化后可以卸载；活着的对象仍通过绑定保留所需资源。实例化失败则回滚本次创建的新对象，不留下半个场景。
@@ -191,14 +191,14 @@ RenderScene 本身仍会继续更新。它返回的 Span 是借用视图，下�
 
 SceneFramePool 把场景记录与相匹配的资产表一起捕获，返回一份只能移动、不能复制的 lease。这里的 lease 表示一份有明确归还点的使用权：持有期间，相关资源不会被回收。调用方通过它读取当前帧数据；提交后把它转交给帧池，直到 GPU 完成才允许回收。
 
-配对很关键。例如旧 Draw 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 Draw 和资产表，不能随手从 Registry 查询另一时刻的表来拼接。
+配对很关键。例如旧 Draw 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 Draw 和资产表，不能随手从 Asset Manager 查询另一时刻的表来拼接。
 
-当前快照保护 Registry 当时整个 Ready payload 集合，并非已经实现了逐可见对象的精细资源筛选。这个选择使初版快照边界清楚，后续可以在不改变 World 组件的前提下继续优化。
+当前快照保护 Asset Manager 当时整个 Ready payload 集合，并非已经实现了逐可见对象的精细资源筛选。这个选择使初版快照边界清楚，后续可以在不改变 World 组件的前提下继续优化。
 
 Renderer 的实际帧流程如下：
 
 ```text
-Update：相机输入 → 修改 World 组件 → registry.update()
+Update：相机输入 → 修改 World 组件 → assetManager.update()
 Draw：capture → 提取场景与资产 → 记录 Pass → submit → retire
 随后：fence 完成 → collect → 允许复用 backing 和释放引用
 ```
@@ -286,9 +286,9 @@ return restored->isAlive(restored->getEntity(chairID));
 
 ## 12. 退出时，按依赖关系结束生命周期
 
-RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确顺序销毁拥有者。帧池借用 RenderScene 和 RenderContext，RenderScene 借用 World 和 Registry；这些依赖需要比使用它们的对象活得更久。
+RAII 让每个拥有者负责释放自己的资源，也要求调用方按正确顺序销毁拥有者。帧池借用 RenderScene 和 RenderContext，RenderScene 借用 World 和 Asset Manager；这些依赖需要比使用它们的对象活得更久。
 
-正常关闭时，先停止生成新帧，结束未提交的 lease。等待或由帧池 drain 已提交工作后，销毁帧池和渲染 Pass，再销毁 RenderScene，释放长期资产绑定。随后销毁 World 和相关 metadata，shutdown Registry，清理还在加载或上传的任务，最后结束 loaders、catalog 和 RenderContext。
+正常关闭时，先停止生成新帧，结束未提交的 lease。等待或由帧池 drain 已提交工作后，销毁帧池和渲染 Pass，再销毁 RenderScene，释放长期资产绑定。随后销毁 World 和相关 metadata，shutdown Asset Manager，清理还在加载或上传的任务，最后结束 loaders、catalog 和 RenderContext。
 
 实际 Renderer 在退出前先 `waitIdle()`，让这条关闭路径更直接。运行时删除单个对象仍依靠引用与 fence 退休，不需要为每次对象删除等待整个 GPU 空闲。
 

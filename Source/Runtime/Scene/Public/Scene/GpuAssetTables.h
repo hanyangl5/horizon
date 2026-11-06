@@ -5,7 +5,7 @@
 
 namespace hz
 {
-// Typed Registry slot identities, independent of RHI descriptor indices.
+// Typed asset manager slot identities, independent of RHI descriptor indices.
 struct GpuMeshID
 {
     uint32_t index = UINT32_MAX;
@@ -75,7 +75,7 @@ struct GpuTextureRecord
     uint32_t     srv = UINT32_MAX;
 };
 
-// Immutable CPU encoding of one pinned payload set; unused Registry slots have invalid IDs.
+// Immutable CPU encoding of one pinned payload set; unused asset manager slots have invalid IDs.
 struct GpuAssetTableSnapshot
 {
     Span<GpuMeshRecord>     meshes;

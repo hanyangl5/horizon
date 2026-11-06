@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 #pragma once
 
-#include "Scene/AssetRegistry.h"
+#include "Scene/AssetManager.h"
 #include "RHI/IGraphics.h"
 
 namespace hz
@@ -15,7 +15,7 @@ struct AssetLoadersDesc
     ResourceDirectory sourceDirectory = RD_TEXTURES;
 };
 
-// Owns the typed loaders and shared decoded documents/geometry. Must outlive registered registries.
+// Owns the typed loaders and shared decoded documents/geometry. Must outlive registered asset managers.
 class AssetLoaders
 {
 public:
@@ -24,7 +24,7 @@ public:
     AssetLoaders(const AssetLoaders&) = delete;
     AssetLoaders& operator=(const AssetLoaders&) = delete;
 
-    void registerLoaders(AssetRegistry& registry);
+    void registerLoaders(AssetManager& assetManager);
 
 private:
     AssetLoadersData* pData = nullptr;

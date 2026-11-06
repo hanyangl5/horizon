@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 Horizon */
 
-#include "Scene/AssetRegistry.h"
+#include "Scene/AssetManager.h"
 #include "Core/IContainer.h"
 #include "Graphics/RenderContext.h"
 #include "Scene/MeshAsset.h"
@@ -43,7 +43,7 @@ public:
         const SnapshotAsset& asset = assets[handle.index];
         return asset.generation == handle.generation && asset.type == type ? asset.pPayload : nullptr;
     }
-    AssetRegistryData*       pOwner = nullptr;
+    AssetManagerData*        pOwner = nullptr;
     Array<SnapshotAsset>     assets;
     Array<GpuMeshRecord>     meshes;
     Array<GpuVertexStream>   vertexStreams;
@@ -89,14 +89,14 @@ public:
     AssetVisit*                     pVisits = nullptr;
 };
 
-class AssetRegistryData
+class AssetManagerData
 {
 public:
-    AssetRegistryData(const AssetCatalog& catalog, const AssetRegistry& registry): catalog(catalog), registry(registry)
+    AssetManagerData(const AssetCatalog& catalog, const AssetManager& assetManager): catalog(catalog), assetManager(assetManager)
     {
         submissions.reserve(16);
     }
-    ~AssetRegistryData() { hmfree(pRecords); }
+    ~AssetManagerData() { hmfree(pRecords); }
 
     AssetSlot* find(AssetHandle handle)
     {
@@ -331,7 +331,7 @@ public:
             {
                 slot.uploading = true;
                 slot.state = AssetState::UploadingGPU;
-                loader.pUpload(slot.pPayload, registry, { slot.pDependencies, slot.pEntry->dependencies.count }, loader.pUserData);
+                loader.pUpload(slot.pPayload, assetManager, { slot.pDependencies, slot.pEntry->dependencies.count }, loader.pUserData);
             }
             else
                 slot.state = AssetState::Ready;
@@ -361,7 +361,7 @@ public:
     }
 
     const AssetCatalog&       catalog;
-    const AssetRegistry&      registry;
+    const AssetManager&       assetManager;
     AssetLoader               loaders[4] = {};
     Array<AssetSlot>          slots;
     Array<uint32_t>           freeSlots;
@@ -374,14 +374,14 @@ public:
     Array<SnapshotSubmission> submissions;
 };
 
-AssetRegistry::AssetRegistry(const AssetCatalog& catalog): pData(tf_new(AssetRegistryData, catalog, *this)) {}
-AssetRegistry::~AssetRegistry()
+AssetManager::AssetManager(const AssetCatalog& catalog): pData(tf_new(AssetManagerData, catalog, *this)) {}
+AssetManager::~AssetManager()
 {
     shutdown();
     tf_delete(pData);
 }
 
-void AssetRegistry::setLoader(AssetType type, const AssetLoader& loader)
+void AssetManager::setLoader(AssetType type, const AssetLoader& loader)
 {
     ASSERT(type <= AssetType::Texture && !getCount() && !pData->shuttingDown);
     ASSERT(loader.pBegin && loader.pPoll && loader.pDestroyRequest && loader.pDestroyPayload);
@@ -389,7 +389,7 @@ void AssetRegistry::setLoader(AssetType type, const AssetLoader& loader)
     pData->loaders[(uint32_t)type] = loader;
 }
 
-AssetHandle AssetRegistry::request(AssetID id, AssetError* pError)
+AssetHandle AssetManager::request(AssetID id, AssetError* pError)
 {
     AssetRequestPlan plan;
     const AssetError error = pData->shuttingDown ? AssetError::ShuttingDown : pData->prepare(id, plan);
@@ -411,9 +411,9 @@ AssetHandle AssetRegistry::request(AssetID id, AssetError* pError)
     return handle;
 }
 
-bool AssetRegistry::release(AssetHandle handle) { return pData->release(handle); }
+bool AssetManager::release(AssetHandle handle) { return pData->release(handle); }
 
-void AssetRegistry::update()
+void AssetManager::update()
 {
     pData->updateSubmissions(false);
     pData->retire();
@@ -422,40 +422,40 @@ void AssetRegistry::update()
     pData->retire();
 }
 
-AssetState AssetRegistry::getState(AssetHandle handle) const
+AssetState AssetManager::getState(AssetHandle handle) const
 {
     const AssetSlot* pSlot = pData->find(handle);
     return pSlot ? pSlot->state : AssetState::Invalid;
 }
 
-AssetError AssetRegistry::getError(AssetHandle handle) const
+AssetError AssetManager::getError(AssetHandle handle) const
 {
     const AssetSlot* pSlot = pData->find(handle);
     return pSlot ? pSlot->error : AssetError::UnknownAsset;
 }
 
-const SceneAsset* AssetRegistry::getScene(AssetHandle handle) const
+const SceneAsset* AssetManager::getScene(AssetHandle handle) const
 {
     return (const SceneAsset*)pData->getPayload(handle, AssetType::Scene);
 }
 
-const TextureAsset* AssetRegistry::getTexture(AssetHandle handle) const
+const TextureAsset* AssetManager::getTexture(AssetHandle handle) const
 {
     return (const TextureAsset*)pData->getPayload(handle, AssetType::Texture);
 }
-const MeshAsset* AssetRegistry::getMesh(AssetHandle handle) const { return (const MeshAsset*)pData->getPayload(handle, AssetType::Mesh); }
-const MaterialAsset* AssetRegistry::getMaterial(AssetHandle handle) const
+const MeshAsset* AssetManager::getMesh(AssetHandle handle) const { return (const MeshAsset*)pData->getPayload(handle, AssetType::Mesh); }
+const MaterialAsset* AssetManager::getMaterial(AssetHandle handle) const
 {
     return (const MaterialAsset*)pData->getPayload(handle, AssetType::Material);
 }
 
-AssetHandle AssetRegistry::find(AssetID id) const
+AssetHandle AssetManager::find(AssetID id) const
 {
     const AssetRecord* pRecord = hmgetp_null(pData->pRecords, id);
     return pRecord ? pRecord->value : AssetHandle{};
 }
 
-AssetSnapshot AssetRegistry::captureSnapshot()
+AssetSnapshot AssetManager::captureSnapshot()
 {
     AssetSnapshot result;
     if (pData->shuttingDown)
@@ -484,7 +484,7 @@ AssetSnapshot AssetRegistry::captureSnapshot()
     return result;
 }
 
-AssetSnapshot AssetRegistry::captureRenderSnapshot()
+AssetSnapshot AssetManager::captureRenderSnapshot()
 {
     AssetSnapshot result = captureSnapshot();
     if (!result.isValid() || result.pData->gpuTables)
@@ -561,7 +561,7 @@ GpuAssetTableSnapshot AssetSnapshot::getGpuTables() const
              .textures = { pData->textures.data(), pData->textures.size() } };
 }
 
-void AssetRegistry::retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission)
+void AssetManager::retireSnapshot(AssetSnapshot&& snapshot, RenderContext& context, SubmitHandle submission)
 {
     ASSERT(snapshot.pData && snapshot.pData->pOwner == pData && submission.isValid() && !pData->shuttingDown);
     pData->submissions.pushBack({ .pSnapshot = snapshot.pData, .pContext = &context, .submission = submission });
@@ -602,9 +602,9 @@ const MaterialAsset* AssetSnapshot::getMaterial(AssetHandle handle) const
     return pData ? (const MaterialAsset*)pData->find(handle, AssetType::Material) : nullptr;
 }
 
-uint32_t AssetRegistry::getCount() const { return (uint32_t)hmlen(pData->pRecords); }
+uint32_t AssetManager::getCount() const { return (uint32_t)hmlen(pData->pRecords); }
 
-void AssetRegistry::shutdown()
+void AssetManager::shutdown()
 {
     if (pData->shuttingDown)
         return;
