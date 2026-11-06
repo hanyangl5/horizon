@@ -31,47 +31,47 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
         }
         materialRevision = view.gpu.getAssetTables().revision;
     }
-    records.clear();
-    for (uint32_t slot : view.scene.getActiveMeshBatches())
+    drawData.clear();
+    for (uint32_t meshBatchIndex : view.scene.getActiveMeshBatches())
     {
-        const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[slot];
+        const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[meshBatchIndex];
         const hz::RenderPrimitive&   primitive = view.scene.getPrimitives().pData[draw.primitive.index];
-        const hz::GpuMeshRecord*     mesh = tables.getMesh(draw.mesh.mesh);
-        const hz::GpuMaterialRecord* material = tables.getMaterial(draw.material);
+        const hz::GpuMeshData*       mesh = tables.getMesh(draw.mesh.mesh);
+        const hz::GpuMaterialData*   material = tables.getMaterial(draw.material);
         if (!primitive.instanceCount || !mesh || !material)
         {
             continue;
         }
         ASSERT(mesh->vertexStreamCount == 3 && primitive.id == draw.primitive);
-        const hz::GpuSubmeshRecord& submesh = tables.submeshes.pData[mesh->submeshOffset + draw.mesh.submeshIndex];
+        const hz::GpuSubmeshData& submesh = tables.submeshes.pData[mesh->submeshOffset + draw.mesh.submeshIndex];
         for (uint32_t i = 0; i < primitive.instanceCount; ++i)
         {
-            records.pushBack({ .instance = view.scene.getInstanceIndices().pData[primitive.instanceOffset + i],
-                               .material = draw.material.index,
-                               .materialId = materialIds[draw.material.index],
-                               .alphaMode = material->alphaMode,
-                               .positions = tables.vertexStreams.pData[mesh->vertexStreamOffset].srv,
-                               .normals = tables.vertexStreams.pData[mesh->vertexStreamOffset + 1].srv,
-                               .texcoords = tables.vertexStreams.pData[mesh->vertexStreamOffset + 2].srv,
-                               .indices = mesh->indexSrv,
-                               .indexStride = mesh->indexStride,
-                               .firstIndex = submesh.firstIndex,
-                               .vertexOffset = submesh.vertexOffset,
-                               .indexCount = submesh.indexCount });
+            drawData.pushBack({ .instance = view.scene.getInstanceIndices().pData[primitive.instanceOffset + i],
+                                .material = draw.material.index,
+                                .materialId = materialIds[draw.material.index],
+                                .alphaMode = material->alphaMode,
+                                .positions = tables.vertexStreams.pData[mesh->vertexStreamOffset].srv,
+                                .normals = tables.vertexStreams.pData[mesh->vertexStreamOffset + 1].srv,
+                                .texcoords = tables.vertexStreams.pData[mesh->vertexStreamOffset + 2].srv,
+                                .indices = mesh->indexSrv,
+                                .indexStride = mesh->indexStride,
+                                .firstIndex = submesh.firstIndex,
+                                .vertexOffset = submesh.vertexOffset,
+                                .indexCount = submesh.indexCount });
         }
     }
-    Frame& frame = frames[view.frameSlot];
-    frame.count = records.size();
+    Frame& frame = frames[view.frameIndex];
+    frame.count = drawData.size();
     if (frame.count > frame.capacity || !frame.statistics.isValid())
     {
         frame.capacity = TF_MAX(64u, TF_MAX(frame.count, frame.capacity * 2));
-        frame.records = context.createBuffer({ .size = uint64_t(frame.capacity) * sizeof(GpuDrawRecord),
-                                               .elementCount = frame.capacity * (uint32_t)(sizeof(GpuDrawRecord) / 4),
-                                               .pName = "Renderer.DrawRecords",
-                                               .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                               .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                               .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
-                                               .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+        frame.drawData = context.createBuffer({ .size = uint64_t(frame.capacity) * sizeof(GpuDrawData),
+                                                .elementCount = frame.capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
+                                                .pName = "Renderer.DrawData",
+                                                .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                .startState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+                                                .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
         const hz::BufferDesc arguments = { .size = uint64_t(frame.capacity) * 20,
                                            .elementCount = frame.capacity * 5,
                                            .pName = "Renderer.IndirectDraws",
@@ -87,7 +87,7 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
-        ASSERT(frame.records.isValid() && frame.opaque.isValid() && frame.transparent.isValid() && frame.statistics.isValid());
+        ASSERT(frame.drawData.isValid() && frame.opaque.isValid() && frame.transparent.isValid() && frame.statistics.isValid());
     }
     commands.setPipeline(clearPipeline);
     commands.setRootConstant({ frame.statistics.getUavIndex() }, 5);
@@ -96,15 +96,15 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
     {
         return;
     }
-    const bool uploaded = context.updateBuffer(frame.records, 0, records.data(), uint64_t(frame.count) * sizeof(GpuDrawRecord));
+    const bool uploaded = context.updateBuffer(frame.drawData, 0, drawData.data(), uint64_t(frame.count) * sizeof(GpuDrawData));
     ASSERT(uploaded);
     commands.beginGpuTimestamp("GPU Frustum Culling");
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ frameBuffer.getSrvIndex(), frame.records.getSrvIndex(), view.gpu.getBuffers().instances.getSrvIndex(),
+    commands.setRootConstant({ frameBuffer.getSrvIndex(), frame.drawData.getSrvIndex(), view.gpu.getBuffers().instances.getSrvIndex(),
                                frame.opaque.getUavIndex(), frame.transparent.getUavIndex(), frame.statistics.getUavIndex(), frame.count,
                                culling ? 1u : 0u, frame.shadow.getUavIndex() });
     commands.dispatch((frame.count + 63) / 64, 1, 1,
-                      { .buffers = { &frameBuffer, &frame.records, &view.gpu.getBuffers().instances },
+                      { .buffers = { &frameBuffer, &frame.drawData, &view.gpu.getBuffers().instances },
                         .storageBuffers = { &frame.opaque, &frame.transparent, &frame.statistics, &frame.shadow } });
     commands.endGpuTimestamp();
 }
@@ -114,7 +114,7 @@ hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const 
     buffers.clear();
     textures.clear();
     buffers.pushBack(&frame);
-    buffers.pushBack(&getRecords(view.frameSlot));
+    buffers.pushBack(&getDrawData(view.frameIndex));
     const hz::GpuSceneBuffers& gpu = view.gpu.getBuffers();
     if (gpu.instances.isValid())
     {
@@ -130,13 +130,13 @@ hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const 
     }
     const hz::GpuAssetTables&       tables = view.gpu.getAssetTables();
     const hz::GPUBuffer*            previous = nullptr;
-    for (const hz::GpuMeshRecord& record : tables.meshes)
+    for (const hz::GpuMeshData& meshData : tables.meshes)
     {
-        if (!record.id.isValid())
+        if (!meshData.id.isValid())
         {
             continue;
         }
-        const hz::MeshAsset* mesh = view.assets.getMesh({ .index = record.id.index, .generation = record.id.generation });
+        const hz::MeshAsset* mesh = view.assets.getMesh({ .index = meshData.id.index, .generation = meshData.id.generation });
         ASSERT(mesh);
         if (&mesh->getIndexBuffer() == previous)
         {
@@ -149,11 +149,12 @@ hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const 
             buffers.pushBack(&mesh->getVertexBuffer(i));
         }
     }
-    for (const hz::GpuTextureRecord& record : tables.textures)
+    for (const hz::GpuTextureData& textureData : tables.textures)
     {
-        if (record.id.isValid())
+        if (textureData.id.isValid())
         {
-            textures.pushBack(&view.assets.getTexture({ .index = record.id.index, .generation = record.id.generation })->getTexture());
+            textures.pushBack(
+                &view.assets.getTexture({ .index = textureData.id.index, .generation = textureData.id.generation })->getTexture());
         }
     }
     indirectDependency = &indirect;

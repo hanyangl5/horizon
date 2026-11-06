@@ -95,12 +95,12 @@ public:
     AssetSource*             pSource;
 };
 
-struct SourceRecord
+struct AssetSourceIndex
 {
     char*        key;
     AssetSource* value;
 };
-struct GeometryRecord
+struct AssetGeometryIndex
 {
     char*          key;
     AssetGeometry* value;
@@ -266,8 +266,8 @@ public:
     SceneAssetLoader   sceneLoader;
     TextureAssetLoader textureLoader;
     ThreadSystem       threads = nullptr;
-    SourceRecord*      pSources = nullptr;
-    GeometryRecord*    pGeometries = nullptr;
+    AssetSourceIndex*   pSources = nullptr;
+    AssetGeometryIndex* pGeometries = nullptr;
 };
 
 AssetSource::AssetSource(AssetLoadersData& owner, const char* pFile): owner(owner)

@@ -5,8 +5,8 @@
 
 struct TransparencyConstants
 {
-    uint32_t instanceSlot = 0;
-    uint32_t materialSlot = 0;
+    uint32_t instanceIndex = 0;
+    uint32_t materialIndex = 0;
     uint32_t materialId = 0;
     uint32_t frameIndex = UINT32_MAX;
     uint32_t instancesIndex = UINT32_MAX;
@@ -106,7 +106,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
     commands.setPipeline(clearPipeline);
     commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / 4 });
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
-    const uint32_t backing = view.frameSlot;
+    const uint32_t backing = view.frameIndex;
     if (draws.getCount(backing))
     {
         const hz::GPUBuffer& indirect = draws.getCommands(backing, true);
@@ -146,7 +146,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         constants.materialsIndex = gpu.materials.getSrvIndex();
         constants.texturesIndex = gpu.textures.getSrvIndex();
         constants.samplerIndex = surfaceSampler.getIndex();
-        constants.drawsIndex = draws.getRecords(backing).getSrvIndex();
+        constants.drawsIndex = draws.getDrawData(backing).getSrvIndex();
         constants.shadowMapIndex = lighting.pShadowMap ? lighting.pShadowMap->getSrvIndex() : UINT32_MAX;
         constants.shadowSamplerIndex = lighting.pShadowSampler ? lighting.pShadowSampler->getIndex() : UINT32_MAX;
         constants.environmentIndex = lighting.pEnvironment ? lighting.pEnvironment->getSrvIndex() : UINT32_MAX;

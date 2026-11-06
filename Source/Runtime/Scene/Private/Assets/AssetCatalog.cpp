@@ -12,7 +12,7 @@
 
 namespace hz
 {
-struct CatalogRecord
+struct CatalogIndex
 {
     AssetID            key;
     AssetCatalogEntry* value;
@@ -37,20 +37,22 @@ public:
         pEntry->pSourcePath = pSource;
         pEntry->location.pPath = pSource + sourceBytes;
         pEntry->dependencies = dependencyBytes ? Span<AssetID>(pDependencies, entry.dependencies.count) : Span<AssetID>{};
-        const CatalogRecord record = { .key = entry.id, .value = pEntry };
-        hmputs(pRecords, record);
+        const CatalogIndex mapping = { .key = entry.id, .value = pEntry };
+        hmputs(pIndices, mapping);
     }
 
     ~AssetCatalogData()
     {
-        for (ptrdiff_t i = 0; i < hmlen(pRecords); ++i)
-            tf_free(pRecords[i].value);
-        hmfree(pRecords);
+        for (ptrdiff_t i = 0; i < hmlen(pIndices); ++i)
+        {
+            tf_free(pIndices[i].value);
+        }
+        hmfree(pIndices);
         for (AssetCatalogEntry* pEntry : retiredEntries)
             tf_free(pEntry);
     }
 
-    CatalogRecord*            pRecords = nullptr;
+    CatalogIndex*             pIndices = nullptr;
     Array<AssetCatalogEntry*> retiredEntries;
 };
 
@@ -262,18 +264,18 @@ const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
 {
     if (!pData || !id.isValid())
         return nullptr;
-    const CatalogRecord* pRecord = hmgetp_null(pData->pRecords, id);
-    return pRecord ? pRecord->value : nullptr;
+    const CatalogIndex* pIndex = hmgetp_null(pData->pIndices, id);
+    return pIndex ? pIndex->value : nullptr;
 }
 
-uint32_t                 AssetCatalog::getCount() const { return pData ? (uint32_t)hmlen(pData->pRecords) : 0; }
+uint32_t                 AssetCatalog::getCount() const { return pData ? (uint32_t)hmlen(pData->pIndices) : 0; }
 const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) const
 {
     if (!pData || !pCookedScenePath)
         return nullptr;
-    for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
+    for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
     {
-        const AssetCatalogEntry* pEntry = pData->pRecords[i].value;
+        const AssetCatalogEntry* pEntry = pData->pIndices[i].value;
         if (pEntry->type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
             !strcmp(pEntry->location.pPath, pCookedScenePath))
             return pEntry;
@@ -285,11 +287,13 @@ bool AssetCatalog::remove(AssetID id)
 {
     if (!pData)
         return false;
-    const CatalogRecord* pRecord = hmgetp_null(pData->pRecords, id);
-    if (!pRecord)
+    const CatalogIndex* pIndex = hmgetp_null(pData->pIndices, id);
+    if (!pIndex)
+    {
         return false;
-    pData->retiredEntries.pushBack(pRecord->value);
-    hmdel(pData->pRecords, id);
+    }
+    pData->retiredEntries.pushBack(pIndex->value);
+    hmdel(pData->pIndices, id);
     return true;
 }
 
@@ -297,9 +301,9 @@ bool AssetCatalog::merge(const AssetCatalog& other)
 {
     if (!other.pData)
         return true;
-    for (ptrdiff_t i = 0; i < hmlen(other.pData->pRecords); ++i)
+    for (ptrdiff_t i = 0; i < hmlen(other.pData->pIndices); ++i)
     {
-        const AssetCatalogEntry& entry = *other.pData->pRecords[i].value;
+        const AssetCatalogEntry& entry = *other.pData->pIndices[i].value;
         const AssetCatalogEntry* pExisting = find(entry.id);
         if (pExisting && !sameEntry(*pExisting, entry))
         {
@@ -309,9 +313,9 @@ bool AssetCatalog::merge(const AssetCatalog& other)
     }
     if (!pData)
         pData = tf_new(AssetCatalogData);
-    for (ptrdiff_t i = 0; i < hmlen(other.pData->pRecords); ++i)
+    for (ptrdiff_t i = 0; i < hmlen(other.pData->pIndices); ++i)
     {
-        const AssetCatalogEntry& entry = *other.pData->pRecords[i].value;
+        const AssetCatalogEntry& entry = *other.pData->pIndices[i].value;
         if (!find(entry.id))
             pData->insert(entry);
     }
@@ -414,9 +418,9 @@ bool AssetCatalog::parse(Span<char> json)
         return false;
     }
     if (candidate.pData)
-        for (ptrdiff_t i = 0; i < hmlen(candidate.pData->pRecords); ++i)
+        for (ptrdiff_t i = 0; i < hmlen(candidate.pData->pIndices); ++i)
         {
-            const AssetCatalogEntry& entry = *candidate.pData->pRecords[i].value;
+            const AssetCatalogEntry& entry = *candidate.pData->pIndices[i].value;
             const AssetCatalogEntry* pExisting = find(entry.id);
             if (pExisting && pExisting->type != entry.type)
             {
@@ -426,13 +430,15 @@ bool AssetCatalog::parse(Span<char> json)
         }
     if (!pData)
         pData = tf_new(AssetCatalogData);
-    for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
-        pData->retiredEntries.pushBack(pData->pRecords[i].value);
-    hmfree(pData->pRecords);
+    for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
+    {
+        pData->retiredEntries.pushBack(pData->pIndices[i].value);
+    }
+    hmfree(pData->pIndices);
     if (candidate.pData)
     {
-        pData->pRecords = candidate.pData->pRecords;
-        candidate.pData->pRecords = nullptr;
+        pData->pIndices = candidate.pData->pIndices;
+        candidate.pData->pIndices = nullptr;
     }
     return true;
 }
@@ -475,8 +481,10 @@ bool AssetCatalog::serialize(Array<char>& json) const
     Array<const AssetCatalogEntry*> entries;
     entries.reserve(getCount());
     if (pData)
-        for (ptrdiff_t i = 0; i < hmlen(pData->pRecords); ++i)
-            entries.pushBack(pData->pRecords[i].value);
+        for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
+        {
+            entries.pushBack(pData->pIndices[i].value);
+        }
     if (!entries.empty())
         qsort(entries.data(), entries.size(), sizeof(entries[0]), compareEntries);
     CatalogJson document;

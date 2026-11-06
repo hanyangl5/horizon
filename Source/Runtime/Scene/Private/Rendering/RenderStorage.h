@@ -31,7 +31,7 @@ inline void mergeRenderRanges(Array<uint32_t>& indices, Array<RenderRange>& rang
 }
 
 template<typename T, typename ID>
-class RenderSlots
+class RenderStorage
 {
 public:
     void reserve(uint32_t count)
@@ -115,7 +115,7 @@ public:
             pending.pushBack(index);
         }
     }
-    // Slots changed since the last clearPending(), accumulated across updates for GPU upload.
+    // Entries changed since the last clearPending(), accumulated across updates for GPU upload.
     void getPending(Array<RenderRange>& output) { mergeRenderRanges(pending, output); }
     bool isActivePending() const { return pendingActive; }
     void clearPending()
@@ -128,7 +128,7 @@ public:
         pendingActive = false;
     }
     void              finishUpdate() { mergeRenderRanges(dirty, ranges); }
-    RenderSlotChanges getChanges() const
+    RenderChanges     getChanges() const
     {
         return { .created = { created.data(), created.size() },
                  .removed = { removed.data(), removed.size() },

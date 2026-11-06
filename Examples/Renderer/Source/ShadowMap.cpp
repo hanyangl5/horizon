@@ -57,9 +57,9 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
     Vector3 z(0, 1, 0);
     data.lightDirection = Vector4(0, -1, 0, 0);
     data.shadowEnabled = 0;
-    for (uint32_t slot : view.scene.getActiveLights())
+    for (uint32_t meshBatchIndex : view.scene.getActiveLights())
     {
-        const hz::RenderLight& light = view.scene.getLights().pData[slot];
+        const hz::RenderLight& light = view.scene.getLights().pData[meshBatchIndex];
         if (!light.ready || light.type != hz::LightType::Directional)
         {
             continue;
@@ -76,9 +76,9 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
     const Matrix4 lightView = orthoInverse(Matrix4(Vector4(x, 0), Vector4(y, 0), Vector4(z, 0), Vector4(0, 0, 0, 1)));
     float         minimum[3] = { FLT_MAX, FLT_MAX, FLT_MAX }, maximum[3] = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
     bool          hasBounds = false;
-    for (uint32_t slot : view.scene.getActiveInstances())
+    for (uint32_t meshBatchIndex : view.scene.getActiveInstances())
     {
-        const hz::RenderInstance& instance = view.scene.getInstances().pData[slot];
+        const hz::RenderInstance& instance = view.scene.getInstances().pData[meshBatchIndex];
         if (!view.scene.getPrimitives().pData[instance.primitive.index].instanceCount)
         {
             continue;
@@ -116,7 +116,7 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
     const ShadowFrame camera = { data.shadowViewProjection, data.shadowViewProjection, inverse(data.shadowViewProjection),
                                  Vector4(0, 0, 0, 1) };
 
-    const uint32_t backing = view.frameSlot;
+    const uint32_t backing = view.frameIndex;
     const bool     cameraUpdated = context.updateBuffer(shadowFrames[backing], 0, &camera, sizeof(camera));
     const bool     lightUpdated = context.updateBuffer(lightingFrames[backing], 0, &data, sizeof(data));
     ASSERT(cameraUpdated && lightUpdated);
@@ -135,7 +135,7 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
                                view.gpu.getBuffers().materials.isValid() ? view.gpu.getBuffers().materials.getSrvIndex() : UINT32_MAX,
                                view.gpu.getBuffers().textures.isValid() ? view.gpu.getBuffers().textures.getSrvIndex() : UINT32_MAX,
                                surfaceSampler.getIndex() });
-    commands.setRootConstant({ draws.getRecords(backing).getSrvIndex() }, 11);
+    commands.setRootConstant({ draws.getDrawData(backing).getSrvIndex() }, 11);
     if (draws.getCount(backing))
     {
         commands.drawIndirect(draws.getShadowCommands(backing), 0, draws.getCount(backing));

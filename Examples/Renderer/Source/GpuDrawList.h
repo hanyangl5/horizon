@@ -3,7 +3,7 @@
 #include "Graphics/RenderContext.h"
 #include "SceneView.h"
 
-struct GpuDrawRecord
+struct GpuDrawData
 {
     uint32_t instance;
     uint32_t material;
@@ -24,7 +24,7 @@ class GpuDrawList
 public:
     explicit GpuDrawList(hz::RenderContext& context);
     void                 prepare(hz::CommandList&, const hz::GPUBuffer& frame, const SceneView&, bool culling = true);
-    const hz::GPUBuffer& getRecords(uint32_t backing) const { return frames[backing].records; }
+    const hz::GPUBuffer& getDrawData(uint32_t backing) const { return frames[backing].drawData; }
     const hz::GPUBuffer& getCommands(uint32_t backing, bool transparent = false) const
     {
         return transparent ? frames[backing].transparent : frames[backing].opaque;
@@ -37,7 +37,7 @@ public:
 private:
     struct Frame
     {
-        hz::GPUBuffer records;
+        hz::GPUBuffer drawData;
         hz::GPUBuffer opaque;
         hz::GPUBuffer transparent;
         hz::GPUBuffer shadow;
@@ -49,7 +49,7 @@ private:
     hz::GPUPipeline                          pipeline;
     hz::GPUPipeline                          clearPipeline;
     hz::FixedArray<Frame, 3>                 frames;
-    hz::Array<GpuDrawRecord>                 records;
+    hz::Array<GpuDrawData>                   drawData;
     hz::Array<uint32_t>                      materialIds;
     uint64_t                                 materialRevision = 0;
     mutable hz::Array<const hz::GPUBuffer*>  buffers;

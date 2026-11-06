@@ -43,7 +43,7 @@ protected:
     {
         return "{\"format\":\"Horizon.World\",\"version\":1,\"id\":\"" + uuid(100) + "\",\"entities\":[" + entities + "]}";
     }
-    static std::string record(uint64_t object, const std::string& components = "", uint64_t parent = 0)
+    static std::string entityJson(uint64_t object, const std::string& components = "", uint64_t parent = 0)
     {
         return "{\"id\":\"" + uuid(object) + "\",\"parent\":" + (parent ? "\"" + uuid(parent) + "\"" : "null") +
                ",\"name\":null,\"components\":[" + components + "]}";
@@ -139,23 +139,23 @@ TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
     hz::World*                pOriginal = target.get();
     const std::string         transform = component("0000000000000003", "LocalTransform", 1, "{}");
     const std::string         invalid[] = {
-        envelope(record(1) + "," + record(1)),
-        envelope(record(1, "", 99)),
-        envelope(record(1, "", 2) + "," + record(2, "", 1)),
-        envelope(record(1, transform + "," + component("0000000000000004", "Matrix4", 1, "{}"))),
-        envelope(record(1, transform + "," + transform)),
-        envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"rotation\":[0,0,0,0]}"))),
-        envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"scale\":[1e99,1,1]}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"nearPlane\":2}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":0}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":-1}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":3.141592654}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":0}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":-1}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"farPlane\":1}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":2,\"farPlane\":1}"))),
-        envelope(record(1, component("0000000000000007", "Camera", 2, "{}"))),
-        envelope(record(1, component("0000000000000006", "Light", 1, "{\"type\":\"Invalid\"}"))),
+        envelope(entityJson(1) + "," + entityJson(1)),
+        envelope(entityJson(1, "", 99)),
+        envelope(entityJson(1, "", 2) + "," + entityJson(2, "", 1)),
+        envelope(entityJson(1, transform + "," + component("0000000000000004", "Matrix4", 1, "{}"))),
+        envelope(entityJson(1, transform + "," + transform)),
+        envelope(entityJson(1, component("0000000000000003", "LocalTransform", 1, "{\"rotation\":[0,0,0,0]}"))),
+        envelope(entityJson(1, component("0000000000000003", "LocalTransform", 1, "{\"scale\":[1e99,1,1]}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"nearPlane\":2}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":0}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":-1}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"verticalFov\":3.141592654}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":0}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":-1}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"farPlane\":1}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":2,\"farPlane\":1}"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 2, "{}"))),
+        envelope(entityJson(1, component("0000000000000006", "Light", 1, "{\"type\":\"Invalid\"}"))),
     };
     hz::WorldArchive archive;
     for (const std::string& json : invalid)
@@ -252,7 +252,7 @@ TEST_F(WorldArchiveTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferen
     ASSERT_TRUE(types.registerBuiltins());
     ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
     const std::string fields = "{\"old\":-2147483648,\"precise\":\"18446744073709551615\",\"reference\":\"" + uuid(2) + "\"}";
-    const std::string json = envelope(record(1, component("0000000000000063", "Migrating", 1, fields)) + "," + record(2));
+    const std::string json = envelope(entityJson(1, component("0000000000000063", "Migrating", 1, fields)) + "," + entityJson(2));
     hz::WorldArchive  archive;
     ASSERT_TRUE(parse(archive, json));
     hz::unique_ptr<hz::World>    target;
@@ -274,7 +274,8 @@ TEST_F(WorldArchiveTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferen
     EXPECT_LT(current.find("\"precise\""), current.find("\"reference\""));
     ASSERT_TRUE(archive.instantiate(types, target));
 
-    const std::string missing = envelope(record(1, component("0000000000000063", "Migrating", 3, "{\"reference\":\"" + uuid(9) + "\"}")));
+    const std::string missing =
+        envelope(entityJson(1, component("0000000000000063", "Migrating", 3, "{\"reference\":\"" + uuid(9) + "\"}")));
     ASSERT_TRUE(parse(archive, missing));
     hz::World* pOriginal = target.get();
     EXPECT_FALSE(archive.instantiate(types, target));
@@ -284,8 +285,8 @@ TEST_F(WorldArchiveTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferen
 TEST_F(WorldArchiveTest, PreservesUnknownComponentBlobWithoutInstantiatingIt)
 {
     const std::string json =
-        envelope(record(1, component("000000000000ffff", "FuturePlugin", 20,
-                                     "{\"big\":18446744073709551615,\"opaque\":[null,{\"newField\":1.00000000000000001}]}")));
+        envelope(entityJson(1, component("000000000000ffff", "FuturePlugin", 20,
+                                         "{\"big\":18446744073709551615,\"opaque\":[null,{\"newField\":1.00000000000000001}]}")));
     hz::WorldArchive archive;
     ASSERT_TRUE(parse(archive, json));
     EXPECT_EQ(text(archive), json);
@@ -295,7 +296,8 @@ TEST_F(WorldArchiveTest, PreservesUnknownComponentBlobWithoutInstantiatingIt)
     EXPECT_FALSE(archive.instantiate(types, target));
     EXPECT_FALSE(target);
     EXPECT_EQ(text(archive), json);
-    const std::string opaque = envelope(record(1, component("000000000000ffff", "FuturePlugin", 20, R"({"text":"before\u0000after"})")));
+    const std::string opaque =
+        envelope(entityJson(1, component("000000000000ffff", "FuturePlugin", 20, R"({"text":"before\u0000after"})")));
     ASSERT_TRUE(parse(archive, opaque));
     EXPECT_EQ(text(archive), opaque);
 }
@@ -311,12 +313,12 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingDo
     const std::string         named = "{\"id\":\"" + uuid(1) + "\",\"parent\":null,\"name\":\"before\\u0000after\",\"components\":[]}";
     const std::string         invalid[] = {
         envelope(named),
-        envelope(record(1, component("0000000000000063", "Migrating", 3, R"({"label":"before\u0000after"})"))),
-        envelope(record(1, component("0000000000000063", "Migrating", 3, R"({"precise":"42\u0000suffix"})"))),
-        envelope(record(1, component("0000000000000006", "Light", 1, R"({"type":"Point\u0000suffix"})"))),
-        envelope(record(1, component("0000000000000007", "Camera", 1, R"({"nearPlane\u0000suffix":1})"))),
-        envelope(record(1, component("0000000000000005", "MeshRenderer", 1, "{\"mesh\":\"" + uuid(2) + "\\u0000suffix\"}"))),
-        envelope(record(1, component("0000000000000063\\u0000suffix", "Migrating", 3, "{}"))),
+        envelope(entityJson(1, component("0000000000000063", "Migrating", 3, R"({"label":"before\u0000after"})"))),
+        envelope(entityJson(1, component("0000000000000063", "Migrating", 3, R"({"precise":"42\u0000suffix"})"))),
+        envelope(entityJson(1, component("0000000000000006", "Light", 1, R"({"type":"Point\u0000suffix"})"))),
+        envelope(entityJson(1, component("0000000000000007", "Camera", 1, R"({"nearPlane\u0000suffix":1})"))),
+        envelope(entityJson(1, component("0000000000000005", "MeshRenderer", 1, "{\"mesh\":\"" + uuid(2) + "\\u0000suffix\"}"))),
+        envelope(entityJson(1, component("0000000000000063\\u0000suffix", "Migrating", 3, "{}"))),
     };
     hz::WorldArchive archive;
     for (const std::string& json : invalid)
@@ -328,7 +330,7 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingDo
         EXPECT_EQ(text(archive), json);
     }
     // Escaped backslashes and quotes must not be confused with a null escape.
-    const std::string escaped = envelope(record(1, component("0000000000000063", "Migrating", 3, R"({"label":"a\"b\\u0000c\\"})")));
+    const std::string escaped = envelope(entityJson(1, component("0000000000000063", "Migrating", 3, R"({"label":"a\"b\\u0000c\\"})")));
     ASSERT_TRUE(parse(archive, escaped));
     ASSERT_TRUE(archive.instantiate(types, target));
     EXPECT_STREQ(((const MigratingComponent*)target->getComponent(target->getEntity(id(1)), 99))->label, "a\"b\\u0000c\\");
@@ -350,7 +352,7 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsProducedByMigration)
     hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
     hz::World*                pOriginal = target.get();
     const hz::Entity          original = target->createPersistentEntity(id(50));
-    const std::string         json = envelope(record(1, component("0000000000000063", "Migrating", 2, R"({"value":7})")));
+    const std::string         json = envelope(entityJson(1, component("0000000000000063", "Migrating", 2, R"({"value":7})")));
     hz::WorldArchive          archive;
     ASSERT_TRUE(parse(archive, json));
     const hz::ComponentMigration migration = { .type = 99, .fromVersion = 2, .pMigrate = migrateNull };
@@ -368,8 +370,8 @@ TEST_F(WorldArchiveTest, NormalizesOverridesOnLoadAndRejectsDuplicateKeys)
     const std::string second = "{\"submesh\":\"2\",\"material\":\"" + material + "\"}";
     const std::string first = "{\"submesh\":\"1\",\"material\":\"" + material + "\"}";
     hz::WorldArchive  archive;
-    ASSERT_TRUE(parse(
-        archive, envelope(record(1, component("0000000000000005", "MeshRenderer", 1, "{\"overrides\":[" + second + "," + first + "]}")))));
+    ASSERT_TRUE(parse(archive, envelope(entityJson(1, component("0000000000000005", "MeshRenderer", 1,
+                                                                "{\"overrides\":[" + second + "," + first + "]}")))));
     hz::unique_ptr<hz::World> target;
     ASSERT_TRUE(archive.instantiate(types, target));
     const hz::MeshRenderer* mesh = (const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer);
@@ -378,8 +380,8 @@ TEST_F(WorldArchiveTest, NormalizesOverridesOnLoadAndRejectsDuplicateKeys)
     EXPECT_EQ(mesh->overrides[0].submesh, 1u);
     EXPECT_EQ(mesh->overrides[1].submesh, 2u);
     ASSERT_TRUE(archive.capture(*target));
-    ASSERT_TRUE(parse(
-        archive, envelope(record(1, component("0000000000000005", "MeshRenderer", 1, "{\"overrides\":[" + first + "," + first + "]}")))));
+    ASSERT_TRUE(parse(archive, envelope(entityJson(
+                                   1, component("0000000000000005", "MeshRenderer", 1, "{\"overrides\":[" + first + "," + first + "]}")))));
     EXPECT_FALSE(archive.instantiate(types, target));
     EXPECT_EQ(((const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer))->overrides.size(),
               2u);
@@ -393,7 +395,7 @@ TEST_F(WorldArchiveTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
     {
         if (i != 1)
             entities += ',';
-        entities += record(i, "", i == count ? 0 : i + 1);
+        entities += entityJson(i, "", i == count ? 0 : i + 1);
     }
     hz::WorldArchive archive;
     ASSERT_TRUE(parse(archive, envelope(entities)));
@@ -419,20 +421,20 @@ TEST_F(WorldArchiveTest, SavesLoadsAndRecoversInterruptedFileReplacement)
         io.GetResourceMount = nullptr;
         fsSetPathForResourceDir(&io, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
         hz::WorldArchive original, loaded;
-        ASSERT_TRUE(parse(original, envelope(record(1))));
+        ASSERT_TRUE(parse(original, envelope(entityJson(1))));
         ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
         ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
         EXPECT_EQ(text(loaded), text(original));
         std::filesystem::create_directory(directory / "test.world.json.tmp");
-        ASSERT_TRUE(parse(original, envelope(record(2))));
+        ASSERT_TRUE(parse(original, envelope(entityJson(2))));
         EXPECT_FALSE(original.save(RD_OTHER_FILES, "test.world.json"));
         ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
-        EXPECT_EQ(text(loaded), envelope(record(1)));
+        EXPECT_EQ(text(loaded), envelope(entityJson(1)));
         std::filesystem::remove(directory / "test.world.json.tmp");
         std::filesystem::rename(directory / "test.world.json", directory / "test.world.json.bak");
         ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
         ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
-        EXPECT_EQ(text(loaded), envelope(record(2)));
+        EXPECT_EQ(text(loaded), envelope(entityJson(2)));
         std::filesystem::remove_all(directory);
     }
     exitFileSystem();

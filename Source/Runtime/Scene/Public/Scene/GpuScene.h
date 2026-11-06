@@ -47,7 +47,7 @@ public:
     // Do not update the scene or reset history until endFrame or cancelFrame.
     bool                   beginFrame();
     // Record before any pass that reads the buffers.
-    void                   recordUpload(CommandList& commands);
+    void                   upload(CommandList& commands);
     // Marks the staged changes as uploaded and advances render history.
     void                   endFrame(SubmitHandle submission);
     // Keeps the changes pending for the next frame.

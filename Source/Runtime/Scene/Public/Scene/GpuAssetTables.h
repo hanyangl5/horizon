@@ -5,7 +5,7 @@
 
 namespace hz
 {
-// Typed asset manager slot identities, independent of RHI descriptor indices.
+// Typed asset manager index identities, independent of RHI descriptor indices.
 struct GpuMeshID
 {
     uint32_t index = UINT32_MAX;
@@ -33,7 +33,7 @@ struct GpuSubmeshRef
     uint32_t  submeshIndex = 0;
     bool      operator==(const GpuSubmeshRef&) const = default;
 };
-struct GpuMeshRecord
+struct GpuMeshData
 {
     GpuMeshID id;
     uint32_t  indexSrv = UINT32_MAX;
@@ -48,13 +48,13 @@ struct GpuVertexStream
     uint32_t srv = UINT32_MAX;
     uint32_t stride = 0;
 };
-struct GpuSubmeshRecord
+struct GpuSubmeshData
 {
     uint32_t indexCount = 0;
     uint32_t firstIndex = 0;
     int32_t  vertexOffset = 0;
 };
-struct GpuMaterialRecord
+struct GpuMaterialData
 {
     GpuMaterialID id;
     GpuTextureID  baseColorTexture;
@@ -69,31 +69,31 @@ struct GpuMaterialRecord
     uint32_t      alphaMode = 0;
     uint32_t      doubleSided = 0;
 };
-struct GpuTextureRecord
+struct GpuTextureData
 {
     GpuTextureID id;
     uint32_t     srv = UINT32_MAX;
 };
 
-// CPU encoding of the ready payload set; unused asset manager slots have invalid IDs.
+// CPU encoding of the ready payload set; unused asset manager entries have invalid IDs.
 struct GpuAssetTables
 {
-    Span<GpuMeshRecord>     meshes;
+    Span<GpuMeshData>       meshes;
     Span<GpuVertexStream>   vertexStreams;
-    Span<GpuSubmeshRecord>  submeshes;
-    Span<GpuMaterialRecord> materials;
-    Span<GpuTextureRecord>  textures;
+    Span<GpuSubmeshData>    submeshes;
+    Span<GpuMaterialData>   materials;
+    Span<GpuTextureData>    textures;
     uint64_t                revision = 0;
 
-    const GpuMeshRecord* getMesh(GpuMeshID id) const
+    const GpuMeshData* getMesh(GpuMeshID id) const
     {
         return id.isValid() && id.index < meshes.count && meshes.pData[id.index].id == id ? meshes.pData + id.index : nullptr;
     }
-    const GpuMaterialRecord* getMaterial(GpuMaterialID id) const
+    const GpuMaterialData* getMaterial(GpuMaterialID id) const
     {
         return id.isValid() && id.index < materials.count && materials.pData[id.index].id == id ? materials.pData + id.index : nullptr;
     }
-    const GpuTextureRecord* getTexture(GpuTextureID id) const
+    const GpuTextureData* getTexture(GpuTextureID id) const
     {
         return id.isValid() && id.index < textures.count && textures.pData[id.index].id == id ? textures.pData + id.index : nullptr;
     }

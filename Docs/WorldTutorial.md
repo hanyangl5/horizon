@@ -131,7 +131,7 @@ SceneAsset 依赖节点实际引用的 Mesh，Mesh 继续依赖默认材质，�
 
 Mesh 和 Material 当前可以作为同一 SceneAsset 文档中的子资产记录，仍拥有独立 AssetID。它们在文档数组中的位置只是定位信息。材质替换同样使用 Mesh 内稳定的 `SubmeshID`，避免重新导入导致数组重排后把覆盖材质绑到另一块几何上。
 
-加载失败和取消也属于生命周期。最后一份引用在加载中释放后，后台任务可能仍在执行；完成结果需要进入清理路径，相关 slot 在安全清理前不会被拿去承载另一份请求。
+加载失败和取消也属于生命周期。最后一份引用在加载中释放后，后台任务可能仍在执行；完成结果需要进入清理路径，相关 索引 在安全清理前不会被拿去承载另一份请求。
 
 ## 6. 从 SceneAsset 到 World：复制实体，交接资产引用
 
@@ -179,7 +179,7 @@ RenderScene 从 World 和资产绑定中提取这些结果，当前主要分为�
 
 当前阶段，一个就绪的 MeshRenderer 实体对应一个可渲染实例。若 Mesh 有三个 submesh，它会展开为三个 MeshBatch。十把这样的椅子可共享 Mesh，却分别拥有十份变换和三十个 MeshBatch。
 
-这些记录使用可以复用的稀疏槽位（sparse slot）。删除中间的椅子会留下空洞，其他记录不必全部搬家；复用 slot 时递增 generation。遍历时使用有效项列表（active list），不能把整个底层数组都当作有效实体。
+这些记录使用可以复用的稀疏槽位（sparse 索引）。删除中间的椅子会留下空洞，其他记录不必全部搬家；复用 索引 时递增 generation。遍历时使用有效项列表（active list），不能把整个底层数组都当作有效实体。
 
 MeshBatch 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。GPU 间接表再把这些身份解析到实际数据和资源描述符（descriptor）。资产 ID、GPU ID、descriptor index 各承担不同定位职责；一个 descriptor 数字不能表达整份 Mesh 或场景实体的生命周期。
 
@@ -193,10 +193,10 @@ Renderer 的实际帧流程如下：
 
 ```text
 Update：相机输入 → 修改 World 组件 → assetManager.update()
-Draw：beginFrame → recordUpload → 记录 Pass → submit → endFrame
+Draw：beginFrame → upload → 记录 Pass → submit → endFrame
 ```
 
-`beginFrame` 更新 World 变换、资产绑定和提取记录，把累积的变化及变化后的资产表写入本帧的 staging。`recordUpload` 在 Pass 之前记录拷贝命令。`endFrame` 记下提交句柄，确认这些变化已经上传，并推进运动历史：
+`beginFrame` 更新 World 变换、资产绑定和提取记录，把累积的变化及变化后的资产表写入本帧的 staging。`upload` 在 Pass 之前记录拷贝命令。`endFrame` 记下提交句柄，确认这些变化已经上传，并推进运动历史：
 
 ```cpp
 pConstants->submission = context.submit(commands, &backbuffer);
@@ -219,7 +219,7 @@ gpuScene.endFrame(pConstants->submission);
 | 取消这一帧，再更新到 D 并开始一帧 | D | A |
 | 提交 C，之后更新到 D 并开始一帧 | D | C |
 
-表中后两行是两种不同的后续选择。取消的帧、窗口暂停期间只 Update，都会保留上次实际提交的历史。首次出现、slot 复用或主动 `resetHistory` 时，使用 previous=current，避免产生无意义的大幅运动。
+表中后两行是两种不同的后续选择。取消的帧、窗口暂停期间只 Update，都会保留上次实际提交的历史。首次出现、索引 复用或主动 `resetHistory` 时，使用 previous=current，避免产生无意义的大幅运动。
 
 历史推进发生在提交后的 `endFrame` 中，只记录本帧有变化的实例。`beginFrame` 之后 RenderScene 不再更新，所以记录的就是本帧实际上传的 current；World 此时被继续修改为 D 也不会影响它。若把 D 写进 previous，下一帧的运动矢量就会使用一份从未绘制过的姿态。
 

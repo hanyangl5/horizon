@@ -222,13 +222,15 @@ void hz::CommandList::setPipeline(const hz::GPUPipeline& pipeline)
     cmdBindPipeline(pCmd, pipeline.pPipeline);
 }
 
-void hz::CommandList::setVertexBuffer(uint32_t slot, const hz::GPUBuffer& buffer, uint64_t offset, uint32_t stride)
+void hz::CommandList::setVertexBuffer(uint32_t bindingIndex, const hz::GPUBuffer& buffer, uint64_t offset, uint32_t stride)
 {
-    pVertexBuffers[slot] = buffer.pBuffer;
-    vertexOffsets[slot] = offset;
-    vertexStrides[slot] = stride;
-    if (slot == vertexBufferCount)
+    pVertexBuffers[bindingIndex] = buffer.pBuffer;
+    vertexOffsets[bindingIndex] = offset;
+    vertexStrides[bindingIndex] = stride;
+    if (bindingIndex == vertexBufferCount)
+    {
         ++vertexBufferCount;
+    }
     cmdBindVertexBuffer(pCmd, vertexBufferCount, pVertexBuffers, vertexStrides, vertexOffsets);
 }
 
@@ -308,7 +310,7 @@ Buffer* hz::CommandList::createUploadBuffer(uint64_t size)
     };
     Buffer* buffer = nullptr;
     addBuffer(pContext->pRenderer, &desc, &buffer);
-    arrpush(pContext->commandSlots[slot].transientBuffers, buffer);
+    arrpush(pContext->commandResources[commandIndex].transientBuffers, buffer);
     return buffer;
 }
 

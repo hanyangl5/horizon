@@ -21,8 +21,8 @@ public:
     explicit RayTracingScene(hz::RenderContext& context): context(context) {}
     void prepare(hz::CommandList& commands, const SceneView& view)
     {
-        ASSERT(view.frameSlot < frames.size());
-        Frame&                                        frame = frames[view.frameSlot];
+        ASSERT(view.frameIndex < frames.size());
+        Frame&                                        frame = frames[view.frameIndex];
         hz::Array<Bottom*>&                           nextBottoms = frame.nextBottoms;
         hz::Array<hz::AccelerationStructureInstance>& instances = frame.instances;
         nextBottoms.clear();
@@ -30,25 +30,25 @@ public:
         buffers.clear();
         textures.clear();
         const hz::GpuAssetTables&       tables = view.gpu.getAssetTables();
-        uint32_t                        record = 0;
-        for (uint32_t slot : view.scene.getActiveMeshBatches())
+        uint32_t                        drawIndex = 0;
+        for (uint32_t meshBatchIndex : view.scene.getActiveMeshBatches())
         {
-            const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[slot];
+            const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[meshBatchIndex];
             const hz::RenderPrimitive&   primitive = view.scene.getPrimitives().pData[draw.primitive.index];
-            const hz::GpuMeshRecord*     meshRecord = tables.getMesh(draw.mesh.mesh);
-            const hz::GpuMaterialRecord* material = tables.getMaterial(draw.material);
-            if (!primitive.instanceCount || !meshRecord || !material)
+            const hz::GpuMeshData*       meshData = tables.getMesh(draw.mesh.mesh);
+            const hz::GpuMaterialData*   material = tables.getMaterial(draw.material);
+            if (!primitive.instanceCount || !meshData || !material)
             {
                 continue;
             }
-            // Match GpuDrawList exactly, including record IDs consumed by blended draws.
+            // Match GpuDrawList exactly, including drawIndex IDs consumed by blended draws.
             if (material->alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
             {
-                record += primitive.instanceCount;
+                drawIndex += primitive.instanceCount;
                 continue;
             }
             const hz::MeshAsset* mesh = view.assets.getMesh({ draw.mesh.mesh.index, draw.mesh.mesh.generation });
-            ASSERT(mesh && meshRecord->vertexStreamCount == 3);
+            ASSERT(mesh && meshData->vertexStreamCount == 3);
             Bottom* bottom = findBottom(draw.mesh, material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque));
             if (!bottom)
             {
@@ -85,13 +85,13 @@ public:
                 appendRTBuffer(buffers, &mesh->getVertexBuffer(stream));
             }
             appendRTBuffer(buffers, &mesh->getIndexBuffer());
-            for (uint32_t i = 0; i < primitive.instanceCount; ++i, ++record)
+            for (uint32_t i = 0; i < primitive.instanceCount; ++i, ++drawIndex)
             {
                 const uint32_t                    instanceIndex = view.scene.getInstanceIndices().pData[primitive.instanceOffset + i];
                 const Matrix4&                    transform = view.scene.getInstances().pData[instanceIndex].current;
                 hz::AccelerationStructureInstance instance = {
                     .pBottom = &bottom->structure,
-                    .instanceId = record,
+                    .instanceId = drawIndex,
                     .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
                 };
                 for (uint32_t row = 0; row < 3; ++row)
@@ -106,7 +106,7 @@ public:
                 nextBottoms.pushBack(bottom);
             }
         }
-        for (const hz::GpuTextureRecord& texture : tables.textures)
+        for (const hz::GpuTextureData& texture : tables.textures)
         {
             if (texture.id.isValid())
             {
@@ -384,13 +384,13 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.beginGpuTimestamp("RT Acceleration Structures");
     rayScene->prepare(commands, view);
     commands.endGpuTimestamp();
-    const hz::GPUAccelerationStructure& top = rayScene->getTop(view.frameSlot);
-    const hz::GPUBuffer&                records = draws.getRecords(view.frameSlot);
+    const hz::GPUAccelerationStructure& top = rayScene->getTop(view.frameIndex);
+    const hz::GPUBuffer&                drawData = draws.getDrawData(view.frameIndex);
     auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
     RTConstants                         constants = {
                                 .frame = frame.getSrvIndex(),
                                 .lighting = lighting.pLightingFrame->getSrvIndex(),
-                                .draws = records.getSrvIndex(),
+                                .draws = drawData.getSrvIndex(),
                                 .materials = view.gpu.getBuffers().materials.getSrvIndex(),
                                 .textures = view.gpu.getBuffers().textures.getSrvIndex(),
                                 .sampler = materialSampler.getIndex(),
@@ -416,7 +416,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     hz::Array<const hz::GPUBuffer*>& buffers = rayScene->buffers;
     appendRTBuffer(buffers, &frame);
     appendRTBuffer(buffers, lighting.pLightingFrame);
-    appendRTBuffer(buffers, &records);
+    appendRTBuffer(buffers, &drawData);
     appendRTBuffer(buffers, &view.gpu.getBuffers().materials);
     appendRTBuffer(buffers, &view.gpu.getBuffers().textures);
     hz::Array<const hz::GPUTexture*>& textures = rayScene->textures;

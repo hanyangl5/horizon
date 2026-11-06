@@ -2,8 +2,8 @@
 
 cbuffer RootConstant0
 {
-    uint  instanceSlot;
-    uint  materialSlot;
+    uint  instanceIndex;
+    uint  materialIndex;
     uint  materialId;
     uint  frameIndex;
     uint  instancesIndex;
@@ -123,12 +123,12 @@ PSInput buildVertex(uint vertexId, uint instance, uint material, uint id, uint p
 
 PSInput VSMain(uint vertexId : SV_VertexID)
 {
-    return buildVertex(vertexId, instanceSlot, materialSlot, materialId, positionsIndex, normalsIndex, texcoordsIndex);
+    return buildVertex(vertexId, instanceIndex, materialIndex, materialId, positionsIndex, normalsIndex, texcoordsIndex);
 }
 
 PSInput VSIndirect(uint vertexId : SV_VertexID)
 {
-    const uint        drawId = instanceSlot;
+    const uint        drawId = instanceIndex;
     ByteAddressBuffer draws = ResourceDescriptorHeap[drawsIndex];
     uint4             object = draws.Load4(drawId * 48);
     uint4             buffers = draws.Load4(drawId * 48 + 16);

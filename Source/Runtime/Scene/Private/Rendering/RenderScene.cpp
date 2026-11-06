@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 Horizon */
 
-#include "RenderSlots.h"
+#include "RenderStorage.h"
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/MeshAsset.h"
 #include <math.h>
@@ -67,7 +67,7 @@ struct RenderEntity
     MeshBounds               localBounds;
     bool                     seen = false;
 };
-// Indexed by instance slot. Pending marks slots whose submitted transform may need recording.
+// Indexed by instance index. Pending marks entries whose submitted transform may need recording.
 struct RenderHistory
 {
     Matrix4 submitted = Matrix4::identity();
@@ -125,29 +125,32 @@ public:
         const RenderEntityIndex* pIndex = hmgetp_null(data.pLightIndices, entity);
         if (!pIndex)
         {
-            RenderLightEntity& record = data.lightEntities.emplaceBack();
-            record.entity = entity;
-            record.id = data.lights.add();
+            RenderLightEntity& lightEntity = data.lightEntities.emplaceBack();
+            lightEntity.entity = entity;
+            lightEntity.id = data.lights.add();
             data.textureReleases.reserve(data.lightEntities.size());
             const RenderEntityIndex index = { .key = entity, .value = data.lightEntities.size() - 1 };
             hmputs(data.pLightIndices, index);
             pIndex = hmgetp_null(data.pLightIndices, entity);
         }
-        RenderLightEntity& record = data.lightEntities[pIndex->value];
-        record.seen = true;
+        RenderLightEntity& lightEntity = data.lightEntities[pIndex->value];
+        lightEntity.seen = true;
         const Light&  light = *(const Light*)fields.pData[0];
         const AssetID textureID = light.type >= LightType::Rect ? light.texture : AssetID{};
-        if (record.textureID != textureID)
+        if (lightEntity.textureID != textureID)
         {
-            if (record.texture.isValid())
-                data.textureReleases.pushBack(record.texture);
-            record.textureID = textureID;
-            record.texture = {};
-            record.error = AssetError::None;
+            if (lightEntity.texture.isValid())
+            {
+                data.textureReleases.pushBack(lightEntity.texture);
+            }
+            lightEntity.textureID = textureID;
+            lightEntity.texture = {};
+            lightEntity.error = AssetError::None;
         }
-        if (textureID.isValid() && !record.texture.isValid() && (record.error == AssetError::None || record.error == AssetError::Retiring))
+        if (textureID.isValid() && !lightEntity.texture.isValid() &&
+            (lightEntity.error == AssetError::None || lightEntity.error == AssetError::Retiring))
         {
-            record.texture = data.assetManager.request(textureID, &record.error);
+            lightEntity.texture = data.assetManager.request(textureID, &lightEntity.error);
         }
         return true;
     }
@@ -225,21 +228,21 @@ public:
         const RenderEntityIndex* pIndex = hmgetp_null(data.pCameraIndices, entity);
         if (!pIndex)
         {
-            RenderCameraEntity& record = data.cameraEntities.emplaceBack();
-            record.entity = entity;
-            record.id = data.cameras.add();
+            RenderCameraEntity& cameraEntity = data.cameraEntities.emplaceBack();
+            cameraEntity.entity = entity;
+            cameraEntity.id = data.cameras.add();
             const RenderEntityIndex index = { .key = entity, .value = data.cameraEntities.size() - 1 };
             hmputs(data.pCameraIndices, index);
             pIndex = hmgetp_null(data.pCameraIndices, entity);
         }
-        RenderCameraEntity& record = data.cameraEntities[pIndex->value];
-        record.seen = true;
+        RenderCameraEntity& cameraEntity = data.cameraEntities[pIndex->value];
+        cameraEntity.seen = true;
         const Matrix4& current = data.world.getWorldTransform(entity)->current;
         const Camera&  lens = *(const Camera*)fields.pData[0];
-        const Matrix4& previous = record.historyValid ? record.submitted : current;
-        const Camera&  previousLens = record.historyValid ? record.submittedLens : lens;
+        const Matrix4& previous = cameraEntity.historyValid ? cameraEntity.submitted : current;
+        const Camera&  previousLens = cameraEntity.historyValid ? cameraEntity.submittedLens : lens;
         const Guid     entityGuid = data.world.getEntityGuid(entity);
-        RenderCamera&  camera = data.cameras.values[record.id.index];
+        RenderCamera&  camera = data.cameras.values[cameraEntity.id.index];
         if (camera.entityGuid != entityGuid || !equalMatrix(camera.current, current) || !equalMatrix(camera.previous, previous) ||
             !equalLens(camera.lens, lens) || !equalLens(camera.previousLens, previousLens))
         {
@@ -248,9 +251,9 @@ public:
             camera.previous = previous;
             camera.lens = lens;
             camera.previousLens = previousLens;
-            data.cameras.markDirty(record.id.index);
+            data.cameras.markDirty(cameraEntity.id.index);
         }
-        record.historyReset = false;
+        cameraEntity.historyReset = false;
         return true;
     }
     void removeCameras()
@@ -323,23 +326,23 @@ public:
     }
     RenderEntity& add(Entity entity)
     {
-        RenderEntity& record = entities.emplaceBack();
-        record.entity = entity;
-        record.primitive = primitives.add();
-        record.instance = instances.add();
-        primitives.values[record.primitive.index].instanceOffset = record.primitive.index;
-        instances.values[record.instance.index].primitive = record.primitive;
-        if (instanceHistory.size() <= record.instance.index)
+        RenderEntity& renderEntity = entities.emplaceBack();
+        renderEntity.entity = entity;
+        renderEntity.primitive = primitives.add();
+        renderEntity.instance = instances.add();
+        primitives.values[renderEntity.primitive.index].instanceOffset = renderEntity.primitive.index;
+        instances.values[renderEntity.instance.index].primitive = renderEntity.primitive;
+        if (instanceHistory.size() <= renderEntity.instance.index)
         {
-            historyPending.reserve(record.instance.index + 1);
-            instanceHistory.resize(record.instance.index + 1);
+            historyPending.reserve(renderEntity.instance.index + 1);
+            instanceHistory.resize(renderEntity.instance.index + 1);
         }
-        instanceHistory[record.instance.index].valid = false;
-        instanceHistory[record.instance.index].reset = false;
-        setInstanceIndex(record.primitive.index, UINT32_MAX);
+        instanceHistory[renderEntity.instance.index].valid = false;
+        instanceHistory[renderEntity.instance.index].reset = false;
+        setInstanceIndex(renderEntity.primitive.index, UINT32_MAX);
         const RenderEntityIndex index = { .key = entity, .value = entities.size() - 1 };
         hmputs(pIndices, index);
-        return record;
+        return renderEntity;
     }
     void buildMeshBatches(RenderEntity& entity, const MeshAssetBinding& binding, const MeshAsset& mesh)
     {
@@ -446,8 +449,8 @@ public:
     {
         RenderSceneData&         data = *(RenderSceneData*)pUser;
         const RenderEntityIndex* pIndex = hmgetp_null(data.pIndices, entity);
-        RenderEntity&            record = pIndex ? data.entities[pIndex->value] : data.add(entity);
-        data.extract(record);
+        RenderEntity&            renderEntity = pIndex ? data.entities[pIndex->value] : data.add(entity);
+        data.extract(renderEntity);
         return true;
     }
     void update()
@@ -600,11 +603,11 @@ public:
     WorldQuery                                      query;
     WorldQuery                                      lightQuery;
     WorldQuery                                      cameraQuery;
-    RenderSlots<RenderPrimitive, RenderPrimitiveID> primitives;
-    RenderSlots<RenderInstance, RenderInstanceID>   instances;
-    RenderSlots<RenderMeshBatch, RenderMeshBatchID> meshBatches;
-    RenderSlots<RenderLight, RenderLightID>         lights;
-    RenderSlots<RenderCamera, RenderCameraID>       cameras;
+    RenderStorage<RenderPrimitive, RenderPrimitiveID> primitives;
+    RenderStorage<RenderInstance, RenderInstanceID>   instances;
+    RenderStorage<RenderMeshBatch, RenderMeshBatchID> meshBatches;
+    RenderStorage<RenderLight, RenderLightID>         lights;
+    RenderStorage<RenderCamera, RenderCameraID>       cameras;
     Array<RenderEntity>                             entities;
     RenderEntityIndex*                              pIndices = nullptr;
     Array<RenderLightEntity>                        lightEntities;

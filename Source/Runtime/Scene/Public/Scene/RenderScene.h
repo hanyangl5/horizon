@@ -116,21 +116,21 @@ struct RenderRange
     uint32_t first = 0;
     uint32_t count = 0;
 };
-struct RenderSlotChanges
+struct RenderChanges
 {
     Span<uint32_t>    created;
     Span<uint32_t>    removed;
-    // Sorted, merged ranges include created, modified and cleared slots.
+    // Sorted, merged ranges include created, modified and cleared entries.
     Span<RenderRange> ranges;
     bool              activeList = false;
 };
 struct RenderSceneChanges
 {
-    RenderSlotChanges primitives;
-    RenderSlotChanges instances;
-    RenderSlotChanges meshBatches;
-    RenderSlotChanges lights;
-    RenderSlotChanges cameras;
+    RenderChanges     primitives;
+    RenderChanges     instances;
+    RenderChanges     meshBatches;
+    RenderChanges     lights;
+    RenderChanges     cameras;
     Span<RenderRange> instanceIndices;
 };
 

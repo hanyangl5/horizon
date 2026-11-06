@@ -332,7 +332,7 @@ public:
     void setPipeline(const GPURayTracingPipeline&);
     void buildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
     void traceRays(const GPURayTracingPipeline&, uint32_t width, uint32_t height, uint32_t depth = 1, const Dependencies& = {});
-    void setVertexBuffer(uint32_t slot, const GPUBuffer&, uint64_t offset, uint32_t stride);
+    void setVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);
     void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
     void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
     void setScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
@@ -384,7 +384,7 @@ private:
     uint32_t             vertexStrides[MAX_VERTEX_BINDINGS] = {};
     uint64_t             vertexOffsets[MAX_VERTEX_BINDINGS] = {};
     uint32_t             vertexBufferCount = 0;
-    uint32_t             slot = UINT32_MAX;
+    uint32_t             commandIndex = UINT32_MAX;
     BufferBarrier*       bufferBarriers = nullptr;
     TextureBarrier*      textureBarriers = nullptr;
     RenderTargetBarrier* renderTargetBarriers = nullptr;
@@ -394,7 +394,7 @@ private:
 struct SubmitHandle
 {
     uint64_t id = 0;
-    uint32_t slot = 0;
+    uint32_t commandIndex = 0;
     bool     isValid() const { return id != 0; }
 };
 
@@ -449,9 +449,9 @@ private:
         uint64_t useId = 0;
     };
 
-    struct CommandSlot
+    struct CommandResources
     {
-        ~CommandSlot();
+        ~CommandResources();
 
         CmdPool*    pCmdPool = nullptr;
         Cmd*        pCmd = nullptr;
@@ -487,15 +487,15 @@ private:
     CommandSignature*         pDrawIndirectSignature = nullptr;
     CommandSignature*         pDrawIndexedIndirectSignature = nullptr;
     CommandSignature*         pDispatchIndirectSignature = nullptr;
-    // TODO: Use a dynamic array for command slots to support more than 32 command lists if needed
+    // TODO: Use a dynamic array for command resources to support more than 32 command lists if needed
     static constexpr uint32_t maxCommandLists = 16;
-    CommandSlot               commandSlots[maxCommandLists] = {};
+    CommandResources          commandResources[maxCommandLists] = {};
     Semaphore*                pImageAcquiredSemaphore = nullptr;
     GPUTexture                backbuffers[MAX_SWAPCHAIN_IMAGES] = {};
     DeferredBuffer*           deferredBuffers = nullptr;
     uint64_t                  gpuProfilerToken = UINT64_MAX;
     uint64_t                  nextSubmitId = 1;
-    uint32_t                  nextCommandSlot = 0;
+    uint32_t                  nextCommandIndex = 0;
     uint32_t                  swapchainImageIndex = 0;
     char                      appName[128] = {};
     bool                      resourceLoaderInitialized = false;

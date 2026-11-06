@@ -13,7 +13,7 @@
 
 namespace hz
 {
-RenderContext::CommandSlot::~CommandSlot() { arrfree(transientBuffers); }
+RenderContext::CommandResources::~CommandResources() { arrfree(transientBuffers); }
 
 RenderContext::RenderContext(const ContextDesc& input)
 {
@@ -65,9 +65,9 @@ void RenderContext::deferRelease(GPUBuffer&& buffer)
 
 uint64_t RenderContext::getResourceUseId() const
 {
-    for (const CommandSlot& slot : commandSlots)
+    for (const CommandResources& resources : commandResources)
     {
-        if (slot.commands.pCmd)
+        if (resources.commands.pCmd)
         {
             return nextSubmitId;
         }
@@ -79,19 +79,19 @@ uint64_t RenderContext::getPendingUseId() const
 {
     // Submissions complete in order on the single graphics queue.
     uint64_t pending = UINT64_MAX;
-    for (const CommandSlot& slot : commandSlots)
+    for (const CommandResources& resources : commandResources)
     {
-        if (slot.commands.pCmd)
+        if (resources.commands.pCmd)
         {
             pending = TF_MIN(pending, nextSubmitId);
         }
-        if (slot.submitId && slot.submitId < pending)
+        if (resources.submitId && resources.submitId < pending)
         {
             FenceStatus status = FENCE_STATUS_COMPLETE;
-            getFenceStatus(pRenderer, slot.pFence, &status);
+            getFenceStatus(pRenderer, resources.pFence, &status);
             if (status == FENCE_STATUS_INCOMPLETE)
             {
-                pending = slot.submitId;
+                pending = resources.submitId;
             }
         }
     }
@@ -203,21 +203,21 @@ bool RenderContext::initDevice()
     ASSERT(pImageAcquiredSemaphore);
     for (uint32_t i = 0; i < maxCommandLists; ++i)
     {
-        CommandSlot& slot = commandSlots[i];
+        CommandResources& resources = commandResources[i];
         CmdPoolDesc  poolDesc = {
             .pQueue = pGraphicsQueue,
             .transient = false,
         };
-        addCmdPool(pRenderer, &poolDesc, &slot.pCmdPool);
-        ASSERT(slot.pCmdPool);
+        addCmdPool(pRenderer, &poolDesc, &resources.pCmdPool);
+        ASSERT(resources.pCmdPool);
 
-        CmdDesc cmdDesc = { .pPool = slot.pCmdPool };
-        addCmd(pRenderer, &cmdDesc, &slot.pCmd);
-        addFence(pRenderer, &slot.pFence);
-        addSemaphore(pRenderer, &slot.pSemaphore);
-        ASSERT(slot.pCmd && slot.pFence && slot.pSemaphore);
-        slot.commands.pContext = this;
-        slot.commands.slot = i;
+        CmdDesc cmdDesc = { .pPool = resources.pCmdPool };
+        addCmd(pRenderer, &cmdDesc, &resources.pCmd);
+        addFence(pRenderer, &resources.pFence);
+        addSemaphore(pRenderer, &resources.pSemaphore);
+        ASSERT(resources.pCmd && resources.pFence && resources.pSemaphore);
+        resources.commands.pContext = this;
+        resources.commands.commandIndex = i;
     }
 
     ready = true;
@@ -303,8 +303,10 @@ bool RenderContext::createSwapChain()
 
 void RenderContext::destroySwapChain()
 {
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& resources : commandResources)
+    {
+        ASSERT(!resources.commands.pCmd);
+    }
     ASSERT(!imageAcquired);
     if (pSwapChain)
     {
@@ -321,8 +323,10 @@ void RenderContext::destroySwapChain()
 void RenderContext::cleanup()
 {
     destroyShaderCompiler();
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& resources : commandResources)
+    {
+        ASSERT(!resources.commands.pCmd);
+    }
     destroySwapChain();
     destroyDevice(true);
 }
@@ -352,25 +356,35 @@ void RenderContext::destroyDevice(bool waitForGpu)
     }
     if (pRenderer)
     {
-        for (CommandSlot& slot : commandSlots)
+        for (CommandResources& resources : commandResources)
         {
-            for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
-                removeBuffer(pRenderer, slot.transientBuffers[i]);
-            arrsetlen(slot.transientBuffers, 0);
-            if (slot.pSemaphore)
-                removeSemaphore(pRenderer, slot.pSemaphore);
-            if (slot.pFence)
-                removeFence(pRenderer, slot.pFence);
-            if (slot.pCmd)
-                removeCmd(pRenderer, slot.pCmd);
-            if (slot.pCmdPool)
-                removeCmdPool(pRenderer, slot.pCmdPool);
-            slot.pSemaphore = nullptr;
-            slot.pFence = nullptr;
-            slot.pCmd = nullptr;
-            slot.pCmdPool = nullptr;
-            slot.submitId = 0;
-            slot.commands.clear();
+            for (uint32_t i = 0; i < (uint32_t)arrlen(resources.transientBuffers); ++i)
+            {
+                removeBuffer(pRenderer, resources.transientBuffers[i]);
+            }
+            arrsetlen(resources.transientBuffers, 0);
+            if (resources.pSemaphore)
+            {
+                removeSemaphore(pRenderer, resources.pSemaphore);
+            }
+            if (resources.pFence)
+            {
+                removeFence(pRenderer, resources.pFence);
+            }
+            if (resources.pCmd)
+            {
+                removeCmd(pRenderer, resources.pCmd);
+            }
+            if (resources.pCmdPool)
+            {
+                removeCmdPool(pRenderer, resources.pCmdPool);
+            }
+            resources.pSemaphore = nullptr;
+            resources.pFence = nullptr;
+            resources.pCmd = nullptr;
+            resources.pCmdPool = nullptr;
+            resources.submitId = 0;
+            resources.commands.clear();
         }
         if (pImageAcquiredSemaphore)
         {
@@ -417,8 +431,10 @@ void RenderContext::destroyDevice(bool waitForGpu)
 
 bool RenderContext::resize(uint32_t width, uint32_t height)
 {
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& resources : commandResources)
+    {
+        ASSERT(!resources.commands.pCmd);
+    }
     ASSERT(!imageAcquired);
     if (!suspended && desc.width == width && desc.height == height)
         return true;
@@ -442,8 +458,10 @@ bool RenderContext::resize(uint32_t width, uint32_t height)
 
 bool RenderContext::setVSync(bool enabled)
 {
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& resources : commandResources)
+    {
+        ASSERT(!resources.commands.pCmd);
+    }
     if (desc.enableVSync == enabled)
         return true;
     desc.enableVSync = enabled;
@@ -461,33 +479,39 @@ CommandList& RenderContext::acquireCommandList()
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::acquireCommandList");
     ASSERT(ready);
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& resources : commandResources)
+    {
+        ASSERT(!resources.commands.pCmd);
+    }
 
-    CommandSlot* available = nullptr;
+    CommandResources* available = nullptr;
     for (uint32_t offset = 0; offset < maxCommandLists; ++offset)
     {
-        CommandSlot& slot = commandSlots[(nextCommandSlot + offset) % maxCommandLists];
-        if (slot.submitId)
+        CommandResources& resources = commandResources[(nextCommandIndex + offset) % maxCommandLists];
+        if (resources.submitId)
         {
             FenceStatus status = FENCE_STATUS_NOTSUBMITTED;
-            getFenceStatus(pRenderer, slot.pFence, &status);
+            getFenceStatus(pRenderer, resources.pFence, &status);
             if (status == FENCE_STATUS_COMPLETE)
             {
-                slot.submitId = 0;
-                // Reclaim completed submissions even when a different command slot is selected.
-                for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
-                    removeBuffer(pRenderer, slot.transientBuffers[i]);
-                arrsetlen(slot.transientBuffers, 0);
+                resources.submitId = 0;
+                // Reclaim completed submissions even when a different command resources is selected.
+                for (uint32_t i = 0; i < (uint32_t)arrlen(resources.transientBuffers); ++i)
+                {
+                    removeBuffer(pRenderer, resources.transientBuffers[i]);
+                }
+                arrsetlen(resources.transientBuffers, 0);
             }
         }
-        if (!slot.submitId && !available)
-            available = &slot;
+        if (!resources.submitId && !available)
+        {
+            available = &resources;
+        }
     }
 
     if (!available)
     {
-        available = &commandSlots[nextCommandSlot];
+        available = &commandResources[nextCommandIndex];
         waitForFences(pRenderer, 1, &available->pFence);
         available->submitId = 0;
     }
@@ -500,16 +524,16 @@ CommandList& RenderContext::acquireCommandList()
     beginCmd(available->pCmd);
     available->commands.reset(available->pCmd, gpuProfilerToken);
     available->commands.beginGpuFrameProfile();
-    nextCommandSlot = (available->commands.slot + 1) % maxCommandLists;
+    nextCommandIndex = (available->commands.commandIndex + 1) % maxCommandLists;
     return available->commands;
 }
 
 SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPresent)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::submit");
-    ASSERT(commands.slot < maxCommandLists);
-    CommandSlot& slot = commandSlots[commands.slot];
-    ASSERT(&commands == &slot.commands && commands.pCmd == slot.pCmd && !slot.submitId);
+    ASSERT(commands.commandIndex < maxCommandLists);
+    CommandResources& resources = commandResources[commands.commandIndex];
+    ASSERT(&commands == &resources.commands && commands.pCmd == resources.pCmd && !resources.submitId);
     if (pPresent)
     {
         ASSERT(imageAcquired && pPresent == &backbuffers[swapchainImageIndex]);
@@ -522,14 +546,14 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
         pPresent->state = RESOURCE_STATE_PRESENT;
     }
     commands.endGpuFrameProfile();
-    endCmd(slot.pCmd);
+    endCmd(resources.pCmd);
 
     Semaphore*      waitSemaphores[] = { pImageAcquiredSemaphore };
     QueueSubmitDesc submitDesc = {
-        .ppCmds = &slot.pCmd,
-        .pSignalFence = slot.pFence,
+        .ppCmds = &resources.pCmd,
+        .pSignalFence = resources.pFence,
         .ppWaitSemaphores = imageAcquireWaitPending ? waitSemaphores : nullptr,
-        .ppSignalSemaphores = pPresent ? &slot.pSemaphore : nullptr,
+        .ppSignalSemaphores = pPresent ? &resources.pSemaphore : nullptr,
         .cmdCount = 1,
         .waitSemaphoreCount = imageAcquireWaitPending ? 1u : 0u,
         .signalSemaphoreCount = pPresent ? 1u : 0u,
@@ -541,7 +565,7 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
     {
         QueuePresentDesc presentDesc = {
             .pSwapChain = pSwapChain,
-            .ppWaitSemaphores = &slot.pSemaphore,
+            .ppWaitSemaphores = &resources.pSemaphore,
             .waitSemaphoreCount = 1,
             .index = (uint8_t)swapchainImageIndex,
             .submitDone = true,
@@ -554,8 +578,8 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
         flipProfiler();
     }
 
-    const SubmitHandle handle = { .id = nextSubmitId++, .slot = commands.slot };
-    slot.submitId = handle.id;
+    const SubmitHandle handle = { .id = nextSubmitId++, .commandIndex = commands.commandIndex };
+    resources.submitId = handle.id;
     commands.clear();
     return handle;
 }
@@ -563,20 +587,24 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
 void RenderContext::wait(SubmitHandle handle)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::wait");
-    ASSERT(handle.isValid() && handle.slot < maxCommandLists);
-    CommandSlot& slot = commandSlots[handle.slot];
-    if (slot.submitId == handle.id)
-        waitForFences(pRenderer, 1, &slot.pFence);
+    ASSERT(handle.isValid() && handle.commandIndex < maxCommandLists);
+    CommandResources& resources = commandResources[handle.commandIndex];
+    if (resources.submitId == handle.id)
+    {
+        waitForFences(pRenderer, 1, &resources.pFence);
+    }
 }
 
 bool RenderContext::isComplete(SubmitHandle handle) const
 {
-    ASSERT(handle.isValid() && handle.slot < maxCommandLists);
-    const CommandSlot& slot = commandSlots[handle.slot];
-    if (slot.submitId != handle.id)
+    ASSERT(handle.isValid() && handle.commandIndex < maxCommandLists);
+    const CommandResources& resources = commandResources[handle.commandIndex];
+    if (resources.submitId != handle.id)
+    {
         return true;
+    }
     FenceStatus status = FENCE_STATUS_INCOMPLETE;
-    getFenceStatus(pRenderer, slot.pFence, &status);
+    getFenceStatus(pRenderer, resources.pFence, &status);
     return status != FENCE_STATUS_INCOMPLETE;
 }
 

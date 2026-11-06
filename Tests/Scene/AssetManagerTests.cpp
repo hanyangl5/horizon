@@ -234,7 +234,7 @@ TEST_F(AssetManagerTest, RejectsInvalidDependencyGraphsWithoutChangingExistingRe
     EXPECT_EQ(loader.begun, 0u);
 }
 
-TEST_F(AssetManagerTest, CancellationDrainsLateResultsWithoutPublishingOrReusingTheSlot)
+TEST_F(AssetManagerTest, CancellationDrainsLateResultsWithoutPublishingOrReusingTheIndex)
 {
     hz::AssetCatalog catalog;
     add(catalog, 1);
@@ -694,7 +694,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     const uint32_t     normals[] = { 0x80008000, 0x80008000, 0x80008000 }, texcoords[] = { 0, 0, 0 };
     hz::RenderInstance instance;
     instance.current = Matrix4::translation(Vector3(0.2f, 0, 0));
-    const hz::GpuMaterialRecord material;
+    const hz::GpuMaterialData   material;
     const auto                  input = [&](const void* data, uint32_t size, uint32_t stride = 0)
     {
         return context.createBuffer({ .size = size,
@@ -801,14 +801,14 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
                                         { 0, 0, -.8f, .2f, .2f, -.2f },
                                         { -.2f, -.2f, .2f, .2f, .2f, .8f },
                                         { -2, -2, -1, 2, 2, 2 } };
-    uint32_t           records[5][12] = {};
+    uint32_t           drawData[5][12] = {};
     for (uint32_t i = 0; i < 5; ++i)
     {
         memcpy(instances[i].bounds.minimum, bounds[i], 12);
         memcpy(instances[i].bounds.maximum, bounds[i] + 3, 12);
-        records[i][0] = i;
-        records[i][3] = i == 3 ? 2u : 0u;
-        records[i][11] = 3 * (i + 1);
+        drawData[i][0] = i;
+        drawData[i][3] = i == 3 ? 2u : 0u;
+        drawData[i][11] = 3 * (i + 1);
     }
     const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
     {
@@ -824,7 +824,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     };
     hz::GPUBuffer frame = input(&camera, sizeof(camera), sizeof(camera));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances));
-    hz::GPUBuffer drawBuffer = input(records, sizeof(records));
+    hz::GPUBuffer drawBuffer = input(drawData, sizeof(drawData));
     hz::GPUBuffer outputs[3];
     for (hz::GPUBuffer& buffer : outputs)
     {
@@ -1111,7 +1111,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
         EXPECT_FLOAT_EQ(bounds.minimum[axis], minimum[axis]);
         EXPECT_FLOAT_EQ(bounds.maximum[axis], maximum[axis]);
     }
-    const hz::GpuMeshRecord* gpuMesh = assetManager.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
+    const hz::GpuMeshData* gpuMesh = assetManager.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
     hz::GPUBuffer    readback = context.createBuffer({ .size = 48,
@@ -1230,7 +1230,7 @@ TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     EXPECT_EQ(assetManager.getState(meshA), hz::AssetState::Retiring);
 }
 
-TEST_F(AssetManagerTest, RenderSceneKeepsPendingSlotsAndRejectsReusedGenerations)
+TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGenerations)
 {
     hz::AssetCatalog catalog;
     ASSERT_TRUE(
@@ -1401,7 +1401,7 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     EXPECT_EQ(removal.instanceIndices.count, 1u);
 }
 
-TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNoFrameAllocation)
+TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAndNoFrameAllocation)
 {
     hz::AssetCatalog catalog;
     hz::AssetManager assetManager(catalog);
@@ -1914,7 +1914,7 @@ static void renderGpuSceneFrame(hz::RenderContext& context, hz::GpuScene& gpu, c
 {
     ASSERT_TRUE(gpu.beginFrame());
     hz::CommandList& commands = context.acquireCommandList();
-    gpu.recordUpload(commands);
+    gpu.upload(commands);
     for (const GpuSceneCopy& copy : copies)
         commands.copyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.size);
     const hz::SubmitHandle submission = context.submit(commands);
@@ -1969,21 +1969,21 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
                                                                 .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const uint8_t*            pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
     const hz::RenderInstance& copiedInstance = *(const hz::RenderInstance*)pBytes;
-    const hz::GpuMeshRecord&  copiedMesh = *(const hz::GpuMeshRecord*)(pBytes + 256);
+    const hz::GpuMeshData&    copiedMesh = *(const hz::GpuMeshData*)(pBytes + 256);
     const GpuSceneCopy        instanceCopy = { .table = &hz::GpuSceneBuffers::instances,
                                                .srcOffset = sizeof(hz::RenderInstance) * instanceIndex,
                                                .size = sizeof(hz::RenderInstance) };
     const GpuSceneCopy        meshCopy = { .table = &hz::GpuSceneBuffers::meshes,
-                                           .srcOffset = sizeof(hz::GpuMeshRecord) * meshID.index,
+                                           .srcOffset = sizeof(hz::GpuMeshData) * meshID.index,
                                            .dstOffset = 256,
-                                           .size = sizeof(hz::GpuMeshRecord) };
+                                           .size = sizeof(hz::GpuMeshData) };
     const GpuSceneCopy        firstCopies[] = {
         instanceCopy,
         meshCopy,
         { .table = &hz::GpuSceneBuffers::materials,
-          .srcOffset = sizeof(hz::GpuMaterialRecord) * materialID.index,
-          .dstOffset = 512,
-          .size = sizeof(hz::GpuMaterialRecord) },
+                 .srcOffset = sizeof(hz::GpuMaterialData) * materialID.index,
+                 .dstOffset = 512,
+                 .size = sizeof(hz::GpuMaterialData) },
     };
     renderGpuSceneFrame(context, gpu, readback, firstCopies);
     EXPECT_EQ(copiedInstance.id, scene.getInstances().pData[instanceIndex].id);
@@ -1993,7 +1993,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_EQ(copiedMesh.indexStride, 2u);
     EXPECT_EQ(copiedMesh.submeshCount, 1u);
     EXPECT_EQ(copiedMesh.indexSrv, assetManager.getMesh(meshHandle)->getIndexBuffer().getSrvIndex());
-    const hz::GpuMaterialRecord& copiedMaterial = *(const hz::GpuMaterialRecord*)(pBytes + 512);
+    const hz::GpuMaterialData& copiedMaterial = *(const hz::GpuMaterialData*)(pBytes + 512);
     EXPECT_EQ(copiedMaterial.id, materialID);
     EXPECT_FLOAT_EQ(copiedMaterial.roughnessFactor, 0.8f);
     ASSERT_TRUE(copiedMaterial.baseColorTexture.isValid());
@@ -2009,14 +2009,14 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const GpuSceneCopy movedCopies[] = {
         instanceCopy,
         { .table = &hz::GpuSceneBuffers::textures,
-          .srcOffset = sizeof(hz::GpuTextureRecord) * copiedMaterial.baseColorTexture.index,
+          .srcOffset = sizeof(hz::GpuTextureData) * copiedMaterial.baseColorTexture.index,
           .dstOffset = 768,
-          .size = sizeof(hz::GpuTextureRecord) },
+          .size = sizeof(hz::GpuTextureData) },
     };
     renderGpuSceneFrame(context, gpu, readback, movedCopies);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 2);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
-    const hz::GpuTextureRecord& copiedTexture = *(const hz::GpuTextureRecord*)(pBytes + 768);
+    const hz::GpuTextureData& copiedTexture = *(const hz::GpuTextureData*)(pBytes + 768);
     EXPECT_EQ(copiedTexture.id, copiedMaterial.baseColorTexture);
     EXPECT_EQ(copiedTexture.srv, textureSrv);
 
@@ -2248,13 +2248,13 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::light));
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::camera));
     const GpuSceneCopy textureCopy = { .table = &hz::GpuSceneBuffers::textures,
-                                       .srcOffset = sizeof(hz::GpuTextureRecord) * textureID.index,
+                                       .srcOffset = sizeof(hz::GpuTextureData) * textureID.index,
                                        .dstOffset = 768,
-                                       .size = sizeof(hz::GpuTextureRecord) };
+                                       .size = sizeof(hz::GpuTextureData) };
     renderGpuSceneFrame(context, gpu, readback, { &textureCopy, 1 });
     EXPECT_EQ(scene.getActiveLights().count, 0u);
     EXPECT_EQ(scene.getActiveCameras().count, 0u);
-    EXPECT_FALSE(((const hz::GpuTextureRecord*)(pBytes + 768))->id.isValid());
+    EXPECT_FALSE(((const hz::GpuTextureData*)(pBytes + 768))->id.isValid());
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
 
@@ -2395,7 +2395,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_EQ(scene->getActiveMeshBatches().count, 2u);
     ASSERT_TRUE(assetManager.release(source));
     hz::unique_ptr<hz::GpuScene> gpu = hz::make_unique<hz::GpuScene>(*scene, assetManager, context);
-    hz::GPUBuffer                readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord) + 36,
+    hz::GPUBuffer                readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
                                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                                    .startState = RESOURCE_STATE_COPY_DEST,
                                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -2424,17 +2424,17 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
                 meshBatch = &scene->getMeshBatches().pData[index];
         ASSERT_NE(meshBatch, nullptr);
         EXPECT_EQ(meshBatch->submesh, renderer.overrides[0].submesh);
-        const hz::GpuMaterialRecord* material = gpu->getAssetTables().getMaterial(meshBatch->material);
+        const hz::GpuMaterialData* material = gpu->getAssetTables().getMaterial(meshBatch->material);
         ASSERT_NE(material, nullptr);
         EXPECT_NE(gpu->getAssetTables().getTexture(material->baseColorTexture), nullptr);
         const hz::MeshAsset* mesh = assetManager.getMesh(assetManager.find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
         hz::CommandList& commands = context.acquireCommandList();
-        gpu->recordUpload(commands);
+        gpu->upload(commands);
         commands.copyBuffer(readback, 0, gpu->getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
         commands.copyBuffer(readback, sizeof(hz::RenderInstance), gpu->getBuffers().materials,
-                            meshBatch->material.index * sizeof(hz::GpuMaterialRecord), sizeof(hz::GpuMaterialRecord));
-        commands.copyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialRecord), mesh->getVertexBuffer(0), 0, 36);
+                            meshBatch->material.index * sizeof(hz::GpuMaterialData), sizeof(hz::GpuMaterialData));
+        commands.copyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData), mesh->getVertexBuffer(0), 0, 36);
         const hz::SubmitHandle submission = context.submit(commands);
         gpu->endFrame(submission);
         // Destroying the GPU scene, bindings and World does not wait; buffers and payloads retire after the frame.
@@ -2450,7 +2450,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_FLOAT_EQ((float)copied->current.getElem(3, 0), 6);
         EXPECT_FLOAT_EQ((float)copied->previous.getElem(3, 0), 6);
         EXPECT_FLOAT_EQ((float)copied->current.getElem(1, 0), 0.25f);
-        const hz::GpuMaterialRecord* copiedMaterial = (const hz::GpuMaterialRecord*)((const uint8_t*)copied + sizeof(*copied));
+        const hz::GpuMaterialData* copiedMaterial = (const hz::GpuMaterialData*)((const uint8_t*)copied + sizeof(*copied));
         EXPECT_FLOAT_EQ(copiedMaterial->roughnessFactor, 0.8f);
         EXPECT_FLOAT_EQ(copiedMaterial->baseColorFactor[1], 0.5f);
         const float* vertices = (const float*)((const uint8_t*)copiedMaterial + sizeof(*copiedMaterial));
@@ -2609,7 +2609,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::RenderInstance instances[2];
     instances[0].current = instances[0].previous = Matrix4::translation(Vector3(-0.5f, 0, 0));
     instances[1].current = instances[1].previous = Matrix4::translation(Vector3(0.5f, 0, 0));
-    hz::GpuMaterialRecord materials[2];
+    hz::GpuMaterialData materials[2];
     materials[0].baseColorFactor[1] = materials[0].baseColorFactor[2] = 0;
     materials[1].baseColorFactor[0] = materials[1].baseColorFactor[2] = 0;
     materials[0].metallicFactor = materials[1].metallicFactor = 0;
@@ -2629,29 +2629,29 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::GPUBuffer frame = input(&frameData, sizeof(frameData), sizeof(frameData));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances)), materialBuffer = input(materials, sizeof(materials));
     hz::GPUBuffer vertices = input(positions, sizeof(positions)), normal = input(normals, sizeof(normals)), uv = input(uvs, sizeof(uvs));
-    struct DrawRecord
+    struct DrawData
     {
         uint32_t instance, material, materialId, alphaMode, positions, normals, texcoords, indices;
         uint32_t indexStride, firstIndex;
         int32_t  vertexOffset;
         uint32_t indexCount;
     };
-    DrawRecord records[2] = { { .instance = 0,
-                                .material = 0,
-                                .materialId = 17,
-                                .alphaMode = 0,
-                                .positions = vertices.getSrvIndex(),
-                                .normals = normal.getSrvIndex(),
-                                .texcoords = uv.getSrvIndex(),
-                                .indices = mesh->getIndexBuffer().getSrvIndex(),
-                                .indexStride = 2,
-                                .firstIndex = 0,
-                                .vertexOffset = 0,
-                                .indexCount = 3 } };
-    records[1] = records[0];
-    records[1].instance = records[1].material = 1;
-    records[1].materialId = 39;
-    hz::GPUBuffer draws = input(records, sizeof(records));
+    DrawData drawData[2] = { { .instance = 0,
+                               .material = 0,
+                               .materialId = 17,
+                               .alphaMode = 0,
+                               .positions = vertices.getSrvIndex(),
+                               .normals = normal.getSrvIndex(),
+                               .texcoords = uv.getSrvIndex(),
+                               .indices = mesh->getIndexBuffer().getSrvIndex(),
+                               .indexStride = 2,
+                               .firstIndex = 0,
+                               .vertexOffset = 0,
+                               .indexCount = 3 } };
+    drawData[1] = drawData[0];
+    drawData[1].instance = drawData[1].material = 1;
+    drawData[1].materialId = 39;
+    hz::GPUBuffer draws = input(drawData, sizeof(drawData));
     struct DrawCommand
     {
         uint32_t drawId, vertexCount, instanceCount, firstVertex, firstInstance;
@@ -2989,7 +2989,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     const uint32_t texcoords[] = { 0, 0, 0 };
     hz::GPUBuffer  vertices = input(positions, sizeof(positions)), indexBuffer = input(indices, sizeof(indices));
     hz::GPUBuffer  uv = input(texcoords, sizeof(texcoords));
-    hz::GpuMaterialRecord materials[2];
+    hz::GpuMaterialData     materials[2];
     for (uint32_t i = 0; i < 2; ++i)
     {
         materials[i].id = { i, 1 };
@@ -2997,21 +2997,21 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         materials[i].alphaMode = i;
         materials[i].alphaCutoff = 0.5f;
     }
-    hz::GpuTextureRecord textures[4];
+    hz::GpuTextureData textures[4];
     textures[3] = { .id = { 3, 9 }, .srv = alpha.getSrvIndex() };
-    GpuDrawRecord records[7] = {};
-    records[5] = { .material = 0,
-                   .alphaMode = 0,
-                   .positions = vertices.getSrvIndex(),
-                   .normals = uv.getSrvIndex(),
-                   .texcoords = uv.getSrvIndex(),
-                   .indices = indexBuffer.getSrvIndex(),
-                   .indexStride = 2,
-                   .indexCount = 3 };
-    records[6] = records[5];
-    records[6].material = records[6].alphaMode = 1;
+    GpuDrawData drawData[7] = {};
+    drawData[5] = { .material = 0,
+                    .alphaMode = 0,
+                    .positions = vertices.getSrvIndex(),
+                    .normals = uv.getSrvIndex(),
+                    .texcoords = uv.getSrvIndex(),
+                    .indices = indexBuffer.getSrvIndex(),
+                    .indexStride = 2,
+                    .indexCount = 3 };
+    drawData[6] = drawData[5];
+    drawData[6].material = drawData[6].alphaMode = 1;
     hz::GPUBuffer materialBuffer = input(materials, sizeof(materials)), textureBuffer = input(textures, sizeof(textures));
-    hz::GPUBuffer drawBuffer = input(records, sizeof(records));
+    hz::GPUBuffer                     drawBuffer = input(drawData, sizeof(drawData));
     hz::AccelerationStructureGeometry geometry = { .pVertexBuffer = &vertices,
                                                    .pIndexBuffer = &indexBuffer,
                                                    .vertexCount = 3,
@@ -3215,8 +3215,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     hz::RenderInstance      instances[2];
     instances[0].current = Matrix4::translation(Vector3(0, 0, 0.2f));
     instances[1].current = Matrix4::translation(Vector3(0, 0, 0.7f));
-    hz::GpuMaterialRecord materials[2];
-    for (hz::GpuMaterialRecord& material : materials)
+    hz::GpuMaterialData materials[2];
+    for (hz::GpuMaterialData& material : materials)
     {
         material.alphaMode = 2;
         material.baseColorFactor[3] = 0.5f;
@@ -3734,11 +3734,11 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     };
     const FrameData          camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
     const hz::RenderInstance instance;
-    hz::GpuMaterialRecord    material;
+    hz::GpuMaterialData      material;
     material.baseColorTexture = { 0, 9 };
     material.normalTexture = { 1, 9 };
     material.alphaCutoff = .5f;
-    const hz::GpuTextureRecord texture[] = { { .id = { 0, 9 }, .srv = alpha.getSrvIndex() },
+    const hz::GpuTextureData   texture[] = { { .id = { 0, 9 }, .srv = alpha.getSrvIndex() },
                                              { .id = { 1, 9 }, .srv = normalMap.getSrvIndex() } };
     // Production vertex storage: float3 positions, oct-normal uint, and packed half2 UV.
     const float                positions[] = { -1, -1, .5f, 3, -1, .5f, -1, 3, .5f };

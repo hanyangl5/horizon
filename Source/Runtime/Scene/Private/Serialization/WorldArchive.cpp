@@ -152,17 +152,17 @@ bool WorldArchive::capture(World& world, Guid id)
             LOGF(eERROR, "A persistent entity's parent must have a Guid");
             return false;
         }
-        cJSON* pRecord = cJSON_CreateObject();
-        cJSON_AddItemToArray(pEntities, pRecord);
-        addID(pRecord, "id", guid);
-        addID(pRecord, "parent", parentID);
+        cJSON* pEntityJson = cJSON_CreateObject();
+        cJSON_AddItemToArray(pEntities, pEntityJson);
+        addID(pEntityJson, "id", guid);
+        addID(pEntityJson, "parent", parentID);
         const Name* pName = (const Name*)world.getComponent(entity, SceneTypes::name);
         if (pName && !memchr(pName->value, 0, sizeof(pName->value)))
         {
             return false;
         }
-        cJSON_AddItemToObject(pRecord, "name", pName ? cJSON_CreateString(pName->value) : cJSON_CreateNull());
-        cJSON* pComponents = cJSON_AddArrayToObject(pRecord, "components");
+        cJSON_AddItemToObject(pEntityJson, "name", pName ? cJSON_CreateString(pName->value) : cJSON_CreateNull());
+        cJSON* pComponents = cJSON_AddArrayToObject(pEntityJson, "components");
         for (const TypeDesc* pType : types)
         {
             const void* pValue = world.getComponent(entity, pType->id);
@@ -216,7 +216,7 @@ struct WorldLoadNode
 {
     Guid         id;
     Guid         parent;
-    const cJSON* pRecord;
+    const cJSON* pEntityJson;
     Entity       entity;
     uint32_t     parentIndex = UINT32_MAX;
     uint8_t      visit = 0;
@@ -232,14 +232,14 @@ public:
     ~WorldLoadPlan() { hmfree(pIndices); }
     bool prepare(const cJSON* pEntities, World& world)
     {
-        for (const cJSON* pRecord = pEntities->child; pRecord; pRecord = pRecord->next)
+        for (const cJSON* pEntityJson = pEntities->child; pEntityJson; pEntityJson = pEntityJson->next)
         {
-            WorldLoadNode node = { .pRecord = pRecord };
-            const cJSON*  pName = field(pRecord, "name");
-            if (!uniqueWorldFields(pRecord) || !readID(field(pRecord, "id"), node.id) ||
-                !readID(field(pRecord, "parent"), node.parent, true) || hmgetp_null(pIndices, node.id) ||
+            WorldLoadNode node = { .pEntityJson = pEntityJson };
+            const cJSON*  pName = field(pEntityJson, "name");
+            if (!uniqueWorldFields(pEntityJson) || !readID(field(pEntityJson, "id"), node.id) ||
+                !readID(field(pEntityJson, "parent"), node.parent, true) || hmgetp_null(pIndices, node.id) ||
                 (!cJSON_IsNull(pName) && (!cJSON_IsString(pName) || strlen(pName->valuestring) >= sizeof(Name::value))) ||
-                !cJSON_IsArray(field(pRecord, "components")))
+                !cJSON_IsArray(field(pEntityJson, "components")))
             {
                 return false;
             }
@@ -391,7 +391,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, unique_ptr<World>& tar
     for (const WorldLoadNode& node : plan.nodes)
     {
         present.clear();
-        for (const cJSON* pComponent = field(node.pRecord, "components")->child; pComponent; pComponent = pComponent->next)
+        for (const cJSON* pComponent = field(node.pEntityJson, "components")->child; pComponent; pComponent = pComponent->next)
         {
             TypeID   id = 0;
             uint32_t version = 0;

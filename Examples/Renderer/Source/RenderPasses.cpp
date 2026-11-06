@@ -24,7 +24,7 @@ constexpr const char* kGBufferNames[] = {
 };
 
 static_assert(offsetof(hz::RenderInstance, current) == 32 && offsetof(hz::RenderInstance, previous) == 96);
-static_assert(offsetof(hz::GpuMaterialRecord, baseColorFactor) == 40 && offsetof(hz::GpuMaterialRecord, alphaMode) == 80);
+static_assert(offsetof(hz::GpuMaterialData, baseColorFactor) == 40 && offsetof(hz::GpuMaterialData, alphaMode) == 80);
 
 GBuffer::GBuffer(hz::RenderContext& context): context(context)
 {
@@ -92,7 +92,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
-    }, draws.getDependencies(frame, view, draws.getCommands(view.frameSlot)));
+    }, draws.getDependencies(frame, view, draws.getCommands(view.frameIndex)));
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);
@@ -101,10 +101,10 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                                gpu.textures.isValid() ? gpu.textures.getSrvIndex() : UINT32_MAX, sampler.getIndex() },
                              3);
 
-    commands.setRootConstant({ draws.getRecords(view.frameSlot).getSrvIndex() }, 11);
-    if (draws.getCount(view.frameSlot))
+    commands.setRootConstant({ draws.getDrawData(view.frameIndex).getSrvIndex() }, 11);
+    if (draws.getCount(view.frameIndex))
     {
-        commands.drawIndirect(draws.getCommands(view.frameSlot), 0, draws.getCount(view.frameSlot));
+        commands.drawIndirect(draws.getCommands(view.frameIndex), 0, draws.getCount(view.frameIndex));
     }
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -184,8 +184,8 @@ void RenderPasses::execute()
 
     ASSERT(postprocessing);
     // Block on the oldest frame like Unreal's frame sync; returning would spin Update/Draw while every frame is in flight.
-    const uint32_t  frameSlot = nextFrame;
-    FrameConstants& constants = frameConstants[frameSlot];
+    const uint32_t  frameIndex = nextFrame;
+    FrameConstants& constants = frameConstants[frameIndex];
     if (constants.submission.isValid())
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
@@ -196,7 +196,7 @@ void RenderPasses::execute()
         return;
     }
     nextFrame = (nextFrame + 1) % frameConstants.size();
-    const SceneView         view = { .scene = scene, .gpu = gpuScene, .assets = assets, .frameSlot = frameSlot };
+    const SceneView         view = { .scene = scene, .gpu = gpuScene, .assets = assets, .frameIndex = frameIndex };
     const hz::RenderCamera* pCamera = scene.getCamera(camera);
     ASSERT(pCamera);
     const hz::RenderCamera& cameraData = *pCamera;
@@ -210,7 +210,7 @@ void RenderPasses::execute()
     const bool              updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
     ASSERT(updated);
     hz::CommandList& commands = context.acquireCommandList();
-    gpuScene.recordUpload(commands);
+    gpuScene.upload(commands);
     draws.prepare(commands, frame, view);
     shadows->data.environmentMipCount = environment->getPrefilteredMipCount();
     shadows->data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;
@@ -221,7 +221,7 @@ void RenderPasses::execute()
                                       .pNormalMaterial = &gbuffer->gbuffer[1],
                                       .pBaseColorMetallic = &gbuffer->gbuffer[2],
                                       .pDepth = &gbuffer->depth };
-    LightingResources     resources = { .pLightingFrame = &shadows->getLightingFrame(frameSlot),
+    LightingResources     resources = { .pLightingFrame = &shadows->getLightingFrame(frameIndex),
                                         .pShadowMap = &shadows->getTexture(),
                                         .pShadowSampler = &shadows->getSampler(),
                                         .pEnvironment = &environment->getPrefiltered(),

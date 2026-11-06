@@ -70,11 +70,11 @@ public:
                                         sizeof(RenderCamera),
                                         4,
                                         4,
-                                        sizeof(GpuMeshRecord),
+                                        sizeof(GpuMeshData),
                                         sizeof(GpuVertexStream),
-                                        sizeof(GpuSubmeshRecord),
-                                        sizeof(GpuMaterialRecord),
-                                        sizeof(GpuTextureRecord) };
+                                        sizeof(GpuSubmeshData),
+                                        sizeof(GpuMaterialData),
+                                        sizeof(GpuTextureData) };
         const char* const names[] = { "GpuScene.Primitives",        "GpuScene.Instances",        "GpuScene.MeshBatches",
                                       "GpuScene.InstanceIndices",   "GpuScene.ActivePrimitives", "GpuScene.ActiveInstances",
                                       "GpuScene.ActiveMeshBatches", "GpuScene.Lights",           "GpuScene.Cameras",
@@ -247,9 +247,9 @@ bool GpuScene::beginFrame()
     return true;
 }
 
-void GpuScene::recordUpload(CommandList& commands)
+void GpuScene::upload(CommandList& commands)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::recordUpload");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::upload");
     ASSERT(pData->open && !pData->recorded);
     const GpuSceneFrame& frame = pData->frames[pData->current];
     for (const GpuTable& table : pData->tables)
