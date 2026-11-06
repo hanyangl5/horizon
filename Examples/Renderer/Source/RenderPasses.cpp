@@ -163,10 +163,10 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     const hz::MeshAsset* previousMesh = nullptr;
     for (uint32_t index : scene.getActiveDraws())
     {
-        const hz::RenderDraw&   draw = scene.getDraws().pData[index];
-        const hz::RenderObject& object = scene.getObjects().pData[draw.object.index];
-        ASSERT(object.id == draw.object);
-        if (!object.instanceCount)
+        const hz::RenderDraw&      draw = scene.getDraws().pData[index];
+        const hz::RenderPrimitive& primitive = scene.getPrimitives().pData[draw.primitive.index];
+        ASSERT(primitive.id == draw.primitive);
+        if (!primitive.instanceCount)
             continue;
         const hz::GpuMeshRecord* record = tables.getMesh(draw.mesh.mesh);
         ASSERT(record && tables.getMaterial(draw.material));
@@ -180,9 +180,9 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
             previousMesh = mesh;
         }
         const hz::GpuSubmeshRecord& submesh = tables.submeshes.pData[record->submeshOffset + draw.mesh.submeshIndex];
-        for (uint32_t i = 0; i < object.instanceCount; ++i)
+        for (uint32_t i = 0; i < primitive.instanceCount; ++i)
         {
-            const uint32_t instance = scene.getInstanceIndices().pData[object.instanceOffset + i];
+            const uint32_t instance = scene.getInstanceIndices().pData[primitive.instanceOffset + i];
             commands.setRootConstant({ instance, draw.material.index, materialIds[draw.material.index] });
             commands.drawIndexed(submesh.indexCount, submesh.firstIndex, submesh.vertexOffset);
         }

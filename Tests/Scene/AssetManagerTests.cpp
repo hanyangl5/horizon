@@ -1117,13 +1117,13 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingSlotsAndRejectsReusedGenerations
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     assetManager.update();
-    const hz::RenderObjectID first = scene.findObject(a), second = scene.findObject(b);
+    const hz::RenderPrimitiveID first = scene.findPrimitive(a), second = scene.findPrimitive(b);
     ASSERT_TRUE(first.isValid());
     ASSERT_TRUE(second.isValid());
-    EXPECT_EQ(scene.getActiveObjects().count, 2u);
+    EXPECT_EQ(scene.getActivePrimitives().count, 2u);
     EXPECT_EQ(scene.getActiveInstances().count, 2u);
     EXPECT_EQ(scene.getActiveDraws().count, 0u);
-    EXPECT_EQ(scene.getObject(first)->instanceCount, 0u);
+    EXPECT_EQ(scene.getPrimitive(first)->instanceCount, 0u);
     ASSERT_EQ(scene.getChanges().instanceIndices.count, 1u);
     EXPECT_EQ(scene.getChanges().instanceIndices.pData[0].count, 2u);
     for (uint32_t index : scene.getInstanceIndices())
@@ -1140,29 +1140,29 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingSlotsAndRejectsReusedGenerations
         EXPECT_EQ(before.reallocationCount, after.reallocationCount);
     }
     EXPECT_EQ(scene.getRevision(), revision);
-    EXPECT_EQ(scene.getChanges().objects.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
     EXPECT_EQ(scene.getChanges().instances.ranges.count, 0u);
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     scene.update();
-    EXPECT_EQ(scene.getObject(first), nullptr);
+    EXPECT_EQ(scene.getPrimitive(first), nullptr);
     EXPECT_EQ(scene.getInstance(instance), nullptr);
-    EXPECT_FALSE(scene.findObject(a).isValid());
-    EXPECT_EQ(scene.findObject(b), second);
-    ASSERT_EQ(scene.getChanges().objects.removed.count, 1u);
-    EXPECT_EQ(scene.getChanges().objects.removed.pData[0], first.index);
-    EXPECT_TRUE(scene.getChanges().objects.activeList);
+    EXPECT_FALSE(scene.findPrimitive(a).isValid());
+    EXPECT_EQ(scene.findPrimitive(b), second);
+    ASSERT_EQ(scene.getChanges().primitives.removed.count, 1u);
+    EXPECT_EQ(scene.getChanges().primitives.removed.pData[0], first.index);
+    EXPECT_TRUE(scene.getChanges().primitives.activeList);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    const hz::RenderObjectID replacement = scene.findObject(a);
+    const hz::RenderPrimitiveID replacement = scene.findPrimitive(a);
     EXPECT_EQ(replacement.index, first.index);
     EXPECT_NE(replacement.generation, first.generation);
-    EXPECT_EQ(scene.getObject(first), nullptr);
+    EXPECT_EQ(scene.getPrimitive(first), nullptr);
     EXPECT_EQ(scene.getInstance(instance), nullptr);
     ASSERT_TRUE(world.destroyEntity(b));
     scene.update();
-    EXPECT_EQ(scene.getObject(second), nullptr);
-    EXPECT_EQ(scene.getActiveObjects().count, 1u);
-    EXPECT_EQ(scene.getObjects().count, 2u);
+    EXPECT_EQ(scene.getPrimitive(second), nullptr);
+    EXPECT_EQ(scene.getActivePrimitives().count, 1u);
+    EXPECT_EQ(scene.getPrimitives().count, 2u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocating)
@@ -1194,7 +1194,7 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     scene.update();
     const MemoryTrackingStats before = memGetTrackingStats();
     for (hz::Entity entity : entities)
-        if ((scene.findObject(entity).index % 2) == 0)
+        if ((scene.findPrimitive(entity).index % 2) == 0)
         {
             const hz::LocalTransform transform = { .translation = Vector3(2, 0, 0) };
             ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
@@ -1213,7 +1213,7 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
         EXPECT_EQ(scene.getChanges().instances.ranges.pData[i].count, 1u);
     }
     EXPECT_FALSE(scene.getChanges().instances.activeList);
-    EXPECT_EQ(scene.getChanges().objects.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
     EXPECT_EQ(scene.getChanges().instanceIndices.count, 0u);
 }
 
@@ -1249,7 +1249,7 @@ TEST_F(AssetManagerTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
     ASSERT_EQ(delta.instances.count, 1u);
     EXPECT_EQ(delta.instances.pData[0].first, 0u);
     EXPECT_EQ(delta.instances.pData[0].count, 1u);
-    EXPECT_EQ(delta.objects.count, 0u);
+    EXPECT_EQ(delta.primitives.count, 0u);
     const uint64_t intermediate = scene.getRevision();
     for (uint32_t i = 5; i <= 12; ++i)
     {
@@ -1265,10 +1265,10 @@ TEST_F(AssetManagerTest, RenderSceneJournalCatchesUpAndFallsBackAfterOverflow)
     scene.update();
     const hz::RenderSceneSync removal = scene.getChangesSince(beforeRemove);
     EXPECT_FALSE(removal.full);
-    EXPECT_TRUE(removal.activeObjects);
+    EXPECT_TRUE(removal.activePrimitives);
     EXPECT_TRUE(removal.activeInstances);
     EXPECT_FALSE(removal.activeDraws);
-    EXPECT_EQ(removal.objects.count, 1u);
+    EXPECT_EQ(removal.primitives.count, 1u);
     EXPECT_EQ(removal.instances.count, 1u);
 }
 
@@ -1664,19 +1664,19 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     local.value.setTranslation(Vector3(10, 20, 30));
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
-    const hz::RenderObjectID object = scene.findObject(a);
+    const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
     wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
-    ASSERT_EQ(scene.getObject(object)->instanceCount, 1u);
-    EXPECT_EQ(scene.findObject(a), object);
+    ASSERT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
+    EXPECT_EQ(scene.findPrimitive(a), primitive);
     ASSERT_EQ(scene.getActiveDraws().count, 4u);
     ASSERT_EQ(scene.getChanges().draws.created.count, 4u);
-    const uint32_t             instanceIndex = scene.getInstanceIndices().pData[scene.getObject(object)->instanceOffset];
+    const uint32_t             instanceIndex = scene.getInstanceIndices().pData[scene.getPrimitive(primitive)->instanceOffset];
     const hz::RenderInstanceID instanceID = scene.getInstances().pData[instanceIndex].id;
     const hz::RenderInstance*  instance = scene.getInstance(instanceID);
     ASSERT_NE(instance, nullptr);
     EXPECT_EQ(instance->entityGuid, identity);
-    EXPECT_EQ(instance->object, object);
+    EXPECT_EQ(instance->primitive, primitive);
     EXPECT_FLOAT_EQ(instance->bounds.minimum[0], -3);
     EXPECT_FLOAT_EQ(instance->bounds.maximum[0], 14);
     EXPECT_FLOAT_EQ(instance->bounds.minimum[1], 5);
@@ -1685,7 +1685,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_FLOAT_EQ(instance->bounds.maximum[2], 33);
     hz::Array<hz::RenderDrawID> drawIDs;
     for (uint32_t index : scene.getActiveDraws())
-        if (scene.getDraws().pData[index].object == object)
+        if (scene.getDraws().pData[index].primitive == primitive)
             drawIDs.pushBack(scene.getDraws().pData[index].id);
     ASSERT_EQ(drawIDs.size(), 2u);
     EXPECT_EQ(scene.getDraw(drawIDs[0])->submesh, UINT64_C(0x8000000000000001));
@@ -1711,7 +1711,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->current.getElem(3, 0), 11);
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
-    EXPECT_EQ(scene.getChanges().objects.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
     EXPECT_EQ(scene.getChanges().draws.ranges.count, 0u);
     ASSERT_EQ(scene.getChanges().instances.ranges.count, 1u);
     EXPECT_EQ(scene.getChanges().instances.ranges.pData[0].first, instanceIndex);
@@ -1726,13 +1726,13 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    EXPECT_EQ(scene.getObject(object)->instanceCount, 0u);
+    EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 0u);
     EXPECT_NE(scene.getDraw(drawIDs[0]), nullptr);
     EXPECT_NE(scene.getDraw(drawIDs[1]), nullptr);
     EXPECT_FALSE(scene.getDraw(drawIDs[1])->material.isValid());
     wait(assetManager, assetManager.find(alternate));
     scene.update();
-    EXPECT_EQ(scene.getObject(object)->instanceCount, 1u);
+    EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
     EXPECT_EQ(scene.getDraw(drawIDs[0])->material, original);
     const hz::AssetHandle alternateHandle = assetManager.find(alternate);
     EXPECT_EQ(scene.getDraw(drawIDs[1])->material,
@@ -1742,28 +1742,28 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     EXPECT_EQ(scene.getDraw(drawIDs[1])->material, original);
-    EXPECT_EQ(scene.getChanges().objects.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
     ASSERT_EQ(scene.getChanges().draws.ranges.count, 1u);
     EXPECT_EQ(scene.getChanges().draws.ranges.pData[0].first, drawIDs[1].index);
     EXPECT_EQ(scene.getChanges().draws.ranges.pData[0].count, 1u);
 
     ASSERT_TRUE(world.destroyEntity(a));
     scene.update();
-    EXPECT_EQ(scene.getObject(object), nullptr);
+    EXPECT_EQ(scene.getPrimitive(primitive), nullptr);
     EXPECT_EQ(scene.getInstance(instanceID), nullptr);
     EXPECT_EQ(scene.getDraw(drawIDs[0]), nullptr);
     EXPECT_EQ(scene.getDraw(drawIDs[1]), nullptr);
-    EXPECT_EQ(scene.getInstanceIndices().pData[object.index], UINT32_MAX);
+    EXPECT_EQ(scene.getInstanceIndices().pData[primitive.index], UINT32_MAX);
     EXPECT_EQ(scene.getActiveDraws().count, 2u);
-    const hz::RenderObjectID survivor = scene.findObject(b);
-    const uint32_t           survivingInstance = scene.getInstanceIndices().pData[scene.getObject(survivor)->instanceOffset];
-    EXPECT_EQ(scene.getInstances().pData[survivingInstance].object, survivor);
+    const hz::RenderPrimitiveID survivor = scene.findPrimitive(b);
+    const uint32_t              survivingInstance = scene.getInstanceIndices().pData[scene.getPrimitive(survivor)->instanceOffset];
+    EXPECT_EQ(scene.getInstances().pData[survivingInstance].primitive, survivor);
     const hz::Entity replacement = world.createPersistentEntity(identity);
     ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    const hz::RenderObjectID reused = scene.findObject(replacement);
-    EXPECT_EQ(reused.index, object.index);
-    EXPECT_NE(reused.generation, object.generation);
+    const hz::RenderPrimitiveID reused = scene.findPrimitive(replacement);
+    EXPECT_EQ(reused.index, primitive.index);
+    EXPECT_NE(reused.generation, primitive.generation);
     EXPECT_EQ(scene.getActiveDraws().count, 4u);
     for (hz::RenderDrawID old : drawIDs)
     {
@@ -1799,12 +1799,12 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
     const hz::AssetHandle meshHandle = assetManager.find(renderer.mesh);
     wait(assetManager, meshHandle);
     scene.update();
-    const hz::RenderObjectID object = scene.findObject(a);
-    const hz::GpuMeshID      meshID = scene.getObject(object)->mesh;
-    const uint32_t           instanceIndex = scene.getInstanceIndices().pData[scene.getObject(object)->instanceOffset];
-    hz::RenderDrawID         drawID;
+    const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
+    const hz::GpuMeshID         meshID = scene.getPrimitive(primitive)->mesh;
+    const uint32_t              instanceIndex = scene.getInstanceIndices().pData[scene.getPrimitive(primitive)->instanceOffset];
+    hz::RenderDrawID            drawID;
     for (uint32_t index : scene.getActiveDraws())
-        if (scene.getDraws().pData[index].object == object)
+        if (scene.getDraws().pData[index].primitive == primitive)
             drawID = scene.getDraws().pData[index].id;
     ASSERT_TRUE(drawID.isValid());
     const hz::GpuMaterialID materialID = scene.getDraw(drawID)->material;
@@ -1929,21 +1929,21 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
     for (uint32_t i = 0; i < 3; ++i)
     {
         frame = pool.capture();
-        EXPECT_EQ(frame.getActiveObjects().count, 1u);
+        EXPECT_EQ(frame.getActivePrimitives().count, 1u);
         EXPECT_EQ(frame.getActiveInstances().count, 1u);
         EXPECT_EQ(frame.getActiveDraws().count, 1u);
-        EXPECT_FALSE(frame.getObjects().pData[object.index].id.isValid());
+        EXPECT_FALSE(frame.getPrimitives().pData[primitive.index].id.isValid());
         EXPECT_FALSE(frame.getDraws().pData[drawID.index].id.isValid());
-        EXPECT_EQ(frame.getInstanceIndices().pData[object.index], UINT32_MAX);
+        EXPECT_EQ(frame.getInstanceIndices().pData[primitive.index], UINT32_MAX);
         frame = {};
     }
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     frame = pool.capture();
-    const hz::RenderObjectID reused = scene.findObject(a);
-    EXPECT_EQ(reused.index, object.index);
-    EXPECT_NE(reused.generation, object.generation);
+    const hz::RenderPrimitiveID reused = scene.findPrimitive(a);
+    EXPECT_EQ(reused.index, primitive.index);
+    EXPECT_NE(reused.generation, primitive.generation);
     EXPECT_NE(frame.getDraws().pData[drawID.index].id.generation, drawID.generation);
-    const uint32_t reusedInstance = frame.getInstanceIndices().pData[frame.getObjects().pData[reused.index].instanceOffset];
+    const uint32_t reusedInstance = frame.getInstanceIndices().pData[frame.getPrimitives().pData[reused.index].instanceOffset];
     EXPECT_FLOAT_EQ((float)frame.getInstances().pData[reusedInstance].previous.getElem(3, 0), 200);
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.removeComponent(b, hz::SceneTypes::meshRenderer));
@@ -1961,7 +1961,7 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
     const hz::SubmitHandle assetSubmission = context.submit(assetCommands);
     pool.retire(std::move(frame), assetSubmission);
     frame = pool.capture();
-    EXPECT_EQ(frame.getActiveObjects().count, 0u);
+    EXPECT_EQ(frame.getActivePrimitives().count, 0u);
     EXPECT_EQ(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
     frame = {};
     context.wait(assetSubmission);
@@ -1976,7 +1976,7 @@ TEST_F(TypedAssetLiveTest, RenderFramesPairGpuTablesHistoryAndRotatingBackingSto
     const hz::AssetHandle reloaded = assetManager.find(renderer.mesh);
     wait(assetManager, reloaded);
     frame = pool.capture();
-    EXPECT_NE(frame.getObjects().pData[scene.findObject(a).index].mesh, meshID);
+    EXPECT_NE(frame.getPrimitives().pData[scene.findPrimitive(a).index].mesh, meshID);
     EXPECT_EQ(frame.getAssets().getGpuTables().getMesh(meshID), nullptr);
     EXPECT_EQ(frame.getActiveDraws().count, 1u);
 }
@@ -2019,9 +2019,9 @@ TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmis
     scene.update();
     wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
-    const hz::RenderObjectID renderObjectID = scene.findObject(entity);
+    const hz::RenderPrimitiveID primitiveID = scene.findPrimitive(entity);
     ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
-    EXPECT_EQ(scene.getLight(lightID)->object, renderObjectID);
+    EXPECT_EQ(scene.getLight(lightID)->primitive, primitiveID);
     hz::RenderFramePool pool(scene, context);
     pool.reserve(1, 1, 1, 1);
     for (uint32_t i = 0; i < 3; ++i)
@@ -2132,7 +2132,7 @@ TEST_F(TypedAssetLiveTest, RenderFramesFreezeLightsAndCameraHistoryAndRetireEmis
     assetManager.update();
     EXPECT_EQ(scene.findLight(entity), lightID);
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u);
-    EXPECT_FALSE(scene.getLight(lightID)->object.isValid());
+    EXPECT_FALSE(scene.getLight(lightID)->primitive.isValid());
     EXPECT_EQ(assetManager.getState(textureHandle), hz::AssetState::Ready);
     light.type = hz::LightType::Dome;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
@@ -2257,12 +2257,12 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         hz::RenderFrame frame = pool->capture();
         ASSERT_TRUE(frame.isValid());
         ASSERT_EQ(frame.getActiveDraws().count, 2u);
-        const hz::RenderObjectID renderObjectID = scene->findObject(entity);
-        const hz::RenderObject&  object = frame.getObjects().pData[renderObjectID.index];
-        const uint32_t           instance = frame.getInstanceIndices().pData[object.instanceOffset];
-        const hz::RenderDraw*    draw = nullptr;
+        const hz::RenderPrimitiveID primitiveID = scene->findPrimitive(entity);
+        const hz::RenderPrimitive&  primitive = frame.getPrimitives().pData[primitiveID.index];
+        const uint32_t              instance = frame.getInstanceIndices().pData[primitive.instanceOffset];
+        const hz::RenderDraw*       draw = nullptr;
         for (uint32_t index : frame.getActiveDraws())
-            if (frame.getDraws().pData[index].object == renderObjectID)
+            if (frame.getDraws().pData[index].primitive == primitiveID)
                 draw = &frame.getDraws().pData[index];
         ASSERT_NE(draw, nullptr);
         EXPECT_EQ(draw->submesh, renderer.overrides[0].submesh);

@@ -67,26 +67,26 @@ static void upload(RenderContext& context, GPUBuffer& buffer, uint64_t& capacity
 
 struct RenderFrameData
 {
-    Array<RenderObject>   objects;
-    Array<RenderInstance> instances;
-    Array<RenderDraw>     draws;
-    Array<uint32_t>       instanceIndices;
-    Array<uint32_t>       activeObjects;
-    Array<uint32_t>       activeInstances;
-    Array<uint32_t>       activeDraws;
-    Array<RenderLight>    lights;
-    Array<RenderCamera>   cameras;
-    Array<uint32_t>       activeLights;
-    Array<uint32_t>       activeCameras;
-    RenderFrameBuffers    buffers;
-    uint64_t              capacities[16] = {};
-    AssetSnapshot         assets;
-    SubmitHandle          submission;
-    uint64_t              sceneRevision = 0;
-    uint64_t              assetRevision = 0;
-    uint64_t              revision = 0;
-    uint64_t              historyEpoch = 0;
-    bool                  leased = false;
+    Array<RenderPrimitive> primitives;
+    Array<RenderInstance>  instances;
+    Array<RenderDraw>      draws;
+    Array<uint32_t>        instanceIndices;
+    Array<uint32_t>        activePrimitives;
+    Array<uint32_t>        activeInstances;
+    Array<uint32_t>        activeDraws;
+    Array<RenderLight>     lights;
+    Array<RenderCamera>    cameras;
+    Array<uint32_t>        activeLights;
+    Array<uint32_t>        activeCameras;
+    RenderFrameBuffers     buffers;
+    uint64_t               capacities[16] = {};
+    AssetSnapshot          assets;
+    SubmitHandle           submission;
+    uint64_t               sceneRevision = 0;
+    uint64_t               assetRevision = 0;
+    uint64_t               revision = 0;
+    uint64_t               historyEpoch = 0;
+    bool                   leased = false;
 };
 
 class RenderFramePoolData
@@ -144,27 +144,27 @@ public:
         frame.assets = scene.captureAssets();
         ASSERT(frame.assets.isValid());
         const RenderSceneSync changes = scene.getChangesSince(frame.sceneRevision);
-        syncArray(frame.objects, scene.getObjects(), changes.objects, changes.full);
+        syncArray(frame.primitives, scene.getPrimitives(), changes.primitives, changes.full);
         syncArray(frame.instances, scene.getInstances(), changes.instances, changes.full);
         syncArray(frame.draws, scene.getDraws(), changes.draws, changes.full);
         syncArray(frame.instanceIndices, scene.getInstanceIndices(), changes.instanceIndices, changes.full);
-        syncArray(frame.activeObjects, scene.getActiveObjects(), {}, changes.full || changes.activeObjects);
+        syncArray(frame.activePrimitives, scene.getActivePrimitives(), {}, changes.full || changes.activePrimitives);
         syncArray(frame.activeInstances, scene.getActiveInstances(), {}, changes.full || changes.activeInstances);
         syncArray(frame.activeDraws, scene.getActiveDraws(), {}, changes.full || changes.activeDraws);
         syncArray(frame.lights, scene.getLights(), changes.lights, changes.full);
         syncArray(frame.cameras, scene.getCameras(), changes.cameras, changes.full);
         syncArray(frame.activeLights, scene.getActiveLights(), {}, changes.full || changes.activeLights);
         syncArray(frame.activeCameras, scene.getActiveCameras(), {}, changes.full || changes.activeCameras);
-        upload<RenderObject>(context, frame.buffers.objects, frame.capacities[0], { frame.objects.data(), frame.objects.size() },
-                             changes.objects, changes.full);
+        upload<RenderPrimitive>(context, frame.buffers.primitives, frame.capacities[0],
+                                { frame.primitives.data(), frame.primitives.size() }, changes.primitives, changes.full);
         upload<RenderInstance>(context, frame.buffers.instances, frame.capacities[1], { frame.instances.data(), frame.instances.size() },
                                changes.instances, changes.full);
         upload<RenderDraw>(context, frame.buffers.draws, frame.capacities[2], { frame.draws.data(), frame.draws.size() }, changes.draws,
                            changes.full);
         upload<uint32_t>(context, frame.buffers.instanceIndices, frame.capacities[3],
                          { frame.instanceIndices.data(), frame.instanceIndices.size() }, changes.instanceIndices, changes.full);
-        upload<uint32_t>(context, frame.buffers.activeObjects, frame.capacities[4],
-                         { frame.activeObjects.data(), frame.activeObjects.size() }, {}, changes.full || changes.activeObjects);
+        upload<uint32_t>(context, frame.buffers.activePrimitives, frame.capacities[4],
+                         { frame.activePrimitives.data(), frame.activePrimitives.size() }, {}, changes.full || changes.activePrimitives);
         upload<uint32_t>(context, frame.buffers.activeInstances, frame.capacities[5],
                          { frame.activeInstances.data(), frame.activeInstances.size() }, {}, changes.full || changes.activeInstances);
         upload<uint32_t>(context, frame.buffers.activeDraws, frame.capacities[6], { frame.activeDraws.data(), frame.activeDraws.size() },
@@ -214,18 +214,18 @@ RenderFramePool::RenderFramePool(RenderScene& scene, RenderContext& context, con
 {
 }
 RenderFramePool::~RenderFramePool() { tf_delete(pData); }
-void RenderFramePool::reserve(uint32_t objectCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
+void RenderFramePool::reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
 {
     ASSERT(!pData->cpuLease);
-    pData->scene.reserve(objectCount, drawCount, lightCount, cameraCount);
+    pData->scene.reserve(primitiveCount, drawCount, lightCount, cameraCount);
     for (RenderFrameData& frame : pData->frames)
     {
-        frame.objects.reserve(objectCount);
-        frame.instances.reserve(objectCount);
+        frame.primitives.reserve(primitiveCount);
+        frame.instances.reserve(primitiveCount);
         frame.draws.reserve(drawCount);
-        frame.instanceIndices.reserve(objectCount);
-        frame.activeObjects.reserve(objectCount);
-        frame.activeInstances.reserve(objectCount);
+        frame.instanceIndices.reserve(primitiveCount);
+        frame.activePrimitives.reserve(primitiveCount);
+        frame.activeInstances.reserve(primitiveCount);
         frame.activeDraws.reserve(drawCount);
         frame.lights.reserve(lightCount);
         frame.cameras.reserve(cameraCount);
@@ -248,7 +248,7 @@ void RenderFramePool::retire(RenderFrame&& snapshot, SubmitHandle submission)
 {
     ASSERT(snapshot.pData == pData && snapshot.isValid() && submission.isValid());
     RenderFrameData& frame = pData->frames[snapshot.index];
-    pData->scene.commitSnapshot({ frame.objects.data(), frame.objects.size() }, { frame.instances.data(), frame.instances.size() },
+    pData->scene.commitSnapshot({ frame.primitives.data(), frame.primitives.size() }, { frame.instances.data(), frame.instances.size() },
                                 { frame.cameras.data(), frame.cameras.size() }, frame.historyEpoch);
     frame.submission = submission;
     frame.leased = false;
@@ -296,11 +296,11 @@ const RenderFrameBuffers& RenderFrame::getBuffers() const
     ASSERT(pData);
     return pData->frames[index].buffers;
 }
-Span<RenderObject> RenderFrame::getObjects() const
+Span<RenderPrimitive> RenderFrame::getPrimitives() const
 {
     ASSERT(pData);
     const RenderFrameData& frame = pData->frames[index];
-    return { frame.objects.data(), frame.objects.size() };
+    return { frame.primitives.data(), frame.primitives.size() };
 }
 Span<RenderInstance> RenderFrame::getInstances() const
 {
@@ -332,11 +332,11 @@ Span<uint32_t> RenderFrame::getInstanceIndices() const
     const RenderFrameData& frame = pData->frames[index];
     return { frame.instanceIndices.data(), frame.instanceIndices.size() };
 }
-Span<uint32_t> RenderFrame::getActiveObjects() const
+Span<uint32_t> RenderFrame::getActivePrimitives() const
 {
     ASSERT(pData);
     const RenderFrameData& frame = pData->frames[index];
-    return { frame.activeObjects.data(), frame.activeObjects.size() };
+    return { frame.activePrimitives.data(), frame.activePrimitives.size() };
 }
 Span<uint32_t> RenderFrame::getActiveInstances() const
 {

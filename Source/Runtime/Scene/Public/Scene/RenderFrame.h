@@ -8,11 +8,11 @@ namespace hz
 {
 struct RenderFrameBuffers
 {
-    GPUBuffer objects;
+    GPUBuffer primitives;
     GPUBuffer instances;
     GPUBuffer draws;
     GPUBuffer instanceIndices;
-    GPUBuffer activeObjects;
+    GPUBuffer activePrimitives;
     GPUBuffer activeInstances;
     GPUBuffer activeDraws;
     GPUBuffer lights;
@@ -48,13 +48,13 @@ public:
     uint32_t                  getBackingIndex() const { return index; }
     const AssetSnapshot&      getAssets() const;
     const RenderFrameBuffers& getBuffers() const;
-    Span<RenderObject>        getObjects() const;
+    Span<RenderPrimitive>     getPrimitives() const;
     Span<RenderInstance>      getInstances() const;
     Span<RenderDraw>          getDraws() const;
     Span<RenderLight>         getLights() const;
     Span<RenderCamera>        getCameras() const;
     Span<uint32_t>            getInstanceIndices() const;
-    Span<uint32_t>            getActiveObjects() const;
+    Span<uint32_t>            getActivePrimitives() const;
     Span<uint32_t>            getActiveInstances() const;
     Span<uint32_t>            getActiveDraws() const;
     Span<uint32_t>            getActiveLights() const;
@@ -74,7 +74,7 @@ public:
     ~RenderFramePool();
     RenderFramePool(const RenderFramePool&) = delete;
     RenderFramePool& operator=(const RenderFramePool&) = delete;
-    void             reserve(uint32_t objectCount, uint32_t drawCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
+    void             reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Updates extraction and pins the matching asset table. One CPU lease at a time.
     // Returns invalid if every backing is still in GPU use; never waits for a fence.
     RenderFrame      capture();

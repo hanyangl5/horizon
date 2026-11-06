@@ -56,7 +56,7 @@ flowchart LR
 
 运行时句柄还包含 generation（代数）。一个槽位先后装过两份资产时，旧句柄不能误认后来者。Entity 也有类似的失效防护，但只在创建它的 World 中使用。`entity.isValid()` 仅表示非空，实际存活要询问 `world.isAlive(entity)`；AssetHandle 非空也不代表资产已经 Ready。
 
-稍后看到的 RenderObjectID 和 GpuMeshID 等类型，属于渲染期身份。它们帮助定位和校验运行时记录，也不进入 World 文件。
+稍后看到的 RenderPrimitiveID 和 GpuMeshID 等类型，属于渲染期身份。它们帮助定位和校验运行时记录，也不进入 World 文件。
 
 ## 3. World 封装实体生命周期，组件保存数据
 
@@ -173,7 +173,7 @@ RenderScene 从 World 和资产绑定中提取这些结果，当前主要分为�
 
 | 层 | 关注的数据 | 椅子的例子 |
 | --- | --- | --- |
-| RenderObject | Mesh 以及它对应的实例范围 | 一把使用某 Mesh 的椅子 |
+| RenderPrimitive | Mesh 以及它对应的实例范围 | 一把使用某 Mesh 的椅子 |
 | RenderInstance | 变换、包围盒、Guid | 这把椅子的当前与上一提交姿态 |
 | RenderDraw | submesh 和材质引用 | 木头、坐垫分别产生 draw |
 

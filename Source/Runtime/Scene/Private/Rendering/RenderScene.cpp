@@ -35,7 +35,8 @@ static bool equalLight(const RenderLight& a, const RenderLight& b)
            a.innerConeAngle == b.innerConeAngle && a.outerConeAngle == b.outerConeAngle && a.exposure == b.exposure &&
            a.angularDiameter == b.angularDiameter && a.width == b.width && a.height == b.height && a.radius == b.radius &&
            a.length == b.length && a.colorTemperature == b.colorTemperature && a.enableColorTemperature == b.enableColorTemperature &&
-           a.normalize == b.normalize && a.twoSided == b.twoSided && a.texture == b.texture && a.object == b.object && a.ready == b.ready;
+           a.normalize == b.normalize && a.twoSided == b.twoSided && a.texture == b.texture && a.primitive == b.primitive &&
+           a.ready == b.ready;
 }
 static RenderBounds transformBounds(const MeshBounds& bounds, const Matrix4& matrix)
 {
@@ -59,7 +60,7 @@ static RenderBounds transformBounds(const MeshBounds& bounds, const Matrix4& mat
 struct RenderEntity
 {
     Entity              entity;
-    RenderObjectID      object;
+    RenderPrimitiveID   primitive;
     RenderInstanceID    instance;
     Array<RenderDrawID> draws;
     MeshBounds          localBounds;
@@ -95,13 +96,13 @@ struct RenderCameraEntity
 
 enum class RenderTable : uint32_t
 {
-    Objects,
+    Primitives,
     Instances,
     Draws,
     InstanceIndices,
     Lights,
     Cameras,
-    ActiveObjects,
+    ActivePrimitives,
     ActiveInstances,
     ActiveDraws,
     ActiveLights,
@@ -110,7 +111,7 @@ enum class RenderTable : uint32_t
 struct RenderChange
 {
     uint64_t    revision = 0;
-    RenderTable table = RenderTable::Objects;
+    RenderTable table = RenderTable::Primitives;
     RenderRange range;
 };
 static int compareRenderRanges(const void* pA, const void* pB)
@@ -247,9 +248,9 @@ public:
             {
                 const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity.entity);
                 if (pIndex)
-                    next.object = entities[pIndex->value].object;
-                const RenderObject* pObject = objects.get(next.object);
-                next.ready = next.ready && pObject && pObject->instanceCount ? 1u : 0u;
+                    next.primitive = entities[pIndex->value].primitive;
+                const RenderPrimitive* pPrimitive = primitives.get(next.primitive);
+                next.ready = next.ready && pPrimitive && pPrimitive->instanceCount ? 1u : 0u;
             }
             RenderLight& light = lights.values[entity.id.index];
             if (!equalLight(light, next))
@@ -343,11 +344,11 @@ public:
     {
         RenderEntity& record = entities.emplaceBack();
         record.entity = entity;
-        record.object = objects.add();
+        record.primitive = primitives.add();
         record.instance = instances.add();
-        objects.values[record.object.index].instanceOffset = record.object.index;
-        instances.values[record.instance.index].object = record.object;
-        setInstanceIndex(record.object.index, UINT32_MAX);
+        primitives.values[record.primitive.index].instanceOffset = record.primitive.index;
+        instances.values[record.instance.index].primitive = record.primitive;
+        setInstanceIndex(record.primitive.index, UINT32_MAX);
         const RenderEntityIndex index = { .key = entity, .value = entities.size() - 1 };
         hmputs(pIndices, index);
         return record;
@@ -362,9 +363,9 @@ public:
             const MaterialAssetBinding& material = binding.materials.pData[i];
             const RenderDrawID          id = draws.add();
             RenderDraw&                 draw = draws.values[id.index];
-            draw.object = entity.object;
+            draw.primitive = entity.primitive;
             draw.submesh = material.submesh;
-            draw.mesh = { .mesh = objects.values[entity.object.index].mesh, .submeshIndex = i };
+            draw.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
             draw.material = { .index = material.handle.index, .generation = material.handle.generation };
             entity.draws.pushBack(id);
             const MeshBounds& bounds = mesh.getBounds(i);
@@ -378,29 +379,29 @@ public:
     void extract(RenderEntity& entity)
     {
         entity.seen = true;
-        RenderObject&           object = objects.values[entity.object.index];
+        RenderPrimitive&        primitive = primitives.values[entity.primitive.index];
         const MeshAssetBinding* pBinding = bindings.get(entity.entity);
         ASSERT(pBinding);
         const bool       ready = pBinding->state == AssetBindingState::Ready;
         const MeshAsset* pMesh = assetManager.getMesh(pBinding->mesh);
         const GpuMeshID  mesh = pMesh ? GpuMeshID{ .index = pBinding->mesh.index, .generation = pBinding->mesh.generation } : GpuMeshID{};
         const uint32_t   count = ready ? 1u : 0u;
-        if (object.mesh != mesh)
+        if (primitive.mesh != mesh)
         {
             removeDraws(entity);
             entity.localBounds = {};
         }
-        if (object.mesh != mesh || object.instanceCount != count)
+        if (primitive.mesh != mesh || primitive.instanceCount != count)
         {
-            if (ready && (object.mesh != mesh || !object.instanceCount))
+            if (ready && (primitive.mesh != mesh || !primitive.instanceCount))
             {
                 entity.historyValid = false;
                 entity.historyEpoch = ++historyEpoch;
             }
-            object.mesh = mesh;
-            object.instanceCount = count;
-            objects.markDirty(entity.object.index);
-            setInstanceIndex(entity.object.index, ready ? entity.instance.index : UINT32_MAX);
+            primitive.mesh = mesh;
+            primitive.instanceCount = count;
+            primitives.markDirty(entity.primitive.index);
+            setInstanceIndex(entity.primitive.index, ready ? entity.instance.index : UINT32_MAX);
         }
         if (ready && entity.draws.empty())
             buildDraws(entity, *pBinding, *pMesh);
@@ -456,7 +457,7 @@ public:
     {
         ASSERT(!world.isDeferred());
         world.updateTransforms();
-        objects.beginUpdate();
+        primitives.beginUpdate();
         instances.beginUpdate();
         draws.beginUpdate();
         lights.beginUpdate();
@@ -481,8 +482,8 @@ public:
                 continue;
             }
             removeDraws(entity);
-            setInstanceIndex(entity.object.index, UINT32_MAX);
-            objects.remove(entity.object);
+            setInstanceIndex(entity.primitive.index, UINT32_MAX);
+            primitives.remove(entity.primitive);
             instances.remove(entity.instance);
             hmdel(pIndices, entity.entity);
             if (i + 1 < entities.size())
@@ -494,24 +495,24 @@ public:
         extractLights();
         cameraQuery.each(extractCamera, this);
         removeCameras();
-        objects.finishUpdate();
+        primitives.finishUpdate();
         instances.finishUpdate();
         draws.finishUpdate();
         lights.finishUpdate();
         cameras.finishUpdate();
         mergeRenderRanges(indicesDirty, indicesRanges);
-        if (!objects.getChanges().ranges.count && !instances.getChanges().ranges.count && !draws.getChanges().ranges.count &&
+        if (!primitives.getChanges().ranges.count && !instances.getChanges().ranges.count && !draws.getChanges().ranges.count &&
             !lights.getChanges().ranges.count && !cameras.getChanges().ranges.count && indicesRanges.empty())
             return;
         ++revision;
-        record(RenderTable::Objects, objects.getChanges().ranges);
+        record(RenderTable::Primitives, primitives.getChanges().ranges);
         record(RenderTable::Instances, instances.getChanges().ranges);
         record(RenderTable::Draws, draws.getChanges().ranges);
         record(RenderTable::InstanceIndices, { indicesRanges.data(), indicesRanges.size() });
         record(RenderTable::Lights, lights.getChanges().ranges);
         record(RenderTable::Cameras, cameras.getChanges().ranges);
-        if (objects.getChanges().activeList)
-            record(RenderTable::ActiveObjects, {});
+        if (primitives.getChanges().activeList)
+            record(RenderTable::ActivePrimitives, {});
         if (instances.getChanges().activeList)
             record(RenderTable::ActiveInstances, {});
         if (draws.getChanges().activeList)
@@ -556,8 +557,8 @@ public:
                 continue;
             if (change.table <= RenderTable::Cameras)
                 syncRanges[(uint32_t)change.table].pushBack(change.range);
-            else if (change.table == RenderTable::ActiveObjects)
-                result.activeObjects = true;
+            else if (change.table == RenderTable::ActivePrimitives)
+                result.activePrimitives = true;
             else if (change.table == RenderTable::ActiveInstances)
                 result.activeInstances = true;
             else if (change.table == RenderTable::ActiveDraws)
@@ -569,7 +570,7 @@ public:
         }
         for (Array<RenderRange>& ranges : syncRanges)
             mergeRanges(ranges);
-        result.objects = { syncRanges[0].data(), syncRanges[0].size() };
+        result.primitives = { syncRanges[0].data(), syncRanges[0].size() };
         result.instances = { syncRanges[1].data(), syncRanges[1].size() };
         result.draws = { syncRanges[2].data(), syncRanges[2].size() };
         result.instanceIndices = { syncRanges[3].data(), syncRanges[3].size() };
@@ -577,16 +578,17 @@ public:
         result.cameras = { syncRanges[5].data(), syncRanges[5].size() };
         return result;
     }
-    void commitSnapshot(Span<RenderObject> frameObjects, Span<RenderInstance> frameInstances, Span<RenderCamera> frameCameras,
+    void commitSnapshot(Span<RenderPrimitive> framePrimitives, Span<RenderInstance> frameInstances, Span<RenderCamera> frameCameras,
                         uint64_t epoch)
     {
         for (RenderEntity& entity : entities)
         {
-            if (entity.historyEpoch > epoch || entity.object.index >= frameObjects.count || entity.instance.index >= frameInstances.count)
+            if (entity.historyEpoch > epoch || entity.primitive.index >= framePrimitives.count ||
+                entity.instance.index >= frameInstances.count)
                 continue;
-            const RenderObject&   object = frameObjects.pData[entity.object.index];
-            const RenderInstance& instance = frameInstances.pData[entity.instance.index];
-            if (object.id != entity.object || !object.instanceCount || instance.id != entity.instance)
+            const RenderPrimitive& primitive = framePrimitives.pData[entity.primitive.index];
+            const RenderInstance&  instance = frameInstances.pData[entity.instance.index];
+            if (primitive.id != entity.primitive || !primitive.instanceCount || instance.id != entity.instance)
                 continue;
             entity.submitted = instance.current;
             entity.historyValid = true;
@@ -620,34 +622,34 @@ public:
             }
     }
 
-    World&                                        world;
-    AssetManager&                                 assetManager;
-    WorldAssetBindings                            bindings;
-    WorldQuery                                    query;
-    WorldQuery                                    lightQuery;
-    WorldQuery                                    cameraQuery;
-    RenderSlots<RenderObject, RenderObjectID>     objects;
-    RenderSlots<RenderInstance, RenderInstanceID> instances;
-    RenderSlots<RenderDraw, RenderDrawID>         draws;
-    RenderSlots<RenderLight, RenderLightID>       lights;
-    RenderSlots<RenderCamera, RenderCameraID>     cameras;
-    Array<RenderEntity>                           entities;
-    RenderEntityIndex*                            pIndices = nullptr;
-    Array<RenderLightEntity>                      lightEntities;
-    Array<RenderCameraEntity>                     cameraEntities;
-    RenderEntityIndex*                            pLightIndices = nullptr;
-    RenderEntityIndex*                            pCameraIndices = nullptr;
-    Array<AssetHandle>                            textureReleases;
-    Array<uint32_t>                               instanceIndices;
-    Array<uint32_t>                               indicesDirty;
-    Array<RenderRange>                            indicesRanges;
-    uint64_t                                      revision = 0;
-    uint64_t                                      historyEpoch = 0;
-    Array<RenderChange>                           journal;
-    Array<RenderRange>                            syncRanges[6];
-    uint32_t                                      journalFirst = 0;
-    uint32_t                                      journalCount = 0;
-    uint64_t                                      journalFloor = 0;
+    World&                                          world;
+    AssetManager&                                   assetManager;
+    WorldAssetBindings                              bindings;
+    WorldQuery                                      query;
+    WorldQuery                                      lightQuery;
+    WorldQuery                                      cameraQuery;
+    RenderSlots<RenderPrimitive, RenderPrimitiveID> primitives;
+    RenderSlots<RenderInstance, RenderInstanceID>   instances;
+    RenderSlots<RenderDraw, RenderDrawID>           draws;
+    RenderSlots<RenderLight, RenderLightID>         lights;
+    RenderSlots<RenderCamera, RenderCameraID>       cameras;
+    Array<RenderEntity>                             entities;
+    RenderEntityIndex*                              pIndices = nullptr;
+    Array<RenderLightEntity>                        lightEntities;
+    Array<RenderCameraEntity>                       cameraEntities;
+    RenderEntityIndex*                              pLightIndices = nullptr;
+    RenderEntityIndex*                              pCameraIndices = nullptr;
+    Array<AssetHandle>                              textureReleases;
+    Array<uint32_t>                                 instanceIndices;
+    Array<uint32_t>                                 indicesDirty;
+    Array<RenderRange>                              indicesRanges;
+    uint64_t                                        revision = 0;
+    uint64_t                                        historyEpoch = 0;
+    Array<RenderChange>                             journal;
+    Array<RenderRange>                              syncRanges[6];
+    uint32_t                                        journalFirst = 0;
+    uint32_t                                        journalCount = 0;
+    uint64_t                                        journalFloor = 0;
 };
 
 RenderScene::RenderScene(World& world, AssetManager& assetManager, const RenderSceneDesc& desc):
@@ -655,15 +657,15 @@ RenderScene::RenderScene(World& world, AssetManager& assetManager, const RenderS
 {
 }
 RenderScene::~RenderScene() { tf_delete(pData); }
-void RenderScene::reserve(uint32_t objectCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
+void RenderScene::reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
 {
-    pData->objects.reserve(objectCount);
-    pData->instances.reserve(objectCount);
+    pData->primitives.reserve(primitiveCount);
+    pData->instances.reserve(primitiveCount);
     pData->draws.reserve(drawCount);
-    pData->entities.reserve(objectCount);
-    pData->instanceIndices.reserve(objectCount);
-    pData->indicesDirty.reserve(objectCount);
-    pData->indicesRanges.reserve(objectCount);
+    pData->entities.reserve(primitiveCount);
+    pData->instanceIndices.reserve(primitiveCount);
+    pData->indicesDirty.reserve(primitiveCount);
+    pData->indicesRanges.reserve(primitiveCount);
     pData->lights.reserve(lightCount);
     pData->cameras.reserve(cameraCount);
     pData->lightEntities.reserve(lightCount);
@@ -676,28 +678,29 @@ RenderSceneSync RenderScene::getChangesSince(uint64_t revision) { return pData->
 void            RenderScene::resetHistory(Entity entity) { pData->resetHistory(entity); }
 uint64_t        RenderScene::getHistoryEpoch() const { return pData->historyEpoch; }
 AssetSnapshot   RenderScene::captureAssets() { return pData->assetManager.captureRenderSnapshot(); }
-void RenderScene::commitSnapshot(Span<RenderObject> objects, Span<RenderInstance> instances, Span<RenderCamera> cameras, uint64_t epoch)
+void            RenderScene::commitSnapshot(Span<RenderPrimitive> primitives, Span<RenderInstance> instances, Span<RenderCamera> cameras,
+                                            uint64_t epoch)
 {
-    pData->commitSnapshot(objects, instances, cameras, epoch);
+    pData->commitSnapshot(primitives, instances, cameras, epoch);
 }
 RenderSceneChanges RenderScene::getChanges() const
 {
-    return { .objects = pData->objects.getChanges(),
+    return { .primitives = pData->primitives.getChanges(),
              .instances = pData->instances.getChanges(),
              .draws = pData->draws.getChanges(),
              .lights = pData->lights.getChanges(),
              .cameras = pData->cameras.getChanges(),
              .instanceIndices = { pData->indicesRanges.data(), pData->indicesRanges.size() } };
 }
-RenderObjectID RenderScene::findObject(Entity entity) const
+RenderPrimitiveID RenderScene::findPrimitive(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(pData->pIndices, entity);
-    return pIndex ? pData->entities[pIndex->value].object : RenderObjectID{};
+    return pIndex ? pData->entities[pIndex->value].primitive : RenderPrimitiveID{};
 }
-const RenderObject*   RenderScene::getObject(RenderObjectID id) const { return pData->objects.get(id); }
-const RenderInstance* RenderScene::getInstance(RenderInstanceID id) const { return pData->instances.get(id); }
-const RenderDraw*     RenderScene::getDraw(RenderDrawID id) const { return pData->draws.get(id); }
-RenderLightID         RenderScene::findLight(Entity entity) const
+const RenderPrimitive* RenderScene::getPrimitive(RenderPrimitiveID id) const { return pData->primitives.get(id); }
+const RenderInstance*  RenderScene::getInstance(RenderInstanceID id) const { return pData->instances.get(id); }
+const RenderDraw*      RenderScene::getDraw(RenderDrawID id) const { return pData->draws.get(id); }
+RenderLightID          RenderScene::findLight(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(pData->pLightIndices, entity);
     return pIndex ? pData->lightEntities[pIndex->value].id : RenderLightID{};
@@ -707,17 +710,17 @@ RenderCameraID RenderScene::findCamera(Entity entity) const
     const RenderEntityIndex* pIndex = hmgetp_null(pData->pCameraIndices, entity);
     return pIndex ? pData->cameraEntities[pIndex->value].id : RenderCameraID{};
 }
-const RenderLight*   RenderScene::getLight(RenderLightID id) const { return pData->lights.get(id); }
-const RenderCamera*  RenderScene::getCamera(RenderCameraID id) const { return pData->cameras.get(id); }
-Span<RenderObject>   RenderScene::getObjects() const { return { pData->objects.values.data(), pData->objects.values.size() }; }
-Span<RenderInstance> RenderScene::getInstances() const { return { pData->instances.values.data(), pData->instances.values.size() }; }
-Span<RenderDraw>     RenderScene::getDraws() const { return { pData->draws.values.data(), pData->draws.values.size() }; }
-Span<RenderLight>    RenderScene::getLights() const { return { pData->lights.values.data(), pData->lights.values.size() }; }
-Span<RenderCamera>   RenderScene::getCameras() const { return { pData->cameras.values.data(), pData->cameras.values.size() }; }
-Span<uint32_t>       RenderScene::getActiveObjects() const { return { pData->objects.active.data(), pData->objects.active.size() }; }
-Span<uint32_t>       RenderScene::getActiveInstances() const { return { pData->instances.active.data(), pData->instances.active.size() }; }
-Span<uint32_t>       RenderScene::getActiveDraws() const { return { pData->draws.active.data(), pData->draws.active.size() }; }
-Span<uint32_t>       RenderScene::getActiveLights() const { return { pData->lights.active.data(), pData->lights.active.size() }; }
-Span<uint32_t>       RenderScene::getActiveCameras() const { return { pData->cameras.active.data(), pData->cameras.active.size() }; }
-Span<uint32_t>       RenderScene::getInstanceIndices() const { return { pData->instanceIndices.data(), pData->instanceIndices.size() }; }
+const RenderLight*    RenderScene::getLight(RenderLightID id) const { return pData->lights.get(id); }
+const RenderCamera*   RenderScene::getCamera(RenderCameraID id) const { return pData->cameras.get(id); }
+Span<RenderPrimitive> RenderScene::getPrimitives() const { return { pData->primitives.values.data(), pData->primitives.values.size() }; }
+Span<RenderInstance>  RenderScene::getInstances() const { return { pData->instances.values.data(), pData->instances.values.size() }; }
+Span<RenderDraw>      RenderScene::getDraws() const { return { pData->draws.values.data(), pData->draws.values.size() }; }
+Span<RenderLight>     RenderScene::getLights() const { return { pData->lights.values.data(), pData->lights.values.size() }; }
+Span<RenderCamera>    RenderScene::getCameras() const { return { pData->cameras.values.data(), pData->cameras.values.size() }; }
+Span<uint32_t> RenderScene::getActivePrimitives() const { return { pData->primitives.active.data(), pData->primitives.active.size() }; }
+Span<uint32_t> RenderScene::getActiveInstances() const { return { pData->instances.active.data(), pData->instances.active.size() }; }
+Span<uint32_t> RenderScene::getActiveDraws() const { return { pData->draws.active.data(), pData->draws.active.size() }; }
+Span<uint32_t> RenderScene::getActiveLights() const { return { pData->lights.active.data(), pData->lights.active.size() }; }
+Span<uint32_t> RenderScene::getActiveCameras() const { return { pData->cameras.active.data(), pData->cameras.active.size() }; }
+Span<uint32_t> RenderScene::getInstanceIndices() const { return { pData->instanceIndices.data(), pData->instanceIndices.size() }; }
 } // namespace hz

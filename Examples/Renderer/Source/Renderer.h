@@ -122,8 +122,9 @@ private:
         pScene = hz::make_unique<hz::RenderScene>(*pWorld, *pAssetManager);
         pScene->reserve(asset->getNodes().count, asset->getNodes().count, 1, 1);
         pScene->update();
-        LOGF(eINFO, "World ready: %u render objects, %u instances, %u draws, %u materials, %u textures", pScene->getActiveObjects().count,
-             pScene->getActiveInstances().count, pScene->getActiveDraws().count, asset->getMaterials().count, asset->getTextures().count);
+        LOGF(eINFO, "World ready: %u render primitives, %u instances, %u draws, %u materials, %u textures",
+             pScene->getActivePrimitives().count, pScene->getActiveInstances().count, pScene->getActiveDraws().count,
+             asset->getMaterials().count, asset->getTextures().count);
         pAssetManager->release(handle);
         return true;
     }
@@ -197,7 +198,7 @@ private:
         for (uint32_t index : pScene->getActiveInstances())
         {
             const hz::RenderInstance& instance = pScene->getInstances().pData[index];
-            if (!pScene->getObject(instance.object)->instanceCount)
+            if (!pScene->getPrimitive(instance.primitive)->instanceCount)
                 continue;
             if (!hasBounds)
                 bounds = instance.bounds;
