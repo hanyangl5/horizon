@@ -6,6 +6,53 @@
 
 World Foundation 是 GPU-driven geometry、light culling、path tracing 和 Editor 的共同数据基础。
 
+## Glossary
+
+类型按数据流排列。UE 一列只表示最接近的概念，语义不完全相同。
+
+| 名称 | 含义 | UE 对应 |
+| --- | --- | --- |
+| `AssetID` | 资产的持久身份，128 位随机值，路径移动和重新 cook 不变 | `FPrimaryAssetId` / `FSoftObjectPath` |
+| `AssetCatalog` | 磁盘资产索引：AssetID → 类型、位置、依赖 | Asset Registry |
+| `AssetManager` | 运行时加载、引用计数和 payload 生命周期 | Asset Manager / Streamable Manager |
+| `AssetHandle` | AssetManager 中一条记录的运行时句柄（index + generation） | `FStreamableHandle` |
+| `SceneAsset` | cook 后的 glTF 节点模板，只读，可实例化进 World | Packed Level Actor / Level Instance 引用的关卡 |
+| `MeshAsset` / `MaterialAsset` / `TextureAsset` | 共享的网格、材质、纹理 payload | `UStaticMesh` / `UMaterialInstance` / `UTexture2D` |
+| `Submesh` / `SubmeshID` | Mesh 内一个 glTF primitive 及其稳定 ID | Mesh Section |
+| `World` | ECS 运行时世界，内部用 Flecs | `UWorld` |
+| `Entity` | World 中的运行时实体（带 generation） | `AActor`（大致） |
+| `Guid` / `EntityIdentity` | 实体的持久身份及保存它的组件；World 文件 ID 也用 `Guid` | `FGuid`（ActorGuid） |
+| `LocalTransform` / `LocalMatrix` | 局部 TRS / 不可分解的局部矩阵，二者互斥 | RelativeTransform |
+| `WorldTransform` | 派生的世界矩阵（current/previous），不保存 | ComponentToWorld |
+| `MeshRenderer` | 组件：Mesh 的 AssetID + 按 SubmeshID 的材质覆盖 | `UStaticMeshComponent` |
+| `Light` / `Camera` | 光源、相机组件 | `ULightComponent` / `UCameraComponent` |
+| `WorldDocument` | `.world.json` 的读写、capture 和 instantiate | `.umap` 包；Bevy `DynamicScene` |
+| `TypeRegistry` | 组件和属性的反射 metadata | `UClass` / `FProperty` |
+| `WorldAssetBindings` | 把 MeshRenderer 的 AssetID 解析为长期持有的资产引用 | 组件创建 SceneProxy 时的资源解析 |
+| `RenderScene` | 渲染侧唯一的 CPU 场景数据，从 World 提取 | `FScene` |
+| `RenderPrimitive` | 一个 MeshRenderer 的渲染记录：Mesh 和实例范围 | `FPrimitiveSceneInfo` |
+| `RenderInstance` | 一个实例的变换、包围盒和 Guid | `FInstanceSceneData` |
+| `RenderMeshBatch` | RenderPrimitive × submesh，带解析后的材质 | `FMeshBatch` |
+| `RenderLight` / `RenderCamera` | 提取后的光源、相机记录 | `FLightSceneInfo` / `FViewInfo` 的输入 |
+| `GpuScene` | RenderScene 和资产表在 GPU 上的唯一常驻副本 | `FGPUScene` |
+| `GpuAssetTables` | Mesh、顶点流、submesh、材质、纹理的 GPU 间接表 | GPUScene 的 primitive/material 数据 |
+| `GpuMeshID` / `GpuMaterialID` / `GpuTextureID` | 资产表中的强类型索引，复用 AssetHandle 的 index 与 generation | — |
+
+| 术语 | 含义 |
+| --- | --- |
+| payload | loader 产出的资产运行时数据，例如 MeshAsset 及其 GPU Buffer |
+| record / slot | AssetManager 或 RenderScene 中的一个存储位置；复用时 generation 递增，旧句柄失效 |
+| sparse slot / active list | 稳定但有空洞的 slot 数组，以及当前有效 slot 的紧凑索引列表；遍历走 active list |
+| `instanceIndices` | RenderPrimitive 实例范围到 RenderInstance slot 的间接索引 |
+| 长期引用（lease） | WorldAssetBindings 为活着的 MeshRenderer 持有的资产引用，组件删除时释放 |
+| pending uploads | RenderScene 中上次上传以来改动的 slot，跨多次 update 累积，`GpuScene::endFrame` 清除 |
+| staging | 每帧写入的 CPU_TO_GPU 上传缓冲，按提交轮换，经批量 copy 写入常驻表 |
+| 延迟释放 | `RenderContext::deferRelease` 和 AssetManager 都在可能使用资源的提交完成后才销毁它 |
+| current / previous | 本帧与上一次实际提交的变换；只有提交的帧推进历史，用于运动矢量 |
+| sidecar | 源文件旁的 `.asset.json`，保存导入资产的持久 ID |
+| contentHash | 源文件、导入设置和 cooker 版本的指纹，只判断是否需要重新 cook，不是身份 |
+| PayloadCompatible / StructuralChange | hot reload 的两类变化：只换 payload，或 submesh、bounds、layout 改变需要重建渲染记录 |
+
 ## Current baseline
 
 Horizon 已有以下基础：
