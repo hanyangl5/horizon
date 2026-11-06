@@ -219,7 +219,9 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
             return true;
     }
     if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= kSceneAssetCookMaxDependencies)
+    {
         return false;
+    }
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
     updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);

@@ -2,7 +2,7 @@ struct LoadedScene
 {
     MeshData                 meshData;
     Scene                    scene;
-    hz::Array<BoundingBox> worldBoxes;
+    hz::Array<BoundingBox>   worldBoxes;
     BoundingBox              worldBounds;
 };
 

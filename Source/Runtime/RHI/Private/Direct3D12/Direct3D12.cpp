@@ -2510,6 +2510,20 @@ void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
     if (SUCCEEDED(d3d12dll_GetDebugInterface(IID_ARGS(&pContext->dx.pDebug))))
     {
         hook_enable_debug_layer(pDesc, pContext);
+#if defined(__ID3D12DeviceRemovedExtendedDataSettings1_INTERFACE_DEFINED__)
+        if (pDesc->enableGpuBasedValidation)
+        {
+            ID3D12DeviceRemovedExtendedDataSettings1* settings = NULL;
+            if (SUCCEEDED(d3d12dll_GetDebugInterface(IID_ARGS(&settings))))
+            {
+                settings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+                settings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+                settings->SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+                settings->Release();
+                LOGF(LogLevel::eINFO, "DRED breadcrumbs, page fault reporting and breadcrumb contexts enabled");
+            }
+        }
+#endif
     }
 #endif
 
@@ -5026,6 +5040,51 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         *ppRootSignature = pRootSignature;
 }
 
+void d3d12_addRaytracingRootSignature(Renderer* renderer, uint32_t size, RootSignature** output)
+{
+    *output = nullptr;
+    ASSERT(size && !(size % 4) && size <= D3D12_MAX_ROOT_COST * sizeof(uint32_t));
+    RootSignature* root = (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), sizeof(RootSignature) + sizeof(DescriptorInfo));
+    root->pipelineType = PIPELINE_TYPE_COMPUTE;
+    root->descriptorCount = 1;
+    root->pDescriptors = (DescriptorInfo*)(root + 1);
+    root->pDescriptors[0] = { .pName = "RootConstant0", .type = DESCRIPTOR_TYPE_ROOT_CONSTANT, .size = size / 4, .handleIndex = 0 };
+    sh_new_arena(root->pDescriptorNameToIndexMap);
+    shput(root->pDescriptorNameToIndexMap, "RootConstant0", 0);
+    const D3D12_ROOT_PARAMETER1         parameter = { .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+                                                      .Constants = { .ShaderRegister = 0, .RegisterSpace = 0, .Num32BitValues = size / 4 },
+                                                      .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL };
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
+    desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    desc.Desc_1_1.NumParameters = 1;
+    desc.Desc_1_1.pParameters = &parameter;
+    desc.Desc_1_1.Flags =
+        D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+    ID3DBlob* serialized = nullptr;
+    ID3DBlob* error = nullptr;
+    HRESULT   result = d3d12dll_SerializeVersionedRootSignature(&desc, &serialized, &error);
+    if (SUCCEEDED(result))
+    {
+        result = renderer->dx.pDevice->CreateRootSignature(0, serialized->GetBufferPointer(), serialized->GetBufferSize(),
+                                                           IID_ARGS(&root->dx.pRootSignature));
+    }
+    if (FAILED(result))
+    {
+        LOGF(eERROR, "DXR root signature creation failed (0x%08x): %s", (uint32_t)result,
+             error ? (const char*)error->GetBufferPointer() : "D3D12 device error");
+    }
+    SAFE_RELEASE(error);
+    SAFE_RELEASE(serialized);
+    if (FAILED(result))
+    {
+        removeRootSignature(renderer, root);
+    }
+    else
+    {
+        *output = root;
+    }
+}
+
 void d3d12_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
     UNREF_PARAM(pRenderer);
@@ -5682,6 +5741,28 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[MAX_RENDER_TARGET_ATTACHMENTS] = {};
     const bool                  hasDepth = pDesc->depthStencil.pDepthStencil;
 
+    // An attachment view selects one mip, not the whole resource. Array slices and
+    // depth/stencil planes are separate subresources and must retain independent load actions.
+    const auto discardView = [pCmd](RenderTarget* target, uint32_t mip, uint32_t slice, bool useSlice, uint32_t plane)
+    {
+        ID3D12Resource* const     resource = target->pTexture->dx.pResource;
+        const D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+        const uint32_t arraySize = resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1u : resourceDesc.DepthOrArraySize;
+        const uint32_t firstSlice = useSlice ? slice : 0u;
+        const uint32_t sliceCount = useSlice ? 1u : arraySize;
+        ASSERT(mip < resourceDesc.MipLevels && firstSlice + sliceCount <= arraySize);
+        for (uint32_t array = firstSlice; array < firstSlice + sliceCount; ++array)
+        {
+            const D3D12_DISCARD_REGION region = {
+                .NumRects = 0,
+                .pRects = NULL,
+                .FirstSubresource = mip + array * resourceDesc.MipLevels + plane * resourceDesc.MipLevels * arraySize,
+                .NumSubresources = 1,
+            };
+            pCmd->dx.pCmdList->DiscardResource(resource, &region);
+        }
+    };
+
     for (uint32_t i = 0; i < pDesc->renderTargetCount; ++i)
     {
         const BindRenderTargetDesc* desc = &pDesc->renderTargets[i];
@@ -5716,7 +5797,21 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
                                                   desc->pRenderTarget->dx.descriptors + handle);
         }
 
-        if (desc->loadAction == LOAD_ACTION_CLEAR)
+        if (desc->loadAction == LOAD_ACTION_DONTCARE)
+        {
+            if (desc->useArraySlice &&
+                desc->pRenderTarget->pTexture->dx.pResource->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+            {
+                // W slices share a subresource. Clear the selected view rather than discard other slices.
+                const float clearValue[4] = {};
+                pCmd->dx.pCmdList->ClearRenderTargetView(rtvs[i], clearValue, 0, NULL);
+            }
+            else
+            {
+                discardView(desc->pRenderTarget, desc->useMipSlice ? desc->mipSlice : 0u, desc->arraySlice, desc->useArraySlice, 0);
+            }
+        }
+        else if (desc->loadAction == LOAD_ACTION_CLEAR)
         {
             const float* clearValue = desc->overrideClearValue ? &desc->clearValue.r : &desc->pRenderTarget->clearValue.r;
             pCmd->dx.pCmdList->ClearRenderTargetView(rtvs[i], clearValue, 0, NULL);
@@ -5759,6 +5854,14 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         }
 
         ASSERT(dsv.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL);
+        if (desc->loadAction == LOAD_ACTION_DONTCARE)
+        {
+            discardView(desc->pDepthStencil, desc->useMipSlice ? desc->mipSlice : 0u, desc->arraySlice, desc->useArraySlice, 0);
+        }
+        if (desc->loadActionStencil == LOAD_ACTION_DONTCARE && TinyImageFormat_HasStencil((TinyImageFormat)desc->pDepthStencil->format))
+        {
+            discardView(desc->pDepthStencil, desc->useMipSlice ? desc->mipSlice : 0u, desc->arraySlice, desc->useArraySlice, 1);
+        }
         if (desc->loadAction == LOAD_ACTION_CLEAR || desc->loadActionStencil == LOAD_ACTION_CLEAR)
         {
             D3D12_CLEAR_FLAGS flags = (D3D12_CLEAR_FLAGS)0;
@@ -6369,18 +6472,35 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
     if (FAILED(hr))
     {
+        LOGF(LogLevel::eERROR, "Failed to present swapchain render target (0x%08x)", (uint32_t)hr);
 #if defined(_WINDOWS)
         ID3D12Device* device = NULL;
         pSwapChain->dx.pSwapChain->GetDevice(IID_ARGS(&device));
-        HRESULT removeHr = device->GetDeviceRemovedReason();
+        const HRESULT removeHr = device->GetDeviceRemovedReason();
+        LOGF(LogLevel::eERROR, "D3D12 device removed reason: 0x%08x", (uint32_t)removeHr);
 
-        if (!VERIFY(SUCCEEDED(removeHr)))
+#if defined(ENABLE_GRAPHICS_DEBUG)
+        ID3D12InfoQueue* info = NULL;
+        if (SUCCEEDED(device->QueryInterface(IID_ARGS(&info))))
         {
-            threadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
-            ResetDesc resetDesc;
-            resetDesc.type = RESET_TYPE_DEVICE_LOST;
-            requestReset(&resetDesc);
+            const UINT64 count = info->GetNumStoredMessagesAllowedByRetrievalFilter();
+            for (UINT64 i = 0; i < count; ++i)
+            {
+                SIZE_T size = 0;
+                if (FAILED(info->GetMessage(i, NULL, &size)))
+                {
+                    continue;
+                }
+                D3D12_MESSAGE* message = (D3D12_MESSAGE*)tf_malloc(size);
+                if (SUCCEEDED(info->GetMessage(i, message, &size)) && message->Severity <= D3D12_MESSAGE_SEVERITY_ERROR)
+                {
+                    LOGF(LogLevel::eERROR, "D3D12 message %u: %s", (uint32_t)message->ID, message->pDescription);
+                }
+                tf_free(message);
+            }
+            info->Release();
         }
+#endif
 
 #if defined(ENABLE_NSIGHT_AFTERMATH)
         // DXGI_ERROR error notification is asynchronous to the NVIDIA display
@@ -6389,27 +6509,51 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
         threadSleep(3000);
 #endif
 
-#if defined(USE_DRED)
-        ID3D12DeviceRemovedExtendedData* pDread;
-        if (SUCCEEDED(device->QueryInterface(IID_ARGS(&pDread))))
+        ID3D12DeviceRemovedExtendedData* dred = NULL;
+        if (FAILED(removeHr) && SUCCEEDED(device->QueryInterface(IID_ARGS(&dred))))
         {
-            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breadcrumbs;
-            if (SUCCEEDED(pDread->GetAutoBreadcrumbsOutput(&breadcrumbs)))
+            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breadcrumbs = {};
+            if (SUCCEEDED(dred->GetAutoBreadcrumbsOutput(&breadcrumbs)))
             {
-                LOGF(LogLevel::eINFO, "Gathered auto-breadcrumbs output.");
+                for (const D3D12_AUTO_BREADCRUMB_NODE* node = breadcrumbs.pHeadAutoBreadcrumbNode; node; node = node->pNext)
+                {
+                    const UINT completed = node->pLastBreadcrumbValue ? *node->pLastBreadcrumbValue : 0;
+                    LOGF(LogLevel::eERROR, "DRED command list '%s': completed %u/%u operations",
+                         node->pCommandListDebugNameA ? node->pCommandListDebugNameA : "<unnamed>", completed, node->BreadcrumbCount);
+                    const UINT first = completed > 4 ? completed - 4 : 0;
+                    for (UINT i = first; node->pCommandHistory && i < node->BreadcrumbCount && i < completed + 4; ++i)
+                    {
+                        LOGF(LogLevel::eERROR, "DRED operation[%u]: %u", i, (uint32_t)node->pCommandHistory[i]);
+                    }
+                }
             }
-
-            D3D12_DRED_PAGE_FAULT_OUTPUT pageFault;
-            if (SUCCEEDED(pDread->GetPageFaultAllocationOutput(&pageFault)))
+            D3D12_DRED_PAGE_FAULT_OUTPUT pageFault = {};
+            if (SUCCEEDED(dred->GetPageFaultAllocationOutput(&pageFault)))
             {
-                LOGF(LogLevel::eINFO, "Gathered page fault allocation output.");
+                LOGF(LogLevel::eERROR, "DRED page fault GPU address: 0x%016llx", (unsigned long long)pageFault.PageFaultVA);
+                for (const D3D12_DRED_ALLOCATION_NODE* node = pageFault.pHeadExistingAllocationNode; node; node = node->pNext)
+                {
+                    LOGF(LogLevel::eERROR, "DRED existing allocation '%s': type %u", node->ObjectNameA ? node->ObjectNameA : "<unnamed>",
+                         (uint32_t)node->AllocationType);
+                }
+                for (const D3D12_DRED_ALLOCATION_NODE* node = pageFault.pHeadRecentFreedAllocationNode; node; node = node->pNext)
+                {
+                    LOGF(LogLevel::eERROR, "DRED freed allocation '%s': type %u", node->ObjectNameA ? node->ObjectNameA : "<unnamed>",
+                         (uint32_t)node->AllocationType);
+                }
             }
+            dred->Release();
         }
-        pDread->Release();
-#endif
         device->Release();
+
+        if (!VERIFY(SUCCEEDED(removeHr)))
+        {
+            threadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
+            ResetDesc resetDesc;
+            resetDesc.type = RESET_TYPE_DEVICE_LOST;
+            requestReset(&resetDesc);
+        }
 #endif
-        LOGF(LogLevel::eERROR, "Failed to present swapchain render target");
     }
 }
 
@@ -6517,8 +6661,12 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
         case INDIRECT_CONSTANT:
             argumentDescs[i].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
             argumentDescs[i].Constant.RootParameterIndex = desc->handleIndex; //-V522
-            argumentDescs[i].Constant.DestOffsetIn32BitValues = 0;
-            argumentDescs[i].Constant.Num32BitValuesToSet = desc->size;
+            argumentDescs[i].Constant.DestOffsetIn32BitValues = pDesc->pArgDescs[i].rootConstantDestOffsetIn32BitValues;
+            ASSERT(!(pDesc->pArgDescs[i].byteSize % sizeof(UINT)));
+            argumentDescs[i].Constant.Num32BitValuesToSet =
+                pDesc->pArgDescs[i].byteSize ? pDesc->pArgDescs[i].byteSize / sizeof(UINT) : desc->size;
+            ASSERT(argumentDescs[i].Constant.DestOffsetIn32BitValues <= desc->size &&
+                   argumentDescs[i].Constant.Num32BitValuesToSet <= desc->size - argumentDescs[i].Constant.DestOffsetIn32BitValues);
             commandStride += sizeof(UINT) * argumentDescs[i].Constant.Num32BitValuesToSet;
             needRootSignature = true;
             break;

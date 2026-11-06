@@ -20,6 +20,7 @@ void hz::CommandList::reset(Cmd* cmd, uint64_t profilerToken)
 {
     pCmd = cmd;
     pCurrentRootSignature = nullptr;
+    pCurrentDrawIndirectSignature = nullptr;
     gpuProfilerToken = profilerToken;
     memset(pVertexBuffers, 0, sizeof(pVertexBuffers));
     memset(vertexStrides, 0, sizeof(vertexStrides));
@@ -31,6 +32,7 @@ void hz::CommandList::clear()
 {
     pCmd = nullptr;
     pCurrentRootSignature = nullptr;
+    pCurrentDrawIndirectSignature = nullptr;
 }
 
 void hz::CommandList::barrier(uint32_t bufferCount, BufferBarrier* pBufferBarriers, uint32_t textureCount, TextureBarrier* pTextureBarriers,
@@ -63,6 +65,23 @@ void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, 
             arrpush(bufferBarriers, bufferBarrier);
             buffer->state = state;
         }
+    }
+}
+
+void hz::CommandList::addIndirectBarriers(Span<const GPUBuffer*> buffers)
+{
+    for (const GPUBuffer* buffer : buffers)
+    {
+        ASSERT(buffer && buffer->isValid());
+        if (buffer->state & RESOURCE_STATE_INDIRECT_ARGUMENT)
+        {
+            continue;
+        }
+        const BufferBarrier transition = { .pBuffer = buffer->pBuffer,
+                                           .currentState = buffer->state,
+                                           .newState = RESOURCE_STATE_INDIRECT_ARGUMENT };
+        arrpush(bufferBarriers, transition);
+        buffer->state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
 }
 
@@ -104,6 +123,7 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
     addBufferBarriers(dependencies.buffers, false);
     addBufferBarriers(dependencies.storageBuffers, true);
+    addIndirectBarriers(dependencies.indirectBuffers);
     if (pIndirectBuffer && pIndirectBuffer->state != RESOURCE_STATE_INDIRECT_ARGUMENT)
     {
         const BufferBarrier indirectBarrier = {
@@ -158,6 +178,7 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
     addBufferBarriers(dependencies.buffers, false);
     addBufferBarriers(dependencies.storageBuffers, true);
+    addIndirectBarriers(dependencies.indirectBuffers);
 
     BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachments.count };
     for (uint32_t i = 0; i < desc.colorAttachments.count; ++i)
@@ -197,6 +218,7 @@ void hz::CommandList::endRendering() { cmdBindRenderTargets(pCmd, nullptr); }
 void hz::CommandList::setPipeline(const hz::GPUPipeline& pipeline)
 {
     pCurrentRootSignature = pipeline.pRootSignature;
+    pCurrentDrawIndirectSignature = pipeline.pDrawIndirectSignature;
     cmdBindPipeline(pCmd, pipeline.pPipeline);
 }
 
@@ -233,7 +255,7 @@ void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t verte
 
 void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset, uint32_t drawCount)
 {
-    if (buffer.state != RESOURCE_STATE_INDIRECT_ARGUMENT)
+    if (!(buffer.state & RESOURCE_STATE_INDIRECT_ARGUMENT))
     {
         BufferBarrier indirectBarrier = {
             .pBuffer = buffer.pBuffer,
@@ -243,12 +265,13 @@ void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset,
         barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
         buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
-    cmdExecuteIndirect(pCmd, pContext->pDrawIndirectSignature, drawCount, buffer.pBuffer, offset, nullptr, 0);
+    cmdExecuteIndirect(pCmd, pCurrentDrawIndirectSignature ? pCurrentDrawIndirectSignature : pContext->pDrawIndirectSignature, drawCount,
+                       buffer.pBuffer, offset, nullptr, 0);
 }
 
 void hz::CommandList::drawIndexedIndirect(const hz::GPUBuffer& buffer, uint64_t offset, uint32_t drawCount)
 {
-    if (buffer.state != RESOURCE_STATE_INDIRECT_ARGUMENT)
+    if (!(buffer.state & RESOURCE_STATE_INDIRECT_ARGUMENT))
     {
         BufferBarrier indirectBarrier = {
             .pBuffer = buffer.pBuffer,
@@ -298,7 +321,9 @@ void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, c
 void hz::CommandList::copyBufferRegions(const hz::GPUBuffer& dst, const hz::GPUBuffer& src, Span<BufferCopyRegion> regions)
 {
     if (!regions.count)
+    {
         return;
+    }
     const ResourceState dstState = dst.state;
     const ResourceState srcState = src.state;
     arrsetlen(bufferBarriers, 0);
@@ -324,7 +349,9 @@ void hz::CommandList::copyBufferRegions(const hz::GPUBuffer& dst, const hz::GPUB
     }
     barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
     for (const BufferCopyRegion& region : regions)
+    {
         cmdUpdateBuffer(pCmd, dst.pBuffer, region.dstOffset, src.pBuffer, region.srcOffset, region.size);
+    }
 
     arrsetlen(bufferBarriers, 0);
     if (dst.state != dstState)
@@ -493,12 +520,23 @@ void hz::CommandList::endGpuFrameProfile()
 }
 void hz::CommandList::beginGpuTimestamp(const char* name)
 {
-    gpuTimestampToken =
-        gpuProfilerToken != PROFILE_INVALID_TOKEN ? cmdBeginGpuTimestampQuery(pCmd, gpuProfilerToken, name) : PROFILE_INVALID_TOKEN;
+    if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
+    {
+        cmdBeginGpuTimestampQuery(pCmd, gpuProfilerToken, name);
+    }
+    else
+    {
+        cmdBeginDebugMarker(pCmd, 1, 1, 0, name);
+    }
 }
 void hz::CommandList::endGpuTimestamp()
 {
-    if (gpuTimestampToken != PROFILE_INVALID_TOKEN)
-        cmdEndGpuTimestampQuery(pCmd, gpuTimestampToken);
-    gpuTimestampToken = 0;
+    if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
+    {
+        cmdEndGpuTimestampQuery(pCmd, gpuProfilerToken);
+    }
+    else
+    {
+        cmdEndDebugMarker(pCmd);
+    }
 }

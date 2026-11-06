@@ -39,7 +39,9 @@ Entity World::createPersistentEntity(const Guid& id)
     const EntityGuidEntry entry = { .key = id, .value = entity.value };
     hmputs(pImpl->pEntityGuids, entry);
     if (isDeferred())
+    {
         pImpl->pendingGuids.pushBack(id);
+    }
     return entity;
 }
 
@@ -47,10 +49,14 @@ Entity World::getEntity(const Guid& id) const
 {
     pImpl->checkThread();
     if (!id.isValid())
+    {
         return {};
+    }
     const EntityGuidEntry* pEntry = hmgetp_null(pImpl->pEntityGuids, id);
     if (!pEntry || !ecs_is_alive(pImpl->pWorld, pEntry->value) || !ecs_has_id(pImpl->pWorld, pEntry->value, pImpl->entityIdentityType))
+    {
         return {};
+    }
     return Entity(pEntry->value);
 }
 
@@ -65,7 +71,9 @@ void WorldImpl::removeEntityGuids(ecs_iter_t* pIterator)
     WorldImpl&            world = *(WorldImpl*)pIterator->binding_ctx;
     const EntityIdentity* pIdentities = (const EntityIdentity*)ecs_field_w_size(pIterator, sizeof(EntityIdentity), 1);
     for (int32_t i = 0; i < pIterator->count; ++i)
+    {
         hmdel(world.pEntityGuids, pIdentities[i].value);
+    }
 }
 
 void WorldImpl::finishGuidChanges()
@@ -75,7 +83,9 @@ void WorldImpl::finishGuidChanges()
     {
         const EntityGuidEntry* pEntry = hmgetp_null(pEntityGuids, id);
         if (pEntry && (!ecs_is_alive(pWorld, pEntry->value) || !ecs_has_id(pWorld, pEntry->value, entityIdentityType)))
+        {
             hmdel(pEntityGuids, id);
+        }
     }
     pendingGuids.clear();
 }

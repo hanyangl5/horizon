@@ -84,15 +84,21 @@ public:
         static_assert(TF_ARRAY_COUNT(pBuffers) == kGpuTableCount && TF_ARRAY_COUNT(strides) == kGpuTableCount &&
                       TF_ARRAY_COUNT(names) == kGpuTableCount);
         for (uint32_t i = 0; i < kGpuTableCount; ++i)
+        {
             tables[i] = { .pBuffer = pBuffers[i], .pName = names[i], .stride = strides[i] };
+        }
     }
     ~GpuSceneData()
     {
         ASSERT(!open);
         for (GpuTable& table : tables)
+        {
             context.deferRelease(std::move(*table.pBuffer));
+        }
         for (GpuSceneFrame& frame : frames)
+        {
             context.deferRelease(std::move(frame.staging));
+        }
     }
 
     bool beginFrame()
@@ -104,10 +110,14 @@ public:
         {
             const uint32_t candidate = (next + i) % frames.size();
             if (!frames[candidate].submission.isValid() || context.isComplete(frames[candidate].submission))
+            {
                 current = candidate;
+            }
         }
         if (current == UINT32_MAX)
+        {
             return false;
+        }
         scene.update();
         assets = assetManager.getGpuTables();
         const RenderSceneUploads uploads = scene.getPendingUploads();
@@ -151,7 +161,9 @@ public:
                 table.full = true;
             }
             if (!size)
+            {
                 continue;
+            }
             if (table.full || input.whole)
             {
                 table.regions.pushBack({ .srcOffset = staged, .dstOffset = 0, .size = size });
@@ -181,12 +193,14 @@ public:
                 ASSERT(frame.staging.isValid());
             }
             for (uint32_t i = 0; i < kGpuTableCount; ++i)
+            {
                 for (const BufferCopyRegion& region : tables[i].regions)
                 {
                     const bool written = context.updateBuffer(frame.staging, region.srcOffset,
                                                               (const uint8_t*)sources[i].pData + region.dstOffset, region.size);
                     ASSERT(written);
                 }
+            }
         }
         open = true;
         recorded = false;
@@ -218,13 +232,17 @@ void GpuScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_
     ASSERT(!pData->open);
     pData->scene.reserve(primitiveCount, meshBatchCount, lightCount, cameraCount);
     for (GpuTable& table : pData->tables)
+    {
         table.regions.reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
+    }
 }
 
 bool GpuScene::beginFrame()
 {
     if (!pData->beginFrame())
+    {
         return false;
+    }
     pData->scene.setFrameLocked(true);
     return true;
 }
@@ -235,8 +253,12 @@ void GpuScene::recordUpload(CommandList& commands)
     ASSERT(pData->open && !pData->recorded);
     const GpuSceneFrame& frame = pData->frames[pData->current];
     for (const GpuTable& table : pData->tables)
+    {
         if (!table.regions.empty())
+        {
             commands.copyBufferRegions(*table.pBuffer, frame.staging, { table.regions.data(), table.regions.size() });
+        }
+    }
     pData->recorded = true;
 }
 
@@ -250,7 +272,9 @@ void GpuScene::endFrame(SubmitHandle submission)
     pData->scene.commitHistory();
     pData->uploadedRevision = pData->assets.revision;
     for (GpuTable& table : pData->tables)
+    {
         table.full = false;
+    }
     pData->next = (pData->current + 1) % pData->frames.size();
     pData->open = false;
 }

@@ -2,6 +2,7 @@
 
 #include "SceneTextureCooker.h"
 #include "Core/IToolFileSystem.h"
+#include "Core/ITime.h"
 #include <ThirdParty/cgltf/cgltf.h>
 #include <limits.h>
 #include <string.h>
@@ -19,7 +20,7 @@ public:
     TextureEncoder(const TextureEncoder&) = delete;
     TextureEncoder& operator=(const TextureEncoder&) = delete;
 
-    bool encode(const uint8_t* pBytes, size_t size, bool srgb, DirectX::Blob& dds) const;
+    bool encode(const uint8_t* pBytes, size_t size, bool srgb, const char* pName, DirectX::Blob& dds) const;
 
 private:
     HRESULT             comResult;
@@ -103,28 +104,36 @@ TextureEncoder::TextureEncoder(): comResult(CoInitializeEx(nullptr, COINIT_MULTI
 {
     if ((SUCCEEDED(comResult) || comResult == RPC_E_CHANGED_MODE) &&
         SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFactory))))
+    {
         DirectX::SetWICFactory(pFactory);
+    }
     // The DirectCompute BC7 encoder is orders of magnitude faster than the single-threaded CPU encoder.
     const D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
     if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, &featureLevel, 1, D3D11_SDK_VERSION, &pDevice, nullptr,
                                  nullptr)))
+    {
         LOGF(eWARNING, "No D3D11 hardware device; BC7 textures use the slow CPU encoder");
+    }
 }
 
 TextureEncoder::~TextureEncoder()
 {
     if (pDevice)
+    {
         pDevice->Release();
+    }
     if (pFactory)
     {
         DirectX::SetWICFactory(nullptr);
         pFactory->Release();
     }
     if (SUCCEEDED(comResult))
+    {
         CoUninitialize();
+    }
 }
 
-bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, DirectX::Blob& dds) const
+bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const char* pName, DirectX::Blob& dds) const
 {
     if (!pFactory)
         return false;
@@ -141,18 +150,50 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, Direc
             pInput = &mipmaps;
         }
     }
-    const DXGI_FORMAT format = srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
-    if (SUCCEEDED(result) && pDevice)
-        result = DirectX::Compress(pDevice, pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format,
-                                   DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_ALPHA_WEIGHT_DEFAULT, compressed);
-    else if (SUCCEEDED(result))
-        result = DirectX::Compress(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format,
-                                   DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, compressed);
+    if (SUCCEEDED(result))
+    {
+        DirectX::CompressOptions options = { .threshold = DirectX::TEX_THRESHOLD_DEFAULT,
+                                             .alphaWeight = DirectX::TEX_ALPHA_WEIGHT_DEFAULT };
+#if defined(_OPENMP)
+        options.flags = DirectX::TEX_COMPRESS_PARALLEL;
+#endif
+        const int64_t start = getUSec(true);
+        LOGF(eINFO, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", pName, pInput->GetMetadata().width, pInput->GetMetadata().height,
+             pInput->GetImageCount(),
+             pDevice                                          ? "GPU"
+             : options.flags & DirectX::TEX_COMPRESS_PARALLEL ? "parallel"
+                                                              : "serial");
+        size_t     lastProgress = SIZE_MAX;
+        const auto progress = [&](size_t current, size_t total)
+        {
+            // The array overload reports zero-based indices after each mip.
+            if (lastProgress != SIZE_MAX && pInput->GetImageCount() > 1 && current < total)
+            {
+                ++current;
+            }
+            current = TF_MIN(current, total);
+            if (current != lastProgress)
+            {
+                LOGF(eINFO, "Compress '%s': %zu/%zu mip levels", pName, current, total);
+            }
+            lastProgress = current;
+            return true;
+        };
+        const DXGI_FORMAT format = srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
+        result = pDevice ? DirectX::CompressEx(pDevice, pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format,
+                                               options, compressed, progress)
+                         : DirectX::CompressEx(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format, options,
+                                               compressed, progress);
+        if (SUCCEEDED(result))
+        {
+            LOGF(eINFO, "Compressed '%s' in %.2f seconds", pName, (getUSec(true) - start) / 1000000.0);
+        }
+    }
     if (SUCCEEDED(result))
         result = DirectX::SaveToDDSMemory(compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(),
                                           DirectX::DDS_FLAGS_FORCE_DX10_EXT, dds);
     if (FAILED(result))
-        LOGF(eERROR, "DirectXTex texture cook failed (HRESULT 0x%08x)", (unsigned)result);
+        LOGF(eERROR, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", pName, (unsigned)result);
     return SUCCEEDED(result);
 }
 #endif
@@ -226,8 +267,10 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     if (fsFileExist(outputDirectory, output.path))
         return true;
     DirectX::Blob dds;
-    if (!pEncoder->encode(pBytes, size, srgb, dds))
+    if (!pEncoder->encode(pBytes, size, srgb, output.source[0] ? output.source : output.path, dds))
+    {
         return false;
+    }
     const bool written = writeDDS(output.path, dds.GetBufferPointer(), dds.GetBufferSize());
 #else
     LOGF(eERROR, "PNG/JPEG scene texture cooking requires DirectXTex on Windows");

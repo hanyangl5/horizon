@@ -4,7 +4,14 @@
 #include "Core/IMath.h"
 #include "Core/IUniquePtr.h"
 #include "Graphics/RenderContext.h"
-#include "Scene/GpuScene.h"
+#include "GpuDrawList.h"
+#include "PostEffects.h"
+#include "ScreenSpaceAO.h"
+#include "EnvironmentPass.h"
+#include "ShadowMap.h"
+#include "DeferredLighting.h"
+#include "Transparency.h"
+#include "RayTracedEffects.h"
 
 struct RenderPassesDesc
 {
@@ -18,49 +25,15 @@ class GBuffer
 {
 public:
     GBuffer(hz::RenderContext& context);
-    void               update();
-    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::RenderScene& scene, const hz::GpuScene& gpu,
-                               const hz::AssetManager& assets);
-    void               load(uint32_t width, uint32_t height);
-    void               unload();
-    hz::RenderContext& context;
+    void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const SceneView& view, const GpuDrawList& draws);
+    void resize(uint32_t width, uint32_t height);
+
+    hz::RenderContext&        context;
     static constexpr uint32_t gbufferCount = 4;
     hz::GPUPipeline           pipeline;
     hz::GPUSampler            sampler;
     hz::GPUTexture            gbuffer[gbufferCount];
     hz::GPUTexture            depth;
-
-private:
-    hz::Array<const hz::GPUBuffer*>  buffers;
-    hz::Array<const hz::GPUTexture*> textures;
-    hz::Array<uint32_t>              materialIds;
-    uint64_t                         materialRevision = 0;
-};
-
-class Lighting
-{
-public:
-    Lighting(hz::RenderContext& context);
-    void               update();
-    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const GBuffer& gbuffer, const hz::RenderScene& scene,
-                               const hz::GpuScene& gpu);
-    void               load(uint32_t width, uint32_t height);
-    void               unload();
-    hz::GPUTexture     sceneColor;
-    hz::RenderContext& context;
-    hz::GPUPipeline    pipeline;
-};
-
-class PostProcessing
-{
-public:
-    PostProcessing(hz::RenderContext& context);
-    void update();
-    void execute(hz::CommandList& cmd, const hz::GPUTexture& renderTarget, const hz::GPUTexture& sceneColor, const hz::GPUTexture& depth);
-    void load(uint32_t width, uint32_t height);
-    void unload();
-    hz::RenderContext& context;
-    hz::GPUPipeline    pipeline;
 };
 
 class RenderPasses
@@ -69,10 +42,12 @@ public:
     RenderPasses(const RenderPassesDesc& desc);
     ~RenderPasses() = default;
 
-    bool load(uint32_t width, uint32_t height);
-    void unload();
-    void update();
+    bool resize(uint32_t width, uint32_t height);
+
+    void update(float deltaSeconds);
     void execute();
+    bool enableScreenSpaceAO = false;
+    bool enableTransparency = true;
 
 private:
     struct FrameData
@@ -94,9 +69,17 @@ private:
     hz::AssetManager&  assets;
     hz::RenderCameraID camera;
 
-    hz::unique_ptr<GBuffer>           gbuffer;
-    hz::unique_ptr<Lighting>          lighting;
-    hz::unique_ptr<PostProcessing>    postprocessing;
+    hz::unique_ptr<GBuffer>          gbuffer;
+    hz::unique_ptr<DeferredLighting> lighting;
+    hz::unique_ptr<PostEffects>      postprocessing;
+    hz::unique_ptr<ScreenSpaceAO>    ssao;
+    hz::unique_ptr<EnvironmentPass>  environment;
+    hz::unique_ptr<ShadowMap>        shadows;
+    hz::unique_ptr<Transparency>     transparency;
+    hz::unique_ptr<RayTracedEffects> rayTracing;
+    hz::GPUSampler                   linearSampler;
+    GpuDrawList                      draws;
+    float                            deltaSeconds = 1.0f / 60.0f;
     hz::FixedArray<FrameConstants, 3> frameConstants;
     uint32_t                          nextFrame = 0;
     hz::GpuScene                      gpuScene;

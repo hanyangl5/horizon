@@ -53,7 +53,9 @@ void RenderContext::waitIdle()
 void RenderContext::deferRelease(GPUBuffer&& buffer)
 {
     if (!buffer.pBuffer)
+    {
         return;
+    }
     ASSERT(ready && buffer.pContext == this);
     const DeferredBuffer deferred = { .pBuffer = buffer.pBuffer, .useId = getResourceUseId() };
     arrpush(deferredBuffers, deferred);
@@ -64,8 +66,12 @@ void RenderContext::deferRelease(GPUBuffer&& buffer)
 uint64_t RenderContext::getResourceUseId() const
 {
     for (const CommandSlot& slot : commandSlots)
+    {
         if (slot.commands.pCmd)
+        {
             return nextSubmitId;
+        }
+    }
     return nextSubmitId - 1;
 }
 
@@ -76,13 +82,17 @@ uint64_t RenderContext::getPendingUseId() const
     for (const CommandSlot& slot : commandSlots)
     {
         if (slot.commands.pCmd)
+        {
             pending = TF_MIN(pending, nextSubmitId);
+        }
         if (slot.submitId && slot.submitId < pending)
         {
             FenceStatus status = FENCE_STATUS_COMPLETE;
             getFenceStatus(pRenderer, slot.pFence, &status);
             if (status == FENCE_STATUS_INCOMPLETE)
+            {
                 pending = slot.submitId;
+            }
         }
     }
     return pending;
@@ -103,7 +113,9 @@ void RenderContext::collectDeferredBuffers()
             removeResource(deferredBuffers[i].pBuffer);
         }
         else
+        {
             deferredBuffers[kept++] = deferredBuffers[i];
+        }
     }
     arrsetlen(deferredBuffers, kept);
 }
@@ -380,6 +392,11 @@ void RenderContext::destroyDevice(bool waitForGpu)
             removeIndirectCommandSignature(pRenderer, pDispatchIndirectSignature);
             pDispatchIndirectSignature = nullptr;
         }
+    }
+    if (pRaytracing)
+    {
+        removeRaytracing(pRenderer, pRaytracing);
+        pRaytracing = nullptr;
     }
     if (pGraphicsQueue)
     {

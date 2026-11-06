@@ -114,7 +114,9 @@ private:
     bool acquire(AssetID id, AssetHandle& handle)
     {
         if (assetManager.getState(assetManager.find(id)) == AssetState::Retiring)
+        {
             return true;
+        }
         AssetError error;
         handle = assetManager.request(id, &error);
         return handle.isValid() || error == AssetError::Retiring;

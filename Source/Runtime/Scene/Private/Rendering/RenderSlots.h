@@ -121,7 +121,9 @@ public:
     void clearPending()
     {
         for (uint32_t index : pending)
+        {
             pendingFlags[index] = false;
+        }
         pending.clear();
         pendingActive = false;
     }

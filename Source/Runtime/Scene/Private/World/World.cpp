@@ -142,7 +142,9 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuid
         const ecs_entity_t component = ecs_component_init(pWorld, &desc);
         ASSERT(component);
         if (pType->id == SceneTypes::entityIdentity)
+        {
             entityIdentityType = component;
+        }
         const WorldType mapping = { .key = pType->id, .component = component, .pType = pType };
         hmputs(pTypes, mapping);
     }

@@ -5,9 +5,10 @@ if(WIN32)
         set(BUILD_TOOLS OFF)
         set(BUILD_SAMPLE OFF)
         # DX11 enables the DirectCompute BC6H/BC7 encoder; its shaders are compiled with the Windows SDK fxc.exe.
+        # OpenMP parallelizes the CPU encoder used when no D3D11 hardware device exists.
         set(BUILD_DX11 ON)
-        set(BUILD_DX12 OFF)
-        set(BC_USE_OPENMP OFF)
+        set(BUILD_DX12 ON)
+        set(BC_USE_OPENMP ON)
         set(BUILD_SHARED_LIBS OFF)
         add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/DirectXTex ${CMAKE_BINARY_DIR}/DirectXTex EXCLUDE_FROM_ALL)
         set_target_properties(DirectXTex PROPERTIES FOLDER "Horizon/ThirdParty")

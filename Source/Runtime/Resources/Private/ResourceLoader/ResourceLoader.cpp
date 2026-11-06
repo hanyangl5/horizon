@@ -4852,7 +4852,8 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         loadDesc.flags |= (pDesc->flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
                               ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
                               : BUFFER_CREATION_FLAG_NONE;
-        loadDesc.size = indexBufferSize;
+        // RAW loads read 32-bit words, including an odd final 16-bit index.
+        loadDesc.size = structuredBuffers ? indexBufferSize : round_up(indexBufferSize, (uint32_t)sizeof(uint32_t));
         loadDesc.elementCount = (uint32_t)(loadDesc.size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
         loadDesc.structStride = *indexStride;
         loadDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;

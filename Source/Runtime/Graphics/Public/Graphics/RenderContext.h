@@ -4,6 +4,7 @@
 #include "Core/IFileSystem.h"
 #include "Core/ISpan.h"
 #include "RHI/IGraphics.h"
+#include "Graphics/RayTracing.h"
 
 #include <stdint.h>
 
@@ -119,6 +120,7 @@ struct GraphicsPipelineDesc
     hz::Format            depthStencilFormat = hz::Format::UNDEFINED;
     PrimitiveTopology     topology = PRIMITIVE_TOPO_TRI_LIST;
     SampleCount           sampleCount = SAMPLE_COUNT_1;
+    bool                  indirectDrawId = false;
     const char*           pName = nullptr;
 };
 
@@ -184,6 +186,7 @@ public:
     GPUBuffer& operator=(const GPUBuffer&) = delete;
     bool       isValid() const { return pBuffer != nullptr; }
     Buffer*    get() const { return pBuffer; }
+    uint64_t   getSize() const { return size; }
     uint32_t   getSrvIndex() const { return getBufferSrvIndex(pBuffer); }
     uint32_t   getUavIndex() const { return getBufferUavIndex(pBuffer); }
     uint32_t   getCbvIndex() const { return getBufferCbvIndex(pBuffer); }
@@ -216,6 +219,11 @@ public:
     uint32_t      getSrvIndex() const { return getTextureSrvIndex(pTexture); }
     uint32_t      getUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
     RenderTarget* renderTarget() const { return pRenderTarget; }
+    uint32_t      getWidth() const;
+    uint32_t      getHeight() const;
+    uint32_t      getArraySize() const;
+    uint32_t      getMipLevels() const;
+    Format        getFormat() const;
 
 private:
     GPUTexture(RenderContext*, Texture*, RenderTarget*, ResourceState, bool owned = true);
@@ -286,11 +294,12 @@ public:
     Pipeline*    get() const { return pPipeline; }
 
 private:
-    GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&);
+    GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&, CommandSignature* = nullptr);
     void           destroy();
     RenderContext* pContext = nullptr;
     Pipeline*      pPipeline = nullptr;
     RootSignature* pRootSignature = nullptr;
+    CommandSignature* pDrawIndirectSignature = nullptr;
     GPUShader      shader;
     friend class CommandList;
     friend class RenderContext;
@@ -302,6 +311,7 @@ struct Dependencies
     Span<const GPUTexture*> storageTextures = {};
     Span<const GPUBuffer*>  buffers = {};
     Span<const GPUBuffer*>  storageBuffers = {};
+    Span<const GPUBuffer*>  indirectBuffers = {};
 };
 
 struct BufferCopyRegion
@@ -319,6 +329,9 @@ public:
     void beginRendering(const RenderPassDesc&, const Dependencies& = {});
     void endRendering();
     void setPipeline(const GPUPipeline&);
+    void setPipeline(const GPURayTracingPipeline&);
+    void buildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
+    void traceRays(const GPURayTracingPipeline&, uint32_t width, uint32_t height, uint32_t depth = 1, const Dependencies& = {});
     void setVertexBuffer(uint32_t slot, const GPUBuffer&, uint64_t offset, uint32_t stride);
     void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
     void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
@@ -356,6 +369,7 @@ private:
     void         beginGpuFrameProfile();
     void         endGpuFrameProfile();
     void         addBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
+    void         addIndirectBarriers(Span<const GPUBuffer*> buffers);
     Buffer*      createUploadBuffer(uint64_t size);
     void         barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
                          RenderTargetBarrier*);
@@ -364,8 +378,8 @@ private:
     Cmd*                 pCmd = nullptr;
     RenderContext*       pContext = nullptr;
     RootSignature*       pCurrentRootSignature = nullptr;
+    CommandSignature*    pCurrentDrawIndirectSignature = nullptr;
     uint64_t             gpuProfilerToken = UINT64_MAX;
-    uint64_t             gpuTimestampToken = 0;
     Buffer*              pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
     uint32_t             vertexStrides[MAX_VERTEX_BINDINGS] = {};
     uint64_t             vertexOffsets[MAX_VERTEX_BINDINGS] = {};
@@ -411,18 +425,22 @@ public:
     const GPUTexture&     getCurrentBackbuffer();
     bool                  isSuspended() const;
 
+    bool                     supportsRayTracing() const;
+    GPUAccelerationStructure createAccelerationStructure(const AccelerationStructureDesc&);
+    GPURayTracingPipeline    createRayTracingPipeline(const RayTracingPipelineDesc&);
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
+    GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
     GPUSampler  createSampler(const SamplerDesc& = {});
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
     bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
-    void        deferRelease(GPUBuffer&& buffer);
+    void                     deferRelease(GPUBuffer&& buffer);
     // Identifies the open command list, or the latest submission when none is open.
-    uint64_t    getResourceUseId() const;
-    bool        isResourceUseComplete(uint64_t useId) const;
+    uint64_t                 getResourceUseId() const;
+    bool                     isResourceUseComplete(uint64_t useId) const;
 
 private:
     struct DeferredBuffer
@@ -456,6 +474,7 @@ private:
     void     destroyShaderCompiler();
 
     slang::IGlobalSession* pSlangSession = nullptr;
+    Raytracing*            pRaytracing = nullptr;
 
     ContextDesc               desc = {};
     HDRDisplayInfo            hdrDisplayInfo = {};
@@ -491,6 +510,8 @@ private:
     friend class GPUSampler;
     friend class GPUShader;
     friend class GPUPipeline;
+    friend class GPUAccelerationStructure;
+    friend class GPURayTracingPipeline;
     friend class CommandList;
 };
 

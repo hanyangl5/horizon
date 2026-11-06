@@ -275,7 +275,9 @@ public:
     void removeMeshBatches(RenderEntity& entity)
     {
         for (RenderMeshBatchID meshBatch : entity.meshBatches)
+        {
             meshBatches.remove(meshBatch);
+        }
         entity.meshBatches.clear();
     }
     void setInstanceIndex(uint32_t index, uint32_t value)
@@ -304,7 +306,9 @@ public:
         if (index >= indicesPendingFlags.size() || !indicesPendingFlags[index])
         {
             if (index < indicesPendingFlags.size())
+            {
                 indicesPendingFlags[index] = true;
+            }
             indicesPending.pushBack(index);
         }
     }
@@ -388,7 +392,9 @@ public:
             setInstanceIndex(entity.primitive.index, ready ? entity.instance.index : UINT32_MAX);
         }
         if (ready && entity.meshBatches.empty())
+        {
             buildMeshBatches(entity, *pBinding, *pMesh);
+        }
         if (ready)
         {
             ASSERT(entity.meshBatches.size() == pBinding->materials.count);
@@ -504,7 +510,9 @@ public:
         mergeRenderRanges(indicesDirty, indicesRanges);
         if (primitives.getChanges().ranges.count || instances.getChanges().ranges.count || meshBatches.getChanges().ranges.count ||
             lights.getChanges().ranges.count || cameras.getChanges().ranges.count || !indicesRanges.empty())
+        {
             ++revision;
+        }
     }
     RenderSceneUploads getPendingUploads()
     {
@@ -534,7 +542,9 @@ public:
         lights.clearPending();
         cameras.clearPending();
         for (uint32_t index : indicesPending)
+        {
             indicesPendingFlags[index] = false;
+        }
         indicesPending.clear();
     }
     void commitHistory()
@@ -548,7 +558,9 @@ public:
             const RenderPrimitive* pPrimitive = primitives.get(instance.primitive);
             // A reset since the last update renders previous == current first.
             if (history.reset || !instance.id.isValid() || !pPrimitive || !pPrimitive->instanceCount)
+            {
                 continue;
+            }
             history.submitted = instance.current;
             history.valid = true;
         }
@@ -556,7 +568,9 @@ public:
         for (RenderCameraEntity& entity : cameraEntities)
         {
             if (entity.historyReset)
+            {
                 continue;
+            }
             const RenderCamera& camera = cameras.values[entity.id.index];
             entity.submitted = camera.current;
             entity.submittedLens = camera.lens;
@@ -626,7 +640,9 @@ void RenderScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint
     pData->instanceHistory.reserve(primitiveCount);
     pData->historyPending.reserve(primitiveCount);
     for (Array<RenderRange>& ranges : pData->uploadRanges)
+    {
         ranges.reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
+    }
     pData->lights.reserve(lightCount);
     pData->cameras.reserve(cameraCount);
     pData->lightEntities.reserve(lightCount);

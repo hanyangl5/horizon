@@ -196,8 +196,9 @@ void GPUShader::destroy()
     }
 }
 
-GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignature* rootSignature, GPUShader&& shader):
-    pContext(context), pPipeline(pipeline), pRootSignature(rootSignature), shader(std::move(shader))
+GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignature* rootSignature, GPUShader&& shader,
+                         CommandSignature* drawSignature):
+    pContext(context), pPipeline(pipeline), pRootSignature(rootSignature), pDrawIndirectSignature(drawSignature), shader(std::move(shader))
 {
     ASSERT(pContext && pPipeline && pRootSignature);
     ++pContext->resourceCount;
@@ -206,11 +207,13 @@ GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignatu
 GPUPipeline::~GPUPipeline() { destroy(); }
 
 GPUPipeline::GPUPipeline(GPUPipeline&& other) noexcept:
-    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature), shader(std::move(other.shader))
+    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature),
+    pDrawIndirectSignature(other.pDrawIndirectSignature), shader(std::move(other.shader))
 {
     other.pContext = nullptr;
     other.pPipeline = nullptr;
     other.pRootSignature = nullptr;
+    other.pDrawIndirectSignature = nullptr;
 }
 
 GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
@@ -221,10 +224,12 @@ GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
         pContext = other.pContext;
         pPipeline = other.pPipeline;
         pRootSignature = other.pRootSignature;
+        pDrawIndirectSignature = other.pDrawIndirectSignature;
         shader = std::move(other.shader);
         other.pContext = nullptr;
         other.pPipeline = nullptr;
         other.pRootSignature = nullptr;
+        other.pDrawIndirectSignature = nullptr;
     }
     return *this;
 }
@@ -236,6 +241,10 @@ void GPUPipeline::destroy()
     {
         ASSERT(pContext->resourceCount && pRootSignature);
         --pContext->resourceCount;
+        if (pDrawIndirectSignature)
+        {
+            removeIndirectCommandSignature(pContext->pRenderer, pDrawIndirectSignature);
+        }
         removePipeline(pContext->pRenderer, pPipeline);
         removeRootSignature(pContext->pRenderer, pRootSignature);
     }
@@ -312,6 +321,44 @@ GPUTexture RenderContext::createTexture(const TextureDesc& input)
         waitForToken(&token);
     }
     return GPUTexture(this, texture, renderTarget, input.startState);
+}
+
+uint32_t GPUTexture::getWidth() const { return pTexture ? pTexture->width : 0; }
+uint32_t GPUTexture::getHeight() const { return pTexture ? pTexture->height : 0; }
+uint32_t GPUTexture::getArraySize() const { return pTexture ? pTexture->arraySizeMinusOne + 1 : 0; }
+uint32_t GPUTexture::getMipLevels() const { return pTexture ? pTexture->mipLevels : 0; }
+Format   GPUTexture::getFormat() const { return pTexture ? pTexture->format : Format::UNDEFINED; }
+
+GPUTexture RenderContext::loadTexture(ResourceDirectory directory, const char* pFileName, TextureCreationFlags flags)
+{
+    ASSERT(ready && pFileName);
+    const char* extension = strrchr(pFileName, '.');
+    if (!extension || (strcmp(extension, ".dds") && strcmp(extension, ".ktx")))
+    {
+        LOGF(eERROR, "Texture '%s' requires a DDS or KTX container", pFileName);
+        return {};
+    }
+    Texture*        texture = nullptr;
+    bool            success = false;
+    TextureLoadDesc desc = { .ppTexture = &texture,
+                             .pFileName = pFileName,
+                             .creationFlag = flags,
+                             .container = strcmp(extension, ".ktx") == 0 ? TEXTURE_CONTAINER_KTX : TEXTURE_CONTAINER_DDS,
+                             .resourceDirectory = directory,
+                             .pSuccess = &success };
+    SyncToken       token = 0;
+    addResource(&desc, &token);
+    waitForToken(&token);
+    if (!success || !texture)
+    {
+        if (texture)
+        {
+            removeResource(texture);
+        }
+        LOGF(eERROR, "Failed to load texture '%s'", pFileName);
+        return {};
+    }
+    return GPUTexture(this, texture, nullptr, RESOURCE_STATE_SHADER_RESOURCE);
 }
 
 GPUSampler RenderContext::createSampler(const SamplerDesc& input)
@@ -448,7 +495,23 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     Pipeline* pipeline = nullptr;
     addPipeline(pRenderer, &desc, &pipeline);
     ASSERT(pipeline);
-    return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader));
+    CommandSignature* drawSignature = nullptr;
+    if (input.indirectDrawId)
+    {
+        const uint32_t constant = getDescriptorIndexFromName(rootSignature, "RootConstant0");
+        ASSERT(constant != UINT32_MAX);
+        IndirectArgumentDescriptor arguments[] = {
+            { .type = INDIRECT_CONSTANT, .index = constant, .byteSize = sizeof(uint32_t) },
+            { .type = INDIRECT_DRAW },
+        };
+        const CommandSignatureDesc signature = { .pRootSignature = rootSignature,
+                                                 .pArgDescs = arguments,
+                                                 .indirectArgCount = 2,
+                                                 .packed = true };
+        addIndirectCommandSignature(pRenderer, &signature, &drawSignature);
+        ASSERT(drawSignature);
+    }
+    return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader), drawSignature);
 }
 
 GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& input)
