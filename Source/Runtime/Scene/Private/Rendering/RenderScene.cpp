@@ -59,15 +59,15 @@ static RenderBounds transformBounds(const MeshBounds& bounds, const Matrix4& mat
 
 struct RenderEntity
 {
-    Entity              entity;
-    RenderPrimitiveID   primitive;
-    RenderInstanceID    instance;
-    Array<RenderDrawID> draws;
-    MeshBounds          localBounds;
-    Matrix4             submitted = Matrix4::identity();
-    uint64_t            historyEpoch = 0;
-    bool                historyValid = false;
-    bool                seen = false;
+    Entity                   entity;
+    RenderPrimitiveID        primitive;
+    RenderInstanceID         instance;
+    Array<RenderMeshBatchID> meshBatches;
+    MeshBounds               localBounds;
+    Matrix4                  submitted = Matrix4::identity();
+    uint64_t                 historyEpoch = 0;
+    bool                     historyValid = false;
+    bool                     seen = false;
 };
 struct RenderEntityIndex
 {
@@ -98,13 +98,13 @@ enum class RenderTable : uint32_t
 {
     Primitives,
     Instances,
-    Draws,
+    MeshBatches,
     InstanceIndices,
     Lights,
     Cameras,
     ActivePrimitives,
     ActiveInstances,
-    ActiveDraws,
+    ActiveMeshBatches,
     ActiveLights,
     ActiveCameras
 };
@@ -316,11 +316,11 @@ public:
         }
     }
 
-    void removeDraws(RenderEntity& entity)
+    void removeMeshBatches(RenderEntity& entity)
     {
-        for (RenderDrawID draw : entity.draws)
-            draws.remove(draw);
-        entity.draws.clear();
+        for (RenderMeshBatchID meshBatch : entity.meshBatches)
+            meshBatches.remove(meshBatch);
+        entity.meshBatches.clear();
     }
     void setInstanceIndex(uint32_t index, uint32_t value)
     {
@@ -353,21 +353,21 @@ public:
         hmputs(pIndices, index);
         return record;
     }
-    void buildDraws(RenderEntity& entity, const MeshAssetBinding& binding, const MeshAsset& mesh)
+    void buildMeshBatches(RenderEntity& entity, const MeshAssetBinding& binding, const MeshAsset& mesh)
     {
-        removeDraws(entity);
-        entity.draws.reserve(binding.materials.count);
+        removeMeshBatches(entity);
+        entity.meshBatches.reserve(binding.materials.count);
         entity.localBounds = binding.materials.count ? mesh.getBounds(0) : MeshBounds{};
         for (uint32_t i = 0; i < binding.materials.count; ++i)
         {
             const MaterialAssetBinding& material = binding.materials.pData[i];
-            const RenderDrawID          id = draws.add();
-            RenderDraw&                 draw = draws.values[id.index];
-            draw.primitive = entity.primitive;
-            draw.submesh = material.submesh;
-            draw.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
-            draw.material = { .index = material.handle.index, .generation = material.handle.generation };
-            entity.draws.pushBack(id);
+            const RenderMeshBatchID     id = meshBatches.add();
+            RenderMeshBatch&            meshBatch = meshBatches.values[id.index];
+            meshBatch.primitive = entity.primitive;
+            meshBatch.submesh = material.submesh;
+            meshBatch.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
+            meshBatch.material = { .index = material.handle.index, .generation = material.handle.generation };
+            entity.meshBatches.pushBack(id);
             const MeshBounds& bounds = mesh.getBounds(i);
             for (uint32_t axis = 0; axis < 3; ++axis)
             {
@@ -388,7 +388,7 @@ public:
         const uint32_t   count = ready ? 1u : 0u;
         if (primitive.mesh != mesh)
         {
-            removeDraws(entity);
+            removeMeshBatches(entity);
             entity.localBounds = {};
         }
         if (primitive.mesh != mesh || primitive.instanceCount != count)
@@ -403,31 +403,31 @@ public:
             primitives.markDirty(entity.primitive.index);
             setInstanceIndex(entity.primitive.index, ready ? entity.instance.index : UINT32_MAX);
         }
-        if (ready && entity.draws.empty())
-            buildDraws(entity, *pBinding, *pMesh);
+        if (ready && entity.meshBatches.empty())
+            buildMeshBatches(entity, *pBinding, *pMesh);
         if (ready)
         {
-            ASSERT(entity.draws.size() == pBinding->materials.count);
-            for (uint32_t i = 0; i < entity.draws.size(); ++i)
+            ASSERT(entity.meshBatches.size() == pBinding->materials.count);
+            for (uint32_t i = 0; i < entity.meshBatches.size(); ++i)
             {
-                RenderDraw&         draw = draws.values[entity.draws[i].index];
+                RenderMeshBatch&    meshBatch = meshBatches.values[entity.meshBatches[i].index];
                 const AssetHandle   handle = pBinding->materials.pData[i].handle;
                 const GpuMaterialID material = { .index = handle.index, .generation = handle.generation };
-                if (draw.material != material)
+                if (meshBatch.material != material)
                 {
-                    draw.material = material;
-                    draws.markDirty(draw.id.index);
+                    meshBatch.material = material;
+                    meshBatches.markDirty(meshBatch.id.index);
                 }
             }
         }
         else
-            for (RenderDrawID id : entity.draws)
+            for (RenderMeshBatchID id : entity.meshBatches)
             {
-                RenderDraw& draw = draws.values[id.index];
-                if (draw.material.isValid())
+                RenderMeshBatch& meshBatch = meshBatches.values[id.index];
+                if (meshBatch.material.isValid())
                 {
-                    draw.material = {};
-                    draws.markDirty(id.index);
+                    meshBatch.material = {};
+                    meshBatches.markDirty(id.index);
                 }
             }
         const WorldTransform& transform = *world.getWorldTransform(entity.entity);
@@ -459,7 +459,7 @@ public:
         world.updateTransforms();
         primitives.beginUpdate();
         instances.beginUpdate();
-        draws.beginUpdate();
+        meshBatches.beginUpdate();
         lights.beginUpdate();
         cameras.beginUpdate();
         indicesDirty.clear();
@@ -481,7 +481,7 @@ public:
                 ++i;
                 continue;
             }
-            removeDraws(entity);
+            removeMeshBatches(entity);
             setInstanceIndex(entity.primitive.index, UINT32_MAX);
             primitives.remove(entity.primitive);
             instances.remove(entity.instance);
@@ -497,17 +497,17 @@ public:
         removeCameras();
         primitives.finishUpdate();
         instances.finishUpdate();
-        draws.finishUpdate();
+        meshBatches.finishUpdate();
         lights.finishUpdate();
         cameras.finishUpdate();
         mergeRenderRanges(indicesDirty, indicesRanges);
-        if (!primitives.getChanges().ranges.count && !instances.getChanges().ranges.count && !draws.getChanges().ranges.count &&
+        if (!primitives.getChanges().ranges.count && !instances.getChanges().ranges.count && !meshBatches.getChanges().ranges.count &&
             !lights.getChanges().ranges.count && !cameras.getChanges().ranges.count && indicesRanges.empty())
             return;
         ++revision;
         record(RenderTable::Primitives, primitives.getChanges().ranges);
         record(RenderTable::Instances, instances.getChanges().ranges);
-        record(RenderTable::Draws, draws.getChanges().ranges);
+        record(RenderTable::MeshBatches, meshBatches.getChanges().ranges);
         record(RenderTable::InstanceIndices, { indicesRanges.data(), indicesRanges.size() });
         record(RenderTable::Lights, lights.getChanges().ranges);
         record(RenderTable::Cameras, cameras.getChanges().ranges);
@@ -515,8 +515,8 @@ public:
             record(RenderTable::ActivePrimitives, {});
         if (instances.getChanges().activeList)
             record(RenderTable::ActiveInstances, {});
-        if (draws.getChanges().activeList)
-            record(RenderTable::ActiveDraws, {});
+        if (meshBatches.getChanges().activeList)
+            record(RenderTable::ActiveMeshBatches, {});
         if (lights.getChanges().activeList)
             record(RenderTable::ActiveLights, {});
         if (cameras.getChanges().activeList)
@@ -561,8 +561,8 @@ public:
                 result.activePrimitives = true;
             else if (change.table == RenderTable::ActiveInstances)
                 result.activeInstances = true;
-            else if (change.table == RenderTable::ActiveDraws)
-                result.activeDraws = true;
+            else if (change.table == RenderTable::ActiveMeshBatches)
+                result.activeMeshBatches = true;
             else if (change.table == RenderTable::ActiveLights)
                 result.activeLights = true;
             else if (change.table == RenderTable::ActiveCameras)
@@ -572,7 +572,7 @@ public:
             mergeRanges(ranges);
         result.primitives = { syncRanges[0].data(), syncRanges[0].size() };
         result.instances = { syncRanges[1].data(), syncRanges[1].size() };
-        result.draws = { syncRanges[2].data(), syncRanges[2].size() };
+        result.meshBatches = { syncRanges[2].data(), syncRanges[2].size() };
         result.instanceIndices = { syncRanges[3].data(), syncRanges[3].size() };
         result.lights = { syncRanges[4].data(), syncRanges[4].size() };
         result.cameras = { syncRanges[5].data(), syncRanges[5].size() };
@@ -630,7 +630,7 @@ public:
     WorldQuery                                      cameraQuery;
     RenderSlots<RenderPrimitive, RenderPrimitiveID> primitives;
     RenderSlots<RenderInstance, RenderInstanceID>   instances;
-    RenderSlots<RenderDraw, RenderDrawID>           draws;
+    RenderSlots<RenderMeshBatch, RenderMeshBatchID> meshBatches;
     RenderSlots<RenderLight, RenderLightID>         lights;
     RenderSlots<RenderCamera, RenderCameraID>       cameras;
     Array<RenderEntity>                             entities;
@@ -657,11 +657,11 @@ RenderScene::RenderScene(World& world, AssetManager& assetManager, const RenderS
 {
 }
 RenderScene::~RenderScene() { tf_delete(pData); }
-void RenderScene::reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
+void RenderScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
     pData->primitives.reserve(primitiveCount);
     pData->instances.reserve(primitiveCount);
-    pData->draws.reserve(drawCount);
+    pData->meshBatches.reserve(meshBatchCount);
     pData->entities.reserve(primitiveCount);
     pData->instanceIndices.reserve(primitiveCount);
     pData->indicesDirty.reserve(primitiveCount);
@@ -687,7 +687,7 @@ RenderSceneChanges RenderScene::getChanges() const
 {
     return { .primitives = pData->primitives.getChanges(),
              .instances = pData->instances.getChanges(),
-             .draws = pData->draws.getChanges(),
+             .meshBatches = pData->meshBatches.getChanges(),
              .lights = pData->lights.getChanges(),
              .cameras = pData->cameras.getChanges(),
              .instanceIndices = { pData->indicesRanges.data(), pData->indicesRanges.size() } };
@@ -699,7 +699,7 @@ RenderPrimitiveID RenderScene::findPrimitive(Entity entity) const
 }
 const RenderPrimitive* RenderScene::getPrimitive(RenderPrimitiveID id) const { return pData->primitives.get(id); }
 const RenderInstance*  RenderScene::getInstance(RenderInstanceID id) const { return pData->instances.get(id); }
-const RenderDraw*      RenderScene::getDraw(RenderDrawID id) const { return pData->draws.get(id); }
+const RenderMeshBatch* RenderScene::getMeshBatch(RenderMeshBatchID id) const { return pData->meshBatches.get(id); }
 RenderLightID          RenderScene::findLight(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(pData->pLightIndices, entity);
@@ -714,12 +714,12 @@ const RenderLight*    RenderScene::getLight(RenderLightID id) const { return pDa
 const RenderCamera*   RenderScene::getCamera(RenderCameraID id) const { return pData->cameras.get(id); }
 Span<RenderPrimitive> RenderScene::getPrimitives() const { return { pData->primitives.values.data(), pData->primitives.values.size() }; }
 Span<RenderInstance>  RenderScene::getInstances() const { return { pData->instances.values.data(), pData->instances.values.size() }; }
-Span<RenderDraw>      RenderScene::getDraws() const { return { pData->draws.values.data(), pData->draws.values.size() }; }
+Span<RenderMeshBatch> RenderScene::getMeshBatches() const { return { pData->meshBatches.values.data(), pData->meshBatches.values.size() }; }
 Span<RenderLight>     RenderScene::getLights() const { return { pData->lights.values.data(), pData->lights.values.size() }; }
 Span<RenderCamera>    RenderScene::getCameras() const { return { pData->cameras.values.data(), pData->cameras.values.size() }; }
 Span<uint32_t> RenderScene::getActivePrimitives() const { return { pData->primitives.active.data(), pData->primitives.active.size() }; }
 Span<uint32_t> RenderScene::getActiveInstances() const { return { pData->instances.active.data(), pData->instances.active.size() }; }
-Span<uint32_t> RenderScene::getActiveDraws() const { return { pData->draws.active.data(), pData->draws.active.size() }; }
+Span<uint32_t> RenderScene::getActiveMeshBatches() const { return { pData->meshBatches.active.data(), pData->meshBatches.active.size() }; }
 Span<uint32_t> RenderScene::getActiveLights() const { return { pData->lights.active.data(), pData->lights.active.size() }; }
 Span<uint32_t> RenderScene::getActiveCameras() const { return { pData->cameras.active.data(), pData->cameras.active.size() }; }
 Span<uint32_t> RenderScene::getInstanceIndices() const { return { pData->instanceIndices.data(), pData->instanceIndices.size() }; }

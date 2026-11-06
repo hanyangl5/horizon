@@ -69,11 +69,11 @@ struct RenderFrameData
 {
     Array<RenderPrimitive> primitives;
     Array<RenderInstance>  instances;
-    Array<RenderDraw>      draws;
+    Array<RenderMeshBatch> meshBatches;
     Array<uint32_t>        instanceIndices;
     Array<uint32_t>        activePrimitives;
     Array<uint32_t>        activeInstances;
-    Array<uint32_t>        activeDraws;
+    Array<uint32_t>        activeMeshBatches;
     Array<RenderLight>     lights;
     Array<RenderCamera>    cameras;
     Array<uint32_t>        activeLights;
@@ -146,11 +146,11 @@ public:
         const RenderSceneSync changes = scene.getChangesSince(frame.sceneRevision);
         syncArray(frame.primitives, scene.getPrimitives(), changes.primitives, changes.full);
         syncArray(frame.instances, scene.getInstances(), changes.instances, changes.full);
-        syncArray(frame.draws, scene.getDraws(), changes.draws, changes.full);
+        syncArray(frame.meshBatches, scene.getMeshBatches(), changes.meshBatches, changes.full);
         syncArray(frame.instanceIndices, scene.getInstanceIndices(), changes.instanceIndices, changes.full);
         syncArray(frame.activePrimitives, scene.getActivePrimitives(), {}, changes.full || changes.activePrimitives);
         syncArray(frame.activeInstances, scene.getActiveInstances(), {}, changes.full || changes.activeInstances);
-        syncArray(frame.activeDraws, scene.getActiveDraws(), {}, changes.full || changes.activeDraws);
+        syncArray(frame.activeMeshBatches, scene.getActiveMeshBatches(), {}, changes.full || changes.activeMeshBatches);
         syncArray(frame.lights, scene.getLights(), changes.lights, changes.full);
         syncArray(frame.cameras, scene.getCameras(), changes.cameras, changes.full);
         syncArray(frame.activeLights, scene.getActiveLights(), {}, changes.full || changes.activeLights);
@@ -159,16 +159,16 @@ public:
                                 { frame.primitives.data(), frame.primitives.size() }, changes.primitives, changes.full);
         upload<RenderInstance>(context, frame.buffers.instances, frame.capacities[1], { frame.instances.data(), frame.instances.size() },
                                changes.instances, changes.full);
-        upload<RenderDraw>(context, frame.buffers.draws, frame.capacities[2], { frame.draws.data(), frame.draws.size() }, changes.draws,
-                           changes.full);
+        upload<RenderMeshBatch>(context, frame.buffers.meshBatches, frame.capacities[2],
+                                { frame.meshBatches.data(), frame.meshBatches.size() }, changes.meshBatches, changes.full);
         upload<uint32_t>(context, frame.buffers.instanceIndices, frame.capacities[3],
                          { frame.instanceIndices.data(), frame.instanceIndices.size() }, changes.instanceIndices, changes.full);
         upload<uint32_t>(context, frame.buffers.activePrimitives, frame.capacities[4],
                          { frame.activePrimitives.data(), frame.activePrimitives.size() }, {}, changes.full || changes.activePrimitives);
         upload<uint32_t>(context, frame.buffers.activeInstances, frame.capacities[5],
                          { frame.activeInstances.data(), frame.activeInstances.size() }, {}, changes.full || changes.activeInstances);
-        upload<uint32_t>(context, frame.buffers.activeDraws, frame.capacities[6], { frame.activeDraws.data(), frame.activeDraws.size() },
-                         {}, changes.full || changes.activeDraws);
+        upload<uint32_t>(context, frame.buffers.activeMeshBatches, frame.capacities[6],
+                         { frame.activeMeshBatches.data(), frame.activeMeshBatches.size() }, {}, changes.full || changes.activeMeshBatches);
         const GpuAssetTableSnapshot tables = frame.assets.getGpuTables();
         const bool                  assetChanged = frame.assetRevision != frame.assets.getRevision();
         upload(context, frame.buffers.meshes, frame.capacities[7], tables.meshes, {}, assetChanged);
@@ -214,19 +214,19 @@ RenderFramePool::RenderFramePool(RenderScene& scene, RenderContext& context, con
 {
 }
 RenderFramePool::~RenderFramePool() { tf_delete(pData); }
-void RenderFramePool::reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount, uint32_t cameraCount)
+void RenderFramePool::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
     ASSERT(!pData->cpuLease);
-    pData->scene.reserve(primitiveCount, drawCount, lightCount, cameraCount);
+    pData->scene.reserve(primitiveCount, meshBatchCount, lightCount, cameraCount);
     for (RenderFrameData& frame : pData->frames)
     {
         frame.primitives.reserve(primitiveCount);
         frame.instances.reserve(primitiveCount);
-        frame.draws.reserve(drawCount);
+        frame.meshBatches.reserve(meshBatchCount);
         frame.instanceIndices.reserve(primitiveCount);
         frame.activePrimitives.reserve(primitiveCount);
         frame.activeInstances.reserve(primitiveCount);
-        frame.activeDraws.reserve(drawCount);
+        frame.activeMeshBatches.reserve(meshBatchCount);
         frame.lights.reserve(lightCount);
         frame.cameras.reserve(cameraCount);
         frame.activeLights.reserve(lightCount);
@@ -308,11 +308,11 @@ Span<RenderInstance> RenderFrame::getInstances() const
     const RenderFrameData& frame = pData->frames[index];
     return { frame.instances.data(), frame.instances.size() };
 }
-Span<RenderDraw> RenderFrame::getDraws() const
+Span<RenderMeshBatch> RenderFrame::getMeshBatches() const
 {
     ASSERT(pData);
     const RenderFrameData& frame = pData->frames[index];
-    return { frame.draws.data(), frame.draws.size() };
+    return { frame.meshBatches.data(), frame.meshBatches.size() };
 }
 Span<RenderLight> RenderFrame::getLights() const
 {
@@ -344,11 +344,11 @@ Span<uint32_t> RenderFrame::getActiveInstances() const
     const RenderFrameData& frame = pData->frames[index];
     return { frame.activeInstances.data(), frame.activeInstances.size() };
 }
-Span<uint32_t> RenderFrame::getActiveDraws() const
+Span<uint32_t> RenderFrame::getActiveMeshBatches() const
 {
     ASSERT(pData);
     const RenderFrameData& frame = pData->frames[index];
-    return { frame.activeDraws.data(), frame.activeDraws.size() };
+    return { frame.activeMeshBatches.data(), frame.activeMeshBatches.size() };
 }
 Span<uint32_t> RenderFrame::getActiveLights() const
 {

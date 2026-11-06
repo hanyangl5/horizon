@@ -122,8 +122,8 @@ private:
         pScene = hz::make_unique<hz::RenderScene>(*pWorld, *pAssetManager);
         pScene->reserve(asset->getNodes().count, asset->getNodes().count, 1, 1);
         pScene->update();
-        LOGF(eINFO, "World ready: %u render primitives, %u instances, %u draws, %u materials, %u textures",
-             pScene->getActivePrimitives().count, pScene->getActiveInstances().count, pScene->getActiveDraws().count,
+        LOGF(eINFO, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
+             pScene->getActivePrimitives().count, pScene->getActiveInstances().count, pScene->getActiveMeshBatches().count,
              asset->getMaterials().count, asset->getTextures().count);
         pAssetManager->release(handle);
         return true;

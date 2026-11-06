@@ -175,13 +175,13 @@ RenderScene 从 World 和资产绑定中提取这些结果，当前主要分为�
 | --- | --- | --- |
 | RenderPrimitive | Mesh 以及它对应的实例范围 | 一把使用某 Mesh 的椅子 |
 | RenderInstance | 变换、包围盒、Guid | 这把椅子的当前与上一提交姿态 |
-| RenderDraw | submesh 和材质引用 | 木头、坐垫分别产生 draw |
+| RenderMeshBatch | submesh 和材质引用 | 木头、坐垫分别产生 draw |
 
-当前阶段，一个就绪的 MeshRenderer 实体对应一个可渲染实例。若 Mesh 有三个 submesh，它会展开为三个 Draw。十把这样的椅子可共享 Mesh，却分别拥有十份变换和三十个 Draw。
+当前阶段，一个就绪的 MeshRenderer 实体对应一个可渲染实例。若 Mesh 有三个 submesh，它会展开为三个 MeshBatch。十把这样的椅子可共享 Mesh，却分别拥有十份变换和三十个 MeshBatch。
 
 这些记录使用可以复用的稀疏槽位（sparse slot）。删除中间的椅子会留下空洞，其他记录不必全部搬家；复用 slot 时递增 generation。遍历时使用有效项列表（active list），不能把整个底层数组都当作有效实体。
 
-Draw 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。GPU 间接表再把这些身份解析到实际数据和资源描述符（descriptor）。资产 ID、GPU ID、descriptor index 各承担不同定位职责；一个 descriptor 数字不能表达整份 Mesh 或场景实体的生命周期。
+MeshBatch 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。GPU 间接表再把这些身份解析到实际数据和资源描述符（descriptor）。资产 ID、GPU ID、descriptor index 各承担不同定位职责；一个 descriptor 数字不能表达整份 Mesh 或场景实体的生命周期。
 
 Camera 和 Light 也从 World 提取。Camera 提供位姿和镜头参数，窗口宽高比与投影矩阵由渲染端决定。Light 提取保存不同光源形状的参数，当前示例实际求值的是 Directional；数据中存在某种光源，不表示相应采样和着色已经全部实现。
 
@@ -191,7 +191,7 @@ RenderScene 本身仍会继续更新。它返回的 Span 是借用视图，下�
 
 RenderFramePool 把场景记录与相匹配的资产表一起捕获，返回一份只能移动、不能复制的 lease。这里的 lease 表示一份有明确归还点的使用权：持有期间，相关资源不会被回收。调用方通过它读取当前帧数据；提交后把它转交给帧池，直到 GPU 完成才允许回收。
 
-配对很关键。例如旧 Draw 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 Draw 和资产表，不能随手从 Asset Manager 查询另一时刻的表来拼接。
+配对很关键。例如旧 MeshBatch 的 submesh 索引是基于旧 Mesh 表解释的。渲染时必须同时使用相匹配的 MeshBatch 和资产表，不能随手从 Asset Manager 查询另一时刻的表来拼接。
 
 当前快照保护 Asset Manager 当时整个 Ready payload 集合，并非已经实现了逐可见实体的精细资源筛选。这个选择使初版快照边界清楚，后续可以在不改变 World 组件的前提下继续优化。
 
@@ -243,7 +243,7 @@ CPU 与 GPU 可以同时处理不同帧。帧池默认轮换三份 backing，避
 
 因此，RenderScene 的变更日志（journal）累积记录变更范围。B 需要同时补齐 revision 8 和 9。每份 backing 按自己的 revision 追赶，而不是让全部 Buffer 共享一个“本帧已更新”的标记。
 
-删除和 slot 复用也要同步：清空的数据、active list、实例索引都可能发生变化。只补矩阵，会让旧 Draw 或旧 active 项继续出现在某份轮转 Buffer 中。
+删除和 slot 复用也要同步：清空的数据、active list、实例索引都可能发生变化。只补矩阵，会让旧 MeshBatch 或旧 active 项继续出现在某份轮转 Buffer 中。
 
 journal 容量有限。当 backing 太久没有使用，所需历史已经超出保留范围时，系统回退到完整同步。首次使用和容量扩展也可以完整同步，普通场景修改则只写受影响的范围。资产 Ready 集合变化时，资产表当前采用完整更新。
 

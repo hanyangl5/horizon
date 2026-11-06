@@ -22,12 +22,12 @@ struct RenderInstanceID
     bool     isValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const RenderInstanceID&) const = default;
 };
-struct RenderDrawID
+struct RenderMeshBatchID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
     bool     isValid() const { return index != UINT32_MAX && generation != 0; }
-    bool     operator==(const RenderDrawID&) const = default;
+    bool     operator==(const RenderMeshBatchID&) const = default;
 };
 struct RenderLightID
 {
@@ -66,9 +66,9 @@ struct RenderInstance
     Matrix4           previous = Matrix4::identity();
     RenderBounds      bounds;
 };
-struct RenderDraw
+struct RenderMeshBatch
 {
-    RenderDrawID      id;
+    RenderMeshBatchID id;
     RenderPrimitiveID primitive;
     uint64_t          submesh = 0;
     GpuSubmeshRef     mesh;
@@ -128,7 +128,7 @@ struct RenderSceneChanges
 {
     RenderSlotChanges primitives;
     RenderSlotChanges instances;
-    RenderSlotChanges draws;
+    RenderSlotChanges meshBatches;
     RenderSlotChanges lights;
     RenderSlotChanges cameras;
     Span<RenderRange> instanceIndices;
@@ -146,13 +146,13 @@ struct RenderSceneSync
 {
     Span<RenderRange> primitives;
     Span<RenderRange> instances;
-    Span<RenderRange> draws;
+    Span<RenderRange> meshBatches;
     Span<RenderRange> instanceIndices;
     Span<RenderRange> lights;
     Span<RenderRange> cameras;
     bool              activePrimitives = false;
     bool              activeInstances = false;
-    bool              activeDraws = false;
+    bool              activeMeshBatches = false;
     bool              activeLights = false;
     bool              activeCameras = false;
     bool              full = false;
@@ -167,7 +167,7 @@ public:
     RenderScene(const RenderScene&) = delete;
     RenderScene& operator=(const RenderScene&) = delete;
 
-    void               reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
+    void               reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Runs after asset manager loading/mutation. Updates World transforms and bindings without advancing history.
     void               update();
     uint64_t           getRevision() const;
@@ -181,7 +181,7 @@ public:
     RenderPrimitiveID      findPrimitive(Entity entity) const;
     const RenderPrimitive* getPrimitive(RenderPrimitiveID id) const;
     const RenderInstance*  getInstance(RenderInstanceID id) const;
-    const RenderDraw*      getDraw(RenderDrawID id) const;
+    const RenderMeshBatch* getMeshBatch(RenderMeshBatchID id) const;
     RenderLightID          findLight(Entity entity) const;
     RenderCameraID         findCamera(Entity entity) const;
     const RenderLight*     getLight(RenderLightID id) const;
@@ -191,12 +191,12 @@ public:
     // Iterate active lists; sparse arrays include holes. These views do not pin assets for GPU work.
     Span<RenderPrimitive> getPrimitives() const;
     Span<RenderInstance>  getInstances() const;
-    Span<RenderDraw>      getDraws() const;
+    Span<RenderMeshBatch> getMeshBatches() const;
     Span<RenderLight>     getLights() const;
     Span<RenderCamera>    getCameras() const;
     Span<uint32_t>        getActivePrimitives() const;
     Span<uint32_t>        getActiveInstances() const;
-    Span<uint32_t>        getActiveDraws() const;
+    Span<uint32_t>        getActiveMeshBatches() const;
     Span<uint32_t>        getActiveLights() const;
     Span<uint32_t>        getActiveCameras() const;
     Span<uint32_t>        getInstanceIndices() const;

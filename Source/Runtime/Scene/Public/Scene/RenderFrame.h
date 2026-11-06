@@ -10,11 +10,11 @@ struct RenderFrameBuffers
 {
     GPUBuffer primitives;
     GPUBuffer instances;
-    GPUBuffer draws;
+    GPUBuffer meshBatches;
     GPUBuffer instanceIndices;
     GPUBuffer activePrimitives;
     GPUBuffer activeInstances;
-    GPUBuffer activeDraws;
+    GPUBuffer activeMeshBatches;
     GPUBuffer lights;
     GPUBuffer cameras;
     GPUBuffer activeLights;
@@ -50,13 +50,13 @@ public:
     const RenderFrameBuffers& getBuffers() const;
     Span<RenderPrimitive>     getPrimitives() const;
     Span<RenderInstance>      getInstances() const;
-    Span<RenderDraw>          getDraws() const;
+    Span<RenderMeshBatch>     getMeshBatches() const;
     Span<RenderLight>         getLights() const;
     Span<RenderCamera>        getCameras() const;
     Span<uint32_t>            getInstanceIndices() const;
     Span<uint32_t>            getActivePrimitives() const;
     Span<uint32_t>            getActiveInstances() const;
-    Span<uint32_t>            getActiveDraws() const;
+    Span<uint32_t>            getActiveMeshBatches() const;
     Span<uint32_t>            getActiveLights() const;
     Span<uint32_t>            getActiveCameras() const;
 
@@ -74,7 +74,7 @@ public:
     ~RenderFramePool();
     RenderFramePool(const RenderFramePool&) = delete;
     RenderFramePool& operator=(const RenderFramePool&) = delete;
-    void             reserve(uint32_t primitiveCount, uint32_t drawCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
+    void             reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Updates extraction and pins the matching asset table. One CPU lease at a time.
     // Returns invalid if every backing is still in GPU use; never waits for a fence.
     RenderFrame      capture();

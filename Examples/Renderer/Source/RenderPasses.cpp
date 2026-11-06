@@ -161,16 +161,17 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              3);
 
     const hz::MeshAsset* previousMesh = nullptr;
-    for (uint32_t index : scene.getActiveDraws())
+    for (uint32_t index : scene.getActiveMeshBatches())
     {
-        const hz::RenderDraw&      draw = scene.getDraws().pData[index];
-        const hz::RenderPrimitive& primitive = scene.getPrimitives().pData[draw.primitive.index];
-        ASSERT(primitive.id == draw.primitive);
+        const hz::RenderMeshBatch& meshBatch = scene.getMeshBatches().pData[index];
+        const hz::RenderPrimitive& primitive = scene.getPrimitives().pData[meshBatch.primitive.index];
+        ASSERT(primitive.id == meshBatch.primitive);
         if (!primitive.instanceCount)
             continue;
-        const hz::GpuMeshRecord* record = tables.getMesh(draw.mesh.mesh);
-        ASSERT(record && tables.getMaterial(draw.material));
-        const hz::MeshAsset* mesh = scene.getAssets().getMesh({ .index = draw.mesh.mesh.index, .generation = draw.mesh.mesh.generation });
+        const hz::GpuMeshRecord* record = tables.getMesh(meshBatch.mesh.mesh);
+        ASSERT(record && tables.getMaterial(meshBatch.material));
+        const hz::MeshAsset* mesh =
+            scene.getAssets().getMesh({ .index = meshBatch.mesh.mesh.index, .generation = meshBatch.mesh.mesh.generation });
         if (mesh != previousMesh)
         {
             commands.setIndexBuffer(mesh->getIndexBuffer(), 0, mesh->getIndexType());
@@ -179,11 +180,11 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                 8);
             previousMesh = mesh;
         }
-        const hz::GpuSubmeshRecord& submesh = tables.submeshes.pData[record->submeshOffset + draw.mesh.submeshIndex];
+        const hz::GpuSubmeshRecord& submesh = tables.submeshes.pData[record->submeshOffset + meshBatch.mesh.submeshIndex];
         for (uint32_t i = 0; i < primitive.instanceCount; ++i)
         {
             const uint32_t instance = scene.getInstanceIndices().pData[primitive.instanceOffset + i];
-            commands.setRootConstant({ instance, draw.material.index, materialIds[draw.material.index] });
+            commands.setRootConstant({ instance, meshBatch.material.index, materialIds[meshBatch.material.index] });
             commands.drawIndexed(submesh.indexCount, submesh.firstIndex, submesh.vertexOffset);
         }
     }
