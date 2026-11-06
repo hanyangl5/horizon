@@ -238,14 +238,14 @@ private:
         const float                    cz = (bounds.minimum[2] + bounds.maximum[2]) * 0.5f;
         const FreeCameraControllerDesc desc = {
             .pWindow = pWindow,
-            .position = Vector3(cx + 18.0f, bounds.minimum[1] + 16.0f, cz - 32.0f),
+            .position = Vector3(-25, 8, -9),
             .lookAt = Vector3(cx, bounds.minimum[1] + 4.0f, cz),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
         pCamera = hz::make_unique<FreeCameraController>(desc);
         cameraEntity = pWorld->createPersistentEntity();
-        const hz::Camera      camera = { .verticalFov = PI / 4.0f };
+        const hz::Camera      camera = { .verticalFov = PI / 3.0f };
         const Matrix4         pose = pCamera->getWorldMatrix();
         // Cookbook theta=90, phi=-26; both scene imports preserve the same Y-up basis.
         const float           sunAngle = 26.0f * PI / 180.0f;

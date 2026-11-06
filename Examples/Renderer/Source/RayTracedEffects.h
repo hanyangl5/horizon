@@ -14,7 +14,7 @@ struct RayTracedEffectsSettings
 {
     bool          shadows = true;
     bool          ao = true;
-    bool          reflection = false;
+    bool          reflection = true;
     RTDenoiseMode denoiseMode = RTDenoiseMode::Atrous;
     uint32_t      aoSamples = 1;
     float         aoRadius = 2.0f;
