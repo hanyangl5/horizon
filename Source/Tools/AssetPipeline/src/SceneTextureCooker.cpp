@@ -7,28 +7,15 @@
 #include <string.h>
 
 #if defined(_WIN32)
+#include <d3d11.h>
 #include <DirectXTex.h>
 #include <wincodec.h>
 
 class TextureEncoder
 {
 public:
-    TextureEncoder(): comResult(CoInitializeEx(nullptr, COINIT_MULTITHREADED))
-    {
-        if ((SUCCEEDED(comResult) || comResult == RPC_E_CHANGED_MODE) &&
-            SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFactory))))
-            DirectX::SetWICFactory(pFactory);
-    }
-    ~TextureEncoder()
-    {
-        if (pFactory)
-        {
-            DirectX::SetWICFactory(nullptr);
-            pFactory->Release();
-        }
-        if (SUCCEEDED(comResult))
-            CoUninitialize();
-    }
+    TextureEncoder();
+    ~TextureEncoder();
     TextureEncoder(const TextureEncoder&) = delete;
     TextureEncoder& operator=(const TextureEncoder&) = delete;
 
@@ -37,6 +24,7 @@ public:
 private:
     HRESULT             comResult;
     IWICImagingFactory* pFactory = nullptr;
+    ID3D11Device*       pDevice = nullptr;
 };
 #endif
 
@@ -111,6 +99,31 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
 
 #if defined(_WIN32)
 
+TextureEncoder::TextureEncoder(): comResult(CoInitializeEx(nullptr, COINIT_MULTITHREADED))
+{
+    if ((SUCCEEDED(comResult) || comResult == RPC_E_CHANGED_MODE) &&
+        SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFactory))))
+        DirectX::SetWICFactory(pFactory);
+    // The DirectCompute BC7 encoder is orders of magnitude faster than the single-threaded CPU encoder.
+    const D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+    if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, &featureLevel, 1, D3D11_SDK_VERSION, &pDevice, nullptr,
+                                 nullptr)))
+        LOGF(eWARNING, "No D3D11 hardware device; BC7 textures use the slow CPU encoder");
+}
+
+TextureEncoder::~TextureEncoder()
+{
+    if (pDevice)
+        pDevice->Release();
+    if (pFactory)
+    {
+        DirectX::SetWICFactory(nullptr);
+        pFactory->Release();
+    }
+    if (SUCCEEDED(comResult))
+        CoUninitialize();
+}
+
 bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, DirectX::Blob& dds) const
 {
     if (!pFactory)
@@ -128,10 +141,13 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, Direc
             pInput = &mipmaps;
         }
     }
-    if (SUCCEEDED(result))
-        result = DirectX::Compress(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(),
-                                   srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM, DirectX::TEX_COMPRESS_DEFAULT,
-                                   DirectX::TEX_THRESHOLD_DEFAULT, compressed);
+    const DXGI_FORMAT format = srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
+    if (SUCCEEDED(result) && pDevice)
+        result = DirectX::Compress(pDevice, pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format,
+                                   DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_ALPHA_WEIGHT_DEFAULT, compressed);
+    else if (SUCCEEDED(result))
+        result = DirectX::Compress(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format,
+                                   DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, compressed);
     if (SUCCEEDED(result))
         result = DirectX::SaveToDDSMemory(compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(),
                                           DirectX::DDS_FLAGS_FORCE_DX10_EXT, dds);
@@ -145,6 +161,16 @@ SceneTextureCooker::SceneTextureCooker(ResourceDirectory sourceDirectory, Resour
     sourceDirectory(sourceDirectory), outputDirectory(outputDirectory)
 {
     fsGetParentPath(pSourceFile, sourceParent);
+#if defined(_WIN32)
+    pEncoder = tf_new(TextureEncoder);
+#endif
+}
+
+SceneTextureCooker::~SceneTextureCooker()
+{
+#if defined(_WIN32)
+    tf_delete(pEncoder);
+#endif
 }
 
 bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTexture& output) const
@@ -199,9 +225,8 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         output.signature = imageHash(output.source, strlen(output.source));
     if (fsFileExist(outputDirectory, output.path))
         return true;
-    DirectX::Blob        dds;
-    const TextureEncoder encoder;
-    if (!encoder.encode(pBytes, size, srgb, dds))
+    DirectX::Blob dds;
+    if (!pEncoder->encode(pBytes, size, srgb, dds))
         return false;
     const bool written = writeDDS(output.path, dds.GetBufferPointer(), dds.GetBufferSize());
 #else

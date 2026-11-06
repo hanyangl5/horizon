@@ -4,7 +4,8 @@ if(WIN32)
     function(add_asset_pipeline_directxtex)
         set(BUILD_TOOLS OFF)
         set(BUILD_SAMPLE OFF)
-        set(BUILD_DX11 OFF)
+        # DX11 enables the DirectCompute BC6H/BC7 encoder; its shaders are compiled with the Windows SDK fxc.exe.
+        set(BUILD_DX11 ON)
         set(BUILD_DX12 OFF)
         set(BC_USE_OPENMP OFF)
         set(BUILD_SHARED_LIBS OFF)
@@ -35,7 +36,7 @@ target_link_libraries(AssetPipelineCmd PRIVATE AssetPipeline)
 target_compile_features(AssetPipelineCmd PRIVATE cxx_std_20)
 
 if(WIN32)
-    target_link_libraries(AssetPipeline PUBLIC winmm PRIVATE DirectXTex windowscodecs ole32)
+    target_link_libraries(AssetPipeline PUBLIC winmm PRIVATE DirectXTex windowscodecs ole32 d3d11)
 endif()
 
 if(MSVC)

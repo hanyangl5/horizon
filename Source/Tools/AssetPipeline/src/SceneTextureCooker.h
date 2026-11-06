@@ -6,6 +6,7 @@
 #include "Scene/SceneID.h"
 
 struct cgltf_image;
+class TextureEncoder;
 
 struct CookedSceneTexture
 {
@@ -21,7 +22,10 @@ class SceneTextureCooker
 {
 public:
     SceneTextureCooker(ResourceDirectory sourceDirectory, ResourceDirectory outputDirectory, const char* pSourceFile);
-    bool cook(const cgltf_image& image, bool srgb, CookedSceneTexture& output) const;
+    ~SceneTextureCooker();
+    SceneTextureCooker(const SceneTextureCooker&) = delete;
+    SceneTextureCooker& operator=(const SceneTextureCooker&) = delete;
+    bool                cook(const cgltf_image& image, bool srgb, CookedSceneTexture& output) const;
 
 private:
     bool readImage(const char* pPath, hz::Array<uint8_t>& bytes) const;
@@ -30,4 +34,5 @@ private:
     ResourceDirectory sourceDirectory;
     ResourceDirectory outputDirectory;
     char              sourceParent[FS_MAX_PATH] = {};
+    TextureEncoder*   pEncoder = nullptr;
 };

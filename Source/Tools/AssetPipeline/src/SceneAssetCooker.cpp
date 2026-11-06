@@ -546,6 +546,7 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
             LOGF(eERROR, "Cannot cook texture %u from '%s'", i, pSourceFile);
             return false;
         }
+        LOGF(eINFO, "Texture %u/%u %s", i + 1, textures.size(), textures[i].source[0] ? textures[i].source : "(embedded)");
         for (uint32_t j = 0; j < i; ++j)
             if (textures[i].registeredID.isValid() && textures[i].registeredID == textures[j].registeredID &&
                 (strcmp(textures[i].source, textures[j].source) != 0 || textures[i].srgb != textures[j].srgb))
