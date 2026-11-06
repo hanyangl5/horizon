@@ -291,6 +291,14 @@ Buffer* hz::CommandList::createUploadBuffer(uint64_t size)
 
 void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const hz::GPUBuffer& src, uint64_t srcOffset, uint64_t size)
 {
+    const BufferCopyRegion region = { .srcOffset = srcOffset, .dstOffset = dstOffset, .size = size };
+    copyBufferRegions(dst, src, { &region, 1 });
+}
+
+void hz::CommandList::copyBufferRegions(const hz::GPUBuffer& dst, const hz::GPUBuffer& src, Span<BufferCopyRegion> regions)
+{
+    if (!regions.count)
+        return;
     const ResourceState dstState = dst.state;
     const ResourceState srcState = src.state;
     arrsetlen(bufferBarriers, 0);
@@ -315,7 +323,8 @@ void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, c
         src.state = RESOURCE_STATE_COPY_SOURCE;
     }
     barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
-    cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, src.pBuffer, srcOffset, size);
+    for (const BufferCopyRegion& region : regions)
+        cmdUpdateBuffer(pCmd, dst.pBuffer, region.dstOffset, src.pBuffer, region.srcOffset, region.size);
 
     arrsetlen(bufferBarriers, 0);
     if (dst.state != dstState)

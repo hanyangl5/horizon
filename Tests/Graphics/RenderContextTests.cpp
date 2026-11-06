@@ -203,6 +203,83 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
 #endif
 }
 
+TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
+{
+#if defined(_WINDOWS)
+    hz::RenderContext context({ .pAppName = "BufferRegionsTest", .width = 0, .height = 0, .enableGpuValidation = true });
+    uint32_t          values[16];
+    for (uint32_t i = 0; i < 16; ++i)
+        values[i] = 100 + i;
+    hz::GPUBuffer staging = context.createBuffer({
+        .size = sizeof(values),
+        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .startState = RESOURCE_STATE_GENERIC_READ,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    });
+    hz::GPUBuffer target = context.createBuffer({
+        .size = sizeof(values),
+        .elementCount = 16,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_SHADER_RESOURCE,
+        .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+    });
+    hz::GPUBuffer readback = context.createBuffer({
+        .size = sizeof(values),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .startState = RESOURCE_STATE_COPY_DEST,
+        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    });
+    ASSERT_TRUE(staging.isValid() && target.isValid() && readback.isValid());
+    ASSERT_TRUE(context.updateBuffer(staging, 0, values, sizeof(values)));
+
+    hz::CommandList& commands = context.acquireCommandList();
+    commands.fillBuffer(target, 0, 0, sizeof(values));
+    const hz::BufferCopyRegion regions[] = {
+        { .srcOffset = 0, .dstOffset = 8 * sizeof(uint32_t), .size = 4 * sizeof(uint32_t) },
+        { .srcOffset = 12 * sizeof(uint32_t), .dstOffset = 0, .size = 2 * sizeof(uint32_t) },
+    };
+    commands.copyBufferRegions(target, staging, regions);
+    commands.copyBuffer(readback, 0, target, 0, sizeof(values));
+    context.wait(context.submit(commands));
+    const uint32_t* result = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    ASSERT_NE(result, nullptr);
+    for (uint32_t i = 0; i < 16; ++i)
+    {
+        const uint32_t expected = i < 2 ? 112 + i : (i >= 8 && i < 12 ? 100 + i - 8 : 0);
+        EXPECT_EQ(result[i], expected) << i;
+    }
+
+    // Released buffers return their SRV index for immediate reuse, which makes the release point observable.
+    const hz::BufferDesc rawDesc = {
+        .size = sizeof(values),
+        .elementCount = 16,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .startState = RESOURCE_STATE_SHADER_RESOURCE,
+        .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+    };
+    hz::GPUBuffer released = context.createBuffer(rawDesc);
+    ASSERT_TRUE(released.isValid());
+    const uint32_t   releasedIndex = released.getSrvIndex();
+    hz::CommandList& pending = context.acquireCommandList();
+    pending.copyBufferRegions(released, staging, regions);
+    context.deferRelease(std::move(released));
+    EXPECT_FALSE(released.isValid());
+    // The open command list still references the buffer, so idling the queue must not release it.
+    context.waitIdle();
+    {
+        const hz::GPUBuffer probe = context.createBuffer(rawDesc);
+        EXPECT_NE(probe.getSrvIndex(), releasedIndex);
+    }
+    context.wait(context.submit(pending));
+    context.submit(context.acquireCommandList());
+    const hz::GPUBuffer reused = context.createBuffer(rawDesc);
+    EXPECT_EQ(reused.getSrvIndex(), releasedIndex);
+    context.waitIdle();
+#else
+    GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
+#endif
+}
+
 TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
 {
 #if defined(_WINDOWS)

@@ -44,7 +44,56 @@ RenderContext::RenderContext(const ContextDesc& input)
 
 RenderContext::~RenderContext() { cleanup(); }
 
-void RenderContext::waitIdle() { waitQueueIdle(pGraphicsQueue); }
+void RenderContext::waitIdle()
+{
+    waitQueueIdle(pGraphicsQueue);
+    collectDeferredBuffers();
+}
+
+void RenderContext::deferRelease(GPUBuffer&& buffer)
+{
+    if (!buffer.pBuffer)
+        return;
+    ASSERT(ready && buffer.pContext == this);
+    bool recording = false;
+    for (const CommandSlot& slot : commandSlots)
+        recording |= slot.commands.pCmd != nullptr;
+    const DeferredBuffer deferred = { .pBuffer = buffer.pBuffer, .submitId = recording ? nextSubmitId : nextSubmitId - 1 };
+    arrpush(deferredBuffers, deferred);
+    buffer.pBuffer = nullptr;
+    buffer.pContext = nullptr;
+}
+
+void RenderContext::collectDeferredBuffers()
+{
+    // Submissions complete in order on the single graphics queue.
+    uint64_t pending = UINT64_MAX;
+    for (const CommandSlot& slot : commandSlots)
+    {
+        if (slot.commands.pCmd)
+            pending = TF_MIN(pending, nextSubmitId);
+        if (slot.submitId && slot.submitId < pending)
+        {
+            FenceStatus status = FENCE_STATUS_COMPLETE;
+            getFenceStatus(pRenderer, slot.pFence, &status);
+            if (status == FENCE_STATUS_INCOMPLETE)
+                pending = slot.submitId;
+        }
+    }
+    uint32_t kept = 0;
+    for (uint32_t i = 0; i < (uint32_t)arrlen(deferredBuffers); ++i)
+    {
+        if (deferredBuffers[i].submitId < pending)
+        {
+            ASSERT(resourceCount);
+            --resourceCount;
+            removeResource(deferredBuffers[i].pBuffer);
+        }
+        else
+            deferredBuffers[kept++] = deferredBuffers[i];
+    }
+    arrsetlen(deferredBuffers, kept);
+}
 
 bool RenderContext::initDevice()
 {
@@ -258,6 +307,13 @@ void RenderContext::destroyDevice(bool waitForGpu)
     ready = false;
     if (waitForGpu && pGraphicsQueue)
         waitQueueIdle(pGraphicsQueue);
+    for (uint32_t i = 0; i < (uint32_t)arrlen(deferredBuffers); ++i)
+    {
+        ASSERT(resourceCount);
+        --resourceCount;
+        removeResource(deferredBuffers[i].pBuffer);
+    }
+    arrfree(deferredBuffers);
     if (profilerInitialized)
     {
         exitProfiler();
@@ -408,6 +464,7 @@ CommandList& RenderContext::acquireCommandList()
     for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
         removeBuffer(pRenderer, available->transientBuffers[i]);
     arrsetlen(available->transientBuffers, 0);
+    collectDeferredBuffers();
     resetCmdPool(pRenderer, available->pCmdPool);
     beginCmd(available->pCmd);
     available->commands.reset(available->pCmd, gpuProfilerToken);

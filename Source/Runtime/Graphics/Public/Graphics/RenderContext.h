@@ -304,6 +304,13 @@ struct Dependencies
     Span<const GPUBuffer*>  storageBuffers = {};
 };
 
+struct BufferCopyRegion
+{
+    uint64_t srcOffset = 0;
+    uint64_t dstOffset = 0;
+    uint64_t size = 0;
+};
+
 class CommandList
 {
 public:
@@ -329,6 +336,8 @@ public:
     void endGpuTimestamp();
 
     void copyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t size);
+    // Transitions both buffers once for all regions.
+    void copyBufferRegions(const GPUBuffer& dst, const GPUBuffer& src, Span<BufferCopyRegion> regions);
     void fillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t size);
     void updateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* pData, uint64_t size);
 
@@ -409,8 +418,16 @@ public:
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
     bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
+    // Destroys the buffer once the open command list and all earlier submissions complete.
+    void        deferRelease(GPUBuffer&& buffer);
 
 private:
+    struct DeferredBuffer
+    {
+        Buffer*  pBuffer = nullptr;
+        uint64_t submitId = 0;
+    };
+
     struct CommandSlot
     {
         ~CommandSlot();
@@ -429,6 +446,7 @@ private:
     void    destroySwapChain();
     void    destroyDevice(bool waitForGpu);
     void    cleanup();
+    void    collectDeferredBuffers();
     Shader* createShader(const ShaderDesc&);
     Shader* createSlangShader(const ShaderSrcDesc&);
     void    destroyShaderCompiler();
@@ -451,6 +469,7 @@ private:
     CommandSlot               commandSlots[maxCommandLists] = {};
     Semaphore*                pImageAcquiredSemaphore = nullptr;
     GPUTexture                backbuffers[MAX_SWAPCHAIN_IMAGES] = {};
+    DeferredBuffer*           deferredBuffers = nullptr;
     uint64_t                  gpuProfilerToken = UINT64_MAX;
     uint64_t                  nextSubmitId = 1;
     uint32_t                  nextCommandSlot = 0;
