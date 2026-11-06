@@ -2,6 +2,7 @@
 
 #include "SceneTextureCooker.h"
 #include "Core/IToolFileSystem.h"
+#include "Core/ITime.h"
 #include <ThirdParty/cgltf/cgltf.h>
 #include <limits.h>
 #include <string.h>
@@ -32,7 +33,7 @@ public:
     TextureEncoder(const TextureEncoder&) = delete;
     TextureEncoder& operator=(const TextureEncoder&) = delete;
 
-    bool encode(const uint8_t* pBytes, size_t size, bool srgb, DirectX::Blob& dds) const;
+    bool encode(const uint8_t* pBytes, size_t size, bool srgb, const char* pName, DirectX::Blob& dds) const;
 
 private:
     HRESULT             comResult;
@@ -111,7 +112,7 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
 
 #if defined(_WIN32)
 
-bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, DirectX::Blob& dds) const
+bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const char* pName, DirectX::Blob& dds) const
 {
     if (!pFactory)
         return false;
@@ -129,14 +130,42 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, Direc
         }
     }
     if (SUCCEEDED(result))
-        result = DirectX::Compress(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(),
-                                   srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM, DirectX::TEX_COMPRESS_DEFAULT,
-                                   DirectX::TEX_THRESHOLD_DEFAULT, compressed);
+    {
+        DirectX::CompressOptions options = { .threshold = DirectX::TEX_THRESHOLD_DEFAULT };
+#if defined(_OPENMP)
+        options.flags = DirectX::TEX_COMPRESS_PARALLEL;
+#endif
+        const int64_t start = getUSec(true);
+        LOGF(eINFO, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", pName, pInput->GetMetadata().width, pInput->GetMetadata().height,
+             pInput->GetImageCount(), options.flags & DirectX::TEX_COMPRESS_PARALLEL ? "parallel" : "serial");
+        size_t lastProgress = SIZE_MAX;
+        result = DirectX::CompressEx(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(),
+                                     srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM, options, compressed,
+                                     [&](size_t current, size_t total)
+                                     {
+                                         // The array overload reports zero-based indices after each mip.
+                                         if (lastProgress != SIZE_MAX && pInput->GetImageCount() > 1 && current < total)
+                                         {
+                                             ++current;
+                                         }
+                                         current = TF_MIN(current, total);
+                                         if (current != lastProgress)
+                                         {
+                                             LOGF(eINFO, "Compress '%s': %zu/%zu mip levels", pName, current, total);
+                                         }
+                                         lastProgress = current;
+                                         return true;
+                                     });
+        if (SUCCEEDED(result))
+        {
+            LOGF(eINFO, "Compressed '%s' in %.2f seconds", pName, (getUSec(true) - start) / 1000000.0);
+        }
+    }
     if (SUCCEEDED(result))
         result = DirectX::SaveToDDSMemory(compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(),
                                           DirectX::DDS_FLAGS_FORCE_DX10_EXT, dds);
     if (FAILED(result))
-        LOGF(eERROR, "DirectXTex texture cook failed (HRESULT 0x%08x)", (unsigned)result);
+        LOGF(eERROR, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", pName, (unsigned)result);
     return SUCCEEDED(result);
 }
 #endif
@@ -201,8 +230,10 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         return true;
     DirectX::Blob        dds;
     const TextureEncoder encoder;
-    if (!encoder.encode(pBytes, size, srgb, dds))
+    if (!encoder.encode(pBytes, size, srgb, output.source[0] ? output.source : output.path, dds))
+    {
         return false;
+    }
     const bool written = writeDDS(output.path, dds.GetBufferPointer(), dds.GetBufferSize());
 #else
     LOGF(eERROR, "PNG/JPEG scene texture cooking requires DirectXTex on Windows");
