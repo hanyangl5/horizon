@@ -70,7 +70,6 @@
 #include "Core/IFileSystem.h"
 #include "Core/ILog.h"
 #include "Core/IToolFileSystem.h"
-#include "Scene/ISceneManager.h"
 
 #include "Runtime/Resources/Private/ResourceLoader/TextureContainers.h"
 
@@ -169,15 +168,8 @@ static void BeginAssetPipelineSection(const char* section) { LOGF(eINFO, "======
 
 static void EndAssetPipelineSection(const char* section) { LOGF(eINFO, "========== !%s ==========", section); }
 
-static int32_t sceneAssetTextureIndex(const cgltf_data* pData, const cgltf_texture* pTexture)
-{
-    return pTexture ? (int32_t)(pTexture - pData->textures) : -1;
-}
-
 static bool validateSceneAssetCookInput(const cgltf_data* pData)
 {
-    if (pData->textures_count > SCENE_ASSET_MAX_TEXTURES || pData->materials_count > SCENE_ASSET_MAX_MATERIALS)
-        return false;
     for (cgltf_size i = 0; i < pData->meshes_count; ++i)
         for (cgltf_size j = 0; j < pData->meshes[i].primitives_count; ++j)
             if (pData->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
@@ -197,19 +189,14 @@ static bool validateSceneAssetCookInput(const cgltf_data* pData)
     return true;
 }
 
-static cJSON* createSceneAssetFloatArray(const cgltf_float* pValues, uint32_t count)
-{
-    cJSON* pArray = cJSON_CreateArray();
-    for (uint32_t i = 0; pArray && i < count; ++i)
-        cJSON_AddItemToArray(pArray, cJSON_CreateNumber(pValues[i]));
-    return pArray;
-}
+static const uint32_t kSceneAssetCookMaxDependencies = 512;
+static const uint32_t kSceneAssetCookHashCapacity = 32;
 
 struct SceneAssetCookFingerprint
 {
     uint64_t mHash;
     uint32_t mDependencyCount;
-    char     mDependencies[SCENE_ASSET_MAX_DEPENDENCIES][FS_MAX_PATH];
+    char     mDependencies[kSceneAssetCookMaxDependencies][FS_MAX_PATH];
 };
 
 static void updateSceneAssetCookHash(uint64_t* pHash, const void* pData, size_t size)
@@ -231,7 +218,7 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
             return true;
     }
-    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
+    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= kSceneAssetCookMaxDependencies)
         return false;
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
@@ -256,7 +243,7 @@ static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory,
             return true;
         }
     }
-    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= SCENE_ASSET_MAX_DEPENDENCIES)
+    if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= kSceneAssetCookMaxDependencies)
     {
         fsCloseStream(&stream);
         return false;
@@ -279,7 +266,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 10;
+    static const uint32_t kCookerRevision = 11;
     pFingerprint->mHash = UINT64_C(14695981039346656037);
     updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
     updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
@@ -317,143 +304,9 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
     return true;
 }
 
-static void formatSceneAssetCookHash(const SceneAssetCookFingerprint* pFingerprint, char output[SCENE_ASSET_CONTENT_HASH_CAPACITY])
+static void formatSceneAssetCookHash(const SceneAssetCookFingerprint* pFingerprint, char output[kSceneAssetCookHashCapacity])
 {
-    snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "fnv1a64:%016llx", (unsigned long long)pFingerprint->mHash);
-}
-
-static bool readSceneAssetCookHash(ResourceDirectory resourceDirectory, const char* pManifestFileName,
-                                   char output[SCENE_ASSET_CONTENT_HASH_CAPACITY])
-{
-    FileStream stream = {};
-    if (!fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_READ, &stream))
-        return false;
-    const ssize_t fileSize = fsGetStreamFileSize(&stream);
-    if (fileSize <= 0 || fileSize > 1024 * 1024)
-    {
-        fsCloseStream(&stream);
-        return false;
-    }
-    char* pJson = (char*)tf_malloc((size_t)fileSize + 1);
-    if (!pJson)
-    {
-        fsCloseStream(&stream);
-        return false;
-    }
-    const bool read = fsReadFromStream(&stream, pJson, (size_t)fileSize) == (size_t)fileSize;
-    fsCloseStream(&stream);
-    pJson[fileSize] = '\0';
-    cJSON* pRoot = read ? cJSON_ParseWithLength(pJson, (size_t)fileSize) : nullptr;
-    tf_free(pJson);
-    const cJSON* pContentHash = pRoot ? cJSON_GetObjectItemCaseSensitive(pRoot, "contentHash") : nullptr;
-    const bool   valid =
-        cJSON_IsString(pContentHash) && pContentHash->valuestring && strlen(pContentHash->valuestring) < SCENE_ASSET_CONTENT_HASH_CAPACITY;
-    if (valid)
-        snprintf(output, SCENE_ASSET_CONTENT_HASH_CAPACITY, "%s", pContentHash->valuestring);
-    cJSON_Delete(pRoot);
-    return valid;
-}
-
-static cJSON* buildSceneAssetManifest(const char* pSceneName, const char* pGeometryFileName, const char* pSourceGltf,
-                                      const cgltf_data* pData, const SceneAssetCookFingerprint* pFingerprint, SceneAssetCooker& sceneCooker)
-{
-    if (!validateSceneAssetCookInput(pData))
-        return nullptr;
-
-    cJSON* pRoot = cJSON_CreateObject();
-    cJSON* pScenes = cJSON_CreateObject();
-    cJSON* pScene = cJSON_CreateObject();
-    cJSON* pTextureDirectories = cJSON_CreateArray();
-    cJSON* pConvention = cJSON_CreateObject();
-    if (!pRoot || !pScenes || !pScene || !pTextureDirectories || !pConvention)
-    {
-        cJSON_Delete(pRoot);
-        cJSON_Delete(pScenes);
-        cJSON_Delete(pScene);
-        cJSON_Delete(pTextureDirectories);
-        cJSON_Delete(pConvention);
-        return nullptr;
-    }
-
-    cJSON_AddNumberToObject(pRoot, "version", SCENE_ASSET_MANIFEST_VERSION);
-    char contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
-    formatSceneAssetCookHash(pFingerprint, contentHash);
-    cJSON_AddStringToObject(pRoot, "contentHash", contentHash);
-    cJSON* pDependencies = cJSON_AddArrayToObject(pRoot, "dependencies");
-    for (uint32_t i = 0; pDependencies && i < pFingerprint->mDependencyCount; ++i)
-        cJSON_AddItemToArray(pDependencies, cJSON_CreateString(pFingerprint->mDependencies[i]));
-    cJSON_AddStringToObject(pRoot, "source", pSourceGltf);
-    cJSON_AddStringToObject(pRoot, "defaultScene", pSceneName);
-    cJSON_AddStringToObject(pScene, "geometry", pGeometryFileName);
-    cJSON_AddStringToObject(pScene, "sourceGltf", pSourceGltf);
-    cJSON_AddItemToObject(pScene, "textureDirectories", pTextureDirectories);
-
-    cJSON* pTextures = cJSON_AddArrayToObject(pScene, "textures");
-    for (cgltf_size i = 0; pTextures && i < pData->textures_count; ++i)
-    {
-        const CookedSceneTexture& texture = sceneCooker.getTexture((uint32_t)i);
-        cJSON*                    pTextureJson = cJSON_CreateObject();
-        cJSON_AddStringToObject(pTextureJson, "path", texture.path);
-        cJSON_AddBoolToObject(pTextureJson, "srgb", texture.srgb);
-        cJSON_AddBoolToObject(pTextureJson, "cooked", texture.cooked);
-        cJSON_AddItemToArray(pTextures, pTextureJson);
-    }
-
-    cJSON* pMaterials = cJSON_AddArrayToObject(pScene, "materials");
-    for (cgltf_size i = 0; pMaterials && i < pData->materials_count; ++i)
-    {
-        const cgltf_material*               pMaterial = &pData->materials[i];
-        const cgltf_pbr_metallic_roughness* pPbr = pMaterial->has_pbr_metallic_roughness ? &pMaterial->pbr_metallic_roughness : nullptr;
-        cJSON*                              pMaterialJson = cJSON_CreateObject();
-        cJSON_AddStringToObject(pMaterialJson, "name", pMaterial->name ? pMaterial->name : "material");
-        cJSON_AddNumberToObject(pMaterialJson, "baseColorTexture",
-                                sceneAssetTextureIndex(pData, pPbr ? pPbr->base_color_texture.texture : nullptr));
-        cJSON_AddNumberToObject(pMaterialJson, "normalTexture", sceneAssetTextureIndex(pData, pMaterial->normal_texture.texture));
-        cJSON_AddNumberToObject(pMaterialJson, "metallicRoughnessTexture",
-                                sceneAssetTextureIndex(pData, pPbr ? pPbr->metallic_roughness_texture.texture : nullptr));
-        cJSON_AddNumberToObject(pMaterialJson, "emissiveTexture", sceneAssetTextureIndex(pData, pMaterial->emissive_texture.texture));
-        const cgltf_float defaultBaseColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        cJSON_AddItemToObject(pMaterialJson, "baseColorFactor",
-                              createSceneAssetFloatArray(pPbr ? pPbr->base_color_factor : defaultBaseColor, 4));
-        cJSON_AddNumberToObject(pMaterialJson, "metallicFactor", pPbr ? pPbr->metallic_factor : 1.0f);
-        cJSON_AddNumberToObject(pMaterialJson, "roughnessFactor", pPbr ? pPbr->roughness_factor : 1.0f);
-        cJSON_AddItemToObject(pMaterialJson, "emissiveFactor", createSceneAssetFloatArray(pMaterial->emissive_factor, 3));
-        cJSON_AddItemToArray(pMaterials, pMaterialJson);
-    }
-
-    cJSON_AddStringToObject(pConvention, "baseColor", "RGB base color, A opacity");
-    cJSON_AddStringToObject(pConvention, "specular", "R AO, G roughness, B metalness");
-    cJSON_AddStringToObject(pConvention, "normal", "DirectX normal map");
-    cJSON_AddStringToObject(pConvention, "emissive", "RGB emissive");
-    cJSON_AddItemToObject(pScene, "materialConvention", pConvention);
-    cJSON_AddItemToObject(pScenes, pSceneName, pScene);
-    cJSON_AddItemToObject(pRoot, "scenes", pScenes);
-
-    if (!sceneCooker.build(*pData, contentHash))
-    {
-        cJSON_Delete(pRoot);
-        return nullptr;
-    }
-
-    return pRoot;
-}
-
-static bool writeSceneAssetManifest(ResourceDirectory resourceDirectory, const char* pManifestFileName, const cJSON* pRoot,
-                                    SceneAssetCooker& sceneCooker)
-{
-    if (!sceneCooker.write())
-        return false;
-    char* pJson = cJSON_Print(pRoot);
-    if (!pJson)
-        return false;
-
-    FileStream   stream = {};
-    const bool   opened = fsOpenStreamFromPath(resourceDirectory, pManifestFileName, FM_WRITE, &stream);
-    const size_t jsonSize = strlen(pJson);
-    const bool   written = opened && fsWriteToStream(&stream, pJson, jsonSize) == jsonSize;
-    const bool   closed = !opened || fsCloseStream(&stream);
-    cJSON_free(pJson);
-    return written && closed;
+    snprintf(output, kSceneAssetCookHashCapacity, "fnv1a64:%016llx", (unsigned long long)pFingerprint->mHash);
 }
 
 void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename)
@@ -1966,89 +1819,6 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     tf_free(remap);
 }
 
-static bool isSceneAssetNodeSelected(const cgltf_data* data, const cgltf_node* node)
-{
-    const cgltf_scene* scene = data->scene ? data->scene : (data->scenes_count ? &data->scenes[0] : nullptr);
-    if (!scene)
-        return true;
-    for (const cgltf_node* ancestor = node; ancestor; ancestor = ancestor->parent)
-        for (cgltf_size i = 0; i < scene->nodes_count; ++i)
-            if (ancestor == scene->nodes[i])
-                return true;
-    return false;
-}
-
-static uint32_t writeSceneAssetInstances(const cgltf_data* data, void* output)
-{
-    SceneAssetGeometryHeader* header = (SceneAssetGeometryHeader*)output;
-    SceneAssetInstance*       instances = header ? (SceneAssetInstance*)(header + 1) : nullptr;
-    if (header)
-    {
-        header->magic = SCENE_ASSET_GEOMETRY_MAGIC;
-        for (uint32_t axis = 0; axis < 3; ++axis)
-        {
-            header->boundsMin[axis] = 1.0e30f;
-            header->boundsMax[axis] = -1.0e30f;
-        }
-    }
-    uint32_t count = 0;
-    for (cgltf_size n = 0; n < data->nodes_count; ++n)
-    {
-        const cgltf_node* node = &data->nodes[n];
-        if (!isSceneAssetNodeSelected(data, node))
-            continue;
-        if (header && !header->hasCamera && node->camera && node->camera->type == cgltf_camera_type_perspective)
-        {
-            cgltf_node_transform_world(node, header->cameraWorld);
-            header->cameraYFov = node->camera->data.perspective.yfov;
-            header->hasCamera = 1;
-        }
-        if (!node->mesh)
-            continue;
-        uint32_t firstDraw = 0;
-        for (const cgltf_mesh* mesh = data->meshes; mesh != node->mesh; ++mesh)
-            firstDraw += (uint32_t)mesh->primitives_count;
-        for (cgltf_size p = 0; p < node->mesh->primitives_count; ++p, ++count)
-        {
-            if (!instances)
-                continue;
-            const cgltf_primitive* primitive = &node->mesh->primitives[p];
-            SceneAssetInstance&    instance = instances[count];
-            cgltf_node_transform_world(node, instance.world);
-            instance.drawIndex = firstDraw + (uint32_t)p;
-            instance.materialIndex = primitive->material ? (uint32_t)(primitive->material - data->materials) : UINT32_MAX;
-            instance.alphaCutoff =
-                primitive->material && primitive->material->alpha_mode != cgltf_alpha_mode_opaque
-                    ? (primitive->material->alpha_mode == cgltf_alpha_mode_mask ? primitive->material->alpha_cutoff : 0.1f)
-                    : 0.0f;
-            for (cgltf_size a = 0; a < primitive->attributes_count; ++a)
-            {
-                if (primitive->attributes[a].type != cgltf_attribute_type_position)
-                    continue;
-                const cgltf_accessor* accessor = primitive->attributes[a].data;
-                if (!accessor->has_min || !accessor->has_max)
-                    continue;
-                for (uint32_t corner = 0; corner < 8; ++corner)
-                {
-                    const float x = (corner & 1) ? accessor->max[0] : accessor->min[0];
-                    const float y = (corner & 2) ? accessor->max[1] : accessor->min[1];
-                    const float z = (corner & 4) ? accessor->max[2] : accessor->min[2];
-                    for (uint32_t axis = 0; axis < 3; ++axis)
-                    {
-                        const float value = instance.world[axis] * x + instance.world[4 + axis] * y + instance.world[8 + axis] * z +
-                                            instance.world[12 + axis];
-                        header->boundsMin[axis] = TF_MIN(header->boundsMin[axis], value);
-                        header->boundsMax[axis] = TF_MAX(header->boundsMax[axis], value);
-                    }
-                }
-            }
-        }
-    }
-    if (header)
-        header->instanceCount = count;
-    return (uint32_t)sizeof(SceneAssetGeometryHeader) + count * (uint32_t)sizeof(SceneAssetInstance);
-}
-
 bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams)
 {
     VertexLayout* pVertexLayout = glTFParams->pVertexLayout;
@@ -2204,44 +1974,19 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             continue;
         }
 
-        char manifestFileName[FS_MAX_PATH] = {};
-        fsReplacePathExtension(newFileName, "scene.json", manifestFileName);
+        char contentHash[kSceneAssetCookHashCapacity] = {};
+        formatSceneAssetCookHash(pFingerprint, contentHash);
         SceneAssetCooker sceneCooker(assetParams->mRDInput, fileName, assetParams->mRDOutput, newFileName);
-        if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) &&
-            fsFileExist(assetParams->mRDOutput, manifestFileName))
+        if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) && sceneCooker.isCurrent(contentHash))
         {
-            char contentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
-            char existingContentHash[SCENE_ASSET_CONTENT_HASH_CAPACITY] = {};
-            formatSceneAssetCookHash(pFingerprint, contentHash);
-            const bool unchanged = readSceneAssetCookHash(assetParams->mRDOutput, manifestFileName, existingContentHash) &&
-                                   strcmp(existingContentHash, contentHash) == 0 && sceneCooker.isCurrent(contentHash);
-            if (unchanged)
-            {
-                LOGF(eINFO, "Skipping %s (content hash unchanged)", fileName);
-                tf_free(pFingerprint);
-                data->file_data = fileData;
-                cgltf_free(data);
-                continue;
-            }
-        }
-
-        if (!sceneCooker.prepare(*data))
-        {
+            LOGF(eINFO, "Skipping %s (content hash unchanged)", fileName);
             tf_free(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
-            error = true;
             continue;
         }
 
-        char sceneName[FS_MAX_PATH] = {};
-        char geometryFileName[FS_MAX_PATH] = {};
-        char sourceGltf[FS_MAX_PATH] = {};
-        fsGetPathFileName(newFileName, sceneName);
-        fsNormalizePath(newFileName, '/', geometryFileName);
-        fsNormalizePath(fileName, '/', sourceGltf);
-        cJSON* pSceneManifest = buildSceneAssetManifest(sceneName, geometryFileName, sourceGltf, data, pFingerprint, sceneCooker);
-        if (!pSceneManifest)
+        if (!sceneCooker.prepare(*data) || !sceneCooker.build(*data, contentHash))
         {
             tf_free(pFingerprint);
             data->file_data = fileData;
@@ -2292,8 +2037,6 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         uint32_t userDataSize = 0;
         if (glTFParams->pWriteExtrasCallback)
             glTFParams->pWriteExtrasCallback(&userDataSize, NULL, glTFParams->pCallbackUserData);
-        else
-            userDataSize = writeSceneAssetInstances(data, nullptr);
 
         PackingFunction vertexPacking[MAX_SEMANTICS] = {};
         uint32_t        vertexAttrStrides[MAX_SEMANTICS] = {};
@@ -2338,10 +2081,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                                                 : (uint8_t*)(geomData + 1);
             geomData->pUserData = pUserData;
             geomData->userDataSize = userDataSize;
-            if (glTFParams->pWriteExtrasCallback)
-                glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
-            else
-                writeSceneAssetInstances(data, pUserData);
+            glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
         }
 
         // Determine vertex stride for each binding
@@ -2751,12 +2491,11 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             error = true;
         }
 
-        if (geometryWritten && !writeSceneAssetManifest(assetParams->mRDOutput, manifestFileName, pSceneManifest, sceneCooker))
+        if (geometryWritten && !sceneCooker.write())
         {
-            LOGF(eERROR, "Failed to write scene manifest '%s'.", manifestFileName);
+            LOGF(eERROR, "Failed to write scene asset files for '%s'.", fileName);
             error = true;
         }
-        cJSON_Delete(pSceneManifest);
 
         tf_free(geomData->pShadow);
         tf_free(geomData);
@@ -3430,19 +3169,12 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
     return 0;
 }
 
-bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
-                           SceneAssetError* pError)
+bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory)
 {
-    if (pError)
-        *pError = {};
     if (!pSourceFile || !pSourceFile[0] || sourceDirectory == outputDirectory ||
         strcmp(fsGetResourceDirectory(sourceDirectory), fsGetResourceDirectory(outputDirectory)) == 0)
     {
-        if (pError)
-        {
-            pError->code = SCENE_ASSET_ERROR_INVALID_ARGUMENT;
-            snprintf(pError->message, sizeof(pError->message), "glTF cooking requires separate source and output directories");
-        }
+        LOGF(eERROR, "glTF cooking requires separate source and output directories");
         return false;
     }
     AssetPipelineParams params = {};
@@ -3454,11 +3186,7 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
     params.mRDOutput = outputDirectory;
     if (!fsCreateDirectory(outputDirectory, "", true) || AssetPipelineRun(&params) != 0)
     {
-        if (pError)
-        {
-            pError->code = SCENE_ASSET_ERROR_IO;
-            snprintf(pError->message, sizeof(pError->message), "Failed to cook %s; see AssetPipeline log", pSourceFile);
-        }
+        LOGF(eERROR, "Failed to cook %s", pSourceFile);
         return false;
     }
     return true;

@@ -16,7 +16,7 @@ Horizon 已有以下基础：
 - Renderer Example 直接消费 `SceneAssetInstance`，并在 CPU 上逐 instance 提交 draw。
 - RenderContext 已支持 indirect draw，可在后续 GPU-driven pipeline 中复用。
 
-当前 `SceneManager` 更接近 SceneAsset 加载器，而不是运行时 World。它不作为新架构的依赖；新系统独立定义资产目录、typed loaders、运行时状态和所有权。`SceneManager` 只保留为迁移期间的旧路径和测试行为参考，在 Renderer Example 完成迁移后移除。
+当前 `SceneManager` 更接近 SceneAsset 加载器，而不是运行时 World。它不作为新架构的依赖；新系统独立定义资产目录、typed loaders、运行时状态和所有权。`SceneManager` 只保留为迁移期间的旧路径和测试行为参考，在 Renderer Example 完成迁移后移除。Renderer 迁移完成后，`SceneManager`、`.scene.json` manifest 和 GeometryTF 附加实例数据已全部删除。
 
 ## TODO: OpenUSD alignment
 
@@ -299,7 +299,7 @@ Property flags 至少区分 serialized、transient、read-only 和 editor-only�
 
 ## World serialization and migration
 
-Cooker 当前已经使用 `.scene.json`。为避免 authoring scene 与 cooked SceneAsset 混淆，第一阶段使用 `.world.json` 作为可编辑 World 格式。
+旧 cooker 曾输出 `.scene.json`。为避免 authoring scene 与 cooked SceneAsset 混淆，第一阶段使用 `.world.json` 作为可编辑 World 格式。
 
 World 文件保存：
 
@@ -419,7 +419,7 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 
 当前已完成第 1～4 步：独立 ID、显式 reflection、7 个内置组件、World 生命周期与查询，以及层级、局部变换互斥、脏子树更新和显式历史提交。已补充 authoring ObjectID 自动分配、显式恢复和双向查询；属性级编辑已支持字段赋值、数组增删/调整长度及元素字段赋值，修改变换会标记脏子树。渲染提交与历史的配对在 RenderScene 阶段完成。
 
-第 5 步已实现当前 glTF 路径：cooker 输出独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据继续供 Renderer 使用。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
+第 5 步已实现当前 glTF 路径：cooker 输出独立的 `.sceneasset.json`（`Horizon.SceneAsset` v1），输出所选场景的 node tree、局部 TRS/matrix、mesh/submesh 表、默认材质和资产 ID 引用。旧 `.scene.json` 与 GeometryTF 附加实例数据当时继续供 Renderer 使用，现已删除；cook 是否过期由 `.sceneasset.json` 的 contentHash 判断。Mesh 目前仍通过 draw 范围引用同一个 GeometryTF 文件，独立资源加载与共享存储归第 6 步。
 
 未指定材质的 primitive 共享一个按 glTF 默认值生成的 Material 资产，AssetID 由 sidecar 保持稳定；每个已烘焙 submesh 必须引用有效材质，Runtime 拒绝空材质引用。 三角形 primitive 支持显式索引或顺序顶点；未支持的拓扑在发布前拒绝。几何文件完整写入并关闭临时文件后才替换已发布文件。
 

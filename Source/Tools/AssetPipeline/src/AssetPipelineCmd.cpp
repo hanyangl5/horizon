@@ -44,7 +44,7 @@ void PrintHelp()
     printf("\t\t--tsf | -tipseparationfactor\t: Separation factor for the follow hairs\n");
     printf("\t\t--maxradius | -maxradius\t\t: Max radius of the random distribution to generate follow hairs\n");
     printf("\n\t%s\t(GLTF to bin)\tProcessGLTF\n", gAssetPipelineCommands[PROCESS_GLTF].mCommandString);
-    printf("\n\t\tEach cooked mesh also emits a versioned .scene.json manifest\n");
+    printf("\n\t\tAlso emits .sceneasset.json, .assetcatalog.json and BC7 DDS textures\n");
     printf("\n\t\t--hair\t\t: Processes the mesh as a hair mesh\n");
     printf("\n\t\t--optimize\t\t: Enables all supported mesh optimization techniques\n");
     printf("\n\t\t--optimizecache\t\t: Enables vertex cache optimization\n");

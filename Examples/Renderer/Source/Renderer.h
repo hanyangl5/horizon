@@ -78,7 +78,7 @@ private:
     bool initSceneAsset()
     {
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
-        if (!ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES, nullptr))
+        if (!ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES))
             return false;
 #endif
         char catalogFile[FS_MAX_PATH], sceneFile[FS_MAX_PATH];

@@ -98,7 +98,7 @@ def run(executable):
     assert first['nodes'][1]['mesh'] == first['nodes'][2]['mesh']
     assert len(first['meshes']) == 2 and len(first['meshes'][0]['submeshes']) == 2
     assert [s['draw'] for m in first['meshes'] for s in m['submeshes']] == [0, 1, 2]
-    assert json.loads((output / 'scene.scene.json').read_text())['version'] == 1
+    assert not (output / 'scene.scene.json').exists()
     assert (output / 'scene.bin').read_bytes().startswith(b'GeometryTF')
     before = [p.stat().st_mtime_ns for p in (metadata, asset, catalog, output / 'scene.bin')]
     assert cook() == first
@@ -113,7 +113,7 @@ def run(executable):
     assert cook(force=True) == first
     # Reject invalid source data before replacing any published scene files.
     valid_document = copy.deepcopy(document)
-    published_files = (metadata, asset, catalog, output / 'scene.bin', output / 'scene.scene.json')
+    published_files = (metadata, asset, catalog, output / 'scene.bin')
     published_bytes = [p.read_bytes() for p in published_files]
     invalid_sources = []
     document['nodes'][1]['rotation'] = [0, 0, 0, 2]
@@ -310,7 +310,7 @@ def geometry_publish_regression(executable, work, albedo):
         assert result.returncode == (0 if succeeds else 1), result.stdout + result.stderr
 
     cook()
-    published = [work / 'scene.gltf.asset.json'] + [output / ('scene.' + ext) for ext in ('bin', 'sceneasset.json', 'assetcatalog.json', 'scene.json')]
+    published = [work / 'scene.gltf.asset.json'] + [output / ('scene.' + ext) for ext in ('bin', 'sceneasset.json', 'assetcatalog.json')]
     original = [p.read_bytes() for p in published]
     document['nodes'][0]['translation'][0] += 1
     temporary = output / 'scene.bin.tmp'

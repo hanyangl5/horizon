@@ -20,7 +20,6 @@ public:
 
     bool                      isCurrent(const char* pContentHash) const;
     bool                      prepare(const cgltf_data& data);
-    const CookedSceneTexture& getTexture(uint32_t index) const { return textures[index]; }
     bool                      build(const cgltf_data& data, const char* pContentHash);
     bool                      write() const;
 

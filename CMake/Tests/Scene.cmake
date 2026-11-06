@@ -6,5 +6,4 @@ add_test_target(SceneTests D3D12_RESOURCE_LOCK
     ${HORIZON_TEST_SOURCE_DIR}/Scene/WorldTests.cpp
     ${HORIZON_TEST_SOURCE_DIR}/Scene/WorldDocumentTests.cpp
     ${HORIZON_TEST_SOURCE_DIR}/Scene/WorldTransformTests.cpp
-    ${HORIZON_TEST_SOURCE_DIR}/Scene/SceneManagerTests.cpp
 )
