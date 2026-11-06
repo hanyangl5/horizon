@@ -37,7 +37,7 @@ The runtime is split into these public modules:
   system, frame scheduler, and resource-loading synchronization model.
 
 - [World Design Tutorial](WorldTutorial.md)
-  A 15-20 minute walkthrough of assets, World objects, render snapshots,
+  A 15-20 minute walkthrough of assets, World entities, the GPU scene,
   ownership, and persistence.
 
 - [World Foundation](WorldFoundation.md)

@@ -399,7 +399,7 @@ RenderMeshBatch (RenderMeshBatchID)  = RenderPrimitive × Submesh
 ```
 
 - **transform 从第一天就在 per-instance 层（`RenderInstance`），不在 `RenderPrimitive` 上**——这样将来一个 primitive 挂多 instance（ISM/foliage）不改 buffer layout。
-- **RenderPrimitive** 持 mesh 级共享数据（material overrides、instance range），一个 Entity 一份。Range 的 offset/count 指向 `instanceIndices`，不是 RenderInstance sparse slot 的连续范围；索引元素指向 snapshot 内已验证 generation 的 instance slot。实例增删可以迁移索引段并更新 primitive range，不移动存活的 instance slot；旧帧继续使用自身 snapshot 的 range 和索引段。
+- **RenderPrimitive** 持 mesh 级共享数据（material overrides、instance range），一个 Entity 一份。Range 的 offset/count 指向 `instanceIndices`，不是 RenderInstance sparse slot 的连续范围；索引元素指向已验证 generation 的 instance slot。实例增删可以迁移索引段并更新 primitive range，不移动存活的 instance slot；旧帧在队列上先于新的上传执行，继续读取当时的 range 和索引段。
 - **RenderInstance** 持 transform/bounds/identity。**phase 1 每个 RenderPrimitive 恰好 1 个 RenderInstance**（一 Entity → 1 primitive + 1 instance + N 个 RenderMeshBatch，N=submesh 数）。
 - **RenderMeshBatch** 是 draw 模板（primitive × submesh），持本帧表内有效的 `GpuSubmeshRef` 和 resolve 后的 `GpuMaterialID`（descriptor 走 Asset Manager 间接表，不存 descriptor index）；draw 时按 primitive 的 instance range 展开。
 - lights、cameras 同为 RenderScene 顶层 sparse slot 数组，分别使用 `RenderLightID`、`RenderCameraID` 和 active list。
@@ -419,7 +419,7 @@ RenderMeshBatch (RenderMeshBatchID)  = RenderPrimitive × Submesh
 - **stable sparse slot array**：id 指向一个稳定 slot（带 generation），对应 render 数据存活期间**不移动**；删除时回收进 **free-list** 供复用。因为有 free-list，数组是**稀疏的（有洞）**，不是 densely packed——Renderer 不能盲目遍历 `[0, capacity)`。
 - **dense active-index list**：每层另存一个当前活跃 slot 的紧凑列表。CPU 遍历、以及未来 GPU culling，都遍历 active list，而不是稀疏数组。
 - **dirty upload**：按被创建/更新的 sparse slot 的 index range 上传（稀疏 dirty 见下方 scatter 预留）。
-- `instanceIndices`、primitive range 和 active list 的修改、计数变化也进入 dirty 更新，与对应 sparse slot 在同一 snapshot 内生效。空洞和 slot 复用不能让旧索引段引用另一个实例。
+- `instanceIndices`、primitive range 和 active list 的修改、计数变化也进入 dirty 更新，与对应 sparse slot 在同一次上传中生效。空洞和 slot 复用不能让旧索引段引用另一个实例。
 - 这三个 ID 都**不持久化**（回收后 generation 递增即可能变化），可保持私有；跨帧/跨存档的稳定引用一律用 `Guid`/`AssetID`。
 - **第一阶段不做显式 compaction**：有 active list 后通常无需压紧稳定 slot；真要消除长期空洞时，compaction 是显式非热路径操作，需重建 + 广播 remap。
 
@@ -459,7 +459,7 @@ Editor 不应绕过 World API 直接修改 Flecs storage，否则无法可靠实
 
 详细设计见 [GPUScene](GPUScene.md)。
 
-该模型与 `Multithreading.md` 的 frame snapshot 和 phase boundary 方向保持一致。后续并行 transform 或 extraction 时，不改变这些所有权边界。
+该模型与 `Multithreading.md` 的 phase boundary 方向保持一致：冻结的是 `beginFrame` 到 `endFrame` 之间的 RenderScene。后续并行 transform 或 extraction 时，不改变这些所有权边界。
 
 关闭顺序固定为：停止新帧和 asset request；停止 World mutation/extraction 并销毁 World bindings，释放长期 leases；取消或 drain loader 工作；提交队列停止后等待 GPU 空闲，销毁 GpuScene；Asset Manager 在 RHI 仍存活时销毁 payload，RHI resource removal 同步释放其 descriptor；最后销毁 Renderer、queue 和 RHI device。任何阶段都不能让持有 GPU resource 的对象晚于 RHI device 析构。
 
