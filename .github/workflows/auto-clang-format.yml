@@ -9,12 +9,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: DoozyX/clang-format-lint-action@v0.13
+    - uses: DoozyX/clang-format-lint-action@v0.20
       with:
         source: './Source/Runtime ./Source/Tools ./Examples'
         exclude: ''
-        extensions: 'h,hpp,c,cpp,hlsl,slang'
-        clangFormatVersion: 12
+        # clang-format treats HLSL/Slang stage attributes as C++ expressions and joins entry declarations.
+        extensions: 'h,hpp,c,cpp'
+        clangFormatVersion: 20
         inplace: True
     - uses: EndBug/add-and-commit@v9
       with:
