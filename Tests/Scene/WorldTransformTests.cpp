@@ -152,7 +152,7 @@ TEST_F(SceneTransformTest, DeferredLocalChangesRemainMutuallyExclusive)
     ASSERT_TRUE(types.registerBuiltins());
     hz::World             world(types);
     const hz::Entity      entity = world.createEntity();
-    const hz::LocalMatrix matrix = { .value = Matrix4::translation(Vector3(4.0f, 0.0f, 0.0f)) };
+    const Matrix4         matrix = Matrix4::translation(Vector3(4.0f, 0.0f, 0.0f));
     {
         hz::DeferredChanges changes = world.defer();
         setTranslation(world, entity, 1.0f);
@@ -163,7 +163,7 @@ TEST_F(SceneTransformTest, DeferredLocalChangesRemainMutuallyExclusive)
     }
     EXPECT_EQ(world.getComponent(entity, hz::SceneTypes::localTransform), nullptr);
     world.updateTransforms();
-    expectMatrix(world.getWorldTransform(entity)->current, matrix.value);
+    expectMatrix(world.getWorldTransform(entity)->current, matrix);
     EXPECT_FALSE(world.addComponent(entity, hz::SceneTypes::localTransform));
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::localMatrix));
     world.updateTransforms();
@@ -258,7 +258,7 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
         ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::name));
         ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::meshRenderer));
         ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::localTransform));
-        const hz::LocalMatrix matrix = { .value = Matrix4::translation(Vector3(3, 0, 0)) };
+        const Matrix4 matrix = Matrix4::translation(Vector3(3, 0, 0));
         ASSERT_TRUE(world.setComponent(root, hz::SceneTypes::localMatrix, &matrix));
         EXPECT_FALSE(world.destroyEntity(root));
     }

@@ -339,8 +339,8 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         dpiScale = dpiScaleArray[0];
     }
 
-    vec2 UIPosition = { pApp->settings.width * 0.775f, pApp->settings.height * 0.01f };
-    vec2 UIPanelSize = vec2(400.f, 750.f) / dpiScale;
+    Vector2 UIPosition = { pApp->settings.width * 0.775f, pApp->settings.height * 0.01f };
+    Vector2 UIPanelSize = Vector2(400.f, 750.f) / dpiScale;
 
     UIComponentDesc uiDesc = {};
     uiDesc.startPosition = UIPosition;

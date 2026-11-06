@@ -38,11 +38,6 @@ struct LocalTransform
     Vector3 scale = Vector3(1.0f);
 };
 
-struct LocalMatrix
-{
-    Matrix4 value = Matrix4::identity();
-};
-
 // Derived hierarchy data, not a reflected authoring component.
 struct WorldTransform
 {

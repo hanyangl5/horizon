@@ -113,14 +113,14 @@ public:
     inline Matrix4 GetJointWorldMatNoScale(uint32_t index) const
     {
         ASSERT(rig && index < rig->numJoints);
-        mat4 withScale = jointWorldMats[index];
+        Matrix4 withScale = jointWorldMats[index];
 
         // Normalize the first three collumns
-        vec4 col0 = vec4(normalize(withScale.getCol0().getXYZ()), withScale.getCol0().getW());
-        vec4 col1 = vec4(normalize(withScale.getCol1().getXYZ()), withScale.getCol1().getW());
-        vec4 col2 = vec4(normalize(withScale.getCol2().getXYZ()), withScale.getCol2().getW());
+        Vector4 col0 = Vector4(normalize(withScale.getCol0().getXYZ()), withScale.getCol0().getW());
+        Vector4 col1 = Vector4(normalize(withScale.getCol1().getXYZ()), withScale.getCol1().getW());
+        Vector4 col2 = Vector4(normalize(withScale.getCol2().getXYZ()), withScale.getCol2().getW());
 
-        mat4 withoutScale = mat4(col0, col1, col2, withScale.getCol3());
+        Matrix4 withoutScale = Matrix4(col0, col1, col2, withScale.getCol3());
         return withoutScale;
     }
 
@@ -146,10 +146,10 @@ public:
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
 
     // Color of the joints
-    Vector4 jointColor = vec4(.9f, .9f, .9f, 1.f); // white
+    Vector4 jointColor = Vector4(.9f, .9f, .9f, 1.f); // white
 
     // Color of the bones
-    Vector4 boneColor = vec4(0.9f, 0.6f, 0.1f, 1.0f); // orange
+    Vector4 boneColor = Vector4(0.9f, 0.6f, 0.1f, 1.0f); // orange
 
     // Scales to apply to each joint - will be proportional to length of its child's bone
     ozz::span<Vector3> jointScales;

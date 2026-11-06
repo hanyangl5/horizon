@@ -109,7 +109,7 @@ FORGE_API void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const Fon
 
 /// Renders text as an object in the world using a loaded font w/ The Forge
 /// This function will assert if Font Rendering has not been initialized
-FORGE_API void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const CameraMatrix* pMatProjView,
+FORGE_API void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const Matrix4* pMatWorld, const CameraMatrix* pMatProjView,
                                              const FontDrawDesc* pDrawDesc);
 
 /// Debugging feature - draws the contents of the internal font atlas

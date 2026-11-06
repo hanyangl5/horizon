@@ -251,7 +251,7 @@ typedef struct GeometryData
     ShadowData* pShadow;
 
     /// The array of joint inverse bind-pose matrices ( object-space )
-    mat4*     pInverseBindPoses;
+    Matrix4*  pInverseBindPoses;
     /// The array of data to remap skin batch local joint ids to global joint ids
     uint32_t* pJointRemaps;
 

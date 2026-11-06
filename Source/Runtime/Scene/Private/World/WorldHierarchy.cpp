@@ -72,7 +72,7 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool a
                                       (matrixType && ecs_has_id(world.pWorld, entity, matrixType) ? 2u : 0u));
     if (adding && (mask & (bit ^ 3u)))
     {
-        LOGF(eERROR, "An entity cannot have both LocalTransform and LocalMatrix");
+        LOGF(eERROR, "An entity cannot have both LocalTransform and Matrix4");
         return false;
     }
     const uint32_t next = adding ? mask | bit : mask & ~bit;
@@ -96,9 +96,9 @@ void WorldHierarchy::finishDeferredChanges()
 
 Matrix4 WorldHierarchy::localMatrix(ecs_entity_t entity) const
 {
-    const LocalMatrix* pMatrix = matrixType ? (const LocalMatrix*)ecs_get_id(world.pWorld, entity, matrixType) : nullptr;
+    const Matrix4* pMatrix = matrixType ? (const Matrix4*)ecs_get_id(world.pWorld, entity, matrixType) : nullptr;
     if (pMatrix)
-        return pMatrix->value;
+        return *pMatrix;
     const LocalTransform* pTransform = transformType ? (const LocalTransform*)ecs_get_id(world.pWorld, entity, transformType) : nullptr;
     return pTransform ? Matrix4(pTransform->rotation, pTransform->translation) * Matrix4::scale(pTransform->scale) : Matrix4::identity();
 }
@@ -280,8 +280,7 @@ bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix
     {
         if (transformType)
             ecs_remove_id(world.pWorld, entity, transformType);
-        const LocalMatrix local = { .value = matrix };
-        ecs_set_id(world.pWorld, entity, matrixType, sizeof(local), &local);
+        ecs_set_id(world.pWorld, entity, matrixType, sizeof(matrix), &matrix);
     }
     else
     {
@@ -353,7 +352,7 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
     }
     if (!subtree && !matrixType)
     {
-        LOGF(eERROR, "Deleting a parent requires registered LocalMatrix support");
+        LOGF(eERROR, "Deleting a parent requires registered Matrix4 support");
         return false;
     }
     update();

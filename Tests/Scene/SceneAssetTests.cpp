@@ -82,8 +82,8 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     EXPECT_FLOAT_EQ((float)nodes[0].transform.translation.getX(), 10.0f);
     EXPECT_FALSE(nodes[0].hasMatrix);
     EXPECT_TRUE(nodes[1].hasMatrix);
-    EXPECT_FLOAT_EQ((float)nodes[1].matrix.value.getElem(1, 0), 0.5f);
-    EXPECT_FLOAT_EQ((float)nodes[1].matrix.value.getElem(3, 1), 2.0f);
+    EXPECT_FLOAT_EQ((float)nodes[1].matrix.getElem(1, 0), 0.5f);
+    EXPECT_FLOAT_EQ((float)nodes[1].matrix.getElem(3, 1), 2.0f);
     EXPECT_FLOAT_EQ((float)nodes[2].transform.scale.getX(), -1.0f);
     EXPECT_FLOAT_EQ((float)nodes[2].transform.scale.getY(), 0.0f);
     ASSERT_EQ(asset.getMeshes().count, 1u);
@@ -153,9 +153,9 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
             EXPECT_FLOAT_EQ((float)data.world->getWorldTransform(entity)->current.getElem(3, 0), x);
             if (!strcmp(name.value, "First"))
             {
-                const hz::LocalMatrix* matrix = (const hz::LocalMatrix*)data.world->getComponent(entity, hz::SceneTypes::localMatrix);
+                const Matrix4* matrix = (const Matrix4*)data.world->getComponent(entity, hz::SceneTypes::localMatrix);
                 ASSERT(matrix);
-                EXPECT_FLOAT_EQ((float)matrix->value.getElem(1, 0), 0.5f);
+                EXPECT_FLOAT_EQ((float)matrix->getElem(1, 0), 0.5f);
                 EXPECT_EQ(data.world->getComponent(entity, hz::SceneTypes::localTransform), nullptr);
             }
             else

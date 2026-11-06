@@ -140,12 +140,15 @@ void FreeCameraController::update(float deltaTime, uint32_t width, uint32_t heig
     pCamera->onRotate(float2(-look.x, look.y));
     pCamera->update(TF_MIN(deltaTime, 0.1f));
 
-    vec2 rotation = pCamera->getRotationXY();
+    Vector2 rotation = pCamera->getRotationXY();
     rotation.setX(TF_MAX(-1.553343f, TF_MIN(1.553343f, (float)rotation.getX())));
     pCamera->setViewRotationXY(rotation);
 }
 
-mat4 FreeCameraController::getViewMatrix() const { return pCamera->getViewMatrix(); }
-mat4 FreeCameraController::getWorldMatrix() const { return orthoInverse(mat4::scale(vec3(-1.0f, 1.0f, -1.0f)) * pCamera->getViewMatrix()); }
+Matrix4 FreeCameraController::getViewMatrix() const { return pCamera->getViewMatrix(); }
+Matrix4 FreeCameraController::getWorldMatrix() const
+{
+    return orthoInverse(Matrix4::scale(Vector3(-1.0f, 1.0f, -1.0f)) * pCamera->getViewMatrix());
+}
 
-vec3 FreeCameraController::getPosition() const { return pCamera->getViewPosition(); }
+Vector3 FreeCameraController::getPosition() const { return pCamera->getViewPosition(); }

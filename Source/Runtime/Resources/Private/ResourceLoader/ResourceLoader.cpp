@@ -5013,7 +5013,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         }
     }
     const uint64_t jointBytes =
-        round_up((uint64_t)geomData->jointCount * sizeof(mat4), 16) + round_up((uint64_t)geomData->jointCount * sizeof(uint32_t), 16);
+        round_up((uint64_t)geomData->jointCount * sizeof(Matrix4), 16) + round_up((uint64_t)geomData->jointCount * sizeof(uint32_t), 16);
     if (!geom->vertexCount || !geom->indexCount || geom->indexType > INDEX_TYPE_UINT16 || requiredShadowSize > shadowSize ||
         sizeof(Geometry) + (uint64_t)geom->drawArgCount * sizeof(IndirectDrawIndexArguments) > geomSize ||
         sizeof(GeometryData) + jointBytes + geomData->userDataSize > geomDataSize)
@@ -5055,7 +5055,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
     if (geomData->jointCount > 0)
     {
-        geomData->pInverseBindPoses = (mat4*)(geomData + 1); //-V1027
+        geomData->pInverseBindPoses = (Matrix4*)(geomData + 1); //-V1027
         geomData->pJointRemaps =
             (uint32_t*)((uint8_t*)geomData->pInverseBindPoses + round_up(geomData->jointCount * sizeof(*geomData->pInverseBindPoses), 16));
     }

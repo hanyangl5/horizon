@@ -409,8 +409,8 @@ enum GuiComponentFlags
 
 typedef struct UIComponentDesc
 {
-    vec2 startPosition = vec2{ 0.0f, 150.0f };
-    vec2 startSize = vec2{ 600.0f, 550.0f };
+    Vector2 startPosition = Vector2{ 0.0f, 150.0f };
+    Vector2 startSize = Vector2{ 600.0f, 550.0f };
 
     uint32_t fontID = 0;
     float    fontSize = 16.0f;

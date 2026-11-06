@@ -36,9 +36,9 @@
 // PVS-Studio reports 'error V813: Decreased performance.' when passing parameters bigger than 8 bytes by value
 #define CONST_REF(T) const T&
 
-#define float4x4     mat4
-#define float3x3     mat3
-#define to_f3x3(M)   mat3(M.getUpper3x3())
+#define float4x4     Matrix4
+#define float3x3     Matrix3
+#define to_f3x3(M)   Matrix3(M.getUpper3x3())
 
 inline float2 saturate(float2 f) { return float2(saturate(f.x), saturate(f.y)); }
 

@@ -260,7 +260,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // VSYNC CONTROL
     UIComponentDesc uiDesc = {};
-    uiDesc.startPosition = vec2(pSettings->width * 0.7f, pSettings->height * 0.8f);
+    uiDesc.startPosition = Vector2(pSettings->width * 0.7f, pSettings->height * 0.8f);
     uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
     CheckboxWidget checkbox;
@@ -273,7 +273,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     uiDesc = {};
-    uiDesc.startPosition = vec2(pSettings->width * 0.7f, pSettings->height * 0.9f);
+    uiDesc.startPosition = Vector2(pSettings->width * 0.7f, pSettings->height * 0.9f);
     uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
@@ -281,7 +281,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // API SWITCHING
     uiDesc = {};
-    uiDesc.startPosition = vec2(pSettings->width * 0.6f, pSettings->height * 0.01f);
+    uiDesc.startPosition = Vector2(pSettings->width * 0.6f, pSettings->height * 0.01f);
     uiCreateComponent("Graphics Control", &uiDesc, &pAPISwitchingComponent);
 
     static const char* pApiNames[] = { "D3D12" };

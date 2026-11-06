@@ -61,7 +61,7 @@ struct SceneAssetNode
     uint32_t       parent = UINT32_MAX;
     AssetID        mesh;
     LocalTransform transform;
-    LocalMatrix    matrix;
+    Matrix4        matrix = Matrix4::identity();
     // Only the selected representation is used; matrices are never decomposed.
     bool           hasMatrix = false;
 };

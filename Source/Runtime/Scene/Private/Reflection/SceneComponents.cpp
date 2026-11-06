@@ -22,6 +22,12 @@ struct ComponentLifecycle
     }
 };
 
+template<>
+void ComponentLifecycle<Matrix4>::construct(void* pDestination)
+{
+    ::new (pDestination) Matrix4(Matrix4::identity());
+}
+
 static uint32_t    overrideCount(const void* pArray) { return ((const Array<MaterialOverride>*)pArray)->size(); }
 static const void* overrideData(const void* pArray) { return ((const Array<MaterialOverride>*)pArray)->data(); }
 static void        resizeOverrides(void* pArray, uint32_t count) { ((Array<MaterialOverride>*)pArray)->resize(count); }
@@ -103,7 +109,7 @@ static const PropertyDesc transformProperties[] = {
     { .id = 3, .pName = "scale", .kind = PropertyKind::Vector3, .offset = offsetof(LocalTransform, scale), .size = sizeof(Vector3) },
 };
 static const PropertyDesc matrixProperties[] = {
-    { .id = 1, .pName = "value", .kind = PropertyKind::Matrix4, .offset = offsetof(LocalMatrix, value), .size = sizeof(Matrix4) },
+    { .id = 1, .pName = "value", .kind = PropertyKind::Matrix4, .offset = 0, .size = sizeof(Matrix4) },
 };
 static const PropertyDesc meshProperties[] = {
     { .id = 1, .pName = "mesh", .kind = PropertyKind::AssetReference, .offset = offsetof(MeshRenderer, mesh), .size = sizeof(AssetID) },
@@ -227,12 +233,12 @@ bool TypeRegistry::registerBuiltins()
           .triviallyCopyable = __is_trivially_copyable(LocalTransform),
           .lifecycle = ComponentLifecycle<LocalTransform>::get() },
         { .id = SceneTypes::localMatrix,
-          .pName = "LocalMatrix",
-          .size = sizeof(LocalMatrix),
-          .alignment = alignof(LocalMatrix),
+          .pName = "Matrix4",
+          .size = sizeof(Matrix4),
+          .alignment = alignof(Matrix4),
           .properties = matrixProperties,
-          .triviallyCopyable = __is_trivially_copyable(LocalMatrix),
-          .lifecycle = ComponentLifecycle<LocalMatrix>::get() },
+          .triviallyCopyable = __is_trivially_copyable(Matrix4),
+          .lifecycle = ComponentLifecycle<Matrix4>::get() },
         { .id = SceneTypes::meshRenderer,
           .pName = "MeshRenderer",
           .size = sizeof(MeshRenderer),

@@ -601,11 +601,11 @@ struct InputSystemImpl: public gainput::InputListener
             State state;
             float time;
             float velocity;
-            vec2  distTraveled;
-            vec2  pos0;
+            Vector2 distTraveled;
+            Vector2 pos0;
 
             uint32_t id;
-            vec2     pos;
+            Vector2  pos;
         };
 
         Touch    touches[MAX_INPUT_MULTI_TOUCHES];
@@ -614,7 +614,7 @@ struct InputSystemImpl: public gainput::InputListener
         uint32_t performingGesturesCount[MAX_INPUT_MULTI_TOUCHES];
 
         // Double tap and long press data
-        vec2   lastTapPos;
+        Vector2 lastTapPos;
         float  lastTapTime;
         Touch* longPressTouch;
 
@@ -667,7 +667,7 @@ struct InputSystemImpl: public gainput::InputListener
                 {
                     touches[i].id = -1;
                     touches[i].time = 0.0f;
-                    touches[i].distTraveled = vec2(0.0f);
+                    touches[i].distTraveled = Vector2(0.0f);
                     touches[i].updated = false;
                     touches[i].moved = false;
                     activeTouches--;
@@ -779,14 +779,14 @@ struct InputSystemImpl: public gainput::InputListener
         {
             gestureRecognizer.touches[i].id = -1;
             gestureRecognizer.touches[i].time = 0.0f;
-            gestureRecognizer.touches[i].distTraveled = vec2(0.0f);
+            gestureRecognizer.touches[i].distTraveled = Vector2(0.0f);
             gestureRecognizer.touches[i].updated = false;
             gestureRecognizer.touches[i].moved = false;
             gestureRecognizer.touches[i].state = GestureRecognizer::Touch::ENDED;
             gestureRecognizer.performingGesturesCount[i] = 0;
         }
 
-        gestureRecognizer.lastTapPos = vec2(FLT_MAX);
+        gestureRecognizer.lastTapPos = Vector2(FLT_MAX);
         gestureRecognizer.lastTapTime = FLT_MAX;
         gestureRecognizer.longPressTouch = nullptr;
 
@@ -2145,7 +2145,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 touch->updated = true;
                                 touch->state = GestureRecognizer::Touch::STARTED;
 
-                                touch->pos0 = vec2(ctx.pPosition->getX(), ctx.pPosition->getY());
+                                touch->pos0 = Vector2(ctx.pPosition->getX(), ctx.pPosition->getY());
                                 touch->pos = touch->pos0;
                             }
 
@@ -2219,7 +2219,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 if (!touch)
                                     break;
 
-                                vec2 dir = normalize(touch->distTraveled);
+                                Vector2 dir = normalize(touch->distTraveled);
 
                                 if (isnan(dir.getX()) || isnan(dir.getY()))
                                     break;
@@ -2642,7 +2642,7 @@ struct InputSystemImpl: public gainput::InputListener
                             touch->updated = true;
 
                             touch->pos0 = touch->pos;
-                            touch->pos = vec2(pPosition->getX(), pPosition->getY());
+                            touch->pos = Vector2(pPosition->getX(), pPosition->getY());
                             touch->distTraveled += touch->pos - touch->pos0;
                             touch->velocity = length(touch->pos - touch->pos0) / deltaTime;
                         }
@@ -2702,8 +2702,8 @@ struct InputSystemImpl: public gainput::InputListener
                             if (!touch[0] || !touch[1])
                                 continue;
 
-                            vec2 v1 = touch[1]->pos - touch[0]->pos;
-                            vec2 v0 = touch[1]->pos0 - touch[0]->pos0;
+                            Vector2 v1 = touch[1]->pos - touch[0]->pos;
+                            Vector2 v0 = touch[1]->pos0 - touch[0]->pos0;
 
                             float velocity = abs(length(v1) - length(v0)) / deltaTime;
                             float rotation = atan2f(v0.getX() * v1.getY() - v0.getY() * v1.getX(), dot(v0, v1));
@@ -2778,7 +2778,7 @@ struct InputSystemImpl: public gainput::InputListener
                     if (pControl->performed == 0x3)
                     {
                         // Calculate the new joystick positions
-                        vec2  delta = f2Tov2(pControl->currPos - pControl->startPos);
+                        Vector2 delta = f2Tov2(pControl->currPos - pControl->startPos);
                         float halfRad = (pControl->outsideRadius * 0.5f) - pControl->deadzone;
                         if (length(delta) > halfRad)
                             pControl->currPos = pControl->startPos + halfRad * v2ToF2(normalize(delta));

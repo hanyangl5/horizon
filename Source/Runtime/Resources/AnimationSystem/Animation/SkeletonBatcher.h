@@ -40,15 +40,15 @@ enum JointMeshType
 struct UniformSkeletonBlock
 {
     CameraMatrix projectView;
-    mat4         viewMatrix;
+    Matrix4      viewMatrix;
 
-    vec4  color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    Vector4  color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
     // Point Light Information
-    vec4  lightPosition;
-    vec4  lightColor;
-    vec4  jointColor;
+    Vector4  lightPosition;
+    Vector4  lightColor;
+    Vector4  jointColor;
     uint4 skeletonInfo;
-    mat4  toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    Matrix4 toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
 };
 
 // Description needed to handle buffer updates and draw calls
@@ -110,7 +110,7 @@ public:
     void SetActiveRigs(uint32_t activeRigs);
 
     // Update uniforms that will be shared between all skeletons
-    void SetSharedUniforms(const CameraMatrix& projViewMat, const mat4& viewMat, const Vector3& lightPos, const Vector3& lightColor);
+    void SetSharedUniforms(const CameraMatrix& projViewMat, const Matrix4& viewMat, const Vector3& lightPos, const Vector3& lightColor);
 
     // Must be called on a single thread before any call to SetPerInstanceUniforms
     void PreSetInstanceUniforms(const uint32_t frameIndex);

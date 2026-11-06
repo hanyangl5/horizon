@@ -198,7 +198,7 @@ public:
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
         pCamera->update(deltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
-        const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
+        const Matrix4         pose = pCamera->getWorldMatrix();
         const bool            updated = pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose);
         ASSERT(updated);
         pAssetManager->update();
@@ -246,13 +246,13 @@ private:
         pCamera = hz::make_unique<FreeCameraController>(desc);
         cameraEntity = pWorld->createPersistentEntity();
         const hz::Camera      camera = { .verticalFov = PI / 4.0f };
-        const hz::LocalMatrix pose = { .value = pCamera->getWorldMatrix() };
+        const Matrix4         pose = pCamera->getWorldMatrix();
         // Cookbook theta=90, phi=-26; both scene imports preserve the same Y-up basis.
         const float           sunAngle = 26.0f * PI / 180.0f;
         const Vector3         z(-sinf(sunAngle), cosf(sunAngle), 0);
         const Vector3         x = normalize(cross(Vector3(0, 1, 0), z));
         const hz::Light       sun = { .type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
-        const hz::LocalMatrix sunPose = { .value = Matrix4(Vector4(x, 0), Vector4(cross(z, x), 0), Vector4(z, 0), Vector4(0, 0, 0, 1)) };
+        const Matrix4         sunPose = Matrix4(Vector4(x, 0), Vector4(cross(z, x), 0), Vector4(z, 0), Vector4(0, 0, 0, 1));
         const hz::Entity      sunEntity = pWorld->createPersistentEntity();
         const bool            created = pWorld->setComponent(cameraEntity, hz::SceneTypes::camera, &camera) &&
                              pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose) &&

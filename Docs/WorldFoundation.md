@@ -22,7 +22,7 @@ World Foundation 是 GPU-driven geometry、light culling、path tracing 和 Edit
 | `World` | ECS 运行时世界，内部用 Flecs | `UWorld` |
 | `Entity` | World 中的运行时实体（带 generation） | `AActor`（大致） |
 | `Guid` / `EntityIdentity` | 实体的持久身份及保存它的组件；World 文件 ID 也用 `Guid` | `FGuid`（ActorGuid） |
-| `LocalTransform` / `LocalMatrix` | 局部 TRS / 不可分解的局部矩阵，二者互斥 | RelativeTransform |
+| `LocalTransform` / `Matrix4` | 局部 TRS / 不可分解的局部矩阵，二者互斥 | RelativeTransform |
 | `WorldTransform` | 派生的世界矩阵（current/previous），不保存 | ComponentToWorld |
 | `MeshRenderer` | 组件：Mesh 的 AssetID + 按 SubmeshID 的材质覆盖 | `UStaticMeshComponent` |
 | `Light` / `Camera` | 光源、相机组件 | `ULightComponent` / `UCameraComponent` |
@@ -228,7 +228,7 @@ Asset metadata 初期使用 sidecar 文件保存 `AssetID`、type、source URI �
 
 SceneAsset 与 World 的粒度必须先定死，否则垂直切片无法落地。第一阶段采用 **node → Entity** 映射：
 
-- SceneAsset payload 保存一棵 **node 模板树**：每个 node 含**局部变换（tagged：`LocalTransform` 或 `LocalMatrix` 二选一——glTF node 本身可用 matrix 形式，不可分解时保留为 matrix）**、parent 索引，以及（对有几何的 node）一个 `MeshRenderer` 模板。它不保存烘焙后的世界矩阵，也不拥有依赖资产的 GPU payload。
+- SceneAsset payload 保存一棵 **node 模板树**：每个 node 含**局部变换（tagged：`LocalTransform` 或 `Matrix4` 二选一——glTF node 本身可用 matrix 形式，不可分解时保留为 matrix）**、parent 索引，以及（对有几何的 node）一个 `MeshRenderer` 模板。它不保存烘焙后的世界矩阵，也不拥有依赖资产的 GPU payload。
 - **一个 node 对应一个 Entity，而不是一个 primitive 一个 Entity。** glTF 一个 mesh node 可含多个 primitive、每个 primitive 有独立材质（现有 cooker 正是逐 primitive 生成实例，见 `AssetPipeline.cpp:1955`）。因此这些 submesh 归到一个 `MeshAsset` 里，由**一个** node Entity 的 `MeshRenderer` 引用；不为每个 primitive 建独立 World Entity——除非该 primitive 确需独立 transform 或编辑身份。
 - `MeshRenderer` 结构：`mesh: AssetID` + **material override set（稀疏）**。`MeshAsset` 内保存 submesh/primitive 表和每个 submesh 的**默认 material 绑定**；`MeshRenderer` 只记录与默认不同的槽（天然对接未来 prefab override）。读取时 default + override 合并。
 - 实例化时为每个 node 创建 Entity，重建局部变换 + `Parent` 层级，并在其上挂一个 instance root Entity，使整份 Bistro 可作为一个单位被移动或 reparent；**删除用 `destroySubtree(instanceRoot)`**（见 Transform hierarchy），保证整棵子树一起删、不留孤儿节点。
@@ -245,7 +245,7 @@ World 内部使用 Flecs。公共 `Entity` 是轻量的 64-bit value，Flecs wor
 - `EntityIdentity`
 - `Name`
 - `LocalTransform`（TRS）
-- `LocalMatrix`（可选，见 Transform hierarchy；import 用它承载不可分解的仿射变换）
+- `Matrix4`（可选，见 Transform hierarchy；import 用它承载不可分解的仿射变换）
 - `Parent`（公共 API 视图，内部由 World 私有的 Flecs 排他关系承载，非独立真相来源）
 - `WorldTransform`（派生数据，不进 World 文件，存于层级有序存储）
 - `MeshRenderer`
@@ -289,15 +289,15 @@ Flecs 自带 meta（反射）、JSON 序列化、`ChildOf` 关系和 deferred �
 
 ## Transform hierarchy
 
-**Local 变换有两种表示，二者严格互斥**：`LocalTransform`（TRS：translation/rotation/scale）是 authoring 首选；`LocalMatrix`（可选组件）承载**无法无损分解为 TRS** 的仿射变换。原因：父级非均匀缩放与旋转组合后，world/local 矩阵可能含 **shear**，TRS 无法精确表达；负缩放也有歧义。**互斥由 World API 强制**——一个 Entity 二者只能有其一；加载到同时带两者的**非法文件直接报错**（不做"谁优先"的隐式规则）。importer 对不可分解的局部变换使用 `LocalMatrix`，作者手编或可分解的节点使用 `LocalTransform`。`Parent` 表示层级关系；`WorldTransform` 保存 current 和 previous matrices，属于派生数据，不写入 World 文件。
+**Local 变换有两种表示，二者严格互斥**：`LocalTransform`（TRS：translation/rotation/scale）是 authoring 首选；`Matrix4`（可选组件）承载**无法无损分解为 TRS** 的仿射变换。原因：父级非均匀缩放与旋转组合后，world/local 矩阵可能含 **shear**，TRS 无法精确表达；负缩放也有歧义。**互斥由 World API 强制**——一个 Entity 二者只能有其一；加载到同时带两者的**非法文件直接报错**（不做"谁优先"的隐式规则）。importer 对不可分解的局部变换使用 `Matrix4`，作者手编或可分解的节点使用 `LocalTransform`。`Parent` 表示层级关系；`WorldTransform` 保存 current 和 previous matrices，属于派生数据，不写入 World 文件。
 
 Hierarchy 必须满足：
 
 - `setParent` 拒绝 self-parent 和 cycle。
 - `setParent(..., keepWorld=true)` 尝试解 `newParentWorld · local = childWorld`。第一阶段不实现奇异矩阵的广义求解：只要 new parent world 不可逆就返回失败并保持原 parent。
-  - **可解**：结果可分解则写 `LocalTransform`，否则写 `LocalMatrix`（保留精确仿射结果，绝不有损 TRS 近似）。
+  - **可解**：结果可分解则写 `LocalTransform`，否则写 `Matrix4`（保留精确仿射结果，绝不有损 TRS 近似）。
 - `setParent(..., keepWorld=false)`：正常 reparent，直接沿用现有 local，不受上面限制。
-- **两种删除操作，语义必须分开**：`destroyEntity(e)` 删单个 Entity，其 children **reparent 到 root 并保持 world transform**（root=单位阵、恒可逆，keepWorld 恒可解，必要时落 `LocalMatrix`）；`destroySubtree(e)` 删 e 及**整棵 transform subtree**。**SceneAsset instance 的删除用 `destroySubtree`**（删 instance root = 删整份 Bistro），否则会把节点遗留在 World。
+- **两种删除操作，语义必须分开**：`destroyEntity(e)` 删单个 Entity，其 children **reparent 到 root 并保持 world transform**（root=单位阵、恒可逆，keepWorld 恒可解，必要时落 `Matrix4`）；`destroySubtree(e)` 删 e 及**整棵 transform subtree**。**SceneAsset instance 的删除用 `destroySubtree`**（删 instance root = 删整份 Bistro），否则会把节点遗留在 World。
 - `destroyEntity` 先保存并解除直接子节点关系，再删除父节点；`destroySubtree` 按叶到根顺序删除，显式控制删除范围。私有父子关系保留单父和目标删除策略，不修改 Flecs 内建关系。
 - local 或 parent 变化只标记受影响 subtree。
 - 更新使用迭代式 root-to-leaf 顺序，不依赖递归调用栈。
@@ -308,7 +308,7 @@ Hierarchy 必须满足：
 
 **结构变化（create/delete/reparent）时全量 O(N) 重建该 cache**，不追求增量拓扑维护。理由：要同时保住"parent 在前 + subtree 连续可跳过 + reparent 不移动数据"三者，数学上做不到（reparent 必然打乱 DFS 连续性）；而结构变化通常远少于 transform 更新，第一版用重建换正确性和简单性，增量维护留到有 profile 证据再做。
 
-当前接口：`setParent` 返回是否成功；`getParent` 提供父子关系的公共视图。Reparent 和删除带子节点的实体必须在 query/defer 作用域外调用，否则返回失败；叶节点增删与局部组件修改仍可 defer，LocalTransform/LocalMatrix 互斥检查同时覆盖待提交操作。删除父节点需要 TypeRegistry 注册 LocalMatrix，以便保留无法分解的结果。
+当前接口：`setParent` 返回是否成功；`getParent` 提供父子关系的公共视图。Reparent 和删除带子节点的实体必须在 query/defer 作用域外调用，否则返回失败；叶节点增删与局部组件修改仍可 defer，LocalTransform/Matrix4 互斥检查同时覆盖待提交操作。删除父节点需要 TypeRegistry 注册 Matrix4，以便保留无法分解的结果。
 
 `updateTransforms` 在结构修改后重建缓存，普通更新只遍历排序、合并后的脏子树；缓存预热后，稳定层级的变换更新不分配内存。读取 `getWorldTransform` 前必须完成更新。`commitTransforms` 推进 World 缓存的 previous，调用方须保证 current 对应实际提交的状态；`resetTransformHistory` 可重置指定子树或全部实体。首次出现的实体以 current 初始化 previous。RenderScene 单独保存实际提交的历史，不依赖提交时 World 的最新状态；渲染路径在 `GpuScene::endFrame` 推进历史。
 
@@ -547,8 +547,8 @@ step 6 与 step 8 是长线工程，建议进一步拆成可独立合入的小�
 - Cooker tests：node hierarchy/local matrix round trip；Mesh/Material/内嵌 Texture 和 primitive 插入、重排后唯一匹配项保持 AssetID/SubmeshID；歧义项分配新 ID、旧引用保持未解析且不误绑；删除项不复用 ID；不匹配的格式和版本解析失败。
 - Asset tests：重复请求、dependency cycle、每个加载阶段的故障注入、cancellation、迟到完成消息、loading 期间 release、长期 lease 随 MeshRenderer 删除而释放，以及三类 GpuID 的 stale handle。
 - World tests：create/destroy、generation、Guid 冲突与查询、deferred 创建取消及删除后的身份清理、component query、deferred mutation、owning collection 在 component move/copy/remove/World exit 时的生命周期，以及 `destroyEntity`（children reparent 到 root）与 `destroySubtree`（整棵子树删除）的区别和显式层级删除策略。
-- Transform tests：深层 hierarchy、cycle rejection、reparent、parent deletion、**奇异 parent 下 `setParent(keepWorld)` 返回失败且 parent 不变**，以及 `LocalTransform`/`LocalMatrix` 互斥。
-- Serialization tests：round trip、稳定输出、forward reference、非法 hierarchy、多版本 migration、reflected array resize/insert/remove、material override key 唯一且有序、同时带 `LocalTransform`+`LocalMatrix` 的非法文件，以及未知 component blob 保留。
+- Transform tests：深层 hierarchy、cycle rejection、reparent、parent deletion、**奇异 parent 下 `setParent(keepWorld)` 返回失败且 parent 不变**，以及 `LocalTransform`/`Matrix4` 互斥。
+- Serialization tests：round trip、稳定输出、forward reference、非法 hierarchy、多版本 migration、reflected array resize/insert/remove、material override key 唯一且有序、同时带 `LocalTransform`+`Matrix4` 的非法文件，以及未知 component blob 保留。
 - RenderScene tests：三层 slot reuse、instanceIndices 正确引用不连续 slot、一个多-submesh Entity 展开成多个 RenderMeshBatch、asset-not-ready、entity removal 和无逐帧分配/逐 draw lease；常驻 GPU 表在多次 update、取消帧、删除和复用后与 RenderScene 一致，覆盖索引、active list 和 asset table。
 - Render history tests：移动后下一次实际渲染推进 previous；只 Update 不 Draw、多次 Update 后提交、取消的帧都不提前推进历史；首次出现、teleport、camera cut 和窗口恢复正确重置历史。
 - Live graphics tests：pending GPU work 下释放 World/Asset、严格 shutdown 顺序，以及多次 init/exit。

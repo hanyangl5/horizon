@@ -420,10 +420,12 @@ bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
     }
     if (type == SceneTypes::localMatrix)
     {
-        const Matrix4& matrix = ((const LocalMatrix*)pValue)->value;
+        Matrix4* matrix = (Matrix4*)pValue;
         for (uint32_t column = 0; column < 4; ++column)
-            if ((float)matrix.getElem(column, 3) != (column == 3 ? 1.0f : 0.0f))
+            if ((float)matrix->getElem(column, 3) != (column == 3 ? 1.0f : 0.0f))
+            {
                 return false;
+            }
     }
     return true;
 }

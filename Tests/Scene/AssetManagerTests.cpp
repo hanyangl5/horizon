@@ -1411,8 +1411,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableSlotsAndNo
     hz::RenderScene scene(world, assetManager);
     scene.reserve(0, 0, 9, 9);
     const hz::Entity parent = world.createEntity();
-    hz::LocalMatrix  parentMatrix = { .value = Matrix4::translation(Vector3(10, 20, 30)) * Matrix4::scale(Vector3(2, 3, 4)) };
-    parentMatrix.value.setElem(1, 0, 0.5f);
+    Matrix4          parentMatrix = Matrix4::translation(Vector3(10, 20, 30)) * Matrix4::scale(Vector3(2, 3, 4));
+    parentMatrix.setElem(1, 0, 0.5f);
     ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
     hz::FixedArray<hz::Entity, 9> entities;
     hz::Light                     light = { .color = Vector3(0.1f, 0.2f, 0.3f),
@@ -1787,10 +1787,10 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
-    hz::LocalMatrix local;
-    local.value = Matrix4::scale(Vector3(-2, 3, 0.5f));
-    local.value.setElem(1, 0, 1.0f); // Shear X by Y.
-    local.value.setTranslation(Vector3(10, 20, 30));
+    Matrix4 local;
+    local = Matrix4::scale(Vector3(-2, 3, 0.5f));
+    local.setElem(1, 0, 1.0f); // Shear X by Y.
+    local.setTranslation(Vector3(10, 20, 30));
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
@@ -1835,7 +1835,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     }
     EXPECT_EQ(scene.getRevision(), revision);
     EXPECT_EQ(scene.getChanges().meshBatches.ranges.count, 0u);
-    local.value.setTranslation(Vector3(11, 20, 30));
+    local.setTranslation(Vector3(11, 20, 30));
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->current.getElem(3, 0), 11);
@@ -2374,8 +2374,8 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
             &nodes);
     }
     ASSERT_TRUE(first.isValid() && second.isValid());
-    hz::LocalMatrix transform = { .value = Matrix4::translation(Vector3(5, 0, 0)) };
-    transform.value.setElem(1, 0, 0.25f);
+    Matrix4 transform = Matrix4::translation(Vector3(5, 0, 0));
+    transform.setElem(1, 0, 0.25f);
     ASSERT_TRUE(world->setComponent(root, hz::SceneTypes::localMatrix, &transform));
     ASSERT_TRUE(world->setParent(first, second, false));
     const hz::Name name = { "Edited" };

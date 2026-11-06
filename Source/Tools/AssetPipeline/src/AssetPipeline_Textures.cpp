@@ -892,8 +892,8 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
     const uint32_t numLevels = max((uint32_t)log2(width), (uint32_t)log2(height)) + 1u;
     pTextureDesc->mipLevels = numLevels;
 
-    vec3* rData[MAX_MIPLEVELS];
-    rData[0] = (vec3*)pUserData;
+    Vector3* rData[MAX_MIPLEVELS];
+    rData[0] = (Vector3*)pUserData;
 
     for (uint32_t mipMap = 1; mipMap < numLevels; ++mipMap)
     {
@@ -901,7 +901,7 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
         uint32_t prevHeight = max(height >> (mipMap - 1u), 1u);
         uint32_t mipWidth = max(width >> mipMap, 1u);
         uint32_t mipHeight = max(height >> mipMap, 1u);
-        rData[mipMap] = (vec3*)tf_malloc(mipWidth * mipHeight * sizeof(vec3));
+        rData[mipMap] = (Vector3*)tf_malloc(mipWidth * mipHeight * sizeof(Vector3));
         ppData[mipMap] = (uint8_t*)tf_malloc(mipWidth * mipHeight * channelCount);
 
         for (uint32_t y = 0; y < mipHeight; ++y)
@@ -917,21 +917,21 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
                 float          yu = ceilf(yCenter);
 
                 // bilinear interpolation
-                vec3 xlValue = rData[mipMap - 1][(uint32_t)(xl + yl * prevWidth)];
-                vec3 xuValue = rData[mipMap - 1][(uint32_t)(xu + yl * prevWidth)];
+                Vector3 xlValue = rData[mipMap - 1][(uint32_t)(xl + yl * prevWidth)];
+                Vector3 xuValue = rData[mipMap - 1][(uint32_t)(xu + yl * prevWidth)];
 
-                vec3 ylValue = rData[mipMap - 1][(uint32_t)(xl + yu * prevWidth)];
-                vec3 yuValue = rData[mipMap - 1][(uint32_t)(xu + yu * prevWidth)];
+                Vector3 ylValue = rData[mipMap - 1][(uint32_t)(xl + yu * prevWidth)];
+                Vector3 yuValue = rData[mipMap - 1][(uint32_t)(xu + yu * prevWidth)];
 
-                vec3 horizontalL = xlValue * (xu - xCenter) / (xu - xl) + xuValue * (xCenter - xl) / (xu - xl);
-                vec3 horizontalU = ylValue * (xu - xCenter) / (xu - xl) + yuValue * (xCenter - xl) / (xu - xl);
+                Vector3 horizontalL = xlValue * (xu - xCenter) / (xu - xl) + xuValue * (xCenter - xl) / (xu - xl);
+                Vector3 horizontalU = ylValue * (xu - xCenter) / (xu - xl) + yuValue * (xCenter - xl) / (xu - xl);
 
-                vec3 rFiltered = horizontalL * (yu - yCenter) / (yu - yl) + horizontalU * (yCenter - yl) / (yu - yl);
+                Vector3 rFiltered = horizontalL * (yu - yCenter) / (yu - yl) + horizontalU * (yCenter - yl) / (yu - yl);
 
                 rData[mipMap][mipPixelIndex] = rFiltered;
                 rFiltered = normalize(rFiltered);
                 // Move normal back to range [0, 1]
-                rFiltered = rFiltered * 0.5f + vec3(0.5f);
+                rFiltered = rFiltered * 0.5f + Vector3(0.5f);
 
                 const uint32_t mipChannelIndex = mipPixelIndex * channelCount;
                 ppData[mipMap][mipChannelIndex + 0] = (uint8_t)(fmaxf(fminf(1.0f, rFiltered[0]), 0.0f) * (float)UINT8_MAX + 0.5f);
@@ -947,7 +947,7 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
     }
 }
 
-bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pRoughnessTextureData, vec3* rData)
+bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pRoughnessTextureData, Vector3* rData)
 {
     ASSERT(pNormalTextureData);
     ASSERT(pRoughnessTextureData);
@@ -994,12 +994,12 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
                 const uint32_t pixelIndexNormal = pixelIndex * normalTextureChannels;
                 const uint32_t pixelIndexRoughness = pixelIndex * roughnessTextureChannels;
 
-                vec3 normal = vec3(pNormalTextureData->pData[0][pixelIndexNormal + 0] / (float)UINT8_MAX,
-                                   pNormalTextureData->pData[0][pixelIndexNormal + 1] / (float)UINT8_MAX,
-                                   pNormalTextureData->pData[0][pixelIndexNormal + 2] / (float)UINT8_MAX);
+                Vector3 normal = Vector3(pNormalTextureData->pData[0][pixelIndexNormal + 0] / (float)UINT8_MAX,
+                                         pNormalTextureData->pData[0][pixelIndexNormal + 1] / (float)UINT8_MAX,
+                                         pNormalTextureData->pData[0][pixelIndexNormal + 2] / (float)UINT8_MAX);
 
                 // Set normal to range [-1.0, 1.0]
-                normal = normal * 2.0f - vec3(1.0f);
+                normal = normal * 2.0f - Vector3(1.0f);
 
                 // TODO Optional: Give channel to look into for the rougness value as argument
                 // For now expect the first channel to contain the actuall roughness value
@@ -1009,7 +1009,7 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
                 const float invLambda = 0.5f * roughnessValue * roughnessValue;
                 const float exp2l = exp(-2.0f / invLambda);
                 const float cothLambda = invLambda > 0.1f ? (1.0f + exp2l) / (1.0f - exp2l) : 1.0f;
-                vec3        r = normal * (cothLambda - invLambda);
+                Vector3     r = normal * (cothLambda - invLambda);
                 rData[pixelIndex] = r;
             }
         }
@@ -1107,7 +1107,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         /////////////////////////////////
         // vMF
         /////////////////////////////////
-        vec3* rData = nullptr;
+        Vector3* rData = nullptr;
 
         if (useVMF)
         {
@@ -1119,7 +1119,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                 continue;
             }
 
-            rData = (vec3*)tf_malloc(inputTextureData.mDesc.width * inputTextureData.mDesc.height * sizeof(vec3));
+            rData = (Vector3*)tf_malloc(inputTextureData.mDesc.width * inputTextureData.mDesc.height * sizeof(Vector3));
 
             if (!GenerateVMFLayer(&inputTextureData, &inputRoughnessTextureData, rData))
             {

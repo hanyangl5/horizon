@@ -319,7 +319,7 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
                 return invalidField("nodes.matrix (expected affine matrix)");
             for (uint32_t column = 0; column < 4; ++column)
                 for (uint32_t row = 0; row < 4; ++row)
-                    node.matrix.value.setElem((int)column, (int)row, matrix[column * 4 + row]);
+                    node.matrix.setElem((int)column, (int)row, matrix[column * 4 + row]);
         }
         else
         {

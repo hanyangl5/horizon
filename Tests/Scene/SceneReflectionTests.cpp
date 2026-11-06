@@ -174,10 +174,10 @@ TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)
     EXPECT_FLOAT_EQ((float)transform->rotation.getW(), 1.0f);
     transformType->destroy(transformStorage);
 
-    alignas(hz::LocalMatrix) uint8_t matrixStorage[sizeof(hz::LocalMatrix)];
+    alignas(Matrix4) uint8_t         matrixStorage[sizeof(Matrix4)];
     const hz::TypeDesc*              matrixType = registry.getType(hz::SceneTypes::localMatrix);
     matrixType->construct(matrixStorage);
-    EXPECT_FLOAT_EQ((float)((const hz::LocalMatrix*)matrixStorage)->value.getElem(3, 3), 1.0f);
+    EXPECT_FLOAT_EQ((float)((const Matrix4*)matrixStorage)->getElem(3, 3), 1.0f);
     matrixType->destroy(matrixStorage);
 
     alignas(hz::Camera) uint8_t cameraStorage[sizeof(hz::Camera)];

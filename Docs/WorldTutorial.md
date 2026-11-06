@@ -103,7 +103,7 @@ world.updateTransforms();
 childWorld = parentWorld × childLocal
 ```
 
-常见可编辑变换使用 `LocalTransform`，也就是 TRS。对于带 shear 等无法无损表示为 TRS 的数据，系统保留 `LocalMatrix`。两种局部表示互斥；导入矩阵时不会先强行分解，再接受精度损失。
+常见可编辑变换使用 `LocalTransform`，也就是 TRS。对于带 shear 等无法无损表示为 TRS 的数据，系统保留 `Matrix4`。两种局部表示互斥；导入矩阵时不会先强行分解，再接受精度损失。
 
 `WorldTransform` 是派生缓存，不进入反射和场景文件。局部数据修改后，通过 `updateTransforms()` 更新结果；正常渲染路径中的 RenderScene 更新也会调用它。层级更新使用迭代遍历，并传播受影响子树的脏标记（dirty），深层树不依赖 C++ 调用栈递归。
 

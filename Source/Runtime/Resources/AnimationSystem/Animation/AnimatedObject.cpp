@@ -135,10 +135,10 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
         const int32_t parentIndex = rig->skeleton.joint_parents()[childIndex];
 
         // Selects joint matrices.
-        const mat4 parentMat = jointModelMats[parentIndex];
-        const mat4 childMat = jointModelMats[childIndex];
+        const Matrix4 parentMat = jointModelMats[parentIndex];
+        const Matrix4 childMat = jointModelMats[childIndex];
 
-        vec3  boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
+        Vector3  boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
         float boneLen = length(boneDir);
 
         // Save smallest boneLen for the root joints scale size
@@ -150,11 +150,11 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
 
         // Sets the scale of the joint equivilant to the boneLen between it and its parent joint
         // Separete from world so outside objects can use a joint's world mat w/o its scale
-        jointScales[childIndex] = vec3(boneLen / 2.0f);
+        jointScales[childIndex] = Vector3(boneLen / 2.0f);
     }
 
     // Set the root joints scale based on the saved min value
-    jointScales[rig->rootIndex] = vec3(minBoneLen / 2.0f);
+    jointScales[rig->rootIndex] = Vector3(minBoneLen / 2.0f);
 #endif
 }
 

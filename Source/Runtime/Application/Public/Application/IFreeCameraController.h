@@ -7,8 +7,8 @@ struct InputActionContext;
 struct FreeCameraControllerDesc
 {
     WindowDesc*            pWindow = nullptr;
-    vec3                   position = {};
-    vec3                   lookAt = {};
+    Vector3                position = {};
+    Vector3                lookAt = {};
     CameraMotionParameters motion = {};
     float                  boostMultiplier = 4.0f;
 };
@@ -23,10 +23,10 @@ public:
     FreeCameraController& operator=(const FreeCameraController&) = delete;
 
     void update(float deltaTime, uint32_t width, uint32_t height, bool focused);
-    mat4 getViewMatrix() const;
+    Matrix4 getViewMatrix() const;
     // Right-handed scene pose, with local -Z pointing forward.
-    mat4 getWorldMatrix() const;
-    vec3 getPosition() const;
+    Matrix4 getWorldMatrix() const;
+    Vector3 getPosition() const;
 
 private:
     void        stop();

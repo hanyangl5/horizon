@@ -30,7 +30,7 @@
 #define STRUCT(NAME)                      struct NAME
 #define DATA(TYPE, NAME, SEM)             TYPE NAME
 #define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
-#define float4x4                          mat4
+#define float4x4                          Matrix4
 #define uint                              uint32_t
 #endif
 

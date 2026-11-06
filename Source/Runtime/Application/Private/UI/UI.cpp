@@ -2862,7 +2862,7 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     const float                  R = displayPos.x + displaySize.x;
     const float                  T = displayPos.y;
     const float                  B = displayPos.y + displaySize.y;
-    alignas(alignof(mat4)) float mvp[4][4] = {
+    alignas(alignof(Matrix4)) float mvp[4][4] = {
         { 2.0f / (R - L), 0.0f, 0.0f, 0.0f },
         { 0.0f, 2.0f / (T - B), 0.0f, 0.0f },
         { 0.0f, 0.0f, 0.5f, 0.0f },
@@ -2993,7 +2993,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    ubDesc.desc.size = sizeof(mat4);
+    ubDesc.desc.size = sizeof(Matrix4);
     vbDesc.desc.pName = "UI Uniform Buffer";
     for (uint32_t i = 0; i < pDesc->frameCount; ++i)
     {

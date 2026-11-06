@@ -1042,19 +1042,19 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
 
         if (!node->has_matrix)
         {
-            joint.transform.translation = vec3(node->translation[0], node->translation[1], node->translation[2]);
+            joint.transform.translation = Vector3(node->translation[0], node->translation[1], node->translation[2]);
             joint.transform.rotation = Quat(node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3]);
             joint.transform.scale =
-                vec3(node->scale[0], node->scale[1], node->scale[2]); // *(boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
+                Vector3(node->scale[0], node->scale[1], node->scale[2]); // *(boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
         }
         else
         {
             // Matrix Decomposition
             Matrix4 mat;
-            mat.setCol0(vec4(node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3]));
-            mat.setCol1(vec4(node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7]));
-            mat.setCol2(vec4(node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11]));
-            mat.setCol3(vec4(node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]));
+            mat.setCol0(Vector4(node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3]));
+            mat.setCol1(Vector4(node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7]));
+            mat.setCol2(Vector4(node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11]));
+            mat.setCol3(Vector4(node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]));
 
             if (isTrsDecomposable(mat))
             {
@@ -1063,7 +1063,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
 
                 // extract the scaling factors from columns of the matrix
                 Matrix3 upperMat = mat.getUpper3x3();
-                vec3    pScaling = vec3(length(upperMat.getCol0()), length(upperMat.getCol1()), length(upperMat.getCol2()));
+                Vector3 pScaling = Vector3(length(upperMat.getCol0()), length(upperMat.getCol1()), length(upperMat.getCol2()));
 
                 // and the sign of the scaling
                 if (determinant(mat) < 0)
@@ -1281,7 +1281,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
                 for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
                 {
                     float time = 0.0;
-                    vec3  translation = vec3(0.0f);
+                    Vector3 translation = Vector3(0.0f);
                     cgltf_accessor_read_float(channel->sampler->input, j, &time, 1);
                     cgltf_accessor_read_float(channel->sampler->output, j, (float*)&translation, 3);
 
@@ -1311,7 +1311,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
                 for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
                 {
                     float time = 0.0;
-                    vec3  scale = vec3(0.0f);
+                    Vector3 scale = Vector3(0.0f);
                     cgltf_accessor_read_float(channel->sampler->input, j, &time, 1);
                     cgltf_accessor_read_float(channel->sampler->output, j, (float*)&scale, 3);
 
@@ -2058,7 +2058,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         uint32_t totalGeomDataSize = 0;
         totalGeomDataSize += round_up(sizeof(GeometryData), 16);
-        totalGeomDataSize += round_up(jointCount * sizeof(mat4), 16);
+        totalGeomDataSize += round_up(jointCount * sizeof(Matrix4), 16);
         totalGeomDataSize += round_up(jointCount * sizeof(uint32_t), 16);
         totalGeomDataSize += round_up(userDataSize, 16);
 
@@ -2072,7 +2072,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         if (jointCount > 0)
         {
-            geomData->pInverseBindPoses = (mat4*)(geomData + 1); // -V1027
+            geomData->pInverseBindPoses = (Matrix4*)(geomData + 1); // -V1027
             geomData->pJointRemaps =
                 (uint32_t*)((uint8_t*)geomData->pInverseBindPoses + round_up(jointCount * sizeof(*geomData->pInverseBindPoses), 16));
         }

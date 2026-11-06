@@ -89,7 +89,7 @@ struct Fontstash
 struct FontstashDrawData
 {
     CameraMatrix projView;
-    mat4         worldMat;
+    Matrix4      worldMat;
     Cmd*         pCmd;
     bool         text3D;
 };
@@ -492,7 +492,7 @@ void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const FontDrawDesc*
 #endif
 }
 
-void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const CameraMatrix* pMatProjView, const FontDrawDesc* pDesc)
+void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const Matrix4* pMatWorld, const CameraMatrix* pMatProjView, const FontDrawDesc* pDesc)
 {
 #ifdef ENABLE_FORGE_FONTS
     // ASSERT(pFontStash);
@@ -504,7 +504,7 @@ void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const Camer
     ASSERT(pMatProjView);
 
     const char*         message = pDesc->pText;
-    const mat4&         worldMat = *pMatWorld;
+    const Matrix4&      worldMat = *pMatWorld;
     const CameraMatrix& projView = *pMatProjView;
     int                 fontID = pDesc->fontID;
     unsigned            color = pDesc->fontColor;

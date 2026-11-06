@@ -256,12 +256,12 @@ void SkeletonBatcher::Unload(ReloadType reloadType)
 #endif
 }
 
-void SkeletonBatcher::SetSharedUniforms(const CameraMatrix& projViewMat, const mat4& viewMat, const Vector3& lightPos,
+void SkeletonBatcher::SetSharedUniforms(const CameraMatrix& projViewMat, const Matrix4& viewMat, const Vector3& lightPos,
                                         const Vector3& lightColor)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // we only need the rotation of view matrix in shaders to calculate billboards and fake lighting
-    mat4 viewMatNoTranslation = viewMat;
+    Matrix4 viewMatNoTranslation = viewMat;
     viewMatNoTranslation.setCol(3, Vector4(0.0f, 0.0f, 0.0f, 1.0f));
     for (uint32_t i = 0; i < maxSkeletonBatches; ++i)
     {
@@ -337,7 +337,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
 
             this->uniformDataJoints[batchIndex].skeletonInfo = uint4(numJoints, 1, 0, 0);
             uniformDataJoints.toWorldMat[instanceIndex] =
-                animObj->GetJointWorldMatNoScale(jointIndex) * mat4::scale(animObj->jointScales[jointIndex]);
+                animObj->GetJointWorldMatNoScale(jointIndex) * Matrix4::scale(animObj->jointScales[jointIndex]);
             uniformDataJoints.color[instanceIndex] = animObj->boneColor;
             uniformDataJoints.jointColor = animObj->jointColor;
 

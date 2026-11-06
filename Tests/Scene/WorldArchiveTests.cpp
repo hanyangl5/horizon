@@ -70,9 +70,9 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::name, &name));
     hz::LocalTransform transform = { .translation = Vector3(1.2345678f, 2, 3), .scale = Vector3(-1, 0, 2) };
     ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
-    hz::LocalMatrix matrix;
-    matrix.value.setElem(1, 0, 0.25f);
-    matrix.value.setElem(3, 2, 4.0f);
+    Matrix4 matrix = Matrix4::identity();
+    matrix.setElem(1, 0, 0.25f);
+    matrix.setElem(3, 2, 4.0f);
     ASSERT_TRUE(world.setComponent(matrixEntity, hz::SceneTypes::localMatrix, &matrix));
     hz::MeshRenderer mesh = { .mesh = { .high = 2, .low = 1 } };
     mesh.overrides.pushBack({ .submesh = UINT64_C(18446744073709551615), .material = { .high = 2, .low = 2 } });
@@ -108,18 +108,16 @@ TEST_F(WorldArchiveTest, SavesAffineLocalMatrixAfterReparentingUnderRotatedScale
     ASSERT_TRUE(types.registerBuiltins());
     hz::World             world(types);
     const hz::Entity      parent = world.createPersistentEntity(id(1)), child = world.createPersistentEntity(id(2));
-    const hz::LocalMatrix parentMatrix = { .value = Matrix4::translation(Vector3(1.3f, -4.7f, 9.8f)) *
-                                                    Matrix4::rotationZYX(Vector3(0.3f, 0.4f, -0.8f)) *
-                                                    Matrix4::scale(Vector3(1.5f, 0.7f, -2.35f)) };
-    const hz::LocalMatrix childMatrix = { .value = Matrix4::translation(Vector3(3.7f, -2.1f, 5.6f)) *
-                                                   Matrix4::rotationZYX(Vector3(0.8f, -0.3f, 0.2f)) };
+    const Matrix4 parentMatrix = Matrix4::translation(Vector3(1.3f, -4.7f, 9.8f)) * Matrix4::rotationZYX(Vector3(0.3f, 0.4f, -0.8f)) *
+                                 Matrix4::scale(Vector3(1.5f, 0.7f, -2.35f));
+    const Matrix4 childMatrix = Matrix4::translation(Vector3(3.7f, -2.1f, 5.6f)) * Matrix4::rotationZYX(Vector3(0.8f, -0.3f, 0.2f));
     ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
     ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::localMatrix, &childMatrix));
     ASSERT_TRUE(world.setParent(child, parent, true));
-    const hz::LocalMatrix* local = (const hz::LocalMatrix*)world.getComponent(child, hz::SceneTypes::localMatrix);
+    const Matrix4* local = (const Matrix4*)world.getComponent(child, hz::SceneTypes::localMatrix);
     ASSERT_NE(local, nullptr);
     for (uint32_t column = 0; column < 4; ++column)
-        EXPECT_EQ((float)local->value.getElem(column, 3), column == 3 ? 1.0f : 0.0f);
+        EXPECT_EQ((float)local->getElem(column, 3), column == 3 ? 1.0f : 0.0f);
     hz::WorldArchive archive;
     ASSERT_TRUE(archive.capture(world));
     hz::unique_ptr<hz::World> restored;
@@ -128,8 +126,8 @@ TEST_F(WorldArchiveTest, SavesAffineLocalMatrixAfterReparentingUnderRotatedScale
     EXPECT_EQ(restored->getParent(loaded), restored->getEntity(id(1)));
     for (uint32_t column = 0; column < 4; ++column)
         for (uint32_t row = 0; row < 4; ++row)
-            EXPECT_NEAR((float)restored->getWorldTransform(loaded)->current.getElem(column, row),
-                        (float)childMatrix.value.getElem(column, row), 0.00001f);
+            EXPECT_NEAR((float)restored->getWorldTransform(loaded)->current.getElem(column, row), (float)childMatrix.getElem(column, row),
+                        0.00001f);
 }
 
 TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
@@ -144,7 +142,7 @@ TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
         envelope(record(1) + "," + record(1)),
         envelope(record(1, "", 99)),
         envelope(record(1, "", 2) + "," + record(2, "", 1)),
-        envelope(record(1, transform + "," + component("0000000000000004", "LocalMatrix", 1, "{}"))),
+        envelope(record(1, transform + "," + component("0000000000000004", "Matrix4", 1, "{}"))),
         envelope(record(1, transform + "," + transform)),
         envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"rotation\":[0,0,0,0]}"))),
         envelope(record(1, component("0000000000000003", "LocalTransform", 1, "{\"scale\":[1e99,1,1]}"))),

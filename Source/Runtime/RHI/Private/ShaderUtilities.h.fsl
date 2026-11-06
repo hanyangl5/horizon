@@ -35,7 +35,7 @@ STATIC const float PI = 3.1415926535897932384626422832795028841971f;
 uint pack2Floats(float low, float high)
 {
 #if defined(VULKAN)
-	return packHalf2x16(vec2(low, high));
+	return packHalf2x16(Vector2(low, high));
 #elif defined(METAL)
 	return as_type<uint>(half2(float2(low, high)));
 #else
@@ -125,7 +125,7 @@ float4 unpackUnorm4x8(uint p)
 uint pack2Snorms(float low, float high)
 {
 #ifdef VULKAN
-	return packSnorm2x16(vec2(low, high));
+	return packSnorm2x16(Vector2(low, high));
 #else
 	return packSnorm2x16(half2(low, high));
 #endif
@@ -139,7 +139,7 @@ float2 unpack2Snorms(uint p)
 uint pack2Unorms(float low, float high)
 {
 #ifdef VULKAN
-	return packUnorm2x16(vec2(low, high));
+	return packUnorm2x16(Vector2(low, high));
 #else
 	return packUnorm2x16(half2(low, high));
 #endif
