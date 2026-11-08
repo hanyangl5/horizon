@@ -16,7 +16,9 @@ inline void mergeRenderRanges(Array<uint32_t>& indices, Array<RenderRange>& rang
 {
     ranges.clear();
     if (indices.empty())
+    {
         return;
+    }
     qsort(indices.data(), indices.size(), sizeof(uint32_t), compareRenderIndices);
     for (uint32_t index : indices)
     {
@@ -26,7 +28,9 @@ inline void mergeRenderRanges(Array<uint32_t>& indices, Array<RenderRange>& rang
             range.count = index - range.first + 1;
         }
         else
+        {
             ranges.pushBack({ .first = index, .count = 1 });
+        }
     }
 }
 
@@ -51,7 +55,9 @@ public:
     void beginUpdate()
     {
         for (uint32_t index : dirty)
+        {
             dirtyFlags[index] = false;
+        }
         dirty.clear();
         created.clear();
         removed.clear();
@@ -127,8 +133,8 @@ public:
         pending.clear();
         pendingActive = false;
     }
-    void              finishUpdate() { mergeRenderRanges(dirty, ranges); }
-    RenderChanges     getChanges() const
+    void          finishUpdate() { mergeRenderRanges(dirty, ranges); }
+    RenderChanges getChanges() const
     {
         return { .created = { created.data(), created.size() },
                  .removed = { removed.data(), removed.size() },

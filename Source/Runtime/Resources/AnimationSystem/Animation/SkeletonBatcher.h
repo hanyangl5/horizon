@@ -42,11 +42,11 @@ struct UniformSkeletonBlock
     CameraMatrix projectView;
     Matrix4      viewMatrix;
 
-    Vector4  color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    Vector4 color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
     // Point Light Information
-    Vector4  lightPosition;
-    Vector4  lightColor;
-    Vector4  jointColor;
+    Vector4 lightPosition;
+    Vector4 lightColor;
+    Vector4 jointColor;
     uint4 skeletonInfo;
     Matrix4 toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
 };
