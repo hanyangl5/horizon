@@ -138,7 +138,7 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
         const Matrix4 parentMat = jointModelMats[parentIndex];
         const Matrix4 childMat = jointModelMats[childIndex];
 
-        Vector3  boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
+        Vector3 boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
         float boneLen = length(boneDir);
 
         // Save smallest boneLen for the root joints scale size
