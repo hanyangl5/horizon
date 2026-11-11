@@ -1,3 +1,5 @@
+#pragma once
+
 static const uint  INVALID_TEXTURE = 0xffffffffu;
 static const float PI = 3.14159265359;
 
@@ -7,21 +9,6 @@ struct FrameData
     float4x4 previousViewProjection;
     float4x4 inverseViewProjection;
     float4   eye;
-};
-
-struct Material
-{
-    uint   baseColorTexture;
-    uint   normalTexture;
-    uint   metallicRoughnessTexture;
-    uint   emissiveTexture;
-    float4 baseColor;
-    float3 emissive;
-    float  metallic;
-    float  roughness;
-    float  alphaCutoff;
-    uint   alphaMode;
-    uint   doubleSided;
 };
 
 float2 signNotZero(float2 value) { return float2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0); }

@@ -22,6 +22,13 @@ void ClearMain(uint3 id : SV_DispatchThreadID)
     }
 }
 
+struct OITNode
+{
+    uint2 color;
+    float depth;
+    uint next;
+};
+
 uint2 packFragment(float3 color, float alpha)
 {
     const float4 value = float4(color, alpha);
@@ -33,22 +40,22 @@ float4 unpackFragment(uint2 packed)
     return float4(f16tof32(packed.x & 0xffffu), f16tof32(packed.x >> 16), f16tof32(packed.y & 0xffffu), f16tof32(packed.y >> 16));
 }
 
-[earlydepthstencil]
-void PSTransparent(PSInput input, bool frontFace : SV_IsFrontFace)
+[earlydepthstencil] void PSTransparent(PSInput input, bool frontFace : SV_IsFrontFace)
 {
-    Material mat = loadMaterial(input.materialData.x);
+    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+    GpuMaterialData   mat = materials.Load<GpuMaterialData>(input.materialData.x * sizeof(GpuMaterialData));
     if (mat.alphaMode != 2)
     {
         return;
     }
     SamplerState sampler = SamplerDescriptorHeap[samplerIndex];
-    float4       emissiveColor = float4(mat.emissive, 0);
+    float4       emissiveColor = float4(mat.emissiveFactor, 0);
     if (mat.emissiveTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.emissiveTexture)];
         emissiveColor *= texture.Sample(sampler, input.uv);
     }
-    float4 baseColor = mat.baseColor;
+    float4 baseColor = mat.baseColorFactor;
     if (mat.baseColorTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.baseColorTexture)];
@@ -118,7 +125,7 @@ void PSTransparent(PSInput input, bool frontFace : SV_IsFrontFace)
             InterlockedExchange(heads[uint2(input.position.xy)], index, prevIndex);
             uint2               packedColor = packFragment(color, alpha);
             RWByteAddressBuffer nodes = ResourceDescriptorHeap[oitNodesIndex];
-            nodes.Store4(index * 16, uint4(packedColor, asuint(input.position.z), prevIndex));
+            nodes.Store4(index * sizeof(OITNode), uint4(packedColor, asuint(input.position.z), prevIndex));
         }
         else
         {
@@ -152,12 +159,13 @@ void ResolveMain(uint3 id : SV_DispatchThreadID)
     uint                idx = heads.Load(int3(id.xy, 0));
     while (idx != 0xffffffffu && idx < oitMaxNodes && numFragments < 64)
     {
-        uint4 node = nodes.Load4(idx * 16);
-        frags[numFragments].color = half4(unpackFragment(node.xy));
-        frags[numFragments].depth = asfloat(node.z);
-        frags[numFragments].next = node.w;
+        uint4 packed = nodes.Load4(idx * sizeof(OITNode));
+        OITNode node = { packed.xy, asfloat(packed.z), packed.w };
+        frags[numFragments].color = half4(unpackFragment(node.color));
+        frags[numFragments].depth = node.depth;
+        frags[numFragments].next = node.next;
         numFragments++;
-        idx = node.w;
+        idx = node.next;
     }
     if (idx != 0xffffffffu)
     {

@@ -74,15 +74,18 @@ void main(uint3 thread : SV_DispatchThreadID)
                 while (rq.Proceed())
                 {
                     uint customIndex = uint(rq.CandidateInstanceID());
-                    if (alphaTestMethod == 0 || loadRTDraw(customIndex).alphaMode != 1)
+                    GpuDrawData mesh = loadRTDraw(customIndex);
+                    if (alphaTestMethod == 0 || mesh.alphaMode != 1)
                     {
                         rq.CommitNonOpaqueTriangleHit();
                     }
                     else
                     {
-                        RTDraw mesh = loadRTDraw(customIndex);
-                        float  alpha = sampleRayTracingAlpha(mesh, rq.CandidatePrimitiveIndex(), rq.CandidateTriangleBarycentrics());
-                        if (alpha >= loadRTMaterial(mesh.material).alphaCutoff)
+                        ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+                        GpuMaterialData   material = materials.Load<GpuMaterialData>(mesh.material * sizeof(GpuMaterialData));
+                        float             alpha =
+                            sampleRayTracingAlpha(mesh, material, rq.CandidatePrimitiveIndex(), rq.CandidateTriangleBarycentrics());
+                        if (alpha >= material.alphaCutoff)
                         {
                             rq.CommitNonOpaqueTriangleHit();
                         }
@@ -119,13 +122,15 @@ void main(uint3 thread : SV_DispatchThreadID)
                         break;
                     }
                     uint customIndex = uint(rq.CommittedInstanceID());
-                    if (loadRTDraw(customIndex).alphaMode != 1)
+                    GpuDrawData mesh = loadRTDraw(customIndex);
+                    if (mesh.alphaMode != 1)
                     {
                         break;
                     }
-                    RTDraw mesh = loadRTDraw(customIndex);
-                    float  alpha = sampleRayTracingAlpha(mesh, rq.CommittedPrimitiveIndex(), rq.CommittedTriangleBarycentrics());
-                    if (alpha >= loadRTMaterial(mesh.material).alphaCutoff)
+                    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+                    GpuMaterialData   material = materials.Load<GpuMaterialData>(mesh.material * sizeof(GpuMaterialData));
+                    float alpha = sampleRayTracingAlpha(mesh, material, rq.CommittedPrimitiveIndex(), rq.CommittedTriangleBarycentrics());
+                    if (alpha >= material.alphaCutoff)
                     {
                         break;
                     }

@@ -2,10 +2,11 @@
 #include "Geometry.slang"
 void PSShadow(PSInput input)
 {
-    Material material = loadMaterial(input.materialData.x);
+    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.materialData.x * sizeof(GpuMaterialData));
     if (material.alphaMode == 1)
     {
-        float alpha = material.baseColor.a;
+        float alpha = material.baseColorFactor.a;
         if (material.baseColorTexture != INVALID_TEXTURE)
         {
             Texture2D<float4> base = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];

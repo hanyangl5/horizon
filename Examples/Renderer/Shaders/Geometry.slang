@@ -1,4 +1,5 @@
 #include "Common.slang"
+#include "SceneData.slang"
 
 cbuffer RootConstant0
 {
@@ -32,41 +33,13 @@ cbuffer RootConstant0
     float oitTime;
 };
 
+#include "Material.slang"
+
 float4x4 loadMatrix(ByteAddressBuffer buffer, uint offset)
 {
     // Runtime matrices store four columns; construct then transpose HLSL's row vectors.
     return transpose(float4x4(asfloat(buffer.Load4(offset)), asfloat(buffer.Load4(offset + 16)), asfloat(buffer.Load4(offset + 32)),
                               asfloat(buffer.Load4(offset + 48))));
-}
-
-uint resolveTexture(uint2 id)
-{
-    if (id.x == INVALID_TEXTURE || id.y == 0)
-    {
-        return INVALID_TEXTURE;
-    }
-    ByteAddressBuffer textures = ResourceDescriptorHeap[texturesIndex];
-    const uint        offset = id.x * 12;
-    return all(textures.Load2(offset) == id) ? textures.Load(offset + 8) : INVALID_TEXTURE;
-}
-
-Material loadMaterial(uint slot)
-{
-    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    const uint        offset = slot * 88;
-    Material          material;
-    material.baseColorTexture = resolveTexture(materials.Load2(offset + 8));
-    material.normalTexture = resolveTexture(materials.Load2(offset + 16));
-    material.metallicRoughnessTexture = resolveTexture(materials.Load2(offset + 24));
-    material.emissiveTexture = resolveTexture(materials.Load2(offset + 32));
-    material.baseColor = asfloat(materials.Load4(offset + 40));
-    material.emissive = asfloat(materials.Load3(offset + 56));
-    material.metallic = asfloat(materials.Load(offset + 68));
-    material.roughness = asfloat(materials.Load(offset + 72));
-    material.alphaCutoff = asfloat(materials.Load(offset + 76));
-    material.alphaMode = materials.Load(offset + 80);
-    material.doubleSided = materials.Load(offset + 84);
-    return material;
 }
 
 float3 transformNormal(float4x4 world, float3 normal)
@@ -104,7 +77,7 @@ PSInput buildVertex(uint vertexId, uint instance, uint material, uint id, uint p
     ByteAddressBuffer           Positions = ResourceDescriptorHeap[NonUniformResourceIndex(positionBuffer)];
     ByteAddressBuffer           Normals = ResourceDescriptorHeap[NonUniformResourceIndex(normalBuffer)];
     ByteAddressBuffer           Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(uvBuffer)];
-    float3                      position = asfloat(Positions.Load3(vertexId * 12));
+    float3                      position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
     uint                        normal = Normals.Load(vertexId * 4);
     uint                        uv = Texcoords.Load(vertexId * 4);
     const float4x4              world = loadMatrix(Instances, instance * 192 + 32);
@@ -172,6 +145,8 @@ void runAlphaTest(float alpha, float alphaThreshold, float2 pixel)
 {
     if (alphaThreshold > 0.0)
     {
+        // http://alex-charlton.com/posts/Dithering_on_the_GPU/
+        // https://forums.khronos.org/showthread.php/5091-screen-door-transparency
         float4x4 thresholdMatrix =
             float4x4(1.0 / 17.0, 9.0 / 17.0, 3.0 / 17.0, 11.0 / 17.0, 13.0 / 17.0, 5.0 / 17.0, 15.0 / 17.0, 7.0 / 17.0, 4.0 / 17.0,
                      12.0 / 17.0, 2.0 / 17.0, 10.0 / 17.0, 16.0 / 17.0, 8.0 / 17.0, 14.0 / 17.0, 6.0 / 17.0);
@@ -187,10 +162,11 @@ void runAlphaTest(float alpha, float alphaThreshold, float2 pixel)
 
 PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
 {
-    SamplerState SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    Material     material = loadMaterial(input.materialData.x);
+    SamplerState      SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
+    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.materialData.x * sizeof(GpuMaterialData));
 
-    float4 baseColor = material.baseColor;
+    float4 baseColor = material.baseColorFactor;
     if (material.baseColorTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> BaseColor = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
@@ -217,8 +193,8 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
 
     n = frontFace ? n : -n;
 
-    float roughness = material.roughness;
-    float metallic = material.metallic;
+    float roughness = material.roughnessFactor;
+    float metallic = material.metallicFactor;
     if (material.metallicRoughnessTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> MetallicRoughness = ResourceDescriptorHeap[NonUniformResourceIndex(material.metallicRoughnessTexture)];
@@ -229,7 +205,7 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
     roughness = saturate(roughness);
     metallic = saturate(metallic);
 
-    float3 emissive = material.emissive;
+    float3 emissive = material.emissiveFactor;
     if (material.emissiveTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> Emissive = ResourceDescriptorHeap[NonUniformResourceIndex(material.emissiveTexture)];

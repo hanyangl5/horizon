@@ -1996,7 +1996,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const hz::GpuMaterialData& copiedMaterial = *(const hz::GpuMaterialData*)(pBytes + 512);
     EXPECT_EQ(copiedMaterial.id, materialID);
     EXPECT_FLOAT_EQ(copiedMaterial.roughnessFactor, 0.8f);
-    ASSERT_TRUE(copiedMaterial.baseColorTexture.isValid());
+    EXPECT_EQ(copiedMaterial.baseColorTexture, textureSrv);
     const hz::RenderSceneUploads acknowledged = scene.getPendingUploads();
     EXPECT_EQ(acknowledged.primitives.count + acknowledged.instances.count + acknowledged.meshBatches.count +
                   acknowledged.instanceIndices.count,
@@ -2009,7 +2009,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const GpuSceneCopy movedCopies[] = {
         instanceCopy,
         { .table = &hz::GpuSceneBuffers::textures,
-          .srcOffset = sizeof(hz::GpuTextureData) * copiedMaterial.baseColorTexture.index,
+          .srcOffset = sizeof(hz::GpuTextureData) * assetManager.find(assets.getTextures().pData[0].id).index,
           .dstOffset = 768,
           .size = sizeof(hz::GpuTextureData) },
     };
@@ -2017,7 +2017,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 2);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
     const hz::GpuTextureData& copiedTexture = *(const hz::GpuTextureData*)(pBytes + 768);
-    EXPECT_EQ(copiedTexture.id, copiedMaterial.baseColorTexture);
+    EXPECT_TRUE(copiedTexture.id.isValid());
+    EXPECT_EQ(copiedTexture.srv, copiedMaterial.baseColorTexture);
     EXPECT_EQ(copiedTexture.srv, textureSrv);
 
     // A cancelled frame keeps its changes pending and does not advance history.
@@ -2426,7 +2427,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_EQ(meshBatch->submesh, renderer.overrides[0].submesh);
         const hz::GpuMaterialData* material = gpu->getAssetTables().getMaterial(meshBatch->material);
         ASSERT_NE(material, nullptr);
-        EXPECT_NE(gpu->getAssetTables().getTexture(material->baseColorTexture), nullptr);
+        EXPECT_NE(material->baseColorTexture, UINT32_MAX);
         const hz::MeshAsset* mesh = assetManager.getMesh(assetManager.find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
         hz::CommandList& commands = context.acquireCommandList();
@@ -2929,6 +2930,251 @@ static const char kCookbookTextureReadback[] = R"hlsl(
     }
 )hlsl";
 
+TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqueHits)
+{
+    hz::RenderContext context({ .pAppName = "RayTracingReflectionAlphaTest", .enableGpuValidation = true });
+    if (!context.supportsRayTracing())
+    {
+        GTEST_SKIP() << "Selected device does not support ray tracing pipelines";
+    }
+    const std::filesystem::path shaders =
+        std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
+    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    hz::GPURayTracingPipeline reflection = context.createRayTracingPipeline({
+        .sourceDirectory = RD_OTHER_FILES,
+        .pFileName = "RTReflection.slang",
+        .pRayGeneration = "rayGenMain",
+        .missShaders = { "missMain" },
+        .hitGroups = { { .pName = "ReflectionHit", .pClosestHit = "closestHitMain", .pAnyHit = "anyHitFoliage" } },
+        .payloadSize = 16,
+        .maxRecursionDepth = 2,
+    });
+    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    hz::GPUPipeline reader =
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+                                                                      .pSource = kCookbookTextureReadback,
+                                                                      .sourceSize = sizeof(kCookbookTextureReadback) - 1,
+                                                                      .pEntryPoint = "CSMain" } } } });
+    ASSERT_TRUE(reflection.isValid() && reader.isValid());
+    const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    {
+        return context.createBuffer({ .size = size,
+                                      .elementCount = stride ? size / stride : size / 4,
+                                      .structStride = stride,
+                                      .pInitialData = data,
+                                      .initialDataSize = size,
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
+                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    };
+    const auto image = [&](hz::Format format, bool target)
+    {
+        return context.createTexture({ .width = 1,
+                                       .height = 1,
+                                       .format = format,
+                                       .startState = target ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .renderTarget = target });
+    };
+    hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), depth = image(hz::Format::R32_SFLOAT, true);
+    hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true);
+    hz::GPUTexture result = image(hz::Format::R32G32B32A32_SFLOAT, false);
+    hz::GPUSampler sampler = context.createSampler();
+    struct FrameData
+    {
+        Matrix4 current, previous, inverse;
+        Vector4 eye;
+    };
+    const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 1, 1) };
+    const LightingFrameData lighting = { .lightDirection = Vector4(0, 0, -1, 0) };
+    hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
+    const float    positions[] = { -1, -1, 0.5f, 3, -1, 0.5f, -1, 3, 0.5f };
+    // A leading index exercises a uint16 triangle spanning two aligned words.
+    const uint16_t indices[] = { UINT16_MAX, 0, 1, 2 };
+    const uint32_t indices32[] = { UINT32_MAX, 0, 1, 2 };
+    const uint32_t texcoords[] = { 0, 0, 0 };
+    hz::GPUBuffer  vertices = input(positions, sizeof(positions)), indexBuffer = input(indices, sizeof(indices));
+    hz::GPUBuffer indexBuffer32 = input(indices32, sizeof(indices32));
+    hz::GPUBuffer  uv = input(texcoords, sizeof(texcoords));
+    hz::GpuMaterialData materials[3];
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        materials[i].id = { i, 1 };
+        materials[i].baseColorTexture = i < 2 ? alpha.getSrvIndex() : UINT32_MAX;
+        materials[i].alphaMode = i == 1 ? 1u : 0u;
+        materials[i].emissiveFactor[i == 2 ? 1 : 0] = 1;
+        materials[i].alphaCutoff = 0.5f;
+    }
+    hz::GpuTextureData textures[4];
+    textures[3] = { .id = { 3, 9 }, .srv = alpha.getSrvIndex() };
+    GpuDrawData drawData[8] = {};
+    drawData[5] = { .material = 0,
+                    .alphaMode = 0,
+                    .positions = vertices.getSrvIndex(),
+                    .normals = uv.getSrvIndex(),
+                    .texcoords = uv.getSrvIndex(),
+                    .indices = indexBuffer.getSrvIndex(),
+                    .indexStride = 2,
+                    .firstIndex = 1,
+                    .indexCount = 3 };
+    drawData[6] = drawData[5];
+    drawData[6].material = drawData[6].alphaMode = 1;
+    drawData[7] = drawData[5];
+    drawData[7].material = 2;
+    hz::GPUBuffer materialBuffer = input(materials, sizeof(materials)), textureBuffer = input(textures, sizeof(textures));
+    hz::GPUBuffer drawBuffer = input(drawData, sizeof(drawData));
+    hz::AccelerationStructureGeometry geometry = { .pVertexBuffer = &vertices,
+                                                   .pIndexBuffer = &indexBuffer,
+                                                   .indexOffset = sizeof(uint16_t),
+                                                   .vertexCount = 3,
+                                                   .indexCount = 3,
+                                                   .indexType = INDEX_TYPE_UINT16 };
+    hz::GPUAccelerationStructure      opaque = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    geometry.opaque = false;
+    hz::GPUAccelerationStructure      masked = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    hz::AccelerationStructureInstance background = {
+        .pBottom = &opaque,
+        .instanceId = 7,
+        .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
+    };
+    background.transform[11] = 0.5f;
+    const hz::AccelerationStructureInstance opaqueInstances[] = {
+        { .pBottom = &opaque, .instanceId = 5, .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE },
+        background,
+    };
+    const hz::AccelerationStructureInstance maskedInstances[] = {
+        { .pBottom = &masked, .instanceId = 6, .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE },
+        background,
+    };
+    hz::GPUAccelerationStructure opaqueTop =
+        context.createAccelerationStructure({ .type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { opaqueInstances, 2 } });
+    hz::GPUAccelerationStructure maskedTop =
+        context.createAccelerationStructure({ .type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 2 } });
+    hz::GPUAccelerationStructure maskedOnly =
+        context.createAccelerationStructure({ .type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 1 } });
+    ASSERT_TRUE(opaque.isValid() && masked.isValid() && opaqueTop.isValid() && maskedTop.isValid() && maskedOnly.isValid());
+    hz::GPUBuffer output = context.createBuffer({ .size = 16,
+                                                  .elementCount = 1,
+                                                  .structStride = 16,
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUBuffer readback = context.createBuffer({ .size = 16,
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .startState = RESOURCE_STATE_COPY_DEST,
+                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    struct ReflectionConstants
+    {
+        uint32_t frame, lighting, draws, materials, textures, sampler, tlas, normal, depth, output, noise;
+        uint32_t environment = UINT32_MAX, irradiance = UINT32_MAX, brdf = UINT32_MAX, environmentSampler = UINT32_MAX;
+        uint32_t shadows = 1, ao = 0, samples = 1, phase = 0, alphaMethod = 1, retraceDepth = 3;
+        float    aoRadius = 2, aoPower = 1, shadowRadius = 0;
+    } constants = { frame.getSrvIndex(),
+                    light.getSrvIndex(),
+                    drawBuffer.getSrvIndex(),
+                    materialBuffer.getSrvIndex(),
+                    textureBuffer.getSrvIndex(),
+                    sampler.getIndex(),
+                    0,
+                    normal.getSrvIndex(),
+                    depth.getSrvIndex(),
+                    result.getUavIndex(),
+                    UINT32_MAX };
+    struct AlphaCase
+    {
+        float textureAlpha;
+        float factor;
+        bool  hasTexture;
+        bool  opaque;
+        bool  background;
+        float red;
+        float green;
+    };
+    const AlphaCase cases[] = {
+        { 0.0f, 1.0f, true, true, true, 1, 0 },    // Opaque geometry accepts even zero texture alpha.
+        { 0.25f, 1.0f, true, false, true, 0, 1 },  // A mask hole reveals the green geometry behind it.
+        { 0.75f, 1.0f, true, false, true, 1, 0 },  // The solid part of the mask stays red.
+        { 0.5f, 1.0f, true, false, true, 1, 0 },   // Alpha equal to the cutoff is accepted.
+        { 0.75f, 0.5f, true, false, true, 0, 1 },  // Texture alpha is multiplied by the material factor.
+        { 1.0f, 0.25f, false, false, true, 0, 1 }, // Material alpha alone can reject a hit.
+        { 0.0f, 0.75f, false, false, true, 1, 0 }, // An absent texture does not affect material alpha.
+        { 0.25f, 1.0f, true, false, false, 0, 0 }, // A hole with no geometry behind it reaches the miss shader.
+    };
+    const uint32_t caseCount = sizeof(cases) / sizeof(cases[0]);
+    for (uint32_t caseIndex = 0; caseIndex < 2 * caseCount; ++caseIndex)
+    {
+        SCOPED_TRACE(caseIndex);
+        const AlphaCase& test = cases[caseIndex % caseCount];
+        for (GpuDrawData& draw : drawData)
+        {
+            draw.indices = caseIndex < caseCount ? indexBuffer.getSrvIndex() : indexBuffer32.getSrvIndex();
+            draw.indexStride = caseIndex < caseCount ? 2 : 4;
+        }
+        ASSERT_TRUE(context.updateBuffer(drawBuffer, 0, drawData, sizeof(drawData)));
+        materials[1].baseColorFactor[3] = test.factor;
+        materials[1].baseColorTexture = test.hasTexture ? alpha.getSrvIndex() : UINT32_MAX;
+        ASSERT_TRUE(context.updateBuffer(materialBuffer, 0, materials, sizeof(materials)));
+        hz::CommandList& commands = context.acquireCommandList();
+        if (!caseIndex)
+        {
+            commands.buildAccelerationStructure(opaque);
+            commands.buildAccelerationStructure(masked);
+            commands.buildAccelerationStructure(opaqueTop);
+            commands.buildAccelerationStructure(maskedTop);
+            commands.buildAccelerationStructure(maskedOnly);
+        }
+        const auto clear = [&](const hz::GPUTexture& texture, ClearValue value)
+        {
+            commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
+                                                              .loadAction = LOAD_ACTION_CLEAR,
+                                                              .storeAction = STORE_ACTION_STORE,
+                                                              .clearValue = value } } });
+            commands.endRendering();
+        };
+        clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 });
+        clear(depth, { .r = 0.2f });
+        clear(alpha, { .r = 1, .g = 1, .b = 1, .a = test.textureAlpha });
+        constants.tlas = test.opaque ? opaqueTop.getSrvIndex() : test.background ? maskedTop.getSrvIndex() : maskedOnly.getSrvIndex();
+        commands.setPipeline(reflection);
+        commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+        commands.traceRays(reflection, 1, 1, 1,
+                           { .sampledTextures = { &normal, &depth, &alpha },
+                             .storageTextures = { &result },
+                             .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &textureBuffer, &vertices, &indexBuffer, &indexBuffer32, &uv } });
+        commands.setPipeline(reader);
+        commands.setRootConstant({ result.getSrvIndex(), output.getUavIndex(), 0 });
+        commands.dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+        commands.copyBuffer(readback, 0, output, 0, 16);
+        context.wait(context.submit(commands));
+        const float* values = (const float*)readback.get()->pCpuMappedAddress;
+        ASSERT_NE(values, nullptr);
+        EXPECT_NEAR(values[0], test.red, 1e-5f);
+        EXPECT_NEAR(values[1], test.green, 1e-5f);
+        EXPECT_NEAR(values[2], 0, 1e-5f);
+        EXPECT_FLOAT_EQ(values[3], 1);
+    }
+    ID3D12Device* device = nullptr;
+    ASSERT_EQ(output.get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
+    EXPECT_EQ(device->GetDeviceRemovedReason(), S_OK);
+    ID3D12InfoQueue* info = nullptr;
+    if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&info))))
+    {
+        for (UINT64 i = 0; i < info->GetNumStoredMessagesAllowedByRetrievalFilter(); ++i)
+        {
+            SIZE_T size = 0;
+            info->GetMessage(i, nullptr, &size);
+            std::vector<uint8_t> bytes(size);
+            D3D12_MESSAGE*       message = (D3D12_MESSAGE*)bytes.data();
+            info->GetMessage(i, message, &size);
+            EXPECT_GT(message->Severity, D3D12_MESSAGE_SEVERITY_ERROR) << message->pDescription;
+        }
+        info->Release();
+    }
+    device->Release();
+}
+
 TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOccluders)
 {
     hz::RenderContext context({ .pAppName = "CookbookRayShadowTest", .enableGpuValidation = true });
@@ -2993,7 +3239,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     for (uint32_t i = 0; i < 2; ++i)
     {
         materials[i].id = { i, 1 };
-        materials[i].baseColorTexture = { 3, 9 };
+        materials[i].baseColorTexture = alpha.getSrvIndex();
         materials[i].alphaMode = i;
         materials[i].alphaCutoff = 0.5f;
     }
@@ -3735,8 +3981,8 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     const FrameData          camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
     const hz::RenderInstance instance;
     hz::GpuMaterialData      material;
-    material.baseColorTexture = { 0, 9 };
-    material.normalTexture = { 1, 9 };
+    material.baseColorTexture = alpha.getSrvIndex();
+    material.normalTexture = normalMap.getSrvIndex();
     material.alphaCutoff = .5f;
     const hz::GpuTextureData   texture[] = { { .id = { 0, 9 }, .srv = alpha.getSrvIndex() },
                                              { .id = { 1, 9 }, .srv = normalMap.getSrvIndex() } };

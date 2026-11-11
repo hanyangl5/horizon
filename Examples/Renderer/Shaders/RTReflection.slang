@@ -45,7 +45,7 @@ void rayGenMain()
     payload.depth = 0;
     float3 accumulatedColor = float3(0.0, 0.0, 0.0);
     {
-        TraceRay(scene, RAY_FLAG_FORCE_OPAQUE, 0xff, 0, 0, 0, ray, payload);
+        TraceRay(scene, RAY_FLAG_NONE, 0xff, 0, 0, 0, ray, payload);
         accumulatedColor += payload.color;
         payload.depth++;
     }
@@ -73,7 +73,7 @@ void missMain(inout RayPayload payload)
 [shader("closesthit")]
 void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttributes attributes)
 {
-    RTDraw            draw = loadRTDraw(InstanceID());
+    GpuDrawData draw = loadRTDraw(InstanceID());
     uint3             indices = loadRTTriangle(draw, PrimitiveIndex());
     float3            bary = float3(1.0 - attributes.barycentrics.x - attributes.barycentrics.y, attributes.barycentrics);
     ByteAddressBuffer normals = ResourceDescriptorHeap[NonUniformResourceIndex(draw.normals)];
@@ -85,17 +85,18 @@ void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttribu
     {
         N = -N;
     }
-    float2       uv = interpolateRTUV(draw, indices, attributes.barycentrics);
-    Material     material = loadRTMaterial(draw.material);
-    SamplerState sampler = SamplerDescriptorHeap[samplerIndex];
-    float3       baseColor = material.baseColor.rgb;
+    float2            uv = interpolateRTUV(draw, indices, attributes.barycentrics);
+    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+    GpuMaterialData   material = materials.Load<GpuMaterialData>(draw.material * sizeof(GpuMaterialData));
+    SamplerState      sampler = SamplerDescriptorHeap[samplerIndex];
+    float3            baseColor = material.baseColorFactor.rgb;
     if (material.baseColorTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
         baseColor *= texture.SampleLevel(sampler, uv, 0).rgb;
     }
-    float metallic = material.metallic;
-    float roughness = material.roughness;
+    float metallic = material.metallicFactor;
+    float roughness = material.roughnessFactor;
     if (material.metallicRoughnessTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(material.metallicRoughnessTexture)];
@@ -103,7 +104,7 @@ void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttribu
         metallic *= mr.b;
         roughness *= mr.g;
     }
-    float3 emissive = material.emissive;
+    float3 emissive = material.emissiveFactor;
     if (material.emissiveTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(material.emissiveTexture)];
@@ -114,4 +115,18 @@ void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttribu
     PBRLighting lighting = evaluatePBRLighting(baseColor, metallic, roughness, N, V, L, 1.0, 1.0, light[0], rtLightingBindings(), false);
     // Reference renderer uses one unshadowed bounce and no recursive TraceRay in closest-hit.
     payload.color = emissive + (lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular);
+}
+
+// Only masked geometry invokes Any-Hit; opaque geometry is accepted by traversal.
+[shader("anyhit")]
+void anyHitFoliage(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
+{
+    GpuDrawData mesh = loadRTDraw(InstanceID());
+    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+    GpuMaterialData   material = materials.Load<GpuMaterialData>(mesh.material * sizeof(GpuMaterialData));
+    float             alpha = sampleRayTracingAlpha(mesh, material, PrimitiveIndex(), attribs.barycentrics);
+    if (alpha < material.alphaCutoff)
+    {
+        IgnoreHit();
+    }
 }

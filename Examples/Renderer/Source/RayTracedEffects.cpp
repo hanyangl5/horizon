@@ -80,7 +80,7 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& context): context(context)
         .pFileName = "RTReflection.slang",
         .pRayGeneration = "rayGenMain",
         .missShaders = { "missMain" },
-        .hitGroups = { { .pName = "ReflectionHit", .pClosestHit = "closestHitMain" } },
+        .hitGroups = { { .pName = "ReflectionHit", .pClosestHit = "closestHitMain", .pAnyHit = "anyHitFoliage" } },
         .payloadSize = 16,
         .maxRecursionDepth = 2,
         .pName = "Renderer.RT.Reflection",

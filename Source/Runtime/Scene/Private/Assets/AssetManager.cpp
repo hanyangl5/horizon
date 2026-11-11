@@ -492,7 +492,7 @@ GpuAssetTables AssetManager::getGpuTables()
                 mapping.id = { .index = i, .generation = asset.generation };
                 const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
                                                material.emissiveTexture };
-                GpuTextureID* ppTextures[] = { &mapping.baseColorTexture, &mapping.normalTexture, &mapping.metallicRoughnessTexture,
+                uint32_t*     ppTextures[] = { &mapping.baseColorTexture, &mapping.normalTexture, &mapping.metallicRoughnessTexture,
                                                &mapping.emissiveTexture };
                 for (uint32_t texture = 0; texture < 4; ++texture)
                 {
@@ -500,9 +500,10 @@ GpuAssetTables AssetManager::getGpuTables()
                     {
                         continue;
                     }
-                    const AssetHandle handle = find(textureIDs[texture]);
-                    ASSERT(getTexture(handle));
-                    *ppTextures[texture] = { .index = handle.index, .generation = handle.generation };
+                    const AssetHandle   handle = find(textureIDs[texture]);
+                    const TextureAsset* textureAsset = getTexture(handle);
+                    ASSERT(textureAsset);
+                    *ppTextures[texture] = textureAsset->getTexture().getSrvIndex();
                 }
                 memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
                 memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));

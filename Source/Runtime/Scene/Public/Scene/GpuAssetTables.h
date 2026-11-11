@@ -57,10 +57,10 @@ struct GpuSubmeshData
 struct GpuMaterialData
 {
     GpuMaterialID id;
-    GpuTextureID  baseColorTexture;
-    GpuTextureID  normalTexture;
-    GpuTextureID  metallicRoughnessTexture;
-    GpuTextureID  emissiveTexture;
+    uint32_t      baseColorTexture = UINT32_MAX;
+    uint32_t      normalTexture = UINT32_MAX;
+    uint32_t      metallicRoughnessTexture = UINT32_MAX;
+    uint32_t      emissiveTexture = UINT32_MAX;
     float         baseColorFactor[4] = { 1, 1, 1, 1 };
     float         emissiveFactor[3] = {};
     float         metallicFactor = 1;
