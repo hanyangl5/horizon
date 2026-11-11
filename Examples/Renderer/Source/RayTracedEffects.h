@@ -40,7 +40,7 @@ public:
     // Replacing targets requires completion of earlier draws, as for the other render passes.
     void resize(uint32_t width, uint32_t height);
 
-    void markDirty();
+    void                     markDirty();
     void execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const DeferredGBuffer& gbuffer, const SceneView& view,
                  const GpuDrawList& draws, const LightingResources& lighting);
     bool isSupported() const { return supported; }

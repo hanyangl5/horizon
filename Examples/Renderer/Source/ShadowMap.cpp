@@ -130,11 +130,12 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
     commands.setPipeline(pipeline);
     commands.setViewport(0, 0, 512, 512);
     commands.setScissor(0, 0, 512, 512);
-    commands.setRootConstant({ 0, 0, 0, shadowFrames[backing].getSrvIndex(),
-                               view.gpuScene.getBuffers().instances.isValid() ? view.gpuScene.getBuffers().instances.getSrvIndex() : UINT32_MAX,
-                               view.gpuScene.getBuffers().materials.isValid() ? view.gpuScene.getBuffers().materials.getSrvIndex() : UINT32_MAX,
-                               view.gpuScene.getBuffers().textures.isValid() ? view.gpuScene.getBuffers().textures.getSrvIndex() : UINT32_MAX,
-                               surfaceSampler.getIndex() });
+    commands.setRootConstant(
+        { 0, 0, 0, shadowFrames[backing].getSrvIndex(),
+          view.gpuScene.getBuffers().instances.isValid() ? view.gpuScene.getBuffers().instances.getSrvIndex() : UINT32_MAX,
+          view.gpuScene.getBuffers().materials.isValid() ? view.gpuScene.getBuffers().materials.getSrvIndex() : UINT32_MAX,
+          view.gpuScene.getBuffers().textures.isValid() ? view.gpuScene.getBuffers().textures.getSrvIndex() : UINT32_MAX,
+          surfaceSampler.getIndex() });
     commands.setRootConstant({ draws.getDrawData(backing).getSrvIndex() }, 11);
     if (draws.getCount(backing))
     {
