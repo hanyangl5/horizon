@@ -171,7 +171,7 @@ public:
     // Returned spans expire on the next call or update.
     RenderSceneUploads getPendingUploads();
     // The next submitted frame renders previous == current for the entity, or for every entity when invalid.
-    void               resetHistory(Entity entity = {});
+    void               markDirty(Entity entity = {});
 
     RenderPrimitiveID      findPrimitive(Entity entity) const;
     const RenderPrimitive* getPrimitive(RenderPrimitiveID id) const;
@@ -198,7 +198,7 @@ public:
 
 private:
     friend class GpuScene;
-    // Set while a GpuScene frame is open; update() and resetHistory() must not run then.
+    // Set while a GpuScene frame is open; update() and markDirty() must not run then.
     void             setFrameLocked(bool locked);
     void             acknowledgeUploads();
     // Records the current transforms and lenses as submitted, so the next update renders them as previous.

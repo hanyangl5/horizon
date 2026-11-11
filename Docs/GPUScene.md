@@ -61,7 +61,7 @@ gpuScene.upload(commands);
 gpuScene.endFrame(context.submit(commands, &backbuffer));
 ```
 
-不提交时调用 `cancelFrame`，dirty 不清除、历史不推进，下一帧自动补上。`beginFrame` 与 `endFrame` 之间不能调用 `RenderScene::update` 或 `resetHistory`，用 `ASSERT` 检查。World 在此期间可以继续修改，下一次提取才可见。
+不提交时调用 `cancelFrame`，dirty 不清除、历史不推进，下一帧自动补上。`beginFrame` 与 `endFrame` 之间不能调用 `RenderScene::update` 或 `markDirty`，用 `ASSERT` 检查。World 在此期间可以继续修改，下一次提取才可见。
 
 ### Dirty 与上传
 
@@ -85,7 +85,7 @@ gpuScene.endFrame(context.submit(commands, &backbuffer));
 
 ### 运动历史
 
-`RenderInstance` 继续同时保存 current 和 previous。`endFrame` 只为本帧有变化的 instance 记录已提交的 current；下一次提取据此计算 previous，有变化时标记 dirty 并上传。静止实体没有开销。`resetHistory` 在下一次提取前阻止记录旧值，因此 `historyEpoch` 已删除。
+`RenderInstance` 继续同时保存 current 和 previous。`endFrame` 只为本帧有变化的 instance 记录已提交的 current；下一次提取据此计算 previous，有变化时标记 dirty 并上传。静止实体没有开销。`markDirty` 在下一次提取前阻止记录旧值，因此 `historyEpoch` 已删除。
 
 ### 渲染线程
 

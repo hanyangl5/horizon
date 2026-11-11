@@ -219,7 +219,7 @@ gpuScene.endFrame(pConstants->submission);
 | 取消这一帧，再更新到 D 并开始一帧 | D | A |
 | 提交 C，之后更新到 D 并开始一帧 | D | C |
 
-表中后两行是两种不同的后续选择。取消的帧、窗口暂停期间只 Update，都会保留上次实际提交的历史。首次出现、索引 复用或主动 `resetHistory` 时，使用 previous=current，避免产生无意义的大幅运动。
+表中后两行是两种不同的后续选择。取消的帧、窗口暂停期间只 Update，都会保留上次实际提交的历史。首次出现、索引 复用或主动 `markDirty` 时，使用 previous=current，避免产生无意义的大幅运动。
 
 历史推进发生在提交后的 `endFrame` 中，只记录本帧有变化的实例。`beginFrame` 之后 RenderScene 不再更新，所以记录的就是本帧实际上传的 current；World 此时被继续修改为 D 也不会影响它。若把 D 写进 previous，下一帧的运动矢量就会使用一份从未绘制过的姿态。
 

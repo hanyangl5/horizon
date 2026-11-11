@@ -40,7 +40,7 @@ public:
     // Replacing targets requires completion of earlier draws, as for the other render passes.
     void resize(uint32_t width, uint32_t height);
 
-    void resetHistory();
+    void markDirty();
     void execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const DeferredGBuffer& gbuffer, const SceneView& view,
                  const GpuDrawList& draws, const LightingResources& lighting);
     bool isSupported() const { return supported; }
@@ -71,6 +71,6 @@ private:
     uint32_t                          historyIndex = 0;
     uint32_t                          frameIndex = 0;
     uint64_t                          assetRevision = 0;
-    bool                              historyValid = false;
+    bool                              bMarkedDirty = true;
     bool                              supported = false;
 };

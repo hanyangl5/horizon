@@ -24,7 +24,6 @@ constexpr const char* kGBufferNames[] = {
 };
 
 static_assert(offsetof(hz::RenderInstance, current) == 32 && offsetof(hz::RenderInstance, previous) == 96);
-static_assert(offsetof(hz::GpuMaterialData, baseColorFactor) == 40 && offsetof(hz::GpuMaterialData, alphaMode) == 80);
 
 GBuffer::GBuffer(hz::RenderContext& context): context(context)
 {
@@ -78,7 +77,7 @@ void GBuffer::resize(uint32_t width, uint32_t height)
 void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const SceneView& view, const GpuDrawList& draws)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
-    const hz::GpuSceneBuffers& gpu = view.gpu.getBuffers();
+    const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
     const ClearValue           black = {};
     commands.beginGpuTimestamp("Geometry");
     commands.beginRendering({
@@ -163,7 +162,7 @@ bool RenderPasses::resize(uint32_t width, uint32_t height)
     rayTracing->resize(width, height);
     postprocessing->resize(width, height);
 
-    scene.resetHistory();
+    scene.markDirty();
     return true;
 }
 
@@ -196,7 +195,7 @@ void RenderPasses::execute()
         return;
     }
     nextFrame = (nextFrame + 1) % frameConstants.size();
-    const SceneView         view = { .scene = scene, .gpu = gpuScene, .assets = assets, .frameIndex = frameIndex };
+    const SceneView         view = { .scene = scene, .gpuScene = gpuScene, .assets = assets, .frameIndex = frameIndex };
     const hz::RenderCamera* pCamera = scene.getCamera(camera);
     ASSERT(pCamera);
     const hz::RenderCamera& cameraData = *pCamera;

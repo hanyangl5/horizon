@@ -22,7 +22,7 @@ public:
     void                  update();
     const WorldTransform* get(ecs_entity_t entity) const;
     void                  commit();
-    void                  resetHistory(ecs_entity_t root);
+    void                  markDirty(ecs_entity_t root);
 
 private:
     struct Node
@@ -58,7 +58,7 @@ private:
     void     rebuild();
     Matrix4  localMatrix(ecs_entity_t entity) const;
     bool     writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix);
-    void     markDirty(ecs_entity_t entity);
+    void     markTransformDirty(ecs_entity_t entity);
 
     WorldImpl&          world;
     ecs_query_t*        pEntities = nullptr;

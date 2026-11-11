@@ -1847,7 +1847,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getChanges().instances.ranges.pData[0].count, 1u);
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
-    scene.resetHistory(a);
+    scene.markDirty(a);
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
     EXPECT_EQ(scene.getChanges().instances.ranges.count, 0u);
@@ -2062,7 +2062,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     // A teleport resets history for the next submitted frame.
     transform.translation = Vector3(300, 0, 0);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
-    scene.resetHistory(a);
+    scene.markDirty(a);
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 300);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
@@ -2226,7 +2226,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     lens.verticalFov = 1;
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
-    scene.resetHistory(entity);
+    scene.markDirty(entity);
     renderGpuSceneFrame(context, gpu, readback, copies);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
     EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 1);

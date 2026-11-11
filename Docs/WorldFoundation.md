@@ -499,7 +499,7 @@ Primitive/MeshBatch 已改为强类型 `GpuMeshID`、`GpuSubmeshRef` 和 `GpuMat
 
 `GpuScene` 已取代早期的多份 backing 帧池：每张场景表和资产表在 GPU 上只保留一份 `GPU_ONLY` 副本，每帧把累积的 dirty ranges 写入按提交轮换的 staging，再在各 Pass 前批量拷贝；扩容时创建新 Buffer 并整表上传，旧 Buffer 延迟释放。全部 staging 忙时 `beginFrame` 返回 false，不等待 fence。GpuScene 析构不等待 GPU，Buffer 交给 RenderContext 延迟释放。
 
-渲染 previous 取上一次已提交帧的 current。`endFrame` 只记录本帧有变化的 instance，取消的帧不推进历史；下一次提取记录 previous 的变化。首次可渲染、索引 复用和 `RenderScene::resetHistory` 使用 previous=current。GPU 读回、取消帧、多次 update 累积、索引 复用、资产退休和预热后零分配已有回归。
+渲染 previous 取上一次已提交帧的 current。`endFrame` 只记录本帧有变化的 instance，取消的帧不推进历史；下一次提取记录 previous 的变化。首次可渲染、索引 复用和 `RenderScene::markDirty` 使用 previous=current。GPU 读回、取消帧、多次 update 累积、索引 复用、资产退休和预热后零分配已有回归。
 
 `RenderLight` 保留九种光源的世界变换、局部形状尺寸、线性颜色、曝光、色温和发射选项，不在提取阶段求值。发光纹理由 RenderScene 持有长期引用，Ready 时编码 `GpuTextureID`；Pending/Failed 保留 light 索引，ready 为零。Point/Spot/Directional 忽略纹理。Mesh 光源引用同一实体的 RenderPrimitive，不另取 geometry lease，缺少或未就绪的 MeshRenderer 时跳过发射；后续 Renderer 通过该引用避免重复计算材质自发光。
 

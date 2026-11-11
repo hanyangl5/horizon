@@ -20,8 +20,8 @@ GpuDrawList::GpuDrawList(hz::RenderContext& context): context(context)
 void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameBuffer, const SceneView& view, bool culling)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::prepare");
-    const hz::GpuAssetTables& tables = view.gpu.getAssetTables();
-    if (materialRevision != view.gpu.getAssetTables().revision)
+    const hz::GpuAssetTables& tables = view.gpuScene.getAssetTables();
+    if (materialRevision != view.gpuScene.getAssetTables().revision)
     {
         materialIds.resize(tables.materials.count);
         uint32_t id = 0;
@@ -29,7 +29,7 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
         {
             materialIds[i] = tables.materials.pData[i].id.isValid() ? id++ : UINT32_MAX;
         }
-        materialRevision = view.gpu.getAssetTables().revision;
+        materialRevision = view.gpuScene.getAssetTables().revision;
     }
     drawData.clear();
     for (uint32_t meshBatchIndex : view.scene.getActiveMeshBatches())
@@ -100,11 +100,11 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
     ASSERT(uploaded);
     commands.beginGpuTimestamp("GPU Frustum Culling");
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ frameBuffer.getSrvIndex(), frame.drawData.getSrvIndex(), view.gpu.getBuffers().instances.getSrvIndex(),
+    commands.setRootConstant({ frameBuffer.getSrvIndex(), frame.drawData.getSrvIndex(), view.gpuScene.getBuffers().instances.getSrvIndex(),
                                frame.opaque.getUavIndex(), frame.transparent.getUavIndex(), frame.statistics.getUavIndex(), frame.count,
                                culling ? 1u : 0u, frame.shadow.getUavIndex() });
     commands.dispatch((frame.count + 63) / 64, 1, 1,
-                      { .buffers = { &frameBuffer, &frame.drawData, &view.gpu.getBuffers().instances },
+                      { .buffers = { &frameBuffer, &frame.drawData, &view.gpuScene.getBuffers().instances },
                         .storageBuffers = { &frame.opaque, &frame.transparent, &frame.statistics, &frame.shadow } });
     commands.endGpuTimestamp();
 }
@@ -115,7 +115,7 @@ hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const 
     textures.clear();
     buffers.pushBack(&frame);
     buffers.pushBack(&getDrawData(view.frameIndex));
-    const hz::GpuSceneBuffers& gpu = view.gpu.getBuffers();
+    const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
     if (gpu.instances.isValid())
     {
         buffers.pushBack(&gpu.instances);
@@ -128,7 +128,7 @@ hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const 
     {
         buffers.pushBack(&gpu.textures);
     }
-    const hz::GpuAssetTables&       tables = view.gpu.getAssetTables();
+    const hz::GpuAssetTables&       tables = view.gpuScene.getAssetTables();
     const hz::GPUBuffer*            previous = nullptr;
     for (const hz::GpuMeshData& meshData : tables.meshes)
     {

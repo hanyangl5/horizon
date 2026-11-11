@@ -1,234 +1,6 @@
 #include "RayTracedEffects.h"
 #include "Profiler/IProfiler.h"
-#include "Scene/MeshAsset.h"
-#include "Scene/TextureAsset.h"
-
-static void appendRTBuffer(hz::Array<const hz::GPUBuffer*>& buffers, const hz::GPUBuffer* buffer)
-{
-    for (const hz::GPUBuffer* existing : buffers)
-    {
-        if (existing == buffer)
-        {
-            return;
-        }
-    }
-    buffers.pushBack(buffer);
-}
-
-class RayTracingScene
-{
-public:
-    explicit RayTracingScene(hz::RenderContext& context): context(context) {}
-    void prepare(hz::CommandList& commands, const SceneView& view)
-    {
-        ASSERT(view.frameIndex < frames.size());
-        Frame&                                        frame = frames[view.frameIndex];
-        hz::Array<Bottom*>&                           nextBottoms = frame.nextBottoms;
-        hz::Array<hz::AccelerationStructureInstance>& instances = frame.instances;
-        nextBottoms.clear();
-        instances.clear();
-        buffers.clear();
-        textures.clear();
-        const hz::GpuAssetTables&       tables = view.gpu.getAssetTables();
-        uint32_t                        drawIndex = 0;
-        for (uint32_t meshBatchIndex : view.scene.getActiveMeshBatches())
-        {
-            const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[meshBatchIndex];
-            const hz::RenderPrimitive&   primitive = view.scene.getPrimitives().pData[draw.primitive.index];
-            const hz::GpuMeshData*       meshData = tables.getMesh(draw.mesh.mesh);
-            const hz::GpuMaterialData*   material = tables.getMaterial(draw.material);
-            if (!primitive.instanceCount || !meshData || !material)
-            {
-                continue;
-            }
-            // Match GpuDrawList exactly, including drawIndex IDs consumed by blended draws.
-            if (material->alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
-            {
-                drawIndex += primitive.instanceCount;
-                continue;
-            }
-            const hz::MeshAsset* mesh = view.assets.getMesh({ draw.mesh.mesh.index, draw.mesh.mesh.generation });
-            ASSERT(mesh && meshData->vertexStreamCount == 3);
-            Bottom* bottom = findBottom(draw.mesh, material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque));
-            if (!bottom)
-            {
-                hz::unique_ptr<Bottom> candidate = hz::make_unique<Bottom>();
-                candidate->mesh = draw.mesh;
-                candidate->opaque = material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque);
-                const IndirectDrawIndexArguments& submesh = mesh->getDraw(draw.mesh.submeshIndex);
-                const hz::GPUBuffer&              vertices = mesh->getVertexBuffer(0);
-                const uint32_t                    stride = mesh->getVertexStride(0);
-                const int32_t                     baseVertex = int32_t(submesh.vertexOffset);
-                // Cooked GeometryTF uses nonnegative base vertices and triangle lists.
-                ASSERT(baseVertex >= 0 && stride == 12 && submesh.indexCount % 3 == 0);
-                const uint64_t vertexOffset = uint64_t(baseVertex) * stride;
-                ASSERT(vertices.getSize() >= vertexOffset && (vertices.getSize() - vertexOffset) / stride <= UINT32_MAX);
-                const hz::AccelerationStructureGeometry geometry = {
-                    .pVertexBuffer = &vertices,
-                    .pIndexBuffer = &mesh->getIndexBuffer(),
-                    .vertexOffset = vertexOffset,
-                    .indexOffset = uint64_t(submesh.startIndex) * (mesh->getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u),
-                    .vertexCount = uint32_t((vertices.getSize() - vertexOffset) / stride),
-                    .vertexStride = stride,
-                    .indexCount = submesh.indexCount,
-                    .indexType = mesh->getIndexType(),
-                    .opaque = candidate->opaque,
-                };
-                candidate->structure = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
-                ASSERT(candidate->structure.isValid());
-                commands.buildAccelerationStructure(candidate->structure);
-                bottom = candidate.get();
-                bottoms.pushBack(std::move(candidate));
-            }
-            for (uint32_t stream = 0; stream < mesh->getVertexBufferCount(); ++stream)
-            {
-                appendRTBuffer(buffers, &mesh->getVertexBuffer(stream));
-            }
-            appendRTBuffer(buffers, &mesh->getIndexBuffer());
-            for (uint32_t i = 0; i < primitive.instanceCount; ++i, ++drawIndex)
-            {
-                const uint32_t                    instanceIndex = view.scene.getInstanceIndices().pData[primitive.instanceOffset + i];
-                const Matrix4&                    transform = view.scene.getInstances().pData[instanceIndex].current;
-                hz::AccelerationStructureInstance instance = {
-                    .pBottom = &bottom->structure,
-                    .instanceId = drawIndex,
-                    .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
-                };
-                for (uint32_t row = 0; row < 3; ++row)
-                {
-                    for (uint32_t column = 0; column < 4; ++column)
-                    {
-                        instance.transform[row * 4 + column] = transform.getCol(column).getElem(row);
-                    }
-                }
-                instances.pushBack(instance);
-                ++bottom->references;
-                nextBottoms.pushBack(bottom);
-            }
-        }
-        for (const hz::GpuTextureData& texture : tables.textures)
-        {
-            if (texture.id.isValid())
-            {
-                const hz::TextureAsset* asset = view.assets.getTexture({ texture.id.index, texture.id.generation });
-                ASSERT(asset);
-                textures.pushBack(&asset->getTexture());
-            }
-        }
-        const uint32_t count = instances.size();
-        if (frame.haveInstancesChanged())
-        {
-            const bool update = frame.structure.isValid() && frame.count == count;
-            if (count && !update)
-            {
-                frame.structure = context.createAccelerationStructure({
-                    .type = ACCELERATION_STRUCTURE_TYPE_TOP,
-                    .flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
-                                                             ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE),
-                    .instances = { instances.data(), count },
-                });
-            }
-            if (count)
-            {
-                ASSERT(frame.structure.isValid());
-                commands.buildAccelerationStructure(frame.structure, { instances.data(), count }, update);
-            }
-            else
-            {
-                frame.structure = {};
-            }
-            frame.builtInstances.resize(count);
-            for (uint32_t i = 0; i < count; ++i)
-            {
-                frame.builtInstances[i] = instances[i];
-            }
-            frame.count = count;
-        }
-        // This backing is no longer in flight. Other backings retain every BLAS they reference.
-        for (Bottom* bottom : frame.bottoms)
-        {
-            --bottom->references;
-        }
-        hz::Array<Bottom*> previousBottoms = std::move(frame.bottoms);
-        frame.bottoms = std::move(nextBottoms);
-        nextBottoms = std::move(previousBottoms);
-        nextBottoms.clear();
-        for (uint32_t i = 0; i < bottoms.size();)
-        {
-            if (bottoms[i]->references)
-            {
-                ++i;
-            }
-            else
-            {
-                bottoms[i] = std::move(bottoms[bottoms.size() - 1]);
-                bottoms.popBack();
-            }
-        }
-    }
-    const hz::GPUAccelerationStructure& getTop(uint32_t backing) const { return frames[backing].structure; }
-    hz::Array<const hz::GPUBuffer*>     buffers;
-    hz::Array<const hz::GPUTexture*>    textures;
-
-private:
-    struct Bottom
-    {
-        hz::GpuSubmeshRef            mesh;
-        hz::GPUAccelerationStructure structure;
-        uint32_t                     references = 0;
-        bool                         opaque = true;
-    };
-    struct Frame
-    {
-        hz::GPUAccelerationStructure                 structure;
-        hz::Array<Bottom*>                           bottoms;
-        hz::Array<Bottom*>                           nextBottoms;
-        hz::Array<hz::AccelerationStructureInstance> instances;
-        hz::Array<hz::AccelerationStructureInstance> builtInstances;
-        uint32_t                                     count = 0;
-
-        bool haveInstancesChanged() const
-        {
-            if (builtInstances.size() != instances.size() || (!instances.empty() && !structure.isValid()))
-            {
-                return true;
-            }
-            for (uint32_t i = 0; i < instances.size(); ++i)
-            {
-                const hz::AccelerationStructureInstance& previous = builtInstances[i];
-                const hz::AccelerationStructureInstance& current = instances[i];
-                if (previous.pBottom != current.pBottom || previous.instanceId != current.instanceId || previous.mask != current.mask ||
-                    previous.hitGroupOffset != current.hitGroupOffset || previous.flags != current.flags)
-                {
-                    return true;
-                }
-                for (uint32_t element = 0; element < 12; ++element)
-                {
-                    if (previous.transform[element] != current.transform[element])
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-    };
-    Bottom* findBottom(hz::GpuSubmeshRef mesh, bool opaque) const
-    {
-        for (const hz::unique_ptr<Bottom>& bottom : bottoms)
-        {
-            if (bottom->mesh == mesh && bottom->opaque == opaque)
-            {
-                return bottom.get();
-            }
-        }
-        return nullptr;
-    }
-    hz::RenderContext&                context;
-    // Heap objects keep the AS address stable when this container grows.
-    hz::Array<hz::unique_ptr<Bottom>> bottoms;
-    hz::FixedArray<Frame, 3>          frames;
-};
+#include "RayTracingScene.h"
 
 struct RTConstants
 {
@@ -238,7 +10,7 @@ struct RTConstants
     uint32_t materials;
     uint32_t textures;
     uint32_t sampler;
-    uint32_t top;
+    uint32_t tlas;
     uint32_t normal;
     uint32_t depth;
     uint32_t output;
@@ -355,12 +127,12 @@ void RayTracedEffects::resize(uint32_t width, uint32_t height)
         blueNoise = context.loadTexture(RD_SHADER_SOURCES, "../Assets/blue_noise_128x128x64.dds");
     }
     historyIndex = 0;
-    resetHistory();
+    markDirty();
     ASSERT(result.isValid() && scratch.isValid() && history[0].isValid() && history[1].isValid() && previousDepth.isValid() &&
            reflection.isValid() && blueNoise.isValid() && blueNoise.getWidth() == 128 && blueNoise.getHeight() == 8192);
 }
 
-void RayTracedEffects::resetHistory() { historyValid = false; }
+void RayTracedEffects::markDirty() { bMarkedDirty = true; }
 
 void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const DeferredGBuffer& gbuffer, const SceneView& view,
                                const GpuDrawList& draws, const LightingResources& lighting)
@@ -373,28 +145,28 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     ASSERT(width && height && gbuffer.pNormalMaterial && gbuffer.pDepth && lighting.pLightingFrame);
     if (!(settings == previousSettings))
     {
-        resetHistory();
+        markDirty();
     }
     previousSettings = settings;
-    if (assetRevision != view.gpu.getAssetTables().revision)
+    if (assetRevision != view.gpuScene.getAssetTables().revision)
     {
-        resetHistory();
+        markDirty();
     }
-    assetRevision = view.gpu.getAssetTables().revision;
+    assetRevision = view.gpuScene.getAssetTables().revision;
     commands.beginGpuTimestamp("RT Acceleration Structures");
-    rayScene->prepare(commands, view);
+    rayScene->update(commands, view);
     commands.endGpuTimestamp();
-    const hz::GPUAccelerationStructure& top = rayScene->getTop(view.frameIndex);
+    const hz::GPUAccelerationStructure& tlas = rayScene->getSceneTLAS(view.frameIndex);
     const hz::GPUBuffer&                drawData = draws.getDrawData(view.frameIndex);
     auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
     RTConstants                         constants = {
                                 .frame = frame.getSrvIndex(),
                                 .lighting = lighting.pLightingFrame->getSrvIndex(),
                                 .draws = drawData.getSrvIndex(),
-                                .materials = view.gpu.getBuffers().materials.getSrvIndex(),
-                                .textures = view.gpu.getBuffers().textures.getSrvIndex(),
+                                .materials = view.gpuScene.getBuffers().materials.getSrvIndex(),
+                                .textures = view.gpuScene.getBuffers().textures.getSrvIndex(),
                                 .sampler = materialSampler.getIndex(),
-                                .top = top.isValid() ? top.getSrvIndex() : UINT32_MAX,
+                                .tlas = tlas.isValid() ? tlas.getSrvIndex() : UINT32_MAX,
                                 .normal = gbuffer.pNormalMaterial->getSrvIndex(),
                                 .depth = gbuffer.pDepth->getSrvIndex(),
                                 .output = result.getUavIndex(),
@@ -414,11 +186,11 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
                                 .shadowRadius = settings.shadowRadius,
     };
     hz::Array<const hz::GPUBuffer*>& buffers = rayScene->buffers;
-    appendRTBuffer(buffers, &frame);
-    appendRTBuffer(buffers, lighting.pLightingFrame);
-    appendRTBuffer(buffers, &drawData);
-    appendRTBuffer(buffers, &view.gpu.getBuffers().materials);
-    appendRTBuffer(buffers, &view.gpu.getBuffers().textures);
+    rayScene->addBuffer(&frame);
+    rayScene->addBuffer(lighting.pLightingFrame);
+    rayScene->addBuffer(&drawData);
+    rayScene->addBuffer(&view.gpuScene.getBuffers().materials);
+    rayScene->addBuffer(&view.gpuScene.getBuffers().textures);
     hz::Array<const hz::GPUTexture*>& textures = rayScene->textures;
     textures.pushBack(gbuffer.pNormalMaterial);
     textures.pushBack(gbuffer.pDepth);
@@ -443,7 +215,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
         .previousDepth = previousDepth.getSrvIndex(),
         .output = history[current].getUavIndex(),
         .sampler = sampler.getIndex(),
-        .historyValid = historyValid,
+        .historyValid = !bMarkedDirty,
         .alpha = settings.temporalAlpha,
         .depthThreshold = settings.temporalDepthThreshold,
     };
@@ -474,7 +246,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                       { .sampledTextures = { gbuffer.pDepth }, .storageTextures = { &previousDepth } });
     historyIndex = previous;
-    historyValid = true;
+    bMarkedDirty = false;
     commands.endGpuTimestamp();
 
     commands.beginGpuTimestamp("RT Reflection");
@@ -493,7 +265,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     constants.output = reflection.getUavIndex();
     if (!settings.reflection)
     {
-        constants.top = UINT32_MAX;
+        constants.tlas = UINT32_MAX;
     }
     commands.setPipeline(reflectionPipeline);
     commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });

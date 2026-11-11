@@ -49,7 +49,7 @@ uint32_t WorldHierarchy::find(ecs_entity_t entity) const
     return pEntry && index >= 0 ? pEntry->value : UINT32_MAX;
 }
 
-void WorldHierarchy::markDirty(ecs_entity_t entity)
+void WorldHierarchy::markTransformDirty(ecs_entity_t entity)
 {
     if (structureDirty)
         return;
@@ -83,7 +83,7 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool a
         const LocalState state = { .key = entity, .value = next };
         hmputs(pPendingLocals, state);
     }
-    markDirty(entity);
+    markTransformDirty(entity);
     return true;
 }
 
@@ -238,7 +238,7 @@ void WorldHierarchy::commit()
     historyDirty.clear();
 }
 
-void WorldHierarchy::resetHistory(ecs_entity_t root)
+void WorldHierarchy::markDirty(ecs_entity_t root)
 {
     update();
     const uint32_t first = root ? find(root) : 0;
@@ -287,7 +287,7 @@ bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix
         LOGF(eERROR, "Preserving world transforms requires registered local transform components");
         return false;
     }
-    markDirty(entity);
+    markTransformDirty(entity);
     return true;
 }
 
@@ -405,6 +405,6 @@ void World::commitTransforms() { pImpl->pHierarchy->commit(); }
 void World::resetTransformHistory(Entity root)
 {
     if (!root.isValid() || isAlive(root))
-        pImpl->pHierarchy->resetHistory(root.value);
+        pImpl->pHierarchy->markDirty(root.value);
 }
 } // namespace hz

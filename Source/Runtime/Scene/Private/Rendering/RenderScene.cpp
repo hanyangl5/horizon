@@ -580,7 +580,7 @@ public:
             entity.historyValid = true;
         }
     }
-    void resetHistory(Entity target)
+    void markDirty(Entity target)
     {
         ASSERT(!frameLocked);
         for (RenderEntity& entity : entities)
@@ -658,7 +658,7 @@ RenderSceneUploads RenderScene::getPendingUploads() { return pData->getPendingUp
 void               RenderScene::acknowledgeUploads() { pData->acknowledgeUploads(); }
 void               RenderScene::commitHistory() { pData->commitHistory(); }
 void               RenderScene::setFrameLocked(bool locked) { pData->frameLocked = locked; }
-void               RenderScene::resetHistory(Entity entity) { pData->resetHistory(entity); }
+void               RenderScene::markDirty(Entity entity) { pData->markDirty(entity); }
 RenderSceneChanges RenderScene::getChanges() const
 {
     return { .primitives = pData->primitives.getChanges(),

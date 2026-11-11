@@ -7,7 +7,7 @@
 struct SceneView
 {
     const hz::RenderScene&  scene;
-    const hz::GpuScene&     gpu;
+    const hz::GpuScene&     gpuScene;
     const hz::AssetManager& assets;
     uint32_t                frameIndex = 0;
 };

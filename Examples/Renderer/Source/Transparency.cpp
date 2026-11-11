@@ -141,7 +141,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         commands.setViewport(0, 0, (float)width, (float)height);
         commands.setScissor(0, 0, width, height);
         commands.setPipeline(gatherPipeline);
-        const hz::GpuSceneBuffers& gpu = view.gpu.getBuffers();
+        const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
         constants.instancesIndex = gpu.instances.getSrvIndex();
         constants.materialsIndex = gpu.materials.getSrvIndex();
         constants.texturesIndex = gpu.textures.getSrvIndex();
