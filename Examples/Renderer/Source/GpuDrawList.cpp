@@ -32,6 +32,20 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
         materialRevision = view.gpuScene.getAssetTables().revision;
     }
     drawData.clear();
+    geometryIndices.clear();
+    uint32_t   geometryCount = 0;
+    bool       geometryChanged = false;
+    const auto markGeometryChanged = [&]
+    {
+        if (!geometryChanged)
+        {
+            for (uint32_t i = 0; i < geometries.size(); ++i)
+            {
+                geometries[i].previousIndex = i;
+            }
+            geometryChanged = true;
+        }
+    };
     for (uint32_t meshBatchIndex : view.scene.getActiveMeshBatches())
     {
         const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[meshBatchIndex];
@@ -44,8 +58,33 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
         }
         ASSERT(mesh->vertexStreamCount == 3 && primitive.id == draw.primitive);
         const hz::GpuSubmeshData& submesh = tables.submeshes.pData[mesh->submeshOffset + draw.mesh.submeshIndex];
+        uint32_t                  geometryIndex = UINT32_MAX;
+        if (material->alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
+        {
+            const bool opaque = material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque);
+            geometryIndex = 0;
+            while (geometryIndex < geometries.size() &&
+                   (geometries[geometryIndex].mesh != draw.mesh || geometries[geometryIndex].opaque != opaque))
+            {
+                ++geometryIndex;
+            }
+            if (geometryIndex >= geometryCount)
+            {
+                if (geometryIndex != geometryCount || geometryIndex == geometries.size())
+                {
+                    markGeometryChanged();
+                }
+                if (geometryIndex == geometries.size())
+                {
+                    geometries.pushBack({ .mesh = draw.mesh, .opaque = opaque });
+                }
+                std::swap(geometries[geometryIndex], geometries[geometryCount]);
+                geometryIndex = geometryCount++;
+            }
+        }
         for (uint32_t i = 0; i < primitive.instanceCount; ++i)
         {
+            geometryIndices.pushBack(geometryIndex);
             drawData.pushBack({ .instance = view.scene.getInstanceIndices().pData[primitive.instanceOffset + i],
                                 .material = draw.material.index,
                                 .materialId = materialIds[draw.material.index],
@@ -59,6 +98,15 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
                                 .vertexOffset = submesh.vertexOffset,
                                 .indexCount = submesh.indexCount });
         }
+    }
+    if (geometryCount != geometries.size())
+    {
+        markGeometryChanged();
+        geometries.resize(geometryCount);
+    }
+    if (geometryChanged)
+    {
+        ++geometryRevision;
     }
     Frame& frame = frames[view.frameIndex];
     frame.count = drawData.size();
@@ -109,7 +157,7 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
     commands.endGpuTimestamp();
 }
 
-hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const SceneView& view, const hz::GPUBuffer& indirect) const
+hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const SceneView& view, const hz::GPUBuffer* indirect) const
 {
     buffers.clear();
     textures.clear();
@@ -157,8 +205,8 @@ hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const 
                 &view.assets.getTexture({ .index = textureData.id.index, .generation = textureData.id.generation })->getTexture());
         }
     }
-    indirectDependency = &indirect;
+    indirectDependency = indirect;
     return { .sampledTextures = { textures.data(), textures.size() },
              .buffers = { buffers.data(), buffers.size() },
-             .indirectBuffers = { &indirectDependency, 1 } };
+             .indirectBuffers = { &indirectDependency, indirect ? 1u : 0u } };
 }

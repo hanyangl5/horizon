@@ -43,6 +43,8 @@ struct AccelerationStructureDesc
     AccelerationStructureBuildFlags     flags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     Span<AccelerationStructureGeometry> geometries;
     Span<AccelerationStructureInstance> instances;
+    // Allocate a TLAS before filling its instances with setInstance().
+    uint32_t                            instanceCount = 0;
 };
 
 class GPUAccelerationStructure
@@ -56,6 +58,8 @@ public:
     GPUAccelerationStructure& operator=(const GPUAccelerationStructure&) = delete;
     bool                      isValid() const { return pData != nullptr; }
     uint32_t                  getSrvIndex() const;
+    uint32_t                  getInstanceCount() const;
+    void                      setInstance(uint32_t index, const AccelerationStructureInstance& instance);
 
 private:
     explicit GPUAccelerationStructure(AccelerationStructureData* data): pData(data) {}
@@ -63,6 +67,7 @@ private:
     AccelerationStructureData* pData = nullptr;
     friend class RenderContext;
     friend class CommandList;
+    friend class AccelerationStructureData;
 };
 
 struct RayTracingHitGroup

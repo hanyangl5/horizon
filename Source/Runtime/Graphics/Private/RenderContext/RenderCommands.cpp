@@ -87,6 +87,10 @@ void hz::CommandList::addIndirectBarriers(Span<const GPUBuffer*> buffers)
 
 void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GPUBuffer* pIndirectBuffer)
 {
+    if (dependencies.pShared)
+    {
+        barrier(*dependencies.pShared, nullptr);
+    }
     arrsetlen(bufferBarriers, 0);
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
@@ -118,7 +122,12 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
     };
 
     for (const hz::GPUTexture* texture : dependencies.sampledTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
+    {
+        if (texture)
+        {
+            addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
+        }
+    }
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
     addBufferBarriers(dependencies.buffers, false);
@@ -142,6 +151,10 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
 void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::Dependencies& dependencies)
 {
     ASSERT(desc.colorAttachments.count <= MAX_RENDER_TARGETS && (desc.colorAttachments.pData || !desc.colorAttachments.count));
+    if (dependencies.pShared)
+    {
+        barrier(*dependencies.pShared, nullptr);
+    }
     arrsetlen(bufferBarriers, 0);
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
@@ -173,7 +186,12 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
     };
 
     for (const hz::GPUTexture* texture : dependencies.sampledTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
+    {
+        if (texture)
+        {
+            addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
+        }
+    }
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
         addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
     addBufferBarriers(dependencies.buffers, false);

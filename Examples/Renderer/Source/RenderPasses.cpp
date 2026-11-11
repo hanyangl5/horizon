@@ -91,7 +91,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
-    }, draws.getDependencies(frame, view, draws.getCommands(view.frameIndex)));
+    }, draws.getDependencies(frame, view, &draws.getCommands(view.frameIndex)));
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);

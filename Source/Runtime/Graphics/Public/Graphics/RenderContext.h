@@ -312,6 +312,8 @@ struct Dependencies
     Span<const GPUBuffer*>  buffers = {};
     Span<const GPUBuffer*>  storageBuffers = {};
     Span<const GPUBuffer*>  indirectBuffers = {};
+
+    const Dependencies* pShared = nullptr;
 };
 
 struct BufferCopyRegion
@@ -331,6 +333,7 @@ public:
     void setPipeline(const GPUPipeline&);
     void setPipeline(const GPURayTracingPipeline&);
     void buildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
+    void updateAccelerationStructure(GPUAccelerationStructure&);
     void traceRays(const GPURayTracingPipeline&, uint32_t width, uint32_t height, uint32_t depth = 1, const Dependencies& = {});
     void setVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);
     void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
@@ -443,11 +446,28 @@ public:
     bool                     isResourceUseComplete(uint64_t useId) const;
 
 private:
-    struct DeferredBuffer
+    enum class ResourceType
     {
-        Buffer*  pBuffer = nullptr;
-        uint64_t useId = 0;
+        Buffer,
+        Texture,
+        RenderTarget,
+        Sampler,
+        Shader,
+        Pipeline,
+        AccelerationStructure,
+        RayTracingPipeline
     };
+    struct DeferredResource
+    {
+        void*        resource = nullptr;
+        void*        secondary = nullptr;
+        void*        tertiary = nullptr;
+        uint64_t useId = 0;
+        ResourceType type = ResourceType::Buffer;
+    };
+    void deferResource(ResourceType type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
+    void releaseAccelerationStructure(AccelerationStructureData*);
+    void destroyAccelerationStructure(AccelerationStructureData*);
 
     struct CommandResources
     {
@@ -467,7 +487,7 @@ private:
     void     destroySwapChain();
     void     destroyDevice(bool waitForGpu);
     void     cleanup();
-    void     collectDeferredBuffers();
+    void     collectDeferredResources();
     uint64_t getPendingUseId() const;
     Shader*  createShader(const ShaderDesc&);
     Shader*  createSlangShader(const ShaderSrcDesc&);
@@ -492,7 +512,7 @@ private:
     CommandResources          commandResources[maxCommandLists] = {};
     Semaphore*                pImageAcquiredSemaphore = nullptr;
     GPUTexture                backbuffers[MAX_SWAPCHAIN_IMAGES] = {};
-    DeferredBuffer*           deferredBuffers = nullptr;
+    DeferredResource*         deferredResources = nullptr;
     uint64_t                  gpuProfilerToken = UINT64_MAX;
     uint64_t                  nextSubmitId = 1;
     uint32_t                  nextCommandIndex = 0;
@@ -513,6 +533,7 @@ private:
     friend class GPUAccelerationStructure;
     friend class GPURayTracingPipeline;
     friend class CommandList;
+    friend class AccelerationStructureData;
 };
 
 } // namespace hz

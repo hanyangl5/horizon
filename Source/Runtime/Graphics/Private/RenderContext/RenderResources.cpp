@@ -60,8 +60,9 @@ void GPUBuffer::destroy()
     if (pBuffer)
     {
         ASSERT(pContext->resourceCount);
-        --pContext->resourceCount;
-        removeResource(pBuffer);
+        pContext->deferResource(RenderContext::ResourceType::Buffer, pBuffer);
+        pBuffer = nullptr;
+        pContext = nullptr;
     }
 }
 
@@ -112,11 +113,8 @@ void GPUTexture::destroy()
     if (pTexture && owned)
     {
         ASSERT(pContext && pContext->resourceCount);
-        --pContext->resourceCount;
-        if (pRenderTarget)
-            removeRenderTarget(pContext->pRenderer, pRenderTarget);
-        else
-            removeResource(pTexture);
+        pContext->deferResource(pRenderTarget ? RenderContext::ResourceType::RenderTarget : RenderContext::ResourceType::Texture,
+                                pRenderTarget ? (void*)pRenderTarget : (void*)pTexture);
     }
 }
 
@@ -153,8 +151,7 @@ void GPUSampler::destroy()
     if (pSampler)
     {
         ASSERT(pContext->resourceCount);
-        --pContext->resourceCount;
-        removeSampler(pContext->pRenderer, pSampler);
+        pContext->deferResource(RenderContext::ResourceType::Sampler, pSampler);
     }
 }
 
@@ -191,8 +188,7 @@ void GPUShader::destroy()
     if (pShader)
     {
         ASSERT(pContext->resourceCount);
-        --pContext->resourceCount;
-        removeShader(pContext->pRenderer, pShader);
+        pContext->deferResource(RenderContext::ResourceType::Shader, pShader);
     }
 }
 
@@ -240,13 +236,7 @@ void GPUPipeline::destroy()
     if (pPipeline)
     {
         ASSERT(pContext->resourceCount && pRootSignature);
-        --pContext->resourceCount;
-        if (pDrawIndirectSignature)
-        {
-            removeIndirectCommandSignature(pContext->pRenderer, pDrawIndirectSignature);
-        }
-        removePipeline(pContext->pRenderer, pPipeline);
-        removeRootSignature(pContext->pRenderer, pRootSignature);
+        pContext->deferResource(RenderContext::ResourceType::Pipeline, pPipeline, pRootSignature, pDrawIndirectSignature);
     }
 }
 

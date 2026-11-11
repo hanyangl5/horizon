@@ -302,7 +302,8 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         /************************************************************************/
         D3D12_RAYTRACING_INSTANCE_DESC* instanceDescs = NULL;
         arrsetlen(instanceDescs, pDesc->top.descCount);
-        for (uint32_t i = 0; i < pDesc->top.descCount; ++i)
+        memset(instanceDescs, 0, pDesc->top.descCount * sizeof(instanceDescs[0]));
+        for (uint32_t i = 0; pDesc->top.pInstanceDescs && i < pDesc->top.descCount; ++i)
         {
             AccelerationStructureInstanceDesc* pInst = &pDesc->top.pInstanceDescs[i];
             ASSERT(pInst->pBottomAS);

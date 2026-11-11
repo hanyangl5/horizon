@@ -154,9 +154,9 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     }
     assetRevision = view.gpuScene.getAssetTables().revision;
     commands.beginGpuTimestamp("RT Acceleration Structures");
-    rayScene->update(commands, view);
+    rayScene->update(commands, view, draws);
     commands.endGpuTimestamp();
-    const hz::GPUAccelerationStructure& tlas = rayScene->getSceneTLAS(view.frameIndex);
+    const hz::GPUAccelerationStructure& tlas = rayScene->getSceneTLAS();
     const hz::GPUBuffer&                drawData = draws.getDrawData(view.frameIndex);
     auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
     RTConstants                         constants = {
@@ -185,23 +185,16 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
                                 .aoPower = settings.aoPower,
                                 .shadowRadius = settings.shadowRadius,
     };
-    hz::Array<const hz::GPUBuffer*>& buffers = rayScene->buffers;
-    rayScene->addBuffer(&frame);
-    rayScene->addBuffer(lighting.pLightingFrame);
-    rayScene->addBuffer(&drawData);
-    rayScene->addBuffer(&view.gpuScene.getBuffers().materials);
-    rayScene->addBuffer(&view.gpuScene.getBuffers().textures);
-    hz::Array<const hz::GPUTexture*>& textures = rayScene->textures;
-    textures.pushBack(gbuffer.pNormalMaterial);
-    textures.pushBack(gbuffer.pDepth);
-    textures.pushBack(&blueNoise);
+    const hz::Dependencies sceneDependencies = draws.getDependencies(frame, view);
     commands.beginGpuTimestamp("RT Shadow AO");
     commands.setPipeline(shadowPipeline);
     commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { textures.data(), textures.size() },
+                      { .sampledTextures = { gbuffer.pNormalMaterial, gbuffer.pDepth, &blueNoise },
                         .storageTextures = { &result },
-                        .buffers = { buffers.data(), buffers.size() } });
+                        .buffers = { lighting.pLightingFrame },
+
+                        .pShared = &sceneDependencies });
     commands.endGpuTimestamp();
 
     commands.beginGpuTimestamp("RT Denoise");
@@ -250,18 +243,6 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.endGpuTimestamp();
 
     commands.beginGpuTimestamp("RT Reflection");
-    if (lighting.pEnvironment)
-    {
-        textures.pushBack(lighting.pEnvironment);
-    }
-    if (lighting.pIrradiance)
-    {
-        textures.pushBack(lighting.pIrradiance);
-    }
-    if (lighting.pBRDFLut)
-    {
-        textures.pushBack(lighting.pBRDFLut);
-    }
     constants.output = reflection.getUavIndex();
     if (!settings.reflection)
     {
@@ -270,8 +251,11 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.setPipeline(reflectionPipeline);
     commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
     commands.traceRays(reflectionPipeline, width, height, 1,
-                       { .sampledTextures = { textures.data(), textures.size() },
+                       { .sampledTextures = { gbuffer.pNormalMaterial, gbuffer.pDepth, &blueNoise, lighting.pEnvironment,
+                                              lighting.pIrradiance, lighting.pBRDFLut },
                          .storageTextures = { &reflection },
-                         .buffers = { buffers.data(), buffers.size() } });
+                         .buffers = { lighting.pLightingFrame },
+
+                         .pShared = &sceneDependencies });
     commands.endGpuTimestamp();
 }

@@ -16,6 +16,7 @@
 #include "Scene/WorldArchive.h"
 #include "../../Examples/Renderer/Source/DeferredLighting.h"
 #include "../../Examples/Renderer/Source/GpuDrawList.h"
+#include "../../Examples/Renderer/Source/RayTracingScene.h"
 #include "Core/IUniquePtr.h"
 #include "Resources/IResourceLoader.h"
 #include "Graphics/RenderContext.h"
@@ -989,7 +990,7 @@ protected:
         EXPECT_EQ(fsWriteToStream(&stream, text, strlen(text)), strlen(text));
         fsCloseStream(&stream);
     }
-    void writeGeometry(IndexType indexType = INDEX_TYPE_UINT16)
+    void writeGeometry(IndexType indexType = INDEX_TYPE_UINT16, bool rendererLayout = false)
     {
         Geometry geometry = {};
         geometry.drawArgCount = 1;
@@ -1001,6 +1002,12 @@ protected:
         GeometryData::ShadowData         shadow = {};
         shadow.vertexStrides[SEMANTIC_POSITION] = 12;
         shadow.attributeCount[SEMANTIC_POSITION] = 3;
+        if (rendererLayout)
+        {
+            shadow.vertexStrides[SEMANTIC_NORMAL] = shadow.vertexStrides[SEMANTIC_TEXCOORD0] = 4;
+            shadow.attributeCount[SEMANTIC_NORMAL] = shadow.attributeCount[SEMANTIC_TEXCOORD0] = 3;
+        }
+        const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, uvs[] = { 0, 0, 0 };
         const uint16_t indices16[] = { 0, 1, 2 };
         const uint32_t indices32[] = { 0, 1, 2 };
         const void*    pIndices = indexType == INDEX_TYPE_UINT16 ? (const void*)indices16 : indices32;
@@ -1008,7 +1015,7 @@ protected:
         const float    positions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
         const uint32_t geometrySize = sizeof(geometry) + sizeof(draw);
         const uint32_t dataSize = sizeof(data);
-        const uint32_t shadowSize = sizeof(shadow) + indexBytes + sizeof(positions);
+        const uint32_t shadowSize = sizeof(shadow) + indexBytes + sizeof(positions) + (rendererLayout ? sizeof(normals) + sizeof(uvs) : 0);
         FileStream     stream = {};
         ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "scene.bin", FM_WRITE, &stream));
         fsWriteToStream(&stream, GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
@@ -1021,6 +1028,11 @@ protected:
         fsWriteToStream(&stream, &shadow, sizeof(shadow));
         fsWriteToStream(&stream, pIndices, indexBytes);
         fsWriteToStream(&stream, positions, sizeof(positions));
+        if (rendererLayout)
+        {
+            fsWriteToStream(&stream, normals, sizeof(normals));
+            fsWriteToStream(&stream, uvs, sizeof(uvs));
+        }
         fsCloseStream(&stream);
     }
 };
@@ -1083,6 +1095,191 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(pVertices[0], -1);
     EXPECT_FLOAT_EQ(pVertices[4], -5);
     EXPECT_FLOAT_EQ(pVertices[8], -2);
+}
+
+TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
+{
+    std::string       text = kTypedScene;
+    const size_t      materialStart = text.find("[", text.find("\"materials\"")) + 1;
+    const size_t      materialEnd = text.rfind("]", text.find("\"meshes\""));
+    std::string       blend = text.substr(materialStart, materialEnd - materialStart);
+    const std::string originalID = "00000000-0000-4000-8000-000000000003";
+    blend.replace(blend.find(originalID), originalID.size(), "00000000-0000-4000-8000-000000000006");
+    blend.replace(blend.find("\"alphaMode\":1"), 13, "\"alphaMode\":2");
+    text.insert(materialEnd, "," + blend);
+    writeTexture();
+    writeScene(text.c_str());
+    writeGeometry(INDEX_TYPE_UINT16, true);
+    hz::SceneAsset asset;
+    ASSERT_TRUE(asset.parse({ text.data(), (uint32_t)text.size() }));
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
+    hz::RenderContext context({ .pAppName = "RayTracingSceneTest", .enableGpuValidation = true });
+    if (!context.supportsRayTracing())
+    {
+        GTEST_SKIP() << "Selected device does not support ray tracing";
+    }
+    const VertexLayout layout = {
+        .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
+        .attribs = {
+            { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0 },
+            { .semantic = SEMANTIC_NORMAL, .format = hz::Format::R32_UINT, .binding = 1 },
+            { .semantic = SEMANTIC_TEXCOORD0, .format = hz::Format::R32_UINT, .binding = 2 },
+        },
+        .bindingCount = 3, .attribCount = 3,
+    };
+
+    hz::AssetLoaders loaders(context, { .vertexLayout = layout, .cookedDirectory = RD_OTHER_FILES });
+    hz::AssetManager assetManager(catalog, &context);
+    loaders.registerLoaders(assetManager);
+    const hz::AssetHandle root = assetManager.request(asset.getID());
+    wait(assetManager, root);
+    ASSERT_EQ(assetManager.getState(root), hz::AssetState::Ready);
+
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World       world(types);
+    hz::RenderScene scene(world, assetManager);
+    hz::GpuScene    gpu(scene, assetManager, context);
+    const float     offsets[] = { 0, 10, 20, 40 };
+    hz::Entity      entities[4];
+    for (uint32_t i = 0; i < 4; ++i)
+    {
+        entities[i] = world.createEntity();
+        hz::MeshRenderer renderer = { .mesh = asset.getMeshes().pData[i == 3 ? 1 : 0].id };
+        if (i == 1)
+        {
+            renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = asset.getMaterials().pData[1].id });
+        }
+        const Matrix4 transform = Matrix4::translation(Vector3(offsets[i], 0, 0));
+        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::meshRenderer, &renderer));
+        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::localMatrix, &transform));
+    }
+
+    scene.update();
+    const hz::AssetHandle blendMaterial = assetManager.find(asset.getMaterials().pData[1].id);
+    ASSERT_TRUE(blendMaterial.isValid());
+    wait(assetManager, blendMaterial);
+    ASSERT_EQ(assetManager.getState(blendMaterial), hz::AssetState::Ready);
+    const std::filesystem::path shaders =
+        std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
+    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_SHADER_SOURCES, shaders.string().c_str());
+
+    GpuDrawList     draws(context);
+    RayTracingScene rayScene(context);
+
+    const char      source[] = R"hlsl(
+        cbuffer RootConstant0 { uint topIndex; uint outputIndex; };
+        [numthreads(4,1,1)] void CSMain(uint3 id : SV_DispatchThreadID) {
+            RaytracingAccelerationStructure scene = ResourceDescriptorHeap[topIndex];
+            RWStructuredBuffer<uint> output = ResourceDescriptorHeap[outputIndex];
+            float offsets[4] = { 0, 10, 20, 40 };
+            RayDesc ray;
+            ray.Origin = float3(1 + offsets[id.x], -2.0 / 3.0, -10);
+            ray.Direction = float3(0, 0, 1); ray.TMin = 0.001; ray.TMax = 30;
+            RayQuery<RAY_FLAG_FORCE_OPAQUE> query;
+            query.TraceRayInline(scene, RAY_FLAG_NONE, 0xff, ray);
+            while (query.Proceed()) {}
+            output[id.x] = query.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? query.CommittedInstanceID() : 0xffffffff;
+        }
+    )hlsl";
+    hz::GPUPipeline trace = context.createComputePipeline(
+        { .shaderDesc = {
+              .stages = {
+                  { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
+    ASSERT_TRUE(trace.isValid());
+
+    struct FrameData
+    {
+        Matrix4 current = Matrix4::identity(), previous = Matrix4::identity(), inverse = Matrix4::identity();
+        Vector4 eye = Vector4(0, 0, -10, 1);
+    } camera;
+    hz::GPUBuffer frame = context.createBuffer({ .size = sizeof(camera),
+                                                 .elementCount = sizeof(camera) / 4,
+                                                 .pInitialData = &camera,
+                                                 .initialDataSize = sizeof(camera),
+                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                 .startState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                 .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+    hz::GPUBuffer output = context.createBuffer({ .size = 16,
+                                                  .elementCount = 4,
+                                                  .structStride = 4,
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUBuffer readback = context.createBuffer({ .size = 96,
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .startState = RESOURCE_STATE_COPY_DEST,
+                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+
+    for (uint32_t pass = 0; pass < 4; ++pass)
+    {
+        if (pass == 1)
+        {
+            ASSERT_TRUE(world.destroyEntity(entities[0]));
+        }
+        if (pass == 2)
+        {
+            ASSERT_TRUE(world.destroyEntity(entities[2]));
+        }
+        if (pass == 3)
+        {
+            ASSERT_TRUE(world.destroyEntity(entities[1]));
+            ASSERT_TRUE(world.destroyEntity(entities[3]));
+        }
+
+        ASSERT_TRUE(gpu.beginFrame());
+        const SceneView  view = { .scene = scene, .gpuScene = gpu, .assets = assetManager, .frameIndex = pass % 3 };
+        hz::CommandList& commands = context.acquireCommandList();
+
+        gpu.upload(commands);
+        draws.prepare(commands, frame, view);
+        rayScene.update(commands, view, draws);
+        EXPECT_EQ(rayScene.getSceneTLAS().getInstanceCount(), pass < 3 ? 3 - pass : 0);
+        EXPECT_EQ(draws.getGeometries().count, pass < 2 ? 2u : (pass == 2 ? 1u : 0u));
+        uint32_t expected[] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
+        if (pass < 3)
+        {
+            const hz::Span<GpuDrawData> prepared = draws.getDraws();
+            EXPECT_EQ(prepared.count, 4 - pass);
+            for (uint32_t i = 0; i < prepared.count; ++i)
+            {
+                const GpuDrawData& draw = prepared.pData[i];
+                const float        x = (float)scene.getInstances().pData[draw.instance].current.getTranslation().getX();
+                for (uint32_t j = 0; j < 4; ++j)
+                {
+                    if (x == offsets[j] && draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
+                    {
+                        expected[j] = i;
+                    }
+                }
+            }
+            const hz::Dependencies sceneDependencies = draws.getDependencies(frame, view);
+            commands.setPipeline(trace);
+            commands.setRootConstant({ rayScene.getSceneTLAS().getSrvIndex(), output.getUavIndex() });
+            commands.dispatch(1, 1, 1, { .storageBuffers = { &output }, .pShared = &sceneDependencies });
+            commands.copyBuffer(readback, 0, output, 0, 16);
+            commands.copyBuffer(readback, 16, draws.getCommands(view.frameIndex), 0, prepared.count * 20);
+        }
+
+        const hz::SubmitHandle submission = context.submit(commands);
+        gpu.endFrame(submission);
+        context.wait(submission);
+        if (pass < 3)
+        {
+            const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+            for (uint32_t i = 0; i < 4; ++i)
+            {
+                EXPECT_EQ(values[i], expected[i]) << "pass " << pass << ", ray " << i;
+            }
+            ASSERT_NE(expected[3], UINT32_MAX);
+            EXPECT_EQ(values[4 + expected[3] * 5 + 2], 0u); // Offscreen raster draw still received a ray hit.
+        }
+        else
+        {
+            EXPECT_FALSE(rayScene.getSceneTLAS().isValid());
+        }
+    }
 }
 
 TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
@@ -2815,22 +3012,23 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
         context.createAccelerationStructure({ .type = ACCELERATION_STRUCTURE_TYPE_TOP,
                                               .flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE |
                                                                                        ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE),
-                                              .instances = { &instance, 1 } });
+                                              .instanceCount = 1 });
     ASSERT_TRUE(top.isValid());
+    ASSERT_EQ(top.getInstanceCount(), 1u);
     hz::GPUBuffer output = context.createBuffer({ .size = 8,
                                                   .elementCount = 2,
                                                   .structStride = 4,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 8,
+    hz::GPUBuffer readback = context.createBuffer({ .size = 40,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const auto    validateDevice = [&](const char* phase)
     {
         ID3D12Device* device = nullptr;
-        output.get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device));
+        readback.get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device));
         if (!device)
         {
             return E_FAIL;
@@ -2889,33 +3087,56 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
         device->Release();
         return removed;
     };
-    for (uint32_t pass = 0; pass < 2; ++pass)
+    hz::SubmitHandle submission;
+    for (uint32_t pass = 0; pass < 5; ++pass)
     {
-        hz::CommandList& build = context.acquireCommandList();
+        hz::CommandList& commands = context.acquireCommandList();
         if (!pass)
         {
-            build.buildAccelerationStructure(bottom);
+            commands.buildAccelerationStructure(bottom);
         }
-        instance.transform[3] = pass ? 4.0f : 0.0f;
-        build.buildAccelerationStructure(top, { &instance, 1 }, pass != 0);
-        context.wait(context.submit(build));
-        ASSERT_EQ(validateDevice("AS build"), S_OK) << "pass " << pass;
-
-        hz::CommandList& commands = context.acquireCommandList();
+        if (pass < 3)
+        {
+            instance.transform[3] = pass ? 4.0f : 0.0f;
+            top.setInstance(0, instance);
+            // The third pass repeats the same instance and must preserve the existing TLAS.
+            commands.updateAccelerationStructure(top);
+        }
+        else if (pass == 3)
+        {
+            // Saved TLAS inputs and BLAS references remain valid after their public owner is gone.
+            commands.buildAccelerationStructure(top, {}, true);
+        }
+        if (pass == 2)
+        {
+            bottom = {};
+        }
         commands.setPipeline(pipeline);
         commands.setRootConstant({ top.getSrvIndex(), output.getUavIndex() });
         commands.traceRays(pipeline, 2, 1, 1, { .storageBuffers = { &output } });
         commands.setPipeline(increment);
         commands.setRootConstant({ output.getUavIndex() });
         commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
-        commands.copyBuffer(readback, 0, output, 0, 8);
-        context.wait(context.submit(commands));
-        const HRESULT removed = validateDevice("TraceRays -> Compute");
-        ASSERT_EQ(removed, S_OK) << std::hex << (uint32_t)removed << "; pass " << pass;
-        const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
-        ASSERT_NE(values, nullptr);
-        EXPECT_EQ(values[0], pass ? 1007u : 1123u);
-        EXPECT_EQ(values[1], pass ? 1123u : 1007u);
+        commands.copyBuffer(readback, pass * 8, output, 0, 8);
+        if (pass == 4)
+        {
+            // Trace-only submission: destruction is safe without an AS dependency declaration or an AS build.
+            top = {};
+            pipeline = {};
+            increment = {};
+            output = {};
+        }
+        submission = context.submit(commands);
+    }
+    // Queue several frames through one TLAS, including refit after an earlier trace, before waiting.
+    context.wait(submission);
+    ASSERT_EQ(validateDevice("Queued TLAS updates and traces"), S_OK);
+    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    ASSERT_NE(values, nullptr);
+    for (uint32_t pass = 0; pass < 5; ++pass)
+    {
+        EXPECT_EQ(values[pass * 2], pass ? 1007u : 1123u);
+        EXPECT_EQ(values[pass * 2 + 1], pass ? 1123u : 1007u);
     }
 }
 

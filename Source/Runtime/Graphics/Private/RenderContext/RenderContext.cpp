@@ -47,7 +47,7 @@ RenderContext::~RenderContext() { cleanup(); }
 void RenderContext::waitIdle()
 {
     waitQueueIdle(pGraphicsQueue);
-    collectDeferredBuffers();
+    collectDeferredResources();
 }
 
 void RenderContext::deferRelease(GPUBuffer&& buffer)
@@ -57,10 +57,7 @@ void RenderContext::deferRelease(GPUBuffer&& buffer)
         return;
     }
     ASSERT(ready && buffer.pContext == this);
-    const DeferredBuffer deferred = { .pBuffer = buffer.pBuffer, .useId = getResourceUseId() };
-    arrpush(deferredBuffers, deferred);
-    buffer.pBuffer = nullptr;
-    buffer.pContext = nullptr;
+    buffer.destroy();
 }
 
 uint64_t RenderContext::getResourceUseId() const
@@ -100,24 +97,68 @@ uint64_t RenderContext::getPendingUseId() const
 
 bool RenderContext::isResourceUseComplete(uint64_t useId) const { return useId < getPendingUseId(); }
 
-void RenderContext::collectDeferredBuffers()
+void RenderContext::deferResource(ResourceType type, void* resource, void* secondary, void* tertiary)
+{
+    if (resource)
+    {
+        const DeferredResource deferred = { .resource = resource,
+                                            .secondary = secondary,
+                                            .tertiary = tertiary,
+                                            .useId = getResourceUseId(),
+                                            .type = type };
+        arrpush(deferredResources, deferred);
+    }
+}
+
+void RenderContext::collectDeferredResources()
 {
     const uint64_t pending = getPendingUseId();
     uint32_t       kept = 0;
-    for (uint32_t i = 0; i < (uint32_t)arrlen(deferredBuffers); ++i)
+    // Destruction may enqueue dependent resources, which are processed in the same pass.
+    for (uint32_t i = 0; i < (uint32_t)arrlen(deferredResources); ++i)
     {
-        if (deferredBuffers[i].useId < pending)
+        const DeferredResource resource = deferredResources[i];
+        if (resource.useId >= pending)
         {
-            ASSERT(resourceCount);
-            --resourceCount;
-            removeResource(deferredBuffers[i].pBuffer);
+            deferredResources[kept++] = resource;
+            continue;
         }
-        else
+        ASSERT(resourceCount);
+        --resourceCount;
+        switch (resource.type)
         {
-            deferredBuffers[kept++] = deferredBuffers[i];
+        case ResourceType::Buffer:
+            removeResource((Buffer*)resource.resource);
+            break;
+        case ResourceType::Texture:
+            removeResource((Texture*)resource.resource);
+            break;
+        case ResourceType::RenderTarget:
+            removeRenderTarget(pRenderer, (RenderTarget*)resource.resource);
+            break;
+        case ResourceType::Sampler:
+            removeSampler(pRenderer, (Sampler*)resource.resource);
+            break;
+        case ResourceType::Shader:
+            removeShader(pRenderer, (Shader*)resource.resource);
+            break;
+        case ResourceType::Pipeline:
+            if (resource.tertiary)
+            {
+                removeIndirectCommandSignature(pRenderer, (CommandSignature*)resource.tertiary);
+            }
+            removePipeline(pRenderer, (Pipeline*)resource.resource);
+            removeRootSignature(pRenderer, (RootSignature*)resource.secondary);
+            break;
+        case ResourceType::AccelerationStructure:
+            destroyAccelerationStructure((AccelerationStructureData*)resource.resource);
+            break;
+        case ResourceType::RayTracingPipeline:
+            removeRaytracingPipeline(pRaytracing, (RaytracingPipeline*)resource.resource);
+            break;
         }
     }
-    arrsetlen(deferredBuffers, kept);
+    arrsetlen(deferredResources, kept);
 }
 
 bool RenderContext::initDevice()
@@ -336,13 +377,8 @@ void RenderContext::destroyDevice(bool waitForGpu)
     ready = false;
     if (waitForGpu && pGraphicsQueue)
         waitQueueIdle(pGraphicsQueue);
-    for (uint32_t i = 0; i < (uint32_t)arrlen(deferredBuffers); ++i)
-    {
-        ASSERT(resourceCount);
-        --resourceCount;
-        removeResource(deferredBuffers[i].pBuffer);
-    }
-    arrfree(deferredBuffers);
+    collectDeferredResources();
+    arrfree(deferredResources);
     if (profilerInitialized)
     {
         exitProfiler();
@@ -519,7 +555,7 @@ CommandList& RenderContext::acquireCommandList()
     for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
         removeBuffer(pRenderer, available->transientBuffers[i]);
     arrsetlen(available->transientBuffers, 0);
-    collectDeferredBuffers();
+    collectDeferredResources();
     resetCmdPool(pRenderer, available->pCmdPool);
     beginCmd(available->pCmd);
     available->commands.reset(available->pCmd, gpuProfilerToken);

@@ -126,7 +126,7 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
                                                    .loadAction = LOAD_ACTION_CLEAR,
                                                    .storeAction = STORE_ACTION_STORE,
                                                    .clearValue = { .depth = 1 } } },
-                            draws.getDependencies(shadowFrames[backing], view, draws.getShadowCommands(backing)));
+                            draws.getDependencies(shadowFrames[backing], view, &draws.getShadowCommands(backing)));
     commands.setPipeline(pipeline);
     commands.setViewport(0, 0, 512, 512);
     commands.setScissor(0, 0, 512, 512);

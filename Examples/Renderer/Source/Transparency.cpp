@@ -110,7 +110,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
     if (draws.getCount(backing))
     {
         const hz::GPUBuffer& indirect = draws.getCommands(backing, true);
-        hz::Dependencies     dependencies = draws.getDependencies(frame, view, indirect);
+        hz::Dependencies     dependencies = draws.getDependencies(frame, view, &indirect);
         sampled.clear();
         buffers.clear();
         for (const hz::GPUTexture* texture : dependencies.sampledTextures)
