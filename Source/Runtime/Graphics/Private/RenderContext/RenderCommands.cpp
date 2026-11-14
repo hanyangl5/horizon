@@ -46,7 +46,7 @@ void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, 
 {
     for (const hz::GPUBuffer* buffer : buffers)
     {
-        if (buffer->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+        if (!buffer || buffer->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
             continue;
         ResourceState state = RESOURCE_STATE_UNORDERED_ACCESS;
         if (!storage)
@@ -72,8 +72,7 @@ void hz::CommandList::addIndirectBarriers(Span<const GPUBuffer*> buffers)
 {
     for (const GPUBuffer* buffer : buffers)
     {
-        ASSERT(buffer && buffer->isValid());
-        if (buffer->state & RESOURCE_STATE_INDIRECT_ARGUMENT)
+        if (!buffer || (buffer->state & RESOURCE_STATE_INDIRECT_ARGUMENT))
         {
             continue;
         }
@@ -129,7 +128,12 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
         }
     }
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
+    {
+        if (texture)
+        {
+            addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
+        }
+    }
     addBufferBarriers(dependencies.buffers, false);
     addBufferBarriers(dependencies.storageBuffers, true);
     addIndirectBarriers(dependencies.indirectBuffers);
@@ -193,7 +197,12 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         }
     }
     for (const hz::GPUTexture* texture : dependencies.storageTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
+    {
+        if (texture)
+        {
+            addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
+        }
+    }
     addBufferBarriers(dependencies.buffers, false);
     addBufferBarriers(dependencies.storageBuffers, true);
     addIndirectBarriers(dependencies.indirectBuffers);

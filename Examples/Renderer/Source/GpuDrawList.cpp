@@ -17,6 +17,20 @@ GpuDrawList::GpuDrawList(hz::RenderContext& context): context(context)
     ASSERT(pipeline.isValid() && clearPipeline.isValid());
 }
 
+// Mirrors the RootConstant0 block of FrustumCulling.slang field for field.
+struct CullingConstants
+{
+    uint32_t frameIndex;
+    uint32_t drawsIndex;
+    uint32_t instancesIndex;
+    uint32_t opaqueIndex;
+    uint32_t transparentIndex;
+    uint32_t statisticsIndex;
+    uint32_t drawCount;
+    uint32_t cullingEnabled;
+    uint32_t shadowsIndex;
+};
+static_assert(sizeof(CullingConstants) == 9 * sizeof(uint32_t));
 void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameBuffer, const SceneView& view, bool culling)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::prepare");
@@ -148,9 +162,16 @@ void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameB
     ASSERT(uploaded);
     commands.beginGpuTimestamp("GPU Frustum Culling");
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ frameBuffer.getSrvIndex(), frame.drawData.getSrvIndex(), view.gpuScene.getBuffers().instances.getSrvIndex(),
-                               frame.opaque.getUavIndex(), frame.transparent.getUavIndex(), frame.statistics.getUavIndex(), frame.count,
-                               culling ? 1u : 0u, frame.shadow.getUavIndex() });
+    const CullingConstants cullingConstants = { .frameIndex = frameBuffer.getSrvIndex(),
+                                                .drawsIndex = frame.drawData.getSrvIndex(),
+                                                .instancesIndex = view.gpuScene.getBuffers().instances.getSrvIndex(),
+                                                .opaqueIndex = frame.opaque.getUavIndex(),
+                                                .transparentIndex = frame.transparent.getUavIndex(),
+                                                .statisticsIndex = frame.statistics.getUavIndex(),
+                                                .drawCount = frame.count,
+                                                .cullingEnabled = culling ? 1u : 0u,
+                                                .shadowsIndex = frame.shadow.getUavIndex() };
+    commands.setRootConstants(cullingConstants);
     commands.dispatch((frame.count + 63) / 64, 1, 1,
                       { .buffers = { &frameBuffer, &frame.drawData, &view.gpuScene.getBuffers().instances },
                         .storageBuffers = { &frame.opaque, &frame.transparent, &frame.statistics, &frame.shadow } });

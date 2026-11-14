@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 #include "Core/ISpan.h"
 #include "RHI/IGraphics.h"
 #include "Graphics/RayTracing.h"
@@ -318,6 +319,85 @@ struct Dependencies
     const Dependencies* pShared = nullptr;
 };
 
+// Collects the resources a command touches while handing out their descriptor indices, so binding a
+// resource and declaring its barrier cannot drift apart. Fixed capacity, no allocation.
+class DependencyList
+{
+public:
+    // Optional inputs return UINT32_MAX and are not recorded, so call sites need no branch.
+    uint32_t sample(const GPUTexture* pTexture)
+    {
+        if (!pTexture || !pTexture->isValid())
+            return UINT32_MAX;
+        if (sampledCount < textureCapacity)
+            sampledTextures[sampledCount++] = pTexture;
+        else
+            ASSERT(false);
+        return pTexture->getSrvIndex();
+    }
+    uint32_t store(const GPUTexture* pTexture)
+    {
+        if (!pTexture || !pTexture->isValid())
+            return UINT32_MAX;
+        if (storageCount < textureCapacity)
+            storageTextures[storageCount++] = pTexture;
+        else
+            ASSERT(false);
+        return pTexture->getUavIndex();
+    }
+    uint32_t read(const GPUBuffer& buffer)
+    {
+        if (!buffer.isValid())
+            return UINT32_MAX;
+        if (bufferCount < bufferCapacity)
+            buffers[bufferCount++] = &buffer;
+        else
+            ASSERT(false);
+        return buffer.getSrvIndex();
+    }
+    uint32_t write(const GPUBuffer& buffer)
+    {
+        if (!buffer.isValid())
+            return UINT32_MAX;
+        if (storageBufferCount < bufferCapacity)
+            storageBuffers[storageBufferCount++] = &buffer;
+        else
+            ASSERT(false);
+        return buffer.getUavIndex();
+    }
+    void indirect(const GPUBuffer& buffer)
+    {
+        if (!buffer.isValid())
+            return;
+        if (indirectCount < bufferCapacity)
+            indirectBuffers[indirectCount++] = &buffer;
+        else
+            ASSERT(false);
+    }
+    Dependencies get() const
+    {
+        return { .sampledTextures = { sampledTextures, sampledCount },
+                 .storageTextures = { storageTextures, storageCount },
+                 .buffers = { buffers, bufferCount },
+                 .storageBuffers = { storageBuffers, storageBufferCount },
+                 .indirectBuffers = { indirectBuffers, indirectCount } };
+    }
+
+private:
+    static constexpr uint32_t textureCapacity = 16;
+    static constexpr uint32_t bufferCapacity = 8;
+    const GPUTexture* sampledTextures[textureCapacity] = {};
+    const GPUTexture* storageTextures[textureCapacity] = {};
+    const GPUBuffer*  buffers[bufferCapacity] = {};
+    const GPUBuffer*  storageBuffers[bufferCapacity] = {};
+    const GPUBuffer*  indirectBuffers[bufferCapacity] = {};
+    uint32_t          sampledCount = 0;
+    uint32_t          storageCount = 0;
+    uint32_t          bufferCount = 0;
+    uint32_t          storageBufferCount = 0;
+    uint32_t          indirectCount = 0;
+};
+
 struct BufferCopyRegion
 {
     uint64_t srcOffset = 0;
@@ -342,6 +422,13 @@ public:
     void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
     void setScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
     void setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
+    // Typed block form. T must mirror the shader constant block field for field, in declaration order.
+    template<typename T>
+    void setRootConstants(const T& values, uint32_t offsetIn32BitValues = 0)
+    {
+        static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Root constants are uploaded as 32-bit words");
+        setRootConstant({ (const uint32_t*)&values, (uint32_t)(sizeof(T) / sizeof(uint32_t)) }, offsetIn32BitValues);
+    }
 
     void draw(uint32_t vertexCount, uint32_t firstVertex = 0);
     void drawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);

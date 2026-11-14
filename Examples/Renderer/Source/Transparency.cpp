@@ -104,7 +104,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
                                         .lightingFrameIndex = lighting.pLightingFrame->getSrvIndex() };
     commands.beginGpuTimestamp("OIT");
     commands.setPipeline(clearPipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / 4 });
+    commands.setRootConstants(constants);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
     const uint32_t backing = view.frameIndex;
     if (draws.getCount(backing))
@@ -153,7 +153,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         constants.irradianceIndex = lighting.pIrradiance ? lighting.pIrradiance->getSrvIndex() : UINT32_MAX;
         constants.brdfLutIndex = lighting.pBRDFLut ? lighting.pBRDFLut->getSrvIndex() : UINT32_MAX;
         constants.environmentSamplerIndex = lighting.pEnvironmentSampler->getIndex();
-        commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / 4 });
+        commands.setRootConstants(constants);
         commands.drawIndirect(indirect, 0, draws.getCount(backing));
         commands.endRendering();
     }
@@ -165,7 +165,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
     constants.oitOutputIndex = color.getUavIndex();
     constants.oitTime = float(double(getUSec(true)) * 1e-6);
     commands.setPipeline(resolvePipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / 4 });
+    commands.setRootConstants(constants);
     commands.dispatch((width + 7) / 8, (height + 7) / 8, 1,
                       { .sampledTextures = { &heads, &opaqueColor },
                         .storageTextures = { &color },

@@ -89,7 +89,7 @@ void EnvironmentPass::execute(hz::CommandList& commands, const hz::GPUBuffer& fr
                     .prefiltered = prefiltered.getSrvIndex(),
                     .sampler = sampler.getIndex(),
                     .intensity = intensity };
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
+    commands.setRootConstants(constants);
     commands.draw(36);
     commands.endRendering();
     commands.endGpuTimestamp();

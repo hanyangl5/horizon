@@ -1,4 +1,5 @@
 #include "RenderPasses.h"
+#include "RendererConstants.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -24,6 +25,16 @@ constexpr const char* kGBufferNames[] = {
 };
 
 static_assert(offsetof(hz::RenderInstance, current) == 32 && offsetof(hz::RenderInstance, previous) == 96);
+
+struct GeometryBindingConstants
+{
+    uint32_t frameIndex;
+    uint32_t instancesIndex;
+    uint32_t materialsIndex;
+    uint32_t texturesIndex;
+    uint32_t samplerIndex;
+};
+static_assert(sizeof(GeometryBindingConstants) == 5 * sizeof(uint32_t));
 
 GBuffer::GBuffer(hz::RenderContext& context): context(context)
 {
@@ -97,12 +108,16 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.setViewport(0, 0, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ frame.getSrvIndex(), gpu.instances.isValid() ? gpu.instances.getSrvIndex() : UINT32_MAX,
-                               gpu.materials.isValid() ? gpu.materials.getSrvIndex() : UINT32_MAX,
-                               gpu.textures.isValid() ? gpu.textures.getSrvIndex() : UINT32_MAX, sampler.getIndex() },
-                             3);
+    const GeometryBindingConstants binding = {
+        .frameIndex = frame.getSrvIndex(),
+        .instancesIndex = gpu.instances.isValid() ? gpu.instances.getSrvIndex() : UINT32_MAX,
+        .materialsIndex = gpu.materials.isValid() ? gpu.materials.getSrvIndex() : UINT32_MAX,
+        .texturesIndex = gpu.textures.isValid() ? gpu.textures.getSrvIndex() : UINT32_MAX,
+        .samplerIndex = sampler.getIndex(),
+    };
+    commands.setRootConstants(binding, kGeometryBindingSlot);
 
-    commands.setRootConstant({ draws.getDrawData(view.frameIndex).getSrvIndex() }, 11);
+    commands.setRootConstant({ draws.getDrawData(view.frameIndex).getSrvIndex() }, kGeometryDrawSlot);
     if (draws.getCount(view.frameIndex))
     {
         commands.drawIndirect(draws.getCommands(view.frameIndex), 0, draws.getCount(view.frameIndex));

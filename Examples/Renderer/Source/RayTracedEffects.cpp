@@ -188,7 +188,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     const hz::Dependencies sceneDependencies = draws.getDependencies(frame, view);
     commands.beginGpuTimestamp("RT Shadow AO");
     commands.setPipeline(shadowPipeline);
-    commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+    commands.setRootConstants(constants);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                       { .sampledTextures = { gbuffer.pNormalMaterial, gbuffer.pDepth, &blueNoise },
                         .storageTextures = { &result },
@@ -213,7 +213,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
         .depthThreshold = settings.temporalDepthThreshold,
     };
     commands.setPipeline(temporalPipeline);
-    commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&denoise), sizeof(denoise) / 4 });
+    commands.setRootConstants(denoise);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                       { .sampledTextures = { &result, &history[previous], gbuffer.pDepth, &previousDepth },
                         .storageTextures = { &history[current] },
@@ -229,13 +229,13 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
         denoise.horizontal = pass == 0;
         denoise.step = pass + 1;
         commands.setPipeline(atrous ? atrousPipeline : spatialPipeline);
-        commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&denoise), sizeof(denoise) / 4 });
+        commands.setRootConstants(denoise);
         commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                           { .sampledTextures = { &input, gbuffer.pDepth }, .storageTextures = { &output } });
     }
     denoise.output = previousDepth.getUavIndex();
     commands.setPipeline(depthCopyPipeline);
-    commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&denoise), sizeof(denoise) / 4 });
+    commands.setRootConstants(denoise);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                       { .sampledTextures = { gbuffer.pDepth }, .storageTextures = { &previousDepth } });
     historyIndex = previous;
@@ -249,7 +249,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
         constants.tlas = UINT32_MAX;
     }
     commands.setPipeline(reflectionPipeline);
-    commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+    commands.setRootConstants(constants);
     commands.traceRays(reflectionPipeline, width, height, 1,
                        { .sampledTextures = { gbuffer.pNormalMaterial, gbuffer.pDepth, &blueNoise, lighting.pEnvironment,
                                               lighting.pIrradiance, lighting.pBRDFLut },

@@ -1,5 +1,6 @@
 // Adapted from Cookbook Renderer ShadowPass; see ../Cookbook-LICENSE.txt.
 #include "ShadowMap.h"
+#include "RendererConstants.h"
 #include "Profiler/IProfiler.h"
 #include "Core/ILog.h"
 #include <float.h>
@@ -59,6 +60,19 @@ ShadowMap::ShadowMap(hz::RenderContext& context, uint32_t newResolution): contex
     ASSERT(pipeline.isValid() && depth.isValid() && sampler.isValid());
 }
 
+// Slots 0..7 of the RootConstant0 block shared with Geometry.slang.
+struct ShadowBindingConstants
+{
+    uint32_t instanceIndex = 0;
+    uint32_t materialIndex = 0;
+    uint32_t materialId = 0;
+    uint32_t frameIndex;
+    uint32_t instancesIndex;
+    uint32_t materialsIndex;
+    uint32_t texturesIndex;
+    uint32_t samplerIndex;
+};
+static_assert(sizeof(ShadowBindingConstants) == 8 * sizeof(uint32_t));
 void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const GpuDrawList& draws)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ShadowMap::execute");
@@ -148,13 +162,16 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
     commands.setPipeline(pipeline);
     commands.setViewport(0, 0, (float)resolution, (float)resolution);
     commands.setScissor(0, 0, resolution, resolution);
-    commands.setRootConstant(
-        { 0, 0, 0, shadowFrames[backing].getSrvIndex(),
-          view.gpuScene.getBuffers().instances.isValid() ? view.gpuScene.getBuffers().instances.getSrvIndex() : UINT32_MAX,
-          view.gpuScene.getBuffers().materials.isValid() ? view.gpuScene.getBuffers().materials.getSrvIndex() : UINT32_MAX,
-          view.gpuScene.getBuffers().textures.isValid() ? view.gpuScene.getBuffers().textures.getSrvIndex() : UINT32_MAX,
-          surfaceSampler.getIndex() });
-    commands.setRootConstant({ draws.getDrawData(backing).getSrvIndex() }, 11);
+    const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
+    const ShadowBindingConstants binding = {
+        .frameIndex = shadowFrames[backing].getSrvIndex(),
+        .instancesIndex = gpu.instances.isValid() ? gpu.instances.getSrvIndex() : UINT32_MAX,
+        .materialsIndex = gpu.materials.isValid() ? gpu.materials.getSrvIndex() : UINT32_MAX,
+        .texturesIndex = gpu.textures.isValid() ? gpu.textures.getSrvIndex() : UINT32_MAX,
+        .samplerIndex = surfaceSampler.getIndex(),
+    };
+    commands.setRootConstants(binding);
+    commands.setRootConstant({ draws.getDrawData(backing).getSrvIndex() }, kGeometryDrawSlot);
     if (draws.getCount(backing))
     {
         commands.drawIndirect(draws.getShadowCommands(backing), 0, draws.getCount(backing));

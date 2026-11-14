@@ -177,7 +177,7 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
     }
     const PostMeteringConstants metering = { .sceneColor = sceneColor.getSrvIndex(), .luminanceOutput = luminance[0].getUavIndex() };
     commands.setPipeline(meteringPipeline);
-    commands.setRootConstant({ (const uint32_t*)&metering, sizeof(metering) / sizeof(uint32_t) });
+    commands.setRootConstants(metering);
     commands.dispatch(meteringSize / 16, meteringSize / 16, 1,
                       { .sampledTextures = { &sceneColor }, .storageTextures = { &luminance[0] } });
     commands.setPipeline(reducePipeline);
@@ -213,7 +213,7 @@ void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& scen
         .autoExposure = settings.toneMapping != ToneMappingMode::None ? 1u : 0u,
         .exposure = settings.exposure,
     };
-    commands.setRootConstant({ (const uint32_t*)&downsample, sizeof(downsample) / sizeof(uint32_t) });
+    commands.setRootConstants(downsample);
     commands.dispatch((bloomWidth + 15) / 16, (bloomHeight + 15) / 16, 1,
                       { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex] }, .storageTextures = { &bloomDown[0] } });
     // Only the scene downsample is thresholded; the mip levels already carry bright values.
@@ -222,7 +222,7 @@ void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& scen
     {
         downsample.input = bloomDown[level - 1].getSrvIndex();
         downsample.output = bloomDown[level].getUavIndex();
-        commands.setRootConstant({ (const uint32_t*)&downsample, sizeof(downsample) / sizeof(uint32_t) });
+        commands.setRootConstants(downsample);
         const uint32_t size = bloomLevelSize(bloomWidth, level);
         commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
                           { .sampledTextures = { &bloomDown[level - 1] }, .storageTextures = { &bloomDown[level] } });
@@ -237,7 +237,7 @@ void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& scen
                                                       .input = input->getSrvIndex(),
                                                       .output = bloomUp[level].getUavIndex(),
                                                       .sampler = sampler.getIndex() };
-        commands.setRootConstant({ (const uint32_t*)&upsample, sizeof(upsample) / sizeof(uint32_t) });
+        commands.setRootConstants(upsample);
         const uint32_t size = bloomLevelSize(bloomWidth, level);
         commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
                           { .sampledTextures = { &bloomDown[level], input }, .storageTextures = { &bloomUp[level] } });
@@ -255,7 +255,7 @@ void PostEffects::runAdaptation(hz::CommandList& commands, float deltaSeconds)
         .adaptationTime = fmaxf(deltaSeconds, 0.0f) * fmaxf(settings.adaptationSpeed, 0.0f),
     };
     commands.setPipeline(adaptationPipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
+    commands.setRootConstants(constants);
     commands.dispatch(1, 1, 1,
                       { .sampledTextures = { &luminance[luminanceLevels - 1], &adaptedLuminance[adaptedIndex] },
                         .storageTextures = { &adaptedLuminance[adaptedIndex ^ 1] } });
@@ -292,7 +292,7 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
     commands.setViewport(0, 0, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(toneMapPipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
+    commands.setRootConstants(constants);
     commands.draw(3);
     commands.endRendering();
 }

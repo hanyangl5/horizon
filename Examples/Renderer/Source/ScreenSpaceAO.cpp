@@ -80,7 +80,7 @@ const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz
                                                .distanceScale = settings.distanceScale };
     commands.beginGpuTimestamp("SSAO");
     commands.setPipeline(aoPipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
+    commands.setRootConstants(constants);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                       { .sampledTextures = { &depth, &rotations }, .storageTextures = { &occlusion }, .buffers = { &frame } });
     const hz::GPUTexture* source = &occlusion;
@@ -97,7 +97,7 @@ const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz
                                                            .samplerIndex = sampler.getIndex(),
                                                            .horizontal = axis == 0,
                                                            .depthThreshold = settings.depthThreshold };
-            commands.setRootConstant({ (const uint32_t*)&blurConstants, sizeof(blurConstants) / sizeof(uint32_t) });
+            commands.setRootConstants(blurConstants);
             commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
                               { .sampledTextures = { &depth, source }, .storageTextures = { &target } });
             source = &target;
