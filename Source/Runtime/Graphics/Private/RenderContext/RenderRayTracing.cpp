@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 Horizon */
 #include "Graphics/RenderContext.h"
+#include "SlangSession.h"
 #include "Core/IContainer.h"
 #include "Core/ILog.h"
 #include "Core/IToolFileSystem.h"
@@ -321,7 +322,8 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
     {
         return {};
     }
-    if (!pSlangSession && SLANG_FAILED(slang::createGlobalSession(&pSlangSession)))
+    slang::IGlobalSession* pSlangSession = getSlangGlobalSession();
+    if (!pSlangSession)
     {
         return {};
     }

@@ -1889,13 +1889,18 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
                     {
                         if (gpuDesc)
                         {
-                            ID3D12Device* device = NULL;
-                            d3d12dll_CreateDevice(adapter, feature_levels[level], IID_PPV_ARGS(&device));
-                            hook_fill_gpu_desc(device, feature_levels[level], pGpuDesc);
+                            // Fill what DXGI already reports. A full device per adapter only to read three feature structs
+                            // cost about a second on multi-adapter systems; the selected adapter queries them after creation.
+                            pGpuDesc->maxSupportedFeatureLevel = feature_levels[level];
+                            pGpuDesc->dedicatedVideoMemory = desc.DedicatedVideoMemory;
+                            pGpuDesc->vendorId = desc.VendorId;
+                            pGpuDesc->deviceId = desc.DeviceId;
+                            pGpuDesc->revisionId = desc.Revision;
+                            size_t converted = 0;
+                            wcstombs_s(&converted, pGpuDesc->name, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
                             // get preset for current gpu description
                             pGpuDesc->preset = getGPUPresetLevel(pGpuDesc->vendorId, pGpuDesc->deviceId,
                                                                  getGPUVendorName(pGpuDesc->vendorId), pGpuDesc->name);
-                            SAFE_RELEASE(device);
                         }
                         else
                         {
@@ -2651,6 +2656,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
         ID3D12Device* device = NULL;
         // Create device to query additional properties.
         d3d12dll_CreateDevice(gpuDesc[i].pGpu, gpuDesc[i].maxSupportedFeatureLevel, IID_PPV_ARGS(&device));
+        hook_fill_gpu_desc(device, gpuDesc[i].maxSupportedFeatureLevel, &gpuDesc[i]);
 
         QueryGPUSettings(device, &gpuDesc[i], &pContext->gpus[i].settings);
         d3d12CapsBuilder(device, &pContext->gpus[i].capBits);

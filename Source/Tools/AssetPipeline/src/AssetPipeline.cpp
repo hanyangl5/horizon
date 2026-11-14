@@ -229,46 +229,35 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
     return true;
 }
 
-static bool addSceneAssetCookFileDependency(ResourceDirectory resourceDirectory, SceneAssetCookFingerprint* pFingerprint, const char* pPath)
+static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory, SceneAssetCookFingerprint* pFingerprint, const char* pPath,
+                                            uint64_t size)
 {
-    FileStream stream = {};
-    if (!fsOpenStreamFromPath(resourceDirectory, pPath, FM_READ, &stream))
-        return false;
-
     char normalizedPath[FS_MAX_PATH] = {};
     fsNormalizePath(pPath, '/', normalizedPath);
     for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
     {
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
-        {
-            fsCloseStream(&stream);
             return true;
-        }
     }
     if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= kSceneAssetCookMaxDependencies)
-    {
-        fsCloseStream(&stream);
         return false;
-    }
+
+    const time_t modified = fsGetLastModifiedTime(resourceDirectory, pPath);
+    if (!modified)
+        return false;
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
     updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
-    uint8_t bytes[64 * 1024];
-    for (;;)
-    {
-        const size_t bytesRead = fsReadFromStream(&stream, bytes, sizeof(bytes));
-        if (!bytesRead)
-            break;
-        updateSceneAssetCookHash(&pFingerprint->mHash, bytes, bytesRead);
-    }
-    return fsCloseStream(&stream);
+    updateSceneAssetCookHash(&pFingerprint->mHash, &modified, sizeof(modified));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &size, sizeof(size));
+    return true;
 }
 
 static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, const char* pSourcePath, const void* pSourceData,
                                            size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 11;
+    static const uint32_t kCookerRevision = 12;
     pFingerprint->mHash = UINT64_C(14695981039346656037);
     updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
     updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
@@ -290,7 +279,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
         fsAppendPathComponent(sourceParent, pBuffer->uri, dependencyPath);
-        if (!pBuffer->data || !addSceneAssetCookDependency(pFingerprint, dependencyPath, pBuffer->data, pBuffer->size))
+        if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, pBuffer->size))
             return false;
     }
     for (cgltf_size i = 0; i < pData->images_count; ++i)
@@ -300,7 +289,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
         fsAppendPathComponent(sourceParent, pImage->uri, dependencyPath);
-        if (!addSceneAssetCookFileDependency(resourceDirectory, pFingerprint, dependencyPath))
+        if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, 0))
             return false;
     }
     return true;

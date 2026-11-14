@@ -36,6 +36,10 @@ RenderContext::RenderContext(const ContextDesc& input)
     }
 
     suspended = !input.width || !input.height;
+    if (desc.enablePipelineCache)
+    {
+        initPipelineCache();
+    }
     const bool initialized = suspended || createSwapChain();
     ASSERT(initialized);
     if (!initialized)
@@ -363,7 +367,7 @@ void RenderContext::destroySwapChain()
 
 void RenderContext::cleanup()
 {
-    destroyShaderCompiler();
+    savePipelineCache();
     for (const CommandResources& resources : commandResources)
     {
         ASSERT(!resources.commands.pCmd);
@@ -392,6 +396,11 @@ void RenderContext::destroyDevice(bool waitForGpu)
     }
     if (pRenderer)
     {
+        if (pPipelineCache)
+        {
+            removePipelineCache(pRenderer, pPipelineCache);
+            pPipelineCache = nullptr;
+        }
         for (CommandResources& resources : commandResources)
         {
             for (uint32_t i = 0; i < (uint32_t)arrlen(resources.transientBuffers); ++i)

@@ -8,6 +8,8 @@
 
 #include "Core/ILog.h"
 
+#include "Core/IMemory.h" //NOTE: this should be the last include in a .cpp
+
 namespace hz
 {
 GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize, ResourceMemoryUsage memoryUsage,
@@ -479,6 +481,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
             .depthStencilFormat = input.depthStencilFormat,
             .primitiveTopo = input.topology,
         },
+        .pCache = pPipelineCache,
         .pName = input.pName,
         .type = PIPELINE_TYPE_GRAPHICS,
     };
@@ -517,6 +520,7 @@ GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& inpu
 
     const PipelineDesc desc = {
         .computeDesc = { shader, rootSignature },
+        .pCache = pPipelineCache,
         .pName = input.pName,
         .type = PIPELINE_TYPE_COMPUTE,
     };
@@ -543,5 +547,89 @@ bool RenderContext::updateBuffer(const GPUBuffer& buffer, uint64_t offset, const
         return false;
     memcpy((uint8_t*)buffer.pBuffer->pCpuMappedAddress + offset, pData, (size_t)size);
     return true;
+}
+
+namespace
+{
+constexpr const char* kPipelineCacheFile = "PipelineCache.bin";
+constexpr uint32_t    kPipelineCacheMagic = 0x43505348; // 'HSPC'
+constexpr uint32_t    kPipelineCacheVersion = 1;
+
+struct PipelineCacheHeader
+{
+    uint32_t magic;
+    uint32_t version;
+    uint32_t vendorId;
+    uint32_t deviceId;
+    uint32_t driverHash;
+    uint32_t reserved;
+};
+
+// PSO blobs are driver generated, so the driver and device are what validate a library; DXIL has its own cache.
+PipelineCacheHeader makeCacheHeader(const GPUSettings& settings)
+{
+    uint32_t driverHash = 2166136261u;
+    for (const char* p = settings.gpuVendorPreset.gpuDriverVersion; *p; ++p)
+        driverHash = (driverHash ^ (uint8_t)*p) * 16777619u;
+    return { .magic = kPipelineCacheMagic,
+             .version = kPipelineCacheVersion,
+             .vendorId = settings.gpuVendorPreset.vendorId,
+             .deviceId = settings.gpuVendorPreset.modelId,
+             .driverHash = driverHash };
+}
+} // namespace
+
+bool RenderContext::initPipelineCache()
+{
+    const GPUSettings&       settings = pRenderer->pGpu->settings;
+    const PipelineCacheHeader expected = makeCacheHeader(settings);
+    PipelineCacheDesc        cacheDesc = {};
+    void*                    pBlob = nullptr;
+    FileStream               stream = {};
+    if (fsOpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_READ, &stream))
+    {
+        PipelineCacheHeader header = {};
+        const ssize_t       fileSize = fsGetStreamFileSize(&stream);
+        const bool          headerRead =
+            fileSize > (ssize_t)sizeof(header) && fsReadFromStream(&stream, &header, sizeof(header)) == sizeof(header);
+        if (headerRead && memcmp(&header, &expected, sizeof(header)) == 0)
+        {
+            const size_t blobSize = (size_t)fileSize - sizeof(header);
+            pBlob = tf_malloc(blobSize);
+            if (pBlob && fsReadFromStream(&stream, pBlob, blobSize) == blobSize)
+            {
+                cacheDesc.pData = pBlob;
+                cacheDesc.size = blobSize;
+            }
+        }
+        fsCloseStream(&stream);
+    }
+    addPipelineCache(pRenderer, &cacheDesc, &pPipelineCache);
+    tf_free(pBlob);
+    return pPipelineCache != nullptr;
+}
+
+void RenderContext::savePipelineCache()
+{
+    if (!pRenderer || !pPipelineCache)
+        return;
+    size_t blobSize = 0;
+    getPipelineCacheData(pRenderer, pPipelineCache, &blobSize, nullptr);
+    if (!blobSize)
+        return;
+    uint8_t* pBlob = (uint8_t*)tf_malloc(blobSize);
+    if (!pBlob)
+        return;
+    getPipelineCacheData(pRenderer, pPipelineCache, &blobSize, pBlob);
+
+    const PipelineCacheHeader header = makeCacheHeader(pRenderer->pGpu->settings);
+    FileStream                stream = {};
+    if (fsOpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_WRITE, &stream))
+    {
+        fsWriteToStream(&stream, &header, sizeof(header));
+        fsWriteToStream(&stream, pBlob, blobSize);
+        fsCloseStream(&stream);
+    }
+    tf_free(pBlob);
 }
 } // namespace hz

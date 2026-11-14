@@ -173,6 +173,8 @@ struct ContextDesc
     bool         enableVSync;
     bool         enableGpuValidation;
     bool         enableGpuProfiler;
+    // Persists the driver pipeline cache between runs; only apps that map RD_SHADER_BINARIES should enable it.
+    bool         enablePipelineCache = false;
 };
 
 class GPUBuffer
@@ -411,6 +413,8 @@ public:
     bool           isValid() const { return ready; }
 
     void waitIdle();
+    // Persists the driver-owned pipeline cache; call once the startup pipelines exist.
+    void savePipelineCache();
 
     bool                  resize(uint32_t width, uint32_t height);
     bool                  setVSync(bool enabled);
@@ -491,10 +495,10 @@ private:
     uint64_t getPendingUseId() const;
     Shader*  createShader(const ShaderDesc&);
     Shader*  createSlangShader(const ShaderSrcDesc&);
-    void     destroyShaderCompiler();
+    bool     initPipelineCache();
 
-    slang::IGlobalSession* pSlangSession = nullptr;
-    Raytracing*            pRaytracing = nullptr;
+    Raytracing*    pRaytracing = nullptr;
+    PipelineCache* pPipelineCache = nullptr;
 
     ContextDesc               desc = {};
     HDRDisplayInfo            hdrDisplayInfo = {};

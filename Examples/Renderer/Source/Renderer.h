@@ -8,6 +8,7 @@
 #include "Profiler/IProfiler.h"
 #include "Graphics/RenderContext.h"
 #include "Core/IThread.h"
+#include "Core/ITime.h"
 #include "Scene/AssetLoaders.h"
 #include "Scene/SceneAsset.h"
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
@@ -50,14 +51,32 @@ public:
     bool Init() override
     {
         configureResourceDirectories();
+        beginSceneCook();
+        int64_t start = getUSec(true);
         initRenderContext();
+        LOGF(eINFO, "Startup: RenderContext %.1f ms", (getUSec(true) - start) / 1000.0);
+        if (!finishSceneCook())
+        {
+            Exit();
+            return false;
+        }
+        start = getUSec(true);
         if (!initSceneAsset())
         {
             Exit();
             return false;
         }
+        LOGF(eINFO, "Startup: scene load/instantiate %.1f ms", (getUSec(true) - start) / 1000.0);
         initCamera();
-        return initRenderPasses();
+        start = getUSec(true);
+        const bool ready = initRenderPasses();
+        LOGF(eINFO, "Startup: render pass shaders and pipelines %.1f ms", (getUSec(true) - start) / 1000.0);
+        if (ready)
+        {
+            // Persist the driver PSOs built here so the next start only validates them.
+            pContext->savePipelineCache();
+        }
+        return ready;
     }
 
 private:
@@ -67,6 +86,9 @@ private:
         fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_OTHER_FILES, "RendererAssets");
         fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_TEXTURES, kSceneDirectory);
         fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_SHADER_SOURCES, "Examples/Renderer/Shaders");
+        // Compiled DXIL survives restarts here so a warm start skips the Slang front end.
+        fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_SHADER_BINARIES, "ShaderCache");
+        fsCreateDirectory(RD_SHADER_BINARIES, "", true);
     }
 
     void initRenderContext()
@@ -79,18 +101,13 @@ private:
             .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = kEnableGpuValidation,
             .enableGpuProfiler = true,
+            .enablePipelineCache = true,
         };
         pContext = hz::make_unique<hz::RenderContext>(desc);
     }
 
     bool initSceneAsset()
     {
-#if defined(HORIZON_RENDERER_ASSET_COOKING)
-        if (!ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES))
-        {
-            return false;
-        }
-#endif
         char catalogFile[FS_MAX_PATH], sceneFile[FS_MAX_PATH];
         fsReplacePathExtension(kSceneSource, "assetcatalog.json", catalogFile);
         fsReplacePathExtension(kSceneSource, "sceneasset.json", sceneFile);
@@ -191,7 +208,10 @@ public:
             LOGF(eERROR, "Failed to resize RenderContext to %ux%u", width, height);
             return false;
         }
-        return pRenderPasses->resize(width, height);
+        const int64_t start = getUSec(true);
+        const bool    ready = pRenderPasses->resize(width, height);
+        LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (getUSec(true) - start) / 1000.0);
+        return ready;
     }
     void Unload(ReloadDesc*) override { pContext->waitIdle(); }
     void Update(float deltaTime) override
@@ -209,6 +229,40 @@ public:
     void Draw() override { pRenderPasses->execute(); }
 
 private:
+    // The glTF cook check only touches files, so it runs while the device is created.
+    void beginSceneCook()
+    {
+        ThreadDesc threadDesc = { .pFunc = sceneCookTask, .pData = this, .threadName = "SceneCook" };
+        if (!initThread(&threadDesc, &cookThread))
+            cookThread = nullptr;
+    }
+
+    bool finishSceneCook()
+    {
+        if (cookThread)
+        {
+            joinThread(cookThread);
+            cookThread = nullptr;
+        }
+        else
+        {
+            sceneCookTask(this);
+        }
+        if (!cookSucceeded)
+            LOGF(eERROR, "Failed to cook scene '%s'", kSceneSource);
+        return cookSucceeded;
+    }
+
+    static void sceneCookTask(void* pData)
+    {
+        RendererApp* pApp = (RendererApp*)pData;
+#if defined(HORIZON_RENDERER_ASSET_COOKING)
+        pApp->cookSucceeded = ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES);
+#else
+        pApp->cookSucceeded = true;
+#endif
+    }
+
     void initCamera()
     {
         hz::RenderBounds bounds;
@@ -273,4 +327,6 @@ private:
     hz::unique_ptr<hz::RenderScene>      pScene;
     hz::unique_ptr<RenderPasses>         pRenderPasses;
     hz::Entity                           cameraEntity;
+    ThreadHandle                         cookThread = nullptr;
+    bool                                 cookSucceeded = false;
 };
