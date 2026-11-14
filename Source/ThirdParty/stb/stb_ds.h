@@ -2750,7 +2750,9 @@ static T* stbds_shmode_func_wrapper(T*, size_t elemsize, size_t elemalign, int m
 //   IMPLEMENTATION
 //
 
-#ifdef STB_DS_IMPLEMENTATION
+// Emitted once per translation unit: unity builds include this header from several sources.
+#if defined(STB_DS_IMPLEMENTATION) && !defined(STB_DS_IMPLEMENTATION_EMITTED)
+#define STB_DS_IMPLEMENTATION_EMITTED
 #include <string.h>
 
 #include "Core/ILog.h"

@@ -387,7 +387,7 @@ bool validateWorldReferences(const TypeDesc& type, const void* pValue, const Wor
     }
     return true;
 }
-static int compareOverrides(const void* pA, const void* pB)
+static int compareSerializedOverrides(const void* pA, const void* pB)
 {
     const SubmeshID a = ((const MaterialOverride*)pA)->submesh;
     const SubmeshID b = ((const MaterialOverride*)pB)->submesh;
@@ -406,7 +406,7 @@ bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
     {
         Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
         if (sortOverrides && !overrides.empty())
-            qsort(overrides.data(), overrides.size(), sizeof(MaterialOverride), compareOverrides);
+            qsort(overrides.data(), overrides.size(), sizeof(MaterialOverride), compareSerializedOverrides);
         for (uint32_t i = 0; i < overrides.size(); ++i)
             if (!overrides[i].submesh || !overrides[i].material.isValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
                 return false;

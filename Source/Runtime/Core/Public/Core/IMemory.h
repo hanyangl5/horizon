@@ -156,7 +156,9 @@ static void tf_delete_internal(T* ptr, const char* f, int l, const char* sf)
 
 #endif
 
-#ifndef IMEMORY_FROM_HEADER
+// These guards only work per translation unit; unity builds concatenate them, so a macro set here
+// would poison the next source file in the batch.
+#if !defined(IMEMORY_FROM_HEADER) && !defined(HORIZON_UNITY_BUILD)
 #ifndef malloc
 #define malloc(size) static_assert(false, "Please use tf_malloc");
 #endif

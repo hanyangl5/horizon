@@ -10,7 +10,7 @@
 
 namespace hz
 {
-static int compareOverrides(const void* pA, const void* pB)
+static int compareBoundOverrides(const void* pA, const void* pB)
 {
     const SubmeshID a = ((const MaterialOverride*)pA)->submesh;
     const SubmeshID b = ((const MaterialOverride*)pB)->submesh;
@@ -161,7 +161,7 @@ private:
     {
         Array<MaterialOverride> sorted({ overrides.data(), overrides.size() });
         if (!sorted.empty())
-            qsort(sorted.data(), sorted.size(), sizeof(MaterialOverride), compareOverrides);
+            qsort(sorted.data(), sorted.size(), sizeof(MaterialOverride), compareBoundOverrides);
         for (uint32_t i = 0; i < sorted.size(); ++i)
             if (!sorted[i].submesh || !sorted[i].material.isValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
                 return false;
