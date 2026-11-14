@@ -321,6 +321,74 @@ uint32_t GPUTexture::getArraySize() const { return pTexture ? pTexture->arraySiz
 uint32_t GPUTexture::getMipLevels() const { return pTexture ? pTexture->mipLevels : 0; }
 Format   GPUTexture::getFormat() const { return pTexture ? pTexture->format : Format::UNDEFINED; }
 
+static bool sameTextureDesc(const TextureDesc& a, const TextureDesc& b)
+{
+    return a.width == b.width && a.height == b.height && a.depth == b.depth && a.arraySize == b.arraySize &&
+           a.mipLevels == b.mipLevels && a.sampleCount == b.sampleCount && a.format == b.format && a.startState == b.startState &&
+           a.descriptors == b.descriptors && a.flags == b.flags && a.renderTarget == b.renderTarget;
+}
+
+GPUTexture* RenderContext::acquireTransient(const TextureDesc& input)
+{
+    ASSERT(ready && input.width && input.height);
+    uint32_t freeSlot = transientCapacity;
+    for (uint32_t i = 0; i < transientCapacity; ++i)
+    {
+        TransientSlot& slot = transientSlots[i];
+        if (!slot.used)
+        {
+            if (freeSlot == transientCapacity)
+                freeSlot = i;
+            continue;
+        }
+        if (slot.inUse || !sameTextureDesc(slot.desc, input))
+            continue;
+        if (slot.useId && !isResourceUseComplete(slot.useId))
+            continue;
+        slot.inUse = true;
+        return &slot.texture;
+    }
+    if (freeSlot == transientCapacity)
+    {
+        ASSERT(false);
+        return nullptr;
+    }
+    TransientSlot& slot = transientSlots[freeSlot];
+    slot.texture = createTexture(input);
+    slot.desc = input;
+    slot.useId = 0;
+    slot.inUse = true;
+    slot.used = true;
+    return &slot.texture;
+}
+
+void RenderContext::releaseTransient(GPUTexture* pTexture)
+{
+    for (uint32_t i = 0; i < transientCapacity; ++i)
+    {
+        if (&transientSlots[i].texture != pTexture)
+            continue;
+        ASSERT(transientSlots[i].inUse);
+        transientSlots[i].inUse = false;
+        transientSlots[i].useId = getResourceUseId();
+        return;
+    }
+    ASSERT(false);
+}
+
+void RenderContext::releaseTransientSlots()
+{
+    for (TransientSlot& slot : transientSlots)
+    {
+        if (!slot.used)
+            continue;
+        ASSERT(!slot.inUse);
+        slot.texture = GPUTexture{};
+        slot.used = false;
+        slot.useId = 0;
+    }
+}
+
 GPUTexture RenderContext::loadTexture(ResourceDirectory directory, const char* pFileName, TextureCreationFlags flags)
 {
     ASSERT(ready && pFileName);

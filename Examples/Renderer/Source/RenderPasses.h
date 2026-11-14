@@ -21,6 +21,34 @@ struct RenderPassesDesc
     hz::RenderCameraID camera;
 };
 
+// Per-frame state shared by the registered passes. Earlier passes fill what later passes consume.
+struct FrameContext
+{
+    hz::RenderContext&    context;
+    hz::CommandList&      commands;
+    GpuDrawList&          draws;
+    hz::GpuScene&         gpuScene;
+    const hz::GPUBuffer&  frame;
+    const SceneView&      view;
+    hz::GPUSampler&       linearSampler;
+    float                 deltaSeconds = 0.0f;
+    float                 environmentIntensity = 0.0f;
+    bool                  rayTracedAO = false;
+    const hz::GPUTexture* pColor = nullptr;
+    const hz::GPUTexture* pBackbuffer = nullptr;
+    DeferredGBuffer       gbuffer = {};
+    LightingResources     resources = {};
+};
+
+// One entry of the frame pass list. pEnabled gates optional effects without editing the list.
+struct RenderPass
+{
+    const char* pName = nullptr;
+    void (*pExecute)(FrameContext&, void*) = nullptr;
+    void*       pUserData = nullptr;
+    const bool* pEnabled = nullptr;
+};
+
 class GBuffer
 {
 public:
@@ -48,8 +76,15 @@ public:
 
     void update(float deltaSeconds);
     void execute();
+    void addPass(const RenderPass& pass)
+    {
+        ASSERT(passCount < maxPasses);
+        passes[passCount++] = pass;
+    }
     bool enableScreenSpaceAO = false;
     bool enableTransparency = true;
+
+    static constexpr uint32_t maxPasses = 12;
 
 private:
     struct FrameData
@@ -84,5 +119,7 @@ private:
     float                            deltaSeconds = 1.0f / 60.0f;
     hz::FixedArray<FrameConstants, 3> frameConstants;
     uint32_t                          nextFrame = 0;
+    hz::FixedArray<RenderPass, maxPasses> passes;
+    uint32_t                              passCount = 0;
     hz::GpuScene                      gpuScene;
 };

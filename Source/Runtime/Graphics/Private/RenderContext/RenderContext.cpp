@@ -372,6 +372,7 @@ void RenderContext::cleanup()
     {
         ASSERT(!resources.commands.pCmd);
     }
+    releaseTransientSlots();
     destroySwapChain();
     destroyDevice(true);
 }

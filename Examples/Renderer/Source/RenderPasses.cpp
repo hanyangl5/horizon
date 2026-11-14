@@ -126,6 +126,74 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.endGpuTimestamp();
 }
 
+static void executeShadows(FrameContext& frame, void* pUserData)
+{
+    ShadowMap& shadows = *(ShadowMap*)pUserData;
+    shadows.execute(frame.commands, frame.view, frame.draws);
+    frame.environmentIntensity = shadows.data.environmentIntensity;
+}
+
+static void executeGBuffer(FrameContext& frame, void* pUserData)
+{
+    GBuffer& gbuffer = *(GBuffer*)pUserData;
+    gbuffer.execute(frame.commands, frame.frame, frame.view, frame.draws);
+    frame.gbuffer = { .pEmissive = &gbuffer.gbuffer[0],
+                      .pNormalMaterial = &gbuffer.gbuffer[1],
+                      .pBaseColorMetallic = &gbuffer.gbuffer[2],
+                      .pDepth = &gbuffer.depth };
+}
+
+static void executeScreenSpaceAO(FrameContext& frame, void* pUserData)
+{
+    // Ray traced AO replaces the screen space term.
+    if (!frame.rayTracedAO)
+    {
+        frame.resources.pSSAO =
+            &((ScreenSpaceAO*)pUserData)->execute(frame.commands, frame.frame, *frame.gbuffer.pDepth, frame.linearSampler);
+    }
+}
+
+static void executeRayTracing(FrameContext& frame, void* pUserData)
+{
+    RayTracedEffects& rayTracing = *(RayTracedEffects*)pUserData;
+    rayTracing.execute(frame.commands, frame.frame, frame.gbuffer, frame.view, frame.draws, frame.resources);
+    if (!rayTracing.isSupported())
+    {
+        return;
+    }
+    if (rayTracing.settings.shadows || rayTracing.settings.ao)
+    {
+        frame.resources.pRTShadowAO = &rayTracing.getShadowAO();
+    }
+    if (rayTracing.settings.reflection)
+    {
+        frame.resources.pRTReflection = &rayTracing.getReflection();
+    }
+}
+
+static void executeLighting(FrameContext& frame, void* pUserData)
+{
+    frame.pColor = &((DeferredLighting*)pUserData)->execute(frame.commands, frame.frame, frame.gbuffer, frame.view, frame.resources);
+}
+
+static void executeEnvironment(FrameContext& frame, void* pUserData)
+{
+    ((EnvironmentPass*)pUserData)
+        ->execute(frame.commands, frame.frame, *frame.pColor, *frame.gbuffer.pDepth, frame.environmentIntensity);
+}
+
+static void executeTransparency(FrameContext& frame, void* pUserData)
+{
+    frame.pColor = &((Transparency*)pUserData)
+                        ->execute(frame.commands, frame.frame, *frame.gbuffer.pDepth, frame.view, frame.draws, frame.resources,
+                                  *frame.pColor);
+}
+
+static void executePost(FrameContext& frame, void* pUserData)
+{
+    ((PostEffects*)pUserData)->execute(frame.commands, *frame.pColor, *frame.pBackbuffer, frame.deltaSeconds);
+}
+
 RenderPasses::RenderPasses(const RenderPassesDesc& desc):
     context(*desc.pContext), scene(*desc.pScene), assets(*desc.pAssetManager), camera(desc.camera), draws(context),
     gpuScene(scene, assets, context, { .frameCount = frameConstants.size() })
@@ -139,6 +207,15 @@ RenderPasses::RenderPasses(const RenderPassesDesc& desc):
     postprocessing = hz::make_unique<PostEffects>(context);
     transparency = hz::make_unique<Transparency>(context);
     rayTracing = hz::make_unique<RayTracedEffects>(context);
+    addPass({ .pName = "Shadows", .pExecute = executeShadows, .pUserData = shadows.get() });
+    addPass({ .pName = "GBuffer", .pExecute = executeGBuffer, .pUserData = gbuffer.get() });
+    addPass({ .pName = "SSAO", .pExecute = executeScreenSpaceAO, .pUserData = ssao.get(), .pEnabled = &enableScreenSpaceAO });
+    addPass({ .pName = "Ray Tracing", .pExecute = executeRayTracing, .pUserData = rayTracing.get() });
+    addPass({ .pName = "Lighting", .pExecute = executeLighting, .pUserData = lighting.get() });
+    addPass({ .pName = "Environment", .pExecute = executeEnvironment, .pUserData = environment.get() });
+    addPass({ .pName = "Transparency", .pExecute = executeTransparency, .pUserData = transparency.get(), .pEnabled = &enableTransparency });
+    addPass({ .pName = "Post", .pExecute = executePost, .pUserData = postprocessing.get() });
+
     linearSampler = context.createSampler({ .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE });
     for (FrameConstants& constants : frameConstants)
     {
@@ -228,48 +305,36 @@ void RenderPasses::execute()
     hz::CommandList& commands = context.acquireCommandList();
     gpuScene.upload(commands);
     draws.prepare(commands, frame, view);
+    // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
     shadows->data.environmentMipCount = environment->getPrefilteredMipCount();
     shadows->data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;
     shadows->data.rtAOEnabled = rayTracing->isSupported() && rayTracing->settings.ao ? 1u : 0u;
-    shadows->execute(commands, view, draws);
-    gbuffer->execute(commands, frame, view, draws);
-    const DeferredGBuffer targets = { .pEmissive = &gbuffer->gbuffer[0],
-                                      .pNormalMaterial = &gbuffer->gbuffer[1],
-                                      .pBaseColorMetallic = &gbuffer->gbuffer[2],
-                                      .pDepth = &gbuffer->depth };
-    LightingResources     resources = { .pLightingFrame = &shadows->getLightingFrame(frameIndex),
-                                        .pShadowMap = &shadows->getTexture(),
-                                        .pShadowSampler = &shadows->getSampler(),
-                                        .pEnvironment = &environment->getPrefiltered(),
-                                        .pIrradiance = &environment->getIrradiance(),
-                                        .pBRDFLut = &environment->getBrdfLut(),
-                                        .pEnvironmentSampler = &environment->getSampler() };
-    // Ambient occlusion only darkens indirect light, so it runs before lighting and is consumed there.
-    if (enableScreenSpaceAO && !shadows->data.rtAOEnabled)
-    {
-        resources.pSSAO = &ssao->execute(commands, frame, gbuffer->depth, linearSampler);
-    }
-    rayTracing->execute(commands, frame, targets, view, draws, resources);
-    if (rayTracing->isSupported())
-    {
-        if (rayTracing->settings.shadows || rayTracing->settings.ao)
-        {
-            resources.pRTShadowAO = &rayTracing->getShadowAO();
-        }
-        if (rayTracing->settings.reflection)
-        {
-            resources.pRTReflection = &rayTracing->getReflection();
-        }
-    }
-    const hz::GPUTexture* color = &lighting->execute(commands, frame, targets, view, resources);
-    environment->execute(commands, frame, *color, gbuffer->depth, shadows->data.environmentIntensity);
-    if (enableTransparency)
-    {
-        color = &transparency->execute(commands, frame, gbuffer->depth, view, draws, resources, *color);
-    }
     const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-    postprocessing->execute(commands, *color, backbuffer, deltaSeconds);
-
-    constants.submission = context.submit(commands, &backbuffer);
+    FrameContext          frameContext = { .context = context,
+                                           .commands = commands,
+                                           .draws = draws,
+                                           .gpuScene = gpuScene,
+                                           .frame = frame,
+                                           .view = view,
+                                           .linearSampler = linearSampler,
+                                           .deltaSeconds = deltaSeconds,
+                                           .rayTracedAO = shadows->data.rtAOEnabled != 0,
+                                           .pBackbuffer = &backbuffer,
+                                           .resources = { .pLightingFrame = &shadows->getLightingFrame(frameIndex),
+                                                          .pShadowMap = &shadows->getTexture(),
+                                                          .pShadowSampler = &shadows->getSampler(),
+                                                          .pEnvironment = &environment->getPrefiltered(),
+                                                          .pIrradiance = &environment->getIrradiance(),
+                                                          .pBRDFLut = &environment->getBrdfLut(),
+                                                          .pEnvironmentSampler = &environment->getSampler() } };
+    for (uint32_t i = 0; i < passCount; ++i)
+    {
+        const RenderPass& pass = passes[i];
+        if (pass.pEnabled && !*pass.pEnabled)
+            continue;
+        pass.pExecute(frameContext, pass.pUserData);
+    }
+    ASSERT(frameContext.pColor && frameContext.pBackbuffer);
+    constants.submission = context.submit(commands, frameContext.pBackbuffer);
     gpuScene.endFrame(constants.submission);
 }

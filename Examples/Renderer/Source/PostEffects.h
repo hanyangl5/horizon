@@ -38,7 +38,7 @@ public:
     void execute(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget, float deltaSeconds);
     void resetExposure() { exposureInitialized = false; }
 
-    const hz::GPUTexture&     getBloom() const { return bloomUp[0]; }
+    const hz::GPUTexture*     getBloom() const { return bloomUp[0]; }
     const hz::GPUTexture&     getAdaptedLuminance() const { return adaptedLuminance[adaptedIndex]; }
     const hz::GPUTexture&     getLuminance(uint32_t level) const { return luminance[level]; }
     static constexpr uint32_t meteringSize = 512;
@@ -50,6 +50,8 @@ private:
     void runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor);
     void runAdaptation(hz::CommandList& commands, float deltaSeconds);
     void toneMap(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget);
+    void acquireBloomChain();
+    void releaseBloomChain();
 
     hz::RenderContext&                              context;
     hz::GPUSampler                                  sampler;
@@ -61,8 +63,9 @@ private:
     hz::GPUPipeline                                 bloomUpsamplePipeline;
     hz::GPUPipeline                                 toneMapPipeline;
     hz::Format                                      colorFormat = {};
-    hz::FixedArray<hz::GPUTexture, bloomLevels>     bloomDown;
-    hz::FixedArray<hz::GPUTexture, bloomLevels - 1> bloomUp;
+    // Pooled per frame; resize creates the chain so execute only borrows it.
+    hz::GPUTexture* bloomDown[bloomLevels] = {};
+    hz::GPUTexture* bloomUp[bloomLevels - 1] = {};
     hz::FixedArray<hz::GPUTexture, 2>               adaptedLuminance;
     hz::FixedArray<hz::GPUTexture, luminanceLevels> luminance;
     uint32_t                                        width = 0;

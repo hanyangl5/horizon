@@ -524,6 +524,10 @@ public:
     GPURayTracingPipeline    createRayTracingPipeline(const RayTracingPipelineDesc&);
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
+    // Pooled per-frame target, or null when every matching slot is still in use. The pool keeps the
+    // handle alive between frames, so its resource state survives; releaseTransient parks it again.
+    GPUTexture* acquireTransient(const TextureDesc&);
+    void        releaseTransient(GPUTexture* pTexture);
     GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
     GPUSampler  createSampler(const SamplerDesc& = {});
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
@@ -559,6 +563,7 @@ private:
     void deferResource(ResourceType type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
     void releaseAccelerationStructure(AccelerationStructureData*);
     void destroyAccelerationStructure(AccelerationStructureData*);
+    void releaseTransientSlots();
 
     struct CommandResources
     {
@@ -571,6 +576,16 @@ private:
         CommandList commands = {};
         Buffer**    transientBuffers = nullptr;
         uint64_t    submitId = 0;
+    };
+
+    // A parked target keeps its handle so resource state and descriptor indices stay valid between frames.
+    struct TransientSlot
+    {
+        GPUTexture  texture;
+        TextureDesc desc = {};
+        uint64_t    useId = 0;
+        bool        inUse = false;
+        bool        used = false;
     };
 
     bool     initDevice();
@@ -607,6 +622,8 @@ private:
     uint64_t                  gpuProfilerToken = UINT64_MAX;
     uint64_t                  nextSubmitId = 1;
     uint32_t                  nextCommandIndex = 0;
+    static constexpr uint32_t transientCapacity = 64;
+    TransientSlot             transientSlots[transientCapacity] = {};
     uint32_t                  swapchainImageIndex = 0;
     char                      appName[128] = {};
     bool                      resourceLoaderInitialized = false;

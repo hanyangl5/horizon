@@ -98,6 +98,37 @@ PostEffects::PostEffects(hz::RenderContext& context): context(context)
            adaptationPipeline.isValid() && bloomDownsamplePipeline.isValid() && bloomUpsamplePipeline.isValid());
 }
 
+void PostEffects::acquireBloomChain()
+{
+    const DescriptorType views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    for (uint32_t level = 0; level < bloomLevels; ++level)
+    {
+        const hz::TextureDesc desc = { .width = bloomLevelSize(bloomWidth, level),
+                                       .height = bloomLevelSize(bloomHeight, level),
+                                       .format = hz::Format::R16G16B16A16_SFLOAT,
+                                       .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .descriptors = views,
+                                       .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .pName = "Renderer.HDR.Bloom" };
+        bloomDown[level] = context.acquireTransient(desc);
+        if (level + 1 < bloomLevels)
+        {
+            // The smallest level is the base of the accumulation and only needs its downsample.
+            bloomUp[level] = context.acquireTransient(desc);
+        }
+    }
+}
+
+void PostEffects::releaseBloomChain()
+{
+    for (uint32_t level = 0; level < bloomLevels; ++level)
+    {
+        context.releaseTransient(bloomDown[level]);
+        if (level + 1 < bloomLevels)
+            context.releaseTransient(bloomUp[level]);
+    }
+}
+
 void PostEffects::resize(uint32_t width, uint32_t height)
 {
     ASSERT(width && height);
@@ -112,21 +143,15 @@ void PostEffects::resize(uint32_t width, uint32_t height)
                              .descriptors = views,
                              .flags = TEXTURE_CREATION_FLAG_FORCE_2D };
     bool            valid = true;
+    // Bloom targets are pooled per frame, so create the chain once here; execute only borrows it.
+    acquireBloomChain();
     for (uint32_t level = 0; level < bloomLevels; ++level)
     {
-        desc.width = bloomLevelSize(bloomWidth, level);
-        desc.height = bloomLevelSize(bloomHeight, level);
-        desc.pName = "Renderer.HDR.BloomDown";
-        bloomDown[level] = context.createTexture(desc);
-        valid &= bloomDown[level].isValid();
+        valid &= bloomDown[level] && bloomDown[level]->isValid();
         if (level + 1 < bloomLevels)
-        {
-            // The smallest level is the base of the accumulation and only needs its downsample.
-            desc.pName = "Renderer.HDR.BloomUp";
-            bloomUp[level] = context.createTexture(desc);
-            valid &= bloomUp[level].isValid();
-        }
+            valid &= bloomUp[level] && bloomUp[level]->isValid();
     }
+    releaseBloomChain();
     // Independent images let Dependencies describe every reduction without mixed SRV/UAV mip states.
     desc.format = hz::Format::R16_SFLOAT;
     desc.width = desc.height = meteringSize;
@@ -188,9 +213,12 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
         commands.dispatch((size + 15) / 16, (size + 15) / 16, 1,
                           { .sampledTextures = { &luminance[level - 1] }, .storageTextures = { &luminance[level] } });
     }
+    acquireBloomChain();
+
     runBloom(commands, sceneColor);
     runAdaptation(commands, deltaSeconds);
     toneMap(commands, sceneColor, renderTarget);
+    releaseBloomChain();
     // Match the reference: this frame meters into the other image; its exposure is used next frame.
     adaptedIndex ^= 1;
     commands.endGpuTimestamp();
@@ -206,7 +234,7 @@ void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& scen
     commands.setPipeline(bloomDownsamplePipeline);
     PostBloomDownsampleConstants downsample = {
         .input = sceneColor.getSrvIndex(),
-        .output = bloomDown[0].getUavIndex(),
+        .output = bloomDown[0]->getUavIndex(),
         .sampler = sampler.getIndex(),
         .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
         .threshold = 1,
@@ -215,33 +243,33 @@ void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& scen
     };
     commands.setRootConstants(downsample);
     commands.dispatch((bloomWidth + 15) / 16, (bloomHeight + 15) / 16, 1,
-                      { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex] }, .storageTextures = { &bloomDown[0] } });
+                      { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex] }, .storageTextures = { bloomDown[0] } });
     // Only the scene downsample is thresholded; the mip levels already carry bright values.
     downsample.threshold = 0;
     for (uint32_t level = 1; level < bloomLevels; ++level)
     {
-        downsample.input = bloomDown[level - 1].getSrvIndex();
-        downsample.output = bloomDown[level].getUavIndex();
+        downsample.input = bloomDown[level - 1]->getSrvIndex();
+        downsample.output = bloomDown[level]->getUavIndex();
         commands.setRootConstants(downsample);
         const uint32_t size = bloomLevelSize(bloomWidth, level);
         commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
-                          { .sampledTextures = { &bloomDown[level - 1] }, .storageTextures = { &bloomDown[level] } });
+                          { .sampledTextures = { bloomDown[level - 1] }, .storageTextures = { bloomDown[level] } });
     }
     // up[level] = down[level] + tent(up[level + 1]); the smallest downsample seeds the accumulation.
     commands.setPipeline(bloomUpsamplePipeline);
-    const hz::GPUTexture* input = &bloomDown[bloomLevels - 1];
+    const hz::GPUTexture* input = bloomDown[bloomLevels - 1];
     for (uint32_t level = bloomLevels - 1; level > 0;)
     {
         --level;
-        const PostBloomUpsampleConstants upsample = { .down = bloomDown[level].getSrvIndex(),
+        const PostBloomUpsampleConstants upsample = { .down = bloomDown[level]->getSrvIndex(),
                                                       .input = input->getSrvIndex(),
-                                                      .output = bloomUp[level].getUavIndex(),
+                                                      .output = bloomUp[level]->getUavIndex(),
                                                       .sampler = sampler.getIndex() };
         commands.setRootConstants(upsample);
         const uint32_t size = bloomLevelSize(bloomWidth, level);
         commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
-                          { .sampledTextures = { &bloomDown[level], input }, .storageTextures = { &bloomUp[level] } });
-        input = &bloomUp[level];
+                          { .sampledTextures = { bloomDown[level], input }, .storageTextures = { bloomUp[level] } });
+        input = bloomUp[level];
     }
     commands.endGpuTimestamp();
 }
@@ -267,7 +295,7 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
     const PostToneConstants constants = {
         .sceneColor = sceneColor.getSrvIndex(),
         .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
-        .bloom = bloomUp[0].getSrvIndex(),
+        .bloom = bloomUp[0]->getSrvIndex(),
         .sampler = sampler.getIndex(),
         .toneMapping = (uint32_t)settings.toneMapping,
         .exposure = settings.exposure,
@@ -288,7 +316,7 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
     };
     commands.beginRendering(
         { .colorAttachments = { { .pTexture = &renderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-        { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex], &bloomUp[0] } });
+        { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex], bloomUp[0] } });
     commands.setViewport(0, 0, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(toneMapPipeline);
