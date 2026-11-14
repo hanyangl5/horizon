@@ -5,7 +5,15 @@
 #include <float.h>
 #include <math.h>
 
-ShadowMap::ShadowMap(hz::RenderContext& context): context(context)
+// Rounds a light-space extent up to a 1/8 octave step: the texel size stays fixed while the scene bounds
+// move a little, and grows by at most 12.5% at a step instead of doubling like a power-of-two ladder.
+static float quantizeShadowExtent(float extent)
+{
+    const float base = exp2f(floorf(log2f(extent)));
+    return base * ceilf(extent / base * 8.0f) * 0.125f;
+}
+
+ShadowMap::ShadowMap(hz::RenderContext& context, uint32_t newResolution): context(context), resolution(newResolution)
 {
     pipeline = context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
                                                                             { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSShadow" } },
@@ -19,8 +27,8 @@ ShadowMap::ShadowMap(hz::RenderContext& context): context(context)
                                                 .depthStencilFormat = hz::Format::D16_UNORM,
                                                 .indirectDrawId = true,
                                                 .pName = "Renderer.ShadowMap" });
-    depth = context.createTexture({ .width = 512,
-                                    .height = 512,
+    depth = context.createTexture({ .width = resolution,
+                                    .height = resolution,
                                     .format = hz::Format::D16_UNORM,
                                     .startState = RESOURCE_STATE_DEPTH_WRITE,
                                     .descriptors = DESCRIPTOR_TYPE_TEXTURE,
@@ -99,11 +107,21 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
     Matrix4 projection = Matrix4::identity();
     if (hasBounds)
     {
-        const float dx = fmaxf(maximum[0] - minimum[0], 0.001f);
-        const float dy = fmaxf(maximum[1] - minimum[1], 0.001f);
+        // Snap the light-space volume to a whole texel grid so the map does not crawl when the scene
+        // bounds move by a few centimetres, and quantize the extents so the texel size itself is stable.
+        // The margin keeps enough slack that snapping the centre cannot push geometry out of the volume.
+        const float rawX = fmaxf(maximum[0] - minimum[0], 0.001f);
+        const float rawY = fmaxf(maximum[1] - minimum[1], 0.001f);
+        const float margin = 4.0f / (float)resolution;
+        const float extentX = quantizeShadowExtent(rawX * (1.0f + margin));
+        const float extentY = quantizeShadowExtent(rawY * (1.0f + margin));
         const float dz = fmaxf(maximum[2] - minimum[2], 0.001f);
-        projection = Matrix4(Vector4(2 / dx, 0, 0, 0), Vector4(0, 2 / dy, 0, 0), Vector4(0, 0, -1 / dz, 0),
-                             Vector4(-(maximum[0] + minimum[0]) / dx, -(maximum[1] + minimum[1]) / dy, maximum[2] / dz, 1));
+        const float texelX = extentX / (float)resolution;
+        const float texelY = extentY / (float)resolution;
+        const float centerX = floorf((maximum[0] + minimum[0]) * 0.5f / texelX) * texelX;
+        const float centerY = floorf((maximum[1] + minimum[1]) * 0.5f / texelY) * texelY;
+        projection = Matrix4(Vector4(2 / extentX, 0, 0, 0), Vector4(0, 2 / extentY, 0, 0), Vector4(0, 0, -1 / dz, 0),
+                             Vector4(-2 * centerX / extentX, -2 * centerY / extentY, maximum[2] / dz, 1));
     }
     data.shadowViewProjection = projection * lightView;
     struct ShadowFrame
@@ -128,8 +146,8 @@ void ShadowMap::execute(hz::CommandList& commands, const SceneView& view, const 
                                                    .clearValue = { .depth = 1 } } },
                             draws.getDependencies(shadowFrames[backing], view, &draws.getShadowCommands(backing)));
     commands.setPipeline(pipeline);
-    commands.setViewport(0, 0, 512, 512);
-    commands.setScissor(0, 0, 512, 512);
+    commands.setViewport(0, 0, (float)resolution, (float)resolution);
+    commands.setScissor(0, 0, resolution, resolution);
     commands.setRootConstant(
         { 0, 0, 0, shadowFrames[backing].getSrvIndex(),
           view.gpuScene.getBuffers().instances.isValid() ? view.gpuScene.getBuffers().instances.getSrvIndex() : UINT32_MAX,

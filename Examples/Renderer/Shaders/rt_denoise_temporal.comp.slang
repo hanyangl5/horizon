@@ -18,7 +18,7 @@ void main(uint3 dispatchId : SV_DispatchThreadID)
 
     float depth = textureBindless2D(depthIndex, samplerIndex, uv).r;
 
-    if (depth >= 0.9999)
+    if (depth >= 1.0)
     {
         output[xy] = (float4(1.0, 1.0, 0.0, 1.0)).xy;
         return;

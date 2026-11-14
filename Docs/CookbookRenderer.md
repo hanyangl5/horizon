@@ -13,9 +13,11 @@ targets are released by RAII and temporal history is invalidated. Tone mapping
 rebuilds its PSO only when the output format changes.
 
 Shader alignment distinguishes the reference algorithm from engine bindings.
-RT shadow/AO restores the original inline control flow, half arithmetic, sampling
-helpers and experimental first-hit retracing. The fragment pass is dispatched as
-a compute kernel over the same pixel centers and writes the same shadow/AO channels. HLSL requires InstanceID queries
+RT shadow/AO restores the original inline control flow, sampling helpers and
+experimental first-hit retracing; the surface normal is decoded in float like the
+deferred pass, while the occlusion accumulation keeps the reference half arithmetic.
+The fragment pass is dispatched as a compute kernel over the same pixel centers and
+writes the same shadow/AO channels. HLSL requires InstanceID queries
 instead of Vulkan CustomIndex queries. Temporal, spatial and atrous denoising use
 the original kernel files and math; history invalidation adds an initialization
 guard. RT reflection restores the original entry names and FORCE_OPAQUE ray flag;
@@ -38,20 +40,20 @@ and the input assets prevent text-level or pixel-level identity.
 | --- | --- |
 | GPU culling | Six planes and eight frustum corners against world AABBs. GPU readback checks perspective projection, camera translation/rotation, visibility and triangle counts, plus off-camera shadow casters. |
 | Indirect draw | GPU-generated opaque, transparent and shadow commands. D3D12 root constants provide draw IDs; manual index/vertex pulling supports World mesh buffers. Raster readback checks distinct materials and the last of three uint16 indices. |
-| Shadow map | 512x512 D16, masked geometry, hardware comparison filtering. The shared geometry shader passes opaque/masked depth tests; light projection and PCF follow the reference. D3D12 uses integer constant depth bias 1 for the reference Vulkan value 1.1. |
+| Shadow map | Default 2048x2048 D16, masked geometry, hardware comparison filtering. The shared geometry shader passes opaque/masked depth tests; the light projection quantizes its light-space extents and snaps their centre to the texel grid instead of following the scene bounds exactly, so the map stays stable while the bounds move. D3D12 uses integer constant depth bias 1 for the reference Vulkan value 1.1. |
 | RT shadow/AO | Actual inline ray queries with the original blue-noise texels, alpha candidates/retracing and cosine AO. Production-shader tests verify opaque occlusion and alpha-cutoff rejection. |
 | Denoising | Camera reprojection, temporal depth rejection, Gaussian or atrous filtering. Settings/asset/resize changes reset history; no extra motion compensation beyond the reference. Both filter paths execute in the bounded Renderer check. |
 | RT reflection | Actual DXIL raygen/miss/closest-hit, DXR state object and shader table. Hit/miss, TLAS update and subsequent compute readback pass; Bistro reflection is nonzero and finite. Receiver Fresnel is applied once. |
-| Lighting | GGX, correlated Smith, Schlick, diffuse/specular IBL and BRDF LUT. A production-shader highlight test preserves about 242679 in RGBA32F and matches the analytic BRDF value. |
+| Lighting | GGX, correlated Smith, Schlick, diffuse/specular IBL and BRDF LUT. A production-shader highlight test preserves about 229501 in RGBA32F and matches the analytic BRDF value; the 4-bit specular default round-trips 0.5, so the deferred and ray traced paths share F0 0.04. |
 | Skybox | Original prefiltered cubemap, irradiance and LUT, with the same cube orientation used by IBL and reflection misses. |
-| SSAO | Original eight rotated samples and depth-aware blur; optional and not applied on top of RT AO. Verified through the Renderer fallback path. |
-| OIT | PPLL half4 colors, depth sorting and 64-layer resolve. Production-shader readback verifies draw-order independence, opaque occlusion and allocation overflow. |
+| SSAO | Original eight rotated samples and depth-aware blur; optional, consumed by the deferred pass as indirect-light occlusion and skipped when RT AO is enabled. Both entry points compile in the production-shader test. |
+| OIT | PPLL half4 colors, depth sorting and 64-layer resolve. Transparent fragments take direct-light visibility from the shadow map. Production-shader readback verifies draw-order independence, opaque occlusion and allocation overflow. |
 | Bloom | Reference exposure-relative soft-knee threshold on a half-resolution six-level chain: each level is a 2x2 box downsample and a 3x3 tent upsample accumulates `down + tent(up)` back to level 0. This deliberately replaces the reference diamond filter. GPU box, tent and constant-preservation checks pass. |
 | Adaptation | Log luminance, reduction and exponential ping-pong adaptation. Ten independent R16F level textures replace mip views; GPU initialization, log-mean and exposure-step checks pass. |
 | Tone mapping | None, Reinhard, Uchimura and Khronos PBR, plus Horizon SDR/HDR10/scRGB output. All curves and HDR transfer functions have GPU numerical checks; physical SDR and HDR10 Renderer paths execute. |
 
-The order is shadow map, geometry, RT shadow/AO and denoising, RT reflection,
-deferred lighting, sky, transparency/resolve, optional SSAO, then HDR postprocessing.
+The order is shadow map, geometry, optional SSAO, RT shadow/AO and denoising, RT
+reflection, deferred lighting, sky, transparency/resolve, then HDR postprocessing.
 Main lit targets use RGBA32F, matching the reference range. PPLL nodes retain the
 reference half4 storage and its 65504 color limit.
 

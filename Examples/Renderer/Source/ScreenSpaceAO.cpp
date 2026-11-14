@@ -13,13 +13,10 @@ struct ScreenSpaceAOConstants
     uint32_t samplerIndex = UINT32_MAX;
     uint32_t rotationSamplerIndex = UINT32_MAX;
     uint32_t horizontal = 0;
-    uint32_t occlusionIndex = UINT32_MAX;
     float    radius = 0;
     float    attenuationScale = 1;
     float    distanceScale = 1;
     float    depthThreshold = 0;
-    float    scale = 1;
-    float    bias = 0;
 };
 
 ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& context): context(context)
@@ -30,11 +27,8 @@ ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& context): context(context)
     blurPipeline = context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .pName = "Renderer.SSAO.Blur" });
-    combinePipeline = context.createComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CombineMain" } }, .pFileName = "ScreenSpaceAO.slang" },
-          .pName = "Renderer.SSAO.Combine" });
     rotationSampler = context.createSampler({ .addressU = ADDRESS_MODE_REPEAT, .addressV = ADDRESS_MODE_REPEAT });
-    ASSERT(aoPipeline.isValid() && blurPipeline.isValid() && combinePipeline.isValid() && rotationSampler.isValid());
+    ASSERT(aoPipeline.isValid() && blurPipeline.isValid() && rotationSampler.isValid());
 }
 
 bool ScreenSpaceAO::resize(uint32_t newWidth, uint32_t newHeight)
@@ -64,21 +58,17 @@ bool ScreenSpaceAO::resize(uint32_t newWidth, uint32_t newHeight)
     {
         texture = context.createTexture(desc);
     }
-    hz::TextureDesc colorDesc = desc;
-    colorDesc.format = hz::Format::R32G32B32A32_SFLOAT;
-    colorDesc.pName = "Renderer.SSAO.CombinedColor";
-    combined = context.createTexture(colorDesc);
     blurred = false;
-    ASSERT(occlusion.isValid() && blur[0].isValid() && blur[1].isValid() && combined.isValid());
+    ASSERT(occlusion.isValid() && blur[0].isValid() && blur[1].isValid());
     return true;
 }
 
 const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& depth,
-                                             const hz::GPUTexture& normal, const hz::GPUSampler& sampler)
+                                             const hz::GPUSampler& sampler)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
-    ASSERT(width && height && frame.isValid() && depth.isValid() && normal.isValid() && sampler.isValid());
-    // The Cookbook kernel and bilateral blur use depth, rather than a second normal-based AO algorithm.
+    ASSERT(width && height && frame.isValid() && depth.isValid() && sampler.isValid());
+    // The Cookbook kernel and bilateral blur use depth; the deferred pass multiplies the result into indirect light.
     const ScreenSpaceAOConstants constants = { .frameIndex = frame.getSrvIndex(),
                                                .depthIndex = depth.getSrvIndex(),
                                                .rotationsIndex = rotations.getSrvIndex(),
@@ -116,25 +106,6 @@ const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz
     }
     commands.endGpuTimestamp();
     return getOcclusion();
-}
-
-const hz::GPUTexture& ScreenSpaceAO::combine(hz::CommandList& commands, const hz::GPUTexture& color, const hz::GPUSampler& sampler)
-{
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::combine");
-    ASSERT(width && height && color.isValid() && sampler.isValid());
-    const hz::GPUTexture&        ao = getOcclusion();
-    const ScreenSpaceAOConstants constants = { .sourceIndex = color.getSrvIndex(),
-                                               .outputIndex = combined.getUavIndex(),
-                                               .samplerIndex = sampler.getIndex(),
-                                               .occlusionIndex = ao.getSrvIndex(),
-                                               .scale = settings.scale,
-                                               .bias = settings.bias };
-    commands.beginGpuTimestamp("SSAO.Combine");
-    commands.setPipeline(combinePipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, { .sampledTextures = { &color, &ao }, .storageTextures = { &combined } });
-    commands.endGpuTimestamp();
-    return combined;
 }
 
 const hz::GPUTexture& ScreenSpaceAO::getOcclusion() const { return blurred ? blur[1] : occlusion; }

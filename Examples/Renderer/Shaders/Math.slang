@@ -3,19 +3,6 @@
 
 static const float M_PI = 3.141592653589793;
 
-half2 signNotZero16(half2 v) { return half2(v.x >= half(0.0) ? half(1.0) : half(-1.0), v.y >= half(0.0) ? half(1.0) : half(-1.0)); }
-
-half3 decodeOctahedron16(half2 e)
-{
-    half2 f = e * half(2.0) - half(1.0);
-    half3 n = half3(f.x, f.y, half(1.0) - abs(f.x) - abs(f.y));
-    if (n.z < half(0.0))
-    {
-        n.xy = (half(1.0) - abs(n.yx)) * signNotZero16(n.xy);
-    }
-    return normalize(n);
-}
-
 float3 reconstructWorldPosition(float2 uv, float depth, float4x4 invViewProj)
 {
     float2 ndc = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);

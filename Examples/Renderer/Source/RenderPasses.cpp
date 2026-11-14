@@ -53,6 +53,8 @@ GBuffer::GBuffer(hz::RenderContext& context): context(context)
 
 void GBuffer::resize(uint32_t width, uint32_t height)
 {
+    this->width = width;
+    this->height = height;
     hz::TextureDesc targetDesc = {
         .width = width,
         .height = height,
@@ -92,8 +94,8 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
     }, draws.getDependencies(frame, view, &draws.getCommands(view.frameIndex)));
-    commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
-    commands.setScissor(0, 0, context.getWidth(), context.getHeight());
+    commands.setViewport(0, 0, (float)width, (float)height);
+    commands.setScissor(0, 0, width, height);
     commands.setPipeline(pipeline);
     commands.setRootConstant({ frame.getSrvIndex(), gpu.instances.isValid() ? gpu.instances.getSrvIndex() : UINT32_MAX,
                                gpu.materials.isValid() ? gpu.materials.getSrvIndex() : UINT32_MAX,
@@ -227,6 +229,11 @@ void RenderPasses::execute()
                                         .pIrradiance = &environment->getIrradiance(),
                                         .pBRDFLut = &environment->getBrdfLut(),
                                         .pEnvironmentSampler = &environment->getSampler() };
+    // Ambient occlusion only darkens indirect light, so it runs before lighting and is consumed there.
+    if (enableScreenSpaceAO && !shadows->data.rtAOEnabled)
+    {
+        resources.pSSAO = &ssao->execute(commands, frame, gbuffer->depth, linearSampler);
+    }
     rayTracing->execute(commands, frame, targets, view, draws, resources);
     if (rayTracing->isSupported())
     {
@@ -244,11 +251,6 @@ void RenderPasses::execute()
     if (enableTransparency)
     {
         color = &transparency->execute(commands, frame, gbuffer->depth, view, draws, resources, *color);
-    }
-    if (enableScreenSpaceAO && !shadows->data.rtAOEnabled)
-    {
-        ssao->execute(commands, frame, gbuffer->depth, gbuffer->gbuffer[1], linearSampler);
-        color = &ssao->combine(commands, *color, linearSampler);
     }
     const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
     postprocessing->execute(commands, *color, backbuffer, deltaSeconds);

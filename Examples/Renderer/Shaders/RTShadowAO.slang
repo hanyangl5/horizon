@@ -1,6 +1,6 @@
 #include "RTShared.slang"
 
-half traceRTAO16(float3 p, half3 n, float2 pixel, RaytracingAccelerationStructure scene)
+half traceRTAO(float3 p, float3 n, float2 pixel, RaytracingAccelerationStructure scene)
 {
     float3x3 basis = getTangentBasis(n);
 
@@ -11,7 +11,7 @@ half traceRTAO16(float3 p, half3 n, float2 pixel, RaytracingAccelerationStructur
         float3 dir = normalize(mul(basis, cosineSampleHemisphere(rnd).xyz));
 
         RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rq;
-        RayDesc ray = { p + float3(n) * 0.03, 0.03, dir, aoRadius };
+        RayDesc ray = { p + n * 0.03, 0.03, dir, aoRadius };
         rq.TraceRayInline(scene, RAY_FLAG_NONE, 0xff, ray);
         while (rq.Proceed())
         {
@@ -39,7 +39,7 @@ void main(uint3 thread : SV_DispatchThreadID)
     Texture2D<float>  depth = ResourceDescriptorHeap[depthIndex];
     Texture2D<float4> normals = ResourceDescriptorHeap[normalIndex];
     float             d = depth.Load(int3(thread.xy, 0));
-    if (d >= 0.9999 || tlasIndex == INVALID_TEXTURE)
+    if (d >= 1.0 || tlasIndex == INVALID_TEXTURE)
     {
         output[thread.xy] = 1.0;
         return;
@@ -48,11 +48,11 @@ void main(uint3 thread : SV_DispatchThreadID)
     StructuredBuffer<FrameData>         frames = ResourceDescriptorHeap[frameIndexBuffer];
     StructuredBuffer<LightingFrameData> lights = ResourceDescriptorHeap[lightingIndex];
     RaytracingAccelerationStructure     scene = ResourceDescriptorHeap[tlasIndex];
-    float2                              pixel = float2(thread.xy) + 0.5;
-    float2                              uv = pixel / float2(width, height);
-    half4                               g1 = half4(normals.Load(int3(thread.xy, 0)));
-    half3                               n = decodeOctahedron16(g1.xy);
-    float3                              worldPos = reconstructWorldPosition(uv, d, frames[0].inverseViewProjection);
+    float2 pixel = float2(thread.xy) + 0.5;
+    float2 uv = pixel / float2(width, height);
+    // Decode in float, like the deferred pass, so the shadow ray leaves along the shaded normal.
+    float3 n = decodeOctNormal(normals.Load(int3(thread.xy, 0)).xy);
+    float3 worldPos = reconstructWorldPosition(uv, d, frames[0].inverseViewProjection);
 
     half shadow = half(1.0);
     half ao = half(1.0);
@@ -63,13 +63,13 @@ void main(uint3 thread : SV_DispatchThreadID)
         float2 rnd = blueNoiseVec2(blueNoiseIndex, samplerIndex, pixel, frameNumber);
         float3 rayDir = generateSoftShadowRayDir(l, shadowRadius, rnd);
 
-        if (dot(float3(n), rayDir) > 0.0)
+        if (dot(n, rayDir) > 0.0)
         {
             if (alphaTestMethod != 2)
             {
                 RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rq;
 
-                RayDesc ray = { worldPos + float3(n) * 0.03, 0.03, rayDir, 1e4 };
+                RayDesc ray = { worldPos + n * 0.03, 0.03, rayDir, 1e4 };
                 rq.TraceRayInline(scene, RAY_FLAG_NONE, 0xff, ray);
                 while (rq.Proceed())
                 {
@@ -107,7 +107,7 @@ void main(uint3 thread : SV_DispatchThreadID)
             {
                 // Experimental first-hit retrace: the returned hit may not be the nearest intersection.
                 RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rq;
-                RayDesc ray = { worldPos + float3(n) * 0.03, 0.03, rayDir, 1e4 };
+                RayDesc ray = { worldPos + n * 0.03, 0.03, rayDir, 1e4 };
                 // Conservatively keep the shadow if the trace budget is exhausted.
                 shadow = half(0.0);
                 for (uint depth = 0; depth < retraceMaxDepth; ++depth)
@@ -152,7 +152,7 @@ void main(uint3 thread : SV_DispatchThreadID)
 
     if (aoEnabled != 0)
     {
-        ao = traceRTAO16(worldPos, n, pixel, scene);
+        ao = traceRTAO(worldPos, n, pixel, scene);
     }
 
     output[thread.xy] = float2(shadow, ao);

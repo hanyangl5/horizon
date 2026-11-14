@@ -39,11 +39,11 @@ const hz::GPUTexture& DeferredLighting::execute(hz::CommandList& commands, const
     ASSERT(color.isValid() && resources.pLightingFrame && resources.pLightingFrame->isValid());
     ASSERT(gbuffer.pEmissive && gbuffer.pNormalMaterial && gbuffer.pBaseColorMetallic && gbuffer.pDepth);
     ASSERT(resources.pEnvironment && resources.pIrradiance && resources.pBRDFLut && resources.pEnvironmentSampler);
-    const hz::GPUTexture* sampled[10];
+    const hz::GPUTexture* sampled[11];
     uint32_t              count = 0;
-    const hz::GPUTexture* inputs[] = { gbuffer.pEmissive,     gbuffer.pNormalMaterial, gbuffer.pBaseColorMetallic, gbuffer.pDepth,
-                                       resources.pShadowMap,  resources.pRTShadowAO,   resources.pRTReflection,    resources.pEnvironment,
-                                       resources.pIrradiance, resources.pBRDFLut };
+    const hz::GPUTexture* inputs[] = { gbuffer.pEmissive,      gbuffer.pNormalMaterial, gbuffer.pBaseColorMetallic, gbuffer.pDepth,
+                                       resources.pShadowMap,   resources.pRTShadowAO,   resources.pRTReflection,    resources.pSSAO,
+                                       resources.pEnvironment, resources.pIrradiance,   resources.pBRDFLut };
     for (const hz::GPUTexture* texture : inputs)
     {
         if (texture && texture->isValid())
@@ -72,7 +72,8 @@ const hz::GPUTexture& DeferredLighting::execute(hz::CommandList& commands, const
                                    lightingTextureIndex(resources.pBRDFLut),
                                    lightingSamplerIndex(resources.pEnvironmentSampler),
                                    lightingTextureIndex(resources.pRTShadowAO),
-                                   lightingTextureIndex(resources.pRTReflection) };
+                                   lightingTextureIndex(resources.pRTReflection),
+                                   lightingTextureIndex(resources.pSSAO) };
     commands.setRootConstant(constants);
     commands.draw(3);
     commands.endRendering();

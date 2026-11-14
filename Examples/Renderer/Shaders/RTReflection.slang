@@ -24,7 +24,7 @@ void rayGenMain()
     int2   depthSize = int2(width, height);
     int2   sourcePixel = min(int2(uv * float2(depthSize)), depthSize - 1);
     float  depth = depthTexture.Load(int3(sourcePixel, 0));
-    if (depth >= 0.9999 || tlasIndex == INVALID_TEXTURE)
+    if (depth >= 1.0 || tlasIndex == INVALID_TEXTURE)
     {
         output[pixel] = float4(0.0);
         return;

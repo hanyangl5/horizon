@@ -4010,7 +4010,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     commands.setRootConstant({ (const uint32_t*)&meteringConstants, sizeof(meteringConstants) / 4 });
     commands.dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
     read(logOutput, 8);
-    // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/15. No environment or shadow.
+    // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/16. No environment, shadow or AO.
     commands.beginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
                                                       .loadAction = LOAD_ACTION_CLEAR,
                                                       .storeAction = STORE_ACTION_STORE,
@@ -4026,7 +4026,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &peakLighting } });
     commands.setViewport(0, 0, 1, 1);
     commands.setScissor(0, 0, 1, 1);
-    uint32_t peakConstants[14];
+    uint32_t peakConstants[15];
     for (uint32_t& value : peakConstants)
     {
         value = UINT32_MAX;
@@ -4154,7 +4154,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         }
     }
     // At normal incidence the reference GGX reduces analytically to (1-F0)/pi + F0/(4*pi*roughness^4).
-    const double f0 = 0.08 * 8.0 / 15.0, pi = 3.141592653589793;
+    const double f0 = 0.08 * 8.0 / 16.0, pi = 3.141592653589793;
     const double peakExpected = 100000.0 * ((1.0 - f0) / pi + f0 / (4.0 * pi * std::pow(0.2, 4)));
     for (uint32_t channel = 0; channel < 3; ++channel)
     {
@@ -4346,5 +4346,22 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
             }
         }
         EXPECT_EQ(coverage, scenario.coverage);
+    }
+}
+
+TEST_F(SceneAssetLoaderTest, RendererScreenSpaceAOShadersCompile)
+{
+    const std::filesystem::path shaders =
+        std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
+    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    hz::RenderContext context({ .pAppName = "RendererShaderCompileTest", .enableGpuValidation = true });
+    // The AO pass produces the indirect-light occlusion the deferred shader consumes, so both entry points must link.
+    for (const char* entry : { "CSMain", "BlurMain" })
+    {
+        const hz::GPUPipeline pipeline = context.createComputePipeline(
+            { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+                              .sourceDirectory = RD_OTHER_FILES,
+                              .pFileName = "ScreenSpaceAO.slang" } });
+        EXPECT_TRUE(pipeline.isValid()) << entry;
     }
 }

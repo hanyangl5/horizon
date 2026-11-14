@@ -12,13 +12,10 @@ cbuffer RootConstant0
     uint  samplerIndex;
     uint  rotationSamplerIndex;
     uint  horizontal;
-    uint  occlusionIndex;
     float radius;
     float attenuationScale;
     float distanceScale;
     float depthThreshold;
-    float scale;
-    float bias;
 };
 
 static const float3 offsets[8] = { float3(-0.5, -0.5, -0.5), float3(0.5, -0.5, -0.5), float3(-0.5, 0.5, -0.5), float3(0.5, 0.5, -0.5),
@@ -134,24 +131,4 @@ void BlurMain(uint3 dispatchId : SV_DispatchThreadID)
     }
 
     output[int2(xy)] = (float4(c, 1.0));
-}
-
-[numthreads(16, 16, 1)]
-void CombineMain(uint3 dispatchId : SV_DispatchThreadID)
-{
-    Texture2D<float4> source = ResourceDescriptorHeap[sourceIndex];
-    uint              width;
-    uint              height;
-    source.GetDimensions(width, height);
-    if (dispatchId.x >= width || dispatchId.y >= height)
-    {
-        return;
-    }
-    const float2        uv = (float2(dispatchId.xy) + 0.5) / float2(width, height);
-    Texture2D<float4>   ao = ResourceDescriptorHeap[occlusionIndex];
-    SamplerState        sampler = SamplerDescriptorHeap[samplerIndex];
-    const float4        color = source.SampleLevel(sampler, uv, 0);
-    const float         ssao = clamp(ao.SampleLevel(sampler, uv, 0).r + bias, 0.0, 1.0);
-    RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
-    output[dispatchId.xy] = float4(lerp(color, color * ssao, scale).rgb, 1.0);
 }

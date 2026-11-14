@@ -19,6 +19,7 @@ cbuffer RootConstant0
     uint environmentSamplerIndex;
     uint rtShadowAOIndex;
     uint rtReflectionIndex;
+    uint ssaoIndex;
 };
 struct PSInput
 {
@@ -40,7 +41,9 @@ float4 PSMain(PSInput input): SV_Target0
     Texture2D<float>  depthTexture = ResourceDescriptorHeap[depthIndex];
     half3             scene = half3(emissive.Load(pixel).rgb);
     float             depth = depthTexture.Load(pixel);
-    if (depth >= 0.9999)
+    // The depth target clears to 1.0 and the projection maps the far plane there, so only the cleared
+    // value means "no geometry". Anything below it is lit, however far away the far plane puts it.
+    if (depth >= 1.0)
     {
         return float4(float3(scene), 1.0);
     }
@@ -81,6 +84,11 @@ float4 PSMain(PSInput input): SV_Target0
     else
     {
         visibility = shadowVisibility(worldPos, light, bindings);
+    }
+    if (ssaoIndex != INVALID_TEXTURE)
+    {
+        Texture2D<float4> occlusion = ResourceDescriptorHeap[ssaoIndex];
+        ao *= occlusion.Load(pixel).r;
     }
 
     float3      l = -normalize(light.lightDirection.xyz);

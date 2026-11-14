@@ -5,7 +5,8 @@
 class ShadowMap
 {
 public:
-    explicit ShadowMap(hz::RenderContext& context);
+    // One map covers the whole scene, so the resolution trades 8 MB of D16 and shadow fill rate for texel density.
+    explicit ShadowMap(hz::RenderContext& context, uint32_t newResolution = 2048);
     void                  execute(hz::CommandList&, const SceneView&, const GpuDrawList&);
     const hz::GPUTexture& getTexture() const { return depth; }
     const hz::GPUSampler& getSampler() const { return sampler; }
@@ -15,6 +16,7 @@ public:
 
 private:
     hz::RenderContext&               context;
+    uint32_t                         resolution;
     hz::GPUPipeline                  pipeline;
     hz::GPUTexture                   depth;
     hz::GPUSampler                   sampler;

@@ -80,6 +80,11 @@ float4 unpackFragment(uint2 packed)
     StructuredBuffer<LightingFrameData> lighting = ResourceDescriptorHeap[lightingFrameIndex];
     LightingFrameData                   light = lighting[0];
     float                               NdotL = saturate(dot(n, -normalize(light.lightDirection.xyz)));
+    // Visibility comes from the shadow map: the ray traced buffer is traced from the opaque surface behind the
+    // fragment, so its value describes a different point and would darken glass in front of a shadowed wall.
+    LightingBindings shadowBindings = { shadowMapIndex,          shadowSamplerIndex, INVALID_TEXTURE, INVALID_TEXTURE, INVALID_TEXTURE,
+                                       environmentSamplerIndex, INVALID_TEXTURE,    INVALID_TEXTURE };
+    const float      visibility = shadowVisibility(input.worldPosition, light, shadowBindings);
 
     const float4 f0 = float4(0.04);
     float3       sky = float3(-n.x, n.y, -n.z);
@@ -103,7 +108,7 @@ float4 unpackFragment(uint2 packed)
         }
     }
     float4 diffuse = (irradiance * max(light.environmentIntensity, 0.0) +
-                      float4(NdotL * max(light.lightDirection.w, 0.0) * max(light.lightColor.rgb, 0.0) / M_PI, 0.0)) *
+                      float4(NdotL * visibility * max(light.lightDirection.w, 0.0) * max(light.lightColor.rgb, 0.0) / M_PI, 0.0)) *
                      baseColor * (float4(1.0) - f0);
 
     float3 v = normalize(frame[0].eye.xyz - input.worldPosition);

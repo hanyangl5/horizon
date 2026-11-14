@@ -30,6 +30,8 @@ public:
 
     hz::RenderContext&        context;
     static constexpr uint32_t gbufferCount = 4;
+    uint32_t                  width = 0;
+    uint32_t                  height = 0;
     hz::GPUPipeline           pipeline;
     hz::GPUSampler            sampler;
     hz::GPUTexture            gbuffer[gbufferCount];

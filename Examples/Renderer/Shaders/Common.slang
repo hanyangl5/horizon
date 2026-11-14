@@ -40,10 +40,12 @@ float3 decodeVertexNormal(uint packed)
     return decodeOctNormal(oct);
 }
 
+// Specular uses 4 bits with a 1/16 step so the default 0.5 dielectric factor round-trips exactly;
+// the deferred path and the ray traced one must agree on F0.
 float2 packMaterialProperties(float roughness, float specular)
 {
     uint packed = (uint)round(saturate(roughness) * 255.0);
-    packed |= (uint)round(saturate(specular) * 15.0) << 8;
+    packed |= (uint)min(round(saturate(specular) * 16.0), 15.0) << 8;
     return float2(float(packed & 0x3ffu) / 1023.0, float(packed >> 10) / 3.0);
 }
 
@@ -51,7 +53,7 @@ float2 unpackMaterialProperties(float2 encoded)
 {
     uint packed = (uint)round(saturate(encoded.x) * 1023.0);
     packed |= (uint)round(saturate(encoded.y) * 3.0) << 10;
-    return float2(float(packed & 0xffu) / 255.0, float((packed >> 8) & 0xfu) / 15.0);
+    return float2(float(packed & 0xffu) / 255.0, float((packed >> 8) & 0xfu) / 16.0);
 }
 
 float3 encodeMotionVector(float2 motion)

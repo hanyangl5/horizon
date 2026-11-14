@@ -27,6 +27,8 @@ struct LightingResources
     const hz::GPUSampler* pShadowSampler = nullptr;
     const hz::GPUTexture* pRTShadowAO = nullptr;
     const hz::GPUTexture* pRTReflection = nullptr;
+    // Ambient occlusion for indirect light only; the pass never darkens direct light or the sky.
+    const hz::GPUTexture* pSSAO = nullptr;
     const hz::GPUTexture* pEnvironment = nullptr;
     const hz::GPUTexture* pIrradiance = nullptr;
     const hz::GPUTexture* pBRDFLut = nullptr;
