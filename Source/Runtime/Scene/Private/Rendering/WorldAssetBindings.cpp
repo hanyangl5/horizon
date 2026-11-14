@@ -3,6 +3,7 @@
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/MeshAsset.h"
 #include "Core/IContainer.h"
+#include "../SceneMaterialOverrides.h"
 
 #include <stdlib.h>
 
@@ -10,13 +11,6 @@
 
 namespace hz
 {
-static int compareBoundOverrides(const void* pA, const void* pB)
-{
-    const SubmeshID a = ((const MaterialOverride*)pA)->submesh;
-    const SubmeshID b = ((const MaterialOverride*)pB)->submesh;
-    return (a > b) - (a < b);
-}
-
 class WorldMeshBinding
 {
 public:
@@ -161,7 +155,7 @@ private:
     {
         Array<MaterialOverride> sorted({ overrides.data(), overrides.size() });
         if (!sorted.empty())
-            qsort(sorted.data(), sorted.size(), sizeof(MaterialOverride), compareBoundOverrides);
+            qsort(sorted.data(), sorted.size(), sizeof(MaterialOverride), compareMaterialOverrides);
         for (uint32_t i = 0; i < sorted.size(); ++i)
             if (!sorted[i].submesh || !sorted[i].material.isValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
                 return false;

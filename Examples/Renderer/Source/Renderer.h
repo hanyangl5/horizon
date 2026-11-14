@@ -256,6 +256,7 @@ private:
     static void sceneCookTask(void* pData)
     {
         RendererApp* pApp = (RendererApp*)pData;
+        // Only builds that link the AssetPipeline tool can cook; shipping builds receive cooked assets instead.
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
         pApp->cookSucceeded = ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES);
 #else

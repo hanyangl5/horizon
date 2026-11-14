@@ -22,8 +22,10 @@ public:
 private:
     friend class World;
     friend class WorldQuery;
-    explicit Entity(uint64_t value): value(value) {}
+    // Two 64-bit fields keep the type padding-free: hash maps key on the raw bytes.
+    explicit Entity(uint64_t value, uint64_t world): value(value), world(world) {}
     uint64_t value = 0;
+    uint64_t world = 0;
 };
 
 struct WorldTransform;
@@ -59,7 +61,7 @@ public:
     World& operator=(const World&) = delete;
 
     Entity createEntity();
-    // Persistent persistent entities. Explicit IDs must be nonzero and unique within this World.
+    // Persistent entities. Explicit IDs must be nonzero and unique within this World.
     Entity createPersistentEntity();
     Entity createPersistentEntity(const Guid& id);
     // Pending creations reserve their IDs immediately but become visible to lookup at defer commit.
@@ -106,6 +108,8 @@ private:
     friend class WorldQueryImpl;
     friend class WorldArchive;
     friend class SceneAsset;
+    // False for an invalid Entity; foreign entities fail the comparison and assert in debug.
+    bool       owns(Entity entity) const;
     void       attachParent(Entity entity, Entity parent);
     WorldImpl* pImpl = nullptr;
 };

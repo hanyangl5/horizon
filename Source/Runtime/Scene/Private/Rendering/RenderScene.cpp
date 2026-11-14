@@ -497,7 +497,7 @@ public:
             instances.remove(entity.instance);
             hmdel(pIndices, entity.entity);
             if (i + 1 < entities.size())
-                entities[i] = std::move(entities[entities.size() - 1]);
+                entities[i] = entities[entities.size() - 1];
             entities.popBack();
             if (i < entities.size())
                 hmgetp_null(pIndices, entities[i].entity)->value = i;

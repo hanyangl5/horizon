@@ -109,6 +109,8 @@ void WorldImpl::moveComponents(void* pDestination, void* pSource, int32_t count,
 
 WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuids): entityGuids(entityGuids)
 {
+    static tfrg_atomic32_t nextWorldId = 0;
+    id = tfrg_atomic32_add_relaxed(&nextWorldId, 1) + 1;
     initWorldOS();
     pWorld = ecs_mini();
     ASSERT(pWorld);
@@ -168,13 +170,19 @@ Entity World::createEntity()
 {
     pImpl->checkThread();
     pImpl->pHierarchy->invalidateStructure();
-    return Entity(ecs_new_w_id(pImpl->pWorld, pImpl->entityTag));
+    return Entity(ecs_new_w_id(pImpl->pWorld, pImpl->entityTag), pImpl->id);
+}
+
+bool World::owns(Entity entity) const
+{
+    // Invalid entities keep their "none" meaning; a handle from another World is simply not part of this one.
+    return !entity.isValid() || entity.world == pImpl->id;
 }
 
 bool World::isAlive(Entity entity) const
 {
     pImpl->checkThread();
-    return entity.isValid() && ecs_is_alive(pImpl->pWorld, entity.value);
+    return owns(entity) && entity.isValid() && ecs_is_alive(pImpl->pWorld, entity.value);
 }
 
 bool World::addComponent(Entity entity, TypeID type)
@@ -323,7 +331,7 @@ void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void*
         {
             for (uint32_t field = 0; field < pImpl->fields.size(); ++field)
                 pImpl->fields[field] = (const uint8_t*)it.ptrs[field + 1] + (size_t)row * it.sizes[field + 1];
-            if (!pCallback(Entity(it.entities[row]), { pImpl->fields.data(), pImpl->fields.size() }, pUserData))
+            if (!pCallback(Entity(it.entities[row], pImpl->pOwner->pImpl->id), { pImpl->fields.data(), pImpl->fields.size() }, pUserData))
             {
                 ecs_iter_fini(&it);
                 pImpl->iterating = false;

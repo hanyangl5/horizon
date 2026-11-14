@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-static_assert(sizeof(hz::Entity) == sizeof(uint64_t));
+static_assert(sizeof(hz::Entity) == 2 * sizeof(uint64_t));
 
 class SceneWorldTest: public ::testing::Test
 {
@@ -47,6 +47,26 @@ TEST_F(SceneWorldTest, EntityGenerationRejectsDeletedHandles)
     EXPECT_FALSE(world.removeComponent(first, hz::SceneTypes::camera));
     EXPECT_EQ(world.getComponent(first, hz::SceneTypes::camera), nullptr);
     EXPECT_TRUE(world.isAlive(second));
+}
+
+TEST_F(SceneWorldTest, ForeignEntitiesAreRejectedByOtherWorlds)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.registerBuiltins());
+    hz::World first(types);
+    hz::World second(types);
+    const hz::Entity entity = first.createEntity();
+    ASSERT_TRUE(first.isAlive(entity));
+    // Both worlds allocate the same Flecs index, so only the recorded owner can tell them apart.
+    EXPECT_FALSE(second.isAlive(entity));
+    EXPECT_FALSE(second.destroyEntity(entity));
+    EXPECT_FALSE(second.destroySubtree(entity));
+    EXPECT_EQ(second.getComponent(entity, hz::SceneTypes::camera), nullptr);
+    EXPECT_EQ(second.getEntityGuid(entity), hz::Guid{});
+    EXPECT_FALSE(second.addComponent(entity, hz::SceneTypes::camera));
+    EXPECT_FALSE(second.setProperty(entity, hz::SceneTypes::camera, 0, {}));
+    EXPECT_FALSE(second.setParent(entity, entity));
+    EXPECT_TRUE(first.isAlive(entity));
 }
 
 TEST_F(SceneWorldTest, ComponentsConstructDefaultsAndCopyValues)

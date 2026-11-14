@@ -57,7 +57,7 @@ Entity World::getEntity(const Guid& id) const
     {
         return {};
     }
-    return Entity(pEntry->value);
+    return Entity(pEntry->value, pImpl->id);
 }
 
 Guid World::getEntityGuid(Entity entity) const

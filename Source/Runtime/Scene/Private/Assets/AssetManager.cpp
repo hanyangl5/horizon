@@ -25,6 +25,8 @@ struct ManagedAsset
     uint64_t                 gpuUse = 0;
     bool                     uploading = false;
     bool                     retirementQueued = false;
+    bool                     tableDirty = false;
+    bool                     tableEncoded = false;
 };
 
 struct AssetIndex
@@ -163,6 +165,7 @@ public:
         }
         const AssetIndex mapping = { .key = entry.id, .value = { .index = index, .generation = asset.generation } };
         hmputs(pIndices, mapping);
+        pending.pushBack(index);
     }
 
     bool release(AssetHandle handle)
@@ -177,7 +180,7 @@ public:
             pAsset->state = AssetState::Retiring;
             // The payload left the ready set; work recorded until now may still reference it.
             pAsset->gpuUse = pContext ? pContext->getResourceUseId() : 0;
-            ++tableRevision;
+            markTableDirty(handle.index);
             queueRetirement(handle.index);
         }
         return true;
@@ -223,17 +226,22 @@ public:
             destroyPayload(asset);
             releaseDependencies(asset);
             hmdel(pIndices, asset.pEntry->id);
+            // A release already drops the entry; only a slot that was still encoded needs clearing here.
+            if (asset.tableEncoded)
+                markTableDirty(index);
             const uint32_t generation = asset.generation + 1;
             asset = { .generation = generation ? generation : 1 };
             freeIndices.pushBack(index);
         }
     }
 
-    void update(ManagedAsset& asset)
+    // Returns true while the asset still has work to poll; Ready, Failed and retired slots drop out.
+    bool update(ManagedAsset& asset)
     {
+        const uint32_t index = (uint32_t)(&asset - assets.data());
         if (!asset.pEntry || asset.state == AssetState::Ready)
         {
-            return;
+            return false;
         }
         bool dependenciesReady = true;
         if (asset.state != AssetState::Retiring && asset.state != AssetState::Failed && asset.pDependencies)
@@ -252,8 +260,7 @@ public:
         const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->type];
         if (asset.state == AssetState::Queued)
         {
-            asset.pRequest = loader.pBegin(*asset.pEntry, { .index = (uint32_t)(&asset - assets.data()), .generation = asset.generation },
-                                           loader.pUserData);
+            asset.pRequest = loader.pBegin(*asset.pEntry, { .index = index, .generation = asset.generation }, loader.pUserData);
             asset.state = asset.pRequest ? AssetState::LoadingCPU : AssetState::Failed;
             if (!asset.pRequest)
             {
@@ -266,14 +273,14 @@ public:
             if (result.status == AssetLoadStatus::Pending)
             {
                 ASSERT(!result.pPayload);
-                return;
+                return true;
             }
             loader.pDestroyRequest(asset.pRequest, loader.pUserData);
             asset.pRequest = nullptr;
             asset.pPayload = result.pPayload;
             if (asset.state == AssetState::Retiring)
             {
-                queueRetirement((uint32_t)(&asset - assets.data()));
+                queueRetirement(index);
             }
             else if (asset.state != AssetState::Failed)
             {
@@ -303,12 +310,12 @@ public:
             const AssetLoadStatus status = loader.pPollUpload(asset.pPayload, loader.pUserData);
             if (status == AssetLoadStatus::Pending)
             {
-                return;
+                return true;
             }
             asset.uploading = false;
             if (asset.state == AssetState::Retiring)
             {
-                queueRetirement((uint32_t)(&asset - assets.data()));
+                queueRetirement(index);
             }
             else if (asset.state != AssetState::Failed)
             {
@@ -321,19 +328,161 @@ public:
         }
         if (asset.state == AssetState::Ready)
         {
-            ++tableRevision;
+            markTableDirty(index);
+            return false;
         }
         if (asset.state == AssetState::Failed)
         {
             destroyPayload(asset);
             releaseDependencies(asset);
+            markTableDirty(index);
+            return false;
+        }
+        if (asset.state == AssetState::Retiring && !asset.pRequest && !asset.uploading)
+        {
+            queueRetirement(index);
+            return false;
+        }
+        return true;
+    }
+
+    // Marks one asset for the next GPU table update. Materials bake texture descriptors into their entry,
+    // so any texture change invalidates every material.
+    void markTableDirty(uint32_t index)
+    {
+        ManagedAsset& asset = assets[index];
+        if (asset.tableDirty)
+            return;
+        asset.tableDirty = true;
+        tableDirty.pushBack(index);
+        ++tableRevision;
+        if (asset.pEntry && asset.pEntry->type == AssetType::Texture)
+        {
+            for (uint32_t i = 0; i < assets.size(); ++i)
+            {
+                if (assets[i].pEntry && assets[i].pEntry->type == AssetType::Material)
+                    markTableDirty(i);
+            }
         }
     }
+
+    void clearTableEntry(uint32_t index)
+    {
+        // Vertex stream and submesh ranges are append only; a full rebuild is what reclaims them.
+        tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
+        meshes[index] = {};
+        materials[index] = {};
+        textures[index] = {};
+        assets[index].tableDirty = false;
+        assets[index].tableEncoded = false;
+    }
+
+    void encodeTableEntry(uint32_t index)
+    {
+        const ManagedAsset& asset = assets[index];
+        if (asset.state != AssetState::Ready || !asset.pPayload)
+        {
+            clearTableEntry(index);
+            return;
+        }
+        if (asset.pEntry->type == AssetType::Texture)
+        {
+            textures[index] = { .id = { .index = index, .generation = asset.generation },
+                                .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
+        }
+        else if (asset.pEntry->type == AssetType::Mesh)
+        {
+            const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
+            tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
+            meshes[index] = { .id = { .index = index, .generation = asset.generation },
+                              .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
+                              .indexStride = mesh.getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
+                              .vertexStreamOffset = vertexStreams.size(),
+                              .vertexStreamCount = mesh.getVertexBufferCount(),
+                              .submeshOffset = submeshes.size(),
+                              .submeshCount = mesh.getDescription().submeshes.count };
+            for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
+            {
+                vertexStreams.pushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
+            }
+            for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
+            {
+                const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
+                submeshes.pushBack({ .indexCount = args.indexCount, .firstIndex = args.startIndex,
+                                     .vertexOffset = (int32_t)args.vertexOffset });
+            }
+        }
+        else if (asset.pEntry->type == AssetType::Material)
+        {
+            const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->getDescription();
+            GpuMaterialData&          mapping = materials[index];
+            mapping.id = { .index = index, .generation = asset.generation };
+            const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
+                                           material.emissiveTexture };
+            uint32_t*     ppTextures[] = { &mapping.baseColorTexture, &mapping.normalTexture, &mapping.metallicRoughnessTexture,
+                                           &mapping.emissiveTexture };
+            for (uint32_t texture = 0; texture < 4; ++texture)
+            {
+                if (!textureIDs[texture].isValid())
+                {
+                    continue;
+                }
+                const AssetIndex*   pIndex = hmgetp_null(pIndices, textureIDs[texture]);
+                const ManagedAsset* pTexture = pIndex ? &assets[pIndex->value.index] : nullptr;
+                // Only a released texture lease can leave this empty; keep the previous mapping instead of crashing.
+                if (pTexture && pTexture->state == AssetState::Ready && pTexture->pPayload)
+                    *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->getTexture().getSrvIndex();
+            }
+            memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
+            memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));
+            mapping.metallicFactor = material.metallicFactor;
+            mapping.roughnessFactor = material.roughnessFactor;
+            mapping.alphaCutoff = material.alphaCutoff;
+            mapping.alphaMode = (uint32_t)material.alphaMode;
+            mapping.doubleSided = material.doubleSided;
+        }
+        assets[index].tableDirty = false;
+        assets[index].tableEncoded = true;
+    }
+
+    void encodeTables()
+    {
+        meshes.resize(assets.size());
+        materials.resize(assets.size());
+        textures.resize(assets.size());
+        if (tableGarbage > kTableGarbageLimit)
+        {
+            vertexStreams.clear();
+            submeshes.clear();
+            tableGarbage = 0;
+            for (uint32_t i = 0; i < assets.size(); ++i)
+            {
+                meshes[i] = {};
+                materials[i] = {};
+                textures[i] = {};
+                assets[i].tableDirty = false;
+            }
+            for (uint32_t i = 0; i < assets.size(); ++i)
+            {
+                if (assets[i].state == AssetState::Ready && assets[i].pPayload)
+                    encodeTableEntry(i);
+            }
+            tableDirty.clear();
+            return;
+        }
+        for (uint32_t index : tableDirty)
+            encodeTableEntry(index);
+        tableDirty.clear();
+    }
+
+    static constexpr uint32_t kTableGarbageLimit = 4096;
 
     const AssetCatalog&      catalog;
     const AssetManager&      assetManager;
     AssetLoader              loaders[4] = {};
     Array<ManagedAsset>      assets;
+    Array<uint32_t>          pending;
+    Array<uint32_t>          tableDirty;
     Array<uint32_t>          freeIndices;
     Array<uint32_t>          retirements;
     AssetIndex*              pIndices = nullptr;
@@ -341,6 +490,7 @@ public:
     bool                     shuttingDown = false;
     uint64_t                 tableRevision = 1;
     uint64_t                 builtRevision = 0;
+    uint32_t                 tableGarbage = 0;
     Array<GpuMeshData>       meshes;
     Array<GpuVertexStream>   vertexStreams;
     Array<GpuSubmeshData>    submeshes;
@@ -396,12 +546,17 @@ bool AssetManager::release(AssetHandle handle) { return pData->release(handle); 
 void AssetManager::update()
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::update");
-    pData->retire();
-    for (ManagedAsset& asset : pData->assets)
+    AssetManagerData& data = *pData;
+    data.retire();
+    // Only assets with work in flight are polled. A slot freed while still listed drops out here.
+    uint32_t kept = 0;
+    for (uint32_t i = 0; i < data.pending.size(); ++i)
     {
-        pData->update(asset);
+        if (data.update(data.assets[data.pending[i]]))
+            data.pending[kept++] = data.pending[i];
     }
-    pData->retire();
+    data.pending.resize(kept);
+    data.retire();
 }
 
 AssetState AssetManager::getState(AssetHandle handle) const
@@ -443,77 +598,7 @@ GpuAssetTables AssetManager::getGpuTables()
     if (data.builtRevision != data.tableRevision)
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::encodeGpuTables");
-        data.meshes.clear();
-        data.vertexStreams.clear();
-        data.submeshes.clear();
-        data.materials.clear();
-        data.textures.clear();
-        data.meshes.resize(data.assets.size());
-        data.materials.resize(data.assets.size());
-        data.textures.resize(data.assets.size());
-        for (uint32_t i = 0; i < data.assets.size(); ++i)
-        {
-            const ManagedAsset& asset = data.assets[i];
-            if (asset.state != AssetState::Ready)
-            {
-                continue;
-            }
-            if (asset.pEntry->type == AssetType::Texture)
-            {
-                data.textures[i] = { .id = { .index = i, .generation = asset.generation },
-                                     .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
-            }
-            else if (asset.pEntry->type == AssetType::Mesh)
-            {
-                const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
-                data.meshes[i] = { .id = { .index = i, .generation = asset.generation },
-                                   .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
-                                   .indexStride = mesh.getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
-                                   .vertexStreamOffset = data.vertexStreams.size(),
-                                   .vertexStreamCount = mesh.getVertexBufferCount(),
-                                   .submeshOffset = data.submeshes.size(),
-                                   .submeshCount = mesh.getDescription().submeshes.count };
-                for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
-                {
-                    data.vertexStreams.pushBack(
-                        { .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
-                }
-                for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
-                {
-                    const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
-                    data.submeshes.pushBack(
-                        { .indexCount = args.indexCount, .firstIndex = args.startIndex, .vertexOffset = (int32_t)args.vertexOffset });
-                }
-            }
-            else if (asset.pEntry->type == AssetType::Material)
-            {
-                const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->getDescription();
-                GpuMaterialData&          mapping = data.materials[i];
-                mapping.id = { .index = i, .generation = asset.generation };
-                const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
-                                               material.emissiveTexture };
-                uint32_t*     ppTextures[] = { &mapping.baseColorTexture, &mapping.normalTexture, &mapping.metallicRoughnessTexture,
-                                               &mapping.emissiveTexture };
-                for (uint32_t texture = 0; texture < 4; ++texture)
-                {
-                    if (!textureIDs[texture].isValid())
-                    {
-                        continue;
-                    }
-                    const AssetHandle   handle = find(textureIDs[texture]);
-                    const TextureAsset* textureAsset = getTexture(handle);
-                    ASSERT(textureAsset);
-                    *ppTextures[texture] = textureAsset->getTexture().getSrvIndex();
-                }
-                memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
-                memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));
-                mapping.metallicFactor = material.metallicFactor;
-                mapping.roughnessFactor = material.roughnessFactor;
-                mapping.alphaCutoff = material.alphaCutoff;
-                mapping.alphaMode = (uint32_t)material.alphaMode;
-                mapping.doubleSided = material.doubleSided;
-            }
-        }
+        data.encodeTables();
         data.builtRevision = data.tableRevision;
     }
     return { .meshes = { data.meshes.data(), data.meshes.size() },
@@ -533,6 +618,7 @@ void AssetManager::shutdown()
         return;
     }
     pData->shuttingDown = true;
+    pData->pending.clear();
     for (ManagedAsset& asset : pData->assets)
     {
         if (!asset.pEntry)

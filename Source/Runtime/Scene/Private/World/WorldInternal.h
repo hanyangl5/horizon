@@ -54,6 +54,8 @@ private:
 
     ecs_world_t*     pWorld = nullptr;
     WorldType*       pTypes = nullptr;
+    // Unique per process; stamped into every Entity this World hands out.
+    uint32_t         id = 0;
     ecs_entity_t     entityTag = 0;
     ecs_entity_t     parentRelation = 0;
     ecs_entity_t     entityIdentityType = 0;

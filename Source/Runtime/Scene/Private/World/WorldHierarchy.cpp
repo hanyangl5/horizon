@@ -380,7 +380,7 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
 
 Entity World::getParent(Entity entity) const
 {
-    return isAlive(entity) ? Entity(ecs_get_target(pImpl->pWorld, entity.value, pImpl->parentRelation, 0)) : Entity{};
+    return isAlive(entity) ? Entity(ecs_get_target(pImpl->pWorld, entity.value, pImpl->parentRelation, 0), pImpl->id) : Entity{};
 }
 void World::attachParent(Entity entity, Entity parent)
 {

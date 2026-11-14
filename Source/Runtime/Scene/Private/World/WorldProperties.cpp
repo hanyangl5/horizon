@@ -74,6 +74,8 @@ void WorldImpl::notifyPropertyChange(ecs_entity_t entity, TypeID type) { ecs_mod
 
 bool World::setProperty(Entity entity, TypeID type, PropertyID property, const PropertyValue& value)
 {
+    if (!isAlive(entity))
+        return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pDestination = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pDestination || !validatePropertyValue(*pProperty, value))
@@ -95,6 +97,8 @@ static bool validateArray(const PropertyDesc& property)
 
 bool World::resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t count)
 {
+    if (!isAlive(entity))
+        return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
@@ -110,6 +114,8 @@ bool World::resizeArray(Entity entity, TypeID type, PropertyID property, uint32_
 
 bool World::insertArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index, const void* pValue)
 {
+    if (!isAlive(entity))
+        return false;
     ASSERT(pValue);
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
@@ -133,6 +139,8 @@ bool World::insertArrayElement(Entity entity, TypeID type, PropertyID property, 
 
 bool World::removeArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index)
 {
+    if (!isAlive(entity))
+        return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
@@ -153,6 +161,8 @@ bool World::removeArrayElement(Entity entity, TypeID type, PropertyID property, 
 bool World::setArrayElementProperty(Entity entity, TypeID type, PropertyID property, uint32_t index, PropertyID elementProperty,
                                     const PropertyValue& value)
 {
+    if (!isAlive(entity))
+        return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
