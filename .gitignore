@@ -270,3 +270,6 @@ build_msvc
 
 # Local Renderer textures and generated preview assets
 /Examples/Renderer/Assets/
+
+# ImGui layout written next to the working directory
+**/imgui.ini
