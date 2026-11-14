@@ -23,9 +23,11 @@ the added AnyHit path and extra hit-roughness clamp are removed. Consequently,
 reflection treats masked geometry as opaque, as in the reference; raster geometry
 and RT shadows still perform their own mask tests.
 
-Normal mapping, PBR, frustum tests, SSAO, transparent shading/sorting, Bloom,
+Normal mapping, PBR, frustum tests, SSAO, transparent shading/sorting,
 exposure adaptation and tone mapping restore the reference formulas and control
-flow. Existing Horizon entry names are retained. GBuffer formats, vertex/index
+flow. Bloom keeps the reference exposure-relative threshold but intentionally
+replaces the diamond filter with a half-resolution box/tent chain.
+Existing Horizon entry names are retained. GBuffer formats, vertex/index
 storage, bindless heap access, colored lights, Specular and HDR output remain
 engine adaptations. Shadow maps retain per-texel MASK tests for Bistro foliage;
 disabled reflection retains its invalid-TLAS output-clear guard. BC5 normal maps
@@ -44,7 +46,7 @@ and the input assets prevent text-level or pixel-level identity.
 | Skybox | Original prefiltered cubemap, irradiance and LUT, with the same cube orientation used by IBL and reflection misses. |
 | SSAO | Original eight rotated samples and depth-aware blur; optional and not applied on top of RT AO. Verified through the Renderer fallback path. |
 | OIT | PPLL half4 colors, depth sorting and 64-layer resolve. Production-shader readback verifies draw-order independence, opaque occlusion and allocation overflow. |
-| Bloom | Original diamond filter, alternating 2.5/1.5 radii and defaults. GPU impulse-response and energy checks pass. |
+| Bloom | Reference exposure-relative soft-knee threshold on a half-resolution six-level chain: each level is a 2x2 box downsample and a 3x3 tent upsample accumulates `down + tent(up)` back to level 0. This deliberately replaces the reference diamond filter. GPU box, tent and constant-preservation checks pass. |
 | Adaptation | Log luminance, reduction and exponential ping-pong adaptation. Ten independent R16F level textures replace mip views; GPU initialization, log-mean and exposure-step checks pass. |
 | Tone mapping | None, Reinhard, Uchimura and Khronos PBR, plus Horizon SDR/HDR10/scRGB output. All curves and HDR transfer functions have GPU numerical checks; physical SDR and HDR10 Renderer paths execute. |
 

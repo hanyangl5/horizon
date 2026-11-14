@@ -3376,6 +3376,33 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         EXPECT_NEAR(values[2], 0, 1e-5f);
         EXPECT_FLOAT_EQ(values[3], 1);
     }
+    // Verify reflected lighting color as well as emissive hit IDs: a white surface and white light stay neutral.
+    LightingFrameData whiteLight = { .lightDirection = Vector4(0, 0, 1, 1), .lightColor = Vector4(1, 1, 1, 1) };
+    ASSERT_TRUE(context.updateBuffer(light, 0, &whiteLight, sizeof(whiteLight)));
+    materials[0].baseColorTexture = UINT32_MAX;
+    materials[0].baseColorFactor[0] = materials[0].baseColorFactor[1] = materials[0].baseColorFactor[2] = 1;
+    materials[0].emissiveFactor[0] = materials[0].emissiveFactor[1] = materials[0].emissiveFactor[2] = 0;
+    materials[0].metallicFactor = 0;
+    materials[0].roughnessFactor = 1;
+    ASSERT_TRUE(context.updateBuffer(materialBuffer, 0, materials, sizeof(materials)));
+    constants.tlas = opaqueTop.getSrvIndex();
+    hz::CommandList& lit = context.acquireCommandList();
+    lit.setPipeline(reflection);
+    lit.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+    lit.traceRays(reflection, 1, 1, 1,
+                  { .sampledTextures = { &normal, &depth }, .storageTextures = { &result },
+                    .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &vertices, &indexBuffer32, &uv } });
+    lit.setPipeline(reader);
+    lit.setRootConstant({ result.getSrvIndex(), output.getUavIndex(), 0 });
+    lit.dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+    lit.copyBuffer(readback, 0, output, 0, 16);
+    context.wait(context.submit(lit));
+    const float* litColor = (const float*)readback.get()->pCpuMappedAddress;
+    const float expectedLighting = (0.96f + 0.04f / 4.0f) / 3.14159265359f;
+    for (uint32_t channel = 0; channel < 3; ++channel)
+    {
+        EXPECT_NEAR(litColor[channel], expectedLighting, 1e-4f);
+    }
     ID3D12Device* device = nullptr;
     ASSERT_EQ(output.get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
     EXPECT_EQ(device->GetDeviceRemovedReason(), S_OK);
@@ -3823,7 +3850,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     }
 }
 
-TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceValues)
+TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
@@ -3837,7 +3864,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
     };
     hz::GPUPipeline initialize = compute("PostLuminance.slang", "CSInitialize");
     hz::GPUPipeline reduce = compute("PostLuminance.slang", "CSReduce"), adapt = compute("PostLuminance.slang", "CSAdapt");
-    hz::GPUPipeline bright = compute("PostBrightPass.slang", "CSMain"), bloom = compute("PostBloom.slang", "CSMain");
+    hz::GPUPipeline metering = compute("PostMetering.slang", "CSMain");
+    hz::GPUPipeline downsample = compute("PostBloomDownsample.slang", "CSMain");
+    hz::GPUPipeline upsample = compute("PostBloomUpsample.slang", "CSMain");
     hz::GPUPipeline tone =
         context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
                                                                      { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
@@ -3851,17 +3880,19 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
                                                          .pFileName = "DeferredLighting.slang" },
                                          .colorTargets = { { .format = hz::Format::R32G32B32A32_SFLOAT } } });
     fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+
     const char seedSource[] = R"hlsl(
-        cbuffer RootConstant0 { uint outputIndex; };
+        cbuffer RootConstant0 { uint outputIndex; uint peakX; };
         [numthreads(8,8,1)] void CSLogGrid(uint3 id : SV_DispatchThreadID) {
             RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
             uint w,h; output.GetDimensions(w,h);
             if(id.x < w && id.y < h) output[id.xy] = 2.0 * (id.x + 2 * id.y);
         }
-        [numthreads(8,8,1)] void CSImpulse(uint3 id : SV_DispatchThreadID) {
+        [numthreads(8,8,1)] void CSMovingPeak(uint3 id : SV_DispatchThreadID) {
             RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
             uint w,h; output.GetDimensions(w,h);
-            if(id.x < w && id.y < h) output[id.xy] = float4(all(id.xy == uint2(4,4)) ? 12.0 : 0.0,0,0,1);
+            float3 peak = peakX == 0 ? float3(asfloat(0x7fc00000), 0, 0) : float3(270,270,270);
+            if(id.x < w && id.y < h) output[id.xy] = float4(all(id.xy == uint2(peakX, 0)) ? peak : float3(0,0,0), 1);
         }
     )hlsl";
     const auto helper = [&](const char* source, uint32_t size, const char* entry)
@@ -3870,11 +3901,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
             { .shaderDesc = {
                   .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = size, .pEntryPoint = entry } } } });
     };
+
     hz::GPUPipeline seedLogs = helper(seedSource, sizeof(seedSource) - 1, "CSLogGrid");
-    hz::GPUPipeline seedImpulse = helper(seedSource, sizeof(seedSource) - 1, "CSImpulse");
+    hz::GPUPipeline movingPeak = helper(seedSource, sizeof(seedSource) - 1, "CSMovingPeak");
     hz::GPUPipeline reader = helper(kCookbookTextureReadback, sizeof(kCookbookTextureReadback) - 1, "CSMain");
-    ASSERT_TRUE(initialize.isValid() && reduce.isValid() && adapt.isValid() && bright.isValid() && bloom.isValid() && tone.isValid() &&
-                seedLogs.isValid() && seedImpulse.isValid() && reader.isValid() && deferred.isValid());
+    ASSERT_TRUE(initialize.isValid() && reduce.isValid() && adapt.isValid() && metering.isValid() && downsample.isValid() &&
+                upsample.isValid() && tone.isValid() && seedLogs.isValid() && movingPeak.isValid() && reader.isValid() &&
+                deferred.isValid());
     const auto image = [&](uint32_t width, uint32_t height, hz::Format format)
     {
         return context.createTexture({ .width = width,
@@ -3887,7 +3920,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
     };
     constexpr hz::Format rgba = hz::Format::R32G32B32A32_SFLOAT, scalar = hz::Format::R32_SFLOAT;
     hz::GPUTexture       source = image(1, 1, rgba), black = image(1, 1, rgba), average = image(1, 1, scalar), mapped = image(1, 1, rgba);
-    hz::GPUTexture       brightOutput = image(2, 2, rgba), logOutput = image(2, 2, scalar), logGrid = image(2, 2, scalar);
+    hz::GPUTexture       logOutput = image(2, 2, scalar), logGrid = image(2, 2, scalar);
     hz::GPUTexture       reduced = image(1, 1, scalar), previous = image(1, 1, scalar), adapted = image(1, 1, scalar);
     hz::GPUTexture       impulse = image(9, 9, rgba), blurred = image(9, 9, rgba);
     hz::GPUSampler       sampler = context.createSampler(
@@ -3902,7 +3935,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                      .startState = RESOURCE_STATE_COPY_DEST,
                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+
+    hz::GPUTexture peakSource = image(2, 2, rgba), peakBright = image(1, 1, rgba);
     hz::GPUTexture peakNormal = image(1, 1, rgba), peakBase = image(1, 1, rgba);
+
     struct PeakFrame
     {
         Matrix4 vp, previous, inverse;
@@ -3964,19 +4000,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
         commands.endRendering();
         read(mapped, mode);
     }
-    struct BrightConstants
+    struct MeteringConstants
     {
-        uint32_t source, bright, log, sampler;
-        float    exposure;
-        uint32_t enabled, average, autoExposure;
+        uint32_t source, log;
     };
-    const BrightConstants brightConstants = {
-        source.getSrvIndex(), brightOutput.getUavIndex(), logOutput.getUavIndex(), sampler.getIndex(), 1, 1, average.getSrvIndex(), 0
-    };
-    commands.setPipeline(bright);
-    commands.setRootConstant({ (const uint32_t*)&brightConstants, sizeof(brightConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &source, &average }, .storageTextures = { &brightOutput, &logOutput } });
-    read(brightOutput, 4);
+    const MeteringConstants meteringConstants = { source.getSrvIndex(), logOutput.getUavIndex() };
+    commands.setPipeline(metering);
+    commands.setRootConstant({ (const uint32_t*)&meteringConstants, sizeof(meteringConstants) / 4 });
+    commands.dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
     read(logOutput, 8);
     // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/15. No environment or shadow.
     commands.beginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
@@ -4032,16 +4063,29 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
     commands.setRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
     commands.dispatch(1, 1, 1, { .sampledTextures = { &reduced, &previous }, .storageTextures = { &adapted } });
     read(adapted, 14);
-    commands.setPipeline(seedImpulse);
-    commands.setRootConstant({ impulse.getUavIndex() });
-    commands.dispatch(2, 2, 1, { .storageTextures = { &impulse } });
-    for (uint32_t horizontal = 0; horizontal < 2; ++horizontal)
+    struct DownsampleConstants
     {
-        commands.setPipeline(bloom);
-        commands.setRootConstant({ impulse.getSrvIndex(), blurred.getUavIndex(), sampler.getIndex(), horizontal });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &impulse }, .storageTextures = { &blurred } });
-        read(blurred, 16 + horizontal * 81);
-    }
+        uint32_t input, output, sampler, adapted, threshold, autoExposure;
+        float    exposure;
+    };
+    struct UpsampleConstants
+    {
+        uint32_t down, input, output, sampler;
+    };
+    // Bloom chain: the 2x2 box keeps a constant, and the tent upsample adds it back on top of its own level.
+    hz::GPUTexture bloomSmall = image(4, 4, rgba), bloomWide = image(9, 9, rgba);
+    clear(impulse, 2.0f);
+    clear(bloomWide, 1.0f);
+    const DownsampleConstants boxConstants = { impulse.getSrvIndex(), bloomSmall.getUavIndex(), sampler.getIndex(),
+                                               average.getSrvIndex(), 0, 0, 1 };
+    commands.setPipeline(downsample);
+    commands.setRootConstant({ (const uint32_t*)&boxConstants, sizeof(boxConstants) / 4 });
+    commands.dispatch(1, 1, 1, { .sampledTextures = { &impulse, &average }, .storageTextures = { &bloomSmall } });
+    const UpsampleConstants tentConstants = { bloomWide.getSrvIndex(), bloomSmall.getSrvIndex(), blurred.getUavIndex(), sampler.getIndex() };
+    commands.setPipeline(upsample);
+    commands.setRootConstant({ (const uint32_t*)&tentConstants, sizeof(tentConstants) / 4 });
+    commands.dispatch(1, 1, 1, { .sampledTextures = { &bloomWide, &bloomSmall }, .storageTextures = { &blurred } });
+    read(blurred, 16);
     // Real output shader: retain the HDR shoulder for gray 1.2 above paper white.
     toneConstants.mode = 0;
     toneConstants.paperWhite = 203;
@@ -4060,10 +4104,32 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
         commands.endRendering();
         read(mapped, 177 + mode);
     }
+    // A 2x2 footprint is one box step: a 270 texel keeps a quarter and the soft knee passes 66.5; a NaN texel is dropped.
+    for (uint32_t x = 0; x < 2; ++x)
+    {
+        commands.setPipeline(movingPeak);
+        commands.setRootConstant({ peakSource.getUavIndex(), x });
+        commands.dispatch(1, 1, 1, { .storageTextures = { &peakSource } });
+        const DownsampleConstants movingConstants = { peakSource.getSrvIndex(), peakBright.getUavIndex(), sampler.getIndex(),
+                                                      average.getSrvIndex(), 1, 1, 1 };
+        commands.setPipeline(downsample);
+        commands.setRootConstant({ (const uint32_t*)&movingConstants, sizeof(movingConstants) / 4 });
+        commands.dispatch(1, 1, 1, { .sampledTextures = { &peakSource, &average }, .storageTextures = { &peakBright } });
+        read(peakBright, 180 + x);
+    }
+
     commands.copyBuffer(readback, 0, output, 0, 256 * 16);
+
     context.wait(context.submit(commands));
     const float* values = (const float*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
+    for (uint32_t x = 0; x < 2; ++x)
+    {
+        for (uint32_t channel = 0; channel < 3; ++channel)
+        {
+            EXPECT_NEAR(values[(180 + x) * 4 + channel], x == 0 ? 0.0f : 66.5f, 2e-5) << x;
+        }
+    }
     // Cookbook shared/Tonemap.h reference goldens: gray 1.2, white 2 and default Uchimura/PBR-neutral controls, linear SDR.
     const double golden[] = { 1.2, 0.7090909090909091, 0.9839406668663332, 0.91 };
     for (uint32_t mode = 0; mode < 4; ++mode)
@@ -4075,10 +4141,6 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
     }
     for (uint32_t pixel = 0; pixel < 4; ++pixel)
     {
-        for (uint32_t channel = 0; channel < 3; ++channel)
-        {
-            EXPECT_NEAR(values[(4 + pixel) * 4 + channel], 0.245, 2e-5);
-        }
         EXPECT_NEAR(values[(8 + pixel) * 4], std::log2(1.2), 2e-5);
     }
     // Offline double goldens: shoulder -> 242.58323517119788 nits; ST2084 PQ and nits/80 respectively.
@@ -4102,25 +4164,16 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomMatchReferenceV
     EXPECT_FLOAT_EQ(values[12 * 4], 50.0f);
     EXPECT_FLOAT_EQ(values[13 * 4], 3.0f); // log2(1),log2(4),log2(16),log2(64): geometric mean is 8, not the arithmetic mean.
     EXPECT_NEAR(values[14 * 4], 50.0 + (8.0 - 50.0) * (1.0 - std::exp(-0.3)), 1e-4);
-    for (uint32_t horizontal = 0; horizontal < 2; ++horizontal)
+    // 2x2 box of 2.0 plus a 3x3 tent of 2.0 on top of a level cleared to 1.0 is 3.0 at every texel.
+    for (uint32_t y = 0; y < 9; ++y)
     {
-        double energy = 0;
-        for (int y = 0; y < 9; ++y)
+        for (uint32_t x = 0; x < 9; ++x)
         {
-            for (int x = 0; x < 9; ++x)
+            for (uint32_t channel = 0; channel < 3; ++channel)
             {
-                // A 12-unit impulse splits equally between adjacent texels at each half-integer kernel offset.
-                const int      dx = std::abs(x - 4), dy = std::abs(y - 4), lowerOffset = horizontal ? 1 : 2;
-                const bool     onX = dx == lowerOffset || dx == lowerOffset + 1, onY = dy == lowerOffset || dy == lowerOffset + 1;
-                const float    expected = ((dy == 0 && onX) || (dx == 0 && onY) || (onX && onY)) ? 0.5f : 0.0f;
-                const uint32_t pixel = 16 + horizontal * 81 + y * 9 + x;
-                EXPECT_NEAR(values[pixel * 4], expected, 2e-5) << horizontal << ":" << x << "," << y;
-                EXPECT_FLOAT_EQ(values[pixel * 4 + 1], 0);
-                EXPECT_FLOAT_EQ(values[pixel * 4 + 2], 0);
-                energy += values[pixel * 4];
+                EXPECT_NEAR(values[(16 + y * 9 + x) * 4 + channel], 3.0f, 2e-5) << x << "," << y;
             }
         }
-        EXPECT_NEAR(energy, 12.0, 2e-4);
     }
 }
 

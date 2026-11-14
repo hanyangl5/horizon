@@ -17,7 +17,6 @@ struct PostEffectsSettings
     float           exposure = 0.95f;
     bool            enableBloom = true;
     float           bloomStrength = 0.01f;
-    uint32_t        bloomPasses = 2;
     float           adaptationSpeed = 3.0f;
     float           maxWhite = 1.0f;
     float           uchimuraP = 1.0f;
@@ -39,35 +38,37 @@ public:
     void execute(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget, float deltaSeconds);
     void resetExposure() { exposureInitialized = false; }
 
-    const hz::GPUTexture&     getBrightPass() const { return brightPass; }
-    const hz::GPUTexture&     getBloom() const { return bloomPass; }
+    const hz::GPUTexture&     getBloom() const { return bloomUp[0]; }
     const hz::GPUTexture&     getAdaptedLuminance() const { return adaptedLuminance[adaptedIndex]; }
     const hz::GPUTexture&     getLuminance(uint32_t level) const { return luminance[level]; }
-    static constexpr uint32_t bloomSize = 512;
+    static constexpr uint32_t meteringSize = 512;
     static constexpr uint32_t luminanceLevels = 10;
+    static constexpr uint32_t bloomLevels = 6;
     PostEffectsSettings       settings;
 
 private:
-    void runBloom(hz::CommandList& commands);
+    void runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor);
     void runAdaptation(hz::CommandList& commands, float deltaSeconds);
     void toneMap(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget);
 
     hz::RenderContext&                              context;
     hz::GPUSampler                                  sampler;
-    hz::GPUPipeline                                 brightPipeline;
+    hz::GPUPipeline                                 meteringPipeline;
     hz::GPUPipeline                                 reducePipeline;
     hz::GPUPipeline                                 initializePipeline;
     hz::GPUPipeline                                 adaptationPipeline;
-    hz::GPUPipeline                                 bloomPipeline;
+    hz::GPUPipeline                                 bloomDownsamplePipeline;
+    hz::GPUPipeline                                 bloomUpsamplePipeline;
     hz::GPUPipeline                                 toneMapPipeline;
     hz::Format                                      colorFormat = {};
-    hz::GPUTexture                                  brightPass;
-    hz::GPUTexture                                  bloomPass;
-    hz::FixedArray<hz::GPUTexture, 2>               bloom;
+    hz::FixedArray<hz::GPUTexture, bloomLevels>     bloomDown;
+    hz::FixedArray<hz::GPUTexture, bloomLevels - 1> bloomUp;
     hz::FixedArray<hz::GPUTexture, 2>               adaptedLuminance;
     hz::FixedArray<hz::GPUTexture, luminanceLevels> luminance;
     uint32_t                                        width = 0;
     uint32_t                                        height = 0;
+    uint32_t                                        bloomWidth = 0;
+    uint32_t                                        bloomHeight = 0;
     uint32_t                                        adaptedIndex = 0;
     bool                                            exposureInitialized = false;
 };

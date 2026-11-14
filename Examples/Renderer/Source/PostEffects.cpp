@@ -3,16 +3,29 @@
 
 #include <math.h>
 
-struct PostBrightConstants
+struct PostMeteringConstants
 {
     uint32_t sceneColor;
-    uint32_t brightOutput;
     uint32_t luminanceOutput;
+};
+
+struct PostBloomDownsampleConstants
+{
+    uint32_t input;
+    uint32_t output;
     uint32_t sampler;
-    float    exposure;
-    uint32_t enableBloom;
     uint32_t adaptedLuminance;
+    uint32_t threshold;
     uint32_t autoExposure;
+    float    exposure;
+};
+
+struct PostBloomUpsampleConstants
+{
+    uint32_t down;
+    uint32_t input;
+    uint32_t output;
+    uint32_t sampler;
 };
 
 struct PostMeterConstants
@@ -47,13 +60,19 @@ struct PostToneConstants
     float    peakNits;
 };
 
+static uint32_t bloomLevelSize(uint32_t size, uint32_t level)
+{
+    const uint32_t shifted = size >> level;
+    return shifted ? shifted : 1;
+}
+
 PostEffects::PostEffects(hz::RenderContext& context): context(context)
 {
     sampler = context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
-    brightPipeline = context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBrightPass.slang" },
-        .pName = "Renderer.HDR.BrightPass",
+    meteringPipeline = context.createComputePipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostMetering.slang" },
+        .pName = "Renderer.HDR.Metering",
     });
     reducePipeline = context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSReduce" } }, .pFileName = "PostLuminance.slang" },
@@ -67,12 +86,16 @@ PostEffects::PostEffects(hz::RenderContext& context): context(context)
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSAdapt" } }, .pFileName = "PostLuminance.slang" },
         .pName = "Renderer.HDR.Adaptation",
     });
-    bloomPipeline = context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloom.slang" },
-        .pName = "Renderer.HDR.Bloom",
+    bloomDownsamplePipeline = context.createComputePipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomDownsample.slang" },
+        .pName = "Renderer.HDR.BloomDownsample",
     });
-    ASSERT(sampler.isValid() && brightPipeline.isValid() && reducePipeline.isValid() && initializePipeline.isValid() &&
-           adaptationPipeline.isValid() && bloomPipeline.isValid());
+    bloomUpsamplePipeline = context.createComputePipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
+        .pName = "Renderer.HDR.BloomUpsample",
+    });
+    ASSERT(sampler.isValid() && meteringPipeline.isValid() && reducePipeline.isValid() && initializePipeline.isValid() &&
+           adaptationPipeline.isValid() && bloomDownsamplePipeline.isValid() && bloomUpsamplePipeline.isValid());
 }
 
 void PostEffects::resize(uint32_t width, uint32_t height)
@@ -81,25 +104,33 @@ void PostEffects::resize(uint32_t width, uint32_t height)
     this->width = width;
     this->height = height;
     const DescriptorType views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
-    hz::TextureDesc      desc = { .width = bloomSize,
-                                  .height = bloomSize,
-                                  .format = hz::Format::R32G32B32A32_SFLOAT,
-                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                  .descriptors = views,
-                                  .flags = TEXTURE_CREATION_FLAG_FORCE_2D }; // The luminance chain ends at a 1x1 Texture2D.
-    desc.pName = "Renderer.HDR.BrightPass";
-    brightPass = context.createTexture(desc);
-    desc.pName = "Renderer.HDR.Bloom";
-    bloomPass = context.createTexture(desc);
-    for (hz::GPUTexture& texture : bloom)
+    // Bloom follows the render size so the glare keeps its screen-space radius instead of a fixed 512 texel image.
+    bloomWidth = width > 1 ? width / 2 : 1;
+    bloomHeight = height > 1 ? height / 2 : 1;
+    hz::TextureDesc desc = { .format = hz::Format::R16G16B16A16_SFLOAT,
+                             .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+                             .descriptors = views,
+                             .flags = TEXTURE_CREATION_FLAG_FORCE_2D };
+    bool            valid = true;
+    for (uint32_t level = 0; level < bloomLevels; ++level)
     {
-        desc.pName = "Renderer.HDR.BloomScratch";
-        texture = context.createTexture(desc);
+        desc.width = bloomLevelSize(bloomWidth, level);
+        desc.height = bloomLevelSize(bloomHeight, level);
+        desc.pName = "Renderer.HDR.BloomDown";
+        bloomDown[level] = context.createTexture(desc);
+        valid &= bloomDown[level].isValid();
+        if (level + 1 < bloomLevels)
+        {
+            // The smallest level is the base of the accumulation and only needs its downsample.
+            desc.pName = "Renderer.HDR.BloomUp";
+            bloomUp[level] = context.createTexture(desc);
+            valid &= bloomUp[level].isValid();
+        }
     }
     // Independent images let Dependencies describe every reduction without mixed SRV/UAV mip states.
     desc.format = hz::Format::R16_SFLOAT;
+    desc.width = desc.height = meteringSize;
     desc.pName = "Renderer.HDR.LogLuminance";
-    bool valid = brightPass.isValid() && bloomPass.isValid() && bloom[0].isValid() && bloom[1].isValid();
     for (hz::GPUTexture& texture : luminance)
     {
         texture = context.createTexture(desc);
@@ -144,30 +175,20 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
         commands.dispatch(1, 1, 1, { .storageTextures = { &adaptedLuminance[0], &adaptedLuminance[1] } });
         exposureInitialized = true;
     }
-    const PostBrightConstants constants = {
-        .sceneColor = sceneColor.getSrvIndex(),
-        .brightOutput = brightPass.getUavIndex(),
-        .luminanceOutput = luminance[0].getUavIndex(),
-        .sampler = sampler.getIndex(),
-        .exposure = settings.exposure,
-        .enableBloom = settings.enableBloom && settings.bloomPasses ? 1u : 0u,
-        .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
-        .autoExposure = settings.toneMapping != ToneMappingMode::None ? 1u : 0u,
-    };
-    commands.setPipeline(brightPipeline);
-    commands.setRootConstant({ (const uint32_t*)&constants, sizeof(constants) / sizeof(uint32_t) });
-    commands.dispatch(
-        bloomSize / 16, bloomSize / 16, 1,
-        { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex] }, .storageTextures = { &brightPass, &luminance[0] } });
+    const PostMeteringConstants metering = { .sceneColor = sceneColor.getSrvIndex(), .luminanceOutput = luminance[0].getUavIndex() };
+    commands.setPipeline(meteringPipeline);
+    commands.setRootConstant({ (const uint32_t*)&metering, sizeof(metering) / sizeof(uint32_t) });
+    commands.dispatch(meteringSize / 16, meteringSize / 16, 1,
+                      { .sampledTextures = { &sceneColor }, .storageTextures = { &luminance[0] } });
     commands.setPipeline(reducePipeline);
     for (uint32_t level = 1; level < luminanceLevels; ++level)
     {
-        const uint32_t size = bloomSize >> level;
+        const uint32_t size = meteringSize >> level;
         commands.setRootConstant({ luminance[level - 1].getSrvIndex(), luminance[level].getUavIndex(), 0, 0 });
         commands.dispatch((size + 15) / 16, (size + 15) / 16, 1,
                           { .sampledTextures = { &luminance[level - 1] }, .storageTextures = { &luminance[level] } });
     }
-    runBloom(commands);
+    runBloom(commands, sceneColor);
     runAdaptation(commands, deltaSeconds);
     toneMap(commands, sceneColor, renderTarget);
     // Match the reference: this frame meters into the other image; its exposure is used next frame.
@@ -175,22 +196,52 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
     commands.endGpuTimestamp();
 }
 
-void PostEffects::runBloom(hz::CommandList& commands)
+void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor)
 {
-    if (!settings.enableBloom || !settings.bloomPasses)
+    if (!settings.enableBloom)
     {
         return;
     }
     commands.beginGpuTimestamp("Bloom");
-    commands.setPipeline(bloomPipeline);
-    const hz::GPUTexture* input = &brightPass;
-    const uint32_t        passCount = settings.bloomPasses * 2;
-    for (uint32_t pass = 0; pass < passCount; ++pass)
+    commands.setPipeline(bloomDownsamplePipeline);
+    PostBloomDownsampleConstants downsample = {
+        .input = sceneColor.getSrvIndex(),
+        .output = bloomDown[0].getUavIndex(),
+        .sampler = sampler.getIndex(),
+        .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
+        .threshold = 1,
+        .autoExposure = settings.toneMapping != ToneMappingMode::None ? 1u : 0u,
+        .exposure = settings.exposure,
+    };
+    commands.setRootConstant({ (const uint32_t*)&downsample, sizeof(downsample) / sizeof(uint32_t) });
+    commands.dispatch((bloomWidth + 15) / 16, (bloomHeight + 15) / 16, 1,
+                      { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex] }, .storageTextures = { &bloomDown[0] } });
+    // Only the scene downsample is thresholded; the mip levels already carry bright values.
+    downsample.threshold = 0;
+    for (uint32_t level = 1; level < bloomLevels; ++level)
     {
-        const hz::GPUTexture* output = pass + 1 == passCount ? &bloomPass : &bloom[pass & 1];
-        commands.setRootConstant({ input->getSrvIndex(), output->getUavIndex(), sampler.getIndex(), pass & 1 });
-        commands.dispatch(bloomSize / 16, bloomSize / 16, 1, { .sampledTextures = { input }, .storageTextures = { output } });
-        input = output;
+        downsample.input = bloomDown[level - 1].getSrvIndex();
+        downsample.output = bloomDown[level].getUavIndex();
+        commands.setRootConstant({ (const uint32_t*)&downsample, sizeof(downsample) / sizeof(uint32_t) });
+        const uint32_t size = bloomLevelSize(bloomWidth, level);
+        commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
+                          { .sampledTextures = { &bloomDown[level - 1] }, .storageTextures = { &bloomDown[level] } });
+    }
+    // up[level] = down[level] + tent(up[level + 1]); the smallest downsample seeds the accumulation.
+    commands.setPipeline(bloomUpsamplePipeline);
+    const hz::GPUTexture* input = &bloomDown[bloomLevels - 1];
+    for (uint32_t level = bloomLevels - 1; level > 0;)
+    {
+        --level;
+        const PostBloomUpsampleConstants upsample = { .down = bloomDown[level].getSrvIndex(),
+                                                      .input = input->getSrvIndex(),
+                                                      .output = bloomUp[level].getUavIndex(),
+                                                      .sampler = sampler.getIndex() };
+        commands.setRootConstant({ (const uint32_t*)&upsample, sizeof(upsample) / sizeof(uint32_t) });
+        const uint32_t size = bloomLevelSize(bloomWidth, level);
+        commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
+                          { .sampledTextures = { &bloomDown[level], input }, .storageTextures = { &bloomUp[level] } });
+        input = &bloomUp[level];
     }
     commands.endGpuTimestamp();
 }
@@ -216,11 +267,11 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
     const PostToneConstants constants = {
         .sceneColor = sceneColor.getSrvIndex(),
         .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
-        .bloom = bloomPass.getSrvIndex(),
+        .bloom = bloomUp[0].getSrvIndex(),
         .sampler = sampler.getIndex(),
         .toneMapping = (uint32_t)settings.toneMapping,
         .exposure = settings.exposure,
-        .bloomStrength = settings.enableBloom && settings.bloomPasses ? settings.bloomStrength : 0.0f,
+        .bloomStrength = settings.enableBloom ? settings.bloomStrength : 0.0f,
         .maxWhite = settings.maxWhite,
         .P = settings.uchimuraP,
         .a = settings.uchimuraA,
@@ -237,7 +288,7 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
     };
     commands.beginRendering(
         { .colorAttachments = { { .pTexture = &renderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-        { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex], &bloomPass } });
+        { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex], &bloomUp[0] } });
     commands.setViewport(0, 0, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(toneMapPipeline);
