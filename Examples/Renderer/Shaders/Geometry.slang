@@ -125,7 +125,7 @@ float3x3 cotangentFrame(float3 N, float3 p, float2 uv)
     float3 T = dp2perp * duv1.x + dp1perp * duv2.x;
     float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
 
-    float invmax = rsqrt(max(dot(T, T), dot(B, B)));
+    float invmax = rsqrt(max(max(dot(T, T), dot(B, B)), 1e-20));
 
     float w = (dot(cross(N, T), B) < 0.0) ? -1.0 : 1.0;
 
@@ -138,7 +138,8 @@ float3 perturbNormal(float3 n, float3 v, float3 normalSample, float2 uv)
 {
     float3   map = normalize(2.0 * normalSample - float3(1.0));
     float3x3 TBN = cotangentFrame(n, v, uv);
-    return normalize(mul(TBN, map));
+    float3 perturbed = mul(TBN, map);
+    return dot(perturbed, perturbed) > 1e-20 ? normalize(perturbed) : n;
 }
 
 void runAlphaTest(float alpha, float alphaThreshold, float2 pixel)

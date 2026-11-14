@@ -550,7 +550,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         if (!pApp->Load(&gReloadDescriptor))
             return EXIT_FAILURE;
 
-        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", (double)getTimerMSec(&t, false));
     }
 
     // #ifdef AUTOMATED_TESTING
