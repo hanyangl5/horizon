@@ -12,6 +12,13 @@ environment assets, blue noise and acceleration structures survive; old size
 targets are released by RAII and temporal history is invalidated. Tone mapping
 rebuilds its PSO only when the output format changes.
 
+`RenderPasses` runs a registered pass list, and each entry carries an optional
+enable flag, so an effect is added, reordered or gated without editing the frame
+function. `FrameContext` holds the frame state and the outputs passes hand to each
+other. Per-frame targets such as the bloom chain come from the context's transient
+pool: a released texture is parked and only reused once the submission that used
+it completed, so their handles and resource states stay valid across frames.
+
 Shader alignment distinguishes the reference algorithm from engine bindings.
 RT shadow/AO restores the original inline control flow, sampling helpers and
 experimental first-hit retracing; the surface normal is decoded in float like the
