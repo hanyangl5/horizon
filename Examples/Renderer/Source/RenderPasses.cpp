@@ -310,10 +310,8 @@ void RenderPasses::execute()
     shadows->data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;
     shadows->data.rtAOEnabled = rayTracing->isSupported() && rayTracing->settings.ao ? 1u : 0u;
     const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-    FrameContext          frameContext = { .context = context,
-                                           .commands = commands,
+    FrameContext          frameContext = { .commands = commands,
                                            .draws = draws,
-                                           .gpuScene = gpuScene,
                                            .frame = frame,
                                            .view = view,
                                            .linearSampler = linearSampler,

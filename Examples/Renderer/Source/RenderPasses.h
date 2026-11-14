@@ -24,10 +24,8 @@ struct RenderPassesDesc
 // Per-frame state shared by the registered passes. Earlier passes fill what later passes consume.
 struct FrameContext
 {
-    hz::RenderContext&    context;
     hz::CommandList&      commands;
     GpuDrawList&          draws;
-    hz::GpuScene&         gpuScene;
     const hz::GPUBuffer&  frame;
     const SceneView&      view;
     hz::GPUSampler&       linearSampler;
