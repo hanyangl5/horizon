@@ -300,6 +300,7 @@ TEST_F(AssetManagerTest, DependencyFailureDrainsPendingParentAndReleasesPartialP
     EXPECT_EQ(assetManager.getState(parent), hz::AssetState::Failed);
     EXPECT_EQ(assetManager.getError(parent), hz::AssetError::DependencyFailed);
     EXPECT_EQ(assetManager.getScene(parent), nullptr);
+    EXPECT_NE(std::string(assetManager.getDiagnostic(parent)).find("dependency"), std::string::npos);
     EXPECT_EQ(assetManager.getCount(), 2u);
     loader.jobs[2]->ready = true;
     assetManager.update();

@@ -76,6 +76,8 @@ struct GpuTextureData
 };
 
 // CPU encoding of the ready payload set; unused asset manager entries have invalid IDs.
+// The srv fields are bindless descriptor indices resolved at encode time: they stay valid until
+// GpuAssetTables::revision changes, so consumers that keep them must re-read this table afterwards.
 struct GpuAssetTables
 {
     Span<GpuMeshData>       meshes;

@@ -7,6 +7,8 @@
 #include "Scene/MaterialAsset.h"
 #include "Scene/TextureAsset.h"
 
+#include <stdio.h>
+
 #include "Core/IMemory.h"
 #include "Profiler/IProfiler.h"
 
@@ -27,6 +29,7 @@ struct ManagedAsset
     bool                     retirementQueued = false;
     bool                     tableDirty = false;
     bool                     tableEncoded = false;
+    char                     diagnostic[192] = {};
 };
 
 struct AssetIndex
@@ -235,6 +238,17 @@ public:
         }
     }
 
+    // Records the failure and its reason together so callers can query the diagnostic immediately.
+    void fail(ManagedAsset& asset, AssetError error, const char* pReason)
+    {
+        asset.state = AssetState::Failed;
+        asset.error = error;
+        if (pReason && pReason[0])
+            snprintf(asset.diagnostic, sizeof(asset.diagnostic), "%s", pReason);
+        else if (!asset.diagnostic[0])
+            snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot load %s", asset.pEntry->location.pPath);
+    }
+
     // Returns true while the asset still has work to poll; Ready, Failed and retired slots drop out.
     bool update(ManagedAsset& asset)
     {
@@ -251,21 +265,17 @@ public:
                 const AssetState state = assets[asset.pDependencies[i].index].state;
                 dependenciesReady &= state == AssetState::Ready;
                 if (state == AssetState::Failed)
-                {
-                    asset.state = AssetState::Failed;
-                    asset.error = AssetError::DependencyFailed;
-                }
+                    fail(asset, AssetError::DependencyFailed, "A dependency failed to load");
             }
         }
         const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->type];
         if (asset.state == AssetState::Queued)
         {
             asset.pRequest = loader.pBegin(*asset.pEntry, { .index = index, .generation = asset.generation }, loader.pUserData);
-            asset.state = asset.pRequest ? AssetState::LoadingCPU : AssetState::Failed;
             if (!asset.pRequest)
-            {
-                asset.error = AssetError::LoadFailed;
-            }
+                fail(asset, AssetError::LoadFailed, "The loader rejected the asset");
+            else
+                asset.state = AssetState::LoadingCPU;
         }
         if (asset.pRequest)
         {
@@ -284,12 +294,10 @@ public:
             }
             else if (asset.state != AssetState::Failed)
             {
-                asset.state =
-                    result.status == AssetLoadStatus::Succeeded && result.pPayload ? AssetState::WaitingDependencies : AssetState::Failed;
-                if (asset.state == AssetState::Failed)
-                {
-                    asset.error = AssetError::LoadFailed;
-                }
+                if (result.status == AssetLoadStatus::Succeeded && result.pPayload)
+                    asset.state = AssetState::WaitingDependencies;
+                else
+                    fail(asset, AssetError::LoadFailed, result.pError);
             }
         }
         if (asset.state == AssetState::WaitingDependencies && dependenciesReady)
@@ -319,11 +327,10 @@ public:
             }
             else if (asset.state != AssetState::Failed)
             {
-                asset.state = status == AssetLoadStatus::Succeeded ? AssetState::Ready : AssetState::Failed;
-                if (asset.state == AssetState::Failed)
-                {
-                    asset.error = AssetError::UploadFailed;
-                }
+                if (status == AssetLoadStatus::Succeeded)
+                    asset.state = AssetState::Ready;
+                else
+                    fail(asset, AssetError::UploadFailed, nullptr);
             }
         }
         if (asset.state == AssetState::Ready)
@@ -333,6 +340,8 @@ public:
         }
         if (asset.state == AssetState::Failed)
         {
+            if (!asset.diagnostic[0])
+                snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot load %s", asset.pEntry->location.pPath);
             destroyPayload(asset);
             releaseDependencies(asset);
             markTableDirty(index);
@@ -569,6 +578,12 @@ AssetError AssetManager::getError(AssetHandle handle) const
 {
     const ManagedAsset* pAsset = pData->find(handle);
     return pAsset ? pAsset->error : AssetError::UnknownAsset;
+}
+
+const char* AssetManager::getDiagnostic(AssetHandle handle) const
+{
+    const ManagedAsset* pAsset = pData->find(handle);
+    return pAsset ? pAsset->diagnostic : "";
 }
 
 const SceneAsset* AssetManager::getScene(AssetHandle handle) const

@@ -226,7 +226,7 @@ public:
     static AssetLoadResult invalid(const SubassetRequest& request)
     {
         LOGF(eERROR, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", request.entry.location.pPath);
-        return { .status = AssetLoadStatus::Failed };
+        return { .status = AssetLoadStatus::Failed, .pError = "Mesh/Material identity differs from the catalog" };
     }
     static void destroyRequest(void* pJob, void*) { tf_delete((SubassetRequest*)pJob); }
     static void destroyMesh(void* pPayload, void*) { tf_delete((MeshAsset*)pPayload); }

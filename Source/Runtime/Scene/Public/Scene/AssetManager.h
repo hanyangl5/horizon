@@ -51,6 +51,8 @@ struct AssetLoadResult
 {
     AssetLoadStatus status = AssetLoadStatus::Pending;
     void*           pPayload = nullptr;
+    // Optional human readable reason for a failure; the asset manager copies it during poll.
+    const char* pError = nullptr;
 };
 
 class AssetManager;
@@ -95,6 +97,8 @@ public:
     void                 update();
     AssetState           getState(AssetHandle handle) const;
     AssetError           getError(AssetHandle handle) const;
+    // Empty until the asset fails; the loader reason when it provided one, otherwise the asset path.
+    const char*          getDiagnostic(AssetHandle handle) const;
     const SceneAsset*    getScene(AssetHandle handle) const;
     const TextureAsset*  getTexture(AssetHandle handle) const;
     const MeshAsset*     getMesh(AssetHandle handle) const;
