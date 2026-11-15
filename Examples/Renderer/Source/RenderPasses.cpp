@@ -156,18 +156,18 @@ static void ExecuteScreenSpaceAO(FrameContext& Frame, void* UserData)
 static void ExecuteRayTracing(FrameContext& Frame, void* UserData)
 {
     RayTracedEffects& RayTracing = *(RayTracedEffects*)UserData;
-    RayTracing.execute(Frame.Commands, Frame.Frame, Frame.GBuffer, Frame.View, Frame.Draws, Frame.Resources);
-    if (!RayTracing.isSupported())
+    RayTracing.Execute(Frame.Commands, Frame.Frame, Frame.GBuffer, Frame.View, Frame.Draws, Frame.Resources);
+    if (!RayTracing.IsSupported())
     {
         return;
     }
-    if (RayTracing.settings.shadows || RayTracing.settings.ao)
+    if (RayTracing.Settings.Shadows || RayTracing.Settings.AO)
     {
-        Frame.Resources.RTShadowAO = &RayTracing.getShadowAO();
+        Frame.Resources.RTShadowAO = &RayTracing.GetShadowAO();
     }
-    if (RayTracing.settings.reflection)
+    if (RayTracing.Settings.Reflection)
     {
-        Frame.Resources.RTReflection = &RayTracing.getReflection();
+        Frame.Resources.RTReflection = &RayTracing.GetReflection();
     }
 }
 
@@ -252,7 +252,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
     GBufferTargets->Resize(Width, Height);
     Lighting->Resize(Width, Height);
     Transparency->Resize(Width, Height, 1);
-    RayTracing->resize(Width, Height);
+    RayTracing->Resize(Width, Height);
     PostProcessing->resize(Width, Height);
 
     Scene.markDirty();
@@ -308,8 +308,8 @@ void RenderPasses::Execute()
     Draws.Prepare(Commands, Frame, View);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
     Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
-    Shadows->Data.rtShadowEnabled = RayTracing->isSupported() && RayTracing->settings.shadows ? 1u : 0u;
-    Shadows->Data.rtAOEnabled = RayTracing->isSupported() && RayTracing->settings.ao ? 1u : 0u;
+    Shadows->Data.rtShadowEnabled = RayTracing->IsSupported() && RayTracing->Settings.Shadows ? 1u : 0u;
+    Shadows->Data.rtAOEnabled = RayTracing->IsSupported() && RayTracing->Settings.AO ? 1u : 0u;
     const hz::GPUTexture& Backbuffer = Context.getCurrentBackbuffer();
     FrameContext          FrameState = { .Commands = Commands,
                                          .Draws = Draws,

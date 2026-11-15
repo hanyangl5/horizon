@@ -2,6 +2,7 @@
 #include "Profiler/IProfiler.h"
 #include "RayTracingScene.h"
 
+// Mirrors the RootConstant0 block of RTShadowAO.slang field for field.
 struct RTConstants
 {
     uint32_t frame;
@@ -29,6 +30,7 @@ struct RTConstants
     float    aoPower;
     float    shadowRadius;
 };
+// Mirrors the RootConstant0 block of the denoise shaders field for field.
 struct RTDenoiseConstants
 {
     uint32_t frame;
@@ -45,38 +47,38 @@ struct RTDenoiseConstants
     uint32_t step;
 };
 
-RayTracedEffects::RayTracedEffects(hz::RenderContext& context): context(context), supported(context.supportsRayTracing())
+RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.supportsRayTracing())
 {
-    if (!supported)
+    if (!Supported)
     {
         return;
     }
-    rayScene = hz::make_unique<RayTracingScene>(context);
-    sampler = context.createSampler(
+    RayScene = hz::make_unique<RayTracingScene>(Context);
+    Sampler = Context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
-    materialSampler = context.createSampler();
-    shadowPipeline = context.createComputePipeline({
+    MaterialSampler = Context.createSampler();
+    ShadowPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
         .pName = "Renderer.RT.ShadowAO",
     });
-    temporalPipeline = context.createComputePipeline({
+    TemporalPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
                         .pFileName = "rt_denoise_temporal.comp.slang" },
         .pName = "Renderer.RT.Temporal",
     });
-    spatialPipeline = context.createComputePipeline({
+    SpatialPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_spatial.comp.slang" },
         .pName = "Renderer.RT.Spatial",
     });
-    atrousPipeline = context.createComputePipeline({
+    AtrousPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
         .pName = "Renderer.RT.Atrous",
     });
-    depthCopyPipeline = context.createComputePipeline({
+    DepthCopyPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
         .pName = "Renderer.RT.DepthHistory",
     });
-    reflectionPipeline = context.createRayTracingPipeline({
+    ReflectionPipeline = Context.createRayTracingPipeline({
         .pFileName = "RTReflection.slang",
         .pRayGeneration = "rayGenMain",
         .missShaders = { "missMain" },
@@ -85,177 +87,177 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& context): context(context)
         .maxRecursionDepth = 2,
         .pName = "Renderer.RT.Reflection",
     });
-    ASSERT(sampler.isValid() && materialSampler.isValid() && shadowPipeline.isValid() && temporalPipeline.isValid() &&
-           spatialPipeline.isValid() && atrousPipeline.isValid() && depthCopyPipeline.isValid() && reflectionPipeline.isValid());
+    ASSERT(Sampler.isValid() && MaterialSampler.isValid() && ShadowPipeline.isValid() && TemporalPipeline.isValid() &&
+           SpatialPipeline.isValid() && AtrousPipeline.isValid() && DepthCopyPipeline.isValid() && ReflectionPipeline.isValid());
 }
 
 RayTracedEffects::~RayTracedEffects() = default;
 
-void RayTracedEffects::resize(uint32_t width, uint32_t height)
+void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
 {
-    if (!supported)
+    if (!Supported)
     {
         return;
     }
-    ASSERT(width && height);
-    this->width = width;
-    this->height = height;
-    const DescriptorType views = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
-    hz::TextureDesc      desc = { .width = width,
-                                  .height = height,
+    ASSERT(Width && Height);
+    this->Width = Width;
+    this->Height = Height;
+    const DescriptorType Views = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    hz::TextureDesc      Desc = { .width = Width,
+                                  .height = Height,
                                   .format = hz::Format::R8G8_UNORM,
                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                  .descriptors = views,
+                                  .descriptors = Views,
                                   .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                   .pName = "Renderer.RT.ShadowAO" };
-    result = context.createTexture(desc);
-    desc.pName = "Renderer.RT.DenoiseScratch";
-    scratch = context.createTexture(desc);
-    desc.pName = "Renderer.RT.History";
-    for (hz::GPUTexture& texture : history)
+    Result = Context.createTexture(Desc);
+    Desc.pName = "Renderer.RT.DenoiseScratch";
+    Scratch = Context.createTexture(Desc);
+    Desc.pName = "Renderer.RT.History";
+    for (hz::GPUTexture& Texture : History)
     {
-        texture = context.createTexture(desc);
+        Texture = Context.createTexture(Desc);
     }
-    desc.format = hz::Format::R32_SFLOAT;
-    desc.pName = "Renderer.RT.PreviousDepth";
-    previousDepth = context.createTexture(desc);
-    desc.format = hz::Format::R32G32B32A32_SFLOAT;
-    desc.pName = "Renderer.RT.Reflection";
-    reflection = context.createTexture(desc);
-    if (!blueNoise.isValid())
+    Desc.format = hz::Format::R32_SFLOAT;
+    Desc.pName = "Renderer.RT.PreviousDepth";
+    PreviousDepth = Context.createTexture(Desc);
+    Desc.format = hz::Format::R32G32B32A32_SFLOAT;
+    Desc.pName = "Renderer.RT.Reflection";
+    Reflection = Context.createTexture(Desc);
+    if (!BlueNoise.isValid())
     {
-        blueNoise = context.loadTexture(RD_SHADER_SOURCES, "../Assets/blue_noise_128x128x64.dds");
+        BlueNoise = Context.loadTexture(RD_SHADER_SOURCES, "../Assets/blue_noise_128x128x64.dds");
     }
-    historyIndex = 0;
-    markDirty();
-    ASSERT(result.isValid() && scratch.isValid() && history[0].isValid() && history[1].isValid() && previousDepth.isValid() &&
-           reflection.isValid() && blueNoise.isValid() && blueNoise.getWidth() == 128 && blueNoise.getHeight() == 8192);
+    HistoryIndex = 0;
+    MarkDirty();
+    ASSERT(Result.isValid() && Scratch.isValid() && History[0].isValid() && History[1].isValid() && PreviousDepth.isValid() &&
+           Reflection.isValid() && BlueNoise.isValid() && BlueNoise.getWidth() == 128 && BlueNoise.getHeight() == 8192);
 }
 
-void RayTracedEffects::markDirty() { bMarkedDirty = true; }
+void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
-void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const DeferredGBuffer& gbuffer, const SceneView& view,
-                               const GpuDrawList& draws, const LightingResources& lighting)
+void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
+                               const GpuDrawList& Draws, const LightingResources& Lighting)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::execute");
-    if (!supported)
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::Execute");
+    if (!Supported)
     {
         return;
     }
-    ASSERT(width && height && gbuffer.NormalMaterial && gbuffer.Depth && lighting.LightingFrame);
-    if (!(settings == previousSettings))
+    ASSERT(Width && Height && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
+    if (!(Settings == PreviousSettings))
     {
-        markDirty();
+        MarkDirty();
     }
-    previousSettings = settings;
-    if (assetRevision != view.gpuScene.getAssetTables().revision)
+    PreviousSettings = Settings;
+    if (AssetRevision != View.gpuScene.getAssetTables().revision)
     {
-        markDirty();
+        MarkDirty();
     }
-    assetRevision = view.gpuScene.getAssetTables().revision;
-    commands.beginGpuTimestamp("RT Acceleration Structures");
-    rayScene->Update(commands, view, draws);
-    commands.endGpuTimestamp();
-    const hz::GPUAccelerationStructure& tlas = rayScene->GetSceneTLAS();
-    const hz::GPUBuffer&                drawData = draws.GetDrawData(view.frameIndex);
-    auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
-    RTConstants                         constants = {
-                                .frame = frame.getSrvIndex(),
-                                .lighting = lighting.LightingFrame->getSrvIndex(),
-                                .draws = drawData.getSrvIndex(),
-                                .materials = view.gpuScene.getBuffers().materials.getSrvIndex(),
-                                .textures = view.gpuScene.getBuffers().textures.getSrvIndex(),
-                                .sampler = materialSampler.getIndex(),
-                                .tlas = tlas.isValid() ? tlas.getSrvIndex() : UINT32_MAX,
-                                .normal = gbuffer.NormalMaterial->getSrvIndex(),
-                                .depth = gbuffer.Depth->getSrvIndex(),
-                                .output = result.getUavIndex(),
-                                .blueNoise = blueNoise.getSrvIndex(),
-                                .environment = index(lighting.Environment),
-                                .irradiance = index(lighting.Irradiance),
-                                .brdf = index(lighting.BRDFLut),
-                                .environmentSampler = lighting.EnvironmentSampler ? lighting.EnvironmentSampler->getIndex() : UINT32_MAX,
-                                .shadows = settings.shadows,
-                                .ao = settings.ao,
-                                .aoSamples = TF_MAX(settings.aoSamples, 1u),
-                                .frameNumber = frameIndex++,
-                                .alphaMethod = settings.shadowAlphaTestMethod,
-                                .retraceDepth = settings.retraceMaxDepth,
-                                .aoRadius = settings.aoRadius,
-                                .aoPower = settings.aoPower,
-                                .shadowRadius = settings.shadowRadius,
+    AssetRevision = View.gpuScene.getAssetTables().revision;
+    Commands.beginGpuTimestamp("RT Acceleration Structures");
+    RayScene->Update(Commands, View, Draws);
+    Commands.endGpuTimestamp();
+    const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
+    const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.frameIndex);
+    auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->isValid() ? Texture->getSrvIndex() : UINT32_MAX; };
+    RTConstants Constants = {
+                                .frame = Frame.getSrvIndex(),
+                                .lighting = Lighting.LightingFrame->getSrvIndex(),
+                                .draws = DrawData.getSrvIndex(),
+                                .materials = View.gpuScene.getBuffers().materials.getSrvIndex(),
+                                .textures = View.gpuScene.getBuffers().textures.getSrvIndex(),
+                                .sampler = MaterialSampler.getIndex(),
+                                .tlas = TLAS.isValid() ? TLAS.getSrvIndex() : UINT32_MAX,
+                                .normal = GBuffer.NormalMaterial->getSrvIndex(),
+                                .depth = GBuffer.Depth->getSrvIndex(),
+                                .output = Result.getUavIndex(),
+                                .blueNoise = BlueNoise.getSrvIndex(),
+                                .environment = Index(Lighting.Environment),
+                                .irradiance = Index(Lighting.Irradiance),
+                                .brdf = Index(Lighting.BRDFLut),
+                                .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->getIndex() : UINT32_MAX,
+                                .shadows = Settings.Shadows,
+                                .ao = Settings.AO,
+                                .aoSamples = TF_MAX(Settings.AOSamples, 1u),
+                                .frameNumber = FrameIndex++,
+                                .alphaMethod = Settings.ShadowAlphaTestMethod,
+                                .retraceDepth = Settings.RetraceMaxDepth,
+                                .aoRadius = Settings.AORadius,
+                                .aoPower = Settings.AOPower,
+                                .shadowRadius = Settings.ShadowRadius,
     };
-    const hz::Dependencies sceneDependencies = draws.GetDependencies(frame, view);
-    commands.beginGpuTimestamp("RT Shadow AO");
-    commands.setPipeline(shadowPipeline);
-    commands.setRootConstants(constants);
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { gbuffer.NormalMaterial, gbuffer.Depth, &blueNoise },
-                        .storageTextures = { &result },
-                        .buffers = { lighting.LightingFrame },
+    const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
+    Commands.beginGpuTimestamp("RT Shadow AO");
+    Commands.setPipeline(ShadowPipeline);
+    Commands.setRootConstants(Constants);
+    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+                      { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise },
+                        .storageTextures = { &Result },
+                        .buffers = { Lighting.LightingFrame },
 
-                        .pShared = &sceneDependencies });
-    commands.endGpuTimestamp();
+                        .pShared = &SceneDependencies });
+    Commands.endGpuTimestamp();
 
-    commands.beginGpuTimestamp("RT Denoise");
-    const uint32_t     current = historyIndex;
-    const uint32_t     previous = 1 - current;
-    RTDenoiseConstants denoise = {
-        .frame = frame.getSrvIndex(),
-        .input = result.getSrvIndex(),
-        .history = history[previous].getSrvIndex(),
-        .depth = gbuffer.Depth->getSrvIndex(),
-        .previousDepth = previousDepth.getSrvIndex(),
-        .output = history[current].getUavIndex(),
-        .sampler = sampler.getIndex(),
-        .historyValid = !bMarkedDirty,
-        .alpha = settings.temporalAlpha,
-        .depthThreshold = settings.temporalDepthThreshold,
+    Commands.beginGpuTimestamp("RT Denoise");
+    const uint32_t     Current = HistoryIndex;
+    const uint32_t     Previous = 1 - Current;
+    RTDenoiseConstants Denoise = {
+        .frame = Frame.getSrvIndex(),
+        .input = Result.getSrvIndex(),
+        .history = History[Previous].getSrvIndex(),
+        .depth = GBuffer.Depth->getSrvIndex(),
+        .previousDepth = PreviousDepth.getSrvIndex(),
+        .output = History[Current].getUavIndex(),
+        .sampler = Sampler.getIndex(),
+        .historyValid = !MarkedDirty,
+        .alpha = Settings.TemporalAlpha,
+        .depthThreshold = Settings.TemporalDepthThreshold,
     };
-    commands.setPipeline(temporalPipeline);
-    commands.setRootConstants(denoise);
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { &result, &history[previous], gbuffer.Depth, &previousDepth },
-                        .storageTextures = { &history[current] },
-                        .buffers = { &frame } });
-    const bool atrous = settings.denoiseMode == RTDenoiseMode::Atrous;
-    denoise.depthThreshold = atrous ? settings.atrousDepthSigma : settings.spatialDepthThreshold;
-    for (uint32_t pass = 0; pass < 2; ++pass)
+    Commands.setPipeline(TemporalPipeline);
+    Commands.setRootConstants(Denoise);
+    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+                      { .sampledTextures = { &Result, &History[Previous], GBuffer.Depth, &PreviousDepth },
+                        .storageTextures = { &History[Current] },
+                        .buffers = { &Frame } });
+    const bool Atrous = Settings.DenoiseMode == RTDenoiseMode::Atrous;
+    Denoise.depthThreshold = Atrous ? Settings.AtrousDepthSigma : Settings.SpatialDepthThreshold;
+    for (uint32_t Pass = 0; Pass < 2; ++Pass)
     {
-        const hz::GPUTexture& input = pass ? scratch : history[current];
-        const hz::GPUTexture& output = pass ? result : scratch;
-        denoise.input = input.getSrvIndex();
-        denoise.output = output.getUavIndex();
-        denoise.horizontal = pass == 0;
-        denoise.step = pass + 1;
-        commands.setPipeline(atrous ? atrousPipeline : spatialPipeline);
-        commands.setRootConstants(denoise);
-        commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                          { .sampledTextures = { &input, gbuffer.Depth }, .storageTextures = { &output } });
+        const hz::GPUTexture& Input = Pass ? Scratch : History[Current];
+        const hz::GPUTexture& Output = Pass ? Result : Scratch;
+        Denoise.input = Input.getSrvIndex();
+        Denoise.output = Output.getUavIndex();
+        Denoise.horizontal = Pass == 0;
+        Denoise.step = Pass + 1;
+        Commands.setPipeline(Atrous ? AtrousPipeline : SpatialPipeline);
+        Commands.setRootConstants(Denoise);
+        Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+                          { .sampledTextures = { &Input, GBuffer.Depth }, .storageTextures = { &Output } });
     }
-    denoise.output = previousDepth.getUavIndex();
-    commands.setPipeline(depthCopyPipeline);
-    commands.setRootConstants(denoise);
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { gbuffer.Depth }, .storageTextures = { &previousDepth } });
-    historyIndex = previous;
-    bMarkedDirty = false;
-    commands.endGpuTimestamp();
+    Denoise.output = PreviousDepth.getUavIndex();
+    Commands.setPipeline(DepthCopyPipeline);
+    Commands.setRootConstants(Denoise);
+    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+                      { .sampledTextures = { GBuffer.Depth }, .storageTextures = { &PreviousDepth } });
+    HistoryIndex = Previous;
+    MarkedDirty = false;
+    Commands.endGpuTimestamp();
 
-    commands.beginGpuTimestamp("RT Reflection");
-    constants.output = reflection.getUavIndex();
-    if (!settings.reflection)
+    Commands.beginGpuTimestamp("RT Reflection");
+    Constants.output = Reflection.getUavIndex();
+    if (!Settings.Reflection)
     {
-        constants.tlas = UINT32_MAX;
+        Constants.tlas = UINT32_MAX;
     }
-    commands.setPipeline(reflectionPipeline);
-    commands.setRootConstants(constants);
-    commands.traceRays(reflectionPipeline, width, height, 1,
-                       { .sampledTextures = { gbuffer.NormalMaterial, gbuffer.Depth, &blueNoise, lighting.Environment,
-                                              lighting.Irradiance, lighting.BRDFLut },
-                         .storageTextures = { &reflection },
-                         .buffers = { lighting.LightingFrame },
+    Commands.setPipeline(ReflectionPipeline);
+    Commands.setRootConstants(Constants);
+    Commands.traceRays(ReflectionPipeline, Width, Height, 1,
+                       { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise, Lighting.Environment,
+                                              Lighting.Irradiance, Lighting.BRDFLut },
+                         .storageTextures = { &Reflection },
+                         .buffers = { Lighting.LightingFrame },
 
-                         .pShared = &sceneDependencies });
-    commands.endGpuTimestamp();
+                         .pShared = &SceneDependencies });
+    Commands.endGpuTimestamp();
 }

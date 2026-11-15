@@ -12,21 +12,21 @@ enum class RTDenoiseMode : uint32_t
 
 struct RayTracedEffectsSettings
 {
-    bool          shadows = true;
-    bool          ao = true;
-    bool          reflection = true;
-    RTDenoiseMode denoiseMode = RTDenoiseMode::Atrous;
-    uint32_t      aoSamples = 1;
-    float         aoRadius = 2.0f;
-    float         aoPower = 1.0f;
-    float         shadowRadius = 0.02f;
+    bool          Shadows = true;
+    bool          AO = true;
+    bool          Reflection = true;
+    RTDenoiseMode DenoiseMode = RTDenoiseMode::Atrous;
+    uint32_t      AOSamples = 1;
+    float         AORadius = 2.0f;
+    float         AOPower = 1.0f;
+    float         ShadowRadius = 0.02f;
     // 0: opaque candidates, 1: any-hit alpha test, 2: bounded closest-hit retracing.
-    uint32_t      shadowAlphaTestMethod = 1;
-    uint32_t      retraceMaxDepth = 3;
-    float         temporalAlpha = 0.1f;
-    float         temporalDepthThreshold = 0.1f;
-    float         spatialDepthThreshold = 50000.0f;
-    float         atrousDepthSigma = 0.0015f;
+    uint32_t      ShadowAlphaTestMethod = 1;
+    uint32_t      RetraceMaxDepth = 3;
+    float         TemporalAlpha = 0.1f;
+    float         TemporalDepthThreshold = 0.1f;
+    float         SpatialDepthThreshold = 50000.0f;
+    float         AtrousDepthSigma = 0.0015f;
     bool          operator==(const RayTracedEffectsSettings&) const = default;
 };
 
@@ -35,42 +35,42 @@ class RayTracingScene;
 class RayTracedEffects
 {
 public:
-    explicit RayTracedEffects(hz::RenderContext& context);
+    explicit RayTracedEffects(hz::RenderContext& Context);
     ~RayTracedEffects();
     // Replacing targets requires completion of earlier draws, as for the other render passes.
-    void resize(uint32_t width, uint32_t height);
+    void Resize(uint32_t Width, uint32_t Height);
 
-    void                     markDirty();
-    void execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const DeferredGBuffer& gbuffer, const SceneView& view,
-                 const GpuDrawList& draws, const LightingResources& lighting);
-    bool isSupported() const { return supported; }
-    const hz::GPUTexture&    getShadowAO() const { return result; }
-    const hz::GPUTexture&    getReflection() const { return reflection; }
-    RayTracedEffectsSettings settings;
+    void MarkDirty();
+    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
+                 const GpuDrawList& Draws, const LightingResources& Lighting);
+    bool IsSupported() const { return Supported; }
+    const hz::GPUTexture& GetShadowAO() const { return Result; }
+    const hz::GPUTexture& GetReflection() const { return Reflection; }
+    RayTracedEffectsSettings Settings;
 
 private:
-    hz::RenderContext&                context;
-    hz::unique_ptr<RayTracingScene>   rayScene;
-    hz::GPUPipeline                   shadowPipeline;
-    hz::GPUPipeline                   temporalPipeline;
-    hz::GPUPipeline                   spatialPipeline;
-    hz::GPUPipeline                   atrousPipeline;
-    hz::GPUPipeline                   depthCopyPipeline;
-    hz::GPURayTracingPipeline         reflectionPipeline;
-    hz::GPUSampler                    sampler;
-    hz::GPUSampler                    materialSampler;
-    hz::GPUTexture                    blueNoise;
-    hz::GPUTexture                    result;
-    hz::GPUTexture                    scratch;
-    hz::FixedArray<hz::GPUTexture, 2> history;
-    hz::GPUTexture                    previousDepth;
-    hz::GPUTexture                    reflection;
-    RayTracedEffectsSettings          previousSettings;
-    uint32_t                          width = 0;
-    uint32_t                          height = 0;
-    uint32_t                          historyIndex = 0;
-    uint32_t                          frameIndex = 0;
-    uint64_t                          assetRevision = 0;
-    bool                              bMarkedDirty = true;
-    bool                              supported = false;
+    hz::RenderContext&                Context;
+    hz::unique_ptr<RayTracingScene>   RayScene;
+    hz::GPUPipeline                   ShadowPipeline;
+    hz::GPUPipeline                   TemporalPipeline;
+    hz::GPUPipeline                   SpatialPipeline;
+    hz::GPUPipeline                   AtrousPipeline;
+    hz::GPUPipeline                   DepthCopyPipeline;
+    hz::GPURayTracingPipeline         ReflectionPipeline;
+    hz::GPUSampler                    Sampler;
+    hz::GPUSampler                    MaterialSampler;
+    hz::GPUTexture                    BlueNoise;
+    hz::GPUTexture                    Result;
+    hz::GPUTexture                    Scratch;
+    hz::FixedArray<hz::GPUTexture, 2> History;
+    hz::GPUTexture                    PreviousDepth;
+    hz::GPUTexture                    Reflection;
+    RayTracedEffectsSettings          PreviousSettings;
+    uint32_t                          Width = 0;
+    uint32_t                          Height = 0;
+    uint32_t                          HistoryIndex = 0;
+    uint32_t                          FrameIndex = 0;
+    uint64_t                          AssetRevision = 0;
+    bool                              MarkedDirty = true;
+    bool                              Supported = false;
 };
