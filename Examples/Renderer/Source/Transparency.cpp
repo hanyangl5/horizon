@@ -95,13 +95,13 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
                                             const hz::GPUTexture& opaqueColor)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
-    ASSERT(width && height && lighting.pLightingFrame && lighting.pEnvironmentSampler);
+    ASSERT(width && height && lighting.LightingFrame && lighting.EnvironmentSampler);
     TransparencyConstants constants = { .frameIndex = frame.getSrvIndex(),
                                         .oitHeadsIndex = heads.getUavIndex(),
                                         .oitCounterIndex = counters.getUavIndex(),
                                         .oitNodesIndex = nodes.getUavIndex(),
                                         .oitMaxNodes = maxNodes,
-                                        .lightingFrameIndex = lighting.pLightingFrame->getSrvIndex() };
+                                        .lightingFrameIndex = lighting.LightingFrame->getSrvIndex() };
     commands.beginGpuTimestamp("OIT");
     commands.setPipeline(clearPipeline);
     commands.setRootConstants(constants);
@@ -121,8 +121,8 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         {
             buffers.pushBack(buffer);
         }
-        buffers.pushBack(lighting.pLightingFrame);
-        const hz::GPUTexture* lightingTextures[] = { lighting.pShadowMap, lighting.pEnvironment, lighting.pIrradiance, lighting.pBRDFLut };
+        buffers.pushBack(lighting.LightingFrame);
+        const hz::GPUTexture* lightingTextures[] = { lighting.ShadowMap, lighting.Environment, lighting.Irradiance, lighting.BRDFLut };
         for (const hz::GPUTexture* texture : lightingTextures)
         {
             if (texture && texture->isValid())
@@ -147,12 +147,12 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         constants.texturesIndex = gpu.textures.getSrvIndex();
         constants.samplerIndex = surfaceSampler.getIndex();
         constants.drawsIndex = draws.getDrawData(backing).getSrvIndex();
-        constants.shadowMapIndex = lighting.pShadowMap ? lighting.pShadowMap->getSrvIndex() : UINT32_MAX;
-        constants.shadowSamplerIndex = lighting.pShadowSampler ? lighting.pShadowSampler->getIndex() : UINT32_MAX;
-        constants.environmentIndex = lighting.pEnvironment ? lighting.pEnvironment->getSrvIndex() : UINT32_MAX;
-        constants.irradianceIndex = lighting.pIrradiance ? lighting.pIrradiance->getSrvIndex() : UINT32_MAX;
-        constants.brdfLutIndex = lighting.pBRDFLut ? lighting.pBRDFLut->getSrvIndex() : UINT32_MAX;
-        constants.environmentSamplerIndex = lighting.pEnvironmentSampler->getIndex();
+        constants.shadowMapIndex = lighting.ShadowMap ? lighting.ShadowMap->getSrvIndex() : UINT32_MAX;
+        constants.shadowSamplerIndex = lighting.ShadowSampler ? lighting.ShadowSampler->getIndex() : UINT32_MAX;
+        constants.environmentIndex = lighting.Environment ? lighting.Environment->getSrvIndex() : UINT32_MAX;
+        constants.irradianceIndex = lighting.Irradiance ? lighting.Irradiance->getSrvIndex() : UINT32_MAX;
+        constants.brdfLutIndex = lighting.BRDFLut ? lighting.BRDFLut->getSrvIndex() : UINT32_MAX;
+        constants.environmentSamplerIndex = lighting.EnvironmentSampler->getIndex();
         commands.setRootConstants(constants);
         commands.drawIndirect(indirect, 0, draws.getCount(backing));
         commands.endRendering();

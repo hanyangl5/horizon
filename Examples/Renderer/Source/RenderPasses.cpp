@@ -137,10 +137,10 @@ static void executeGBuffer(FrameContext& frame, void* pUserData)
 {
     GBuffer& gbuffer = *(GBuffer*)pUserData;
     gbuffer.execute(frame.commands, frame.frame, frame.view, frame.draws);
-    frame.gbuffer = { .pEmissive = &gbuffer.gbuffer[0],
-                      .pNormalMaterial = &gbuffer.gbuffer[1],
-                      .pBaseColorMetallic = &gbuffer.gbuffer[2],
-                      .pDepth = &gbuffer.depth };
+    frame.gbuffer = { .Emissive = &gbuffer.gbuffer[0],
+                      .NormalMaterial = &gbuffer.gbuffer[1],
+                      .BaseColorMetallic = &gbuffer.gbuffer[2],
+                      .Depth = &gbuffer.depth };
 }
 
 static void executeScreenSpaceAO(FrameContext& frame, void* pUserData)
@@ -148,8 +148,8 @@ static void executeScreenSpaceAO(FrameContext& frame, void* pUserData)
     // Ray traced AO replaces the screen space term.
     if (!frame.rayTracedAO)
     {
-        frame.resources.pSSAO =
-            &((ScreenSpaceAO*)pUserData)->execute(frame.commands, frame.frame, *frame.gbuffer.pDepth, frame.linearSampler);
+        frame.resources.SSAO =
+            &((ScreenSpaceAO*)pUserData)->execute(frame.commands, frame.frame, *frame.gbuffer.Depth, frame.linearSampler);
     }
 }
 
@@ -163,29 +163,29 @@ static void executeRayTracing(FrameContext& frame, void* pUserData)
     }
     if (rayTracing.settings.shadows || rayTracing.settings.ao)
     {
-        frame.resources.pRTShadowAO = &rayTracing.getShadowAO();
+        frame.resources.RTShadowAO = &rayTracing.getShadowAO();
     }
     if (rayTracing.settings.reflection)
     {
-        frame.resources.pRTReflection = &rayTracing.getReflection();
+        frame.resources.RTReflection = &rayTracing.getReflection();
     }
 }
 
 static void executeLighting(FrameContext& frame, void* pUserData)
 {
-    frame.pColor = &((DeferredLighting*)pUserData)->execute(frame.commands, frame.frame, frame.gbuffer, frame.view, frame.resources);
+    frame.pColor = &((DeferredLighting*)pUserData)->Execute(frame.commands, frame.frame, frame.gbuffer, frame.view, frame.resources);
 }
 
 static void executeEnvironment(FrameContext& frame, void* pUserData)
 {
     ((EnvironmentPass*)pUserData)
-        ->execute(frame.commands, frame.frame, *frame.pColor, *frame.gbuffer.pDepth, frame.environmentIntensity);
+        ->execute(frame.commands, frame.frame, *frame.pColor, *frame.gbuffer.Depth, frame.environmentIntensity);
 }
 
 static void executeTransparency(FrameContext& frame, void* pUserData)
 {
     frame.pColor = &((Transparency*)pUserData)
-                        ->execute(frame.commands, frame.frame, *frame.gbuffer.pDepth, frame.view, frame.draws, frame.resources,
+                        ->execute(frame.commands, frame.frame, *frame.gbuffer.Depth, frame.view, frame.draws, frame.resources,
                                   *frame.pColor);
 }
 
@@ -251,7 +251,7 @@ bool RenderPasses::resize(uint32_t width, uint32_t height)
         return false;
     }
     gbuffer->resize(width, height);
-    lighting->resize(width, height);
+    lighting->Resize(width, height);
     transparency->resize(width, height, 1);
     rayTracing->resize(width, height);
     postprocessing->resize(width, height);
@@ -318,13 +318,13 @@ void RenderPasses::execute()
                                            .deltaSeconds = deltaSeconds,
                                            .rayTracedAO = shadows->data.rtAOEnabled != 0,
                                            .pBackbuffer = &backbuffer,
-                                           .resources = { .pLightingFrame = &shadows->getLightingFrame(frameIndex),
-                                                          .pShadowMap = &shadows->getTexture(),
-                                                          .pShadowSampler = &shadows->getSampler(),
-                                                          .pEnvironment = &environment->getPrefiltered(),
-                                                          .pIrradiance = &environment->getIrradiance(),
-                                                          .pBRDFLut = &environment->getBrdfLut(),
-                                                          .pEnvironmentSampler = &environment->getSampler() } };
+                                           .resources = { .LightingFrame = &shadows->getLightingFrame(frameIndex),
+                                                          .ShadowMap = &shadows->getTexture(),
+                                                          .ShadowSampler = &shadows->getSampler(),
+                                                          .Environment = &environment->getPrefiltered(),
+                                                          .Irradiance = &environment->getIrradiance(),
+                                                          .BRDFLut = &environment->getBrdfLut(),
+                                                          .EnvironmentSampler = &environment->getSampler() } };
     for (uint32_t i = 0; i < passCount; ++i)
     {
         const RenderPass& pass = passes[i];

@@ -142,7 +142,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     {
         return;
     }
-    ASSERT(width && height && gbuffer.pNormalMaterial && gbuffer.pDepth && lighting.pLightingFrame);
+    ASSERT(width && height && gbuffer.NormalMaterial && gbuffer.Depth && lighting.LightingFrame);
     if (!(settings == previousSettings))
     {
         markDirty();
@@ -161,20 +161,20 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
     RTConstants                         constants = {
                                 .frame = frame.getSrvIndex(),
-                                .lighting = lighting.pLightingFrame->getSrvIndex(),
+                                .lighting = lighting.LightingFrame->getSrvIndex(),
                                 .draws = drawData.getSrvIndex(),
                                 .materials = view.gpuScene.getBuffers().materials.getSrvIndex(),
                                 .textures = view.gpuScene.getBuffers().textures.getSrvIndex(),
                                 .sampler = materialSampler.getIndex(),
                                 .tlas = tlas.isValid() ? tlas.getSrvIndex() : UINT32_MAX,
-                                .normal = gbuffer.pNormalMaterial->getSrvIndex(),
-                                .depth = gbuffer.pDepth->getSrvIndex(),
+                                .normal = gbuffer.NormalMaterial->getSrvIndex(),
+                                .depth = gbuffer.Depth->getSrvIndex(),
                                 .output = result.getUavIndex(),
                                 .blueNoise = blueNoise.getSrvIndex(),
-                                .environment = index(lighting.pEnvironment),
-                                .irradiance = index(lighting.pIrradiance),
-                                .brdf = index(lighting.pBRDFLut),
-                                .environmentSampler = lighting.pEnvironmentSampler ? lighting.pEnvironmentSampler->getIndex() : UINT32_MAX,
+                                .environment = index(lighting.Environment),
+                                .irradiance = index(lighting.Irradiance),
+                                .brdf = index(lighting.BRDFLut),
+                                .environmentSampler = lighting.EnvironmentSampler ? lighting.EnvironmentSampler->getIndex() : UINT32_MAX,
                                 .shadows = settings.shadows,
                                 .ao = settings.ao,
                                 .aoSamples = TF_MAX(settings.aoSamples, 1u),
@@ -190,9 +190,9 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.setPipeline(shadowPipeline);
     commands.setRootConstants(constants);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { gbuffer.pNormalMaterial, gbuffer.pDepth, &blueNoise },
+                      { .sampledTextures = { gbuffer.NormalMaterial, gbuffer.Depth, &blueNoise },
                         .storageTextures = { &result },
-                        .buffers = { lighting.pLightingFrame },
+                        .buffers = { lighting.LightingFrame },
 
                         .pShared = &sceneDependencies });
     commands.endGpuTimestamp();
@@ -204,7 +204,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
         .frame = frame.getSrvIndex(),
         .input = result.getSrvIndex(),
         .history = history[previous].getSrvIndex(),
-        .depth = gbuffer.pDepth->getSrvIndex(),
+        .depth = gbuffer.Depth->getSrvIndex(),
         .previousDepth = previousDepth.getSrvIndex(),
         .output = history[current].getUavIndex(),
         .sampler = sampler.getIndex(),
@@ -215,7 +215,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.setPipeline(temporalPipeline);
     commands.setRootConstants(denoise);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { &result, &history[previous], gbuffer.pDepth, &previousDepth },
+                      { .sampledTextures = { &result, &history[previous], gbuffer.Depth, &previousDepth },
                         .storageTextures = { &history[current] },
                         .buffers = { &frame } });
     const bool atrous = settings.denoiseMode == RTDenoiseMode::Atrous;
@@ -231,13 +231,13 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
         commands.setPipeline(atrous ? atrousPipeline : spatialPipeline);
         commands.setRootConstants(denoise);
         commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                          { .sampledTextures = { &input, gbuffer.pDepth }, .storageTextures = { &output } });
+                          { .sampledTextures = { &input, gbuffer.Depth }, .storageTextures = { &output } });
     }
     denoise.output = previousDepth.getUavIndex();
     commands.setPipeline(depthCopyPipeline);
     commands.setRootConstants(denoise);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { gbuffer.pDepth }, .storageTextures = { &previousDepth } });
+                      { .sampledTextures = { gbuffer.Depth }, .storageTextures = { &previousDepth } });
     historyIndex = previous;
     bMarkedDirty = false;
     commands.endGpuTimestamp();
@@ -251,10 +251,10 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     commands.setPipeline(reflectionPipeline);
     commands.setRootConstants(constants);
     commands.traceRays(reflectionPipeline, width, height, 1,
-                       { .sampledTextures = { gbuffer.pNormalMaterial, gbuffer.pDepth, &blueNoise, lighting.pEnvironment,
-                                              lighting.pIrradiance, lighting.pBRDFLut },
+                       { .sampledTextures = { gbuffer.NormalMaterial, gbuffer.Depth, &blueNoise, lighting.Environment,
+                                              lighting.Irradiance, lighting.BRDFLut },
                          .storageTextures = { &reflection },
-                         .buffers = { lighting.pLightingFrame },
+                         .buffers = { lighting.LightingFrame },
 
                          .pShared = &sceneDependencies });
     commands.endGpuTimestamp();

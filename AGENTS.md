@@ -4,7 +4,8 @@ These rules apply to new or modified first-party Runtime code. Do not rewrite ex
 
 - Use the repository-root `.clang-format`. Do not specify a conflicting format or line length elsewhere.
 - Runtime targets use C++20, enable `/W3 /WX` under MSVC, and disable RTTI and exceptions. Do not introduce `throw`, `try`/`catch`, `dynamic_cast`, or designs that depend on RTTI.
-- Write simple, efficient, minimal C/C++ code. Prefer the existing The Forge style: C-style APIs, explicit `init/add/remove/exit` lifecycles, `p`/`pp` pointer names, `m` member names, and `LOGF` logging.
+- Write simple, efficient, minimal C/C++ code. Prefer C-style APIs, explicit `init/add/remove/exit` lifecycles, and `LOGF` logging.
+- Use the camel-case naming convention for new and migrated code: types, functions, variables, parameters and members are `PascalCase`, directories keep their existing casing, and identifiers carry no `p`/`pp`/`m` type prefixes. Structure fields that mirror a shader constant block keep the shader's field names. The Forge-derived modules still use `p`/`pp`/`m` prefixes until they are migrated; migrate a module at a time, in its own commit, and do not mix the migration with functional changes.
 - Avoid named variables for trivial expressions used only once. Make an existing local variable `const` when it is not reassigned, but do not extract a meaningless temporary merely to make it `const`.
 - Do not use `auto` except when a lambda closure type must be stored. Spell out ordinary value, pointer, structure, iterator, and return-value types. Avoid unnecessary lambdas and complex templates.
 - Do not use `goto`.

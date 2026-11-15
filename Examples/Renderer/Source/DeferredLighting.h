@@ -5,6 +5,7 @@
 #include "SceneView.h"
 
 // Shared CPU/Slang layout, 128 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
+// Fields mirror the shader block, so they keep the shader's names.
 struct alignas(16) LightingFrameData
 {
     Matrix4  shadowViewProjection = Matrix4::identity();
@@ -22,39 +23,39 @@ struct alignas(16) LightingFrameData
 
 struct LightingResources
 {
-    const hz::GPUBuffer*  pLightingFrame = nullptr;
-    const hz::GPUTexture* pShadowMap = nullptr;
-    const hz::GPUSampler* pShadowSampler = nullptr;
-    const hz::GPUTexture* pRTShadowAO = nullptr;
-    const hz::GPUTexture* pRTReflection = nullptr;
+    const hz::GPUBuffer*  LightingFrame = nullptr;
+    const hz::GPUTexture* ShadowMap = nullptr;
+    const hz::GPUSampler* ShadowSampler = nullptr;
+    const hz::GPUTexture* RTShadowAO = nullptr;
+    const hz::GPUTexture* RTReflection = nullptr;
     // Ambient occlusion for indirect light only; the pass never darkens direct light or the sky.
-    const hz::GPUTexture* pSSAO = nullptr;
-    const hz::GPUTexture* pEnvironment = nullptr;
-    const hz::GPUTexture* pIrradiance = nullptr;
-    const hz::GPUTexture* pBRDFLut = nullptr;
-    const hz::GPUSampler* pEnvironmentSampler = nullptr;
+    const hz::GPUTexture* SSAO = nullptr;
+    const hz::GPUTexture* Environment = nullptr;
+    const hz::GPUTexture* Irradiance = nullptr;
+    const hz::GPUTexture* BRDFLut = nullptr;
+    const hz::GPUSampler* EnvironmentSampler = nullptr;
 };
 
 struct DeferredGBuffer
 {
-    const hz::GPUTexture* pEmissive = nullptr;
-    const hz::GPUTexture* pNormalMaterial = nullptr;
-    const hz::GPUTexture* pBaseColorMetallic = nullptr;
-    const hz::GPUTexture* pDepth = nullptr;
+    const hz::GPUTexture* Emissive = nullptr;
+    const hz::GPUTexture* NormalMaterial = nullptr;
+    const hz::GPUTexture* BaseColorMetallic = nullptr;
+    const hz::GPUTexture* Depth = nullptr;
 };
 
 class DeferredLighting
 {
 public:
-    explicit DeferredLighting(hz::RenderContext& context);
-    void resize(uint32_t width, uint32_t height);
+    explicit DeferredLighting(hz::RenderContext& Context);
+    void Resize(uint32_t Width, uint32_t Height);
 
-    const hz::GPUTexture& execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const DeferredGBuffer& gbuffer,
-                                  const SceneView& view, const LightingResources& resources);
-    const hz::GPUTexture& getColor() const { return color; }
+    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+                                  const SceneView& View, const LightingResources& Resources);
+    const hz::GPUTexture& GetColor() const { return Color; }
 
 private:
-    hz::RenderContext& context;
-    hz::GPUPipeline    pipeline;
-    hz::GPUTexture     color;
+    hz::RenderContext& Context;
+    hz::GPUPipeline    Pipeline;
+    hz::GPUTexture     Color;
 };
