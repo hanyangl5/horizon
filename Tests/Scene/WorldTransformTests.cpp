@@ -6,8 +6,8 @@
 class SceneTransformTest: public ::testing::Test
 {
 protected:
-    void SetUp() override { ASSERT_TRUE(initMemAlloc(nullptr)); }
-    void TearDown() override { exitMemAlloc(); }
+    void SetUp() override { ASSERT_TRUE(InitMemoryAlloc(nullptr)); }
+    void TearDown() override { ExitMemoryAlloc(); }
 };
 
 static void expectMatrix(const Matrix4& actual, const Matrix4& expected)
@@ -191,7 +191,7 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
     world.updateTransforms();
     expectMatrix(world.getWorldTransform(parent)->current, Matrix4::translation(Vector3(2048.0f, 0.0f, 0.0f)));
     world.commitTransforms();
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (hz::Entity entity : entities)
         setTranslation(world, entity, 1.0f);
     for (uint32_t i = 0; i < 16; ++i)
@@ -201,11 +201,11 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
         world.commitTransforms();
         world.updateTransforms();
     }
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     expectMatrix(world.getWorldTransform(parent)->current, Matrix4::translation(Vector3(2049.0f, 0.0f, 0.0f)));
     ASSERT_TRUE(world.destroySubtree(root));

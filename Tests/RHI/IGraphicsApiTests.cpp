@@ -604,7 +604,7 @@ class RHIIGraphicsApiTest: public ::testing::Test
 protected:
     static void SetUpTestSuite()
     {
-        ASSERT_TRUE(initMemAlloc(nullptr));
+        ASSERT_TRUE(InitMemoryAlloc(nullptr));
         _EnableInteractiveMode(false);
 
         FileSystemInitDesc FileSystemDesc = {
@@ -633,7 +633,7 @@ protected:
         ExitLog();
         ExitFileSystem();
         _EnableInteractiveMode(true);
-        exitMemAlloc();
+        ExitMemoryAlloc();
     }
 
     static bool attachSharedRenderer(LiveRendererHarness& harness)

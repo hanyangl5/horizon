@@ -96,7 +96,7 @@ __thread wchar_t *last_global_error_str = NULL;
 
 static hid_device *new_hid_device(void)
 {
-	hid_device *dev = (hid_device*) tf_calloc(1, sizeof(hid_device));
+	hid_device *dev = (hid_device*) MemCallocate(1, sizeof(hid_device));
 	dev->device_handle = -1;
 	dev->blocking = 1;
 	dev->uses_numbered_reports = 0;
@@ -108,7 +108,7 @@ static hid_device *new_hid_device(void)
 static wchar_t* DuplicateWideStr(wchar_t* str)
 {
 	uint32_t len = wcslen(str) + 1;
-	wchar_t* dup = (wchar_t*)tf_malloc(len * sizeof *dup);
+	wchar_t* dup = (wchar_t*)MemAllocate(len * sizeof *dup);
 	wcscpy(dup, str);
 	return dup;
 }
@@ -123,7 +123,7 @@ static wchar_t *utf8_to_wchar_t(const char *utf8)
 		if ((size_t) -1 == wlen) {
 			return DuplicateWideStr(L"");
 		}
-		ret = (wchar_t*) tf_calloc(wlen+1, sizeof(wchar_t));
+		ret = (wchar_t*) MemCallocate(wlen+1, sizeof(wchar_t));
 		mbstowcs(ret, utf8, wlen+1);
 		ret[wlen] = 0x0000;
 	}
@@ -140,7 +140,7 @@ static wchar_t *utf8_to_wchar_t(const char *utf8)
 static void register_global_error(const char *msg)
 {
 	if (last_global_error_str)
-		tf_free(last_global_error_str);
+		MemDeallocate(last_global_error_str);
 
 	last_global_error_str = utf8_to_wchar_t(msg);
 }
@@ -167,7 +167,7 @@ static void register_global_error_format(const char *format, ...)
 static void register_device_error(hid_device *dev, const char *msg)
 {
 	if (dev->last_error_str)
-		tf_free(dev->last_error_str);
+		MemDeallocate(dev->last_error_str);
 
 	dev->last_error_str = utf8_to_wchar_t(msg);
 }
@@ -420,11 +420,11 @@ static int get_hid_report_descriptor_from_sysfs(const char *sysfs_path, struct h
 	int res = -1;
 	/* Construct <sysfs_path>/device/report_descriptor */
 	size_t rpt_path_len = strlen(sysfs_path) + 25 + 1;
-	char* rpt_path = (char*) tf_calloc(1, rpt_path_len);
+	char* rpt_path = (char*) MemCallocate(1, rpt_path_len);
 	snprintf(rpt_path, rpt_path_len, "%s/device/report_descriptor", sysfs_path);
 
 	res = get_hid_report_descriptor(rpt_path, rpt_desc);
-	tf_free(rpt_path);
+	MemDeallocate(rpt_path);
 
 	return res;
 }
@@ -432,7 +432,7 @@ static int get_hid_report_descriptor_from_sysfs(const char *sysfs_path, struct h
 static char* DuplicateStr(char const* str)
 {
 	uint32_t len = strlen(str) + 1;
-	char* dup = (char*)tf_malloc(len * sizeof *dup);
+	char* dup = (char*)MemAllocate(len * sizeof *dup);
 	strcpy(dup, str);
 	return dup;
 }
@@ -490,7 +490,7 @@ next_line:
 		line = strtok_r(NULL, "\n", &saveptr);
 	}
 
-	tf_free(tmp);
+	MemDeallocate(tmp);
 	return (found_id && found_name && found_serial);
 }
 
@@ -597,8 +597,8 @@ static int get_device_string(hid_device *dev, enum device_string_id key, wchar_t
 	}
 
 end:
-	tf_free(serial_number_utf8);
-	tf_free(product_name_utf8);
+	MemDeallocate(serial_number_utf8);
+	MemDeallocate(product_name_utf8);
 
 	udev_device_unref(udev_dev);
 	/* parent and hid_dev don't need to be (and can't be) unref'd.
@@ -727,7 +727,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 			struct hid_device_info *tmp;
 
 			/* VID/PID match. Create the record. */
-			tmp = (struct hid_device_info*) tf_calloc(1, sizeof(struct hid_device_info));
+			tmp = (struct hid_device_info*) MemCallocate(1, sizeof(struct hid_device_info));
 			if (cur_dev) {
 				cur_dev->next = tmp;
 			}
@@ -831,7 +831,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 				 */
 				while (!get_next_hid_usage(report_desc.value, report_desc.size, &pos, &page, &usage)) {
 					/* Create new record for additional usage pairs */
-					tmp = (struct hid_device_info*) tf_calloc(1, sizeof(struct hid_device_info));
+					tmp = (struct hid_device_info*) MemCallocate(1, sizeof(struct hid_device_info));
 					cur_dev->next = tmp;
 					prev_dev = cur_dev;
 					cur_dev = tmp;
@@ -852,8 +852,8 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		}
 
 	next:
-		tf_free(serial_number_utf8);
-		tf_free(product_name_utf8);
+		MemDeallocate(serial_number_utf8);
+		MemDeallocate(product_name_utf8);
 		udev_device_unref(raw_dev);
 		/* hid_dev, usb_dev and intf_dev don't need to be (and can't be)
 		   unref()d.  It will cause a double-free() error.  I'm not
@@ -871,11 +871,11 @@ void  HID_API_EXPORT hid_free_enumeration(struct hid_device_info *devs)
 	struct hid_device_info *d = devs;
 	while (d) {
 		struct hid_device_info *next = d->next;
-		tf_free(d->path);
-		tf_free(d->serial_number);
-		tf_free(d->manufacturer_string);
-		tf_free(d->product_string);
-		tf_free(d);
+		MemDeallocate(d->path);
+		MemDeallocate(d->serial_number);
+		MemDeallocate(d->manufacturer_string);
+		MemDeallocate(d->product_string);
+		MemDeallocate(d);
 		d = next;
 	}
 }
@@ -967,7 +967,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path)
 	else {
 		/* Unable to open any devices. */
 		register_global_error(strerror(errno));
-		tf_free(dev);
+		MemDeallocate(dev);
 		return NULL;
 	}
 }
@@ -1100,7 +1100,7 @@ void HID_API_EXPORT hid_close(hid_device *dev)
 	/* Free the device error message */
 	register_device_error(dev, NULL);
 
-	tf_free(dev);
+	MemDeallocate(dev);
 }
 
 

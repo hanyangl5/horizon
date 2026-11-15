@@ -71,7 +71,7 @@ public:
 /// in its matrix, \c Z points at \c startLookAt and \c X is horizontal.
 FORGE_API ICameraController* initGuiCameraController(const Vector3& startPosition, const Vector3& startLookAt);
 
-/// \c initFpsCameraController does basic FPS-style god mode navigation; tf_free-look is constrained
+/// \c initFpsCameraController does basic FPS-style god mode navigation; MemDeallocate-look is constrained
 /// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
 FORGE_API ICameraController* initFpsCameraController(const Vector3& startPosition, const Vector3& startLookAt);
 

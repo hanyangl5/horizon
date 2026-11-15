@@ -329,7 +329,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
 
     if (filesInDirectory != NULL) //-V595
     {
-        tf_free(filesInDirectory);
+        MemDeallocate(filesInDirectory);
     }
 
     if (recursive)
@@ -348,7 +348,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
 
         if (subDirectories != NULL) //-V595
         {
-            tf_free(subDirectories);
+            MemDeallocate(subDirectories);
         }
     }
 }
@@ -389,7 +389,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     }
 
     ssize_t fileSize = GetStreamFileSize(&file);
-    void*   fileData = tf_malloc(fileSize);
+    void*   fileData = MemAllocate(fileSize);
 
     ReadFromStream(&file, fileData, fileSize);
 
@@ -398,12 +398,12 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     options.memory_alloc = [](void* user, cgltf_size size)
     {
         UNREF_PARAM(user);
-        return tf_malloc(size);
+        return MemAllocate(size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
         UNREF_PARAM(user);
-        tf_free(ptr);
+        MemDeallocate(ptr);
     };
     options.rd = resourceDir;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
@@ -411,7 +411,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 
     if (!VERIFYMSG(cgltf_result_success == result, "Failed to parse gltf file %s with error %u", skeletonAsset, (uint32_t)result))
     {
-        tf_free(fileData);
+        MemDeallocate(fileData);
         return result;
     }
 
@@ -441,7 +441,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
             if (OpenStreamFromPath(resourceDir, path, FM_READ, &fs))
             {
                 ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
-                data->buffers[i].data = tf_malloc(data->buffers[i].size);
+                data->buffers[i].data = MemAllocate(data->buffers[i].size);
                 ReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
                 CloseStream(&fs);
             }
@@ -452,7 +452,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     if (!VERIFYMSG(cgltf_result_success == result, "Failed to load buffers from gltf file %s with error %u", skeletonAsset,
                    (uint32_t)result))
     {
-        tf_free(fileData);
+        MemDeallocate(fileData);
         return result;
     }
 
@@ -468,16 +468,16 @@ cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsse
     options.memory_alloc = [](void* user, cgltf_size size)
     {
         UNREF_PARAM(user);
-        return tf_malloc(size);
+        return MemAllocate(size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
         UNREF_PARAM(user);
-        tf_free(ptr);
+        MemDeallocate(ptr);
     };
     options.rd = resourceDir;
     cgltf_size expected = cgltf_write(&options, NULL, 0, data);
-    char*      writeBuffer = (char*)tf_malloc(expected);
+    char*      writeBuffer = (char*)MemAllocate(expected);
     cgltf_size actual = cgltf_write(&options, writeBuffer, expected, data);
     if (expected != actual)
     {
@@ -488,13 +488,13 @@ cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsse
     FileStream file = {};
     if (!OpenStreamFromPath(resourceDir, skeletonAsset, FM_WRITE, &file))
     {
-        tf_free(writeBuffer);
+        MemDeallocate(writeBuffer);
         return cgltf_result_io_error;
     }
 
     WriteToStream(&file, writeBuffer, actual - 1);
     CloseStream(&file);
-    tf_free(writeBuffer);
+    MemDeallocate(writeBuffer);
 
     return cgltf_result_success;
 }
@@ -537,13 +537,13 @@ static void DiscoverExtraAnimationsForMesh(ResourceDirectory resourceDirInput, c
 
                         LOGF(Info, "Found extra animation file '%s'", (const char*)anim.mInputAnim.data);
                     }
-                    tf_free(animationFiles);
+                    MemDeallocate(animationFiles);
                 }
                 break;
             }
         }
 
-        tf_free(assetSubDirectories);
+        MemDeallocate(assetSubDirectories);
     }
 }
 
@@ -692,7 +692,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
     }
     else
     {
-        tfxFiles = (char**)tf_malloc(sizeof(char**));
+        tfxFiles = (char**)MemAllocate(sizeof(char**));
         tfxFiles[0] = (char*)assetParams->mInFilePath;
         tfxFileCount = 1;
     }
@@ -870,7 +870,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 
     if (tfxFiles)
     {
-        tf_free(tfxFiles);
+        MemDeallocate(tfxFiles);
     }
 
     return result != cgltf_result_success;
@@ -1397,7 +1397,7 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
     {
         LOGF(LogLevel::Warning, "Animation asset %s contains no animations.", animationInputFile);
 
-        tf_free(srcFileData);
+        MemDeallocate(srcFileData);
         cgltf_free(data);
         return true;
     }
@@ -1430,7 +1430,7 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
             error = true;
     }
 
-    tf_free(srcFileData);
+    MemDeallocate(srcFileData);
     cgltf_free(data);
 
     return error;
@@ -1582,7 +1582,7 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     }
 
     ssize_t fileSize = GetStreamFileSize(&file);
-    void*   fileData = tf_malloc(fileSize);
+    void*   fileData = MemAllocate(fileSize);
 
     ReadFromStream(&file, fileData, fileSize);
 
@@ -1591,12 +1591,12 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     options.memory_alloc = [](void* user, cgltf_size size)
     {
         UNREF_PARAM(user);
-        return tf_malloc(size);
+        return MemAllocate(size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
         UNREF_PARAM(user);
-        tf_free(ptr);
+        MemDeallocate(ptr);
     };
     options.rd = resourceDirInput;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
@@ -1605,14 +1605,14 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     if (cgltf_result_success != result)
     {
         LOGF(Error, "Failed to parse gltf file %s with error %u", gltfFileName, (uint32_t)result);
-        tf_free(fileData);
+        MemDeallocate(fileData);
         return;
     }
 
     numAnimationsOut = (uint32_t)data->animations_count;
 
     cgltf_free(data);
-    tf_free(fileData);
+    MemDeallocate(fileData);
 }
 
 void buildMeshlets(const uint* indices, size_t indexCount, const float3* vertexPositions, size_t vertexCount, size_t vertexPositionsStride,
@@ -1679,7 +1679,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
 
     size_t remapSize = (*vertexCount * sizeof(uint32_t));
 
-    uint32_t* remap = (uint32_t*)tf_malloc(remapSize);
+    uint32_t* remap = (uint32_t*)MemAllocate(remapSize);
 
     meshopt_Stream streams[MAX_SEMANTICS];
     uint32_t       validStreamCount = 0;
@@ -1807,7 +1807,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     }
 
     *vertexCount = newVertCount;
-    tf_free(remap);
+    MemDeallocate(remap);
 }
 
 bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams)
@@ -1862,7 +1862,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         ssize_t fileSize = GetStreamFileSize(&file);
-        void*   fileData = tf_malloc(fileSize);
+        void*   fileData = MemAllocate(fileSize);
 
         ReadFromStream(&file, fileData, fileSize);
 
@@ -1871,12 +1871,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         options.memory_alloc = [](void* user, cgltf_size size)
         {
             UNREF_PARAM(user);
-            return tf_malloc(size);
+            return MemAllocate(size);
         };
         options.memory_free = [](void* user, void* ptr)
         {
             UNREF_PARAM(user);
-            tf_free(ptr);
+            MemDeallocate(ptr);
         };
         options.rd = assetParams->mRDInput;
         cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
@@ -1885,7 +1885,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (cgltf_result_success != result)
         {
             LOGF(Error, "Failed to parse gltf file %s with error %u", fileName, (uint32_t)result);
-            tf_free(fileData);
+            MemDeallocate(fileData);
             error = true;
             continue;
         }
@@ -1931,7 +1931,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     buffersLoaded = GetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size;
                     if (buffersLoaded)
                     {
-                        data->buffers[j].data = tf_malloc(data->buffers[j].size);
+                        data->buffers[j].data = MemAllocate(data->buffers[j].size);
                         buffersLoaded = ReadFromStream(&fs, data->buffers[j].data, data->buffers[j].size) == data->buffers[j].size;
                     }
                     CloseStream(&fs);
@@ -1953,12 +1953,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             continue;
         }
 
-        SceneAssetCookFingerprint* pFingerprint = (SceneAssetCookFingerprint*)tf_calloc(1, sizeof(SceneAssetCookFingerprint));
+        SceneAssetCookFingerprint* pFingerprint = (SceneAssetCookFingerprint*)MemCallocate(1, sizeof(SceneAssetCookFingerprint));
         if (!pFingerprint || !buildSceneAssetCookFingerprint(assetParams->mRDInput, fileName, fileData, (size_t)fileSize, data, glTFParams,
                                                              assetParams->mAdditionalModifiedTime, pFingerprint))
         {
             LOGF(Error, "Failed to fingerprint glTF dependencies for %s", fileName);
-            tf_free(pFingerprint);
+            MemDeallocate(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
             error = true;
@@ -1971,7 +1971,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (!assetParams->mSettings.force && FileExists(assetParams->mRDOutput, newFileName) && sceneCooker.isCurrent(contentHash))
         {
             LOGF(Info, "Skipping %s (content hash unchanged)", fileName);
-            tf_free(pFingerprint);
+            MemDeallocate(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
             continue;
@@ -1979,7 +1979,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         if (!sceneCooker.prepare(*data) || !sceneCooker.build(*data, contentHash))
         {
-            tf_free(pFingerprint);
+            MemDeallocate(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
             error = true;
@@ -2051,10 +2051,10 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         totalGeomDataSize += round_up(jointCount * sizeof(uint32_t), 16);
         totalGeomDataSize += round_up(userDataSize, 16);
 
-        Geometry* geom = (Geometry*)tf_calloc(1, totalGeomSize);
+        Geometry* geom = (Geometry*)MemCallocate(1, totalGeomSize);
         ASSERT(geom);
 
-        GeometryData* geomData = (GeometryData*)tf_calloc(1, totalGeomDataSize);
+        GeometryData* geomData = (GeometryData*)MemCallocate(1, totalGeomDataSize);
         ASSERT(geomData);
 
         geom->pDrawArgs = (IndirectDrawIndexArguments*)(geom + 1); //-V1027
@@ -2157,7 +2157,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             shadowSize += vertexAttrStrides[s] * vertexAttribCount[s];
         }
 
-        geomData->pShadow = (GeometryData::ShadowData*)tf_calloc(1, shadowSize);
+        geomData->pShadow = (GeometryData::ShadowData*)MemCallocate(1, shadowSize);
         geomData->pShadow->pIndices = geomData->pShadow + 1;
 
         // Same strides as the ones used in the GPU
@@ -2203,14 +2203,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             {
                 const char* jointRemaps = (const char*)data->json + skin->extras.start_offset;
                 jsmn_parser parser = {};
-                jsmntok_t*  tokens = (jsmntok_t*)tf_malloc((skin->joints_count + 1) * sizeof(jsmntok_t));
+                jsmntok_t*  tokens = (jsmntok_t*)MemAllocate((skin->joints_count + 1) * sizeof(jsmntok_t));
                 jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
                 ASSERT(tokens[0].size == (int)skin->joints_count + 1);
                 cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, (cgltf_float*)geomData->pInverseBindPoses,
                                              skin->joints_count * sizeof(float[16]) / sizeof(float));
                 for (uint32_t r = 0; r < skin->joints_count; ++r)
                     geomData->pJointRemaps[remapCount + r] = atoi(jointRemaps + tokens[1 + r].start);
-                tf_free(tokens);
+                MemDeallocate(tokens);
             }
 
             remapCount += (uint32_t)skin->joints_count;
@@ -2425,7 +2425,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 largestSizedAttribute =
                     max(largestSizedAttribute, (size_t)geomData->pShadow->vertexStrides[s] * geomData->pShadow->attributeCount[s]);
             }
-            void* tempStagingBuffer = tf_malloc(largestSizedAttribute);
+            void* tempStagingBuffer = MemAllocate(largestSizedAttribute);
 
             for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
             {
@@ -2444,7 +2444,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 }
             }
 
-            tf_free(tempStagingBuffer);
+            MemDeallocate(tempStagingBuffer);
         }
 
         for (uint32_t j = 0; j < TF_ARRAY_COUNT(geom->vertexStrides); ++j)
@@ -2488,8 +2488,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             error = true;
         }
 
-        tf_free(geomData->pShadow);
-        tf_free(geomData);
+        MemDeallocate(geomData->pShadow);
+        MemDeallocate(geomData);
 
         if (geom->meshlets.meshletCount)
         {
@@ -2499,8 +2499,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             arrfree(geom->meshlets.triangles);
         }
 
-        tf_free(geom);
-        tf_free(pFingerprint);
+        MemDeallocate(geom);
+        MemDeallocate(pFingerprint);
 
         data->file_data = fileData;
         cgltf_free(data);
@@ -2536,17 +2536,17 @@ bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
             const char* fileName = filteredFiles[j];
 
             size_t len = strlen(fileName);
-            char*  str = (char*)tf_malloc(len + 1);
+            char*  str = (char*)MemAllocate(len + 1);
             memcpy(str, fileName, len + 1);
             arrpush(collectibles, str);
         }
 
-        tf_free(filteredFiles);
+        MemDeallocate(filteredFiles);
     }
 
     size_t collectibleCount = arrlenu(collectibles);
 
-    struct BunyArLibEntryCreateDesc* filesDesc = (struct BunyArLibEntryCreateDesc*)tf_malloc(collectibleCount * sizeof *filesDesc);
+    struct BunyArLibEntryCreateDesc* filesDesc = (struct BunyArLibEntryCreateDesc*)MemAllocate(collectibleCount * sizeof *filesDesc);
 
     for (size_t i = 0; i < collectibleCount; ++i)
     {
@@ -2567,10 +2567,10 @@ bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
 
     bool archiveIsCreated = bunyArLibCreate(assetParams->mRDOutput, zipParams->mZipFileName, &archiveCreateDesc);
 
-    tf_free(filesDesc);
+    MemDeallocate(filesDesc);
 
     for (size_t i = 0; i < collectibleCount; ++i)
-        tf_free(collectibles[i]);
+        MemDeallocate(collectibles[i]);
     arrfree(collectibles);
 
     return !archiveIsCreated;
@@ -2678,7 +2678,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     }
 
     ssize_t fileSize = GetStreamFileSize(&file);
-    void*   fileData = tf_malloc(fileSize);
+    void*   fileData = MemAllocate(fileSize);
 
     ReadFromStream(&file, fileData, fileSize);
 
@@ -2687,12 +2687,12 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     options.memory_alloc = [](void* user, cgltf_size size)
     {
         UNREF_PARAM(user);
-        return tf_malloc(size);
+        return MemAllocate(size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
         UNREF_PARAM(user);
-        tf_free(ptr);
+        MemDeallocate(ptr);
     };
     options.rd = resourceDir;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
@@ -2701,7 +2701,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     if (cgltf_result_success != result)
     {
         LOGF(Error, "Failed to parse gltf file %s with error %u", filename, (uint32_t)result);
-        tf_free(fileData);
+        MemDeallocate(fileData);
         return;
     }
 
@@ -2722,7 +2722,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
         arrpush(skeletonAndAnims.mAnimations, anim);
     }
 
-    tf_free(fileData);
+    MemDeallocate(fileData);
     cgltf_free(data);
 
     // Need to check if there are extra standalone animation assets

@@ -97,7 +97,7 @@ void getShaderCacheFile(uint64_t key, char* pFileName, size_t size)
 // Owns the cache file bytes until the caller takes them; every early return frees.
 struct ShaderCacheFile
 {
-    ~ShaderCacheFile() { tf_free(pBytes); }
+    ~ShaderCacheFile() { MemDeallocate(pBytes); }
 
     uint8_t* release()
     {
@@ -118,7 +118,7 @@ bool readShaderCacheFile(uint64_t key, ShaderCacheFile& file)
     if (!OpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_READ, &stream))
         return false;
     const ssize_t fileSize = GetStreamFileSize(&stream);
-    file.pBytes = fileSize > 0 ? (uint8_t*)tf_malloc((size_t)fileSize) : nullptr;
+    file.pBytes = fileSize > 0 ? (uint8_t*)MemAllocate((size_t)fileSize) : nullptr;
     const bool read = file.pBytes && ReadFromStream(&stream, file.pBytes, (size_t)fileSize) == (size_t)fileSize;
     CloseStream(&stream);
     file.size = read ? (size_t)fileSize : 0;
@@ -232,7 +232,7 @@ Shader* RenderContext::createSlangShader(const ShaderSrcDesc& input)
     {
         Shader* shader = nullptr;
         addShaderBinary(pRenderer, &cached, &shader);
-        tf_free(pCachedBytes);
+        MemDeallocate(pCachedBytes);
         return shader;
     }
 

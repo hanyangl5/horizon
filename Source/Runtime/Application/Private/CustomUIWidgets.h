@@ -218,7 +218,7 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
 static void internalDestroyBufferAllocatorPlotWidget(void* pUserData)
 {
     BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pUserData;
-    tf_free(pPlotWidget->pValues);
+    MemDeallocate(pPlotWidget->pValues);
     pPlotWidget->pValues = NULL;
 }
 
@@ -252,11 +252,11 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
 
     if (pPlotWidget->size.x != size.x || pPlotWidget->pValues == NULL)
     {
-        tf_free(pPlotWidget->pValues);
+        MemDeallocate(pPlotWidget->pValues);
 
         const uint32_t nValues = (uint32_t)size[0];
         const size_t   allocSize = sizeof(int64_t) * 2 * (nValues + 2);
-        pPlotWidget->pValues = (int64_t*)tf_calloc(1, allocSize);
+        pPlotWidget->pValues = (int64_t*)MemCallocate(1, allocSize);
         memset(pPlotWidget->pValues, 0, allocSize);
     }
 

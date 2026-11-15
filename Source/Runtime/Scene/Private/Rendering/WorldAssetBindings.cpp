@@ -226,7 +226,7 @@ public:
         for (WorldMeshBinding* pBinding : bindings)
         {
             hmdel(pIndices, pBinding->entity);
-            tf_delete(pBinding);
+            MemDelete(pBinding);
         }
         bindings.clear();
     }
@@ -238,7 +238,7 @@ public:
         const uint32_t           index = pIndex ? pIndex->value : data.bindings.size();
         if (!pIndex)
         {
-            data.bindings.pushBack(tf_new(WorldMeshBinding, entity, data.assetManager, data.releases));
+            data.bindings.pushBack(MemNew(WorldMeshBinding, entity, data.assetManager, data.releases));
             const WorldBindingIndex entry = { .key = entity, .value = index };
             hmputs(data.pIndices, entry);
         }
@@ -264,7 +264,7 @@ public:
                 continue;
             }
             hmdel(pIndices, pBinding->entity);
-            tf_delete(pBinding);
+            MemDelete(pBinding);
             bindings[i] = bindings[bindings.size() - 1];
             bindings.popBack();
             if (i < bindings.size())
@@ -283,10 +283,10 @@ public:
     WorldBindingIndex*       pIndices = nullptr;
 };
 
-WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager): pData(tf_new(WorldAssetBindingsData, world, assetManager))
+WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager): pData(MemNew(WorldAssetBindingsData, world, assetManager))
 {
 }
-WorldAssetBindings::~WorldAssetBindings() { tf_delete(pData); }
+WorldAssetBindings::~WorldAssetBindings() { MemDelete(pData); }
 void                    WorldAssetBindings::update() { pData->update(); }
 void                    WorldAssetBindings::clear() { pData->clear(); }
 uint32_t                WorldAssetBindings::getCount() const { return pData->bindings.size(); }

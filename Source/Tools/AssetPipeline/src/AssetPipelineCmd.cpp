@@ -94,7 +94,7 @@ int AssetPipelineCmd(int argc, char** argv)
         return 0;
     }
 
-    if (!initMemAlloc(gApplicationName))
+    if (!InitMemoryAlloc(gApplicationName))
         return EXIT_FAILURE;
 
     const char* input = "";
@@ -188,7 +188,7 @@ int AssetPipelineCmd(int argc, char** argv)
     if (!InitFileSystem(&FileSystemDesc))
     {
         LOGF(Error, "Filesystem failed to initialize.");
-        exitMemAlloc();
+        ExitMemoryAlloc();
         return 1;
     }
 
@@ -229,7 +229,7 @@ int AssetPipelineCmd(int argc, char** argv)
 
     ExitLog();
     ExitFileSystem();
-    exitMemAlloc();
+    ExitMemoryAlloc();
 
     return ret;
 }

@@ -222,10 +222,10 @@ public:
 };
 
 GpuScene::GpuScene(RenderScene& scene, AssetManager& assetManager, RenderContext& context, const GpuSceneDesc& desc):
-    pData(tf_new(GpuSceneData, scene, assetManager, context, desc))
+    pData(MemNew(GpuSceneData, scene, assetManager, context, desc))
 {
 }
-GpuScene::~GpuScene() { tf_delete(pData); }
+GpuScene::~GpuScene() { MemDelete(pData); }
 
 void GpuScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {

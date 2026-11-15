@@ -12,18 +12,18 @@ class CoreContainerTest: public ::testing::Test
 protected:
     void SetUp() override
     {
-        ASSERT_TRUE(initMemAlloc(nullptr));
-        initialStats = memGetTrackingStats();
+        ASSERT_TRUE(InitMemoryAlloc(nullptr));
+        initialStats = GetMemoryTrackingStats();
     }
     void TearDown() override
     {
-        const MemoryTrackingStats stats = memGetTrackingStats();
-        if (stats.trackingEnabled)
+        const MemoryTrackingStats stats = GetMemoryTrackingStats();
+        if (stats.TrackingEnabled)
         {
-            EXPECT_EQ(stats.liveAllocationCount, initialStats.liveAllocationCount);
-            EXPECT_EQ(stats.liveRequestedBytes, initialStats.liveRequestedBytes);
+            EXPECT_EQ(stats.LiveAllocationCount, initialStats.LiveAllocationCount);
+            EXPECT_EQ(stats.LiveRequestedBytes, initialStats.LiveRequestedBytes);
         }
-        exitMemAlloc();
+        ExitMemoryAlloc();
     }
 
     MemoryTrackingStats initialStats = {};
@@ -119,15 +119,15 @@ struct alignas(64) FixedArrayObject
 TEST_F(CoreContainerTest, FixedArrayEmbedsObjectsWithoutAllocating)
 {
     EXPECT_EQ(FixedArrayObject::liveCount, 0);
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     {
         hz::FixedArray<FixedArrayObject, 3> objects;
         EXPECT_EQ(FixedArrayObject::liveCount, 3);
         EXPECT_EQ((uintptr_t)objects.data() % alignof(FixedArrayObject), 0u);
         EXPECT_EQ((void*)objects.data(), (void*)&objects);
         EXPECT_EQ(objects[2].value, 42);
-        const MemoryTrackingStats after = memGetTrackingStats();
-        EXPECT_EQ(after.totalAllocationCount, before.totalAllocationCount);
+        const MemoryTrackingStats after = GetMemoryTrackingStats();
+        EXPECT_EQ(after.TotalAllocationCount, before.TotalAllocationCount);
     }
     EXPECT_EQ(FixedArrayObject::liveCount, 0);
 }

@@ -51,7 +51,7 @@ static void freeTracyGpuZones(GpuProfiler* pGpuProfiler)
         ASSERT(!pGpuTimer->backendGpuZoneActive);
         if (pGpuTimer->pBackendGpuZone)
         {
-            tf_free(pGpuTimer->pBackendGpuZone);
+            MemDeallocate(pGpuTimer->pBackendGpuZone);
             pGpuTimer->pBackendGpuZone = NULL;
         }
     }
@@ -93,11 +93,11 @@ void beginGpuTimestampQueryDX12(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimer* 
 
     if (!pGpuTimer->pBackendGpuZone)
     {
-        pGpuTimer->pBackendGpuZone = tf_malloc(sizeof(tracy::D3D12ZoneScope));
+        pGpuTimer->pBackendGpuZone = MemAllocate(sizeof(tracy::D3D12ZoneScope));
         ASSERT(pGpuTimer->pBackendGpuZone);
     }
 
-    tf_placement_new<tracy::D3D12ZoneScope>((tracy::D3D12ZoneScope*)pGpuTimer->pBackendGpuZone, getTracyGpuContext(pGpuProfiler),
+    MemPlacementNew<tracy::D3D12ZoneScope>((tracy::D3D12ZoneScope*)pGpuTimer->pBackendGpuZone, getTracyGpuContext(pGpuProfiler),
                                             (uint32_t)TracyLine, TracyFile, strlen(TracyFile), TracyFunction, strlen(TracyFunction),
                                             pGpuTimer->name, strlen(pGpuTimer->name), pCmd->dx.pCmdList, true);
     pGpuTimer->backendGpuZoneActive = true;

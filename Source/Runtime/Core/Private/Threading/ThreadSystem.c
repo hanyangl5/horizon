@@ -77,7 +77,7 @@ static void threadSystemCleanup(struct ThreadSystemData* t)
     DestroyConditionVariable(&t->conditionIsIdle);
 
     arrfree(t->tasks);
-    tf_free(t);
+    MemDeallocate(t);
 }
 
 static inline void acquireThreadSystemHandle(struct ThreadSystemData* t) { tfrg_atomic32_add_relaxed(&t->references_Atomic, 1); }
@@ -188,7 +188,7 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
     if (count == 0) // something went wrong (maybe GetNumCpuCores returned 0)
         return false;
 
-    struct ThreadSystemData* t = tf_calloc(1, sizeof(*t) + sizeof(ThreadHandle) * count);
+    struct ThreadSystemData* t = MemCallocate(1, sizeof(*t) + sizeof(ThreadHandle) * count);
     if (!t)
         return false;
 

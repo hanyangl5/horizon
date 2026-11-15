@@ -138,7 +138,7 @@ bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
         return false;
     }
 
-    Raytracing* pRaytracing = (Raytracing*)tf_calloc(1, sizeof(*pRaytracing));
+    Raytracing* pRaytracing = (Raytracing*)MemCallocate(1, sizeof(*pRaytracing));
     ASSERT(pRaytracing);
 
     pRaytracing->pRenderer = pRenderer;
@@ -161,7 +161,7 @@ void d3d12_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
     if (pRaytracing->prDevice)
         pRaytracing->prDevice->Release();
 
-    tf_free(pRaytracing);
+    MemDeallocate(pRaytracing);
 }
 
 static inline FORGE_CONSTEXPR D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE ToDXRASType(AccelerationStructureType type)
@@ -183,7 +183,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         memSize += pDesc->bottom.descCount * sizeof(D3D12_RAYTRACING_GEOMETRY_DESC);
     }
 
-    AccelerationStructure* pAS = (AccelerationStructure*)tf_calloc(1, memSize);
+    AccelerationStructure* pAS = (AccelerationStructure*)MemCallocate(1, memSize);
     ASSERT(pAS);
 
     pAS->flags = util_to_dx_acceleration_structure_build_flags(pDesc->flags);
@@ -386,7 +386,7 @@ void d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStru
         pAccelerationStructure->pScratchBuffer = NULL;
     }
 
-    tf_free(pAccelerationStructure);
+    MemDeallocate(pAccelerationStructure);
 }
 
 void d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
@@ -542,7 +542,7 @@ void d3d12_removeRaytracingPipeline(Raytracing* raytracing, RaytracingPipeline* 
     {
         removeRootSignature(raytracing->pRenderer, pipeline->pRoot);
     }
-    tf_delete(pipeline);
+    MemDelete(pipeline);
 }
 static const wchar_t* rayExportName(const char* name, wchar_t*** names)
 {
@@ -552,7 +552,7 @@ static const wchar_t* rayExportName(const char* name, wchar_t*** names)
     }
     const int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, nullptr, 0);
     ASSERT(count);
-    wchar_t* value = (wchar_t*)tf_malloc((size_t)count * sizeof(wchar_t));
+    wchar_t* value = (wchar_t*)MemAllocate((size_t)count * sizeof(wchar_t));
     MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, value, count);
     arrpush(*names, value);
     return value;
@@ -613,11 +613,11 @@ void d3d12_addRaytracingPipeline(Raytracing* raytracing, const RaytracingPipelin
 {
     *output = nullptr;
     ASSERT(desc->pLibrary && desc->librarySize && desc->pRayGeneration && desc->maxRecursionDepth);
-    RaytracingPipeline* pipeline = tf_new(RaytracingPipeline);
+    RaytracingPipeline* pipeline = MemNew(RaytracingPipeline);
     d3d12_addRaytracingRootSignature(raytracing->pRenderer, desc->rootConstantSize, &pipeline->pRoot);
     if (!pipeline->pRoot)
     {
-        tf_delete(pipeline);
+        MemDelete(pipeline);
         return;
     }
     wchar_t**              names = nullptr;
@@ -660,7 +660,7 @@ void d3d12_addRaytracingPipeline(Raytracing* raytracing, const RaytracingPipelin
     }
     for (ptrdiff_t i = 0; i < arrlen(names); ++i)
     {
-        tf_free(names[i]);
+        MemDeallocate(names[i]);
     }
     arrfree(names);
     arrfree(misses);

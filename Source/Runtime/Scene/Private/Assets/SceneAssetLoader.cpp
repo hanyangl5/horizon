@@ -14,7 +14,7 @@ class SceneLoadRequest
 {
 public:
     SceneLoadRequest(const AssetCatalogEntry& entry, ResourceDirectory directory): entry(entry), directory(directory) {}
-    ~SceneLoadRequest() { tf_delete(pScene); }
+    ~SceneLoadRequest() { MemDelete(pScene); }
 
     bool matchesDependencies() const
     {
@@ -59,7 +59,7 @@ public:
             LOGF(Error, "Cannot read SceneAsset '%s'", entry.location.pPath);
             return false;
         }
-        pScene = tf_new(SceneAsset);
+        pScene = MemNew(SceneAsset);
         if (!pScene->parse({ json.data(), json.size() }) || pScene->getID() != entry.id)
         {
             LOGF(Error, "Invalid SceneAsset payload or mismatched identity in '%s'", entry.location.pPath);
@@ -118,7 +118,7 @@ public:
             LOGF(Error, "Cannot schedule SceneAsset '%s'", entry.location.pPath);
             return nullptr;
         }
-        SceneLoadRequest* pRequest = tf_new(SceneLoadRequest, entry, pLoader->directory);
+        SceneLoadRequest* pRequest = MemNew(SceneLoadRequest, entry, pLoader->directory);
         threadSystemAddTask(pLoader->threads, SceneLoadRequest::execute, pRequest);
         return pRequest;
     }
@@ -139,17 +139,17 @@ public:
         SceneLoadRequest* pRequest = (SceneLoadRequest*)pJob;
         if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&pRequest->status) == AssetLoadStatus::Pending)
             threadSystemWaitIdle(((SceneAssetLoaderData*)pUser)->threads);
-        tf_delete(pRequest);
+        MemDelete(pRequest);
     }
 
-    static void destroyPayload(void* pPayload, void*) { tf_delete((SceneAsset*)pPayload); }
+    static void destroyPayload(void* pPayload, void*) { MemDelete((SceneAsset*)pPayload); }
 
     ResourceDirectory directory;
     ThreadSystem      threads = nullptr;
 };
 
-SceneAssetLoader::SceneAssetLoader(ResourceDirectory cookedDirectory): pData(tf_new(SceneAssetLoaderData, cookedDirectory)) {}
-SceneAssetLoader::~SceneAssetLoader() { tf_delete(pData); }
+SceneAssetLoader::SceneAssetLoader(ResourceDirectory cookedDirectory): pData(MemNew(SceneAssetLoaderData, cookedDirectory)) {}
+SceneAssetLoader::~SceneAssetLoader() { MemDelete(pData); }
 
 AssetLoader SceneAssetLoader::getLoader()
 {

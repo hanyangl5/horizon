@@ -303,7 +303,7 @@ void parseGPUDataFile()
     char* gpuListEndFileCursor = nullptr;
 
     size_t fileSize = GetStreamFileSize(&fh);
-    gGpuDataFileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
+    gGpuDataFileBuffer = (char*)MemAllocate(fileSize * sizeof(char));
     ReadFromStream(&fh, (void*)gGpuDataFileBuffer, fileSize);
     char* fileCursor = gGpuDataFileBuffer;
     char* gGpuDataFileEnd = gGpuDataFileBuffer + fileSize;
@@ -463,14 +463,14 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     }
     ConfigParsingStatus parsingStatus = ConfigParsingStatus::CONFIG_PARSE_NONE;
     char                currentLineStr[1024] = {};
-    gDriverRejectionRules = (DriverRejectionRule*)tf_malloc(MAXIMUM_GPU_SETTINGS * sizeof(DriverRejectionRule));
+    gDriverRejectionRules = (DriverRejectionRule*)MemAllocate(MAXIMUM_GPU_SETTINGS * sizeof(DriverRejectionRule));
     gConfigurationSettingsCount = 0;
     gDriverRejectionRulesCount = 0;
     gGPUComparisonChoiceCount = 0;
     gUserExtendedSettingsCount = 0;
 
     size_t fileSize = GetStreamFileSize(&fh);
-    char*  fileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
+    char*  fileBuffer = (char*)MemAllocate(fileSize * sizeof(char));
     ReadFromStream(&fh, fileBuffer, fileSize);
     char* fileCursor = fileBuffer;
     char* fileEnd = fileBuffer + fileSize;
@@ -607,30 +607,30 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         LOGF(Info, "    %s", settingStr);
     }
 
-    tf_free(fileBuffer);
+    MemDeallocate(fileBuffer);
     CloseStream(&fh);
 }
 
 void removeGPUConfigurationRules()
 {
-    tf_free(gGpuDataFileBuffer);
-    tf_free(gDriverRejectionRules);
+    MemDeallocate(gGpuDataFileBuffer);
+    MemDeallocate(gDriverRejectionRules);
     arrfree(gGPUModels);
     gDriverRejectionRules = nullptr;
 
     for (uint32_t i = 0; i < gGPUComparisonChoiceCount; i++)
     {
-        tf_free(gGPUComparisonChoices[i].pGpuComparisonRules);
+        MemDeallocate(gGPUComparisonChoices[i].pGpuComparisonRules);
     }
 
     for (uint32_t i = 0; i < gConfigurationSettingsCount; i++)
     {
-        tf_free(gConfigurationSettings[i].pConfigurationRules);
+        MemDeallocate(gConfigurationSettings[i].pConfigurationRules);
     }
 
     for (uint32_t i = 0; i < gUserExtendedSettingsCount; i++)
     {
-        tf_free(gUserSettings[i].pConfigurationRules);
+        MemDeallocate(gUserSettings[i].pConfigurationRules);
     }
     gGPUComparisonChoiceCount = 0;
     gDriverRejectionRulesCount = 0;
@@ -816,13 +816,13 @@ void parseConfigurationSettingLine(char* currentLine)
         if (currentSettings->pConfigurationRules == NULL)
         {
             LOGF(Debug, "parseGPUConfigurationSetting: invalid rules for Field name: '%s'.", currentSettings->pUpdateProperty->name);
-            tf_free(currentSettings->pConfigurationRules);
+            MemDeallocate(currentSettings->pConfigurationRules);
         }
         else if (!validConversion)
         {
             LOGF(Debug, "parseGPUConfigurationSetting: cannot convert %s for Field name: '%s'.", assignmentValue,
                  currentSettings->pUpdateProperty->name);
-            tf_free(currentSettings->pConfigurationRules);
+            MemDeallocate(currentSettings->pConfigurationRules);
         }
         else
         {
@@ -832,7 +832,7 @@ void parseConfigurationSettingLine(char* currentLine)
     else
     {
         LOGF(Debug, "parseGPUConfigurationSetting: invalid property: '%s'.", propertyName);
-        tf_free(currentSettings->pConfigurationRules);
+        MemDeallocate(currentSettings->pConfigurationRules);
     }
 }
 
@@ -861,7 +861,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
         if (!validConversion)
         {
             LOGF(Debug, "parseUserSettings: cannot convert %s for setting name: '%s'.", assignmentValue, currentSetting->name);
-            tf_free(currentSetting->pConfigurationRules);
+            MemDeallocate(currentSetting->pConfigurationRules);
         }
         else
         {
@@ -881,7 +881,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
     {
         (*pRulesCount)++;
         char* currentRule = ruleStr;
-        *ppConfigurationRules = (ConfigurationRule*)tf_realloc(*ppConfigurationRules, *pRulesCount * sizeof(ConfigurationRule));
+        *ppConfigurationRules = (ConfigurationRule*)MemReallocate(*ppConfigurationRules, *pRulesCount * sizeof(ConfigurationRule));
         ConfigurationRule* currentComparisonRule = &((*ppConfigurationRules)[(*pRulesCount) - 1]);
         *currentComparisonRule = {};
 
@@ -901,7 +901,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
         {
             // discard current set of rules
             LOGF(Debug, "Extended Config| GPU Config invalid Field name: '%s'.", fieldName);
-            tf_free(*ppConfigurationRules);
+            MemDeallocate(*ppConfigurationRules);
             *ppConfigurationRules = NULL;
             *pRulesCount = 0;
             break;
@@ -935,7 +935,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
                 {
                     // discard current set of rules
                     LOGF(Debug, "Extended Config| GPU Config invalid comparison value: '%s' in rule: %s", parsedValue, ruleStr);
-                    tf_free(*ppConfigurationRules);
+                    MemDeallocate(*ppConfigurationRules);
                     *ppConfigurationRules = NULL;
                     *pRulesCount = 0;
                     break;

@@ -29,7 +29,7 @@ public:
 class TextureRequest
 {
 public:
-    ~TextureRequest() { tf_delete(pAsset); }
+    ~TextureRequest() { MemDelete(pAsset); }
     TextureAsset* pAsset = nullptr;
 };
 
@@ -48,9 +48,9 @@ public:
             LOGF(Error, "Invalid TextureAsset location '%s'", entry.location.pPath);
             return nullptr;
         }
-        TextureRequest* pRequest = tf_new(TextureRequest);
-        pRequest->pAsset = tf_new(TextureAsset);
-        pRequest->pAsset->pData = tf_new(TextureAssetData, entry);
+        TextureRequest* pRequest = MemNew(TextureRequest);
+        pRequest->pAsset = MemNew(TextureAsset);
+        pRequest->pAsset->pData = MemNew(TextureAssetData, entry);
         return pRequest;
     }
 
@@ -61,8 +61,8 @@ public:
         pRequest->pAsset = nullptr;
         return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
     }
-    static void destroyRequest(void* pJob, void*) { tf_delete((TextureRequest*)pJob); }
-    static void destroyPayload(void* pPayload, void*) { tf_delete((TextureAsset*)pPayload); }
+    static void destroyRequest(void* pJob, void*) { MemDelete((TextureRequest*)pJob); }
+    static void destroyPayload(void* pPayload, void*) { MemDelete((TextureAsset*)pPayload); }
 
     static void upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
     {
@@ -105,7 +105,7 @@ public:
     ResourceDirectory sourceDirectory;
 };
 
-TextureAsset::~TextureAsset() { tf_delete(pData); }
+TextureAsset::~TextureAsset() { MemDelete(pData); }
 const GPUTexture& TextureAsset::getTexture() const
 {
     ASSERT(pData);
@@ -113,10 +113,10 @@ const GPUTexture& TextureAsset::getTexture() const
 }
 
 TextureAssetLoader::TextureAssetLoader(RenderContext& context, ResourceDirectory cooked, ResourceDirectory source):
-    pData(tf_new(TextureAssetLoaderData, context, cooked, source))
+    pData(MemNew(TextureAssetLoaderData, context, cooked, source))
 {
 }
-TextureAssetLoader::~TextureAssetLoader() { tf_delete(pData); }
+TextureAssetLoader::~TextureAssetLoader() { MemDelete(pData); }
 AssetLoader TextureAssetLoader::getLoader()
 {
     return { .pUserData = pData,

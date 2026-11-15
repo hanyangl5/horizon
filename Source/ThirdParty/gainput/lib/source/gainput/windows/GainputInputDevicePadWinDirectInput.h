@@ -525,7 +525,7 @@ typedef struct LinearAllocator
 	inline void Reserve(size_t newCapacity)
 	{
 		capacity = newCapacity;
-		buffer = (uint8_t*)tf_malloc(capacity);
+		buffer = (uint8_t*)MemAllocate(capacity);
 	}
 
 	inline uint8_t* Allocate(size_t size)
@@ -551,7 +551,7 @@ typedef struct LinearAllocator
 
 	inline void Reset() { offset = 0; }
 
-	~LinearAllocator() { tf_free(buffer); }
+	~LinearAllocator() { MemDeallocate(buffer); }
 
 	private:
 	uint8_t* buffer;
@@ -610,7 +610,7 @@ static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 			return XInputType::InputTypeNone;
 		}
 
-		RawDevList = (PRAWINPUTDEVICELIST)tf_malloc(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
+		RawDevList = (PRAWINPUTDEVICELIST)MemAllocate(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
 		if (RawDevList == NULL)
 		{
 			return XInputType::InputTypeNone;
@@ -618,7 +618,7 @@ static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 
 		if (GetRawInputDeviceList(RawDevList, &RawDevListCount, sizeof(RAWINPUTDEVICELIST)) == -1)
 		{
-			tf_free(RawDevList);
+			MemDeallocate(RawDevList);
 			RawDevList = NULL;
 			return XInputType::InputTypeNone;
 		}
@@ -1055,7 +1055,7 @@ public:
 		// TF Edit : Need this function to provide a way to free the allocated memory before the TF Memory Logger exits
 		if (RawDevList != NULL)
 		{
-			tf_free(RawDevList);
+			MemDeallocate(RawDevList);
 			RawDevList = NULL;
 		}
 	}

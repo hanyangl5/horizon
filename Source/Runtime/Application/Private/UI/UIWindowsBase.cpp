@@ -373,7 +373,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         return EXIT_FAILURE;
     }
 
-    if (!initMemAlloc(app->GetName()))
+    if (!InitMemoryAlloc(app->GetName()))
         return EXIT_FAILURE;
 
     FileSystemInitDesc FileSystemDesc = {};
@@ -732,7 +732,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     rmemShutDown();
 #endif
 
-    exitMemAlloc();
+    ExitMemoryAlloc();
 
     gWindow = NULL;
     gWindowDesc = NULL;

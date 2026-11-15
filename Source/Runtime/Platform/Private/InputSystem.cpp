@@ -147,7 +147,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     ASSERT(ppVirtualJoystick);
     ASSERT(gVirtualJoystick == NULL);
 
-    gVirtualJoystick = tf_new(VirtualJoystick);
+    gVirtualJoystick = MemNew(VirtualJoystick);
 
 #if TOUCH_INPUT
     Renderer* pRenderer = (Renderer*)pDesc->pRenderer;
@@ -165,7 +165,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     if (!gVirtualJoystick->pTexture)
     {
         LOGF(LogLevel::Warning, "Could not load virtual joystick texture file: %s", pDesc->pJoystickTexture);
-        tf_delete(gVirtualJoystick);
+        MemDelete(gVirtualJoystick);
         gVirtualJoystick = NULL;
         return;
     }
@@ -208,7 +208,7 @@ void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
     removeResource(pVirtualJoystick->pTexture);
 #endif
 
-    tf_delete(pVirtualJoystick);
+    MemDelete(pVirtualJoystick);
     *ppVirtualJoystick = NULL;
 }
 
@@ -763,7 +763,7 @@ struct InputSystemImpl: public gainput::InputListener
             pDeviceTypes[i] = INPUT_DEVICE_INVALID;
 
         // create input manager
-        pInputManager = tf_new(gainput::InputManager);
+        pInputManager = MemNew(gainput::InputManager);
         ASSERT(pInputManager);
         pInputManager->Init((void*)pWindow->handle.window);
         pGainputView = NULL;
@@ -857,7 +857,7 @@ struct InputSystemImpl: public gainput::InputListener
 
         ShutdownSubView();
         pInputManager->Exit();
-        tf_delete(pInputManager);
+        MemDelete(pInputManager);
 
         for (uint32_t i = 0; i < MAX_DEVICES; ++i)
         {
@@ -868,7 +868,7 @@ struct InputSystemImpl: public gainput::InputListener
             arrfree(controls[i]);
 
             for (ptrdiff_t j = 0; j < arrlen(controlPool[i]); ++j)
-                tf_free(controlPool[i][j]);
+                MemDeallocate(controlPool[i][j]);
             arrfree(controlPool[i]);
         }
 
@@ -1058,7 +1058,7 @@ struct InputSystemImpl: public gainput::InputListener
     template<typename T>
     T* AllocateControl(const gainput::DeviceId deviceId)
     {
-        T* pControl = (T*)tf_calloc(1, sizeof(T));
+        T* pControl = (T*)MemCallocate(1, sizeof(T));
         arrpush(controlPool[deviceId], pControl);
         return pControl;
     }
@@ -1488,7 +1488,7 @@ struct InputSystemImpl: public gainput::InputListener
                         {
                             if (controls[index][i][j] == controlPool[index][k])
                             {
-                                tf_free(controlPool[index][k]);
+                                MemDeallocate(controlPool[index][k]);
                                 arrdel(controlPool[index], k);
                                 break;
                             }
@@ -1637,7 +1637,7 @@ struct InputSystemImpl: public gainput::InputListener
     void RemoveActionMappingsControls(const gainput::DeviceId deviceId)
     {
         for (ptrdiff_t j = 0; j < arrlen(controlPool[deviceId]); ++j)
-            tf_free(controlPool[deviceId][j]);
+            MemDeallocate(controlPool[deviceId][j]);
         arrfree(controlPool[deviceId]);
 
         for (ptrdiff_t j = 0; j < arrlen(controls[deviceId]); ++j)
@@ -3007,7 +3007,7 @@ bool initInputSystem(InputSystemDesc* pDesc)
     ASSERT(pDesc);
     ASSERT(pDesc->pWindow);
 
-    pInputSystem = tf_new(InputSystemImpl);
+    pInputSystem = MemNew(InputSystemImpl);
 
     setCustomMessageProcessor(InputSystemHandleMessage);
 
@@ -3044,7 +3044,7 @@ void exitInputSystem()
     setCustomMessageProcessor(nullptr);
 
     pInputSystem->Exit();
-    tf_delete(pInputSystem);
+    MemDelete(pInputSystem);
     pInputSystem = NULL;
 #endif
 }

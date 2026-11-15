@@ -26,7 +26,7 @@ public:
         const size_t       sourceBytes = strlen(entry.pSourcePath) + 1;
         const size_t       pathBytes = strlen(entry.location.pPath) + 1;
         const size_t       dependencyBytes = entry.dependencies.count * sizeof(AssetID);
-        AssetCatalogEntry* pEntry = (AssetCatalogEntry*)tf_malloc(sizeof(AssetCatalogEntry) + dependencyBytes + sourceBytes + pathBytes);
+        AssetCatalogEntry* pEntry = (AssetCatalogEntry*)MemAllocate(sizeof(AssetCatalogEntry) + dependencyBytes + sourceBytes + pathBytes);
         *pEntry = entry;
         AssetID* pDependencies = (AssetID*)(pEntry + 1);
         if (dependencyBytes)
@@ -45,11 +45,11 @@ public:
     {
         for (ptrdiff_t i = 0; i < hmlen(pIndices); ++i)
         {
-            tf_free(pIndices[i].value);
+            MemDeallocate(pIndices[i].value);
         }
         hmfree(pIndices);
         for (AssetCatalogEntry* pEntry : retiredEntries)
-            tf_free(pEntry);
+            MemDeallocate(pEntry);
     }
 
     CatalogIndex*             pIndices = nullptr;
@@ -225,7 +225,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
         pData->retiredEntries.pushBack((AssetCatalogEntry*)pExisting);
     }
     if (!pData)
-        pData = tf_new(AssetCatalogData);
+        pData = MemNew(AssetCatalogData);
     pData->insert(normalized);
     return true;
 }
@@ -250,7 +250,7 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
         }
     }
     if (!pData)
-        pData = tf_new(AssetCatalogData);
+        pData = MemNew(AssetCatalogData);
     for (const AssetCatalogEntry& entry : batch.getEntries())
     {
         if (find(entry.id))
@@ -312,7 +312,7 @@ bool AssetCatalog::merge(const AssetCatalog& other)
         }
     }
     if (!pData)
-        pData = tf_new(AssetCatalogData);
+        pData = MemNew(AssetCatalogData);
     for (ptrdiff_t i = 0; i < hmlen(other.pData->pIndices); ++i)
     {
         const AssetCatalogEntry& entry = *other.pData->pIndices[i].value;
@@ -429,7 +429,7 @@ bool AssetCatalog::parse(Span<char> json)
             }
         }
     if (!pData)
-        pData = tf_new(AssetCatalogData);
+        pData = MemNew(AssetCatalogData);
     for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
     {
         pData->retiredEntries.pushBack(pData->pIndices[i].value);
@@ -526,7 +526,7 @@ bool AssetCatalog::serialize(Array<char>& json) const
 
 void AssetCatalog::clear()
 {
-    tf_delete(pData);
+    MemDelete(pData);
     pData = nullptr;
 }
 } // namespace hz

@@ -12,18 +12,18 @@ class WorldArchiveTest: public ::testing::Test
 protected:
     void SetUp() override
     {
-        ASSERT_TRUE(initMemAlloc(nullptr));
-        initial = memGetTrackingStats();
+        ASSERT_TRUE(InitMemoryAlloc(nullptr));
+        initial = GetMemoryTrackingStats();
     }
     void TearDown() override
     {
-        const MemoryTrackingStats after = memGetTrackingStats();
-        if (after.trackingEnabled)
+        const MemoryTrackingStats after = GetMemoryTrackingStats();
+        if (after.TrackingEnabled)
         {
-            EXPECT_EQ(after.liveAllocationCount, initial.liveAllocationCount);
-            EXPECT_EQ(after.liveRequestedBytes, initial.liveRequestedBytes);
+            EXPECT_EQ(after.LiveAllocationCount, initial.LiveAllocationCount);
+            EXPECT_EQ(after.LiveRequestedBytes, initial.LiveRequestedBytes);
         }
-        exitMemAlloc();
+        ExitMemoryAlloc();
     }
     static hz::Guid    id(uint64_t value) { return { .high = 1, .low = value }; }
     static std::string text(const hz::WorldArchive& archive)

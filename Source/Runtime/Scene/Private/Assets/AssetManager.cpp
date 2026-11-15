@@ -158,7 +158,7 @@ public:
         asset.state = AssetState::Queued;
         if (entry.dependencies.count)
         {
-            asset.pDependencies = (AssetHandle*)tf_malloc(entry.dependencies.count * sizeof(AssetHandle));
+            asset.pDependencies = (AssetHandle*)MemAllocate(entry.dependencies.count * sizeof(AssetHandle));
             for (uint32_t i = 0; i < entry.dependencies.count; ++i)
             {
                 const AssetHandle dependency = hmgetp_null(pIndices, entry.dependencies.pData[i])->value;
@@ -208,7 +208,7 @@ public:
         {
             release(asset.pDependencies[i]);
         }
-        tf_free(asset.pDependencies);
+        MemDeallocate(asset.pDependencies);
         asset.pDependencies = nullptr;
     }
 
@@ -507,13 +507,13 @@ public:
     Array<GpuTextureData>    textures;
 };
 
-AssetManager::AssetManager(const AssetCatalog& catalog, RenderContext* pContext): pData(tf_new(AssetManagerData, catalog, *this, pContext))
+AssetManager::AssetManager(const AssetCatalog& catalog, RenderContext* pContext): pData(MemNew(AssetManagerData, catalog, *this, pContext))
 {
 }
 AssetManager::~AssetManager()
 {
     shutdown();
-    tf_delete(pData);
+    MemDelete(pData);
 }
 
 void AssetManager::setLoader(AssetType type, const AssetLoader& loader)

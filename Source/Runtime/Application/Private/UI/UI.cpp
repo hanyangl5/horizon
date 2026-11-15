@@ -258,13 +258,13 @@ static void      destroyWidget(UIWidget* pWidget, bool freeUnderlying);
 static void* alloc_func(size_t size, void* user_data)
 {
     UNREF_PARAM(user_data);
-    return tf_malloc(size);
+    return MemAllocate(size);
 }
 
 static void dealloc_func(void* ptr, void* user_data)
 {
     UNREF_PARAM(user_data);
-    tf_free(ptr);
+    MemDeallocate(ptr);
 }
 
 static void SetDefaultStyle()
@@ -572,7 +572,7 @@ static CollapsingHeaderWidget* cloneCollapsingHeaderWidget(const void* pWidget)
 {
     const CollapsingHeaderWidget* pOriginalWidget = (const CollapsingHeaderWidget*)pWidget;
     CollapsingHeaderWidget*       pClonedWidget =
-        (CollapsingHeaderWidget*)tf_malloc(sizeof(CollapsingHeaderWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
+        (CollapsingHeaderWidget*)MemAllocate(sizeof(CollapsingHeaderWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
 
     pClonedWidget->pGroupedWidgets = (UIWidget**)(pClonedWidget + 1);
     pClonedWidget->widgetsCount = pOriginalWidget->widgetsCount;
@@ -592,7 +592,7 @@ static CollapsingHeaderWidget* cloneCollapsingHeaderWidget(const void* pWidget)
 static DebugTexturesWidget* cloneDebugTexturesWidget(const void* pWidget)
 {
     const DebugTexturesWidget* pOriginalWidget = (const DebugTexturesWidget*)pWidget;
-    DebugTexturesWidget*       pClonedWidget = (DebugTexturesWidget*)tf_malloc(sizeof(DebugTexturesWidget));
+    DebugTexturesWidget*       pClonedWidget = (DebugTexturesWidget*)MemAllocate(sizeof(DebugTexturesWidget));
 
     pClonedWidget->pTextures = pOriginalWidget->pTextures;
     pClonedWidget->texturesCount = pOriginalWidget->texturesCount;
@@ -605,7 +605,7 @@ static DebugTexturesWidget* cloneDebugTexturesWidget(const void* pWidget)
 static LabelWidget* cloneLabelWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    LabelWidget* pClonedWidget = (LabelWidget*)tf_calloc(1, sizeof(LabelWidget));
+    LabelWidget* pClonedWidget = (LabelWidget*)MemCallocate(1, sizeof(LabelWidget));
 
     return pClonedWidget;
 }
@@ -614,7 +614,7 @@ static LabelWidget* cloneLabelWidget(const void* pWidget)
 static ColorLabelWidget* cloneColorLabelWidget(const void* pWidget)
 {
     const ColorLabelWidget* pOriginalWidget = (const ColorLabelWidget*)pWidget;
-    ColorLabelWidget*       pClonedWidget = (ColorLabelWidget*)tf_calloc(1, sizeof(ColorLabelWidget));
+    ColorLabelWidget*       pClonedWidget = (ColorLabelWidget*)MemCallocate(1, sizeof(ColorLabelWidget));
 
     pClonedWidget->color = pOriginalWidget->color;
 
@@ -625,7 +625,7 @@ static ColorLabelWidget* cloneColorLabelWidget(const void* pWidget)
 static HorizontalSpaceWidget* cloneHorizontalSpaceWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    HorizontalSpaceWidget* pClonedWidget = (HorizontalSpaceWidget*)tf_calloc(1, sizeof(HorizontalSpaceWidget));
+    HorizontalSpaceWidget* pClonedWidget = (HorizontalSpaceWidget*)MemCallocate(1, sizeof(HorizontalSpaceWidget));
 
     return pClonedWidget;
 }
@@ -634,7 +634,7 @@ static HorizontalSpaceWidget* cloneHorizontalSpaceWidget(const void* pWidget)
 static SeparatorWidget* cloneSeparatorWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    SeparatorWidget* pClonedWidget = (SeparatorWidget*)tf_calloc(1, sizeof(SeparatorWidget));
+    SeparatorWidget* pClonedWidget = (SeparatorWidget*)MemCallocate(1, sizeof(SeparatorWidget));
 
     return pClonedWidget;
 }
@@ -643,7 +643,7 @@ static SeparatorWidget* cloneSeparatorWidget(const void* pWidget)
 static VerticalSeparatorWidget* cloneVerticalSeparatorWidget(const void* pWidget)
 {
     const VerticalSeparatorWidget* pOriginalWidget = (const VerticalSeparatorWidget*)pWidget;
-    VerticalSeparatorWidget*       pClonedWidget = (VerticalSeparatorWidget*)tf_calloc(1, sizeof(VerticalSeparatorWidget));
+    VerticalSeparatorWidget*       pClonedWidget = (VerticalSeparatorWidget*)MemCallocate(1, sizeof(VerticalSeparatorWidget));
 
     pClonedWidget->lineCount = pOriginalWidget->lineCount;
 
@@ -654,7 +654,7 @@ static VerticalSeparatorWidget* cloneVerticalSeparatorWidget(const void* pWidget
 static ButtonWidget* cloneButtonWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    ButtonWidget* pClonedWidget = (ButtonWidget*)tf_calloc(1, sizeof(ButtonWidget));
+    ButtonWidget* pClonedWidget = (ButtonWidget*)MemCallocate(1, sizeof(ButtonWidget));
 
     return pClonedWidget;
 }
@@ -663,7 +663,7 @@ static ButtonWidget* cloneButtonWidget(const void* pWidget)
 static SliderFloatWidget* cloneSliderFloatWidget(const void* pWidget)
 {
     const SliderFloatWidget* pOriginalWidget = (const SliderFloatWidget*)pWidget;
-    SliderFloatWidget*       pClonedWidget = (SliderFloatWidget*)tf_calloc(1, sizeof(SliderFloatWidget));
+    SliderFloatWidget*       pClonedWidget = (SliderFloatWidget*)MemCallocate(1, sizeof(SliderFloatWidget));
 
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
@@ -680,7 +680,7 @@ static SliderFloatWidget* cloneSliderFloatWidget(const void* pWidget)
 static SliderFloat2Widget* cloneSliderFloat2Widget(const void* pWidget)
 {
     const SliderFloat2Widget* pOriginalWidget = (const SliderFloat2Widget*)pWidget;
-    SliderFloat2Widget*       pClonedWidget = (SliderFloat2Widget*)tf_calloc(1, sizeof(SliderFloat2Widget));
+    SliderFloat2Widget*       pClonedWidget = (SliderFloat2Widget*)MemCallocate(1, sizeof(SliderFloat2Widget));
 
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
@@ -697,7 +697,7 @@ static SliderFloat2Widget* cloneSliderFloat2Widget(const void* pWidget)
 static SliderFloat3Widget* cloneSliderFloat3Widget(const void* pWidget)
 {
     const SliderFloat3Widget* pOriginalWidget = (const SliderFloat3Widget*)pWidget;
-    SliderFloat3Widget*       pClonedWidget = (SliderFloat3Widget*)tf_calloc(1, sizeof(SliderFloat3Widget));
+    SliderFloat3Widget*       pClonedWidget = (SliderFloat3Widget*)MemCallocate(1, sizeof(SliderFloat3Widget));
 
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
@@ -714,7 +714,7 @@ static SliderFloat3Widget* cloneSliderFloat3Widget(const void* pWidget)
 static SliderFloat4Widget* cloneSliderFloat4Widget(const void* pWidget)
 {
     const SliderFloat4Widget* pOriginalWidget = (const SliderFloat4Widget*)pWidget;
-    SliderFloat4Widget*       pClonedWidget = (SliderFloat4Widget*)tf_calloc(1, sizeof(SliderFloat4Widget));
+    SliderFloat4Widget*       pClonedWidget = (SliderFloat4Widget*)MemCallocate(1, sizeof(SliderFloat4Widget));
 
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
@@ -731,7 +731,7 @@ static SliderFloat4Widget* cloneSliderFloat4Widget(const void* pWidget)
 static SliderIntWidget* cloneSliderIntWidget(const void* pWidget)
 {
     const SliderIntWidget* pOriginalWidget = (const SliderIntWidget*)pWidget;
-    SliderIntWidget*       pClonedWidget = (SliderIntWidget*)tf_calloc(1, sizeof(SliderIntWidget));
+    SliderIntWidget*       pClonedWidget = (SliderIntWidget*)MemCallocate(1, sizeof(SliderIntWidget));
 
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
@@ -748,7 +748,7 @@ static SliderIntWidget* cloneSliderIntWidget(const void* pWidget)
 static SliderUintWidget* cloneSliderUintWidget(const void* pWidget)
 {
     const SliderUintWidget* pOriginalWidget = (const SliderUintWidget*)pWidget;
-    SliderUintWidget*       pClonedWidget = (SliderUintWidget*)tf_calloc(1, sizeof(SliderUintWidget));
+    SliderUintWidget*       pClonedWidget = (SliderUintWidget*)MemCallocate(1, sizeof(SliderUintWidget));
 
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
@@ -765,7 +765,7 @@ static SliderUintWidget* cloneSliderUintWidget(const void* pWidget)
 static RadioButtonWidget* cloneRadioButtonWidget(const void* pWidget)
 {
     const RadioButtonWidget* pOriginalWidget = (const RadioButtonWidget*)pWidget;
-    RadioButtonWidget*       pClonedWidget = (RadioButtonWidget*)tf_calloc(1, sizeof(RadioButtonWidget));
+    RadioButtonWidget*       pClonedWidget = (RadioButtonWidget*)MemCallocate(1, sizeof(RadioButtonWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
     pClonedWidget->radioId = pOriginalWidget->radioId;
@@ -777,7 +777,7 @@ static RadioButtonWidget* cloneRadioButtonWidget(const void* pWidget)
 static CheckboxWidget* cloneCheckboxWidget(const void* pWidget)
 {
     const CheckboxWidget* pOriginalWidget = (const CheckboxWidget*)pWidget;
-    CheckboxWidget*       pClonedWidget = (CheckboxWidget*)tf_calloc(1, sizeof(CheckboxWidget));
+    CheckboxWidget*       pClonedWidget = (CheckboxWidget*)MemCallocate(1, sizeof(CheckboxWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
 
@@ -788,7 +788,7 @@ static CheckboxWidget* cloneCheckboxWidget(const void* pWidget)
 static OneLineCheckboxWidget* cloneOneLineCheckboxWidget(const void* pWidget)
 {
     const OneLineCheckboxWidget* pOriginalWidget = (const OneLineCheckboxWidget*)pWidget;
-    OneLineCheckboxWidget*       pClonedWidget = (OneLineCheckboxWidget*)tf_calloc(1, sizeof(OneLineCheckboxWidget));
+    OneLineCheckboxWidget*       pClonedWidget = (OneLineCheckboxWidget*)MemCallocate(1, sizeof(OneLineCheckboxWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
     pClonedWidget->color = pOriginalWidget->color;
@@ -800,7 +800,7 @@ static OneLineCheckboxWidget* cloneOneLineCheckboxWidget(const void* pWidget)
 static CursorLocationWidget* cloneCursorLocationWidget(const void* pWidget)
 {
     const CursorLocationWidget* pOriginalWidget = (const CursorLocationWidget*)pWidget;
-    CursorLocationWidget*       pClonedWidget = (CursorLocationWidget*)tf_calloc(1, sizeof(CursorLocationWidget));
+    CursorLocationWidget*       pClonedWidget = (CursorLocationWidget*)MemCallocate(1, sizeof(CursorLocationWidget));
 
     pClonedWidget->location = pOriginalWidget->location;
 
@@ -812,7 +812,7 @@ static DropdownWidget* cloneDropdownWidget(const void* pWidget)
 {
     const DropdownWidget* pOriginalWidget = (const DropdownWidget*)pWidget;
 
-    DropdownWidget* pClonedWidget = (DropdownWidget*)tf_malloc(sizeof(DropdownWidget));
+    DropdownWidget* pClonedWidget = (DropdownWidget*)MemAllocate(sizeof(DropdownWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
     pClonedWidget->pNames = pOriginalWidget->pNames;
@@ -825,7 +825,7 @@ static DropdownWidget* cloneDropdownWidget(const void* pWidget)
 static ColumnWidget* cloneColumnWidget(const void* pWidget)
 {
     const ColumnWidget* pOriginalWidget = (const ColumnWidget*)pWidget;
-    ColumnWidget*       pClonedWidget = (ColumnWidget*)tf_malloc(sizeof(ColumnWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
+    ColumnWidget*       pClonedWidget = (ColumnWidget*)MemAllocate(sizeof(ColumnWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
     pClonedWidget->pPerColumnWidgets = (UIWidget**)(pClonedWidget + 1);
     pClonedWidget->widgetsCount = pOriginalWidget->widgetsCount;
 
@@ -839,7 +839,7 @@ static ColumnWidget* cloneColumnWidget(const void* pWidget)
 static ProgressBarWidget* cloneProgressBarWidget(const void* pWidget)
 {
     const ProgressBarWidget* pOriginalWidget = (const ProgressBarWidget*)pWidget;
-    ProgressBarWidget*       pClonedWidget = (ProgressBarWidget*)tf_calloc(1, sizeof(ProgressBarWidget));
+    ProgressBarWidget*       pClonedWidget = (ProgressBarWidget*)MemCallocate(1, sizeof(ProgressBarWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
     pClonedWidget->maxProgress = pOriginalWidget->maxProgress;
@@ -851,7 +851,7 @@ static ProgressBarWidget* cloneProgressBarWidget(const void* pWidget)
 static ColorSliderWidget* cloneColorSliderWidget(const void* pWidget)
 {
     const ColorSliderWidget* pOriginalWidget = (const ColorSliderWidget*)pWidget;
-    ColorSliderWidget*       pClonedWidget = (ColorSliderWidget*)tf_calloc(1, sizeof(ColorSliderWidget));
+    ColorSliderWidget*       pClonedWidget = (ColorSliderWidget*)MemCallocate(1, sizeof(ColorSliderWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
 
@@ -862,7 +862,7 @@ static ColorSliderWidget* cloneColorSliderWidget(const void* pWidget)
 static HistogramWidget* cloneHistogramWidget(const void* pWidget)
 {
     const HistogramWidget* pOriginalWidget = (const HistogramWidget*)pWidget;
-    HistogramWidget*       pClonedWidget = (HistogramWidget*)tf_calloc(1, sizeof(HistogramWidget));
+    HistogramWidget*       pClonedWidget = (HistogramWidget*)MemCallocate(1, sizeof(HistogramWidget));
 
     pClonedWidget->pValues = pOriginalWidget->pValues;
     pClonedWidget->count = pOriginalWidget->count;
@@ -878,7 +878,7 @@ static HistogramWidget* cloneHistogramWidget(const void* pWidget)
 static PlotLinesWidget* clonePlotLinesWidget(const void* pWidget)
 {
     const PlotLinesWidget* pOriginalWidget = (const PlotLinesWidget*)pWidget;
-    PlotLinesWidget*       pClonedWidget = (PlotLinesWidget*)tf_calloc(1, sizeof(PlotLinesWidget));
+    PlotLinesWidget*       pClonedWidget = (PlotLinesWidget*)MemCallocate(1, sizeof(PlotLinesWidget));
 
     pClonedWidget->values = pOriginalWidget->values;
     pClonedWidget->numValues = pOriginalWidget->numValues;
@@ -894,7 +894,7 @@ static PlotLinesWidget* clonePlotLinesWidget(const void* pWidget)
 static ColorPickerWidget* cloneColorPickerWidget(const void* pWidget)
 {
     const ColorPickerWidget* pOriginalWidget = (const ColorPickerWidget*)pWidget;
-    ColorPickerWidget*       pClonedWidget = (ColorPickerWidget*)tf_calloc(1, sizeof(ColorPickerWidget));
+    ColorPickerWidget*       pClonedWidget = (ColorPickerWidget*)MemCallocate(1, sizeof(ColorPickerWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
 
@@ -905,7 +905,7 @@ static ColorPickerWidget* cloneColorPickerWidget(const void* pWidget)
 static Color3PickerWidget* cloneColor3PickerWidget(const void* pWidget)
 {
     const Color3PickerWidget* pOriginalWidget = (const Color3PickerWidget*)pWidget;
-    Color3PickerWidget*       pClonedWidget = (Color3PickerWidget*)tf_calloc(1, sizeof(Color3PickerWidget));
+    Color3PickerWidget*       pClonedWidget = (Color3PickerWidget*)MemCallocate(1, sizeof(Color3PickerWidget));
 
     pClonedWidget->pData = pOriginalWidget->pData;
 
@@ -917,7 +917,7 @@ static TextboxWidget* cloneTextboxWidget(const void* pWidget)
 {
     const TextboxWidget* pOriginalWidget = (const TextboxWidget*)pWidget;
 
-    TextboxWidget* pClonedWidget = (TextboxWidget*)tf_malloc(sizeof(TextboxWidget));
+    TextboxWidget* pClonedWidget = (TextboxWidget*)MemAllocate(sizeof(TextboxWidget));
 
     pClonedWidget->pText = pOriginalWidget->pText;
     pClonedWidget->flags = pOriginalWidget->flags;
@@ -931,7 +931,7 @@ static DynamicTextWidget* cloneDynamicTextWidget(const void* pWidget)
 {
     const DynamicTextWidget* pOriginalWidget = (const DynamicTextWidget*)pWidget;
 
-    DynamicTextWidget* pClonedWidget = (DynamicTextWidget*)tf_malloc(sizeof(DynamicTextWidget));
+    DynamicTextWidget* pClonedWidget = (DynamicTextWidget*)MemAllocate(sizeof(DynamicTextWidget));
 
     pClonedWidget->pText = pOriginalWidget->pText;
     pClonedWidget->pColor = pOriginalWidget->pColor;
@@ -943,7 +943,7 @@ static DynamicTextWidget* cloneDynamicTextWidget(const void* pWidget)
 static FilledRectWidget* cloneFilledRectWidget(const void* pWidget)
 {
     const FilledRectWidget* pOriginalWidget = (const FilledRectWidget*)pWidget;
-    FilledRectWidget*       pClonedWidget = (FilledRectWidget*)tf_calloc(1, sizeof(FilledRectWidget));
+    FilledRectWidget*       pClonedWidget = (FilledRectWidget*)MemCallocate(1, sizeof(FilledRectWidget));
 
     pClonedWidget->pos = pOriginalWidget->pos;
     pClonedWidget->scale = pOriginalWidget->scale;
@@ -956,7 +956,7 @@ static FilledRectWidget* cloneFilledRectWidget(const void* pWidget)
 static DrawTextWidget* cloneDrawTextWidget(const void* pWidget)
 {
     const DrawTextWidget* pOriginalWidget = (const DrawTextWidget*)pWidget;
-    DrawTextWidget*       pClonedWidget = (DrawTextWidget*)tf_calloc(1, sizeof(DrawTextWidget));
+    DrawTextWidget*       pClonedWidget = (DrawTextWidget*)MemCallocate(1, sizeof(DrawTextWidget));
 
     pClonedWidget->pos = pOriginalWidget->pos;
     pClonedWidget->color = pOriginalWidget->color;
@@ -968,7 +968,7 @@ static DrawTextWidget* cloneDrawTextWidget(const void* pWidget)
 static DrawTooltipWidget* cloneDrawTooltipWidget(const void* pWidget)
 {
     const DrawTooltipWidget* pOriginalWidget = (const DrawTooltipWidget*)pWidget;
-    DrawTooltipWidget*       pClonedWidget = (DrawTooltipWidget*)tf_calloc(1, sizeof(DrawTooltipWidget));
+    DrawTooltipWidget*       pClonedWidget = (DrawTooltipWidget*)MemCallocate(1, sizeof(DrawTooltipWidget));
 
     pClonedWidget->showTooltip = pOriginalWidget->showTooltip;
     pClonedWidget->text = pOriginalWidget->text;
@@ -980,7 +980,7 @@ static DrawTooltipWidget* cloneDrawTooltipWidget(const void* pWidget)
 static DrawLineWidget* cloneDrawLineWidget(const void* pWidget)
 {
     const DrawLineWidget* pOriginalWidget = (const DrawLineWidget*)pWidget;
-    DrawLineWidget*       pClonedWidget = (DrawLineWidget*)tf_calloc(1, sizeof(DrawLineWidget));
+    DrawLineWidget*       pClonedWidget = (DrawLineWidget*)MemCallocate(1, sizeof(DrawLineWidget));
 
     pClonedWidget->pos1 = pOriginalWidget->pos1;
     pClonedWidget->pos2 = pOriginalWidget->pos2;
@@ -994,7 +994,7 @@ static DrawLineWidget* cloneDrawLineWidget(const void* pWidget)
 static DrawCurveWidget* cloneDrawCurveWidget(const void* pWidget)
 {
     const DrawCurveWidget* pOriginalWidget = (const DrawCurveWidget*)pWidget;
-    DrawCurveWidget*       pClonedWidget = (DrawCurveWidget*)tf_calloc(1, sizeof(DrawCurveWidget));
+    DrawCurveWidget*       pClonedWidget = (DrawCurveWidget*)MemCallocate(1, sizeof(DrawCurveWidget));
 
     pClonedWidget->pos = pOriginalWidget->pos;
     pClonedWidget->numPoints = pOriginalWidget->numPoints;
@@ -1008,7 +1008,7 @@ static DrawCurveWidget* cloneDrawCurveWidget(const void* pWidget)
 static CustomWidget* cloneCustomWidget(const void* pWidget)
 {
     const CustomWidget* pOriginalWidget = (const CustomWidget*)pWidget;
-    CustomWidget*       pClonedWidget = (CustomWidget*)tf_calloc(1, sizeof(CustomWidget));
+    CustomWidget*       pClonedWidget = (CustomWidget*)MemCallocate(1, sizeof(CustomWidget));
 
     pClonedWidget->pCallback = pOriginalWidget->pCallback;
     pClonedWidget->pUserData = pOriginalWidget->pUserData;
@@ -1042,7 +1042,7 @@ static void cloneWidgetBase(UIWidget* pDstWidget, const UIWidget* pSrcWidget)
 // UIWidget private functions
 static UIWidget* cloneWidget(const UIWidget* pOtherWidget)
 {
-    UIWidget* pWidget = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+    UIWidget* pWidget = (UIWidget*)MemCallocate(1, sizeof(UIWidget));
     cloneWidgetBase(pWidget, pOtherWidget);
 
     switch (pOtherWidget->type)
@@ -2162,11 +2162,11 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
             ASSERT(0);
         }
 
-        tf_free(pWidget->pWidget);
+        MemDeallocate(pWidget->pWidget);
         pWidget->pWidget = NULL;
     }
 
-    tf_free(pWidget);
+    MemDeallocate(pWidget);
     pWidget = NULL;
 }
 
@@ -2234,7 +2234,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(ppUIComponent);
-    UIComponent* pComponent = (UIComponent*)(tf_calloc(1, sizeof(UIComponent)));
+    UIComponent* pComponent = (UIComponent*)(MemCallocate(1, sizeof(UIComponent)));
     pComponent->hasCloseButton = false;
     pComponent->flags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
 #if defined(TARGET_IOS) || defined(__ANDROID__)
@@ -2334,7 +2334,7 @@ void uiDestroyComponent(UIComponent* pGui)
         arrfree(pGui->widgets);
     }
 
-    tf_free(pGui);
+    MemDeallocate(pGui);
 #endif
 }
 
@@ -2353,7 +2353,7 @@ void uiSetComponentActive(UIComponent* pUIComponent, bool active)
 UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone /* = true*/)
 {
 #ifdef ENABLE_FORGE_UI
-    UIWidget* pBaseWidget = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+    UIWidget* pBaseWidget = (UIWidget*)MemCallocate(1, sizeof(UIWidget));
     pBaseWidget->type = type;
     pBaseWidget->pWidget = (void*)pWidget;
     strcpy(pBaseWidget->label, pLabel);
@@ -2362,7 +2362,7 @@ UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const v
     arrpush(pGui->widgetsClone, clone);
 
     if (clone)
-        tf_free(pBaseWidget);
+        MemDeallocate(pBaseWidget);
 
     return pGui->widgets[arrlen(pGui->widgets) - 1];
 #else
@@ -2522,7 +2522,7 @@ void uiEndFrame() { ImGui::EndFrame(); }
 bool platformInitUserInterface()
 {
 #ifdef ENABLE_FORGE_UI
-    UserInterface* pAppUI = tf_new(UserInterface);
+    UserInterface* pAppUI = MemNew(UserInterface);
 
     pAppUI->showDemoUiWindow = false;
 
@@ -2583,13 +2583,13 @@ void platformExitUserInterface()
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->components); ++i)
     {
         uiDestroyAllComponentWidgets(pUserInterface->components[i]);
-        tf_free(pUserInterface->components[i]);
+        MemDeallocate(pUserInterface->components[i]);
     }
     arrfree(pUserInterface->components);
 
     ImGui::DestroyContext(pUserInterface->context);
 
-    tf_delete(pUserInterface);
+    MemDelete(pUserInterface);
 #endif
 }
 
@@ -3739,7 +3739,7 @@ bool uiIsRenderingEnabled()
 
 UserInterfaceDrawData* addUIDrawData()
 {
-    UserInterfaceDrawData* pRet = (UserInterfaceDrawData*)tf_calloc(1, sizeof(UserInterfaceDrawData));
+    UserInterfaceDrawData* pRet = (UserInterfaceDrawData*)MemCallocate(1, sizeof(UserInterfaceDrawData));
     return pRet;
 }
 
@@ -3755,8 +3755,8 @@ void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData)
     ImDrawData* pImDrawData = ImGui::GetDrawData();
     fillDrawInformation(pUIDrawData, pImDrawData);
 
-    pUIDrawData->vertexBufferData = (unsigned char*)tf_malloc(pUIDrawData->vertexCount * sizeof(ImDrawVert));
-    pUIDrawData->indexBufferData = (unsigned char*)tf_malloc(pUIDrawData->indexCount * sizeof(ImDrawIdx));
+    pUIDrawData->vertexBufferData = (unsigned char*)MemAllocate(pUIDrawData->vertexCount * sizeof(ImDrawVert));
+    pUIDrawData->indexBufferData = (unsigned char*)MemAllocate(pUIDrawData->indexCount * sizeof(ImDrawIdx));
 
     uint64_t vtxOffset = 0;
     uint64_t idxOffset = 0;
@@ -3815,8 +3815,8 @@ void removeUIDrawData(UserInterfaceDrawData* pUIDrawData)
 {
     if (pUIDrawData)
     {
-        tf_free(pUIDrawData->vertexBufferData);
-        tf_free(pUIDrawData->indexBufferData);
+        MemDeallocate(pUIDrawData->vertexBufferData);
+        MemDeallocate(pUIDrawData->indexBufferData);
         arrfree(pUIDrawData->drawCommands);
     }
 }

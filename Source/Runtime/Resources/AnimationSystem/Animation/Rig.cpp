@@ -65,7 +65,7 @@ bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName
     }
 
     ssize_t size = GetStreamFileSize(&file);
-    void*   data = tf_malloc(size);
+    void*   data = MemAllocate(size);
     ReadFromStream(&file, data, (size_t)size);
     CloseStream(&file);
 

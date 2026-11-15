@@ -692,13 +692,13 @@ static const uint32_t GlbMagicBinChunk = 0x004E4942;
 static void* cgltf_default_alloc(void* user, cgltf_size size)
 {
 	(void)user;
-	return tf_malloc(size);
+	return MemAllocate(size);
 }
 
 static void cgltf_default_free(void* user, void* ptr)
 {
 	(void)user;
-	tf_free(ptr);
+	MemDeallocate(ptr);
 }
 
 static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_size count)

@@ -57,7 +57,7 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
     totalSize += (sizeof(Vector3)) * rig->numJoints;
 #endif
 
-    void* alloc = tf_memalign(alignof(Matrix4), totalSize);
+    void* alloc = MemAllocateAligned(alignof(Matrix4), totalSize);
 
     jointWorldMats = ozz::span<Matrix4>((Matrix4*)alloc, rig->numJoints);
     jointModelMats = ozz::span<Matrix4>(jointWorldMats.data() + rig->numJoints, rig->numJoints);
@@ -85,7 +85,7 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
 
 void AnimatedObject::Exit()
 {
-    tf_free(jointWorldMats.data());
+    MemDeallocate(jointWorldMats.data());
 
     jointModelMats = {};
     jointWorldMats = {};

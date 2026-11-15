@@ -118,7 +118,7 @@ void RenderContext::destroyAccelerationStructure(AccelerationStructureData* data
             releaseAccelerationStructure(bottom);
         }
     }
-    tf_delete(data);
+    MemDelete(data);
 }
 
 bool RenderContext::supportsRayTracing() const
@@ -134,7 +134,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         return {};
     }
     ASSERT(!(input.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE));
-    AccelerationStructureData* data = tf_new(AccelerationStructureData);
+    AccelerationStructureData* data = MemNew(AccelerationStructureData);
     data->pContext = this;
     data->type = input.type;
     data->flags = input.flags;
@@ -200,7 +200,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
                 releaseAccelerationStructure(bottom);
             }
         }
-        tf_delete(data);
+        MemDelete(data);
         return {};
     }
     ++resourceCount;

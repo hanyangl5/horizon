@@ -109,12 +109,12 @@ void UnlockMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex-
 
 bool InitConditionVariable(ConditionVariable* cv)
 {
-    cv->pHandle = (CONDITION_VARIABLE*)tf_calloc(1, sizeof(CONDITION_VARIABLE));
+    cv->pHandle = (CONDITION_VARIABLE*)MemCallocate(1, sizeof(CONDITION_VARIABLE));
     InitializeConditionVariable((PCONDITION_VARIABLE)cv->pHandle);
     return true;
 }
 
-void DestroyConditionVariable(ConditionVariable* cv) { tf_free(cv->pHandle); }
+void DestroyConditionVariable(ConditionVariable* cv) { MemDeallocate(cv->pHandle); }
 
 void WaitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
 {
@@ -161,7 +161,7 @@ typedef int(__cdecl* SETTHREADDESCFUNC)(HANDLE, PCWSTR);
 unsigned WINAPI ThreadFunctionStatic(void* data)
 {
     ThreadDesc item = *((ThreadDesc*)(data));
-    tf_free(data);
+    MemDeallocate(data);
 
     if (item.threadName[0] != 0)
     {
@@ -215,7 +215,7 @@ bool InitThread(ThreadDesc* pDesc, ThreadHandle* pHandle)
     *pHandle = NULL;
 
     // Copy the contents of ThreadDesc because if the variable is in the stack we might access corrupted data.
-    ThreadDesc* pDescCopy = (ThreadDesc*)tf_malloc(sizeof(ThreadDesc));
+    ThreadDesc* pDescCopy = (ThreadDesc*)MemAllocate(sizeof(ThreadDesc));
     *pDescCopy = *pDesc;
 
     *pHandle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDescCopy, 0, 0);

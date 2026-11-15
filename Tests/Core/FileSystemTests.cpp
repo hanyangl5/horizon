@@ -98,5 +98,5 @@ TEST(CoreFileSystemTest, BunyArchiveHashTableResolvesExistingAndMissingEntries)
     EXPECT_EQ(bunyArHashTableLookup(hashTable, "baz.txt", TF_ARRAY_COUNT(nodes), nodes, nodeNames), 2u);
     EXPECT_GE(bunyArHashTableLookup(hashTable, "missing", TF_ARRAY_COUNT(nodes), nodes, nodeNames), TF_ARRAY_COUNT(nodes));
 
-    tf_free(hashTable);
+    MemDeallocate(hashTable);
 }

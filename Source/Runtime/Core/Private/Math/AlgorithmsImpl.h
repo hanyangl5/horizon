@@ -127,10 +127,10 @@
     ALIGNAS(8) char CONCAT(name, Buf)[TMP_BUF_STACK_SIZE]; \
     char*           name = CONCAT(name, Buf);              \
     if (memberSize > sizeof(CONCAT(name, Buf)))            \
-        name = tf_malloc(memberSize);                      \
+        name = MemAllocate(memberSize);                      \
     (void)0
 #define DESTROY_TEMP_NUMERIC(name) ((void)0)
-#define DESTROY_TEMP_GENERIC(name) ((memberSize > sizeof(CONCAT(name, Buf))) ? tf_free(name) : (void)0)
+#define DESTROY_TEMP_GENERIC(name) ((memberSize > sizeof(CONCAT(name, Buf))) ? MemDeallocate(name) : (void)0)
 #define LESS_NUMERIC(pX, pY)       (*(pX) < *(pY))
 #define LESS_GENERIC(pX, pY)       less((pX), (pY), pUserData)
 

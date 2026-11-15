@@ -37,9 +37,9 @@
 #include "Core/IMath.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBIW_MALLOC  tf_malloc
-#define STBIW_REALLOC tf_realloc
-#define STBIW_FREE    tf_free
+#define STBIW_MALLOC  MemAllocate
+#define STBIW_REALLOC MemReallocate
+#define STBIW_FREE    MemDeallocate
 #define STBIW_ASSERT  ASSERT
 #include <ThirdParty/stb/stb_image_write.h>
 static Cmd*               gCmd = 0;
@@ -212,7 +212,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->format) / 8;
     uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->format);
     uint32_t size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
-    uint8_t* alloc = (uint8_t*)tf_malloc(size);
+    uint8_t* alloc = (uint8_t*)MemAllocate(size);
 
     resetCmdPool(pRendererRef, pCmdPool);
 
@@ -231,15 +231,15 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format));
         TinyImageFormat_FetchInput fetchInput = { { (void*)alloc } };
         uint32_t                   floatBufferSize = pRenderTarget->width * pRenderTarget->height * sizeof(float4);
-        float*                     pDecoded = (float*)tf_malloc(floatBufferSize);
+        float*                     pDecoded = (float*)MemAllocate(floatBufferSize);
         const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format, &fetchInput,
                                                                  pRenderTarget->width * pRenderTarget->height, pDecoded);
         ASSERT(result);
 
-        pEncoded = tf_malloc(floatBufferSize);
+        pEncoded = MemAllocate(floatBufferSize);
         stbiw_ctx ctx = { (uint8_t*)pEncoded };
         stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->width, pRenderTarget->height, 4, pDecoded);
-        tf_free(pDecoded);
+        MemDeallocate(pDecoded);
         encodedSize = ctx.offset;
     }
     else
@@ -301,8 +301,8 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         LOGF(Error, "Failed to open file for a screenshot: %s", gScreenshotName);
     }
 
-    tf_free(alloc);
-    tf_free(pEncoded);
+    MemDeallocate(alloc);
+    MemDeallocate(pEncoded);
 
     gCaptureFlag = false;
     updateUIVisibility();

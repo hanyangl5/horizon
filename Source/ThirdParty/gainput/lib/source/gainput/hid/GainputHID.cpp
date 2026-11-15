@@ -779,7 +779,7 @@ void HIDHandToInputManager(uint8_t devID)
 	uint8_t index = devID - 1;
 
 	gainput::DeviceId manId = gManager->GetNextId();
-	gPassThroughPads[index] = tf_new(gainput::InputDevicePad, *gManager, manId, devID);
+	gPassThroughPads[index] = MemNew(gainput::InputDevicePad, *gManager, manId, devID);
 
 	gManager->AddDevice(manId, gPassThroughPads[index]);
 
@@ -798,7 +798,7 @@ void HIDRetreiveFromInputManager(uint8_t devID)
     if (gPassThroughPads[index] != NULL)
     {
         gManager->RemoveDevice(gPassThroughPads[index]->GetDeviceId());
-        tf_delete(gPassThroughPads[index]);
+        MemDelete(gPassThroughPads[index]);
         gPassThroughPads[index] = NULL;
     }
 }

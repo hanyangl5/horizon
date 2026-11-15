@@ -3548,7 +3548,7 @@ extern "C"
 #define SAFE_FREE(x)    \
     if ((x) != nullptr) \
     {                   \
-        tf_free((x));   \
+        MemDeallocate((x));   \
         (x) = nullptr;  \
     }
 
@@ -4125,7 +4125,7 @@ static void* allocShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, ui
         LOGF(Info, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total size: %u, Free size: %u)", filename,
              (uint32_t)(size + alignment), pShaderByteCodeBuffer->kStackSize,
              pShaderByteCodeBuffer->kStackSize - pShaderByteCodeBuffer->stackUsed);
-        pOutMemory = tf_memalign(alignment, size);
+        pOutMemory = MemAllocateAligned(alignment, size);
     }
 
     ASSERT(((uintptr_t)pOutMemory % alignment) == 0);
@@ -4140,7 +4140,7 @@ static void freeShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, Bina
 #define FREE_BYTECODE_IF_ON_HEAP(stage)                                                                     \
     if (pShaderByteCodeBuffer->pStackMemory > stage.pByteCode ||                                            \
         ((char*)pShaderByteCodeBuffer->pStackMemory + pShaderByteCodeBuffer->kStackSize) < stage.pByteCode) \
-    tf_free(stage.pByteCode)
+    MemDeallocate(stage.pByteCode)
 
     FREE_BYTECODE_IF_ON_HEAP(pBinaryShaderDesc->vert);
     FREE_BYTECODE_IF_ON_HEAP(pBinaryShaderDesc->frag);
@@ -4181,10 +4181,10 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngi
     const uint64_t maxBlockSize = 32;
     pDesc->size = max(pDesc->size, maxBlockSize);
 
-    pCopyEngine->resourceSets = (CopyResourceSet*)tf_malloc(sizeof(CopyResourceSet) * pDesc->bufferCount);
+    pCopyEngine->resourceSets = (CopyResourceSet*)MemAllocate(sizeof(CopyResourceSet) * pDesc->bufferCount);
     for (uint32_t i = 0; i < pDesc->bufferCount; ++i)
     {
-        tf_placement_new<CopyResourceSet>(pCopyEngine->resourceSets + i);
+        MemPlacementNew<CopyResourceSet>(pCopyEngine->resourceSets + i);
 
         CopyResourceSet& resourceSet = pCopyEngine->resourceSets[i];
         addFence(pRenderer, &resourceSet.pFence);
@@ -4243,7 +4243,7 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 #endif
     }
 
-    tf_free(pCopyEngine->resourceSets);
+    MemDeallocate(pCopyEngine->resourceSets);
     arrfree(pCopyEngine->waitSemaphores);
 
     removeQueue(pRenderer, pCopyEngine->pQueue);
@@ -4532,12 +4532,12 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     if (!dataAlreadyFilled)
     {
         size_t remainingBytes = GetStreamFileSize(&stream) - GetStreamPosition(&stream);
-        nxTempBuffer = tf_malloc(remainingBytes);
+        nxTempBuffer = MemAllocate(remainingBytes);
         ssize_t bytesRead = ReadFromStream(&stream, nxTempBuffer, remainingBytes);
         if (bytesRead != remainingBytes)
         {
             CloseStream(&stream);
-            tf_free(nxTempBuffer);
+            MemDeallocate(nxTempBuffer);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
 
@@ -4873,7 +4873,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     }
     else
     {
-        indexUpdateDesc->internal.mappedRange.pData = (uint8_t*)tf_calloc_memalign(1, RESOURCE_BUFFER_ALIGNMENT, indexUpdateDesc->size);
+        indexUpdateDesc->internal.mappedRange.pData = (uint8_t*)MemCallocateAligned(1, RESOURCE_BUFFER_ALIGNMENT, indexUpdateDesc->size);
     }
     indexUpdateDesc->pMappedData = indexUpdateDesc->internal.mappedRange.pData;
 
@@ -4927,7 +4927,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         else
         {
             vertexUpdateDesc[i].internal.mappedRange.pData =
-                (uint8_t*)tf_calloc_memalign(1, RESOURCE_BUFFER_ALIGNMENT, vertexUpdateDesc[i].size);
+                (uint8_t*)MemCallocateAligned(1, RESOURCE_BUFFER_ALIGNMENT, vertexUpdateDesc[i].size);
         }
         vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.pData;
         ++bufferCounter;
@@ -4943,10 +4943,10 @@ public:
     {
         if (file.pIO)
             CloseStream(&file);
-        tf_free(pMeshlets);
-        tf_free(pShadow);
-        tf_free(pData);
-        tf_free(pGeometry);
+        MemDeallocate(pMeshlets);
+        MemDeallocate(pShadow);
+        MemDeallocate(pData);
+        MemDeallocate(pGeometry);
     }
 
     bool read(void* pDestination, size_t size)
@@ -4960,7 +4960,7 @@ public:
         if (!read(pSize, sizeof(*pSize)) || *pSize < minimum ||
             *pSize > (uint64_t)GetStreamFileSize(&file) - (uint64_t)GetStreamPosition(&file))
             return false;
-        *ppDestination = tf_calloc(1, *pSize);
+        *ppDestination = MemCallocate(1, *pSize);
         return read(*ppDestination, *pSize);
     }
 
@@ -5038,7 +5038,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
         if (alloc_size > (uint64_t)GetStreamFileSize(&reader.file) - (uint64_t)GetStreamPosition(&reader.file))
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-        void* mem = reader.pMeshlets = tf_malloc(alloc_size);
+        void* mem = reader.pMeshlets = MemAllocate(alloc_size);
 
         geom->meshlets.meshlets = (Meshlet*)mem;
         geom->meshlets.meshletsData = (MeshletData*)(geom->meshlets.meshlets + geom->meshlets.meshletCount);
@@ -5190,7 +5190,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     // If the user doesn't want the shadowed data we don't need it any more
     if ((pDesc->flags & GEOMETRY_LOAD_FLAG_SHADOWED) != GEOMETRY_LOAD_FLAG_SHADOWED)
     {
-        tf_free(geomData->pShadow);
+        MemDeallocate(geomData->pShadow);
         geomData->pShadow = nullptr;
     }
 
@@ -5206,8 +5206,8 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         *pDesc->ppGeometryData = geomData;
     else
     {
-        tf_free(geomData->pShadow);
-        tf_free(geomData);
+        MemDeallocate(geomData->pShadow);
+        MemDeallocate(geomData);
     }
 
     reader.pGeometry = nullptr;
@@ -5226,7 +5226,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS] = {};
 
     UploadFunctionResult res = loadGeometryCustomMeshFormat(pRenderer, pCopyEngine, pDesc, vertexUpdateDesc, &indexUpdateDesc);
-    tf_free((void*)pDesc->pVertexLayout);
+    MemDeallocate((void*)pDesc->pVertexLayout);
     if (res != UPLOAD_FUNCTION_RESULT_COMPLETED)
         return res;
 
@@ -5241,7 +5241,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
         indexUpdateDesc.internal.mappedRange = allocateStagingMemory(pCopyEngine, indexUpdateDesc.size, RESOURCE_BUFFER_ALIGNMENT);
         ASSERT(indexUpdateDesc.pMappedData);
         memcpy(indexUpdateDesc.internal.mappedRange.pData, indexUpdateDesc.pMappedData, indexUpdateDesc.size);
-        tf_free(indexUpdateDesc.pMappedData);
+        MemDeallocate(indexUpdateDesc.pMappedData);
         if (indexUpdateDesc.internal.mappedRange.flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
         {
             setBufferName(pRenderer, indexUpdateDesc.internal.mappedRange.pBuffer, pDesc->pFileName);
@@ -5263,7 +5263,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
                     allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].size, RESOURCE_BUFFER_ALIGNMENT);
                 ASSERT(vertexUpdateDesc[i].pMappedData);
                 memcpy(vertexUpdateDesc[i].internal.mappedRange.pData, vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].size);
-                tf_free(vertexUpdateDesc[i].pMappedData);
+                MemDeallocate(vertexUpdateDesc[i].pMappedData);
                 if (vertexUpdateDesc[i].internal.mappedRange.flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
                 {
                     setBufferName(pRenderer, vertexUpdateDesc[i].internal.mappedRange.pBuffer, pDesc->pFileName);
@@ -5498,7 +5498,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
     if (!pDesc)
         pDesc = &gDefaultResourceLoaderDesc;
 
-    ResourceLoader* pLoader = tf_new(ResourceLoader);
+    ResourceLoader* pLoader = MemNew(ResourceLoader);
 
     pLoader->pRenderer = ppRenderers[0];
 
@@ -5599,7 +5599,7 @@ static void exitResourceLoader(ResourceLoader* pLoader)
     DestroyMutex(&pLoader->semaphoreMutex);
     DestroyMutex(&pLoader->uploadEngineMutex);
 
-    tf_delete(pLoader);
+    MemDelete(pLoader);
 }
 
 static void queueBufferLoad(ResourceLoader* pLoader, BufferLoadDescInternal* pBufferLoad, SyncToken* token)
@@ -5778,7 +5778,7 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
         totalSize += sizeof(uint16_t) * maxShaders;                                          // pMaterialShaderRefCount
         totalSize += sizeof(uint16_t) * maxTextures;                                         // pMaterialTextureRefCount
 
-        pMaterialLibrary = (MaterialLibrary*)tf_calloc(1, totalSize);
+        pMaterialLibrary = (MaterialLibrary*)MemCallocate(1, totalSize);
         MaterialLibrary* pLib = pMaterialLibrary;
         pLib->pRenderer = pRenderer;
         pLib->ppMaterialShaders = (Shader**)alignMemory(pLib + 1, alignof(Shader**));
@@ -5828,7 +5828,7 @@ void exitResourceLoaderInterface(Renderer* pRenderer)
             ASSERT(pLib->pMaterialTextureRefCount[i] == 0);
         }
 #endif
-        tf_free(pMaterialLibrary);
+        MemDeallocate(pMaterialLibrary);
         pMaterialLibrary = NULL;
     }
 #endif
@@ -5919,7 +5919,7 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
     extraSize += fileSize;
 
     const uint64_t totalSize = sizeof(Material) + sizeof(MaterialDesc) + alignof(MaterialDesc) + extraSize;
-    Material*      pMaterial = (Material*)tf_calloc(1, totalSize);
+    Material*      pMaterial = (Material*)MemCallocate(1, totalSize);
     pMaterial->pLoaded = (Material::LoadedMaterial*)alignMemory(pMaterial + 1, alignof(Material::LoadedMaterial));
     for (uint32_t i = 0; i < numMaterialSets; ++i)
     {
@@ -6167,7 +6167,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
         if (fileSize < sizeof(materialFileStackBuffer))
             materialFileBuffer = materialFileStackBuffer;
         else
-            materialFileBuffer = (char*)tf_malloc(fileSize + 1);
+            materialFileBuffer = (char*)MemAllocate(fileSize + 1);
 
         const uint64_t readSize = ReadFromStream(&stream, materialFileBuffer, fileSize);
         ASSERT(readSize <= fileSize);
@@ -6184,7 +6184,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     parseMaterial(materialFileBuffer, fileSize, &pMaterial);
 
     if (materialFileBuffer != materialFileStackBuffer)
-        tf_free(materialFileBuffer);
+        MemDeallocate(materialFileBuffer);
 
     materialFileBuffer = nullptr;
 
@@ -6343,7 +6343,7 @@ void removeMaterial(Material* pMaterial)
     }
 
     --pLib->loadedMaterialCount;
-    tf_free(pMaterial);
+    MemDeallocate(pMaterial);
 }
 
 uint32_t getMaterialSetIndex(Material* pMaterial, const char* name)
@@ -6549,7 +6549,7 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
 
     uint32_t extraSize = sizeof(VertexLayout);
 
-    VertexLayout* pCopyVertexLayout = (VertexLayout*)tf_malloc(extraSize);
+    VertexLayout* pCopyVertexLayout = (VertexLayout*)MemAllocate(extraSize);
     memcpy(pCopyVertexLayout, pDesc->pVertexLayout, sizeof(VertexLayout));
     updateDesc.pVertexLayout = pCopyVertexLayout;
 
@@ -6587,21 +6587,21 @@ void removeResource(Geometry* pGeom)
         }
     }
 
-    tf_free(pGeom->meshlets.meshlets);
-    tf_free(pGeom);
+    MemDeallocate(pGeom->meshlets.meshlets);
+    MemDeallocate(pGeom);
 }
 
 void removeResource(GeometryData* pGeom)
 {
     removeGeometryShadowData(pGeom);
-    tf_free(pGeom);
+    MemDeallocate(pGeom);
 }
 
 void removeGeometryShadowData(GeometryData* pGeom)
 {
     if (pGeom->pShadow)
     {
-        tf_free(pGeom->pShadow);
+        MemDeallocate(pGeom->pShadow);
         pGeom->pShadow = nullptr;
     }
 }
@@ -6660,7 +6660,7 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
 {
     DescriptorType flags = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW;
 
-    GeometryBuffer* pBuffer = (GeometryBuffer*)tf_calloc(1, sizeof *pBuffer);
+    GeometryBuffer* pBuffer = (GeometryBuffer*)MemCallocate(1, sizeof *pBuffer);
 
     if (!VERIFYMSG(pBuffer, "Couldn't allocate GeometryBuffer"))
     {
@@ -6724,7 +6724,7 @@ void removeGeometryBuffer(GeometryBuffer* pGeomBuffer)
             removeResource(pGeomBuffer->vertex[i].pBuffer);
     }
 
-    tf_free(pGeomBuffer);
+    MemDeallocate(pGeomBuffer);
 }
 
 void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_t alignment, BufferChunk* pOut,
@@ -7441,7 +7441,7 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
         data = nullptr;
         if (dataSize)
         {
-            data = tf_malloc(dataSize);
+            data = MemAllocate(dataSize);
             ReadFromStream(&stream, data, dataSize);
         }
 
@@ -7456,7 +7456,7 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
 
     if (data)
     {
-        tf_free(data);
+        MemDeallocate(data);
     }
 #endif
 }
@@ -7477,10 +7477,10 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
         getPipelineCacheData(pRenderer, pPipelineCache, &dataSize, NULL);
         if (dataSize)
         {
-            void* data = tf_malloc(dataSize);
+            void* data = MemAllocate(dataSize);
             getPipelineCacheData(pRenderer, pPipelineCache, &dataSize, data);
             WriteToStream(&stream, data, dataSize);
-            tf_free(data);
+            MemDeallocate(data);
         }
 
         CloseStream(&stream);

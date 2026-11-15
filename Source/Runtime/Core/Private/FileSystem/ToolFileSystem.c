@@ -87,7 +87,7 @@ bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirecto
 
     size_t stringsSize = filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH;
 
-    char** stringList = (char**)tf_malloc(stringsSize);
+    char** stringList = (char**)MemAllocate(stringsSize);
 
     char* firstString = ((char*)stringList + filesFound * sizeof(char*));
     for (int i = 0; i < filesFound; ++i)
@@ -123,7 +123,7 @@ bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirecto
 
     if (!success)
     {
-        tf_free(*out);
+        MemDeallocate(*out);
     }
     else
     {
@@ -168,7 +168,7 @@ bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, 
     }
 
     size_t stringsSize = filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH;
-    char** stringList = (char**)tf_malloc(stringsSize);
+    char** stringList = (char**)MemAllocate(stringsSize);
     char*  firstString = ((char*)stringList + filesFound * sizeof(char*));
     for (int i = 0; i < filesFound; ++i)
     {
@@ -199,7 +199,7 @@ bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, 
 
     if (!success)
     {
-        tf_free(*out);
+        MemDeallocate(*out);
     }
     else
     {

@@ -623,9 +623,9 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         strcat(monitorLabel, buffer);
         strcat(monitorLabel, " resolutions)");
 
-        UIWidget**         monitorWidgets = (UIWidget**)tf_malloc(arrlen(monitor->resolutions) * sizeof(UIWidget*));
-        UIWidget*          monitorWidgetsBases = (UIWidget*)tf_malloc(arrlen(monitor->resolutions) * sizeof(UIWidget));
-        RadioButtonWidget* radioWidgets = (RadioButtonWidget*)tf_malloc(arrlen(monitor->resolutions) * sizeof(RadioButtonWidget));
+        UIWidget**         monitorWidgets = (UIWidget**)MemAllocate(arrlen(monitor->resolutions) * sizeof(UIWidget*));
+        UIWidget*          monitorWidgetsBases = (UIWidget*)MemAllocate(arrlen(monitor->resolutions) * sizeof(UIWidget));
+        RadioButtonWidget* radioWidgets = (RadioButtonWidget*)MemAllocate(arrlen(monitor->resolutions) * sizeof(RadioButtonWidget));
 
         CollapsingHeaderWidget monitorHeader;
         monitorHeader.pGroupedWidgets = monitorWidgets;
@@ -662,9 +662,9 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         }
 
         uiCreateComponentWidget(pWindowControlsComponent, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER);
-        tf_free(radioWidgets);
-        tf_free(monitorWidgetsBases);
-        tf_free(monitorWidgets);
+        MemDeallocate(radioWidgets);
+        MemDeallocate(monitorWidgetsBases);
+        MemDeallocate(monitorWidgets);
     }
 
     enum

@@ -23,7 +23,7 @@ class AssetSource
 {
 public:
     AssetSource(AssetLoadersData& owner, const char* pFile);
-    ~AssetSource() { tf_free(pPath); }
+    ~AssetSource() { MemDeallocate(pPath); }
     void        release();
     static void decode(void* pUser, uint64_t);
     bool        read(ResourceDirectory directory);
@@ -50,7 +50,7 @@ public:
         removeResource(pUpload);
         if (pShadow)
             removeResource(pShadow);
-        tf_free(pPath);
+        MemDeallocate(pPath);
     }
     void            release();
     AssetLoadStatus poll();
@@ -134,7 +134,7 @@ public:
             ++pSources[found].value->references;
             return pSources[found].value;
         }
-        AssetSource* pSource = tf_new(AssetSource, *this, pPath);
+        AssetSource* pSource = MemNew(AssetSource, *this, pPath);
         shput(pSources, pSource->pPath, pSource);
         threadSystemAddTask(threads, AssetSource::decode, pSource);
         return pSource;
@@ -148,7 +148,7 @@ public:
             ++pGeometries[found].value->references;
             return pGeometries[found].value;
         }
-        AssetGeometry* pGeometry = tf_new(AssetGeometry, *this, pPath);
+        AssetGeometry* pGeometry = MemNew(AssetGeometry, *this, pPath);
         shput(pGeometries, pGeometry->pPath, pGeometry);
         return pGeometry;
     }
@@ -162,7 +162,7 @@ public:
             LOGF(Error, "Invalid Mesh/Material location '%s'", entry.location.pPath);
             return nullptr;
         }
-        return tf_new(SubassetRequest, entry, loader.acquireSource(entry.location.pPath));
+        return MemNew(SubassetRequest, entry, loader.acquireSource(entry.location.pPath));
     }
 
     static int compareIDs(const void* pA, const void* pB)
@@ -205,7 +205,7 @@ public:
             dependencies.pushBack(material.emissiveTexture);
             if (!matchesDependencies(request.entry, dependencies))
                 return invalid(request);
-            MaterialAsset* pAsset = tf_new(MaterialAsset);
+            MaterialAsset* pAsset = MemNew(MaterialAsset);
             pAsset->pSource = request.pSource;
             pAsset->index = index;
             request.pSource = nullptr;
@@ -217,7 +217,7 @@ public:
             dependencies.pushBack(submesh.material);
         if (!matchesDependencies(request.entry, dependencies))
             return invalid(request);
-        MeshAsset* pAsset = tf_new(MeshAsset);
+        MeshAsset* pAsset = MemNew(MeshAsset);
         pAsset->pSource = request.pSource;
         pAsset->index = index;
         request.pSource = nullptr;
@@ -228,9 +228,9 @@ public:
         LOGF(Error, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", request.entry.location.pPath);
         return { .status = AssetLoadStatus::Failed, .pError = "Mesh/Material identity differs from the catalog" };
     }
-    static void destroyRequest(void* pJob, void*) { tf_delete((SubassetRequest*)pJob); }
-    static void destroyMesh(void* pPayload, void*) { tf_delete((MeshAsset*)pPayload); }
-    static void destroyMaterial(void* pPayload, void*) { tf_delete((MaterialAsset*)pPayload); }
+    static void destroyRequest(void* pJob, void*) { MemDelete((SubassetRequest*)pJob); }
+    static void destroyMesh(void* pPayload, void*) { MemDelete((MeshAsset*)pPayload); }
+    static void destroyMaterial(void* pPayload, void*) { MemDelete((MaterialAsset*)pPayload); }
 
     static void uploadMesh(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
     {
@@ -272,7 +272,7 @@ public:
 
 AssetSource::AssetSource(AssetLoadersData& owner, const char* pFile): owner(owner)
 {
-    pPath = (char*)tf_malloc(strlen(pFile) + 1);
+    pPath = (char*)MemAllocate(strlen(pFile) + 1);
     strcpy(pPath, pFile);
 }
 void AssetSource::release()
@@ -283,7 +283,7 @@ void AssetSource::release()
     if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&status) == AssetLoadStatus::Pending)
         threadSystemWaitIdle(owner.threads);
     shdel(owner.pSources, pPath);
-    tf_delete(this);
+    MemDelete(this);
 }
 bool AssetSource::read(ResourceDirectory directory)
 {
@@ -312,7 +312,7 @@ void AssetSource::decode(void* pUser, uint64_t)
 
 AssetGeometry::AssetGeometry(AssetLoadersData& owner, const char* pFile): owner(owner)
 {
-    pPath = (char*)tf_malloc(strlen(pFile) + 1);
+    pPath = (char*)MemAllocate(strlen(pFile) + 1);
     strcpy(pPath, pFile);
     GeometryLoadDesc load = { .ppGeometry = &pUpload,
                               .ppGeometryData = &pShadow,
@@ -331,7 +331,7 @@ void AssetGeometry::release()
     ASSERT(isTokenCompleted(&token));
     ASSERT(!boundsQueued || (AssetLoadStatus)tfrg_atomic32_load_acquire(&status) != AssetLoadStatus::Pending);
     shdel(owner.pGeometries, pPath);
-    tf_delete(this);
+    MemDelete(this);
 }
 bool AssetGeometry::buildBounds()
 {
@@ -463,8 +463,8 @@ const MeshBounds& MeshAsset::getBounds(uint32_t submesh) const
     return pGeometry->draws[getDescription().submeshes.pData[submesh].draw].bounds;
 }
 
-AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): pData(tf_new(AssetLoadersData, context, desc)) {}
-AssetLoaders::~AssetLoaders() { tf_delete(pData); }
+AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): pData(MemNew(AssetLoadersData, context, desc)) {}
+AssetLoaders::~AssetLoaders() { MemDelete(pData); }
 void AssetLoaders::registerLoaders(AssetManager& assetManager)
 {
     assetManager.setLoader(AssetType::Scene, pData->sceneLoader.getLoader());

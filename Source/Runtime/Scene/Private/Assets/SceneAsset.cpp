@@ -378,7 +378,7 @@ bool SceneAssetReader::read(Span<char> json)
            readNodes(field(pRoot, "nodes"));
 }
 
-SceneAsset::~SceneAsset() { tf_delete(pData); }
+SceneAsset::~SceneAsset() { MemDelete(pData); }
 
 SceneAsset::SceneAsset(SceneAsset&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
 
@@ -386,7 +386,7 @@ SceneAsset& SceneAsset::operator=(SceneAsset&& other) noexcept
 {
     if (this != &other)
     {
-        tf_delete(pData);
+        MemDelete(pData);
         pData = other.pData;
         other.pData = nullptr;
     }
@@ -395,14 +395,14 @@ SceneAsset& SceneAsset::operator=(SceneAsset&& other) noexcept
 
 bool SceneAsset::parse(Span<char> json)
 {
-    SceneAssetData*  pCandidate = tf_new(SceneAssetData);
+    SceneAssetData*  pCandidate = MemNew(SceneAssetData);
     SceneAssetReader reader(*pCandidate);
     if (!reader.read(json))
     {
-        tf_delete(pCandidate);
+        MemDelete(pCandidate);
         return false;
     }
-    tf_delete(pData);
+    MemDelete(pData);
     pData = pCandidate;
     return true;
 }

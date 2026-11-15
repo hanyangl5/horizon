@@ -52,18 +52,18 @@ class SceneAssetReadTest: public ::testing::Test
 protected:
     void SetUp() override
     {
-        ASSERT_TRUE(initMemAlloc(nullptr));
-        initialStats = memGetTrackingStats();
+        ASSERT_TRUE(InitMemoryAlloc(nullptr));
+        initialStats = GetMemoryTrackingStats();
     }
     void TearDown() override
     {
-        const MemoryTrackingStats stats = memGetTrackingStats();
-        if (stats.trackingEnabled)
+        const MemoryTrackingStats stats = GetMemoryTrackingStats();
+        if (stats.TrackingEnabled)
         {
-            EXPECT_EQ(stats.liveAllocationCount, initialStats.liveAllocationCount);
-            EXPECT_EQ(stats.liveRequestedBytes, initialStats.liveRequestedBytes);
+            EXPECT_EQ(stats.LiveAllocationCount, initialStats.LiveAllocationCount);
+            EXPECT_EQ(stats.LiveRequestedBytes, initialStats.LiveRequestedBytes);
         }
-        exitMemAlloc();
+        ExitMemoryAlloc();
     }
     MemoryTrackingStats initialStats = {};
 };

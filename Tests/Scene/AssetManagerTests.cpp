@@ -78,9 +78,9 @@ public:
         ++loader.begun;
         if (loader.failBegin == id)
             return nullptr;
-        Payload* pPayload = tf_new(Payload);
+        Payload* pPayload = MemNew(Payload);
         pPayload->id = id;
-        Job* pJob = tf_new(Job);
+        Job* pJob = MemNew(Job);
         *pJob = { .pPayload = pPayload, .ready = loader.ready };
         loader.jobs[id] = pJob;
         return pJob;
@@ -104,7 +104,7 @@ public:
         ++loader.requestsDestroyed;
         if (pJob->pPayload)
             destroyPayload(pJob->pPayload, pUser);
-        tf_delete(pJob);
+        MemDelete(pJob);
     }
 
     static void destroyPayload(void* pPayload, void* pUser)
@@ -112,7 +112,7 @@ public:
         TestAssetLoader& loader = *(TestAssetLoader*)pUser;
         Payload*         pValue = (Payload*)pPayload;
         loader.destroyed.push_back(pValue->id);
-        tf_delete(pValue);
+        MemDelete(pValue);
     }
 
     Job*                  jobs[2048] = {};
@@ -132,18 +132,18 @@ class AssetManagerTest: public ::testing::Test
 protected:
     void SetUp() override
     {
-        ASSERT_TRUE(initMemAlloc(nullptr));
-        initialStats = memGetTrackingStats();
+        ASSERT_TRUE(InitMemoryAlloc(nullptr));
+        initialStats = GetMemoryTrackingStats();
     }
     void TearDown() override
     {
-        const MemoryTrackingStats stats = memGetTrackingStats();
-        if (stats.trackingEnabled)
+        const MemoryTrackingStats stats = GetMemoryTrackingStats();
+        if (stats.TrackingEnabled)
         {
-            EXPECT_EQ(stats.liveAllocationCount, initialStats.liveAllocationCount);
-            EXPECT_EQ(stats.liveRequestedBytes, initialStats.liveRequestedBytes);
+            EXPECT_EQ(stats.LiveAllocationCount, initialStats.LiveAllocationCount);
+            EXPECT_EQ(stats.LiveRequestedBytes, initialStats.LiveRequestedBytes);
         }
-        exitMemAlloc();
+        ExitMemoryAlloc();
     }
     static void add(hz::AssetCatalog& catalog, uint32_t id, hz::Span<hz::AssetID> dependencies = {})
     {
@@ -420,17 +420,17 @@ TEST_F(AssetManagerTest, GpuTablesRebuildOnlyWhenTheReadySetChanges)
     const hz::AssetHandle first = assetManager.request(assetID(1));
     assetManager.update();
     const uint64_t            revision = assetManager.getGpuTables().revision;
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
     {
         EXPECT_EQ(assetManager.getGpuTables().revision, revision);
         assetManager.update();
     }
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (after.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (after.TrackingEnabled)
     {
-        EXPECT_EQ(after.totalAllocationCount, before.totalAllocationCount);
-        EXPECT_EQ(after.reallocationCount, before.reallocationCount);
+        EXPECT_EQ(after.TotalAllocationCount, before.TotalAllocationCount);
+        EXPECT_EQ(after.ReallocationCount, before.ReallocationCount);
     }
     assetManager.release(first);
     const uint64_t released = assetManager.getGpuTables().revision;
@@ -1355,14 +1355,14 @@ TEST_F(AssetManagerTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompone
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
     EXPECT_EQ(loader.begun, 1u);
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         bindings.update();
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     bindings.update();
@@ -1460,14 +1460,14 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
         EXPECT_EQ(index, UINT32_MAX);
     const hz::RenderInstanceID instance = scene.getInstances().pData[first.index].id;
     const uint64_t             revision = scene.getRevision();
-    const MemoryTrackingStats  before = memGetTrackingStats();
+    const MemoryTrackingStats  before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         scene.update();
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     EXPECT_EQ(scene.getRevision(), revision);
     EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
@@ -1522,7 +1522,7 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     assetManager.update();
     world.commitTransforms();
     scene.update();
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (hz::Entity entity : entities)
         if ((scene.findPrimitive(entity).index % 2) == 0)
         {
@@ -1530,11 +1530,11 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
             ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
         }
     scene.update();
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     ASSERT_EQ(scene.getChanges().instances.ranges.count, 20u);
     for (uint32_t i = 0; i < 20; ++i)
@@ -1676,7 +1676,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         EXPECT_FLOAT_EQ(camera->lens.farPlane, 500);
     }
     const uint64_t            initial = scene.getRevision();
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         scene.update();
     EXPECT_EQ(scene.getRevision(), initial);
@@ -1695,11 +1695,11 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     EXPECT_EQ(changes.cameras.ranges.count, 5u);
     EXPECT_FALSE(changes.lights.activeList);
     EXPECT_FALSE(changes.cameras.activeList);
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     const hz::RenderLightID  oldLight = scene.findLight(entities[0]);
     const hz::RenderCameraID oldCamera = scene.findCamera(entities[0]);
@@ -1819,14 +1819,14 @@ TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
     ASSERT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Failed);
     ASSERT_TRUE(
         catalog.add({ .id = assetID(1), .type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         bindings.update();
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     EXPECT_EQ(assetManager.getCount(), 0u);
     bindings.clear();
@@ -1892,14 +1892,14 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     EXPECT_EQ(bindings.get(b)->materials.pData[1].asset, scene.getMaterials().pData[0].id);
     EXPECT_EQ(bindings.get(a)->materials.pData[1].handle, overrideMaterial);
 
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         bindings.update();
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
 
     // An open command list may reference any ready payload, so released payloads stay alive until it completes.
@@ -2022,14 +2022,14 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     world.commitTransforms();
     scene.update();
     const uint64_t            revision = scene.getRevision();
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         scene.update();
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     EXPECT_EQ(scene.getRevision(), revision);
     EXPECT_EQ(scene.getChanges().meshBatches.ranges.count, 0u);
@@ -2242,7 +2242,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 111);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 3);
 
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 30; ++i)
     {
         transform.translation = Vector3((float)i + 200, 0, 0);
@@ -2251,11 +2251,11 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
         EXPECT_FLOAT_EQ(translationX(copiedInstance.current), (float)i + 200);
         EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), i ? (float)i + 199 : 111.0f);
     }
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
 
     // A teleport resets history for the next submitted frame.
@@ -2401,7 +2401,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 2);
     EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 0.6f);
 
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 30; ++i)
     {
         transform.translation = Vector3((float)i + 4, 0, 0);
@@ -2413,11 +2413,11 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
         EXPECT_FLOAT_EQ(translationX(copiedLight.transform), (float)i + 4);
         EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), i ? (float)i + 3 : 2.0f);
     }
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(before.totalAllocationCount, after.totalAllocationCount);
-        EXPECT_EQ(before.reallocationCount, after.reallocationCount);
+        EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
+        EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
 
     // A camera cut resets history for the next submitted frame.

@@ -500,7 +500,7 @@
 //    ASSERT(pDesc->mMaxStaticVertexCount > 0);
 //    ASSERT(pDesc->mMaxPreSkinnedVertexCountPerFrame > 0);
 //
-//    PreSkinACVertexBuffers* pBuffers = (PreSkinACVertexBuffers*)tf_calloc(1, sizeof(PreSkinACVertexBuffers));
+//    PreSkinACVertexBuffers* pBuffers = (PreSkinACVertexBuffers*)MemCallocate(1, sizeof(PreSkinACVertexBuffers));
 //
 //    ResourceSizeAlign sizeAligns[3] = {};
 //
@@ -583,7 +583,7 @@
 //
 //    removeResourceHeap(pRenderer, pBuffers->pHeap);
 //
-//    tf_free(pBuffers);
+//    MemDeallocate(pBuffers);
 //}
 //
 ////************************************************************************/
@@ -602,7 +602,7 @@
 //    ASSERT(pDesc->mNumViews > 0);
 //    ASSERT(pDesc->mFilterBatchCount > 0);
 //
-//    VisibilityBuffer* pVisibilityBuffer = (VisibilityBuffer*)tf_malloc(sizeof(VisibilityBuffer));
+//    VisibilityBuffer* pVisibilityBuffer = (VisibilityBuffer*)MemAllocate(sizeof(VisibilityBuffer));
 //    gVBSettings.uniformBufferAlignment = pRenderer->pGpu->settings.uniformBufferAlignment;
 //    gVBSettings.mNumGeomSets = pDesc->mNumGeometrySets;
 //    gVBSettings.mNumViews = pDesc->mNumViews;
@@ -625,7 +625,7 @@
 //    }
 //
 //    // Create filteredIndexBuffers
-//    pVisibilityBuffer->ppBinBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumBuffers);
+//    pVisibilityBuffer->ppBinBuffer = (Buffer**)MemAllocate(sizeof(Buffer*) * pDesc->mNumBuffers);
 //
 //    BufferLoadDesc filterIbDesc = {};
 //    filterIbDesc.desc.descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
@@ -679,9 +679,9 @@
 //        removeGPURingBuffer(&gPreSkinBatchDataBuffer);
 //    }
 //
-//    tf_free(pVisibilityBuffer->ppBinBuffer);
+//    MemDeallocate(pVisibilityBuffer->ppBinBuffer);
 //    pVisibilityBuffer->ppBinBuffer = NULL;
 //
-//    tf_free(pVisibilityBuffer);
+//    MemDeallocate(pVisibilityBuffer);
 //    pVisibilityBuffer = NULL;
 //}

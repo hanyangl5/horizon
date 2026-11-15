@@ -64,12 +64,12 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
     numActiveAnimatedObjects = 0;
     instanceCount = 0;
 
-    projViewUniformBufferJoints = (Buffer**)tf_calloc_memalign(frameCount * maxSkeletonBatches * 2, alignof(Buffer*), sizeof(Buffer*));
+    projViewUniformBufferJoints = (Buffer**)MemCallocateAligned(frameCount * maxSkeletonBatches * 2, alignof(Buffer*), sizeof(Buffer*));
     projViewUniformBufferBones = projViewUniformBufferJoints + (frameCount * maxSkeletonBatches);
     uniformDataJoints =
-        (UniformSkeletonBlock*)tf_calloc_memalign(maxSkeletonBatches, alignof(UniformSkeletonBlock), sizeof(UniformSkeletonBlock));
+        (UniformSkeletonBlock*)MemCallocateAligned(maxSkeletonBatches, alignof(UniformSkeletonBlock), sizeof(UniformSkeletonBlock));
 
-    batchCounts = (tfrg_atomic32_t*)tf_calloc_memalign(frameCount + frameCount * maxSkeletonBatches, alignof(tfrg_atomic32_t),
+    batchCounts = (tfrg_atomic32_t*)MemCallocateAligned(frameCount + frameCount * maxSkeletonBatches, alignof(tfrg_atomic32_t),
                                                        sizeof(tfrg_atomic32_t));
     batchSize = batchCounts + frameCount;
 
@@ -121,9 +121,9 @@ void SkeletonBatcher::Exit()
     arrfree(animatedObjects);
     arrfree(cumulativeAnimatedObjectInstanceCount);
 
-    tf_free((void*)batchCounts);
-    tf_free(uniformDataJoints);
-    tf_free(projViewUniformBufferJoints);
+    MemDeallocate((void*)batchCounts);
+    MemDeallocate(uniformDataJoints);
+    MemDeallocate(projViewUniformBufferJoints);
 #endif
 }
 

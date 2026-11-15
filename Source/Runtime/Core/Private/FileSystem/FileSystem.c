@@ -564,13 +564,13 @@ static bool ioMemoryStreamClose(FileStream* fs)
 
     if (stream->isOwner)
     {
-        tf_free(stream->pBuffer);
+        MemDeallocate(stream->pBuffer);
     }
 
     if (stream->wrappedStream)
     {
         CloseStream(stream->wrappedStream);
-        tf_free(stream->wrappedStream);
+        MemDeallocate(stream->wrappedStream);
     }
 
     return true;
@@ -623,7 +623,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
         newCapacity =
             MEMORY_STREAM_GROW_SIZE * (newCapacity / MEMORY_STREAM_GROW_SIZE + (newCapacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
 
-        void* newBuffer = tf_realloc(stream->pBuffer, newCapacity);
+        void* newBuffer = MemReallocate(stream->pBuffer, newCapacity);
         if (!newBuffer)
         {
             LOGF(Error,
@@ -758,7 +758,7 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
     {
         // make capacity multiple of MEMORY_STREAM_GROW_SIZE
         capacity = MEMORY_STREAM_GROW_SIZE * (capacity / MEMORY_STREAM_GROW_SIZE + (capacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
-        void* newBuffer = tf_malloc(capacity);
+        void* newBuffer = MemAllocate(capacity);
         ASSERT(newBuffer);
         if (buffer)
             memcpy(newBuffer, buffer, size);
@@ -971,7 +971,7 @@ FORGE_API bool WrapStreamMemoryMap(FileStream* fs)
     MEMSD(stream, &wrapFs);
     stream->cursor = (size_t)GetStreamPosition(fs);
 
-    FileStream* wrappedFs = tf_malloc(sizeof *wrappedFs);
+    FileStream* wrappedFs = MemAllocate(sizeof *wrappedFs);
     if (!wrappedFs)
     {
         CloseStream(&wrapFs);
@@ -1120,11 +1120,11 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
     uint64_t const slotCount = nodeCount * tableSizeMultiplier + 1;
     size_t const   tableSize = slotCount * 8;
 
-    struct BunyArHashTable* ht = tf_calloc(1, sizeof(*ht) + tableSize);
+    struct BunyArHashTable* ht = MemCallocate(1, sizeof(*ht) + tableSize);
 
     uint64_t const bucketPointersSize = sizeof(struct BucketPointer) * slotCount;
 
-    uint8_t* const mem = tf_calloc(1, bucketPointersSize + tableSize);
+    uint8_t* const mem = MemCallocate(1, bucketPointersSize + tableSize);
 
     struct BucketPointer* const buckets = (struct BucketPointer*)mem;
 
@@ -1251,7 +1251,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
         {
             // no solution, 18446744073709551615 seeds failed
             // more like joke code path
-            tf_free(ht);
+            MemDeallocate(ht);
             ht = NULL;
             break;
         }
@@ -1261,7 +1261,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
         memset(buckets, 0, bucketPointersSize);
     }
 
-    tf_free(mem);
+    MemDeallocate(mem);
     return ht;
 }
 
@@ -1353,12 +1353,12 @@ struct BunyArNodeSearchCtx
 static void* tfAllocForZstd(void* pUser, size_t size)
 {
     (void)pUser;
-    return tf_malloc(size);
+    return MemAllocate(size);
 }
 static void tfFreeForZstd(void* pUser, void* memory)
 {
     (void)pUser;
-    tf_free(memory);
+    MemDeallocate(memory);
 }
 static const ZSTD_customMem ZSTD_MEMORY_ALLOCATOR = {
     tfAllocForZstd,
@@ -1485,7 +1485,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     // includes Archive struct, file nodes, file names
 
     struct BunyArMetadata* archive =
-        (struct BunyArMetadata*)tf_malloc(sizeof(*archive) + header.nodesPointer.size + header.namesPointer.size);
+        (struct BunyArMetadata*)MemAllocate(sizeof(*archive) + header.nodesPointer.size + header.namesPointer.size);
 
     {
         uint8_t* memPtr = (uint8_t*)(archive + 1);
@@ -1546,7 +1546,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         LOGF(Error, "Failed to open archive: missing node names");
     CANCEL:
-        tf_free(archive);
+        MemDeallocate(archive);
         return false;
     }
 
@@ -1555,13 +1555,13 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
     if (!desc->disableHashTable && header.hashTablePointer.size)
     {
-        archive->hashTable = tf_malloc(header.hashTablePointer.size);
+        archive->hashTable = MemAllocate(header.hashTablePointer.size);
 
         if (!bunyArReadLocation(archive, header.hashTablePointer, archive->hashTable))
         {
             // not fatal, we can recreate it
             LOGF(Error, "Failed to read archive hash table");
-            tf_free(archive->hashTable);
+            MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
         }
     }
@@ -1625,7 +1625,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
         {
             LOGF(Error, "Baked archive hash table is abandoned because node names was "
                          "modified");
-            tf_free(archive->hashTable);
+            MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
         }
     }
@@ -1656,7 +1656,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
         if (!success)
         {
             LOGF(Error, "Baked archive hash table is abandoned because it was faulty");
-            tf_free(archive->hashTable);
+            MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
         }
     }
@@ -1763,8 +1763,8 @@ FORGE_API bool CloseArchive(IFileSystem* fs)
         DestroyMutex(&archive->mutex);
     }
 
-    tf_free(archive->hashTable);
-    tf_free(archive);
+    MemDeallocate(archive->hashTable);
+    MemDeallocate(archive);
     return true;
 }
 
@@ -1868,7 +1868,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     size_t blocksSize = blocksHeader.blockCount * sizeof(BunyArBlockPointer);
 
     struct BunyArFileStream* fs =
-        (struct BunyArFileStream*)tf_malloc(sizeof(*fs) + compressedBufferSize + decompressedBufferSize + blocksSize);
+        (struct BunyArFileStream*)MemAllocate(sizeof(*fs) + compressedBufferSize + decompressedBufferSize + blocksSize);
 
     memset(fs, 0, sizeof(*fs));
 
@@ -1884,7 +1884,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         !bunyArStreamRead(archive, node->filePointer.offset + sizeof(blocksHeader), blocksSize, fs->blocks))
     {
     CANCEL:
-        tf_free(fs);
+        MemDeallocate(fs);
         return false;
     }
 
@@ -1932,7 +1932,7 @@ static bool ioArchiveFsClose(FileStream* fs)
 
     struct BunyArFileStream* stream = getFsBunyArStream(fs);
     ZSTD_freeDCtx(stream->zstd_ctx);
-    tf_free(stream);
+    MemDeallocate(stream);
 
     memset(fs, 0, sizeof *fs);
     return true;

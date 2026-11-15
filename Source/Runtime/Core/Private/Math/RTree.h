@@ -172,7 +172,7 @@ extern "C"
         totalSize += pDesc->maxElements * maxElementsPerNode * sizeof(uint32_t);
         totalSize += maxElementsPerNode * 2 * sizeof(uint32_t);
 
-        RTree* pRTree = (RTree*)tf_malloc(totalSize);
+        RTree* pRTree = (RTree*)MemAllocate(totalSize);
         ASSERT(pRTree);
 
         pRTree->maxElementsPerNode = maxElementsPerNode;
@@ -199,7 +199,7 @@ extern "C"
     void exitRTree(RTree* pRTree)
     {
         ASSERT(pRTree);
-        tf_free(pRTree);
+        MemDeallocate(pRTree);
     }
 
     void rtree_update_node_box(RTree* pRTree, const uint32_t treeIndex, bool recursive)

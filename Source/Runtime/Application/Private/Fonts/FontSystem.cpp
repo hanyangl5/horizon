@@ -248,7 +248,7 @@ void platformExitFontSystem()
     // unload font buffers
     for (ptrdiff_t i = 0; i < arrlen(gFontstash.fontBuffers); ++i)
     {
-        tf_free(gFontstash.fontBuffers[i]);
+        MemDeallocate(gFontstash.fontBuffers[i]);
     }
     arrfree(gFontstash.fontBuffers);
     // unload font buffer sizes
@@ -567,7 +567,7 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
         if (OpenStreamFromPath(RD_FONTS, pDescs[i].pFontPath, FM_READ, &fh))
         {
             ssize_t bytes = GetStreamFileSize(&fh);
-            void*   buffer = tf_malloc(bytes);
+            void*   buffer = MemAllocate(bytes);
             ReadFromStream(&fh, buffer, bytes);
 
             // add buffer to font buffers for cleanup

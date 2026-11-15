@@ -636,7 +636,7 @@ extern "C"
         // uint64_t table[tableSlotCount];
     };
 
-    // user must deallocate returned pointer using tf_free
+    // user must deallocate returned pointer using MemDeallocate
     FORGE_API struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struct BunyArNode* nodes, const char* nodeNames);
 
     // In case value >= nodeCount is returned, node by that name is not found

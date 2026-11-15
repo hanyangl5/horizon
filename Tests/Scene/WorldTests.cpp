@@ -12,18 +12,18 @@ class SceneWorldTest: public ::testing::Test
 protected:
     void SetUp() override
     {
-        ASSERT_TRUE(initMemAlloc(nullptr));
-        initialStats = memGetTrackingStats();
+        ASSERT_TRUE(InitMemoryAlloc(nullptr));
+        initialStats = GetMemoryTrackingStats();
     }
     void TearDown() override
     {
-        const MemoryTrackingStats stats = memGetTrackingStats();
-        if (stats.trackingEnabled)
+        const MemoryTrackingStats stats = GetMemoryTrackingStats();
+        if (stats.TrackingEnabled)
         {
-            EXPECT_EQ(stats.liveAllocationCount, initialStats.liveAllocationCount);
-            EXPECT_EQ(stats.liveRequestedBytes, initialStats.liveRequestedBytes);
+            EXPECT_EQ(stats.LiveAllocationCount, initialStats.LiveAllocationCount);
+            EXPECT_EQ(stats.LiveRequestedBytes, initialStats.LiveRequestedBytes);
         }
-        exitMemAlloc();
+        ExitMemoryAlloc();
     }
     MemoryTrackingStats initialStats = {};
 };
@@ -521,15 +521,15 @@ TEST_F(SceneWorldTest, ArrayEditsPreserveOwnershipAndValidateIndices)
                                       { .kind = hz::PropertyKind::EntityReference, .pData = &material, .size = sizeof(material) }));
     ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
     const hz::MaterialOverride* pStorage = pMesh->overrides.data();
-    const MemoryTrackingStats   before = memGetTrackingStats();
+    const MemoryTrackingStats   before = GetMemoryTrackingStats();
     ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::meshRenderer, 1, value));
     ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
-    const MemoryTrackingStats after = memGetTrackingStats();
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
     EXPECT_EQ(pMesh->overrides.data(), pStorage);
-    if (before.trackingEnabled)
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(after.totalAllocationCount, before.totalAllocationCount);
-        EXPECT_EQ(after.reallocationCount, before.reallocationCount);
+        EXPECT_EQ(after.TotalAllocationCount, before.TotalAllocationCount);
+        EXPECT_EQ(after.ReallocationCount, before.ReallocationCount);
     }
     const hz::MaterialOverride other = { .submesh = 8, .material = { .low = 9 } };
     EXPECT_FALSE(world.insertArrayElement(entity, hz::SceneTypes::meshRenderer, 2, 2, &other));

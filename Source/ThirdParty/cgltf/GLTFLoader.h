@@ -341,15 +341,15 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 	}
 
 	ssize_t fileSize = GetStreamFileSize(&file);
-	void* fileData = tf_malloc(fileSize);
+	void* fileData = MemAllocate(fileSize);
 	ReadFromStream(&file, fileData, fileSize);
 	CloseStream(&file);
 
 	cgltf_result result = cgltf_result_invalid_gltf;
 	cgltf_options options = {};
 	cgltf_data* data = NULL;
-	options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
-	options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
+	options.memory_alloc = [](void* user, cgltf_size size) { return MemAllocate(size); };
+	options.memory_free = [](void* user, void* ptr) { MemDeallocate(ptr); };
 	result = cgltf_parse(&options, fileData, fileSize, &data);
 
 	if (cgltf_result_success != result)
@@ -389,7 +389,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 			if (OpenStreamFromPath(RD_MESHES, binFile, FM_READ, &fs))
 			{
 				ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
-				data->buffers[i].data = tf_malloc(data->buffers[i].size);
+				data->buffers[i].data = MemAllocate(data->buffers[i].size);
 				ReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
 				CloseStream(&fs);
 			}
@@ -401,7 +401,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 	{
 		LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", pFileName, (uint32_t)result);
 		ASSERT(false);
-		tf_free(fileData);
+		MemDeallocate(fileData);
 		return result;
 	}
 
@@ -472,7 +472,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 			totalSize += vertexCount * strides[i];
 		totalSize += indexCount * sizeof(uint32_t);
 	}
-	GLTFContainer* pGLTF = (GLTFContainer*)tf_calloc(1, totalSize);
+	GLTFContainer* pGLTF = (GLTFContainer*)MemCallocate(1, totalSize);
 	ASSERT(pGLTF);
 
 	pGLTF->pHandle = data;
@@ -788,7 +788,7 @@ static void gltfUnloadContainer(GLTFContainer* pGLTF)
 {
 	ASSERT(pGLTF);
 	cgltf_free(pGLTF->pHandle);
-	tf_free(pGLTF);
+	MemDeallocate(pGLTF);
 }
 
 void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, size_t index, TextureCreationFlags creationFlags, SyncToken* token, TextureContainerType container, Texture** ppOutTexture)

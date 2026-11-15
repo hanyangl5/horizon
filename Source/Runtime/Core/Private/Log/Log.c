@@ -116,7 +116,7 @@ static void defaultClose(void* user_data)
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
     CloseStream(fh);
-    tf_free(fh);
+    MemDeallocate(fh);
 }
 
 // Flush callback
@@ -159,7 +159,7 @@ void ExitLog(void)
     }
 
     DestroyMutex(&gLogger.logMutex);
-    tf_free(gLogger.pCallbacks);
+    MemDeallocate(gLogger.pCallbacks);
     gIsLoggerInitialized = false;
 }
 
@@ -172,7 +172,7 @@ void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
     memset(&fh, 0, sizeof(FileStream));
     if (OpenStreamFromPath(RD_LOG, filename, file_mode, &fh)) // If the File Exists
     {
-        FileStream* user = (FileStream*)tf_malloc(sizeof(FileStream));
+        FileStream* user = (FileStream*)MemAllocate(sizeof(FileStream));
         *user = fh;
         // AddCallback will try to acquire mutex
         char path[FS_MAX_PATH] = { 0 };
@@ -209,7 +209,7 @@ void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCall
             LogCallback logCallback;
             memset(&logCallback, 0, sizeof(LogCallback));
             initLogCallback(&logCallback, id, user_data, callback, close, flush, log_level);
-            LogCallback* pNewArray = (LogCallback*)tf_realloc(gLogger.pCallbacks, sizeof(LogCallback) * (gLogger.callbacksSize + 1));
+            LogCallback* pNewArray = (LogCallback*)MemReallocate(gLogger.pCallbacks, sizeof(LogCallback) * (gLogger.callbacksSize + 1));
             ASSERT(pNewArray != NULL);
             gLogger.pCallbacks = pNewArray;
             gLogger.pCallbacks[gLogger.callbacksSize] = logCallback;

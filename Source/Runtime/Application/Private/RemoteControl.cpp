@@ -121,8 +121,8 @@
 // void init_circular_buffer(CircularBuffer* circularBuffer, size_t size)
 // {
 //     circularBuffer->size = size;
-//     circularBuffer->mBuffer1 = (unsigned char*)tf_malloc(size);
-//     circularBuffer->mBuffer2 = (unsigned char*)tf_malloc(size);
+//     circularBuffer->mBuffer1 = (unsigned char*)MemAllocate(size);
+//     circularBuffer->mBuffer2 = (unsigned char*)MemAllocate(size);
 //     memset(circularBuffer->mBuffer1, 0, size);
 //     memset(circularBuffer->mBuffer2, 0, size);
 
@@ -135,8 +135,8 @@
 
 // void remove_circular_buffer(CircularBuffer* circularBuffer)
 // {
-//     tf_free(circularBuffer->mBuffer1);
-//     tf_free(circularBuffer->mBuffer2);
+//     MemDeallocate(circularBuffer->mBuffer1);
+//     MemDeallocate(circularBuffer->mBuffer2);
 // }
 
 // unsigned char* get_write_buffer(CircularBuffer* circularBuffer)
@@ -519,7 +519,7 @@
 //         return;
 //     }
 
-//     pRemoteAppServer = (RemoteAppServer*)tf_malloc(sizeof(RemoteAppServer));
+//     pRemoteAppServer = (RemoteAppServer*)MemAllocate(sizeof(RemoteAppServer));
 //     *pRemoteAppServer = {};
 
 //     init_circular_buffer(&pRemoteAppServer->mAwaitingSendDrawData, DrawBufferSize);
@@ -576,7 +576,7 @@
 //     arrfree(pRemoteAppServer->pLastReceivedInputData);
 
 //     // Free remote control server
-//     tf_free(pRemoteAppServer);
+//     MemDeallocate(pRemoteAppServer);
 //     pRemoteAppServer = NULL;
 // }
 
@@ -676,9 +676,9 @@
 //     {
 //         if (drawData->drawCommands)
 //         {
-//             tf_free(drawData->drawCommands);
+//             MemDeallocate(drawData->drawCommands);
 //         }
-//         drawData->drawCommands = (UserInterfaceDrawCommand*)tf_calloc(remoteDrawData->numDrawCommands,
+//         drawData->drawCommands = (UserInterfaceDrawCommand*)MemCallocate(remoteDrawData->numDrawCommands,
 //         sizeof(UserInterfaceDrawCommand));
 //     }
 //     drawData->numDrawCommands = remoteDrawData->numDrawCommands;
@@ -706,18 +706,18 @@
 //     {
 //         if (drawData->vertexBufferData)
 //         {
-//             tf_free(drawData->vertexBufferData);
+//             MemDeallocate(drawData->vertexBufferData);
 //         }
-//         drawData->vertexBufferData = (unsigned char*)tf_malloc((size_t)remoteDrawData->vertexCount * remoteDrawData->vertexSize);
+//         drawData->vertexBufferData = (unsigned char*)MemAllocate((size_t)remoteDrawData->vertexCount * remoteDrawData->vertexSize);
 //     }
 
 //     if (drawData->indexCount * drawData->indexSize < remoteDrawData->indexCount * remoteDrawData->indexSize)
 //     {
 //         if (drawData->indexBufferData)
 //         {
-//             tf_free(drawData->indexBufferData);
+//             MemDeallocate(drawData->indexBufferData);
 //         }
-//         drawData->indexBufferData = (unsigned char*)tf_malloc((size_t)remoteDrawData->indexCount * remoteDrawData->indexSize);
+//         drawData->indexBufferData = (unsigned char*)MemAllocate((size_t)remoteDrawData->indexCount * remoteDrawData->indexSize);
 //     }
 
 //     size_t vertexSizeAligned = ((size_t)remoteDrawData->vertexCount * remoteDrawData->vertexSize / 8 + 1) * 8;
@@ -738,9 +738,9 @@
 // {
 //     if (data)
 //     {
-//         tf_free(data->vertexBufferData);
-//         tf_free(data->indexBufferData);
-//         tf_free(data->drawCommands);
+//         MemDeallocate(data->vertexBufferData);
+//         MemDeallocate(data->indexBufferData);
+//         MemDeallocate(data->drawCommands);
 //         *data = {};
 //     }
 // }
@@ -878,7 +878,7 @@
 //     }
 //     hmfree(pRemoteControlClient->mTextureHashmap);
 
-//     tf_free(pRemoteControlClient);
+//     MemDeallocate(pRemoteControlClient);
 //     pRemoteControlClient = NULL;
 // }
 
@@ -890,7 +890,7 @@
 //         return;
 //     }
 
-//     pRemoteControlClient = (RemoteControlClient*)tf_malloc(sizeof(RemoteControlClient));
+//     pRemoteControlClient = (RemoteControlClient*)MemAllocate(sizeof(RemoteControlClient));
 //     *pRemoteControlClient = {};
 
 //     SocketAddr addr = {};
@@ -911,7 +911,7 @@
 //     }
 //     else
 //     {
-//         tf_free(pRemoteControlClient);
+//         MemDeallocate(pRemoteControlClient);
 //         pRemoteControlClient = NULL;
 //     }
 // }

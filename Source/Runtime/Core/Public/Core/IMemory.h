@@ -47,32 +47,32 @@
 
 typedef struct MemoryTrackingStats
 {
-    bool     trackingEnabled;
-    uint64_t liveRequestedBytes;
-    uint64_t liveActualBytes;
-    uint64_t liveSlackBytes;
-    uint64_t peakRequestedBytes;
-    uint64_t peakActualBytes;
-    uint64_t liveAllocationCount;
-    uint64_t peakAllocationCount;
-    uint64_t totalAllocationCount;
-    uint64_t reallocationCount;
-    uint64_t failedAllocationCount;
-    float    fragmentationPercent;
+    bool     TrackingEnabled;
+    uint64_t LiveRequestedBytes;
+    uint64_t LiveActualBytes;
+    uint64_t LiveSlackBytes;
+    uint64_t PeakRequestedBytes;
+    uint64_t PeakActualBytes;
+    uint64_t LiveAllocationCount;
+    uint64_t PeakAllocationCount;
+    uint64_t TotalAllocationCount;
+    uint64_t ReallocationCount;
+    uint64_t FailedAllocationCount;
+    float    FragmentationPercent;
 } MemoryTrackingStats;
 
 #ifdef ENABLE_MEMORY_TRACKING
 typedef struct MemoryStatistics
 {
-    uint32_t totalReportedMemory;
-    uint32_t totalActualMemory;
-    uint32_t peakReportedMemory;
-    uint32_t peakActualMemory;
-    uint32_t accumulatedReportedMemory;
-    uint32_t accumulatedActualMemory;
-    uint32_t accumulatedAllocUnitCount;
-    uint32_t totalAllocUnitCount;
-    uint32_t peakAllocUnitCount;
+    uint32_t TotalReportedMemory;
+    uint32_t TotalActualMemory;
+    uint32_t PeakReportedMemory;
+    uint32_t PeakActualMemory;
+    uint32_t AccumulatedReportedMemory;
+    uint32_t AccumulatedActualMemory;
+    uint32_t AccumulatedAllocUnitCount;
+    uint32_t TotalAllocUnitCount;
+    uint32_t PeakAllocUnitCount;
 } MemoryStatistics;
 #endif
 
@@ -81,21 +81,21 @@ extern "C"
 {
 #endif
     // appName is used to create dump file, pass NULL to avoid it
-    FORGE_API bool                initMemAlloc(const char* appName);
-    FORGE_API void                exitMemAlloc(void);
-    FORGE_API MemoryTrackingStats memGetTrackingStats(void);
-    FORGE_API void                memPlotTrackingStats(void);
+    FORGE_API bool                InitMemoryAlloc(const char* appName);
+    FORGE_API void                ExitMemoryAlloc(void);
+    FORGE_API MemoryTrackingStats GetMemoryTrackingStats(void);
+    FORGE_API void                PlotMemoryTrackingStats(void);
 
 #ifdef ENABLE_MEMORY_TRACKING
-    FORGE_API MemoryStatistics memGetStatistics(void);
+    FORGE_API MemoryStatistics GetMemoryStatistics(void);
 #endif
 
-    FORGE_API void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void  tf_free_internal(void* ptr, const char* f, int l, const char* sf);
+    FORGE_API void* MemAllocateInternal(size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* MemAllocateAlignedInternal(size_t align, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* MemReallocateInternal(void* ptr, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void  MemDeallocateInternal(void* ptr, const char* f, int l, const char* sf);
 
 #ifdef __cplusplus
 } // extern "C"
@@ -103,54 +103,54 @@ extern "C"
 
 #ifdef __cplusplus
 template<typename T, typename... Args>
-static T* tf_placement_new(void* ptr, Args&&... args)
+static T* MemPlacementNew(void* ptr, Args&&... args)
 {
     return new (ptr) T(std::forward<Args>(args)...);
 }
 
 template<typename T, typename... Args>
-static T* tf_new_internal(const char* f, int l, const char* sf, Args&&... args)
+static T* MemNewInternal(const char* f, int l, const char* sf, Args&&... args)
 {
-    T* ptr = (T*)tf_memalign_internal(alignof(T), sizeof(T), f, l, sf);
-    return tf_placement_new<T>(ptr, std::forward<Args>(args)...);
+    T* ptr = (T*)MemAllocateAlignedInternal(alignof(T), sizeof(T), f, l, sf);
+    return MemPlacementNew<T>(ptr, std::forward<Args>(args)...);
 }
 
 template<typename T>
-static void tf_delete_internal(T* ptr, const char* f, int l, const char* sf)
+static void MemDeleteInternal(T* ptr, const char* f, int l, const char* sf)
 {
     if (ptr)
     {
         ptr->~T();
-        tf_free_internal(ptr, f, l, sf);
+        MemDeallocateInternal(ptr, f, l, sf);
     }
 }
 #endif
 
-#ifndef tf_malloc
-#define tf_malloc(size) tf_malloc_internal(size, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemAllocate
+#define MemAllocate(size) MemAllocateInternal(size, __FILE__, __LINE__, __FUNCTION__)
 #endif
-#ifndef tf_memalign
-#define tf_memalign(align, size) tf_memalign_internal(align, size, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemAllocateAligned
+#define MemAllocateAligned(align, size) MemAllocateAlignedInternal(align, size, __FILE__, __LINE__, __FUNCTION__)
 #endif
-#ifndef tf_calloc
-#define tf_calloc(count, size) tf_calloc_internal(count, size, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemCallocate
+#define MemCallocate(count, size) MemCallocateInternal(count, size, __FILE__, __LINE__, __FUNCTION__)
 #endif
-#ifndef tf_calloc_memalign
-#define tf_calloc_memalign(count, align, size) tf_calloc_memalign_internal(count, align, size, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemCallocateAligned
+#define MemCallocateAligned(count, align, size) MemCallocateAlignedInternal(count, align, size, __FILE__, __LINE__, __FUNCTION__)
 #endif
-#ifndef tf_realloc
-#define tf_realloc(ptr, size) tf_realloc_internal(ptr, size, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemReallocate
+#define MemReallocate(ptr, size) MemReallocateInternal(ptr, size, __FILE__, __LINE__, __FUNCTION__)
 #endif
-#ifndef tf_free
-#define tf_free(ptr) tf_free_internal(ptr, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemDeallocate
+#define MemDeallocate(ptr) MemDeallocateInternal(ptr, __FILE__, __LINE__, __FUNCTION__)
 #endif
 
 #ifdef __cplusplus
-#ifndef tf_new
-#define tf_new(ObjectType, ...) tf_new_internal<ObjectType>(__FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+#ifndef MemNew
+#define MemNew(ObjectType, ...) MemNewInternal<ObjectType>(__FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 #endif
-#ifndef tf_delete
-#define tf_delete(ptr) tf_delete_internal(ptr, __FILE__, __LINE__, __FUNCTION__)
+#ifndef MemDelete
+#define MemDelete(ptr) MemDeleteInternal(ptr, __FILE__, __LINE__, __FUNCTION__)
 #endif
 #endif
 
@@ -160,27 +160,27 @@ static void tf_delete_internal(T* ptr, const char* f, int l, const char* sf)
 // would poison the next source file in the batch.
 #if !defined(IMEMORY_FROM_HEADER) && !defined(HORIZON_UNITY_BUILD)
 #ifndef malloc
-#define malloc(size) static_assert(false, "Please use tf_malloc");
+#define malloc(size) static_assert(false, "Please use MemAllocate");
 #endif
 #ifndef calloc
-#define calloc(count, size) static_assert(false, "Please use tf_calloc");
+#define calloc(count, size) static_assert(false, "Please use MemCallocate");
 #endif
 #ifndef memalign
-#define memalign(align, size) static_assert(false, "Please use tf_memalign");
+#define memalign(align, size) static_assert(false, "Please use MemAllocateAligned");
 #endif
 #ifndef realloc
-#define realloc(ptr, size) static_assert(false, "Please use tf_realloc");
+#define realloc(ptr, size) static_assert(false, "Please use MemReallocate");
 #endif
 #ifndef free
-#define free(ptr) static_assert(false, "Please use tf_free");
+#define free(ptr) static_assert(false, "Please use MemDeallocate");
 #endif
 
 #ifdef __cplusplus
 #ifndef new
-#define new static_assert(false, "Please use tf_placement_new");
+#define new static_assert(false, "Please use MemPlacementNew");
 #endif
 #ifndef delete
-#define delete static_assert(false, "Please use tf_free with explicit destructor call");
+#define delete static_assert(false, "Please use MemDeallocate with explicit destructor call");
 #endif
 #endif
 

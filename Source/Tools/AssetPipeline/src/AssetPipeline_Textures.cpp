@@ -45,9 +45,9 @@
 // Nothings
 #define STBI_NO_STDIO
 #define STBI_ASSERT(x)         ASSERT(x)
-#define STBI_MALLOC(sz)        tf_malloc(sz)
-#define STBI_REALLOC(p, newsz) tf_realloc(p, newsz)
-#define STBI_FREE(p)           tf_free(p)
+#define STBI_MALLOC(sz)        MemAllocate(sz)
+#define STBI_REALLOC(p, newsz) MemReallocate(p, newsz)
+#define STBI_FREE(p)           MemDeallocate(p)
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../Utilities/ThirdParty/OpenSource/Nothings/stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -77,12 +77,12 @@ TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg)
                                           [](void* user, size_t size)
                                           {
                                               UNREF_PARAM(user);
-                                              return tf_malloc(size);
+                                              return MemAllocate(size);
                                           },
                                           [](void* user, void* memory)
                                           {
                                               UNREF_PARAM(user);
-                                              tf_free(memory);
+                                              MemDeallocate(memory);
                                           },
                                           [](void* user, const void* buffer, size_t byteCount)
                                           { WriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
@@ -95,12 +95,12 @@ TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
                                     [](void* user, size_t size)
                                     {
                                         UNREF_PARAM(user);
-                                        return tf_malloc(size);
+                                        return MemAllocate(size);
                                     },
                                     [](void* user, void* memory)
                                     {
                                         UNREF_PARAM(user);
-                                        tf_free(memory);
+                                        MemDeallocate(memory);
                                     },
                                     [](void* user, void* buffer, size_t byteCount)
                                     { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
@@ -116,12 +116,12 @@ TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
                                           [](void* user, size_t size)
                                           {
                                               UNREF_PARAM(user);
-                                              return tf_malloc(size);
+                                              return MemAllocate(size);
                                           },
                                           [](void* user, void* memory)
                                           {
                                               UNREF_PARAM(user);
-                                              tf_free(memory);
+                                              MemDeallocate(memory);
                                           },
                                           [](void* user, const void* buffer, size_t byteCount)
                                           { WriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
@@ -134,12 +134,12 @@ TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
                                     [](void* user, size_t size)
                                     {
                                         UNREF_PARAM(user);
-                                        return tf_malloc(size);
+                                        return MemAllocate(size);
                                     },
                                     [](void* user, void* memory)
                                     {
                                         UNREF_PARAM(user);
-                                        tf_free(memory);
+                                        MemDeallocate(memory);
                                     },
                                     [](void* user, void* buffer, size_t byteCount)
                                     { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
@@ -165,7 +165,7 @@ typedef struct CompressImageDescriptor
 uint8_t* ResizeImage(uint8_t* ppData, const uint32_t width, const uint32_t height, const uint32_t newWidth, const uint32_t newHeight,
                      const uint32_t components, const uint32_t mip)
 {
-    uint8_t* pResizedImageData = (uint8_t*)tf_malloc(newWidth * newHeight * components);
+    uint8_t* pResizedImageData = (uint8_t*)MemAllocate(newWidth * newHeight * components);
     // stbir_resize_uint8(ppData, width, height, width * components, pResizedImageData, newWidth, newHeight, newWidth * components,
     // components);
     stbir_resize_uint8_srgb_edgemode(ppData, width, height, width * components, pResizedImageData, newWidth, newHeight,
@@ -342,7 +342,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         for (uint32_t mip = 0; mip < pOut->mDesc.mipLevels; ++mip)
         {
             pOut->mDataSize[mip] = TinyKtx_ImageSize(tinyKTXCtx, mip);
-            pOut->pData[mip] = (uint8_t*)tf_malloc(pOut->mDataSize[mip]);
+            pOut->pData[mip] = (uint8_t*)MemAllocate(pOut->mDataSize[mip]);
             memcpy(pOut->pData[mip], (uint8_t*)TinyKtx_ImageRawData(tinyKTXCtx, mip), pOut->mDataSize[mip]);
         }
 
@@ -385,7 +385,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         for (uint32_t mip = 0; mip < pOut->mDesc.mipLevels; ++mip)
         {
             pOut->mDataSize[mip] = TinyDDS_ImageSize(tinyDDSCtx, mip);
-            pOut->pData[mip] = (uint8_t*)tf_malloc(pOut->mDataSize[mip]);
+            pOut->pData[mip] = (uint8_t*)MemAllocate(pOut->mDataSize[mip]);
             memcpy(pOut->pData[mip], (uint8_t*)TinyDDS_ImageRawData(tinyDDSCtx, mip), pOut->mDataSize[mip]);
         }
 
@@ -393,7 +393,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
     }
     else
     {
-        uint8_t* pFileData = (uint8_t*)tf_malloc(fileSize);
+        uint8_t* pFileData = (uint8_t*)MemAllocate(fileSize);
         ssize_t  fileReadBytes = ReadFromStream(&file, pFileData, fileSize);
 
         if (fileSize != fileReadBytes)
@@ -496,7 +496,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         // Release loaded input file data
         if (pFileData)
         {
-            tf_free(pFileData);
+            MemDeallocate(pFileData);
         }
     }
 
@@ -567,7 +567,7 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
                 uint32_t resizedImageWidth = width % blockSizeX == 0 ? width : width + (blockSizeX - width % blockSizeX);
                 uint32_t resizedImageHeight = height % blockSizeY == 0 ? height : height + (blockSizeY - height % blockSizeY);
 
-                pData = (uint8_t*)tf_malloc(resizedImageWidth * resizedImageHeight * channels);
+                pData = (uint8_t*)MemAllocate(resizedImageWidth * resizedImageHeight * channels);
                 rgba_surface input_padded;
                 input_padded.width = resizedImageWidth;
                 input_padded.height = resizedImageHeight;
@@ -599,13 +599,13 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
             if (ppOutCompressed[i] == NULL)
             {
                 pCompressedSize[i] = xblocks * yblocks * bytesPerBlock;
-                ppOutCompressed[i] = (uint8_t*)tf_malloc(pCompressedSize[i]);
+                ppOutCompressed[i] = (uint8_t*)MemAllocate(pCompressedSize[i]);
             }
             else
             {
                 compressed_offset = pCompressedSize[i];
                 pCompressedSize[i] += xblocks * yblocks * bytesPerBlock;
-                ppOutCompressed[i] = (uint8_t*)tf_realloc(ppOutCompressed[i], pCompressedSize[i]);
+                ppOutCompressed[i] = (uint8_t*)MemReallocate(ppOutCompressed[i], pCompressedSize[i]);
             }
 
             rgba_surface input;
@@ -618,7 +618,7 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
 
             if (padded)
             {
-                tf_free(pData);
+                MemDeallocate(pData);
             }
         }
     }
@@ -747,7 +747,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
                 uint32_t resizedImageWidth = width % blockSize == 0 ? width : width + (blockSize - width % blockSize);
                 uint32_t resizedImageHeight = height % blockSize == 0 ? height : height + (blockSize - height % blockSize);
 
-                pData = (uint8_t*)tf_malloc(resizedImageWidth * resizedImageHeight * inputChannels);
+                pData = (uint8_t*)MemAllocate(resizedImageWidth * resizedImageHeight * inputChannels);
                 rgba_surface input_padded;
                 input_padded.width = resizedImageWidth;
                 input_padded.height = resizedImageHeight;
@@ -778,13 +778,13 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
             if (ppOutCompressed[i] == NULL)
             {
                 pCompressedSize[i] = xblocks * yblocks * bytesPerBlock;
-                ppOutCompressed[i] = (uint8_t*)tf_malloc(pCompressedSize[i]);
+                ppOutCompressed[i] = (uint8_t*)MemAllocate(pCompressedSize[i]);
             }
             else
             {
                 compressed_offset = pCompressedSize[i];
                 pCompressedSize[i] += xblocks * yblocks * bytesPerBlock;
-                ppOutCompressed[i] = (uint8_t*)tf_realloc(ppOutCompressed[i], pCompressedSize[i]);
+                ppOutCompressed[i] = (uint8_t*)MemReallocate(ppOutCompressed[i], pCompressedSize[i]);
             }
 
             // Reorder data
@@ -812,7 +812,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
 
             if (padded)
             {
-                tf_free(pData);
+                MemDeallocate(pData);
             }
         }
     }
@@ -860,7 +860,7 @@ void GenerateMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, T
         uint32_t mipWidth = max(width >> i, 1u);
         uint32_t mipHeight = max(height >> i, 1u);
 
-        ppData[i] = (uint8_t*)tf_malloc(mipWidth * mipHeight * channels);
+        ppData[i] = (uint8_t*)MemAllocate(mipWidth * mipHeight * channels);
         pImageDataSize[i] = mipWidth * mipHeight * channels;
 
         uint8_t* inImageData = ppData[i - 1];
@@ -901,8 +901,8 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
         uint32_t prevHeight = max(height >> (mipMap - 1u), 1u);
         uint32_t mipWidth = max(width >> mipMap, 1u);
         uint32_t mipHeight = max(height >> mipMap, 1u);
-        rData[mipMap] = (Vector3*)tf_malloc(mipWidth * mipHeight * sizeof(Vector3));
-        ppData[mipMap] = (uint8_t*)tf_malloc(mipWidth * mipHeight * channelCount);
+        rData[mipMap] = (Vector3*)MemAllocate(mipWidth * mipHeight * sizeof(Vector3));
+        ppData[mipMap] = (uint8_t*)MemAllocate(mipWidth * mipHeight * channelCount);
 
         for (uint32_t y = 0; y < mipHeight; ++y)
         {
@@ -943,7 +943,7 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
 
     for (uint32_t mipMap = 1; mipMap < numLevels; ++mipMap)
     {
-        tf_free(rData[mipMap]);
+        MemDeallocate(rData[mipMap]);
     }
 }
 
@@ -1119,7 +1119,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                 continue;
             }
 
-            rData = (Vector3*)tf_malloc(inputTextureData.mDesc.width * inputTextureData.mDesc.height * sizeof(Vector3));
+            rData = (Vector3*)MemAllocate(inputTextureData.mDesc.width * inputTextureData.mDesc.height * sizeof(Vector3));
 
             if (!GenerateVMFLayer(&inputTextureData, &inputRoughnessTextureData, rData))
             {
@@ -1129,7 +1129,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
             // Release rougness texture data
             for (size_t mip = 0; mip < inputTextureData.mDesc.mipLevels; ++mip)
             {
-                tf_free(inputRoughnessTextureData.pData[mip]);
+                MemDeallocate(inputRoughnessTextureData.pData[mip]);
                 inputRoughnessTextureData.pData[mip] = NULL;
                 inputRoughnessTextureData.mDataSize[mip] = 0;
             }
@@ -1169,7 +1169,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
 
         if (useVMF)
         {
-            tf_free(rData);
+            MemDeallocate(rData);
         }
 
         /////////////////////////////////
@@ -1328,7 +1328,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         {
             for (size_t mip = 0; mip < inputTextureData.mDesc.mipLevels; ++mip)
             {
-                tf_free(pCompressedData[mip]);
+                MemDeallocate(pCompressedData[mip]);
                 pCompressedData[mip] = NULL;
                 compressedDataSize[mip] = 0;
             }

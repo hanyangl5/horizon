@@ -2152,7 +2152,7 @@ void* ImFileLoadToMemory(const char* filename, FileMode mode, size_t* out_file_s
         return NULL;
     }
 
-    void* file_data = tf_malloc(file_size + padding_bytes);
+    void* file_data = MemAllocate(file_size + padding_bytes);
     if (file_data == NULL)
     {
         ImFileClose(f);
@@ -2161,7 +2161,7 @@ void* ImFileLoadToMemory(const char* filename, FileMode mode, size_t* out_file_s
     if (ImFileRead(file_data, 1, file_size, f) != file_size)
     {
         ImFileClose(f);
-        tf_free(file_data);
+        MemDeallocate(file_data);
         return NULL;
     }
     if (padding_bytes > 0)

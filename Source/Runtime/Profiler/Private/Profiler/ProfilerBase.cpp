@@ -143,7 +143,7 @@ void flipProfiler()
 #if defined(ENABLE_PROFILER)
     FrameMark;
 #if defined(ENABLE_TRACY_MEMORY)
-    memPlotTrackingStats();
+    PlotMemoryTrackingStats();
 #if defined(DIRECT3D12)
     for (uint32_t i = 0; i < gMemoryPlotRendererCount; ++i)
     {
@@ -217,7 +217,7 @@ void cpuProfileLeave(ProfileToken nToken, uint64_t nTick)
 ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor)
 {
 #if defined(ENABLE_PROFILER)
-    TracyCpuProfileToken* pToken = (TracyCpuProfileToken*)tf_malloc(sizeof(*pToken));
+    TracyCpuProfileToken* pToken = (TracyCpuProfileToken*)MemAllocate(sizeof(*pToken));
     ASSERT(pToken);
     if (!pToken)
         return PROFILE_INVALID_TOKEN;
@@ -244,7 +244,7 @@ void removeCpuProfileToken(ProfileToken nToken)
     if (nToken == PROFILE_INVALID_TOKEN)
         return;
 
-    tf_free((void*)nToken);
+    MemDeallocate((void*)nToken);
 #else
     UNREF_PARAM(nToken);
 #endif

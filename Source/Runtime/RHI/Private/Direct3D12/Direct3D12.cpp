@@ -348,14 +348,14 @@ void d3d12_plotMemoryStats(Renderer* pRenderer)
     const uint64_t blockBytes = stats.Total.Stats.BlockBytes;
     const uint64_t allocationBytes = stats.Total.Stats.AllocationBytes;
     const uint64_t unusedBytes = blockBytes > allocationBytes ? blockBytes - allocationBytes : 0;
-    const float    fragmentationPercent = blockBytes ? ((float)unusedBytes * 100.0f) / (float)blockBytes : 0.0f;
+    const float    FragmentationPercent = blockBytes ? ((float)unusedBytes * 100.0f) / (float)blockBytes : 0.0f;
 
     TracyCPlotI("GPU/D3D12 AllocationBytes", d3d12_plot_value(allocationBytes));
     TracyCPlotI("GPU/D3D12 BlockBytes", d3d12_plot_value(blockBytes));
     TracyCPlotI("GPU/D3D12 UnusedBytes", d3d12_plot_value(unusedBytes));
     TracyCPlotI("GPU/D3D12 UnusedRanges", d3d12_plot_value(stats.Total.UnusedRangeCount));
     TracyCPlotI("GPU/D3D12 LargestUnusedRange", d3d12_plot_value(stats.Total.UnusedRangeSizeMax));
-    TracyCPlot("GPU/D3D12 Fragmentation %", fragmentationPercent);
+    TracyCPlot("GPU/D3D12 Fragmentation %", FragmentationPercent);
 }
 #endif
 
@@ -455,7 +455,7 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 #define SAFE_FREE(p_var)         \
     if ((p_var))                 \
     {                            \
-        tf_free((void*)(p_var)); \
+        MemDeallocate((void*)(p_var)); \
         p_var = NULL;            \
     }
 
@@ -565,7 +565,7 @@ char* processErrorMessages(IDxcBlobEncoding* pEncoding)
 
     const size_t newSize = pUtf8Blob->GetStringLength() + percentCharactersCount + 1;
 
-    char* errorMessages = (char*)tf_calloc(newSize, sizeof(char));
+    char* errorMessages = (char*)MemCallocate(newSize, sizeof(char));
     for (int32_t i = 0, j = 0; i < newSize; ++i, ++j)
     {
         if (percentCharactersCount && bufferString[i] == '%')
@@ -593,7 +593,7 @@ static void add_descriptor_heap(ID3D12Device* pDevice, const D3D12_DESCRIPTOR_HE
 
     const size_t sizeInBytes = (numDescriptors / 32) * sizeof(uint32_t);
 
-    DescriptorHeap* pHeap = (DescriptorHeap*)tf_calloc(1, sizeof(*pHeap) + sizeInBytes);
+    DescriptorHeap* pHeap = (DescriptorHeap*)MemCallocate(1, sizeof(*pHeap) + sizeInBytes);
     pHeap->pFlags = (uint32_t*)(pHeap + 1);
     pHeap->pDevice = pDevice;
 
@@ -2594,7 +2594,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
     ASSERT(ppContext);
     ASSERT(gRendererCount == 0);
 
-    RendererContext* pContext = (RendererContext*)tf_calloc_memalign(1, alignof(RendererContext), sizeof(RendererContext));
+    RendererContext* pContext = (RendererContext*)MemCallocateAligned(1, alignof(RendererContext), sizeof(RendererContext));
     ASSERT(pContext);
 
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(pContext->gpus); ++i)
@@ -2705,7 +2705,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
     ASSERT(pDesc);
     ASSERT(ppRenderer);
 
-    Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer));
+    Renderer* pRenderer = (Renderer*)MemCallocateAligned(1, alignof(Renderer), sizeof(Renderer));
     ASSERT(pRenderer);
 
     pRenderer->rendererApi = RENDERER_API_D3D12;
@@ -2775,7 +2775,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             RemoveDevice(pRenderer);
             if (pRenderer->ownsContext)
                 d3d12_exitRendererContext(pRenderer->pContext);
-            tf_free(pRenderer);
+            MemDeallocate(pRenderer);
             *ppRenderer = NULL;
             return;
         }
@@ -2785,9 +2785,9 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         /************************************************************************/
         // Descriptor heaps
         /************************************************************************/
-        pRenderer->dx.pCPUDescriptorHeaps = (DescriptorHeap**)tf_malloc(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES * sizeof(DescriptorHeap*));
-        pRenderer->dx.pCbvSrvUavHeaps = (DescriptorHeap**)tf_malloc(sizeof(DescriptorHeap*));
-        pRenderer->dx.pSamplerHeaps = (DescriptorHeap**)tf_malloc(sizeof(DescriptorHeap*));
+        pRenderer->dx.pCPUDescriptorHeaps = (DescriptorHeap**)MemAllocate(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES * sizeof(DescriptorHeap*));
+        pRenderer->dx.pCbvSrvUavHeaps = (DescriptorHeap**)MemAllocate(sizeof(DescriptorHeap*));
+        pRenderer->dx.pSamplerHeaps = (DescriptorHeap**)MemAllocate(sizeof(DescriptorHeap*));
 
         for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
         {
@@ -2822,8 +2822,8 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         desc.pAdapter = pRenderer->pGpu->dx.pGpu;
 
         D3D12MA::ALLOCATION_CALLBACKS allocationCallbacks = {};
-        allocationCallbacks.pAllocate = [](size_t size, size_t alignment, void*) { return tf_memalign(alignment, size); };
-        allocationCallbacks.pFree = [](void* ptr, void*) { tf_free(ptr); };
+        allocationCallbacks.pAllocate = [](size_t size, size_t alignment, void*) { return MemAllocateAligned(alignment, size); };
+        allocationCallbacks.pFree = [](void* ptr, void*) { MemDeallocate(ptr); };
         desc.pAllocationCallbacks = &allocationCallbacks;
         CHECK_HRESULT(D3D12MA::CreateAllocator(&desc, &pRenderer->dx.pResourceAllocator));
     }
@@ -2879,7 +2879,7 @@ void d3d12_addFence(Renderer* pRenderer, Fence** ppFence)
     ASSERT(ppFence);
 
     // create a Fence and ASSERT that it is valid
-    Fence* pFence = (Fence*)tf_calloc(1, sizeof(Fence));
+    Fence* pFence = (Fence*)MemCallocate(1, sizeof(Fence));
     ASSERT(pFence);
 
     CHECK_HRESULT(pRenderer->dx.pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_ARGS(&pFence->dx.pFence)));
@@ -2910,7 +2910,7 @@ void d3d12_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
     ASSERT(ppSemaphore);
 
     // create a Fence and ASSERT that it is valid
-    Semaphore* pSemaphore = (Semaphore*)tf_calloc(1, sizeof(Semaphore));
+    Semaphore* pSemaphore = (Semaphore*)MemCallocate(1, sizeof(Semaphore));
     ASSERT(pSemaphore);
 
     CHECK_HRESULT(pRenderer->dx.pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_ARGS(&pSemaphore->dx.pFence)));
@@ -2936,7 +2936,7 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
     ASSERT(pDesc);
     ASSERT(ppQueue);
 
-    Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
+    Queue* pQueue = (Queue*)MemCallocate(1, sizeof(Queue));
     ASSERT(pQueue);
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -3128,7 +3128,7 @@ HRESULT d3d12_initDirectStorage(Renderer* pRenderer, const DirectStorageDesc* pD
         }
     }
 
-    DirectStorage* pDirectStorage = (DirectStorage*)tf_calloc(1, sizeof(DirectStorage));
+    DirectStorage* pDirectStorage = (DirectStorage*)MemCallocate(1, sizeof(DirectStorage));
     ASSERT(pDirectStorage);
     pDirectStorage->pRenderer = pRenderer;
     pDirectStorage->pModule = module;
@@ -3176,7 +3176,7 @@ HRESULT d3d12_addDirectStorageQueue(DirectStorage* pDirectStorage, const DirectS
         return hr;
     }
 
-    DirectStorageQueue* pQueue = (DirectStorageQueue*)tf_calloc(1, sizeof(DirectStorageQueue));
+    DirectStorageQueue* pQueue = (DirectStorageQueue*)MemCallocate(1, sizeof(DirectStorageQueue));
     ASSERT(pQueue);
     pQueue->pQueue = pDxQueue;
 
@@ -3214,7 +3214,7 @@ HRESULT d3d12_openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t
         return hr;
     }
 
-    DirectStorageFile* pFile = (DirectStorageFile*)tf_calloc(1, sizeof(DirectStorageFile));
+    DirectStorageFile* pFile = (DirectStorageFile*)MemCallocate(1, sizeof(DirectStorageFile));
     ASSERT(pFile);
     pFile->pFile = pDxFile;
 
@@ -3252,7 +3252,7 @@ HRESULT d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_
         return hr;
     }
 
-    DirectStorageStatusArray* pStatusArray = (DirectStorageStatusArray*)tf_calloc(1, sizeof(DirectStorageStatusArray));
+    DirectStorageStatusArray* pStatusArray = (DirectStorageStatusArray*)MemCallocate(1, sizeof(DirectStorageStatusArray));
     ASSERT(pStatusArray);
     pStatusArray->pStatusArray = pDxStatusArray;
 
@@ -3376,7 +3376,7 @@ void d3d12_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** p
     ASSERT(ppCmdPool);
 
     // create one new CmdPool and add to renderer
-    CmdPool* pCmdPool = (CmdPool*)tf_calloc(1, sizeof(CmdPool));
+    CmdPool* pCmdPool = (CmdPool*)MemCallocate(1, sizeof(CmdPool));
     ASSERT(pCmdPool);
 
     CHECK_HRESULT(
@@ -3405,7 +3405,7 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     ASSERT(ppCmd);
 
     // initialize to zero
-    Cmd* pCmd = (Cmd*)tf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
+    Cmd* pCmd = (Cmd*)MemCallocateAligned(1, alignof(Cmd), sizeof(Cmd));
     ASSERT(pCmd);
 
     // set command pool of new command
@@ -3479,7 +3479,7 @@ void d3d12_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount
     ASSERT(cmdCount);
     ASSERT(pppCmd);
 
-    Cmd** ppCmds = (Cmd**)tf_calloc(cmdCount, sizeof(Cmd*));
+    Cmd** ppCmds = (Cmd**)MemCallocate(cmdCount, sizeof(Cmd*));
     ASSERT(ppCmds);
 
     // add n new cmds to given pool
@@ -3539,7 +3539,7 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
 
     LOGF(LogLevel::Info, "Adding D3D12 swapchain @ %ux%u", pDesc->width, pDesc->height);
 
-    SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + pDesc->imageCount * sizeof(RenderTarget*));
+    SwapChain* pSwapChain = (SwapChain*)MemCallocate(1, sizeof(SwapChain) + pDesc->imageCount * sizeof(RenderTarget*));
     ASSERT(pSwapChain);
     pSwapChain->ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
     ASSERT(pSwapChain->ppRenderTargets);
@@ -3735,7 +3735,7 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
 
     SetObjectName(pDxHeap, pDesc->pName);
 
-    ResourceHeap* pHeap = (ResourceHeap*)tf_calloc(1, sizeof(ResourceHeap));
+    ResourceHeap* pHeap = (ResourceHeap*)MemCallocate(1, sizeof(ResourceHeap));
     pHeap->dx.pHeap = pDxHeap;
     pHeap->size = pDesc->size;
 
@@ -3830,7 +3830,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     ASSERT(pDesc->size > 0);
 
     // initialize to zero
-    Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
+    Buffer* pBuffer = (Buffer*)MemCallocateAligned(1, alignof(Buffer), sizeof(Buffer));
     pBuffer->dx.descriptors = D3D12_DESCRIPTOR_ID_NONE;
     pBuffer->dx.gpuDescriptors = D3D12_DESCRIPTOR_ID_NONE;
     ASSERT(ppBuffer);
@@ -4081,7 +4081,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
     }
 
     // allocate new texture
-    Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), sizeof(Texture));
+    Texture* pTexture = (Texture*)MemCallocateAligned(1, alignof(Texture), sizeof(Texture));
     pTexture->dx.descriptors = D3D12_DESCRIPTOR_ID_NONE;
     pTexture->dx.gpuDescriptors = D3D12_DESCRIPTOR_ID_NONE;
     ASSERT(pTexture);
@@ -4411,7 +4411,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
 
     ((RenderTargetDesc*)pDesc)->mipLevels = max(1U, pDesc->mipLevels);
 
-    RenderTarget* pRenderTarget = (RenderTarget*)tf_calloc_memalign(1, alignof(RenderTarget), sizeof(RenderTarget));
+    RenderTarget* pRenderTarget = (RenderTarget*)MemCallocateAligned(1, alignof(RenderTarget), sizeof(RenderTarget));
     ASSERT(pRenderTarget);
 
     // add to gpu
@@ -4535,7 +4535,7 @@ void d3d12_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** p
     ASSERT(pDesc->compareFunc < MAX_COMPARE_MODES);
 
     // initialize to zero
-    Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
+    Sampler* pSampler = (Sampler*)MemCallocateAligned(1, alignof(Sampler), sizeof(Sampler));
     pSampler->dx.descriptor = D3D12_DESCRIPTOR_ID_NONE;
     ASSERT(pSampler);
 
@@ -4635,7 +4635,7 @@ void d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, S
         }
     }
 
-    Shader* pShaderProgram = (Shader*)tf_calloc(1, totalSize);
+    Shader* pShaderProgram = (Shader*)MemCallocate(1, totalSize);
     ASSERT(pShaderProgram);
 
     pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1); //-V1027
@@ -4762,7 +4762,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
         }
     }
 
-    Shader* pShaderProgram = (Shader*)tf_calloc(1, totalSize);
+    Shader* pShaderProgram = (Shader*)MemCallocate(1, totalSize);
     ASSERT(pShaderProgram);
 
     pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1); //-V1027
@@ -4932,7 +4932,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     for (uint32_t i = 0; i < pRootSignatureDesc->shaderCount; ++i)
         resourceCount += pRootSignatureDesc->ppShaders[i]->pReflection->shaderResourceCount;
     RootSignature* pRootSignature =
-        (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), sizeof(RootSignature) + resourceCount * sizeof(DescriptorInfo));
+        (RootSignature*)MemCallocateAligned(1, alignof(RootSignature), sizeof(RootSignature) + resourceCount * sizeof(DescriptorInfo));
     pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
     sh_new_arena(pRootSignature->pDescriptorNameToIndexMap);
     D3D12_ROOT_PARAMETER1 rootParams[D3D12_MAX_ROOT_COST] = {};
@@ -5050,7 +5050,7 @@ void d3d12_addRaytracingRootSignature(Renderer* renderer, uint32_t size, RootSig
 {
     *output = nullptr;
     ASSERT(size && !(size % 4) && size <= D3D12_MAX_ROOT_COST * sizeof(uint32_t));
-    RootSignature* root = (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), sizeof(RootSignature) + sizeof(DescriptorInfo));
+    RootSignature* root = (RootSignature*)MemCallocateAligned(1, alignof(RootSignature), sizeof(RootSignature) + sizeof(DescriptorInfo));
     root->pipelineType = PIPELINE_TYPE_COMPUTE;
     root->descriptorCount = 1;
     root->pDescriptors = (DescriptorInfo*)(root + 1);
@@ -5169,7 +5169,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     ASSERT(pDesc->pRootSignature);
 
     // allocate new pipeline
-    Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+    Pipeline* pPipeline = (Pipeline*)MemCallocateAligned(1, alignof(Pipeline), sizeof(Pipeline));
     ASSERT(pPipeline);
 
     const Shader*       pShaderProgram = pDesc->pShaderProgram;
@@ -5354,12 +5354,12 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
 #ifndef DISABLE_PIPELINE_LIBRARY
             if (psoCache)
             {
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->semantic, sizeof(ShaderSemantic), psoRenderHash);
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->format, sizeof(hz::Format), psoRenderHash);
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->binding, sizeof(uint32_t), psoRenderHash);
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->location, sizeof(uint32_t), psoRenderHash);
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&attrib->offset, sizeof(uint32_t), psoRenderHash);
-                psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pVertexLayout->bindings[attrib->binding].rate, sizeof(VertexBindingRate),
+                psoRenderHash = MemHash<uint8_t>((uint8_t*)&attrib->semantic, sizeof(ShaderSemantic), psoRenderHash);
+                psoRenderHash = MemHash<uint8_t>((uint8_t*)&attrib->format, sizeof(hz::Format), psoRenderHash);
+                psoRenderHash = MemHash<uint8_t>((uint8_t*)&attrib->binding, sizeof(uint32_t), psoRenderHash);
+                psoRenderHash = MemHash<uint8_t>((uint8_t*)&attrib->location, sizeof(uint32_t), psoRenderHash);
+                psoRenderHash = MemHash<uint8_t>((uint8_t*)&attrib->offset, sizeof(uint32_t), psoRenderHash);
+                psoRenderHash = MemHash<uint8_t>((uint8_t*)&pVertexLayout->bindings[attrib->binding].rate, sizeof(VertexBindingRate),
                                                      psoRenderHash);
             }
 #endif
@@ -5421,24 +5421,24 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     wchar_t pipelineName[MAX_DEBUG_NAME_LENGTH + 32] = {};
     if (psoCache)
     {
-        psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)VS.pShaderBytecode, VS.BytecodeLength, psoShaderHash);
-        psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)PS.pShaderBytecode, PS.BytecodeLength, psoShaderHash);
-        psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)HS.pShaderBytecode, HS.BytecodeLength, psoShaderHash);
-        psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)DS.pShaderBytecode, DS.BytecodeLength, psoShaderHash);
-        psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)GS.pShaderBytecode, GS.BytecodeLength, psoShaderHash);
+        psoShaderHash = MemHash<uint8_t>((uint8_t*)VS.pShaderBytecode, VS.BytecodeLength, psoShaderHash);
+        psoShaderHash = MemHash<uint8_t>((uint8_t*)PS.pShaderBytecode, PS.BytecodeLength, psoShaderHash);
+        psoShaderHash = MemHash<uint8_t>((uint8_t*)HS.pShaderBytecode, HS.BytecodeLength, psoShaderHash);
+        psoShaderHash = MemHash<uint8_t>((uint8_t*)DS.pShaderBytecode, DS.BytecodeLength, psoShaderHash);
+        psoShaderHash = MemHash<uint8_t>((uint8_t*)GS.pShaderBytecode, GS.BytecodeLength, psoShaderHash);
 
-        psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.BlendState, sizeof(D3D12_BLEND_DESC), psoRenderHash);
+        psoRenderHash = MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.BlendState, sizeof(D3D12_BLEND_DESC), psoRenderHash);
         psoRenderHash =
-            tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.DepthStencilState, sizeof(D3D12_DEPTH_STENCIL_DESC), psoRenderHash);
-        psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.RasterizerState, sizeof(D3D12_RASTERIZER_DESC), psoRenderHash);
+            MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.DepthStencilState, sizeof(D3D12_DEPTH_STENCIL_DESC), psoRenderHash);
+        psoRenderHash = MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.RasterizerState, sizeof(D3D12_RASTERIZER_DESC), psoRenderHash);
 
         psoRenderHash =
-            tf_mem_hash<uint8_t>((uint8_t*)pipeline_state_desc.RTVFormats, render_target_count * sizeof(DXGI_FORMAT), psoRenderHash);
-        psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.DSVFormat, sizeof(DXGI_FORMAT), psoRenderHash);
-        psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.PrimitiveTopologyType, sizeof(D3D12_PRIMITIVE_TOPOLOGY_TYPE),
+            MemHash<uint8_t>((uint8_t*)pipeline_state_desc.RTVFormats, render_target_count * sizeof(DXGI_FORMAT), psoRenderHash);
+        psoRenderHash = MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.DSVFormat, sizeof(DXGI_FORMAT), psoRenderHash);
+        psoRenderHash = MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.PrimitiveTopologyType, sizeof(D3D12_PRIMITIVE_TOPOLOGY_TYPE),
                                              psoRenderHash);
-        psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.SampleDesc, sizeof(DXGI_SAMPLE_DESC), psoRenderHash);
-        psoRenderHash = tf_mem_hash<uint8_t>((uint8_t*)&pipeline_state_desc.NodeMask, sizeof(UINT), psoRenderHash);
+        psoRenderHash = MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.SampleDesc, sizeof(DXGI_SAMPLE_DESC), psoRenderHash);
+        psoRenderHash = MemHash<uint8_t>((uint8_t*)&pipeline_state_desc.NodeMask, sizeof(UINT), psoRenderHash);
 
         swprintf(pipelineName, L"%S_S%zuR%zu", (pMainDesc->pName ? pMainDesc->pName : "GRAPHICSPSO"), psoShaderHash, psoRenderHash);
         result = psoCache->LoadGraphicsPipeline(pipelineName, &pipeline_state_desc, IID_ARGS(&pPipeline->dx.pPipelineState));
@@ -5507,7 +5507,7 @@ void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipe
     ASSERT(pDesc->pShaderProgram->dx.pShaderBlobs[0]);
 
     // allocate new pipeline
-    Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+    Pipeline* pPipeline = (Pipeline*)MemCallocateAligned(1, alignof(Pipeline), sizeof(Pipeline));
     ASSERT(pPipeline);
 
     pPipeline->dx.type = PIPELINE_TYPE_COMPUTE;
@@ -5541,7 +5541,7 @@ void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipe
     if (psoCache)
     {
         size_t psoShaderHash = 0;
-        psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)CS.pShaderBytecode, CS.BytecodeLength, psoShaderHash);
+        psoShaderHash = MemHash<uint8_t>((uint8_t*)CS.pShaderBytecode, CS.BytecodeLength, psoShaderHash);
 
         swprintf(pipelineName, L"%S_S%zu", (pMainDesc->pName ? pMainDesc->pName : "COMPUTEPSO"), psoShaderHash);
         result = psoCache->LoadComputePipeline(pipelineName, &pipeline_state_desc, IID_ARGS(&pPipeline->dx.pPipelineState));
@@ -5608,13 +5608,13 @@ void d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc,
     ASSERT(pDesc);
     ASSERT(ppPipelineCache);
 
-    PipelineCache* pPipelineCache = (PipelineCache*)tf_calloc(1, sizeof(PipelineCache));
+    PipelineCache* pPipelineCache = (PipelineCache*)MemCallocate(1, sizeof(PipelineCache));
     ASSERT(pPipelineCache);
 
     if (pDesc->size)
     {
         // D3D12 does not copy pipeline cache data. We have to keep it around until the cache is alive
-        pPipelineCache->dx.pData = tf_malloc(pDesc->size);
+        pPipelineCache->dx.pData = MemAllocate(pDesc->size);
         memcpy(pPipelineCache->dx.pData, pDesc->pData, pDesc->size);
     }
 
@@ -6497,12 +6497,12 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
                 {
                     continue;
                 }
-                D3D12_MESSAGE* message = (D3D12_MESSAGE*)tf_malloc(size);
+                D3D12_MESSAGE* message = (D3D12_MESSAGE*)MemAllocate(size);
                 if (SUCCEEDED(info->GetMessage(i, message, &size)) && message->Severity <= D3D12_MESSAGE_SEVERITY_ERROR)
                 {
                     LOGF(LogLevel::Error, "D3D12 message %u: %s", (uint32_t)message->ID, message->pDescription);
                 }
-                tf_free(message);
+                MemDeallocate(message);
             }
             info->Release();
         }
@@ -6640,7 +6640,7 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
     ASSERT(pDesc->pArgDescs);
     ASSERT(ppCommandSignature);
 
-    CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature));
+    CommandSignature* pCommandSignature = (CommandSignature*)MemCallocate(1, sizeof(CommandSignature));
     ASSERT(pCommandSignature);
 
     bool                 needRootSignature = false;
@@ -6801,7 +6801,7 @@ void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPo
     ASSERT(pDesc);
     ASSERT(ppQueryPool);
 
-    QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool));
+    QueryPool* pQueryPool = (QueryPool*)MemCallocate(1, sizeof(QueryPool));
     ASSERT(pQueryPool);
 
     const uint32_t queryCount = pDesc->queryCount * (QUERY_TYPE_TIMESTAMP == pDesc->type ? 2 : 1);
@@ -6983,7 +6983,7 @@ void d3d12_calculateMemoryStats(Renderer* pRenderer, char** stats)
     const int utf8Size = WideCharToMultiByte(CP_UTF8, 0, wstats, -1, NULL, 0, NULL, NULL);
     if (utf8Size > 0)
     {
-        *stats = (char*)tf_malloc((size_t)utf8Size);
+        *stats = (char*)MemAllocate((size_t)utf8Size);
         if (*stats)
         {
             WideCharToMultiByte(CP_UTF8, 0, wstats, -1, *stats, utf8Size, NULL, NULL);
@@ -6991,7 +6991,7 @@ void d3d12_calculateMemoryStats(Renderer* pRenderer, char** stats)
     }
     else
     {
-        *stats = (char*)tf_malloc(1);
+        *stats = (char*)MemAllocate(1);
         if (*stats)
             (*stats)[0] = '\0';
     }
@@ -7009,7 +7009,7 @@ void d3d12_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t
 void d3d12_freeMemoryStats(Renderer* pRenderer, char* stats)
 {
     UNREF_PARAM(pRenderer);
-    tf_free(stats);
+    MemDeallocate(stats);
 }
 /************************************************************************/
 // Debug Marker Implementation

@@ -33,16 +33,16 @@ private:
 
 namespace hz
 {
-static void* worldMalloc(ecs_size_t size) { return tf_malloc(size); }
-static void* worldCalloc(ecs_size_t size) { return tf_calloc(1, size); }
-static void* worldRealloc(void* pData, ecs_size_t size) { return tf_realloc(pData, size); }
-static void  worldFree(void* pData) { tf_free(pData); }
+static void* worldMalloc(ecs_size_t size) { return MemAllocate(size); }
+static void* worldCalloc(ecs_size_t size) { return MemCallocate(1, size); }
+static void* worldRealloc(void* pData, ecs_size_t size) { return MemReallocate(pData, size); }
+static void  worldFree(void* pData) { MemDeallocate(pData); }
 static char* worldStrdup(const char* pText)
 {
     if (!pText)
         return nullptr;
     const size_t size = strlen(pText) + 1;
-    char*        pCopy = (char*)tf_malloc(size);
+    char*        pCopy = (char*)MemAllocate(size);
     memcpy(pCopy, pText, size);
     return pCopy;
 }
@@ -150,21 +150,21 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuid
         const WorldType mapping = { .key = pType->id, .component = component, .pType = pType };
         hmputs(pTypes, mapping);
     }
-    pHierarchy = tf_new(WorldHierarchy, *this);
+    pHierarchy = MemNew(WorldHierarchy, *this);
 }
 
 WorldImpl::~WorldImpl()
 {
     checkThread();
     ASSERT(!ecs_is_deferred(pWorld));
-    tf_delete(pHierarchy);
+    MemDelete(pHierarchy);
     ecs_fini(pWorld);
     hmfree(pEntityGuids);
     hmfree(pTypes);
 }
 
-World::World(const TypeRegistry& registry, const IDGenerator& entityGuids): pImpl(tf_new(WorldImpl, registry, entityGuids)) {}
-World::~World() { tf_delete(pImpl); }
+World::World(const TypeRegistry& registry, const IDGenerator& entityGuids): pImpl(MemNew(WorldImpl, registry, entityGuids)) {}
+World::~World() { MemDelete(pImpl); }
 
 Entity World::createEntity()
 {
@@ -239,11 +239,11 @@ bool World::setComponent(Entity entity, TypeID type, const void* pValue)
     {
         // Adding a component can move the table containing pValue before Flecs copies it.
         const TypeDesc& description = *pType->pType;
-        void*           pCopy = tf_memalign(description.alignment, description.size);
+        void*           pCopy = MemAllocateAligned(description.alignment, description.size);
         description.copyConstruct(pCopy, pValue);
         ecs_set_id(pImpl->pWorld, entity.value, pType->component, description.size, pCopy);
         description.destroy(pCopy);
-        tf_free(pCopy);
+        MemDeallocate(pCopy);
         return true;
     }
     ecs_set_id(pImpl->pWorld, entity.value, pType->component, pType->pType->size, pValue);
@@ -314,8 +314,8 @@ WorldQueryImpl::~WorldQueryImpl()
         ecs_query_fini(pQuery);
 }
 
-WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(tf_new(WorldQueryImpl, world, types)) {}
-WorldQuery::~WorldQuery() { tf_delete(pImpl); }
+WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(MemNew(WorldQueryImpl, world, types)) {}
+WorldQuery::~WorldQuery() { MemDelete(pImpl); }
 
 bool WorldQuery::isValid() const { return pImpl->pQuery != nullptr; }
 

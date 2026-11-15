@@ -22,11 +22,11 @@ public:
 		manager = man;
 		dIPadMax = maxPadCnt;
 		dIPadCnt = 0;
-		dInputPads = (InputDevicePad**)tf_calloc(dIPadMax, sizeof(InputDevicePad*));
+		dInputPads = (InputDevicePad**)MemCallocate(dIPadMax, sizeof(InputDevicePad*));
 
 		for (int i = 0; i < dIPadMax; ++i)
 		{
-			dInputPads[i] = tf_new(gainput::InputDevicePad, *manager, -1, InputDevice::AutoIndex, InputDevice::DV_STANDARD);
+			dInputPads[i] = MemNew(gainput::InputDevicePad, *manager, -1, InputDevice::AutoIndex, InputDevice::DV_STANDARD);
 			GAINPUT_ASSERT(dInputPads[i]);
 		}
 
@@ -45,11 +45,11 @@ public:
 		{
 			for (int i = 0; i < dIPadMax; ++i)
 			{
-				tf_delete(dInputPads[i]);
+				MemDelete(dInputPads[i]);
 				dInputPads[i] = NULL;
 			}
 
-			tf_free(dInputPads);
+			MemDeallocate(dInputPads);
 		}
 	}
 

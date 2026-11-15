@@ -134,10 +134,10 @@ double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char* pName)
 {
-    GpuProfiler* pGpuProfiler = (GpuProfiler*)tf_calloc(1, sizeof(*pGpuProfiler));
+    GpuProfiler* pGpuProfiler = (GpuProfiler*)MemCallocate(1, sizeof(*pGpuProfiler));
     ASSERT(pGpuProfiler);
 
-    tf_placement_new<GpuProfiler>(pGpuProfiler);
+    MemPlacementNew<GpuProfiler>(pGpuProfiler);
     pGpuProfiler->pRenderer = pRenderer;
     strncpy(pGpuProfiler->groupName, pName, sizeof pGpuProfiler->groupName - 1);
     pGpuProfiler->groupName[sizeof pGpuProfiler->groupName - 1] = 0;
@@ -155,7 +155,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
     initGpuProfilerBackend(pRenderer, pQueue, pGpuProfiler);
 
-    pGpuProfiler->pGpuTimerPool = (GpuTimer*)tf_calloc(GpuProfiler::MAX_TIMERS, sizeof(*pGpuProfiler->pGpuTimerPool));
+    pGpuProfiler->pGpuTimerPool = (GpuTimer*)MemCallocate(GpuProfiler::MAX_TIMERS, sizeof(*pGpuProfiler->pGpuTimerPool));
     pGpuProfiler->pCurrentNode = &pGpuProfiler->pGpuTimerPool[0];
     pGpuProfiler->currentPoolIndex = 0;
 
@@ -171,19 +171,19 @@ void removeGpuProfiler(struct GpuProfiler* pGpuProfiler)
 
     exitGpuProfilerBackend(pGpuProfiler);
 
-    tf_free(pGpuProfiler->pGpuTimerPool);
-    tf_free(pGpuProfiler);
+    MemDeallocate(pGpuProfiler->pGpuTimerPool);
+    MemDeallocate(pGpuProfiler);
 }
 
 ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker = true,
                                        const float3& color = { 1, 1, 0 }, bool isRoot = false)
 {
     GpuTimer* node = NULL;
-    size_t    nameHash = tf_mem_hash<char>(pName, strlen(pName));
+    size_t    nameHash = MemHash<char>(pName, strlen(pName));
 
     for (GpuTimer* parent = pGpuProfiler->pCurrentNode; parent; parent = parent->pParent)
     {
-        nameHash = tf_mem_hash<char>(parent->name, strlen(parent->name), nameHash);
+        nameHash = MemHash<char>(parent->name, strlen(parent->name), nameHash);
     }
 
     for (uint32_t i = 0; i < pGpuProfiler->currentPoolIndex; ++i)
@@ -261,9 +261,9 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool i
 
 void initGpuProfilers()
 {
-    gGpuProfilerContainer = (GpuProfilerContainer*)tf_calloc(1, sizeof(*gGpuProfilerContainer));
+    gGpuProfilerContainer = (GpuProfilerContainer*)MemCallocate(1, sizeof(*gGpuProfilerContainer));
     ASSERT(gGpuProfilerContainer);
-    tf_placement_new<GpuProfilerContainer>(gGpuProfilerContainer);
+    MemPlacementNew<GpuProfilerContainer>(gGpuProfilerContainer);
 }
 
 void exitGpuProfilers()
@@ -280,7 +280,7 @@ void exitGpuProfilers()
         }
     }
 
-    tf_free(gGpuProfilerContainer);
+    MemDeallocate(gGpuProfilerContainer);
     gGpuProfilerContainer = NULL;
 }
 

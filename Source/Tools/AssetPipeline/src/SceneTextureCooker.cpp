@@ -203,14 +203,14 @@ SceneTextureCooker::SceneTextureCooker(ResourceDirectory sourceDirectory, Resour
 {
     GetParentPath(pSourceFile, sourceParent);
 #if defined(_WIN32)
-    pEncoder = tf_new(TextureEncoder);
+    pEncoder = MemNew(TextureEncoder);
 #endif
 }
 
 SceneTextureCooker::~SceneTextureCooker()
 {
 #if defined(_WIN32)
-    tf_delete(pEncoder);
+    MemDelete(pEncoder);
 #endif
 }
 

@@ -53,7 +53,7 @@ public:
     {
         Pointer Old = Ptr;
         Ptr = NewPtr;
-        tf_delete_internal(Old, __FILE__, __LINE__, __FUNCTION__);
+        MemDeleteInternal(Old, __FILE__, __LINE__, __FUNCTION__);
     }
 
     void Swap(UniquePtr& Other) noexcept
@@ -70,6 +70,6 @@ private:
 template<typename T, typename... Args>
 UniquePtr<T> MakeUnique(Args&&... args)
 {
-    return UniquePtr<T>(tf_new_internal<T>(__FILE__, __LINE__, __FUNCTION__, std::forward<Args>(args)...));
+    return UniquePtr<T>(MemNewInternal<T>(__FILE__, __LINE__, __FUNCTION__, std::forward<Args>(args)...));
 }
 } // namespace hz

@@ -134,8 +134,8 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
     EXPECT_EQ(pipeline.pVariables[cameraPosIndex].parent_index, frameDataIndex);
     EXPECT_EQ(pipeline.pVariables[exposureIndex].parent_index, frameDataIndex);
 
-    tf_free(pipeline.pShaderResources);
-    tf_free(pipeline.pVariables);
+    MemDeallocate(pipeline.pShaderResources);
+    MemDeallocate(pipeline.pVariables);
 }
 
 // Verifies that descriptor-name helpers detect root constants and root CBVs regardless of letter case.

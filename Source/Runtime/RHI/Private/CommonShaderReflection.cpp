@@ -76,10 +76,10 @@ void destroyShaderReflection(ShaderReflection* pReflection)
     if (pReflection == NULL)
         return;
 
-    tf_free(pReflection->pNamePool);
-    tf_free(pReflection->pVertexInputs);
-    tf_free(pReflection->pShaderResources);
-    tf_free(pReflection->pVariables);
+    MemDeallocate(pReflection->pNamePool);
+    MemDeallocate(pReflection->pVertexInputs);
+    MemDeallocate(pReflection->pShaderResources);
+    MemDeallocate(pReflection->pVariables);
 }
 
 void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection)
@@ -215,7 +215,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     // Copy over the shader resources in a dynamic array of the correct size
     if (arrlen(pUniqueResources))
     {
-        pResources = (ShaderResource*)tf_calloc(arrlen(pUniqueResources), sizeof(ShaderResource));
+        pResources = (ShaderResource*)MemCallocate(arrlen(pUniqueResources), sizeof(ShaderResource));
 
         for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueResources); ++i)
         {
@@ -227,7 +227,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     // Copy over the shader variables in a dynamic array of the correct size
     if (arrlen(pUniqueVariable))
     {
-        pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * arrlen(pUniqueVariable));
+        pVariables = (ShaderVariable*)MemAllocate(sizeof(ShaderVariable) * arrlen(pUniqueVariable));
 
         for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueVariable); ++i)
         {
@@ -276,6 +276,6 @@ void destroyPipelineReflection(PipelineReflection* pReflection)
     for (uint32_t i = 0; i < pReflection->stageReflectionCount; ++i)
         destroyShaderReflection(&pReflection->stageReflections[i]);
 
-    tf_free(pReflection->pShaderResources);
-    tf_free(pReflection->pVariables);
+    MemDeallocate(pReflection->pShaderResources);
+    MemDeallocate(pReflection->pVariables);
 }

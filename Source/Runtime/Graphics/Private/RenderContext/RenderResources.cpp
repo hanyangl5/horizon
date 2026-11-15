@@ -675,7 +675,7 @@ bool RenderContext::initPipelineCache()
         if (headerRead && memcmp(&header, &expected, sizeof(header)) == 0)
         {
             const size_t blobSize = (size_t)fileSize - sizeof(header);
-            pBlob = tf_malloc(blobSize);
+            pBlob = MemAllocate(blobSize);
             if (pBlob && ReadFromStream(&stream, pBlob, blobSize) == blobSize)
             {
                 cacheDesc.pData = pBlob;
@@ -685,7 +685,7 @@ bool RenderContext::initPipelineCache()
         CloseStream(&stream);
     }
     addPipelineCache(pRenderer, &cacheDesc, &pPipelineCache);
-    tf_free(pBlob);
+    MemDeallocate(pBlob);
     return pPipelineCache != nullptr;
 }
 
@@ -697,7 +697,7 @@ void RenderContext::savePipelineCache()
     getPipelineCacheData(pRenderer, pPipelineCache, &blobSize, nullptr);
     if (!blobSize)
         return;
-    uint8_t* pBlob = (uint8_t*)tf_malloc(blobSize);
+    uint8_t* pBlob = (uint8_t*)MemAllocate(blobSize);
     if (!pBlob)
         return;
     getPipelineCacheData(pRenderer, pPipelineCache, &blobSize, pBlob);
@@ -710,6 +710,6 @@ void RenderContext::savePipelineCache()
         WriteToStream(&stream, pBlob, blobSize);
         CloseStream(&stream);
     }
-    tf_free(pBlob);
+    MemDeallocate(pBlob);
 }
 } // namespace hz

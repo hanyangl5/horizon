@@ -65,7 +65,7 @@ static int compareTypes(const void* pA, const void* pB)
     return (a > b) - (a < b);
 }
 
-WorldArchive::~WorldArchive() { tf_delete(pData); }
+WorldArchive::~WorldArchive() { MemDelete(pData); }
 Guid WorldArchive::getID() const { return pData ? pData->id : Guid{}; }
 bool WorldArchive::parse(Span<char> json)
 {
@@ -88,7 +88,7 @@ bool WorldArchive::parse(Span<char> json)
     candidate->text.resize(count + 1);
     memcpy(candidate->text.data(), json.pData, count);
     candidate->text[count] = 0;
-    tf_delete(pData);
+    MemDelete(pData);
     pData = candidate.Release();
     return true;
 }
@@ -203,11 +203,11 @@ bool WorldArchive::capture(World& world, Guid id)
 class ComponentValue
 {
 public:
-    explicit ComponentValue(const TypeDesc& type): type(type), pValue(tf_memalign(type.alignment, type.size)) { type.construct(pValue); }
+    explicit ComponentValue(const TypeDesc& type): type(type), pValue(MemAllocateAligned(type.alignment, type.size)) { type.construct(pValue); }
     ~ComponentValue()
     {
         type.destroy(pValue);
-        tf_free(pValue);
+        MemDeallocate(pValue);
     }
     const TypeDesc& type;
     void*           pValue;

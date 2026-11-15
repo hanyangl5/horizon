@@ -317,7 +317,7 @@ void collectMonitorInfo()
     if (monitorCount)
     {
         gMonitorCount = monitorCount;
-        gMonitors = (MonitorDesc*)tf_calloc(monitorCount, sizeof(MonitorDesc));
+        gMonitors = (MonitorDesc*)MemCallocate(monitorCount, sizeof(MonitorDesc));
         for (int adapterIndex = 0;; ++adapterIndex)
         {
             if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
@@ -383,7 +383,7 @@ void collectMonitorInfo()
         if (currentMonitor)
         {
             monitorCount = 1;
-            gMonitors = (MonitorDesc*)tf_calloc(monitorCount, sizeof(MonitorDesc));
+            gMonitors = (MonitorDesc*)MemCallocate(monitorCount, sizeof(MonitorDesc));
 
             MONITORINFOEXW info;
             info.cbSize = sizeof(MONITORINFOEXW);
@@ -1345,7 +1345,7 @@ void exitWindowClass()
     for (uint32_t i = 0; i < gMonitorCount; ++i)
         arrfree(gMonitors[i].resolutions);
 
-    tf_free(gMonitors);
+    MemDeallocate(gMonitors);
     gMonitors = nullptr;
     gMonitorCount = 0;
 }

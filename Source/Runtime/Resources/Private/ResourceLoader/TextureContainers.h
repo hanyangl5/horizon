@@ -203,12 +203,12 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
                                  [](void* user, size_t size)
                                  {
                                      UNREF_PARAM(user);
-                                     return tf_malloc(size);
+                                     return MemAllocate(size);
                                  },
                                  [](void* user, void* memory)
                                  {
                                      UNREF_PARAM(user);
-                                     tf_free(memory);
+                                     MemDeallocate(memory);
                                  },
                                  [](void* user, void* buffer, size_t byteCount)
                                  { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
@@ -268,12 +268,12 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
                                  [](void* user, size_t size)
                                  {
                                      UNREF_PARAM(user);
-                                     return tf_malloc(size);
+                                     return MemAllocate(size);
                                  },
                                  [](void* user, void* memory)
                                  {
                                      UNREF_PARAM(user);
-                                     tf_free(memory);
+                                     MemDeallocate(memory);
                                  },
                                  [](void* user, void* buffer, size_t byteCount)
                                  { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },

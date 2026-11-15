@@ -161,7 +161,7 @@ void fswThreadFunc(void* data)
 
 FileWatcher* CreateFileWatcher(const char* path, FileWatcherEventMask eventMask, FileWatcherCallback callback, void* callbackUserData)
 {
-    FileWatcher* watcher = (FileWatcher*)tf_calloc(1, sizeof(FileWatcher));
+    FileWatcher* watcher = (FileWatcher*)MemCallocate(1, sizeof(FileWatcher));
     // watcher->mWatchDir = CopyPath(path);
     strcpy(watcher->path, path);
 
@@ -201,7 +201,7 @@ void FreeFileWatcher(FileWatcher* fileWatcher)
     SetEvent(fileWatcher->hExitEvt);
     JoinThread(fileWatcher->thread);
     CloseHandle(fileWatcher->hExitEvt);
-    tf_free(fileWatcher);
+    MemDeallocate(fileWatcher);
 }
 #endif
 
@@ -433,7 +433,7 @@ bool DirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIte
 {
     *out = 0;
 
-    struct WindowsFsDirectoryIterator* iterator = (struct WindowsFsDirectoryIterator*)tf_calloc(1, sizeof *iterator);
+    struct WindowsFsDirectoryIterator* iterator = (struct WindowsFsDirectoryIterator*)MemCallocate(1, sizeof *iterator);
 
     AppendPathComponent(GetResourceDirectory(rd), dir, iterator->openedPath);
 
@@ -456,7 +456,7 @@ void DirectoryIteratorClose(FsDirectoryIterator data)
 
     if (iterator->hFind)
         FindClose(iterator->hFind);
-    tf_free(iterator);
+    MemDeallocate(iterator);
 }
 
 bool DirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIteratorEntry* outEntry)

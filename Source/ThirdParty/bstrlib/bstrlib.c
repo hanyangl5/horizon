@@ -221,10 +221,10 @@ BSTR_DECLARE_FN(int, bmakedynamic, bstring*  b, int len)
 	int minlen = len;
 	len = snapUpSize(minlen);
 
-	unsigned char* x = (unsigned char*)tf_malloc_internal(len, FILE_NAME, FILE_LINE, pFunction);
+	unsigned char* x = (unsigned char*)MemAllocateInternal(len, FILE_NAME, FILE_LINE, pFunction);
 	/* Try allocating smaller memory */
 	if (x == NULL)
-		x = (unsigned char*)tf_malloc_internal((len = minlen), FILE_NAME, FILE_LINE, pFunction);
+		x = (unsigned char*)MemAllocateInternal((len = minlen), FILE_NAME, FILE_LINE, pFunction);
 
 	ASSERT(x != NULL);
 	if (b->slen)
@@ -271,7 +271,7 @@ BSTR_DECLARE_FN(int, bmakedynamicmin, bstring*  b, int len)
 	if (len < b->slen + 1)
 		len = b->slen + 1;
 
-	unsigned char* x = (unsigned char*)tf_malloc_internal(len, FILE_NAME, FILE_LINE, pFunction);
+	unsigned char* x = (unsigned char*)MemAllocateInternal(len, FILE_NAME, FILE_LINE, pFunction);
 	ASSERT(x != NULL);
 
 	if (b->slen)
@@ -328,14 +328,14 @@ BSTR_DECLARE_FN(int, balloc, bstring* b, int olen)
 
 			reallocStrategy:;
 
-			x = (unsigned char *)tf_realloc_internal(b->data, (size_t)len, FILE_NAME, FILE_LINE, pFunction);
+			x = (unsigned char *)MemReallocateInternal(b->data, (size_t)len, FILE_NAME, FILE_LINE, pFunction);
 			if (x == NULL) {
 
 				/* Since we failed, try allocating the tighest possible
 				   allocation */
 
 				len = olen;
-				x = (unsigned char *)tf_realloc_internal(b->data, (size_t) olen, FILE_NAME, FILE_LINE, pFunction);
+				x = (unsigned char *)MemReallocateInternal(b->data, (size_t) olen, FILE_NAME, FILE_LINE, pFunction);
 				ASSERT(x);
 			}
 		} 
@@ -346,7 +346,7 @@ BSTR_DECLARE_FN(int, balloc, bstring* b, int olen)
 			   the extra bytes that are allocated, but not considered part of
 			   the string */
 
-			if (NULL == (x = (unsigned char *) tf_malloc_internal((size_t) len, FILE_NAME, FILE_LINE, pFunction)))
+			if (NULL == (x = (unsigned char *) MemAllocateInternal((size_t) len, FILE_NAME, FILE_LINE, pFunction)))
 			{
 
 				/* Perhaps there is no available memory for the two
@@ -360,7 +360,7 @@ BSTR_DECLARE_FN(int, balloc, bstring* b, int olen)
 				if (b->slen) 
 					memcpy ((char *) x, (char *) b->data, (size_t) b->slen);
 				
-				tf_free_internal(b->data, FILE_NAME, FILE_LINE, pFunction);
+				MemDeallocateInternal(b->data, FILE_NAME, FILE_LINE, pFunction);
 			}
 		}
 		b->data = x;
@@ -419,7 +419,7 @@ BSTR_DECLARE_FN(int, ballocmin, bstring*  b, int len) {
 
 	if (len != mlen) 
 	{
-		s = (unsigned char *) tf_realloc_internal(b->data, (size_t) len, FILE_NAME, FILE_LINE, pFunction);
+		s = (unsigned char *) MemReallocateInternal(b->data, (size_t) len, FILE_NAME, FILE_LINE, pFunction);
 		ASSERT(s != NULL);
 		ASSERT(len > b->slen);
 		b->data = s;
@@ -1242,7 +1242,7 @@ BSTR_DECLARE_FN(int, bdestroy, bstring* b) {
 	ASSERT(bisvalid(b));
 
 	if (bownsdata(b))
-		tf_free_internal(b->data, FILE_NAME, FILE_LINE, pFunction);
+		MemDeallocateInternal(b->data, FILE_NAME, FILE_LINE, pFunction);
 
 #ifdef BSTR_ALLOW_USAGE_AFTER_DESTROY
 	*b = bempty();
@@ -1253,7 +1253,7 @@ BSTR_DECLARE_FN(int, bdestroy, bstring* b) {
 #endif // BSTR_ALLOW_USAGE_AFTER_DESTROY
 
 	/* TF: We never own tagbstring
-	tf_free (b);
+	MemDeallocate (b);
 	*/
 	return BSTR_OK;
 }
@@ -2170,7 +2170,7 @@ static BSTR_DECLARE_FN(int, findreplaceengine,
 			mlen += mlen;
 			sl = sizeof (int *) * mlen;
 			if (static_d == d) d = NULL; /* static_d cannot be realloced */
-			t = (int *)tf_realloc_internal(d, sl, FILE_NAME, FILE_LINE, pFunction);
+			t = (int *)MemReallocateInternal(d, sl, FILE_NAME, FILE_LINE, pFunction);
 			ASSERT(t != NULL);
 			if (NULL == d) memcpy (t, static_d, sizeof (static_d));
 			d = t;
@@ -2209,7 +2209,7 @@ static BSTR_DECLARE_FN(int, findreplaceengine,
 	writeNull(b, b->slen);
 
 	done:;
-	if (static_d != d) tf_free_internal(d, FILE_NAME, FILE_LINE, pFunction);
+	if (static_d != d) MemDeallocateInternal(d, FILE_NAME, FILE_LINE, pFunction);
 	if (auxf.data != find->data) bdestroy (&auxf);
 	if (auxr.data != repl->data) bdestroy (&auxr);
 	ASSERT(ret == BSTR_OK);
@@ -3122,11 +3122,11 @@ bstring* bfromcstr(const char * str) {
 	i = snapUpSize((int)(j + (2 - (j != 0))));
 	if (i <= (int)j) return NULL;
 
-	b = (bstring*)tf_malloc(sizeof(struct tagbstring));
+	b = (bstring*)MemAllocate(sizeof(struct tagbstring));
 	if (NULL == b) return NULL;
 	b->slen = (int)j;
-	if (NULL == (b->data = (unsigned char *)tf_malloc(b->mlen = i))) {
-		tf_free(b);
+	if (NULL == (b->data = (unsigned char *)MemAllocate(b->mlen = i))) {
+		MemDeallocate(b);
 		return NULL;
 	}
 
@@ -3156,14 +3156,14 @@ bstring* bfromcstrrangealloc(int minl, int maxl, const char* str) {
 	if (maxl < minl) maxl = minl;
 	i = maxl;
 
-	b = (bstring*)tf_malloc(sizeof(struct tagbstring));
+	b = (bstring*)MemAllocate(sizeof(struct tagbstring));
 	if (b == NULL) return NULL;
 	b->slen = (int)j;
 
-	while (NULL == (b->data = (unsigned char *)tf_malloc(b->mlen = i))) {
+	while (NULL == (b->data = (unsigned char *)MemAllocate(b->mlen = i))) {
 		int k = (i >> 1) + (minl >> 1);
 		if (i == k || i < minl) {
-			tf_free(b);
+			MemDeallocate(b);
 			return NULL;
 		}
 		i = k;
@@ -3193,7 +3193,7 @@ bstring* blk2bstr(const void * blk, int len) {
 	int i;
 
 	if (blk == NULL || len < 0) return NULL;
-	b = (bstring*)tf_malloc(sizeof(struct tagbstring));
+	b = (bstring*)MemAllocate(sizeof(struct tagbstring));
 	if (b == NULL) return NULL;
 	b->slen = len;
 
@@ -3202,9 +3202,9 @@ bstring* blk2bstr(const void * blk, int len) {
 
 	b->mlen = i;
 
-	b->data = (unsigned char *)tf_malloc((size_t)b->mlen);
+	b->data = (unsigned char *)MemAllocate((size_t)b->mlen);
 	if (b->data == NULL) {
-		tf_free(b);
+		MemDeallocate(b);
 		return NULL;
 	}
 
@@ -3227,7 +3227,7 @@ char * bstr2cstr(const bstring* b, char z) {
 
 	if (b == NULL || b->slen < 0 || b->data == NULL) return NULL;
 	l = b->slen;
-	r = (char *)tf_malloc((size_t)(l + 1));
+	r = (char *)MemAllocate((size_t)(l + 1));
 	if (r == NULL) return r;
 
 	for (i = 0; i < l; i++) {
@@ -3242,8 +3242,8 @@ char * bstr2cstr(const bstring* b, char z) {
 /*  int bcstrfree (char * s)
  *
  *  Frees a C-string generated by bstr2cstr ().  This is normally unnecessary
- *  since it just wraps a call to tf_free (), however, if tf_malloc ()
- *  and tf_free () have been redefined as a macros within the bstrlib
+ *  since it just wraps a call to MemDeallocate (), however, if MemAllocate ()
+ *  and MemDeallocate () have been redefined as a macros within the bstrlib
  *  module (via defining them in memdbg.h after defining
  *  BSTRLIB_MEMORY_DEBUG) with some difference in behaviour from the std
  *  library functions, then this allows a correct way of freeing the memory
@@ -3252,7 +3252,7 @@ char * bstr2cstr(const bstring* b, char z) {
  */
 int bcstrfree(char * s) {
 	if (s) {
-		tf_free(s);
+		MemDeallocate(s);
 		return BSTR_OK;
 	}
 	return BSTR_ERR;
@@ -3268,7 +3268,7 @@ bstring* bstrcpy(const bstring* b) {
 	/* Attempted to copy an invalid string? */
 	if (b == NULL || b->slen < 0 || b->data == NULL) return NULL;
 
-	b0 = (bstring*)tf_malloc(sizeof(struct tagbstring));
+	b0 = (bstring*)MemAllocate(sizeof(struct tagbstring));
 	if (b0 == NULL) {
 		/* Unable to allocate memory for string header */
 		return NULL;
@@ -3277,13 +3277,13 @@ bstring* bstrcpy(const bstring* b) {
 	i = b->slen;
 	j = snapUpSize(i + 1);
 
-	b0->data = (unsigned char *)tf_malloc(j);
+	b0->data = (unsigned char *)MemAllocate(j);
 	if (b0->data == NULL) {
 		j = i + 1;
-		b0->data = (unsigned char *)tf_malloc(j);
+		b0->data = (unsigned char *)MemAllocate(j);
 		if (b0->data == NULL) {
 			/* Unable to allocate memory for string data */
-			tf_free(b0);
+			MemDeallocate(b0);
 			return NULL;
 		}
 	}
@@ -3473,7 +3473,7 @@ struct bStream * bsopen (bNread readPtr, void * parm) {
 struct bStream * s;
 
 	if (readPtr == NULL) return NULL;
-	s = (struct bStream *) tf_malloc (sizeof (struct bStream));
+	s = (struct bStream *) MemAllocate (sizeof (struct bStream));
 	if (s == NULL) return NULL;
 	s->parm = parm;
 	s->buff = bfromcstr ("");
@@ -3515,7 +3515,7 @@ void * parm;
 	parm = s->parm;
 	s->parm = NULL;
 	s->isEOF = 1;
-	tf_free (s);
+	MemDeallocate (s);
 	return parm;
 }
 
@@ -3931,11 +3931,11 @@ int bssplitstrcb(struct bStream * s, const bstring* splitStr,
  */
 struct bstrList * bstrListCreate(void) {
 	struct bstrList * sl =
-		(struct bstrList *) tf_malloc(sizeof(struct bstrList));
+		(struct bstrList *) MemAllocate(sizeof(struct bstrList));
 	if (sl) {
-		sl->entry = (bstring* *)tf_malloc(1 * sizeof(bstring*));
+		sl->entry = (bstring* *)MemAllocate(1 * sizeof(bstring*));
 		if (!sl->entry) {
-			tf_free(sl);
+			MemDeallocate(sl);
 			sl = NULL;
 		}
 		else {
@@ -3962,9 +3962,9 @@ int bstrListDestroy(struct bstrList * sl) {
 	}
 	sl->qty = -1;
 	sl->mlen = -1;
-	tf_free(sl->entry);
+	MemDeallocate(sl->entry);
 	sl->entry = NULL;
-	tf_free(sl);
+	MemDeallocate(sl);
 	return BSTR_OK;
 }
 
@@ -3983,11 +3983,11 @@ int bstrListAlloc(struct bstrList * sl, int msz) {
 	smsz = snapUpSize(msz);
 	nsz = ((size_t)smsz) * sizeof(bstring*);
 	if (nsz < (size_t)smsz) return BSTR_ERR;
-	l = (bstring* *)tf_realloc(sl->entry, nsz);
+	l = (bstring* *)MemReallocate(sl->entry, nsz);
 	if (!l) {
 		smsz = msz;
 		nsz = ((size_t)smsz) * sizeof(bstring*);
-		l = (bstring* *)tf_realloc(sl->entry, nsz);
+		l = (bstring* *)MemReallocate(sl->entry, nsz);
 		if (!l) return BSTR_ERR;
 	}
 	sl->mlen = smsz;
@@ -4009,7 +4009,7 @@ int bstrListAllocMin(struct bstrList * sl, int msz) {
 	if (sl->mlen == msz) return BSTR_OK;
 	nsz = ((size_t)msz) * sizeof(bstring*);
 	if (nsz < (size_t)msz) return BSTR_ERR;
-	l = (bstring* *)tf_realloc(sl->entry, nsz);
+	l = (bstring* *)MemReallocate(sl->entry, nsz);
 	if (!l) return BSTR_ERR;
 	sl->mlen = msz;
 	sl->entry = l;

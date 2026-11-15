@@ -83,7 +83,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .shaderDesc = { .stages = stages },
         .pName = "RenderContextTest.Pipeline",
     };
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     {
         hz::GPUPipeline first = context.createComputePipeline(pipelineDesc);
         ASSERT_TRUE(first.isValid());
@@ -116,11 +116,11 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         });
         EXPECT_TRUE(second.isValid());
     }
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(after.liveAllocationCount, before.liveAllocationCount);
-        EXPECT_EQ(after.liveRequestedBytes, before.liveRequestedBytes);
+        EXPECT_EQ(after.LiveAllocationCount, before.LiveAllocationCount);
+        EXPECT_EQ(after.LiveRequestedBytes, before.LiveRequestedBytes);
     }
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";

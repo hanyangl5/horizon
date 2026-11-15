@@ -49,7 +49,7 @@
 #define HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH 16
 #endif
 
-static bool tf_mul_size(size_t lhs, size_t rhs, size_t* result)
+static bool MulSize(size_t lhs, size_t rhs, size_t* result)
 {
     if (lhs != 0 && rhs > SIZE_MAX / lhs)
         return false;
@@ -137,17 +137,17 @@ static void memoryTrackingApplyAllocLocked(size_t requestedSize, size_t actualSi
     if (actual < requested)
         actual = requested;
 
-    gMemoryTrackingStats.liveRequestedBytes += requested;
-    gMemoryTrackingStats.liveActualBytes += actual;
-    ++gMemoryTrackingStats.liveAllocationCount;
-    ++gMemoryTrackingStats.totalAllocationCount;
+    gMemoryTrackingStats.LiveRequestedBytes += requested;
+    gMemoryTrackingStats.LiveActualBytes += actual;
+    ++gMemoryTrackingStats.LiveAllocationCount;
+    ++gMemoryTrackingStats.TotalAllocationCount;
 
-    if (gMemoryTrackingStats.liveRequestedBytes > gMemoryTrackingStats.peakRequestedBytes)
-        gMemoryTrackingStats.peakRequestedBytes = gMemoryTrackingStats.liveRequestedBytes;
-    if (gMemoryTrackingStats.liveActualBytes > gMemoryTrackingStats.peakActualBytes)
-        gMemoryTrackingStats.peakActualBytes = gMemoryTrackingStats.liveActualBytes;
-    if (gMemoryTrackingStats.liveAllocationCount > gMemoryTrackingStats.peakAllocationCount)
-        gMemoryTrackingStats.peakAllocationCount = gMemoryTrackingStats.liveAllocationCount;
+    if (gMemoryTrackingStats.LiveRequestedBytes > gMemoryTrackingStats.PeakRequestedBytes)
+        gMemoryTrackingStats.PeakRequestedBytes = gMemoryTrackingStats.LiveRequestedBytes;
+    if (gMemoryTrackingStats.LiveActualBytes > gMemoryTrackingStats.PeakActualBytes)
+        gMemoryTrackingStats.PeakActualBytes = gMemoryTrackingStats.LiveActualBytes;
+    if (gMemoryTrackingStats.LiveAllocationCount > gMemoryTrackingStats.PeakAllocationCount)
+        gMemoryTrackingStats.PeakAllocationCount = gMemoryTrackingStats.LiveAllocationCount;
 }
 
 static void memoryTrackingApplyFreeLocked(size_t requestedSize, size_t actualSize)
@@ -158,18 +158,18 @@ static void memoryTrackingApplyFreeLocked(size_t requestedSize, size_t actualSiz
     if (actual < requested)
         actual = requested;
 
-    if (gMemoryTrackingStats.liveRequestedBytes >= requested)
-        gMemoryTrackingStats.liveRequestedBytes -= requested;
+    if (gMemoryTrackingStats.LiveRequestedBytes >= requested)
+        gMemoryTrackingStats.LiveRequestedBytes -= requested;
     else
-        gMemoryTrackingStats.liveRequestedBytes = 0;
+        gMemoryTrackingStats.LiveRequestedBytes = 0;
 
-    if (gMemoryTrackingStats.liveActualBytes >= actual)
-        gMemoryTrackingStats.liveActualBytes -= actual;
+    if (gMemoryTrackingStats.LiveActualBytes >= actual)
+        gMemoryTrackingStats.LiveActualBytes -= actual;
     else
-        gMemoryTrackingStats.liveActualBytes = 0;
+        gMemoryTrackingStats.LiveActualBytes = 0;
 
-    if (gMemoryTrackingStats.liveAllocationCount > 0)
-        --gMemoryTrackingStats.liveAllocationCount;
+    if (gMemoryTrackingStats.LiveAllocationCount > 0)
+        --gMemoryTrackingStats.LiveAllocationCount;
 }
 
 static MemoryTrackingEntry* memoryTrackingFindEntryLocked(void* ptr)
@@ -325,7 +325,7 @@ static void memoryTrackingReset(void)
     gMemoryTrackingCount = 0;
     gMemoryTrackingTombstoneCount = 0;
     memset(&gMemoryTrackingStats, 0, sizeof(gMemoryTrackingStats));
-    gMemoryTrackingStats.trackingEnabled = true;
+    gMemoryTrackingStats.TrackingEnabled = true;
     memoryTrackingUnlock();
 }
 
@@ -349,8 +349,8 @@ static size_t memoryTrackingGetUsableSize(void* ptr, size_t requestedSize, size_
 static void memoryTrackingRecordFailedAlloc(void)
 {
     memoryTrackingLock();
-    gMemoryTrackingStats.trackingEnabled = true;
-    ++gMemoryTrackingStats.failedAllocationCount;
+    gMemoryTrackingStats.TrackingEnabled = true;
+    ++gMemoryTrackingStats.FailedAllocationCount;
     memoryTrackingUnlock();
 }
 
@@ -368,10 +368,10 @@ static void memoryTrackingRecordAlloc(void* ptr, size_t requestedSize, size_t ac
     bool inserted = false;
     bool replaced = false;
     memoryTrackingLock();
-    gMemoryTrackingStats.trackingEnabled = true;
+    gMemoryTrackingStats.TrackingEnabled = true;
     inserted = memoryTrackingInsertLocked(ptr, requestedSize, actualSize, alignment, &replaced);
     if (!inserted)
-        ++gMemoryTrackingStats.failedAllocationCount;
+        ++gMemoryTrackingStats.FailedAllocationCount;
     memoryTrackingUnlock();
 
     if (inserted)
@@ -402,7 +402,7 @@ static void memoryTrackingRecordRealloc(void* oldPtr, void* newPtr, size_t reque
     // before its tracking entry and Tracy event have been retired.
     if (!newPtr)
     {
-        ++gMemoryTrackingStats.failedAllocationCount;
+        ++gMemoryTrackingStats.FailedAllocationCount;
         memoryTrackingUnlock();
         return;
     }
@@ -421,13 +421,13 @@ static void memoryTrackingRecordRealloc(void* oldPtr, void* newPtr, size_t reque
     inserted = memoryTrackingInsertLocked(newPtr, requestedSize, actualSize, alignment, &replaced);
     if (inserted)
     {
-        gMemoryTrackingStats.trackingEnabled = true;
+        gMemoryTrackingStats.TrackingEnabled = true;
         if (oldPtr)
-            ++gMemoryTrackingStats.reallocationCount;
+            ++gMemoryTrackingStats.ReallocationCount;
     }
     else
     {
-        ++gMemoryTrackingStats.failedAllocationCount;
+        ++gMemoryTrackingStats.FailedAllocationCount;
     }
     UNREF_PARAM(oldRequestedSize);
     UNREF_PARAM(oldActualSize);
@@ -446,7 +446,7 @@ static int64_t memoryTrackingPlotValue(uint64_t value) { return value > (uint64_
 
 #endif // defined(ENABLE_TRACY_MEMORY)
 
-MemoryTrackingStats memGetTrackingStats(void)
+MemoryTrackingStats GetMemoryTrackingStats(void)
 {
     MemoryTrackingStats stats;
     memset(&stats, 0, sizeof(stats));
@@ -454,16 +454,16 @@ MemoryTrackingStats memGetTrackingStats(void)
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingLock();
     stats = gMemoryTrackingStats;
-    stats.trackingEnabled = true;
-    stats.liveSlackBytes = stats.liveActualBytes > stats.liveRequestedBytes ? stats.liveActualBytes - stats.liveRequestedBytes : 0;
-    stats.fragmentationPercent = stats.liveActualBytes ? ((float)stats.liveSlackBytes * 100.0f) / (float)stats.liveActualBytes : 0.0f;
+    stats.TrackingEnabled = true;
+    stats.LiveSlackBytes = stats.LiveActualBytes > stats.LiveRequestedBytes ? stats.LiveActualBytes - stats.LiveRequestedBytes : 0;
+    stats.FragmentationPercent = stats.LiveActualBytes ? ((float)stats.LiveSlackBytes * 100.0f) / (float)stats.LiveActualBytes : 0.0f;
     memoryTrackingUnlock();
 #endif
 
     return stats;
 }
 
-void memPlotTrackingStats(void)
+void PlotMemoryTrackingStats(void)
 {
 #if defined(ENABLE_TRACY_MEMORY)
     static bool plotsConfigured = false;
@@ -477,12 +477,12 @@ void memPlotTrackingStats(void)
         plotsConfigured = true;
     }
 
-    MemoryTrackingStats stats = memGetTrackingStats();
-    TracyCPlotI("CPU/tf Requested", memoryTrackingPlotValue(stats.liveRequestedBytes));
-    TracyCPlotI("CPU/tf Usable", memoryTrackingPlotValue(stats.liveActualBytes));
-    TracyCPlotI("CPU/tf Slack", memoryTrackingPlotValue(stats.liveSlackBytes));
-    TracyCPlot("CPU/tf Fragmentation %", stats.fragmentationPercent);
-    TracyCPlotI("CPU/tf Live Allocations", memoryTrackingPlotValue(stats.liveAllocationCount));
+    MemoryTrackingStats stats = GetMemoryTrackingStats();
+    TracyCPlotI("CPU/tf Requested", memoryTrackingPlotValue(stats.LiveRequestedBytes));
+    TracyCPlotI("CPU/tf Usable", memoryTrackingPlotValue(stats.LiveActualBytes));
+    TracyCPlotI("CPU/tf Slack", memoryTrackingPlotValue(stats.LiveSlackBytes));
+    TracyCPlot("CPU/tf Fragmentation %", stats.FragmentationPercent);
+    TracyCPlotI("CPU/tf Live Allocations", memoryTrackingPlotValue(stats.LiveAllocationCount));
 #endif
 }
 
@@ -508,17 +508,17 @@ void memPlotTrackingStats(void)
 #pragma GCC diagnostic pop
 #endif
 
-void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf)
+void* MemAllocateInternal(size_t size, const char* f, int l, const char* sf)
 {
-    return tf_memalign_internal(MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+    return MemAllocateAlignedInternal(MIN_ALLOC_ALIGNMENT, size, f, l, sf);
 }
 
-void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, const char* sf)
 {
-    return tf_calloc_memalign_internal(count, MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+    return MemCallocateAlignedInternal(count, MIN_ALLOC_ALIGNMENT, size, f, l, sf);
 }
 
-void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemAllocateAlignedInternal(size_t align, size_t size, const char* f, int l, const char* sf)
 {
     void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_malloc, align, size);
 
@@ -530,10 +530,10 @@ void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, cons
     return pMemAlign;
 }
 
-void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
 {
     size_t requestedSize = 0;
-    if (!tf_mul_size(count, size, &requestedSize))
+    if (!MulSize(count, size, &requestedSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -543,7 +543,7 @@ void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const
 
     size_t alignedSize = ALIGN_TO(size, align);
     size_t allocationSize = 0;
-    if (!tf_mul_size(count, alignedSize, &allocationSize))
+    if (!MulSize(count, alignedSize, &allocationSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -561,12 +561,12 @@ void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const
     return pMemAlign;
 }
 
-void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf)
+void* MemReallocateInternal(void* ptr, size_t size, const char* f, int l, const char* sf)
 {
 #if defined(ENABLE_TRACY_MEMORY)
     if (ptr && !size)
     {
-        tf_free_internal(ptr, f, l, sf);
+        MemDeallocateInternal(ptr, f, l, sf);
         return NULL;
     }
     memoryTrackingLock();
@@ -581,7 +581,7 @@ void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const ch
     return pRealloc;
 }
 
-void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
+void MemDeallocateInternal(void* ptr, const char* f, int l, const char* sf)
 {
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordFree(ptr);
@@ -591,7 +591,7 @@ void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
 
 #else // defined(ENABLE_MEMORY_TRACKING)
 
-bool initMemAlloc(const char* appName)
+bool InitMemoryAlloc(const char* appName)
 {
     UNREF_PARAM(appName);
 #if defined(ENABLE_TRACY_MEMORY)
@@ -601,12 +601,12 @@ bool initMemAlloc(const char* appName)
     return true;
 }
 
-void exitMemAlloc(void)
+void ExitMemoryAlloc(void)
 {
     // Return all allocated memory to the OS. Analyze memory usage, dump memory leaks, ...
 }
 
-void* tf_malloc_(size_t size)
+void* TrackedMalloc(size_t size)
 {
 #ifdef _MSC_VER
     void* ptr = _aligned_malloc(size, MIN_ALLOC_ALIGNMENT);
@@ -617,14 +617,14 @@ void* tf_malloc_(size_t size)
     return ptr;
 }
 
-void* tf_calloc_(size_t count, size_t size)
+void* TrackedCalloc(size_t count, size_t size)
 {
     size_t sz = 0;
-    if (!tf_mul_size(count, size, &sz))
+    if (!MulSize(count, size, &sz))
         return NULL;
 
 #ifdef _MSC_VER
-    void* ptr = tf_malloc_(sz);
+    void* ptr = TrackedMalloc(sz);
     if (ptr)
         memset(ptr, 0, sz); //-V575
 #else
@@ -634,7 +634,7 @@ void* tf_calloc_(size_t count, size_t size)
     return ptr;
 }
 
-void* tf_memalign_(size_t alignment, size_t size)
+void* TrackedMemalign(size_t alignment, size_t size)
 {
 #ifdef _MSC_VER
     void* ptr = _aligned_malloc(size, alignment);
@@ -650,21 +650,21 @@ void* tf_memalign_(size_t alignment, size_t size)
     return ptr;
 }
 
-void* tf_calloc_memalign_(size_t count, size_t alignment, size_t size)
+void* TrackedCallocMemalign(size_t count, size_t alignment, size_t size)
 {
     size_t alignedArrayElementSize = ALIGN_TO(size, alignment);
     size_t totalBytes = 0;
-    if (!tf_mul_size(count, alignedArrayElementSize, &totalBytes))
+    if (!MulSize(count, alignedArrayElementSize, &totalBytes))
         return NULL;
 
-    void* ptr = tf_memalign_(alignment, totalBytes);
+    void* ptr = TrackedMemalign(alignment, totalBytes);
 
     if (ptr)
         memset(ptr, 0, totalBytes); //-V575
     return ptr;
 }
 
-void* tf_realloc_(void* ptr, size_t size)
+void* TrackedRealloc(void* ptr, size_t size)
 {
 #ifdef _MSC_VER
     void* reallocPtr = _aligned_realloc(ptr, size, MIN_ALLOC_ALIGNMENT);
@@ -675,7 +675,7 @@ void* tf_realloc_(void* ptr, size_t size)
     return reallocPtr;
 }
 
-void tf_free_(void* ptr)
+void TrackedFree(void* ptr)
 {
 #ifdef _MSC_VER
     _aligned_free(ptr);
@@ -684,37 +684,37 @@ void tf_free_(void* ptr)
 #endif
 }
 
-void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf)
+void* MemAllocateInternal(size_t size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
-    void* ptr = tf_malloc_(size);
+    void* ptr = TrackedMalloc(size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordAlloc(ptr, size, memoryTrackingGetUsableSize(ptr, size, MIN_ALLOC_ALIGNMENT), MIN_ALLOC_ALIGNMENT);
 #endif
     return ptr;
 }
 
-void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemAllocateAlignedInternal(size_t align, size_t size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
-    void* ptr = tf_memalign_(align, size);
+    void* ptr = TrackedMemalign(align, size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordAlloc(ptr, size, memoryTrackingGetUsableSize(ptr, size, align), align);
 #endif
     return ptr;
 }
 
-void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
     size_t requestedSize = 0;
-    if (!tf_mul_size(count, size, &requestedSize))
+    if (!MulSize(count, size, &requestedSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -722,7 +722,7 @@ void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const 
         return NULL;
     }
 
-    void* ptr = tf_calloc_(count, size);
+    void* ptr = TrackedCalloc(count, size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordAlloc(ptr, requestedSize, memoryTrackingGetUsableSize(ptr, requestedSize, MIN_ALLOC_ALIGNMENT),
                               MIN_ALLOC_ALIGNMENT);
@@ -730,13 +730,13 @@ void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const 
     return ptr;
 }
 
-void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
     size_t requestedSize = 0;
-    if (!tf_mul_size(count, size, &requestedSize))
+    if (!MulSize(count, size, &requestedSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -744,14 +744,14 @@ void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const
         return NULL;
     }
 
-    void* ptr = tf_calloc_memalign_(count, align, size);
+    void* ptr = TrackedCallocMemalign(count, align, size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordAlloc(ptr, requestedSize, memoryTrackingGetUsableSize(ptr, requestedSize, align), align);
 #endif
     return ptr;
 }
 
-void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf)
+void* MemReallocateInternal(void* ptr, size_t size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
@@ -759,12 +759,12 @@ void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const ch
 #if defined(ENABLE_TRACY_MEMORY)
     if (ptr && !size)
     {
-        tf_free_internal(ptr, f, l, sf);
+        MemDeallocateInternal(ptr, f, l, sf);
         return NULL;
     }
     memoryTrackingLock();
 #endif
-    void* reallocPtr = tf_realloc_(ptr, size);
+    void* reallocPtr = TrackedRealloc(ptr, size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordRealloc(ptr, reallocPtr, size, memoryTrackingGetUsableSize(reallocPtr, size, MIN_ALLOC_ALIGNMENT),
                                 MIN_ALLOC_ALIGNMENT);
@@ -772,7 +772,7 @@ void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const ch
     return reallocPtr;
 }
 
-void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
+void MemDeallocateInternal(void* ptr, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
@@ -780,7 +780,7 @@ void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordFree(ptr);
 #endif
-    tf_free_(ptr);
+    TrackedFree(ptr);
 }
 
 #endif // defined(ENABLE_MEMORY_TRACKING)

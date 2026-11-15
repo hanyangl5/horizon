@@ -627,8 +627,8 @@ public:
     bool                                            frameLocked = false;
 };
 
-RenderScene::RenderScene(World& world, AssetManager& assetManager): pData(tf_new(RenderSceneData, world, assetManager)) {}
-RenderScene::~RenderScene() { tf_delete(pData); }
+RenderScene::RenderScene(World& world, AssetManager& assetManager): pData(MemNew(RenderSceneData, world, assetManager)) {}
+RenderScene::~RenderScene() { MemDelete(pData); }
 void RenderScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
     pData->primitives.reserve(primitiveCount);
