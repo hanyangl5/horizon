@@ -13,65 +13,65 @@ enum class ToneMappingMode : uint32_t
 
 struct PostEffectsSettings
 {
-    ToneMappingMode toneMapping = ToneMappingMode::KhronosPBR;
-    float           exposure = 0.95f;
-    bool            enableBloom = true;
-    float           bloomStrength = 0.01f;
-    float           adaptationSpeed = 3.0f;
-    float           maxWhite = 1.0f;
-    float           uchimuraP = 1.0f;
-    float           uchimuraA = 1.05f;
-    float           uchimuraM = 0.1f;
-    float           uchimuraL = 0.8f;
-    float           uchimuraC = 3.0f;
-    float           uchimuraB = 0.0f;
-    float           startCompression = 0.8f;
-    float           desaturation = 0.15f;
-    float           paperWhiteNits = 203.0f;
+    ToneMappingMode ToneMapping = ToneMappingMode::KhronosPBR;
+    float           Exposure = 0.95f;
+    bool            EnableBloom = true;
+    float           BloomStrength = 0.01f;
+    float           AdaptationSpeed = 3.0f;
+    float           MaxWhite = 1.0f;
+    float           UchimuraP = 1.0f;
+    float           UchimuraA = 1.05f;
+    float           UchimuraM = 0.1f;
+    float           UchimuraL = 0.8f;
+    float           UchimuraC = 3.0f;
+    float           UchimuraB = 0.0f;
+    float           StartCompression = 0.8f;
+    float           Desaturation = 0.15f;
+    float           PaperWhiteNits = 203.0f;
 };
 
 class PostEffects
 {
 public:
-    explicit PostEffects(hz::RenderContext& context);
-    void resize(uint32_t width, uint32_t height);
-    void execute(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget, float deltaSeconds);
-    void resetExposure() { exposureInitialized = false; }
+    explicit PostEffects(hz::RenderContext& Context);
+    void Resize(uint32_t Width, uint32_t Height);
+    void Execute(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget, float DeltaSeconds);
+    void ResetExposure() { ExposureInitialized = false; }
 
-    const hz::GPUTexture*     getBloom() const { return bloomUp[0]; }
-    const hz::GPUTexture&     getAdaptedLuminance() const { return adaptedLuminance[adaptedIndex]; }
-    const hz::GPUTexture&     getLuminance(uint32_t level) const { return luminance[level]; }
-    static constexpr uint32_t meteringSize = 512;
-    static constexpr uint32_t luminanceLevels = 10;
-    static constexpr uint32_t bloomLevels = 6;
-    PostEffectsSettings       settings;
+    const hz::GPUTexture*     GetBloom() const { return BloomUp[0]; }
+    const hz::GPUTexture&     GetAdaptedLuminance() const { return AdaptedLuminance[AdaptedIndex]; }
+    const hz::GPUTexture&     GetLuminance(uint32_t Level) const { return Luminance[Level]; }
+    static constexpr uint32_t MeteringSize = 512;
+    static constexpr uint32_t LuminanceLevels = 10;
+    static constexpr uint32_t BloomLevels = 6;
+    PostEffectsSettings       Settings;
 
 private:
-    void runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor);
-    void runAdaptation(hz::CommandList& commands, float deltaSeconds);
-    void toneMap(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget);
-    bool prepareBloomChain();
-    void releaseBloomChain();
+    void RunBloom(hz::CommandList& Commands, const hz::GPUTexture& SceneColor);
+    void RunAdaptation(hz::CommandList& Commands, float DeltaSeconds);
+    void ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget);
+    bool PrepareBloomChain();
+    void ReleaseBloomChain();
 
-    hz::RenderContext&                              context;
-    hz::GPUSampler                                  sampler;
-    hz::GPUPipeline                                 meteringPipeline;
-    hz::GPUPipeline                                 reducePipeline;
-    hz::GPUPipeline                                 initializePipeline;
-    hz::GPUPipeline                                 adaptationPipeline;
-    hz::GPUPipeline                                 bloomDownsamplePipeline;
-    hz::GPUPipeline                                 bloomUpsamplePipeline;
-    hz::GPUPipeline                                 toneMapPipeline;
-    hz::Format                                      colorFormat = {};
+    hz::RenderContext&                              Context;
+    hz::GPUSampler                                  Sampler;
+    hz::GPUPipeline                                 MeteringPipeline;
+    hz::GPUPipeline                                 ReducePipeline;
+    hz::GPUPipeline                                 InitializePipeline;
+    hz::GPUPipeline                                 AdaptationPipeline;
+    hz::GPUPipeline                                 BloomDownsamplePipeline;
+    hz::GPUPipeline                                 BloomUpsamplePipeline;
+    hz::GPUPipeline                                 ToneMapPipeline;
+    hz::Format                                      ColorFormat = {};
     // Pooled per frame; resize creates the chain so execute only borrows it.
-    hz::GPUTexture* bloomDown[bloomLevels] = {};
-    hz::GPUTexture* bloomUp[bloomLevels - 1] = {};
-    hz::FixedArray<hz::GPUTexture, 2>               adaptedLuminance;
-    hz::FixedArray<hz::GPUTexture, luminanceLevels> luminance;
-    uint32_t                                        width = 0;
-    uint32_t                                        height = 0;
-    uint32_t                                        bloomWidth = 0;
-    uint32_t                                        bloomHeight = 0;
-    uint32_t                                        adaptedIndex = 0;
-    bool                                            exposureInitialized = false;
+    hz::GPUTexture* BloomDown[BloomLevels] = {};
+    hz::GPUTexture* BloomUp[BloomLevels - 1] = {};
+    hz::FixedArray<hz::GPUTexture, 2>               AdaptedLuminance;
+    hz::FixedArray<hz::GPUTexture, LuminanceLevels> Luminance;
+    uint32_t                                        Width = 0;
+    uint32_t                                        Height = 0;
+    uint32_t                                        BloomWidth = 0;
+    uint32_t                                        BloomHeight = 0;
+    uint32_t                                        AdaptedIndex = 0;
+    bool                                            ExposureInitialized = false;
 };

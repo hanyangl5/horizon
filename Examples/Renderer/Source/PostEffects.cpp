@@ -65,284 +65,284 @@ struct PostToneConstants
     float    peakNits;
 };
 
-static uint32_t bloomLevelSize(uint32_t size, uint32_t level)
+static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
 {
-    const uint32_t shifted = size >> level;
-    return shifted ? shifted : 1;
+    const uint32_t Shifted = Size >> Level;
+    return Shifted ? Shifted : 1;
 }
 
-PostEffects::PostEffects(hz::RenderContext& context): context(context)
+PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
 {
-    sampler = context.createSampler(
+    Sampler = Context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
-    meteringPipeline = context.createComputePipeline({
+    MeteringPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostMetering.slang" },
         .pName = "Renderer.HDR.Metering",
     });
-    reducePipeline = context.createComputePipeline({
+    ReducePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSReduce" } }, .pFileName = "PostLuminance.slang" },
         .pName = "Renderer.HDR.ReduceLuminance",
     });
-    initializePipeline = context.createComputePipeline({
+    InitializePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSInitialize" } }, .pFileName = "PostLuminance.slang" },
         .pName = "Renderer.HDR.InitializeExposure",
     });
-    adaptationPipeline = context.createComputePipeline({
+    AdaptationPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSAdapt" } }, .pFileName = "PostLuminance.slang" },
         .pName = "Renderer.HDR.Adaptation",
     });
-    bloomDownsamplePipeline = context.createComputePipeline({
+    BloomDownsamplePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomDownsample.slang" },
         .pName = "Renderer.HDR.BloomDownsample",
     });
-    bloomUpsamplePipeline = context.createComputePipeline({
+    BloomUpsamplePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
         .pName = "Renderer.HDR.BloomUpsample",
     });
-    ASSERT(sampler.isValid() && meteringPipeline.isValid() && reducePipeline.isValid() && initializePipeline.isValid() &&
-           adaptationPipeline.isValid() && bloomDownsamplePipeline.isValid() && bloomUpsamplePipeline.isValid());
+    ASSERT(Sampler.isValid() && MeteringPipeline.isValid() && ReducePipeline.isValid() && InitializePipeline.isValid() &&
+           AdaptationPipeline.isValid() && BloomDownsamplePipeline.isValid() && BloomUpsamplePipeline.isValid());
 }
 
-bool PostEffects::prepareBloomChain()
+bool PostEffects::PrepareBloomChain()
 {
-    const DescriptorType views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
-    bool                 valid = true;
-    for (uint32_t level = 0; level < bloomLevels; ++level)
+    const DescriptorType Views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    bool                 Valid = true;
+    for (uint32_t Level = 0; Level < BloomLevels; ++Level)
     {
-        const hz::TextureDesc desc = { .width = bloomLevelSize(bloomWidth, level),
-                                       .height = bloomLevelSize(bloomHeight, level),
+        const hz::TextureDesc Desc = { .width = BloomLevelSize(BloomWidth, Level),
+                                       .height = BloomLevelSize(BloomHeight, Level),
                                        .format = hz::Format::R16G16B16A16_SFLOAT,
                                        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                       .descriptors = views,
+                                       .descriptors = Views,
                                        .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                        .pName = "Renderer.HDR.Bloom" };
-        bloomDown[level] = context.acquireTransient(desc);
-        valid &= bloomDown[level] != nullptr;
-        if (level + 1 < bloomLevels)
+        BloomDown[Level] = Context.acquireTransient(Desc);
+        Valid &= BloomDown[Level] != nullptr;
+        if (Level + 1 < BloomLevels)
         {
             // The smallest level is the base of the accumulation and only needs its downsample.
-            bloomUp[level] = context.acquireTransient(desc);
-            valid &= bloomUp[level] != nullptr;
+            BloomUp[Level] = Context.acquireTransient(Desc);
+            Valid &= BloomUp[Level] != nullptr;
         }
     }
-    if (!valid)
+    if (!Valid)
     {
         LOGF(eWARNING, "Bloom targets unavailable; skipping bloom for this frame");
-        releaseBloomChain();
+        ReleaseBloomChain();
     }
-    return valid;
+    return Valid;
 }
 
-void PostEffects::releaseBloomChain()
+void PostEffects::ReleaseBloomChain()
 {
-    for (uint32_t level = 0; level < bloomLevels; ++level)
+    for (uint32_t Level = 0; Level < BloomLevels; ++Level)
     {
-        if (bloomDown[level])
-            context.releaseTransient(bloomDown[level]);
-        bloomDown[level] = nullptr;
-        if (level + 1 < bloomLevels)
+        if (BloomDown[Level])
+            Context.releaseTransient(BloomDown[Level]);
+        BloomDown[Level] = nullptr;
+        if (Level + 1 < BloomLevels)
         {
-            if (bloomUp[level])
-                context.releaseTransient(bloomUp[level]);
-            bloomUp[level] = nullptr;
+            if (BloomUp[Level])
+                Context.releaseTransient(BloomUp[Level]);
+            BloomUp[Level] = nullptr;
         }
     }
 }
 
-void PostEffects::resize(uint32_t width, uint32_t height)
+void PostEffects::Resize(uint32_t Width, uint32_t Height)
 {
-    ASSERT(width && height);
-    this->width = width;
-    this->height = height;
-    const DescriptorType views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    ASSERT(Width && Height);
+    this->Width = Width;
+    this->Height = Height;
+    const DescriptorType Views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
     // Bloom follows the render size so the glare keeps its screen-space radius instead of a fixed 512 texel image.
-    bloomWidth = width > 1 ? width / 2 : 1;
-    bloomHeight = height > 1 ? height / 2 : 1;
-    hz::TextureDesc desc = { .format = hz::Format::R16G16B16A16_SFLOAT,
+    BloomWidth = Width > 1 ? Width / 2 : 1;
+    BloomHeight = Height > 1 ? Height / 2 : 1;
+    hz::TextureDesc Desc = { .format = hz::Format::R16G16B16A16_SFLOAT,
                              .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                             .descriptors = views,
+                             .descriptors = Views,
                              .flags = TEXTURE_CREATION_FLAG_FORCE_2D };
-    bool            valid = true;
+    bool            Valid = true;
     // Parked targets of the previous size never match again, so drop them once the GPU is idle.
-    context.purgeTransients();
+    Context.purgeTransients();
     // Independent images let Dependencies describe every reduction without mixed SRV/UAV mip states.
-    desc.format = hz::Format::R16_SFLOAT;
-    desc.width = desc.height = meteringSize;
-    desc.pName = "Renderer.HDR.LogLuminance";
-    for (hz::GPUTexture& texture : luminance)
+    Desc.format = hz::Format::R16_SFLOAT;
+    Desc.width = Desc.height = MeteringSize;
+    Desc.pName = "Renderer.HDR.LogLuminance";
+    for (hz::GPUTexture& Texture : Luminance)
     {
-        texture = context.createTexture(desc);
-        valid &= texture.isValid();
-        desc.width = desc.width > 1 ? desc.width / 2 : 1;
-        desc.height = desc.height > 1 ? desc.height / 2 : 1;
+        Texture = Context.createTexture(Desc);
+        Valid &= Texture.isValid();
+        Desc.width = Desc.width > 1 ? Desc.width / 2 : 1;
+        Desc.height = Desc.height > 1 ? Desc.height / 2 : 1;
     }
-    desc.width = desc.height = 1;
-    desc.format = hz::Format::R32_SFLOAT;
-    desc.pName = "Renderer.HDR.AdaptedLuminance";
-    for (hz::GPUTexture& texture : adaptedLuminance)
+    Desc.width = Desc.height = 1;
+    Desc.format = hz::Format::R32_SFLOAT;
+    Desc.pName = "Renderer.HDR.AdaptedLuminance";
+    for (hz::GPUTexture& Texture : AdaptedLuminance)
     {
-        texture = context.createTexture(desc);
-        valid &= texture.isValid();
+        Texture = Context.createTexture(Desc);
+        Valid &= Texture.isValid();
     }
-    if (!toneMapPipeline.isValid() || colorFormat != context.getColorFormat())
+    if (!ToneMapPipeline.isValid() || ColorFormat != Context.getColorFormat())
     {
-        colorFormat = context.getColorFormat();
-        toneMapPipeline = context.createGraphicsPipeline({
+        ColorFormat = Context.getColorFormat();
+        ToneMapPipeline = Context.createGraphicsPipeline({
             .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
                                         { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                             .pFileName = "PostToneMap.slang" },
-            .colorTargets = { { .format = context.getColorFormat() } },
+            .colorTargets = { { .format = Context.getColorFormat() } },
             .pName = "Renderer.HDR.ToneMap",
         });
     }
-    adaptedIndex = 0;
-    exposureInitialized = false;
-    ASSERT(valid && toneMapPipeline.isValid());
+    AdaptedIndex = 0;
+    ExposureInitialized = false;
+    ASSERT(Valid && ToneMapPipeline.isValid());
 }
 
-void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget,
-                          float deltaSeconds)
+void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget,
+                          float DeltaSeconds)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostEffects::execute");
-    ASSERT(sceneColor.isValid() && renderTarget.isValid() && width && height);
-    commands.beginGpuTimestamp("HDR");
-    if (!exposureInitialized)
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostEffects::Execute");
+    ASSERT(SceneColor.isValid() && RenderTarget.isValid() && Width && Height);
+    Commands.beginGpuTimestamp("HDR");
+    if (!ExposureInitialized)
     {
         hz::DependencyList initializeDependencies;
-        const PostLuminanceConstants initialize = { .inputIndex = initializeDependencies.store(&adaptedLuminance[0]),
-                                                     .outputIndex = initializeDependencies.store(&adaptedLuminance[1]) };
-        commands.setPipeline(initializePipeline);
-        commands.setRootConstants(initialize);
-        commands.dispatch(1, 1, 1, initializeDependencies.get());
-        exposureInitialized = true;
+        const PostLuminanceConstants Initialize = { .inputIndex = initializeDependencies.store(&AdaptedLuminance[0]),
+                                                    .outputIndex = initializeDependencies.store(&AdaptedLuminance[1]) };
+        Commands.setPipeline(InitializePipeline);
+        Commands.setRootConstants(Initialize);
+        Commands.dispatch(1, 1, 1, initializeDependencies.get());
+        ExposureInitialized = true;
     }
-    hz::DependencyList         meteringDependencies;
-    const PostMeteringConstants metering = { .sceneColorIndex = meteringDependencies.sample(&sceneColor),
-                                             .luminanceOutputIndex = meteringDependencies.store(&luminance[0]) };
-    commands.setPipeline(meteringPipeline);
-    commands.setRootConstants(metering);
-    commands.dispatch(meteringSize / 16, meteringSize / 16, 1, meteringDependencies.get());
-    commands.setPipeline(reducePipeline);
-    for (uint32_t level = 1; level < luminanceLevels; ++level)
+    hz::DependencyList         MeteringDependencies;
+    const PostMeteringConstants Metering = { .sceneColorIndex = MeteringDependencies.sample(&SceneColor),
+                                             .luminanceOutputIndex = MeteringDependencies.store(&Luminance[0]) };
+    Commands.setPipeline(MeteringPipeline);
+    Commands.setRootConstants(Metering);
+    Commands.dispatch(MeteringSize / 16, MeteringSize / 16, 1, MeteringDependencies.get());
+    Commands.setPipeline(ReducePipeline);
+    for (uint32_t Level = 1; Level < LuminanceLevels; ++Level)
     {
-        const uint32_t size = meteringSize >> level;
+        const uint32_t Size = MeteringSize >> Level;
         hz::DependencyList reduceDependencies;
-        const PostLuminanceConstants reduce = { .inputIndex = reduceDependencies.sample(&luminance[level - 1]),
-                                                .outputIndex = reduceDependencies.store(&luminance[level]) };
-        commands.setRootConstants(reduce);
-        commands.dispatch((size + 15) / 16, (size + 15) / 16, 1, reduceDependencies.get());
+        const PostLuminanceConstants Reduce = { .inputIndex = reduceDependencies.sample(&Luminance[Level - 1]),
+                                                .outputIndex = reduceDependencies.store(&Luminance[Level]) };
+        Commands.setRootConstants(Reduce);
+        Commands.dispatch((Size + 15) / 16, (Size + 15) / 16, 1, reduceDependencies.get());
     }
-    const bool bloomReady = prepareBloomChain();
-    if (bloomReady)
+    const bool BloomReady = PrepareBloomChain();
+    if (BloomReady)
     {
-        runBloom(commands, sceneColor);
+        RunBloom(Commands, SceneColor);
     }
-    runAdaptation(commands, deltaSeconds);
-    toneMap(commands, sceneColor, renderTarget);
-    releaseBloomChain();
+    RunAdaptation(Commands, DeltaSeconds);
+    ToneMap(Commands, SceneColor, RenderTarget);
+    ReleaseBloomChain();
     // Match the reference: this frame meters into the other image; its exposure is used next frame.
-    adaptedIndex ^= 1;
-    commands.endGpuTimestamp();
+    AdaptedIndex ^= 1;
+    Commands.endGpuTimestamp();
 }
 
-void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor)
+void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& SceneColor)
 {
-    if (!settings.enableBloom || !bloomDown[0])
+    if (!Settings.EnableBloom || !BloomDown[0])
     {
         return;
     }
-    commands.beginGpuTimestamp("Bloom");
-    commands.setPipeline(bloomDownsamplePipeline);
-    PostBloomDownsampleConstants downsample = {
-        .input = sceneColor.getSrvIndex(),
-        .output = bloomDown[0]->getUavIndex(),
-        .sampler = sampler.getIndex(),
-        .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
+    Commands.beginGpuTimestamp("Bloom");
+    Commands.setPipeline(BloomDownsamplePipeline);
+    PostBloomDownsampleConstants Downsample = {
+        .input = SceneColor.getSrvIndex(),
+        .output = BloomDown[0]->getUavIndex(),
+        .sampler = Sampler.getIndex(),
+        .adaptedLuminance = AdaptedLuminance[AdaptedIndex].getSrvIndex(),
         .threshold = 1,
-        .autoExposure = settings.toneMapping != ToneMappingMode::None ? 1u : 0u,
-        .exposure = settings.exposure,
+        .autoExposure = Settings.ToneMapping != ToneMappingMode::None ? 1u : 0u,
+        .exposure = Settings.Exposure,
     };
-    commands.setRootConstants(downsample);
-    commands.dispatch((bloomWidth + 15) / 16, (bloomHeight + 15) / 16, 1,
-                      { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex] }, .storageTextures = { bloomDown[0] } });
+    Commands.setRootConstants(Downsample);
+    Commands.dispatch((BloomWidth + 15) / 16, (BloomHeight + 15) / 16, 1,
+                      { .sampledTextures = { &SceneColor, &AdaptedLuminance[AdaptedIndex] }, .storageTextures = { BloomDown[0] } });
     // Only the scene downsample is thresholded; the mip levels already carry bright values.
-    downsample.threshold = 0;
-    for (uint32_t level = 1; level < bloomLevels; ++level)
+    Downsample.threshold = 0;
+    for (uint32_t Level = 1; Level < BloomLevels; ++Level)
     {
-        downsample.input = bloomDown[level - 1]->getSrvIndex();
-        downsample.output = bloomDown[level]->getUavIndex();
-        commands.setRootConstants(downsample);
-        const uint32_t size = bloomLevelSize(bloomWidth, level);
-        commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
-                          { .sampledTextures = { bloomDown[level - 1] }, .storageTextures = { bloomDown[level] } });
+        Downsample.input = BloomDown[Level - 1]->getSrvIndex();
+        Downsample.output = BloomDown[Level]->getUavIndex();
+        Commands.setRootConstants(Downsample);
+        const uint32_t Size = BloomLevelSize(BloomWidth, Level);
+        Commands.dispatch((Size + 15) / 16, (BloomLevelSize(BloomHeight, Level) + 15) / 16, 1,
+                          { .sampledTextures = { BloomDown[Level - 1] }, .storageTextures = { BloomDown[Level] } });
     }
     // up[level] = down[level] + tent(up[level + 1]); the smallest downsample seeds the accumulation.
-    commands.setPipeline(bloomUpsamplePipeline);
-    const hz::GPUTexture* input = bloomDown[bloomLevels - 1];
-    for (uint32_t level = bloomLevels - 1; level > 0;)
+    Commands.setPipeline(BloomUpsamplePipeline);
+    const hz::GPUTexture* Input = BloomDown[BloomLevels - 1];
+    for (uint32_t Level = BloomLevels - 1; Level > 0;)
     {
-        --level;
-        const PostBloomUpsampleConstants upsample = { .down = bloomDown[level]->getSrvIndex(),
-                                                      .input = input->getSrvIndex(),
-                                                      .output = bloomUp[level]->getUavIndex(),
-                                                      .sampler = sampler.getIndex() };
-        commands.setRootConstants(upsample);
-        const uint32_t size = bloomLevelSize(bloomWidth, level);
-        commands.dispatch((size + 15) / 16, (bloomLevelSize(bloomHeight, level) + 15) / 16, 1,
-                          { .sampledTextures = { bloomDown[level], input }, .storageTextures = { bloomUp[level] } });
-        input = bloomUp[level];
+        --Level;
+        const PostBloomUpsampleConstants Upsample = { .down = BloomDown[Level]->getSrvIndex(),
+                                                      .input = Input->getSrvIndex(),
+                                                      .output = BloomUp[Level]->getUavIndex(),
+                                                      .sampler = Sampler.getIndex() };
+        Commands.setRootConstants(Upsample);
+        const uint32_t Size = BloomLevelSize(BloomWidth, Level);
+        Commands.dispatch((Size + 15) / 16, (BloomLevelSize(BloomHeight, Level) + 15) / 16, 1,
+                          { .sampledTextures = { BloomDown[Level], Input }, .storageTextures = { BloomUp[Level] } });
+        Input = BloomUp[Level];
     }
-    commands.endGpuTimestamp();
+    Commands.endGpuTimestamp();
 }
 
-void PostEffects::runAdaptation(hz::CommandList& commands, float deltaSeconds)
+void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds)
 {
-    hz::DependencyList           dependencies;
-    const PostLuminanceConstants constants = {
-        .inputIndex = dependencies.sample(&luminance[luminanceLevels - 1]),
-        .outputIndex = dependencies.store(&adaptedLuminance[adaptedIndex ^ 1]),
-        .previousIndex = dependencies.sample(&adaptedLuminance[adaptedIndex]),
-        .adaptationTime = fmaxf(deltaSeconds, 0.0f) * fmaxf(settings.adaptationSpeed, 0.0f),
+    hz::DependencyList           Dependencies;
+    const PostLuminanceConstants Constants = {
+        .inputIndex = Dependencies.sample(&Luminance[LuminanceLevels - 1]),
+        .outputIndex = Dependencies.store(&AdaptedLuminance[AdaptedIndex ^ 1]),
+        .previousIndex = Dependencies.sample(&AdaptedLuminance[AdaptedIndex]),
+        .adaptationTime = fmaxf(DeltaSeconds, 0.0f) * fmaxf(Settings.AdaptationSpeed, 0.0f),
     };
-    commands.setPipeline(adaptationPipeline);
-    commands.setRootConstants(constants);
-    commands.dispatch(1, 1, 1, dependencies.get());
+    Commands.setPipeline(AdaptationPipeline);
+    Commands.setRootConstants(Constants);
+    Commands.dispatch(1, 1, 1, Dependencies.get());
 }
 
-void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget)
+void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget)
 {
-    const bool srgbTarget = context.getColorFormat() == hz::Format::R8G8B8A8_SRGB || context.getColorFormat() == hz::Format::B8G8R8A8_SRGB;
-    hz::DependencyList     dependencies;
-    const hz::GPUTexture*  pBloom = bloomUp[0];
-    const PostToneConstants constants = {
-        .sceneColor = dependencies.sample(&sceneColor),
-        .adaptedLuminance = dependencies.sample(&adaptedLuminance[adaptedIndex]),
-        .bloom = dependencies.sample(pBloom),
-        .sampler = sampler.getIndex(),
-        .toneMapping = (uint32_t)settings.toneMapping,
-        .exposure = settings.exposure,
-        .bloomStrength = settings.enableBloom && pBloom ? settings.bloomStrength : 0.0f,
-        .maxWhite = settings.maxWhite,
-        .P = settings.uchimuraP,
-        .a = settings.uchimuraA,
-        .m = settings.uchimuraM,
-        .l = settings.uchimuraL,
-        .c = settings.uchimuraC,
-        .b = settings.uchimuraB,
-        .startCompression = settings.startCompression,
-        .desaturation = settings.desaturation,
-        .outputMode = (uint32_t)context.getOutputMode(),
-        .encodeSRGB = context.getOutputMode() == hz::OUTPUT_MODE_SDR && !srgbTarget ? 1u : 0u,
-        .paperWhiteNits = fmaxf(settings.paperWhiteNits, 1.0f),
-        .peakNits = context.isHDREnabled() ? context.getHDRMetadata().maxContentLightLevel : 100.0f,
+    const bool SrgbTarget = Context.getColorFormat() == hz::Format::R8G8B8A8_SRGB || Context.getColorFormat() == hz::Format::B8G8R8A8_SRGB;
+    hz::DependencyList     Dependencies;
+    const hz::GPUTexture*  Bloom = BloomUp[0];
+    const PostToneConstants Constants = {
+        .sceneColor = Dependencies.sample(&SceneColor),
+        .adaptedLuminance = Dependencies.sample(&AdaptedLuminance[AdaptedIndex]),
+        .bloom = Dependencies.sample(Bloom),
+        .sampler = Sampler.getIndex(),
+        .toneMapping = (uint32_t)Settings.ToneMapping,
+        .exposure = Settings.Exposure,
+        .bloomStrength = Settings.EnableBloom && Bloom ? Settings.BloomStrength : 0.0f,
+        .maxWhite = Settings.MaxWhite,
+        .P = Settings.UchimuraP,
+        .a = Settings.UchimuraA,
+        .m = Settings.UchimuraM,
+        .l = Settings.UchimuraL,
+        .c = Settings.UchimuraC,
+        .b = Settings.UchimuraB,
+        .startCompression = Settings.StartCompression,
+        .desaturation = Settings.Desaturation,
+        .outputMode = (uint32_t)Context.getOutputMode(),
+        .encodeSRGB = Context.getOutputMode() == hz::OUTPUT_MODE_SDR && !SrgbTarget ? 1u : 0u,
+        .paperWhiteNits = fmaxf(Settings.PaperWhiteNits, 1.0f),
+        .peakNits = Context.isHDREnabled() ? Context.getHDRMetadata().maxContentLightLevel : 100.0f,
     };
-    commands.beginRendering(
-        { .colorAttachments = { { .pTexture = &renderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-        dependencies.get());
-    commands.setViewport(0, 0, (float)width, (float)height);
-    commands.setScissor(0, 0, width, height);
-    commands.setPipeline(toneMapPipeline);
-    commands.setRootConstants(constants);
-    commands.draw(3);
-    commands.endRendering();
+    Commands.beginRendering(
+        { .colorAttachments = { { .pTexture = &RenderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
+        Dependencies.get());
+    Commands.setViewport(0, 0, (float)Width, (float)Height);
+    Commands.setScissor(0, 0, Width, Height);
+    Commands.setPipeline(ToneMapPipeline);
+    Commands.setRootConstants(Constants);
+    Commands.draw(3);
+    Commands.endRendering();
 }

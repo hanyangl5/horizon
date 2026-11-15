@@ -190,7 +190,7 @@ static void ExecuteTransparency(FrameContext& Frame, void* UserData)
 
 static void ExecutePost(FrameContext& Frame, void* UserData)
 {
-    ((PostEffects*)UserData)->execute(Frame.Commands, *Frame.Color, *Frame.Backbuffer, Frame.DeltaSeconds);
+    ((PostEffects*)UserData)->Execute(Frame.Commands, *Frame.Color, *Frame.Backbuffer, Frame.DeltaSeconds);
 }
 
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
@@ -253,7 +253,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
     Lighting->Resize(Width, Height);
     Transparency->Resize(Width, Height, 1);
     RayTracing->Resize(Width, Height);
-    PostProcessing->resize(Width, Height);
+    PostProcessing->Resize(Width, Height);
 
     Scene.markDirty();
     return true;
