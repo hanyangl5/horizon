@@ -19,6 +19,11 @@ other. Per-frame targets such as the bloom chain come from the context's transie
 pool: a released texture is parked and only reused once the submission that used
 it completed, so their handles and resource states stay valid across frames.
 
+Passes declare what they read and write through `DependencyList`, which returns
+the descriptor index as it records the barrier, so a constant block and the
+barrier set cannot drift apart. Constant blocks are named structs that mirror
+their shader block and assert their size.
+
 Shader alignment distinguishes the reference algorithm from engine bindings.
 RT shadow/AO restores the original inline control flow, sampling helpers and
 experimental first-hit retracing; the surface normal is decoded in float like the
