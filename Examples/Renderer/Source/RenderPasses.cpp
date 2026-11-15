@@ -10,14 +10,14 @@
 #include "Scene/MeshAsset.h"
 #include "Scene/TextureAsset.h"
 
-constexpr hz::Format kDepthFormat = hz::Format::D24_UNORM_S8_UINT;
-constexpr hz::Format kGBufferFormats[] = {
+constexpr hz::Format DepthFormat = hz::Format::D24_UNORM_S8_UINT;
+constexpr hz::Format GBufferFormats[] = {
     hz::Format::B10G11R11_UFLOAT,
     hz::Format::R10G10B10A2_UNORM,
     hz::Format::R8G8B8A8_UNORM,
     hz::Format::R8G8B8A8_UNORM,
 };
-constexpr const char* kGBufferNames[] = {
+constexpr const char* GBufferNames[] = {
     "Renderer.GBuffer.Emissive",
     "Renderer.GBuffer.NormalMaterial",
     "Renderer.GBuffer.BaseColorMetallic",
@@ -36,9 +36,9 @@ struct GeometryBindingConstants
 };
 static_assert(sizeof(GeometryBindingConstants) == 5 * sizeof(uint32_t));
 
-GBuffer::GBuffer(hz::RenderContext& context): context(context)
+GBuffer::GBuffer(hz::RenderContext& Context): Context(Context)
 {
-    pipeline = context.createGraphicsPipeline({
+    Pipeline = Context.createGraphicsPipeline({
     .shaderDesc = {
         .stages = {
             { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect", .pName = "Renderer.GeometryVS" },
@@ -48,179 +48,178 @@ GBuffer::GBuffer(hz::RenderContext& context): context(context)
     },
     .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
     .colorTargets = {
-        { .format = kGBufferFormats[0] },
-        { .format = kGBufferFormats[1] },
-        { .format = kGBufferFormats[2] },
-        { .format = kGBufferFormats[3] },
+        { .format = GBufferFormats[0] },
+        { .format = GBufferFormats[1] },
+        { .format = GBufferFormats[2] },
+        { .format = GBufferFormats[3] },
     },
-    .depthStencilFormat = kDepthFormat,
+    .depthStencilFormat = DepthFormat,
     .indirectDrawId = true,
     .pName = "Renderer.GeometryPipeline",
 });
 
-    sampler = context.createSampler();
-    ASSERT(pipeline.isValid() && sampler.isValid());
+    Sampler = Context.createSampler();
+    ASSERT(Pipeline.isValid() && Sampler.isValid());
 }
 
-void GBuffer::resize(uint32_t width, uint32_t height)
+void GBuffer::Resize(uint32_t Width, uint32_t Height)
 {
-    this->width = width;
-    this->height = height;
-    hz::TextureDesc targetDesc = {
-        .width = width,
-        .height = height,
+    this->Width = Width;
+    this->Height = Height;
+    hz::TextureDesc TargetDesc = {
+        .width = Width,
+        .height = Height,
         .startState = RESOURCE_STATE_RENDER_TARGET,
         .descriptors = DESCRIPTOR_TYPE_TEXTURE,
         .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
         .renderTarget = true,
     };
-    for (uint32_t i = 0; i < GBuffer::gbufferCount; ++i)
+    for (uint32_t Index = 0; Index < TextureCount; ++Index)
     {
-        targetDesc.format = kGBufferFormats[i];
-        targetDesc.pName = kGBufferNames[i];
-        gbuffer[i] = context.createTexture(targetDesc);
+        TargetDesc.format = GBufferFormats[Index];
+        TargetDesc.pName = GBufferNames[Index];
+        Textures[Index] = Context.createTexture(TargetDesc);
     }
 
-    targetDesc.format = kDepthFormat;
-    targetDesc.startState = RESOURCE_STATE_DEPTH_WRITE;
-    targetDesc.pName = "Renderer.Depth";
-    depth = context.createTexture(targetDesc);
+    TargetDesc.format = DepthFormat;
+    TargetDesc.startState = RESOURCE_STATE_DEPTH_WRITE;
+    TargetDesc.pName = "Renderer.Depth";
+    Depth = Context.createTexture(TargetDesc);
 }
 
-void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const SceneView& view, const GpuDrawList& draws)
+void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
-    const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
-    const ClearValue           black = {};
-    commands.beginGpuTimestamp("Geometry");
-    commands.beginRendering({
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::Execute");
+    const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+    const ClearValue           Black = {};
+    Cmd.beginGpuTimestamp("Geometry");
+    Cmd.beginRendering({
         .colorAttachments =  {
-            { .pTexture = &gbuffer[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-            { .pTexture = &gbuffer[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-            { .pTexture = &gbuffer[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-            { .pTexture = &gbuffer[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
+            { .pTexture = &Textures[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
+            { .pTexture = &Textures[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
+            { .pTexture = &Textures[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
+            { .pTexture = &Textures[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
         } ,
-        .depthAttachment = { .pTexture = &depth,
+        .depthAttachment = { .pTexture = &Depth,
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
-    }, draws.GetDependencies(frame, view, &draws.GetCommands(view.frameIndex)));
-    commands.setViewport(0, 0, (float)width, (float)height);
-    commands.setScissor(0, 0, width, height);
-    commands.setPipeline(pipeline);
-    const GeometryBindingConstants binding = {
-        .frameIndex = frame.getSrvIndex(),
-        .instancesIndex = gpu.instances.isValid() ? gpu.instances.getSrvIndex() : UINT32_MAX,
-        .materialsIndex = gpu.materials.isValid() ? gpu.materials.getSrvIndex() : UINT32_MAX,
-        .texturesIndex = gpu.textures.isValid() ? gpu.textures.getSrvIndex() : UINT32_MAX,
-        .samplerIndex = sampler.getIndex(),
+    }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.frameIndex)));
+    Cmd.setViewport(0, 0, (float)Width, (float)Height);
+    Cmd.setScissor(0, 0, Width, Height);
+    Cmd.setPipeline(Pipeline);
+    const GeometryBindingConstants Binding = {
+        .frameIndex = Frame.getSrvIndex(),
+        .instancesIndex = Gpu.instances.isValid() ? Gpu.instances.getSrvIndex() : UINT32_MAX,
+        .materialsIndex = Gpu.materials.isValid() ? Gpu.materials.getSrvIndex() : UINT32_MAX,
+        .texturesIndex = Gpu.textures.isValid() ? Gpu.textures.getSrvIndex() : UINT32_MAX,
+        .samplerIndex = Sampler.getIndex(),
     };
-    commands.setRootConstants(binding, kGeometryBindingSlot);
+    Cmd.setRootConstants(Binding, GeometryBindingSlot);
 
-    commands.setRootConstant({ draws.GetDrawData(view.frameIndex).getSrvIndex() }, kGeometryDrawSlot);
-    if (draws.GetCount(view.frameIndex))
+    Cmd.setRootConstant({ Draws.GetDrawData(View.frameIndex).getSrvIndex() }, GeometryDrawSlot);
+    if (Draws.GetCount(View.frameIndex))
     {
-        commands.drawIndirect(draws.GetCommands(view.frameIndex), 0, draws.GetCount(view.frameIndex));
+        Cmd.drawIndirect(Draws.GetCommands(View.frameIndex), 0, Draws.GetCount(View.frameIndex));
     }
-    commands.endRendering();
-    commands.endGpuTimestamp();
+    Cmd.endRendering();
+    Cmd.endGpuTimestamp();
 }
 
-static void ExecuteShadows(FrameContext& frame, void* pUserData)
+static void ExecuteShadows(FrameContext& Frame, void* UserData)
 {
-    ShadowMap& shadows = *(ShadowMap*)pUserData;
-    shadows.Execute(frame.commands, frame.view, frame.draws);
-    frame.environmentIntensity = shadows.Data.environmentIntensity;
+    ShadowMap& Shadows = *(ShadowMap*)UserData;
+    Shadows.Execute(Frame.Commands, Frame.View, Frame.Draws);
+    Frame.EnvironmentIntensity = Shadows.Data.environmentIntensity;
 }
 
-static void executeGBuffer(FrameContext& frame, void* pUserData)
+static void ExecuteGBuffer(FrameContext& Frame, void* UserData)
 {
-    GBuffer& gbuffer = *(GBuffer*)pUserData;
-    gbuffer.execute(frame.commands, frame.frame, frame.view, frame.draws);
-    frame.gbuffer = { .Emissive = &gbuffer.gbuffer[0],
-                      .NormalMaterial = &gbuffer.gbuffer[1],
-                      .BaseColorMetallic = &gbuffer.gbuffer[2],
-                      .Depth = &gbuffer.depth };
+    GBuffer& Pass = *(GBuffer*)UserData;
+    Pass.Execute(Frame.Commands, Frame.Frame, Frame.View, Frame.Draws);
+    Frame.GBuffer = { .Emissive = &Pass.Textures[0],
+                      .NormalMaterial = &Pass.Textures[1],
+                      .BaseColorMetallic = &Pass.Textures[2],
+                      .Depth = &Pass.Depth };
 }
 
-static void executeScreenSpaceAO(FrameContext& frame, void* pUserData)
+static void ExecuteScreenSpaceAO(FrameContext& Frame, void* UserData)
 {
     // Ray traced AO replaces the screen space term.
-    if (!frame.rayTracedAO)
+    if (!Frame.RayTracedAO)
     {
-        frame.resources.SSAO =
-            &((ScreenSpaceAO*)pUserData)->execute(frame.commands, frame.frame, *frame.gbuffer.Depth, frame.linearSampler);
+        Frame.Resources.SSAO =
+            &((ScreenSpaceAO*)UserData)->execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.LinearSampler);
     }
 }
 
-static void executeRayTracing(FrameContext& frame, void* pUserData)
+static void ExecuteRayTracing(FrameContext& Frame, void* UserData)
 {
-    RayTracedEffects& rayTracing = *(RayTracedEffects*)pUserData;
-    rayTracing.execute(frame.commands, frame.frame, frame.gbuffer, frame.view, frame.draws, frame.resources);
-    if (!rayTracing.isSupported())
+    RayTracedEffects& RayTracing = *(RayTracedEffects*)UserData;
+    RayTracing.execute(Frame.Commands, Frame.Frame, Frame.GBuffer, Frame.View, Frame.Draws, Frame.Resources);
+    if (!RayTracing.isSupported())
     {
         return;
     }
-    if (rayTracing.settings.shadows || rayTracing.settings.ao)
+    if (RayTracing.settings.shadows || RayTracing.settings.ao)
     {
-        frame.resources.RTShadowAO = &rayTracing.getShadowAO();
+        Frame.Resources.RTShadowAO = &RayTracing.getShadowAO();
     }
-    if (rayTracing.settings.reflection)
+    if (RayTracing.settings.reflection)
     {
-        frame.resources.RTReflection = &rayTracing.getReflection();
+        Frame.Resources.RTReflection = &RayTracing.getReflection();
     }
 }
 
-static void executeLighting(FrameContext& frame, void* pUserData)
+static void ExecuteLighting(FrameContext& Frame, void* UserData)
 {
-    frame.pColor = &((DeferredLighting*)pUserData)->Execute(frame.commands, frame.frame, frame.gbuffer, frame.view, frame.resources);
+    Frame.Color = &((DeferredLighting*)UserData)->Execute(Frame.Commands, Frame.Frame, Frame.GBuffer, Frame.View, Frame.Resources);
 }
 
-static void executeEnvironment(FrameContext& frame, void* pUserData)
+static void ExecuteEnvironment(FrameContext& Frame, void* UserData)
 {
-    ((EnvironmentPass*)pUserData)
-        ->execute(frame.commands, frame.frame, *frame.pColor, *frame.gbuffer.Depth, frame.environmentIntensity);
+    ((EnvironmentPass*)UserData)->execute(Frame.Commands, Frame.Frame, *Frame.Color, *Frame.GBuffer.Depth, Frame.EnvironmentIntensity);
 }
 
-static void executeTransparency(FrameContext& frame, void* pUserData)
+static void ExecuteTransparency(FrameContext& Frame, void* UserData)
 {
-    frame.pColor = &((Transparency*)pUserData)
-                        ->execute(frame.commands, frame.frame, *frame.gbuffer.Depth, frame.view, frame.draws, frame.resources,
-                                  *frame.pColor);
+    Frame.Color = &((Transparency*)UserData)
+                       ->execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.View, Frame.Draws, Frame.Resources,
+                                 *Frame.Color);
 }
 
-static void executePost(FrameContext& frame, void* pUserData)
+static void ExecutePost(FrameContext& Frame, void* UserData)
 {
-    ((PostEffects*)pUserData)->execute(frame.commands, *frame.pColor, *frame.pBackbuffer, frame.deltaSeconds);
+    ((PostEffects*)UserData)->execute(Frame.Commands, *Frame.Color, *Frame.Backbuffer, Frame.DeltaSeconds);
 }
 
-RenderPasses::RenderPasses(const RenderPassesDesc& desc):
-    context(*desc.pContext), scene(*desc.pScene), assets(*desc.pAssetManager), camera(desc.camera), draws(context),
-    gpuScene(scene, assets, context, { .frameCount = frameConstants.size() })
+RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
+    Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
+    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.size() })
 {
-    ASSERT(context.isValid() && camera.isValid());
-    gbuffer = hz::make_unique<GBuffer>(context);
-    lighting = hz::make_unique<DeferredLighting>(context);
-    ssao = hz::make_unique<ScreenSpaceAO>(context);
-    environment = hz::make_unique<EnvironmentPass>(context, hz::Format::R32G32B32A32_SFLOAT);
-    shadows = hz::make_unique<ShadowMap>(context);
-    postprocessing = hz::make_unique<PostEffects>(context);
-    transparency = hz::make_unique<Transparency>(context);
-    rayTracing = hz::make_unique<RayTracedEffects>(context);
-    addPass({ .pName = "Shadows", .pExecute = ExecuteShadows, .pUserData = shadows.get() });
-    addPass({ .pName = "GBuffer", .pExecute = executeGBuffer, .pUserData = gbuffer.get() });
-    addPass({ .pName = "SSAO", .pExecute = executeScreenSpaceAO, .pUserData = ssao.get(), .pEnabled = &enableScreenSpaceAO });
-    addPass({ .pName = "Ray Tracing", .pExecute = executeRayTracing, .pUserData = rayTracing.get() });
-    addPass({ .pName = "Lighting", .pExecute = executeLighting, .pUserData = lighting.get() });
-    addPass({ .pName = "Environment", .pExecute = executeEnvironment, .pUserData = environment.get() });
-    addPass({ .pName = "Transparency", .pExecute = executeTransparency, .pUserData = transparency.get(), .pEnabled = &enableTransparency });
-    addPass({ .pName = "Post", .pExecute = executePost, .pUserData = postprocessing.get() });
+    ASSERT(Context.isValid() && CameraId.isValid());
+    GBufferTargets = hz::make_unique<GBuffer>(Context);
+    Lighting = hz::make_unique<DeferredLighting>(Context);
+    SSAO = hz::make_unique<ScreenSpaceAO>(Context);
+    Environment = hz::make_unique<EnvironmentPass>(Context, hz::Format::R32G32B32A32_SFLOAT);
+    Shadows = hz::make_unique<ShadowMap>(Context);
+    PostProcessing = hz::make_unique<PostEffects>(Context);
+    Transparency = hz::make_unique<::Transparency>(Context);
+    RayTracing = hz::make_unique<RayTracedEffects>(Context);
+    AddPass({ .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.get() });
+    AddPass({ .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferTargets.get() });
+    AddPass({ .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.get(), .Enabled = &EnableScreenSpaceAO });
+    AddPass({ .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.get() });
+    AddPass({ .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.get() });
+    AddPass({ .Name = "Environment", .Execute = ExecuteEnvironment, .UserData = Environment.get() });
+    AddPass({ .Name = "Transparency", .Execute = ExecuteTransparency, .UserData = Transparency.get(), .Enabled = &EnableTransparency });
+    AddPass({ .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.get() });
 
-    linearSampler = context.createSampler({ .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE });
-    for (FrameConstants& constants : frameConstants)
+    LinearSampler = Context.createSampler({ .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE });
+    for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
     {
-        hz::GPUBuffer& buffer = constants.buffer;
-        buffer = context.createBuffer({ .size = sizeof(FrameData),
+        hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
+        Buffer = Context.createBuffer({ .size = sizeof(FrameData),
                                         .elementCount = 1,
                                         .structStride = sizeof(FrameData),
                                         .pName = "Renderer.Frame",
@@ -228,111 +227,113 @@ RenderPasses::RenderPasses(const RenderPassesDesc& desc):
                                         .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                         .descriptors = DESCRIPTOR_TYPE_BUFFER,
                                         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-        ASSERT(buffer.isValid());
+        ASSERT(Buffer.isValid());
     }
 }
 
-bool RenderPasses::resize(uint32_t width, uint32_t height)
+bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
 {
-    if (!width || !height)
+    if (!Width || !Height)
     {
         return true;
     }
 
-    if (!environment->isValid() && !environment->load({ .directory = RD_SHADER_SOURCES,
+    if (!Environment->isValid() && !Environment->load({ .directory = RD_SHADER_SOURCES,
                                                         .prefiltered = "../../../Assets/Cookbook/immenstadter_horn_2k_prefilter.ktx",
                                                         .irradiance = "../../../Assets/Cookbook/immenstadter_horn_2k_irradiance.ktx",
                                                         .brdfLut = "../../../Assets/Cookbook/brdfLUT.ktx" }))
     {
         return false;
     }
-    if (!ssao->resize(width, height))
+    if (!SSAO->resize(Width, Height))
     {
         return false;
     }
-    gbuffer->resize(width, height);
-    lighting->Resize(width, height);
-    transparency->resize(width, height, 1);
-    rayTracing->resize(width, height);
-    postprocessing->resize(width, height);
+    GBufferTargets->Resize(Width, Height);
+    Lighting->Resize(Width, Height);
+    Transparency->resize(Width, Height, 1);
+    RayTracing->resize(Width, Height);
+    PostProcessing->resize(Width, Height);
 
-    scene.markDirty();
+    Scene.markDirty();
     return true;
 }
 
-void RenderPasses::update(float frameDeltaSeconds) { deltaSeconds = frameDeltaSeconds; }
+void RenderPasses::Update(float FrameDeltaSeconds) { DeltaSeconds = FrameDeltaSeconds; }
 
-static Matrix4 viewProjection(const Matrix4& pose, const hz::Camera& lens, float aspectInverse)
+static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens, float AspectInverse)
 {
-    const float horizontalFov = 2.0f * atanf(tanf(lens.verticalFov * 0.5f) / aspectInverse);
-    return Matrix4::perspectiveRH(horizontalFov, aspectInverse, lens.nearPlane, lens.farPlane) * inverse(pose);
+    const float HorizontalFov = 2.0f * atanf(tanf(Lens.verticalFov * 0.5f) / AspectInverse);
+    return Matrix4::perspectiveRH(HorizontalFov, AspectInverse, Lens.nearPlane, Lens.farPlane) * inverse(Pose);
 }
-void RenderPasses::execute()
+
+void RenderPasses::Execute()
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::execute");
-    if (context.isSuspended())
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::Execute");
+    if (Context.isSuspended())
     {
         return;
     }
 
-    ASSERT(postprocessing);
+    ASSERT(PostProcessing);
     // Block on the oldest frame like Unreal's frame sync; returning would spin Update/Draw while every frame is in flight.
-    const uint32_t  frameIndex = nextFrame;
-    FrameConstants& constants = frameConstants[frameIndex];
-    if (constants.submission.isValid())
+    const uint32_t     FrameIndex = NextFrame;
+    FrameConstantBuffer& ConstantBuffer = FrameConstants[FrameIndex];
+    if (ConstantBuffer.Submission.isValid())
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
-        context.wait(constants.submission);
+        Context.wait(ConstantBuffer.Submission);
     }
-    if (!gpuScene.beginFrame())
+    if (!GpuSceneData.beginFrame())
     {
         return;
     }
-    nextFrame = (nextFrame + 1) % frameConstants.size();
-    const SceneView         view = { .scene = scene, .gpuScene = gpuScene, .assets = assets, .frameIndex = frameIndex };
-    const hz::RenderCamera* pCamera = scene.getCamera(camera);
-    ASSERT(pCamera);
-    const hz::RenderCamera& cameraData = *pCamera;
-    const float             aspectInverse = (float)context.getHeight() / (float)context.getWidth();
-    const Matrix4           current = viewProjection(cameraData.current, cameraData.lens, aspectInverse);
-    const FrameData         frameData = { .viewProjection = current,
-                                          .previousViewProjection = viewProjection(cameraData.previous, cameraData.previousLens, aspectInverse),
-                                          .inverseViewProjection = inverse(current),
-                                          .eye = cameraData.current.getCol3() };
-    const hz::GPUBuffer&    frame = constants.buffer;
-    const bool              updated = context.updateBuffer(frame, 0, &frameData, sizeof(frameData));
-    ASSERT(updated);
-    hz::CommandList& commands = context.acquireCommandList();
-    gpuScene.upload(commands);
-    draws.Prepare(commands, frame, view);
+    NextFrame = (NextFrame + 1) % FrameConstants.size();
+    const SceneView         View = { .scene = Scene, .gpuScene = GpuSceneData, .assets = Assets, .frameIndex = FrameIndex };
+    const hz::RenderCamera* Camera = Scene.getCamera(CameraId);
+    ASSERT(Camera);
+    const hz::RenderCamera& CameraState = *Camera;
+    const float             AspectInverse = (float)Context.getHeight() / (float)Context.getWidth();
+    const Matrix4           Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse);
+    const FrameData         FrameValues = { .viewProjection = Current,
+                                            .previousViewProjection =
+                                                CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse),
+                                            .inverseViewProjection = inverse(Current),
+                                            .eye = CameraState.current.getCol3() };
+    const hz::GPUBuffer&    Frame = ConstantBuffer.Buffer;
+    const bool              Updated = Context.updateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
+    ASSERT(Updated);
+    hz::CommandList& Commands = Context.acquireCommandList();
+    GpuSceneData.upload(Commands);
+    Draws.Prepare(Commands, Frame, View);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
-    shadows->Data.environmentMipCount = environment->getPrefilteredMipCount();
-    shadows->Data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;
-    shadows->Data.rtAOEnabled = rayTracing->isSupported() && rayTracing->settings.ao ? 1u : 0u;
-    const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-    FrameContext          frameContext = { .commands = commands,
-                                           .draws = draws,
-                                           .frame = frame,
-                                           .view = view,
-                                           .linearSampler = linearSampler,
-                                           .deltaSeconds = deltaSeconds,
-                                           .rayTracedAO = shadows->Data.rtAOEnabled != 0,
-                                           .pBackbuffer = &backbuffer,
-                                           .resources = { .LightingFrame = &shadows->GetLightingFrame(frameIndex),
-                                                          .ShadowMap = &shadows->GetTexture(),
-                                                          .ShadowSampler = &shadows->GetSampler(),
-                                                          .Environment = &environment->getPrefiltered(),
-                                                          .Irradiance = &environment->getIrradiance(),
-                                                          .BRDFLut = &environment->getBrdfLut(),
-                                                          .EnvironmentSampler = &environment->getSampler() } };
-    for (uint32_t i = 0; i < passCount; ++i)
+    Shadows->Data.environmentMipCount = Environment->getPrefilteredMipCount();
+    Shadows->Data.rtShadowEnabled = RayTracing->isSupported() && RayTracing->settings.shadows ? 1u : 0u;
+    Shadows->Data.rtAOEnabled = RayTracing->isSupported() && RayTracing->settings.ao ? 1u : 0u;
+    const hz::GPUTexture& Backbuffer = Context.getCurrentBackbuffer();
+    FrameContext          FrameState = { .Commands = Commands,
+                                         .Draws = Draws,
+                                         .Frame = Frame,
+                                         .View = View,
+                                         .LinearSampler = LinearSampler,
+                                         .DeltaSeconds = DeltaSeconds,
+                                         .RayTracedAO = Shadows->Data.rtAOEnabled != 0,
+                                         .Backbuffer = &Backbuffer,
+                                         .Resources = { .LightingFrame = &Shadows->GetLightingFrame(FrameIndex),
+                                                        .ShadowMap = &Shadows->GetTexture(),
+                                                        .ShadowSampler = &Shadows->GetSampler(),
+                                                        .Environment = &Environment->getPrefiltered(),
+                                                        .Irradiance = &Environment->getIrradiance(),
+                                                        .BRDFLut = &Environment->getBrdfLut(),
+                                                        .EnvironmentSampler = &Environment->getSampler() } };
+    for (uint32_t Index = 0; Index < PassCount; ++Index)
     {
-        const RenderPass& pass = passes[i];
-        if (pass.pEnabled && !*pass.pEnabled)
+        const RenderPass& Pass = Passes[Index];
+        if (Pass.Enabled && !*Pass.Enabled)
             continue;
-        pass.pExecute(frameContext, pass.pUserData);
+        Pass.Execute(FrameState, Pass.UserData);
     }
-    ASSERT(frameContext.pColor && frameContext.pBackbuffer);
-    constants.submission = context.submit(commands, frameContext.pBackbuffer);
-    gpuScene.endFrame(constants.submission);
+    ASSERT(FrameState.Color && FrameState.Backbuffer);
+    ConstantBuffer.Submission = Context.submit(Commands, FrameState.Backbuffer);
+    GpuSceneData.endFrame(ConstantBuffer.Submission);
 }

@@ -172,7 +172,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
         .samplerIndex = SurfaceSampler.getIndex(),
     };
     Commands.setRootConstants(Binding);
-    Commands.setRootConstant({ Draws.GetDrawData(Backing).getSrvIndex() }, kGeometryDrawSlot);
+    Commands.setRootConstant({ Draws.GetDrawData(Backing).getSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(Backing))
     {
         Commands.drawIndirect(Draws.GetShadowCommands(Backing), 0, Draws.GetCount(Backing));

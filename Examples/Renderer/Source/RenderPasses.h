@@ -15,76 +15,77 @@
 
 struct RenderPassesDesc
 {
-    hz::RenderContext* pContext = nullptr;
-    hz::RenderScene*   pScene = nullptr;
-    hz::AssetManager*  pAssetManager = nullptr;
-    hz::RenderCameraID camera;
+    hz::RenderContext* Context = nullptr;
+    hz::RenderScene*   Scene = nullptr;
+    hz::AssetManager*  AssetManager = nullptr;
+    hz::RenderCameraID Camera;
 };
 
 // Per-frame state shared by the registered passes. Earlier passes fill what later passes consume.
 struct FrameContext
 {
-    hz::CommandList&      commands;
-    GpuDrawList&          draws;
-    const hz::GPUBuffer&  frame;
-    const SceneView&      view;
-    hz::GPUSampler&       linearSampler;
-    float                 deltaSeconds = 0.0f;
-    float                 environmentIntensity = 0.0f;
-    bool                  rayTracedAO = false;
-    const hz::GPUTexture* pColor = nullptr;
-    const hz::GPUTexture* pBackbuffer = nullptr;
-    DeferredGBuffer       gbuffer = {};
-    LightingResources     resources = {};
+    hz::CommandList&      Commands;
+    GpuDrawList&          Draws;
+    const hz::GPUBuffer&  Frame;
+    const SceneView&      View;
+    hz::GPUSampler&       LinearSampler;
+    float                 DeltaSeconds = 0.0f;
+    float                 EnvironmentIntensity = 0.0f;
+    bool                  RayTracedAO = false;
+    const hz::GPUTexture* Color = nullptr;
+    const hz::GPUTexture* Backbuffer = nullptr;
+    DeferredGBuffer       GBuffer = {};
+    LightingResources     Resources = {};
 };
 
-// One entry of the frame pass list. pEnabled gates optional effects without editing the list.
+// One entry of the frame pass list. Enabled gates optional effects without editing the list.
 struct RenderPass
 {
-    const char* pName = nullptr;
-    void (*pExecute)(FrameContext&, void*) = nullptr;
-    void*       pUserData = nullptr;
-    const bool* pEnabled = nullptr;
+    const char* Name = nullptr;
+    void (*Execute)(FrameContext&, void*) = nullptr;
+    void*       UserData = nullptr;
+    const bool* Enabled = nullptr;
 };
 
 class GBuffer
 {
 public:
-    GBuffer(hz::RenderContext& context);
-    void execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const SceneView& view, const GpuDrawList& draws);
-    void resize(uint32_t width, uint32_t height);
+    GBuffer(hz::RenderContext& Context);
+    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws);
+    void Resize(uint32_t Width, uint32_t Height);
 
-    hz::RenderContext&        context;
-    static constexpr uint32_t gbufferCount = 4;
-    uint32_t                  width = 0;
-    uint32_t                  height = 0;
-    hz::GPUPipeline           pipeline;
-    hz::GPUSampler            sampler;
-    hz::GPUTexture            gbuffer[gbufferCount];
-    hz::GPUTexture            depth;
+    hz::RenderContext&        Context;
+    static constexpr uint32_t TextureCount = 4;
+    uint32_t                  Width = 0;
+    uint32_t                  Height = 0;
+    hz::GPUPipeline           Pipeline;
+    hz::GPUSampler            Sampler;
+    hz::GPUTexture            Textures[TextureCount];
+    hz::GPUTexture            Depth;
 };
 
 class RenderPasses
 {
 public:
-    RenderPasses(const RenderPassesDesc& desc);
+    RenderPasses(const RenderPassesDesc& Desc);
     ~RenderPasses() = default;
 
-    bool resize(uint32_t width, uint32_t height);
+    bool Resize(uint32_t Width, uint32_t Height);
 
-    void update(float deltaSeconds);
-    void execute();
-    void addPass(const RenderPass& pass)
+    void Update(float DeltaSeconds);
+    void Execute();
+    void AddPass(const RenderPass& Pass)
     {
-        ASSERT(passCount < maxPasses);
-        passes[passCount++] = pass;
+        ASSERT(PassCount < MaxPasses);
+        Passes[PassCount++] = Pass;
     }
-    bool enableScreenSpaceAO = false;
-    bool enableTransparency = true;
+    bool EnableScreenSpaceAO = false;
+    bool EnableTransparency = true;
 
-    static constexpr uint32_t maxPasses = 12;
+    static constexpr uint32_t MaxPasses = 12;
 
 private:
+    // Uploaded as the frame constant block, so the fields keep the shader's names.
     struct FrameData
     {
         Matrix4 viewProjection;
@@ -93,31 +94,31 @@ private:
         Vector4 eye;
     };
 
-    struct FrameConstants
+    struct FrameConstantBuffer
     {
-        hz::GPUBuffer    buffer;
-        hz::SubmitHandle submission;
+        hz::GPUBuffer    Buffer;
+        hz::SubmitHandle Submission;
     };
 
-    hz::RenderContext& context;
-    hz::RenderScene&   scene;
-    hz::AssetManager&  assets;
-    hz::RenderCameraID camera;
+    hz::RenderContext& Context;
+    hz::RenderScene&   Scene;
+    hz::AssetManager&  Assets;
+    hz::RenderCameraID CameraId;
 
-    hz::unique_ptr<GBuffer>          gbuffer;
-    hz::unique_ptr<DeferredLighting> lighting;
-    hz::unique_ptr<PostEffects>      postprocessing;
-    hz::unique_ptr<ScreenSpaceAO>    ssao;
-    hz::unique_ptr<EnvironmentPass>  environment;
-    hz::unique_ptr<ShadowMap>        shadows;
-    hz::unique_ptr<Transparency>     transparency;
-    hz::unique_ptr<RayTracedEffects> rayTracing;
-    hz::GPUSampler                   linearSampler;
-    GpuDrawList                      draws;
-    float                            deltaSeconds = 1.0f / 60.0f;
-    hz::FixedArray<FrameConstants, 3> frameConstants;
-    uint32_t                          nextFrame = 0;
-    hz::FixedArray<RenderPass, maxPasses> passes;
-    uint32_t                              passCount = 0;
-    hz::GpuScene                      gpuScene;
+    hz::unique_ptr<GBuffer>          GBufferTargets;
+    hz::unique_ptr<DeferredLighting> Lighting;
+    hz::unique_ptr<PostEffects>      PostProcessing;
+    hz::unique_ptr<ScreenSpaceAO>    SSAO;
+    hz::unique_ptr<EnvironmentPass>  Environment;
+    hz::unique_ptr<ShadowMap>        Shadows;
+    hz::unique_ptr<Transparency>     Transparency;
+    hz::unique_ptr<RayTracedEffects> RayTracing;
+    hz::GPUSampler                   LinearSampler;
+    GpuDrawList                      Draws;
+    float                            DeltaSeconds = 1.0f / 60.0f;
+    hz::FixedArray<FrameConstantBuffer, 3> FrameConstants;
+    uint32_t                              NextFrame = 0;
+    hz::FixedArray<RenderPass, 12>        Passes;
+    uint32_t                              PassCount = 0;
+    hz::GpuScene                          GpuSceneData;
 };

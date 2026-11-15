@@ -163,10 +163,10 @@ private:
     bool initRenderPasses()
     {
         const RenderPassesDesc desc = {
-            .pContext = pContext.get(),
-            .pScene = pScene.get(),
-            .pAssetManager = pAssetManager.get(),
-            .camera = pScene->findCamera(cameraEntity),
+            .Context = pContext.get(),
+            .Scene = pScene.get(),
+            .AssetManager = pAssetManager.get(),
+            .Camera = pScene->findCamera(cameraEntity),
         };
         pRenderPasses = hz::make_unique<RenderPasses>(desc);
         ASSERT(pRenderPasses);
@@ -209,7 +209,7 @@ public:
             return false;
         }
         const int64_t start = getUSec(true);
-        const bool    ready = pRenderPasses->resize(width, height);
+        const bool    ready = pRenderPasses->Resize(width, height);
         LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (getUSec(true) - start) / 1000.0);
         return ready;
     }
@@ -222,11 +222,11 @@ public:
         const bool            updated = pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose);
         ASSERT(updated);
         pAssetManager->update();
-        pRenderPasses->update(deltaTime);
+        pRenderPasses->Update(deltaTime);
     }
     const char* GetName() override { return "Renderer"; }
 
-    void Draw() override { pRenderPasses->execute(); }
+    void Draw() override { pRenderPasses->Execute(); }
 
 private:
     // The glTF cook check only touches files, so it runs while the device is created.
