@@ -92,9 +92,9 @@ TEST(SceneIDTest, RejectsMalformedInputWithoutChangingOutput)
     }
 }
 
-static bool generateSequence(void* pUserData, uint8_t (&bytes)[16])
+static bool generateSequence(void* UserData, uint8_t (&bytes)[16])
 {
-    uint8_t* pNext = (uint8_t*)pUserData;
+    uint8_t* pNext = (uint8_t*)UserData;
     for (uint32_t i = 0; i < 16; ++i)
         bytes[i] = (*pNext)++;
     return true;
@@ -109,7 +109,7 @@ static bool failGeneration(void*, uint8_t (&bytes)[16])
 TEST(SceneIDTest, InjectedSequenceIsDeterministicAndSetsUuidBits)
 {
     uint8_t               next = 0;
-    const hz::IDGenerator generator = { .pGenerate = generateSequence, .pUserData = &next };
+    const hz::IDGenerator generator = { .pGenerate = generateSequence, .UserData = &next };
     const hz::AssetID     asset = hz::AssetID::create(generator);
     const hz::Guid        object = hz::Guid::create(generator);
     char                  text[hz::kIDStringCapacity];

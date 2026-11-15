@@ -188,7 +188,7 @@ typedef struct ProcessedTextureData
 void GenerateMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextDesc);
 
 typedef void (*GenerateMipmapsCallback)(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextureDesc,
-                                        uint32_t channelsCount, void* pUserData);
+                                        uint32_t channelsCount, void* UserData);
 
 typedef struct ProcessTexturesParams
 {
@@ -251,7 +251,7 @@ struct ProcessAnimationsParams
 // This allows the user to read custom data that might be stored in this field.
 //     - jsonDataLenght is inclusive, you have to read from indexes to jsonData [0, jsonDataLength]
 typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, const char* jsonData, const uint32_t jsonDataLength,
-                                       void* pUserData);
+                                       void* UserData);
 
 // Callback used to let the user write into the binary mesh asset any custom fields/flags that were imported
 // from the gltf file.
@@ -259,7 +259,7 @@ typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, con
 //     1. pDst being nullptr: the user should just write the Size it requires to write all data into pOutSize.
 //     2. pDst being a valid pointer: the user should serialize the data into pDst, the buffer will be at least
 //        as big as the value assigned to pOutSize in the first call to this callback.
-typedef void (*MeshWriteExtrasCallback)(uint32_t* pOutSize, void* pDst, void* pUserData);
+typedef void (*MeshWriteExtrasCallback)(uint32_t* pOutSize, void* pDst, void* UserData);
 
 typedef enum MeshOptimizerFlags
 {
@@ -299,8 +299,8 @@ void ReleaseSkeletonAndAnimationParams(SkeletonAndAnimations* pStbdsArray);
 
 void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename);
 
-typedef void (*OnFind)(ResourceDirectory resourceDir, const char* fileName, void* pUserData);
-void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* pUserData,
+typedef void (*OnFind)(ResourceDirectory resourceDir, const char* fileName, void* UserData);
+void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* UserData,
                      bool recursive);
 
 bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParams);

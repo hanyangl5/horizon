@@ -64,9 +64,9 @@ public:
     static void destroyRequest(void* pJob, void*) { MemDelete((TextureRequest*)pJob); }
     static void destroyPayload(void* pPayload, void*) { MemDelete((TextureAsset*)pPayload); }
 
-    static void upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
+    static void upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
     {
-        TextureAssetLoaderData& loader = *(TextureAssetLoaderData*)pUser;
+        TextureAssetLoaderData& loader = *(TextureAssetLoaderData*)User;
         TextureAssetData&       data = *((TextureAsset*)pPayload)->Data;
         const char*             pExtension = strrchr(data.entry.location.pPath, '.');
         if (!pExtension || (stricmp(pExtension, ".dds") && stricmp(pExtension, ".ktx")))
@@ -85,7 +85,7 @@ public:
         addResource(&desc, &data.token);
     }
 
-    static AssetLoadStatus pollUpload(void* pPayload, void* pUser)
+    static AssetLoadStatus pollUpload(void* pPayload, void* User)
     {
         TextureAssetData& data = *((TextureAsset*)pPayload)->Data;
         if (!isTokenCompleted(&data.token))
@@ -95,7 +95,7 @@ public:
             LOGF(Error, "TextureAsset upload failed: '%s'", data.entry.location.pPath);
             return AssetLoadStatus::Failed;
         }
-        data.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)pUser)->context, data.pUpload);
+        data.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)User)->context, data.pUpload);
         return AssetLoadStatus::Succeeded;
     }
     static void waitUpload(void* pPayload, void*) { waitForToken(&((TextureAsset*)pPayload)->Data->token); }
@@ -119,7 +119,7 @@ TextureAssetLoader::TextureAssetLoader(RenderContext& context, ResourceDirectory
 TextureAssetLoader::~TextureAssetLoader() { MemDelete(Data); }
 AssetLoader TextureAssetLoader::getLoader()
 {
-    return { .pUserData = Data,
+    return { .UserData = Data,
              .pBegin = TextureAssetLoaderData::begin,
              .pPoll = TextureAssetLoaderData::poll,
              .pDestroyRequest = TextureAssetLoaderData::destroyRequest,

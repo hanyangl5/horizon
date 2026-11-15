@@ -119,9 +119,9 @@ public:
         hmfree(pCameraIndices);
     }
 
-    static bool syncLight(Entity entity, Span<const void*> fields, void* pUser)
+    static bool syncLight(Entity entity, Span<const void*> fields, void* User)
     {
-        RenderSceneData&         data = *(RenderSceneData*)pUser;
+        RenderSceneData&         data = *(RenderSceneData*)User;
         const RenderEntityIndex* pIndex = hmgetp_null(data.pLightIndices, entity);
         if (!pIndex)
         {
@@ -222,9 +222,9 @@ public:
             assetManager.release(handle);
         textureReleases.Clear();
     }
-    static bool extractCamera(Entity entity, Span<const void*> fields, void* pUser)
+    static bool extractCamera(Entity entity, Span<const void*> fields, void* User)
     {
-        RenderSceneData&         data = *(RenderSceneData*)pUser;
+        RenderSceneData&         data = *(RenderSceneData*)User;
         const RenderEntityIndex* pIndex = hmgetp_null(data.pCameraIndices, entity);
         if (!pIndex)
         {
@@ -445,9 +445,9 @@ public:
             markHistory(entity.instance.index);
         }
     }
-    static bool extractEntity(Entity entity, Span<const void*>, void* pUser)
+    static bool extractEntity(Entity entity, Span<const void*>, void* User)
     {
-        RenderSceneData&         data = *(RenderSceneData*)pUser;
+        RenderSceneData&         data = *(RenderSceneData*)User;
         const RenderEntityIndex* pIndex = hmgetp_null(data.pIndices, entity);
         RenderEntity&            renderEntity = pIndex ? data.entities[pIndex->value] : data.add(entity);
         data.extract(renderEntity);

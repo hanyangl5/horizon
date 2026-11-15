@@ -38,7 +38,7 @@ TEST(CoreFileSystemTest, MemoryStreamSupportsReadSeekFindAndClose)
     ASSERT_NE(mappedData, nullptr);
 
     EXPECT_TRUE(CloseStream(&stream));
-    EXPECT_EQ(stream.pIO, nullptr);
+    EXPECT_EQ(stream.FileSystem, nullptr);
 }
 
 // Verifies that writable memory streams can grow independently without mutating the original source buffer.

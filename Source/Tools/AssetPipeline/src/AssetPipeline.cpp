@@ -307,7 +307,7 @@ void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename)
     MakeDirectory(resourceDir, directory, true);
 }
 
-void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* pUserData,
+void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* UserData,
                      bool recursive)
 {
     // LOGF(Debug, "Exploring subdir: %s", subDir ? subDir : "Root");
@@ -323,7 +323,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
             const char* file = filesInDirectory[j]; //-V595
             // LOGF(Debug, "Found file: %s", file);
 
-            onFindCallback(resourceDir, file, pUserData);
+            onFindCallback(resourceDir, file, UserData);
         }
     }
 
@@ -342,7 +342,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
             if (subDirectories[i])
             {
                 const char* sDir = subDirectories[i]; //-V595
-                DirectorySearch(resourceDir, sDir, ext, onFindCallback, pUserData, recursive);
+                DirectorySearch(resourceDir, sDir, ext, onFindCallback, UserData, recursive);
             }
         }
 
@@ -1563,10 +1563,10 @@ static inline void util_unpack_uint8_to_uint16_joints(uint32_t Count, uint32_t s
     }
 }
 
-void OnGLTFFind(ResourceDirectory resourceDir, const char* filename, void* pUserData)
+void OnGLTFFind(ResourceDirectory resourceDir, const char* filename, void* UserData)
 {
     UNREF_PARAM(resourceDir);
-    bstring** inputFileNames = (bstring**)pUserData;
+    bstring** inputFileNames = (bstring**)UserData;
     arrpush(*inputFileNames, bdynfromcstr(filename));
 }
 
@@ -2068,11 +2068,11 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         if (userDataSize > 0)
         {
-            uint8_t* pUserData = jointCount > 0 ? ((uint8_t*)geomData->pJointRemaps + round_up(jointCount * sizeof(uint32_t), 16))
+            uint8_t* UserData = jointCount > 0 ? ((uint8_t*)geomData->pJointRemaps + round_up(jointCount * sizeof(uint32_t), 16))
                                                 : (uint8_t*)(geomData + 1);
-            geomData->pUserData = pUserData;
+            geomData->UserData = UserData;
             geomData->userDataSize = userDataSize;
-            glTFParams->pWriteExtrasCallback(&userDataSize, pUserData, glTFParams->pCallbackUserData);
+            glTFParams->pWriteExtrasCallback(&userDataSize, UserData, glTFParams->pCallbackUserData);
         }
 
         // Determine vertex stride for each binding
@@ -2459,13 +2459,13 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         // Serialized pointers are restored from the following data blocks during load.
         GeometryData::ShadowData* pTempShadow = geomData->pShadow;
-        void*                     pTempUserData = geomData->pUserData;
+        void*                     pTempUserData = geomData->UserData;
         geomData->pShadow = nullptr;
-        geomData->pUserData = nullptr;
+        geomData->UserData = nullptr;
         geometryFile.write(&totalGeomDataSize, sizeof(totalGeomDataSize));
         geometryFile.write(geomData, totalGeomDataSize);
         geomData->pShadow = pTempShadow;
-        geomData->pUserData = pTempUserData;
+        geomData->UserData = pTempUserData;
         geometryFile.write(&shadowSize, sizeof(shadowSize));
         geometryFile.write(geomData->pShadow, shadowSize);
         if (geom->meshlets.meshletCount)
@@ -2643,7 +2643,7 @@ bool ZipAllAssets(AssetPipelineParams*, WriteZipParams*)
 #endif
 
 #if defined(HORIZON_ENABLE_ANIMATION_COOKER)
-void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, void* pUserData)
+void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, void* UserData)
 {
     // TODO: Find beter way to discover if a .gltf mesh has external animations in other gltf files
     //		 For the time being, we assume that if this is the case, the animations are included in a "animations" subdirectory
@@ -2668,7 +2668,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
         }
     }
 
-    OnDiscoverAnimationsParam* discoveredAnims = (OnDiscoverAnimationsParam*)pUserData;
+    OnDiscoverAnimationsParam* discoveredAnims = (OnDiscoverAnimationsParam*)UserData;
 
     FileStream file = {};
     if (!OpenStreamFromPath(resourceDir, filename, FM_READ, &file))

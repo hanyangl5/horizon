@@ -67,7 +67,7 @@ TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
     for (size_t i = 0; i < TF_ARRAY_COUNT(handles); ++i)
     {
         ThreadDesc desc = {
-            .pFunc = callOnceWorker,
+            .Func = callOnceWorker,
             .Data = &workerData[i],
         };
         ASSERT_TRUE(InitThread(&desc, &handles[i]));
@@ -101,7 +101,7 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
     };
 
     ThreadDesc desc = {
-        .pFunc = namedThreadProbe,
+        .Func = namedThreadProbe,
         .Data = &data,
     };
     memcpy(desc.threadName, "CoreThreadUT", sizeof("CoreThreadUT"));

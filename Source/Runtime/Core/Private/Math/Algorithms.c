@@ -33,9 +33,9 @@
 // SIMPLE SORT
 // Used for array sizes 0..5
 
-static void simpleSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+static void simpleSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn less, void* UserData)
 {
-#define SIMPLE_SORT_FN(pArr, Count) simpleSort(pArr, Count, memberSize, less, pUserData)
+#define SIMPLE_SORT_FN(pArr, Count) simpleSort(pArr, Count, memberSize, less, UserData)
     SIMPLE_SORT_IMPL(SIMPLE_SORT_FN, char, (char*)pVoidData, memberCount, LESS_GENERIC, CREATE_TEMP_GENERIC, DESTROY_TEMP_GENERIC,
                      COPY_GENERIC, PTR_INC_GENERIC, PTR_ADD_GENERIC, PTR_SUB_GENERIC)
 #undef SIMPLE_SORT_FN
@@ -96,9 +96,9 @@ static void simpleSortDouble(double* pArr, size_t memberCount)
 
 // INSERTION SORT (stable Sort)
 
-void StableSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+void StableSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn less, void* UserData)
 {
-#define SIMPLE_SORT(pArr, memberCount) simpleSort(pArr, memberCount, memberSize, less, pUserData)
+#define SIMPLE_SORT(pArr, memberCount) simpleSort(pArr, memberCount, memberSize, less, UserData)
     INSERTION_SORT_IMPL(char, (char*)pVoidData, memberCount, SIMPLE_SORT, LESS_GENERIC, CREATE_TEMP_GENERIC, DESTROY_TEMP_GENERIC,
                         COPY_GENERIC, PTR_INC_GENERIC, PTR_DEC_GENERIC, PTR_ADD_GENERIC, PTR_SUB_GENERIC)
 #undef SIMPLE_SORT
@@ -160,14 +160,14 @@ void StableSortDouble(double* pArr, size_t memberCount)
 // PARTITION
 // V_RET_NOT_NULL, function:partitionImpl
 static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t memberSize, LessFn less,
-                           void* pUserData){ PARTITION_IMPL(char, pBegin, pEnd, pPivot, LESS_GENERIC, CREATE_TEMP_GENERIC,
+                           void* UserData){ PARTITION_IMPL(char, pBegin, pEnd, pPivot, LESS_GENERIC, CREATE_TEMP_GENERIC,
                                                             DESTROY_TEMP_GENERIC, COPY_GENERIC, PTR_INC_GENERIC, PTR_SUB_GENERIC) } size_t
-    Partition(void* Data, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+    Partition(void* Data, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* UserData)
 {
     if (memberCount == 0)
         return 0;
     char* pPivot = partitionImpl((char*)Data, (char*)Data + memberSize * memberCount, (char*)Data + pivot * memberSize, memberSize, less,
-                                 pUserData);
+                                 UserData);
     return (pPivot - (char*)Data) / memberSize;
 }
 
@@ -288,11 +288,11 @@ static double* partitionImplDouble(double* pBegin, double* pEnd, double* pPivot)
     return pPivot - pArr;
 }
 
-static void QuickSort(char* pBegin, char* pEnd, char* tmp, size_t memberSize, LessFn less, void* pUserData)
+static void QuickSort(char* pBegin, char* pEnd, char* tmp, size_t memberSize, LessFn less, void* UserData)
 {
-#define QUICKSORT_IMPL_FN(pBegin, pEnd, tmp)    QuickSort(pBegin, pEnd, tmp, memberSize, less, pUserData);
-#define FALLBACK_SORT(pArr, memberCount)        StableSort(pArr, memberCount, memberSize, less, pUserData)
-#define PARTITION_IMPL_FN(pBegin, pEnd, pPivot) partitionImpl(pBegin, pEnd, pPivot, memberSize, less, pUserData)
+#define QUICKSORT_IMPL_FN(pBegin, pEnd, tmp)    QuickSort(pBegin, pEnd, tmp, memberSize, less, UserData);
+#define FALLBACK_SORT(pArr, memberCount)        StableSort(pArr, memberCount, memberSize, less, UserData)
+#define PARTITION_IMPL_FN(pBegin, pEnd, pPivot) partitionImpl(pBegin, pEnd, pPivot, memberSize, less, UserData)
 
     QUICKSORT_IMPL(char, pBegin, pEnd, tmp, QUICKSORT_IMPL_FN, FALLBACK_SORT, PARTITION_IMPL_FN, LESS_GENERIC, COPY_GENERIC,
                    PTR_ADD_GENERIC, PTR_SUB_GENERIC, PTR_DIFF_GENERIC)
@@ -301,10 +301,10 @@ static void QuickSort(char* pBegin, char* pEnd, char* tmp, size_t memberSize, Le
 #undef PARTITION_IMPL_FN
 }
 
-void Sort(void* Data, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+void Sort(void* Data, size_t memberCount, size_t memberSize, LessFn less, void* UserData)
 {
     CREATE_TEMP_GENERIC(char, tmp);
-    QuickSort((char*)Data, (char*)Data + memberCount * memberSize, tmp, memberSize, less, pUserData);
+    QuickSort((char*)Data, (char*)Data + memberCount * memberSize, tmp, memberSize, less, UserData);
     DESTROY_TEMP_GENERIC(tmp);
 }
 

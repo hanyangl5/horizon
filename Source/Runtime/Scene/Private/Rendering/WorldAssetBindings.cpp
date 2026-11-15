@@ -231,9 +231,9 @@ public:
         bindings.Clear();
     }
 
-    static bool sync(Entity entity, Span<const void*> fields, void* pUser)
+    static bool sync(Entity entity, Span<const void*> fields, void* User)
     {
-        WorldAssetBindingsData&  data = *(WorldAssetBindingsData*)pUser;
+        WorldAssetBindingsData&  data = *(WorldAssetBindingsData*)User;
         const WorldBindingIndex* pIndex = hmgetp_null(data.pIndices, entity);
         const uint32_t           index = pIndex ? pIndex->value : data.bindings.Size();
         if (!pIndex)

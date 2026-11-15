@@ -109,21 +109,21 @@ void UnlockMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex-
 
 bool InitConditionVariable(ConditionVariable* cv)
 {
-    cv->pHandle = (CONDITION_VARIABLE*)MemCallocate(1, sizeof(CONDITION_VARIABLE));
-    InitializeConditionVariable((PCONDITION_VARIABLE)cv->pHandle);
+    cv->Handle = (CONDITION_VARIABLE*)MemCallocate(1, sizeof(CONDITION_VARIABLE));
+    InitializeConditionVariable((PCONDITION_VARIABLE)cv->Handle);
     return true;
 }
 
-void DestroyConditionVariable(ConditionVariable* cv) { MemDeallocate(cv->pHandle); }
+void DestroyConditionVariable(ConditionVariable* cv) { MemDeallocate(cv->Handle); }
 
 void WaitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
 {
-    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->pHandle, (PCRITICAL_SECTION)&pMutex->handle, ms);
+    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->Handle, (PCRITICAL_SECTION)&pMutex->handle, ms);
 }
 
-void SignalConditionVariable(ConditionVariable* cv) { WakeConditionVariable((PCONDITION_VARIABLE)cv->pHandle); }
+void SignalConditionVariable(ConditionVariable* cv) { WakeConditionVariable((PCONDITION_VARIABLE)cv->Handle); }
 
-void BroadcastConditionVariable(ConditionVariable* cv) { WakeAllConditionVariable((PCONDITION_VARIABLE)cv->pHandle); }
+void BroadcastConditionVariable(ConditionVariable* cv) { WakeAllConditionVariable((PCONDITION_VARIABLE)cv->Handle); }
 
 static ThreadID mainThreadID = 0;
 
@@ -203,23 +203,23 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
         }
     }
 
-    item.pFunc(item.Data);
+    item.Func(item.Data);
     return 0;
 }
 
 void ThreadSleep(unsigned mSec) { Sleep(mSec); }
 
-bool InitThread(ThreadDesc* pDesc, ThreadHandle* pHandle)
+bool InitThread(ThreadDesc* pDesc, ThreadHandle* Handle)
 {
-    ASSERT(pHandle);
-    *pHandle = NULL;
+    ASSERT(Handle);
+    *Handle = NULL;
 
     // Copy the contents of ThreadDesc because if the variable is in the stack we might access corrupted data.
     ThreadDesc* pDescCopy = (ThreadDesc*)MemAllocate(sizeof(ThreadDesc));
     *pDescCopy = *pDesc;
 
-    *pHandle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDescCopy, 0, 0);
-    return *pHandle != NULL;
+    *Handle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDescCopy, 0, 0);
+    return *Handle != NULL;
 }
 
 void JoinThread(ThreadHandle handle)

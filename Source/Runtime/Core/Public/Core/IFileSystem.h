@@ -164,18 +164,18 @@ extern "C"
         uintptr_t data[6];
     };
 
-    /// After stream is opened, only FileStream::pIO must be used for this stream.
+    /// After stream is opened, only FileStream::FileSystem must be used for this stream.
     /// Example:
     ///   io->Open(&stream); // stream is opened
     ///   io->Read(&stream, ...); // bug, potentially uses wrong io on wrong stream.
-    ///   stream.pIO->Read(&stream, ...); // correct
+    ///   stream.FileSystem->Read(&stream, ...); // correct
     /// The reason for this is that IFileSystem::Open can open stream using another
     /// IFileSystem handle.
     ///
     /// It is best to use IFileSystem IO shortcuts "ReadFromStream(&stream,...)"
     typedef struct FileStream
     {
-        IFileSystem*              pIO;
+        IFileSystem*              FileSystem;
         FileMode                  mode;
         ResourceMount             mount;
         struct FileStreamUserData user; // access to this field is IO exclusive
@@ -190,7 +190,7 @@ extern "C"
 
     struct IFileSystem
     {
-        bool (*Open)(IFileSystem* pIO, const ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
+        bool (*Open)(IFileSystem* FileSystem, const ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
 
         /// Closes and invalidates the file stream.
         bool (*Close)(FileStream* pFile);
@@ -221,10 +221,10 @@ extern "C"
 
         // Acquire unique file identifier.
         // Only Archive FS supports it currently.
-        bool (*GetFileUid)(IFileSystem* pIO, ResourceDirectory rd, const char* name, uint64_t* outUid);
+        bool (*GetFileUid)(IFileSystem* FileSystem, ResourceDirectory rd, const char* name, uint64_t* outUid);
 
         // Open file using unique identifier. Use GetFileUid to get uid.
-        bool (*OpenByUid)(IFileSystem* pIO, uint64_t uid, FileMode fm, FileStream* pOut);
+        bool (*OpenByUid)(IFileSystem* FileSystem, uint64_t uid, FileMode fm, FileStream* pOut);
 
         // Creates virtual address space of file.
         // When memory mapping is done, file can be accessed just like an array.
@@ -234,7 +234,7 @@ extern "C"
         // This function does read-only memory map.
         bool (*MemoryMap)(FileStream* fs, size_t* outSize, void const** outData);
 
-        void* pUser;
+        void* User;
     };
 
     /// Default file system using C File IO or Bundled File IO (Android) based on the ResourceDirectory
@@ -355,18 +355,18 @@ extern "C"
     // MARK: - IFileSystem IO shortcuts
     /************************************************************************/
 
-    static inline bool IoOpenStreamFromPath(IFileSystem* pIO, const ResourceDirectory rd, const char* fileName, FileMode mode,
+    static inline bool IoOpenStreamFromPath(IFileSystem* FileSystem, const ResourceDirectory rd, const char* fileName, FileMode mode,
                                               FileStream* pOut)
     {
-        return pIO->Open(pIO, rd, fileName, mode, pOut);
+        return FileSystem->Open(FileSystem, rd, fileName, mode, pOut);
     }
 
     /// Closes and invalidates the file stream.
     static inline bool CloseStream(FileStream* fs)
     {
-        if (!fs->pIO)
+        if (!fs->FileSystem)
             return true;
-        bool success = fs->pIO->Close(fs);
+        bool success = fs->FileSystem->Close(fs);
         memset(fs, 0, sizeof *fs);
         return success;
     }
@@ -374,67 +374,67 @@ extern "C"
     /// Returns the number of bytes read.
     static inline size_t ReadFromStream(FileStream* fs, void* pOutputBuffer, size_t bufferSizeInBytes)
     {
-        return fs->pIO->Read(fs, pOutputBuffer, bufferSizeInBytes);
+        return fs->FileSystem->Read(fs, pOutputBuffer, bufferSizeInBytes);
     }
 
     /// Reads at most `bufferSizeInBytes` bytes from sourceBuffer and writes them into the file.
     /// Returns the number of bytes written.
     static inline size_t WriteToStream(FileStream* fs, const void* pSourceBuffer, size_t byteCount)
     {
-        if (!fs->pIO->Write)
+        if (!fs->FileSystem->Write)
             return 0;
-        return fs->pIO->Write(fs, pSourceBuffer, byteCount);
+        return fs->FileSystem->Write(fs, pSourceBuffer, byteCount);
     }
 
     /// Seeks to the specified position in the file, using `baseOffset` as the reference offset.
     static inline bool SeekStream(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
     {
-        return fs->pIO->Seek(fs, baseOffset, seekOffset);
+        return fs->FileSystem->Seek(fs, baseOffset, seekOffset);
     }
 
     /// Gets the current seek position in the file.
-    static inline ssize_t GetStreamPosition(FileStream* fs) { return fs->pIO->GetSeekPosition(fs); }
+    static inline ssize_t GetStreamPosition(FileStream* fs) { return fs->FileSystem->GetSeekPosition(fs); }
 
     /// Gets the current Size of the file. Returns -1 if the Size is unknown or unavailable.
-    static inline ssize_t GetStreamFileSize(FileStream* fs) { return fs->pIO->GetFileSize(fs); }
+    static inline ssize_t GetStreamFileSize(FileStream* fs) { return fs->FileSystem->GetFileSize(fs); }
 
     /// Flushes all writes to the file stream to the underlying subsystem.
     static inline bool FlushStream(FileStream* fs)
     {
-        if (!fs->pIO->Flush)
+        if (!fs->FileSystem->Flush)
             return false;
-        return fs->pIO->Flush(fs);
+        return fs->FileSystem->Flush(fs);
     }
 
     /// Returns whether the current seek position is at the end of the file stream.
-    static inline bool StreamAtEnd(FileStream* fs) { return fs->pIO->IsAtEnd(fs); }
+    static inline bool StreamAtEnd(FileStream* fs) { return fs->FileSystem->IsAtEnd(fs); }
 
-    static inline const char* IoGetResourceMount(IFileSystem* pIO, ResourceMount mount)
+    static inline const char* IoGetResourceMount(IFileSystem* FileSystem, ResourceMount mount)
     {
-        if (!pIO->GetResourceMount)
+        if (!FileSystem->GetResourceMount)
             return "";
-        return pIO->GetResourceMount(mount);
+        return FileSystem->GetResourceMount(mount);
     }
 
-    static inline bool IoGetFileUid(IFileSystem* pIO, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
+    static inline bool IoGetFileUid(IFileSystem* FileSystem, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
     {
-        if (!pIO->GetFileUid)
+        if (!FileSystem->GetFileUid)
             return false;
-        return pIO->GetFileUid(pIO, rd, fileName, outUid);
+        return FileSystem->GetFileUid(FileSystem, rd, fileName, outUid);
     }
 
-    static inline bool IoOpenByUid(IFileSystem* pIO, uint64_t index, FileMode mode, FileStream* pOutStream)
+    static inline bool IoOpenByUid(IFileSystem* FileSystem, uint64_t index, FileMode mode, FileStream* pOutStream)
     {
-        if (!pIO->OpenByUid)
+        if (!FileSystem->OpenByUid)
             return false;
-        return pIO->OpenByUid(pIO, index, mode, pOutStream);
+        return FileSystem->OpenByUid(FileSystem, index, mode, pOutStream);
     }
 
     static inline bool StreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
     {
-        if (!fs->pIO->MemoryMap)
+        if (!fs->FileSystem->MemoryMap)
             return false;
-        return fs->pIO->MemoryMap(fs, outSize, outData);
+        return fs->FileSystem->MemoryMap(fs, outSize, outData);
     }
 
     /************************************************************************/
@@ -446,11 +446,11 @@ extern "C"
     FORGE_API ResourceMount GetResourceDirectoryMount(ResourceDirectory resourceDir);
 
     /// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
-    /// The `resourceDir` will making use of the given IFileSystem `pIO` file functions.
+    /// The `resourceDir` will making use of the given IFileSystem `FileSystem` file functions.
     /// When `mount` is set to `RM_CONTENT` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
     /// Sets or replaces the location associated with a resource directory.
-    FORGE_API void SetResourceDirectoryPath(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
+    FORGE_API void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
 
     /************************************************************************/
     // MARK: - File Queries

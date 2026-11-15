@@ -49,13 +49,13 @@ typedef struct LogCallback
     uint32_t      level;
 } LogCallback;
 
-static void initLogCallback(LogCallback* pLogCallback, const char* id, void* pUserData, LogCallbackFn callback, LogCloseFn close,
+static void initLogCallback(LogCallback* pLogCallback, const char* id, void* UserData, LogCallbackFn callback, LogCloseFn close,
                             LogFlushFn flush, uint32_t level)
 {
     strncpy(pLogCallback->id, id, sizeof pLogCallback->id - 1);
     pLogCallback->id[sizeof pLogCallback->id - 1] = 0;
 
-    pLogCallback->userData = pUserData;
+    pLogCallback->userData = UserData;
     pLogCallback->callback = callback;
     pLogCallback->close = close;
     pLogCallback->flush = flush;

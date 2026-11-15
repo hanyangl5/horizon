@@ -267,7 +267,7 @@ typedef struct GeometryData
 
     // Custom data imported by the user in custom AssetPipelines, this can be data that was exported from a custom tool/plugin
     // specific to the engine/game. See AssetPipeline: callbacks in ProcessGLTFParams for more information.
-    void*    pUserData;
+    void*    UserData;
     uint32_t userDataSize;
 
     uint32_t pad1[5];

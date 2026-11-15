@@ -6755,7 +6755,7 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
     }
 
     CHECK_HRESULT(pRenderer->dx.pDevice->CreateCommandSignature(
-        &commandSignatureDesc, needRootSignature ? pDesc->pRootSignature->dx.pRootSignature : NULL, IID_ARGS(&pCommandSignature->pHandle)));
+        &commandSignatureDesc, needRootSignature ? pDesc->pRootSignature->dx.pRootSignature : NULL, IID_ARGS(&pCommandSignature->Handle)));
     pCommandSignature->stride = commandSignatureDesc.ByteStride;
     pCommandSignature->drawType = drawType;
 
@@ -6765,7 +6765,7 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
 void d3d12_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
 {
     UNREF_PARAM(pRenderer);
-    SAFE_RELEASE(pCommandSignature->pHandle);
+    SAFE_RELEASE(pCommandSignature->Handle);
     SAFE_FREE(pCommandSignature);
 }
 
@@ -6776,10 +6776,10 @@ void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, ui
     ASSERT(pIndirectBuffer);
 
     if (!pCounterBuffer)
-        pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset, NULL,
+        pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->Handle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset, NULL,
                                            0);
     else
-        pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->pHandle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset,
+        pCmd->dx.pCmdList->ExecuteIndirect(pCommandSignature->Handle, maxCommandCount, pIndirectBuffer->dx.pResource, bufferOffset,
                                            pCounterBuffer->dx.pResource, counterBufferOffset);
 }
 /************************************************************************/

@@ -132,7 +132,7 @@
 #define DESTROY_TEMP_NUMERIC(name) ((void)0)
 #define DESTROY_TEMP_GENERIC(name) ((memberSize > sizeof(CONCAT(name, Buf))) ? MemDeallocate(name) : (void)0)
 #define LESS_NUMERIC(pX, pY)       (*(pX) < *(pY))
-#define LESS_GENERIC(pX, pY)       less((pX), (pY), pUserData)
+#define LESS_GENERIC(pX, pY)       less((pX), (pY), UserData)
 
 #define COPY_NUMERIC(pDst, pSrc)   (*(pDst) = *(pSrc), (void)0)
 #define COPY_GENERIC(pDst, pSrc)   (memcpy(pDst, pSrc, memberSize), (void)0)

@@ -294,9 +294,9 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     selectApUIWidget.Count = (uint32_t)elementsOf(pApiNames);
 
     pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-    pSelectApUIWidget->pOnEdited = [](void* pUserData)
+    pSelectApUIWidget->pOnEdited = [](void* UserData)
     {
-        UNREF_PARAM(pUserData);
+        UNREF_PARAM(UserData);
         ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH };
         requestReset(&resetDescriptor);
     };
@@ -312,9 +312,9 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     pSelectGraphicCardWidget =
         uiCreateComponentWidget(pAPISwitchingComponent, "Select Graphic Card", &selectGraphicCardUIWidget, WIDGET_TYPE_DROPDOWN);
-    pSelectGraphicCardWidget->pOnEdited = [](void* pUserData)
+    pSelectGraphicCardWidget->pOnEdited = [](void* UserData)
     {
-        UNREF_PARAM(pUserData);
+        UNREF_PARAM(UserData);
         ResetDesc resetDescriptor{ RESET_TYPE_GRAPHIC_CARD_SWITCH };
         requestReset(&resetDescriptor);
     };

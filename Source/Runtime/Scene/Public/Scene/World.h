@@ -125,7 +125,7 @@ public:
     bool        isValid() const;
 
     // Fields follow the requested type order. Returning false stops iteration. Structural changes are deferred.
-    void each(bool (*pCallback)(Entity entity, Span<const void*> fields, void* pUserData), void* pUserData = nullptr);
+    void each(bool (*pCallback)(Entity entity, Span<const void*> fields, void* UserData), void* UserData = nullptr);
 
 private:
     WorldQueryImpl* pImpl = nullptr;

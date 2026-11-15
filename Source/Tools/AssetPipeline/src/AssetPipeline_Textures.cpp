@@ -882,7 +882,7 @@ void GenerateMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, T
 }
 
 void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextureDesc, uint32_t channelCount,
-                                void* pUserData)
+                                void* UserData)
 {
     UNREF_PARAM(pImageDataSize);
     ASSERT(channelCount > 2 && "Minimum of 3 channels input is required");
@@ -893,7 +893,7 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
     pTextureDesc->mipLevels = numLevels;
 
     Vector3* rData[MAX_MIPLEVELS];
-    rData[0] = (Vector3*)pUserData;
+    rData[0] = (Vector3*)UserData;
 
     for (uint32_t mipMap = 1; mipMap < numLevels; ++mipMap)
     {
@@ -1018,10 +1018,10 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
     return success;
 }
 
-void onTextureFound(ResourceDirectory resourceDir, const char* filename, void* pUserData)
+void onTextureFound(ResourceDirectory resourceDir, const char* filename, void* UserData)
 {
     UNREF_PARAM(resourceDir);
-    bstring** fileNames = (bstring**)pUserData;
+    bstring** fileNames = (bstring**)UserData;
     arrpush(*fileNames, bdynfromcstr(filename));
 }
 

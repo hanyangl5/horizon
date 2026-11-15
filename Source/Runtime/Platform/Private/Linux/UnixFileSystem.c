@@ -186,7 +186,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     }
 
     fs->mode = mode;
-    fs->pIO = io;
+    fs->FileSystem = io;
     fs->mount = GetResourceDirectoryMount(rd);
 
     if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))

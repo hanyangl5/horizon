@@ -523,7 +523,7 @@ FORGE_API void GetPathFileName(const char* path, char* output)
 
 typedef struct ResourceDirectoryInfo
 {
-    IFileSystem*  pIO;
+    IFileSystem*  FileSystem;
     ResourceMount mount;
     char          path[FS_MAX_PATH];
     bool          bundled;
@@ -740,9 +740,9 @@ static IFileSystem gMemoryFileIO = {
 // File IO
 /************************************************************************/
 
-bool IsMemoryStream(FileStream* pStream) { return pStream->pIO == &gMemoryFileIO; }
+bool IsMemoryStream(FileStream* pStream) { return pStream->FileSystem == &gMemoryFileIO; }
 
-bool IsSystemStream(FileStream* pStream) { return pStream->pIO == SystemFileIO; }
+bool IsSystemStream(FileStream* pStream) { return pStream->FileSystem == SystemFileIO; }
 
 bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* fs)
 {
@@ -767,7 +767,7 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
         owner = true;
     }
 
-    fs->pIO = &gMemoryFileIO;
+    fs->FileSystem = &gMemoryFileIO;
     fs->mode = mode;
 
     MEMSD(stream, fs);
@@ -784,7 +784,7 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
 /// to read from or modify the file. May return NULL if the file could not be opened.
 bool OpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
-    IFileSystem* io = gResourceDirectories[resourceDir].pIO;
+    IFileSystem* io = gResourceDirectories[resourceDir].FileSystem;
     if (!io)
     {
         LOGF(Error,
@@ -993,7 +993,7 @@ const char* GetResourceDirectory(ResourceDirectory resourceDir)
 {
     const ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
-    if (!dir->pIO)
+    if (!dir->FileSystem)
     {
         LOGF_IF(Error, !dir->path[0],
                 "Trying to get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application",
@@ -1005,9 +1005,9 @@ const char* GetResourceDirectory(ResourceDirectory resourceDir)
 
 ResourceMount GetResourceDirectoryMount(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].mount; }
 
-void SetResourceDirectoryPath(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder)
+void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder)
 {
-    ASSERT(pIO);
+    ASSERT(FileSystem);
     ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
 #if !defined(FORGE_DEBUG) && !defined(ENABLE_LOGGING)
@@ -1024,9 +1024,9 @@ void SetResourceDirectoryPath(IFileSystem* pIO, ResourceMount mount, ResourceDir
     dir->bundled = RM_CONTENT == mount;
 
     char resourcePath[FS_MAX_PATH] = { 0 };
-    MergeDirAndFileName(pIO->GetResourceMount ? pIO->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
+    MergeDirAndFileName(FileSystem->GetResourceMount ? FileSystem->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
     strncpy(dir->path, resourcePath, FS_MAX_PATH);
-    dir->pIO = pIO;
+    dir->FileSystem = FileSystem;
 
     if (!dir->bundled && dir->path[0] != 0)
     {
@@ -1350,14 +1350,14 @@ struct BunyArNodeSearchCtx
     const char* nodeNames;
 };
 
-static void* tfAllocForZstd(void* pUser, size_t Size)
+static void* tfAllocForZstd(void* User, size_t Size)
 {
-    (void)pUser;
+    (void)User;
     return MemAllocate(Size);
 }
-static void tfFreeForZstd(void* pUser, void* memory)
+static void tfFreeForZstd(void* User, void* memory)
 {
-    (void)pUser;
+    (void)User;
     MemDeallocate(memory);
 }
 static const ZSTD_customMem ZSTD_MEMORY_ALLOCATOR = {
@@ -1375,7 +1375,7 @@ static int bunyArNameNodeCmp(const void* v1, const void* v2)
 
 static void initBunyArFsInterface(IFileSystem*, struct BunyArMetadata*);
 
-static inline struct BunyArMetadata* getFsArchive(IFileSystem* fs) { return (struct BunyArMetadata*)fs->pUser; }
+static inline struct BunyArMetadata* getFsArchive(IFileSystem* fs) { return (struct BunyArMetadata*)fs->User; }
 
 static inline struct BunyArFileStream* getFsBunyArStream(FileStream* fs) { return (struct BunyArFileStream*)fs->user.data[0]; }
 
@@ -1743,7 +1743,7 @@ FORGE_API bool OpenArchiveFromMemory(uint64_t msize, const void* m, const struct
 
 FORGE_API bool CloseArchive(IFileSystem* fs)
 {
-    if (!fs || !fs->pUser)
+    if (!fs || !fs->User)
         return true;
 
     struct BunyArMetadata* archive = getFsArchive(fs);
@@ -1753,7 +1753,7 @@ FORGE_API bool CloseArchive(IFileSystem* fs)
         LOGF(Error, "Archive closed while some files are still opened");
     }
 
-    if (archive->ownedStream.pIO)
+    if (archive->ownedStream.FileSystem)
     {
         CloseStream(&archive->ownedStream);
     }
@@ -1901,7 +1901,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     }
     }
 
-    pOutStream->pIO = inFs;
+    pOutStream->FileSystem = inFs;
     pOutStream->mode = mode;
 
     pOutStream->user.data[0] = (uintptr_t)fs;
@@ -1921,12 +1921,12 @@ static bool ioArchiveFsOpen(IFileSystem* fs, const ResourceDirectory rd, const c
 
 static bool ioArchiveFsClose(FileStream* fs)
 {
-    if (!fs->pIO)
+    if (!fs->FileSystem)
         return true;
 
     ASSERT(fs->user.data[0]);
 
-    struct BunyArMetadata* archive = getFsArchive(fs->pIO);
+    struct BunyArMetadata* archive = getFsArchive(fs->FileSystem);
     ASSERT(archive->virtualStreamCount != 0);
     --archive->virtualStreamCount;
 
@@ -2036,7 +2036,7 @@ static bool bunyArReadBlockToStagingBuffer(struct BunyArMetadata* archive, struc
 static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outputSize)
 {
     struct BunyArFileStream* fs = getFsBunyArStream(pFile);
-    struct BunyArMetadata*   archive = getFsArchive(pFile->pIO);
+    struct BunyArMetadata*   archive = getFsArchive(pFile->FileSystem);
     struct BunyArNode*       node = fs->node;
 
     switch (node->format)
@@ -2193,7 +2193,7 @@ static bool ioArchiveMemoryMap(FileStream* fs, size_t* outSize, void const** out
 
     struct BunyArFileStream* stream = getFsBunyArStream((FileStream*)(uintptr_t)fs);
 
-    struct BunyArMetadata* archive = getFsArchive(fs->pIO);
+    struct BunyArMetadata* archive = getFsArchive(fs->FileSystem);
     if (!archive->memoryBeg)
         return false;
 
@@ -2224,7 +2224,7 @@ static void initBunyArFsInterface(IFileSystem* fs, struct BunyArMetadata* archiv
     fs->OpenByUid = ioArchiveOpenByUid;
     fs->MemoryMap = ioArchiveMemoryMap;
 
-    fs->pUser = archive;
+    fs->User = archive;
 }
 
 /************************************************************************/

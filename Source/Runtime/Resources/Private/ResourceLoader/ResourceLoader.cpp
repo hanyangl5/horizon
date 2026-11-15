@@ -3574,7 +3574,7 @@ extern PlatformParameters gPlatformParameters;
 struct ShaderByteCodeBuffer
 {
     // Make sure we don't stack overflow
-    static FORGE_CONSTEXPR const uint32_t kStackSize = 128u * TF_KB;
+    static FORGE_CONSTEXPR const uint32_t kStackSize = 128u * Kilobyte;
 
     // Stack memory, no need to deallocate it. Used first, if a shader is too big we allocate heap memory
     void*    pStackMemory;
@@ -3858,7 +3858,7 @@ static inline bool IssueBufferCopyBarriers() { return true; } //-V524
 
 static inline bool IssueExplicitInitialStateBarrier() { return false; }
 
-ResourceLoaderDesc          gDefaultResourceLoaderDesc = { 8ull * TF_MB, 2, false };
+ResourceLoaderDesc          gDefaultResourceLoaderDesc = { 8ull * Megabyte, 2, false };
 /************************************************************************/
 // Surface Utils
 /************************************************************************/
@@ -4548,7 +4548,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 
     if (!upload.Data)
     {
-        if (stream.pIO)
+        if (stream.FileSystem)
             CloseStream(&stream);
         return UPLOAD_FUNCTION_RESULT_STAGING_BUFFER_FULL;
     }
@@ -4590,7 +4590,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 bool ret = util_get_surface_info(w, h, fmt, &numBytes, &rowBytes, &numRows);
                 if (!ret)
                 {
-                    if (stream.pIO)
+                    if (stream.FileSystem)
                         CloseStream(&stream);
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 }
@@ -4635,7 +4635,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
     }
 
-    if (stream.pIO)
+    if (stream.FileSystem)
     {
         CloseStream(&stream);
     }
@@ -4814,7 +4814,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
             return res;
         }
-        if (stream.pIO)
+        if (stream.FileSystem)
             CloseStream(&stream);
     }
 
@@ -4941,7 +4941,7 @@ class GeometryFileRead
 public:
     ~GeometryFileRead()
     {
-        if (file.pIO)
+        if (file.FileSystem)
             CloseStream(&file);
         MemDeallocate(pMeshlets);
         MemDeallocate(pShadow);
@@ -5062,7 +5062,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
     if (geomData->userDataSize > 0)
     {
-        geomData->pUserData = geomData->jointCount > 0
+        geomData->UserData = geomData->jointCount > 0
                                   ? ((uint8_t*)geomData->pJointRemaps + round_up(geomData->jointCount * sizeof(uint32_t), 16))
                                   : (uint8_t*)(geomData + 1);
     }
@@ -5557,7 +5557,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
 #endif
 
     ThreadDesc threadDesc = {};
-    threadDesc.pFunc = streamerThreadFunc;
+    threadDesc.Func = streamerThreadFunc;
     threadDesc.Data = pLoader;
     strncpy(threadDesc.threadName, "ResourceLoaderTask", sizeof(threadDesc.threadName));
 

@@ -117,7 +117,7 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
         return E_NOINTERFACE;
     }
     // CreatePlacedResource requires 64KB granularity for D3D12_RESOURCE_DIMENSION_BUFFER resources
-    const size_t requiredResourceHeapAlign = 64 * TF_KB;
+    const size_t requiredResourceHeapAlign = 64 * Kilobyte;
     size_t       requiredDataSize = pDesc->Width;
     size_t       bufferSize = round_up_64(requiredDataSize, requiredResourceHeapAlign);
     void*        allocatedData = VirtualAlloc(nullptr, bufferSize, MEM_COMMIT, PAGE_READWRITE);

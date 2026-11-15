@@ -3834,7 +3834,7 @@ void ImGui::Shutdown()
     g.SettingsHandlers.clear();
 
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-    if (g.LogFile.pIO)
+    if (g.LogFile.FileSystem)
 #else
     if (g.LogFile)
 #endif
@@ -13632,7 +13632,7 @@ void ImGui::EndDragDropTarget()
 static inline void LogTextV(ImGuiContext& g, const char* fmt, va_list args)
 {
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-    if (g.LogFile.pIO)
+    if (g.LogFile.FileSystem)
 #else
     if (g.LogFile)
 #endif
@@ -13736,7 +13736,7 @@ void ImGui::LogBegin(ImGuiLogType type, int auto_open_depth)
     ImGuiWindow* window = g.CurrentWindow;
     IM_ASSERT(g.LogEnabled == false);
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-    IM_ASSERT(g.LogFile.pIO == 0);
+    IM_ASSERT(g.LogFile.FileSystem == 0);
 #else
     IM_ASSERT(g.LogFile == NULL);
 #endif

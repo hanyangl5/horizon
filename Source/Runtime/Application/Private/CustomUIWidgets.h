@@ -181,9 +181,9 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 }
 } // namespace ImGui
 
-static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
+static void internalProcessBufferAllocatorPlotWidget(void* UserData)
 {
-    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pUserData;
+    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)UserData;
 
     int            nValues = (int)pPlotWidget->Size[0];
     const int64_t* values = pPlotWidget->pValues;
@@ -215,18 +215,18 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
     ImGui::PlotBufferChunkAllocatorHistogram((const char*)label.data, values + 2, nValues, 0, title, pPlotWidget->Size);
 }
 
-static void internalDestroyBufferAllocatorPlotWidget(void* pUserData)
+static void internalDestroyBufferAllocatorPlotWidget(void* UserData)
 {
-    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pUserData;
+    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)UserData;
     MemDeallocate(pPlotWidget->pValues);
     pPlotWidget->pValues = NULL;
 }
 
-UIWidget* uiCreateBufferChunkAllocatorPlotWidget(UIComponent* pGui, const char* pLabel, BufferAllocatorPlotWidget* pUserData)
+UIWidget* uiCreateBufferChunkAllocatorPlotWidget(UIComponent* pGui, const char* pLabel, BufferAllocatorPlotWidget* UserData)
 {
     CustomWidget customWidget = {};
     customWidget.pCallback = internalProcessBufferAllocatorPlotWidget;
-    customWidget.pUserData = pUserData;
+    customWidget.UserData = UserData;
     customWidget.pDestroyCallback = internalDestroyBufferAllocatorPlotWidget;
     return uiCreateComponentWidget(pGui, pLabel, &customWidget, WIDGET_TYPE_CUSTOM);
 }
@@ -238,7 +238,7 @@ static inline uint64_t histogramPointOffsetAproximation(uint32_t point, uint32_t
 
 /// Update data from BufferChunkAllocator once
 /// Caller takes care of race conditions
-/// Widget must be of type CustomWidget and pUserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
+/// Widget must be of type CustomWidget and UserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
 /// uiCreateBufferChunkAllocatorPlotWidget it's okay
 static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, float2 Size, struct BufferChunkAllocator* data)
 {
@@ -248,7 +248,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
         return;
 
     CustomWidget*              pCustomWidget = (CustomWidget*)pWidget->pWidget;
-    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->pUserData;
+    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->UserData;
 
     if (pPlotWidget->Size.x != Size.x || pPlotWidget->pValues == NULL)
     {

@@ -140,9 +140,9 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     } instances = { .world = &world, .mesh = mesh };
     hz::WorldQuery query(world, { hz::SceneTypes::meshRenderer, hz::SceneTypes::name });
     query.each(
-        [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
+        [](hz::Entity entity, hz::Span<const void*> fields, void* User)
         {
-            Instances&              data = *(Instances*)pUser;
+            Instances&              data = *(Instances*)User;
             const hz::MeshRenderer& renderer = *(const hz::MeshRenderer*)fields.Data[0];
             const hz::Name&         name = *(const hz::Name*)fields.Data[1];
             EXPECT_EQ(renderer.mesh, data.mesh);
@@ -205,9 +205,9 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
             } names = { .pWorld = &world, .root = root, .pExpected = expected.c_str() };
             hz::WorldQuery query(world, { hz::SceneTypes::name });
             query.each(
-                [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
+                [](hz::Entity entity, hz::Span<const void*> fields, void* User)
                 {
-                    Names& names = *(Names*)pUser;
+                    Names& names = *(Names*)User;
                     if (entity == names.root || names.pWorld->getParent(entity) == names.root)
                     {
                         EXPECT_STREQ(((const hz::Name*)fields.Data[0])->value, names.pExpected);
@@ -249,9 +249,9 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             } source = { .failureAt = failureAt, .collision = collision };
             const hz::IDGenerator generator = {
                 .pGenerate =
-                    [](void* pUser, uint8_t (&pBytes)[16])
+                    [](void* User, uint8_t (&pBytes)[16])
                 {
-                    Source&        source = *(Source*)pUser;
+                    Source&        source = *(Source*)User;
                     const uint32_t index = source.calls++;
                     if (index == source.failureAt && !source.collision)
                         return false;
@@ -259,7 +259,7 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
                     pBytes[15] = index == source.failureAt ? 0x10 : (uint8_t)(0x20 + index);
                     return true;
                 },
-                .pUserData = &source,
+                .UserData = &source,
             };
             hz::World        world(types, generator);
             const hz::Guid   parentID = { .high = 0x4000, .low = UINT64_C(0x8000000000000010) };
@@ -279,9 +279,9 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             uint32_t       Count = 0;
             hz::WorldQuery query(world, {});
             query.each(
-                [](hz::Entity, hz::Span<const void*>, void* pUser)
+                [](hz::Entity, hz::Span<const void*>, void* User)
                 {
-                    ++*(uint32_t*)pUser;
+                    ++*(uint32_t*)User;
                     return true;
                 },
                 &Count);
@@ -456,9 +456,9 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
         } nodes = { .world = &world, .root = root, .Count = Count, .parentFirst = parentFirst };
         hz::WorldQuery query(world, { hz::SceneTypes::name, hz::SceneTypes::localTransform });
         query.each(
-            [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
+            [](hz::Entity entity, hz::Span<const void*> fields, void* User)
             {
-                Nodes&          nodes = *(Nodes*)pUser;
+                Nodes&          nodes = *(Nodes*)User;
                 const hz::Name& name = *(const hz::Name*)fields.Data[0];
                 uint32_t        index = 0;
                 EXPECT_EQ(sscanf(name.value, "Node%u", &index), 1);

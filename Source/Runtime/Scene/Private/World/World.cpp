@@ -319,7 +319,7 @@ WorldQuery::~WorldQuery() { MemDelete(pImpl); }
 
 bool WorldQuery::isValid() const { return pImpl->pQuery != nullptr; }
 
-void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void* pUserData)
+void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void* UserData)
 {
     ASSERT(isValid() && pCallback && !pImpl->iterating);
     DeferredChanges changes = pImpl->pOwner->defer();
@@ -331,7 +331,7 @@ void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void*
         {
             for (uint32_t field = 0; field < pImpl->fields.Size(); ++field)
                 pImpl->fields[field] = (const uint8_t*)it.ptrs[field + 1] + (size_t)row * it.sizes[field + 1];
-            if (!pCallback(Entity(it.entities[row], pImpl->pOwner->pImpl->id), { pImpl->fields.GetData(), pImpl->fields.Size() }, pUserData))
+            if (!pCallback(Entity(it.entities[row], pImpl->pOwner->pImpl->id), { pImpl->fields.GetData(), pImpl->fields.Size() }, UserData))
             {
                 ecs_iter_fini(&it);
                 pImpl->iterating = false;

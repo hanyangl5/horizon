@@ -443,9 +443,9 @@ void collectMonitorInfo()
         }
         Sort(
             resolutions, arrlenu(resolutions), sizeof(Resolution),
-            +[](const void* lhs, const void* rhs, void* pUser)
+            +[](const void* lhs, const void* rhs, void* User)
             {
-                UNREF_PARAM(pUser);
+                UNREF_PARAM(User);
                 Resolution* pLhs = (Resolution*)lhs;
                 Resolution* pRhs = (Resolution*)rhs;
                 if (pLhs->height == pRhs->height)

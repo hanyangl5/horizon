@@ -56,8 +56,8 @@ typedef struct PipelineCache PipelineCache;
 /****************************************************************************/
 // MARK: - UI Widget Data Structures
 /****************************************************************************/
-typedef void (*WidgetCallback)(void* pUserData);
-typedef void (*WindowCallback)(void* pUserData);
+typedef void (*WidgetCallback)(void* UserData);
+typedef void (*WindowCallback)(void* UserData);
 
 enum WidgetType
 {
@@ -372,7 +372,7 @@ typedef struct DrawCurveWidget
 
 typedef struct CustomWidget
 {
-    void*          pUserData;
+    void*          UserData;
     WidgetCallback pCallback;
     WidgetCallback pDestroyCallback;
 } CustomWidget;
@@ -422,7 +422,7 @@ typedef struct UIComponent
     UIWidget** widgets = NULL;
     //(bool)[dyn_size]
     bool*      widgetsClone = NULL;
-    void*      pUserData = NULL;
+    void*      UserData = NULL;
 
     // Contextual menus when right clicking the title bar
     char const* const*    contextualMenuLabels = NULL;
@@ -613,27 +613,27 @@ FORGE_API void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is hovered, usable, and not blocked by anything
-FORGE_API void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is currently active (ex. button being held)
-FORGE_API void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is currently focused (for keyboard/gamepad nav)
-FORGE_API void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget just changed its underlying value or was pressed
-FORGE_API void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is made inactive from an active state
-FORGE_API void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is made inactive from an active state and its underlying value has changed
-FORGE_API void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Set whether or not a given UI Widget should be on the sameline than the previous one
 FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine);

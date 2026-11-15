@@ -289,7 +289,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     {
         *pOut = {};
         pOut->mode = mode;
-        pOut->pIO = SystemFileIO;
+        pOut->FileSystem = SystemFileIO;
 
         WSD(stream, pOut);
         stream->file = fp;

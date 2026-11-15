@@ -904,7 +904,7 @@ struct InputSystemImpl: public gainput::InputListener
                 {
                     InputActionContext ctx = {};
                     ctx.actionId = pControl->action.actionId;
-                    ctx.pUserData = pControl->action.pUserData;
+                    ctx.UserData = pControl->action.UserData;
                     ctx.deviceType = pDeviceTypes[touchDeviceID];
                     ctx.pPosition = (float2*)&gestureRecognizer.longPressTouch->pos;
 
@@ -964,7 +964,7 @@ struct InputSystemImpl: public gainput::InputListener
             pControl->value = float3(0.0f);
 
             InputActionContext ctx = {};
-            ctx.pUserData = pControl->action.pUserData;
+            ctx.UserData = pControl->action.UserData;
             ctx.phase = INPUT_ACTION_PHASE_CANCELED;
             ctx.pCaptured = &defaultCapture;
             ctx.actionId = pControl->action.actionId;
@@ -980,7 +980,7 @@ struct InputSystemImpl: public gainput::InputListener
 
             if (globalAnyButtonAction.pFunction)
             {
-                ctx.pUserData = globalAnyButtonAction.pUserData;
+                ctx.UserData = globalAnyButtonAction.UserData;
                 globalAnyButtonAction.pFunction(&ctx);
             }
         }
@@ -990,7 +990,7 @@ struct InputSystemImpl: public gainput::InputListener
         {
             IControl*          pControl = buttonControlPerformQueue[i].key;
             InputActionContext ctx = {};
-            ctx.pUserData = pControl->action.pUserData;
+            ctx.UserData = pControl->action.UserData;
             ctx.deviceType = INPUT_DEVICE_TOUCH;
             ctx.phase = INPUT_ACTION_PHASE_UPDATED;
             ctx.pCaptured = &defaultCapture;
@@ -1003,7 +1003,7 @@ struct InputSystemImpl: public gainput::InputListener
 
             if (globalAnyButtonAction.pFunction)
             {
-                ctx.pUserData = globalAnyButtonAction.pUserData;
+                ctx.UserData = globalAnyButtonAction.UserData;
                 globalAnyButtonAction.pFunction(&ctx);
             }
         }
@@ -1022,7 +1022,7 @@ struct InputSystemImpl: public gainput::InputListener
                 ctx.pText = pText;
                 ctx.deviceType = INPUT_DEVICE_KEYBOARD;
                 ctx.phase = INPUT_ACTION_PHASE_UPDATED;
-                ctx.pUserData = globalTextInputControl.pUserData;
+                ctx.UserData = globalTextInputControl.UserData;
                 if (globalTextInputControl.pFunction)
                 {
                     globalTextInputControl.pFunction(&ctx);
@@ -1532,11 +1532,11 @@ struct InputSystemImpl: public gainput::InputListener
         {
         case GlobalInputActionDesc::ANY_BUTTON_ACTION:
             globalAnyButtonAction.pFunction = pDesc->pFunction;
-            globalAnyButtonAction.pUserData = pDesc->pUserData;
+            globalAnyButtonAction.UserData = pDesc->UserData;
             break;
         case GlobalInputActionDesc::TEXT:
             globalTextInputControl.pFunction = pDesc->pFunction;
-            globalTextInputControl.pUserData = pDesc->pUserData;
+            globalTextInputControl.UserData = pDesc->UserData;
             break;
         default:
             ASSERT(0); // should never get here
@@ -1927,7 +1927,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                 const InputControlType type = control->type;
                 const InputActionDesc* pDesc = &control->action;
-                ctx.pUserData = pDesc->pUserData;
+                ctx.UserData = pDesc->UserData;
                 ctx.actionId = pDesc->actionId;
                 ctx.userId = pDesc->userId;
                 ASSERT(ctx.actionId != UINT_MAX);
@@ -1944,7 +1944,7 @@ struct InputSystemImpl: public gainput::InputListener
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                         if (globalAnyButtonAction.pFunction)
                         {
-                            ctx.pUserData = globalAnyButtonAction.pUserData;
+                            ctx.UserData = globalAnyButtonAction.UserData;
                             globalAnyButtonAction.pFunction(&ctx);
                         }
 #if TOUCH_INPUT
@@ -1956,7 +1956,7 @@ struct InputSystemImpl: public gainput::InputListener
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                         if (globalAnyButtonAction.pFunction)
                         {
-                            ctx.pUserData = globalAnyButtonAction.pUserData;
+                            ctx.UserData = globalAnyButtonAction.UserData;
                             globalAnyButtonAction.pFunction(&ctx);
                         }
 #endif
@@ -1968,7 +1968,7 @@ struct InputSystemImpl: public gainput::InputListener
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
                         if (globalAnyButtonAction.pFunction)
                         {
-                            ctx.pUserData = globalAnyButtonAction.pUserData;
+                            ctx.UserData = globalAnyButtonAction.UserData;
                             globalAnyButtonAction.pFunction(&ctx);
                         }
                     }
@@ -2078,7 +2078,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                                 if (globalAnyButtonAction.pFunction)
                                 {
-                                    ctx.pUserData = globalAnyButtonAction.pUserData;
+                                    ctx.UserData = globalAnyButtonAction.UserData;
                                     globalAnyButtonAction.pFunction(&ctx);
                                 }
                             }
@@ -2102,7 +2102,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                                 if (globalAnyButtonAction.pFunction)
                                 {
-                                    ctx.pUserData = globalAnyButtonAction.pUserData;
+                                    ctx.UserData = globalAnyButtonAction.UserData;
                                     globalAnyButtonAction.pFunction(&ctx);
                                 }
                             }
@@ -2429,7 +2429,7 @@ struct InputSystemImpl: public gainput::InputListener
                 const InputActionDesc* pDesc = &control->action;
                 InputActionContext     ctx = {};
                 ctx.deviceType = (uint8_t)pDeviceTypes[device];
-                ctx.pUserData = pDesc->pUserData;
+                ctx.UserData = pDesc->UserData;
                 ctx.pCaptured = IsPointerType(device) ? &inputCaptured : &defaultCapture;
                 ctx.actionId = pDesc->actionId;
                 ctx.pPosition = pPosition;
@@ -2490,7 +2490,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                                 if (globalAnyButtonAction.pFunction)
                                 {
-                                    ctx.pUserData = globalAnyButtonAction.pUserData;
+                                    ctx.UserData = globalAnyButtonAction.UserData;
                                     globalAnyButtonAction.pFunction(&ctx);
                                 }
                             }
@@ -2510,7 +2510,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                             if (globalAnyButtonAction.pFunction)
                             {
-                                ctx.pUserData = globalAnyButtonAction.pUserData;
+                                ctx.UserData = globalAnyButtonAction.UserData;
                                 globalAnyButtonAction.pFunction(&ctx);
                             }
                         }
@@ -2528,7 +2528,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                             if (globalAnyButtonAction.pFunction)
                             {
-                                ctx.pUserData = globalAnyButtonAction.pUserData;
+                                ctx.UserData = globalAnyButtonAction.UserData;
                                 globalAnyButtonAction.pFunction(&ctx);
                             }
                         }
@@ -2561,7 +2561,7 @@ struct InputSystemImpl: public gainput::InputListener
                                 executeNext = pDesc->pFunction(&ctx) && executeNext;
                             if (globalAnyButtonAction.pFunction)
                             {
-                                ctx.pUserData = globalAnyButtonAction.pUserData;
+                                ctx.UserData = globalAnyButtonAction.UserData;
                                 globalAnyButtonAction.pFunction(&ctx);
                             }
                         }

@@ -227,7 +227,7 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
 
     ThreadDesc threadDesc = { 0 };
 
-    threadDesc.pFunc = taskThreadFunc;
+    threadDesc.Func = taskThreadFunc;
     threadDesc.Data = t;
 
 #if defined(_WINDOWS) // for some reason on Windows thread name won't change after creation

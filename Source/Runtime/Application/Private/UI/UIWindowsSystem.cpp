@@ -83,35 +83,35 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     return true;
 }
 
-void wndSetWindowed(void* pUserData)
+void wndSetWindowed(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     setWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
-void wndSetFullscreen(void* pUserData)
+void wndSetFullscreen(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     setFullscreen(pWindowRef);
 }
 
-void wndSetBorderless(void* pUserData)
+void wndSetBorderless(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     setBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
-void wndMaximizeWindow(void* pUserData)
+void wndMaximizeWindow(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     WindowDesc* pWindow = pWindowRef;
 
     maximizeWindow(pWindow);
 }
 
-void wndMinimizeWindow(void* pUserData)
+void wndMinimizeWindow(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     pWindowRef->minimizeRequested = true;
 }
 
@@ -129,9 +129,9 @@ void wndShowWindow()
     showWindow(pWindow);
 }
 
-void wndUpdateResolution(void* pUserData)
+void wndUpdateResolution(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     uint32_t monitorCount = getMonitorCount();
     for (uint32_t i = 0; i < monitorCount; ++i)
     {
@@ -147,11 +147,11 @@ void wndUpdateResolution(void* pUserData)
     }
 }
 
-void wndMoveWindow(void* pUserData)
+void wndMoveWindow(void* UserData)
 {
     WindowDesc* pWindow = pWindowRef;
 
-    wndSetWindowed(pUserData);
+    wndSetWindowed(UserData);
     int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
         clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
     RectDesc rectDesc{ pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndX + pWindowRef->wndW, pWindowRef->wndY + pWindowRef->wndH };
@@ -161,11 +161,11 @@ void wndMoveWindow(void* pUserData)
     LOGF(LogLevel::Info, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->wndW, pWindowRef->wndH) ? "SUCCESS" : "FAIL");
 }
 
-void wndSetRecommendedWindowSize(void* pUserData)
+void wndSetRecommendedWindowSize(void* UserData)
 {
     WindowDesc* pWindow = pWindowRef;
 
-    wndSetWindowed(pUserData);
+    wndSetWindowed(UserData);
 
     RectDesc rect;
     getRecommendedWindowRect(pWindowRef, &rect);
@@ -190,18 +190,18 @@ void wndShowCursor()
     showCursor();
 }
 
-void wndUpdateCaptureCursor(void* pUserData)
+void wndUpdateCaptureCursor(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
 #ifdef ENABLE_FORGE_INPUT
     setEnableCaptureInput(pWindowRef->cursorCaptureRequested);
 #endif
 }
 
 #if defined(AUTOMATED_TESTING)
-void wndTakeScreenshot(void* pUserData)
+void wndTakeScreenshot(void* UserData)
 {
-    UNREF_PARAM(pUserData);
+    UNREF_PARAM(UserData);
     char screenShotName[256];
     snprintf(screenShotName, sizeof(screenShotName), "%s_%s", gAppName, gScriptNameBuffer);
 
@@ -312,21 +312,21 @@ void platformUpdateWindowSystem()
 #endif
 }
 
-extern void wndSetWindowed(void* pUserData);
+extern void wndSetWindowed(void* UserData);
 
-extern void wndSetWindowed(void* pUserData);
-extern void wndSetFullscreen(void* pUserData);
-extern void wndSetBorderless(void* pUserData);
-extern void wndMaximizeWindow(void* pUserData);
-extern void wndMinimizeWindow(void* pUserData);
+extern void wndSetWindowed(void* UserData);
+extern void wndSetFullscreen(void* UserData);
+extern void wndSetBorderless(void* UserData);
+extern void wndMaximizeWindow(void* UserData);
+extern void wndMinimizeWindow(void* UserData);
 extern void wndHideWindow();
 extern void wndShowWindow();
-extern void wndUpdateResolution(void* pUserData);
-extern void wndMoveWindow(void* pUserData);
-extern void wndSetRecommendedWindowSize(void* pUserData);
+extern void wndUpdateResolution(void* UserData);
+extern void wndMoveWindow(void* UserData);
+extern void wndSetRecommendedWindowSize(void* UserData);
 extern void wndHideCursor();
 extern void wndShowCursor();
-extern void wndUpdateCaptureCursor(void* pUserData);
+extern void wndUpdateCaptureCursor(void* UserData);
 extern void platformInitWindowSystem(WindowDesc* Data);
 extern void platformExitWindowSystem();
 extern void platformSetupWindowSystemUI(IApp* pApp)

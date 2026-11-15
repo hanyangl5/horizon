@@ -641,7 +641,7 @@ typedef enum InputActionPhase
 
 typedef struct InputActionContext
 {
-    void*   pUserData = NULL;
+    void*   UserData = NULL;
     /// Indices of fingers for detected gesture
     int32_t fingerIndices[MAX_INPUT_MULTI_TOUCHES] = { 0 };
     union
@@ -679,8 +679,8 @@ typedef struct InputActionDesc
     uint32_t            actionId = UINT_MAX;
     /// Callback when an action is initiated, performed or canceled
     InputActionCallback pFunction = NULL;
-    /// User data which will be assigned to InputActionContext::pUserData when calling pFunction
-    void*               pUserData = NULL;
+    /// User data which will be assigned to InputActionContext::UserData when calling pFunction
+    void*               UserData = NULL;
     /// User management (which user does this action apply to)
     uint8_t             userId = 0u;
 
@@ -707,8 +707,8 @@ typedef struct GlobalInputActionDesc
 
     /// Callback when an action is initiated, performed or canceled
     InputActionCallback pFunction = NULL;
-    /// User data which will be assigned to InputActionContext::pUserData when calling pFunction
-    void*               pUserData = NULL;
+    /// User data which will be assigned to InputActionContext::UserData when calling pFunction
+    void*               UserData = NULL;
 } GlobalInputActionDesc;
 
 typedef struct InputSystemDesc

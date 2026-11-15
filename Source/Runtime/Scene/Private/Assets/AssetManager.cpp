@@ -193,7 +193,7 @@ public:
     {
         if (asset.pPayload)
         {
-            loaders[(uint32_t)asset.pEntry->type].pDestroyPayload(asset.pPayload, loaders[(uint32_t)asset.pEntry->type].pUserData);
+            loaders[(uint32_t)asset.pEntry->type].pDestroyPayload(asset.pPayload, loaders[(uint32_t)asset.pEntry->type].UserData);
             asset.pPayload = nullptr;
         }
     }
@@ -271,7 +271,7 @@ public:
         const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->type];
         if (asset.state == AssetState::Queued)
         {
-            asset.pRequest = loader.pBegin(*asset.pEntry, { .index = index, .generation = asset.generation }, loader.pUserData);
+            asset.pRequest = loader.pBegin(*asset.pEntry, { .index = index, .generation = asset.generation }, loader.UserData);
             if (!asset.pRequest)
                 fail(asset, AssetError::LoadFailed, "The loader rejected the asset");
             else
@@ -279,13 +279,13 @@ public:
         }
         if (asset.pRequest)
         {
-            const AssetLoadResult result = loader.pPoll(asset.pRequest, loader.pUserData);
+            const AssetLoadResult result = loader.pPoll(asset.pRequest, loader.UserData);
             if (result.status == AssetLoadStatus::Pending)
             {
                 ASSERT(!result.pPayload);
                 return true;
             }
-            loader.pDestroyRequest(asset.pRequest, loader.pUserData);
+            loader.pDestroyRequest(asset.pRequest, loader.UserData);
             asset.pRequest = nullptr;
             asset.pPayload = result.pPayload;
             if (asset.state == AssetState::Retiring)
@@ -306,7 +306,7 @@ public:
             {
                 asset.uploading = true;
                 asset.state = AssetState::UploadingGPU;
-                loader.pUpload(asset.pPayload, assetManager, { asset.pDependencies, asset.pEntry->dependencies.Count }, loader.pUserData);
+                loader.pUpload(asset.pPayload, assetManager, { asset.pDependencies, asset.pEntry->dependencies.Count }, loader.UserData);
             }
             else
             {
@@ -315,7 +315,7 @@ public:
         }
         if (asset.uploading)
         {
-            const AssetLoadStatus status = loader.pPollUpload(asset.pPayload, loader.pUserData);
+            const AssetLoadStatus status = loader.pPollUpload(asset.pPayload, loader.UserData);
             if (status == AssetLoadStatus::Pending)
             {
                 return true;
@@ -643,13 +643,13 @@ void AssetManager::shutdown()
         if (asset.pRequest)
         {
             const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->type];
-            loader.pDestroyRequest(asset.pRequest, loader.pUserData);
+            loader.pDestroyRequest(asset.pRequest, loader.UserData);
             asset.pRequest = nullptr;
         }
         if (asset.uploading)
         {
             const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->type];
-            loader.pWaitUpload(asset.pPayload, loader.pUserData);
+            loader.pWaitUpload(asset.pPayload, loader.UserData);
             asset.uploading = false;
         }
     }

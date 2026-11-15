@@ -73,9 +73,9 @@ public:
         return true;
     }
 
-    static void execute(void* pUser, uint64_t)
+    static void execute(void* User, uint64_t)
     {
-        SceneLoadRequest*     pRequest = (SceneLoadRequest*)pUser;
+        SceneLoadRequest*     pRequest = (SceneLoadRequest*)User;
         const AssetLoadStatus status = pRequest->decode() ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed;
         tfrg_atomic32_store_release(&pRequest->status, (uint32_t)status);
     }
@@ -109,9 +109,9 @@ public:
             threadSystemExit(&threads, &gThreadSystemExitDescDefault);
     }
 
-    static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* pUser)
+    static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* User)
     {
-        SceneAssetLoaderData* pLoader = (SceneAssetLoaderData*)pUser;
+        SceneAssetLoaderData* pLoader = (SceneAssetLoaderData*)User;
         if (!pLoader->threads || entry.type != AssetType::Scene || entry.location.root != AssetPathRoot::Cooked ||
             entry.location.elementIndex != UINT32_MAX)
         {
@@ -134,11 +134,11 @@ public:
         return { .status = status, .pPayload = pScene };
     }
 
-    static void destroyRequest(void* pJob, void* pUser)
+    static void destroyRequest(void* pJob, void* User)
     {
         SceneLoadRequest* pRequest = (SceneLoadRequest*)pJob;
         if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&pRequest->status) == AssetLoadStatus::Pending)
-            threadSystemWaitIdle(((SceneAssetLoaderData*)pUser)->threads);
+            threadSystemWaitIdle(((SceneAssetLoaderData*)User)->threads);
         MemDelete(pRequest);
     }
 
@@ -153,7 +153,7 @@ SceneAssetLoader::~SceneAssetLoader() { MemDelete(Data); }
 
 AssetLoader SceneAssetLoader::getLoader()
 {
-    return { .pUserData = Data,
+    return { .UserData = Data,
              .pBegin = SceneAssetLoaderData::begin,
              .pPoll = SceneAssetLoaderData::poll,
              .pDestroyRequest = SceneAssetLoaderData::destroyRequest,

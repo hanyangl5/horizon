@@ -68,7 +68,7 @@ typedef uint64_t uint64;
 #include "../../../Switch/Common_3/OS/NX/NXTypes.h"
 
 #elif defined(ORBIS)
-#define THREAD_STACK_SIZE_ORBIS (64u * TF_KB)
+#define THREAD_STACK_SIZE_ORBIS (64u * Kilobyte)
 #endif
 
 #include <stdint.h>

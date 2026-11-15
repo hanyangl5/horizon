@@ -346,8 +346,8 @@ TEST_F(SceneWorldTest, GuidGenerationIsInjectableAndIdentitiesAreScopedToEachWor
     ASSERT_TRUE(types.registerBuiltins());
     GuidSource       firstSource;
     GuidSource       secondSource;
-    hz::World        first(types, { .pGenerate = generateGuid, .pUserData = &firstSource });
-    hz::World        second(types, { .pGenerate = generateGuid, .pUserData = &secondSource });
+    hz::World        first(types, { .pGenerate = generateGuid, .UserData = &firstSource });
+    hz::World        second(types, { .pGenerate = generateGuid, .UserData = &secondSource });
     const hz::Entity a = first.createPersistentEntity();
     const hz::Entity b = second.createPersistentEntity();
     ASSERT_TRUE(first.isAlive(a));

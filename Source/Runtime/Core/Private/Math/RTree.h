@@ -49,8 +49,8 @@
 extern "C"
 {
 #endif
-    typedef void (*ForEachRLeafItemIntersectionFn)(void* pUserData, void* Data);
-    typedef bool (*CompareRLeafItemFn)(void* pUserData, void* Data);
+    typedef void (*ForEachRLeafItemIntersectionFn)(void* UserData, void* Data);
+    typedef bool (*CompareRLeafItemFn)(void* UserData, void* Data);
 
     typedef struct RTreeDescriptor
     {
@@ -65,7 +65,7 @@ extern "C"
     void exitRTree(RTree* pRTree);
     void insertRTreePoint(RTree* pRTree, const float point[2], void* Data);
     bool removeRTreePoint(RTree* pRTree, const float point[2], void* pToCompare, CompareRLeafItemFn pFn);
-    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* pUserData);
+    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* UserData);
 
     // For Visual Studio IntelliSense.
 #if defined(__cplusplus) && defined(__INTELLISENSE__)
@@ -576,7 +576,7 @@ extern "C"
         ++pRTree->dataCount;
     }
 
-    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* pUserData)
+    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* UserData)
     {
         ASSERT(pRTree);
         uint32_t tree_stack[RTREE_STACK_SIZE];
@@ -594,7 +594,7 @@ extern "C"
                         // check element against area
                         if (rtree_box_contains_point(minMax, pRTree->pPoints[pRTree->pIndices[node->leftOrFirst + i]]))
                         {
-                            pFn(pUserData, pRTree->ppData[pRTree->pIndices[node->leftOrFirst + i]]);
+                            pFn(UserData, pRTree->ppData[pRTree->pIndices[node->leftOrFirst + i]]);
                         }
                     }
                 }

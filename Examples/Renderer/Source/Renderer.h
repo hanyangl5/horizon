@@ -232,7 +232,7 @@ private:
     // The glTF cook check only touches files, so it runs while the device is created.
     void BeginSceneCook()
     {
-        ThreadDesc Thread = { .pFunc = SceneCookTask, .Data = this, .threadName = "SceneCook" };
+        ThreadDesc Thread = { .Func = SceneCookTask, .Data = this, .threadName = "SceneCook" };
         if (!InitThread(&Thread, &CookThread))
             CookThread = nullptr;
     }

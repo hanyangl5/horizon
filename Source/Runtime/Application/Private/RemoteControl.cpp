@@ -531,7 +531,7 @@
 //     socketCreateServer(&pRemoteAppServer->mServerListenSocket, &addr, 0);
 
 //     ThreadDesc threadDesc = {};
-//     threadDesc.pFunc = server;
+//     threadDesc.Func = server;
 //     threadDesc.Data = NULL;
 //     strncpy(threadDesc.threadName, "RemoteAppServerThread", sizeof(threadDesc.threadName));
 //     InitThread(&threadDesc, &pRemoteAppServer->mServerThread);
@@ -904,7 +904,7 @@
 //         init_circular_buffer(&pRemoteControlClient->mReceivedTextureData, DrawBufferSize);
 
 //         ThreadDesc threadDesc = {};
-//         threadDesc.pFunc = client;
+//         threadDesc.Func = client;
 //         threadDesc.Data = NULL;
 //         strncpy(threadDesc.threadName, "RemoteControlClientThread", sizeof(threadDesc.threadName));
 //         InitThread(&threadDesc, &pRemoteControlClient->mClientThread);

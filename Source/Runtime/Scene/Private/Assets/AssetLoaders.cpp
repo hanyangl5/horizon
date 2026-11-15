@@ -25,7 +25,7 @@ public:
     AssetSource(AssetLoadersData& owner, const char* pFile);
     ~AssetSource() { MemDeallocate(pPath); }
     void        release();
-    static void decode(void* pUser, uint64_t);
+    static void decode(void* User, uint64_t);
     bool        read(ResourceDirectory directory);
 
     AssetLoadersData& owner;
@@ -55,9 +55,9 @@ public:
     void            release();
     AssetLoadStatus poll();
     bool            buildBounds();
-    static void     decodeBounds(void* pUser, uint64_t)
+    static void     decodeBounds(void* User, uint64_t)
     {
-        AssetGeometry& geometry = *(AssetGeometry*)pUser;
+        AssetGeometry& geometry = *(AssetGeometry*)User;
         const bool     success = geometry.buildBounds();
         if (!success)
             LOGF(Error, "Invalid Mesh positions or draw ranges in '%s'", geometry.pPath);
@@ -153,9 +153,9 @@ public:
         return pGeometry;
     }
 
-    static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* pUser)
+    static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* User)
     {
-        AssetLoadersData& loader = *(AssetLoadersData*)pUser;
+        AssetLoadersData& loader = *(AssetLoadersData*)User;
         if (!loader.threads || (entry.type != AssetType::Mesh && entry.type != AssetType::Material) ||
             entry.location.root != AssetPathRoot::Cooked || entry.location.elementIndex == UINT32_MAX)
         {
@@ -232,10 +232,10 @@ public:
     static void destroyMesh(void* pPayload, void*) { MemDelete((MeshAsset*)pPayload); }
     static void destroyMaterial(void* pPayload, void*) { MemDelete((MaterialAsset*)pPayload); }
 
-    static void uploadMesh(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
+    static void uploadMesh(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
     {
         MeshAsset& mesh = *(MeshAsset*)pPayload;
-        mesh.pGeometry = ((AssetLoadersData*)pUser)->acquireGeometry(mesh.getDescription().pGeometry);
+        mesh.pGeometry = ((AssetLoadersData*)User)->acquireGeometry(mesh.getDescription().pGeometry);
     }
     static AssetLoadStatus pollMesh(void* pPayload, void*)
     {
@@ -301,9 +301,9 @@ bool AssetSource::read(ResourceDirectory directory)
     CloseStream(&stream);
     return read == (size_t)Size && scene.parse({ json.GetData(), json.Size() });
 }
-void AssetSource::decode(void* pUser, uint64_t)
+void AssetSource::decode(void* User, uint64_t)
 {
-    AssetSource& source = *(AssetSource*)pUser;
+    AssetSource& source = *(AssetSource*)User;
     const bool   success = source.read(source.owner.desc.cookedDirectory);
     if (!success)
         LOGF(Error, "Cannot decode Mesh/Material source '%s'", source.pPath);
@@ -469,12 +469,12 @@ void AssetLoaders::registerLoaders(AssetManager& assetManager)
 {
     assetManager.setLoader(AssetType::Scene, Data->sceneLoader.getLoader());
     assetManager.setLoader(AssetType::Texture, Data->textureLoader.getLoader());
-    assetManager.setLoader(AssetType::Material, { .pUserData = Data,
+    assetManager.setLoader(AssetType::Material, { .UserData = Data,
                                                   .pBegin = AssetLoadersData::begin,
                                                   .pPoll = AssetLoadersData::poll,
                                                   .pDestroyRequest = AssetLoadersData::destroyRequest,
                                                   .pDestroyPayload = AssetLoadersData::destroyMaterial });
-    assetManager.setLoader(AssetType::Mesh, { .pUserData = Data,
+    assetManager.setLoader(AssetType::Mesh, { .UserData = Data,
                                               .pBegin = AssetLoadersData::begin,
                                               .pPoll = AssetLoadersData::poll,
                                               .pDestroyRequest = AssetLoadersData::destroyRequest,

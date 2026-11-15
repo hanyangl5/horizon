@@ -468,7 +468,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
                             !StreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
     {
         LOGF(Error, "Could not map shader source '%s'", input.pFileName);
-        if (sourceFile.pIO)
+        if (sourceFile.FileSystem)
             CloseStream(&sourceFile);
         return {};
     }
@@ -509,7 +509,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
         shader = createSlangShader(source);
     else
         addShaderSource(pRenderer, &source, &shader);
-    if (sourceFile.pIO)
+    if (sourceFile.FileSystem)
         CloseStream(&sourceFile);
     ASSERT(shader);
     return shader;

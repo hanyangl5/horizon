@@ -62,16 +62,16 @@ class AssetManager;
 // Callbacks may query dependencies, but must not mutate the asset manager. Payload type matches the registered AssetType.
 struct AssetLoader
 {
-    void* pUserData = nullptr;
+    void* UserData = nullptr;
     void* (*pBegin)(const AssetCatalogEntry&, AssetHandle, void*) = nullptr;
-    AssetLoadResult (*pPoll)(void* pRequest, void* pUserData) = nullptr;
+    AssetLoadResult (*pPoll)(void* pRequest, void* UserData) = nullptr;
     // On shutdown this must drain unfinished work before destroying the request.
-    void (*pDestroyRequest)(void* pRequest, void* pUserData) = nullptr;
-    void (*pDestroyPayload)(void* pPayload, void* pUserData) = nullptr;
+    void (*pDestroyRequest)(void* pRequest, void* UserData) = nullptr;
+    void (*pDestroyPayload)(void* pPayload, void* UserData) = nullptr;
     // Optional GPU phase, called after all dependencies are ready. pollUpload owns failure detection and drains partial uploads.
-    void (*pUpload)(void* pPayload, const AssetManager&, Span<AssetHandle> dependencies, void* pUserData) = nullptr;
-    AssetLoadStatus (*pPollUpload)(void* pPayload, void* pUserData) = nullptr;
-    void (*pWaitUpload)(void* pPayload, void* pUserData) = nullptr;
+    void (*pUpload)(void* pPayload, const AssetManager&, Span<AssetHandle> dependencies, void* UserData) = nullptr;
+    AssetLoadStatus (*pPollUpload)(void* pPayload, void* UserData) = nullptr;
+    void (*pWaitUpload)(void* pPayload, void* UserData) = nullptr;
 };
 
 class SceneAsset;

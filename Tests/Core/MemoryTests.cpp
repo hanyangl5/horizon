@@ -99,7 +99,7 @@ TEST(CoreMemoryTest, ConcurrentReallocationsLeaveNoLiveAllocations)
     ThreadHandle threads[4] = {};
     uint32_t     started = 0;
     ThreadDesc   desc = {
-          .pFunc =
+          .Func =
             [](void*)
         {
             for (uint32_t i = 0; i < 256; ++i)

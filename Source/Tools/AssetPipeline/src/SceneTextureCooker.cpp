@@ -73,7 +73,7 @@ static bool decodeImageURI(const char* pURI, hz::Array<uint8_t>& bytes)
     // Decode through cgltf into the already sized buffer.
     cgltf_options options = {};
     options.memory_user_data = bytes.GetData();
-    options.memory_alloc = [](void* pUser, cgltf_size) { return pUser; };
+    options.memory_alloc = [](void* User, cgltf_size) { return User; };
     options.memory_free = [](void*, void*) {};
     void* pDecoded = nullptr;
     return cgltf_load_buffer_base64(&options, bytes.Size(), pEncoded, &pDecoded) == cgltf_result_success;

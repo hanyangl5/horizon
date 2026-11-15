@@ -45,7 +45,7 @@ public:
 
     hz::AssetLoader getLoader()
     {
-        return { .pUserData = this, .pBegin = begin, .pPoll = poll, .pDestroyRequest = destroyRequest, .pDestroyPayload = destroyPayload };
+        return { .UserData = this, .pBegin = begin, .pPoll = poll, .pDestroyRequest = destroyRequest, .pDestroyPayload = destroyPayload };
     }
 
     hz::AssetLoader getGpuLoader()
@@ -56,24 +56,24 @@ public:
         loader.pWaitUpload = waitUpload;
         return loader;
     }
-    static void upload(void*, const hz::AssetManager& assetManager, hz::Span<hz::AssetHandle> dependencies, void* pUser)
+    static void upload(void*, const hz::AssetManager& assetManager, hz::Span<hz::AssetHandle> dependencies, void* User)
     {
-        ++((TestAssetLoader*)pUser)->uploads;
+        ++((TestAssetLoader*)User)->uploads;
         for (hz::AssetHandle dependency : dependencies)
             EXPECT_EQ(assetManager.getState(dependency), hz::AssetState::Ready);
     }
-    static hz::AssetLoadStatus pollUpload(void*, void* pUser)
+    static hz::AssetLoadStatus pollUpload(void*, void* User)
     {
-        TestAssetLoader& loader = *(TestAssetLoader*)pUser;
+        TestAssetLoader& loader = *(TestAssetLoader*)User;
         if (!loader.uploadReady)
             return hz::AssetLoadStatus::Pending;
         return loader.uploadFailed ? hz::AssetLoadStatus::Failed : hz::AssetLoadStatus::Succeeded;
     }
-    static void waitUpload(void*, void* pUser) { ++((TestAssetLoader*)pUser)->uploadWaits; }
+    static void waitUpload(void*, void* User) { ++((TestAssetLoader*)User)->uploadWaits; }
 
-    static void* begin(const hz::AssetCatalogEntry& entry, hz::AssetHandle, void* pUser)
+    static void* begin(const hz::AssetCatalogEntry& entry, hz::AssetHandle, void* User)
     {
-        TestAssetLoader& loader = *(TestAssetLoader*)pUser;
+        TestAssetLoader& loader = *(TestAssetLoader*)User;
         const uint32_t   id = (uint32_t)entry.id.low;
         ++loader.begun;
         if (loader.failBegin == id)
@@ -97,19 +97,19 @@ public:
         return result;
     }
 
-    static void destroyRequest(void* pRequest, void* pUser)
+    static void destroyRequest(void* pRequest, void* User)
     {
-        TestAssetLoader& loader = *(TestAssetLoader*)pUser;
+        TestAssetLoader& loader = *(TestAssetLoader*)User;
         Job*             pJob = (Job*)pRequest;
         ++loader.requestsDestroyed;
         if (pJob->pPayload)
-            destroyPayload(pJob->pPayload, pUser);
+            destroyPayload(pJob->pPayload, User);
         MemDelete(pJob);
     }
 
-    static void destroyPayload(void* pPayload, void* pUser)
+    static void destroyPayload(void* pPayload, void* User)
     {
-        TestAssetLoader& loader = *(TestAssetLoader*)pUser;
+        TestAssetLoader& loader = *(TestAssetLoader*)User;
         Payload*         pValue = (Payload*)pPayload;
         loader.destroyed.push_back(pValue->id);
         MemDelete(pValue);

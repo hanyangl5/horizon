@@ -1897,7 +1897,7 @@ struct CommandSignatureDesc
 struct CommandSignature
 {
 #if defined(DIRECT3D12)
-    ID3D12CommandSignature* pHandle;
+    ID3D12CommandSignature* Handle;
 #endif
     IndirectArgumentType drawType;
     uint32_t             stride;

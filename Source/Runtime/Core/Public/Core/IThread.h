@@ -90,10 +90,10 @@ extern "C"
         CRITICAL_SECTION handle;
 #elif defined(NX64)
     MutexTypeNX             mutexPlatformNX;
-    uint32_t                spinCount;
+    uint32_t                SpinCount;
 #else
-    pthread_mutex_t pHandle;
-    uint32_t        spinCount;
+    pthread_mutex_t Handle;
+    uint32_t        SpinCount;
 #endif
     } Mutex;
 
@@ -109,11 +109,11 @@ extern "C"
     typedef struct ConditionVariable
     {
 #if defined(_WINDOWS) || defined(XBOX)
-        void* pHandle;
+        void* Handle;
 #elif defined(NX64)
     ConditionVariableTypeNX condPlatformNX;
 #else
-    pthread_cond_t  pHandle;
+    pthread_cond_t  Handle;
 #endif
     } ConditionVariable;
 
@@ -130,7 +130,7 @@ extern "C"
     typedef struct ThreadDesc
     {
         /// Work item description and thread index (Main thread => 0)
-        ThreadFunction pFunc;
+        ThreadFunction Func;
         void*          Data;
         char           threadName[MAX_THREAD_NAME_LENGTH];
 
@@ -160,7 +160,7 @@ extern "C"
 typedef pthread_t ThreadHandle;
 #endif
 
-    FORGE_API bool InitThread(ThreadDesc* pItem, ThreadHandle* pHandle);
+    FORGE_API bool InitThread(ThreadDesc* pItem, ThreadHandle* Handle);
     FORGE_API void JoinThread(ThreadHandle handle);
     FORGE_API void DetachThread(ThreadHandle handle);
 

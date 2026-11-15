@@ -349,7 +349,7 @@ void DrawDriverMemoryTrackingUI(void*)
     static bool driverMemUsageShowKB = false;
     ImGui::Checkbox("Driver Memory Show In Kilobytes", &driverMemUsageShowKB);
     const char* memUnit = driverMemUsageShowKB ? "KB" : "MB";
-    size_t      memDivisor = driverMemUsageShowKB ? TF_KB : TF_MB;
+    size_t      memDivisor = driverMemUsageShowKB ? Kilobyte : Megabyte;
 
     if (ImGui::TreeNodeEx("DriverMemoryTracking", ImGuiTreeNodeFlags_DefaultOpen, "Total Driver Memory Usage: %zu %s | Alloc Count: %zu",
                           (size_t)(totDriverMemory / memDivisor), memUnit, (size_t)totDriverAllocs))
@@ -424,7 +424,7 @@ void DrawDeviceMemoryReportUI(void*)
     static bool memReportMemUsageShowKB = false;
     ImGui::Checkbox("Memory Report EXT Memory Show In Kilobytes", &memReportMemUsageShowKB);
     const char*  memUnit = memReportMemUsageShowKB ? "KB" : "MB";
-    const size_t memDivisor = memReportMemUsageShowKB ? TF_KB : TF_MB;
+    const size_t memDivisor = memReportMemUsageShowKB ? Kilobyte : Megabyte;
 
     if (ImGui::TreeNodeEx("DeviceMemoryReport", ImGuiTreeNodeFlags_DefaultOpen, "Total GPU Memory: %zu %s | Alloc Count: %zu",
                           memReportTotalMemory / memDivisor, memUnit, memReportTotalAllocCount))
@@ -1011,7 +1011,7 @@ static CustomWidget* cloneCustomWidget(const void* pWidget)
     CustomWidget*       pClonedWidget = (CustomWidget*)MemCallocate(1, sizeof(CustomWidget));
 
     pClonedWidget->pCallback = pOriginalWidget->pCallback;
-    pClonedWidget->pUserData = pOriginalWidget->pUserData;
+    pClonedWidget->UserData = pOriginalWidget->UserData;
     pClonedWidget->pDestroyCallback = pOriginalWidget->pDestroyCallback;
 
     return pClonedWidget;
@@ -1874,7 +1874,7 @@ void processCustomWidget(UIWidget* pWidget)
     CustomWidget* pOriginalWidget = (CustomWidget*)(pWidget->pWidget);
 
     if (pOriginalWidget->pCallback)
-        pOriginalWidget->pCallback(pOriginalWidget->pUserData);
+        pOriginalWidget->pCallback(pOriginalWidget->UserData);
 
     // Note that we do not process widget callbacks for custom widgets
 }
@@ -2154,7 +2154,7 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
         {
             CustomWidget* pOriginalWidget = (CustomWidget*)(pWidget->pWidget);
             if (pOriginalWidget->pDestroyCallback)
-                pOriginalWidget->pDestroyCallback(pOriginalWidget->pUserData);
+                pOriginalWidget->pDestroyCallback(pOriginalWidget->UserData);
             break;
         }
 
@@ -2424,62 +2424,62 @@ void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred)
 #endif
 }
 
-void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnHoverUserData = pUserData;
+    pWidget->pOnHoverUserData = UserData;
     pWidget->pOnHover = callback;
 #endif
 }
 
-void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnActiveUserData = pUserData;
+    pWidget->pOnActiveUserData = UserData;
     pWidget->pOnActive = callback;
 #endif
 }
 
-void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnFocusUserData = pUserData;
+    pWidget->pOnFocusUserData = UserData;
     pWidget->pOnFocus = callback;
 #endif
 }
 
-void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnEditedUserData = pUserData;
+    pWidget->pOnEditedUserData = UserData;
     pWidget->pOnEdited = callback;
 #endif
 }
 
-void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnDeactivatedUserData = pUserData;
+    pWidget->pOnDeactivatedUserData = UserData;
     pWidget->pOnDeactivated = callback;
 #endif
 }
 
-void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnDeactivatedAfterEditUserData = pUserData;
+    pWidget->pOnDeactivatedAfterEditUserData = UserData;
     pWidget->pOnDeactivatedAfterEdit = callback;
 #endif
 }
@@ -2720,7 +2720,7 @@ void platformUpdateUserInterface(float deltaTime)
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, pComponent->alpha);
 
             if (pComponent->pPreProcessCallback)
-                pComponent->pPreProcessCallback(pComponent->pUserData);
+                pComponent->pPreProcessCallback(pComponent->UserData);
 
             bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
             if (result)
@@ -2733,7 +2733,7 @@ void platformUpdateUserInterface(float deltaTime)
                         if (ImGui::MenuItem(contextualMenuLabels[i]))
                         {
                             if (contextualMenuCallbacks && contextualMenuCallbacks[i])
-                                contextualMenuCallbacks[i](pComponent->pUserData);
+                                contextualMenuCallbacks[i](pComponent->UserData);
                         }
                     }
                     ImGui::EndPopup();
@@ -2776,7 +2776,7 @@ void platformUpdateUserInterface(float deltaTime)
             ImGui::End();
 
             if (pComponent->pPostProcessCallback)
-                pComponent->pPostProcessCallback(pComponent->pUserData);
+                pComponent->pPostProcessCallback(pComponent->UserData);
 
             ImGui::PopStyleVar();
             ImGui::PopFont();

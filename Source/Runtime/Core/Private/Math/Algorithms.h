@@ -32,7 +32,7 @@ extern "C"
 {
 #endif // __cplusplus
 
-    typedef bool (*LessFn)(const void* pLhs, const void* pRhs, void* pUserData);
+    typedef bool (*LessFn)(const void* pLhs, const void* pRhs, void* UserData);
 
     /*
      * Generic C algorithms
@@ -40,11 +40,11 @@ extern "C"
      * Use macros from AlgorithmsImpl to create non-generic functions for performance critical code
      */
 
-    void Sort(void* Data, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
+    void Sort(void* Data, size_t memberCount, size_t memberSize, LessFn less, void* UserData);
 
-    void StableSort(void* Data, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
+    void StableSort(void* Data, size_t memberCount, size_t memberSize, LessFn less, void* UserData);
 
-    size_t Partition(void* Data, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
+    size_t Partition(void* Data, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* UserData);
 
     /*
      * Numeric C algorithms

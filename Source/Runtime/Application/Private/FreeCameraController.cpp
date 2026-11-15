@@ -28,7 +28,7 @@ void FreeCameraController::stop()
 
 bool FreeCameraController::onInput(InputActionContext* pInput)
 {
-    FreeCameraController* pController = (FreeCameraController*)pInput->pUserData;
+    FreeCameraController* pController = (FreeCameraController*)pInput->UserData;
     const bool            ended = pInput->phase == INPUT_ACTION_PHASE_CANCELED || pInput->phase == INPUT_ACTION_PHASE_ENDED;
     switch (pInput->actionId)
     {
@@ -107,7 +107,7 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
     addActionMappings(mappings, TF_ARRAY_COUNT(mappings), INPUT_ACTION_MAPPING_TARGET_ALL);
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(mappings); ++i)
     {
-        const InputActionDesc action = { .actionId = mappings[i].actionId, .pFunction = onInput, .pUserData = this };
+        const InputActionDesc action = { .actionId = mappings[i].actionId, .pFunction = onInput, .UserData = this };
         addInputAction(&action);
     }
 }

@@ -10,8 +10,8 @@ constexpr uint32_t kIDStringCapacity = 37;
 struct IDGenerator
 {
     // Optional source for deterministic tools/tests. Bytes use canonical UUID order.
-    bool (*pGenerate)(void* pUserData, uint8_t (&bytes)[16]) = nullptr;
-    void* pUserData = nullptr;
+    bool (*pGenerate)(void* UserData, uint8_t (&bytes)[16]) = nullptr;
+    void* UserData = nullptr;
 };
 
 // high/low follow the canonical UUID text order, independently of host byte order.
